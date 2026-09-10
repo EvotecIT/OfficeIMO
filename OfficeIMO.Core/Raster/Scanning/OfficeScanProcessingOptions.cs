@@ -16,6 +16,14 @@ public enum OfficeScanColorMode {
 public sealed class OfficeScanProcessingOptions {
     /// <summary>Explicit clockwise quarter-turns, applied before deskew. Must be zero through three.</summary>
     public int ClockwiseQuarterTurns { get; set; }
+    /// <summary>Additional clockwise rotation, from minus fifteen through fifteen degrees, applied with any detected deskew correction.</summary>
+    public double StraightenDegrees { get; set; }
+    /// <summary>Input sample mapped to black, from zero through 254. Must be less than WhitePoint.</summary>
+    public int BlackPoint { get; set; }
+    /// <summary>Input sample mapped to white, from one through 255. Must exceed BlackPoint.</summary>
+    public int WhitePoint { get; set; } = 255;
+    /// <summary>Midtone gamma, from 0.1 through 10. Values above one lighten midtones.</summary>
+    public double Gamma { get; set; } = 1D;
     /// <summary>Detects a small text-line skew and corrects it only when the confidence threshold is met.</summary>
     public bool Deskew { get; set; } = true;
     /// <summary>Largest absolute skew considered, from one through fifteen degrees.</summary>
@@ -47,6 +55,10 @@ public sealed class OfficeScanProcessingOptions {
     /// <summary>Validates operation settings before allocating buffers or requesting provider work.</summary>
     public void Validate() {
         if (ClockwiseQuarterTurns < 0 || ClockwiseQuarterTurns > 3) throw new ArgumentOutOfRangeException(nameof(ClockwiseQuarterTurns));
+        if (!Finite(StraightenDegrees) || Math.Abs(StraightenDegrees) > 15D) throw new ArgumentOutOfRangeException(nameof(StraightenDegrees));
+        if (BlackPoint < 0 || BlackPoint > 254) throw new ArgumentOutOfRangeException(nameof(BlackPoint));
+        if (WhitePoint <= BlackPoint || WhitePoint > 255) throw new ArgumentOutOfRangeException(nameof(WhitePoint));
+        if (!Finite(Gamma) || Gamma < 0.1D || Gamma > 10D) throw new ArgumentOutOfRangeException(nameof(Gamma));
         if (!Finite(MaximumDeskewAngleDegrees) || MaximumDeskewAngleDegrees < 1D || MaximumDeskewAngleDegrees > 15D)
             throw new ArgumentOutOfRangeException(nameof(MaximumDeskewAngleDegrees));
         if (!Finite(MinimumDeskewConfidence) || MinimumDeskewConfidence < 0D || MinimumDeskewConfidence > 1D)

@@ -1698,4 +1698,162 @@
   <data name="Search.Clear" xml:space="preserve"><value>Clear</value></data>
   <data name="Search.Prompt" xml:space="preserve"><value>Enter text and choose Find.</value></data>
   <data name="Search.MatchCount" xml:space="preserve"><value>{0} match(es)</value></data>
+  <data name="ObjectEdit.DragHelp" xml:space="preserve"><value>Drag the selected image to move it. Drag its handles to resize proportionally; blue guides show alignment.</value></data>
+  <data name="ObjectEdit.Behind" xml:space="preserve"><value>Place edited image behind existing content</value></data>
+  <data name="ObjectEdit.LayerHelp" xml:space="preserve"><value>Image edits place the rewritten image above existing content unless the background option is selected. Original paint order cannot be preserved.</value></data>
+  <data name="ObjectEdit.Scale" xml:space="preserve"><value>Proportional size (%)</value></data>
+  <data name="ObjectEdit.ApplyScale" xml:space="preserve"><value>Resize selected image</value></data>
+  <data name="TextEdit.InlineText" xml:space="preserve"><value>Edit selected text on the page</value></data>
+  <data name="TextEdit.Preview" xml:space="preserve"><value>Preview replacement</value></data>
+  <data name="TextEdit.Replacement" xml:space="preserve"><value>Replacement text</value></data>
+  <data name="TextEdit.Matches" xml:space="preserve"><value>Replacement occurrences</value></data>
+  <data name="TextEdit.Include" xml:space="preserve"><value>Include page</value></data>
+  <data name="TextEdit.Font" xml:space="preserve"><value>Replacement font</value></data>
+  <data name="TextEdit.Size" xml:space="preserve"><value>Font size (empty preserves detected size)</value></data>
+  <data name="TextEdit.MinimumSize" xml:space="preserve"><value>Minimum shrink size</value></data>
+  <data name="TextEdit.Before" xml:space="preserve"><value>Original page</value></data>
+  <data name="TextEdit.FullPage" xml:space="preserve"><value>Show full page</value></data>
+  <data name="TextEdit.After" xml:space="preserve"><value>Prepared page</value></data>
+  <data name="TextEdit.Apply" xml:space="preserve"><value>Apply reviewed replacement</value></data>
+  <data name="TextEdit.FindMatches" xml:space="preserve"><value>Find and review occurrences</value></data>
+  <data name="TextEdit.FontDetected" xml:space="preserve"><value>Closest detected font</value></data>
+  <data name="TextEdit.FitReject" xml:space="preserve"><value>Reject overflow</value></data>
+  <data name="TextEdit.FitShrink" xml:space="preserve"><value>Shrink to fit</value></data>
+  <data name="TextEdit.FitFlow" xml:space="preserve"><value>Keep size and reflow nearby text</value></data>
+  <data name="TextEdit.SourceStyle" xml:space="preserve"><value>Source: {0}, {1:0.##} pt. Replacement uses a standard PDF font; review any substitution warnings.</value></data>
+  <data name="TextEdit.BatchStyle" xml:space="preserve"><value>Each selected occurrence keeps its detected size unless overridden. Review font substitutions and nearby text flow in the preview.</value></data>
+  <data name="TextEdit.TooManyMatches" xml:space="preserve"><value>Narrow the search to at most 2,000 occurrences before reviewing replacements.</value></data>
+  <data name="TextEdit.PreviewSummary" xml:space="preserve"><value>Prepared {0:N0} replacement(s). Review the rendered result before applying.</value></data>
+  <data name="Redaction.CopySaved" xml:space="preserve"><value>Saved the verified PDF copy. Its evidence report is ready to export.</value></data>
+  <data name="Redaction.SelectPages" xml:space="preserve"><value>Select at least one page in the page organizer.</value></data>
+  <data name="Redaction.TooManyMarks" xml:space="preserve"><value>A review can contain at most 2,000 marks. Narrow the search or remove some marks.</value></data>
+  <data name="Redaction.SearchResult" xml:space="preserve"><value>Found {0:N0} matching line(s). Review the marked areas before applying.</value></data>
+  <data name="Redaction.PendingSummary" xml:space="preserve"><value>{0:N0} of {1:N0} marks selected. Review their impact before applying.</value></data>
+  <data name="Redaction.ReviewedSummary" xml:space="preserve"><value>Reviewed {0:N0} areas across {1:N0} pages: {2:N0} text, {3:N0} image, {4:N0} annotation and {5:N0} vector matches.</value></data>
+  <data name="Redaction.SearchText" xml:space="preserve"><value>Text or pattern to find</value></data>
+  <data name="Redaction.Regex" xml:space="preserve"><value>Regular expression</value></data>
+  <data name="Redaction.MatchCase" xml:space="preserve"><value>Match case</value></data>
+  <data name="Redaction.SelectedPagesOnly" xml:space="preserve"><value>Selected organizer pages only</value></data>
+  <data name="Redaction.SearchScope" xml:space="preserve"><value>Search marks each matching line, including surrounding text on that line. Inspect the highlighted areas before applying.</value></data>
+  <data name="Redaction.FindMarks" xml:space="preserve"><value>Find and add marks</value></data>
+  <data name="Redaction.Marks" xml:space="preserve"><value>Pending redaction marks</value></data>
+  <data name="Redaction.Include" xml:space="preserve"><value>Include page</value></data>
+  <data name="Redaction.Reason" xml:space="preserve"><value>Reason for redaction</value></data>
+  <data name="Redaction.RemoveMark" xml:space="preserve"><value>Remove selected mark</value></data>
+  <data name="Redaction.ReviewImpact" xml:space="preserve"><value>Review selected marks</value></data>
+  <data name="Redaction.Sanitize" xml:space="preserve"><value>Sanitize after redaction</value></data>
+  <data name="Redaction.SanitizeScope" xml:space="preserve"><value>Also remove user metadata, embedded files, unsafe actions, comments and markup. Recheck the final PDF before accepting it.</value></data>
+  <data name="Redaction.SaveCopy" xml:space="preserve"><value>Save verified PDF copy</value></data>
+  <data name="Redaction.ExportReport" xml:space="preserve"><value>Export redaction evidence</value></data>
+  <data name="Redaction.EvidencePrivacy" xml:space="preserve"><value>Save the verified copy before exporting its report. The report contains fingerprints and counts; it excludes document text, search terms and reasons.</value></data>
+  <data name="Redaction.AdditionalCheck" xml:space="preserve"><value>Additional text check</value></data>
+  <data name="Redaction.BlockedPreparation" xml:space="preserve"><value>This document is not currently eligible for redaction. Documents with active content may need a sanitized copy before redaction planning.</value></data>
+  <data name="Redaction.OpenSanitization" xml:space="preserve"><value>Review sanitization options</value></data>
+  <data name="Conversion.Options.SourcePages" xml:space="preserve"><value>Source pages</value></data>
+  <data name="Conversion.Options.PagePlaceholder" xml:space="preserve"><value>All pages, or 1-3,5</value></data>
+  <data name="Conversion.Options.ScanHint" xml:space="preserve"><value>Scanned pages need OCR before editable text can be recovered.</value></data>
+  <data name="Conversion.Options.WordContent" xml:space="preserve"><value>Word content</value></data>
+  <data name="Conversion.Options.SlideContent" xml:space="preserve"><value>Slide content</value></data>
+  <data name="Conversion.Options.Resolution" xml:space="preserve"><value>Rendering resolution (DPI)</value></data>
+  <data name="Conversion.Options.VisualHint" xml:space="preserve"><value>Visual pages preserve appearance as images. Page text is not editable; higher resolution increases file size.</value></data>
+  <data name="Conversion.Options.WorksheetLayout" xml:space="preserve"><value>Worksheet layout</value></data>
+  <data name="Conversion.Options.HtmlLayout" xml:space="preserve"><value>HTML layout</value></data>
+  <data name="Conversion.Options.CompressPdf" xml:space="preserve"><value>Compress PDF after conversion</value></data>
+  <data name="Conversion.Options.Details" xml:space="preserve"><value>Conversion details</value></data>
+  <data name="Conversion.Preview.Action" xml:space="preserve"><value>Preview output</value></data>
+  <data name="Conversion.Output.Open" xml:space="preserve"><value>Open output</value></data>
+  <data name="Conversion.Mode.EditableContent" xml:space="preserve"><value>Editable content</value></data>
+  <data name="Conversion.Mode.VisualPages" xml:space="preserve"><value>Visual pages</value></data>
+  <data name="Conversion.Mode.HybridVisualAndEditableTables" xml:space="preserve"><value>Visual pages with editable tables</value></data>
+  <data name="Conversion.Mode.EditableTables" xml:space="preserve"><value>Editable tables only</value></data>
+  <data name="Conversion.Mode.WorksheetCanvas" xml:space="preserve"><value>Worksheet canvas</value></data>
+  <data name="Conversion.Mode.FlowTable" xml:space="preserve"><value>Flowing tables</value></data>
+  <data name="Conversion.Mode.PositionedReview" xml:space="preserve"><value>Positioned pages</value></data>
+  <data name="Conversion.Mode.Semantic" xml:space="preserve"><value>Semantic document</value></data>
+  <data name="Conversion.Preview.Loading" xml:space="preserve"><value>Preparing a sample of the saved output…</value></data>
+  <data name="Conversion.Preview.Sample" xml:space="preserve"><value>First pages of the saved artifact, rendered by OfficeIMO. Open the output to review the whole document.</value></data>
+  <data name="Conversion.Preview.Failed" xml:space="preserve"><value>Preview unavailable: </value></data>
+  <data name="Conversion.Output.OpenFailed" xml:space="preserve"><value>The output could not be opened: </value></data>
+  <data name="Conversion.Job.VisualFidelity" xml:space="preserve"><value>Visual page images · review rendering and editability limits</value></data>
+  <data name="Scan.Title" xml:space="preserve"><value>Scan preparation</value></data>
+  <data name="Scan.Hint" xml:space="preserve"><value>Preview a page, draw an OCR region, or correct a photographed page before recognition.</value></data>
+  <data name="Scan.Page" xml:space="preserve"><value>Preview page</value></data>
+  <data name="Scan.Cleanup" xml:space="preserve"><value>Apply scan cleanup</value></data>
+  <data name="Scan.Adjustments" xml:space="preserve"><value>Straightening and levels</value></data>
+  <data name="Scan.Deskew" xml:space="preserve"><value>Automatic deskew</value></data>
+  <data name="Scan.Background" xml:space="preserve"><value>Normalize paper brightness</value></data>
+  <data name="Scan.Turns" xml:space="preserve"><value>Clockwise quarter-turns</value></data>
+  <data name="Scan.Straighten" xml:space="preserve"><value>Straighten (degrees)</value></data>
+  <data name="Scan.Black" xml:space="preserve"><value>Black point</value></data>
+  <data name="Scan.White" xml:space="preserve"><value>White point</value></data>
+  <data name="Scan.Gamma" xml:space="preserve"><value>Midtone gamma</value></data>
+  <data name="Scan.Color" xml:space="preserve"><value>Color mode</value></data>
+  <data name="Scan.Region" xml:space="preserve"><value>Use drawn region (this page only)</value></data>
+  <data name="Scan.Perspective" xml:space="preserve"><value>Correct perspective</value></data>
+  <data name="Scan.MoveCorners" xml:space="preserve"><value>Move page corners instead of drawing a region</value></data>
+  <data name="Scan.Reset" xml:space="preserve"><value>Reset region and corners</value></data>
+  <data name="Scan.Preview" xml:space="preserve"><value>Preview preparation</value></data>
+  <data name="Scan.Source" xml:space="preserve"><value>Source page</value></data>
+  <data name="Scan.DrawHint" xml:space="preserve"><value>Drag to select a region. Enable perspective and move the four corners to the page edges. Preview again after adjustments.</value></data>
+  <data name="Scan.Prepared" xml:space="preserve"><value>Prepared appearance</value></data>
+  <data name="Scan.SaveHint" xml:space="preserve"><value>Save creates a separate raster PDF of this preview page. Native text, forms, links, signatures, and attachments are omitted. Recognize and review keeps the visible source unchanged.</value></data>
+  <data name="Scan.Save" xml:space="preserve"><value>Save reviewed page as raster PDF</value></data>
+  <data name="Scan.Refresh" xml:space="preserve"><value>Preview the current settings before saving a prepared copy.</value></data>
+  <data name="Scan.Ready" xml:space="preserve"><value>Prepared preview ready. Region OCR keeps the visible source page; saving a scan copy keeps only the prepared pixels.</value></data>
+  <data name="Scan.Color.Keep" xml:space="preserve"><value>Keep color</value></data>
+  <data name="Scan.Color.Gray" xml:space="preserve"><value>Grayscale</value></data>
+  <data name="Scan.Color.BlackWhite" xml:space="preserve"><value>Black and white</value></data>
+  <data name="Scan.KeyboardHint" xml:space="preserve"><value>With the source page focused, use arrow keys to move the region and Shift+arrow keys to resize it. In corner mode, choose corner 1–4 clockwise from top left, then use arrow keys.</value></data>
+  <data name="Ocr.Text.Hint" xml:space="preserve"><value>Recognize the selected scan page or region, review its words, and copy the text.</value></data>
+  <data name="Ocr.Text.Recognize" xml:space="preserve"><value>Recognize text to copy</value></data>
+  <data name="Ocr.Text.Copy" xml:space="preserve"><value>Copy reviewed text</value></data>
+  <data name="Ocr.Text.UseSelected" xml:space="preserve"><value>Use selected text</value></data>
+  <data name="Ocr.Text.CommitNote" xml:space="preserve"><value>Extract the selected words without creating a PDF.</value></data>
+  <data name="Ocr.Text.NoClipboard" xml:space="preserve"><value>Clipboard is unavailable. Select the text to copy it manually.</value></data>
+  <data name="Ocr.Text.Copied" xml:space="preserve"><value>Reviewed text copied.</value></data>
+  <data name="Ocr.Text.Preparing" xml:space="preserve"><value>Recognizing text on the selected scan page…</value></data>
+  <data name="Ocr.Text.Ready" xml:space="preserve"><value>Reviewed text is ready to copy.</value></data>
+  <data name="Ocr.Text.Empty" xml:space="preserve"><value>No eligible words were selected.</value></data>
+  <data name="Ocr.Text.Review" xml:space="preserve"><value>Review the recognized words to extract.</value></data>
+  <data name="Comparison.Compare" xml:space="preserve"><value>Find differences</value></data>
+  <data name="Comparison.Cancel" xml:space="preserve"><value>Cancel comparison</value></data>
+  <data name="Comparison.Previous" xml:space="preserve"><value>Previous changed page</value></data>
+  <data name="Comparison.Next" xml:space="preserve"><value>Next changed page</value></data>
+  <data name="Comparison.Differences" xml:space="preserve"><value>Changed pages</value></data>
+  <data name="Comparison.Highlight" xml:space="preserve"><value>Highlighted appearance changes</value></data>
+  <data name="Comparison.Comparing" xml:space="preserve"><value>Comparing page appearance…</value></data>
+  <data name="Comparison.Resized" xml:space="preserve"><value>Page size changed</value></data>
+  <data name="Comparison.Changed" xml:space="preserve"><value>Appearance changed</value></data>
+  <data name="Comparison.Added" xml:space="preserve"><value>Only in comparison</value></data>
+  <data name="Comparison.Removed" xml:space="preserve"><value>Only in current document</value></data>
+  <data name="Comparison.Match" xml:space="preserve"><value>No rendered differences found.</value></data>
+  <data name="Comparison.ChangedCount" xml:space="preserve"><value>{0:N0} page(s) differ. Red pixels show appearance changes; pages are paired by page number.</value></data>
+  <data name="Comparison.Cancelled" xml:space="preserve"><value>Comparison cancelled.</value></data>
+  <data name="Comparison.Ready" xml:space="preserve"><value>Compare the current document with this PDF. Pages are paired by page number.</value></data>
+  <data name="Comparison.PageLimit" xml:space="preserve"><value>Comparison is limited to 100 pages per document. Extract a smaller range for review.</value></data>
+  <data name="PrintPreview.Resolution" xml:space="preserve"><value>Raster resolution (DPI)</value></data>
+  <data name="PrintPreview.Printer" xml:space="preserve"><value>Printer queue</value></data>
+  <data name="PrintPreview.RefreshPrinters" xml:space="preserve"><value>Find printers</value></data>
+  <data name="PrintPreview.Copies" xml:space="preserve"><value>Collated copies</value></data>
+  <data name="PrintPreview.Duplex" xml:space="preserve"><value>Print sides</value></data>
+  <data name="PrintPreview.OutputFile" xml:space="preserve"><value>New output filename</value></data>
+  <data name="PrintPreview.ChooseOutput" xml:space="preserve"><value>Choose output file</value></data>
+  <data name="PrintPreview.Print" xml:space="preserve"><value>Print reviewed sheets</value></data>
+  <data name="PrintPreview.Cancel" xml:space="preserve"><value>Cancel printing</value></data>
+  <data name="PrintPreview.DeliveryHint" xml:space="preserve"><value>The printer receives the reviewed page pixels. Printer hardware margins may clip paper edges. Job acceptance does not confirm physical delivery.</value></data>
+  <data name="PrintPreview.Duplex.Default" xml:space="preserve"><value>Printer default</value></data>
+  <data name="PrintPreview.Duplex.Single" xml:space="preserve"><value>Single-sided</value></data>
+  <data name="PrintPreview.Duplex.Long" xml:space="preserve"><value>Double-sided, long edge</value></data>
+  <data name="PrintPreview.Duplex.Short" xml:space="preserve"><value>Double-sided, short edge</value></data>
+  <data name="PrintPreview.NoPrinters" xml:space="preserve"><value>No printer queues are installed.</value></data>
+  <data name="PrintPreview.JobTitle" xml:space="preserve"><value>Print reviewed sheets</value></data>
+  <data name="PrintPreview.Sending" xml:space="preserve"><value>Sending the reviewed sheets to the printer…</value></data>
+  <data name="PrintPreview.Accepted" xml:space="preserve"><value>Printer accepted job {0}: {1} sheet(s), {2} copy/copies. Check the printer for completion.</value></data>
+  <data name="PrintPreview.DeliveryCancelled" xml:space="preserve"><value>Printing cancelled before submission.</value></data>
+  <data name="PrintPreview.FormDrafts" xml:space="preserve"><value>Apply pending form values before preparing print sheets.</value></data>
+  <data name="Comparison.FormDrafts" xml:space="preserve"><value>Apply pending form values before comparing page appearance.</value></data>
+  <data name="PrintPreview.PaperSource" xml:space="preserve"><value>Paper source / tray</value></data>
+  <data name="PrintPreview.PaperSource.Default" xml:space="preserve"><value>Printer default</value></data>
+  <data name="PrintPreview.PaperSource.Unavailable" xml:space="preserve"><value>Paper-source discovery failed. Printing will use the printer default.</value></data>
+  <data name="PrintPreview.FileTypeHint" xml:space="preserve"><value>Use the file extension produced by the selected printer, such as .pdf or .xps.</value></data>
 </root>

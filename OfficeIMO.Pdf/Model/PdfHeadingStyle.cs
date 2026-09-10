@@ -76,6 +76,7 @@ public sealed class PdfHeadingStyle {
     /// <summary>Creates a copy of this heading style.</summary>
     public PdfHeadingStyle Clone() {
         return new PdfHeadingStyle {
+            AnchoredCanvas = AnchoredCanvas,
             FontSize = FontSize,
             LineHeight = LineHeight,
             SpacingBefore = SpacingBefore,
@@ -88,6 +89,9 @@ public sealed class PdfHeadingStyle {
             KeepWithNext = KeepWithNext
         };
     }
+
+    /// <summary>Absolute page content bound to the heading after pagination.</summary>
+    internal PdfCanvasBlock? AnchoredCanvas { get; set; }
 
     internal double GetFontSize(int level) {
         return FontSize ?? GetDefaultFontSize(level);

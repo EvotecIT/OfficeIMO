@@ -9,6 +9,12 @@ public static partial class OfficeScanProcessor {
         List<OfficeScanProcessingStep> steps, CancellationToken token) {
         byte[]? background = options.NormalizeBackground ? EstimateBackground(image, options.BackgroundRadius, token) : null;
         byte[] pixels = image.PixelBuffer;
+        bool applyLevels = options.BlackPoint != 0 || options.WhitePoint != 255 || options.Gamma != 1D;
+        var levels = new byte[256];
+        for (int value = 0; value < levels.Length; value++) {
+            double normalized = Math.Max(0D, Math.Min(1D, (value - options.BlackPoint) / (double)(options.WhitePoint - options.BlackPoint)));
+            levels[value] = (byte)Math.Round(255D * Math.Pow(normalized, 1D / options.Gamma));
+        }
         for (int y = 0; y < image.Height; y++) {
             token.ThrowIfCancellationRequested();
             for (int x = 0; x < image.Width; x++) {
@@ -23,6 +29,7 @@ public static partial class OfficeScanProcessor {
                     b = Math.Min(255, (b * 255 + paper / 2) / paper);
                 }
                 if (options.ColorMode != OfficeScanColorMode.PreserveColor) r = g = b = (r * 77 + g * 150 + b * 29 + 128) >> 8;
+                if (applyLevels) { r = levels[r]; g = levels[g]; b = levels[b]; }
                 pixels[offset] = (byte)r; pixels[offset + 1] = (byte)g; pixels[offset + 2] = (byte)b; pixels[offset + 3] = 255;
             }
         }
@@ -31,6 +38,8 @@ public static partial class OfficeScanProcessor {
             options.NormalizeBackground ? "Normalized local paper brightness; composited transparency over white." : "Background normalization was disabled; transparency was composited over white."));
         steps.Add(new OfficeScanProcessingStep("color", options.ColorMode != OfficeScanColorMode.PreserveColor,
             "Output color mode: " + options.ColorMode + "."));
+        steps.Add(new OfficeScanProcessingStep("levels", applyLevels,
+            applyLevels ? "Applied black point, white point, and midtone gamma." : "Retained the input tonal range."));
     }
 
     private static byte[] EstimateBackground(OfficeRasterImage image, int radius, CancellationToken token) {

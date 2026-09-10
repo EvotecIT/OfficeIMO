@@ -83,12 +83,12 @@ public sealed class MainWindowViewModelTests {
             viewModel.Pages[0].CompleteEditorGesture(gesture);
             await WaitUntilAsync(() => viewModel.HasPendingRedaction);
 
-            Assert.Equal(new Avalonia.Rect(36D, 48D, 204D, 44D), viewModel.Pages[0].PendingRedactionArea);
+            Assert.Equal(new Avalonia.Rect(36D, 48D, 204D, 44D), Assert.Single(viewModel.Pages[0].PendingRedactionAreas));
 
             viewModel.CancelPendingRedactionCommand.Execute(null);
 
             Assert.False(viewModel.HasPendingRedaction);
-            Assert.Null(viewModel.Pages[0].PendingRedactionArea);
+            Assert.Empty(viewModel.Pages[0].PendingRedactionAreas);
         } finally {
             Directory.Delete(root, recursive: true);
         }
@@ -126,7 +126,7 @@ public sealed class MainWindowViewModelTests {
 
             Assert.False(viewModel.HasPendingRedaction);
             Assert.False(viewModel.HasSelectedAnnotation);
-            Assert.All(viewModel.Pages, page => Assert.Null(page.PendingRedactionArea));
+            Assert.All(viewModel.Pages, page => Assert.Empty(page.PendingRedactionAreas));
         } finally {
             Directory.Delete(root, recursive: true);
         }

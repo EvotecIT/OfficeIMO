@@ -60,6 +60,9 @@ public sealed class PdfRedactionEvidenceReport {
     /// <summary>SHA-256 fingerprint of the rewritten PDF.</summary>
     public string OutputSha256 { get; }
 
+    /// <summary>Creates exportable evidence without removed text, search criteria, labels, or diagnostics.</summary>
+    public PdfRedactionShareableSummary CreateShareableSummary() => new PdfRedactionShareableSummary(this, OutputSha256, Verification, null);
+
     /// <summary>One-based page numbers affected by the reviewed areas, suitable for targeted preview rendering.</summary>
     public IReadOnlyList<int> AffectedPageNumbers { get; }
 

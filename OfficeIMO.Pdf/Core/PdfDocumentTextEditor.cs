@@ -50,6 +50,17 @@ public sealed class PdfDocumentTextEditor {
         return Apply(input => PdfTextEditor.ReplaceAll(input, text, replacement, searchOptions, editOptions, effectiveReadOptions), effectiveReadOptions);
     }
 
+    /// <summary>Replaces selected zero-based occurrences from <see cref="Find"/> using the same search options and current document revision.</summary>
+    /// <remarks>All selected occurrences are rewritten together, preserving unmatched text and local flow. Duplicate or invalid indexes are rejected.</remarks>
+    public PdfTextEditResult ReplaceSelected(string text, string replacement, IReadOnlyCollection<int> occurrenceIndexes,
+        PdfTextSearchOptions? searchOptions = null, PdfTextEditOptions? editOptions = null, PdfLoadOptions? readOptions = null) {
+        Guard.NotNull(occurrenceIndexes, nameof(occurrenceIndexes));
+        int[] selection = occurrenceIndexes.ToArray();
+        PdfLoadOptions? effectiveReadOptions = readOptions ?? _document.ReadOptions;
+        return Apply(input => PdfTextEditor.ReplaceSelected(input, text, replacement, selection,
+            searchOptions, editOptions, effectiveReadOptions), effectiveReadOptions);
+    }
+
     private PdfTextEditResult Apply(Func<byte[], PdfTextEditor.TextMutationResult> operation, PdfLoadOptions? readOptions) {
         PdfTextEditor.TextMutationResult? mutation = null;
         PdfDocument document = _document.ApplyMutation(input => {

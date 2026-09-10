@@ -11,25 +11,40 @@ internal static partial class PdfOcr {
         internal double SourceWidth { get; }
         internal double SourceHeight { get; }
         internal OfficeTransform PointsToSource { get; set; } = OfficeTransform.Identity;
+        internal Func<OfficePoint, OfficePoint>? PreparedToOriginal { get; set; }
+        internal bool HasGeometryTransform => Report != null || PreparedToOriginal != null;
+        internal double? RecognitionWidth { get; set; }
+        internal double? RecognitionHeight { get; set; }
         internal OfficeScanProcessingReport? Report { get; set; }
         internal List<string> Diagnostics { get; } = new List<string>();
     }
 
-    private static async Task<PreparedPage> PreparePageAsync(OcrRequest request, OcrEngineExecution engine,
+    private static async Task<PreparedPage> PreparePageAsync(OcrRequest request, OcrEngineExecution? engine,
         PdfOcrMergeOptions options, CancellationToken token) {
         var prepared = new PreparedPage(request.Region!.Width, request.Region.Height);
+        PrepareRegionAndPerspective(request, options, prepared, token);
         if (options.ScanProcessing == null && !options.DetectOrientation) return prepared;
         int detectedTurns = 0;
         if (options.DetectOrientation) {
-            if (!engine.Capabilities.SupportsOrientationDetection) {
+            if (engine == null || !engine.Capabilities.SupportsOrientationDetection) {
                 prepared.Diagnostics.Add("ocr-orientation-unsupported: The provider does not detect orientation; retained the source orientation.");
             } else {
                 var orientationRequest = new OcrRequest {
-                    Operation = OcrOperation.DetectOrientation, Payload = request.Payload, MediaType = request.MediaType,
-                    FileName = request.FileName, SourceId = request.SourceId, SourceName = request.SourceName,
-                    CandidateId = request.CandidateId, CandidateKind = request.CandidateKind, PageNumber = request.PageNumber,
-                    PixelWidth = request.PixelWidth, PixelHeight = request.PixelHeight, Region = request.Region,
-                    RegionCoordinateUnit = request.RegionCoordinateUnit, Language = request.Language, ProviderOptions = request.ProviderOptions
+                    Operation = OcrOperation.DetectOrientation,
+                    Payload = request.Payload,
+                    MediaType = request.MediaType,
+                    FileName = request.FileName,
+                    SourceId = request.SourceId,
+                    SourceName = request.SourceName,
+                    CandidateId = request.CandidateId,
+                    CandidateKind = request.CandidateKind,
+                    PageNumber = request.PageNumber,
+                    PixelWidth = request.PixelWidth,
+                    PixelHeight = request.PixelHeight,
+                    Region = request.Region,
+                    RegionCoordinateUnit = request.RegionCoordinateUnit,
+                    Language = request.Language,
+                    ProviderOptions = request.ProviderOptions
                 };
                 OcrResult detection = await engine.RecognizeAsync(orientationRequest, options.ProviderTimeout, token).ConfigureAwait(false);
                 // Use the same diagnostic count, length, metadata, and provider-result bounds as recognition.
@@ -47,12 +62,15 @@ internal static partial class PdfOcr {
         }
         if (options.ScanProcessing == null && detectedTurns == 0) return prepared;
         OfficeScanProcessingOptions scanOptions = options.ScanProcessing?.Clone() ?? new OfficeScanProcessingOptions {
-            Deskew = false, NormalizeBackground = false, ColorMode = OfficeScanColorMode.PreserveColor
+            Deskew = false,
+            NormalizeBackground = false,
+            ColorMode = OfficeScanColorMode.PreserveColor
         };
         if (scanOptions.ClockwiseQuarterTurns < 0 || scanOptions.ClockwiseQuarterTurns > 3)
             throw new ArgumentOutOfRangeException(nameof(scanOptions.ClockwiseQuarterTurns));
         scanOptions.ClockwiseQuarterTurns = (scanOptions.ClockwiseQuarterTurns + detectedTurns) % 4;
         int originalWidth = request.PixelWidth!.Value, originalHeight = request.PixelHeight!.Value;
+        double originalPointWidth = request.Region!.Width, originalPointHeight = request.Region.Height;
         try {
             // Reject optional cleanup before decoding when the caller's processing budget cannot hold its input.
             long sourcePixels = (long)originalWidth * originalHeight;
@@ -61,7 +79,8 @@ internal static partial class PdfOcr {
                 return prepared;
             }
             var decodeOptions = new OfficeRasterDecodeOptions {
-                MaximumDecodedPixels = scanOptions.MaximumPixels, CancellationToken = token
+                MaximumDecodedPixels = scanOptions.MaximumPixels,
+                CancellationToken = token
             };
             if (!OfficeRasterImageDecoder.TryDecode(request.Payload, decodeOptions, out OfficeRasterImage? original, out _) || original == null)
                 throw new NotSupportedException("The rendered PNG could not be decoded for scan processing.");
@@ -69,14 +88,14 @@ internal static partial class PdfOcr {
             byte[] payload = OfficeRasterImageEncoder.Encode(processed.Image, OfficeImageExportFormat.Png,
                 options: null, maximumEncodedBytes: options.MaxRenderedBytesPerPage, cancellationToken: token);
             prepared.Report = processed.Report;
-            prepared.PointsToSource = OfficeTransform.Scale(originalWidth / prepared.SourceWidth, originalHeight / prepared.SourceHeight)
+            prepared.PointsToSource = OfficeTransform.Scale(originalWidth / originalPointWidth, originalHeight / originalPointHeight)
                 .Then(processed.Report.ProcessedToSource)
-                .Then(OfficeTransform.Scale(prepared.SourceWidth / originalWidth, prepared.SourceHeight / originalHeight));
+                .Then(OfficeTransform.Scale(originalPointWidth / originalWidth, originalPointHeight / originalHeight));
             request.Payload = payload;
             request.PixelWidth = processed.Image.Width; request.PixelHeight = processed.Image.Height;
             request.Region = new OcrRegion {
-                Width = processed.Image.Width * prepared.SourceWidth / originalWidth,
-                Height = processed.Image.Height * prepared.SourceHeight / originalHeight
+                Width = processed.Image.Width * originalPointWidth / originalWidth,
+                Height = processed.Image.Height * originalPointHeight / originalHeight
             };
         } catch (OfficeScanProcessingLimitException exception) {
             prepared.Diagnostics.Add("ocr-scan-limit: Retained the original rendered image. " + exception.Message);
@@ -91,6 +110,7 @@ internal static partial class PdfOcr {
         OfficeTransform transform = prepared?.PointsToSource ?? OfficeTransform.Identity;
         PdfSelectionPoint Map(double px, double py) {
             OfficePoint point = transform.TransformPoint(new OfficePoint(px, py));
+            if (prepared?.PreparedToOriginal != null) point = prepared.PreparedToOriginal(point);
             return new PdfSelectionPoint(point.X, point.Y);
         }
         return new PdfSelectionQuad(Map(x, y), Map(x + width, y), Map(x + width, y + height), Map(x, y + height));

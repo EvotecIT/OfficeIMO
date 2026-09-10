@@ -30,10 +30,11 @@ public sealed class PdfOcrMergeResult {
 
 /// <summary>Accepted OCR words and evidence for one page.</summary>
 public sealed class PdfOcrPageMergeResult {
-    internal PdfOcrPageMergeResult(int pageNumber, IReadOnlyList<PdfRecognizedWord> words, int rejectedLowConfidenceCount, int rejectedNativeOverlapCount, IReadOnlyList<string> diagnostics, string text, string? provider = null, string? model = null, string? language = null, IReadOnlyList<PdfOcrWordEvidence>? wordEvidence = null, OfficeIMO.Drawing.OfficeScanProcessingReport? scanProcessing = null) {
+    internal PdfOcrPageMergeResult(int pageNumber, IReadOnlyList<PdfRecognizedWord> words, int rejectedLowConfidenceCount, int rejectedNativeOverlapCount, IReadOnlyList<string> diagnostics, string text, string? provider = null, string? model = null, string? language = null, IReadOnlyList<PdfOcrWordEvidence>? wordEvidence = null, OfficeIMO.Drawing.OfficeScanProcessingReport? scanProcessing = null, double? recognitionWidth = null, double? recognitionHeight = null) {
         PageNumber = pageNumber; Words = words; RejectedLowConfidenceCount = rejectedLowConfidenceCount; RejectedNativeOverlapCount = rejectedNativeOverlapCount; Diagnostics = diagnostics; Text = text;
         Provider = provider; Model = model; Language = language;
         ScanProcessing = scanProcessing;
+        RecognitionWidth = recognitionWidth; RecognitionHeight = recognitionHeight;
         WordEvidence = wordEvidence ?? Array.AsReadOnly(words.Select(word => new PdfOcrWordEvidence(word, PdfOcrWordDisposition.Accepted)).ToArray());
     }
     /// <summary>One-based page number.</summary>
@@ -48,8 +49,11 @@ public sealed class PdfOcrPageMergeResult {
     public int RejectedNativeOverlapCount { get; }
     /// <summary>Rendering, provider, and normalization diagnostics.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
-    /// <summary>Applied scan transformations and their inverse geometry. Null means cleanup was disabled or retained the original after a reported limit.</summary>
+    /// <summary>Affine scan transformations and their inverse geometry, relative to the image after optional region and perspective preparation.
+    /// Use each word's Geometry for original-page coordinates. Null means affine cleanup was disabled or retained its input after a reported limit.</summary>
     public OfficeIMO.Drawing.OfficeScanProcessingReport? ScanProcessing { get; }
+    internal double? RecognitionWidth { get; }
+    internal double? RecognitionHeight { get; }
     /// <summary>Native and accepted OCR text in approximate visual order.</summary>
     public string Text { get; }
     /// <summary>OCR provider identifier reported for this page, when available.</summary>
@@ -74,7 +78,7 @@ public sealed class PdfOcrPageMergeResult {
             Provider,
             Model,
             Language,
-            WordEvidence, ScanProcessing);
+            WordEvidence, ScanProcessing, RecognitionWidth, RecognitionHeight);
     }
 }
 

@@ -47,11 +47,15 @@ internal sealed class SearchablePdfOcrService : ISearchablePdfOcrService {
         pdfOptions.Language = options.Languages.ToTesseractExpression();
         pdfOptions.SourceName = options.InputStream?.Name ?? OfficeStorageIdentity.GetFileName(inputPath);
         var request = new PdfSearchableWorkflowRequest {
-            InputPath = inputPath, OutputPath = outputPath, Ocr = pdfOptions,
-            InputStream = options.InputStream, OutputStream = options.OutputStream,
+            InputPath = inputPath,
+            OutputPath = outputPath,
+            Ocr = pdfOptions,
+            InputStream = options.InputStream,
+            OutputStream = options.OutputStream,
             ConflictPolicy = options.OutputConflictPolicy == OfficeConversionFileConflictPolicy.Replace
                 ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail,
-            PublicationGuard = options.PublicationGuard, ReviewAsync = options.ReviewAsync
+            PublicationGuard = options.PublicationGuard,
+            ReviewAsync = options.ReviewAsync
         };
         TesseractOcrSession session = await TesseractOcr
             .CreateSessionAsync(new TesseractOcrSessionOptions {
@@ -110,6 +114,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     private readonly Func<string, Task<bool>> _confirmProviderWrite;
     private CancellationTokenSource? _cancellation;
     private string? _automaticOutputPath;
+    private bool _disposed;
 
     internal SearchablePdfOcrViewModel(
         Func<CancellationToken, Task<string?>> pickPdf,
@@ -123,11 +128,13 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         StudioStorageAccess? storage = null,
         Func<CancellationToken, Task<string?>>? pickOutputPdf = null,
         OfficeWorkflowOutputRecoveryStore? recoveryStore = null,
-        Func<string, Task<bool>>? confirmProviderWrite = null) {
+        Func<string, Task<bool>>? confirmProviderWrite = null,
+        IScanTextRecognitionService? textRecognition = null) {
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickOutputFolder = pickOutputFolder ?? throw new ArgumentNullException(nameof(pickOutputFolder));
         _openDocument = openDocument;
         _service = service ?? new SearchablePdfOcrService();
+        _textRecognition = textRecognition ?? new ScanTextRecognitionService();
         _canPublishPath = canPublishPath ?? (_ => true);
         _publicationGuard = publicationGuard ?? new OfficeIMO.Studio.Features.Shell.StudioWorkflowPublicationGuard((path, _) => _canPublishPath(path));
         _localizer = localizer ?? StudioLocalization.Current;
@@ -136,6 +143,8 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         _pickOutputPdf = pickOutputPdf ?? (_ => Task.FromResult<string?>(null));
         _recoveryStore = recoveryStore;
         _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));
+        Scan = new ScanPreparationViewModel(ReadScanSourceAsync, SaveScanCopyAsync, _localizer);
+        Scan.PropertyChanged += ScanChanged;
         Languages = new ObservableCollection<OcrLanguageChoice>(OcrLanguageChoice.CreateChoices(_localizer));
         foreach (var choice in Languages) choice.PropertyChanged += OnLanguagePropertyChanged;
         Status = T("Status.Ready", "Choose a scanned PDF to make its text searchable.");
@@ -143,10 +152,12 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     }
 
     public ObservableCollection<OcrLanguageChoice> Languages { get; }
+    public ScanPreparationViewModel Scan { get; }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RunCommand))]
     [NotifyPropertyChangedFor(nameof(InputName))]
+    [NotifyCanExecuteChangedFor(nameof(ExtractTextCommand))]
     private string _inputPath = string.Empty;
 
     [ObservableProperty]
@@ -179,6 +190,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanCancel))]
+    [NotifyCanExecuteChangedFor(nameof(ExtractTextCommand))]
     [NotifyCanExecuteChangedFor(nameof(RunCommand))]
     private bool _isBusy;
 
@@ -215,7 +227,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     }
 
     private bool CanRun =>
-        !IsBusy &&
+        !IsBusy && !Scan.IsBusy &&
         !string.IsNullOrWhiteSpace(InputPath) &&
         !string.IsNullOrWhiteSpace(OutputPath) &&
         Languages.Any(static choice => choice.IsSelected);
@@ -226,6 +238,9 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     }
 
     partial void OnInputPathChanged(string value) {
+        if (_isExtractingText) _cancellation?.Cancel();
+        ExtractedText = string.Empty;
+        Scan.Invalidate(clearSource: true);
         string? suggestion = TryCreateOutputPath(value);
         if (suggestion is null) {
             if (PathsEqual(OutputPath, _automaticOutputPath)) OutputPath = string.Empty;
@@ -304,13 +319,13 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
                 ReplaceExistingOutput
                     ? OfficeConversionFileConflictPolicy.Replace
                     : OfficeConversionFileConflictPolicy.FailIfExists,
-                new PdfOcrMergeOptions {
+                Scan.ApplyTo(new PdfOcrMergeOptions {
                     ReadOptions = new PdfReadOptions {
                         PageSelection = string.IsNullOrWhiteSpace(Pages) ? null : PdfPageSelection.Parse(Pages)
                     },
                     Dpi = RenderDpi,
                     MinimumConfidence = MinimumConfidencePercent / 100D
-                }) { PublicationGuard = _publicationGuard, InputStream = _storage?.CreateWorkflowInput(input), ReviewAsync = ReviewWordsAsync };
+                })) { PublicationGuard = _publicationGuard, InputStream = _storage?.CreateWorkflowInput(input), ReviewAsync = ReviewWordsAsync };
             if (providerOutput) {
                 if (!await _confirmProviderWrite(output).ConfigureAwait(true)) {
                     Status = T("Status.Cancelled", "OCR cancelled");
@@ -381,6 +396,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     private void OnLanguagePropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName != nameof(OcrLanguageChoice.IsSelected)) return;
         OnPropertyChanged(nameof(LanguageSummary));
+        ExtractTextCommand.NotifyCanExecuteChanged();
         RunCommand.NotifyCanExecuteChanged();
     }
 
@@ -408,13 +424,15 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
 
     private string Describe(string location) {
         if (string.IsNullOrWhiteSpace(location)) return string.Empty;
-        try { return _storage?.Describe(location).Name ?? OfficeStorageIdentity.GetFileName(location); }
-        catch (Exception error) when (error is ArgumentException or NotSupportedException or IOException) { return location; }
+        try { return _storage?.Describe(location).Name ?? OfficeStorageIdentity.GetFileName(location); } catch (Exception error) when (error is ArgumentException or NotSupportedException or IOException) { return location; }
     }
 
     public void Dispose() {
+        _disposed = true;
+        ExtractTextCommand.NotifyCanExecuteChanged();
         _cancellation?.Cancel();
         Review?.Dispose();
+        Scan.PropertyChanged -= ScanChanged; Scan.Dispose();
         foreach (OcrLanguageChoice language in Languages) language.PropertyChanged -= OnLanguagePropertyChanged;
     }
 

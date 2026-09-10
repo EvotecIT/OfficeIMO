@@ -90,8 +90,11 @@ public sealed partial class PdfRedactionWorkflowTests {
         string input = scope.PathFor("signed.pdf");
         string output = scope.PathFor("redacted.pdf");
         byte[] unsigned = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("signed content")).ToBytes();
-        byte[] signedMarker = unsigned.Concat(System.Text.Encoding.ASCII.GetBytes("\n% /Type /Sig\n")).ToArray();
-        await File.WriteAllBytesAsync(input, signedMarker);
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(unsigned, new PdfExternalSignatureOptions {
+            FieldName = "SourceSignature", ReservedSignatureContentsBytes = 512
+        });
+        byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, Enumerable.Repeat((byte)0x33, 128).ToArray());
+        await File.WriteAllBytesAsync(input, signed);
 
         PdfRedactionWorkflowResult result = await new OfficeWorkflowRunner().RunRedactionAsync(new PdfRedactionWorkflowRequest {
             Mode = PdfRedactionWorkflowMode.PlanOnly,

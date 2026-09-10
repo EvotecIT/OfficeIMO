@@ -81,6 +81,12 @@ public sealed class PdfDocumentImageEditor {
     public PdfImageEditResult Move(PdfImagePlacement placement, double deltaX, double deltaY, PdfImageEditOptions? options = null, PdfLoadOptions? readOptions = null) =>
         Apply(input => PdfImageEditor.Move(input, placement, deltaX, deltaY, options, readOptions ?? _document.ReadOptions), readOptions);
 
+    /// <summary>Scales an image proportionally around its center and translates that center in PDF user space.</summary>
+    /// <remarks>Preserves the source payload and portable rotation. Clipped or non-portable placements are rejected by the same checks as movement.</remarks>
+    public PdfImageEditResult Transform(PdfImagePlacement placement, double deltaX, double deltaY, double scale,
+        PdfImageEditOptions? options = null, PdfLoadOptions? readOptions = null) =>
+        Apply(input => PdfImageEditor.Transform(input, placement, deltaX, deltaY, scale, options, readOptions ?? _document.ReadOptions), readOptions);
+
     private PdfImageEditResult Apply(Func<byte[], PdfImageEditor.ImageMutationResult> operation, PdfLoadOptions? readOptions) {
         PdfImageEditor.ImageMutationResult? mutation = null;
         PdfDocument document = _document.ApplyMutation(input => {

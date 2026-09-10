@@ -131,6 +131,7 @@ internal static partial class PdfWriter {
             firstStyle.SpacingAfter = 0D;
 
             PdfParagraphStyle remainderStyle = sourceStyle?.Clone() ?? new PdfParagraphStyle();
+            remainderStyle.AnchoredCanvas = null;
             remainderStyle.KeepTogether = false;
             remainderStyle.WidowControl = false;
             remainderStyle.MinimumOrphanLines = 0;
