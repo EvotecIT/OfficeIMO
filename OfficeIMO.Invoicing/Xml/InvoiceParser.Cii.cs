@@ -32,7 +32,7 @@ public static partial class InvoiceParser {
         if (representative != null) invoice.TaxRepresentative = CiiParty(c, representative);
         XElement? payee = c.Child(settlement, Ram + "PayeeTradeParty");
         if (payee != null) invoice.Payee = CiiParty(c, payee);
-        foreach (XElement note in c.Children(document, Ram + "IncludedNote")) invoice.Notes.Add(new InvoiceNote(c.Required(note, Ram + "Content"), c.Text(note, Ram + "SubjectCode")));
+        foreach (XElement note in c.Children(document, Ram + "IncludedNote")) c.AddTo(invoice.Notes, new InvoiceNote(c.Required(note, Ram + "Content"), c.Text(note, Ram + "SubjectCode")));
         foreach (XElement reference in c.Children(agreement, Ram + "AdditionalReferencedDocument")) CiiAdditionalReference(c, reference, invoice);
         XElement? shipTo = c.Child(delivery, Ram + "ShipToTradeParty");
         XElement? deliveryEvent = c.Child(delivery, Ram + "ActualDeliverySupplyChainEvent");
@@ -46,16 +46,16 @@ public static partial class InvoiceParser {
         }
         foreach (XElement line in c.Children(transaction, Ram + "IncludedSupplyChainTradeLineItem")) {
             if (invoice.Lines.Count >= 10000) throw new InvalidDataException("Invoice exceeds 10,000 lines.");
-            invoice.Lines.Add(CiiLine(c, line, invoice.Currency));
+            c.AddTo(invoice.Lines, CiiLine(c, line, invoice.Currency));
         }
         invoice.Payment = CiiPayment(c, settlement);
         XElement? terms = c.Child(settlement, Ram + "SpecifiedTradePaymentTerms");
         invoice.PaymentTerms = c.Text(terms, Ram + "Description"); invoice.DueDate = CiiDate(c, terms, "DueDateDateTime");
         string? mandate = c.Text(terms, Ram + "DirectDebitMandateID");
         if (mandate != null) { invoice.Payment = invoice.Payment ?? new InvoicePayment(); invoice.Payment.MandateReference = mandate; }
-        foreach (XElement adjustment in c.Children(settlement, Ram + "SpecifiedTradeAllowanceCharge")) invoice.AllowancesAndCharges.Add(CiiAdjustment(c, adjustment, invoice.Currency, true));
+        foreach (XElement adjustment in c.Children(settlement, Ram + "SpecifiedTradeAllowanceCharge")) c.AddTo(invoice.AllowancesAndCharges, CiiAdjustment(c, adjustment, invoice.Currency, true));
         foreach (XElement reference in c.Children(settlement, Ram + "InvoiceReferencedDocument"))
-            invoice.PrecedingInvoices.Add(new InvoiceReference(c.Required(reference, Ram + "IssuerAssignedID"), CiiDate(c, reference, "FormattedIssueDateTime", true)));
+            c.AddTo(invoice.PrecedingInvoices, new InvoiceReference(c.Required(reference, Ram + "IssuerAssignedID"), CiiDate(c, reference, "FormattedIssueDateTime", true)));
         foreach (XElement tax in c.Children(settlement, Ram + "ApplicableTradeTax")) {
             var declared = new InvoiceDeclaredTax { Category = CiiTaxCategory(c, tax), TaxableAmount = c.RequiredMoney(tax, Ram + "BasisAmount", invoice.Currency),
                 TaxAmount = c.RequiredMoney(tax, Ram + "CalculatedAmount", invoice.Currency) };
@@ -70,7 +70,7 @@ public static partial class InvoiceParser {
                 if (invoice.TaxPointDateCode != null) c.Loss(tax, "Invoice-wide tax point code is declared more than once.");
                 invoice.TaxPointDateCode = invoice.TaxPointDateCode ?? code;
             }
-            invoice.DeclaredTaxes.Add(declared);
+            c.AddTo(invoice.DeclaredTaxes, declared);
         }
         CiiTotals(c, c.Child(settlement, Ram + "SpecifiedTradeSettlementHeaderMonetarySummation"), invoice);
         return invoice;
@@ -89,7 +89,7 @@ public static partial class InvoiceParser {
         }
         if (type != "916") c.Loss(reference, "Supporting document type is not 916.");
         XElement? binary = c.Child(reference, Ram + "AttachmentBinaryObject");
-        invoice.SupportingDocuments.Add(new InvoiceSupportingDocument { Reference = number, Description = c.Text(reference, Ram + "Name"), ExternalUri = c.Text(reference, Ram + "URIID"),
+        c.AddTo(invoice.SupportingDocuments, new InvoiceSupportingDocument { Reference = number, Description = c.Text(reference, Ram + "Name"), ExternalUri = c.Text(reference, Ram + "URIID"),
             Data = Binary(c, binary), FileName = c.Attribute(binary, "filename"), MimeType = c.Attribute(binary, "mimeCode") });
     }
 

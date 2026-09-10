@@ -32,13 +32,13 @@ public static partial class InvoiceParser {
             if (c.Boolean(c.Child(c.Child(discount, Ram + "ChargeIndicator"), Udt + "Indicator"))) c.Loss(discount, "Gross-price charges are outside the supported price-discount mapping.");
             line.PriceDiscount = c.Money(discount, Ram + "ActualAmount", currency);
         }
-        foreach (XElement adjustment in c.Children(settlement, Ram + "SpecifiedTradeAllowanceCharge")) line.AllowancesAndCharges.Add(CiiAdjustment(c, adjustment, currency, false));
+        foreach (XElement adjustment in c.Children(settlement, Ram + "SpecifiedTradeAllowanceCharge")) c.AddTo(line.AllowancesAndCharges, CiiAdjustment(c, adjustment, currency, false));
         foreach (XElement classification in c.Children(product, Ram + "DesignatedProductClassification")) {
             XElement? code = c.Child(classification, Ram + "ClassCode");
-            line.Classifications.Add(new InvoiceItemClassification { Value = c.Value(code) ?? string.Empty, ListId = c.Attribute(code, "listID") ?? string.Empty, ListVersion = c.Attribute(code, "listVersionID") });
+            c.AddTo(line.Classifications, new InvoiceItemClassification { Value = c.Value(code) ?? string.Empty, ListId = c.Attribute(code, "listID") ?? string.Empty, ListVersion = c.Attribute(code, "listVersionID") });
         }
         foreach (XElement attribute in c.Children(product, Ram + "ApplicableProductCharacteristic"))
-            line.Attributes.Add(new InvoiceItemAttribute { Name = c.Required(attribute, Ram + "Description"), Value = c.Required(attribute, Ram + "Value") });
+            c.AddTo(line.Attributes, new InvoiceItemAttribute { Name = c.Required(attribute, Ram + "Description"), Value = c.Required(attribute, Ram + "Value") });
         XElement? objectReference = c.Child(settlement, Ram + "AdditionalReferencedDocument");
         if (objectReference != null) {
             c.Expected(c.Child(objectReference, Ram + "TypeCode"), "130");

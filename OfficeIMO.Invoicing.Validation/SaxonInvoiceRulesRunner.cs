@@ -31,9 +31,7 @@ public sealed class SaxonInvoiceRulesRunner {
         IReadOnlyDictionary<string, InvoiceDiagnosticSeverity> overrides, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         InvoiceRuleBundle.ReadPinned(_jar, JarSha256, 8 * 1024 * 1024);
-        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.InvoiceRules-" + Guid.NewGuid().ToString("N"));
-        if (Directory.Exists(directory)) throw new IOException("Validation workspace already exists.");
-        Directory.CreateDirectory(directory);
+        string directory = Directory.CreateTempSubdirectory("OfficeIMO.InvoiceRules-").FullName;
         try {
             string input = Path.Combine(directory, "invoice.xml"), stylesheet = Path.Combine(directory, "rules.xsl"), report = Path.Combine(directory, "report.xml");
             await File.WriteAllBytesAsync(input, xml, cancellationToken).ConfigureAwait(false);
@@ -64,24 +62,30 @@ public sealed class SaxonInvoiceRulesRunner {
         if (compiler) start.ArgumentList.Add("allow-foreign=true");
         using var process = new Process { StartInfo = start };
         if (!process.Start()) throw new InvalidOperationException("Saxon process could not start.");
-        Task<string> standardOutput = DrainAsync(process.StandardOutput), standardError = DrainAsync(process.StandardError);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken); timeout.CancelAfter(_timeout);
+        Task<string> standardOutput = DrainAsync(process.StandardOutput, timeout.Token), standardError = DrainAsync(process.StandardError, timeout.Token);
+        string[] messages;
         try {
             await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
+            messages = await Task.WhenAll(standardOutput, standardError).WaitAsync(timeout.Token).ConfigureAwait(false);
         } catch (OperationCanceledException) {
-            if (!process.HasExited) process.Kill(entireProcessTree: true);
+            timeout.Cancel();
+            if (!process.HasExited) {
+                try { process.Kill(entireProcessTree: true); }
+                catch (InvalidOperationException) when (process.HasExited) { }
+            }
             await process.WaitForExitAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
-            await Task.WhenAll(standardOutput, standardError).WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+            try { await Task.WhenAll(standardOutput, standardError).WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false); }
+            catch (OperationCanceledException) { }
             cancellationToken.ThrowIfCancellationRequested();
             throw new TimeoutException("Saxon exceeded the configured " + _timeout.TotalSeconds + " second timeout.");
         }
-        string[] messages = await Task.WhenAll(standardOutput, standardError).ConfigureAwait(false);
         if (process.ExitCode != 0) throw new InvalidOperationException("Saxon exited with code " + process.ExitCode + ": " + string.Join(" ", messages));
         if (!File.Exists(output)) throw new InvalidDataException("Saxon produced no output file.");
     }
-    private static async Task<string> DrainAsync(StreamReader reader) {
+    private static async Task<string> DrainAsync(StreamReader reader, CancellationToken cancellationToken) {
         var result = new StringBuilder(); char[] buffer = new char[4096]; int count;
-        while ((count = await reader.ReadAsync(buffer).ConfigureAwait(false)) != 0) {
+        while ((count = await reader.ReadAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false)) != 0) {
             int remaining = 65536 - result.Length;
             if (remaining > 0) result.Append(buffer, 0, Math.Min(remaining, count));
         }

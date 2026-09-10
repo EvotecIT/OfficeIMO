@@ -49,7 +49,7 @@ foreach (var diagnostic in report.Diagnostics)
 ```
 
 For Peppol, also supply the official
-[3.0.21 Schematron source](https://docs.peppol.eu/poacc/billing/3.0/files/PEPPOL-EN16931-UBL.sch)
+[3.0.21 Schematron source](https://raw.githubusercontent.com/OpenPEPPOL/peppol-bis-invoice-3/806866bd2bd91d7e9623b68f08164e8fbe9e67a0/rules/sch/PEPPOL-EN16931-UBL.sch)
 as the second argument to `InvoiceRuleBundle.Load`. The source is verified by
 SHA-256 and compiled locally with the included MIT-licensed Schematron compiler.
 The Peppol download names an immutable official source commit; a changed artifact is rejected by its pinned hash.
@@ -64,6 +64,10 @@ distinction between invalid invoice content and a failed validator.
 This validates XML. Factur-X/ZUGFeRD PDF/A, XMP, attachment relationships and visible
 invoice content require the separate PDF artifact checks. This package does not
 certify delivery over the Peppol network or the legality of a transaction.
+
+Each rule-engine invocation uses a separate temporary workspace. On Unix, its
+permissions restrict access to the current user before invoice content is written.
+The workspace is removed after completion, failure, cancellation, or timeout.
 
 ## Run the standards checks
 

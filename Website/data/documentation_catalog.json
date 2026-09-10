@@ -547,7 +547,7 @@
       "description": "Typed electronic invoices, CII/UBL authoring, parsing, conversion, and model validation for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj",
-      "sourceFileCount": 33,
+      "sourceFileCount": 35,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,

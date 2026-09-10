@@ -23,7 +23,7 @@ public static partial class InvoiceParser {
             c.Expected(c.Child(objectReference, Cbc + "DocumentTypeCode"), "130");
             line.ObjectIdentifier = c.Identifier(c.Child(objectReference, Cbc + "ID"));
         }
-        foreach (XElement adjustment in c.Children(element, Cac + "AllowanceCharge")) line.AllowancesAndCharges.Add(UblAdjustment(c, adjustment, currency, false));
+        foreach (XElement adjustment in c.Children(element, Cac + "AllowanceCharge")) c.AddTo(line.AllowancesAndCharges, UblAdjustment(c, adjustment, currency, false));
         XElement? discount = c.Child(price, Cac + "AllowanceCharge");
         if (discount != null) {
             if (c.Boolean(c.Child(discount, Cbc + "ChargeIndicator"))) c.Loss(discount, "Item price charges are outside the supported price-discount mapping.");
@@ -31,9 +31,9 @@ public static partial class InvoiceParser {
         }
         foreach (XElement classification in c.Children(item, Cac + "CommodityClassification")) {
             XElement? value = c.Child(classification, Cbc + "ItemClassificationCode");
-            line.Classifications.Add(new InvoiceItemClassification { Value = c.Value(value) ?? string.Empty, ListId = c.Attribute(value, "listID") ?? string.Empty, ListVersion = c.Attribute(value, "listVersionID") });
+            c.AddTo(line.Classifications, new InvoiceItemClassification { Value = c.Value(value) ?? string.Empty, ListId = c.Attribute(value, "listID") ?? string.Empty, ListVersion = c.Attribute(value, "listVersionID") });
         }
-        foreach (XElement attribute in c.Children(item, Cac + "AdditionalItemProperty")) line.Attributes.Add(new InvoiceItemAttribute { Name = c.Required(attribute, Cbc + "Name"), Value = c.Required(attribute, Cbc + "Value") });
+        foreach (XElement attribute in c.Children(item, Cac + "AdditionalItemProperty")) c.AddTo(line.Attributes, new InvoiceItemAttribute { Name = c.Required(attribute, Cbc + "Name"), Value = c.Required(attribute, Cbc + "Value") });
         return line;
     }
 }

@@ -12,9 +12,15 @@ public enum InvoiceDiagnosticSeverity {
 
 /// <summary>Structured validation or mapping diagnostic.</summary>
 public sealed class InvoiceDiagnostic {
+    internal const int MaximumLocationLength = 4096;
+    private const string TruncationMarker = "... [truncated]";
     /// <summary>Creates a diagnostic with a stable code and source location.</summary>
+    /// <remarks>Codes are bounded to 256 characters; messages and locations to 4,096. Longer values carry a truncation marker.</remarks>
     public InvoiceDiagnostic(string code, string message, string location, InvoiceDiagnosticSeverity severity = InvoiceDiagnosticSeverity.Error) {
-        Code = code; Message = message; Location = location; Severity = severity;
+        Code = Limit(code ?? throw new ArgumentNullException(nameof(code)), 256);
+        Message = Limit(message ?? throw new ArgumentNullException(nameof(message)), 4096);
+        Location = Limit(location ?? throw new ArgumentNullException(nameof(location)), MaximumLocationLength);
+        Severity = severity;
     }
     /// <summary>Stable rule or mapping code.</summary>
     public string Code { get; }
@@ -24,6 +30,12 @@ public sealed class InvoiceDiagnostic {
     public string Location { get; }
     /// <summary>Diagnostic severity.</summary>
     public InvoiceDiagnosticSeverity Severity { get; }
+    private static string Limit(string value, int maximum) {
+        if (value.Length <= maximum) return value;
+        int length = maximum - TruncationMarker.Length;
+        if (char.IsHighSurrogate(value[length - 1])) length--;
+        return value.Substring(0, length) + TruncationMarker;
+    }
 }
 
 /// <summary>Model validation result; this is not an authoritative schema or Schematron compliance certificate.</summary>
