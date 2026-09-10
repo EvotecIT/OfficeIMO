@@ -35,6 +35,23 @@ env:
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
 
 jobs:
+  invoice-standards:
+    name: Invoice schema and business rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Validate generated and independent invoices
+        shell: pwsh
+        run: ./Build/Test-InvoicingStandards.ps1
+
   build-matrix:
     name: 'Cross-platform build'
     runs-on: ${{ matrix.os }}

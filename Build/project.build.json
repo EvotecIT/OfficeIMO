@@ -41,6 +41,7 @@
     "OfficeIMO.Html.Rtf": "3.4.X",
     "OfficeIMO.IWork": "3.4.X",
     "OfficeIMO.Invoicing": "3.4.X",
+    "OfficeIMO.Invoicing.Validation": "3.4.X",
     "OfficeIMO.Latex": "3.4.X",
     "OfficeIMO.Latex.Markdown": "3.4.X",
     "OfficeIMO.Latex.Pdf": "3.4.X",

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Pinned schema and Schematron validation for OfficeIMO electronic invoices.</Description>
+    <VersionPrefix>3.4.2</VersionPrefix>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <Company>Evotec</Company><Authors>Przemyslaw Klys</Authors>
+    <PackageId>OfficeIMO.Invoicing.Validation</PackageId>
+    <PackageTags>invoice;validation;schematron;cii;ubl;xrechnung;peppol</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile><PackageIcon>OfficeIMO.png</PackageIcon>
+    <IsPublishable>true</IsPublishable><GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <LangVersion>latest</LangVersion><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="ThirdPartyNotices.txt" Pack="true" PackagePath="/" />
+    <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" />
+    <EmbeddedResource Include="Compiler/*.xsl" />
+    <InternalsVisibleTo Include="OfficeIMO.Invoicing.Validation.Tests" />
+  </ItemGroup>
+</Project>
