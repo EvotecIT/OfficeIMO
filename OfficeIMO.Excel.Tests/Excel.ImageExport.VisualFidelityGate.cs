@@ -34,9 +34,8 @@ namespace OfficeIMO.Tests {
                 ExcelImageExportDiagnosticCodes.FillPatternApproximation),
             Tracked(
                 "officeimo-excel-image-premium-range",
-                "Premium range renders the comment body as a dependency-free callout approximation and reports the unavailable Aptos chart font before using the managed stroke fallback.",
-                ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation,
-                OfficeImageExportDiagnosticCodes.FontSubstituted),
+                "Premium range renders the comment body as a dependency-free callout approximation; chart fonts use the bundled visual fixture family.",
+                ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation),
             Tracked("officeimo-excel-image-rich-text", "Rich text still has clipped and rotated-text fidelity gaps.", ExcelImageExportDiagnosticCodes.CellTextClipped, ExcelImageExportDiagnosticCodes.CellTextRotationApproximation),
             Clean("officeimo-excel-image-rotated-image"),
             Clean("officeimo-excel-image-rotated-preset-drawing-object"),
@@ -121,7 +120,6 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(ExcelImageBaselineFidelity.TrackedApproximation, premiumRange.Fidelity);
             Assert.Contains(ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation, premiumRange.ExpectedDiagnosticCodes);
-            Assert.Contains(OfficeImageExportDiagnosticCodes.FontSubstituted, premiumRange.ExpectedDiagnosticCodes);
             Assert.DoesNotContain(ExcelImageExportDiagnosticCodes.CellCommentUnsupported, premiumRange.ExpectedDiagnosticCodes);
         }
 

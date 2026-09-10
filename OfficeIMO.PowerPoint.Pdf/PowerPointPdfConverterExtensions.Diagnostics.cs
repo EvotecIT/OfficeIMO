@@ -26,32 +26,6 @@ public static partial class PowerPointPdfConverterExtensions {
             new PdfCore.PdfLayoutDiagnostic(kind, source, diagnosticMessage, x, y, width, height));
     }
 
-    private static void AddPowerPointListLayoutDiagnostics(PowerPointToPdfOptions options, int slideNumber, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height) {
-        foreach (PptCore.PowerPointParagraph paragraph in textBox.Paragraphs) {
-            if (!HasListMarker(paragraph)) {
-                continue;
-            }
-
-            if (!paragraph.LeftMarginPoints.HasValue && !paragraph.IndentPoints.HasValue) {
-                continue;
-            }
-
-            AddLayoutWarning(
-                options,
-                slideNumber,
-                "list-indent-simplified",
-                "Rendered a PowerPoint list using PDF text prefixes because explicit PowerPoint list indentation is not yet mapped to PDF hanging-indent layout.",
-                PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent,
-                "PowerPointList",
-                "Explicit PowerPoint list indentation was simplified to a PDF text prefix.",
-                x,
-                y,
-                width,
-                height);
-            return;
-        }
-    }
-
     private static void AddPowerPointPictureAspectRatioDiagnostic(
         PowerPointToPdfOptions options,
         int slideNumber,

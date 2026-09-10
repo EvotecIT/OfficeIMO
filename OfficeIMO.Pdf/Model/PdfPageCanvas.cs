@@ -743,6 +743,8 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
     public double? FontSize { get; }
     public double? LineHeight { get; }
     public PdfCanvasTextStructureRole StructureRole { get; }
+    internal bool PreservePositionedText { get; set; }
+    internal double? PositionedAdvanceWidth { get; set; }
 }
 
 internal sealed class PdfCanvasTextBoxItem : PdfCanvasItem {

@@ -24,6 +24,15 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 
 Markdown, Word, Excel, PowerPoint, RTF, Email, MHTML, and PDF models remain in their owning packages. Those projections are explicit: for example, HTML becomes a `WordDocument` through `OfficeIMO.Word.Html` and a `MarkdownDoc` through `OfficeIMO.Markdown.Html`.
 
+To save a source HTML copy in another directory while retaining its relative resource paths:
+
+```csharp
+HtmlConversionDocument report = HtmlConversionDocument.Load("reports/service-review.html");
+File.WriteAllText("exports/service-review.html", report.ExportSourceHtml());
+```
+
+`ExportSourceHtml()` records the original effective base URI in the document. It preserves source markup; referenced files remain at their original locations. Use `SourceHtml` for the exact original text or `HtmlForConversion` for policy-normalized conversion HTML.
+
 ## Shared Office HTML document shell
 
 Office adapters use `OfficeHtmlDocumentShell` and `OfficeVisualThemeKind` for consistent semantic, editable round-trip, positioned-review, and print-review output. The embedded stylesheet supplies explicit palettes, readable typography, responsive page regions, tables, forms, figures, code, adapter panels, and print rules without making each adapter maintain a separate CSS implementation.
@@ -237,6 +246,23 @@ var styles = conversion.StyleSummary;
 Target packages accept this shared document while keeping target-specific conversion in their owning packages. The prepared DOM can be sent to Word, Markdown, RTF, Excel, PowerPoint, OneNote, PDF, PNG, JPEG, TIFF, SVG, and WebP without inventing adapter-specific parsing rules. Excel and PowerPoint default to their versioned semantic envelopes for round trips and expose generic import mode for ordinary HTML. OneNote imports ordinary document sections directly.
 
 Reuse the same document for analysis too: `HtmlComputedStyleEngine.Compute(conversion)` and `HtmlRoundTripScorer.Compare(source, target)` accept retained conversion documents. Their string overloads enter through the same bounded parser, so low-level helpers do not create competing trust or limit defaults.
+
+## One report, several output formats
+
+Prepare the report once and reuse the same source document with the format adapters:
+
+```csharp
+using OfficeIMO.Html;
+
+var report = HtmlConversionDocument.Load("service-review.html");
+File.WriteAllText("service-review-copy.html", report.SourceHtml);
+```
+
+See the owning packages for [PDF export](../OfficeIMO.Html.Pdf/README.md#html-to-pdf), [editable Word output](../OfficeIMO.Word.Html/README.md#quick-start), and [typed Excel tables](../OfficeIMO.Excel.Html/README.md#typed-values-in-ordinary-report-tables). The [HTML support matrix](../Docs/officeimo.html-support-matrix.md) describes target coverage.
+
+Run the complete [service review example](../OfficeIMO.Examples/Converters/Html/HtmlMultiFormatReport.cs) with `--multi-format-report`. Its [HTML source](../OfficeIMO.Examples/Converters/Html/Content/Reports/service-review.html) includes grouped rows, totals, leading-zero references, dates, approval values, links, and a second table. Report content stays in ordinary HTML; the adapters own conversion behavior.
+
+Use `--report-source <path.html>` to run another source through the same example. The output index links all exported files and every preview page, and records conversion notes. Saved PDF previews are labelled separately from editable Word and Excel layouts. The [conversion consistency tool](../Build/ConversionConsistency/README.md) checks native exports with an independent PDF rasterizer, required content, and page geometry.
 
 ## Semantic IR and target preflight
 

@@ -133,7 +133,7 @@ public sealed class HtmlRenderPage {
                     text.Color,
                     text.Alignment,
                     text.LineHeight,
-                    textAdvanceWidth: text.TextAdvanceWidth.Value > 0D ? text.TextAdvanceWidth.Value : text.Width,
+                    textAdvanceWidth: text.TextPaintWidth ?? (text.TextAdvanceWidth.Value > 0D ? text.TextAdvanceWidth.Value : text.Width),
                     underlineStyle: text.UnderlineStyle,
                     strikethroughStyle: text.StrikethroughStyle,
                     baseline: text.Baseline,

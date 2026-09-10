@@ -117,6 +117,20 @@ Format-native display casing and stored-text casing are intentionally separate. 
 
 ## Compatibility boundaries
 
+### Typed HTML table values
+
+`OfficeIMO.Excel.Html` can retain explicitly declared text, numbers, booleans, and dates in ordinary HTML tables when `ImportTypedCellValues` is enabled. Cell formatting is preserved, and explicitly specified styles on the first visible run override the corresponding cell styles. Numeric, boolean, and date cells use one whole-cell style because Excel cannot store rich-text runs inside those scalar types.
+
+Native values use Excel number formats and the reader's locale. A source label such as `Approved` becomes a boolean display value, and decimal padding can differ from the source label. Plain numeric-looking text remains text, including leading-zero identifiers.
+
+Generic import ignores formula metadata and semantic coordinate overrides. Full workbook restoration uses the separate semantic-envelope path and its existing trust controls. A rejected trusted-target envelope cannot regain private restoration behavior by enabling scalar import.
+
+### Positioned PDF text
+
+The HTML-to-PDF adapter measures fallback text with the PDF writer's font metrics and preserves whitespace in text that HTML layout has already positioned. Document-provided font metrics still take precedence. Raster previews made from the HTML scene are layout previews; inspecting the serialized PDF in an independent reader is required to establish its actual appearance.
+
+### API compatibility
+
 - Existing Boolean underline and strike APIs remain source compatible and mean one solid line.
 - New optional constructor parameters were appended to shared rich-text and PDF run constructors so existing positional calls keep their meaning.
 - Visio supports only none, single, and double decoration lines natively. Assigning dotted, dashed, or wavy patterns to a `VisioTextStyle` is rejected instead of silently flattening the request.

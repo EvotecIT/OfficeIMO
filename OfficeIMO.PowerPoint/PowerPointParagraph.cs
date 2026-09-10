@@ -21,6 +21,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal A.Paragraph Paragraph { get; }
+        internal OpenXmlPartContainer? OwnerPart => _ownerPart;
 
         /// <summary>
         /// Text content of the paragraph.

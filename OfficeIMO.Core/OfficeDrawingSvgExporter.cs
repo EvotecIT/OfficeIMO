@@ -43,7 +43,7 @@ public static partial class OfficeDrawingSvgExporter {
     /// <returns>UTF-8 encoded SVG bytes.</returns>
     public static byte[] ToSvgBytes(OfficeDrawing drawing, double scale) => Encoding.UTF8.GetBytes(ToSvg(drawing, scale));
 
-    private static void AppendEmbeddedFonts(
+    internal static void AppendEmbeddedFonts(
         StringBuilder sb,
         OfficeFontFaceCollection fonts,
         System.Threading.CancellationToken cancellationToken) {
@@ -141,7 +141,7 @@ public static partial class OfficeDrawingSvgExporter {
         ref int clipPathId,
         System.Threading.CancellationToken cancellationToken,
         SvgTilingExpansionBudget tilingExpansionBudget,
-        SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
+        SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget, OfficeRasterCanvas textMetrics) {
         for (int i = 0; i < elements.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             switch (elements[i]) {
@@ -173,10 +173,10 @@ public static partial class OfficeDrawingSvgExporter {
                     AppendShape(sb, drawingShape, fillGradientId, strokeGradientId, shapeClipPathId);
                     break;
                 case OfficeDrawingText drawingText:
-                    AppendText(sb, drawingText);
+                    AppendText(sb, drawingText, textMetrics);
                     break;
                 case OfficeDrawingRichText drawingRichText:
-                    AppendRichText(sb, drawingRichText);
+                    AppendRichText(sb, drawingRichText, textMetrics);
                     break;
                 case OfficeDrawingImage drawingImage:
                     string? imageClipPathId = drawingImage.Projection.HasCrop
@@ -188,13 +188,13 @@ public static partial class OfficeDrawingSvgExporter {
                     AppendImagePattern(sb, imagePattern, imageCodec, idPrefix, ref clipPathId, cancellationToken);
                     break;
                 case OfficeDrawingTilingPattern tilingPattern:
-                    AppendTilingPattern(sb, tilingPattern, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
+                    AppendTilingPattern(sb, tilingPattern, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget, textMetrics);
                     break;
                 case OfficeDrawingGroup drawingGroup:
-                    AppendGroup(sb, drawingGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
+                    AppendGroup(sb, drawingGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget, textMetrics);
                     break;
                 case OfficeDrawingEffectGroup effectGroup:
-                    AppendEffectGroup(sb, effectGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
+                    AppendEffectGroup(sb, effectGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget, textMetrics);
                     break;
                 case OfficeDrawingLink link:
                     sb.Append("<a").AppendAttribute("href", link.Uri);
@@ -209,7 +209,8 @@ public static partial class OfficeDrawingSvgExporter {
         }
     }
 
-    private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
+    private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget, OfficeRasterCanvas textMetrics) {
+        textMetrics = textMetrics.WithDrawingTextProfile(drawingGroup.InnerDrawing);
         string groupClipPathId = idPrefix + "officeimo-group-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         AppendClipPathDefinition(sb, groupClipPathId, drawingGroup.ClipPath);
         string transform = BuildGroupTransformAttribute(drawingGroup);
@@ -229,7 +230,7 @@ public static partial class OfficeDrawingSvgExporter {
                 .Append(Format(drawingGroup.ContentOffsetY))
                 .Append(")\">");
         }
-        AppendElements(sb, drawingGroup.InnerDrawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
+        AppendElements(sb, drawingGroup.InnerDrawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget, textMetrics);
         if (hasContentOffset) sb.Append("</g>");
         sb.Append("</g>");
     }
@@ -546,14 +547,14 @@ public static partial class OfficeDrawingSvgExporter {
         }
     }
 
-    private static void AppendText(StringBuilder sb, OfficeDrawingText text) {
+    private static void AppendText(StringBuilder sb, OfficeDrawingText text, OfficeRasterCanvas textMetrics) {
         bool useFrameTransform = text.FlipHorizontal || text.FlipVertical;
         if (useFrameTransform) {
             AppendTextFrameGroupStart(sb, text);
         }
 
         if (text.WrapText || text.ShrinkToFit || text.StackedText || text.VerticalAlignment != OfficeTextVerticalAlignment.Top || text.HasPadding) {
-            AppendTextBlock(sb, text, useFrameTransform);
+            AppendTextBlock(sb, text, textMetrics, useFrameTransform);
             if (useFrameTransform) {
                 sb.Append("</g>");
             }
@@ -629,20 +630,14 @@ public static partial class OfficeDrawingSvgExporter {
         }
     }
 
-    private static void AppendTextBlock(StringBuilder sb, OfficeDrawingText text, bool useFrameTransform = false) {
+    private static void AppendTextBlock(StringBuilder sb, OfficeDrawingText text, OfficeRasterCanvas textMetrics, bool useFrameTransform = false) {
         double sourceFontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
         double fontSize = sourceFontSize * text.BaselineScale;
         double baselineOffset = text.BaselineOffset;
-        double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
-            ? Math.Max(1D, text.LineHeight.Value / fontSize)
-            : 1.2D;
-        OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(text.Font);
-        OfficeTextMeasurementStyle style = measurer.CreateStyle(new OfficeFontInfo(text.Font.FamilyName, fontSize, text.Font.Style));
+        double lineHeightFactor = OfficeDrawingTextLayout.ResolveLineHeightFactor(text.LineHeight, fontSize);
         double minimumFontSize = Math.Min(6D, fontSize);
-        Func<string?, double, double> measure = (value, size) => {
-                OfficeTextMeasurementStyle measuredStyle = measurer.CreateStyle(new OfficeFontInfo(text.Font.FamilyName, size, text.Font.Style));
-                return measurer.MeasureWidth(value, measuredStyle);
-            };
+        Func<string?, double, double> measure = (value, size) =>
+            textMetrics.MeasureText(value, size, text.Font.FamilyName, text.Font.Style);
         double contentX = text.X + text.Padding.Left;
         double contentY = text.Y + text.Padding.Top;
         double contentWidth = text.Width - text.Padding.Horizontal;
@@ -652,7 +647,7 @@ public static partial class OfficeDrawingSvgExporter {
         }
 
         OfficeTextBlockLayout layout = text.StackedText
-            ? OfficeTextLayoutEngine.LayoutStackedTextBlock(
+            ? OfficeTextLayoutEngine.LayoutStackedTextBlockCore(
                 text.Text,
                 fontSize,
                 contentWidth,
@@ -660,9 +655,10 @@ public static partial class OfficeDrawingSvgExporter {
                 lineHeightFactor,
                 minimumFontSize,
                 measure,
-                text.ShrinkToFit)
+                text.ShrinkToFit,
+                (value, size) => textMetrics.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
             : text.ShrinkToFit && text.WrapText
-            ? OfficeTextLayoutEngine.FitWrappedText(
+            ? OfficeTextLayoutEngine.FitWrappedTextCore(
                 text.Text,
                 fontSize,
                 contentWidth,
@@ -670,7 +666,8 @@ public static partial class OfficeDrawingSvgExporter {
                 lineHeightFactor,
                 minimumFontSize,
                 measure,
-                text.ParagraphIndent)
+                text.ParagraphIndent,
+                (value, size) => textMetrics.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
             : OfficeTextLayoutEngine.LayoutTextBlock(
                 text.Text,
                 fontSize,
@@ -689,7 +686,7 @@ public static partial class OfficeDrawingSvgExporter {
             contentWidth,
             contentHeight,
             text.Color ?? OfficeColor.Black,
-            string.IsNullOrWhiteSpace(style.FontInfo.FamilyName) ? text.Font.FamilyName : style.FontInfo.FamilyName,
+            text.Font.FamilyName,
             text.Alignment,
             text.VerticalAlignment,
             text.Font.IsBold,
@@ -706,7 +703,7 @@ public static partial class OfficeDrawingSvgExporter {
             decorationColor: text.DecorationColor);
     }
 
-    private static void AppendRichText(StringBuilder sb, OfficeDrawingRichText text) {
+    private static void AppendRichText(StringBuilder sb, OfficeDrawingRichText text, OfficeRasterCanvas textMetrics) {
         bool useFrameTransform = text.FlipHorizontal || text.FlipVertical;
         if (useFrameTransform) {
             AppendRichTextFrameGroupStart(sb, text);
@@ -724,7 +721,7 @@ public static partial class OfficeDrawingSvgExporter {
             return;
         }
 
-        OfficeRichTextBlockLayout layout = CreateRichTextLayout(text, contentWidth, contentHeight);
+        OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.Create(text, contentWidth, contentHeight, textMetrics.MeasureText, measurePaint: textMetrics.MeasureTextPaintBounds);
         sb.AppendSvgRichTextBlock(
             layout,
             contentX,
@@ -739,33 +736,6 @@ public static partial class OfficeDrawingSvgExporter {
         if (useFrameTransform) {
             sb.Append("</g>");
         }
-    }
-
-    private static OfficeRichTextBlockLayout CreateRichTextLayout(OfficeDrawingRichText text, double contentWidth, double contentHeight) {
-        double maxFontSize = 10D;
-        for (int i = 0; i < text.Runs.Count; i++) {
-            maxFontSize = Math.Max(maxFontSize, text.Runs[i].FontSize);
-        }
-
-        double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
-            ? Math.Max(1D, text.LineHeight.Value / maxFontSize)
-            : 1.2D;
-        double minimumFontSize = Math.Min(6D, maxFontSize);
-        OfficeTextMeasurer measurer = OfficeTextMeasurer.Create();
-        Func<string?, double, string?, double> measure = (value, size, family) => {
-                OfficeTextMeasurementStyle measuredStyle = measurer.CreateStyle(new OfficeFontInfo(family, size));
-                return measurer.MeasureWidth(value, measuredStyle);
-            };
-        return OfficeTextLayoutEngine.LayoutRichTextBlock(
-            text.Runs,
-            contentWidth,
-            contentHeight,
-            lineHeightFactor,
-            measure,
-            text.WrapText,
-            text.ShrinkToFit,
-            minimumFontSize,
-            text.ParagraphIndent);
     }
 
     private static void AppendTextFrameGroupStart(StringBuilder sb, OfficeDrawingText text) {

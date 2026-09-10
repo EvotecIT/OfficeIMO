@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("<svg", svgText, StringComparison.Ordinal);
-            string decodedSvgText = System.Net.WebUtility.HtmlDecode(svgText);
+            string decodedSvgText = ReadVisibleSvgText(svgText);
             string snapshotText = GetSnapshotPlainText(snapshot);
             foreach (string expectedText in baseline.ExpectedSvgTexts) {
                 Assert.Contains(expectedText, snapshotText, StringComparison.Ordinal);
@@ -211,6 +211,8 @@ namespace OfficeIMO.Tests {
             node.OutlineWidthPoints = 1D;
 
             PowerPointTextBox text = slide.AddTextBoxPoints(label, left + 4, top + 11, 58, 12);
+            text.TextMarginLeftPoints = text.TextMarginRightPoints = 0D;
+            text.TextMarginTopPoints = text.TextMarginBottomPoints = 0D;
             text.FontSize = 8;
             text.Color = "FFFFFF";
         }

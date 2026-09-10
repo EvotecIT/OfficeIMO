@@ -57,7 +57,6 @@ public static partial class OfficeSvgDrawingReader {
             bool hasY = TryResolve(_y, static current => current._y, out double y);
             if (hasX || hasY) {
                 if (cursor.HasText) cursor.Chunk++;
-                cursor.PendingSpace = false;
             }
             if (hasX) cursor.X = x - viewX;
             if (hasY) cursor.Baseline = y - viewY;

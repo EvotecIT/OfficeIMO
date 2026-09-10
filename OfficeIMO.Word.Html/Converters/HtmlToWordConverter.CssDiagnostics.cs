@@ -150,6 +150,7 @@ namespace OfficeIMO.Word.Html {
         private static bool IsSupportedCssDiagnosticProperty(IElement element, string elementName, string propertyName) {
             if (_blockSpacingCssDiagnosticProperties.Contains(propertyName)) {
                 return IsBlockSpacingElement(elementName) ||
+                       IsTableCellElement(elementName) && propertyName.StartsWith("padding", StringComparison.OrdinalIgnoreCase) ||
                        elementName.Equals("body", StringComparison.OrdinalIgnoreCase) &&
                        IsPhysicalBlockSpacingProperty(propertyName) ||
                        elementName.Equals("table", StringComparison.OrdinalIgnoreCase) &&

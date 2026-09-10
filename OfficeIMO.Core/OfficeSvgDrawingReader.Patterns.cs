@@ -39,6 +39,7 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         var tile = new OfficeDrawing(tileWidth, tileHeight);
+        tile.Fonts.AddRange(drawing.Fonts);
         SvgPaintContext tileStyle = ResolveDefinitionPaintContext(pattern, paintServers, ref unsupported);
         OfficeTransform contentTransform;
         double contentViewX;

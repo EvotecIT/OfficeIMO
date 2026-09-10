@@ -41,6 +41,33 @@ On the ordinary HTML path, bounded positioned, floating, flex, and grid regions 
 
 `SaveAsHtml` and `SaveAsHtmlAsync` write UTF-8 without a byte-order mark to paths or caller-owned streams. For import I/O, use `HtmlConversionDocument.Load(...)` or `LoadAsync(...)`, then call `ToExcelDocument()` or `ToExcelDocumentResult()` on the prepared document. Stream overloads leave caller-owned streams open.
 
+## Typed values in ordinary report tables
+
+Set `ImportTypedCellValues = true` with `Mode = HtmlImportMode.Generic` (or `Auto` when no semantic envelope is present) to import explicitly declared scalar values:
+
+```html
+<td data-officeimo-value-kind="number" data-officeimo-value="12.5"><strong>12.50</strong></td>
+<td data-officeimo-value-kind="boolean" data-officeimo-value="true">Approved</td>
+<td data-officeimo-value-kind="date-time" data-officeimo-value="2026-09-08T00:00:00">8 Sep 2026</td>
+<td>00127</td>
+```
+
+The first three cells become a number, boolean, and date in Excel. The reference remains text, including its leading zeros. Supported kinds are `text`, `number`, `boolean`, and `date-time`; use invariant numeric values. Dates require `yyyy-MM-dd`, optionally followed by `THH:mm`, seconds, and up to seven fractional second digits. A timestamp may end in `Z` or an offset such as `+02:00`; explicit zones normalize to UTC, while unzoned values retain their wall-clock time. Incomplete dates, non-ISO values, and other invalid or oversized metadata fall back to bounded visible text with a diagnostic. The option defaults to `false`, so existing generic imports keep their text behavior.
+
+```csharp
+var report = HtmlConversionDocument.Load("service-review.html");
+var result = report.ToExcelDocumentResult(new HtmlToExcelOptions {
+    Mode = HtmlImportMode.Generic,
+    ImportTypedCellValues = true
+});
+using var workbook = result.RequireValue();
+workbook.Save("service-review.xlsx");
+```
+
+See the [text formatting support matrix](../Docs/officeimo.text-formatting-support-matrix.md#typed-html-table-values) for scalar formatting and display limits.
+
+The [multi-format report example](../OfficeIMO.Examples/Converters/Html/HtmlMultiFormatReport.cs) exports one HTML source to HTML, PDF, Word, and Excel.
+
 ## Visual review
 
 Use `ExcelHtmlSaveOptions.CreateVisualReviewProfile()` or set `ExportProfile = ExcelHtmlExportProfile.VisualReview` to emit review HTML through OfficeIMO's dependency-free SVG renderer. `SharedProfile` exposes the corresponding generic engine lane. `DocumentOutput` controls full-document versus fragment output, title, language, theme, default styles, and newlines. Visual-review HTML is presentation evidence; use semantic tables when the HTML must be imported back into Excel.

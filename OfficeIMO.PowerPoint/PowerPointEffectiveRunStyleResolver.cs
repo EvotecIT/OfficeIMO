@@ -56,6 +56,14 @@ namespace OfficeIMO.PowerPoint {
     }
 
     internal static class PowerPointEffectiveRunStyleResolver {
+        // Blank paragraphs still have a formatted paragraph mark and inherited line metrics.
+        internal static PowerPointEffectiveRunStyle ResolveParagraph(
+            PowerPointParagraph paragraph, A.ListStyle? listStyle, OpenXmlCompositeElement? masterTextStyle) {
+            PowerPointTextRun run = paragraph.InlineNodes.FirstOrDefault(node => node.Run != null)?.Run
+                ?? new PowerPointTextRun(new A.Run(), ownerPart: paragraph.OwnerPart);
+            return Resolve(run, paragraph, listStyle, masterTextStyle, null, null, includeParagraphMark: true);
+        }
+
         internal static PowerPointEffectiveRunStyle Resolve(
             PowerPointTextRun run,
             PowerPointParagraph paragraph,
@@ -104,8 +112,8 @@ namespace OfficeIMO.PowerPoint {
             A.ListStyle? listStyle,
             OpenXmlCompositeElement? masterTextStyle,
             IReadOnlyList<A.TableCellTextStyle>? tableTextStyles,
-            PowerPointFontScript? fontScriptOverride) {
-            IReadOnlyList<A.TextCharacterPropertiesType> directSources = ResolveDirectSources(run, paragraph, listStyle);
+            PowerPointFontScript? fontScriptOverride, bool includeParagraphMark = false) {
+            IReadOnlyList<A.TextCharacterPropertiesType> directSources = ResolveDirectSources(run, paragraph, listStyle, includeParagraphMark);
             IReadOnlyList<A.TextCharacterPropertiesType> masterSources = FindDefaultRunProperties(
                 masterTextStyle,
                 paragraph.Paragraph.ParagraphProperties?.Level?.Value ?? 0).Cast<A.TextCharacterPropertiesType>().ToArray();
@@ -414,8 +422,10 @@ namespace OfficeIMO.PowerPoint {
         private static IReadOnlyList<A.TextCharacterPropertiesType> ResolveDirectSources(
             PowerPointTextRun run,
             PowerPointParagraph paragraph,
-            A.ListStyle? listStyle) {
+            A.ListStyle? listStyle, bool includeParagraphMark) {
             var sources = new List<A.TextCharacterPropertiesType>();
+            if (includeParagraphMark && paragraph.Paragraph.GetFirstChild<A.EndParagraphRunProperties>() is { } paragraphMark)
+                sources.Add(paragraphMark);
             if (run.RunProperties != null) sources.Add(run.RunProperties);
             A.DefaultRunProperties? paragraphDefaults = paragraph.Paragraph.ParagraphProperties?
                 .GetFirstChild<A.DefaultRunProperties>();
