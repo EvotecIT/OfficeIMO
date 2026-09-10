@@ -8,6 +8,26 @@ namespace OfficeIMO.Invoicing.Pdf.Tests;
 
 public class PdfInvoiceDocumentTests {
     [Theory]
+    [InlineData(InvoiceProfile.En16931)]
+    [InlineData(InvoiceProfile.XRechnung)]
+    public void RecapturingEditedModelCanPreserveProfile(InvoiceProfile profile) {
+        PdfInvoiceDocument original = PdfInvoiceDocument.Create(InvoiceFixture.Create(), profile);
+        Invoice edited = original.ToInvoice();
+        edited.Number = "EDITED-INVOICE";
+        PdfInvoiceDocument updated = PdfInvoiceDocument.Create(edited, original.Profile);
+        Assert.Equal(profile, original.Profile);
+        Assert.Equal(profile, updated.Profile);
+        Assert.Equal(profile, InvoiceProfileDeclaration.Read(updated.ToXmlBytes()).Profile);
+        Assert.Equal("EDITED-INVOICE", updated.ToInvoice().Number);
+        Assert.NotEqual("EDITED-INVOICE", original.ToInvoice().Number);
+        byte[] pdf = updated.ToPdfBytes(Options());
+        Assert.Equal(updated.ToXmlBytes(), Assert.Single(PdfDocument.Load(pdf).Attachments.Extract()).Bytes);
+        var report = PdfDocument.Load(pdf).AssessCompliance(PdfComplianceProfile.FacturX);
+        Assert.Equal(PdfComplianceRequirementStatus.Satisfied,
+            report.Requirements.Single(r => r.Id == "readback-einvoice-profile-consistency").Status);
+    }
+
+    [Theory]
     [InlineData(InvoiceProfile.Minimum)]
     [InlineData(InvoiceProfile.BasicWithoutLines)]
     [InlineData(InvoiceProfile.Basic)]

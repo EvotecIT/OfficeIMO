@@ -42,7 +42,18 @@ File.WriteAllBytes("invoice.pdf", snapshot.ToPdfBytes(options));
 ```
 
 Later edits to `invoice` cannot change the snapshot. `ToInvoice()` returns an
-independent editable model; create a new snapshot after edits. The PDF uses the
+independent editable model. Reuse the captured `Profile` when creating a new
+snapshot after edits, including when the original uses XRechnung:
+
+```csharp
+Invoice edited = snapshot.ToInvoice();
+edited.Number = "INV-2026-002";
+var updated = PdfInvoiceDocument.Create(edited, snapshot.Profile);
+```
+
+The editable model contains business data; the snapshot's `Profile` identifies
+its CII guideline. Calling `Create(edited)` without a profile selects EN 16931.
+The PDF uses the
 same declared amounts and calculation as its XML, includes `factur-x.xml` as an
 alternative representation, and derives its XMP profile from that attachment.
 PDF presentation accepts document type 380 (invoice) and 381 (credit note), and

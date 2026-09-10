@@ -13,6 +13,7 @@ public sealed partial class PdfInvoiceDocument {
         _xml = xml;
         InvoiceReadResult parsed = InvoiceParser.Read(xml);
         if (!parsed.HasCompleteMapping) throw new InvalidDataException("Generated invoice cannot be represented completely for PDF presentation.");
+        Profile = parsed.Declaration.Profile ?? throw new InvalidDataException("Generated invoice has no recognized profile.");
         _invoice = parsed.Invoice;
         if (_invoice.TypeCode != "380" && _invoice.TypeCode != "381")
             throw new NotSupportedException("PDF invoice presentation supports document type 380 (invoice) and 381 (credit note) only.");
@@ -27,11 +28,13 @@ public sealed partial class PdfInvoiceDocument {
 
     /// <summary>Captured invoice number.</summary>
     public string Number => _invoice.Number;
+    /// <summary>Captured CII authoring profile. Pass this value to <see cref="Create"/> when recapturing an edited model.</summary>
+    public InvoiceProfile Profile { get; }
     /// <summary>Captured amount due in the document currency.</summary>
     public decimal PayableAmount => _amounts.PayableAmount;
     /// <summary>Returns a defensive copy of the exact CII bytes embedded in generated PDFs.</summary>
     public byte[] ToXmlBytes() => (byte[])_xml.Clone();
-    /// <summary>Returns an independent editable model. Create a new snapshot after edits.</summary>
+    /// <summary>Returns an independent editable model. After edits, call <see cref="Create"/> with this snapshot's <see cref="Profile"/> to preserve its guideline.</summary>
     public Invoice ToInvoice() => InvoiceParser.Read(_xml).Invoice;
 
     /// <summary>
