@@ -38,7 +38,8 @@ internal sealed partial class ProjectTaskAllocation {
         _task = task; _document = task.Document; _options = options; _token = token; _diagnostic = diagnostic;
         var projectCalendar = _document.Calendar ?? task.Calendar ?? throw new InvalidOperationException("Assignment calculation requires a project or task calendar.");
         _taskCalendar = calendar(new[] { task.Calendar ?? projectCalendar });
-        _requestedDuration = task.Duration is ProjectDuration duration ? duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, _document) : 0m;
+        _requestedDuration = task.Duration is ProjectDuration duration ? duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, _document)
+            : task.IsManual == true && task.Start.HasValue && task.Finish.HasValue ? _taskCalendar.Between(task.Start.Value, task.Finish.Value) : 0m;
         if (task.Duration?.IsElapsed == true && assignments.Any(a => a.Resource?.Type != ProjectResourceType.Cost))
             throw new NotSupportedException("Elapsed tasks with work or material resources require an explicit working-time projection.");
         var work = assignments.Where(a => a.Resource?.Type == ProjectResourceType.Work).ToArray();

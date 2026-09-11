@@ -13,6 +13,8 @@ public sealed partial class ProjectDocument {
         foreach (var resource in Resources) {
             token.ThrowIfCancellationRequested(); string path = "/Resource[UID=" + resource.Uid + "]";
             CheckEnum(resource.AccrueAt, path + "/AccrueAt", add);
+            if (resource.StandardRate < 0 || resource.OvertimeRate < 0 || resource.CostPerUse < 0)
+                add("PROJECT_RATE_VALUE", "Rates and per-use charges cannot be negative.", path);
             DateTime? previousEnd = null; bool previous = false;
             foreach (var period in resource.AvailabilityPeriods.OrderBy(p => p.From ?? DateTime.MinValue)) {
                 token.ThrowIfCancellationRequested();

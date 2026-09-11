@@ -37,6 +37,20 @@ public sealed partial class ProjectDocument {
                     CheckWorkingStatus(day.IsWorking, day.WorkingTimes.Count, location + "/WorkWeek", add);
                 }
             }
+            CheckCalendarOverlaps(calendar.WorkWeeks.Select(w => (w.FromDate, w.ToDate)), location + "/WorkWeek", add, token);
+            CheckCalendarOverlaps(calendar.Exceptions.Select(e => (e.FromDate, e.ToDate))
+                .Concat(calendar.WeekDays.Where(d => d.Day == null).Select(d => (d.FromDate, d.ToDate))), location + "/Exception", add, token);
+        }
+    }
+    private static void CheckCalendarOverlaps(IEnumerable<(DateTime? From, DateTime? To)> periods, string location, Finding add, CancellationToken token) {
+        DateTime? previousEnd = null;
+        foreach (var period in periods.OrderBy(p => p.From?.Date ?? DateTime.MinValue)) {
+            token.ThrowIfCancellationRequested();
+            var start = period.From?.Date ?? DateTime.MinValue;
+            var finish = period.To?.Date ?? DateTime.MaxValue.Date;
+            if (previousEnd.HasValue && start <= previousEnd.Value)
+                add("PROJECT_CALENDAR_OVERLAP", "Calendar overrides at the same precedence cannot overlap inclusive dates.", location);
+            if (!previousEnd.HasValue || finish > previousEnd.Value) previousEnd = finish;
         }
     }
     private static void CheckWorkingStatus(bool? working, int intervalCount, string location, Finding add) {

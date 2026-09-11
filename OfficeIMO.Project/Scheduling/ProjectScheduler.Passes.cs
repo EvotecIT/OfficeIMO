@@ -6,6 +6,12 @@ internal sealed partial class ProjectScheduler {
         foreach (var node in _order) {
             _token.ThrowIfCancellationRequested();
             var task = node.Task;
+            if (task.IsManual == true) {
+                node.EarlyAnchor = node.BeforeLevelingAnchor = node.EarlyStart = task.Start!.Value;
+                node.EarlyFinish = task.Finish!.Value;
+                if (node.Allocation != null) node.Minutes = node.Allocation.Build(node.EarlyAnchor, true).Duration;
+                continue;
+            }
             DateTime start = Snap(node, origin, true);
             bool hasDependencyBound = false;
             foreach (var link in node.In) {
@@ -36,7 +42,6 @@ internal sealed partial class ProjectScheduler {
                 var allocation = node.Allocation.Build(node.EarlyStart, true);
                 node.EarlyStart = allocation.Start; node.EarlyFinish = allocation.Finish; node.Minutes = allocation.Duration;
             }
-            if (task.IsManual == true) { node.EarlyStart = task.Start!.Value; node.EarlyFinish = task.Finish!.Value; }
         }
     }
     private void Backward(DateTime horizon) {
@@ -44,6 +49,11 @@ internal sealed partial class ProjectScheduler {
         foreach (var node in _order.AsEnumerable().Reverse()) {
             _token.ThrowIfCancellationRequested();
             var task = node.Task;
+            if (task.IsManual == true) {
+                node.LateAnchor = node.LateStart = task.Start!.Value; node.LateFinish = task.Finish!.Value;
+                if (node.Allocation != null) node.Minutes = node.Allocation.Build(node.LateAnchor, true).Duration;
+                continue;
+            }
             if (node.Allocation?.HasActuals == true) { node.LateStart = node.EarlyStart; node.LateFinish = node.EarlyFinish; node.LateAnchor = node.EarlyAnchor; continue; }
             DateTime finish = Snap(node, horizon, false);
             if (task.Deadline.HasValue) finish = Min(finish, task.Deadline.Value);
@@ -73,7 +83,6 @@ internal sealed partial class ProjectScheduler {
             }
             if (task.ConstraintType == ProjectConstraintType.StartNoLaterThan && task.ConstraintDate.HasValue)
                 node.LateStart = Min(node.LateStart, task.ConstraintDate.Value);
-            if (task.IsManual == true) { node.LateStart = task.Start!.Value; node.LateFinish = task.Finish!.Value; }
         }
     }
     private void CheckFinalBounds() {

@@ -41,6 +41,8 @@ internal sealed partial class ProjectScheduler {
         }
         foreach (var assignment in _document.Assignments) {
             _token.ThrowIfCancellationRequested();
+            if (assignment.Resource != null && !assignment.Resource.Type.HasValue)
+                Error("PROJECT_RESOURCE_TYPE_REQUIRED", "An assigned resource requires an explicit type before scheduling.", assignment.Task);
             if (_options.CalculateAssignments && assignment.Task?.IsSummary == true)
                 Error("PROJECT_SUMMARY_ASSIGNMENT_PROFILE", "Direct summary-task assignments are not part of independent assignment calculation. Assign resources to leaf tasks before calculating summary rollups.", assignment.Task);
             if (!_options.CalculateAssignments && (assignment.DelayMinutes > 0 || assignment.WorkContour.HasValue && assignment.WorkContour != ProjectWorkContour.Flat))
