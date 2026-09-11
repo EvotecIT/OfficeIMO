@@ -130,10 +130,10 @@ internal static partial class PdfWriter {
             bool firstSegment = true;
             while (lineIndex < lines.Count) {
                 double minimumLineHeight = lineHeights[lineIndex];
-                if (minimumLineHeight > yStart - currentOpts.MarginBottom + 0.001)
+                if (minimumLineHeight > yStart - currentOpts.MarginBottom)
                     throw new ArgumentException("Paragraph line height exceeds the available page content height.");
                 double available = y - currentOpts.MarginBottom;
-                if (available <= 0.5) {
+                if (available <= 0) {
                     NewPage();
                     firstSegment = false;
                     continue;

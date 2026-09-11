@@ -44,9 +44,19 @@ public partial class PdfDocumentVisualQualityTests {
     [Theory]
     [InlineData(70)]
     [InlineData(50.1)]
+    [InlineData(83.5995)]
     public void ParagraphLineLargerThanTheFrameFailsWithoutUnboundedPagination(double pageHeight) {
         var options = new PdfOptions { PageHeight = pageHeight, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 24 };
         Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).Paragraph(p => p.Text("Too tall")).ToBytes());
+    }
+
+    [Fact]
+    public void SmallPositiveFrameAcceptsALineThatFits() {
+        var options = new PdfOptions { PageHeight = 50.2, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 0.1 };
+        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Text("Fits")).ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.Equal("Fits", pdf.GetPage(1).Text);
     }
 
     [Fact]
