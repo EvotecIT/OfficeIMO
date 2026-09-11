@@ -30,6 +30,7 @@ public sealed class ProjectVisualQualityTests {
         project.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
         var task = project.Tasks.Add("Half complete"); task.Duration = ProjectDuration.WorkingHours(8);
         task.ActualDuration = ProjectDuration.WorkingHours(4); task.RemainingDuration = ProjectDuration.WorkingHours(4);
+        task.ActualStart = project.Settings.StartDate;
         var schedule = project.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); schedule.Report.ThrowIfErrors();
         var withProgress = project.CreateView(schedule, new ProjectViewOptions { StatusDate = new DateTime(2026, 10, 5, 12, 0, 0) });
         var withoutProgress = project.CreateView(schedule, new ProjectViewOptions { ShowProgress = false });

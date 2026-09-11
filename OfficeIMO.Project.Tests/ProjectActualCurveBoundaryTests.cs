@@ -3,6 +3,55 @@ namespace OfficeIMO.Project.Tests;
 public sealed class ProjectActualCurveBoundaryTests {
     private static readonly DateTime Monday = new(2026, 10, 5, 8, 0, 0);
 
+    [Fact]
+    public void ConcurrentActualAndRemainingAssignmentsStayStableAfterApplyAndXml() {
+        using var document = Create();
+        var task = document.Tasks.Add("Concurrent delivery"); task.Type = ProjectTaskType.FixedUnits;
+        task.Duration = ProjectDuration.WorkingHours(8);
+        var completed = document.Assignments.Add(task, document.Resources.AddWork("Completed engineer"));
+        completed.Work = completed.ActualWork = ProjectWork.Hours(4); completed.ActualStart = Monday; completed.ActualFinish = Monday.AddHours(4);
+        var remaining = document.Assignments.Add(task, document.Resources.AddWork("Remaining engineer")); remaining.Work = ProjectWork.Hours(8);
+        var options = new ProjectScheduleOptions { CalculateAssignments = true };
+        var original = document.CalculateSchedule(options); original.Report.ThrowIfErrors();
+        Assert.Equal(Monday, original.Assignments.Single(a => a.AssignmentUid == remaining.Uid).Start);
+        Assert.Equal(240m, Assert.Single(original.Tasks).Calculation!.RemainingDuration.Value);
+        document.ApplySchedule(original);
+        using var reopened = document.Clone();
+        foreach (var candidate in new[] { document, reopened }) {
+            var repeated = candidate.CalculateSchedule(options); repeated.Report.ThrowIfErrors();
+            Assert.Equal(original.Assignments.Select(a => (a.AssignmentUid, a.Start, a.Finish, a.Work, a.ActualWork)),
+                repeated.Assignments.Select(a => (a.AssignmentUid, a.Start, a.Finish, a.Work, a.ActualWork)));
+            Assert.Equal(original.Tasks.Single().Duration, repeated.Tasks.Single().Duration);
+            Assert.Equal(240m, repeated.Tasks.Single().Calculation!.RemainingDuration.Value);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RecordedActualDurationRequiresAnActualAnchor(bool assigned) {
+        using var document = Create(); var task = document.Tasks.Add("Missing actual start"); task.Type = ProjectTaskType.FixedUnits;
+        task.Duration = ProjectDuration.WorkingHours(16); task.ActualDuration = task.RemainingDuration = ProjectDuration.WorkingHours(8);
+        if (assigned) document.Assignments.Add(task, document.Resources.AddWork("Engineer")).Work = ProjectWork.Hours(8);
+        long revision = document.Revision;
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
+        Assert.True(result.Report.HasErrors); Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result));
+        Assert.Equal(revision, document.Revision); Assert.Equal(ProjectDuration.WorkingHours(8), task.RemainingDuration);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnEarlierResumeCannotOverlapUnassignedRecordedProgress(bool elapsed) {
+        using var document = Create(); var task = document.Tasks.Add("Unassigned progress");
+        task.Duration = elapsed ? ProjectDuration.ElapsedHours(16) : ProjectDuration.WorkingHours(16);
+        task.ActualDuration = task.RemainingDuration = elapsed ? ProjectDuration.ElapsedHours(8) : ProjectDuration.WorkingHours(8);
+        task.ActualStart = Monday; task.Resume = Monday.AddHours(2);
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); result.Report.ThrowIfErrors();
+        Assert.Equal(elapsed ? Monday.AddHours(16) : Monday.AddDays(1).AddHours(9), result.Tasks.Single().Finish);
+        Assert.Equal(480m, result.Tasks.Single().Calculation!.RemainingDuration.Value);
+    }
+
     [Theory]
     [InlineData(3, 4, false)]
     [InlineData(1, 3, true)]
