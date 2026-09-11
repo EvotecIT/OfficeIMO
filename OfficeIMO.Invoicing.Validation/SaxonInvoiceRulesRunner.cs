@@ -48,7 +48,6 @@ public sealed class SaxonInvoiceRulesRunner {
                 await TransformAsync(schema, Path.Combine(directory, "iso_svrl_for_xslt2.xsl"), stylesheet, directory, runtimeJar, true, cancellationToken).ConfigureAwait(false);
             } else await File.WriteAllBytesAsync(stylesheet, source, cancellationToken).ConfigureAwait(false);
             await TransformAsync(input, stylesheet, report, directory, runtimeJar, false, cancellationToken, ruleProcessStarted).ConfigureAwait(false);
-            if (new FileInfo(report).Length > 16 * 1024 * 1024) throw new InvalidDataException("Schematron report exceeds 16 MiB.");
             using Stream result = File.OpenRead(report);
             return ReadSvrl(result, overrides);
         } finally {
@@ -59,31 +58,49 @@ public sealed class SaxonInvoiceRulesRunner {
     private async Task TransformAsync(string input, string stylesheet, string output, string workingDirectory, string runtimeJar, bool compiler, CancellationToken cancellationToken, Action? ruleProcessStarted = null) {
         var start = new ProcessStartInfo(_java) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = workingDirectory };
         foreach (string argument in new[] { "-Xmx256m", "-Djavax.xml.accessExternalDTD=", "-Djavax.xml.accessExternalSchema=", "-Djavax.xml.accessExternalStylesheet=file",
-            "-jar", runtimeJar, "-s:" + input, "-xsl:" + stylesheet, "-o:" + output, "-dtd:off", "-xi:off", "-ext:off" }) start.ArgumentList.Add(argument);
+            "-jar", runtimeJar, "-s:" + input, "-xsl:" + stylesheet, "-dtd:off", "-xi:off", "-ext:off" }) start.ArgumentList.Add(argument);
         if (compiler) start.ArgumentList.Add("allow-foreign=true");
+        // Omitting -o sends Saxon's principal result to stdout. Own every disk write so
+        // neither compiled stylesheets nor reports can grow beyond the byte limit.
+        await using var result = new FileStream(output, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 8192, useAsync: true);
         using var process = new Process { StartInfo = start };
         if (!process.Start()) throw new InvalidOperationException("Saxon process could not start.");
-        ruleProcessStarted?.Invoke();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken); timeout.CancelAfter(_timeout);
-        Task<string> standardOutput = DrainAsync(process.StandardOutput, timeout.Token), standardError = DrainAsync(process.StandardError, timeout.Token);
-        string[] messages;
+        Task standardOutput = CopyResultAsync(process.StandardOutput.BaseStream, result, timeout.Token);
+        Task<string> standardError = DrainAsync(process.StandardError, timeout.Token);
+        Task completion = Task.WhenAll(CancelOnFailureAsync(standardOutput, timeout), CancelOnFailureAsync(standardError, timeout),
+            CancelOnFailureAsync(process.WaitForExitAsync(timeout.Token), timeout));
         try {
-            await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
-            messages = await Task.WhenAll(standardOutput, standardError).WaitAsync(timeout.Token).ConfigureAwait(false);
-        } catch (OperationCanceledException) {
+            ruleProcessStarted?.Invoke();
+            await completion.ConfigureAwait(false);
+        } catch (Exception error) {
             timeout.Cancel();
             if (!process.HasExited) {
                 try { process.Kill(entireProcessTree: true); }
                 catch (InvalidOperationException) when (process.HasExited) { }
             }
             await process.WaitForExitAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
-            try { await Task.WhenAll(standardOutput, standardError).WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false); }
-            catch (OperationCanceledException) { }
+            try { await completion.WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false); }
+            catch (Exception) { /* Observe cancelled or failed pipe tasks before disposing their streams. */ }
             cancellationToken.ThrowIfCancellationRequested();
-            throw new TimeoutException("Saxon exceeded the configured " + _timeout.TotalSeconds + " second timeout.");
+            if (error is OperationCanceledException) throw new TimeoutException("Saxon exceeded the configured " + _timeout.TotalSeconds + " second timeout.");
+            throw;
         }
-        if (process.ExitCode != 0) throw new InvalidOperationException("Saxon exited with code " + process.ExitCode + ": " + string.Join(" ", messages));
-        if (!File.Exists(output)) throw new InvalidDataException("Saxon produced no output file.");
+        if (process.ExitCode != 0) throw new InvalidOperationException("Saxon exited with code " + process.ExitCode + ": " + await standardError.ConfigureAwait(false));
+        if (result.Length == 0) throw new InvalidDataException("Saxon produced no output.");
+    }
+    private static async Task CancelOnFailureAsync(Task operation, CancellationTokenSource cancellation) {
+        try { await operation.ConfigureAwait(false); }
+        catch { cancellation.Cancel(); throw; }
+    }
+    private static async Task CopyResultAsync(Stream input, Stream output, CancellationToken cancellationToken) {
+        const int maximumBytes = 16 * 1024 * 1024;
+        byte[] buffer = new byte[8192]; int total = 0, count;
+        while ((count = await input.ReadAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false)) != 0) {
+            if (count > maximumBytes - total) throw new InvalidDataException("Schematron output exceeds 16 MiB.");
+            await output.WriteAsync(buffer.AsMemory(0, count), cancellationToken).ConfigureAwait(false);
+            total += count;
+        }
     }
     private static async Task<string> DrainAsync(StreamReader reader, CancellationToken cancellationToken) {
         var result = new StringBuilder(); char[] buffer = new char[4096]; int count;

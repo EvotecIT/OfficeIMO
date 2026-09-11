@@ -75,8 +75,7 @@ public class InvoiceWorkspaceTests {
             "while [ ! -f \"$0.release\" ]; do sleep 0.02; done",
             outcome == "failure" ? "exit 7" : ":",
             orphan ? "sleep 10 & printf '%s' \"$!\" > \"$0.child\"" : ":",
-            "for argument do case \"$argument\" in -o:*) output=${argument#-o:};; esac; done",
-            "printf '%s' '<s:schematron-output xmlns:s=\"http://purl.oclc.org/dsdl/svrl\"><s:fired-rule context=\"Invoice\"/></s:schematron-output>' > \"$output\""
+            "printf '%s' '<s:schematron-output xmlns:s=\"http://purl.oclc.org/dsdl/svrl\"><s:fired-rule context=\"Invoice\"/></s:schematron-output>'"
         });
         await File.WriteAllTextAsync(executable, script, new UTF8Encoding(false));
         if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);

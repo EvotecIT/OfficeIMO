@@ -5,6 +5,38 @@ namespace OfficeIMO.Invoicing.Tests;
 
 public class InvoiceTaxTotalMappingTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void UblSelectsTheFirstCoherentTaxGroupWhenAnEarlierTotalHasNoBreakdown(bool creditNote, bool differentEarlierTotal) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.TypeCode = creditNote ? "381" : "380";
+        if (creditNote) invoice.DueDate = null;
+        var options = new InvoiceXmlOptions(InvoiceSyntax.Ubl);
+        byte[] original = InvoiceSerializer.Write(invoice, options);
+        InvoiceReadResult expected = InvoiceParser.Read(original);
+        XDocument document = XDocument.Parse(Encoding.UTF8.GetString(original));
+        XElement coherent = document.Root!.Elements().Single(e => e.Name.LocalName == "TaxTotal");
+        XElement earlier = new XElement(coherent);
+        earlier.Elements().Where(e => e.Name.LocalName == "TaxSubtotal").Remove();
+        if (differentEarlierTotal) earlier.Elements().Single(e => e.Name.LocalName == "TaxAmount").Value = "999";
+        coherent.AddBeforeSelf(earlier);
+        InvoiceReadResult read = InvoiceParser.Read(Encoding.UTF8.GetBytes(document.ToString()));
+        Assert.False(read.HasCompleteMapping);
+        Assert.Contains(read.UnmappedData, d => d.Message.Contains("duplicated"));
+        Assert.Equal(expected.Invoice.DeclaredTotals!.TaxTotal, read.Invoice.DeclaredTotals!.TaxTotal);
+        Assert.Equal(expected.Invoice.DeclaredTaxes.Count, read.Invoice.DeclaredTaxes.Count);
+        Assert.Throws<InvalidDataException>(() => read.Write());
+        foreach (InvoiceSyntax target in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl }) {
+            InvoiceReadResult rewritten = InvoiceParser.Read(read.Write(new InvoiceXmlOptions(target), allowUnmappedDataLoss: true));
+            Assert.True(rewritten.HasCompleteMapping);
+            Assert.Equal(expected.Invoice.DeclaredTotals.TaxTotal, rewritten.Invoice.DeclaredTotals!.TaxTotal);
+            Assert.Equal(expected.Invoice.DeclaredTaxes.Count, rewritten.Invoice.DeclaredTaxes.Count);
+        }
+    }
+
+    [Theory]
     [InlineData(InvoiceSyntax.Cii, false, false)]
     [InlineData(InvoiceSyntax.Cii, true, false)]
     [InlineData(InvoiceSyntax.Cii, false, true)]
