@@ -7,6 +7,7 @@ public sealed partial class PdfInvoiceDocument {
     private readonly byte[] _xml;
     private readonly Invoice _invoice;
     private readonly InvoiceCalculation _amounts;
+    private readonly DateTimeOffset _capturedAt = DateTimeOffset.UtcNow;
     private string DocumentTitle => (_invoice.TypeCode == "381" ? "Credit note " : "Invoice ") + _invoice.Number;
 
     private PdfInvoiceDocument(byte[] xml) {
@@ -44,6 +45,7 @@ public sealed partial class PdfInvoiceDocument {
     public byte[] ToPdfBytes(PdfOptions? options = null) {
         PdfOptions configured = options?.Clone() ?? new PdfOptions();
         configured.UseFacturX(_xml, relationship: PdfAssociatedFileRelationship.Alternative);
+        configured.SetEmbeddedFileModificationDate("factur-x.xml", _capturedAt);
         PdfDocument document = PdfDocument.Create(configured);
         document.Meta(title: DocumentTitle, author: _invoice.Seller.Name);
         Compose(document.Content);

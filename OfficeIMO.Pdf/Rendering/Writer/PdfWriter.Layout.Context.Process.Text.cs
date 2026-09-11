@@ -28,7 +28,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            if (y - needed < currentOpts.MarginBottom) {
+            if (y < yStart - 0.001 && y - needed < currentOpts.MarginBottom) {
                 NewPage();
                 spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
                 needed = spacingBefore + textHeight + spacingAfter;
@@ -37,36 +37,58 @@ internal static partial class PdfWriter {
                 y -= spacingBefore;
             }
 
-            EnsurePage();
-            if (headingStyle?.AnchoredCanvas is { } headingCanvas) RenderCanvasBlock(headingCanvas);
-            pageDirty = true;
-            if (currentOpts.CreateOutlineFromHeadings) {
-                currentPage!.Bookmarks.Add(new PageBookmark { Level = hb.Level, Title = hb.Text, Y = y });
+            int lineIndex = 0;
+            while (lineIndex < lines.Count) {
+                double available = y - currentOpts.MarginBottom;
+                int take = 0;
+                double heightSum = 0;
+                for (int index = lineIndex; index < lines.Count; index++) {
+                    double lineHeight = lineHeights[index];
+                    if (heightSum + lineHeight > available + 0.001) break;
+                    heightSum += lineHeight;
+                    take++;
+                }
+                if (take == 0) {
+                    if (y >= yStart - 0.001 || lineHeights[lineIndex] > yStart - currentOpts.MarginBottom + 0.001)
+                        throw new ArgumentException("Heading line height exceeds the available page content height.");
+                    NewPage();
+                    continue;
+                }
+                var sliceLines = lines.GetRange(lineIndex, take);
+                var sliceHeights = lineHeights.GetRange(lineIndex, take);
+                EnsurePage();
+                if (lineIndex == 0 && headingStyle?.AnchoredCanvas is { } headingCanvas) RenderCanvasBlock(headingCanvas);
+                pageDirty = true;
+                if (lineIndex == 0 && currentOpts.CreateOutlineFromHeadings) {
+                    currentPage!.Bookmarks.Add(new PageBookmark { Level = hb.Level, Title = hb.Text, Y = y });
+                }
+                double firstBaseline = FirstTextBaselineFromTop(headingFont, size, y);
+                string headingFontResource = GetHeadingFontResource(headingStyle);
+                string structureType = "H" + hb.Level.ToString(CultureInfo.InvariantCulture);
+                bool hasLinkTarget = !string.IsNullOrEmpty(hb.LinkUri) || !string.IsNullOrEmpty(hb.LinkDestinationName);
+                int? linkStructElementIndex = null;
+                string markedStructureType = structureType;
+                int? markedContentId;
+                if (hasLinkTarget && emitGeneratedStructure && currentPage != null) {
+                    int? headingElementIndex = RegisterStructureContainer(structureType);
+                    linkStructElementIndex = currentPage.StructElements.Count;
+                    markedStructureType = "Link";
+                    markedContentId = RegisterTextStructureElement(markedStructureType, headingElementIndex);
+                } else {
+                    markedContentId = RegisterTextStructureElement(structureType);
+                }
+                AddHeadingLinkAnnotations(hb, sliceLines, headingFont, size, leading, currentOpts.MarginLeft, width, firstBaseline, linkStructElementIndex);
+                WriteRichParagraph(sb, new RichParagraphBlock(headingRuns, hb.Align, headingColor), sliceLines, sliceHeights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, currentOpts.MarginLeft, width, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage);
+                MarkRichFonts(headingRuns);
+                if (GetHeadingBold(headingStyle)) {
+                    currentPage!.UsedBold = true;
+                    usedBold = true;
+                }
+                y -= heightSum;
+                lineIndex += take;
+                if (lineIndex < lines.Count) NewPage();
             }
-            double firstBaseline = FirstTextBaselineFromTop(headingFont, size, y);
-            string headingFontResource = GetHeadingFontResource(headingStyle);
-            string structureType = "H" + hb.Level.ToString(CultureInfo.InvariantCulture);
-            bool hasLinkTarget = !string.IsNullOrEmpty(hb.LinkUri) || !string.IsNullOrEmpty(hb.LinkDestinationName);
-            int? linkStructElementIndex = null;
-            string markedStructureType = structureType;
-            int? markedContentId;
-            if (hasLinkTarget && emitGeneratedStructure && currentPage != null) {
-                int? headingElementIndex = RegisterStructureContainer(structureType);
-                linkStructElementIndex = currentPage.StructElements.Count;
-                markedStructureType = "Link";
-                markedContentId = RegisterTextStructureElement(markedStructureType, headingElementIndex);
-            } else {
-                markedContentId = RegisterTextStructureElement(structureType);
-            }
-
-            AddHeadingLinkAnnotations(hb, lines, headingFont, size, leading, currentOpts.MarginLeft, width, firstBaseline, linkStructElementIndex);
-            WriteRichParagraph(sb, new RichParagraphBlock(headingRuns, hb.Align, headingColor), lines, lineHeights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, currentOpts.MarginLeft, width, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage);
-            MarkRichFonts(headingRuns);
-            if (GetHeadingBold(headingStyle)) {
-                currentPage!.UsedBold = true;
-                usedBold = true;
-            }
-            y -= textHeight + spacingAfter;
+            y -= spacingAfter;
         }
 
         private void RenderRichParagraphFlowBlock(RichParagraphBlock rpb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {

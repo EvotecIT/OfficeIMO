@@ -7,6 +7,28 @@ using Xunit;
 namespace OfficeIMO.Invoicing.Pdf.Tests;
 
 public class PdfInvoiceDocumentTests {
+    [Fact]
+    public void SnapshotSuppliesAttachmentDateForRequiredFacturXCompliance() {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Seller.ElectronicAddress = new InvoiceIdentifier("1234567890128", "0088");
+        invoice.Buyer.ElectronicAddress = new InvoiceIdentifier("1234567890135", "0088");
+        PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice);
+        byte[] pdf = snapshot.ToPdfBytes(Options().RequireCompliance(PdfComplianceProfile.FacturX));
+        Assert.Equal(snapshot.ToXmlBytes(), Assert.Single(PdfDocument.Load(pdf).Attachments.Extract()).Bytes);
+        WriteEvidence("required-factur-x", pdf);
+    }
+
+    [Fact]
+    public void LongInvoiceHeadingFlowsIntoVisiblePages() {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Number = string.Join(" ", Enumerable.Repeat("INVOICE-NUMBER", 700)) + " FINAL-NUMBER-MARKER";
+        byte[] pdf = PdfInvoiceDocument.Create(invoice).ToPdfBytes(Options());
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        Assert.True(document.Pages.Count > 2);
+        Assert.Contains("FINAL-NUMBER-MARKER", document.ExtractText(), StringComparison.Ordinal);
+        WriteEvidence("long-invoice-number", pdf);
+    }
+
     [Theory]
     [InlineData(InvoiceProfile.En16931)]
     [InlineData(InvoiceProfile.XRechnung)]
