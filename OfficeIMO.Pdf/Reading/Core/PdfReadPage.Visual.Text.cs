@@ -13,10 +13,11 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        double height = Math.Max(1D, span.FontSize * 1.25D);
-        double width = Math.Max(span.Advance, span.Text.Length * span.FontSize * 0.55D);
-        double rawX = span.X;
-        double rawY = pageHeight - span.Y - span.FontSize;
+        var frame = GetTextFrame(pageHeight, span.X, span.Y, span.FontSize, span.Text.Length, span.Advance);
+        double height = frame.Height;
+        double width = frame.Width;
+        double rawX = frame.X;
+        double rawY = frame.Y;
         if (!HasVisibleOverlap(rawX, rawY, width, height, drawing.Width, drawing.Height)) {
             return;
         }
@@ -163,35 +164,72 @@ public sealed partial class PdfReadPage {
         System.Threading.CancellationToken cancellationToken) {
         // Nested forms, patterns and transparency groups share the render invocation token.
         cancellationToken = pageContentBudget.CancellationToken;
-        if (!CanExpandSpacedText(span, cancellationToken)) return false;
-        pageContentBudget.ChargePositionedTextCharacters(span.Text.Length);
-        if (!PdfTextSpanGeometry.TryGetPaintedGlyphGeometry(span, out double[] boundaries,
-            out IReadOnlyList<int> characterLengths, out IReadOnlyList<double> paintedAdvances,
-            allowStationaryGlyphOrigins: true) ||
-            paintedAdvances.Any(advance => advance <= 0D)) {
-            return false;
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfPageClipPath? activeClip = span.ClipPath;
+        bool canCullClip = false;
+        if (activeClip.HasValue) {
+            PdfPageClipPath clip = activeClip.Value;
+            if (clip.Width <= 0D || clip.Height <= 0D) return true;
+            canCullClip = clip.IsRectangle || clip.ToOfficeClipPath(clip.X, clip.Y) != null;
+            if (canCullClip && !HasVisibleOverlap(clip.X, clip.Y, clip.Width, clip.Height, drawing.Width, drawing.Height)) return true;
         }
+        if (!CanExpandSpacedText(span, cancellationToken, out double direction)) return false;
+        IReadOnlyList<int> characterLengths = span.GlyphCharacterLengths!;
+        IReadOnlyList<double> paintedAdvances = span.GlyphPaintedAdvances!;
+        IReadOnlyList<double> characterAdvances = span.CharacterAdvances!;
 
         double radians = span.RotationDegrees * Math.PI / 180D;
         double alongX = Math.Cos(radians);
         double alongY = Math.Sin(radians);
         int characterOffset = 0;
+        double offset = 0D;
         for (int index = 0; index < characterLengths.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
-            string text = span.Text.Substring(characterOffset, characterLengths[index]);
-            double offset = boundaries[characterOffset];
-            var glyph = new PdfTextSpan(text, span.FontResource, span.FontSize,
-                span.X + alongX * offset, span.Y + alongY * offset, paintedAdvances[index],
-                span.Color, span.IsVisible, span.RotationDegrees, span.BaseFont, span.ClipPath,
-                drawingFontFamily: span.DrawingFontFamily, fontWeight: span.FontWeight,
-                fontDescriptorFlags: span.FontDescriptorFlags);
-            AddTextSpan(drawing, pageHeight, glyph, pageContentBudget, cancellationToken);
-            characterOffset += characterLengths[index];
+            int length = characterLengths[index];
+            double x = span.X + alongX * offset;
+            double y = span.Y + alongY * offset;
+            var frame = GetTextFrame(pageHeight, x, y, span.FontSize, length, paintedAdvances[index]);
+            if (HasTextFrameOverlap(drawing, frame, canCullClip ? activeClip : null)) {
+                // Charge only scene expansion, before creating any glyph string or object.
+                pageContentBudget.ChargePositionedTextCharacters(length);
+                var glyph = new PdfTextSpan(span.Text.Substring(characterOffset, length), span.FontResource, span.FontSize,
+                    x, y, paintedAdvances[index], span.Color, span.IsVisible, span.RotationDegrees, span.BaseFont, span.ClipPath,
+                    drawingFontFamily: span.DrawingFontFamily, fontWeight: span.FontWeight,
+                    fontDescriptorFlags: span.FontDescriptorFlags);
+                AddTextSpan(drawing, pageHeight, glyph, pageContentBudget, cancellationToken);
+            }
+            // Stream origins instead of allocating an array for a potentially huge
+            // off-page run. Nonpainting prefixes still move later glyphs correctly.
+            int end = characterOffset + length;
+            for (; characterOffset < end; characterOffset++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                offset += characterAdvances[characterOffset] * direction;
+            }
         }
         return true;
     }
 
-    private static bool CanExpandSpacedText(PdfTextSpan span, System.Threading.CancellationToken cancellationToken) {
+    private static (double X, double Y, double Width, double Height) GetTextFrame(
+        double pageHeight, double x, double y, double fontSize, int textLength, double advance) =>
+        (x, pageHeight - y - fontSize, Math.Max(advance, textLength * fontSize * .55D), Math.Max(1D, fontSize * 1.25D));
+
+    private static bool HasTextFrameOverlap(OfficeDrawing drawing,
+        (double X, double Y, double Width, double Height) frame, PdfPageClipPath? activeClip) {
+        if (!HasVisibleOverlap(frame.X, frame.Y, frame.Width, frame.Height, drawing.Width, drawing.Height)) return false;
+        if (!activeClip.HasValue) return true;
+        // Match the clipped-frame rejection used by AddTextSpan. A path's bounding
+        // box is conservative: holes and glyph outlines remain the rasterizer's job.
+        double x = Clamp(frame.X, 0D, drawing.Width);
+        double y = Clamp(frame.Y, 0D, drawing.Height);
+        double width = Math.Max(1D, Math.Min(frame.X + frame.Width, drawing.Width) - x);
+        double height = Math.Max(1D, Math.Min(frame.Y + frame.Height, drawing.Height) - y);
+        PdfPageClipPath clip = activeClip.Value;
+        return x + width > clip.X && y + height > clip.Y && x < clip.X + clip.Width && y < clip.Y + clip.Height;
+    }
+
+    private static bool CanExpandSpacedText(PdfTextSpan span, System.Threading.CancellationToken cancellationToken,
+        out double direction) {
+        direction = 0D;
         cancellationToken.ThrowIfCancellationRequested();
         // PDF character codes are not shaping clusters. Expand only basic Latin
         // display runs; retain whole-run shaping for other scripts, marks and emoji.
@@ -211,7 +249,7 @@ public sealed partial class PdfReadPage {
             count += lengths[index];
         }
         if (count != span.Text.Length) return false;
-        return PdfTextAdvanceProjection.CanResolveBoundaries(span, cancellationToken);
+        return PdfTextAdvanceProjection.TryGetResolvedDirection(span, cancellationToken, out direction);
     }
 
 }

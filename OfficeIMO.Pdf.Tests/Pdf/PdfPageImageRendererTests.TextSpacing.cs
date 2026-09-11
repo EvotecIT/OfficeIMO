@@ -10,6 +10,50 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
+    [Theory]
+    [InlineData("", 1000)]
+    [InlineData("0 0 1 1 re W n 10 10 1 1 re W n ", 20)]
+    [InlineData("0 0 1 1 re W n ", 20)]
+    public void RenderPage_NonpaintingSpacedTextDoesNotConsumePositioningBudget(string clip, int x) {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        string text = new string('A', PdfReadLimits.Default.MaxPositionedTextCharactersPerPage + 1);
+        byte[] pdf = BuildSingleStreamPdf(clip + "BT /F1 10 Tf 1 Tc " + x + " 100 Td (" + text + ") Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPositionedTextCharactersPerPage = 1 }
+        });
+        OfficeDrawing drawing = document.Pages[0].ToDrawing();
+        Assert.Empty(drawing.Elements);
+    }
+
+    [Theory]
+    [InlineData(-70, 1)]
+    [InlineData(300, -13)]
+    public void RenderPage_PartiallyVisibleRunChargesOnlyProjectedGlyphs(int x, int spacing) {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        const string resources = "<< /Font << /F1 5 0 R >> >>";
+        string value = new string('A', 100);
+        byte[] pdf = BuildSingleStreamPdf($"BT /F1 10 Tf {spacing} Tc {x} 100 Td ({value}) Tj ET", resources, font);
+        const int visibleGlyphs = 35;
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPositionedTextCharactersPerPage = visibleGlyphs }
+        });
+        OfficeDrawing actual = document.Pages[0].ToDrawing();
+        var reference = new StringBuilder();
+        for (int index = 0; index < value.Length; index++) {
+            int origin = x + index * (6 + spacing);
+            reference.Append($"BT /F1 10 Tf {origin} 100 Td (A) Tj ET ");
+        }
+        OfficeDrawing expected = PdfPageImageRenderer.RenderPage(BuildSingleStreamPdf(reference.ToString(), resources, font));
+        Assert.Equal(OfficeDrawingRasterRenderer.Render(expected).GetPixels(), OfficeDrawingRasterRenderer.Render(actual).GetPixels());
+        PdfReadDocument limited = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPositionedTextCharactersPerPage = visibleGlyphs - 1 }
+        });
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() => limited.Pages[0].ToDrawing());
+        Assert.Equal(PdfReadLimitKind.PositionedTextCharacters, error.Kind);
+        Assert.Equal(visibleGlyphs, error.Actual);
+    }
+
     [Fact]
     public void SpacedTextProjectionObservesInvocationCancellationWhenCallerOmitsToken() {
         using var cancellation = new System.Threading.CancellationTokenSource();
@@ -89,7 +133,7 @@ public partial class PdfPageImageRendererTests {
         string content = "BT /F1 10 Tf 1 Tc 20 100 Td " +
             (splitRuns ? "(AB) Tj (CD) Tj" : "(ABCD) Tj") + " ET";
         byte[] pdf = useForm
-            ? BuildSingleStreamPdf("/Fm Do /Fm Do", "<< /XObject << /Fm 6 0 R >> >>", font,
+            ? BuildSingleStreamPdf("/Fm Do q 1 0 0 1 1000 0 cm /Fm Do Q /Fm Do", "<< /XObject << /Fm 6 0 R >> >>", font,
                 BuildStreamObject(6, "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Resources " + resources, content))
             : BuildSingleStreamPdf(content, resources, font);
         int exactCost = useForm ? 8 : 4;

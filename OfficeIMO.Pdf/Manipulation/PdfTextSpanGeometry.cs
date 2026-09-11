@@ -112,15 +112,14 @@ internal static class PdfTextSpanGeometry {
         return false;
     }
 
-    internal static bool TryGetPaintedGlyphGeometry(
+    private static bool TryGetPaintedGlyphGeometry(
         PdfTextSpan span,
         out double[] boundaries,
         out IReadOnlyList<int> glyphCharacterLengths,
-        out IReadOnlyList<double> glyphPaintedAdvances,
-        bool allowStationaryGlyphOrigins = false) {
+        out IReadOnlyList<double> glyphPaintedAdvances) {
         glyphCharacterLengths = span.GlyphCharacterLengths ?? Array.Empty<int>();
         glyphPaintedAdvances = span.GlyphPaintedAdvances ?? Array.Empty<double>();
-        return PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out boundaries, allowStationaryGlyphOrigins) &&
+        return PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out boundaries) &&
             glyphCharacterLengths.Count == glyphPaintedAdvances.Count &&
             glyphCharacterLengths.Count > 0 &&
             glyphCharacterLengths.All(static length => length > 0) &&

@@ -131,7 +131,7 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum Type 3 glyph programs invoked while rendering one page, including nested forms. Default: 1,000,000.</summary>
     public int MaxType3GlyphInvocationsPerPage { get; init; } = DefaultMaxType3GlyphInvocationsPerPage;
 
-    /// <summary>Maximum characters expanded into individually positioned drawing glyphs per page, including nested forms. Default: 100,000.</summary>
+    /// <summary>Maximum characters expanded into individually positioned drawing glyphs per page, including nested forms. Glyph frames rejected by page or clip bounds do not count. Default: 100,000.</summary>
     public int MaxPositionedTextCharactersPerPage { get; init; } = DefaultMaxPositionedTextCharactersPerPage;
 
     internal PdfReadLimits WithMinimumInputBytes(long minimumInputBytes) {

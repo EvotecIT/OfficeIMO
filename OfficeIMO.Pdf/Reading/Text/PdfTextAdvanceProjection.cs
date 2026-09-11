@@ -2,15 +2,17 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Projects signed text-space character advances onto a span's resolved baseline direction.</summary>
 internal static class PdfTextAdvanceProjection {
-    internal static bool TryGetResolvedBoundaries(PdfTextSpan span, out double[] boundaries,
-        bool allowStationaryGlyphOrigins = false) =>
-        TryGetResolvedBoundariesCore(span, out boundaries, allowStationaryGlyphOrigins, false, default);
+    internal static bool TryGetResolvedBoundaries(PdfTextSpan span, out double[] boundaries) =>
+        TryGetResolvedBoundariesCore(span, out boundaries, false, false, default, out _);
 
-    internal static bool CanResolveBoundaries(PdfTextSpan span, System.Threading.CancellationToken cancellationToken) =>
-        TryGetResolvedBoundariesCore(span, out _, true, true, cancellationToken);
+    internal static bool TryGetResolvedDirection(PdfTextSpan span, System.Threading.CancellationToken cancellationToken,
+        out double direction) =>
+        TryGetResolvedBoundariesCore(span, out _, true, true, cancellationToken, out direction);
 
     private static bool TryGetResolvedBoundariesCore(PdfTextSpan span, out double[] boundaries,
-        bool allowStationaryGlyphOrigins, bool validateOnly, System.Threading.CancellationToken cancellationToken) {
+        bool allowStationaryGlyphOrigins, bool validateOnly, System.Threading.CancellationToken cancellationToken,
+        out double directionSign) {
+        directionSign = 0D;
         IReadOnlyList<double>? advances = span.CharacterAdvances;
         if (advances is null || advances.Count != span.Text.Length) {
             boundaries = Array.Empty<double>();
@@ -42,20 +44,19 @@ internal static class PdfTextAdvanceProjection {
         // Parser-produced spans bind RotationDegrees to the painted baseline, independently
         // of spacing-inclusive movement. Older synthetic spans do not carry that direction,
         // so retain aggregate-direction normalization as their compatibility fallback.
-        double directionSign = span.CharacterAdvanceDirection != 0D
+        directionSign = span.CharacterAdvanceDirection != 0D
             ? span.CharacterAdvanceDirection
             : signedTotal < 0D ? -1D : 1D;
-        if (validateOnly) {
-            boundaries = Array.Empty<double>();
-            return true;
-        }
-        boundaries = new double[advances.Count + 1];
+        boundaries = validateOnly ? Array.Empty<double>() : new double[advances.Count + 1];
+        double boundary = 0D;
         for (int i = 0; i < advances.Count; i++) {
-            boundaries[i + 1] = boundaries[i] + advances[i] * directionSign;
-            if (!IsFinite(boundaries[i + 1])) {
+            cancellationToken.ThrowIfCancellationRequested();
+            boundary += advances[i] * directionSign;
+            if (!IsFinite(boundary)) {
                 boundaries = Array.Empty<double>();
                 return false;
             }
+            if (!validateOnly) boundaries[i + 1] = boundary;
         }
         return true;
     }
