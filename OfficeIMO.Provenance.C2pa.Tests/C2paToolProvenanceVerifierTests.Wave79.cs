@@ -55,6 +55,22 @@ public sealed class C2paToolProvenanceVerifierTestsWave79 {
         }
     }
 
+    [Fact]
+    public void ExpiredPreparationBudgetReturnsAnErrorWithoutStartingTheProvider() {
+        string asset = CreateAsset();
+        bool started = false;
+        try {
+            var verifier = new C2paToolProvenanceVerifier("c2patool", new CallbackRunner(() => started = true));
+            OfficeProvenanceVerificationResult result = verifier.Verify(
+                asset, new OfficeProvenanceVerificationOptions { Timeout = TimeSpan.FromTicks(1) });
+            Assert.Equal(OfficeProvenanceVerificationStatus.Error, result.Status);
+            Assert.Contains(result.Findings, finding => finding.Contains("timeout", StringComparison.OrdinalIgnoreCase));
+            Assert.False(started);
+        } finally {
+            File.Delete(asset);
+        }
+    }
+
     private static string CreateAsset() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".jpg");
         File.WriteAllBytes(path, new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 });

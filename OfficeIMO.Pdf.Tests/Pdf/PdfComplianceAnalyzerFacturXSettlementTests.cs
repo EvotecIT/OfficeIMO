@@ -220,13 +220,19 @@ public partial class PdfComplianceAnalyzerTests {
         Assert.Contains("SpecifiedTradeSettlementPaymentMeans TypeCode on SpecifiedTradeSettlementPaymentMeans #2", secondPaymentMeansMissingType.Diagnostic);
     }
 
-    [Fact]
-    public void FacturXReadinessRequiresCiiPaymentAccountFormat() {
+    [Theory]
+    [InlineData("PL61109010140000071219812875")]
+    [InlineData("DE5112345678901")]
+    [InlineData("DE24A23456789012345678")]
+    [InlineData("GB58123460161331926819")]
+    [InlineData("ZZ73123456789012345678")]
+    [InlineData("DE99000000000000000030")]
+    public void FacturXReadinessRequiresCiiPaymentAccountFormat(string identifier) {
         var invalidIbanOptions = new PdfOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
-            .AddEmbeddedFile("factur-x.xml", CreateCiiXml(creditorAccountIban: "PL61109010140000071219812875"), "application/xml", PdfAssociatedFileRelationship.Data);
+            .AddEmbeddedFile("factur-x.xml", CreateCiiXml(creditorAccountIban: identifier), "application/xml", PdfAssociatedFileRelationship.Data);
         var proprietaryAccountOptions = new PdfOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
@@ -262,7 +268,7 @@ public partial class PdfComplianceAnalyzerTests {
 
         Assert.Contains("IBANID", invalidIban.Diagnostic);
         Assert.Contains("checksum", invalidIban.Diagnostic);
-        Assert.Contains("PL61109010140000071219812875", invalidIban.Diagnostic);
+        Assert.Contains(identifier, invalidIban.Diagnostic);
         Assert.Contains("creditor account identifiers are present", proprietaryAccount.Diagnostic);
         Assert.Contains("PayeePartyCreditorFinancialAccount IBANID or ProprietaryID", missingAccount.Diagnostic);
         Assert.Contains("does not require creditor account identifiers", cashWithoutAccount.Diagnostic);

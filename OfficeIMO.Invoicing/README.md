@@ -61,8 +61,13 @@ Successful serialization alone does not establish standards compliance.
 | Parties | Seller, buyer, payee, tax representative, addresses, identifiers and contacts within each semantic role |
 | Lines | Quantities, price base quantities, net/gross prices, discounts, allowances, charges, item identifiers, classifications and attributes |
 | VAT and totals | Category/rate breakdowns, exemptions, document adjustments, prepayments and payable rounding |
-| Payments | Transfer accounts, payment references, direct-debit mandate and creditor details, masked card details |
+| Payments | Transfer accounts, payment references, direct-debit mandate and creditor details, masked card details. CII direct-debit output requires a valid IBAN for the debtor account; UBL local debtor identifiers cannot be converted to CII. |
 | References | Orders, preceding invoices, contracts, projects, delivery, periods, accounting and supporting documents; external locations preserve well-formed absolute URIs, including FTP and URN schemes, without fetching them |
+
+IBAN classification checks the registered country prefix, national length and character
+structure, and MOD-97 checksum against the [SWIFT IBAN Registry, release 102](https://www.swift.com/swift-resource/9606/download).
+Unknown prefixes and country-invalid identifiers remain generic UBL creditor accounts;
+they cannot be declared as CII IBANs. These checks do not establish that an account exists.
 
 Profile recognition also covers Factur-X MINIMUM, BASIC WL, BASIC, EXTENDED and EXTENDED-CTC-FR.
 Authoring those profiles is not supported by this engine. National CIUS rules

@@ -4,6 +4,7 @@ public class InvoiceConversionBoundaryTests {
     [Theory]
     [InlineData("LOCAL-123")]
     [InlineData("DE12345678901234567890")]
+    [InlineData("DE5112345678901")]
     public void InvalidSourceDebtorIbanCannotBeRecastAsAGenericUblAccount(string identifier) {
         Invoice invoice = InvoiceFixture.Create();
         invoice.Payment!.MeansCode = "49";
