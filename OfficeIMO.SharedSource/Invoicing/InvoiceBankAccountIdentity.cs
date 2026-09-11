@@ -5,7 +5,7 @@ namespace OfficeIMO.Internal.Invoicing;
 /// <summary>IBAN identity checks shared by native invoice mapping and PDF invoice inspection.</summary>
 internal static class InvoiceBankAccountIdentity {
     internal static bool IsValidIban(string? value) {
-        if (string.IsNullOrWhiteSpace(value)) return false;
+        if (value == null || string.IsNullOrWhiteSpace(value)) return false;
         if (!TryNormalizeIban(value, out string? normalized)) {
             return false;
         }
