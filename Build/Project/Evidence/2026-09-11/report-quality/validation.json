@@ -1,0 +1,54 @@
+{
+  "date": "2026-09-11",
+  "fixtureGenerator": "OfficeIMO.Project.ReportVerification",
+  "nativeVerifier": "Build/Project/Test-ProjectReportInteroperability.ps1",
+  "font": "Arial",
+  "officeVersion": "16.0",
+  "small": {
+    "tasks": 9,
+    "wordPages": 4,
+    "powerpointSlides": 7,
+    "excelPages": 6
+  },
+  "large": {
+    "tasks": 75,
+    "wordPages": 14,
+    "powerpointSlides": 27,
+    "excelReadback": {
+      "Application": "Excel",
+      "Version": "16.0",
+      "Sheets": [
+        {
+          "Name": "Report",
+          "Rows": 76,
+          "Columns": 8
+        },
+        {
+          "Name": "Status and groups",
+          "Rows": 76,
+          "Columns": 4
+        },
+        {
+          "Name": "Dependencies",
+          "Rows": 75,
+          "Columns": 4
+        }
+      ]
+    }
+  },
+  "tests": {
+    "project": "322 passed per target: Windows net8.0/net10.0/net472 and Ubuntu net8.0/net10.0",
+    "sharedPagination": "7 passed per Windows target: net8.0/net10.0/net472",
+    "wordBorderSchema": "2 passed per Windows target: net8.0/net10.0/net472",
+    "projectWorkflows": "11 passed per target: Windows and Ubuntu net8.0/net10.0; Windows net8.0 rerun after final column-width adjustment"
+  },
+  "review": {
+    "independentPass": "completed",
+    "finding": "Repeated Word row enumeration and missing row-loop cancellation",
+    "resolution": "Cache row and cell collections and check cancellation per row",
+    "targetedConfirmation": "completed",
+    "subsequentChange": "Minimum Excel Cost/Critical widths; directly verified in Microsoft Excel PDF export and focused tests"
+  },
+  "browser": "Wide and narrow renders inspected; report data navigation exercised",
+  "limits": "This records source validation, not package publication or complete suite coverage."
+}

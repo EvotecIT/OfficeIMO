@@ -11,7 +11,10 @@ public sealed partial class ProjectDocument {
         var taskSelection = input.TaskUids; var resourceSelection = input.ResourceUids; var columnSelection = input.Columns;
         var taskIds = ProjectViewBuilder.SelectIds(taskSelection, TaskIndex.Keys, layout.MaxRows, nameof(input.TaskUids));
         var resourceIds = ProjectViewBuilder.SelectIds(resourceSelection, ResourceIndex.Keys, layout.MaxRows, nameof(input.ResourceUids));
-        var columns = (columnSelection ?? new[] { ProjectViewColumn.Uid, ProjectViewColumn.Name, ProjectViewColumn.Start, ProjectViewColumn.Finish }).Take(17).ToArray();
+        var defaultColumns = layout.Kind == ProjectViewKind.Gantt || layout.Kind == ProjectViewKind.ResourceUsage || layout.Kind == ProjectViewKind.ResourceHistogram
+            ? new[] { ProjectViewColumn.Uid, ProjectViewColumn.Name }
+            : new[] { ProjectViewColumn.Uid, ProjectViewColumn.Name, ProjectViewColumn.Start, ProjectViewColumn.Finish };
+        var columns = (columnSelection ?? defaultColumns).Take(17).ToArray();
         if (columns.Length == 0 || columns.Length > 16 || columns.Distinct().Count() != columns.Length || columns.Any(c => !Enum.IsDefined(typeof(ProjectViewColumn), c)))
             throw new ArgumentException("Select between one and sixteen distinct valid columns.", nameof(options));
         CheckViewSchedule(schedule); // Caller-owned collections can execute code while enumerated.

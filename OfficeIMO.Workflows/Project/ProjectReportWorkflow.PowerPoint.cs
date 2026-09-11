@@ -23,16 +23,15 @@ public static partial class ProjectReportWorkflow {
         }
         double headerHeight = MeasureRow(part.Headers, true);
         var heights = part.Rows.Select(row => MeasureRow(row, false)).ToArray();
-        int start = 0;
-        do {
+        foreach (var page in OfficeTablePagination.Paginate(heights, availableHeight, headerHeight, view.MaxPages, token)) {
             token.ThrowIfCancellationRequested();
             if (presentation.Slides.Count >= view.MaxPages) throw new InvalidOperationException("Editable presentation exceeds MaxPages.");
-            int count = 0; double height = headerHeight;
-            while (start + count < heights.Length && height + heights[start + count] <= availableHeight) height += heights[start + count++];
-            if (count == 0 && start < heights.Length) throw new InvalidOperationException("An editable PowerPoint table row cannot fit with its header. Increase the page height or use Word or Excel.");
+            int start = page.RowOffset, count = page.RowCount; double height = page.Height;
             var slide = presentation.AddSlide();
-            slide.AddTextBoxPoints(view.Title, view.PageMargin, view.PageMargin, width, 32);
-            slide.AddTextBoxPoints(part.Title + (start > 0 ? " (continued)" : ""), view.PageMargin, view.PageMargin + 36, width, 25);
+            var title = slide.AddTextBoxPoints(view.Title, view.PageMargin, view.PageMargin, width, 32);
+            title.FontName = "Arial"; title.FontSize = 22; title.Color = "183047";
+            var subtitle = slide.AddTextBoxPoints(part.Title + (start > 0 ? " (continued)" : ""), view.PageMargin, view.PageMargin + 36, width, 25);
+            subtitle.FontName = "Arial"; subtitle.FontSize = 13; subtitle.Color = "64748B";
             var table = slide.AddTable(count + 1, part.Headers.Length);
             table.LeftPoints = view.PageMargin; table.TopPoints = view.PageMargin + 72; table.WidthPoints = width; table.HeightPoints = height;
             table.SetColumnWidthsPoints(widths); table.HeaderRow = true;
@@ -42,10 +41,11 @@ public static partial class ProjectReportWorkflow {
                 for (int c = 0; c < part.Headers.Length; c++) {
                     var cell = rows[r].Cells[c]; cell.Text = r == 0 ? part.Headers[c] : part.Rows[start + r - 1][c];
                     cell.FontSize = 12; cell.FontName = "Arial"; cell.Bold = r == 0; cell.TextAutoFit = PowerPointTextAutoFit.None;
+                    cell.FillColor = r == 0 ? "183047" : r % 2 == 1 ? "F4F7FA" : "FFFFFF";
+                    cell.Color = r == 0 ? "FFFFFF" : "183047"; cell.BorderColor = "E3EAF0";
                 }
             }
             slide.Notes.Text = "Editable report data. Source revision " + view.ModelRevision + ". " + view.Kind;
-            start += count;
-        } while (start < part.Rows.Length);
+        }
     }
 }

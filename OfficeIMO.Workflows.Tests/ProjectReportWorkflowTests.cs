@@ -10,6 +10,21 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class ProjectReportWorkflowTests {
     [Fact]
+    public void WideUsagePrintsAtFullScaleWithRepeatedIdentityColumns() {
+        using var project = Create(1); project.Tasks[0].Duration = ProjectDuration.WorkingDays(10);
+        var schedule = project.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
+        var view = project.CreateView(schedule, new ProjectViewOptions { Kind = ProjectViewKind.TaskUsage, Timescale = ProjectViewTimescale.Day });
+        using var workbook = ProjectReportWorkflow.CreateExcel(view);
+        using var saved = ExcelDocument.Load(new MemoryStream(workbook.ToBytes()));
+        var usage = saved.Sheets.Single(sheet => sheet.Name == "Work hours");
+        Assert.Equal(100U, usage.GetPageSetup().Scale); Assert.Null(usage.GetPageSetup().FitToWidth);
+        Assert.Equal(OfficePageOrientation.Landscape, usage.GetPageSetup().Orientation);
+        Assert.Equal(1, usage.GetPrintTitles().FirstRow); Assert.Equal(1, usage.GetPrintTitles().FirstColumn); Assert.Equal(2, usage.GetPrintTitles().LastColumn);
+        Assert.Equal(OfficePageOrientation.Portrait, saved.Sheets.Single(sheet => sheet.Name == "Report").GetPageSetup().Orientation);
+        Assert.Empty(saved.ValidateDocument());
+    }
+
+    [Fact]
     public void EditablePresentationPaginatesLongLabelsWithoutLosingRows() {
         using var project = Create(40);
         project.Tasks[0].Name = "Long task label with implementation, verification and documented handover for the shared service";

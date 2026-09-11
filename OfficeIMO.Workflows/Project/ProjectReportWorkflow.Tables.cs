@@ -21,7 +21,7 @@ public static partial class ProjectReportWorkflow {
             var columns = view.Columns.Skip(c).Take(maxColumns - 1).ToList();
             // Keep horizontal continuations independently identifiable even when the caller omitted UID.
             if (view.Columns.Count > maxColumns - 1 && !columns.Contains(ProjectViewColumn.Uid)) columns.Insert(0, ProjectViewColumn.Uid);
-            foreach (var part in SplitRows(view.Kind.ToString(), columns.Select(ProjectView.ColumnTitle).ToArray(),
+            foreach (var part in SplitRows(ProjectView.KindTitle(view.Kind), columns.Select(ProjectView.ColumnTitle).ToArray(),
                 view.Rows.Select(row => columns.Select(row.GetText).ToArray()), token)) yield return part;
         }
         if (IsUsage(view)) for (int b = 0; b < view.Buckets.Count; b += maxColumns - 1) {
@@ -39,26 +39,29 @@ public static partial class ProjectReportWorkflow {
         }
         if (view.Links.Count > 0) {
             foreach (var part in SplitRows("Dependencies", new[] { "Predecessor UID", "Successor UID", "Type", "Lag" },
-                view.Links.Select(link => new[] { link.PredecessorUid.ToString(CultureInfo.InvariantCulture), link.SuccessorUid.ToString(CultureInfo.InvariantCulture), link.Type.ToString(), link.LagText }), token)) yield return part;
+                view.Links.Select(link => new[] { link.PredecessorUid.ToString(CultureInfo.InvariantCulture), link.SuccessorUid.ToString(CultureInfo.InvariantCulture), DependencyText(link.Type), link.LagText }), token)) yield return part;
         }
     }
 
     private static IEnumerable<TablePart> SplitRows(string title, string[] headers, IEnumerable<string[]> values, CancellationToken token) {
-        var rows = new List<string[]>(14); int offset = 0;
+        var rows = new List<string[]>();
         foreach (var row in values) {
             token.ThrowIfCancellationRequested(); rows.Add(row);
-            if (rows.Count == 14) {
-                yield return new TablePart { Title = title + " · rows " + (offset + 1) + "–" + (offset + rows.Count), Headers = headers, Rows = rows.ToArray() };
-                offset += rows.Count; rows.Clear();
-            }
         }
-        if (rows.Count > 0 || offset == 0) yield return new TablePart {
-            Title = title + (rows.Count == 0 ? " · no matching rows" : " · rows " + (offset + 1) + "–" + (offset + rows.Count)),
+        yield return new TablePart {
+            Title = title + (rows.Count == 0 ? " · no matching rows" : ""),
             Headers = headers, Rows = rows.ToArray()
         };
     }
 
     private static string DateText(DateTime? value) => value?.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? "";
+    private static string DependencyText(ProjectDependencyType type) => type switch {
+        ProjectDependencyType.FinishToStart => "Finish to start (FS)",
+        ProjectDependencyType.FinishToFinish => "Finish to finish (FF)",
+        ProjectDependencyType.StartToStart => "Start to start (SS)",
+        ProjectDependencyType.StartToFinish => "Start to finish (SF)",
+        _ => type.ToString()
+    };
     private static string Status(ProjectView view, ProjectViewRow row) =>
         (view.Kind == ProjectViewKind.ResourceUsage || view.Kind == ProjectViewKind.ResourceHistogram ? "Resource" : row.IsSummary ? "Summary" : "Task")
         + (row.IsCritical ? "; critical" : "");

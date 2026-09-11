@@ -83,6 +83,8 @@ public sealed class ProjectViewOptions {
     public double PageWidth { get; set; } = 842;
     /// <summary>Page height in points.</summary>
     public double PageHeight { get; set; } = 595;
+    /// <summary>Trim unused vertical space from portable drawing pages. PageHeight remains the maximum; native Office pages retain their configured dimensions.</summary>
+    public bool FitPageHeightToContent { get; set; } = true;
     /// <summary>Page margin in points.</summary>
     public double Margin { get; set; } = 28;
     /// <summary>Include a legend describing color and units.</summary>

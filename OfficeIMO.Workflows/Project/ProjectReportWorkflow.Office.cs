@@ -19,21 +19,29 @@ public static partial class ProjectReportWorkflow {
             document.PageSettings.Height = checked((uint)Math.Round(view.PageHeight * 20));
             document.Margins.Left = document.Margins.Right = checked((uint)Math.Round(view.PageMargin * 20));
             document.Margins.Top = document.Margins.Bottom = checked((int)Math.Round(view.PageMargin * 20));
-            var title = document.AddParagraph(view.Title); title.Bold = true; title.FontSize = 20;
-            document.AddParagraph(view.Kind.ToString());
+            var title = document.AddParagraph(view.Title); title.Bold = true; title.FontSize = 20; title.FontFamily = "Arial"; title.ColorHex = "183047";
             foreach (var part in TableParts(view, cancellationToken)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                document.AddParagraph(part.Title);
+                var heading = document.AddParagraph(part.Title); heading.FontFamily = "Arial"; heading.FontSize = 13;
+                heading.Bold = true; heading.ColorHex = "183047"; heading.KeepWithNext = true;
+                heading.LineSpacingBeforePoints = 10; heading.LineSpacingAfterPoints = 6;
                 var table = document.AddTable(part.Rows.Length + 1, part.Headers.Length, WordTableStyle.TableGrid);
                 table.SetColumnWidthsPercentage(ColumnWeights(part.Headers));
-                table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
-                for (int c = 0; c < part.Headers.Length; c++) {
-                    var paragraph = table.Rows[0].Cells[c].Paragraphs[0]; paragraph.Text = part.Headers[c]; paragraph.Bold = true;
-                }
-                for (int r = 0; r < part.Rows.Length; r++) for (int c = 0; c < part.Headers.Length; c++)
-                    table.Rows[r + 1].Cells[c].Paragraphs[0].Text = part.Rows[r][c];
-                foreach (var row in table.Rows) foreach (var cell in row.Cells) foreach (var paragraph in cell.Paragraphs) {
-                    paragraph.FontSize = 10; paragraph.FontFamily = "Arial";
+                table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 4, OfficeColor.ParseHex("#E3EAF0"));
+                var tableRows = table.Rows;
+                tableRows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
+                for (int r = 0; r < tableRows.Count; r++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var cells = tableRows[r].Cells;
+                    for (int c = 0; c < cells.Count; c++) {
+                        var cell = cells[c];
+                        cell.ShadingFillColorHex = r == 0 ? "183047" : r % 2 == 1 ? "F4F7FA" : "FFFFFF";
+                        cell.MarginTopWidth = cell.MarginBottomWidth = 80;
+                        cell.MarginLeftWidth = cell.MarginRightWidth = 120;
+                        var paragraph = cell.Paragraphs[0];
+                        paragraph.Text = r == 0 ? part.Headers[c] : part.Rows[r - 1][c]; paragraph.Bold = r == 0;
+                        paragraph.FontSize = 11; paragraph.FontFamily = "Arial"; paragraph.ColorHex = r == 0 ? "FFFFFF" : "183047";
+                    }
                 }
             }
             return document;
@@ -78,7 +86,7 @@ public static partial class ProjectReportWorkflow {
                     }
                 }
             }
-            FinishSheet(sheet, cancellationToken, view.Columns.Count);
+            FinishSheet(sheet, cancellationToken, view.Rows.Count + 1, view.Columns.Count);
             if (IsUsage(view)) {
                 var usage = document.AddWorksheet("Work hours"); usage.CellValue(1, 1, "UID"); usage.CellValue(1, 2, "Name");
                 for (int b = 0; b < view.Buckets.Count; b++) { usage.CellValue(1, b + 3, view.Buckets[b].Start); usage.FormatCell(1, b + 3, "yyyy-mm-dd"); }
@@ -87,9 +95,12 @@ public static partial class ProjectReportWorkflow {
                     usage.CellValue(r + 2, 1, view.Rows[r].Uid); usage.CellValue(r + 2, 2, view.Rows[r].Name);
                     for (int b = 0; b < view.Buckets.Count; b++) usage.CellValue(r + 2, b + 3, view.Rows[r].BucketWorkHours[b]);
                 }
-                FinishSheet(usage, cancellationToken, view.Buckets.Count + 2); usage.Freeze(1, 2);
+                FinishSheet(usage, cancellationToken, view.Rows.Count + 1, view.Buckets.Count + 2, 2); usage.Freeze(1, 2);
             }
             AddExcelSupplementalTables(document, view, cancellationToken);
+            foreach (var reportSheet in document.Sheets) {
+                reportSheet.SetHeaderFooter(headerLeft: view.Title.Replace("&", "&&"), headerRight: "&A", footerRight: "Page &P of &N");
+            }
             return document;
         } catch { document.Dispose(); throw; }
     }

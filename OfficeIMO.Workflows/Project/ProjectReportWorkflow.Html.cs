@@ -39,7 +39,7 @@ public static partial class ProjectReportWorkflow {
                 view.Rows.Select(row => new[] { row.Uid.ToString(System.Globalization.CultureInfo.InvariantCulture), row.Name }.Concat(row.BucketWorkHours.Select(v => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)))), cancellationToken);
         }
         if (view.Links.Count > 0) AppendHtmlTable(body, "Dependencies", new[] { "Predecessor UID", "Successor UID", "Type", "Lag" },
-            view.Links.Select(link => new[] { link.PredecessorUid.ToString(System.Globalization.CultureInfo.InvariantCulture), link.SuccessorUid.ToString(System.Globalization.CultureInfo.InvariantCulture), link.Type.ToString(), link.LagText }), cancellationToken);
+            view.Links.Select(link => new[] { link.PredecessorUid.ToString(System.Globalization.CultureInfo.InvariantCulture), link.SuccessorUid.ToString(System.Globalization.CultureInfo.InvariantCulture), DependencyText(link.Type), link.LagText }), cancellationToken);
         if (view.Rows.Any(r => r.BaselineStart.HasValue || r.BaselineFinish.HasValue)) AppendHtmlTable(body, "Baseline dates", new[] { "UID", "Name", "Baseline start", "Baseline finish" },
             view.Rows.Select(row => new[] { row.Uid.ToString(System.Globalization.CultureInfo.InvariantCulture), row.Name, row.BaselineStart?.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture) ?? "", row.BaselineFinish?.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture) ?? "" }), cancellationToken);
         body.Append("</main>");

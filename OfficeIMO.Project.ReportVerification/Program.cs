@@ -8,7 +8,10 @@ using OfficeIMO.Project;
 using OfficeIMO.Word;
 using OfficeIMO.Workflows;
 
-if (args.Length != 2) { Console.Error.WriteLine("Usage: OfficeIMO.Project.ReportVerification <new-output-directory> <font.ttf>"); return 2; }
+if (args.Length < 2 || args.Length > 3 || args.Length == 3 && args[2] != "native") {
+    Console.Error.WriteLine("Usage: OfficeIMO.Project.ReportVerification <new-output-directory> <font.ttf> [native]"); return 2;
+}
+bool nativeOnly = args.Length == 3;
 string output = Path.GetFullPath(args[0]);
 if (Directory.Exists(output)) throw new IOException("Choose a new output directory.");
 var fonts = new OfficeFontFaceCollection().Add("Arial", File.ReadAllBytes(args[1]));
@@ -30,7 +33,7 @@ for (int i = 0; i < names.Length; i++) {
 }
 var schedule = project.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); schedule.Report.ThrowIfErrors();
 var evidence = new List<object>();
-foreach (var kind in Enum.GetValues<ProjectViewKind>()) {
+foreach (var kind in nativeOnly ? Array.Empty<ProjectViewKind>() : Enum.GetValues<ProjectViewKind>()) {
     var view = project.CreateView(schedule, new ProjectViewOptions { Kind = kind, Timescale = ProjectViewTimescale.Day, BaselineNumber = 0 });
     string stem = Path.Combine(output, kind.ToString());
     File.WriteAllText(stem + ".html", ProjectReportWorkflow.ToHtml(view, typography));
@@ -57,15 +60,18 @@ using (var workbook = ProjectReportWorkflow.CreateExcel(usageView)) {
     using var copy = ExcelDocument.Load(Path.Combine(output, "report.xlsx"));
     if (copy.ValidateDocument().Count != 0) throw new InvalidDataException("Excel report failed package validation.");
 }
-var transfer = project.ExportTables(allowLossyProjection: true);
-using (var workbook = ProjectDataWorkflow.CreateExcel(transfer)) workbook.Save(Path.Combine(output, "project-data.xlsx"));
-foreach (var table in transfer.Tables) ProjectDataWorkflow.CreateCsv(table.Table).Save(Path.Combine(output, table.Kind + ".csv"));
-var empty = project.CreateView(schedule, new ProjectViewOptions { TaskUids = Array.Empty<int>() });
-File.WriteAllText(Path.Combine(output, "empty.html"), ProjectReportWorkflow.ToHtml(empty, typography));
-File.WriteAllBytes(Path.Combine(output, "empty.png"), ProjectReportWorkflow.ToPng(empty, typography: typography).Single());
-var months = project.CreateView(schedule, new ProjectViewOptions { Timescale = ProjectViewTimescale.Month, Start = new DateTime(2026, 9, 15), Finish = new DateTime(2026, 12, 15), BaselineNumber = 0 });
-File.WriteAllText(Path.Combine(output, "months.html"), ProjectReportWorkflow.ToHtml(months, typography));
-File.WriteAllBytes(Path.Combine(output, "months.png"), ProjectReportWorkflow.ToPng(months, typography: typography).Single());
+if (!nativeOnly) {
+    var transfer = project.ExportTables(allowLossyProjection: true);
+    using (var workbook = ProjectDataWorkflow.CreateExcel(transfer)) workbook.Save(Path.Combine(output, "project-data.xlsx"));
+    foreach (var table in transfer.Tables) ProjectDataWorkflow.CreateCsv(table.Table).Save(Path.Combine(output, table.Kind + ".csv"));
+    var empty = project.CreateView(schedule, new ProjectViewOptions { TaskUids = Array.Empty<int>() });
+    File.WriteAllText(Path.Combine(output, "empty.html"), ProjectReportWorkflow.ToHtml(empty, typography));
+    File.WriteAllBytes(Path.Combine(output, "empty.png"), ProjectReportWorkflow.ToPng(empty, typography: typography).Single());
+    var months = project.CreateView(schedule, new ProjectViewOptions { Timescale = ProjectViewTimescale.Month, Start = new DateTime(2026, 9, 15), Finish = new DateTime(2026, 12, 15), BaselineNumber = 0 });
+    File.WriteAllText(Path.Combine(output, "months.html"), ProjectReportWorkflow.ToHtml(months, typography));
+    var monthPages = ProjectReportWorkflow.ToPng(months, typography: typography);
+    for (int i = 0; i < monthPages.Count; i++) File.WriteAllBytes(Path.Combine(output, "months-" + (i + 1) + ".png"), monthPages[i]);
+}
 using var large = ProjectDocument.Create(); large.Name = "Large delivery plan · Łódź";
 large.Calendar = large.Calendars.AddStandardWorkingWeek(); large.Settings.StartDate = project.Settings.StartDate;
 ProjectTask? priorLarge = null;
@@ -76,7 +82,7 @@ for (int i = 0; i < 75; i++) {
     priorLarge = task;
 }
 var largeSchedule = large.CalculateSchedule(); largeSchedule.Report.ThrowIfErrors();
-foreach (var kind in new[] { ProjectViewKind.Gantt, ProjectViewKind.Network, ProjectViewKind.Table }) {
+foreach (var kind in nativeOnly ? Array.Empty<ProjectViewKind>() : new[] { ProjectViewKind.Gantt, ProjectViewKind.Network, ProjectViewKind.Table }) {
     var view = large.CreateView(largeSchedule, new ProjectViewOptions { Kind = kind });
     string stem = Path.Combine(output, "large-" + kind);
     File.WriteAllText(stem + ".html", ProjectReportWorkflow.ToHtml(view, typography));
@@ -88,6 +94,12 @@ foreach (var kind in new[] { ProjectViewKind.Gantt, ProjectViewKind.Network, Pro
     evidence.Add(new { kind = "large-" + kind, rows = view.Rows.Count, buckets = view.Buckets.Count, pages = images.Count, pdfPages, pngPages = images.Count });
 }
 var largeView = large.CreateView(largeSchedule, new ProjectViewOptions { Kind = ProjectViewKind.Table, Columns = Enum.GetValues<ProjectViewColumn>() });
+foreach (var kind in nativeOnly ? Array.Empty<ProjectViewKind>() : new[] { ProjectViewKind.Gantt, ProjectViewKind.Timeline, ProjectViewKind.Table }) {
+    var narrow = large.CreateView(largeSchedule, new ProjectViewOptions { Kind = kind, PageWidth = 420, PageHeight = 595,
+        Columns = new[] { ProjectViewColumn.Uid, ProjectViewColumn.Name }, TaskUids = large.Tasks.Take(3).Select(task => task.Uid).ToArray() });
+    File.WriteAllText(Path.Combine(output, "narrow-" + kind + ".html"), ProjectReportWorkflow.ToHtml(narrow, typography));
+    File.WriteAllBytes(Path.Combine(output, "narrow-" + kind + ".png"), ProjectReportWorkflow.ToPng(narrow, typography: typography).First());
+}
 using (var presentation = ProjectReportWorkflow.CreatePowerPoint(largeView)) {
     Directory.CreateDirectory(Path.Combine(output, "large-native"));
     presentation.Save(Path.Combine(output, "large-native", "report.pptx"));

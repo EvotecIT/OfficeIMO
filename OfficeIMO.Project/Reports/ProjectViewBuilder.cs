@@ -17,6 +17,7 @@ internal static class ProjectViewBuilder {
         return new ProjectViewOptions { Kind = input.Kind, Timescale = input.Timescale, IncludeSummaries = input.IncludeSummaries,
             CriticalOnly = input.CriticalOnly, NameContains = input.NameContains, Grouping = input.Grouping, BaselineNumber = input.BaselineNumber,
             Start = input.Start, Finish = input.Finish, PageWidth = input.PageWidth, PageHeight = input.PageHeight,
+            FitPageHeightToContent = input.FitPageHeightToContent,
             Margin = input.Margin, ShowLegend = input.ShowLegend, MaxRows = input.MaxRows, MaxBuckets = input.MaxBuckets,
             MaxCells = input.MaxCells, MaxPages = input.MaxPages, MaxIntervalVisits = input.MaxIntervalVisits };
     }

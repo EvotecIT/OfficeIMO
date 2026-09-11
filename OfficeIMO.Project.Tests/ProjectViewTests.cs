@@ -3,6 +3,36 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Project.Tests;
 
 public sealed class ProjectViewTests {
+    [Fact]
+    public void ContentSizingPreservesFixedPageOptOutAndWrapsLongTimelineLabels() {
+        using var project = Create();
+        project.Tasks.Add("Design, implement, verify and document the complete shared service integration and operational handover").Duration = ProjectDuration.WorkingHours(1);
+        var schedule = project.CalculateSchedule();
+        var compact = project.CreateView(schedule, new ProjectViewOptions { Kind = ProjectViewKind.Timeline, PageWidth = 356, Columns = new[] { ProjectViewColumn.Name } });
+        var fixedSize = project.CreateView(schedule, new ProjectViewOptions { Kind = ProjectViewKind.Timeline, PageWidth = 356, Columns = new[] { ProjectViewColumn.Name }, FitPageHeightToContent = false });
+        Assert.True(Assert.Single(compact.Render()).Drawing.Height < compact.PageHeight);
+        Assert.Equal(fixedSize.PageHeight, Assert.Single(fixedSize.Render()).Drawing.Height);
+        string svg = OfficeDrawingSvgExporter.ToSvg(Assert.Single(compact.Render()).Drawing);
+        Assert.Contains("handover", svg);
+    }
+
+    [Fact]
+    public void NetworkWrapsLongNamesAndKeepsAllNodesAcrossMeasuredPages() {
+        using var project = Create();
+        ProjectTask? previous = null;
+        for (int i = 0; i < 8; i++) {
+            var task = project.Tasks.Add("Design, implement and verify the shared service integration and operational handover " + i);
+            task.Duration = ProjectDuration.WorkingHours(1);
+            if (previous != null) project.Dependencies.Add(previous, task);
+            previous = task;
+        }
+        var view = project.CreateView(project.CalculateSchedule(), new ProjectViewOptions { Kind = ProjectViewKind.Network, PageWidth = 420, PageHeight = 420 });
+        var pages = view.Render();
+        Assert.True(pages.Count > 1); Assert.Equal(8, pages.Sum(page => page.RowCount));
+        foreach (var page in pages) Assert.Contains("handover", OfficeDrawingSvgExporter.ToSvg(page.Drawing));
+        Assert.Contains("FS", string.Join("", pages.Select(page => OfficeDrawingSvgExporter.ToSvg(page.Drawing))));
+    }
+
     [Theory]
     [InlineData(ProjectViewKind.Gantt)]
     [InlineData(ProjectViewKind.Timeline)]

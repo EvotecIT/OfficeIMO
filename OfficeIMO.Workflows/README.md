@@ -27,6 +27,8 @@ workbook.Save("delivery.xlsx");
 
 `ToSvg` and `ToPng` return one result per page. Supply an `OfficeRenderingProfile` with the required fonts for explicit Unicode coverage. `CreateWord`, `CreatePowerPoint`, and `CreateExcel` return editable document objects that callers can customize and save. Word and PowerPoint use tables; Excel separates report values, usage, status/groups, baseline dates, and dependencies into worksheets. These exports do not reconstruct Microsoft Project's saved views or native styles.
 
+Word tables repeat their headers and flow across pages. PowerPoint uses measured row heights to keep complete rows on each slide. Excel retains numeric and date cells, freezes the header row, and prints narrow reports in portrait and wider usage tables in landscape, with a report title and page numbers. Tables wider than eight columns print at full scale across pages; usage sheets repeat UID and name columns on horizontal continuations. Native Office exports retain fixed page dimensions; portable drawing exports can trim unused page height through `ProjectViewOptions.FitPageHeightToContent`.
+
 `ProjectDataWorkflow` transports the Project owner's mapped tables:
 
 ```csharp

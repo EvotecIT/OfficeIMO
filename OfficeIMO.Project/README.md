@@ -223,6 +223,8 @@ foreach (var row in view.Rows)
 
 Views are immutable snapshots. Available layouts are Gantt, task usage, resource usage, resource histogram, network, timeline, and table. Options select tasks/resources, columns, dates, critical tasks, summaries, parent groups, baseline, and page dimensions. `Render()` creates portable drawing pages. Native Project view definitions and styles are not imported into these layouts.
 
+Gantt, resource usage, and resource histogram default to UID and name columns, leaving more room for the time axis. Other layouts default to UID, name, start, and finish; set `Columns` to choose an explicit set. Labels, column headers, and network nodes wrap before pagination. Milestones use diamond markers, and critical status colors the chart rather than the task text. Portable pages trim unused height by default; set `FitPageHeightToContent = false` to retain the configured `PageHeight`. Content that cannot fit within the page or page budget fails explicitly.
+
 `ExportTables` projects tasks, resources, assignments, and calendar intervals into mapped tables. The default rejects omitted project semantics; pass `allowLossyProjection: true` only after accepting the projection's diagnostic report. `ProjectDocument.ImportTables` creates a new document from explicit column mappings and import options. These tables are a data-exchange contract, not a complete project backup.
 
 The optional [OfficeIMO.Workflows](../OfficeIMO.Workflows/README.md) package owns PDF/SVG/PNG/HTML output, editable Word/PowerPoint/Excel reports, and CSV/Excel table transport. The base Project package depends only on the shared Core owner.

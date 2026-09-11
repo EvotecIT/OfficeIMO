@@ -18,6 +18,10 @@ document I/O, atomic file replacement, and bounded XML primitives used by the Pr
 assembly. Keep this minimum when resolving or explicitly pinning the transitive Core
 dependency; Core 3.4.2 does not contain the required assembly access declaration.
 
+### Project report layout defaults
+
+Project report drawings now trim unused page height. Set `ProjectViewOptions.FitPageHeightToContent = false` when a consumer requires every drawing page to retain the configured dimensions. Gantt, resource usage, and resource histogram views now default to UID and name columns; supply `Columns` explicitly to retain a previous selection of date or numeric columns. Native Word, PowerPoint, and Excel exports retain their document page dimensions.
+
 ### Rendering loss and gallery evidence
 
 Scanned PDF rendering no longer returns a blank successful page when a CCITT or
