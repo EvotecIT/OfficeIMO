@@ -31,7 +31,7 @@ public static class InvoiceCalculator {
     private static InvoiceCalculation Calculate(Invoice invoice, bool preserveDeclaredAmounts) {
         if (invoice == null) throw new ArgumentNullException(nameof(invoice));
         var lines = new List<InvoiceCalculatedLine>();
-        var groups = new List<TaxGroup>();
+        var groups = new Dictionary<(string Code, decimal? Rate), TaxGroup>();
         foreach (InvoiceLine line in invoice.Lines) {
             if (line == null) throw new ArgumentException("An invoice line is null.", nameof(invoice));
             if (line.PriceBaseQuantity <= 0m) throw new ArgumentException("Line price base quantity must be positive: " + line.Id, nameof(invoice));
@@ -55,15 +55,14 @@ public static class InvoiceCalculator {
         // Source exemption information is normally held on the header breakdown, not each line.
         foreach (InvoiceDeclaredTax declared in invoice.DeclaredTaxes) {
             if (declared == null || declared.Category == null) throw new ArgumentException("A declared VAT breakdown is null.", nameof(invoice));
-            TaxGroup? group = groups.SingleOrDefault(g => g.Code == declared.Category.Code && g.Rate == NormalizeRate(declared.Category));
-            if (group != null) {
+            if (groups.TryGetValue((declared.Category.Code, NormalizeRate(declared.Category)), out TaxGroup? group)) {
                 if (preserveDeclaredAmounts) {
                     group.MergeReason(declared.Category);
                     group.DeclaredAmount = declared.TaxAmount;
                 } else group.UseSourceReasonWhenMissing(declared.Category);
             }
         }
-        var taxes = groups.OrderBy(group => group.Code, StringComparer.Ordinal).ThenBy(group => group.Rate)
+        var taxes = groups.Values.OrderBy(group => group.Code, StringComparer.Ordinal).ThenBy(group => group.Rate)
             .Select(group => new InvoiceCalculatedTax(group.Code, group.Rate, group.Basis, group.Reason, group.ReasonCode, group.DeclaredAmount)).ToList();
         return new InvoiceCalculation(lines.AsReadOnly(), taxes.AsReadOnly(), allowances, charges, invoice.PrepaidAmount, invoice.RoundingAmount);
     }
@@ -73,11 +72,11 @@ public static class InvoiceCalculator {
             throw new ArgumentException("Allowances and charges require a non-negative amount with at most two decimal places.");
     }
 
-    private static void AddTax(List<TaxGroup> groups, InvoiceTaxCategory? category, decimal basis) {
+    private static void AddTax(Dictionary<(string Code, decimal? Rate), TaxGroup> groups, InvoiceTaxCategory? category, decimal basis) {
         if (category == null || string.IsNullOrWhiteSpace(category.Code) || category.Rate < 0m)
             throw new ArgumentException("Each line and document adjustment requires a VAT category and a non-negative rate when present.");
-        TaxGroup? group = groups.SingleOrDefault(g => g.Code == category.Code && g.Rate == NormalizeRate(category));
-        if (group == null) { group = new TaxGroup(category); groups.Add(group); }
+        var key = (category.Code, NormalizeRate(category));
+        if (!groups.TryGetValue(key, out TaxGroup? group)) { group = new TaxGroup(category); groups.Add(key, group); }
         else group.MergeReason(category);
         group.Basis = InvoiceArithmetic.Add(group.Basis, basis);
     }

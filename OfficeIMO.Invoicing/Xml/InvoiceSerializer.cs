@@ -72,24 +72,11 @@ public static partial class InvoiceSerializer {
         if (options.Profile == InvoiceProfile.XRechnung && string.IsNullOrWhiteSpace(invoice.BuyerReference))
             Unsupported("BuyerReference", "XRechnung output requires a buyer routing reference.");
         // The EN semantic payee and tax-representative groups are intentionally narrower than seller/buyer.
-        CheckParty(invoice.Payee, "Payee", true);
-        CheckParty(invoice.TaxRepresentative, "TaxRepresentative", false);
-        if (invoice.Buyer?.TaxRegistration != null) Unsupported("Buyer.TaxRegistration", "EN 16931 has no buyer non-VAT tax registration term.");
-        if (invoice.Buyer?.LegalInformation != null) Unsupported("Buyer.LegalInformation", "EN 16931 has no buyer additional legal information term.");
+        InvoicePartyMapping.Check(invoice.Payee, "Payee", Unsupported);
+        InvoicePartyMapping.Check(invoice.TaxRepresentative, "TaxRepresentative", Unsupported);
+        InvoicePartyMapping.Check(invoice.Buyer, "Buyer", Unsupported);
         return diagnostics;
-
-        void CheckParty(InvoiceParty? party, string path, bool payee) {
-            if (party == null) return;
-            if (party.TradingName != null || party.LegalInformation != null || party.Contact != null || party.ElectronicAddress != null || party.TaxRegistration != null)
-                Unsupported(path, "This party role cannot carry trading name, legal information, contact, electronic address or non-VAT tax registration in the supported mapping.");
-            if (payee && (party.VatIdentifier != null || HasAddress(party.Address))) Unsupported(path, "The payee group does not carry VAT or postal-address information.");
-            if (!payee && (party.Identifiers.Count != 0 || party.LegalRegistration != null)) Unsupported(path, "The tax representative group does not carry business or legal registration identifiers.");
-            if (payee && party.Identifiers.Count > 1) Unsupported(path + ".Identifiers", "The payee group permits one identifier.");
-        }
     }
-
-    private static bool HasAddress(InvoiceAddress? address) => address != null &&
-        (!string.IsNullOrEmpty(address.CountryCode) || address.Line1 != null || address.Line2 != null || address.Line3 != null || address.City != null || address.PostCode != null || address.Subdivision != null);
     private static string Number(decimal value) => value.ToString("0.############################", CultureInfo.InvariantCulture);
     private static string Amount(decimal value) => value.ToString("0.00", CultureInfo.InvariantCulture);
     private static XElement? Text(XName name, string? value) => value == null ? null : new XElement(name, value);

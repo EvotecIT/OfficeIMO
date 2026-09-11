@@ -13,6 +13,32 @@ public sealed class UnixInvoiceStandardsTheoryAttribute : TheoryAttribute {
 }
 
 public class InvoiceWorkspaceTests {
+    [InvoiceStandardsTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RelativeExecutablePathsKeepTheirApplicationOrigin(bool explicitCurrentDirectory) {
+        string name = "invoice-relative-java-" + Guid.NewGuid().ToString("N");
+        string directory = Path.Combine(Environment.CurrentDirectory, name);
+        Directory.CreateDirectory(directory);
+        try {
+            string fileName = OperatingSystem.IsWindows() ? "runner.exe" : "runner";
+            string executable = Path.Combine(directory, fileName);
+            if (OperatingSystem.IsWindows()) {
+                // A copied apphost starts but cannot find its managed entry point in this probe directory.
+                File.Copy(Environment.ProcessPath!, executable);
+            } else {
+                await File.WriteAllTextAsync(executable, "#!/bin/sh\nexit 7\n", new UTF8Encoding(false));
+                File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            }
+            string relative = (explicitCurrentDirectory ? "./" : "") + name + "/" + fileName;
+            var runner = new SaxonInvoiceRulesRunner(Environment.GetEnvironmentVariable("OFFICEIMO_INVOICE_SAXON_JAR")!, relative);
+            bool started = false;
+            await Assert.ThrowsAsync<InvalidOperationException>(() => runner.RunAsync(Encoding.UTF8.GetBytes("invoice"), Encoding.UTF8.GetBytes("rules"), false,
+                new Dictionary<string, InvoiceDiagnosticSeverity>(), CancellationToken.None, () => started = true));
+            Assert.True(started);
+        } finally { Directory.Delete(directory, recursive: true); }
+    }
+
     [UnixInvoiceStandardsTheory]
     [InlineData(false)]
     [InlineData(true)]
