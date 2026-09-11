@@ -93,6 +93,11 @@ reported. Rewriting blocks by default when it would discard them. The explicit
 unknown extensions. `GetOriginalBytes()` always returns the original bytes,
 even after model edits.
 
+Duplicate invoice-currency or accounting-currency VAT totals are reported as
+unmapped data. Parsing retains the first total for each currency and excludes
+breakdowns from duplicate UBL totals. An explicit lossy rewrite uses those
+retained values; the resulting model must still pass validation.
+
 Declared source line and VAT amounts are preserved. Model checks permit up to
 0.02 difference from the unrounded line formula and a conservative 0.01 VAT
 rounding difference for taxable categories; zero-tax categories require exactly
