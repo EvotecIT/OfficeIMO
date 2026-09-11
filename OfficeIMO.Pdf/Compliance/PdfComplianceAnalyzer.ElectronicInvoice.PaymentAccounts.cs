@@ -46,7 +46,7 @@ internal static partial class PdfComplianceAnalyzer {
                     "einvoice-xml-payment-account-format",
                     "EN 16931 XML payment account format",
                     PdfComplianceRequirementStatus.Missing,
-                    "Set factur-x.xml PayeePartyCreditorFinancialAccount IBANID to a valid IBAN checksum value before Mustang validation: " + string.Join(", ", evidence.InvalidIbanIds.ToArray()) + ".");
+                    "Set factur-x.xml PayeePartyCreditorFinancialAccount IBANID to an IBAN with a registered country format and valid checksum before Mustang validation: " + string.Join(", ", evidence.InvalidIbanIds.ToArray()) + ".");
             }
 
             return new PdfComplianceRequirement(
@@ -54,8 +54,8 @@ internal static partial class PdfComplianceAnalyzer {
                 "EN 16931 XML payment account format",
                 PdfComplianceRequirementStatus.Satisfied,
                 requiresCreditorAccount
-                    ? "The factur-x.xml CrossIndustryInvoice creditor account identifiers are present, and supplied IBAN values pass checksum validation for e-invoice readiness."
-                    : "The factur-x.xml CrossIndustryInvoice payment means type code does not require creditor account identifiers, and supplied IBAN values pass checksum validation for e-invoice readiness.");
+                    ? "The factur-x.xml CrossIndustryInvoice creditor account identifiers are present, and supplied IBAN values pass registered country-format and checksum validation for e-invoice readiness."
+                    : "The factur-x.xml CrossIndustryInvoice payment means type code does not require creditor account identifiers, and supplied IBAN values pass registered country-format and checksum validation for e-invoice readiness.");
         }
 
         string diagnostic = diagnostics.Count == 0

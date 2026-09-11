@@ -50,7 +50,7 @@ public static partial class InvoiceSerializer {
                 InvoiceBankAccount account = invoice.Payment.Accounts[index];
                 bool validIban = InvoiceBankAccountIdentity.IsValidIban(account.Identifier);
                 if (account.IsIban && !validIban)
-                    Unsupported("Payment.Accounts[" + index + "]", "An account marked as an IBAN must have a valid IBAN identifier and checksum.");
+                    Unsupported("Payment.Accounts[" + index + "]", "An account marked as an IBAN must have a registered country format and valid checksum.");
                 else if (options.Syntax == InvoiceSyntax.Ubl && !account.IsIban && validIban)
                     Unsupported("Payment.Accounts[" + index + "]", "UBL cannot preserve an explicit proprietary-account classification for an identifier that is a valid IBAN.");
             }
