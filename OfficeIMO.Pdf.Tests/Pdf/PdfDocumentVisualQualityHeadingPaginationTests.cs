@@ -41,6 +41,21 @@ public partial class PdfDocumentVisualQualityTests {
         }
     }
 
+    [Theory]
+    [InlineData(70)]
+    [InlineData(50.1)]
+    public void ParagraphLineLargerThanTheFrameFailsWithoutUnboundedPagination(double pageHeight) {
+        var options = new PdfOptions { PageHeight = pageHeight, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 24 };
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).Paragraph(p => p.Text("Too tall")).ToBytes());
+    }
+
+    [Fact]
+    public void HeadingRequiredTopSpacingCannotBeSilentlyDroppedToFitALine() {
+        var options = new PdfOptions { PageHeight = 150, MarginTop = 25, MarginBottom = 25 };
+        var style = new PdfHeadingStyle { FontSize = 24, LineHeight = 1.25, SpacingBefore = 90, SpacingAfter = 0, ApplySpacingBeforeAtTop = true };
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).H1("Too tall", style: style).ToBytes());
+    }
+
     [Fact]
     public void HeadingLineLargerThanTheFrameFailsWithoutUnboundedPagination() {
         var options = new PdfOptions { PageHeight = 70, MarginTop = 25, MarginBottom = 25 };

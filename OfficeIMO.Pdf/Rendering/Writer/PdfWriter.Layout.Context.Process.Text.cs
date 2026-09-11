@@ -33,6 +33,8 @@ internal static partial class PdfWriter {
                 spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
                 needed = spacingBefore + textHeight + spacingAfter;
             }
+            if (lineHeights.Count > 0 && spacingBefore + lineHeights[0] > yStart - currentOpts.MarginBottom + 0.001)
+                throw new ArgumentException("Heading spacing and first line exceed the available page content height.");
             if (spacingBefore > 0) {
                 y -= spacingBefore;
             }
@@ -127,6 +129,9 @@ internal static partial class PdfWriter {
             int lineIndex = 0;
             bool firstSegment = true;
             while (lineIndex < lines.Count) {
+                double minimumLineHeight = lineHeights[lineIndex];
+                if (minimumLineHeight > yStart - currentOpts.MarginBottom + 0.001)
+                    throw new ArgumentException("Paragraph line height exceeds the available page content height.");
                 double available = y - currentOpts.MarginBottom;
                 if (available <= 0.5) {
                     NewPage();
@@ -135,7 +140,6 @@ internal static partial class PdfWriter {
                 }
 
                 double segmentSpacingBefore = firstSegment && y < yStart - 0.001 ? spacingBefore : 0;
-                double minimumLineHeight = lineHeights[lineIndex];
                 if (available < segmentSpacingBefore + minimumLineHeight) {
                     NewPage();
                     available = y - currentOpts.MarginBottom;
