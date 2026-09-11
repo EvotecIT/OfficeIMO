@@ -5,15 +5,18 @@ namespace OfficeIMO.Project;
 
 /// <summary>A rendered report page in point coordinates, with its source row and bucket ranges.</summary>
 public sealed class ProjectViewPage {
-    internal ProjectViewPage(OfficeDrawing drawing, int rowOffset, int rowCount, int bucketOffset, int bucketCount) {
+    internal ProjectViewPage(OfficeDrawing drawing, int rowOffset, int rowCount, int bucketOffset, int bucketCount, int[]? rowIndices = null) {
         Drawing = drawing; RowOffset = rowOffset; RowCount = rowCount; BucketOffset = bucketOffset; BucketCount = bucketCount;
+        RowIndices = Array.AsReadOnly(rowIndices ?? Enumerable.Range(rowOffset, rowCount).ToArray());
     }
     /// <summary>Independent editable drawing owned by this rendering call.</summary>
     public OfficeDrawing Drawing { get; }
-    /// <summary>First source row shown.</summary>
+    /// <summary>Lowest source row index shown. Use RowIndices for the exact selection in dependency diagrams.</summary>
     public int RowOffset { get; }
     /// <summary>Number of source rows shown.</summary>
     public int RowCount { get; }
+    /// <summary>Exact source row indices in visual order. Dependency diagrams can reorder and select noncontiguous rows.</summary>
+    public IReadOnlyList<int> RowIndices { get; }
     /// <summary>First time bucket shown.</summary>
     public int BucketOffset { get; }
     /// <summary>Number of time buckets shown.</summary>
@@ -29,6 +32,7 @@ public sealed partial class ProjectView {
 
     /// <summary>Renders bounded, horizontally and vertically paginated report drawings using the shared Core drawing model.</summary>
     public IReadOnlyList<ProjectViewPage> Render(CancellationToken cancellationToken = default) {
+        if (_typography == null) return Render(OfficeRenderingProfile.Managed, cancellationToken);
         if (Kind == ProjectViewKind.Network) return RenderNetwork(cancellationToken);
         bool table = Kind == ProjectViewKind.Table;
         double width = Layout.PageWidth - 2 * Layout.Margin;
@@ -60,6 +64,7 @@ public sealed partial class ProjectView {
         double pageHeight = Layout.FitPageHeightToContent && contentHeight.HasValue
             ? Math.Min(Layout.PageHeight, contentHeight.Value + 2 * Layout.Margin + TitleAreaHeight + FooterHeight + 16) : Layout.PageHeight;
         var drawing = new OfficeDrawing(Layout.PageWidth, pageHeight);
+        if (_typography != null) drawing.Fonts.AddRange(_typography.Fonts);
         Rect(drawing, 0, 0, Layout.PageWidth, pageHeight, OfficeColor.White);
         Text(drawing, Title, Layout.Margin, Layout.Margin, Layout.PageWidth - 2 * Layout.Margin, TitleHeight, 20, Ink, true, true);
         Text(drawing, KindTitle(Kind) + (Buckets.Count == 0 ? "" : "  ·  " + Buckets[0].Start.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)
@@ -124,10 +129,22 @@ public sealed partial class ProjectView {
                 double barHeight = timeline || row.IsSummary ? 8 : 13;
                 DrawBar(drawing, row.BaselineStart, row.BaselineFinish, bucketOffset, bucketCount, chartX, top + center + 10, cell, 3, Muted);
                 DrawBar(drawing, row.Start, row.Finish, bucketOffset, bucketCount, chartX, top + center - barHeight / 2, cell, barHeight, row.IsSummary ? Ink : row.IsCritical ? Critical : Accent);
+                if (row.IsSummary) DrawSummaryCaps(drawing, row, bucketOffset, bucketCount, chartX, top + center, cell);
+                else if (Layout.ShowProgress && row.PercentComplete > 0 && row.Start.HasValue && row.Finish > row.Start) {
+                    long elapsed = (long)((row.Finish.Value.Ticks - row.Start.Value.Ticks) * Math.Min(100, row.PercentComplete.Value) / 100m);
+                    DrawBar(drawing, row.Start, row.Start.Value.AddTicks(elapsed), bucketOffset, bucketCount, chartX, top + center - 2, cell, 4, Ink);
+                }
             }
             top += heights[r];
         }
         if (Kind == ProjectViewKind.Gantt && bucketCount > 0) DrawGanttLinks(drawing, rowOffset, rowCount, bucketOffset, bucketCount, chartX, y + headerHeight, cell, heights);
+        if ((Kind == ProjectViewKind.Gantt || timeline) && bucketCount > 0 && Layout.StatusDate.HasValue
+            && Layout.StatusDate >= Buckets[bucketOffset].Start && Layout.StatusDate < Buckets[bucketOffset + bucketCount - 1].Finish) {
+            double markerX = chartX + TimePosition(Layout.StatusDate.Value, bucketOffset, bucketCount, cell);
+            var marker = OfficeShape.Line(markerX, y + headerHeight, markerX, top);
+            marker.StrokeColor = Accent; marker.StrokeWidth = 1; marker.StrokeDashStyle = OfficeStrokeDashStyle.Dash;
+            drawing.AddShape(marker, markerX, y + headerHeight);
+        }
     }
 
     private void DrawBar(OfficeDrawing drawing, DateTime? start, DateTime? finish, int offset, int count,

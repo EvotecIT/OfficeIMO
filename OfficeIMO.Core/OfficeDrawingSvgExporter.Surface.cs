@@ -118,7 +118,9 @@ public static partial class OfficeDrawingSvgExporter {
         int gradientId = 0;
         int clipPathId = 0;
         var tilingExpansionBudget = new SvgTilingExpansionBudget();
-        AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
+        var measurement = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), font: null, fonts: drawing.Fonts,
+            textShapingProvider: OfficeManagedTextShapingProvider.Instance, cancellationToken: cancellationToken);
+        AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget, measurement);
         builder.Append("</svg>");
         cancellationToken.ThrowIfCancellationRequested();
         string svg = builder.ToString();

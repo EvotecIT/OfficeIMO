@@ -52,9 +52,22 @@ public enum ProjectViewGrouping {
     /// <summary>Group by immediate parent task.</summary>
     ParentTask
 }
+/// <summary>Network positioning strategy.</summary>
+public enum ProjectNetworkLayout {
+    /// <summary>Arrange dependencies from left to right, with parallel tasks in the same stage.</summary>
+    Dependency,
+    /// <summary>Retain outline order in a compact card grid.</summary>
+    Compact
+}
 
 /// <summary>Selection and bounded layout settings captured when a report is created.</summary>
 public sealed class ProjectViewOptions {
+    /// <summary>Network diagram arrangement. Dependency stages are the default.</summary>
+    public ProjectNetworkLayout NetworkLayout { get; set; }
+    /// <summary>Optional status-date marker in Gantt and timeline views; no implicit current-clock dependency.</summary>
+    public DateTime? StatusDate { get; set; }
+    /// <summary>Show duration-completion fill within scheduled task bars.</summary>
+    public bool ShowProgress { get; set; } = true;
     /// <summary>Report layout.</summary>
     public ProjectViewKind Kind { get; set; } = ProjectViewKind.Gantt;
     /// <summary>Bucket granularity.</summary>

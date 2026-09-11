@@ -20,6 +20,8 @@ dependency; Core 3.4.2 does not contain the required assembly access declaration
 
 ### Project report layout defaults
 
+Project PNG output now defaults to 300 DPI. Calls that supply explicit `OfficeDrawingRasterRenderOptions` retain their chosen scale; new callers can use `ProjectImageExportOptions` or `ProjectReportWorkflow.Images(view).WithQuality(...)`. Word and PowerPoint reports now include chart images before editable data tables. Pass `ProjectOfficeReportOptions { IncludeCharts = false }` to retain table-only output. Network views default to dependency columns; choose `ProjectNetworkLayout.Compact` for the previous sequential grid. Use `ProjectViewPage.RowIndices` when mapping dependency pages to source rows.
+
 Project report drawings now trim unused page height. Set `ProjectViewOptions.FitPageHeightToContent = false` when a consumer requires every drawing page to retain the configured dimensions. Gantt, resource usage, and resource histogram views now default to UID and name columns; supply `Columns` explicitly to retain a previous selection of date or numeric columns. Native Word, PowerPoint, and Excel exports retain their document page dimensions.
 
 ### Rendering loss and gallery evidence

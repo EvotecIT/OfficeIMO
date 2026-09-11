@@ -97,7 +97,7 @@ public sealed class ProjectReportWorkflowTests {
         Assert.Empty(presentation.ValidateDocument());
         using var presentationCopy = PowerPointPresentation.Load(new MemoryStream(presentation.ToBytes()));
         Assert.True(presentationCopy.Slides.Count > 1);
-        Assert.All(presentationCopy.Slides, slide => Assert.Single(slide.Shapes.OfType<PowerPointTable>()));
+        Assert.All(presentationCopy.Slides, slide => Assert.Single(slide.Shapes, shape => shape is PowerPointTable || shape is PowerPointPicture));
         using var workbook = ProjectReportWorkflow.CreateExcel(view);
         using var workbookCopy = ExcelDocument.Load(new MemoryStream(workbook.ToBytes()));
         Assert.Empty(workbookCopy.ValidateDocument());

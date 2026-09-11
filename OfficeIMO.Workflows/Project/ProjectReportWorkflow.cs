@@ -15,10 +15,14 @@ public static partial class ProjectReportWorkflow {
         }).ToArray();
     }
 
-    /// <summary>Exports one PNG per page. Supply a typography profile for portable font coverage; raster settings control scale, shaping, diagnostics and pixel limits.</summary>
+    /// <summary>Exports one PNG per page at 300 DPI by default. Explicit raster options retain their selected scale. Use ExportImages for density presets, encoded DPI and batch budgets.</summary>
     public static IReadOnlyList<byte[]> ToPng(ProjectView view, OfficeDrawingRasterRenderOptions? options = null, OfficeRenderingProfile? typography = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(view);
-        options ??= new OfficeDrawingRasterRenderOptions();
+        if (options == null) {
+            var export = new ProjectImageExportOptions();
+            if (typography != null) export.UseRenderingProfile(typography);
+            return ExportImages(view, OfficeImageExportFormat.Png, export, cancellationToken).Select(result => result.Bytes).ToArray();
+        }
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, options.CancellationToken);
         var diagnostics = new List<OfficeImageExportDiagnostic>();
         var effective = new OfficeDrawingRasterRenderOptions { Scale = options.Scale, Background = options.Background, ImageCodec = options.ImageCodec ?? typography?.ImageCodec,
@@ -53,8 +57,6 @@ public static partial class ProjectReportWorkflow {
     }
 
     private static IReadOnlyList<ProjectViewPage> RenderPages(ProjectView view, OfficeRenderingProfile? typography, CancellationToken token) {
-        var pages = view.Render(token);
-        if (typography != null) foreach (var page in pages) page.Drawing.Fonts.AddRange(typography.Fonts);
-        return pages;
+        return view.Render(typography ?? OfficeRenderingProfile.Managed, token);
     }
 }

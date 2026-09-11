@@ -734,6 +734,11 @@ namespace OfficeIMO.Tests {
                 paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
                 var image = paragraph.Image;
                 Assert.NotNull(image);
+                Assert.Empty(document.ValidateDocument());
+                image!.Title = "Temporary title";
+                image.Title = null;
+                Assert.Null(image.Title);
+                Assert.Empty(document.ValidateDocument());
                 image!.Title = "MyTitle";
                 image.Hidden = true;
                 image.PreferRelativeResize = true;

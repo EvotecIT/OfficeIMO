@@ -8,9 +8,15 @@ using OfficeIMO.Word;
 namespace OfficeIMO.Workflows;
 
 public static partial class ProjectReportWorkflow {
-    /// <summary>Creates an editable Word report with native tables. The caller owns and disposes the returned document.</summary>
+    /// <summary>Creates chart pages and editable Word tables. The caller owns and disposes the returned document.</summary>
     public static WordDocument CreateWord(ProjectView view, CancellationToken cancellationToken = default) {
+        return CreateWord(view, new ProjectOfficeReportOptions(), cancellationToken);
+    }
+
+    /// <summary>Creates a Word report with explicit chart and table selection.</summary>
+    public static WordDocument CreateWord(ProjectView view, ProjectOfficeReportOptions options, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(view);
+        ValidateOfficeOptions(options);
         cancellationToken.ThrowIfCancellationRequested();
         var document = WordDocument.Create();
         try {
@@ -19,6 +25,8 @@ public static partial class ProjectReportWorkflow {
             document.PageSettings.Height = checked((uint)Math.Round(view.PageHeight * 20));
             document.Margins.Left = document.Margins.Right = checked((uint)Math.Round(view.PageMargin * 20));
             document.Margins.Top = document.Margins.Bottom = checked((int)Math.Round(view.PageMargin * 20));
+            if (options.IncludeCharts && view.Kind != ProjectViewKind.Table) AddWordCharts(document, view, options, cancellationToken);
+            if (!options.IncludeDataTables && view.Kind != ProjectViewKind.Table) return document;
             var title = document.AddParagraph(view.Title); title.Bold = true; title.FontSize = 20; title.FontFamily = "Arial"; title.ColorHex = "183047";
             foreach (var part in TableParts(view, cancellationToken)) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -48,14 +56,22 @@ public static partial class ProjectReportWorkflow {
         } catch { document.Dispose(); throw; }
     }
 
-    /// <summary>Creates editable PowerPoint table slides. Vector/raster report pages are separate export methods.</summary>
+    /// <summary>Creates chart slides and editable PowerPoint table slides.</summary>
     public static PowerPointPresentation CreatePowerPoint(ProjectView view, CancellationToken cancellationToken = default) {
+        return CreatePowerPoint(view, new ProjectOfficeReportOptions(), cancellationToken);
+    }
+
+    /// <summary>Creates a presentation with explicit chart and table selection.</summary>
+    public static PowerPointPresentation CreatePowerPoint(ProjectView view, ProjectOfficeReportOptions options, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(view);
+        ValidateOfficeOptions(options);
         cancellationToken.ThrowIfCancellationRequested();
         var presentation = PowerPointPresentation.Create();
         try {
             if (view.PageWidth > 4032 || view.PageHeight > 4032) throw new ArgumentOutOfRangeException(nameof(view), "PowerPoint pages cannot exceed 56 inches.");
             presentation.SlideSize.WidthPoints = view.PageWidth; presentation.SlideSize.HeightPoints = view.PageHeight;
+            if (options.IncludeCharts && view.Kind != ProjectViewKind.Table) AddPowerPointCharts(presentation, view, options, cancellationToken);
+            if (!options.IncludeDataTables && view.Kind != ProjectViewKind.Table) return presentation;
             var measurement = new OfficeRasterCanvas(new OfficeRasterImage(1, 1));
             foreach (var part in TableParts(view, cancellationToken)) AddTableSlides(presentation, view, part, measurement, cancellationToken);
             return presentation;

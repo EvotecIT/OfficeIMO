@@ -8,15 +8,17 @@ using OfficeIMO.Project;
 using OfficeIMO.Word;
 using OfficeIMO.Workflows;
 
-if (args.Length < 2 || args.Length > 3 || args.Length == 3 && args[2] != "native") {
-    Console.Error.WriteLine("Usage: OfficeIMO.Project.ReportVerification <new-output-directory> <font.ttf> [native]"); return 2;
+if (args.Length < 2 || args.Length > 4 || args.Length >= 3 && args[2] != "native" && args[2] != "premium") {
+    Console.Error.WriteLine("Usage: OfficeIMO.Project.ReportVerification <new-output-directory> <font.ttf> [native|premium] [bold-font.ttf]"); return 2;
 }
-bool nativeOnly = args.Length == 3;
+bool nativeOnly = args.Length >= 3 && args[2] == "native";
 string output = Path.GetFullPath(args[0]);
 if (Directory.Exists(output)) throw new IOException("Choose a new output directory.");
 var fonts = new OfficeFontFaceCollection().Add("Arial", File.ReadAllBytes(args[1]));
+if (args.Length == 4) fonts.Add("Arial", File.ReadAllBytes(args[3]), OfficeFontStyle.Bold);
 var typography = new OfficeRenderingProfile("report-proof", fonts, OfficeManagedTextShapingProvider.Instance);
 Directory.CreateDirectory(output);
+if (args.Length >= 3 && args[2] == "premium") return PremiumReportProof.Run(output, typography);
 using var project = ProjectDocument.Create(); project.Name = "Delivery plan · Łódź";
 project.Calendar = project.Calendars.AddStandardWorkingWeek(); project.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
 var engineer = project.Resources.AddWork("Engineering"); engineer.StandardRate = 100;

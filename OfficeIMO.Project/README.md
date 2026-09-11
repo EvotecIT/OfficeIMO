@@ -227,7 +227,9 @@ Gantt, resource usage, and resource histogram default to UID and name columns, l
 
 `ExportTables` projects tasks, resources, assignments, and calendar intervals into mapped tables. The default rejects omitted project semantics; pass `allowLossyProjection: true` only after accepting the projection's diagnostic report. `ProjectDocument.ImportTables` creates a new document from explicit column mappings and import options. These tables are a data-exchange contract, not a complete project backup.
 
-The optional [OfficeIMO.Workflows](../OfficeIMO.Workflows/README.md) package owns PDF/SVG/PNG/HTML output, editable Word/PowerPoint/Excel reports, and CSV/Excel table transport. The base Project package depends only on the shared Core owner.
+Gantt views include progress bars and summary caps. Set `ShowProgress = false` to hide progress, or set `StatusDate` to draw a reference line. Network views place dependency stages in columns and parallel tasks in separate lanes. Cards show dates, progress, and incoming/outgoing dependency references with continuation page numbers. Set `NetworkLayout = ProjectNetworkLayout.Compact` for the sequential grid. Dependency pagination can select noncontiguous rows; use each page's `RowIndices` to map its cards to source rows.
+
+The optional [OfficeIMO.Workflows](../OfficeIMO.Workflows/README.md) package owns PDF/SVG/PNG/HTML output, charts and editable data in Word/PowerPoint/Excel reports, and CSV/Excel table transport. The base Project package depends only on the shared Core owner.
 
 ## Coverage and limits
 

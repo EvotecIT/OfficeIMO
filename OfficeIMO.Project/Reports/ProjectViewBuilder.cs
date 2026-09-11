@@ -5,7 +5,10 @@ internal static class ProjectViewBuilder {
 
     internal static ProjectViewOptions CopyOptions(ProjectViewOptions input) {
         if (!Enum.IsDefined(typeof(ProjectViewKind), input.Kind) || !Enum.IsDefined(typeof(ProjectViewTimescale), input.Timescale)
-            || !Enum.IsDefined(typeof(ProjectViewGrouping), input.Grouping)) throw new ArgumentException("Unknown report layout option.");
+            || !Enum.IsDefined(typeof(ProjectViewGrouping), input.Grouping)
+            || !Enum.IsDefined(typeof(ProjectNetworkLayout), input.NetworkLayout)) throw new ArgumentException("Unknown report layout option.");
+        if (input.StatusDate.HasValue && input.StatusDate.Value.Kind != DateTimeKind.Unspecified)
+            throw new ArgumentException("StatusDate must use DateTimeKind.Unspecified.", nameof(input));
         if (input.MaxRows < 1 || input.MaxBuckets < 1 || input.MaxCells < 1 || input.MaxPages < 1 || input.MaxIntervalVisits < 1) throw new ArgumentOutOfRangeException(nameof(input), "Report limits must be positive.");
         if (!Finite(input.PageWidth) || !Finite(input.PageHeight) || !Finite(input.Margin) || input.Margin < 12
             || input.PageWidth - 2 * input.Margin < 300 || input.PageHeight - 2 * input.Margin < 180
@@ -15,6 +18,7 @@ internal static class ProjectViewBuilder {
             throw new ArgumentException("Visible report dates must use DateTimeKind.Unspecified.", nameof(input));
         if (input.Start.HasValue && input.Finish.HasValue && input.Start >= input.Finish) throw new ArgumentException("Finish must follow Start.");
         return new ProjectViewOptions { Kind = input.Kind, Timescale = input.Timescale, IncludeSummaries = input.IncludeSummaries,
+            NetworkLayout = input.NetworkLayout, StatusDate = input.StatusDate, ShowProgress = input.ShowProgress,
             CriticalOnly = input.CriticalOnly, NameContains = input.NameContains, Grouping = input.Grouping, BaselineNumber = input.BaselineNumber,
             Start = input.Start, Finish = input.Finish, PageWidth = input.PageWidth, PageHeight = input.PageHeight,
             FitPageHeightToContent = input.FitPageHeightToContent,

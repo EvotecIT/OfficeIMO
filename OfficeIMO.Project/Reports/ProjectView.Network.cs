@@ -4,6 +4,10 @@ namespace OfficeIMO.Project;
 
 public sealed partial class ProjectView {
     private IReadOnlyList<ProjectViewPage> RenderNetwork(CancellationToken token) {
+        return Layout.NetworkLayout == ProjectNetworkLayout.Compact ? RenderCompactNetwork(token) : RenderDependencyNetwork(token);
+    }
+
+    private IReadOnlyList<ProjectViewPage> RenderCompactNetwork(CancellationToken token) {
         double width = Layout.PageWidth - 2 * Layout.Margin;
         int columns = Math.Max(1, (int)(width / 240));
         double cell = width / columns;
