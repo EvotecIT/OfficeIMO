@@ -105,10 +105,16 @@ public static partial class InvoiceParser {
             decimal? value = c.Decimal(amount);
             if (currency == invoice.Currency) {
                 invoice.DeclaredTotals = invoice.DeclaredTotals ?? new InvoiceDeclaredTotals();
-                if (invoice.DeclaredTotals.TaxTotal.HasValue) c.Loss(tax, "Invoice currency VAT total is duplicated.");
+                if (invoice.DeclaredTotals.TaxTotal.HasValue) {
+                    c.Loss(tax, "Invoice currency VAT total is duplicated.");
+                    continue;
+                }
                 invoice.DeclaredTotals.TaxTotal = value;
             } else if (currency != null && currency == invoice.TaxCurrency) {
-                if (invoice.TaxAmountInAccountingCurrency.HasValue) c.Loss(tax, "Accounting currency VAT total is duplicated.");
+                if (invoice.TaxAmountInAccountingCurrency.HasValue) {
+                    c.Loss(tax, "Accounting currency VAT total is duplicated.");
+                    continue;
+                }
                 invoice.TaxAmountInAccountingCurrency = value;
             } else c.Loss(tax, "VAT total currency is missing or undeclared.");
             foreach (XElement subtotal in c.Children(tax, Cac + "TaxSubtotal")) {

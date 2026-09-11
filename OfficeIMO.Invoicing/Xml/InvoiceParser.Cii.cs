@@ -117,10 +117,16 @@ public static partial class InvoiceParser {
             string? currency = c.Attribute(tax, "currencyID");
             decimal? value = c.Decimal(tax);
             if (currency == null || currency == invoice.Currency) {
-                if (invoice.DeclaredTotals.TaxTotal.HasValue) c.Loss(tax, "Invoice currency VAT total is duplicated.");
+                if (invoice.DeclaredTotals.TaxTotal.HasValue) {
+                    c.Loss(tax, "Invoice currency VAT total is duplicated.");
+                    continue;
+                }
                 invoice.DeclaredTotals.TaxTotal = value;
             } else if (currency == invoice.TaxCurrency) {
-                if (invoice.TaxAmountInAccountingCurrency.HasValue) c.Loss(tax, "Accounting currency VAT total is duplicated.");
+                if (invoice.TaxAmountInAccountingCurrency.HasValue) {
+                    c.Loss(tax, "Accounting currency VAT total is duplicated.");
+                    continue;
+                }
                 invoice.TaxAmountInAccountingCurrency = value;
             } else c.Loss(tax, "VAT amount uses an undeclared currency.");
         }
