@@ -56,8 +56,8 @@ internal static partial class PdfWriter {
             if (imageStyle.KeepWithNext && nextBlock != null) {
                 double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
                 double keepHeight = needed + nextHeight;
-                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-                if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
+                double availableHeight = GetFullPageContentHeight();
+                if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < GetCurrentFramePageStartY() - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();
                     imageSpacingBefore = 0D;
                     imageBox = ResolveImageFlowBox(ib, imageStyle, contentWidth, imageSpacingBefore, imageStyle.SpacingAfter);

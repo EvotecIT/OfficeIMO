@@ -11,6 +11,20 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### Factur-X profile declarations
+
+The Factur-X attachment helpers now derive XMP `ConformanceLevel` from the
+embedded CII guideline when `conformanceLevel` is omitted. Explicit values must
+match the XML. Generic metadata/attachment calls are checked again before
+serialization; exact PDF readback reports conflicting declarations.
+
+Use `urn:cen.eu:en16931:2017` for the EN 16931 XML guideline, and
+`urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0` for
+XRechnung 3.0. Unrecognized identifiers, legacy ZUGFeRD 1 identifiers, missing
+guidelines, and ambiguous declarations are no longer accepted by the Factur-X
+helpers. These helpers retain the embedded XML and never rewrite its profile.
+XMP `Version` remains `1.0`; do not pass the specification release number there.
+
 ### Document AI execution failures and page limits
 
 Direct calls to `IntelligenceXOfficeAiExecutor.ExecuteAsync` now sanitize provider

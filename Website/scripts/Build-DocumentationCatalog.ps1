@@ -27,7 +27,7 @@ function Get-ComponentCategory {
         '^OfficeIMO\.Reader' { return 'Extraction and ingestion' }
         '^OfficeIMO\.(Word|Excel|PowerPoint)' { return 'Office documents' }
         '^OfficeIMO\.MarkdownRenderer' { return 'Rendering surfaces' }
-        '^OfficeIMO\.(Pdf|Html|Markdown|Rtf|AsciiDoc|Latex)' { return 'Publishing and conversion' }
+        '^OfficeIMO\.(Pdf|Html|Markdown|Rtf|AsciiDoc|Latex|Invoicing)' { return 'Publishing and conversion' }
         '^OfficeIMO\.(Email|OneNote|OpenDocument|Epub|CSV|Visio|IWork)' { return 'Formats and interoperability' }
         '^OfficeIMO\.GoogleWorkspace|Google(Docs|Sheets|Slides)$' { return 'Google Workspace' }
         '^OfficeIMO\.(Drawing|Ocr|Provenance|Security|Zip|Markup|Adf|Confluence)' { return 'Foundations and integrations' }

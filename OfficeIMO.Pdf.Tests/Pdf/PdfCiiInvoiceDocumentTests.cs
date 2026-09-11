@@ -203,6 +203,7 @@ public class PdfCiiInvoiceDocumentTests {
 
     private static string Invoice(string id) =>
         $"<rsm:CrossIndustryInvoice xmlns:rsm='{Rsm}' xmlns:ram='{Ram}' xmlns:udt='{Udt}' xmlns:x='urn:custom' x:flag='keep'>\n" +
+        "<rsm:ExchangedDocumentContext><ram:GuidelineSpecifiedDocumentContextParameter><ram:ID>urn:cen.eu:en16931:2017</ram:ID></ram:GuidelineSpecifiedDocumentContextParameter></rsm:ExchangedDocumentContext>" +
         "<!--retain--><rsm:ExchangedDocument><ram:ID>" + id + "</ram:ID><ram:TypeCode>380</ram:TypeCode>" +
         "<ram:IssueDateTime><udt:DateTimeString format='102'>20260905</udt:DateTimeString></ram:IssueDateTime></rsm:ExchangedDocument>" +
         "<x:Extension><x:ID>extension-id</x:ID><x:Text><![CDATA[unknown <content>]]></x:Text></x:Extension>" +

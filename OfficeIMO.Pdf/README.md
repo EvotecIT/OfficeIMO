@@ -1507,8 +1507,20 @@ business-rule validation. This API does not create complete invoices, calculate
 tax, edit PDF pages, or update payment references.
 
 `UseFacturXDocument` snapshots the XML through the existing `UseFacturX(byte[])`
-carrier configuration. The application must keep visible invoice content and
+carrier configuration. Omit `conformanceLevel` to derive canonical XMP metadata
+from the XML guideline. An explicit conflicting profile, an unknown guideline,
+or an ambiguous declaration is rejected. Generation and exact PDF readback also
+check XML/XMP agreement when metadata and attachments are supplied separately.
+The XMP `version` is `1.0`, not a Factur-X release number.
+The application must keep visible invoice content and
 XML consistent and validate the resulting invoice/PDF pair for its declared profile.
+
+### Generate a visible invoice and its XML from one snapshot
+
+Use the optional [OfficeIMO.Invoicing.Pdf adapter](../OfficeIMO.Invoicing.Pdf/README.md)
+to render a typed invoice and embed its captured CII XML. The adapter owns
+`PdfInvoiceDocument`; `OfficeIMO.Pdf` depends only on `OfficeIMO.Core` and keeps
+its existing low-level XML carrier and bounded `PdfCiiInvoiceDocument` APIs.
 
 ### Page setup, watermarks, and metadata
 

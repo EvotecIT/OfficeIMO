@@ -79,15 +79,14 @@ public sealed class C2paToolProvenanceVerifier : ICancellableOfficeProvenanceVer
             cancellationToken.ThrowIfCancellationRequested();
             File.WriteAllText(settingsPath, CreateSettings(options.AllowNetworkAccess), new UTF8Encoding(false));
             string workingDirectory = Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory();
-            var request = new C2paToolProcessRequest(
-                ExecutablePath,
-                BuildArguments(fullPath, settingsPath, workingDirectory, options),
-                workingDirectory,
-                executionBudget.GetRemainingTimeout(),
-                options.MaxReportBytes);
-            C2paToolProcessResult processResult;
             try {
-                processResult = _runner.Run(request, cancellationToken);
+                var request = new C2paToolProcessRequest(
+                    ExecutablePath,
+                    BuildArguments(fullPath, settingsPath, workingDirectory, options),
+                    workingDirectory,
+                    executionBudget.GetRemainingTimeout(),
+                    options.MaxReportBytes);
+                C2paToolProcessResult processResult = _runner.Run(request, cancellationToken);
                 return executionBudget.RunInterpretation(
                     interpretationToken => Interpret(processResult, options, interpretationToken));
             } catch (Win32Exception exception) {

@@ -243,7 +243,11 @@ public partial class Word {
         shape.FillColor = OfficeColor.Blue;
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 240,
-                PageHeight = 160
+                PageHeight = 160,
+                MarginTop = 20,
+                MarginBottom = 20,
+                MarginLeft = 20,
+                MarginRight = 20
             })
             .Table(new[] {
                 new[] { "Code", "Value" },

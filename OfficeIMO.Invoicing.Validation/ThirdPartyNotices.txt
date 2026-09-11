@@ -1,0 +1,15 @@
+OfficeIMO.Invoicing.Validation is distributed under the MIT license.
+
+The two unmodified ISO Schematron compiler stylesheets in Compiler are from:
+https://github.com/Schematron/schematron/tree/master/trunk/schematron/code
+Their full MIT notices and copyright statements are retained in each stylesheet.
+
+Authority rule bundles, Peppol Schematron, Saxon and Java are not redistributed
+in this package. They are provided locally by the caller and retain their
+upstream license and notice requirements.
+
+Vendored compiler content identities (SHA-256):
+iso_schematron_skeleton_for_saxon.xsl
+95F3195D9F437EA8FF5F75D1A27F4E68AE20B236FE0D4A217BB4209F498A10A3
+iso_svrl_for_xslt2.xsl
+0588D617924A0686255F6D182633D434C7986D561BE8FCC3B363907D3F671B26

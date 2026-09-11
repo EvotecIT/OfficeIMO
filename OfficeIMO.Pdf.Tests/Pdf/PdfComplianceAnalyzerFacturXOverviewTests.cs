@@ -152,7 +152,7 @@ public partial class PdfComplianceAnalyzerTests {
         var basicWlOptions = new PdfOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
-            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("BASIC_WL"))
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("BASIC WL"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(), "application/xml", PdfAssociatedFileRelationship.Data);
 
         PdfComplianceRequirement invalid = AssertRequirement(
@@ -190,7 +190,7 @@ public partial class PdfComplianceAnalyzerTests {
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("XRECHNUNG"))
-            .AddEmbeddedFile("factur-x.xml", CreateCiiXml("urn:cen.eu:en16931:2017#compliant#urn:xoev-de:kosit:standard:xrechnung_3.0"), "application/xml", PdfAssociatedFileRelationship.Data);
+            .AddEmbeddedFile("factur-x.xml", CreateCiiXml("urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0"), "application/xml", PdfAssociatedFileRelationship.Data);
 
         PdfComplianceRequirement missing = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingContextOptions),

@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 227,
-    "productionComponentCount": 121,
-    "testProjectCount": 43,
+    "projectCount": 233,
+    "productionComponentCount": 124,
+    "testProjectCount": 46,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 31,
     "apiReferenceCount": 26,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42833
+    "conceptualWordCount": 42952
   },
   "categories": [
     {
@@ -34,7 +34,7 @@
     },
     {
       "name": "Publishing and conversion",
-      "componentCount": 19
+      "componentCount": 22
     },
     {
       "name": "Rendering surfaces",
@@ -66,7 +66,7 @@
       "description": "Provider-neutral document AI operations with bounded evidence, source citations and validated extraction.",
       "kind": "package",
       "projectPath": "OfficeIMO.AI/OfficeIMO.AI.csproj",
-      "sourceFileCount": 13,
+      "sourceFileCount": 16,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -92,7 +92,7 @@
       "description": "IntelligenceX execution adapter for provider-neutral OfficeIMO document AI operations.",
       "kind": "package",
       "projectPath": "OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj",
-      "sourceFileCount": 2,
+      "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -541,6 +541,45 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Rtf"
     },
     {
+      "name": "OfficeIMO.Invoicing",
+      "packageId": "OfficeIMO.Invoicing",
+      "category": "Publishing and conversion",
+      "description": "Typed electronic invoices, CII/UBL authoring, parsing, conversion, and model validation for .NET.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj",
+      "sourceFileCount": 39,
+      "referencingTestProjectCount": 2,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing"
+    },
+    {
+      "name": "OfficeIMO.Invoicing.Pdf",
+      "packageId": "OfficeIMO.Invoicing.Pdf",
+      "category": "Publishing and conversion",
+      "description": "Optional PDF presentation and hybrid CII invoice generation for OfficeIMO.Invoicing.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Invoicing.Pdf/OfficeIMO.Invoicing.Pdf.csproj",
+      "sourceFileCount": 3,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.Pdf"
+    },
+    {
+      "name": "OfficeIMO.Invoicing.Validation",
+      "packageId": "OfficeIMO.Invoicing.Validation",
+      "category": "Publishing and conversion",
+      "description": "Pinned schema and Schematron validation for OfficeIMO electronic invoices.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Invoicing.Validation/OfficeIMO.Invoicing.Validation.csproj",
+      "sourceFileCount": 7,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.Validation"
+    },
+    {
       "name": "OfficeIMO.IWork",
       "packageId": "OfficeIMO.IWork",
       "category": "Formats and interoperability",
@@ -911,8 +950,8 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1169,
-      "referencingTestProjectCount": 12,
+      "sourceFileCount": 1171,
+      "referencingTestProjectCount": 13,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf"
@@ -1081,7 +1120,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.DocBook/OfficeIMO.Reader.DocBook.csproj",
       "sourceFileCount": 5,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.DocBook"
@@ -1262,7 +1301,7 @@
       "description": "PDF reader and normalized PDF projection bridge for OfficeIMO.Reader.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj",
-      "sourceFileCount": 17,
+      "sourceFileCount": 18,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
@@ -1444,7 +1483,7 @@
       "description": "Cross-platform OfficeIMO desktop document reader and workspace.",
       "kind": "library",
       "projectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
-      "sourceFileCount": 189,
+      "sourceFileCount": 198,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,

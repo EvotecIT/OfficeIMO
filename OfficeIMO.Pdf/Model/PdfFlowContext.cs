@@ -15,7 +15,7 @@ public sealed class PdfFlowContext {
     public int PageNumber { get; }
     /// <summary>Remaining vertical content space in points.</summary>
     public double AvailableHeight { get; }
-    /// <summary>Total vertical content space on an empty current page.</summary>
+    /// <summary>Total vertical content space in the current flow frame on a new page, after active container top padding.</summary>
     public double FullContentHeight { get; }
     /// <summary>Available content width in points.</summary>
     public double ContentWidth { get; }
@@ -23,6 +23,6 @@ public sealed class PdfFlowContext {
     public double PageWidth { get; }
     /// <summary>Current page height in points.</summary>
     public double PageHeight { get; }
-    /// <summary>True when layout is at the top of the current page.</summary>
+    /// <summary>True when layout is at the top of the current flow frame.</summary>
     public bool IsAtPageTop => AvailableHeight >= FullContentHeight - 0.001D;
 }

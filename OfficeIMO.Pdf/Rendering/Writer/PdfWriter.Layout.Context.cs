@@ -132,6 +132,7 @@ internal static partial class PdfWriter {
         }
 
         private void NewPage() {
+            cancellationToken.ThrowIfCancellationRequested();
             PrepareActiveContainerScopesForPageBreak();
             FlushPage(pageDirty || HasCurrentPageNonContentObjects());
             StartPage(currentOpts);
@@ -139,7 +140,7 @@ internal static partial class PdfWriter {
         }
 
         private double ResolveTopLevelSpacingBefore(double spacingBefore) {
-            return y < yStart - 0.001 ? spacingBefore : 0D;
+            return y < GetCurrentFramePageStartY() - 0.001 ? spacingBefore : 0D;
         }
 
         private static double ResolveColumnSpacingBefore(double spacingBefore, double consumed) {

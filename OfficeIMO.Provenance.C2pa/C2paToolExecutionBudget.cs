@@ -15,16 +15,13 @@ internal sealed class C2paToolExecutionBudget {
         _cancellationToken = cancellationToken;
     }
 
-    internal void ThrowIfExceeded() {
+    internal TimeSpan GetRemainingTimeout() {
         _cancellationToken.ThrowIfCancellationRequested();
-        if (_stopwatch.Elapsed >= _timeout) {
+        TimeSpan remaining = _timeout - _stopwatch.Elapsed;
+        if (remaining <= TimeSpan.Zero) {
             throw CreateTimeoutException();
         }
-    }
-
-    internal TimeSpan GetRemainingTimeout() {
-        ThrowIfExceeded();
-        return _timeout - _stopwatch.Elapsed;
+        return remaining;
     }
 
     internal T RunInterpretation<T>(Func<CancellationToken, T> interpretation) {
@@ -33,8 +30,7 @@ internal sealed class C2paToolExecutionBudget {
 #else
         if (interpretation is null) throw new ArgumentNullException(nameof(interpretation));
 #endif
-        ThrowIfExceeded();
-        TimeSpan remaining = _timeout - _stopwatch.Elapsed;
+        TimeSpan remaining = GetRemainingTimeout();
         using var interpretationCancellation = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
         Task<T> work = Task.Run(() => interpretation(interpretationCancellation.Token), CancellationToken.None);
         Task deadline = Task.Delay(remaining, interpretationCancellation.Token);
