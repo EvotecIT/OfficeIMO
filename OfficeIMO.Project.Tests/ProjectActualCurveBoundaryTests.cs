@@ -188,6 +188,6 @@ public sealed class ProjectActualCurveBoundaryTests {
         document.Settings.StartDate = Monday; return document;
     }
     private static void Add(ProjectAssignment assignment, int type, DateTime start, DateTime finish, string value) {
-        var curve = assignment.TimephasedData.Add(); curve.Type = type; curve.Start = start; curve.Finish = finish; curve.Value = value;
+        var curve = assignment.TimephasedData.Add(); curve.Uid = assignment.Uid; curve.Type = type; curve.Start = start; curve.Finish = finish; curve.Value = value;
     }
 }

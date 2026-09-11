@@ -52,6 +52,11 @@ internal sealed class ProjectCalendarMath {
         for (var current = calendar; current != null; current = current.BaseCalendar) {
             _token.ThrowIfCancellationRequested();
             if (!seen.Add(current)) throw new InvalidDataException("Calendar inheritance contains a cycle.");
+            if (current.BaseCalendar == null && (current.IsBaseCalendar == false || current.SourceBaseCalendarUid > 0))
+                throw new InvalidDataException("A derived calendar requires an existing base calendar before calculation.");
+            foreach (var week in current.WorkWeeks)
+                if (!week.FromDate.HasValue || !week.ToDate.HasValue)
+                    throw new NotSupportedException("Work-week calculation requires explicit start and finish dates.");
             foreach (var exception in current.Exceptions) {
                 if (exception.HasUnqualifiedRecurrence) throw new NotSupportedException("Recurring calendar exceptions require an expanded, qualified date range before calculation.");
             }

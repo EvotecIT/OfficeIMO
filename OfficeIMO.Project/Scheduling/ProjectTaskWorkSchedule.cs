@@ -3,13 +3,15 @@ namespace OfficeIMO.Project;
 /// <summary>Calculated task totals. Duration, work and physical completion remain independent measures.</summary>
 public sealed class ProjectTaskWorkSchedule {
     internal ProjectTaskWorkSchedule(ProjectWork work, ProjectWork actualWork, ProjectWork remainingWork,
-        decimal actualDuration, decimal remainingDuration, decimal? cost, decimal? actualCost, int? physical, bool elapsed = false, bool completed = false) {
+        decimal actualDuration, decimal remainingDuration, decimal? cost, decimal? actualCost, int? physical, bool elapsed = false, bool completed = false, bool hasActuals = false) {
+        HasActuals = hasActuals;
         Work = work; ActualWork = actualWork; RemainingWork = remainingWork;
         ActualDuration = new ProjectDuration(actualDuration, ProjectDurationUnit.Minute, elapsed); RemainingDuration = new ProjectDuration(remainingDuration, ProjectDurationUnit.Minute, elapsed);
         Cost = cost; ActualCost = actualCost; RemainingCost = cost - actualCost;
         PercentComplete = actualDuration + remainingDuration == 0 && completed ? 100 : Percentage(actualDuration, actualDuration + remainingDuration);
         PercentWorkComplete = Percentage(actualWork.Minutes, work.Minutes); PhysicalPercentComplete = physical;
     }
+    internal bool HasActuals { get; }
     private static int Percentage(decimal actual, decimal total) => total <= 0 ? 0 : (int)decimal.Round(Math.Min(100, actual / total * 100), 0, MidpointRounding.AwayFromZero);
     /// <summary>Work-resource assignment total, excluding material quantities.</summary>
     public ProjectWork Work { get; }

@@ -8,7 +8,7 @@ public sealed class ProjectProgressBoundaryTests {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
         var task = document.Tasks.Add("Delivery"); var baseline = task.Baselines.Add(); baseline.Number = 0; baseline.Cost = 100m;
         var assignment = document.Assignments.Add(task, document.Resources.AddWork("Engineer")); assignment.ActualCost = 100m;
-        var curve = assignment.TimephasedData.Add(); curve.Type = 6; curve.Start = Monday; curve.Finish = Monday.AddHours(1); curve.Value = "5000";
+        var curve = assignment.TimephasedData.Add(); curve.Uid = assignment.Uid; curve.Type = 6; curve.Start = Monday; curve.Finish = Monday.AddHours(1); curve.Value = "5000";
         var result = document.AnalyzeEarnedValue(statusDate: Monday.AddHours(2));
         Assert.Null(Assert.Single(result.Tasks).ActualCost);
         Assert.Contains(result.Report.Diagnostics, d => d.Message.Contains("Actual cost curves differ"));
@@ -48,7 +48,7 @@ public sealed class ProjectProgressBoundaryTests {
         var assignment = document.Assignments.Add(task, resource);
         assignment.Work = assignment.ActualWork = ProjectWork.Hours(1); assignment.ActualStart = task.ActualStart; assignment.ActualFinish = task.ActualFinish;
         if (!omitScalar) assignment.ActualCost = 100m;
-        var old = assignment.TimephasedData.Add(); old.Type = 6; old.Start = Monday; old.Finish = Monday.AddHours(1); old.Value = "10000";
+        var old = assignment.TimephasedData.Add(); old.Uid = assignment.Uid; old.Type = 6; old.Start = Monday; old.Finish = Monday.AddHours(1); old.Value = "10000";
         var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true, RecalculateActualCosts = recalculate }); result.Report.ThrowIfErrors();
         var expected = recalculate ? Monday.AddDays(1) : Monday;
         Assert.Equal(expected, Assert.Single(result.Assignments.Single().Costs, c => c.IsActual).Start);

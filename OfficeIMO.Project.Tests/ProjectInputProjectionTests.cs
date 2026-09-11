@@ -31,7 +31,7 @@ public sealed class ProjectInputProjectionTests {
         using var document = Create(); var task = document.Tasks.Add("Actual overtime"); task.Duration = ProjectDuration.WorkingDays(1);
         var assignment = document.Assignments.Add(task, document.Resources.AddWork("Engineer")); assignment.Work = ProjectWork.Hours(8);
         if (!overtimeOnly) { assignment.ActualWork = ProjectWork.Hours(4); assignment.ActualStart = Monday; assignment.Stop = Monday.AddHours(4); }
-        var curve = assignment.TimephasedData.Add(); curve.Type = 3; curve.Start = Monday; curve.Finish = Monday.AddHours(1); curve.Value = "PT1H";
+        var curve = assignment.TimephasedData.Add(); curve.Uid = assignment.Uid; curve.Type = 3; curve.Start = Monday; curve.Finish = Monday.AddHours(1); curve.Value = "PT1H";
         var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
         Assert.True(result.Report.HasErrors); Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result)); Assert.Null(assignment.ActualOvertimeWork);
     }

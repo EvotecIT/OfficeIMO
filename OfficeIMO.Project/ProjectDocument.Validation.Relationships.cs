@@ -7,8 +7,8 @@ public sealed partial class ProjectDocument {
             string location = "/Calendar[UID=" + calendar.Uid + "]";
             if (calendar.IsBaseCalendar == true && calendar.BaseCalendar != null)
                 add("PROJECT_CALENDAR_KIND", "A base calendar cannot also inherit a resource base-calendar reference. Create a derived calendar with Calendars.Add(name, baseCalendar).", location);
-            if (calendar.BaseCalendar == null && calendar.SourceBaseCalendarUid > 0)
-                add("PROJECT_CALENDAR_REFERENCE", "The calendar references a missing base calendar.", location);
+            if (calendar.BaseCalendar == null && (calendar.SourceBaseCalendarUid > 0 || calendar.IsBaseCalendar == false))
+                add("PROJECT_CALENDAR_REFERENCE", "A derived calendar requires an existing base calendar.", location);
             var days = new HashSet<DayOfWeek>();
             foreach (var day in calendar.WeekDays) {
                 token.ThrowIfCancellationRequested();
@@ -28,6 +28,8 @@ public sealed partial class ProjectDocument {
             }
             foreach (var week in calendar.WorkWeeks) {
                 token.ThrowIfCancellationRequested();
+                if (!week.FromDate.HasValue || !week.ToDate.HasValue)
+                    add("PROJECT_CALENDAR_PERIOD", "An incomplete work-week date range is retained in XML; calendar arithmetic and native output require both bounds.", location + "/WorkWeek", ProjectDiagnosticSeverity.Warning);
                 CheckDateRange(week.FromDate, week.ToDate, location + "/WorkWeek", add);
                 var weekdays = new HashSet<DayOfWeek>();
                 foreach (var day in week.WeekDays) {

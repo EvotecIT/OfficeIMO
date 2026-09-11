@@ -44,7 +44,7 @@ public sealed class ProjectProgressReconciliationTests {
         var assignment = document.Assignments.Add(task, resource); assignment.Work = assignment.ActualWork = ProjectWork.Hours(4);
         assignment.ActualStart = Monday.AddHours(startConflict ? 1 : 0); assignment.ActualFinish = Monday.AddHours(startConflict ? 4 : 9);
         if (scalarStop) assignment.Stop = Monday.AddHours(4);
-        else { var actual = assignment.TimephasedData.Add(); actual.Type = 2; actual.Start = Monday; actual.Finish = Monday.AddHours(4); actual.Value = "PT4H"; }
+        else { var actual = assignment.TimephasedData.Add(); actual.Uid = assignment.Uid; actual.Type = 2; actual.Start = Monday; actual.Finish = Monday.AddHours(4); actual.Value = "PT4H"; }
         var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
         Assert.True(result.Report.HasErrors); Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result));
     }
@@ -76,7 +76,7 @@ public sealed class ProjectProgressReconciliationTests {
     public void CostActualsCannotFallOutsideTheFinalTaskSpan(bool curve) {
         using var document = Create(); var task = document.Tasks.Add("Delivery"); task.Duration = ProjectDuration.WorkingDays(1);
         var assignment = document.Assignments.Add(task, document.Resources.AddCost("Travel")); assignment.Cost = 100; assignment.ActualCost = 100;
-        if (curve) { var point = assignment.TimephasedData.Add(); point.Type = 6; point.Start = Monday.AddDays(1); point.Finish = point.Start; point.Value = "10000"; }
+        if (curve) { var point = assignment.TimephasedData.Add(); point.Uid = assignment.Uid; point.Type = 6; point.Start = Monday.AddDays(1); point.Finish = point.Start; point.Value = "10000"; }
         else { assignment.ActualStart = Monday.AddDays(1); assignment.ActualFinish = Monday.AddDays(1).AddHours(1); }
         var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
         Assert.True(result.Report.HasErrors); Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result));
@@ -101,7 +101,7 @@ public sealed class ProjectProgressReconciliationTests {
         using var document = Create(); var task = document.Tasks.Add("Delivery"); task.Duration = ProjectDuration.WorkingDays(1);
         var assignment = document.Assignments.Add(task, document.Resources.AddCost("Travel")); assignment.Cost = 100;
         assignment.ActualStart = Monday.AddHours(2); assignment.ActualFinish = Monday.AddHours(3); assignment.ActualCost = curve ? 100 : 50;
-        if (curve) { var point = assignment.TimephasedData.Add(); point.Type = 6; point.Start = Monday; point.Finish = Monday; point.Value = "10000"; }
+        if (curve) { var point = assignment.TimephasedData.Add(); point.Uid = assignment.Uid; point.Type = 6; point.Start = Monday; point.Finish = Monday; point.Value = "10000"; }
         var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
         Assert.True(result.Report.HasErrors); Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result));
     }

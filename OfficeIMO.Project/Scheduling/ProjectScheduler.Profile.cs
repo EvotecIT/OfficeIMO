@@ -17,6 +17,8 @@ internal sealed partial class ProjectScheduler {
         }
     }
     private void CheckSourceProfile() {
+        if (_document.Resources.Any(resource => resource.TimephasedData.Any(v => !v.Type.HasValue)))
+            Error("PROJECT_TIMEPHASED_TYPE_REQUIRED", "Resource timephased records require an explicit type before calculation.");
         if (_document.MpxSource?.Unmodeled.Count > 0)
             Error("PROJECT_MPX_SCHEDULING_PROFILE", "MPX contains unmodeled fields or records that may affect scheduling. Supply a fully typed scheduling model before calculation.");
         if (_document.AllTasks.Any(task => task.IsRecurring == true))
@@ -29,6 +31,8 @@ internal sealed partial class ProjectScheduler {
                 "Calculation uses decoded scalar values and calendars. Native contours, splits, leveling, and other opaque scheduling records are not interpreted; this is a projection of the supported model.", "/Project"));
         foreach (var task in _document.AllTasks) {
             _token.ThrowIfCancellationRequested();
+            if (task.TimephasedData.Any(v => !v.Type.HasValue))
+                Error("PROJECT_TIMEPHASED_TYPE_REQUIRED", "Task timephased records require an explicit type before calculation.", task);
             if (!_options.CalculateAssignments && task.IgnoreResourceCalendar == true)
                 Error("PROJECT_TASK_SCHEDULING_PROFILE", "Ignoring resource calendars requires independent assignment calculation.", task);
             if (task.LevelingDelay?.Value > 0 && _document.Settings.ScheduleFromStart == false)
@@ -41,6 +45,8 @@ internal sealed partial class ProjectScheduler {
         }
         foreach (var assignment in _document.Assignments) {
             _token.ThrowIfCancellationRequested();
+            if (assignment.TimephasedData.Any(v => !v.Type.HasValue))
+                Error("PROJECT_TIMEPHASED_TYPE_REQUIRED", "Assignment timephased records require an explicit type before calculation.", assignment.Task);
             if (assignment.Resource != null && !assignment.Resource.Type.HasValue)
                 Error("PROJECT_RESOURCE_TYPE_REQUIRED", "An assigned resource requires an explicit type before scheduling.", assignment.Task);
             if (_options.CalculateAssignments && assignment.Task?.IsSummary == true)

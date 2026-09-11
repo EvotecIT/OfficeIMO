@@ -43,7 +43,7 @@ public sealed class ProjectRemainingInputTests {
         using var document = Create(); var task = document.Tasks.Add("Delivery"); task.Duration = ProjectDuration.WorkingDays(1);
         var assignment = document.Assignments.Add(task, document.Resources.AddCost("Travel")); assignment.RemainingCost = 400;
         if (total) assignment.Cost = 500; if (actual) assignment.ActualCost = 100;
-        if (curve) { var item = assignment.TimephasedData.Add(); item.Type = 6; item.Start = Monday; item.Finish = Monday; item.Value = "10000"; }
+        if (curve) { var item = assignment.TimephasedData.Add(); item.Uid = assignment.Uid; item.Type = 6; item.Start = Monday; item.Finish = Monday; item.Value = "10000"; }
         decimal expectedActual = total || actual || curve ? 100 : 0;
         for (int pass = 0; pass < 2; pass++) {
             var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); result.Report.ThrowIfErrors();

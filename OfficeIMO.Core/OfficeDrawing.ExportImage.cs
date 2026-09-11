@@ -38,7 +38,7 @@ public sealed partial class OfficeDrawing {
                 TextShapingLanguage = effective.TextShapingLanguage, DiagnosticSink = diagnostics,
                 DiagnosticSource = source, CancellationToken = token
             });
-            byte[] bytes = OfficeRasterImageEncoder.Encode(image, format, plan.CreateEncodingOptions());
+            byte[] bytes = OfficeRasterImageEncoder.Encode(image, format, plan.CreateEncodingOptions(), effective.MaximumTotalEncodedBytes, token);
             token.ThrowIfCancellationRequested();
             return effective.EnsureAccepted(new OfficeImageExportResult(format, image.Width, image.Height, bytes, source: source, diagnostics: diagnostics));
         });

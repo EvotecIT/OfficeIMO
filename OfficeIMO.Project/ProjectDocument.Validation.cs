@@ -152,6 +152,8 @@ public sealed partial class ProjectDocument {
     private static void CheckTimephased(ProjectCollection<ProjectTimephasedValue> intervals, string location, Finding add, CancellationToken token) {
         foreach (var interval in intervals) {
             token.ThrowIfCancellationRequested();
+            if (!interval.Uid.HasValue)
+                add("PROJECT_TIMEPHASED_UID", "A timephased record requires a UID. Other absent source fields are retained as absent.", location + "/TimephasedData");
             CheckDateRange(interval.Start, interval.Finish, location + "/TimephasedData", add);
         }
     }

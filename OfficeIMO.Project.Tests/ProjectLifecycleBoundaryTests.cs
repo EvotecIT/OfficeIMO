@@ -51,7 +51,7 @@ public sealed class ProjectLifecycleBoundaryTests {
         using var document = Create(); document.Settings.StartDate = Monday.AddDays(7);
         var task = document.Tasks.Add("Delivery"); task.Duration = ProjectDuration.WorkingDays(1);
         var assignment = document.Assignments.Add(task, document.Resources.AddWork("Engineer")); assignment.Work = ProjectWork.Hours(8);
-        var curve = assignment.TimephasedData.Add(); curve.Type = curveType; curve.Start = Monday; curve.Finish = Monday.AddHours(9); curve.Value = "PT8H";
+        var curve = assignment.TimephasedData.Add(); curve.Uid = assignment.Uid; curve.Type = curveType; curve.Start = Monday; curve.Finish = Monday.AddHours(9); curve.Value = "PT8H";
         var result = document.CalculateSchedule(); Assert.True(result.Report.HasErrors);
         Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result)); Assert.Null(assignment.Start); Assert.Equal(Monday, curve.Start);
     }
@@ -83,7 +83,7 @@ public sealed class ProjectLifecycleBoundaryTests {
 
     private static ProjectDocument Create() { var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday; return document; }
     private static void AddActualCost(ProjectAssignment assignment, decimal amount, DateTime start, DateTime finish) {
-        var curve = assignment.TimephasedData.Add(); curve.Type = 6; curve.Start = start; curve.Finish = finish;
+        var curve = assignment.TimephasedData.Add(); curve.Uid = assignment.Uid; curve.Type = 6; curve.Start = start; curve.Finish = finish;
         curve.Value = (amount * 100m).ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 }

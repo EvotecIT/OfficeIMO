@@ -157,16 +157,17 @@ internal sealed partial class ProjectScheduler {
         decimal work = totals.Sum(c => c.Work.Minutes), actual = totals.Sum(c => c.ActualWork.Minutes);
         decimal childDuration = totals.Sum(c => c.ActualDuration.Value + c.RemainingDuration.Value);
         bool completed = totals.All(c => c.PercentComplete == 100);
+        bool hasActuals = task.ActualStart.HasValue || task.ActualFinish.HasValue || task.ActualDuration?.Value > 0 || totals.Any(c => c.HasActuals);
         decimal fraction = childDuration == 0 ? completed ? 1m : 0m : totals.Sum(c => c.ActualDuration.Value) / childDuration;
         decimal fixedCost = task.FixedCost ?? 0m;
         decimal actualFixed = (task.FixedCostAccrual ?? ProjectCostAccrual.Prorated) switch {
-            ProjectCostAccrual.Start => fraction > 0 ? fixedCost : 0m,
+            ProjectCostAccrual.Start => hasActuals ? fixedCost : 0m,
             ProjectCostAccrual.End => fraction == 1m ? fixedCost : 0m,
             _ => fixedCost * fraction
         };
         return new ProjectTaskWorkSchedule(new ProjectWork(work), new ProjectWork(actual), new ProjectWork(work - actual), duration * fraction, duration * (1m - fraction),
             totals.All(c => c.Cost.HasValue) ? totals.Sum(c => c.Cost!.Value) + fixedCost : (decimal?)null,
-            totals.All(c => c.ActualCost.HasValue) ? totals.Sum(c => c.ActualCost!.Value) + actualFixed : (decimal?)null, task.PhysicalPercentComplete, completed: completed);
+            totals.All(c => c.ActualCost.HasValue) ? totals.Sum(c => c.ActualCost!.Value) + actualFixed : (decimal?)null, task.PhysicalPercentComplete, completed: completed, hasActuals: hasActuals);
     }
     private static decimal MinutesBetween(Node node, DateTime start, DateTime finish) => node.Elapsed
         ? (finish.Ticks - start.Ticks) / (decimal)TimeSpan.TicksPerMinute : node.Calendar.Between(start, finish);

@@ -20,6 +20,10 @@ public sealed partial class ProjectDocument {
             var baseline = task.Baselines.SingleOrDefault(b => (b.Number ?? 0) == baselineNumber);
             void Warn(string message) => diagnostics.Add(new ProjectDiagnostic("PROJECT_EARNED_VALUE_INCOMPLETE", ProjectDiagnosticSeverity.Warning, message, "/Task[UID=" + task.Uid + "]"));
             if (baseline?.Cost == null) { Warn("The selected baseline has no recorded cost."); results.Add(new ProjectTaskEarnedValue(task.Uid, null, null, null, null)); continue; }
+            if (task.TimephasedData.Concat(baseline.TimephasedData).Concat(assignments.SelectMany(a => a.TimephasedData)).Any(v => !v.Type.HasValue)) {
+                Warn("Timephased records without a type cannot be classified as baseline or actual work and cost.");
+                results.Add(new ProjectTaskEarnedValue(task.Uid, baseline.Cost, null, null, null)); continue;
+            }
             var calendar = task.Calendar ?? Calendar;
             if (calendar == null) { Warn("Cost-curve integration requires an explicit calendar."); results.Add(new ProjectTaskEarnedValue(task.Uid, baseline.Cost, null, null, null)); continue; }
             var workCalendars = task.IsSummary ? Array.Empty<ProjectCalendar>() : assignments.Where(a => a.Resource?.Type == ProjectResourceType.Work)

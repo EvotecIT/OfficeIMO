@@ -8,6 +8,21 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingExportQualityTests {
     [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void DrawingRasterExportHonorsTheEncodedByteLimit(OfficeImageExportFormat format) {
+        var drawing = new OfficeDrawing(24, 16);
+        var error = Assert.Throws<OfficeImageExportBatchLimitException>(() => drawing.ExportImage(format,
+            new OfficeImageExportOptions { MaximumTotalEncodedBytes = 1 }));
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), error.LimitName);
+        var expected = drawing.ExportImage(format);
+        var exact = drawing.ExportImage(format, new OfficeImageExportOptions { MaximumTotalEncodedBytes = expected.Bytes.LongLength });
+        Assert.Equal(expected.Bytes, exact.Bytes);
+    }
+
+    [Theory]
     [InlineData(255)]
     [InlineData(128)]
     [InlineData(0)]

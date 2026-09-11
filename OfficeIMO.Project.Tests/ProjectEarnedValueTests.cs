@@ -22,7 +22,7 @@ public sealed class ProjectEarnedValueTests {
         var task = document.Tasks.Add("Delivery"); task.Type = ProjectTaskType.FixedDuration; task.Duration = ProjectDuration.WorkingDays(2); task.FixedCost = 300;
         var resource = document.Resources.AddWork("Engineer"); resource.StandardRate = 100;
         var assignment = document.Assignments.Add(task, resource, ProjectUnits.Fraction(1)); assignment.Work = ProjectWork.Hours(8); assignment.WorkContour = ProjectWorkContour.Custom;
-        var curve = assignment.TimephasedData.Add(); curve.Type = 1; curve.Start = monday; curve.Finish = monday.AddHours(9); curve.Value = "PT8H";
+        var curve = assignment.TimephasedData.Add(); curve.Uid = assignment.Uid; curve.Type = 1; curve.Start = monday; curve.Finish = monday.AddHours(9); curve.Value = "PT8H";
         var schedule = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); schedule.Report.ThrowIfErrors();
         document.CaptureBaseline(schedule); task.PercentComplete = 50;
         var result = document.AnalyzeEarnedValue(statusDate: monday.AddHours(9)).Tasks.Single();
