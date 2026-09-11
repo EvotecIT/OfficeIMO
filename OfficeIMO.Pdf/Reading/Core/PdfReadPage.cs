@@ -2139,6 +2139,7 @@ public sealed partial class PdfReadPage {
         private readonly Dictionary<PdfStream, byte[]> _decodedStreams = new();
         private long _decodedBytes;
         private long _remainingColorFunctionEvaluationWork;
+        private long _positionedTextCharacters;
 
         internal PageContentBudget(PdfReadPage page, CancellationToken cancellationToken = default) {
             CancellationToken = cancellationToken;
@@ -2165,6 +2166,15 @@ public sealed partial class PdfReadPage {
             if (cost > _remainingColorFunctionEvaluationWork) return false;
             _remainingColorFunctionEvaluationWork -= cost;
             return true;
+        }
+
+        internal void ChargePositionedTextCharacters(int count) {
+            CancellationToken.ThrowIfCancellationRequested();
+            _positionedTextCharacters += count;
+            if (_positionedTextCharacters > _page._limits.MaxPositionedTextCharactersPerPage) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.PositionedTextCharacters,
+                    _page._limits.MaxPositionedTextCharactersPerPage, _positionedTextCharacters);
+            }
         }
 
         internal byte[] Decode(PdfStream stream) {

@@ -3,13 +3,13 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    private static void AddTextSpan(OfficeDrawing drawing, double pageHeight, PdfTextSpan span,
+    private static void AddTextSpan(OfficeDrawing drawing, double pageHeight, PdfTextSpan span, PageContentBudget pageContentBudget,
         System.Threading.CancellationToken cancellationToken = default) {
         if (string.IsNullOrEmpty(span.Text) || !span.IsVisible) {
             return;
         }
 
-        if (!span.CanScaleAggregateAdvance && TryAddSpacedText(drawing, pageHeight, span, cancellationToken)) {
+        if (!span.CanScaleAggregateAdvance && TryAddSpacedText(drawing, pageHeight, span, pageContentBudget, cancellationToken)) {
             return;
         }
 
@@ -159,8 +159,9 @@ public sealed partial class PdfReadPage {
 
     // Character and word spacing move the next glyph without stretching the painted glyph.
     // Project these runs individually instead of fitting the whole run as a drawing label.
-    private static bool TryAddSpacedText(OfficeDrawing drawing, double pageHeight, PdfTextSpan span,
+    private static bool TryAddSpacedText(OfficeDrawing drawing, double pageHeight, PdfTextSpan span, PageContentBudget pageContentBudget,
         System.Threading.CancellationToken cancellationToken) {
+        pageContentBudget.ChargePositionedTextCharacters(span.Text.Length);
         if (!PdfTextSpanGeometry.TryGetPaintedGlyphGeometry(span, out double[] boundaries,
             out IReadOnlyList<int> characterLengths, out IReadOnlyList<double> paintedAdvances,
             allowStationaryGlyphOrigins: true) ||
@@ -181,7 +182,7 @@ public sealed partial class PdfReadPage {
                 span.Color, span.IsVisible, span.RotationDegrees, span.BaseFont, span.ClipPath,
                 drawingFontFamily: span.DrawingFontFamily, fontWeight: span.FontWeight,
                 fontDescriptorFlags: span.FontDescriptorFlags);
-            AddTextSpan(drawing, pageHeight, glyph, cancellationToken);
+            AddTextSpan(drawing, pageHeight, glyph, pageContentBudget, cancellationToken);
             characterOffset += characterLengths[index];
         }
         return true;

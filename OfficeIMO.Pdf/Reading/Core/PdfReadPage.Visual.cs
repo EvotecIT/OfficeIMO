@@ -263,7 +263,7 @@ public sealed partial class PdfReadPage {
         PdfTextClippingBudget patternTextClippingBudget,
         CancellationToken cancellationToken = default) {
         if (element.Effect.IsDefault) {
-            AddDrawingElementCore(drawing, pageHeight, element, invocationTextClippingBudget, cancellationToken);
+            AddDrawingElementCore(drawing, pageHeight, element, invocationTextClippingBudget, pageContentBudget, cancellationToken);
             return;
         }
 
@@ -311,7 +311,7 @@ public sealed partial class PdfReadPage {
         }
 
         var isolated = new OfficeDrawing(drawing.Width, drawing.Height);
-        AddDrawingElementCore(isolated, pageHeight, element, invocationTextClippingBudget, cancellationToken);
+        AddDrawingElementCore(isolated, pageHeight, element, invocationTextClippingBudget, pageContentBudget, cancellationToken);
         if (isolated.Elements.Count == 0) return;
         OfficeDrawingSoftMask? softMask = element.Effect.SoftMask == null
             ? null
@@ -337,13 +337,14 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         PdfPageDrawingElement element,
         PdfTextClippingBudget textClippingBudget,
+        PageContentBudget pageContentBudget,
         CancellationToken cancellationToken) {
         switch (element.Kind) {
             case PdfPageDrawingElementKind.Primitive:
                 AddVisualPrimitive(drawing, element.Primitive, textClippingBudget);
                 break;
             case PdfPageDrawingElementKind.Text:
-                AddTextSpan(drawing, pageHeight, element.TextSpan!, cancellationToken);
+                AddTextSpan(drawing, pageHeight, element.TextSpan!, pageContentBudget, cancellationToken);
                 break;
             case PdfPageDrawingElementKind.Image:
                 AddImagePlacement(drawing, pageHeight, element.ImagePlacement!, element.Image!);
@@ -2480,9 +2481,10 @@ public sealed partial class PdfReadPage {
     }
 
     private void AddTextSpans(OfficeDrawing drawing, double pageHeight, Matrix2D pageTransform) {
+        var pageContentBudget = new PageContentBudget(this);
         IReadOnlyList<PdfTextSpan> spans = GetVisualTextSpans(pageHeight, pageTransform);
         for (int i = 0; i < spans.Count; i++) {
-            AddTextSpan(drawing, pageHeight, spans[i]);
+            AddTextSpan(drawing, pageHeight, spans[i], pageContentBudget);
         }
     }
 

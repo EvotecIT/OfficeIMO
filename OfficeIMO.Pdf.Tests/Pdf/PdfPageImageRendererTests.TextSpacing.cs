@@ -10,6 +10,46 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void RenderPage_SpacedGlyphBudgetIsSharedAcrossRunsAndForms(bool splitRuns, bool useForm) {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        const string resources = "<< /Font << /F1 5 0 R >> >>";
+        string content = "BT /F1 10 Tf 1 Tc 20 100 Td " +
+            (splitRuns ? "(AB) Tj (CD) Tj" : "(ABCD) Tj") + " ET";
+        byte[] pdf = useForm
+            ? BuildSingleStreamPdf("/Fm Do /Fm Do", "<< /XObject << /Fm 6 0 R >> >>", font,
+                BuildStreamObject(6, "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Resources " + resources, content))
+            : BuildSingleStreamPdf(content, resources, font);
+        int exactCost = useForm ? 8 : 4;
+        PdfReadDocument limited = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPositionedTextCharactersPerPage = exactCost - 1 }
+        });
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => limited.Pages[0].ToDrawing());
+        Assert.Equal(PdfReadLimitKind.PositionedTextCharacters, exception.Kind);
+        Assert.Equal(exactCost - 1, exception.Limit);
+        Assert.Equal(exactCost, exception.Actual);
+
+        PdfReadDocument allowed = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPositionedTextCharactersPerPage = exactCost }
+        });
+        Assert.NotNull(allowed.Pages[0].ToDrawing());
+        Assert.NotNull(allowed.Pages[0].ToDrawing()); // The budget belongs to one render invocation.
+    }
+
+    [Fact]
+    public void RenderPage_DefaultBudgetRejectsOversizedSpacedRun() {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        string text = new string('A', PdfReadLimits.Default.MaxPositionedTextCharactersPerPage + 1);
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf -6 Tc 20 100 Td (" + text + ") Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font);
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfPageImageRenderer.RenderPage(pdf));
+        Assert.Equal(PdfReadLimitKind.PositionedTextCharacters, exception.Kind);
+        Assert.Equal(text.Length, exception.Actual);
+    }
+
+    [Theory]
     [InlineData("87,0", -0.5, 0, false, false)]
     [InlineData("73%", 2, 0, false, false)]
     [InlineData("A B", 0, 4, false, false)]
@@ -49,7 +89,7 @@ public partial class PdfPageImageRendererTests {
     [Fact]
     public void ExportImage_ExcelSummaryKeepsEveryDigitAndPercentage() {
         // Desktop Excel PDF from the documented two-service operational dashboard example.
-        string path = Path.Combine(AppContext.BaseDirectory, "Pdf", "Fixtures", "Interoperability", "excel-operational-summary.pdf");
+        string path = Path.Combine(AppContext.BaseDirectory, "Pdf", "Fixtures", "Rendering", "excel-operational-summary.pdf");
         PdfReadDocument document = PdfReadDocument.Open(File.ReadAllBytes(path));
         Assert.Contains("87,0", document.Pages[0].ExtractText(), StringComparison.Ordinal);
         Assert.Contains("73%", document.Pages[0].ExtractText(), StringComparison.Ordinal);
