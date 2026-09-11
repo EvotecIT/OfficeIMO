@@ -108,6 +108,7 @@ public sealed partial class PdfReadPage {
             }
 
             clip = drawingClip;
+            if (clip.Width <= 0D || clip.Height <= 0D) return true;
             officeClipPath = clip.ToOfficeClipPath(clip.X, clip.Y);
             if (officeClipPath == null) {
                 return false;
@@ -175,6 +176,7 @@ public sealed partial class PdfReadPage {
             canCullClip = clip.IsRectangle || clip.ToOfficeClipPath(clip.X, clip.Y) != null;
             if (canCullClip && !HasVisibleOverlap(clip.X, clip.Y, clip.Width, clip.Height, drawing.Width, drawing.Height)) return true;
             if (canCullClip && !clip.IsRectangle && TryFitClipToDrawing(clip, drawing.Width, drawing.Height, out sharedClipBounds)) {
+                if (sharedClipBounds.Width <= 0D || sharedClipBounds.Height <= 0D) return true;
                 sharedClip = sharedClipBounds.ToOfficeClipPath(sharedClipBounds.X, sharedClipBounds.Y);
             }
         }

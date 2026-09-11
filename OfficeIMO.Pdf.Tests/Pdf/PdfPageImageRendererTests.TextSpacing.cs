@@ -33,6 +33,20 @@ public partial class PdfPageImageRendererTests {
         .Sum(group => group.ClipPath.Commands.Count + CountRetainedClipCommands(group.Drawing));
 
     [Theory]
+    [InlineData(-6)]
+    [InlineData(0)]
+    public void RenderPage_TextWithEmptyFittedPathDoesNotPaint(int spacing) {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        // The bounding box overlaps the page, but the triangle only touches its top-left corner.
+        byte[] pdf = BuildSingleStreamPdf("-100 300 m -100 100 l 100 300 l h W n BT /F1 10 Tf " + spacing + " Tc 20 180 Td (AAAA) Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPositionedTextCharactersPerPage = 1 }
+        });
+        Assert.Empty(document.Pages[0].ToDrawing().Elements);
+    }
+
+    [Theory]
     [InlineData("90 80 m 120 80 l 120 120 l h W n ", false)]
     [InlineData("80 80 m 120 80 l 80 140 l h W n ", true)]
     [InlineData("90 80 40 40 re 108 95 5 10 re W* n ", false)]
