@@ -54,6 +54,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Default CSS font size in pixels.</summary>
     public double DefaultFontSize { get; set; } = 16D;
 
+    // A target writer can supply its fallback font metrics without replacing document fonts.
+    internal Func<string, OfficeFontInfo, double?>? FallbackTextMeasurement { get; set; }
+
     /// <summary>Default line-height multiplier.</summary>
     public double DefaultLineHeight { get; set; } = 1.2D;
 
@@ -211,6 +214,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.Margins = Margins;
         target.DefaultFontFamily = DefaultFontFamily;
         target.DefaultFontSize = DefaultFontSize;
+        target.FallbackTextMeasurement = FallbackTextMeasurement;
         target.DefaultLineHeight = DefaultLineHeight;
         target.TextHyphenationCallback = TextHyphenationCallback;
         target.MediaFeatures = (MediaFeatures ?? new HtmlRenderMediaFeatures()).Clone();

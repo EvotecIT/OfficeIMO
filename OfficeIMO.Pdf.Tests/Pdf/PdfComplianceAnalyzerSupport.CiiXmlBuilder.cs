@@ -12,7 +12,7 @@ public partial class PdfComplianceAnalyzerTests {
     }
 
     private static byte[] CreateCiiXml(
-        string? profileContextId = "urn:factur-x.eu:1p0:en16931",
+        string? profileContextId = "urn:cen.eu:en16931:2017",
         bool includeDocumentHeader = true,
         bool includeSupplyChainTradeTransaction = true,
         bool includeTradeTransactionEssentials = true,

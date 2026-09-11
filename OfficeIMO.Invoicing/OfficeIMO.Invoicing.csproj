@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Typed electronic invoices, CII/UBL authoring, parsing, conversion, and model validation for .NET.</Description>
+    <VersionPrefix>3.4.2</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageId>OfficeIMO.Invoicing</PackageId>
+    <PackageTags>invoice;einvoice;factur-x;zugferd;cii;ubl;en16931</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <IsPublishable>true</IsPublishable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../OfficeIMO.SharedSource/Invoicing/*.cs" Link="Shared/Invoicing/%(Filename)%(Extension)" />
+    <Using Include="OfficeIMO.Internal.Invoicing" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" />
+    <Using Include="System" />
+    <Using Include="System.IO" />
+    <Using Include="System.Linq" />
+    <Using Include="System.Collections.Generic" />
+    <InternalsVisibleTo Include="OfficeIMO.Invoicing.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Invoicing.Validation" />
+  </ItemGroup>
+</Project>

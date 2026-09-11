@@ -26,6 +26,11 @@ public class PdfVisualComparerTests {
         Assert.True(page.DifferenceRatio > 0D);
         Assert.True(page.MaximumChannelDifference > 0);
         Assert.NotEmpty(page.DiffPng);
+        Assert.False(page.HasSizeDifference);
+        Assert.True(page.ChangedBounds.HasValue);
+        Assert.InRange(page.ChangedBounds!.Value.Width, 1, page.Width);
+        Assert.InRange(page.ChangedBounds.Value.Height, 1, page.Height);
+        Assert.Null(Assert.Single(ignored.Pages).ChangedBounds);
         Assert.True(ignored.IsMatch);
         Assert.True(threshold.IsMatch);
         Assert.Contains("Review proof", gallery, StringComparison.Ordinal);
@@ -49,11 +54,14 @@ public class PdfVisualComparerTests {
         });
 
         Assert.False(report.IsMatch);
+        Assert.Equal(2, report.ExpectedPageCount);
+        Assert.Equal(1, report.ActualPageCount);
         Assert.Contains(report.StructuralDifferences, difference => difference.StartsWith("PageCount:", StringComparison.Ordinal));
         Assert.Contains(report.StructuralDifferences, difference => difference.StartsWith("Page 1 dimensions:", StringComparison.Ordinal));
         PdfVisualPageComparison page = Assert.Single(report.Pages);
         Assert.Equal(320, page.Width);
         Assert.Equal(420, page.Height);
+        Assert.True(page.HasSizeDifference);
     }
 
     [Fact]
@@ -76,6 +84,8 @@ public class PdfVisualComparerTests {
         cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() =>
             PdfVisualComparer.Compare(pdf, pdf, cancellationToken: cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfDocument.Load(pdf).Proof.CompareVisual(PdfDocument.Load(pdf), cancellation.Token));
     }
 
     [Fact]

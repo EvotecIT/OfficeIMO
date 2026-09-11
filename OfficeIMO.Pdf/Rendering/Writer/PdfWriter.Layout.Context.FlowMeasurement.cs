@@ -2,6 +2,20 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
+        private double imageMeasurementReservedHeight;
+
+        // Preflight visits containers before their render scopes exist. Preserve the
+        // same image content height while recursively measuring those containers.
+        private T MeasureWithImageHeightReservation<T>(double reservedHeight, Func<T> measure) {
+            double saved = imageMeasurementReservedHeight;
+            imageMeasurementReservedHeight += reservedHeight;
+            try {
+                return measure();
+            } finally {
+                imageMeasurementReservedHeight = saved;
+            }
+        }
+
         private double? MeasureBlockSequence(
             IReadOnlyList<IPdfBlock> blocks,
             double frameX,
@@ -76,12 +90,12 @@ internal static partial class PdfWriter {
                 }
 
                 double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-                double? contentHeight = MeasureBlockSequence(
+                double? contentHeight = MeasureWithImageHeightReservation(style.PaddingY * 2D, () => MeasureBlockSequence(
                     container.Blocks,
                     frameX + style.PaddingX,
                     contentWidth,
                     fontSize,
-                    spacingBefore + style.PaddingY);
+                    spacingBefore + style.PaddingY));
                 return contentHeight.HasValue
                     ? spacingBefore + style.PaddingY + contentHeight.Value + style.PaddingY + style.SpacingAfter
                     : null;

@@ -667,7 +667,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.Orphans,
             style.Widows,
             pageName: style.PageName,
-            runningStringAssignments: inline.RunningStringAssignments);
+            runningStringAssignments: inline.RunningStringAssignments,
+            layoutViewportWidth: ActiveSurfaceWidth,
+            layoutViewportHeight: _activePageGeometry.Height);
         blocks.Add(block);
         return block.Height;
     }

@@ -13,11 +13,11 @@ internal static partial class PdfWriter {
             return columns;
         }
 
-        private List<ColItem> BuildColumnItems(IReadOnlyList<IPdfBlock> blocks, double columnWidth, double columnXOffset) {
+        private List<ColItem> BuildColumnItems(IReadOnlyList<IPdfBlock> blocks, double columnWidth, double columnXOffset, double reservedImageHeight = 0D) {
             var items = new System.Collections.Generic.List<ColItem>();
             int nextListGroupId = 1;
             foreach (var cb in blocks) {
-                if (TryAddColumnGroup(items, cb, columnWidth, columnXOffset)) continue;
+                if (TryAddColumnGroup(items, cb, columnWidth, columnXOffset, reservedImageHeight)) continue;
                 int firstItemIndex = items.Count;
                 if (cb is HeadingBlock hb2) {
                     PdfHeadingStyle? headingStyle = ResolveHeadingStyle(hb2, currentOpts);
@@ -271,7 +271,7 @@ internal static partial class PdfWriter {
                 } else if (cb is ImageBlock ib2) {
                     PdfImageStyle imageStyle = ResolveImageStyle(ib2, currentOpts);
                     double spacingBefore = imageStyle.SpacingBefore;
-                    var imageBox = ResolveImageFlowBox(ib2, imageStyle, columnWidth, spacingBefore, imageStyle.SpacingAfter);
+                    var imageBox = ResolveImageFlowBox(ib2, imageStyle, columnWidth, spacingBefore, imageStyle.SpacingAfter, reservedImageHeight);
                     items.Add(new ColImg { Block = ib2, Style = imageStyle, Width = imageBox.Width, Height = imageBox.Height });
                 } else if (cb is ShapeBlock sb2) {
                     items.Add(new ColShape { Block = sb2 });

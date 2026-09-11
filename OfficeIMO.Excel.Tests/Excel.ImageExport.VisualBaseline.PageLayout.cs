@@ -149,6 +149,7 @@ namespace OfficeIMO.Tests {
 
         private static ExcelWorksheetImageExportOptions CreatePageLayoutBaselineOptions() =>
             new ExcelWorksheetImageExportOptions {
+                Fonts = OfficeIMO.TestAssets.PortableVisualFontAssets.CreateSpreadsheetFonts(),
                 Range = "A1:D8",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,

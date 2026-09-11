@@ -49,7 +49,7 @@ namespace OfficeIMO.Word {
             if (pageBorder == null) {
                 pageBorder = Custom;
                 var paragraphProperties = _wordParagraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
-                paragraphProperties.Append(pageBorder);
+                paragraphProperties.ParagraphBorders = pageBorder;
             }
 
             return pageBorder;
@@ -459,13 +459,8 @@ namespace OfficeIMO.Word {
                 var pageBorder = GetParagraphBorders();
                 pageBorder?.Remove();
             } else {
-                var pageBorder = GetParagraphBorders();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties!.Append(ParagraphBordersettings);
-                } else {
-                    pageBorder.Remove();
-                    _wordParagraph._paragraphProperties!.Append(ParagraphBordersettings);
-                }
+                var paragraphProperties = _wordParagraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
+                paragraphProperties.ParagraphBorders = ParagraphBordersettings;
             }
         }
 

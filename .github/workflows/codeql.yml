@@ -9,7 +9,6 @@ on:
       - 'Examples/**'
       - '.gitignore'
   pull_request:
-    branches: [ "master" ]
     paths-ignore:
       - '*.md'
       - 'Docs/**'

@@ -6,10 +6,11 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderHeadingFlowBlock(HeadingBlock hb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
+            double frameStart = GetCurrentFramePageStartY();
             PdfHeadingStyle? headingStyle = ResolveHeadingStyle(hb, currentOpts);
             double size = GetHeadingFontSize(hb, headingStyle);
             double leading = GetHeadingLeading(headingStyle, size);
-            double spacingBefore = (y < yStart - 0.001 || headingStyle?.ApplySpacingBeforeAtTop == true) ? headingStyle?.SpacingBefore ?? 0D : 0D;
+            double spacingBefore = (y < frameStart - 0.001 || headingStyle?.ApplySpacingBeforeAtTop == true) ? headingStyle?.SpacingBefore ?? 0D : 0D;
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, leading);
             var headingFont = GetHeadingFont(currentOpts, headingStyle);
             PdfColor? headingColor = hb.Color ?? headingStyle?.Color;
@@ -20,55 +21,83 @@ internal static partial class PdfWriter {
             bool keepWithNext = headingStyle?.KeepWithNext ?? true;
             if (keepWithNext && nextBlock != null) {
                 double keepHeight = needed + MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
-                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-                if (keepHeight > needed + 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
+                double availableHeight = frameStart - currentOpts.MarginBottom;
+                if (keepHeight > needed + 0.001 && keepHeight <= availableHeight + 0.001 && y < frameStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();
                     spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
                     needed = spacingBefore + textHeight + spacingAfter;
                 }
             }
 
-            if (y - needed < currentOpts.MarginBottom) {
+            if (y < frameStart - 0.001 && y - needed < currentOpts.MarginBottom) {
                 NewPage();
                 spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
                 needed = spacingBefore + textHeight + spacingAfter;
             }
+            if (lineHeights.Count > 0 && spacingBefore + lineHeights[0] > frameStart - currentOpts.MarginBottom + 0.001)
+                throw new ArgumentException("Heading spacing and first line exceed the available page content height.");
             if (spacingBefore > 0) {
                 y -= spacingBefore;
             }
 
-            EnsurePage();
-            pageDirty = true;
-            if (currentOpts.CreateOutlineFromHeadings) {
-                currentPage!.Bookmarks.Add(new PageBookmark { Level = hb.Level, Title = hb.Text, Y = y });
+            int lineIndex = 0;
+            PageStructElement? logicalHeading = null;
+            while (lineIndex < lines.Count) {
+                double available = y - currentOpts.MarginBottom;
+                int take = 0;
+                double heightSum = 0;
+                for (int index = lineIndex; index < lines.Count; index++) {
+                    double lineHeight = lineHeights[index];
+                    if (heightSum + lineHeight > available + 0.001) break;
+                    heightSum += lineHeight;
+                    take++;
+                }
+                if (take == 0) {
+                    if (y >= frameStart - 0.001 || lineHeights[lineIndex] > frameStart - currentOpts.MarginBottom + 0.001)
+                        throw new ArgumentException("Heading line height exceeds the available page content height.");
+                    NewPage();
+                    continue;
+                }
+                var sliceLines = lines.GetRange(lineIndex, take);
+                var sliceHeights = lineHeights.GetRange(lineIndex, take);
+                EnsurePage();
+                if (lineIndex == 0 && headingStyle?.AnchoredCanvas is { } headingCanvas) RenderCanvasBlock(headingCanvas);
+                pageDirty = true;
+                if (lineIndex == 0 && currentOpts.CreateOutlineFromHeadings) {
+                    currentPage!.Bookmarks.Add(new PageBookmark { Level = hb.Level, Title = hb.Text, Y = y });
+                }
+                double firstBaseline = FirstTextBaselineFromTop(headingFont, size, y);
+                string headingFontResource = GetHeadingFontResource(headingStyle);
+                string structureType = "H" + hb.Level.ToString(CultureInfo.InvariantCulture);
+                bool hasLinkTarget = !string.IsNullOrEmpty(hb.LinkUri) || !string.IsNullOrEmpty(hb.LinkDestinationName);
+                int? linkStructElementIndex = null;
+                string markedStructureType = structureType;
+                int? markedContentId;
+                if ((hasLinkTarget || take < lines.Count) && emitGeneratedStructure && currentPage != null) {
+                    logicalHeading ??= RegisterStructureContainer(structureType, parentElement: null);
+                    if (logicalHeading != null && lineIndex > 0) logicalHeading.SpansPages = true;
+                    if (hasLinkTarget) linkStructElementIndex = currentPage.StructElements.Count;
+                    markedStructureType = hasLinkTarget ? "Link" : "Span";
+                    markedContentId = RegisterTextStructureElement(markedStructureType, logicalHeading);
+                } else {
+                    markedContentId = RegisterTextStructureElement(structureType);
+                }
+                AddHeadingLinkAnnotations(hb, sliceLines, headingFont, size, leading, currentOpts.MarginLeft, width, firstBaseline, linkStructElementIndex);
+                WriteRichParagraph(sb, new RichParagraphBlock(headingRuns, hb.Align, headingColor), sliceLines, sliceHeights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, currentOpts.MarginLeft, width, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage);
+                MarkRichFonts(headingRuns);
+                if (GetHeadingBold(headingStyle)) {
+                    currentPage!.UsedBold = true;
+                    usedBold = true;
+                }
+                y -= heightSum;
+                lineIndex += take;
+                if (lineIndex < lines.Count) NewPage();
             }
-            double firstBaseline = FirstTextBaselineFromTop(headingFont, size, y);
-            string headingFontResource = GetHeadingFontResource(headingStyle);
-            string structureType = "H" + hb.Level.ToString(CultureInfo.InvariantCulture);
-            bool hasLinkTarget = !string.IsNullOrEmpty(hb.LinkUri) || !string.IsNullOrEmpty(hb.LinkDestinationName);
-            int? linkStructElementIndex = null;
-            string markedStructureType = structureType;
-            int? markedContentId;
-            if (hasLinkTarget && emitGeneratedStructure && currentPage != null) {
-                int? headingElementIndex = RegisterStructureContainer(structureType);
-                linkStructElementIndex = currentPage.StructElements.Count;
-                markedStructureType = "Link";
-                markedContentId = RegisterTextStructureElement(markedStructureType, headingElementIndex);
-            } else {
-                markedContentId = RegisterTextStructureElement(structureType);
-            }
-
-            AddHeadingLinkAnnotations(hb, lines, headingFont, size, leading, currentOpts.MarginLeft, width, firstBaseline, linkStructElementIndex);
-            WriteRichParagraph(sb, new RichParagraphBlock(headingRuns, hb.Align, headingColor), lines, lineHeights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, currentOpts.MarginLeft, width, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage);
-            MarkRichFonts(headingRuns);
-            if (GetHeadingBold(headingStyle)) {
-                currentPage!.UsedBold = true;
-                usedBold = true;
-            }
-            y -= textHeight + spacingAfter;
+            y -= spacingAfter;
         }
 
         private void RenderRichParagraphFlowBlock(RichParagraphBlock rpb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
+            double frameStart = GetCurrentFramePageStartY();
             double size = currentOpts.DefaultFontSize;
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(rpb);
             double leading = GetParagraphLeading(paragraphStyle, size);
@@ -80,23 +109,23 @@ internal static partial class PdfWriter {
                 double paragraphHeight = spacingBefore + lineHeights.Sum() + spacingAfter;
                 double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, paragraphHeight);
                 double keepHeight = paragraphHeight + nextHeight;
-                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-                if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
+                double availableHeight = frameStart - currentOpts.MarginBottom;
+                if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < frameStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();
                 }
             }
 
             if (paragraphStyle?.KeepTogether == true) {
                 double paragraphContentHeight = lineHeights.Sum();
-                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                double availableHeight = frameStart - currentOpts.MarginBottom;
                 if (paragraphContentHeight > availableHeight + 0.001) {
                     throw new ArgumentException("Paragraph height exceeds the available page content height.");
                 }
 
                 double paragraphHeight =
-                    (y < yStart - 0.001D ? spacingBefore : 0D) +
+                    (y < frameStart - 0.001D ? spacingBefore : 0D) +
                     paragraphContentHeight;
-                if (y < yStart - 0.001 && y - paragraphHeight < currentOpts.MarginBottom) {
+                if (y < frameStart - 0.001 && y - paragraphHeight < currentOpts.MarginBottom) {
                     NewPage();
                 }
             }
@@ -104,19 +133,21 @@ internal static partial class PdfWriter {
             int lineIndex = 0;
             bool firstSegment = true;
             while (lineIndex < lines.Count) {
+                double minimumLineHeight = lineHeights[lineIndex];
+                if (minimumLineHeight > frameStart - currentOpts.MarginBottom)
+                    throw new ArgumentException("Paragraph line height exceeds the available page content height.");
                 double available = y - currentOpts.MarginBottom;
-                if (available <= 0.5) {
+                if (available <= 0) {
                     NewPage();
                     firstSegment = false;
                     continue;
                 }
 
-                double segmentSpacingBefore = firstSegment && y < yStart - 0.001 ? spacingBefore : 0;
-                double minimumLineHeight = lineHeights[lineIndex];
+                double segmentSpacingBefore = firstSegment && y < frameStart - 0.001 ? spacingBefore : 0;
                 if (available < segmentSpacingBefore + minimumLineHeight) {
                     NewPage();
                     available = y - currentOpts.MarginBottom;
-                    if (y >= yStart - 0.001) {
+                    if (y >= frameStart - 0.001) {
                         segmentSpacingBefore = 0;
                     }
                     if (available < segmentSpacingBefore + minimumLineHeight) {
@@ -137,7 +168,7 @@ internal static partial class PdfWriter {
                     take++;
                 }
 
-                if (TryApplyWidowControl(paragraphStyle, lines.Count, lineIndex, ref take, ref heightSum, lineHeights, y < yStart - 0.001)) {
+                if (TryApplyWidowControl(paragraphStyle, lines.Count, lineIndex, ref take, ref heightSum, lineHeights, y < frameStart - 0.001)) {
                     NewPage();
                     firstSegment = false;
                     continue;
@@ -161,6 +192,7 @@ internal static partial class PdfWriter {
                 }
 
                 bool sliceStartsAtFirstLine = lineIndex == 0;
+                if (sliceStartsAtFirstLine && paragraphStyle?.AnchoredCanvas is { } paragraphCanvas) RenderCanvasBlock(paragraphCanvas);
                 pageDirty = true;
                 var paragraphFont = ChooseNormal(currentOpts.DefaultFont);
                 int? markedContentId = RegisterTextStructureElement("P");

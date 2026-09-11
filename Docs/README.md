@@ -46,6 +46,9 @@ The package README is the primary usage guide for its public API. These reposito
 
 ### Document and conversion formats
 
+- [Electronic invoice model and CII/UBL conversion](../OfficeIMO.Invoicing/README.md)
+- [Typed invoice PDF generation](../OfficeIMO.Invoicing.Pdf/README.md)
+- [Pinned invoice schema and business-rule validation](../OfficeIMO.Invoicing.Validation/README.md)
 - [PDF current state](officeimo.pdf.current-state.md)
 - [PDF conversion support](officeimo.pdf-conversion-support-matrix.md)
 - [PDF reverse-conversion scorecard](pdf-reverse-conversion-scorecard.json) — executable 56-case producer/target matrix plus scanned, mixed, encrypted, and malformed stress evidence.
@@ -69,7 +72,7 @@ The package README is the primary usage guide for its public API. These reposito
 
 ## Architecture
 
-- [Document assistant design](officeimo.document-assistant-design.md) — current headless AI operations, IntelligenceX integration, evidence contracts, support limits, and later Studio integration. Open work lives in the [roadmap](ROADMAP.md#document-assistant).
+- [Document assistant design](officeimo.document-assistant-design.md) — headless AI operations, Studio integration, evidence contracts and support limits. [Evidence measurements](../Build/Benchmarks/README.md) cover local preparation and snapshot reuse. Open work lives in the [roadmap](ROADMAP.md#document-assistant).
 
 ## Generated evidence
 

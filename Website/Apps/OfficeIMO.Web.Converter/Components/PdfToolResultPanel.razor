@@ -20,7 +20,7 @@
         } else if (Result is null) {
             <div class="ocx-empty-state"><div class="pdf-result-panel__mark" aria-hidden="true">PDF</div><strong>Your result will appear here</strong><p>Select the PDFs and run @Tool.Label.ToLowerInvariant().</p></div>
         } else if (Result.PreviewInBrowser && Result.Artifact.ContentType == "application/pdf") {
-            <iframe class="ocx-pdf-preview" src="@ArtifactUrl" title="@Tool.Label PDF preview"></iframe>
+            <PdfArtifactPreview Bytes="Result.Artifact.Bytes" FileName="@Result.Artifact.FileName" />
         } else if (Result.PreviewInBrowser && Result.Artifact.ContentType.StartsWith("text/html", StringComparison.OrdinalIgnoreCase)) {
             <iframe class="ocx-html-preview" src="@ArtifactUrl" sandbox title="@Tool.Label review"></iframe>
         } else {

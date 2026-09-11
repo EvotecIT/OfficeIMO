@@ -1079,6 +1079,12 @@ Console.WriteLine(redacted.Evidence.Summary);
 
 `Evidence.Items` records a verified-absent, residual, or inconclusive outcome for every reviewed match. The report also exposes source/output hashes, residual matches, verification details, and affected page numbers. A UI can pass those page numbers to the existing page renderer for before/after previews without making rendering part of the redaction contract.
 
+Use `PdfRedactionSearchOptions.PageNumbers` to restrict candidate discovery to selected one-based pages. An empty set searches all pages. Search marks complete matching logical text blocks, so present the resulting areas for review rather than assuming that only the matched substring will be removed.
+
+`source.Redactions.ApplyForSharing(plan, sanitizationOptions, verificationOptions: verification)` applies the reviewed redaction, sanitizes with the explicit policy, and verifies the final bytes. It requires successful sanitization, policy-specific preservation, unchanged page content and geometry, and final redaction checks. It does not bypass active-content or protected-document mutation gates. A policy that changes page content, such as flattening optional content, may need to be applied before planning redaction.
+
+Save `PdfRedactionSharingResult.ToBytes()` and serialize its `Summary` when sharing content-free evidence. For redaction without sanitization, use `redacted.Evidence.CreateShareableSummary()`. These summaries include hexadecimal SHA-256 fingerprints and counts, but omit matched text, search criteria, reasons, paths, and detailed diagnostics. The detailed evidence remains suitable for local review and can contain sensitive document content.
+
 Each `PdfRedactionArea` carries two independent policies. `TextOnly` removes selected text while preserving intersecting images and paths; `TextAndUnderlay` also removes supported intersecting underlay content and fails closed when that cannot be done safely. The appearance can remain exact, merge nearby reviewed marks, round widths to a configured quantum, or cover the effective page line. Verification evaluates residue against the selected content scope rather than treating a deliberately preserved underlay as a failure.
 
 Review surfaces can also author standard PDF `/Redact` annotations and plan them later. Quadrilateral geometry is written as `/QuadPoints` and round-trips as exact destructive geometry:
@@ -1227,6 +1233,12 @@ Unmatched glyphs remain encoded in their original font; newly inserted replaceme
 `PdfTextEditResult.Warnings` reports source-font substitutions that can change
 metrics or letterforms.
 
+Use `Text.ReplaceSelected(find, replacement, matchIndexes, searchOptions, editOptions)`
+to apply a reviewed subset of the zero-based occurrences returned by `Text.Find`
+with the same query and search options. The document and search contract must
+remain unchanged between discovery and mutation. `PdfTextMatch.SourceFont`,
+`FontSize`, and `SuggestedFont` expose the detected style for a review interface.
+
 Invisible OCR text stored with PDF text rendering mode 3 is opt-in for both
 discovery and mutation. Use `IncludeTextRenderingMode3` to find it, then
 `AllowTextRenderingMode3` to authorize an edit that preserves the invisible
@@ -1285,6 +1297,11 @@ page content. The editor fails closed for ambiguous placements and for source
 clipping, opacity, skew/reflection, unresolved transparency, image-mask, raw
 payload, or inline-image semantics that cannot be reproduced safely. Exact
 XObject removal remains available for rotated and skewed placements.
+
+`Images.Transform(placement, deltaX, deltaY, scale, options)` translates an image's
+center and scales both dimensions proportionally while retaining its rotation.
+The placement must belong to the current document revision. As with movement,
+the selected `PdfImageEditLayer` controls where the rewritten placement is painted.
 
 ### Fill and flatten a PDF form
 
@@ -1490,8 +1507,20 @@ business-rule validation. This API does not create complete invoices, calculate
 tax, edit PDF pages, or update payment references.
 
 `UseFacturXDocument` snapshots the XML through the existing `UseFacturX(byte[])`
-carrier configuration. The application must keep visible invoice content and
+carrier configuration. Omit `conformanceLevel` to derive canonical XMP metadata
+from the XML guideline. An explicit conflicting profile, an unknown guideline,
+or an ambiguous declaration is rejected. Generation and exact PDF readback also
+check XML/XMP agreement when metadata and attachments are supplied separately.
+The XMP `version` is `1.0`, not a Factur-X release number.
+The application must keep visible invoice content and
 XML consistent and validate the resulting invoice/PDF pair for its declared profile.
+
+### Generate a visible invoice and its XML from one snapshot
+
+Use the optional [OfficeIMO.Invoicing.Pdf adapter](../OfficeIMO.Invoicing.Pdf/README.md)
+to render a typed invoice and embed its captured CII XML. The adapter owns
+`PdfInvoiceDocument`; `OfficeIMO.Pdf` depends only on `OfficeIMO.Core` and keeps
+its existing low-level XML carrier and bounded `PdfCiiInvoiceDocument` APIs.
 
 ### Page setup, watermarks, and metadata
 

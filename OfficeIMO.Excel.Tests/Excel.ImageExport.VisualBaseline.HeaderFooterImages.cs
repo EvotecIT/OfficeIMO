@@ -130,6 +130,7 @@ namespace OfficeIMO.Tests {
 
         private static ExcelWorksheetImageExportOptions CreateHeaderFooterImagesBaselineOptions() =>
             new ExcelWorksheetImageExportOptions {
+                Fonts = OfficeIMO.TestAssets.PortableVisualFontAssets.CreateSpreadsheetFonts(),
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,

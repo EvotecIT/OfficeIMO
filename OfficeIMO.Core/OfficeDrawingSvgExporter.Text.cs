@@ -4,14 +4,14 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
-    private static void AppendText(StringBuilder sb, OfficeDrawingText text, OfficeRasterCanvas measurement) {
+    private static void AppendText(StringBuilder sb, OfficeDrawingText text, OfficeRasterCanvas textMetrics) {
         bool useFrameTransform = text.FlipHorizontal || text.FlipVertical;
         if (useFrameTransform) {
             AppendTextFrameGroupStart(sb, text);
         }
 
         if (text.WrapText || text.ShrinkToFit || text.StackedText || text.VerticalAlignment != OfficeTextVerticalAlignment.Top || text.HasPadding) {
-            AppendTextBlock(sb, text, measurement, useFrameTransform);
+            AppendTextBlock(sb, text, textMetrics, useFrameTransform);
             if (useFrameTransform) {
                 sb.Append("</g>");
             }
@@ -87,15 +87,14 @@ public static partial class OfficeDrawingSvgExporter {
         }
     }
 
-    private static void AppendTextBlock(StringBuilder sb, OfficeDrawingText text, OfficeRasterCanvas measurement, bool useFrameTransform = false) {
+    private static void AppendTextBlock(StringBuilder sb, OfficeDrawingText text, OfficeRasterCanvas textMetrics, bool useFrameTransform = false) {
         double sourceFontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
         double fontSize = sourceFontSize * text.BaselineScale;
         double baselineOffset = text.BaselineOffset;
-        double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
-            ? Math.Max(1D, text.LineHeight.Value / fontSize)
-            : 1.2D;
+        double lineHeightFactor = OfficeDrawingTextLayout.ResolveLineHeightFactor(text.LineHeight, fontSize);
         double minimumFontSize = Math.Min(6D, fontSize);
-        Func<string?, double, double> measure = (value, size) => measurement.MeasureText(value, size, text.Font.FamilyName, text.Font.Style);
+        Func<string?, double, double> measure = (value, size) =>
+            textMetrics.MeasureText(value, size, text.Font.FamilyName, text.Font.Style);
         double contentX = text.X + text.Padding.Left;
         double contentY = text.Y + text.Padding.Top;
         double contentWidth = text.Width - text.Padding.Horizontal;
@@ -105,7 +104,7 @@ public static partial class OfficeDrawingSvgExporter {
         }
 
         OfficeTextBlockLayout layout = text.StackedText
-            ? OfficeTextLayoutEngine.LayoutStackedTextBlock(
+            ? OfficeTextLayoutEngine.LayoutStackedTextBlockCore(
                 text.Text,
                 fontSize,
                 contentWidth,
@@ -113,9 +112,10 @@ public static partial class OfficeDrawingSvgExporter {
                 lineHeightFactor,
                 minimumFontSize,
                 measure,
-                text.ShrinkToFit)
+                text.ShrinkToFit,
+                (value, size) => textMetrics.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
             : text.ShrinkToFit && text.WrapText
-            ? OfficeTextLayoutEngine.FitWrappedText(
+            ? OfficeTextLayoutEngine.FitWrappedTextCore(
                 text.Text,
                 fontSize,
                 contentWidth,
@@ -123,7 +123,8 @@ public static partial class OfficeDrawingSvgExporter {
                 lineHeightFactor,
                 minimumFontSize,
                 measure,
-                text.ParagraphIndent)
+                text.ParagraphIndent,
+                (value, size) => textMetrics.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
             : OfficeTextLayoutEngine.LayoutTextBlock(
                 text.Text,
                 fontSize,
@@ -142,7 +143,7 @@ public static partial class OfficeDrawingSvgExporter {
             contentWidth,
             contentHeight,
             text.Color ?? OfficeColor.Black,
-            string.IsNullOrWhiteSpace(text.Font.FamilyName) ? "Arial" : text.Font.FamilyName,
+            text.Font.FamilyName,
             text.Alignment,
             text.VerticalAlignment,
             text.Font.IsBold,
@@ -159,7 +160,7 @@ public static partial class OfficeDrawingSvgExporter {
             decorationColor: text.DecorationColor);
     }
 
-    private static void AppendRichText(StringBuilder sb, OfficeDrawingRichText text, OfficeRasterCanvas measurement) {
+    private static void AppendRichText(StringBuilder sb, OfficeDrawingRichText text, OfficeRasterCanvas textMetrics) {
         bool useFrameTransform = text.FlipHorizontal || text.FlipVertical;
         if (useFrameTransform) {
             AppendRichTextFrameGroupStart(sb, text);
@@ -177,7 +178,7 @@ public static partial class OfficeDrawingSvgExporter {
             return;
         }
 
-        OfficeRichTextBlockLayout layout = CreateRichTextLayout(text, contentWidth, contentHeight, measurement);
+        OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.Create(text, contentWidth, contentHeight, textMetrics.MeasureText, measurePaint: textMetrics.MeasureTextPaintBounds);
         sb.AppendSvgRichTextBlock(
             layout,
             contentX,
@@ -192,29 +193,6 @@ public static partial class OfficeDrawingSvgExporter {
         if (useFrameTransform) {
             sb.Append("</g>");
         }
-    }
-
-    private static OfficeRichTextBlockLayout CreateRichTextLayout(OfficeDrawingRichText text, double contentWidth, double contentHeight, OfficeRasterCanvas measurement) {
-        double maxFontSize = 10D;
-        for (int i = 0; i < text.Runs.Count; i++) {
-            maxFontSize = Math.Max(maxFontSize, text.Runs[i].FontSize);
-        }
-
-        double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
-            ? Math.Max(1D, text.LineHeight.Value / maxFontSize)
-            : 1.2D;
-        double minimumFontSize = Math.Min(6D, maxFontSize);
-        Func<string?, double, string?, double> measure = (value, size, family) => measurement.MeasureText(value, size, family);
-        return OfficeTextLayoutEngine.LayoutRichTextBlock(
-            text.Runs,
-            contentWidth,
-            contentHeight,
-            lineHeightFactor,
-            measure,
-            text.WrapText,
-            text.ShrinkToFit,
-            minimumFontSize,
-            text.ParagraphIndent);
     }
 
     private static void AppendTextFrameGroupStart(StringBuilder sb, OfficeDrawingText text) {

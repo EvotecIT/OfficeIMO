@@ -102,8 +102,9 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextDecorationStyle strikethroughStyle,
         OfficeColor? decorationColor = null,
         OfficeTextFeatureSettings? featureSettings = null,
-        string? fontPalette = null) =>
-        DrawTextCore(text, x, y, width, height, color, fontSize, alignment, style, fontFamily, OfficeTextOverflowBehavior.Clip, textAdvanceWidth, underlineStyle, strikethroughStyle, decorationColor, featureSettings, fontPalette);
+        string? fontPalette = null,
+        double? baselineFontSize = null) =>
+        DrawTextCore(text, x, y, width, height, color, fontSize, alignment, style, fontFamily, OfficeTextOverflowBehavior.Clip, textAdvanceWidth, underlineStyle, strikethroughStyle, decorationColor, featureSettings, fontPalette, baselineFontSize);
 
     private void DrawTextCore(
         string? text,
@@ -122,7 +123,8 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
         OfficeColor? decorationColor = null,
         OfficeTextFeatureSettings? featureSettings = null,
-        string? fontPalette = null) {
+        string? fontPalette = null,
+        double? baselineFontSize = null) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || width <= 0D || height <= 0D) {
             return;
         }
@@ -135,7 +137,7 @@ public sealed partial class OfficeRasterCanvas {
 
         string value = text!;
         bool retainOverflow = overflowBehavior == OfficeTextOverflowBehavior.Clip;
-        double size = Math.Max(6D, Math.Min(fontSize, height - 2D));
+        double size = ResolveRasterTextSize(fontSize, height, textAdvanceWidth.HasValue);
         if (TryDrawMixedText(
             value,
             x,
@@ -153,7 +155,8 @@ public sealed partial class OfficeRasterCanvas {
             strikethroughStyle,
             decorationColor,
             featureSettings,
-            fontPalette)) {
+            fontPalette,
+            baselineFontSize)) {
             return;
         }
         IOfficeFontProgram? font = ResolveTextFont(value, fontFamily, style, out OfficeFontStyle resolvedStyle);
@@ -178,7 +181,7 @@ public sealed partial class OfficeRasterCanvas {
             double resolvedAdvance = textAdvanceWidth.HasValue && string.Equals(value, text, StringComparison.Ordinal)
                 ? textAdvanceWidth.Value
                 : measured;
-            double top = y + Math.Max(1D, (height - font.LineHeight(size)) / 2D);
+            double top = y + ResolveRasterTextTop(font, size, height, baselineFontSize);
             double textX = ResolveTextX(retainOverflow ? x : x + 3D, availableWidth, resolvedAdvance, alignment);
             double horizontalScale = measured > 0D && Math.Abs(resolvedAdvance - measured) > 0.0001D
                 ? resolvedAdvance / measured
@@ -379,9 +382,10 @@ public sealed partial class OfficeRasterCanvas {
         double x = ResolveAnchoredTextX(anchorX, width, alignment);
         double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
         if (font != null) {
+            double outlineTop = top + fontHeight * 0.84D - ResolveRasterBaseline(font, fontHeight);
             double bottom = top + fontHeight;
             IReadOnlyList<List<OfficePoint>> contours = TransformTextContours(
-                GetResolvedTextContours(value, font, x, top, fontHeight),
+                GetResolvedTextContours(value, font, x, outlineTop, fontHeight),
                 bottom,
                 simulateItalic,
                 rotationRadians,
@@ -392,7 +396,7 @@ public sealed partial class OfficeRasterCanvas {
             FillContours(contours, color, OfficeFillRule.NonZero);
             if (simulateBold) {
                 contours = TransformTextContours(
-                    GetResolvedTextContours(value, font, x + fontHeight / 24D, top, fontHeight),
+                    GetResolvedTextContours(value, font, x + fontHeight / 24D, outlineTop, fontHeight),
                     bottom,
                     simulateItalic,
                     rotationRadians,
@@ -468,15 +472,16 @@ public sealed partial class OfficeRasterCanvas {
         double width = MeasureText(value, fontHeight, fontFamily, fontStyle);
         double x = ResolveAnchoredTextX(anchorX, width, alignment);
         if (font != null) {
+            double outlineTop = top + fontHeight * 0.84D - ResolveRasterBaseline(font, fontHeight);
             IReadOnlyList<List<OfficePoint>> contours = TransformTextContours(
-                GetResolvedTextContours(value, font, x, top, fontHeight),
+                GetResolvedTextContours(value, font, x, outlineTop, fontHeight),
                 top + fontHeight,
                 simulateItalic,
                 transform);
             FillContours(contours, color, OfficeFillRule.NonZero);
             if (simulateBold) {
                 contours = TransformTextContours(
-                    GetResolvedTextContours(value, font, x + fontHeight / 24D, top, fontHeight),
+                    GetResolvedTextContours(value, font, x + fontHeight / 24D, outlineTop, fontHeight),
                     top + fontHeight,
                     simulateItalic,
                     transform);

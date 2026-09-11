@@ -77,7 +77,21 @@ public sealed class PdfRedactionPlan {
     internal static IReadOnlyList<string> CapturePageIdentities(
         PdfReadDocument document,
         IReadOnlyList<PdfRedactionArea> reviewedAreas,
-        IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> reviewedTextObjectScopes) {
+        IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> reviewedTextObjectScopes) =>
+        CapturePageIdentities(document, reviewedAreas, reviewedTextObjectScopes, includeInteractiveContent: true);
+
+    // Used only between an already verified redaction and its sanitization rewrite. This compares
+    // all page content, including the redacted areas, while the sanitizer separately checks its
+    // authorized removals from annotations, actions, and document metadata.
+    internal static IReadOnlyList<string> CapturePageContentIdentities(PdfReadDocument document) =>
+        CapturePageIdentities(document, Array.Empty<PdfRedactionArea>(),
+            Array.Empty<IReadOnlyList<PdfRedactionTextObjectScope>>(), includeInteractiveContent: false);
+
+    private static string[] CapturePageIdentities(
+        PdfReadDocument document,
+        IReadOnlyList<PdfRedactionArea> reviewedAreas,
+        IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> reviewedTextObjectScopes,
+        bool includeInteractiveContent) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(reviewedAreas, nameof(reviewedAreas));
         Guard.NotNull(reviewedTextObjectScopes, nameof(reviewedTextObjectScopes));
@@ -104,8 +118,10 @@ public sealed class PdfRedactionPlan {
             AppendUnredactedTextIdentity(identity, document, page, pageAreas, pageReviewedTextObjectScopes, drawingEffects);
             AppendUnredactedPathIdentity(identity, document, page, pageAreas, drawingEffects);
             AppendUnredactedImageIdentity(identity, document, page, pageNumber, pageAreas, drawingEffects);
-            AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas, stablePageReferences);
-            AppendUnredactedLinkIdentity(identity, page, pageAreas);
+            if (includeInteractiveContent) {
+                AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas, stablePageReferences);
+                AppendUnredactedLinkIdentity(identity, page, pageAreas);
+            }
             AppendPageRenderingResourceIdentity(identity, document, page);
             identity.Append("|C:OCProperties:");
             PdfRedactionImageIdentity.AppendObjectGraph(

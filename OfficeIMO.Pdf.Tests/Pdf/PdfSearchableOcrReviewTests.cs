@@ -8,6 +8,24 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfSearchableOcrReviewTests {
+    [Fact]
+    public async Task TextExtractionUsesReviewPolicyAndReadingOrderWithoutChangingSource() {
+        byte[] bytes = Source();
+        var source = PdfDocument.Load(bytes);
+        var review = await source.PrepareSearchableOcrAsync(Engine());
+        var other = await source.PrepareSearchableOcrAsync(Engine());
+        var words = review.Ocr.Pages[0].Words;
+        Assert.Equal("First Second", review.ExtractText(words.Reverse()));
+        Assert.Equal("Second", review.ExtractText(new[] { words[1] }));
+        Assert.Equal(string.Empty, review.ExtractText(Array.Empty<PdfRecognizedWord>()));
+        Assert.Throws<ArgumentException>(() => review.ExtractText(new[] { words[0], words[0] }));
+        Assert.Throws<ArgumentException>(() => review.ExtractText(other.Ocr.Pages[0].Words));
+        Assert.Throws<ArgumentException>(() => review.ExtractText(new[] { review.Ocr.Pages[0].WordEvidence[2].Word }));
+        Assert.Throws<ArgumentException>(() => review.ExtractText(new PdfRecognizedWord[] { null! }));
+        Assert.ThrowsAny<OperationCanceledException>(() => review.ExtractText(words, new CancellationToken(true)));
+        Assert.Equal(bytes, source.ToBytes());
+    }
+
     [Theory]
     [InlineData("Searchable", 10)]
     [InlineData("Zażółć", 6)]

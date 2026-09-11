@@ -1178,7 +1178,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(220, 120);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("Justified PowerPoint text wraps across the exported slide image", 20, 20, 120, 54);
+            PowerPointTextBox textBox = slide.AddTextBoxPoints("Justified PowerPoint text wraps across the exported slide image", 20, 20, 160, 80);
             textBox.FontSize = 12;
             textBox.Paragraphs[0].SetAlignment(PowerPointTextAlignment.Justified);
 
@@ -2766,7 +2766,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains("#D6E0EB", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("#F8FAFC", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
-            Assert.Equal(OfficeColor.FromRgb(51, 102, 153), image!.GetPixel(30, 30));
+            // Sample inside the cell fill before the text inset; glyph coverage
+            // at the old sample position varies with the platform's font.
+            Assert.Equal(OfficeColor.FromRgb(51, 102, 153), image!.GetPixel(23, 23));
         }
 
         [Fact]
@@ -3796,6 +3798,8 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Deprecated", 24, 24, 132, 40);
+            textBox.TextMarginLeftPoints = textBox.TextMarginRightPoints = 0D;
+            textBox.TextMarginTopPoints = textBox.TextMarginBottomPoints = 0D;
             textBox.ApplyTextStyle(PowerPointTextStyle.Body.WithUnderline(true).WithStrikethrough(true), applyToRuns: true);
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
@@ -3816,7 +3820,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(180, image!.Width);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
-            Assert.Contains("Deprecated", svgText, StringComparison.Ordinal);
+            Assert.Contains("Deprecated", ReadVisibleSvgText(svgText), StringComparison.Ordinal);
         }
 
         [Fact]
@@ -3827,6 +3831,8 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints(string.Empty, 24, 24, 172, 46);
+            textBox.TextMarginLeftPoints = textBox.TextMarginRightPoints = 0D;
+            textBox.TextMarginTopPoints = textBox.TextMarginBottomPoints = 0D;
             textBox.SetMarkdown("Keep ~~obsolete~~ current");
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
@@ -3846,7 +3852,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(220, image!.Width);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
-            Assert.Contains("obsolete", svgText, StringComparison.Ordinal);
+            Assert.Contains("obsolete", ReadVisibleSvgText(svgText), StringComparison.Ordinal);
         }
 
         [Fact]

@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:editor="using:OfficeIMO.Studio.Features.Editor"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             x:Class="OfficeIMO.Studio.Features.Editor.TextEditInspectorView"
+             x:DataType="shell:MainWindowViewModel">
+  <StackPanel Spacing="7">
+    <ListBox ItemsSource="{Binding ReplacementMatches}" SelectedItem="{Binding SelectedReplacementMatch}" IsVisible="{Binding HasReplacementMatches}" MaxHeight="160"
+             AutomationProperties.Name="{loc:Loc TextEdit.Matches}">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="editor:PdfTextReplacementMatchViewModel">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <CheckBox IsChecked="{Binding IsIncluded}" Content="{loc:Loc TextEdit.Include}" />
+            <TextBlock Text="{Binding PageNumber}" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Text}" MaxWidth="140" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+    <ContentControl Content="{Binding TextEditDraft}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate x:DataType="editor:PdfTextDraftViewModel">
+          <StackPanel Spacing="6">
+            <TextBlock Text="{Binding SourceStyle}" TextWrapping="Wrap" Classes="muted" />
+            <TextBox Text="{Binding Text}" AcceptsReturn="True" MinHeight="64" MaxHeight="140" TextWrapping="Wrap" AutomationProperties.Name="{loc:Loc TextEdit.Replacement}" />
+            <TextBlock Text="{loc:Loc TextEdit.Font}" />
+            <ComboBox ItemsSource="{Binding Fonts}" SelectedItem="{Binding Font}" HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:TextFontChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Text="{loc:Loc TextEdit.Size}" />
+            <NumericUpDown Value="{Binding FontSize}" Minimum="1" Maximum="288" FormatString="0.##" />
+            <ComboBox ItemsSource="{Binding Fits}" SelectedItem="{Binding Fit}" HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:TextFitChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Text="{loc:Loc TextEdit.MinimumSize}" />
+            <NumericUpDown Value="{Binding MinimumFontSize}" Minimum="1" Maximum="288" />
+            <Button Classes="primary" Content="{loc:Loc TextEdit.Preview}" Command="{Binding PreviewCommand}" IsEnabled="{Binding IsReady}" />
+          </StackPanel>
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+    <TextBlock Text="{Binding TextPreviewSummary}" TextWrapping="Wrap" />
+    <StackPanel IsVisible="{Binding HasTextPreview}" Spacing="6">
+      <CheckBox IsChecked="{Binding TextPreviewFullPage}" Content="{loc:Loc TextEdit.FullPage}" />
+      <TextBlock Text="{loc:Loc TextEdit.Before}" />
+      <editor:TextEditPreview Source="{Binding TextPreviewBefore}" Region="{Binding TextPreviewRegion}" Height="170" />
+      <TextBlock Text="{loc:Loc TextEdit.After}" />
+      <editor:TextEditPreview Source="{Binding TextPreviewAfter}" Region="{Binding TextPreviewRegion}" Height="170" />
+      <Button Classes="primary" Content="{loc:Loc TextEdit.Apply}" Command="{Binding ApplyReviewedTextEditCommand}" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

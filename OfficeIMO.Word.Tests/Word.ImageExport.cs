@@ -2157,6 +2157,8 @@ namespace OfficeIMO.Tests {
         public void WordDocument_ProjectsJustifiedParagraphsThroughSharedDrawingTextAlignment() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
+            // Keep the paragraph narrower than one line on every supported font backend.
+            document.PageSettings.PageSize = WordPageSize.A6;
             document.Margins.Type = WordMargin.Narrow;
             WordParagraph paragraph = document.AddParagraph("Justified Word paragraph wraps across the exported preview and distributes text through the shared renderer.");
             paragraph.SetFontSize(12).SetAlignment(WordParagraphAlignment.Both);

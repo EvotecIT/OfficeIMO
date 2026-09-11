@@ -21,4 +21,5 @@ internal sealed record PdfEditorCommand(
 internal sealed record PdfVerifiedRedactionResult(
     byte[] Bytes,
     PdfRedactionPlan Plan,
-    PdfRedactionEvidenceReport Evidence);
+    PdfRedactionEvidenceReport Evidence,
+    PdfRedactionShareableSummary Summary);

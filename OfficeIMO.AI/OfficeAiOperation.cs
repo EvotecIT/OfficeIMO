@@ -37,6 +37,8 @@ public sealed record OfficeAiRequest {
     public OfficeAiOperation Operation { get; init; } = OfficeAiOperation.Ask;
     /// <summary>Question or extraction instruction, distinct from untrusted document evidence.</summary>
     public string Instruction { get; init; } = string.Empty;
+    /// <summary>Optional bounded prior discussion for resolving follow-up wording. It is untrusted context, never source evidence.</summary>
+    public string ConversationContext { get; init; } = string.Empty;
     /// <summary>Explicit one-based pages, or an empty list for the whole captured source.</summary>
     public IReadOnlyList<int> Pages { get; init; } = Array.Empty<int>();
     /// <summary>Explicit evidence identifiers, or an empty list for all evidence in the page scope.</summary>

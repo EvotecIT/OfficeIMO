@@ -570,6 +570,8 @@ internal static class HtmlSemanticDocumentBuilder {
             string fontWeight = style?.GetValue("font-weight") ?? string.Empty;
             bool cssBold = string.Equals(fontWeight, "bold", StringComparison.OrdinalIgnoreCase)
                 || (int.TryParse(fontWeight, NumberStyles.Integer, CultureInfo.InvariantCulture, out int weight) && weight >= 600);
+            bool cssItalic = (style?.GetValue("font-style") ?? string.Empty).IndexOf("italic", StringComparison.OrdinalIgnoreCase) >= 0
+                || (style?.GetValue("font-style") ?? string.Empty).IndexOf("oblique", StringComparison.OrdinalIgnoreCase) >= 0;
             string decoration = style?.GetValue("text-decoration-line") ?? style?.GetValue("text-decoration") ?? string.Empty;
             bool addsUnderline = name == "u" || decoration.IndexOf("underline", StringComparison.OrdinalIgnoreCase) >= 0;
             bool addsStrikethrough = name == "s" || name == "strike" || name == "del"
@@ -585,8 +587,10 @@ internal static class HtmlSemanticDocumentBuilder {
                 }
             }
             return new InlineState(
-                Bold || name == "strong" || name == "b" || cssBold,
-                Italic || name == "em" || name == "i" || (style?.GetValue("font-style") ?? string.Empty).IndexOf("italic", StringComparison.OrdinalIgnoreCase) >= 0,
+                style?.IsSpecifiedValue("font-weight") == true || style?.IsResetValue("font-weight") == true
+                    ? cssBold : Bold || name == "strong" || name == "b" || name == "th" || cssBold,
+                style?.IsSpecifiedValue("font-style") == true || style?.IsResetValue("font-style") == true
+                    ? cssItalic : Italic || name == "em" || name == "i" || cssItalic,
                 Underline || addsUnderline,
                 addsUnderline ? decorationStyle : UnderlineStyle,
                 Strikethrough || addsStrikethrough,

@@ -27,7 +27,7 @@ function Get-ComponentCategory {
         '^OfficeIMO\.Reader' { return 'Extraction and ingestion' }
         '^OfficeIMO\.(Word|Excel|PowerPoint)' { return 'Office documents' }
         '^OfficeIMO\.MarkdownRenderer' { return 'Rendering surfaces' }
-        '^OfficeIMO\.(Pdf|Html|Markdown|Rtf|AsciiDoc|Latex)' { return 'Publishing and conversion' }
+        '^OfficeIMO\.(Pdf|Html|Markdown|Rtf|AsciiDoc|Latex|Invoicing)' { return 'Publishing and conversion' }
         '^OfficeIMO\.(Email|OneNote|OpenDocument|Epub|CSV|Visio|IWork)' { return 'Formats and interoperability' }
         '^OfficeIMO\.GoogleWorkspace|Google(Docs|Sheets|Slides)$' { return 'Google Workspace' }
         '^OfficeIMO\.(Drawing|Ocr|Provenance|Security|Zip|Markup|Adf|Confluence)' { return 'Foundations and integrations' }
@@ -60,28 +60,12 @@ function Get-DocumentationUrl {
     }
 }
 
-$allProjects = @(Get-ChildItem -LiteralPath $RepositoryRoot -Recurse -File -Filter '*.csproj' |
-    Where-Object {
-        $relativeProjectPath = [System.IO.Path]::GetRelativePath($RepositoryRoot, $_.FullName).Replace('\', '/')
-        $relativeProjectPath -notmatch '(^|/)(?:bin|obj)(?:/|$)' -and
-            $relativeProjectPath -notmatch '(^|/)(?:\.ci-artifacts|\.playwright-cli|\.powerforge-runner|\.?artifacts|Ignore|_worktrees)(?:/|$)' -and
-            $relativeProjectPath -notmatch '^Website/projects/'
-    })
-
-$testProjects = @($allProjects | Where-Object { $_.BaseName -match '(?:^|\.)(?:Tests|VerifyTests)(?:\.|$)' })
-$benchmarkProjects = @($allProjects | Where-Object { $_.BaseName -match '(?:^|\.)Benchmarks(?:\.|$)' })
-$validationProjects = @($allProjects | Where-Object {
-    $relativeProjectPath = [System.IO.Path]::GetRelativePath($RepositoryRoot, $_.FullName).Replace('\', '/')
-    $relativeProjectPath -match '(^|/)Build/' -or
-    $_.BaseName -match '(?:^|\.)AotSmoke$' -or
-    $_.BaseName -in @('OfficeIMO.Examples', 'OfficeIMO.MarkdownRenderer.SamplePlugin') -or
-    $relativeProjectPath -match '^Website/Apps/'
-})
-$productionProjects = @($allProjects | Where-Object {
-    $_ -notin $testProjects -and
-    $_ -notin $benchmarkProjects -and
-    $_ -notin $validationProjects
-})
+$inventory = & (Join-Path $PSScriptRoot 'Get-DocumentationProjectInventory.ps1') -RepositoryRoot $RepositoryRoot
+$allProjects = @($inventory.All)
+$testProjects = @($inventory.Tests)
+$benchmarkProjects = @($inventory.Benchmarks)
+$validationProjects = @($inventory.Validation)
+$productionProjects = @($inventory.Production)
 
 $referenceCounts = @{}
 foreach ($testProject in $testProjects) {

@@ -34,6 +34,11 @@ public sealed class PdfOcrMergeOptions {
     public OfficeIMO.Drawing.IOfficeRasterImageCodec? ImageCodec { get; set; }
     /// <summary>Optional shared scan-cleanup settings. Null preserves the rendered samples.</summary>
     public OfficeIMO.Drawing.OfficeScanProcessingOptions? ScanProcessing { get; set; }
+    /// <summary>Optional explicit perspective corners, relative to each selected region or full page. Applied before affine cleanup.</summary>
+    public OfficeIMO.Drawing.OfficeScanPerspectiveOptions? Perspective { get; set; }
+    /// <summary>Optional OCR rectangles, at most one per page. A nonempty list sends only these pages and cropped pixels to the provider.
+    /// Every region page must also belong to ReadOptions.PageSelection when it is supplied.</summary>
+    public IReadOnlyList<PdfOcrPageRegion> Regions { get; set; } = Array.Empty<PdfOcrPageRegion>();
     /// <summary>Requests provider orientation evidence before cleanup. Unsupported or inconclusive detection retains the source orientation.</summary>
     public bool DetectOrientation { get; set; }
     /// <summary>Minimum normalized provider orientation confidence required to rotate the OCR image.</summary>
@@ -89,6 +94,8 @@ public sealed class PdfOcrMergeOptions {
             Dpi = Dpi,
             ImageCodec = ImageCodec,
             ScanProcessing = ScanProcessing?.Clone(),
+            Perspective = Perspective?.Clone(),
+            Regions = (Regions ?? throw new ArgumentNullException(nameof(Regions))).ToArray(),
             DetectOrientation = DetectOrientation,
             MinimumOrientationConfidence = MinimumOrientationConfidence,
             MinimumConfidence = MinimumConfidence,
@@ -111,8 +118,29 @@ public sealed class PdfOcrMergeOptions {
         };
     }
 
+    /// <summary>Resolves the page selection and optional region restriction against an actual document page count.</summary>
+    /// <remarks>Preserves requested page order. Invalid region pages and the configured page budget are rejected before rendering.</remarks>
+    public int[] GetSelectedPages(int pageCount) {
+        Validate();
+        if (pageCount < 0) throw new ArgumentOutOfRangeException(nameof(pageCount));
+        int[] pages = ReadOptions.PageSelection?.ToPageNumbers(pageCount, nameof(ReadOptions.PageSelection))
+            ?? Enumerable.Range(1, pageCount).ToArray();
+        if (Regions.Count > 0) {
+            var regionPages = new HashSet<int>(Regions.Select(region => region.PageNumber));
+            if (regionPages.Any(page => !pages.Contains(page)))
+                throw new ArgumentException("Each OCR region must refer to an existing selected page.", nameof(Regions));
+            pages = pages.Where(regionPages.Contains).ToArray();
+        }
+        if (pages.Length > MaxPages) throw PdfReadLimitException.Create(PdfReadLimitKind.Pages, MaxPages, pages.Length);
+        return pages;
+    }
+
     internal void Validate() {
         ScanProcessing?.Validate();
+        Perspective?.Validate();
+        if (Regions == null) throw new ArgumentNullException(nameof(Regions));
+        if (Regions.Count > MaxPages || Regions.Any(region => region == null) || Regions.Select(region => region.PageNumber).Distinct().Count() != Regions.Count)
+            throw new ArgumentException("OCR regions require unique pages within MaxPages.", nameof(Regions));
         Guard.NotNull(ReadOptions, nameof(ReadOptions));
         PdfReadOptions.Resolve(ReadOptions);
         Guard.Positive(Dpi, nameof(Dpi));

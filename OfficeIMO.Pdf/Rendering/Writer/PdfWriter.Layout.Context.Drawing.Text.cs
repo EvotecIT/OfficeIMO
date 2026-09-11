@@ -9,8 +9,13 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void DrawDrawingTextAt(OfficeDrawingText text, double originX, double originTopY) {
+        private void DrawDrawingTextAt(OfficeDrawingText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
             if (string.IsNullOrEmpty(text.Text)) return;
+            if (!text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasPadding
+                && text.VerticalAlignment == OfficeTextVerticalAlignment.Top) {
+                DrawDrawingPositionedText(text, originX, originTopY, textMetrics.MeasureText);
+                return;
+            }
 
             string value = text.StackedText ? StackTextElements(text.Text) : text.Text;
             int priorBaselineLevel = text.BaselineLevel == 0
@@ -51,13 +56,43 @@ internal static partial class PdfWriter {
                 text.FlipVertical,
                 text.Padding,
                 text.ParagraphIndent);
-            DrawDrawingRichTextAt(richText, originX, originTopY - priorScript.BaselineOffset, text.DecorationColor);
+            DrawDrawingRichTextAt(richText, originX, originTopY - priorScript.BaselineOffset, textMetrics, text.DecorationColor);
         }
 
-        private void DrawDrawingRichTextAt(OfficeDrawingRichText text, double originX, double originTopY, OfficeColor? decorationColor = null) {
+        private void DrawDrawingPositionedText(OfficeDrawingText text, double originX, double originTopY,
+            Func<string?, double, string?, OfficeFontStyle, double> measure) {
+            double size = text.Font.Size * text.BaselineScale;
+            double frameX = originX + text.X;
+            double frameTopY = originTopY - text.Y;
+            void Paint() {
+                double baseline = frameTopY - text.Font.Size - text.BaselineOffset;
+                string[] lines = text.Text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+                foreach (string value in lines) {
+                    double advance = lines.Length == 1 && text.TextAdvanceWidth.HasValue
+                        ? text.TextAdvanceWidth.Value
+                        : measure(value, size, text.Font.FamilyName, text.Font.Style);
+                    double x = OfficeTextPlacement.ResolveLineLeft(frameX, text.Width, advance, text.Alignment);
+                    var run = new PdfTextRun(value, text.Font.IsBold, text.Font.IsUnderline,
+                        ToPdfColor(text.Color ?? OfficeColor.Black), text.Font.IsItalic, text.Font.IsStrikethrough,
+                        size, ResolveDrawingTextFont(text.Font.FamilyName), fontFamily: text.Font.FamilyName,
+                        underlineStyle: text.UnderlineStyle, strikeStyle: text.StrikethroughStyle,
+                        decorationColor: ToPdfColor(text.DecorationColor)).WithFeatureSettings(text.FeatureSettings);
+                    WriteDrawingPositionedRun(run, x, baseline, advance, frameX, frameTopY - text.Height, text.Width, text.Height);
+                    baseline -= text.LineHeight ?? text.Font.Size * 1.2D;
+                }
+            }
+            if (text.HasFrameTransform) {
+                OfficeTransform transform = ToTopLeftPageTransform(text.CreateFrameTransform().CreateDestinationTransform(), originX, originTopY);
+                RenderEffectGroup(transform, 1D, Paint);
+            } else {
+                Paint();
+            }
+        }
+
+        private void DrawDrawingRichTextAt(OfficeDrawingRichText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics, OfficeColor? decorationColor = null) {
             if (text.Runs.Count == 0 || string.IsNullOrEmpty(text.PlainText)) return;
 
-            void DrawContent() => DrawDrawingRichTextCore(text, originX + text.X, originTopY - text.Y, decorationColor);
+            void DrawContent() => DrawDrawingRichTextCore(text, originX + text.X, originTopY - text.Y, textMetrics, decorationColor);
             if (text.HasFrameTransform) {
                 OfficeTransform pageTransform = ToTopLeftPageTransform(
                     text.CreateFrameTransform().CreateDestinationTransform(),
@@ -69,140 +104,80 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawDrawingRichTextCore(OfficeDrawingRichText text, double frameX, double frameTopY, OfficeColor? decorationColor) {
+        private void DrawDrawingRichTextCore(OfficeDrawingRichText text, double frameX, double frameTopY,
+            OfficeDrawingTextMetrics textMetrics, OfficeColor? decorationColor) {
             double contentX = frameX + text.Padding.Left;
             double contentTopY = frameTopY - text.Padding.Top;
-            double contentWidth = text.Width - text.Padding.Horizontal;
-            double contentHeight = text.Height - text.Padding.Vertical;
-            if (contentWidth <= 0D || contentHeight <= 0D) return;
+            double width = text.Width - text.Padding.Horizontal;
+            double height = text.Height - text.Padding.Vertical;
+            if (width <= 0D || height <= 0D) return;
 
-            DrawingRichTextLayout layout = CreateDrawingRichTextLayout(text, contentWidth, contentHeight, decorationColor);
-            if (layout.Lines.Count == 0) return;
-
-            double contentUsedHeight = MeasureRichLinesHeight(layout.LineHeights, layout.Lines.Count, layout.Leading);
-            double verticalOffset = text.VerticalAlignment switch {
-                OfficeTextVerticalAlignment.Center => Math.Max(0D, (contentHeight - contentUsedHeight) / 2D),
-                OfficeTextVerticalAlignment.Bottom => Math.Max(0D, contentHeight - contentUsedHeight),
-                _ => 0D
-            };
-            var block = new RichParagraphBlock(layout.Runs, MapDrawingTextAlignment(text.Alignment), null);
-            PdfStandardFont baseFont = ChooseNormal(currentOpts.DefaultFont);
-            WriteClippedRichParagraph(
-                sb,
-                block,
-                layout.Lines,
-                layout.LineHeights,
-                currentOpts,
-                FirstTextBaselineFromTop(baseFont, layout.BaseFontSize, contentTopY - verticalOffset),
-                layout.BaseFontSize,
-                layout.Leading,
-                currentPage!.Annotations,
-                contentX,
-                contentTopY - contentHeight,
-                contentWidth,
-                contentHeight,
-                contentX,
-                contentWidth,
-                structureType: null,
-                markedContentId: null,
-                structurePage: null,
-                lineXOffsets: layout.LineOffsets,
-                lineWidths: layout.LineWidths,
-                suppressActualText: _suppressCanvasActualTextChildren);
-            MarkRichFonts(layout.Runs);
-            pageDirty = true;
-        }
-
-        private DrawingRichTextLayout CreateDrawingRichTextLayout(OfficeDrawingRichText text, double width, double height, OfficeColor? decorationColor) {
-            double maximumFontSize = text.Runs.Max(run => run.FontSize);
-            DrawingRichTextLayout fullSize = BuildDrawingRichTextLayout(text, width, 1D, decorationColor);
-            if (!text.ShrinkToFit || DrawingRichTextFits(fullSize, height)) return fullSize;
-
-            double minimumScale = maximumFontSize > 6D ? 6D / maximumFontSize : 1D;
-            DrawingRichTextLayout minimum = BuildDrawingRichTextLayout(text, width, minimumScale, decorationColor);
-            if (!DrawingRichTextFits(minimum, height)) return minimum;
-
-            double low = minimumScale;
-            double high = 1D;
-            DrawingRichTextLayout best = minimum;
-            for (int iteration = 0; iteration < 24; iteration++) {
-                double candidateScale = (low + high) / 2D;
-                DrawingRichTextLayout candidate = BuildDrawingRichTextLayout(text, width, candidateScale, decorationColor);
-                if (DrawingRichTextFits(candidate, height)) {
-                    best = candidate;
-                    low = candidateScale;
-                } else {
-                    high = candidateScale;
-                }
-            }
-
-            return best;
-        }
-
-        private DrawingRichTextLayout BuildDrawingRichTextLayout(OfficeDrawingRichText text, double width, double scale, OfficeColor? decorationColor) {
-            List<PdfTextRun> runs = text.Runs.Select(run => new PdfTextRun(
-                run.Text,
-                run.Bold,
-                run.Underline,
-                ToPdfColor(run.Color),
-                run.Italic,
-                run.Strikethrough,
-                run.FontSize * scale,
-                ResolveDrawingTextFont(run.FontFamily),
-                backgroundColor: ToPdfColor(run.BackgroundColor),
-                fontFamily: run.FontFamily,
-                baseline: MapDrawingTextBaseline(run.Baseline),
-                underlineStyle: run.UnderlineStyle,
-                strikeStyle: run.StrikethroughStyle,
-                decorationColor: ToPdfColor(decorationColor))).ToList();
-
-            double baseFontSize = Math.Max(0.001D, text.Runs.Max(run => run.FontSize) * scale);
-            double leading = text.LineHeight.HasValue ? text.LineHeight.Value * scale : baseFontSize * 1.2D;
-            double firstOffset = Math.Min(width, text.ParagraphIndent.FirstLineOffset);
-            double continuationOffset = Math.Min(width, text.ParagraphIndent.ContinuationLineOffset);
-            double continuationWidth = Math.Max(0.001D, width - continuationOffset);
-            double firstWidth = Math.Max(0.001D, width - firstOffset);
-            double wrapWidth = text.WrapText ? continuationWidth : 1_000_000_000D;
-            double? firstLineWidth = text.WrapText ? firstWidth : null;
-            double? firstLineOrigin = text.WrapText ? firstOffset - continuationOffset : null;
-            var wrap = WrapRichRunsCoreWithFirstLineOrigin(
-                runs,
-                wrapWidth,
-                baseFontSize,
-                ChooseNormal(currentOpts.DefaultFont),
-                leading,
-                firstLineWidth,
-                firstLineOrigin,
-                DefaultParagraphTabStopWidth,
-                currentOpts);
-            var offsets = new List<double>(wrap.Lines.Count);
-            var widths = new List<double>(wrap.Lines.Count);
-            for (int index = 0; index < wrap.Lines.Count; index++) {
-                offsets.Add(index == 0 ? firstOffset : continuationOffset);
-                widths.Add(index == 0 ? firstWidth : continuationWidth);
-            }
-
-            return new DrawingRichTextLayout(runs, wrap.Lines, wrap.LineHeights, offsets, widths, baseFontSize, leading);
-        }
-
-        private bool DrawingRichTextFits(DrawingRichTextLayout layout, double height) {
-            if (MeasureRichLinesHeight(layout.LineHeights, layout.Lines.Count, layout.Leading) > height + 0.001D) return false;
-            for (int lineIndex = 0; lineIndex < layout.Lines.Count; lineIndex++) {
-                double lineWidth = 0D;
-                foreach (RichSeg segment in layout.Lines[lineIndex]) {
-                    if (segment.LeadingSpace) {
-                        lineWidth += segment.LeadingAdvance > 0D
-                            ? segment.LeadingAdvance
-                            : MeasureRichText(" ", segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline, currentOpts);
+            OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.Create(text, width, height, textMetrics.MeasureText, measurePaint: textMetrics.MeasurePaintBounds);
+            double lineTop = OfficeTextPlacement.ResolveTop(0D, height, layout.Height, text.VerticalAlignment) + layout.ContentOffsetY;
+            for (int index = 0; index < layout.Lines.Count; index++) {
+                OfficeRichTextLine line = layout.Lines[index];
+                double lineHeight = OfficeTextBlockRenderer.ResolveRichTextRenderLineHeight(line, layout.LineHeight);
+                double baseline = OfficeTextBlockRenderer.ResolveRichTextRenderBaseline(line, lineTop, lineHeight, true);
+                double lineLeft = contentX + line.OffsetX;
+                double lineWidth = Math.Max(0D, width - line.OffsetX);
+                bool justify = OfficeTextBlockRenderer.ShouldJustifyRichTextLine(line, index, layout.Lines.Count, lineWidth, text.Alignment);
+                double cursor = OfficeTextPlacement.ResolveLineLeft(lineLeft, lineWidth, line.Width, text.Alignment);
+                if (justify) {
+                    var tokens = OfficeTextBlockRenderer.CreateRichTextRenderTokens(line, textMetrics.MeasureText);
+                    int gaps = OfficeTextBlockRenderer.CountJustifiableRichTextGaps(tokens);
+                    double gapWidth = gaps == 0 ? 0D : Math.Max(0D, lineWidth - line.Width) / gaps;
+                    bool hasWord = false;
+                    cursor = lineLeft;
+                    for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
+                        var token = tokens[tokenIndex];
+                        double advance = token.Width;
+                        if (token.IsWhitespace && hasWord && OfficeTextBlockRenderer.HasWordAfter(tokens, tokenIndex + 1)) advance += gapWidth;
+                        Paint(token.Segment, token.Text, cursor, baseline, advance);
+                        cursor += advance;
+                        hasWord |= !token.IsWhitespace;
                     }
-
-                    lineWidth += MeasureRichSegment(segment, currentOpts);
+                } else {
+                    foreach (OfficeRichTextSegment segment in line.Segments) {
+                        Paint(segment, segment.Text, cursor, baseline, segment.Width);
+                        cursor += segment.Width;
+                    }
                 }
-
-                if (lineWidth > layout.LineWidths[lineIndex] + 0.001D) return false;
+                lineTop += lineHeight;
             }
 
-            return true;
+            void Paint(OfficeRichTextSegment segment, string value, double x, double baseline, double advance) {
+                double size = OfficeTextBlockRenderer.ResolveRichTextRenderedFontSize(segment);
+                double renderedBaseline = OfficeTextBlockRenderer.ResolveRichTextRenderedBaseline(segment, baseline);
+                var run = new PdfTextRun(value, segment.Bold, segment.Underline, ToPdfColor(segment.Color),
+                    segment.Italic, segment.Strikethrough, size, ResolveDrawingTextFont(segment.FontFamily),
+                    linkUri: segment.LinkUri, backgroundColor: ToPdfColor(segment.BackgroundColor),
+                    fontFamily: segment.FontFamily, underlineStyle: segment.UnderlineStyle,
+                    strikeStyle: segment.StrikethroughStyle, decorationColor: ToPdfColor(decorationColor));
+                WriteDrawingPositionedRun(run, x, contentTopY - renderedBaseline, advance,
+                    contentX, contentTopY - height, width, height);
+            }
+        }
+
+        private void WriteDrawingPositionedRun(PdfTextRun run, double x, double baseline, double advance,
+            double clipX, double clipY, double clipWidth, double clipHeight) {
+            double size = run.FontSize ?? currentOpts.DefaultFontSize;
+            var runs = new[] { run };
+            var line = CreatePositionedTextLine(runs, size, size * 1.2D, currentOpts);
+            double actualWidth = MeasureRichLineWidth(line.Lines[0], currentOpts);
+            double scale = actualWidth > 0D && advance > 0D ? advance / actualWidth : 1D;
+            void Paint() {
+                WriteClippedRichParagraph(sb, new RichParagraphBlock(runs, PdfAlign.Left, null),
+                    line.Lines, line.LineHeights, currentOpts, baseline, size, size * 1.2D,
+                    currentPage!.Annotations, x + (clipX - x) / scale, clipY, clipWidth / scale,
+                    clipHeight, x, Math.Max(0.001D, actualWidth), suppressActualText: _suppressCanvasActualTextChildren);
+            }
+            if (Math.Abs(scale - 1D) > 0.000001D) {
+                RenderOpaqueEffectGroupInline(new OfficeTransform(scale, 0D, 0D, 1D, x * (1D - scale), 0D), Paint);
+            } else {
+                Paint();
+            }
+            MarkRichFonts(runs);
+            pageDirty = true;
         }
 
         private PdfStandardFont ResolveDrawingTextFont(string? familyName) {
@@ -210,7 +185,7 @@ internal static partial class PdfWriter {
                 return ChooseNormal(mapped);
             }
 
-            return ChooseNormal(currentOpts.DefaultFont);
+            return string.IsNullOrWhiteSpace(familyName) ? ChooseNormal(currentOpts.DefaultFont) : PdfStandardFont.Helvetica;
         }
 
         private static PdfAlign MapDrawingTextAlignment(OfficeTextAlignment alignment) => alignment switch {
@@ -239,31 +214,5 @@ internal static partial class PdfWriter {
             return builder.ToString();
         }
 
-        private sealed class DrawingRichTextLayout {
-            internal DrawingRichTextLayout(
-                IReadOnlyList<PdfTextRun> runs,
-                List<List<RichSeg>> lines,
-                List<double> lineHeights,
-                IReadOnlyList<double> lineOffsets,
-                IReadOnlyList<double> lineWidths,
-                double baseFontSize,
-                double leading) {
-                Runs = runs;
-                Lines = lines;
-                LineHeights = lineHeights;
-                LineOffsets = lineOffsets;
-                LineWidths = lineWidths;
-                BaseFontSize = baseFontSize;
-                Leading = leading;
-            }
-
-            internal IReadOnlyList<PdfTextRun> Runs { get; }
-            internal List<List<RichSeg>> Lines { get; }
-            internal List<double> LineHeights { get; }
-            internal IReadOnlyList<double> LineOffsets { get; }
-            internal IReadOnlyList<double> LineWidths { get; }
-            internal double BaseFontSize { get; }
-            internal double Leading { get; }
-        }
     }
 }

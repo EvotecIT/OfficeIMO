@@ -42,6 +42,7 @@ public static partial class HtmlComputedStyleEngine {
             parseCss = PreserveManagedGradientFunctions(PreserveRevertLayerDeclarations(parseCss));
             parseCss = ProtectGeneratedContentFunctions(parseCss);
             parseCss = ProtectManagedPseudoElements(parseCss);
+            parseCss = PreserveFontShorthandDeclarations(parseCss);
             var stylesheet = parser.ParseStyleSheet(parseCss);
             foreach (var rule in stylesheet.Rules) {
                 AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, layers, 1, null, null, null);
@@ -156,13 +157,16 @@ public static partial class HtmlComputedStyleEngine {
 
         var declarations = new Dictionary<string, StyleDeclaration>(HtmlCssPropertyNameComparer.Instance);
         for (int i = 0; i < styleRule.Style.Length; i++) {
-            string propertyName = styleRule.Style[i];
+            string parsedPropertyName = styleRule.Style[i];
+            string propertyName = RestoreFontShorthandName(parsedPropertyName);
             if (!string.IsNullOrWhiteSpace(propertyName)
                 && (SupportedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal))) {
-                declarations[propertyName] = new StyleDeclaration(
-                    propertyName,
-                    RestoreProtectedDeclarationValue(styleRule.Style.GetPropertyValue(propertyName)),
-                    string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
+                bool important = string.Equals(styleRule.Style.GetPropertyPriority(parsedPropertyName), "important", StringComparison.OrdinalIgnoreCase);
+                var candidate = new StyleDeclaration(propertyName,
+                    RestoreProtectedDeclarationValue(styleRule.Style.GetPropertyValue(parsedPropertyName)), important) { DeclarationOrder = i + 1 };
+                if (!candidate.IsSupported) continue;
+                if (declarations.TryGetValue(propertyName, out StyleDeclaration? existing) && existing.IsImportant && !important) continue;
+                declarations[propertyName] = candidate;
             }
         }
 
@@ -180,8 +184,9 @@ public static partial class HtmlComputedStyleEngine {
         }
         RemoveSyntheticAnimationName(styleRule.CssText, declarations);
         AddRetainedUnknownDeclarations(styleRule.CssText, declarations);
+
         int declarationOrder = 0;
-        foreach (StyleDeclaration declaration in declarations.Values) declaration.DeclarationOrder = declarationOrder++;
+        foreach (StyleDeclaration declaration in declarations.Values.OrderBy(item => item.DeclarationOrder)) declaration.DeclarationOrder = declarationOrder++;
 
         foreach (string selector in selectors) {
             if (declarations.Count > 0) {

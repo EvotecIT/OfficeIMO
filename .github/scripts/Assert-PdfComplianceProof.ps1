@@ -140,6 +140,22 @@ $measuredPaths = @(
     'OfficeIMO.Core',
     'OfficeIMO.Pdf',
     'OfficeIMO.Pdf.Tests',
+    'OfficeIMO.Html',
+    'OfficeIMO.Html.Pdf',
+    'OfficeIMO.Mhtml',
+    'OfficeIMO.Mhtml.Pdf',
+    'OfficeIMO.Invoicing',
+    'OfficeIMO.Invoicing.Tests',
+    'OfficeIMO.Invoicing.Pdf',
+    'OfficeIMO.Invoicing.Pdf.Tests',
+    'OfficeIMO.SharedSource',
+    'OfficeIMO.TestAssets',
+    'Directory.Build.props',
+    'Directory.Build.targets',
+    'global.json',
+    '.github/scripts/Assert-PdfComplianceProof.ps1',
+    '.github/scripts/verapdf-cli-install.xml',
+    '.github/workflows/pdf-compliance-proof.yml',
     'Build/Export-PdfComplianceProof.ps1',
     'Build/Invoke-CallasPdfXValidator.ps1'
 )
@@ -149,6 +165,9 @@ Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message 'PDF compliance proof
 Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message 'PDF compliance proof measured sources have uncommitted changes.'
 & git -C $repositoryRoot diff --cached --quiet -- @measuredPaths
 Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message 'PDF compliance proof measured sources have staged changes.'
+$untrackedMeasuredSources = @(& git -C $repositoryRoot ls-files --others --exclude-standard -- @measuredPaths)
+Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message 'Could not classify untracked PDF compliance proof sources.'
+Assert-Condition -Condition ($untrackedMeasuredSources.Count -eq 0) -Message 'PDF compliance proof measured sources have untracked files.'
 
 Assert-Condition -Condition ($proof.testExitCode -eq 0) -Message "Expected testExitCode 0, got $($proof.testExitCode)."
 Assert-Condition -Condition ($null -ne $proof.strictValidatorMode) -Message 'Missing strictValidatorMode in proof.json.'
@@ -178,9 +197,10 @@ Assert-Condition -Condition ([string] $proof.productProofContract.externalEviden
 Assert-Condition -Condition ([string] $productProofContractFile.externalEvidenceMode -eq 'ExactArtifactValidationInjectedByProofExporter') -Message 'Unexpected externalEvidenceMode in officeimo-profile-proof-contract.json.'
 
 $pdfFixtures = @($proof.pdfFixtures)
-Assert-Condition -Condition ($pdfFixtures.Count -eq 7) -Message "Expected 7 PDF fixtures, got $($pdfFixtures.Count)."
+Assert-Condition -Condition ($pdfFixtures.Count -eq 11) -Message "Expected 11 PDF fixtures, got $($pdfFixtures.Count)."
 
 $expectedPdfNames = @(
+    'simple-invoice.pdf', 'invoice.pdf', 'credit-note.pdf', 'multipage.pdf',
     'officeimo-pdfa2b.pdf',
     'officeimo-pdfa3b.pdf',
     'officeimo-facturx.pdf',
@@ -204,7 +224,7 @@ foreach ($expectedName in $expectedPdfNames) {
 }
 
 $validatorDiagnostics = @($proof.validatorDiagnostics)
-Assert-Condition -Condition ($validatorDiagnostics.Count -ge 9) -Message "Expected at least 9 validator diagnostics, got $($validatorDiagnostics.Count)."
+Assert-Condition -Condition ($validatorDiagnostics.Count -eq 17) -Message "Expected 17 validator diagnostics, got $($validatorDiagnostics.Count)."
 
 $requiredValidatorKinds = @('VeraPdf', 'PdfUaValidator', 'Mustang', 'PdfXValidator')
 foreach ($validatorKind in $requiredValidatorKinds) {
@@ -233,6 +253,32 @@ foreach ($entry in $validatorDiagnostics) {
 
     $hash = (Get-FileHash -LiteralPath $filePath -Algorithm SHA256).Hash.ToLowerInvariant()
     Assert-Condition -Condition ($hash -eq [string] $entry.sha256) -Message "SHA-256 mismatch for $($entry.file)."
+}
+
+$invoiceSnapshots = @($proof.invoiceSnapshots)
+Assert-Condition -Condition ($invoiceSnapshots.Count -eq 4) -Message 'Expected four typed invoice snapshot pairs.'
+foreach ($name in @('simple-invoice', 'invoice', 'credit-note', 'multipage')) {
+    $rows = @($invoiceSnapshots | Where-Object { $_.name -eq $name })
+    Assert-Condition -Condition ($rows.Count -eq 1) -Message "Missing invoice snapshot $name."
+    $row = $rows[0]
+    Assert-Condition -Condition ($row.pdfFile -ceq "$name.pdf" -and $row.xmlFile -ceq "$name.xml") -Message "Unexpected files for invoice snapshot $name."
+    $xmlPath = Join-Path $resolvedProofPath $row.xmlFile
+    Assert-Condition -Condition (Test-Path -LiteralPath $xmlPath) -Message "Missing invoice XML $name."
+    $xml = Get-Item -LiteralPath $xmlPath
+    $xmlHash = (Get-FileHash -LiteralPath $xmlPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    Assert-Condition -Condition ($xml.Length -eq [long] $row.xmlSizeBytes -and $xmlHash -eq $row.xmlSha256) -Message "Invoice XML identity mismatch for $name."
+    $pdf = @($pdfFixtures | Where-Object { $_.file -eq $row.pdfFile })[0]
+    Assert-Condition -Condition ($row.pdfSha256 -eq $pdf.sha256 -and [long] $row.pdfSizeBytes -eq [long] $pdf.sizeBytes) -Message "Invoice PDF identity mismatch for $name."
+    $validators = @($validatorDiagnostics | Where-Object { $_.artifactFile -eq $row.pdfFile })
+    Assert-Condition -Condition ($validators.Count -eq 2 -and @($row.validatorDiagnosticFiles).Count -eq 2) -Message "Invoice snapshot $name must have two validator results."
+    foreach ($kind in @('VeraPdf', 'Mustang')) {
+        $matches = @($validators | Where-Object { $_.validatorKind -eq $kind })
+        Assert-Condition -Condition ($matches.Count -eq 1) -Message "Invoice snapshot $name is missing $kind."
+        $validator = $matches[0]
+        Assert-Condition -Condition ($row.validatorDiagnosticFiles -ccontains $validator.file -and $validator.artifactSha256 -eq $pdf.sha256 -and [long] $validator.artifactSizeBytes -eq [long] $pdf.sizeBytes) -Message "Invoice snapshot $name has unbound $kind evidence."
+    }
+    $expectedClaim = @($validators | Where-Object { $_.status -ne 'Passed' }).Count -eq 0
+    Assert-Condition -Condition ($row.canClaimConformance -eq $expectedClaim) -Message "Invoice snapshot $name has an incorrect conformance claim."
 }
 
 $profileProofs = @($proof.profileProofs)

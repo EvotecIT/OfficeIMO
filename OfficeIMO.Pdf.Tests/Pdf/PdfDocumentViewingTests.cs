@@ -5,6 +5,16 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfDocumentViewingTests {
+    [Fact]
+    public void DefaultLoadOptionsRemainSourceCompatibleWithViewingInspection() {
+        var document = PdfDocument.Load(PdfDocument.Create().Paragraph(p => p.Text("Viewing contract")).ToBytes());
+        Assert.NotNull(document.InspectForViewing(default).LogicalContent);
+        Assert.NotNull(document.InspectForViewing(default, default).LogicalContent);
+        Func<PdfLoadOptions?, CancellationToken, PdfDocumentViewInfo> inspect = document.InspectForViewing;
+        Assert.NotNull(inspect(default, default).LogicalContent);
+        Assert.Null(document.InspectGeometryForViewing(default, default).LogicalContent);
+    }
+
     [Theory]
     [InlineData(PdfStandardPermissions.None)]
     [InlineData(PdfStandardPermissions.Accessibility)]
@@ -21,6 +31,11 @@ public sealed class PdfDocumentViewingTests {
         var owner = PdfDocument.Load(bytes, new PdfLoadOptions { Password = "owner" });
         PdfDocumentViewInfo authorized = owner.InspectForViewing();
         Assert.True(authorized.CanExtractContent); Assert.NotNull(authorized.LogicalContent);
+        PdfDocumentViewInfo geometry = owner.InspectGeometryForViewing();
+        Assert.True(geometry.CanExtractContent); Assert.Null(geometry.LogicalContent);
+        Assert.Equal(authorized.PageCount, geometry.PageCount);
+        Assert.Equal(authorized.Pages[0].Width, geometry.Pages[0].Width);
+        Assert.False(restricted.InspectGeometryForViewing().CanExtractContent);
         Assert.Equal("Private metadata", authorized.LogicalContent.Metadata.Title);
         Assert.Equal(authorized.Pages[0].Width, view.Pages[0].Width);
         PdfPageRenderResult raster = restricted.Render.DisplayPage(1);

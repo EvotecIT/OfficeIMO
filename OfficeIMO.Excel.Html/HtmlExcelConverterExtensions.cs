@@ -78,6 +78,7 @@ public static partial class HtmlExcelConverterExtensions {
                 "Target-specific Excel restoration was not applied because the v2 envelope requires caller-trusted input.",
                 HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation,
                 detail: "restoration=" + envelope.RestorationMode);
+            options.ImportTypedCellValues = false;
             ImportGenericDocument(semanticDocument, workbook, result, options, budget, editableLayout);
             return result;
         }
@@ -259,97 +260,6 @@ public static partial class HtmlExcelConverterExtensions {
             importedFormulaCells.Add(cellKey);
             result.Formulas++;
         }
-    }
-
-    private static bool SetCellValue(
-        ExcelSheet sheet,
-        int row,
-        int column,
-        IElement cell,
-        string fallbackText,
-        HtmlToExcelResult result,
-        HtmlToExcelOptions options,
-        HtmlImportBudget budget,
-        HashSet<long>? importedFormulaCells,
-        bool useSemanticValues) {
-        string? kind = cell.GetAttribute("data-officeimo-value-kind");
-        string? rawValue = cell.GetAttribute("data-officeimo-value");
-        if (!useSemanticValues || string.IsNullOrWhiteSpace(kind) || rawValue == null) {
-            return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
-        }
-
-        bool isFormula = kind!.Equals("formula", StringComparison.OrdinalIgnoreCase);
-        if (isFormula && options.ImportFormulas) {
-            // The table cell is the canonical formula source for current envelopes. Remember the
-            // coordinate even when a budget rejects it so the compatibility inventory cannot make
-            // a second, conflicting decision for the same cell.
-            importedFormulaCells?.Add(GetImportCellKey(row, column));
-        }
-
-        if (!budget.IsMetadataWithinLimit(rawValue, out string metadataLimit)) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
-                "Cell " + BuildCellReference(row, column) + " semantic value exceeded the shared metadata limit and was imported from visible text.",
-                lossKind: OfficeConversionLossKind.Approximation, detail: metadataLimit);
-            return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
-        }
-
-        if (kind!.Equals("number", StringComparison.OrdinalIgnoreCase)) {
-            if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
-                && !double.IsNaN(number)
-                && !double.IsInfinity(number)) {
-                sheet.CellValue(row, column, number);
-                return true;
-            }
-
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
-                "Cell " + BuildCellReference(row, column) + " contained a semantic number value that could not be parsed and was imported as text.", lossKind: OfficeConversionLossKind.Approximation);
-        } else if (kind.Equals("boolean", StringComparison.OrdinalIgnoreCase)) {
-            if (rawValue.Equals("1", StringComparison.OrdinalIgnoreCase) || rawValue.Equals("true", StringComparison.OrdinalIgnoreCase)) {
-                sheet.CellValue(row, column, true);
-                return true;
-            }
-
-            if (rawValue.Equals("0", StringComparison.OrdinalIgnoreCase) || rawValue.Equals("false", StringComparison.OrdinalIgnoreCase)) {
-                sheet.CellValue(row, column, false);
-                return true;
-            }
-
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
-                "Cell " + BuildCellReference(row, column) + " contained a semantic boolean value that could not be parsed and was imported as text.", lossKind: OfficeConversionLossKind.Approximation);
-        } else if (kind.Equals("text", StringComparison.OrdinalIgnoreCase)) {
-            return TrySetCellTextValue(sheet, row, column, rawValue, result, budget);
-        } else if (kind.Equals("date-time", StringComparison.OrdinalIgnoreCase)) {
-            if (DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime dateTime)) {
-                sheet.CellValue(row, column, dateTime);
-                return true;
-            }
-
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
-                "Cell " + BuildCellReference(row, column) + " contained a semantic date/time value that could not be parsed and was imported as text.", lossKind: OfficeConversionLossKind.Approximation);
-        } else if (isFormula) {
-            if (!options.ImportFormulas) {
-                return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
-            }
-
-            string formulaLimit = string.Empty;
-            string annotationLimit = string.Empty;
-            if (!IsWithinExcelFieldLimit(rawValue, budget, ExcelFormulaCharacterLimit, "ExcelFormulaCharacterLimit", out formulaLimit)
-                || !budget.TryReserveAnnotation(out annotationLimit)) {
-                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
-                    "Cell " + BuildCellReference(row, column) + " formula was omitted because a semantic or native formula limit was reached.",
-                    lossKind: OfficeConversionLossKind.Omission, detail: formulaLimit.Length > 0 ? formulaLimit : annotationLimit);
-                return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
-            }
-
-            sheet.CellFormula(row, column, rawValue);
-            result.Formulas++;
-            return true;
-        } else if (kind.Equals("error", StringComparison.OrdinalIgnoreCase)) {
-            sheet.CellError(row, column, rawValue);
-            return true;
-        }
-
-        return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
     }
 
     private static bool IsSemanticEmptyCell(IElement cell) =>

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../OfficeIMO.Core/OfficeIMO.Core.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Html.Pdf.Browser/OfficeIMO.Html.Pdf.Browser.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.OpenDocument.Odt.Pdf/OfficeIMO.OpenDocument.Odt.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.OpenDocument.Ods.Pdf/OfficeIMO.OpenDocument.Ods.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.OpenDocument.Odp.Pdf/OfficeIMO.OpenDocument.Odp.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.OneNote.Pdf/OfficeIMO.OneNote.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Email.Image/OfficeIMO.Email.Image.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Epub.Image/OfficeIMO.Epub.Image.csproj" />
+    <PackageReference Include="PdfPig" Version="0.1.14" />
+    <Compile Include="../../OfficeIMO.TestAssets/VisualBaselineTestSupport.cs" Link="Shared/VisualBaselineTestSupport.cs" />
+  </ItemGroup>
+</Project>

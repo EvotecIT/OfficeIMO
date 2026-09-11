@@ -227,7 +227,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, WordToPdfOptions? options = null, string source = "body image") {
+        private static void RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, WordToPdfOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null) {
             if (image == null) {
                 return;
             }
@@ -250,6 +250,28 @@ namespace OfficeIMO.Word.Pdf {
 
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
+            // Page-anchored non-wrapping images occupy fixed page coordinates, not document flow.
+            // Reserving their full height in flow can add blank pages for page-sized appearances.
+            if (anchorStyle != null && image.WrapText == WordImageTextWrapping.InFrontOfText &&
+                image.HorizontalPositionRelativeFrom == WordHorizontalRelativePosition.Page &&
+                image.VerticalPositionRelativeFrom == WordVerticalRelativePosition.Page &&
+                image.HorizontalPositionOffset is long x && image.VerticalPositionOffset is long y &&
+                x >= 0 && y >= 0 && x / 12700D + width <= pdf.PageSize.Width + 0.001D &&
+                y / 12700D + height <= pdf.PageSize.Height + 0.001D &&
+                (image.Rotation ?? 0) == 0 && (image.CropTop ?? 0) == 0 && (image.CropBottom ?? 0) == 0 &&
+                (image.CropLeft ?? 0) == 0 && (image.CropRight ?? 0) == 0) {
+                var canvas = new PdfCore.PdfPageCanvas();
+                if (anchorStyle.AnchoredCanvas != null) canvas.AddItems(anchorStyle.AnchoredCanvas.Items);
+                canvas.ForegroundImage(preparedBytes, x / 12700D, y / 12700D, width, height,
+                    horizontalFlip: image.HorizontalFlip ?? false,
+                    verticalFlip: image.VerticalFlip ?? false,
+                    zOrder: image.ZOrder);
+                anchorStyle.AnchoredCanvas = new PdfCore.PdfCanvasBlock(canvas.Items);
+                return;
+            }
+            if (image.WrapText == WordImageTextWrapping.InFrontOfText && options != null)
+                AddNativeExportWarning(options, "NativeAnchoredImageFlowed", source,
+                    "The image's anchor, clipping, rotation, or page bounds are outside the fixed-placement export contract; it was placed in document flow.");
             pdf.Image(preparedBytes, width, height, align);
         }
 

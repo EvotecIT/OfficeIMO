@@ -120,6 +120,7 @@ public static partial class OfficeSvgDrawingReader {
                 element,
                 drawing.Width,
                 drawing.Height,
+                drawing.Fonts,
                 style,
                 paintServers,
                 references,
@@ -139,6 +140,7 @@ public static partial class OfficeSvgDrawingReader {
                 out SvgFilterEffect? filterEffect);
             bool capturesLink = name == "a";
             OfficeDrawing target = hasEffects || capturesLink ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
+            if (!ReferenceEquals(target, drawing)) target.Fonts.AddRange(drawing.Fonts);
             if (name == "switch") {
                 AddFirstSupportedSwitchChild(element, target, style, paintServers, references, transform, viewX, viewY,
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
@@ -164,6 +166,7 @@ public static partial class OfficeSvgDrawingReader {
                 element,
                 drawing.Width,
                 drawing.Height,
+                drawing.Fonts,
                 style,
                 paintServers,
                 references,
@@ -182,6 +185,7 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeDrawingSoftMask? softMask,
                 out SvgFilterEffect? filterEffect);
             OfficeDrawing target = hasEffects ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
+            if (hasEffects) target.Fonts.AddRange(drawing.Fonts);
             if (name == "use") {
                 AddReferencedElement(element, target, style, paintServers, references, transform, viewX, viewY,
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
@@ -292,6 +296,7 @@ public static partial class OfficeSvgDrawingReader {
                 element,
                 drawing.Width,
                 drawing.Height,
+                drawing.Fonts,
                 style,
                 paintServers,
                 references,

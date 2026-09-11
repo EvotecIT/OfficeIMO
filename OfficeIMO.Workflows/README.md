@@ -66,6 +66,32 @@ When working from an OfficeIMO source checkout, reference the workflow project d
 <ProjectReference Include="..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
 ```
 
+## Save a prepared scan copy
+
+`ScanCleanup` creates a separate PDF containing the prepared page pixels. It uses the same page selection, region crop, perspective correction, and tonal settings as `OfficeIMO.Pdf.Ocr` preview. The source is protected from replacement. Native text, forms, links, signatures, and attachments are omitted from the raster copy, so callers must acknowledge that output contract.
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Ocr;
+using OfficeIMO.Workflows;
+
+OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new() {
+    Operation = OfficeWorkflowOperation.ScanCleanup,
+    InputPath = "scan.pdf",
+    OutputPath = "prepared-scan.pdf",
+    ScanCleanup = new() {
+        AcknowledgeRasterOutput = true,
+        Preparation = new() {
+            Dpi = 200,
+            ReadOptions = new() { PageSelection = PdfPageSelection.From(1) },
+            ScanProcessing = new() { Deskew = false, StraightenDegrees = 2, Gamma = 1.1 }
+        }
+    }
+});
+```
+
+Set `ExpectedSourceSha256` to the SHA-256 hex digest of a reviewed snapshot to reject a source that changed before export. Provider inputs and destinations use the same snapshot, confirmation, recovery, and publication guards as other workflows. To retain the visible source and add searchable text, use the searchable OCR workflow instead.
+
 ## Convert a document
 
 ```csharp
@@ -106,9 +132,40 @@ runner can invoke. Route metadata includes accepted extensions, the owning
 package, representative API and result contract, fidelity and support evidence,
 known limits, browser and agent availability, and `CanExecute`.
 
+Use `ConversionOptions` (or the fluent `WithConversionOptions` method) for settings
+specific to a route. PDF input routes accept `PageRanges`. PDF-to-Word and
+PDF-to-PowerPoint expose editable or visual import modes; visual pages accept
+`RasterDpi`. Excel-to-PDF supports worksheet-canvas or flowing-table layout, and
+PDF-to-HTML supports semantic or positioned HTML. PDF output routes can request
+verified lossless compression with `CompressPdfOutput`. The runner rejects options
+and output profiles unsupported by the selected route.
+
+```csharp
+OfficeWorkflowResult result = await OfficeWorkflow.Convert("source.pdf")
+    .To("visual-pages.docx")
+    .WithConversionOptions(new OfficeWorkflowConversionOptions {
+        PageRanges = "1-3,5",
+        WordMode = OfficeIMO.Word.Pdf.PdfWordImportMode.VisualPages,
+        RasterDpi = 144
+    })
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+`OfficeWorkflowRunner.PreviewDocument(bytes, extension, cancellationToken)` creates
+an in-memory sample of the first three pages of a PDF, DOCX, XLSX, PPTX, or HTML
+artifact. The sample includes rendering diagnostics and uses bounded input and
+image sizes. HTML previews do not load external or sibling resources. Previewing
+is a review aid; inspect the full saved document for whole-document fidelity.
+
 `RunAsync` also exposes PDF inspection, comparison, optimization, repair planning, repair, and sanitization through typed operations. `ExportPdfPagesAsync` exports selected PDF pages as images, `AssemblePdfAsync` combines supported PDFs, images, documents, folders, and ZIP archives, and `PdfPrintPlanner.Create` produces deterministic print-sheet placement plans.
 
-Every request runs with explicit input and output limits, cancellation, staged output validation, and a caller-selected collision policy. Passwords remain request-only values and are not copied into diagnostics or results. PDF comparison accepts a separate `ComparisonPdfPassword` when the two inputs use different credentials.
+Every workflow request runs with explicit input and output limits, cancellation, staged output validation, and a caller-selected collision policy. Passwords remain request-only values and are not copied into diagnostics or results. PDF comparison accepts a separate `ComparisonPdfPassword` when the two inputs use different credentials.
+
+`PdfPrintRenderer.Prepare(document, request)` turns an authenticated `PdfDocument` snapshot and its `PdfPrintPlanRequest` into immutable PNG sheets. Display `prepared.Sheets[i].GetPng()` for review, then pass that same `PdfPreparedPrintDocument` to `IPdfPrinterService.SubmitAsync` with `PdfPrintDeliveryOptions`. Delivery does not reopen the source. `PdfPrinterService.GetPrintersAsync` lists installed queues; Windows uses GDI and macOS/Linux use the installed CUPS `lpstat`, `lpoptions`, and `lp` tools. Copies are collated, and duplex defaults to the printer's setting.
+
+`GetPaperSourcesAsync(printerName)` lists the queue's reported paper sources. Set `PdfPrintDeliveryOptions.PaperSourceId` to one of those identifiers, or leave it null to retain the printer default. Identifiers belong to the queried queue; delivery rechecks an explicit selection before submitting. Windows reads driver bins and checks that the driver accepts the selected bin. CUPS discovers `InputSlot` or `media-source` choices exposed by `lpoptions -l`. Queues that expose no choices retain their default source.
+
+Print preparation enforces PDF printing permissions, page and raster limits, cancellation, and a retained-output byte budget. Rendering above 150 DPI also requires high-quality print permission when restrictions apply. The output reflects the managed renderer's diagnostics and printer margins. `PdfPrintSubmission` is a queue acceptance receipt, not confirmation of physical delivery; `PdfPrintDeliveryException` means submission began and retrying could duplicate pages. Windows file-printer paths must be new local paths and are checked before submission; the driver controls the eventual write.
 
 Applications that keep documents open can set `PublicationGuard` on `OfficeWorkflowRequest`, `PdfAssemblyRequest`, and `PdfPageImageExportRequest`. Implement `IOfficeWorkflowPublicationGuard.CanPublishAsync` to check live ownership of the supplied absolute destination. For directory outputs, check whether publication would replace a directory containing an owned document. The runner calls the guard after validating the staged artifact and checks every numbered candidate: a denied destination fails `Fail` or `Replace`, while `Rename` tries the next name. Cancellation and guard errors prevent publication. Calls can originate on worker threads, so UI hosts must dispatch ownership inspection to their UI thread. This is an application ownership check at publication time; it does not lock paths against concurrent external filesystem changes.
 

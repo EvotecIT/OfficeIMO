@@ -24,6 +24,85 @@ Project PNG output now defaults to 300 DPI. Calls that supply explicit `OfficeDr
 
 Project report drawings now trim unused page height. Set `ProjectViewOptions.FitPageHeightToContent = false` when a consumer requires every drawing page to retain the configured dimensions. Gantt, resource usage, and resource histogram views now default to UID and name columns; supply `Columns` explicitly to retain a previous selection of date or numeric columns. Native Word, PowerPoint, and Excel exports retain their document page dimensions.
 
+### Factur-X profile declarations
+
+The Factur-X attachment helpers now derive XMP `ConformanceLevel` from the
+embedded CII guideline when `conformanceLevel` is omitted. Explicit values must
+match the XML. Generic metadata/attachment calls are checked again before
+serialization; exact PDF readback reports conflicting declarations.
+
+Use `urn:cen.eu:en16931:2017` for the EN 16931 XML guideline, and
+`urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0` for
+XRechnung 3.0. Unrecognized identifiers, legacy ZUGFeRD 1 identifiers, missing
+guidelines, and ambiguous declarations are no longer accepted by the Factur-X
+helpers. These helpers retain the embedded XML and never rewrite its profile.
+XMP `Version` remains `1.0`; do not pass the specification release number there.
+
+### Document AI execution failures and page limits
+
+Direct calls to `IntelligenceXOfficeAiExecutor.ExecuteAsync` now sanitize provider
+and in-operation validation failures into `OfficeAiExecutionException`. Replace
+catches for `HttpRequestException`, provider-specific exceptions, and argument
+errors raised during execution with a catch for this exception. Use its `Failure`
+classification for recovery and `DiagnosticCode` for safe logging or localized
+messages. Raw provider messages and inner exceptions are deliberately not retained.
+
+```csharp
+try {
+    OfficeAiExecutionResponse response = await executor.ExecuteAsync(request, cancellationToken);
+} catch (OfficeAiExecutionException failure) {
+    switch (failure.Failure) {
+        case OfficeAiExecutionFailure.AuthenticationRequired:
+            // Ask the user to sign in again.
+            break;
+        case OfficeAiExecutionFailure.RateLimited:
+        case OfficeAiExecutionFailure.Unavailable:
+        case OfficeAiExecutionFailure.TimedOut:
+            // Offer a later retry; do not automatically repeat a paid request.
+            break;
+        default:
+            // Report failure.DiagnosticCode and let the user review the request.
+            break;
+    }
+}
+```
+
+Caller-requested cancellation remains `OperationCanceledException`.
+`InvalidDataException` (including an oversized provider response) and
+`OutOfMemoryException` remain unwrapped. Null-request and already-disposed checks
+before execution still throw their original argument/disposal exceptions.
+`ConnectAsync`, account, model-discovery, and sign-in methods keep their existing
+exception contracts. Applications using `OfficeAiEngine.RunAsync` should continue
+checking the returned status and diagnostics for sanitized provider failures.
+
+`OfficeAiLimits.MaxPages` limits the number of distinct source pages retained in a
+snapshot, not the largest source page number. A one-page selection from page 501
+therefore fits `MaxPages = 1` and retains page 501 in citations. Applications that
+need a maximum source page ordinal must enforce that separate policy explicitly.
+The source-byte limit still applies to the original input PDF.
+
+### Reader PDF table placeholders
+
+PDF table blocks in `OfficeDocumentReadResult.Pages[].Blocks` now have empty
+`Text`; the former generated row-count label was not extracted document text.
+Identify these placeholders through `Kind == "table"`, and use their `Location`
+and `Region` for identity and geometry. Read actual column and cell values from
+the page's `Tables` collection or `EnumerateTables()`. Match source locations when
+associating a table with its placeholder. Applications displaying a row-count
+label should generate it from `ReaderTable.Rows.Count` and report truncation when
+`Truncated` is true or `TotalRowCount` exceeds the retained row count.
+
+Reader no longer repeats table-owned source lines as ordinary text blocks beside
+those tables. Consumers that previously read table cells from `Blocks` must use
+`EnumerateTables()` or the page's `Tables` collection. The PDF core still exposes
+the original lines in `PdfLogicalPage.TextBlocks`; `IsTableContent` identifies
+lines represented by the canonical table projection.
+PDF chunks containing only table text use `Location.SourceBlockKind == "table"`;
+their diagnostics identify the structured table count in that source scope.
+Page and document chunks that also contain independent text keep their existing
+source kinds. AI retains partial chunk text unless the adapter identifies a
+table-only projection and the matching structured table scope is present.
+
 ### Rendering loss and gallery evidence
 
 Scanned PDF rendering no longer returns a blank successful page when a CCITT or

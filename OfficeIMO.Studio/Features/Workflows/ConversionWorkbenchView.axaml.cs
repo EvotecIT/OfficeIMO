@@ -16,6 +16,9 @@ public sealed partial class ConversionWorkbenchView : UserControl {
         IsCompactLayout = width < 1000D;
         WorkspaceGrid.ColumnDefinitions[0].Width = new GridLength(IsCompactLayout ? 238D : 270D);
         WorkspaceGrid.ColumnDefinitions[2].Width = new GridLength(IsCompactLayout ? 0D : 300D);
-        DetailsPanel.IsVisible = !IsCompactLayout;
+        Grid.SetRow(DetailsPanel, IsCompactLayout ? 1 : 0);
+        Grid.SetColumn(DetailsPanel, IsCompactLayout ? 0 : 2);
+        Grid.SetColumnSpan(DetailsPanel, IsCompactLayout ? 3 : 1);
+        DetailsPanel.MaxHeight = IsCompactLayout ? 230D : double.PositiveInfinity;
     }
 }

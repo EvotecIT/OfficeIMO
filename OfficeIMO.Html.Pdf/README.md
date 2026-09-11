@@ -35,6 +35,15 @@ byte[] pdf = source.ToPdfBytes();
 source.SaveAsPdf("quarterly-update.pdf");
 ```
 
+A prepared HTML report can be exported directly to a file:
+
+```csharp
+var report = HtmlConversionDocument.Load("service-review.html");
+report.SaveAsPdf("service-review.pdf").RequireSuccess();
+```
+
+The [multi-format report example](../OfficeIMO.Examples/Converters/Html/HtmlMultiFormatReport.cs) also exports editable Word and Excel artifacts from the same prepared source.
+
 ## Review every rendered page
 
 The capability gallery saves the input HTML, PDF, and image previews from one resolved

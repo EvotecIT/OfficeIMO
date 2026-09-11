@@ -10,6 +10,7 @@ public static partial class OfficeSvgDrawingReader {
         XElement element,
         double width,
         double height,
+        OfficeFontFaceCollection fonts,
         SvgPaintContext inheritedStyle,
         SvgPaintServerRegistry paintServers,
         SvgElementReferenceRegistry references,
@@ -84,6 +85,7 @@ public static partial class OfficeSvgDrawingReader {
             }
 
             var maskContent = new OfficeDrawing(width, height);
+            maskContent.Fonts.AddRange(fonts);
             SvgPaintContext maskStyle = ResolveDefinitionPaintContext(maskElement, paintServers, ref unsupported);
             OfficeTransform maskTransform = ResolveTransform(maskElement, transform, viewX, viewY, ref unsupported);
             AddChildren(maskElement, maskContent, maskStyle, paintServers, references, maskTransform, viewX, viewY,

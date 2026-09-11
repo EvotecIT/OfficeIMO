@@ -93,7 +93,6 @@ public partial class PdfComplianceAnalyzerTests {
             }
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
-            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("terms.pdf", Encoding.UTF8.GetBytes("%PDF-1.7\n"), "application/pdf", PdfAssociatedFileRelationship.Data);
         byte[] pdf = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text("Factur-X invoice shell"))

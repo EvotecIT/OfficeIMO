@@ -3,7 +3,7 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Permanent redaction operations for one PDF document.</summary>
-public sealed class PdfDocumentRedactions {
+public sealed partial class PdfDocumentRedactions {
     private readonly PdfDocument _document;
 
     internal PdfDocumentRedactions(PdfDocument document) => _document = document;

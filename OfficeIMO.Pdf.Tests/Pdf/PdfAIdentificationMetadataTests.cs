@@ -186,7 +186,7 @@ public class PdfAIdentificationMetadataTests {
     public void FacturXInvoiceXmlHelper_EmitsCanonicalAttachmentAndMatchingXmp() {
         byte[] invoiceXml = CreateCiiXml();
         var options = new PdfOptions()
-            .AddFacturXInvoiceXml(invoiceXml, "BASIC", relationship: PdfAssociatedFileRelationship.Alternative);
+            .AddFacturXInvoiceXml(invoiceXml, "EN 16931", relationship: PdfAssociatedFileRelationship.Alternative);
 
         byte[] bytes = PdfDocument.Create()
             .AttachFacturXInvoiceXml(invoiceXml, "EN 16931", relationship: PdfAssociatedFileRelationship.Data)
@@ -203,7 +203,7 @@ public class PdfAIdentificationMetadataTests {
         Assert.Equal("factur-x.xml", optionAttachment.FileName);
         Assert.Equal("application/xml", optionAttachment.MimeType);
         Assert.Equal(PdfAssociatedFileRelationship.Alternative, optionAttachment.Relationship);
-        Assert.Equal("BASIC", cloneMetadata.ConformanceLevel);
+        Assert.Equal("EN 16931", cloneMetadata.ConformanceLevel);
         Assert.Equal("factur-x.xml", cloneMetadata.DocumentFileName);
         Assert.Contains("<fx:DocumentFileName>factur-x.xml</fx:DocumentFileName>", raw, StringComparison.Ordinal);
         Assert.Contains("<fx:ConformanceLevel>EN 16931</fx:ConformanceLevel>", raw, StringComparison.Ordinal);
@@ -225,7 +225,7 @@ public class PdfAIdentificationMetadataTests {
         System.IO.File.WriteAllBytes(invoicePath, invoiceXml);
         try {
             var options = new PdfOptions()
-                .AddFacturXInvoiceXmlFile(invoicePath, "BASIC");
+                .AddFacturXInvoiceXmlFile(invoicePath, "EN 16931");
 
             byte[] bytes = PdfDocument.Create()
                 .AttachFacturXInvoiceXmlFile(invoicePath, "EN 16931")
@@ -235,7 +235,7 @@ public class PdfAIdentificationMetadataTests {
 
             PdfExtractedAttachment attachment = Assert.Single(PdfAttachmentExtractor.ExtractAttachments(bytes));
 
-            Assert.Equal("BASIC", options.ElectronicInvoiceMetadata!.ConformanceLevel);
+            Assert.Equal("EN 16931", options.ElectronicInvoiceMetadata!.ConformanceLevel);
             Assert.Equal("factur-x.xml", Assert.Single(options.EmbeddedFiles).FileName);
             Assert.Equal("factur-x.xml", attachment.FileName);
             Assert.Equal("application/xml", attachment.MimeType);
@@ -254,7 +254,7 @@ public class PdfAIdentificationMetadataTests {
         var fallbackProbe = new PdfOptions();
         bool fallbackAvailable = fallbackProbe.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true);
         var options = new PdfOptions()
-            .ConfigureFacturXGroundwork(invoiceXml, "EXTENDED");
+            .ConfigureFacturXGroundwork(invoiceXml, "EN 16931");
 
         byte[] bytes = PdfDocument.Create()
             .ConfigureFacturXGroundwork(invoiceXml, "EN 16931")
@@ -271,7 +271,7 @@ public class PdfAIdentificationMetadataTests {
         Assert.True(clone.IncludeStandardFontToUnicodeMaps);
         Assert.Equal(3, clone.PdfAIdentification!.Part);
         Assert.Equal("B", clone.PdfAIdentification.Conformance);
-        Assert.Equal("EXTENDED", clone.ElectronicInvoiceMetadata!.ConformanceLevel);
+        Assert.Equal("EN 16931", clone.ElectronicInvoiceMetadata!.ConformanceLevel);
         Assert.Equal(PdfOutputIntentPolicy.SrgbIec6196621, clone.OutputIntent!.Policy);
         Assert.Equal(PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier, clone.OutputIntent.OutputConditionIdentifier);
         if (fallbackAvailable) {
@@ -294,12 +294,12 @@ public class PdfAIdentificationMetadataTests {
     public void ElectronicInvoiceGroundworkHelper_AcceptsFacturXAndZugferdProfiles() {
         byte[] invoiceXml = CreateCiiXml();
         var facturXOptions = new PdfOptions()
-            .ConfigureElectronicInvoiceGroundwork(PdfComplianceProfile.FacturX, invoiceXml, "BASIC");
+            .ConfigureElectronicInvoiceGroundwork(PdfComplianceProfile.FacturX, invoiceXml, "EN 16931");
         var zugferdOptions = new PdfOptions()
             .ConfigureElectronicInvoiceGroundwork(PdfComplianceProfile.Zugferd, invoiceXml, "EN 16931");
 
         Assert.Equal(PdfComplianceProfile.None, facturXOptions.ComplianceProfile);
-        Assert.Equal("BASIC", facturXOptions.ElectronicInvoiceMetadata!.ConformanceLevel);
+        Assert.Equal("EN 16931", facturXOptions.ElectronicInvoiceMetadata!.ConformanceLevel);
         Assert.Equal(3, facturXOptions.PdfAIdentification!.Part);
         Assert.Equal("EN 16931", zugferdOptions.ElectronicInvoiceMetadata!.ConformanceLevel);
         Assert.Equal("factur-x.xml", Assert.Single(zugferdOptions.EmbeddedFiles).FileName);
@@ -552,7 +552,7 @@ public class PdfAIdentificationMetadataTests {
             "<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100\" xmlns:ram=\"urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100\" xmlns:udt=\"urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100\">" +
             "<rsm:ExchangedDocumentContext>" +
             "<ram:GuidelineSpecifiedDocumentContextParameter>" +
-            "<ram:ID>urn:factur-x.eu:1p0:en16931</ram:ID>" +
+            "<ram:ID>urn:cen.eu:en16931:2017</ram:ID>" +
             "</ram:GuidelineSpecifiedDocumentContextParameter>" +
             "</rsm:ExchangedDocumentContext>" +
             "<rsm:ExchangedDocument>" +

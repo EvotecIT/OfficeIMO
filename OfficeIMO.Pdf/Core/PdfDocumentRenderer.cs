@@ -18,7 +18,13 @@ public sealed class PdfDocumentRenderer {
     /// The result contains no editable drawing objects, embedded source images, fonts, or text model. Extraction and printing remain separate permission-checked operations.
     /// </summary>
     public PdfPageRenderResult DisplayPage(int pageNumber, PdfPageDisplayOptions? options = null, CancellationToken cancellationToken = default) =>
-        PdfPageImageRenderer.RenderDisplayPage(_document.GetBytesForOperation, pageNumber, options, _document.ReadOptions, cancellationToken);
+        PdfPageImageRenderer.RenderDisplayPage(token => _document.GetReadDocument(_document.ReadOptions, token), pageNumber, options, cancellationToken);
+
+    /// <summary>Renders the managed page appearance to PNG after checking printing permissions.</summary>
+    /// <remarks>Does not expose editable source content. User-password documents without high-quality print
+    /// permission are limited to 150 DPI. Review renderer diagnostics before sending the pixels to a printer.</remarks>
+    public PdfPageRenderResult PrintPage(int pageNumber, PdfPagePrintOptions? options = null, CancellationToken cancellationToken = default) =>
+        PdfPageImageRenderer.RenderPrintPage(_document.GetBytesForOperation, pageNumber, options, _document.ReadOptions, cancellationToken);
 
     /// <summary>Projects a one-based PDF page into the shared editable drawing scene.</summary>
     public OfficeDrawing Drawing(int pageNumber) => _document.Reader.Drawing(pageNumber);

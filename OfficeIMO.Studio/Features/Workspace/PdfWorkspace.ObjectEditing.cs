@@ -69,13 +69,14 @@ internal sealed partial class PdfWorkspace {
         double deltaX,
         double deltaY,
         CancellationToken cancellationToken,
-        IProgress<PdfWorkspaceProgress>? progress = null) {
+        IProgress<PdfWorkspaceProgress>? progress = null,
+        PdfImageEditOptions? options = null) {
         PdfImagePlacement placement = RequireImagePlacement(selection);
         return MutateBytesAsync(
             PdfWorkspaceOperationKind.ImageEdit,
             "Moved image on page " + selection.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
             new[] { selection.PageNumber },
-            bytes => LoadDocument(bytes).Images.Move(placement, deltaX, deltaY).Document.ToBytes(),
+            bytes => LoadDocument(bytes).Images.Move(placement, deltaX, deltaY, options).Document.ToBytes(),
             cancellationToken,
             progress);
     }
@@ -84,14 +85,15 @@ internal sealed partial class PdfWorkspace {
         PdfEditorSelection selection,
         byte[] imageBytes,
         CancellationToken cancellationToken,
-        IProgress<PdfWorkspaceProgress>? progress = null) {
+        IProgress<PdfWorkspaceProgress>? progress = null,
+        PdfImageEditOptions? options = null) {
         PdfImagePlacement placement = RequireImagePlacement(selection);
         ArgumentNullException.ThrowIfNull(imageBytes);
         return MutateBytesAsync(
             PdfWorkspaceOperationKind.ImageEdit,
             "Replaced image on page " + selection.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
             new[] { selection.PageNumber },
-            bytes => LoadDocument(bytes).Images.Replace(placement, imageBytes).Document.ToBytes(),
+            bytes => LoadDocument(bytes).Images.Replace(placement, imageBytes, options).Document.ToBytes(),
             cancellationToken,
             progress);
     }

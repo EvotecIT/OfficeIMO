@@ -13,11 +13,13 @@ public static partial class HtmlExcelConverterExtensions {
         int firstRow,
         int firstColumn,
         HashSet<long>? importedFormulaCells,
-        bool useSemanticValues) {
+        bool useSemanticValues,
+        HtmlSemanticTable? semanticTable = null) {
         int maxTableCells = budget.Limits.MaxTableCells;
 
         var occupiedCells = new HashSet<long>();
         int rowOffset = 0;
+        int semanticRowIndex = 0;
 
         foreach (IElement row in EnumerateDirectTableRows(table)) {
             int rowIndex = firstRow + rowOffset;
@@ -27,8 +29,15 @@ public static partial class HtmlExcelConverterExtensions {
                 break;
             }
 
+            IElement[] sourceCells = row.Children.Where(IsTableCell).ToArray();
+            IReadOnlyList<HtmlSemanticTableCell>? semanticCells = sourceCells.Length > 0 && semanticTable != null
+                && semanticRowIndex < semanticTable.Rows.Count ? semanticTable.Rows[semanticRowIndex++].Cells : null;
             int columnIndex = firstColumn;
-            foreach (IElement cell in row.Children.Where(IsTableCell)) {
+            int sourceCellIndex = 0;
+            foreach (IElement cell in sourceCells) {
+                HtmlSemanticTableCell? semanticCell = semanticCells != null && sourceCellIndex < semanticCells.Count
+                    ? semanticCells[sourceCellIndex] : null;
+                sourceCellIndex++;
                 while (occupiedCells.Contains(GetImportCellKey(rowIndex, columnIndex))) {
                     columnIndex++;
                 }
@@ -41,7 +50,7 @@ public static partial class HtmlExcelConverterExtensions {
 
                 int cellRow = rowIndex;
                 int cellColumn = columnIndex;
-                string? semanticReference = cell.GetAttribute("data-officeimo-cell");
+                string? semanticReference = useSemanticValues ? cell.GetAttribute("data-officeimo-cell") : null;
                 if (TryParseCellReference(semanticReference, out int semanticRow, out int semanticColumn)
                     && semanticRow <= A1.MaxRows
                     && semanticColumn <= A1.MaxColumns) {
@@ -86,12 +95,25 @@ public static partial class HtmlExcelConverterExtensions {
 
                 string text = NormalizeText(cell.TextContent);
                 ExcelCell targetCell = sheet.CellAt(cellRow, cellColumn);
-                if (!IsSemanticEmptyCell(cell) && (text.Length > 0 || cell.GetAttribute("data-officeimo-value") != null)) {
-                    if (SetCellValue(sheet, cellRow, cellColumn, cell, text, result, options, budget, importedFormulaCells, useSemanticValues)) {
+                bool stored = false;
+                bool preserveValue = false;
+                if (!(useSemanticValues && IsSemanticEmptyCell(cell))
+                    && (text.Length > 0 || cell.HasAttribute("data-officeimo-value") || cell.HasAttribute("data-officeimo-value-kind"))) {
+                    stored = SetCellValue(sheet, cellRow, cellColumn, cell, text, result, options, budget,
+                        importedFormulaCells, useSemanticValues, out preserveValue);
+                    if (stored) {
                         result.Cells++;
                     }
                 }
-                ApplyImportedCellTextFormatting(cell, targetCell, useSemanticValues);
+                string? preservedText = preserveValue && string.Equals(cell.GetAttribute("data-officeimo-value-kind"), "text", StringComparison.OrdinalIgnoreCase)
+                    ? cell.GetAttribute("data-officeimo-value") : null;
+                bool allowRichText = stored && (!preserveValue || preservedText != null);
+                ApplyImportedCellTextFormatting(cell, targetCell, result, budget,
+                    allowRichText: semanticCell == null && allowRichText, expectedText: preservedText);
+                if (semanticCell != null) {
+                    ApplySemanticCellFormatting(sheet, cellRow, cellColumn, semanticCell.Runs,
+                        semanticCell.IsHeader, semanticCell.Style, result, budget, allowRichText, preservedText);
+                }
 
                 if (rowSpan > 1 || columnSpan > 1) {
                     sheet.MergeRange(BuildRangeReference(cellRow, cellColumn, cellRow + rowSpan - 1, cellColumn + columnSpan - 1));
@@ -105,29 +127,30 @@ public static partial class HtmlExcelConverterExtensions {
         }
     }
 
-    private static void ApplyImportedCellTextFormatting(IElement source, ExcelCell target, bool useSemanticValues) {
+    private static void ApplyImportedCellTextFormatting(IElement source, ExcelCell target,
+        HtmlToExcelResult result, HtmlImportBudget budget, bool allowRichText, string? expectedText) {
         IReadOnlyDictionary<string, string> cellCss = ParseInlineStyle(source.GetAttribute("style"));
         ApplyImportedCellStyle(source, target, cellCss);
-        if (CanImportCellRichText(source, useSemanticValues)
+        if (allowRichText
             && source.Children.Length > 0
             && !source.HasAttribute("data-officeimo-excel-decoration-split")) {
             var runs = new List<ExcelRichTextRun>();
             CollectImportedRichTextRuns(source, cellCss, ResolveNativeUnderline(source), HasInvalidNativeUnderline(source), runs);
             if (runs.Count > 0) {
-                target.SetRichText(runs.ToArray());
-                return;
+                string richText = string.Concat(runs.Select(run => run.Text));
+                if (IsWithinExcelFieldLimit(richText, budget,
+                        ExcelCellTextCharacterLimit, "ExcelCellTextCharacterLimit", out string detail)) {
+                    // Preserve the authoritative text, including whitespace, while retaining matching runs.
+                    if (expectedText == null || string.Equals(expectedText, richText, StringComparison.Ordinal)) {
+                        target.SetRichText(runs.ToArray());
+                    }
+                } else {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
+                        "Cell rich text formatting was omitted because its runs exceeded a semantic or native Excel field limit.",
+                        lossKind: OfficeConversionLossKind.Approximation, detail: detail);
+                }
             }
         }
-    }
-
-    private static bool CanImportCellRichText(IElement source, bool useSemanticValues) {
-        if (!useSemanticValues || source.GetAttribute("data-officeimo-value") == null) {
-            return true;
-        }
-
-        string kind = source.GetAttribute("data-officeimo-value-kind") ?? string.Empty;
-        return string.IsNullOrWhiteSpace(kind)
-               || kind.Equals("text", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void CollectImportedRichTextRuns(
@@ -346,10 +369,8 @@ public static partial class HtmlExcelConverterExtensions {
     }
 
     private static bool TryNormalizeCssHex(string value, out string color) {
-        color = value.Trim().TrimStart('#');
-        if (color.Length == 3) color = string.Concat(color[0], color[0], color[1], color[1], color[2], color[2]);
-        if (color.Length == 8) color = color.Substring(0, 6);
-        return color.Length == 6 && color.All(Uri.IsHexDigit);
+        color = NormalizeHexColor(value);
+        return color.Length > 0;
     }
 
     private static IEnumerable<IElement> EnumerateDirectTableRows(IElement table) {

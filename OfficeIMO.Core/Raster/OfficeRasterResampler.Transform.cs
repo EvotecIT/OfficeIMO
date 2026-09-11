@@ -8,10 +8,15 @@ public static partial class OfficeRasterResampler {
     /// <remarks>Coordinates describe pixel edges. Source pixels are never modified. Sampling uses premultiplied alpha.</remarks>
     public static OfficeRasterImage Transform(OfficeRasterImage source, OfficeTransform sourceToDestination,
         int width, int height, OfficeColor? background = null, CancellationToken cancellationToken = default) {
+        OfficeTransform inverse = sourceToDestination.Invert();
+        return TransformMapped(source, inverse.TransformPoint, width, height, background, cancellationToken);
+    }
+
+    internal static OfficeRasterImage TransformMapped(OfficeRasterImage source, Func<OfficePoint, OfficePoint> destinationToSource,
+        int width, int height, OfficeColor? background, CancellationToken cancellationToken) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         OfficeRasterGuards.EnsureOutputPixels(width, height, "Transformed raster exceeds the managed image limit.");
         EnsureSimpleWorkingSet(source, width, height, retainedManagedBytes: 0L);
-        OfficeTransform inverse = sourceToDestination.Invert();
         OfficeColor fill = background ?? OfficeColor.White;
         cancellationToken.ThrowIfCancellationRequested();
         var result = new OfficeRasterImage(width, height);
@@ -19,7 +24,7 @@ public static partial class OfficeRasterResampler {
             cancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < width; x++) {
                 if ((x & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
-                OfficePoint point = inverse.TransformPoint(new OfficePoint(x + 0.5D, y + 0.5D));
+                OfficePoint point = destinationToSource(new OfficePoint(x + 0.5D, y + 0.5D));
                 double sx = point.X - 0.5D, sy = point.Y - 0.5D;
                 // Avoid narrowing enormous inverse coordinates before rejecting pixels outside the source.
                 if (sx < -1D || sy < -1D || sx > source.Width || sy > source.Height) {

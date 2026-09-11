@@ -257,7 +257,8 @@ internal sealed partial class PdfWorkspace : IDisposable {
         long expectedRevision,
         string? removedTextMarker,
         CancellationToken cancellationToken,
-        IProgress<PdfWorkspaceProgress>? progress = null) {
+        IProgress<PdfWorkspaceProgress>? progress = null,
+        PdfSanitizationOptions? sanitizationOptions = null) {
         ArgumentNullException.ThrowIfNull(reviewedPlan);
         PdfVerifiedRedactionResult? verified = null;
         await MutateBytesAsync(
@@ -268,7 +269,8 @@ internal sealed partial class PdfWorkspace : IDisposable {
                 if (_revision != expectedRevision) {
                     throw new InvalidOperationException("The document changed after this redaction was reviewed. Plan the redaction again before applying it.");
                 }
-                verified = PdfEditorCommandExecutor.ApplyVerifiedRedaction(bytes, reviewedPlan, removedTextMarker);
+                if (sanitizationOptions is not null) sanitizationOptions.CancellationToken = cancellationToken;
+                verified = PdfEditorCommandExecutor.ApplyVerifiedRedaction(bytes, reviewedPlan, removedTextMarker, sanitizationOptions, cancellationToken);
                 return verified.Bytes;
             },
             cancellationToken,

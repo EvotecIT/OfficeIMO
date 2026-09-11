@@ -4,6 +4,9 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint {
     internal static class PowerPointTextDefaults {
         internal const double DefaultFontSizePoints = 18D;
+        // DrawingML bodyPr defaults: 0.1in horizontally, 0.05in vertically (ECMA-376).
+        internal const double DefaultHorizontalInsetPoints = 7.2D;
+        internal const double DefaultVerticalInsetPoints = 3.6D;
         internal const string LegacyFallbackFontFamily = "Calibri";
 
         internal static int? ToDrawingFontSize(double? points, string parameterName) {

@@ -13,8 +13,6 @@ on:
       - '.github/workflows/deploy-website.yml'
       - '.gitignore'
   pull_request:
-    branches:
-      - master
     paths-ignore:
       - '*.md'
       - 'Docs/**'
@@ -37,6 +35,23 @@ env:
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
 
 jobs:
+  invoice-standards:
+    name: Invoice schema and business rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Validate generated and independent invoices
+        shell: pwsh
+        run: ./Build/Test-InvoicingStandards.ps1
+
   build-matrix:
     name: 'Cross-platform build'
     runs-on: ${{ matrix.os }}
@@ -73,6 +88,12 @@ jobs:
 
       - name: Test optional C2PA process adapter
         run: dotnet test OfficeIMO.Provenance.C2pa.Tests/OfficeIMO.Provenance.C2pa.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --logger "console;verbosity=${{ env.TEST_VERBOSITY }}"
+
+      - name: Test electronic invoice contracts
+        run: dotnet test OfficeIMO.Invoicing.Tests/OfficeIMO.Invoicing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --logger "console;verbosity=${{ env.TEST_VERBOSITY }}"
+
+      - name: Test optional invoice PDF adapter
+        run: dotnet test OfficeIMO.Invoicing.Pdf.Tests/OfficeIMO.Invoicing.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --logger "console;verbosity=${{ env.TEST_VERBOSITY }}"
 
       - name: Build public examples
         shell: pwsh

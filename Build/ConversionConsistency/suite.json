@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "fontPath": "OfficeIMO.Drawing.Tests/TestAssets/OpenSans-Regular.woff2",
+  "fontFamily": "Arial",
+  "dpi": 96,
+  "cases": [
+    {
+      "id": "text-geometry",
+      "format": "html",
+      "source": "Build/ConversionConsistency/Fixtures/text-geometry.html",
+      "evidence": "Authored labels, baseline positions within 0.25px, and a color region validate content and placement. At 96 dpi this dense 20px text fixture allows 3 percent changed pixels for Chromium font hinting; mean channel error remains capped at 3. Saved PDF and Chromium SVG text baselines are checked independently.",
+      "visualTolerance": {
+        "channel": 32,
+        "differentRatio": 0.03,
+        "meanAbsoluteError": 3
+      },
+      "pages": [
+        {
+          "width": 480,
+          "height": 320,
+          "text": [
+            "PAGE-ONE",
+            "Water",
+            "SVG LABEL"
+          ],
+          "textPositions": [
+            {
+              "text": "PAGE-ONE",
+              "x": 16,
+              "baseline": 36
+            },
+            {
+              "text": "Water",
+              "x": 16,
+              "baseline": 84
+            },
+            {
+              "text": "SVG LABEL",
+              "x": 16,
+              "baseline": 192
+            }
+          ],
+          "regions": [
+            {
+              "id": "green-marker",
+              "x": 16,
+              "y": 224,
+              "width": 32,
+              "height": 48,
+              "color": "#087f5b",
+              "minimumPixels": 600,
+              "maximumPixels": 900
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "delivery-register",
+      "format": "html",
+      "source": "OfficeIMO.Examples/Converters/Html/Content/Reports/delivery-register.html",
+      "evidence": "Two authored register pages with 40 action IDs, a completion chart, typed effort cells and sub/superscripts. Source CSS fixes the section inset at 24px, table rows at 21px, and first-row baselines at 199px and 119px. Header, first/last row and footer baselines are checked independently in PDF and SVG. Dense 11px table text allows 3 percent differing pixels for rasterizer hinting, with mean channel error capped at 3.",
+      "visualTolerance": { "channel": 32, "differentRatio": 0.03, "meanAbsoluteError": 3 },
+      "pages": [
+        {
+          "width": 792,
+          "height": 1120,
+          "text": [
+            "Service delivery review",
+            "REGISTER PAGE 1",
+            "ACT-001",
+            "ACT-002",
+            "ACT-003",
+            "ACT-004",
+            "ACT-005",
+            "ACT-006",
+            "ACT-007",
+            "ACT-008",
+            "ACT-009",
+            "ACT-010",
+            "ACT-011",
+            "ACT-012",
+            "ACT-013",
+            "ACT-014",
+            "ACT-015",
+            "ACT-016",
+            "ACT-017",
+            "ACT-018",
+            "ACT-019",
+            "ACT-020"
+          ],
+          "textPositions": [
+            { "text": "Service delivery review", "x": 24, "baseline": 48 },
+            { "text": "ACT-001", "x": 28, "baseline": 199 },
+            { "text": "ACT-020", "x": 28, "baseline": 598 },
+            { "text": "REGISTER PAGE 1", "x": 24, "baseline": 627 }
+          ],
+          "regions": [
+            { "id": "completion", "x": 24, "y": 126, "width": 280, "height": 12, "color": "#087f5b", "minimumPixels": 3000 },
+            { "id": "table-header", "x": 24, "y": 164, "width": 744, "height": 21, "color": "#17324d", "minimumPixels": 13000 }
+          ]
+        },
+        {
+          "width": 792,
+          "height": 1120,
+          "text": [
+            "Action register continued",
+            "REGISTER PAGE 2",
+            "ACT-021",
+            "ACT-022",
+            "ACT-023",
+            "ACT-024",
+            "ACT-025",
+            "ACT-026",
+            "ACT-027",
+            "ACT-028",
+            "ACT-029",
+            "ACT-030",
+            "ACT-031",
+            "ACT-032",
+            "ACT-033",
+            "ACT-034",
+            "ACT-035",
+            "ACT-036",
+            "ACT-037",
+            "ACT-038",
+            "ACT-039",
+            "ACT-040"
+          ],
+          "textPositions": [
+            { "text": "Action register continued", "x": 24, "baseline": 42 },
+            { "text": "ACT-021", "x": 28, "baseline": 119 },
+            { "text": "ACT-040", "x": 28, "baseline": 518 },
+            { "text": "REGISTER PAGE 2", "x": 24, "baseline": 547 }
+          ]
+        }
+      ]
+    }
+  ]
+}

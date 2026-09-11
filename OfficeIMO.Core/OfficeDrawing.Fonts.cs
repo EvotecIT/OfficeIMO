@@ -1,6 +1,9 @@
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeDrawing {
+    internal IOfficeTextShapingProvider? TextShapingProvider { get; set; }
+    internal string? TextShapingLanguage { get; set; }
+
     /// <summary>Scoped TrueType faces embedded or rasterized with this drawing.</summary>
     public OfficeFontFaceCollection Fonts { get; private set; } = new OfficeFontFaceCollection();
 

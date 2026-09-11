@@ -233,6 +233,18 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Core`; legacy binary suppor
 
 _Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Core`; the VSDX model and renderers are first-party, while PDF conversion reuses the shared Reader/PDF projection.
 
+#### [OfficeIMO.Invoicing](OfficeIMO.Invoicing/README.md)
+
+Typed invoice and credit-note authoring, parsing, editing and bounded CII/UBL
+conversion. One decimal calculation owns quantities, adjustments, VAT and payable
+totals. Unsupported source data is reported before rewriting. The core has no
+external runtime dependencies.
+
+[OfficeIMO.Invoicing.Validation](OfficeIMO.Invoicing.Validation/README.md) adds
+hash-pinned XSD and Schematron releases for EN 16931, XRechnung and UBL Peppol BIS.
+Business-rule execution uses an explicitly configured local Java/Saxon runtime.
+[`OfficeIMO.Invoicing.Pdf`](OfficeIMO.Invoicing.Pdf/README.md) renders and attaches one captured invoice through `PdfInvoiceDocument`.
+
 #### [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md)
 
 - [x] Create PDFs with page setup, rich text, TrueType/OpenType-CFF subsetting, bounded managed Arabic plus shaping-provider positioning, multilingual font fallback, dictionary hyphenation, mixed inline visuals, typed business recipes, page-aware components, styled multipage containers, balanced block-flow columns, tables, and images
@@ -255,7 +267,15 @@ _Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Core`; the VSDX mo
 - [x] Logical recovery used by PDF-to-Word, PDF-to-Excel, PDF-to-PowerPoint, and PDF-to-RTF adapters
 - [x] Conversion proof, visual comparison, external-validator hooks, and rewrite-preservation reports for warnings, blockers, and structure drift
 
-_Dependency footprint:_ `OfficeIMO.Core`; no third-party PDF parser, writer, renderer, OCR, or cryptographic dependency. Install `OfficeIMO.Pdf.Ocr` only for scanned-page recognition and searchable output, and `OfficeIMO.Security` only for its built-in CMS/X.509/RFC 3161 adapter.
+_Dependency footprint:_ only `OfficeIMO.Core`; no third-party PDF parser, writer, renderer, OCR, or cryptographic dependency. Install `OfficeIMO.Pdf.Ocr` only for scanned-page recognition and searchable output, and `OfficeIMO.Security` only for its built-in CMS/X.509/RFC 3161 adapter.
+
+#### [OfficeIMO.Invoicing.Pdf](OfficeIMO.Invoicing.Pdf/README.md)
+
+- [x] Capture a typed invoice once for visible PDF content and its embedded CII XML
+- [x] Render invoices and credit notes with line items, VAT breakdowns, payment details, identifiers, and totals
+- [x] Keep later model edits separate from an existing snapshot
+
+_Dependency footprint:_ `OfficeIMO.Invoicing` and `OfficeIMO.Pdf`. Install this optional adapter only when combining the XML invoice engine with PDF generation.
 
 #### [OfficeIMO.Pdf.Ocr](OfficeIMO.Pdf.Ocr/README.md)
 

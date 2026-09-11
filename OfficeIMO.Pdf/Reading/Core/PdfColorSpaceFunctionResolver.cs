@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -6,13 +7,15 @@ internal delegate bool PdfColorSpaceTintTransform(IReadOnlyList<double> componen
 
 /// <summary>Caller-owned cache and aggregate work budget for resolving page color functions.</summary>
 internal sealed class PdfColorFunctionResolutionContext {
-    internal PdfColorFunctionResolutionContext(int maximumRetainedBytes) {
+    internal PdfColorFunctionResolutionContext(int maximumRetainedBytes, CancellationToken cancellationToken = default) {
+        CancellationToken = cancellationToken;
         MaximumRetainedBytes = Math.Max(1, maximumRetainedBytes);
         RemainingCalculatorValidationWork = PdfCalculatorProgram.MaxValidationWork;
         IccProfileRetentionBudget = new PdfIccProfileRetentionBudget(MaximumRetainedBytes);
     }
 
     internal int MaximumRetainedBytes { get; }
+    internal CancellationToken CancellationToken { get; }
     internal int ParsedFunctionNodes;
     internal long RetainedFunctionBytes;
     internal long RemainingCalculatorValidationWork;

@@ -16,7 +16,7 @@ internal static partial class PdfWriter {
 
             IReadOnlyList<IPdfBlock> blocks = MaterializeFlow(flow, context);
             double available = y - currentOpts.MarginBottom;
-            if (flow.Options.MinimumRemainingHeight > 0D && available + 0.001D < flow.Options.MinimumRemainingHeight && y < yStart - 0.001D) {
+            if (flow.Options.MinimumRemainingHeight > 0D && available + 0.001D < flow.Options.MinimumRemainingHeight && y < GetCurrentFramePageStartY() - 0.001D) {
                 NewPage();
                 context = CreateFlowContext();
                 if (flow.IsReplayable) {
@@ -40,7 +40,7 @@ internal static partial class PdfWriter {
                                 fullPageMeasuredHeight.Value <= GetCurrentFramePageStartY() - currentOpts.MarginBottom + 0.001D;
             bool moveForKeepTogether = flow.Options.KeepTogether && cannotFitCurrentPage && fitsFullPage;
             bool moveForOverflow = flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.MoveToNextPage && cannotFitCurrentPage && fitsFullPage;
-            if ((moveForKeepTogether || moveForOverflow) && y < yStart - 0.001D) {
+            if ((moveForKeepTogether || moveForOverflow) && y < GetCurrentFramePageStartY() - 0.001D) {
                 NewPage();
                 context = CreateFlowContext();
                 if (flow.IsReplayable) {
@@ -98,7 +98,7 @@ internal static partial class PdfWriter {
         }
 
         private double GetFullPageContentHeight() {
-            return currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+            return GetCurrentFramePageStartY() - currentOpts.MarginBottom;
         }
 
         private double? MeasureFlowBlocks(IReadOnlyList<IPdfBlock> blocks) {

@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void AppendSvgCommentBody(StringBuilder builder, ExcelVisualCommentBody body, ExcelImageExportOptions options, OfficeTextMeasurer textMeasurer) {
+        private static void AppendSvgCommentBody(StringBuilder builder, ExcelVisualCommentBody body, ExcelImageExportOptions options, OfficeRasterCanvas textMeasurer) {
             OfficeCalloutRenderer.AppendSvg(
                 builder,
                 CreateCommentBodyCallout(body),

@@ -5,6 +5,54 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingPositionedTextTransformTests {
     [Theory]
+    [InlineData("\n")]
+    [InlineData("\r")]
+    [InlineData("\r\n")]
+    public void OrdinaryTextPreservesHardLinePlacement(string separator) {
+        var drawing = new OfficeDrawing(100, 100).AddText("AAAA" + separator + "A", 10, 10, 80, 60,
+            new OfficeFontInfo("Proof Sans", 20), alignment: OfficeTextAlignment.Center, lineHeight: 25);
+        drawing.Fonts.Add("Proof Sans", File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "SourceSansPro-Regular.otf")));
+        var actual = OfficeDrawingRasterRenderer.Render(drawing);
+        int firstLineInk = 0, secondLineInk = 0;
+        for (int y = 10; y < 60; y++) for (int x = 10; x < 90; x++) {
+            if (actual.GetPixel(x, y).A == 0) continue;
+            if (y < 35) firstLineInk++; else secondLineInk++;
+        }
+        Assert.True(firstLineInk > 20);
+        Assert.True(secondLineInk > 20);
+        Assert.True(firstLineInk > secondLineInk * 2);
+    }
+
+    [Theory]
+    [InlineData(0, OfficeTextAlignment.Center, "\n")]
+    [InlineData(0, OfficeTextAlignment.Right, "\r")]
+    [InlineData(90, OfficeTextAlignment.Center, "\r\n")]
+    [InlineData(90, OfficeTextAlignment.Right, "\n")]
+    public void PositionedHardLinesMatchIndependentlyPositionedLines(int rotation, OfficeTextAlignment alignment, string separator) {
+        var fonts = new OfficeFontFaceCollection().Add("Proof Sans", File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "SourceSansPro-Regular.otf")));
+        var metrics = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), fonts: fonts);
+        var font = new OfficeFontInfo("Proof Sans", 20);
+        var frame = new OfficeImageFrameTransform(rotation, 50, 50);
+        var actualDrawing = new OfficeDrawing(100, 100).AddPositionedText("AAAA" + separator + "A", 10, 10, 80, 60,
+            frame, font, OfficeColor.Black, alignment: alignment, lineHeight: 25);
+        actualDrawing.Fonts.AddRange(fonts);
+        var expectedDrawing = new OfficeDrawing(100, 100);
+        expectedDrawing.Fonts.AddRange(fonts);
+        expectedDrawing.AddPositionedText("AAAA", 10, 10, 80, 25, frame, font, OfficeColor.Black,
+            alignment: alignment, textAdvanceWidth: metrics.MeasureText("AAAA", 20, "Proof Sans"));
+        expectedDrawing.AddPositionedText("A", 10, 35, 80, 25, frame, font, OfficeColor.Black,
+            alignment: alignment, textAdvanceWidth: metrics.MeasureText("A", 20, "Proof Sans"));
+        var actual = OfficeDrawingRasterRenderer.Render(actualDrawing);
+        var expected = OfficeDrawingRasterRenderer.Render(expectedDrawing);
+        int ink = 0;
+        for (int y = 0; y < 100; y++) for (int x = 0; x < 100; x++) {
+            if (expected.GetPixel(x, y).A > 0) ink++;
+            Assert.InRange(Math.Abs(actual.GetPixel(x, y).A - expected.GetPixel(x, y).A), 0, 2);
+        }
+        Assert.True(ink > 20);
+    }
+
+    [Theory]
     [InlineData(90, false, false)]
     [InlineData(180, false, false)]
     [InlineData(270, false, false)]

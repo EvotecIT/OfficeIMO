@@ -78,3 +78,8 @@ Website/data/pdf_corpus_report.json -text -diff
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+# Preserve unmodified upstream invoice fixtures and Schematron compiler bytes.
+OfficeIMO.Invoicing.Validation/Compiler/*.xsl -text -diff
+OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/*.xml -text -diff
+OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/LICENSE.txt -text -diff

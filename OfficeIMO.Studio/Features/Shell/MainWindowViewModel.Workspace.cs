@@ -367,7 +367,7 @@ public sealed partial class MainWindowViewModel {
             Zoom,
             sceneCoordinator,
             renderCoordinator,
-            _localizer)).ToArray();
+            _localizer, page.Geometry)).ToArray();
         PdfOrganizerPageViewModel[] organizerPages = session.Pages.Select(page => new PdfOrganizerPageViewModel(
             page.PageNumber,
             page.Width,
@@ -382,6 +382,7 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void NotifyWorkspaceStateChanged() {
+        _assistant?.CheckSource();
         OnPropertyChanged(nameof(CanSearchDocument));
         OnPropertyChanged(nameof(ReaderHint));
         SearchCommand.NotifyCanExecuteChanged();

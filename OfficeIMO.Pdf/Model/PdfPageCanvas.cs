@@ -342,7 +342,12 @@ public sealed partial class PdfPageCanvas {
             verticalFlip);
     }
 
-    internal PdfPageCanvas ImageShared(PdfCanvasImageResource imageResource, double x, double y, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D, bool horizontalFlip = false, bool verticalFlip = false) {
+    /// <summary>Adds an image above page flow. Intended for root page canvases, outside clipping and effect groups.</summary>
+    internal PdfPageCanvas ForegroundImage(byte[] bytes, double x, double y, double width, double height,
+        bool horizontalFlip = false, bool verticalFlip = false, uint zOrder = 0) => ImageShared(PdfCanvasImageResource.Create(bytes),
+            x, y, width, height, horizontalFlip: horizontalFlip, verticalFlip: verticalFlip, foreground: true, foregroundZOrder: zOrder);
+
+    internal PdfPageCanvas ImageShared(PdfCanvasImageResource imageResource, double x, double y, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D, bool horizontalFlip = false, bool verticalFlip = false, bool foreground = false, uint foregroundZOrder = 0) {
         Guard.NotNull(imageResource, nameof(imageResource));
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
@@ -361,7 +366,7 @@ public sealed partial class PdfPageCanvas {
             PdfDocument.ValidateImageFitDimensions(imageInfo, imageStyle.Fit, nameof(style));
         }
 
-        _items.Add(new PdfCanvasImageItem(new ImageBlock(imageResource.Bytes, width, height, imageInfo, imageStyle, linkUri, linkContents, useDataSnapshot: true), x, y, rotationAngle, horizontalFlip, verticalFlip));
+        _items.Add(new PdfCanvasImageItem(new ImageBlock(imageResource.Bytes, width, height, imageInfo, imageStyle, linkUri, linkContents, useDataSnapshot: true), x, y, rotationAngle, horizontalFlip, verticalFlip, foreground, foregroundZOrder));
         return this;
     }
 
@@ -738,6 +743,8 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
     public double? FontSize { get; }
     public double? LineHeight { get; }
     public PdfCanvasTextStructureRole StructureRole { get; }
+    internal bool PreservePositionedText { get; set; }
+    internal double? PositionedAdvanceWidth { get; set; }
 }
 
 internal sealed class PdfCanvasTextBoxItem : PdfCanvasItem {
@@ -786,18 +793,22 @@ internal sealed class PdfCanvasDrawingItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasImageItem : PdfCanvasItem {
-    public PdfCanvasImageItem(ImageBlock block, double x, double y, double rotationAngle, bool horizontalFlip, bool verticalFlip)
+    public PdfCanvasImageItem(ImageBlock block, double x, double y, double rotationAngle, bool horizontalFlip, bool verticalFlip, bool foreground = false, uint foregroundZOrder = 0)
         : base(x, y) {
         Block = block;
         RotationAngle = rotationAngle;
         HorizontalFlip = horizontalFlip;
         VerticalFlip = verticalFlip;
+        Foreground = foreground;
+        ForegroundZOrder = foregroundZOrder;
     }
 
     public ImageBlock Block { get; }
     public double RotationAngle { get; }
     public bool HorizontalFlip { get; }
     public bool VerticalFlip { get; }
+    public bool Foreground { get; }
+    public uint ForegroundZOrder { get; }
 }
 
 internal sealed class PdfCanvasTextAnnotationItem : PdfCanvasItem {

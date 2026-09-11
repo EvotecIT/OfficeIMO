@@ -4,6 +4,11 @@ namespace OfficeIMO.Drawing;
 /// Describes one measured rich text segment on a laid-out line.
 /// </summary>
 public sealed class OfficeRichTextSegment {
+    // Native document adapters keep annotations attached through wrapping and shrinking.
+    internal string? LinkUri { get; set; }
+    internal OfficeFontStyle FontStyle => (Bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
+        | (Italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+
     /// <summary>Creates a measured segment using the pre-typography constructor signature.</summary>
     public OfficeRichTextSegment(string text, double width, double fontSize, OfficeColor color, bool bold, bool italic, bool underline, string fontFamily, bool strikethrough, OfficeColor? backgroundColor)
         : this(text, width, fontSize, color, bold, italic, underline, fontFamily, strikethrough, backgroundColor,

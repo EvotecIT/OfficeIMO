@@ -64,7 +64,11 @@ public sealed partial class ProjectView {
         double pageHeight = Layout.FitPageHeightToContent && contentHeight.HasValue
             ? Math.Min(Layout.PageHeight, contentHeight.Value + 2 * Layout.Margin + TitleAreaHeight + FooterHeight + 16) : Layout.PageHeight;
         var drawing = new OfficeDrawing(Layout.PageWidth, pageHeight);
-        if (_typography != null) drawing.Fonts.AddRange(_typography.Fonts);
+        if (_typography != null) {
+            drawing.Fonts.AddRange(_typography.Fonts);
+            drawing.TextShapingProvider = _typography.TextShapingProvider;
+            drawing.TextShapingLanguage = _typography.TextShapingLanguage;
+        }
         Rect(drawing, 0, 0, Layout.PageWidth, pageHeight, OfficeColor.White);
         Text(drawing, Title, Layout.Margin, Layout.Margin, Layout.PageWidth - 2 * Layout.Margin, TitleHeight, 20, Ink, true, true);
         Text(drawing, KindTitle(Kind) + (Buckets.Count == 0 ? "" : "  ·  " + Buckets[0].Start.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)

@@ -21,7 +21,7 @@ dotnet add package OfficeIMO.Core
 
 ## Prepare scanned images
 
-`OfficeScanProcessor` in `OfficeIMO.Drawing` prepares a separately owned raster for OCR. It supports explicit quarter-turns, confidence-filtered deskew, local paper-brightness normalization, grayscale or bilevel output, and proportional downsampling:
+`OfficeScanProcessor` in `OfficeIMO.Drawing` prepares a separately owned raster for OCR. It supports explicit quarter-turns, manual straightening, confidence-filtered deskew, local paper-brightness normalization, black and white levels, gamma, grayscale or bilevel output, and proportional downsampling:
 
 ```csharp
 using OfficeIMO.Drawing;
@@ -36,7 +36,9 @@ OfficeScanProcessingResult processed = OfficeScanProcessor.Process(sourceImage,
 OfficePoint sourcePoint = processed.Report.ProcessedToSource.TransformPoint(ocrPixelPoint);
 ```
 
-The source image stays unchanged. The report records transformations, skipped decisions, estimated managed buffers, and a blank-page suggestion; pages are never removed. Pixel, buffer, and analysis-work limits throw `OfficeScanProcessingLimitException`, allowing the caller to retain the original. The operation does not detect quarter-turn orientation itself; an OCR provider or the caller supplies that evidence. Perspective correction, dewarping, and cropping are outside this contract.
+The source image stays unchanged. The report records transformations, skipped decisions, estimated managed buffers, and a blank-page suggestion; pages are never removed. Pixel, buffer, and analysis-work limits throw `OfficeScanProcessingLimitException`, allowing the caller to retain the original. The operation does not detect quarter-turn orientation itself; an OCR provider or the caller supplies that evidence.
+
+`OfficeScanProcessor.CorrectPerspective(image, options)` creates a rectangular raster from four normalized source corners. `OfficeScanPerspectiveOptions` requires a convex, clockwise quadrilateral inside the source image. The result includes a projective mapping in both directions so consumers can place recognized text back on the original. Perspective correction is separate from the affine transform reported by ordinary scan cleanup. Curved-page dewarping remains unsupported.
 
 ## Quick start
 

@@ -46,6 +46,8 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
     partial void OnSelectedTabChanged(StudioDocumentTabViewModel? value) =>
         _activateDocument(value?.Document ?? _emptyDocument);
 
+    partial void OnSelectedTabChanging(StudioDocumentTabViewModel? value) => ActiveDocument.DeactivateAssistant();
+
     [RelayCommand]
     private Task OpenNewTabAsync() => ActiveDocument.OpenCommand.ExecuteAsync(null);
 

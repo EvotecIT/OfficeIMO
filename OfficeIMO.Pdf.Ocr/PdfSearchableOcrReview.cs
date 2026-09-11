@@ -53,6 +53,24 @@ public sealed class PdfSearchableOcrReview {
         return ApplyCore(selectedWords, null, cancellationToken);
     }
 
+    /// <summary>Returns selected eligible words in logical reading order without creating or modifying a PDF.</summary>
+    /// <remarks>Selection validation matches <see cref="Apply"/>. Words are separated by spaces and pages by newlines.</remarks>
+    public string ExtractText(IEnumerable<PdfRecognizedWord> selectedWords, CancellationToken cancellationToken = default) {
+        var selected = ValidateSelection(selectedWords, cancellationToken);
+        var pages = new List<string>();
+        foreach (var page in Ocr.Pages) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var canonicalPage = Ocr.Document.Pages.First(item => item.PageNumber == page.PageNumber);
+            var words = PdfOcrLogicalDocumentBuilder.OrderWordsForLogicalReading(
+                page.Words.Where(selected.Contains).ToArray(), canonicalPage,
+                _options.ReadOptions.LayoutOptions.ReadingDirection, cancellationToken);
+            string text = string.Join(" ", words.Select(word => word.Text));
+            if (text.Length > 0) pages.Add(text);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return string.Join(Environment.NewLine, pages);
+    }
+
     /// <summary>Creates a searchable artifact from eligible words and their reviewed replacement text.</summary>
     /// <remarks>Only dictionary entries are included. Keys must be eligible words from this review. Geometry,
     /// ordering, and original provider evidence are retained; replacements do not bypass confidence or overlap policy.</remarks>
@@ -73,6 +91,11 @@ public sealed class PdfSearchableOcrReview {
 
     private PdfSearchableOcrResult ApplyCore(IEnumerable<PdfRecognizedWord> selectedWords,
         IReadOnlyDictionary<PdfRecognizedWord, string>? corrections, CancellationToken cancellationToken) {
+        var selected = ValidateSelection(selectedWords, cancellationToken);
+        return ApplyValidated(selected, corrections, cancellationToken);
+    }
+
+    private HashSet<PdfRecognizedWord> ValidateSelection(IEnumerable<PdfRecognizedWord> selectedWords, CancellationToken cancellationToken) {
         Guard.NotNull(selectedWords, nameof(selectedWords));
         var selected = new HashSet<PdfRecognizedWord>();
         foreach (var word in selectedWords) {
@@ -82,6 +105,11 @@ public sealed class PdfSearchableOcrReview {
             if (!selected.Add(word)) throw new ArgumentException("A word cannot be selected more than once.", nameof(selectedWords));
         }
         cancellationToken.ThrowIfCancellationRequested();
+        return selected;
+    }
+
+    private PdfSearchableOcrResult ApplyValidated(HashSet<PdfRecognizedWord> selected,
+        IReadOnlyDictionary<PdfRecognizedWord, string>? corrections, CancellationToken cancellationToken) {
         var wordsByPage = Ocr.Pages.Select(page => new {
             page.PageNumber, Words = (IReadOnlyList<PdfRecognizedWord>)Array.AsReadOnly(page.Words.Where(selected.Contains).ToArray())
         }).Where(page => page.Words.Count > 0).ToDictionary(page => page.PageNumber, page => page.Words);

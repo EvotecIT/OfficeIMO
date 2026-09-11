@@ -32,6 +32,17 @@ Console.WriteLine(export.RequireValue());
 HTML can also be appended to an existing body, header, footer, or table cell with
 `AddHtmlToBody`, `AddHtmlToHeader`, `AddHtmlToFooter`, and `WordTableCell.AddHtml`.
 
+To save an editable report from an HTML file:
+
+```csharp
+var report = HtmlConversionDocument.Load("service-review.html");
+var result = report.ToWordDocumentResult();
+using var document = result.RequireValue();
+document.Save("service-review.docx");
+```
+
+See the [multi-format report example](../OfficeIMO.Examples/Converters/Html/HtmlMultiFormatReport.cs) for a complete report input.
+
 Use the result API when conversion evidence matters:
 
 ```csharp

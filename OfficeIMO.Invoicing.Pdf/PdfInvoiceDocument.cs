@@ -1,0 +1,54 @@
+using OfficeIMO.Pdf;
+
+namespace OfficeIMO.Invoicing.Pdf;
+
+/// <summary>Captures a typed invoice once for visible PDF content and its embedded CII attachment.</summary>
+public sealed partial class PdfInvoiceDocument {
+    private readonly byte[] _xml;
+    private readonly Invoice _invoice;
+    private readonly InvoiceCalculation _amounts;
+    private readonly DateTimeOffset _capturedAt = DateTimeOffset.UtcNow;
+    private string DocumentTitle => (_invoice.TypeCode == "381" ? "Credit note " : "Invoice ") + _invoice.Number;
+
+    private PdfInvoiceDocument(byte[] xml) {
+        _xml = xml;
+        InvoiceReadResult parsed = InvoiceParser.Read(xml);
+        if (!parsed.HasCompleteMapping) throw new InvalidDataException("Generated invoice cannot be represented completely for PDF presentation.");
+        Profile = parsed.Declaration.Profile ?? throw new InvalidDataException("Generated invoice has no recognized profile.");
+        _invoice = parsed.Invoice;
+        if (_invoice.TypeCode != "380" && _invoice.TypeCode != "381")
+            throw new NotSupportedException("PDF invoice presentation supports document type 380 (invoice) and 381 (credit note) only.");
+        InvoiceModelValidationResult validation = InvoiceModelValidator.Validate(_invoice);
+        validation.ThrowIfInvalid();
+        _amounts = validation.Calculation!;
+    }
+
+    /// <summary>Creates an independent snapshot for type 380 (invoice) or 381 (credit note). Later edits to the supplied invoice cannot change its PDF or XML.</summary>
+    public static PdfInvoiceDocument Create(Invoice invoice, InvoiceProfile profile = InvoiceProfile.En16931) =>
+        new PdfInvoiceDocument(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Cii, profile)));
+
+    /// <summary>Captured invoice number.</summary>
+    public string Number => _invoice.Number;
+    /// <summary>Captured CII authoring profile. Pass this value to <see cref="Create"/> when recapturing an edited model.</summary>
+    public InvoiceProfile Profile { get; }
+    /// <summary>Captured amount due in the document currency.</summary>
+    public decimal PayableAmount => _amounts.PayableAmount;
+    /// <summary>Returns a defensive copy of the exact CII bytes embedded in generated PDFs.</summary>
+    public byte[] ToXmlBytes() => (byte[])_xml.Clone();
+    /// <summary>Returns an independent editable model. After edits, call <see cref="Create"/> with this snapshot's <see cref="Profile"/> to preserve its guideline.</summary>
+    public Invoice ToInvoice() => InvoiceParser.Read(_xml).Invoice;
+
+    /// <summary>
+    /// Renders the captured invoice and attaches its exact CII XML using Factur-X PDF/A-3 groundwork.
+    /// Supply embedded fonts through the PDF options. Validate the exact output with PDF/A and invoice validators before claiming compliance.
+    /// </summary>
+    public byte[] ToPdfBytes(PdfOptions? options = null) {
+        PdfOptions configured = options?.Clone() ?? new PdfOptions();
+        configured.UseFacturX(_xml, relationship: PdfAssociatedFileRelationship.Alternative);
+        configured.SetEmbeddedFileModificationDate("factur-x.xml", _capturedAt);
+        PdfDocument document = PdfDocument.Create(configured);
+        document.Meta(title: DocumentTitle, author: _invoice.Seller.Name);
+        Compose(document.Content);
+        return document.ToBytes();
+    }
+}
