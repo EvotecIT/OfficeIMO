@@ -5,6 +5,34 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingPositionedTextTransformTests {
     [Theory]
+    [InlineData(90, OfficeFontStyle.Underline, 40)]
+    [InlineData(180, OfficeFontStyle.Strikethrough, 2)]
+    [InlineData(270, OfficeFontStyle.Underline | OfficeFontStyle.Strikethrough, 2)]
+    public void RotatedWhitespaceRetainsDecorationOutsideItsFrame(int rotation, OfficeFontStyle style, int height) {
+        const int size = 200;
+        var fonts = new OfficeFontFaceCollection().Add("Proof Sans", File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "SourceSansPro-Regular.otf")));
+        var font = new OfficeFontInfo("Proof Sans", 40, style);
+        var source = new OfficeDrawing(size, size).AddPositionedText(" ", 20, 30, 10, height, font, OfficeColor.Black, textAdvanceWidth: 100);
+        var target = new OfficeDrawing(size, size).AddPositionedText(" ", 20, 30, 10, height,
+            new OfficeImageFrameTransform(rotation, 100, 100), font, OfficeColor.Black, textAdvanceWidth: 100);
+        source.Fonts.AddRange(fonts); target.Fonts.AddRange(fonts);
+        OfficeRasterImage original = OfficeDrawingRasterRenderer.Render(source);
+        OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(target);
+        int ink = 0;
+        for (int y = 0; y < size; y++) for (int x = 0; x < size; x++) {
+            var destination = rotation switch {
+                90 => (X: size - 1 - y, Y: x),
+                180 => (X: size - 1 - x, Y: size - 1 - y),
+                _ => (X: y, Y: size - 1 - x)
+            };
+            int alpha = original.GetPixel(x, y).A;
+            if (alpha > 0) ink++;
+            Assert.InRange(Math.Abs(alpha - actual.GetPixel(destination.X, destination.Y).A), 0, 2);
+        }
+        Assert.True(ink > 50);
+    }
+
+    [Theory]
     [InlineData(90, OfficeFontStyle.Italic, "f")]
     [InlineData(180, OfficeFontStyle.Italic, "j")]
     [InlineData(270, OfficeFontStyle.Bold | OfficeFontStyle.Italic, "f")]

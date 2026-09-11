@@ -18,7 +18,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 : Math.Max(.001D, canvas.MeasureText(lines[index], sourceSize * text.BaselineScale, text.Font.FamilyName, text.Font.Style));
             var bounds = canvas.MeasurePositionedTextBounds(lines[index], 0D, offset + text.BaselineOffset * scale,
                 text.Width * scale, text.Height * scale - offset, sourceSize * text.BaselineScale, text.Font, advance,
-                text.Alignment, text.FeatureSettings, text.FontPalette, sourceSize);
+                text.Alignment, text.FeatureSettings, text.FontPalette, sourceSize, text.UnderlineStyle, text.StrikethroughStyle);
             left = Math.Min(left, bounds.Left); top = Math.Min(top, bounds.Top);
             right = Math.Max(right, bounds.Right); bottom = Math.Max(bottom, bounds.Bottom);
         }
