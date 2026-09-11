@@ -10,6 +10,50 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
+    [Fact]
+    public void RenderPage_SpacedRunRetainsComplexClipOnce() {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        const string resources = "<< /Font << /F1 5 0 R >> >>";
+        var clip = new StringBuilder("10 80 m ");
+        for (int index = 0; index < 128; index++) clip.Append("60 80 l 60 120 l 10 120 l 10 80 l ");
+        clip.Append("h W n ");
+        const int glyphCount = 64;
+        byte[] pdf = BuildSingleStreamPdf(clip + "BT /F1 10 Tf -6 Tc 20 100 Td (" + new string('A', glyphCount) + ") Tj ET", resources, font);
+        OfficeDrawing actual = PdfPageImageRenderer.RenderPage(pdf);
+        int retainedCommands = CountRetainedClipCommands(actual);
+        // Retained scene work must grow with path size plus glyph count, not their product.
+        Assert.True(retainedCommands <= 1024, "Retained clip commands: " + retainedCommands);
+        var reference = new StringBuilder(clip.ToString());
+        for (int index = 0; index < glyphCount; index++) reference.Append("BT /F1 10 Tf 20 100 Td (A) Tj ET ");
+        OfficeDrawing expected = PdfPageImageRenderer.RenderPage(BuildSingleStreamPdf(reference.ToString(), resources, font));
+        Assert.Equal(OfficeDrawingRasterRenderer.Render(expected).GetPixels(), OfficeDrawingRasterRenderer.Render(actual).GetPixels());
+    }
+
+    private static int CountRetainedClipCommands(OfficeDrawing drawing) => drawing.Elements.OfType<OfficeDrawingGroup>()
+        .Sum(group => group.ClipPath.Commands.Count + CountRetainedClipCommands(group.Drawing));
+
+    [Theory]
+    [InlineData("90 80 m 120 80 l 120 120 l h W n ", false)]
+    [InlineData("80 80 m 120 80 l 80 140 l h W n ", true)]
+    [InlineData("90 80 40 40 re 108 95 5 10 re W* n ", false)]
+    [InlineData("90 80 40 40 re 98 105 10 5 re W* n ", true)]
+    [InlineData("-10 80 m 120 80 l 120 120 l -10 120 l h W n ", false)]
+    [InlineData("90 80 m 140 80 140 120 90 120 c h W n ", false)]
+    public void RenderPage_ComplexClippedSpacedTextMatchesExplicitOrigins(string clip, bool rotated) {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        const string resources = "<< /Font << /F1 5 0 R >> >>";
+        string matrix = rotated ? "0 1 -1 0 100 100 Tm " : "1 0 0 1 100 100 Tm ";
+        string stream = clip + "BT /F1 10 Tf " + matrix + "2 Tc (ABCD) Tj ET";
+        var reference = new StringBuilder(clip);
+        for (int index = 0; index < 4; index++) reference.Append("BT /F1 10 Tf ").Append(matrix)
+            .Append(index * 8).Append(" 0 Td (").Append((char)('A' + index)).Append(") Tj ET ");
+        OfficeDrawing actual = PdfPageImageRenderer.RenderPage(BuildSingleStreamPdf(stream, resources, font));
+        OfficeDrawing expected = PdfPageImageRenderer.RenderPage(BuildSingleStreamPdf(reference.ToString(), resources, font));
+        byte[] pixels = OfficeDrawingRasterRenderer.Render(actual).GetPixels();
+        Assert.Contains(pixels, channel => channel != 0);
+        Assert.Equal(OfficeDrawingRasterRenderer.Render(expected).GetPixels(), pixels);
+    }
+
     [Theory]
     [InlineData("", 1000)]
     [InlineData("0 0 1 1 re W n 10 10 1 1 re W n ", 20)]

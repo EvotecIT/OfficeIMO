@@ -166,17 +166,27 @@ public sealed partial class PdfReadPage {
         cancellationToken = pageContentBudget.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
         PdfPageClipPath? activeClip = span.ClipPath;
+        OfficeClipPath? sharedClip = null;
+        PdfPageClipPath sharedClipBounds = default;
         bool canCullClip = false;
         if (activeClip.HasValue) {
             PdfPageClipPath clip = activeClip.Value;
             if (clip.Width <= 0D || clip.Height <= 0D) return true;
             canCullClip = clip.IsRectangle || clip.ToOfficeClipPath(clip.X, clip.Y) != null;
             if (canCullClip && !HasVisibleOverlap(clip.X, clip.Y, clip.Width, clip.Height, drawing.Width, drawing.Height)) return true;
+            if (canCullClip && !clip.IsRectangle && TryFitClipToDrawing(clip, drawing.Width, drawing.Height, out sharedClipBounds)) {
+                sharedClip = sharedClipBounds.ToOfficeClipPath(sharedClipBounds.X, sharedClipBounds.Y);
+            }
         }
         if (!CanExpandSpacedText(span, cancellationToken, out double direction)) return false;
         IReadOnlyList<int> characterLengths = span.GlyphCharacterLengths!;
         IReadOnlyList<double> paintedAdvances = span.GlyphPaintedAdvances!;
         IReadOnlyList<double> characterAdvances = span.CharacterAdvances!;
+        // A path can contain thousands of commands. Retain it once for the run,
+        // rather than cloning and rasterizing it separately for every glyph.
+        OfficeDrawing glyphDrawing = sharedClip == null ? drawing : new OfficeDrawing(drawing.Width, drawing.Height);
+        PdfPageClipPath? glyphClip = sharedClip == null ? span.ClipPath :
+            PdfPageClipPath.Rectangle(sharedClipBounds.X, sharedClipBounds.Y, sharedClipBounds.Width, sharedClipBounds.Height);
 
         double radians = span.RotationDegrees * Math.PI / 180D;
         double alongX = Math.Cos(radians);
@@ -193,10 +203,10 @@ public sealed partial class PdfReadPage {
                 // Charge only scene expansion, before creating any glyph string or object.
                 pageContentBudget.ChargePositionedTextCharacters(length);
                 var glyph = new PdfTextSpan(span.Text.Substring(characterOffset, length), span.FontResource, span.FontSize,
-                    x, y, paintedAdvances[index], span.Color, span.IsVisible, span.RotationDegrees, span.BaseFont, span.ClipPath,
+                    x, y, paintedAdvances[index], span.Color, span.IsVisible, span.RotationDegrees, span.BaseFont, glyphClip,
                     drawingFontFamily: span.DrawingFontFamily, fontWeight: span.FontWeight,
                     fontDescriptorFlags: span.FontDescriptorFlags);
-                AddTextSpan(drawing, pageHeight, glyph, pageContentBudget, cancellationToken);
+                AddTextSpan(glyphDrawing, pageHeight, glyph, pageContentBudget, cancellationToken);
             }
             // Stream origins instead of allocating an array for a potentially huge
             // off-page run. Nonpainting prefixes still move later glyphs correctly.
@@ -205,6 +215,11 @@ public sealed partial class PdfReadPage {
                 cancellationToken.ThrowIfCancellationRequested();
                 offset += characterAdvances[characterOffset] * direction;
             }
+        }
+        if (sharedClip != null && glyphDrawing.Elements.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            drawing.AddClippedDrawing(glyphDrawing, sharedClipBounds.X, sharedClipBounds.Y, sharedClip,
+                -sharedClipBounds.X, -sharedClipBounds.Y);
         }
         return true;
     }
