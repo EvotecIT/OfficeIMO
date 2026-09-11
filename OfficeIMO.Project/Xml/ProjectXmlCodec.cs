@@ -40,7 +40,7 @@ internal static partial class ProjectXmlCodec {
 
     internal static byte[] Write(ProjectDocument document, ProjectSaveOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!document.IsModified && options.PreserveUnchangedBytes && (document.LastSavedBytes ?? document.Source?.OriginalBytes) is byte[] original) {
+        if (RetainedBytes(document, options) is byte[] original) {
             if (original.LongLength > options.MaxOutputBytes) throw new InvalidDataException("Project output exceeds MaxOutputBytes.");
             return original;
         }
@@ -52,6 +52,9 @@ internal static partial class ProjectXmlCodec {
         cancellationToken.ThrowIfCancellationRequested();
         return buffer.ToArray();
     }
+
+    internal static byte[]? RetainedBytes(ProjectDocument document, ProjectSaveOptions options) =>
+        !document.IsModified && options.PreserveUnchangedBytes ? document.LastSavedBytes ?? document.Source?.OriginalBytes : null;
 
     private static XElement NewNode(ProjectDocument document, object model, string name) =>
         document.Source?.CloneOrCreate(model, name) ?? new XElement(XName.Get(name, document.XmlNamespace));

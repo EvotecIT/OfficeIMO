@@ -13,10 +13,11 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ### Project XML dependency
 
-`OfficeIMO.Project` requires `OfficeIMO.Core` 3.4.3 or later. Core supplies the shared
+Keep `OfficeIMO.Project` and `OfficeIMO.Core` on the same coordinated release. Core supplies the shared
 document I/O, atomic file replacement, and bounded XML primitives used by the Project
-assembly. Keep this minimum when resolving or explicitly pinning the transitive Core
-dependency; Core 3.4.2 does not contain the required assembly access declaration.
+assembly. If an application explicitly pins the transitive Core dependency, update
+that pin with Project and perform a clean restore; an older Core assembly can lack
+the internal assembly access required by Project.
 
 ### Project report layout defaults
 

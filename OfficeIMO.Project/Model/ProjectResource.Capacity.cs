@@ -67,7 +67,7 @@ public sealed class ProjectResourceRate : ProjectObject {
     public decimal? StandardRate { get => _standardRate; set => Set(ref _standardRate, value, true); }
     /// <summary>Currency units per overtime hour.</summary>
     public decimal? OvertimeRate { get => _overtimeRate; set => Set(ref _overtimeRate, value, true); }
-    /// <summary>One charge per assignment in currency units.</summary>
+    /// <summary>Currency charge per assigned work-resource unit, or once per material assignment regardless of quantity.</summary>
     public decimal? CostPerUse { get => _costPerUse; set => Set(ref _costPerUse, value, true); }
     /// <summary>Source display-unit code; it does not rescale StandardRate.</summary>
     public int? StandardRateFormat { get => _standardRateFormat; set => Set(ref _standardRateFormat, value); }

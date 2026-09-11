@@ -15,6 +15,35 @@ public sealed class ProjectFormatRegressionTests {
     [InlineData(ProjectFileFormat.Mpt12)]
     [InlineData(ProjectFileFormat.Mpp14)]
     [InlineData(ProjectFileFormat.Mpt14)]
+    public void RetainedOutputAssessmentHonorsTheExactByteLimit(ProjectFileFormat format) {
+        using var authored = ProjectDocument.Create(); authored.Calendar = authored.Calendars.AddStandardWorkingWeek();
+        authored.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0); authored.Tasks.Add("Retained document");
+        using var source = new MemoryStream();
+        authored.Save(source, new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] bytes = source.ToArray();
+        using var document = ProjectDocument.Load(new MemoryStream(bytes));
+        var exact = new ProjectSaveOptions { Format = format, MaxOutputBytes = bytes.Length, LossPolicy = OfficeConversionLossPolicy.Allow };
+        document.AssessSave(exact).ThrowIfErrors();
+        using var copy = new MemoryStream(); document.Save(copy, exact); Assert.Equal(bytes, copy.ToArray());
+        var tooSmall = new ProjectSaveOptions { Format = format, MaxOutputBytes = bytes.Length - 1, LossPolicy = OfficeConversionLossPolicy.Allow };
+        Assert.True(document.AssessSave(tooSmall).HasErrors);
+        using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, true);
+        Assert.Throws<InvalidDataException>(() => document.Save(destination, tooSmall));
+        Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
+        Assert.False(document.IsModified);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Xml)]
+    [InlineData(ProjectFileFormat.Mpx4)]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpt8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpt9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpt12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    [InlineData(ProjectFileFormat.Mpt14)]
     public void FullDayCalendarsRetainTwentyFourHoursAcrossEveryFormat(ProjectFileFormat format) {
         using var document = ProjectDocument.Create();
         document.Settings.StartDate = new DateTime(2026, 10, 5);

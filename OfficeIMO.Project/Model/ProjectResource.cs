@@ -60,7 +60,7 @@ public sealed partial class ProjectResource : ProjectNamedEntity {
     public decimal? OvertimeRate { get => _overtimeRate; set => Set(ref _overtimeRate, value, true); }
 
     private decimal? _costPerUse;
-    /// <summary>Stored cost per use; null represents an absent source value.</summary>
+    /// <summary>Currency charge per assigned work-resource unit, or once per material assignment regardless of quantity; null represents an absent source value.</summary>
     public decimal? CostPerUse { get => _costPerUse; set => Set(ref _costPerUse, value, true); }
 
     private decimal? _cost;

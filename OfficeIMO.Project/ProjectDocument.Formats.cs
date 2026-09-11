@@ -68,9 +68,16 @@ public sealed partial class ProjectDocument {
 
     private ProjectReport AssessFormat(ProjectSaveOptions options, ProjectFileFormat format, CancellationToken token, bool includeNativePlan = true) {
         token.ThrowIfCancellationRequested();
-        if (CanRetainNative(options, format)) return new ProjectReport(Revision, NativeSource!.UnrepresentedValues);
+        if (CanRetainNative(options, format)) {
+            var retained = NativeSource!.UnrepresentedValues.ToList();
+            AddRetainedOutputLimit(retained, NativeSource.Bytes, options);
+            return new ProjectReport(Revision, retained);
+        }
         if (format == ProjectFileFormat.Mpx4 && ProjectMpxWriter.CanRetain(this, options)) return ProjectMpxWriter.Plan(this, options, false, token).Report;
         var diagnostics = Validate(token).Diagnostics.ToList();
+        if (format == ProjectFileFormat.Xml && NativeSource == null && MpxSource == null
+            && ProjectXmlCodec.RetainedBytes(this, options) is byte[] retainedXml)
+            AddRetainedOutputLimit(diagnostics, retainedXml, options);
         if (format == ProjectFileFormat.Mpx4) {
             diagnostics.RemoveAll(d => d.Code == "PROJECT_OPAQUE_REFERENCES");
             if (includeNativePlan && !diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error))
@@ -101,5 +108,9 @@ public sealed partial class ProjectDocument {
         if (format != ProjectFileFormat.Mpx4 && MpxSource?.Comments.Count > 0) diagnostics.Add(new ProjectDiagnostic("PROJECT_MPX_COMMENT_LOSS", ProjectDiagnosticSeverity.Warning,
             "MPX comment records have no model mapping and are omitted during conversion.", "/", true));
         return new ProjectReport(Revision, diagnostics);
+    }
+    private static void AddRetainedOutputLimit(List<ProjectDiagnostic> diagnostics, byte[] bytes, ProjectSaveOptions options) {
+        if (bytes.LongLength > options.MaxOutputBytes) diagnostics.Add(new ProjectDiagnostic("PROJECT_OUTPUT_LIMIT",
+            ProjectDiagnosticSeverity.Error, "Retained output exceeds MaxOutputBytes.", "/"));
     }
 }

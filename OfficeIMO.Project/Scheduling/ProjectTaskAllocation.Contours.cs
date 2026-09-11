@@ -27,6 +27,7 @@ internal sealed partial class ProjectTaskAllocation {
         var assignment = entry.Assignment;
         var actual = assignment.TimephasedData.Where(v => v.Type == 2).OrderBy(v => v.Start).ToArray();
         var overtime = assignment.TimephasedData.Where(v => v.Type == 3).OrderBy(v => v.Start).ToArray();
+        ValidateActualCurves(entry, actual, overtime);
         var result = new List<ProjectAssignmentInterval>();
         if (actual.Length == 0) {
             if (overtime.Length != 0) throw new InvalidDataException("Timephased actual overtime requires explicit actual-work intervals before calculation.");
@@ -63,6 +64,39 @@ internal sealed partial class ProjectTaskAllocation {
         if (Math.Abs(result.Sum(i => i.Work.Minutes) - entry.Actual) > .001m || Math.Abs(result.Sum(i => i.OvertimeWork.Minutes) - entry.ActualOvertime) > .001m)
             throw new InvalidDataException("Timephased actual work differs from stored actual work or overtime.");
         return ValidateActualBounds(assignment, result);
+    }
+    private void ValidateActualCurves(Entry entry, ProjectTimephasedValue[] actual, ProjectTimephasedValue[] overtime) {
+        foreach (var curves in new[] { actual, overtime }) {
+            DateTime? previous = null;
+            foreach (var curve in curves) {
+                _token.ThrowIfCancellationRequested(); RequireInterval(curve);
+                decimal amount = WorkValue(curve);
+                if (amount < 0 || (previous.HasValue && previous > curve.Start))
+                    throw new InvalidDataException("Actual-work and overtime curves require nonnegative, nonoverlapping intervals.");
+                previous = curve.Finish;
+                if (amount > 0 && curve.Start != curve.Finish && entry.Calendar.Between(curve.Start!.Value, curve.Finish!.Value) <= 0)
+                    throw new InvalidDataException("Nonzero actual work falls outside the effective working calendar.");
+            }
+        }
+        if ((actual.Length > 0 && Math.Abs(actual.Sum(WorkValue) - entry.Actual) > .001m)
+            || (overtime.Length > 0 && Math.Abs(overtime.Sum(WorkValue) - entry.ActualOvertime) > .001m))
+            throw new InvalidDataException("Timephased actual work differs from stored actual work or overtime.");
+        foreach (var over in overtime) {
+            _token.ThrowIfCancellationRequested();
+            if (WorkValue(over) == 0) continue;
+            DateTime start = over.Start!.Value, finish = over.Finish!.Value;
+            bool covered;
+            if (start == finish) covered = actual.Any(a => a.Start == start && a.Finish == finish);
+            else {
+                decimal overlap = 0;
+                foreach (var item in actual) {
+                    DateTime from = Max(start, item.Start!.Value), to = Min(finish, item.Finish!.Value);
+                    if (from < to) overlap += entry.Calendar.Between(from, to);
+                }
+                covered = overlap == entry.Calendar.Between(start, finish);
+            }
+            if (!covered) throw new InvalidDataException("Every nonzero actual-overtime curve requires complete actual-work interval coverage.");
+        }
     }
     private static ProjectAssignmentInterval[] ValidateActualBounds(ProjectAssignment assignment, List<ProjectAssignmentInterval> intervals) {
         if (intervals.Count > 0) {

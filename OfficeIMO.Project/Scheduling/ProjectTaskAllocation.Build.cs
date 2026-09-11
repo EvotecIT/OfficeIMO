@@ -17,6 +17,11 @@ internal sealed partial class ProjectTaskAllocation {
             if (inverse.Finish > anchor) throw new InvalidOperationException("Assignment calendars and delays cannot meet the requested finish bound.");
             return inverse;
         }
+        var recordedWork = _entries.Where(e => e.Assignment.Resource!.Type == ProjectResourceType.Work)
+            .SelectMany(e => e.ActualIntervals).ToArray();
+        DateTime? actualTaskStart = _task.ActualStart ?? (recordedWork.Length > 0 ? recordedWork.Min(i => i.Start) : (DateTime?)null);
+        DateTime? actualTaskEnd = _task.ActualDuration.HasValue && actualTaskStart.HasValue
+            ? TaskAdd(actualTaskStart.Value, _actualTaskDuration) : (DateTime?)null;
         var plans = new List<ProjectAssignmentSchedule>();
         long intervalCount = 0;
         foreach (var entry in _entries) {
@@ -31,6 +36,7 @@ internal sealed partial class ProjectTaskAllocation {
                 if (entry.RemainingOrigin.HasValue) origin = Max(origin, entry.RemainingOrigin.Value);
             }
             if (assignment.Resume.HasValue) origin = Max(origin, assignment.Resume.Value);
+            if (actualTaskEnd.HasValue) origin = Max(origin, actualTaskEnd.Value);
             if (_task.Resume.HasValue) origin = Max(origin, _task.Resume.Value);
             if (_options.RescheduleRemainingAfterStatusDate) origin = Max(origin, _document.Settings.StatusDate!.Value);
             var intervals = new List<ProjectAssignmentInterval>(entry.ActualIntervals);
@@ -81,6 +87,7 @@ internal sealed partial class ProjectTaskAllocation {
             duration = UnionMinutes(workIntervals);
             if (_task.ActualDuration is ProjectDuration recordedDuration)
                 actualDuration = recordedDuration.Value * ProjectXmlValue.MinutesPerUnit(recordedDuration.Unit, recordedDuration.IsElapsed, _document);
+            if (actualTaskEnd.HasValue) duration = actualDuration + UnionMinutes(workIntervals.Where(i => !i.IsActual));
             // Concurrent actual and remaining assignment effort must not count the same task duration twice.
             remainingDuration = Math.Max(0m, duration - actualDuration);
             if (_task.Type == ProjectTaskType.FixedDuration) {

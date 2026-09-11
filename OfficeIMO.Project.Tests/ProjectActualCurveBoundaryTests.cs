@@ -1,0 +1,103 @@
+namespace OfficeIMO.Project.Tests;
+
+public sealed class ProjectActualCurveBoundaryTests {
+    private static readonly DateTime Monday = new(2026, 10, 5, 8, 0, 0);
+
+    [Theory]
+    [InlineData(3, 4, false)]
+    [InlineData(1, 3, true)]
+    [InlineData(3, 3, true)]
+    public void ActualOvertimeOutsideActualWorkCannotBeSilentlyDropped(int from, int to, bool scalar) {
+        using var document = Create();
+        var task = document.Tasks.Add("Recorded work"); task.Duration = ProjectDuration.WorkingHours(8);
+        var assignment = document.Assignments.Add(task, document.Resources.AddWork("Engineer"));
+        assignment.Work = ProjectWork.Hours(8); assignment.ActualWork = ProjectWork.Hours(2);
+        if (scalar) assignment.ActualOvertimeWork = ProjectWork.Hours(1);
+        Add(assignment, 2, Monday, Monday.AddHours(2), "PT2H");
+        Add(assignment, 3, Monday.AddHours(from), Monday.AddHours(to), "PT1H");
+        long revision = document.Revision;
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
+        Assert.True(result.Report.HasErrors); Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result));
+        Assert.Equal(revision, document.Revision); Assert.Equal(2, assignment.TimephasedData.Count);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ActualOvertimeCoverageAllowsCalendarBreaksButRejectsMissingWorkingTime(bool workingGap) {
+        using var document = Create();
+        var task = document.Tasks.Add("Recorded work"); task.Duration = ProjectDuration.WorkingHours(8);
+        var resource = document.Resources.AddWork("Engineer"); resource.StandardRate = 100; resource.OvertimeRate = 150;
+        var assignment = document.Assignments.Add(task, resource);
+        assignment.Work = assignment.ActualWork = ProjectWork.Hours(workingGap ? 4 : 6);
+        assignment.ActualOvertimeWork = ProjectWork.Hours(1);
+        Add(assignment, 2, Monday, Monday.AddHours(workingGap ? 2 : 4), workingGap ? "PT2H" : "PT4H");
+        Add(assignment, 2, Monday.AddHours(5), Monday.AddHours(7), "PT2H");
+        Add(assignment, 3, Monday, Monday.AddHours(7), "PT1H");
+        var options = new ProjectScheduleOptions { CalculateAssignments = true };
+        var result = document.CalculateSchedule(options);
+        if (workingGap) { Assert.True(result.Report.HasErrors); Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result)); return; }
+        result.Report.ThrowIfErrors(); var plan = Assert.Single(result.Assignments);
+        Assert.Equal(360m, plan.ActualWork.Minutes); Assert.Equal(60m, plan.Intervals.Sum(i => i.OvertimeWork.Minutes));
+        Assert.Equal(650m, decimal.Round(plan.ActualCost!.Value, 2));
+        document.ApplySchedule(result);
+        using var reopened = document.Clone(); var repeated = reopened.CalculateSchedule(options); repeated.Report.ThrowIfErrors();
+        Assert.Equal(plan.ActualWork, Assert.Single(repeated.Assignments).ActualWork);
+        Assert.Equal(650m, decimal.Round(Assert.Single(repeated.Assignments).ActualCost!.Value, 2));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StoredActualDurationRespectsLaterResumeAndResourceCalendar(bool statusDate) {
+        using var document = Create();
+        var task = document.Tasks.Add("Progress"); task.Duration = ProjectDuration.WorkingHours(16);
+        task.ActualStart = Monday; task.ActualDuration = task.RemainingDuration = ProjectDuration.WorkingHours(8);
+        var resource = document.Resources.AddWork("Engineer");
+        resource.Calendar = document.Calendars.AddStandardWorkingWeek("Afternoon Tuesday");
+        resource.Calendar.SetWorkingDay(DayOfWeek.Tuesday, ProjectWorkingTime.Hours(13, 17));
+        var assignment = document.Assignments.Add(task, resource); assignment.Work = ProjectWork.Hours(10); assignment.ActualWork = ProjectWork.Hours(2);
+        Add(assignment, 2, Monday, Monday.AddHours(2), "PT2H");
+        if (statusDate) document.Settings.StatusDate = Monday.AddDays(1).AddHours(6);
+        else { task.Stop = Monday.AddHours(9); task.Resume = Monday.AddDays(1).AddHours(1); }
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true, RescheduleRemainingAfterStatusDate = statusDate });
+        result.Report.ThrowIfErrors();
+        Assert.Equal(Monday.AddDays(1).AddHours(statusDate ? 6 : 5), Assert.Single(result.Assignments).Intervals.Where(i => !i.IsActual).Min(i => i.Start));
+        Assert.Equal(480m, Assert.Single(result.Tasks).Calculation!.RemainingDuration.Value);
+    }
+
+    [Theory]
+    [InlineData(false, ProjectTaskType.FixedDuration)]
+    [InlineData(true, ProjectTaskType.FixedDuration)]
+    [InlineData(false, ProjectTaskType.FixedUnits)]
+    [InlineData(false, ProjectTaskType.FixedWork)]
+    public void RemainingWorkStartsAfterTheRecordedTaskActualDuration(bool manual, ProjectTaskType type) {
+        using var document = Create();
+        var task = document.Tasks.Add("Partly staffed progress"); task.Type = type;
+        task.Duration = ProjectDuration.WorkingHours(16); task.ActualStart = Monday;
+        task.ActualDuration = task.RemainingDuration = ProjectDuration.WorkingHours(8);
+        if (manual) { task.IsManual = true; task.Start = Monday; task.Finish = Monday.AddDays(1).AddHours(9); }
+        var resource = document.Resources.AddWork("Engineer"); resource.StandardRate = 100;
+        var assignment = document.Assignments.Add(task, resource);
+        assignment.Work = ProjectWork.Hours(10); assignment.ActualWork = ProjectWork.Hours(2);
+        Add(assignment, 2, Monday, Monday.AddHours(2), "PT2H");
+        var options = new ProjectScheduleOptions { CalculateAssignments = true };
+        var result = document.CalculateSchedule(options); result.Report.ThrowIfErrors();
+        var plan = Assert.Single(result.Assignments);
+        Assert.Equal(Monday.AddDays(1), plan.Intervals.Where(i => !i.IsActual).Min(i => i.Start));
+        Assert.Equal(480m, Assert.Single(result.Tasks).Calculation!.RemainingDuration.Value);
+        Assert.Equal(1000m, plan.Cost);
+        document.ApplySchedule(result);
+        using var reopened = document.Clone();
+        var repeated = reopened.CalculateSchedule(options); repeated.Report.ThrowIfErrors();
+        Assert.Equal(Monday.AddDays(1), Assert.Single(repeated.Assignments).Intervals.Where(i => !i.IsActual).Min(i => i.Start));
+    }
+
+    private static ProjectDocument Create() {
+        var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
+        document.Settings.StartDate = Monday; return document;
+    }
+    private static void Add(ProjectAssignment assignment, int type, DateTime start, DateTime finish, string value) {
+        var curve = assignment.TimephasedData.Add(); curve.Type = type; curve.Start = start; curve.Finish = finish; curve.Value = value;
+    }
+}
