@@ -50,7 +50,10 @@ public static partial class InvoiceParser {
             } else if (institution != null) c.Loss(institution, "A financial institution without an account is outside the supported mapping.");
             XElement? card = c.Child(element, Ram + "ApplicableTradeSettlementFinancialCard");
             string? cardNumber = c.Text(card, Ram + "ID"), cardHolder = c.Text(card, Ram + "CardholderName");
-            string? debit = c.Text(c.Child(element, Ram + "PayerPartyDebtorFinancialAccount"), Ram + "IBANID");
+            XElement? debtorAccount = c.Child(element, Ram + "PayerPartyDebtorFinancialAccount");
+            string? debit = c.Text(debtorAccount, Ram + "IBANID");
+            if (debit != null && !InvoiceBankAccountIdentity.IsValidIban(debit))
+                c.Loss(debtorAccount!, "The source debtor account is explicitly identified as an IBAN but does not have a valid IBAN identifier and checksum.");
             if (result.CardNumber != null && cardNumber != null) Agree(c, element, result.CardNumber, cardNumber, "card numbers");
             if (result.CardHolder != null && cardHolder != null) Agree(c, element, result.CardHolder, cardHolder, "card holders");
             if (result.DebitedAccount != null && debit != null) Agree(c, element, result.DebitedAccount, debit, "debited accounts");

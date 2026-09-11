@@ -2,6 +2,20 @@ namespace OfficeIMO.Invoicing.Tests;
 
 public class InvoiceConversionBoundaryTests {
     [Theory]
+    [InlineData("LOCAL-123")]
+    [InlineData("DE12345678901234567890")]
+    public void InvalidSourceDebtorIbanCannotBeRecastAsAGenericUblAccount(string identifier) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Payment!.MeansCode = "49";
+        invoice.Payment.DebitedAccount = "DE89370400440532013000";
+        string source = System.Text.Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice)).Replace(invoice.Payment.DebitedAccount, identifier);
+        InvoiceConversionResult result = InvoiceConverter.Convert(System.Text.Encoding.UTF8.GetBytes(source), new InvoiceXmlOptions(InvoiceSyntax.Ubl));
+        Assert.False(result.Succeeded);
+        Assert.Null(result.Xml);
+        Assert.Contains(result.Diagnostics, d => d.Severity == InvoiceDiagnosticSeverity.Error);
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData("<bad>")]
     [InlineData("<not-an-invoice />")]
