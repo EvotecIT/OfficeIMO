@@ -29,7 +29,7 @@ public sealed class ProjectDependency : ProjectObject {
     }
     /// <summary>Whether percentage lag advances elapsed time instead of the successor's working calendar. Requires percentage lag.</summary>
     public bool LagPercentIsElapsed { get => _lagPercentIsElapsed; set { RequirePercentage(value); Set(ref _lagPercentIsElapsed, value, true); } }
-    /// <summary>Whether percentage lag carries the source's estimated marker. Requires percentage lag; does not change arithmetic.</summary>
+    /// <summary>Whether percentage lag carries the source's estimated marker. Requires percentage lag; calculation requires explicit normalization because application arithmetic is unqualified.</summary>
     public bool LagPercentIsEstimated { get => _lagPercentIsEstimated; set { RequirePercentage(value); Set(ref _lagPercentIsEstimated, value, true); } }
     internal int PercentageLagFormat => 19 + (LagPercentIsElapsed ? 1 : 0) + (LagPercentIsEstimated ? 32 : 0);
     private void RequirePercentage(bool value) { if (value && !LagPercent.HasValue) throw new InvalidOperationException("Set percentage lag before its elapsed or estimated flags."); }

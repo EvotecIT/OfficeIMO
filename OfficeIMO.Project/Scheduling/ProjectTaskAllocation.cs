@@ -10,6 +10,7 @@ internal sealed partial class ProjectTaskAllocation {
     private readonly Entry[] _entries;
     private readonly Action<ProjectDiagnostic> _diagnostic;
     private readonly decimal _requestedDuration;
+    private readonly decimal _actualTaskDuration, _remainingTaskDuration;
     private sealed class Entry {
         internal ProjectAssignment Assignment = null!;
         internal ProjectCalendarMath Calendar = null!;
@@ -64,6 +65,15 @@ internal sealed partial class ProjectTaskAllocation {
             entry.RemainingCalendar = splits == null || splits.Count == 0 ? entry.Calendar : entry.Calendar.Excluding(splits);
             return entry;
         }).ToArray();
+        _actualTaskDuration = task.ActualDuration is ProjectDuration recorded
+            ? recorded.Value * ProjectXmlValue.MinutesPerUnit(recorded.Unit, recorded.IsElapsed, _document)
+            : UnionMinutes(_entries.Where(e => e.Assignment.Resource!.Type == ProjectResourceType.Work).SelectMany(e => e.ActualIntervals));
+        _remainingTaskDuration = task.RemainingDuration is ProjectDuration remainingDuration
+            ? remainingDuration.Value * ProjectXmlValue.MinutesPerUnit(remainingDuration.Unit, remainingDuration.IsElapsed, _document)
+            : _requestedDuration - _actualTaskDuration;
+        if (_remainingTaskDuration < 0 || Math.Abs(_requestedDuration - _actualTaskDuration - _remainingTaskDuration) > .001m)
+            throw new InvalidDataException("Declared task duration must equal actual plus remaining duration; supply compatible progress inputs.");
+        foreach (var entry in _entries) PrepareCurves(entry, redistribute && entry.Assignment.Resource!.Type == ProjectResourceType.Work);
     }
     private void Warn(string code, string message, ProjectAssignment assignment) => _diagnostic(new ProjectDiagnostic(code,
         ProjectDiagnosticSeverity.Warning, message, "/Assignment[UID=" + assignment.Uid + "]"));
@@ -86,7 +96,7 @@ internal sealed partial class ProjectTaskAllocation {
             throw new InvalidDataException("Assignment total work must equal actual plus remaining work.");
         decimal? stored = assignment.RemainingWork?.Minutes ?? (assignment.Work?.Minutes - entry.Actual);
         if (resource.Type == ProjectResourceType.Material) {
-            decimal quantity = assignment.HasFixedRateUnits == false ? VariableQuantity(assignment, _requestedDuration) : entry.Units;
+            decimal quantity = assignment.HasFixedRateUnits == false ? VariableQuantity(assignment, entry.Units, _requestedDuration) : entry.Units;
             entry.Remaining = stored ?? (quantity * 60m - entry.Actual);
             if (Math.Abs(entry.Actual + entry.Remaining - quantity * 60m) > .001m)
                 throw new InvalidDataException("Material actual plus remaining consumption must equal the quantity declared by assignment units and rate scale.");
@@ -96,8 +106,12 @@ internal sealed partial class ProjectTaskAllocation {
         if (resource.Type == ProjectResourceType.Work && entry.Units <= 0 && entry.Remaining > entry.RemainingOvertime)
             throw new InvalidOperationException("Positive remaining regular work requires positive assignment units.");
         entry.ActualIntervals = ActualIntervals(entry);
+    }
+    private void PrepareCurves(Entry entry, bool redistributed) {
+        var assignment = entry.Assignment; var resource = assignment.Resource!;
+        if (resource.Type == ProjectResourceType.Cost) return;
         var storedCurves = assignment.TimephasedData.Where(v => v.Type == 1).OrderBy(v => v.Start).ToArray();
-        if (storedCurves.Length != 0 && !redistributed.HasValue) {
+        if (storedCurves.Length != 0 && !redistributed) {
             entry.RemainingOrigin = storedCurves[0].Start ?? throw new InvalidDataException("Timephased work requires start and finish dates.");
             var curves = new List<Curve>(); DateTime? last = null;
             foreach (var item in storedCurves) {
@@ -113,24 +127,20 @@ internal sealed partial class ProjectTaskAllocation {
             decimal regular = entry.Remaining - entry.RemainingOvertime;
             decimal duration = resource.Type == ProjectResourceType.Material ? _requestedDuration :
                 _task.Type == ProjectTaskType.FixedDuration ? RemainingTaskDuration() : entry.Units > 0 ? regular / entry.Units : 0;
-            if (_task.Type == ProjectTaskType.FixedDuration && resource.Type == ProjectResourceType.Work && duration > 0 && redistributed.HasValue)
+            if (_task.Type == ProjectTaskType.FixedDuration && resource.Type == ProjectResourceType.Work && duration > 0 && redistributed)
                 entry.Units = regular / duration;
             entry.Curves = entry.Remaining == 0 ? Array.Empty<Curve>() : entry.IsFixedMaterial && duration == 0
                 ? new[] { new Curve(0, 0, regular) }
                 : NamedCurves(assignment.WorkContour ?? ProjectWorkContour.Flat, duration, regular);
         }
     }
-    private decimal RemainingTaskDuration() {
-        if (_task.RemainingDuration is ProjectDuration remaining) return remaining.Value * ProjectXmlValue.MinutesPerUnit(remaining.Unit, remaining.IsElapsed, _document);
-        decimal actual = _task.ActualDuration is ProjectDuration duration ? duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, _document) : 0m;
-        return Math.Max(0, _requestedDuration - actual);
-    }
-    private decimal VariableQuantity(ProjectAssignment assignment, decimal minutes) {
+    private decimal RemainingTaskDuration() => _remainingTaskDuration;
+    private decimal VariableQuantity(ProjectAssignment assignment, decimal units, decimal minutes) {
         int scale = assignment.MaterialRateScale ?? throw new InvalidOperationException("Variable material consumption requires an explicit rate scale.");
         decimal perUnit = scale switch { 1 => 1m, 2 => 60m, 3 => _document.Settings.MinutesPerDay ?? 480,
             4 => _document.Settings.MinutesPerWeek ?? 2400, 5 => (_document.Settings.MinutesPerDay ?? 480) * (_document.Settings.DaysPerMonth ?? 20),
             _ => throw new NotSupportedException("Unsupported variable-material rate scale.") };
-        return minutes / perUnit * (assignment.Units?.Value ?? 0m);
+        return minutes / perUnit * units;
     }
     private static void RequireInterval(ProjectTimephasedValue value) {
         if (!value.Start.HasValue || !value.Finish.HasValue || value.Start > value.Finish || value.Value == null)

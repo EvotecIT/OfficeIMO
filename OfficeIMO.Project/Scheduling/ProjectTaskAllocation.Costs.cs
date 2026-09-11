@@ -10,11 +10,23 @@ internal sealed partial class ProjectTaskAllocation {
             decimal? value = assignment.Cost ?? (assignment.RemainingCost.HasValue ? actual + assignment.RemainingCost.Value : (decimal?)null);
             if (value.HasValue && assignment.RemainingCost.HasValue && Math.Abs(value.Value - actual - assignment.RemainingCost.Value) > .01m)
                 throw new InvalidDataException("Cost-resource total cost must equal actual plus remaining cost.");
+            if (assignment.ActualFinish.HasValue && value.HasValue && Math.Abs(value.Value - actual) > .01m)
+                throw new InvalidDataException("A completed cost assignment cannot have remaining cost.");
             if (recorded.Length > 0) {
                 if (Math.Abs(recorded.Sum(c => c.Cost) - actual) > .01m)
                     throw new InvalidDataException("Timephased actual costs differ from the stored actual cost.");
+                foreach (var interval in recorded) {
+                    if (interval.Start < start || interval.Finish > finish
+                        || (assignment.ActualStart.HasValue && interval.Start < assignment.ActualStart)
+                        || (assignment.ActualFinish.HasValue && interval.Finish > assignment.ActualFinish)
+                        || (assignment.Stop.HasValue && interval.Finish > assignment.Stop))
+                        throw new InvalidDataException("Actual-cost intervals must fit the task span and recorded assignment actual dates.");
+                }
                 charges.AddRange(recorded);
-            } else if (value.HasValue || actual != 0) charges.Add(new ProjectCostInterval(start, start, actual, true));
+            } else if (value.HasValue || actual != 0) {
+                var actualDate = assignment.ActualStart ?? assignment.ActualFinish ?? start;
+                charges.Add(new ProjectCostInterval(actualDate, actualDate, actual, true));
+            }
             if (value.HasValue) charges.Add(new ProjectCostInterval(finish, finish, value.Value - actual, false));
             return (value, actual);
         }

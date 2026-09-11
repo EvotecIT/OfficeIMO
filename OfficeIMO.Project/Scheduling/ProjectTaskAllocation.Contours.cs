@@ -36,7 +36,7 @@ internal sealed partial class ProjectTaskAllocation {
             if (regular > 0 && entry.Units <= 0) throw new InvalidOperationException("Recorded actual work needs positive units or explicit intervals.");
             DateTime finish = assignment.Stop ?? assignment.ActualFinish ?? entry.Calendar.Add(start, entry.Units > 0 ? regular / entry.Units : 0m);
             Expand(entry, entry.Calendar, start, finish, entry.Actual, entry.ActualOvertime, true, result);
-            return result.ToArray();
+            return ValidateActualBounds(assignment, result);
         }
         DateTime? previous = null;
         foreach (var item in actual) {
@@ -62,7 +62,17 @@ internal sealed partial class ProjectTaskAllocation {
         }
         if (Math.Abs(result.Sum(i => i.Work.Minutes) - entry.Actual) > .001m || Math.Abs(result.Sum(i => i.OvertimeWork.Minutes) - entry.ActualOvertime) > .001m)
             throw new InvalidDataException("Timephased actual work differs from stored actual work or overtime.");
-        return result.ToArray();
+        return ValidateActualBounds(assignment, result);
+    }
+    private static ProjectAssignmentInterval[] ValidateActualBounds(ProjectAssignment assignment, List<ProjectAssignmentInterval> intervals) {
+        if (intervals.Count > 0) {
+            DateTime start = intervals.Min(i => i.Start), finish = intervals.Max(i => i.Finish);
+            if ((assignment.ActualStart.HasValue && assignment.ActualStart != start)
+                || (assignment.ActualFinish.HasValue && assignment.ActualFinish != finish)
+                || (assignment.Stop.HasValue && assignment.Stop != finish))
+                throw new InvalidDataException("Actual-work intervals must agree with recorded assignment actual start, actual finish, and stop dates.");
+        }
+        return intervals.ToArray();
     }
     private void Expand(Entry entry, ProjectCalendarMath calendar, DateTime start, DateTime finish, decimal work, decimal overtime, bool actual, List<ProjectAssignmentInterval> output) {
         if (work == 0 && overtime == 0) return;

@@ -167,6 +167,8 @@ internal sealed partial class ProjectScheduler {
     }
     private DateTime Snap(Node node, DateTime date, bool forward) => node.Elapsed || node.Minutes == 0 ? date : node.Calendar.Snap(date, forward);
     private DateTime Lag(ProjectDependency link, DateTime date, bool reverse) {
+        if (link.LagPercentIsEstimated)
+            throw new NotSupportedException("Estimated percentage lag has unqualified application arithmetic. Explicitly select an unestimated percentage or a duration lag before calculation.");
         var successor = _nodes[link.Successor];
         decimal predecessorMinutes;
         if (_externalDependencies.TryGetValue(link, out var external)) {

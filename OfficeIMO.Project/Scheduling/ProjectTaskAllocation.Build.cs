@@ -47,6 +47,9 @@ internal sealed partial class ProjectTaskAllocation {
             if (assignment.Resource!.Type == ProjectResourceType.Cost) {
                 start = anchor;
                 finish = anchor;
+            } else if ((assignment.ActualStart.HasValue && assignment.ActualStart != start)
+                || (assignment.ActualFinish.HasValue && assignment.ActualFinish != finish)) {
+                throw new InvalidDataException("Calculated assignment bounds must preserve recorded actual start and finish.");
             }
             var charges = new List<ProjectCostInterval>(); decimal? cost = null, actualCost = null;
             if (costs && assignment.Resource.Type != ProjectResourceType.Cost) (cost, actualCost) = CalculateCosts(entry, intervals, start, finish, charges);
@@ -96,6 +99,11 @@ internal sealed partial class ProjectTaskAllocation {
             taskStart = _task.Start.Value; taskFinish = _task.Finish.Value;
         }
         for (int index = 0; index < _entries.Length; index++) {
+            if (_entries[index].Assignment.Resource!.Type == ProjectResourceType.Work) {
+                if (plans[index].Start < taskStart || plans[index].Finish > taskFinish)
+                    throw new InvalidDataException("Work assignment dates must fit the final task dates, including recorded actuals.");
+                continue;
+            }
             if (_entries[index].Assignment.Resource!.Type != ProjectResourceType.Material) continue;
             var material = plans[index];
             if ((workIntervals.Length != 0 && duration != _requestedDuration) || material.Start < taskStart || material.Finish > taskFinish)
@@ -106,6 +114,10 @@ internal sealed partial class ProjectTaskAllocation {
             var entry = _entries[index];
             if (entry.Assignment.Resource!.Type != ProjectResourceType.Cost) continue;
             _token.ThrowIfCancellationRequested();
+            foreach (var date in new[] { entry.Assignment.ActualStart, entry.Assignment.ActualFinish, entry.Assignment.Stop }) {
+                if (date.HasValue && (date < taskStart || date > taskFinish))
+                    throw new InvalidDataException("Cost assignment actual dates must fit the final task dates.");
+            }
             var charges = new List<ProjectCostInterval>(); decimal? cost = null, actualCost = null;
             if (costs) (cost, actualCost) = CalculateCosts(entry, new List<ProjectAssignmentInterval>(), taskStart, taskFinish, charges);
             plans[index] = new ProjectAssignmentSchedule(entry.Assignment, taskStart, taskFinish, entry.Units,

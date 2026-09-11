@@ -20,12 +20,17 @@ public sealed class ProjectPercentageLagTests {
         Assert.Equal(format >= 51, document.Dependencies.Single().LagPercentIsEstimated);
         document.Dependencies.Single().LagPercent = 75;
         Assert.Equal(format.ToString(), XDocument.Parse(document.ToXml()).Descendants().Single(e => e.Name.LocalName == "LagFormat").Value);
+        if (format >= 51) {
+            var unsupported = document.CalculateSchedule(); Assert.True(unsupported.Report.HasErrors);
+            Assert.Throws<InvalidDataException>(() => document.ApplySchedule(unsupported));
+            document.Dependencies.Single().LagPercentIsEstimated = false;
+        }
         var result = document.CalculateSchedule(); result.Report.ThrowIfErrors();
         var finish = result.Tasks.Single(t => t.TaskUid == successor.Uid).Start;
         bool elapsed = format == 20 || format == 52;
         Assert.Equal(elapsed ? new DateTime(2026, 10, 9, 23, 0, 0) : new DateTime(2026, 10, 12, 15, 0, 0), finish);
         var view = document.CreateView(result);
-        Assert.Equal("75" + (elapsed ? "e%" : "%") + (format >= 51 ? "?" : ""), Assert.Single(view.Links).LagText);
+        Assert.Equal("75" + (elapsed ? "e%" : "%"), Assert.Single(view.Links).LagText);
     }
 
     [Theory]
