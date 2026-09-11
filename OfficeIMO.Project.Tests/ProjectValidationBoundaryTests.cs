@@ -4,6 +4,40 @@ public sealed class ProjectValidationBoundaryTests {
     private static readonly DateTime Monday = new(2026, 10, 5, 8, 0, 0);
 
     [Theory]
+    [InlineData("task")]
+    [InlineData("resource")]
+    [InlineData("assignment")]
+    public void ScalarValuesRequireUniqueNormalizedFieldIds(string owner) {
+        using var document = ProjectDocument.Create();
+        var task = document.Tasks.Add("Task"); var resource = document.Resources.AddWork("Engineer");
+        var fields = owner == "task" ? task.CustomFields : owner == "resource" ? resource.CustomFields : document.Assignments.Add(task, resource).CustomFields;
+        fields.Add().FieldId = "188743731"; fields.Add().FieldId = "0188743731";
+        Assert.Contains(document.Validate().Diagnostics, d => d.Code == "PROJECT_CUSTOM_FIELD_ID");
+        Assert.True(document.AssessSave().HasErrors);
+        Assert.True(document.CalculateCustomFields().Report.HasErrors);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ProjectSummaryRollupIsIndependentOfImportedRowOrder(bool xmlRoundTrip) {
+        var fields = new[] { ProjectDataField.Uid, ProjectDataField.Name, ProjectDataField.Summary, ProjectDataField.ParentUid, ProjectDataField.DurationMinutes };
+        var table = new ProjectDataTable(fields.Select(f => f.ToString()), new[] {
+            new[] { "1", "Phase", "true", "", "480" }, new[] { "2", "Work", "false", "1", "480" },
+            new[] { "0", "Project", "true", "", "480" }
+        });
+        var mapped = new ProjectMappedTable(ProjectDataKind.Tasks, table, fields.Select(f => new ProjectDataColumn(f, f.ToString())));
+        using var imported = ProjectDocument.ImportTables(new[] { mapped }).Document;
+        imported.Calendar = imported.Calendars.AddStandardWorkingWeek(); imported.Settings.StartDate = Monday;
+        imported.Tasks.GetByUid(2).FixedCost = 200m;
+        using var document = xmlRoundTrip ? imported.Clone() : imported;
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); result.Report.ThrowIfErrors();
+        var summary = Assert.Single(result.Tasks, t => t.TaskUid == 0);
+        Assert.Equal(Monday, summary.Start); Assert.Equal(Monday.AddHours(9), summary.Finish);
+        document.ApplySchedule(result); Assert.Equal(200m, document.Tasks.GetByUid(0).Cost);
+    }
+
+    [Theory]
     [InlineData("0188743731")]
     [InlineData("+188743731")]
     [InlineData(" 188743731 ")]

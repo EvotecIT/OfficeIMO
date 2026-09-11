@@ -89,6 +89,12 @@ internal sealed partial class ProjectTaskAllocation {
                 throw new InvalidOperationException("Calculated assignment work cannot fit within the manual task's stored dates.");
             taskStart = _task.Start.Value; taskFinish = _task.Finish.Value;
         }
+        for (int index = 0; index < _entries.Length; index++) {
+            if (_entries[index].Assignment.Resource!.Type != ProjectResourceType.Material) continue;
+            var material = plans[index];
+            if ((workIntervals.Length != 0 && duration != _requestedDuration) || material.Start < taskStart || material.Finish > taskFinish)
+                throw new NotSupportedException("Material consumption requires an explicit projection when calculated work changes the declared task duration or material intervals exceed the final task dates.");
+        }
         // Cost resources follow the final task span, including calendar, effort, and manual-date adjustments.
         for (int index = 0; index < _entries.Length; index++) {
             var entry = _entries[index];

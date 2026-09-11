@@ -4,6 +4,31 @@ public sealed class ProjectCostAssignmentBoundaryTests {
     private static readonly DateTime Monday = new(2026, 10, 5, 8, 0, 0);
 
     [Theory]
+    [InlineData(false, false, 8)]
+    [InlineData(true, false, 8)]
+    [InlineData(false, true, 8)]
+    [InlineData(true, true, 8)]
+    [InlineData(false, false, 24)]
+    [InlineData(true, false, 24)]
+    [InlineData(false, true, 24)]
+    [InlineData(true, true, 24)]
+    public void MixedMaterialDurationChangesRequireAnExplicitConsumptionProjection(bool variable, bool backward, int workHours) {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
+        document.Settings.StartDate = Monday;
+        if (backward) { document.Settings.ScheduleFromStart = false; document.Settings.FinishDate = Monday.AddDays(3).AddHours(9); }
+        var task = document.Tasks.Add("Delivery"); task.Type = ProjectTaskType.FixedUnits; task.Duration = ProjectDuration.WorkingDays(2);
+        var engineer = document.Resources.AddWork("Engineer"); engineer.StandardRate = 100m;
+        document.Assignments.Add(task, engineer, ProjectUnits.Percent(100)).Work = ProjectWork.Hours(workHours);
+        var parts = document.Resources.AddMaterial("Parts"); parts.StandardRate = 10m;
+        var material = document.Assignments.Add(task, parts, ProjectUnits.Fraction(3));
+        material.HasFixedRateUnits = !variable; if (variable) material.MaterialRateScale = 3;
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
+        Assert.True(result.Report.HasErrors);
+        Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result));
+        Assert.Null(task.Start); Assert.Null(material.Start);
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]

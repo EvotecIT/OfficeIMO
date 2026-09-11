@@ -313,6 +313,7 @@ Acceptance: every claimed generation/operation has independent-producer and reop
 
 ### P09 — Explainable analysis, scenarios, comparison, and merge
 
+- [ ] Project fixed and variable material consumption onto changed task durations in mixed work/material schedules, with producer fixtures for actual consumption, stored curves, calendars, and backward scheduling.
 - [ ] Explain calculated task dates and changes using responsible constraints, dependencies, calendar intervals, and resource/leveling decisions. Explanations refer to the calculation revision and actual rule results.
 - [ ] Add isolated scenarios for calendars, resources, dependencies, and constraints, with schedule/cost/critical-path comparisons that leave the original project unchanged.
 - [ ] Add semantic project diff and three-way merge using stable identities. Expose task/calendar/resource/assignment/baseline/custom-field conflicts, deletion versus modification, and unresolved external references; never silently match duplicate task names.

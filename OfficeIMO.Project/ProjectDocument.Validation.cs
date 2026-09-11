@@ -141,9 +141,11 @@ public sealed partial class ProjectDocument {
             if (baseline.Duration?.Value < 0) add("PROJECT_NEGATIVE_DURATION", "A baseline duration cannot be negative.", location);
             CheckTimephased(baseline.TimephasedData, location + "/Baseline", add, token);
         }
+        var fieldIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var field in fields) {
             token.ThrowIfCancellationRequested();
-            if (string.IsNullOrWhiteSpace(field.FieldId)) add("PROJECT_CUSTOM_FIELD_ID", "A custom value requires a field ID.", location);
+            if (string.IsNullOrWhiteSpace(field.FieldId) || !fieldIds.Add(ProjectCustomFieldIdentity.NormalizeId(field.FieldId!)))
+                add("PROJECT_CUSTOM_FIELD_ID", "Custom values require unique nonempty field IDs within their owner.", location);
         }
         CheckTimephased(timephased, location, add, token);
     }

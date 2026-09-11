@@ -125,7 +125,8 @@ internal sealed partial class ProjectScheduler {
                 node.BeforeLevelingAnchor, node.EarlyAnchor));
         }
         var all = _document.AllTasks.ToArray();
-        foreach (var task in all.AsEnumerable().Reverse()) {
+        // Source order does not constrain the project summary; calculate it after ordinary summaries.
+        foreach (var task in all.AsEnumerable().Reverse().Where(t => t.Uid != 0).Concat(all.Where(t => t.Uid == 0))) {
             _token.ThrowIfCancellationRequested();
             if (!task.IsSummary || task.IsActive == false) continue;
             var children = (task.Uid == 0 ? _document.Tasks.Where(t => t.Uid != 0) : task.Children).Where(results.ContainsKey).Select(t => results[t]).ToArray();
