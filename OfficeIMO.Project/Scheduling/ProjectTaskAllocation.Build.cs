@@ -45,10 +45,10 @@ internal sealed partial class ProjectTaskAllocation {
             DateTime finish = intervals.Count > 0 ? intervals.Max(i => i.Finish) : entry.RemainingCalendar.Add(origin, span);
             if (assignment.Resource!.Type == ProjectResourceType.Cost) {
                 start = anchor;
-                finish = TaskAdd(anchor, _requestedDuration);
+                finish = anchor;
             }
             var charges = new List<ProjectCostInterval>(); decimal? cost = null, actualCost = null;
-            if (costs) (cost, actualCost) = CalculateCosts(entry, intervals, start, finish, charges);
+            if (costs && assignment.Resource.Type != ProjectResourceType.Cost) (cost, actualCost) = CalculateCosts(entry, intervals, start, finish, charges);
             plans.Add(new ProjectAssignmentSchedule(assignment, start, finish, entry.Units, intervals, charges, cost, actualCost,
                 assignment.Resource.Type == ProjectResourceType.Material ? intervals.Sum(i => i.Work.Minutes) / 60m : (decimal?)null, origin));
             intervalCount += (long)intervals.Count + charges.Count;
@@ -88,6 +88,18 @@ internal sealed partial class ProjectTaskAllocation {
             if (!_task.Start.HasValue || !_task.Finish.HasValue || taskStart < _task.Start || taskFinish > _task.Finish)
                 throw new InvalidOperationException("Calculated assignment work cannot fit within the manual task's stored dates.");
             taskStart = _task.Start.Value; taskFinish = _task.Finish.Value;
+        }
+        // Cost resources follow the final task span, including calendar, effort, and manual-date adjustments.
+        for (int index = 0; index < _entries.Length; index++) {
+            var entry = _entries[index];
+            if (entry.Assignment.Resource!.Type != ProjectResourceType.Cost) continue;
+            _token.ThrowIfCancellationRequested();
+            var charges = new List<ProjectCostInterval>(); decimal? cost = null, actualCost = null;
+            if (costs) (cost, actualCost) = CalculateCosts(entry, new List<ProjectAssignmentInterval>(), taskStart, taskFinish, charges);
+            plans[index] = new ProjectAssignmentSchedule(entry.Assignment, taskStart, taskFinish, entry.Units,
+                Array.Empty<ProjectAssignmentInterval>(), charges, cost, actualCost, null);
+            intervalCount += charges.Count;
+            CheckCount(intervalCount);
         }
         return new Result { Start = taskStart, Finish = taskFinish, Duration = duration, ActualDuration = actualDuration,
             RemainingDuration = remainingDuration, Assignments = plans.ToArray() };

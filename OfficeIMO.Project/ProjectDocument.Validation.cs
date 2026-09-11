@@ -32,6 +32,10 @@ public sealed partial class ProjectDocument {
         foreach (var task in AllTasks) {
             cancellationToken.ThrowIfCancellationRequested();
             string location = "/Task[UID=" + task.Uid + "]";
+            if (task.Uid == 0 && (!task.IsSummary || task.Parent != null))
+                Add("PROJECT_TASK_RESERVED_UID", "Task UID zero is reserved for the project summary at the root outline level.", location);
+            if (task.Priority < 0 || task.Priority > 1000)
+                Add("PROJECT_TASK_PRIORITY", "Task priority must be between 0 and 1000; 1000 prevents leveling movement.", location + "/Priority");
             CheckEnum(task.Type, location + "/Type", Add);
             CheckEnum(task.ConstraintType, location + "/ConstraintType", Add);
             if (task.ConstraintType.HasValue && (int)task.ConstraintType.Value >= 2 && !task.ConstraintDate.HasValue)
@@ -86,7 +90,7 @@ public sealed partial class ProjectDocument {
         var fields = new HashSet<string>(StringComparer.Ordinal);
         foreach (var field in CustomFields) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (string.IsNullOrWhiteSpace(field.FieldId) || !fields.Add(field.FieldId!))
+            if (string.IsNullOrWhiteSpace(field.FieldId) || !fields.Add(ProjectCustomFieldIdentity.NormalizeId(field.FieldId!)))
                 Add("PROJECT_CUSTOM_FIELD_ID", "Custom-field definitions need unique nonempty field IDs.", "/Project/ExtendedAttributes");
             var lookupIds = new HashSet<int>();
             foreach (var value in field.LookupValues)

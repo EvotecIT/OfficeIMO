@@ -15,6 +15,7 @@ public sealed partial class ProjectDocument {
                 if (day.Day.HasValue && (!Enum.IsDefined(typeof(DayOfWeek), day.Day.Value) || !days.Add(day.Day.Value)))
                     add("PROJECT_CALENDAR_DAY", "Explicit weekdays must be valid and unique.", location);
                 CheckIntervals(day.WorkingTimes, location, add, token);
+                CheckWorkingStatus(day.IsWorking, day.WorkingTimes.Count, location + "/WeekDay", add);
                 CheckDateRange(day.FromDate, day.ToDate, location + "/WeekDay/TimePeriod", add);
                 if (day.Day == null && (!day.FromDate.HasValue || !day.ToDate.HasValue))
                     add("PROJECT_CALENDAR_PERIOD", "A legacy exception day needs a complete date range.", location);
@@ -23,6 +24,7 @@ public sealed partial class ProjectDocument {
                 token.ThrowIfCancellationRequested();
                 CheckDateRange(exception.FromDate, exception.ToDate, location + "/Exception", add);
                 CheckIntervals(exception.WorkingTimes, location + "/Exception", add, token);
+                CheckWorkingStatus(exception.IsWorking, exception.WorkingTimes.Count, location + "/Exception", add);
             }
             foreach (var week in calendar.WorkWeeks) {
                 token.ThrowIfCancellationRequested();
@@ -32,9 +34,16 @@ public sealed partial class ProjectDocument {
                     if (!day.Day.HasValue || !Enum.IsDefined(typeof(DayOfWeek), day.Day.Value) || !weekdays.Add(day.Day.Value))
                         add("PROJECT_CALENDAR_DAY", "Work-week overrides require unique valid weekdays.", location + "/WorkWeek");
                     CheckIntervals(day.WorkingTimes, location + "/WorkWeek", add, token);
+                    CheckWorkingStatus(day.IsWorking, day.WorkingTimes.Count, location + "/WorkWeek", add);
                 }
             }
         }
+    }
+    private static void CheckWorkingStatus(bool? working, int intervalCount, string location, Finding add) {
+        if (working != true && intervalCount != 0)
+            add("PROJECT_CALENDAR_WORKING_STATUS", "Working intervals require an explicitly working day.", location);
+        else if (working == true && intervalCount == 0)
+            add("PROJECT_CALENDAR_WORKING_STATUS", "An explicitly working day requires at least one working interval.", location);
     }
     private static void CheckIntervals(ProjectCollection<ProjectWorkingInterval> intervals, string location, Finding add, CancellationToken token) {
         foreach (var interval in intervals) {

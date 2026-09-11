@@ -48,6 +48,8 @@ public sealed partial class ProjectDocument {
         var parents = new Dictionary<int, int?>();
         foreach (var row in rows) {
             token.ThrowIfCancellationRequested(); int uid = ImportUid(row, TaskIndex);
+            if (uid == 0 && row.Flag(ProjectDataField.Summary) != true)
+                throw row.Error(ProjectDataField.Summary, "task UID zero is reserved for an explicit project summary");
             var task = new ProjectTask(this, uid) { Name = row.Name(), SourceSummary = row.Flag(ProjectDataField.Summary) ?? false,
                 Calendar = ImportCalendar(row), Start = row.Date(ProjectDataField.Start), Finish = row.Date(ProjectDataField.Finish),
                 Cost = row.Decimal(ProjectDataField.Cost), PercentComplete = row.Integer(ProjectDataField.PercentComplete) };

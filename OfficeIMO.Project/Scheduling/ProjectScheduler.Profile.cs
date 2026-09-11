@@ -37,6 +37,8 @@ internal sealed partial class ProjectScheduler {
         }
         foreach (var assignment in _document.Assignments) {
             _token.ThrowIfCancellationRequested();
+            if (_options.CalculateAssignments && assignment.Task?.IsSummary == true)
+                Error("PROJECT_SUMMARY_ASSIGNMENT_PROFILE", "Direct summary-task assignments are not part of independent assignment calculation. Assign resources to leaf tasks before calculating summary rollups.", assignment.Task);
             if (!_options.CalculateAssignments && (assignment.DelayMinutes > 0 || assignment.WorkContour.HasValue && assignment.WorkContour != ProjectWorkContour.Flat))
                 Error("PROJECT_ASSIGNMENT_SCHEDULING_PROFILE", "Assignment delays and non-flat contours require independent assignment scheduling.", assignment.Task);
             if (!_options.CalculateAssignments && (assignment.ActualStart.HasValue || assignment.ActualFinish.HasValue || assignment.ActualWork?.Minutes > 0 || assignment.PercentWorkComplete > 0))
