@@ -492,19 +492,23 @@ internal static partial class PdfWriter {
         int rowStartLine = state.Subline;
         while (rowIndex < tbColumn.Rows.Count) {
             double rowHeight = table.RowHeights[rowIndex];
-            if (rowHeight > maxContentHeight + 0.001) {
+            double requiredRowHeight = GetTableRowFixedHeight(tableStyle, rowIndex) ?? GetTableRowMinHeight(tableStyle, rowIndex);
+            if (requiredRowHeight > maxContentHeight + 0.001D)
+                throw new ArgumentException("Table row height requirement exceeds the available page content height.");
+            if (rowHeight > maxContentHeight + 0.001 || rowStartLine > 0) {
                 if (!GetTableRowAllowBreakAcrossPages(tableStyle, rowIndex)) {
                     throw new ArgumentException("Table row height exceeds the available page content height and row splitting is disabled.");
                 }
 
                 int totalLines = table.RowLineCounts[rowIndex];
-                double rowPadTop = GetTableRowMaxPaddingTop(tbColumn, tableStyle, rowIndex, table.Columns);
-                double rowPadBottom = GetTableRowMaxPaddingBottom(tbColumn, tableStyle, rowIndex, table.Columns);
+                double minimumSegmentHeight = MeasureColumnTableRowSegmentHeight(rowIndex, rowStartLine, 1, suppressCellObjects: false);
+                if (minimumSegmentHeight > maxContentHeight + 0.001D)
+                    throw new ArgumentException("Table row content cannot fit within the available page content height.");
                 bool repeatHeaderBeforeSegment = rowIndex >= table.HeaderRowCount &&
                     HasRepeatableHeader() &&
                     AtContinuationPageTop() &&
-                    repeatHeaderHeight + table.RowLeadings[rowIndex] + rowPadTop + rowPadBottom <= state.Remaining + 0.001;
-                double neededForFirstSegment = table.RowLeadings[rowIndex] + rowPadTop + rowPadBottom + (repeatHeaderBeforeSegment ? repeatHeaderHeight : 0);
+                    repeatHeaderHeight + minimumSegmentHeight <= state.Remaining + 0.001;
+                double neededForFirstSegment = minimumSegmentHeight + (repeatHeaderBeforeSegment ? repeatHeaderHeight : 0);
                 if (neededForFirstSegment > state.Remaining && state.Consumed > 0) break;
                 if (neededForFirstSegment > state.Remaining && state.Consumed == 0) { state.Remaining = 0; break; }
 
