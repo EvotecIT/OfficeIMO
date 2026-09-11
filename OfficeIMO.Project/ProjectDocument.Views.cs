@@ -27,6 +27,7 @@ public sealed partial class ProjectDocument {
         if (!resourceView && resourceIds != null) {
             resourceTaskIds = new HashSet<int>();
             foreach (var assignment in schedule.Assignments.Where(a => resourceIds.Contains(a.ResourceUid))) {
+                if (TaskIndex.ContainsKey(0)) resourceTaskIds.Add(0);
                 for (var task = TaskIndex[assignment.TaskUid]; task != null; task = task.Parent) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!resourceTaskIds.Add(task.Uid)) break;
@@ -59,11 +60,18 @@ public sealed partial class ProjectDocument {
         } else {
             var contributions = new Dictionary<int, List<ProjectAssignmentSchedule>>(); int contributionCount = 0;
             foreach (var allocation in assignments) {
+                bool projectSummaryVisited = false;
                 for (var owner = TaskIndex[allocation.TaskUid]; owner != null; owner = owner.Parent) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!selectedIds.Contains(owner.Uid)) continue;
+                    if (owner.Uid == 0) projectSummaryVisited = true;
                     if (++contributionCount > layout.MaxCells) throw new InvalidOperationException("Report assignment aggregation exceeds MaxCells.");
                     if (!contributions.TryGetValue(owner.Uid, out var values)) contributions.Add(owner.Uid, values = new List<ProjectAssignmentSchedule>());
+                    values.Add(allocation);
+                }
+                if (!projectSummaryVisited && selectedIds.Contains(0)) {
+                    if (++contributionCount > layout.MaxCells) throw new InvalidOperationException("Report assignment aggregation exceeds MaxCells.");
+                    if (!contributions.TryGetValue(0, out var values)) contributions.Add(0, values = new List<ProjectAssignmentSchedule>());
                     values.Add(allocation);
                 }
             }

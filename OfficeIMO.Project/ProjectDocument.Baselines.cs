@@ -60,7 +60,7 @@ public sealed partial class ProjectDocument {
             assignmentUpdates.Add(plan.AssignmentUid, update);
         }
         var taskUpdates = new Dictionary<int, BaselineUpdate>();
-        foreach (var plan in schedule.Tasks.Reverse()) {
+        foreach (var plan in schedule.Tasks.Reverse().Where(t => t.TaskUid != 0).Concat(schedule.Tasks.Where(t => t.TaskUid == 0))) {
             var task = Tasks.GetByUid(plan.TaskUid);
             var update = Prepare(task, task.Baselines, task.TimephasedData, ProjectBaselineTypes.Task(baselineNumber));
             update.Start = plan.Start; update.Finish = plan.Finish; update.Duration = plan.Duration;

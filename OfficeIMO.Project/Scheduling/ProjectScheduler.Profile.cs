@@ -12,6 +12,8 @@ internal sealed partial class ProjectScheduler {
             if (assignment.Start.HasValue && assignment.Start != result.Start || assignment.Finish.HasValue && assignment.Finish != result.Finish)
                 Error("PROJECT_ASSIGNMENT_DATE_RECALCULATION_REQUIRED",
                     "The proposed task dates differ from stored assignment dates. Applying them requires assignment/work/curve rescheduling, which the date-only profile cannot perform.", assignment.Task);
+            if (assignment.TimephasedData.Any(v => v.Type == 1 && (!v.Start.HasValue || !v.Finish.HasValue || v.Start < result.Start || v.Finish > result.Finish)))
+                Error("PROJECT_ASSIGNMENT_DATE_RECALCULATION_REQUIRED", "Stored remaining-work curves do not fit the proposed task dates. Calculate assignments before applying these dates.", assignment.Task);
         }
     }
     private void CheckSourceProfile() {
@@ -43,7 +45,8 @@ internal sealed partial class ProjectScheduler {
                 Error("PROJECT_SUMMARY_ASSIGNMENT_PROFILE", "Direct summary-task assignments are not part of independent assignment calculation. Assign resources to leaf tasks before calculating summary rollups.", assignment.Task);
             if (!_options.CalculateAssignments && (assignment.DelayMinutes > 0 || assignment.WorkContour.HasValue && assignment.WorkContour != ProjectWorkContour.Flat))
                 Error("PROJECT_ASSIGNMENT_SCHEDULING_PROFILE", "Assignment delays and non-flat contours require independent assignment scheduling.", assignment.Task);
-            if (!_options.CalculateAssignments && (assignment.ActualStart.HasValue || assignment.ActualFinish.HasValue || assignment.ActualWork?.Minutes > 0 || assignment.PercentWorkComplete > 0))
+            if (!_options.CalculateAssignments && (assignment.ActualStart.HasValue || assignment.ActualFinish.HasValue || assignment.ActualWork?.Minutes > 0 || assignment.PercentWorkComplete > 0
+                || assignment.TimephasedData.Any(v => v.Type == 2 || v.Type == 3)))
                 Error("PROJECT_PROGRESS_SCHEDULING", "Assignment progress requires interval-aware rescheduling.", assignment.Task);
             var source = _document.Source?.Element(assignment);
             if (source != null && ((!_options.CalculateAssignments && (Nonzero(source, "Delay") || Nonzero(source, "WorkContour"))) || Nonzero(source, "LevelingDelay")))

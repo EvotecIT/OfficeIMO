@@ -61,10 +61,11 @@ public sealed partial class ProjectDocument {
                     else if ((task.ActualCost ?? 0m) == 0) actual = 0m;
                     else Warn("Actual cost at this boundary requires assignment cost curves.");
                 } else {
-                    decimal sum = 0m; bool complete = true;
+                    decimal sum = 0m, fullAssignmentActual = 0m; bool complete = true;
                     foreach (var assignment in assignments) {
                         cancellationToken.ThrowIfCancellationRequested();
                         var actualCurves = assignment.TimephasedData.Where(v => v.Type == 6).ToArray();
+                        fullAssignmentActual += assignment.ActualCost ?? actualCurves.Sum(c => ProjectXmlValue.ParseMoney(c.Value!));
                         if (actualCurves.Length > 0) {
                             if (assignment.ActualCost.HasValue && Math.Abs(actualCurves.Sum(c => ProjectXmlValue.ParseMoney(c.Value!)) - assignment.ActualCost.Value) > .02m)
                                 throw new InvalidDataException("Actual cost curves differ from the stored assignment actual cost.");
@@ -75,7 +76,7 @@ public sealed partial class ProjectDocument {
                             sum += assignment.ActualCost ?? 0m;
                         else complete = false;
                     }
-                    decimal fixedActual = (task.ActualCost ?? sum) - assignments.Sum(a => a.ActualCost ?? 0m);
+                    decimal fixedActual = task.ActualCost.HasValue ? task.ActualCost.Value - fullAssignmentActual : 0m;
                     if (fixedActual != 0 && !ActualCostBoundaryKnown(task.ActualStart, task.Stop, task.ActualFinish, status)) complete = false;
                     actual = complete ? sum + fixedActual : (decimal?)null;
                     if (!complete) Warn("Actual cost at this boundary cannot be reconstructed without complete actual cost curves.");

@@ -4,8 +4,14 @@ internal sealed partial class ProjectTaskAllocation {
     private (decimal? Cost, decimal? Actual) CalculateCosts(Entry entry, List<ProjectAssignmentInterval> intervals, DateTime start, DateTime finish, List<ProjectCostInterval> charges) {
         var assignment = entry.Assignment; var resource = assignment.Resource!;
         if (resource.Type == ProjectResourceType.Cost) {
-            decimal? value = assignment.Cost, actual = assignment.ActualCost ?? 0m;
-            if (value.HasValue) { charges.Add(new ProjectCostInterval(start, start, actual ?? 0m, true)); charges.Add(new ProjectCostInterval(finish, finish, value.Value - (actual ?? 0m), false)); }
+            var recorded = ReadActualCostCurves(assignment);
+            decimal? value = assignment.Cost; decimal actual = assignment.ActualCost ?? recorded.Sum(c => c.Cost);
+            if (recorded.Length > 0) {
+                if (Math.Abs(recorded.Sum(c => c.Cost) - actual) > .01m)
+                    throw new InvalidDataException("Timephased actual costs differ from the stored actual cost.");
+                charges.AddRange(recorded);
+            } else if (value.HasValue || actual != 0) charges.Add(new ProjectCostInterval(start, start, actual, true));
+            if (value.HasValue) charges.Add(new ProjectCostInterval(finish, finish, value.Value - actual, false));
             return (value, actual);
         }
         var table = assignment.CostRateTable ?? ProjectCostRateTable.A;
@@ -45,13 +51,13 @@ internal sealed partial class ProjectTaskAllocation {
         }
         if (perUse != 0) charges.Add(new ProjectCostInterval(start, start, perUse, began));
         decimal total = charges.Sum(c => c.Cost), computedActual = charges.Where(c => c.IsActual).Sum(c => c.Cost);
-        var stored = assignment.TimephasedData.Where(v => v.Type == 6).ToArray();
+        var stored = _options.RecalculateActualCosts ? Array.Empty<ProjectCostInterval>() : ReadActualCostCurves(assignment);
         if (!_options.RecalculateActualCosts && (assignment.ActualCost.HasValue || stored.Length > 0)) {
-            decimal storedActual = assignment.ActualCost ?? stored.Sum(v => ProjectXmlValue.ParseMoney(v.Value!));
+            decimal storedActual = assignment.ActualCost ?? stored.Sum(v => v.Cost);
             if (storedActual != computedActual || stored.Length > 0) {
                 charges.RemoveAll(c => c.IsActual);
                 if (stored.Length > 0) {
-                    foreach (var value in stored) { RequireInterval(value); charges.Add(new ProjectCostInterval(value.Start!.Value, value.Finish!.Value, ProjectXmlValue.ParseMoney(value.Value!), true)); }
+                    charges.AddRange(stored);
                     if (Math.Abs(charges.Where(c => c.IsActual).Sum(c => c.Cost) - storedActual) > .01m)
                         throw new InvalidDataException("Timephased actual costs differ from the stored actual cost.");
                 } else if (storedActual != 0) charges.Add(new ProjectCostInterval(start, start, storedActual, true));
@@ -59,5 +65,14 @@ internal sealed partial class ProjectTaskAllocation {
             }
         }
         return (total, computedActual);
+    }
+    private ProjectCostInterval[] ReadActualCostCurves(ProjectAssignment assignment) {
+        var values = new List<ProjectCostInterval>();
+        foreach (var item in assignment.TimephasedData.Where(v => v.Type == 6)) {
+            _token.ThrowIfCancellationRequested(); RequireInterval(item);
+            values.Add(new ProjectCostInterval(item.Start!.Value, item.Finish!.Value, ProjectXmlValue.ParseMoney(item.Value!), true));
+            CheckCount(values.Count);
+        }
+        return values.ToArray();
     }
 }

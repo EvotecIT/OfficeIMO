@@ -84,6 +84,8 @@ internal sealed partial class ProjectTaskAllocation {
             }
             if (actualDuration > duration) throw new InvalidDataException("Recorded task actual duration exceeds its calculated duration.");
         }
+        if (_task.ActualFinish.HasValue && (remainingDuration > 0 || taskFinish != _task.ActualFinish.Value))
+            throw new InvalidDataException("A finished task requires completed duration inputs and assignment dates consistent with its actual finish.");
         if (_task.IsManual == true) {
             if (!_task.Start.HasValue || !_task.Finish.HasValue || taskStart < _task.Start || taskFinish > _task.Finish)
                 throw new InvalidOperationException("Calculated assignment work cannot fit within the manual task's stored dates.");
