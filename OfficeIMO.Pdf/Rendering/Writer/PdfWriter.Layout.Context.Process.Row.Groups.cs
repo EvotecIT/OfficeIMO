@@ -82,7 +82,7 @@ internal static partial class PdfWriter {
             }
 
             if (needed > remaining + 0.001D) {
-                if (consumed <= 0.001D && Math.Abs(y - yStart) <= 0.001D) {
+                if (consumed <= 0.001D && Math.Abs(y - GetCurrentFramePageStartY()) <= 0.001D) {
                     throw new ArgumentException("Element padding and its first content cannot fit within the available column height.");
                 }
                 return false;

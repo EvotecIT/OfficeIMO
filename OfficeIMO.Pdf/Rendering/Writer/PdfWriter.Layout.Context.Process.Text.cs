@@ -6,10 +6,11 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderHeadingFlowBlock(HeadingBlock hb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
+            double frameStart = GetCurrentFramePageStartY();
             PdfHeadingStyle? headingStyle = ResolveHeadingStyle(hb, currentOpts);
             double size = GetHeadingFontSize(hb, headingStyle);
             double leading = GetHeadingLeading(headingStyle, size);
-            double spacingBefore = (y < yStart - 0.001 || headingStyle?.ApplySpacingBeforeAtTop == true) ? headingStyle?.SpacingBefore ?? 0D : 0D;
+            double spacingBefore = (y < frameStart - 0.001 || headingStyle?.ApplySpacingBeforeAtTop == true) ? headingStyle?.SpacingBefore ?? 0D : 0D;
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, leading);
             var headingFont = GetHeadingFont(currentOpts, headingStyle);
             PdfColor? headingColor = hb.Color ?? headingStyle?.Color;
@@ -20,20 +21,20 @@ internal static partial class PdfWriter {
             bool keepWithNext = headingStyle?.KeepWithNext ?? true;
             if (keepWithNext && nextBlock != null) {
                 double keepHeight = needed + MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
-                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-                if (keepHeight > needed + 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
+                double availableHeight = frameStart - currentOpts.MarginBottom;
+                if (keepHeight > needed + 0.001 && keepHeight <= availableHeight + 0.001 && y < frameStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();
                     spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
                     needed = spacingBefore + textHeight + spacingAfter;
                 }
             }
 
-            if (y < yStart - 0.001 && y - needed < currentOpts.MarginBottom) {
+            if (y < frameStart - 0.001 && y - needed < currentOpts.MarginBottom) {
                 NewPage();
                 spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
                 needed = spacingBefore + textHeight + spacingAfter;
             }
-            if (lineHeights.Count > 0 && spacingBefore + lineHeights[0] > yStart - currentOpts.MarginBottom + 0.001)
+            if (lineHeights.Count > 0 && spacingBefore + lineHeights[0] > frameStart - currentOpts.MarginBottom + 0.001)
                 throw new ArgumentException("Heading spacing and first line exceed the available page content height.");
             if (spacingBefore > 0) {
                 y -= spacingBefore;
@@ -52,7 +53,7 @@ internal static partial class PdfWriter {
                     take++;
                 }
                 if (take == 0) {
-                    if (y >= yStart - 0.001 || lineHeights[lineIndex] > yStart - currentOpts.MarginBottom + 0.001)
+                    if (y >= frameStart - 0.001 || lineHeights[lineIndex] > frameStart - currentOpts.MarginBottom + 0.001)
                         throw new ArgumentException("Heading line height exceeds the available page content height.");
                     NewPage();
                     continue;
@@ -96,6 +97,7 @@ internal static partial class PdfWriter {
         }
 
         private void RenderRichParagraphFlowBlock(RichParagraphBlock rpb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
+            double frameStart = GetCurrentFramePageStartY();
             double size = currentOpts.DefaultFontSize;
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(rpb);
             double leading = GetParagraphLeading(paragraphStyle, size);
@@ -107,23 +109,23 @@ internal static partial class PdfWriter {
                 double paragraphHeight = spacingBefore + lineHeights.Sum() + spacingAfter;
                 double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, paragraphHeight);
                 double keepHeight = paragraphHeight + nextHeight;
-                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-                if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
+                double availableHeight = frameStart - currentOpts.MarginBottom;
+                if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < frameStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();
                 }
             }
 
             if (paragraphStyle?.KeepTogether == true) {
                 double paragraphContentHeight = lineHeights.Sum();
-                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                double availableHeight = frameStart - currentOpts.MarginBottom;
                 if (paragraphContentHeight > availableHeight + 0.001) {
                     throw new ArgumentException("Paragraph height exceeds the available page content height.");
                 }
 
                 double paragraphHeight =
-                    (y < yStart - 0.001D ? spacingBefore : 0D) +
+                    (y < frameStart - 0.001D ? spacingBefore : 0D) +
                     paragraphContentHeight;
-                if (y < yStart - 0.001 && y - paragraphHeight < currentOpts.MarginBottom) {
+                if (y < frameStart - 0.001 && y - paragraphHeight < currentOpts.MarginBottom) {
                     NewPage();
                 }
             }
@@ -132,7 +134,7 @@ internal static partial class PdfWriter {
             bool firstSegment = true;
             while (lineIndex < lines.Count) {
                 double minimumLineHeight = lineHeights[lineIndex];
-                if (minimumLineHeight > yStart - currentOpts.MarginBottom)
+                if (minimumLineHeight > frameStart - currentOpts.MarginBottom)
                     throw new ArgumentException("Paragraph line height exceeds the available page content height.");
                 double available = y - currentOpts.MarginBottom;
                 if (available <= 0) {
@@ -141,11 +143,11 @@ internal static partial class PdfWriter {
                     continue;
                 }
 
-                double segmentSpacingBefore = firstSegment && y < yStart - 0.001 ? spacingBefore : 0;
+                double segmentSpacingBefore = firstSegment && y < frameStart - 0.001 ? spacingBefore : 0;
                 if (available < segmentSpacingBefore + minimumLineHeight) {
                     NewPage();
                     available = y - currentOpts.MarginBottom;
-                    if (y >= yStart - 0.001) {
+                    if (y >= frameStart - 0.001) {
                         segmentSpacingBefore = 0;
                     }
                     if (available < segmentSpacingBefore + minimumLineHeight) {
@@ -166,7 +168,7 @@ internal static partial class PdfWriter {
                     take++;
                 }
 
-                if (TryApplyWidowControl(paragraphStyle, lines.Count, lineIndex, ref take, ref heightSum, lineHeights, y < yStart - 0.001)) {
+                if (TryApplyWidowControl(paragraphStyle, lines.Count, lineIndex, ref take, ref heightSum, lineHeights, y < frameStart - 0.001)) {
                     NewPage();
                     firstSegment = false;
                     continue;

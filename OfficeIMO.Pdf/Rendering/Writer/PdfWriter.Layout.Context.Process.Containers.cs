@@ -238,7 +238,7 @@ internal static partial class PdfWriter {
             if (style.PaddingY * 2D + firstVisualHeight > GetCurrentFramePageStartY() - currentOpts.MarginBottom + 0.001D) {
                 throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
             }
-            if (y < yStart - 0.001D && y - minimumStartHeight < currentOpts.MarginBottom) {
+            if (y < GetCurrentFramePageStartY() - 0.001D && y - minimumStartHeight < currentOpts.MarginBottom) {
                 NewPage();
                 spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
             }
@@ -255,7 +255,7 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("Container height exceeds the available page content height while KeepTogether is enabled.");
                 }
 
-                if (y < yStart - 0.001D && y - keepHeight.Value < currentOpts.MarginBottom) {
+                if (y < GetCurrentFramePageStartY() - 0.001D && y - keepHeight.Value < currentOpts.MarginBottom) {
                     NewPage();
                     spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
                 }
@@ -268,7 +268,7 @@ internal static partial class PdfWriter {
                 double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, parentLeft, parentWidth, currentOpts.DefaultFontSize, elementHeight.Value);
                 double keepHeight = elementHeight.Value + nextHeight;
                 double fullPageHeight = GetCurrentFramePageStartY() - currentOpts.MarginBottom;
-                if (nextHeight > 0.001D && keepHeight <= fullPageHeight + 0.001D && y < yStart - 0.001D && y - keepHeight < currentOpts.MarginBottom) {
+                if (nextHeight > 0.001D && keepHeight <= fullPageHeight + 0.001D && y < GetCurrentFramePageStartY() - 0.001D && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();
                     spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
                 }

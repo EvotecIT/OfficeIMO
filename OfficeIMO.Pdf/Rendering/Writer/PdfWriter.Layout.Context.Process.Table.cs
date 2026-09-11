@@ -192,7 +192,7 @@ internal static partial class PdfWriter {
                 colPixel[colPixel.Length - 1]);
             double xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
 
-            double maxContentHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+            double maxContentHeight = GetFullPageContentHeight();
             string? captionText = string.IsNullOrWhiteSpace(style.Caption) ? null : style.Caption;
             System.Collections.Generic.IReadOnlyList<PdfTextRun>? captionRuns = null;
             System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>? captionLines = null;
@@ -214,14 +214,14 @@ internal static partial class PdfWriter {
             }
 
             double tableContentHeight = (captionLines == null ? 0 : captionHeight + style.CaptionSpacingAfter) + GetTableRowsHeight(rowHeights, 0, rowHeights.Length, rowGapPx);
-            double tableSpacingBefore = y < yStart - 0.001 ? style.SpacingBefore : 0D;
+            double tableSpacingBefore = y < GetCurrentFramePageStartY() - 0.001 ? style.SpacingBefore : 0D;
             if (style.KeepTogether) {
                 double keepHeight = tableSpacingBefore + tableContentHeight + style.SpacingAfter;
                 if (keepHeight > maxContentHeight + 0.001) {
                     throw new ArgumentException("Table height exceeds the available page content height.");
                 }
 
-                if (y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
+                if (y < GetCurrentFramePageStartY() - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();
                     tableSpacingBefore = 0D;
                 }
@@ -231,7 +231,7 @@ internal static partial class PdfWriter {
                 double tableHeight = tableSpacingBefore + tableContentHeight + style.SpacingAfter;
                 double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, tableHeight);
                 double keepHeight = tableHeight + nextHeight;
-                if (nextHeight > 0.001 && tableHeight <= maxContentHeight + 0.001 && keepHeight <= maxContentHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
+                if (nextHeight > 0.001 && tableHeight <= maxContentHeight + 0.001 && keepHeight <= maxContentHeight + 0.001 && y < GetCurrentFramePageStartY() - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();
                     tableSpacingBefore = 0D;
                 }
@@ -240,7 +240,7 @@ internal static partial class PdfWriter {
             int minimumFirstPageBodyRows = Math.Min(
                 style.MinimumBodyRowsOnFirstPage,
                 Math.Max(0, footerStartRowIndex - headerRowCount));
-            if (!skipInitialHeaderRows && minimumFirstPageBodyRows > 0 && y < yStart - 0.001) {
+            if (!skipInitialHeaderRows && minimumFirstPageBodyRows > 0 && y < GetCurrentFramePageStartY() - 0.001) {
                 int firstPageRowCount = headerRowCount + minimumFirstPageBodyRows;
                 double firstPageGroupHeight =
                     tableSpacingBefore +
@@ -254,7 +254,7 @@ internal static partial class PdfWriter {
             }
 
             if (tableSpacingBefore > 0) {
-                if (y < yStart - 0.001 && y - tableSpacingBefore < currentOpts.MarginBottom) {
+                if (y < GetCurrentFramePageStartY() - 0.001 && y - tableSpacingBefore < currentOpts.MarginBottom) {
                     NewPage();
                     tableSpacingBefore = 0D;
                 }
@@ -281,7 +281,7 @@ internal static partial class PdfWriter {
                 var captionFont = ChooseNormal(currentOpts.DefaultFont);
                 double firstRowHeight = rowHeights.Length > 0 ? rowHeights[0] : 0;
                 double captionAndFirstRowHeight = captionHeight + style.CaptionSpacingAfter + firstRowHeight;
-                if (y < yStart - 0.001 &&
+                if (y < GetCurrentFramePageStartY() - 0.001 &&
                     y - Math.Min(captionAndFirstRowHeight, maxContentHeight) < currentOpts.MarginBottom) {
                     NewPage();
                 }
@@ -304,18 +304,18 @@ internal static partial class PdfWriter {
             }
 
             bool ShouldBreakBefore(double rowHeight) =>
-                y < yStart - 0.001 &&
+                y < GetCurrentFramePageStartY() - 0.001 &&
                 y - rowHeight < currentOpts.MarginBottom &&
                 rowHeight <= maxContentHeight;
 
             bool CanRepeatHeaderWithSegment(int rowIndex) =>
                 hasRepeatableHeader &&
                 rowIndex >= headerRowCount &&
-                repeatHeaderHeight + rowLeadings[rowIndex] + GetTableRowMaxPaddingTop(tb, style, rowIndex, cols) + GetTableRowMaxPaddingBottom(tb, style, rowIndex, cols) <= y - currentOpts.MarginBottom + 0.001;
+                repeatHeaderHeight + MeasureTableRowSegmentHeight(rowIndex, 0, 1, suppressCellObjects: false) <= y - currentOpts.MarginBottom + 0.001;
 
             void ApplyTablePageContinuationSpacing(double requiredFirstSegmentHeight) {
                 double spacing = style.PageContinuationSpacingBefore;
-                if (spacing <= 0D || y < yStart - 0.001) {
+                if (spacing <= 0D || y < GetCurrentFramePageStartY() - 0.001) {
                     return;
                 }
 
@@ -413,7 +413,7 @@ internal static partial class PdfWriter {
                     y - currentOpts.MarginBottom,
                     hasRepeatableHeader ? repeatHeaderHeight : 0D,
                     maxContentHeight,
-                    y < yStart - 0.001);
+                    y < GetCurrentFramePageStartY() - 0.001);
             }
 
             void DrawTableRowSegment(int rowIndex, bool renderAsHeader, int startLine, int lineCount, bool suppressCellObjects = false, PageStructElement? existingRowStructureElement = null) {
@@ -749,9 +749,9 @@ internal static partial class PdfWriter {
                 PageStructElement? rowStructureElement = null;
                 while (startLine < totalLines) {
                     double available = y - currentOpts.MarginBottom;
-                    double rowPadTop = GetTableRowMaxPaddingTop(tb, style, rowIndex, cols);
-                    double rowPadBottom = GetTableRowMaxPaddingBottom(tb, style, rowIndex, cols);
-                    double minimumRowSegmentHeight = rowLeadings[rowIndex] + rowPadTop + rowPadBottom;
+                    double minimumRowSegmentHeight = MeasureTableRowSegmentHeight(rowIndex, startLine, 1, suppressCellObjects: false);
+                    if (minimumRowSegmentHeight > maxContentHeight + 0.001D)
+                        throw new ArgumentException("Table row content cannot fit within the available page content height.");
                     if (available < minimumRowSegmentHeight - 0.001) {
                         NewTablePage(rowIndex);
                         available = y - currentOpts.MarginBottom;
@@ -773,6 +773,9 @@ internal static partial class PdfWriter {
             int firstRowIndex = skipInitialHeaderRows ? headerRowCount : 0;
             for (int rowIndex = firstRowIndex; rowIndex < tb.Rows.Count; rowIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
+                double requiredRowHeight = GetTableRowFixedHeight(style, rowIndex) ?? GetTableRowMinHeight(style, rowIndex);
+                if (requiredRowHeight > maxContentHeight + 0.001D)
+                    throw new ArgumentException("Table row height requirement exceeds the available page content height.");
                 if (rowHeights[rowIndex] > maxContentHeight + 0.001) {
                     if (!GetTableRowAllowBreakAcrossPages(style, rowIndex)) {
                         throw new ArgumentException("Table row height exceeds the available page content height and row splitting is disabled.");

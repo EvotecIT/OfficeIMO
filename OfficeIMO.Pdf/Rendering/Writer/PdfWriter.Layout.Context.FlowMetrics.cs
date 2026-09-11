@@ -115,11 +115,13 @@ internal static partial class PdfWriter {
             while (lineIndex < lines.Count) {
                 double available = y - currentOpts.MarginBottom;
                 double firstLineHeight = GetRichLineHeight(lineHeights, lineIndex, leading);
+                if (firstLineHeight > GetFullPageContentHeight())
+                    throw new ArgumentException("List line height exceeds the available page content height.");
                 if (available < firstLineHeight) {
                     NewPage();
                     available = y - currentOpts.MarginBottom;
                     if (available < firstLineHeight) {
-                        break;
+                        throw new ArgumentException("List line height exceeds the available page content height.");
                     }
                 }
 
@@ -338,7 +340,7 @@ internal static partial class PdfWriter {
             PdfHeadingStyle? headingStyle = ResolveHeadingStyle(heading, currentOpts);
             double headingSize = GetHeadingFontSize(heading, headingStyle);
             double headingLeading = GetHeadingLeading(headingStyle, headingSize);
-            double spacingBefore = y < yStart - 0.001D || headingStyle?.ApplySpacingBeforeAtTop == true
+            double spacingBefore = y < GetCurrentFramePageStartY() - 0.001D || headingStyle?.ApplySpacingBeforeAtTop == true
                 ? headingStyle?.SpacingBefore ?? 0D
                 : 0D;
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, headingLeading);
@@ -523,7 +525,7 @@ internal static partial class PdfWriter {
                 PdfHeadingStyle? headingStyle = ResolveHeadingStyle(heading, currentOpts);
                 double headingSize = GetHeadingFontSize(heading, headingStyle);
                 double headingLeading = GetHeadingLeading(headingStyle, headingSize);
-                double spacingBefore = y < yStart - 0.001D || headingStyle?.ApplySpacingBeforeAtTop == true
+                double spacingBefore = y < GetCurrentFramePageStartY() - 0.001D || headingStyle?.ApplySpacingBeforeAtTop == true
                     ? headingStyle?.SpacingBefore ?? 0D
                     : 0D;
                 return spacingBefore + headingLeading;

@@ -35,12 +35,12 @@ internal static partial class PdfWriter {
             double listSpacingAfter = listStyle?.GetSpacingAfter(itemSpacing) ?? itemSpacing;
             double listHeight = MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
             if (listStyle?.KeepTogether == true) {
-                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                double availableHeight = GetFullPageContentHeight();
                 if (listHeight > availableHeight + 0.001) {
                     throw new ArgumentException("List height exceeds the available page content height.");
                 }
 
-                if (y < yStart - 0.001 && y - listHeight < currentOpts.MarginBottom) {
+                if (y < GetCurrentFramePageStartY() - 0.001 && y - listHeight < currentOpts.MarginBottom) {
                     NewPage();
                     listSpacingBefore = 0D;
                     listHeight = MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
@@ -50,8 +50,8 @@ internal static partial class PdfWriter {
             if (listStyle?.KeepWithNext == true && nextBlock != null && wrappedItems.Count > 0) {
                 double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, listHeight);
                 double keepHeight = listHeight + nextHeight;
-                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-                if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
+                double availableHeight = GetFullPageContentHeight();
+                if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < GetCurrentFramePageStartY() - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();
                     listSpacingBefore = 0D;
                     listHeight = MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
@@ -109,12 +109,12 @@ internal static partial class PdfWriter {
             double listSpacingAfter = listStyle?.GetSpacingAfter(itemSpacing) ?? itemSpacing;
             double listHeight = MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
             if (listStyle?.KeepTogether == true) {
-                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                double availableHeight = GetFullPageContentHeight();
                 if (listHeight > availableHeight + 0.001) {
                     throw new ArgumentException("List height exceeds the available page content height.");
                 }
 
-                if (y < yStart - 0.001 && y - listHeight < currentOpts.MarginBottom) {
+                if (y < GetCurrentFramePageStartY() - 0.001 && y - listHeight < currentOpts.MarginBottom) {
                     NewPage();
                     listSpacingBefore = 0D;
                     listHeight = MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
@@ -124,8 +124,8 @@ internal static partial class PdfWriter {
             if (listStyle?.KeepWithNext == true && nextBlock != null && wrappedItems.Count > 0) {
                 double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, listHeight);
                 double keepHeight = listHeight + nextHeight;
-                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-                if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
+                double availableHeight = GetFullPageContentHeight();
+                if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < GetCurrentFramePageStartY() - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();
                     listSpacingBefore = 0D;
                     listHeight = MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
