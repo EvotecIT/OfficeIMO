@@ -22,17 +22,18 @@ public sealed class SaxonInvoiceRulesRunner {
         ArgumentException.ThrowIfNullOrWhiteSpace(saxonJarPath); ArgumentException.ThrowIfNullOrWhiteSpace(javaExecutable);
         _jar = Path.GetFullPath(saxonJarPath); _java = javaExecutable; _timeout = timeout ?? TimeSpan.FromSeconds(60);
         if (_timeout < TimeSpan.FromSeconds(1) || _timeout > TimeSpan.FromMinutes(5)) throw new ArgumentOutOfRangeException(nameof(timeout));
-        InvoiceRuleBundle.ReadPinned(_jar, JarSha256, 8 * 1024 * 1024);
+        SaxonInvoiceRuntime.Load(_jar);
     }
-    /// <summary>Verified main engine identity included in validation reports.</summary>
-    public string Identity => "SaxonJ-HE 12.10; SHA256=" + JarSha256;
+    /// <summary>Verified main engine and companion JAR identities included in validation reports.</summary>
+    public string Identity => SaxonInvoiceRuntime.Identity;
 
     internal async Task<IReadOnlyList<InvoiceDiagnostic>> RunAsync(byte[] xml, byte[] source, bool compile,
         IReadOnlyDictionary<string, InvoiceDiagnosticSeverity> overrides, CancellationToken cancellationToken, Action? ruleProcessStarted = null) {
         cancellationToken.ThrowIfCancellationRequested();
-        InvoiceRuleBundle.ReadPinned(_jar, JarSha256, 8 * 1024 * 1024);
+        SaxonInvoiceRuntime runtime = SaxonInvoiceRuntime.Load(_jar);
         string directory = Directory.CreateTempSubdirectory("OfficeIMO.InvoiceRules-").FullName;
         try {
+            string runtimeJar = await runtime.WriteAsync(directory, cancellationToken).ConfigureAwait(false);
             string input = Path.Combine(directory, "invoice.xml"), stylesheet = Path.Combine(directory, "rules.xsl"), report = Path.Combine(directory, "report.xml");
             await File.WriteAllBytesAsync(input, xml, cancellationToken).ConfigureAwait(false);
             if (compile) {
@@ -44,9 +45,9 @@ public sealed class SaxonInvoiceRulesRunner {
                     using var output = File.Create(Path.Combine(directory, name));
                     await resource.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
                 }
-                await TransformAsync(schema, Path.Combine(directory, "iso_svrl_for_xslt2.xsl"), stylesheet, directory, true, cancellationToken).ConfigureAwait(false);
+                await TransformAsync(schema, Path.Combine(directory, "iso_svrl_for_xslt2.xsl"), stylesheet, directory, runtimeJar, true, cancellationToken).ConfigureAwait(false);
             } else await File.WriteAllBytesAsync(stylesheet, source, cancellationToken).ConfigureAwait(false);
-            await TransformAsync(input, stylesheet, report, directory, false, cancellationToken, ruleProcessStarted).ConfigureAwait(false);
+            await TransformAsync(input, stylesheet, report, directory, runtimeJar, false, cancellationToken, ruleProcessStarted).ConfigureAwait(false);
             if (new FileInfo(report).Length > 16 * 1024 * 1024) throw new InvalidDataException("Schematron report exceeds 16 MiB.");
             using Stream result = File.OpenRead(report);
             return ReadSvrl(result, overrides);
@@ -55,10 +56,10 @@ public sealed class SaxonInvoiceRulesRunner {
         }
     }
 
-    private async Task TransformAsync(string input, string stylesheet, string output, string workingDirectory, bool compiler, CancellationToken cancellationToken, Action? ruleProcessStarted = null) {
+    private async Task TransformAsync(string input, string stylesheet, string output, string workingDirectory, string runtimeJar, bool compiler, CancellationToken cancellationToken, Action? ruleProcessStarted = null) {
         var start = new ProcessStartInfo(_java) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = workingDirectory };
         foreach (string argument in new[] { "-Xmx256m", "-Djavax.xml.accessExternalDTD=", "-Djavax.xml.accessExternalSchema=", "-Djavax.xml.accessExternalStylesheet=file",
-            "-jar", _jar, "-s:" + input, "-xsl:" + stylesheet, "-o:" + output, "-dtd:off", "-xi:off", "-ext:off" }) start.ArgumentList.Add(argument);
+            "-jar", runtimeJar, "-s:" + input, "-xsl:" + stylesheet, "-o:" + output, "-dtd:off", "-xi:off", "-ext:off" }) start.ArgumentList.Add(argument);
         if (compiler) start.ArgumentList.Add("allow-foreign=true");
         using var process = new Process { StartInfo = start };
         if (!process.Start()) throw new InvalidOperationException("Saxon process could not start.");
@@ -104,7 +105,7 @@ public sealed class SaxonInvoiceRulesRunner {
             string text = string.Join(" ", element.Elements(svrl + "text").Select(e => e.Value.Trim()));
             string? flag = (string?)element.Attribute("flag") ?? (string?)element.Attribute("role");
             InvoiceDiagnosticSeverity severity = overrides.TryGetValue(code, out InvoiceDiagnosticSeverity value) ? value : InvoiceRuleBundle.ParseSeverity(flag);
-            diagnostics.Add(new InvoiceDiagnostic(code, text, (string?)element.Attribute("location") ?? "Invoice", severity));
+            diagnostics.Add(code, text, (string?)element.Attribute("location") ?? "Invoice", severity);
         }
         return diagnostics.ToList().AsReadOnly();
     }

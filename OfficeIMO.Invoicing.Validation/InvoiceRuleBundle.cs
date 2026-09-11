@@ -75,7 +75,13 @@ public sealed class InvoiceRuleBundle {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         using var stream = System.IO.File.OpenRead(path);
         if (stream.Length > maximum) throw new InvalidDataException("Pinned artifact exceeds its size limit: " + path);
-        using var output = new MemoryStream(); stream.CopyTo(output); byte[] bytes = output.ToArray();
+        using var output = new MemoryStream();
+        byte[] buffer = new byte[65536]; int count;
+        while ((count = stream.Read(buffer, 0, buffer.Length)) != 0) {
+            if (output.Length + count > maximum) throw new InvalidDataException("Pinned artifact exceeds its size limit: " + path);
+            output.Write(buffer, 0, count);
+        }
+        byte[] bytes = output.ToArray();
         if (!string.Equals(Convert.ToHexString(SHA256.HashData(bytes)), hash, StringComparison.Ordinal)) throw new InvalidDataException("Pinned artifact SHA-256 does not match: " + path);
         return bytes;
     }

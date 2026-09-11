@@ -58,7 +58,7 @@ Successful serialization alone does not establish standards compliance.
 | --- | --- |
 | Syntax and profiles | CII D16B and UBL 2.1; EN 16931 and XRechnung 3.0; Peppol BIS on UBL |
 | Documents | Invoice and credit note; document currency and accounting-currency VAT. UBL credit notes cannot carry a due date or project reference; writing or converting those fields reports unsupported target data. |
-| Parties | Seller, buyer, payee, tax representative, addresses, identifiers and contacts within each semantic role |
+| Parties | Seller, buyer, payee, tax representative, addresses, identifiers and contacts within each semantic role. Multiple seller identifiers are supported in both syntaxes; multiple buyer identifiers require CII and block conversion to UBL. |
 | Lines | Quantities, price base quantities, net/gross prices, discounts, allowances, charges, item identifiers, classifications and attributes |
 | VAT and totals | Category/rate breakdowns, exemptions, document adjustments, prepayments and payable rounding |
 | Payments | Transfer accounts, payment references, direct-debit mandate and creditor details, masked card details. CII direct-debit output requires a valid IBAN for the debtor account; UBL local debtor identifiers cannot be converted to CII. |
@@ -108,6 +108,12 @@ valid through recalculation. Outside-scope VAT cannot mix with other categories
 or carry party VAT identifiers. Official code lists and release-specific rules
 remain the responsibility of the optional standards validator.
 
+Target checks require a mandate reference for direct-debit codes 49 and 59 in
+XRechnung and Peppol. XRechnung, and Peppol transactions where both parties are in
+Germany, also require creditor and debtor identifiers in the direct-debit group;
+code 59 cannot include transfer accounts or card details in those profiles.
+Base EN 16931 does not impose those additional profile requirements.
+
 Quantity, price, base-quantity and percentage calculations retain intermediate
 precision until monetary rounding. Monetary results use two decimal places with
 ties towards positive infinity; values that exceed decimal capacity are rejected
@@ -115,7 +121,9 @@ instead of silently losing cents. Caller text must contain valid XML characters.
 The model permits up to 4 MiB of combined UTF-8 text and 8 MiB of embedded bytes.
 Parsing and authoring share a 50,000-item budget across collections, including
 declared or calculated VAT breakdowns. Parsing rejects inputs with more than
-1,000 mapping diagnostics. Diagnostic codes are bounded to 256 characters;
+1,000 mapping diagnostics. Model validation, target inspection and conversion
+return at most 999 detailed diagnostics plus a summary that retains the highest
+omitted severity. Diagnostic codes are bounded to 256 characters;
 messages and locations to 4,096, with an explicit truncation marker when needed.
 Serialized XML is limited to 16 MiB while it is written.
 

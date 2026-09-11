@@ -17,7 +17,7 @@ public sealed class InvoiceValidator {
         cancellationToken.ThrowIfCancellationRequested();
         byte[] snapshot = (byte[])xml.Clone();
         string hash = Convert.ToHexString(SHA256.HashData(snapshot));
-        var diagnostics = new List<InvoiceDiagnostic>();
+        var diagnostics = new InvoiceDiagnosticBuffer();
         InvoiceValidationStatus schema = InvoiceValidationStatus.NotRun, rules = InvoiceValidationStatus.NotRun;
         string? runnerIdentity = null;
         InvoiceProfileDeclaration declaration;
@@ -43,7 +43,7 @@ public sealed class InvoiceValidator {
         }
         try {
             diagnostics.AddRange(InvoiceSchemaValidation.Validate(snapshot, _bundle, declaration.Syntax, credit, cancellationToken));
-            schema = diagnostics.Any(d => d.Severity == InvoiceDiagnosticSeverity.Error) ? InvoiceValidationStatus.Invalid : InvoiceValidationStatus.Passed;
+            schema = diagnostics.HasErrors ? InvoiceValidationStatus.Invalid : InvoiceValidationStatus.Passed;
         } catch (Exception exception) when (exception is XmlException or System.Xml.Schema.XmlSchemaException or InvalidDataException) {
             schema = InvoiceValidationStatus.Failed; diagnostics.Add(new InvoiceDiagnostic("INV-SCHEMA-ENGINE", exception.Message, "Schema"));
         }
@@ -59,11 +59,11 @@ public sealed class InvoiceValidator {
                     () => runnerIdentity = _runner.Identity).ConfigureAwait(false);
                 diagnostics.AddRange(result);
             }
-            rules = diagnostics.Any(d => d.Severity == InvoiceDiagnosticSeverity.Error) ? InvoiceValidationStatus.Invalid : InvoiceValidationStatus.Passed;
+            rules = diagnostics.HasErrors ? InvoiceValidationStatus.Invalid : InvoiceValidationStatus.Passed;
         } catch (Exception exception) when (exception is not OperationCanceledException) {
             rules = InvoiceValidationStatus.Failed; diagnostics.Add(new InvoiceDiagnostic("INV-RULES-ENGINE", exception.Message, "BusinessRules"));
         }
         return Report();
-        InvoiceValidationReport Report() => new InvoiceValidationReport(hash, snapshot.Length, release, schema, rules, diagnostics.AsReadOnly(), runnerIdentity);
+        InvoiceValidationReport Report() => new InvoiceValidationReport(hash, snapshot.Length, release, schema, rules, diagnostics.ToList().AsReadOnly(), runnerIdentity);
     }
 }
