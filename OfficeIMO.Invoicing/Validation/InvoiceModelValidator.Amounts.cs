@@ -16,10 +16,12 @@ public static partial class InvoiceModelValidator {
                 Compare(totals.PayableAmount, calculation.PayableAmount, "DeclaredTotals.PayableAmount");
             }
             var matched = new HashSet<InvoiceCalculatedTax>();
+            var expectedByCategory = calculation.Taxes.ToDictionary(tax => (tax.CategoryCode, tax.Rate));
             foreach (InvoiceDeclaredTax declared in invoice.DeclaredTaxes) {
                 Tax(declared.Category, "DeclaredTaxes.Category", true);
-                InvoiceCalculatedTax? expected = calculation.Taxes.SingleOrDefault(tax => tax.CategoryCode == declared.Category.Code && tax.Rate == InvoiceCalculator.NormalizeRate(declared.Category));
-                if (expected == null) { Error("INV-TAX-BREAKDOWN", "Declared VAT category/rate has no matching taxable amounts.", "DeclaredTaxes"); continue; }
+                if (!expectedByCategory.TryGetValue((declared.Category.Code, InvoiceCalculator.NormalizeRate(declared.Category)), out InvoiceCalculatedTax? expected)) {
+                    Error("INV-TAX-BREAKDOWN", "Declared VAT category/rate has no matching taxable amounts.", "DeclaredTaxes"); continue;
+                }
                 if (!matched.Add(expected)) Error("INV-TAX-BREAKDOWN", "VAT category/rate is declared more than once.", "DeclaredTaxes");
                 Compare(declared.TaxableAmount, expected.TaxableAmount, "DeclaredTaxes.TaxableAmount");
                 Compare(declared.TaxAmount, expected.FormulaTaxAmount, "DeclaredTaxes.TaxAmount", 0.01m);

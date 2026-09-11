@@ -23,6 +23,10 @@ public static partial class InvoiceParser {
         XElement root = document.Root!;
         context.Consume(root);
         Invoice invoice = declaration.Syntax == InvoiceSyntax.Cii ? ReadCii(root, context) : ReadUbl(root, context);
+        // Unsupported role fields are observable loss, not values that make every rewrite impossible.
+        InvoicePartyMapping.Check(invoice.Buyer, "Buyer", (path, message) => context.Loss(root, path + ": " + message), discardUnsupported: true);
+        InvoicePartyMapping.Check(invoice.Payee, "Payee", (path, message) => context.Loss(root, path + ": " + message), discardUnsupported: true);
+        InvoicePartyMapping.Check(invoice.TaxRepresentative, "TaxRepresentative", (path, message) => context.Loss(root, path + ": " + message), discardUnsupported: true);
         new InvoiceModelLimits().Check(invoice);
         if (!declaration.Profile.HasValue) context.Loss(root, "The source guideline is not in the supported profile catalogue.");
         return new InvoiceReadResult(invoice, declaration, snapshot, context.Finish(root));
