@@ -83,6 +83,7 @@ internal sealed partial class ProjectScheduler {
         var calculated = tasks?.ToArray() ?? Array.Empty<ProjectTaskSchedule>();
         if (!_options.CalculateAssignments) CheckStoredAssignmentDates(calculated);
         var assignments = _order.Where(n => n.Plan != null).SelectMany(n => n.Plan!.Assignments).ToArray();
+        if (_options.CalculateAssignments) _document.CheckCalculatedCostReplacement(calculated, assignments, _diagnostics.Add, _token);
         if (!_externalContext.WithinIntervalLimit(_document, assignments.Sum(a => (long)a.Intervals.Count + a.Costs.Count)))
             Error("PROJECT_CALCULATION_INTERVAL_LIMIT", "The calculated local and external assignment and cost intervals exceed MaxIntervals.");
         foreach (var source in _externalSources.Values) source.ValidateCurrent();

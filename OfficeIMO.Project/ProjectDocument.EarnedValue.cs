@@ -12,6 +12,7 @@ public sealed partial class ProjectDocument {
         long revision = Revision; var results = new List<ProjectTaskEarnedValue>(); var diagnostics = new List<ProjectDiagnostic>();
         var costType = ProjectBaselineTypes.Task(baselineNumber).Cost;
         var assignmentsByTask = Assignments.Where(a => a.Task != null).ToLookup(a => a.Task!.Uid);
+        var baselineTimeBases = BaselineCostTimeBases(baselineNumber, cancellationToken);
         foreach (var task in AllTasks) {
             cancellationToken.ThrowIfCancellationRequested();
             if (task.IsNull == true || task.IsActive == false) continue;
@@ -42,7 +43,7 @@ public sealed partial class ProjectDocument {
                     decimal total = curves.Sum(c => ProjectXmlValue.ParseMoney(c.Value ?? throw new InvalidDataException("A baseline cost curve has no value.")));
                     if (Math.Abs(total - baseline.Cost.Value) > .02m) throw new InvalidDataException("Baseline cost curves differ from the stored baseline cost.");
                     baselineCostCurvesValid = true;
-                    planned = CostThrough(curves, status, math);
+                    planned = CostThrough(curves, status, math, baselineTimeBases[task], cancellationToken);
                 }
             } catch (Exception exception) when (EarnedValueInputFailure(exception)) { Warn(exception.Message); planned = null; }
             try {
@@ -56,11 +57,14 @@ public sealed partial class ProjectDocument {
                     var duration = baseline.Duration.Value;
                     decimal minutes = duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, this) * completion.Value / 100m;
                     DateTime cutoff = BaselineDurationCutoff(task, baseline, baselineNumber, minutes, math);
-                    earned = CostThrough(curves, cutoff, math);
+                    earned = CostThrough(curves, cutoff, math, baselineTimeBases[task], cancellationToken);
                 } else Warn("Duration-based earned value requires baseline start, duration, and cost curves.");
             } catch (Exception exception) when (EarnedValueInputFailure(exception)) { Warn(exception.Message); earned = null; }
             try {
-                if (assignments.Length == 0 || task.IsSummary) {
+                if (!task.ActualCost.HasValue && (task.IsSummary || task.FixedCost.GetValueOrDefault() != 0m ||
+                    (assignments.Length == 0 || task.IsSummary) && (task.ActualStart.HasValue || task.ActualFinish.HasValue || task.ActualWork?.Minutes > 0 || task.ActualDuration?.Value > 0))) {
+                    Warn("The task's actual cost contribution is not recorded; assignment costs alone do not establish its actual total.");
+                } else if (assignments.Length == 0 || task.IsSummary) {
                     if (ActualCostBoundaryKnown(task.ActualStart, task.Stop, task.ActualFinish, status)) actual = task.ActualCost;
                     else if ((task.ActualCost ?? 0m) == 0) actual = 0m;
                     else Warn("Actual cost at this boundary requires assignment cost curves.");
@@ -75,8 +79,10 @@ public sealed partial class ProjectDocument {
                                 throw new InvalidDataException("Actual cost curves differ from the stored assignment actual cost.");
                             var effective = new List<ProjectCalendar> { task.IgnoreResourceCalendar == true ? calendar : assignment.Resource?.Calendar ?? Calendar ?? calendar };
                             if (task.Calendar != null && task.IgnoreResourceCalendar != true) effective.Add(task.Calendar);
-                            sum += CostThrough(actualCurves, status, new ProjectCalendarMath(effective, maxCalendarDays, cancellationToken));
-                        } else if (ActualCostBoundaryKnown(assignment.ActualStart, assignment.Stop, assignment.ActualFinish, status) || (assignment.ActualCost ?? 0m) == 0m)
+                            sum += CostThrough(actualCurves, status, new ProjectCalendarMath(effective, maxCalendarDays, cancellationToken), task.Duration?.IsElapsed == true, cancellationToken);
+                        } else if (!assignment.ActualCost.HasValue && (assignment.ActualStart.HasValue || assignment.ActualFinish.HasValue || assignment.ActualWork?.Minutes > 0 || assignment.PercentWorkComplete > 0))
+                            complete = false;
+                        else if (ActualCostBoundaryKnown(assignment.ActualStart, assignment.Stop, assignment.ActualFinish, status) || (assignment.ActualCost ?? 0m) == 0m)
                             sum += assignment.ActualCost ?? 0m;
                         else complete = false;
                     }
@@ -143,17 +149,35 @@ public sealed partial class ProjectDocument {
         }
         return baseline.Finish ?? baseline.Start!.Value;
     }
-    private static decimal CostThrough(IEnumerable<ProjectTimephasedValue> curves, DateTime status, ProjectCalendarMath math) {
+    private Dictionary<ProjectTask, bool?> BaselineCostTimeBases(int number, CancellationToken token) {
+        var tasks = AllTasks.ToArray(); var bases = new Dictionary<ProjectTask, bool?>();
+        foreach (var task in tasks.AsEnumerable().Reverse().Where(t => t.Uid != 0).Concat(tasks.Where(t => t.Uid == 0))) {
+            token.ThrowIfCancellationRequested();
+            var baseline = task.Baselines.SingleOrDefault(b => b.Number == number);
+            bool? elapsed = baseline?.Duration?.IsElapsed ?? (task.Duration?.IsElapsed == true ? (bool?)null : false);
+            if (task.IsSummary) {
+                var children = task.Uid == 0 ? Tasks.Where(t => t.Uid != 0) : task.Children;
+                if (children.Any(child => !bases.TryGetValue(child, out var basis) || basis != elapsed)) elapsed = null;
+            }
+            bases.Add(task, elapsed);
+        }
+        return bases;
+    }
+    private static decimal CostThrough(IEnumerable<ProjectTimephasedValue> curves, DateTime status, ProjectCalendarMath math, bool? elapsed, CancellationToken token) {
         decimal total = 0m;
         foreach (var curve in curves) {
+            token.ThrowIfCancellationRequested();
             if (!curve.Start.HasValue || !curve.Finish.HasValue || curve.Finish < curve.Start || curve.Value == null)
                 throw new InvalidDataException("A cost curve requires ordered start and finish dates and a value.");
             decimal cost = ProjectXmlValue.ParseMoney(curve.Value);
             if (status < curve.Start) continue;
             if (status >= curve.Finish) { total += cost; continue; }
-            decimal span = math.Between(curve.Start.Value, curve.Finish.Value);
-            if (span <= 0m && cost != 0m) throw new InvalidDataException("A nonzero cost curve has no working time.");
-            if (span > 0m) total += cost * math.Between(curve.Start.Value, status) / span;
+            if (cost == 0) continue;
+            if (!elapsed.HasValue) throw new InvalidDataException("The baseline cost curve's elapsed or working-time basis cannot be established from its owner and rolled-up tasks.");
+            decimal span = elapsed.Value ? curve.Finish.Value.Ticks - curve.Start.Value.Ticks : math.Between(curve.Start.Value, curve.Finish.Value);
+            if (span <= 0m && cost != 0m) throw new InvalidDataException("A nonzero cost curve has no time in its duration basis.");
+            decimal through = elapsed.Value ? status.Ticks - curve.Start.Value.Ticks : math.Between(curve.Start.Value, status);
+            if (span > 0m) total += cost * through / span;
         }
         return total;
     }

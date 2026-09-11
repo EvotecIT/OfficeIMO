@@ -26,7 +26,7 @@ public sealed class ProjectEarnedValueTests {
         var schedule = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); schedule.Report.ThrowIfErrors();
         document.CaptureBaseline(schedule); task.PercentComplete = 50;
         var result = document.AnalyzeEarnedValue(statusDate: monday.AddHours(9)).Tasks.Single();
-        Assert.Equal(950m, result.PlannedValue); Assert.Equal(950m, result.EarnedValue); Assert.Equal(0m, result.ActualCost);
+        Assert.Equal(950m, result.PlannedValue); Assert.Equal(950m, result.EarnedValue); Assert.Null(result.ActualCost);
     }
     [Fact]
     public void BaselineUsesTheIndependentResourceCalendarAndKeepsKnownMetricsWhenProgressIsIncomplete() {
