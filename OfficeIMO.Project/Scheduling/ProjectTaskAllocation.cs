@@ -69,10 +69,15 @@ internal sealed partial class ProjectTaskAllocation {
     private void Prepare(Entry entry, decimal? redistributed) {
         var assignment = entry.Assignment; var resource = assignment.Resource!;
         entry.Actual = assignment.ActualWork?.Minutes ?? 0m;
+        if (assignment.PercentWorkComplete > 0 && entry.Actual <= 0)
+            throw new InvalidDataException("Recorded assignment completion requires explicit actual work before calculation.");
         entry.ActualOvertime = assignment.ActualOvertimeWork?.Minutes ?? 0m;
         entry.RemainingOvertime = (assignment.OvertimeWork?.Minutes ?? entry.ActualOvertime) - entry.ActualOvertime;
         if (entry.ActualOvertime > entry.Actual || entry.RemainingOvertime < 0) throw new InvalidDataException("Overtime must be part of total work and actual overtime must be part of actual work.");
         if (resource.Type == ProjectResourceType.Cost) return;
+        if (assignment.Work.HasValue && assignment.RemainingWork.HasValue
+            && Math.Abs(assignment.Work.Value.Minutes - entry.Actual - assignment.RemainingWork.Value.Minutes) > .001m)
+            throw new InvalidDataException("Assignment total work must equal actual plus remaining work.");
         decimal? stored = assignment.RemainingWork?.Minutes ?? (assignment.Work?.Minutes - entry.Actual);
         if (resource.Type == ProjectResourceType.Material) {
             decimal quantity = assignment.HasFixedRateUnits == false ? VariableQuantity(assignment, _requestedDuration) : entry.Units;

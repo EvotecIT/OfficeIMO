@@ -120,6 +120,15 @@ internal sealed partial class ProjectTaskAllocation {
         var work = result.Assignments.Where(a => _document.Resources.GetByUid(a.ResourceUid).Type == ProjectResourceType.Work).ToArray();
         decimal totalWork = work.Sum(a => a.Work.Minutes), actualWork = work.Sum(a => a.ActualWork.Minutes);
         if (work.Length == 0) { totalWork = _task.Work?.Minutes ?? 0m; actualWork = _task.ActualWork?.Minutes ?? 0m; }
+        if ((_task.PercentComplete > 0 && result.ActualDuration == 0 && !_task.ActualFinish.HasValue)
+            || (_task.PercentWorkComplete > 0 && actualWork == 0))
+            throw new InvalidDataException("Recorded task completion requires explicit actual duration or work before calculation.");
+        if (work.Length > 0 && _task.ActualWork.HasValue && Math.Abs(_task.ActualWork.Value.Minutes - actualWork) > .001m)
+            throw new InvalidDataException("Assignment actual work must agree with recorded task actual work.");
+        if (work.Length > 0 && _task.Type == ProjectTaskType.FixedWork
+            && ((_task.Work.HasValue && Math.Abs(_task.Work.Value.Minutes - totalWork) > .001m)
+                || (_task.RemainingWork.HasValue && Math.Abs(_task.RemainingWork.Value.Minutes - (totalWork - actualWork)) > .001m)))
+            throw new InvalidDataException("Fixed task work must agree with assignment work. Supply complete assignments or explicitly redistribute the declared effort.");
         decimal fixedCost = _task.FixedCost ?? 0m;
         decimal fraction = result.Duration == 0 ? (_task.ActualFinish.HasValue ? 1m : 0m) : result.ActualDuration / result.Duration;
         decimal actualFixed = (_task.FixedCostAccrual ?? ProjectCostAccrual.Prorated) switch {

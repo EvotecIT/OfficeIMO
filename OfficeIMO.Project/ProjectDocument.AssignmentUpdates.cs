@@ -69,10 +69,12 @@ public sealed partial class ProjectDocument {
         var plans = result.Assignments.ToDictionary(a => a.AssignmentUid);
         var updates = new List<ResourceUpdate>();
         decimal? Sum(IEnumerable<decimal?> values) { decimal total = 0; foreach (var value in values) { if (!value.HasValue) return null; total = checked(total + value.Value); } return total; }
-        foreach (var group in Assignments.Where(a => a.Resource != null).GroupBy(a => a.Resource!)) {
-            if (!group.Any(a => plans.ContainsKey(a.Uid))) continue;
+        var assignmentsByResource = Assignments.Where(a => a.Resource != null).ToLookup(a => a.Resource!);
+        foreach (var resource in Resources) {
+            var group = assignmentsByResource[resource].ToArray();
+            if (group.Length != 0 && !group.Any(a => plans.ContainsKey(a.Uid))) continue;
             var entries = group.Select(a => (Source: a, Plan: plans.TryGetValue(a.Uid, out var plan) ? plan : null)).ToArray();
-            updates.Add(new ResourceUpdate { Target = group.Key,
+            updates.Add(new ResourceUpdate { Target = resource,
                 Work = Sum(entries.Select(e => e.Plan == null ? e.Source.Work?.Minutes : e.Plan.Work.Minutes)),
                 ActualWork = Sum(entries.Select(e => e.Plan == null ? e.Source.ActualWork?.Minutes : e.Plan.ActualWork.Minutes)),
                 RemainingWork = Sum(entries.Select(e => e.Plan == null ? e.Source.RemainingWork?.Minutes : e.Plan.RemainingWork.Minutes)),

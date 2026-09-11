@@ -3,6 +3,16 @@ namespace OfficeIMO.Project.Tests;
 public sealed class ProjectViewBoundaryTests {
     private static readonly DateTime Wednesday = new(2026, 10, 7, 8, 0, 0);
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MonthlyBucketStartUsesTheCalendarMonthUnlessExplicitlyClipped(bool explicitStart) {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Wednesday;
+        document.Tasks.Add("Delivery").Duration = ProjectDuration.WorkingDays(30);
+        var view = document.CreateView(document.CalculateSchedule(), new ProjectViewOptions { Timescale = ProjectViewTimescale.Month, Start = explicitStart ? Wednesday : null });
+        Assert.Equal(explicitStart ? Wednesday : new DateTime(2026, 10, 1), view.Buckets[0].Start);
+        Assert.Equal(new DateTime(2026, 11, 1), view.Buckets[0].Finish);
+    }
+    [Theory]
     [InlineData(ProjectViewKind.ResourceUsage)]
     [InlineData(ProjectViewKind.ResourceHistogram)]
     public void ResourceViewsHonorSelectedTasks(ProjectViewKind kind) {

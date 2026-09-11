@@ -15,7 +15,7 @@ The 114 native-validated projects are not all proved in the same way:
 
 The [machine-readable project matrix](/data/aot-compatibility.json) names all 125 production projects and records which proof applies to each one. A passing native workflow does not establish that every optional third-party API has been executed.
 
-`OfficeIMO.Project` has additional bounded Linux NativeAOT lifecycle smoke evidence described in its [support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Project/SUPPORT.md#runtime-and-scale). It is not counted in the coordinated native hosts above; full-library rooting remains unqualified.
+`OfficeIMO.Project` has additional bounded Linux NativeAOT lifecycle smoke evidence described in its [Project runtime and scale support](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Project/SUPPORT.md#runtime-and-scale). It is not counted in the coordinated native hosts above; full-library rooting remains unqualified.
 
 ## Publish your application
 

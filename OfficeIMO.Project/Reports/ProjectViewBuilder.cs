@@ -48,6 +48,8 @@ internal static class ProjectViewBuilder {
         var start = options.Start ?? ranges.Min(t => t.Start).Date;
         if (!options.Start.HasValue && options.Timescale == ProjectViewTimescale.Week)
             start = start.AddDays(-((int)start.DayOfWeek + 6) % 7);
+        if (!options.Start.HasValue && options.Timescale == ProjectViewTimescale.Month)
+            start = new DateTime(start.Year, start.Month, 1);
         var finish = options.Finish ?? ranges.Max(t => t.Finish);
         // A zero-duration event at an inferred end needs space inside the exclusive range.
         // Leave explicit caller clipping unchanged and retain a visible marker at midnight too.
