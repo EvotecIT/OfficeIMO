@@ -30,6 +30,7 @@ internal sealed class ProjectExternalProjectContext {
     private readonly Dictionary<ProjectDocument, ProjectScheduleResult> _calculated = new();
     private readonly Dictionary<ProjectDocument, long> _intervalCounts = new();
     private long _tasks;
+    private long _intervals;
     internal ProjectExternalProjectContext(ProjectScheduleOptions options, CancellationToken token) { _options = options; _token = token; }
     internal void Enter(ProjectDocument document) {
         if (_active.Contains(document)) throw new InvalidDataException("External projects contain a dependency cycle.");
@@ -38,8 +39,10 @@ internal sealed class ProjectExternalProjectContext {
     }
     internal void Leave(ProjectDocument document) { _active.Remove(document); }
     internal bool WithinIntervalLimit(ProjectDocument document, long intervals) {
+        _intervalCounts.TryGetValue(document, out long previous);
+        _intervals = checked(_intervals - previous + intervals);
         _intervalCounts[document] = intervals;
-        return _intervalCounts.Values.Sum() <= _options.MaxIntervals;
+        return _intervals <= _options.MaxIntervals;
     }
     internal (ProjectScheduleResult Schedule, ProjectTaskSchedule Task, string Reference) Resolve(ProjectDocument origin, ProjectDependency dependency) {
         _token.ThrowIfCancellationRequested();

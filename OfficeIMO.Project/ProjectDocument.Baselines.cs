@@ -49,6 +49,7 @@ public sealed partial class ProjectDocument {
             updates.Add(update); return update;
         }
         var assignmentPlans = schedule.Assignments.ToDictionary(a => a.AssignmentUid);
+        var assignmentPlansByTask = schedule.Assignments.ToLookup(a => a.TaskUid);
         var assignmentUpdates = new Dictionary<int, BaselineUpdate>();
         foreach (var plan in schedule.Assignments) {
             var assignment = Assignments.GetByUid(plan.AssignmentUid);
@@ -66,7 +67,7 @@ public sealed partial class ProjectDocument {
             update.Work = plan.Calculation!.Work; update.Cost = plan.Calculation.Cost; update.FixedCost = task.FixedCost;
             IEnumerable<BaselineUpdate> children;
             if (task.IsSummary) children = (task.Uid == 0 ? Tasks.Where(t => t.Uid != 0) : task.Children).Where(t => taskUpdates.ContainsKey(t.Uid)).Select(t => taskUpdates[t.Uid]);
-            else children = Assignments.Where(a => a.Task == task && assignmentUpdates.ContainsKey(a.Uid)).Select(a => assignmentUpdates[a.Uid]);
+            else children = assignmentPlansByTask[task.Uid].Select(a => assignmentUpdates[a.AssignmentUid]);
             foreach (var child in children) foreach (var value in child.Values) {
                 if (value.Type == child.WorkType && task.IsSummary == false && Assignments.GetByUid(child.Uid).Resource?.Type != ProjectResourceType.Work) continue;
                 if (++intervals > maxIntervals) throw new InvalidOperationException("Baseline capture exceeds MaxIntervals.");
@@ -77,7 +78,7 @@ public sealed partial class ProjectDocument {
                 if (task.FixedCostAccrual == ProjectCostAccrual.Start) finish = start;
                 else if (task.FixedCostAccrual == ProjectCostAccrual.End) start = finish;
                 var active = task.IsSummary || start == finish ? new List<ProjectWorkingRange>() :
-                    ProjectCalendarMath.Merge(schedule.Assignments.Where(a => a.TaskUid == task.Uid && Resources.GetByUid(a.ResourceUid).Type == ProjectResourceType.Work)
+                    ProjectCalendarMath.Merge(assignmentPlansByTask[task.Uid].Where(a => Resources.GetByUid(a.ResourceUid).Type == ProjectResourceType.Work)
                         .SelectMany(a => a.Intervals).Where(i => i.Work.Minutes > i.OvertimeWork.Minutes)
                         .Select(i => new ProjectWorkingRange(i.Start, i.Finish)).ToList());
                 decimal activeMinutes = active.Sum(r => (r.Finish.Ticks - r.Start.Ticks) / (decimal)TimeSpan.TicksPerMinute);

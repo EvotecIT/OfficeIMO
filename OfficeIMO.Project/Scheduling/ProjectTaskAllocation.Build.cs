@@ -17,6 +17,7 @@ internal sealed partial class ProjectTaskAllocation {
             return inverse;
         }
         var plans = new List<ProjectAssignmentSchedule>();
+        long intervalCount = 0;
         foreach (var entry in _entries) {
             _token.ThrowIfCancellationRequested();
             var assignment = entry.Assignment;
@@ -38,7 +39,7 @@ internal sealed partial class ProjectTaskAllocation {
                 decimal overtime = index == entry.Curves.Length - 1 ? entry.RemainingOvertime - assignedOvertime :
                     regular > 0 ? entry.RemainingOvertime * curve.Work / regular : 0;
                 DateTime from = entry.RemainingCalendar.Add(origin, curve.From), to = entry.RemainingCalendar.Add(origin, curve.To);
-                Expand(entry.RemainingCalendar, from, to, curve.Work + overtime, overtime, false, intervals); assignedOvertime += overtime;
+                Expand(entry, entry.RemainingCalendar, from, to, curve.Work + overtime, overtime, false, intervals); assignedOvertime += overtime;
             }
             DateTime start = intervals.Count > 0 ? intervals.Min(i => i.Start) : origin;
             DateTime finish = intervals.Count > 0 ? intervals.Max(i => i.Finish) : entry.RemainingCalendar.Add(origin, span);
@@ -50,7 +51,8 @@ internal sealed partial class ProjectTaskAllocation {
             if (costs) (cost, actualCost) = CalculateCosts(entry, intervals, start, finish, charges);
             plans.Add(new ProjectAssignmentSchedule(assignment, start, finish, entry.Units, intervals, charges, cost, actualCost,
                 assignment.Resource.Type == ProjectResourceType.Material ? intervals.Sum(i => i.Work.Minutes) / 60m : (decimal?)null, origin));
-            CheckCount(plans.Sum(p => p.Intervals.Count + p.Costs.Count));
+            intervalCount += (long)intervals.Count + charges.Count;
+            CheckCount(intervalCount);
         }
         var workUids = new HashSet<int>(_entries.Where(e => e.Assignment.Resource!.Type == ProjectResourceType.Work).Select(e => e.Assignment.Uid));
         var workIntervals = plans.Where(p => workUids.Contains(p.AssignmentUid)).SelectMany(p => p.Intervals).ToArray();

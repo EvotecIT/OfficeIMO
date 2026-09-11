@@ -28,7 +28,8 @@ public sealed partial class ProjectDocument {
                 decimal overtime = assignment.OvertimeWork?.Minutes ?? 0m;
                 if (minutes.HasValue && overtime > minutes.Value) Warn("PROJECT_OVERTIME_BALANCE", "Stored overtime exceeds total work.", location);
                 else if (minutes.HasValue && resource.StandardRate.HasValue && (overtime == 0 || resource.OvertimeRate.HasValue))
-                    cost = ProjectWorkEquation.WorkCost(new ProjectWork(minutes.Value), new ProjectWork(overtime), resource.StandardRate.Value, resource.OvertimeRate ?? 0m, resource.CostPerUse ?? 0m);
+                    cost = ProjectWorkEquation.WorkCost(new ProjectWork(minutes.Value), new ProjectWork(overtime), resource.StandardRate.Value, resource.OvertimeRate ?? 0m,
+                        (resource.CostPerUse ?? 0m) * (assignment.Units?.Value ?? resource.MaxUnits?.Value ?? 1m));
             } else if (resource?.Type == ProjectResourceType.Material) {
                 if (assignment.HasFixedRateUnits == false) Warn("PROJECT_MATERIAL_RATE_ESTIMATE_UNSUPPORTED", "Variable material usage requires a calendar-specific consumption calculation.", location);
                 else if (assignment.Units.HasValue && resource.StandardRate.HasValue)

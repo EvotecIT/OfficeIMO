@@ -34,7 +34,7 @@ internal sealed partial class ProjectTaskAllocation {
             decimal regular = entry.Actual - entry.ActualOvertime;
             if (regular > 0 && entry.Units <= 0) throw new InvalidOperationException("Recorded actual work needs positive units or explicit intervals.");
             DateTime finish = assignment.Stop ?? assignment.ActualFinish ?? entry.Calendar.Add(start, entry.Units > 0 ? regular / entry.Units : 0m);
-            Expand(entry.Calendar, start, finish, entry.Actual, entry.ActualOvertime, true, result);
+            Expand(entry, entry.Calendar, start, finish, entry.Actual, entry.ActualOvertime, true, result);
             return result.ToArray();
         }
         DateTime? previous = null;
@@ -49,25 +49,25 @@ internal sealed partial class ProjectTaskAllocation {
             }
             decimal duration = entry.Calendar.Between(item.Start.Value, item.Finish.Value), amount = WorkValue(item);
             var points = boundaries.ToArray();
-            if (points.Length == 1) { Expand(entry.Calendar, points[0], points[0], amount, amount, true, result); continue; }
+            if (points.Length == 1) { Expand(entry, entry.Calendar, points[0], points[0], amount, entry.IsFixedMaterial ? 0 : amount, true, result); continue; }
             for (int i = 1; i < points.Length; i++) {
                 decimal work = duration > 0 ? amount * entry.Calendar.Between(points[i - 1], points[i]) / duration : 0m, overAmount = 0m;
                 foreach (var over in overtime.Where(o => o.Start <= points[i - 1] && o.Finish >= points[i])) {
                     decimal span = entry.Calendar.Between(over.Start!.Value, over.Finish!.Value);
                     if (span > 0) overAmount += WorkValue(over) * entry.Calendar.Between(points[i - 1], points[i]) / span;
                 }
-                Expand(entry.Calendar, points[i - 1], points[i], work, overAmount, true, result);
+                Expand(entry, entry.Calendar, points[i - 1], points[i], work, overAmount, true, result);
             }
         }
         if (Math.Abs(result.Sum(i => i.Work.Minutes) - entry.Actual) > .001m || Math.Abs(result.Sum(i => i.OvertimeWork.Minutes) - entry.ActualOvertime) > .001m)
             throw new InvalidDataException("Timephased actual work differs from stored actual work or overtime.");
         return result.ToArray();
     }
-    private void Expand(ProjectCalendarMath calendar, DateTime start, DateTime finish, decimal work, decimal overtime, bool actual, List<ProjectAssignmentInterval> output) {
+    private void Expand(Entry entry, ProjectCalendarMath calendar, DateTime start, DateTime finish, decimal work, decimal overtime, bool actual, List<ProjectAssignmentInterval> output) {
         if (work == 0 && overtime == 0) return;
         if (overtime > work || work < 0 || overtime < 0) throw new InvalidDataException("Interval work and overtime are inconsistent.");
         if (start == finish) {
-            if (work != overtime) throw new InvalidDataException("Nonzero regular work requires a nonempty working interval.");
+            if (work != overtime && !entry.IsFixedMaterial) throw new InvalidDataException("Nonzero regular work requires a nonempty working interval.");
             output.Add(new ProjectAssignmentInterval(start, finish, work, overtime, actual)); CheckCount(output.Count); return;
         }
         decimal total = calendar.Between(start, finish);
@@ -89,5 +89,5 @@ internal sealed partial class ProjectTaskAllocation {
             allocated += part; allocatedOvertime += over;
         }
     }
-    private void CheckCount(int count) { if (count > _options.MaxIntervals) throw new InvalidOperationException("Assignment calculation exceeds MaxIntervals."); }
+    private void CheckCount(long count) { if (count > _options.MaxIntervals) throw new InvalidOperationException("Assignment calculation exceeds MaxIntervals."); }
 }

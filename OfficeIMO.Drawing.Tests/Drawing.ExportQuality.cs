@@ -7,6 +7,40 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingExportQualityTests {
+    [Theory]
+    [InlineData(255)]
+    [InlineData(128)]
+    [InlineData(0)]
+    public void SvgExportPaintsTheSelectedBackgroundBelowExistingContent(int alpha) {
+        var drawing = new OfficeDrawing(24, 16);
+        var foreground = OfficeShape.Rectangle(8, 8); foreground.FillColor = OfficeColor.Blue; foreground.StrokeWidth = 0;
+        drawing.AddShape(foreground, 8, 4);
+        var originalShape = drawing.Shapes.Single().Shape;
+        var background = new OfficeColor(230, 120, 40, (byte)alpha);
+        var options = new OfficeImageExportOptions { BackgroundColor = background };
+        var result = drawing.ExportImage(OfficeImageExportFormat.Svg, options);
+        Assert.True(OfficeSvgDrawingReader.TryRead(result.Bytes, out var imported));
+        var raster = OfficeDrawingRasterRenderer.Render(imported!, new OfficeDrawingRasterRenderOptions { Background = OfficeColor.Transparent });
+        Assert.Equal(alpha == 0 ? OfficeColor.Transparent : background, raster.GetPixel(2, 2));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(12, 8));
+        Assert.Single(drawing.Elements); Assert.Same(originalShape, drawing.Shapes.Single().Shape);
+    }
+
+    [Fact]
+    public void DefaultSvgBackgroundIsWhiteAndExplicitPageFillStillWins() {
+        var drawing = new OfficeDrawing(24, 16);
+        var empty = drawing.ExportImage(OfficeImageExportFormat.Svg);
+        Assert.True(OfficeSvgDrawingReader.TryRead(empty.Bytes, out var imported));
+        Assert.Equal(OfficeColor.White, OfficeDrawingRasterRenderer.Render(imported!,
+            new OfficeDrawingRasterRenderOptions { Background = OfficeColor.Transparent }).GetPixel(2, 2));
+        var page = OfficeShape.Rectangle(24, 16); page.FillColor = OfficeColor.Green; page.StrokeWidth = 0;
+        drawing.AddShape(page, 0, 0);
+        var filled = drawing.ExportImage(OfficeImageExportFormat.Svg, new OfficeImageExportOptions { BackgroundColor = OfficeColor.Red });
+        Assert.True(OfficeSvgDrawingReader.TryRead(filled.Bytes, out imported));
+        Assert.Equal(OfficeColor.Green, OfficeDrawingRasterRenderer.Render(imported!,
+            new OfficeDrawingRasterRenderOptions { Background = OfficeColor.Transparent }).GetPixel(2, 2));
+    }
+
     private sealed class PointOptions : OfficeImageExportOptions {
         public override double LogicalUnitsPerInch => 72;
     }

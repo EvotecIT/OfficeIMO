@@ -11,16 +11,18 @@ public sealed partial class ProjectDocument {
         ProjectCalendarMath.Local(status); Validate(cancellationToken).ThrowIfErrors();
         long revision = Revision; var results = new List<ProjectTaskEarnedValue>(); var diagnostics = new List<ProjectDiagnostic>();
         var costType = ProjectBaselineTypes.Task(baselineNumber).Cost;
+        var assignmentsByTask = Assignments.Where(a => a.Task != null).ToLookup(a => a.Task!.Uid);
         foreach (var task in AllTasks) {
             cancellationToken.ThrowIfCancellationRequested();
             if (task.IsNull == true || task.IsActive == false) continue;
+            var assignments = assignmentsByTask[task.Uid].ToArray();
             decimal? planned = null, earned = null, actual = null;
             var baseline = task.Baselines.SingleOrDefault(b => (b.Number ?? 0) == baselineNumber);
             void Warn(string message) => diagnostics.Add(new ProjectDiagnostic("PROJECT_EARNED_VALUE_INCOMPLETE", ProjectDiagnosticSeverity.Warning, message, "/Task[UID=" + task.Uid + "]"));
             if (baseline?.Cost == null) { Warn("The selected baseline has no recorded cost."); results.Add(new ProjectTaskEarnedValue(task.Uid, null, null, null, null)); continue; }
             var calendar = task.Calendar ?? Calendar;
             if (calendar == null) { Warn("Cost-curve integration requires an explicit calendar."); results.Add(new ProjectTaskEarnedValue(task.Uid, baseline.Cost, null, null, null)); continue; }
-            var workCalendars = task.IsSummary ? Array.Empty<ProjectCalendar>() : Assignments.Where(a => a.Task == task && a.Resource?.Type == ProjectResourceType.Work)
+            var workCalendars = task.IsSummary ? Array.Empty<ProjectCalendar>() : assignments.Where(a => a.Resource?.Type == ProjectResourceType.Work)
                 .Select(a => a.Resource!.Calendar ?? Calendar ?? calendar).Distinct().ToArray();
             var effectiveCalendars = task.IgnoreResourceCalendar != true && workCalendars.Length == 1 ?
                 (task.Calendar == null ? workCalendars : workCalendars.Concat(new[] { task.Calendar }).ToArray()) : new[] { calendar };
@@ -40,19 +42,20 @@ public sealed partial class ProjectDocument {
                 }
             } catch (Exception exception) when (EarnedValueInputFailure(exception)) { Warn(exception.Message); planned = null; }
             try {
-                if (task.EarnedValueMethod == ProjectEarnedValueMethod.PhysicalPercentComplete)
-                    earned = task.PhysicalPercentComplete.HasValue ? baseline.Cost * task.PhysicalPercentComplete.Value / 100m : null;
-                else if ((task.PercentComplete ?? 0) == 0) earned = 0m;
-                else if (task.PercentComplete == 100) earned = baseline.Cost;
+                decimal? completion = CompletionAtStatus(task, assignments, status, Warn);
+                if (!completion.HasValue) earned = null;
+                else if (task.EarnedValueMethod == ProjectEarnedValueMethod.PhysicalPercentComplete)
+                    earned = baseline.Cost * completion.Value / 100m;
+                else if (completion == 0) earned = 0m;
+                else if (completion == 100) earned = baseline.Cost;
                 else if (curves.Length > 0 && baselineCostCurvesValid && baseline.Start.HasValue && baseline.Duration.HasValue) {
                     var duration = baseline.Duration.Value;
-                    decimal minutes = duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, this) * task.PercentComplete!.Value / 100m;
+                    decimal minutes = duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, this) * completion.Value / 100m;
                     DateTime cutoff = BaselineDurationCutoff(task, baseline, baselineNumber, minutes, math);
                     earned = CostThrough(curves, cutoff, math);
                 } else Warn("Duration-based earned value requires baseline start, duration, and cost curves.");
             } catch (Exception exception) when (EarnedValueInputFailure(exception)) { Warn(exception.Message); earned = null; }
             try {
-                var assignments = Assignments.Where(a => a.Task == task).ToArray();
                 if (assignments.Length == 0 || task.IsSummary) {
                     if (task.ActualFinish <= status || task.Stop <= status || task.Finish <= status) actual = task.ActualCost;
                     else if ((task.ActualCost ?? 0m) == 0) actual = 0m;
@@ -85,6 +88,22 @@ public sealed partial class ProjectDocument {
     }
     private static bool EarnedValueInputFailure(Exception exception) => exception is InvalidDataException || exception is FormatException ||
         exception is OverflowException || exception is InvalidOperationException || exception is ArgumentException;
+    private decimal? CompletionAtStatus(ProjectTask task, ProjectAssignment[] assignments, DateTime status, Action<string> warn) {
+        var actualCurves = assignments.SelectMany(a => a.TimephasedData).Where(v => v.Type == 2).ToArray();
+        var starts = assignments.Select(a => a.ActualStart).Concat(actualCurves.Select(v => v.Start)).Append(task.ActualStart)
+            .Where(d => d.HasValue).Select(d => d!.Value).ToArray();
+        if (starts.Length > 0 && status < starts.Min()) return 0m;
+        decimal? completion = task.EarnedValueMethod == ProjectEarnedValueMethod.PhysicalPercentComplete ? task.PhysicalPercentComplete : task.PercentComplete ?? 0;
+        if (!completion.HasValue) { warn("Physical earned value requires recorded physical completion."); return null; }
+        if (completion == 0 || (completion == 100 && task.ActualFinish <= status)) return completion;
+        var boundaries = assignments.SelectMany(a => new[] { a.Stop, a.ActualFinish }).Concat(actualCurves.Select(v => v.Finish))
+            .Concat(new[] { Settings.StatusDate, task.Stop, task.ActualFinish });
+        if (boundaries.Any(d => d.HasValue && d.Value > status)) {
+            warn("Stored completion belongs to a later progress boundary; historical earned value cannot be reconstructed from the current completion percentage.");
+            return null;
+        }
+        return completion;
+    }
     private static DateTime BaselineDurationCutoff(ProjectTask task, ProjectBaseline baseline, int number, decimal minutes, ProjectCalendarMath math) {
         var duration = baseline.Duration!.Value;
         if (duration.IsElapsed) return baseline.Start!.Value.Add(ProjectXmlValue.MinutesToSpan(minutes));

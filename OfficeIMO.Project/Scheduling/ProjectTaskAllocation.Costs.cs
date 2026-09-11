@@ -15,8 +15,10 @@ internal sealed partial class ProjectTaskAllocation {
             var points = entry.Resource.RateBoundaries(interval.Start, interval.Finish, table).Concat(new[] { interval.Start, interval.Finish }).Distinct().OrderBy(d => d).ToArray();
             if (points.Length == 1) {
                 var rate = entry.Resource.Rate(interval.Start, table);
-                if (!rate.Overtime.HasValue) complete = false;
-                else usage.Add(new ProjectCostInterval(interval.Start, interval.Finish, interval.OvertimeWork.Minutes / 60m * rate.Overtime.Value, interval.IsActual));
+                decimal? pointRate = entry.IsFixedMaterial ? rate.Standard : rate.Overtime;
+                decimal quantity = entry.IsFixedMaterial ? interval.Work.Minutes / 60m : interval.OvertimeWork.Minutes / 60m;
+                if (!pointRate.HasValue) complete = false;
+                else { usage.Add(new ProjectCostInterval(interval.Start, interval.Finish, quantity * pointRate.Value, interval.IsActual)); CheckCount(usage.Count); }
                 continue;
             }
             for (int index = 1; index < points.Length; index++) {

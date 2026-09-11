@@ -15,6 +15,14 @@ public sealed partial class OfficeDrawing {
             const string source = "Drawing";
             var codec = new OfficeRasterImageFallbackCodec(effective.ImageCodec, diagnostics, source);
             if (format == OfficeImageExportFormat.Svg) {
+                if (effective.BackgroundColor.A > 0) {
+                    var shape = OfficeShape.Rectangle(drawing.Width, drawing.Height);
+                    shape.FillColor = effective.BackgroundColor;
+                    shape.StrokeWidth = 0;
+                    var background = new OfficeDrawingShape(shape, 0, 0);
+                    drawing._shapes.Insert(0, background);
+                    drawing._elements.Insert(0, background);
+                }
                 double scale = effective.GetEffectiveScale(Width, Height);
                 byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, scale, OfficeSvgSizeUnit.Pixel, codec,
                     resourceIdPrefix: null, maximumUtf8Bytes: effective.MaximumTotalEncodedBytes, cancellationToken: token);

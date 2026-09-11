@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 233,
-    "productionComponentCount": 124,
-    "testProjectCount": 46,
+    "projectCount": 238,
+    "productionComponentCount": 125,
+    "testProjectCount": 47,
     "benchmarkProjectCount": 33,
-    "validationProjectCount": 31,
+    "validationProjectCount": 34,
     "apiReferenceCount": 26,
-    "conceptualPageCount": 96,
-    "conceptualWordCount": 42952
+    "conceptualPageCount": 97,
+    "conceptualWordCount": 43431
   },
   "categories": [
     {
@@ -30,7 +30,7 @@
     },
     {
       "name": "Office documents",
-      "componentCount": 21
+      "componentCount": 22
     },
     {
       "name": "Publishing and conversion",
@@ -183,7 +183,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 563,
+      "sourceFileCount": 573,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1048,6 +1048,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf"
     },
     {
+      "name": "OfficeIMO.Project",
+      "packageId": "OfficeIMO.Project",
+      "category": "Office documents",
+      "description": "Managed Microsoft Project XML and modern MPP/MPT authoring and editing, explicit task scheduling, and assessed source-preserving save with typed and fluent APIs.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Project/OfficeIMO.Project.csproj",
+      "sourceFileCount": 187,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/project/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Project"
+    },
+    {
       "name": "OfficeIMO.Provenance.C2pa",
       "packageId": "OfficeIMO.Provenance.C2pa",
       "category": "Foundations and integrations",
@@ -1639,7 +1652,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 70,
+      "sourceFileCount": 81,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,

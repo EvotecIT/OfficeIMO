@@ -17,7 +17,7 @@ public static class ProjectWorkEquation {
         if (workingMinutes <= 0) throw new ArgumentOutOfRangeException(nameof(workingMinutes));
         return ProjectUnits.Fraction(work.Minutes / workingMinutes);
     }
-    /// <summary>Uniform planned work cost: regular hours times standard hourly rate plus overtime hours times overtime hourly rate plus one per-use charge.</summary>
+    /// <summary>Uniform planned work cost: regular hours times standard hourly rate plus overtime hours times overtime hourly rate plus the assignment's per-use charge, already scaled by work-resource units.</summary>
     public static decimal WorkCost(ProjectWork totalWork, ProjectWork overtimeWork, decimal standardHourlyRate, decimal overtimeHourlyRate, decimal costPerUse = 0) {
         if (overtimeWork.Minutes > totalWork.Minutes) throw new ArgumentException("Overtime is part of total work, not additional to it.", nameof(overtimeWork));
         if (standardHourlyRate < 0 || overtimeHourlyRate < 0 || costPerUse < 0) throw new ArgumentOutOfRangeException(nameof(standardHourlyRate));

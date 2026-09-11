@@ -19,6 +19,7 @@ internal sealed partial class ProjectTaskAllocation {
         internal DateTime? RemainingOrigin;
         internal Curve[] Curves = Array.Empty<Curve>();
         internal ProjectAssignmentInterval[] ActualIntervals = Array.Empty<ProjectAssignmentInterval>();
+        internal bool IsFixedMaterial => Assignment.Resource!.Type == ProjectResourceType.Material && Assignment.HasFixedRateUnits != false;
     }
     private readonly struct Curve {
         internal Curve(decimal from, decimal to, decimal work) { From = from; To = to; Work = work; }
@@ -101,7 +102,9 @@ internal sealed partial class ProjectTaskAllocation {
                 _task.Type == ProjectTaskType.FixedDuration ? RemainingTaskDuration() : entry.Units > 0 ? regular / entry.Units : 0;
             if (_task.Type == ProjectTaskType.FixedDuration && resource.Type == ProjectResourceType.Work && duration > 0 && redistributed.HasValue)
                 entry.Units = regular / duration;
-            entry.Curves = entry.Remaining == 0 ? Array.Empty<Curve>() : NamedCurves(assignment.WorkContour ?? ProjectWorkContour.Flat, duration, regular);
+            entry.Curves = entry.Remaining == 0 ? Array.Empty<Curve>() : entry.IsFixedMaterial && duration == 0
+                ? new[] { new Curve(0, 0, regular) }
+                : NamedCurves(assignment.WorkContour ?? ProjectWorkContour.Flat, duration, regular);
         }
     }
     private decimal RemainingTaskDuration() {
