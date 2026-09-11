@@ -11,6 +11,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="../OfficeIMO.Project/OfficeIMO.Project.csproj" />
+        <ProjectReference Include="../OfficeIMO.Workflows/OfficeIMO.Workflows.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Core\\OfficeIMO.Core.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel\\OfficeIMO.Excel.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel.Html\\OfficeIMO.Excel.Html.csproj" />
@@ -53,6 +55,10 @@
         <None Include="..\\Assets\\**">
             <Link>Assets\\%(RecursiveDir)%(Filename)%(Extension)</Link>
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Include="../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf;../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf;../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/OFL-Carlito.txt">
+            <Link>Assets/Fonts/%(Filename)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="Images\\**">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>

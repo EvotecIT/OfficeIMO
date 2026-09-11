@@ -2497,6 +2497,174 @@
       "sha256": "2b853f98f23acc20a633e9fcc153d3510e2dbaa6e34db6b38e612e084419e076",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "project-delivery-gantt-example.xml",
+      "path": "/downloads/showcase/workflows/project-delivery-gantt/example.xml",
+      "bytes": 8959,
+      "sha256": "d8b360f05f51ac5cf5b99b3ec0a5ddbc10a50cb41abfdbb2b4b19660282ab3db",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-delivery-gantt",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-delivery-gantt-preview.png",
+      "path": "/downloads/showcase/workflows/project-delivery-gantt/preview.png",
+      "bytes": 110231,
+      "sha256": "7775d42898ae4e4064a043c612505f4bc00563be1fdae3a262010e9bc2440c68",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-delivery-gantt",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-delivery-gantt-preview.svg",
+      "path": "/downloads/showcase/workflows/project-delivery-gantt/preview.svg",
+      "bytes": 1759062,
+      "sha256": "42f42180352f584baf94c134b4768f42ab84e32fe3ffbb5f91cddb7d53669908",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-delivery-gantt",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-delivery-gantt-preview.pdf",
+      "path": "/downloads/showcase/workflows/project-delivery-gantt/preview.pdf",
+      "bytes": 48895,
+      "sha256": "9a41088fe474801334622e3b4690f8c20f01ffd0c79812b5c8e6dfed29e1f33e",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-delivery-gantt",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-delivery-gantt-report.docx",
+      "path": "/downloads/showcase/workflows/project-delivery-gantt/report.docx",
+      "bytes": 101511,
+      "sha256": "92d56a99627516e4e35600cb692241a6ec2f94a0cd0f8afa70a17bb234c67df6",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-delivery-gantt",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-delivery-gantt-OFL-Carlito.txt",
+      "path": "/downloads/showcase/workflows/project-delivery-gantt/OFL-Carlito.txt",
+      "bytes": 4517,
+      "sha256": "443646e93617b50302a2c08e24ca179225556fb89a76810d7637c9cf9cc763a9",
+      "generator": "Copy the license for the bundled Carlito font faces",
+      "evidence": "SIL Open Font License for the fonts embedded in vector report exports."
+    },
+    {
+      "id": "project-delivery-gantt-source",
+      "path": "/downloads/showcase/workflows/project-delivery-gantt/ProjectDeliveryGantt.cs.txt",
+      "bytes": 3473,
+      "sha256": "2deec95955412ebeaa0991fea833ee5d8547af4c405f6c584a5d5007f97af1f1",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "project-dependency-network-example.xml",
+      "path": "/downloads/showcase/workflows/project-dependency-network/example.xml",
+      "bytes": 12675,
+      "sha256": "a097665a8a6e711b9d54612bd6b485262079de569bd34924f8dc8b489c59cb90",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-dependency-network",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-dependency-network-preview.png",
+      "path": "/downloads/showcase/workflows/project-dependency-network/preview.png",
+      "bytes": 211622,
+      "sha256": "acb3c3a7ed5a319c5cf0cc9b7059ee1027634094bd531ec05f17166c0caab958",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-dependency-network",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-dependency-network-preview.svg",
+      "path": "/downloads/showcase/workflows/project-dependency-network/preview.svg",
+      "bytes": 1759159,
+      "sha256": "d3e05ae6bc8e7513fc92292990568ed1248c140e936f780bf9753278b8f70290",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-dependency-network",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-dependency-network-preview.pdf",
+      "path": "/downloads/showcase/workflows/project-dependency-network/preview.pdf",
+      "bytes": 56738,
+      "sha256": "9f8f826471e5533c498986c593d0061f9bd4d58cf9601a76e2eca4816dc9ffae",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-dependency-network",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-dependency-network-OFL-Carlito.txt",
+      "path": "/downloads/showcase/workflows/project-dependency-network/OFL-Carlito.txt",
+      "bytes": 4517,
+      "sha256": "443646e93617b50302a2c08e24ca179225556fb89a76810d7637c9cf9cc763a9",
+      "generator": "Copy the license for the bundled Carlito font faces",
+      "evidence": "SIL Open Font License for the fonts embedded in vector report exports."
+    },
+    {
+      "id": "project-dependency-network-source",
+      "path": "/downloads/showcase/workflows/project-dependency-network/ProjectDependencyNetwork.cs.txt",
+      "bytes": 2893,
+      "sha256": "08b88d01832933aa9adc6048440546e7fa43fa71f4979c28a433d0bfc8ff8ea6",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "project-milestone-timeline-example.xml",
+      "path": "/downloads/showcase/workflows/project-milestone-timeline/example.xml",
+      "bytes": 7897,
+      "sha256": "07ad330fe651feb25b21c28a42b53161fd012b7307bad0f76b5dfc4a0b77f53c",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-milestone-timeline",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-milestone-timeline-preview.png",
+      "path": "/downloads/showcase/workflows/project-milestone-timeline/preview.png",
+      "bytes": 99878,
+      "sha256": "21f36bf40cbb67e1d965e5e766a4cafc9137d57fc53fe01b55536dccdadd87d1",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-milestone-timeline",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-milestone-timeline-preview.svg",
+      "path": "/downloads/showcase/workflows/project-milestone-timeline/preview.svg",
+      "bytes": 1756138,
+      "sha256": "a19ad75a54cee2d37c8dd04a4c0e3b9ebcbe017bc4c6b152e39f7a4a0dc41254",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-milestone-timeline",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-milestone-timeline-preview.pdf",
+      "path": "/downloads/showcase/workflows/project-milestone-timeline/preview.pdf",
+      "bytes": 44793,
+      "sha256": "02f50b0602ee4ad435fbce05313d0dd05ce19445eaa752de7ddaf10a1521a497",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-milestone-timeline",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-milestone-timeline-report.pptx",
+      "path": "/downloads/showcase/workflows/project-milestone-timeline/report.pptx",
+      "bytes": 91182,
+      "sha256": "315cf800ba0b432885b0a3cc653b18a2bcbe13f6709889a0b08a558bd12012eb",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-milestone-timeline",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-milestone-timeline-report.xlsx",
+      "path": "/downloads/showcase/workflows/project-milestone-timeline/report.xlsx",
+      "bytes": 7111,
+      "sha256": "c61b7947b500084a1b3d56d4211d1aef2c97343103a626e22cf00d4dbfadecd5",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-milestone-timeline",
+      "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
+    },
+    {
+      "id": "project-milestone-timeline-OFL-Carlito.txt",
+      "path": "/downloads/showcase/workflows/project-milestone-timeline/OFL-Carlito.txt",
+      "bytes": 4517,
+      "sha256": "443646e93617b50302a2c08e24ca179225556fb89a76810d7637c9cf9cc763a9",
+      "generator": "Copy the license for the bundled Carlito font faces",
+      "evidence": "SIL Open Font License for the fonts embedded in vector report exports."
+    },
+    {
+      "id": "project-milestone-timeline-source",
+      "path": "/downloads/showcase/workflows/project-milestone-timeline/ProjectMilestoneTimeline.cs.txt",
+      "bytes": 2844,
+      "sha256": "f25783aa0617b86199edb58992a91c64c66b57a0c5e49cd5d4ff19fd3b357b09",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
     }
   ]
 }
