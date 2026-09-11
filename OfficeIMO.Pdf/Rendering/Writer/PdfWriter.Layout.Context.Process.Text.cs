@@ -40,6 +40,7 @@ internal static partial class PdfWriter {
             }
 
             int lineIndex = 0;
+            PageStructElement? logicalHeading = null;
             while (lineIndex < lines.Count) {
                 double available = y - currentOpts.MarginBottom;
                 int take = 0;
@@ -71,11 +72,12 @@ internal static partial class PdfWriter {
                 int? linkStructElementIndex = null;
                 string markedStructureType = structureType;
                 int? markedContentId;
-                if (hasLinkTarget && emitGeneratedStructure && currentPage != null) {
-                    int? headingElementIndex = RegisterStructureContainer(structureType);
-                    linkStructElementIndex = currentPage.StructElements.Count;
-                    markedStructureType = "Link";
-                    markedContentId = RegisterTextStructureElement(markedStructureType, headingElementIndex);
+                if ((hasLinkTarget || take < lines.Count) && emitGeneratedStructure && currentPage != null) {
+                    logicalHeading ??= RegisterStructureContainer(structureType, parentElement: null);
+                    if (logicalHeading != null && lineIndex > 0) logicalHeading.SpansPages = true;
+                    if (hasLinkTarget) linkStructElementIndex = currentPage.StructElements.Count;
+                    markedStructureType = hasLinkTarget ? "Link" : "Span";
+                    markedContentId = RegisterTextStructureElement(markedStructureType, logicalHeading);
                 } else {
                     markedContentId = RegisterTextStructureElement(structureType);
                 }

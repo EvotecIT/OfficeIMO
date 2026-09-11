@@ -8,6 +8,42 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentVisualQualityTests {
     [Theory]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    [InlineData(3, true)]
+    public void ContinuedHeadingRetainsOneLogicalHeadingElement(int level, bool linked) {
+        var options = new PdfOptions { PageWidth = 220, PageHeight = 160, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25 };
+        PdfDocument document = PdfDocument.Create(options).TaggedPdfCatalogMarkers();
+        string text = string.Join(" ", Enumerable.Repeat("Heading content", 100)) + " FINAL-MARKER";
+        string? link = linked ? "https://example.test/heading" : null;
+        if (level == 1) document.H1(text, linkUri: link);
+        else if (level == 2) document.H2(text, linkUri: link);
+        else document.H3(text, linkUri: link);
+        byte[] bytes = document.ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
+        Assert.True(pdf.NumberOfPages > 2);
+        Assert.Contains("FINAL-MARKER", string.Join("", pdf.GetPages().Select(page => page.Text)), StringComparison.Ordinal);
+        string content = System.Text.Encoding.ASCII.GetString(bytes);
+        Assert.Equal(1, CountOccurrences(content, "/Type /StructElem /S /H" + level + " "));
+        Assert.Equal(pdf.NumberOfPages, CountOccurrences(content, "/StructParents "));
+        PdfTaggedContentInfo tagged = PdfReadDocument.Open(bytes).TaggedContent!;
+        Assert.NotNull(tagged);
+        PdfStructureElementInfo heading = Assert.Single(tagged.StructureElements.Where(element => element.StructureType == "H" + level));
+        Assert.Null(heading.PageObjectNumber);
+        PdfStructureElementInfo[] children = tagged.StructureElements.Where(element => heading.ChildElementObjectNumbers.Contains(element.ObjectNumber)).ToArray();
+        Assert.Equal(pdf.NumberOfPages, children.Length);
+        Assert.All(children, child => {
+            Assert.Equal(heading.ObjectNumber, child.ParentObjectNumber);
+            Assert.Equal(linked ? "Link" : "Span", child.StructureType);
+            Assert.NotNull(Assert.Single(child.MarkedContentReferences).PageObjectNumber);
+        });
+        Assert.Equal(pdf.NumberOfPages, children.SelectMany(child => child.MarkedContentReferences).Select(reference => reference.PageObjectNumber).Distinct().Count());
+    }
+
+    [Theory]
     [InlineData(180, 220)]
     [InlineData(320, 160)]
     public void OversizedHeadingPaginatesTextAndLinksWithinThePageFrame(double pageWidth, double pageHeight) {
