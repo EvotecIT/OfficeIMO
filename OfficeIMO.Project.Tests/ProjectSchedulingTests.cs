@@ -130,7 +130,6 @@ public sealed class ProjectSchedulingTests {
     [Theory]
     [InlineData("<IgnoreResourceCalendar>1</IgnoreResourceCalendar>")]
     [InlineData("<ExternalTask>1</ExternalTask>")]
-    [InlineData("<LevelingDelay>60</LevelingDelay>")]
     public void UnsupportedRetainedTaskSchedulingInputsBlockApply(string extra) {
         using var original = Standard(); original.Tasks.Add("A").Duration = ProjectDuration.WorkingDays(1);
         var xml = System.Xml.Linq.XDocument.Parse(original.ToXml()); var ns = xml.Root!.Name.Namespace;

@@ -15,23 +15,34 @@ internal sealed partial class ProjectScheduler {
         }
     }
     private void CheckSourceProfile() {
+        if (_document.AllTasks.Any(task => task.IsRecurring == true))
+            _diagnostics.Add(new ProjectDiagnostic("PROJECT_EXPANDED_RECURRENCE", ProjectDiagnosticSeverity.Warning,
+                "Calculation schedules the stored recurring occurrences independently. It does not infer or regenerate a recurrence rule from the series marker.", "/Project"));
+        if (_options.CalculateAssignments && _document.NativeSource != null)
+            Error("PROJECT_NATIVE_ASSIGNMENT_PROFILE", "Independent assignment calculation requires typed timephased and rate inputs; opaque native assignment profiles cannot be calculated.");
         if (_document.NativeSource != null)
             _diagnostics.Add(new ProjectDiagnostic("PROJECT_NATIVE_SCHEDULE_PROJECTION", ProjectDiagnosticSeverity.Warning,
                 "Calculation uses decoded scalar values and calendars. Native contours, splits, leveling, and other opaque scheduling records are not interpreted; this is a projection of the supported model.", "/Project"));
         foreach (var task in _document.AllTasks) {
             _token.ThrowIfCancellationRequested();
+            if (!_options.CalculateAssignments && task.IgnoreResourceCalendar == true)
+                Error("PROJECT_TASK_SCHEDULING_PROFILE", "Ignoring resource calendars requires independent assignment calculation.", task);
+            if (task.LevelingDelay?.Value > 0 && _document.Settings.ScheduleFromStart == false)
+                Error("PROJECT_LEVELING_BACKWARD", "Preserved leveling delays require forward scheduling; clear them explicitly before scheduling backward.", task);
             var source = _document.Source?.Element(task);
             if (source == null) continue;
-            if (Enabled(source, "ExternalTask") || Enabled(source, "IsSubproject") || Enabled(source, "Recurring") ||
-                Enabled(source, "IgnoreResourceCalendar") || Nonzero(source, "LevelingDelay") || source.Element(source.Name.Namespace + "RecurringTask") != null)
-                Error("PROJECT_TASK_SCHEDULING_PROFILE", "External/recurring tasks, leveling delays, and ignored resource calendars require additional scheduling semantics.", task);
+            if (Enabled(source, "ExternalTask") || Enabled(source, "IsSubproject") ||
+                (!_options.CalculateAssignments && Enabled(source, "IgnoreResourceCalendar")) || source.Element(source.Name.Namespace + "RecurringTask") != null)
+                Error("PROJECT_TASK_SCHEDULING_PROFILE", "External tasks, opaque recurrence rules, and ignored resource calendars require additional scheduling semantics.", task);
         }
         foreach (var assignment in _document.Assignments) {
             _token.ThrowIfCancellationRequested();
-            if (assignment.ActualStart.HasValue || assignment.ActualFinish.HasValue || assignment.ActualWork?.Minutes > 0 || assignment.PercentWorkComplete > 0)
+            if (!_options.CalculateAssignments && (assignment.DelayMinutes > 0 || assignment.WorkContour.HasValue && assignment.WorkContour != ProjectWorkContour.Flat))
+                Error("PROJECT_ASSIGNMENT_SCHEDULING_PROFILE", "Assignment delays and non-flat contours require independent assignment scheduling.", assignment.Task);
+            if (!_options.CalculateAssignments && (assignment.ActualStart.HasValue || assignment.ActualFinish.HasValue || assignment.ActualWork?.Minutes > 0 || assignment.PercentWorkComplete > 0))
                 Error("PROJECT_PROGRESS_SCHEDULING", "Assignment progress requires interval-aware rescheduling.", assignment.Task);
             var source = _document.Source?.Element(assignment);
-            if (source != null && (Nonzero(source, "Delay") || Nonzero(source, "WorkContour") || Nonzero(source, "LevelingDelay")))
+            if (source != null && ((!_options.CalculateAssignments && (Nonzero(source, "Delay") || Nonzero(source, "WorkContour"))) || Nonzero(source, "LevelingDelay")))
                 Error("PROJECT_ASSIGNMENT_SCHEDULING_PROFILE", "Assignment delays, non-flat work contours, and leveling delays require independent assignment scheduling.", assignment.Task);
         }
     }

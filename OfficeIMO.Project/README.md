@@ -91,7 +91,7 @@ An unchanged byte-loaded document saves byte-for-byte by default. For edited doc
 
 Structural edits can invalidate references inside unmodeled structures. `AssessSave()` reports this risk and the default loss policy blocks the save. A caller that has reviewed the findings can explicitly choose `new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }` from `OfficeIMO.Core`. Validation errors still block output. Fractional dependency lag also requires explicit loss permission because MSPDI writes integer tenths of a minute or integer percent.
 
-Schedule-affecting mutations set `IsScheduleStale`; validation reports the stale stored task dates. `AreWorkCostTotalsStale` remains true after applying a schedule because that operation does not update work or cost totals. These flags describe edits in the current document; they do not certify the consistency of imported caches. Dates use `DateTimeKind.Unspecified` and represent local project wall time; no host timezone conversion occurs. Working durations use the project's minutes-per-day/week and days-per-month settings. Elapsed durations count continuous time. Costs are public currency amounts; the XML codec handles MSPDI monetary scaling. New documents use USD deterministically; set `Settings.CurrencyCode` to the intended currency. Loaded documents retain their declared currency or its absence.
+Schedule-affecting mutations set `IsScheduleStale`; validation reports the stale stored task dates. Applying a date-only schedule leaves `AreWorkCostTotalsStale` set. Applying a complete assignment calculation updates the work/cost totals and clears that flag when every relevant task and assignment is covered. These flags describe edits in the current document; they do not certify the consistency of imported caches. Dates use `DateTimeKind.Unspecified` and represent local project wall time; no host timezone conversion occurs. Working durations use the project's minutes-per-day/week and days-per-month settings. Elapsed durations count continuous time. Costs are public currency amounts; the XML codec handles MSPDI monetary scaling. New documents use USD deterministically; set `Settings.CurrencyCode` to the intended currency. Loaded documents retain their declared currency or its absence.
 
 ## Calculate dates and inspect assignment totals
 
@@ -107,7 +107,7 @@ foreach (var resource in analysis.Resources)
     Console.WriteLine($"{resource.ResourceUid}: assignment costs {resource.Cost}, stored resource cost {resource.StoredResourceCost}");
 ```
 
-Calculation is non-mutating and its result belongs to one document revision. Applying an error-free result rejects another document, stale revisions, and unfinished update scopes. It updates task dates, unstarted automatic-task remaining durations, and missing assignment endpoints; it leaves work/cost amounts unchanged. `Recalculate()` combines calculation and application. The scheduling profile covers calendar inheritance, dated work weeks and exceptions, split/overnight shifts, all four dependency kinds, working/elapsed/percentage lag, forward/backward scheduling, constraints, deadlines, summary dates, and float. Unsupported progress rescheduling, assignment delays/contours, external dependencies, and differing resource calendars produce diagnostics. If proposed task dates conflict with stored assignment dates, the result includes the proposed dates plus an error that blocks application: rescheduling those assignments and their curves is outside this profile. Review [the scheduling boundary](SUPPORT.md#scheduling-and-assignment-analysis) before relying on an imported project's calculation.
+Calculation is non-mutating and its result belongs to one document revision. Applying an error-free result rejects another document, stale revisions, and unfinished update scopes. A date-only result updates task dates, unstarted automatic-task remaining durations, and missing assignment endpoints while leaving work/cost amounts unchanged. `Recalculate()` combines calculation and application. The scheduling profile covers calendar inheritance, dated work weeks and exceptions, split/overnight shifts, all four dependency kinds, working/elapsed/percentage lag, forward/backward scheduling, constraints, deadlines, summary dates, and float. Use `CalculateAssignments` for the supported work/cost, progress, delay/contour, and differing-calendar profiles. A date-only result with conflicting stored assignment dates cannot be applied. Review [the scheduling boundary](SUPPORT.md#scheduling-and-assignment-analysis) before relying on an imported project's calculation.
 
 Calendar methods `AddWorkingMinutes`, `WorkingMinutesBetween`, and `GetWorkingIntervals` also work independently of the scheduler. Calendar searches have explicit day limits and cancellation support. `ProjectWorkEquation` exposes uniform work/duration/units and rate equations. `AnalyzeAssignments` reports stored assignment aggregates, actual/remaining inconsistencies, cached resource-total differences, and estimates where uniform rates apply. It never overwrites stored costs or actuals, applies dated rate tables, or levels resources.
 
@@ -184,8 +184,51 @@ MPX 4.0/4.1 input supports English field values, numeric field tables, declared 
 
 MPX carries currency formatting rather than a currency identity. Set `Settings.CurrencyCode` explicitly before converting an MPX input without that identity to XML. Conversion does not infer a currency from `$` or another display symbol. Calendar labels, additional baseline slots, unsupported custom fields, and features outside the MPX profile appear in the pre-write report. See [the MPX matrix](SUPPORT.md#mpx-exchange) for limits.
 
+## Calculate work, cost, and resource capacity
+
+Assignment calculation is explicit. It uses task and resource calendars, availability, rates, progress, and supported timephased inputs to produce a revision-bound result. Inspect diagnostics before applying it:
+
+```csharp
+project.Settings.StatusDate = new DateTime(2026, 10, 7, 8, 0, 0);
+var calculated = project.CalculateSchedule(new ProjectScheduleOptions {
+    CalculateAssignments = true,
+    RescheduleRemainingAfterStatusDate = true
+});
+calculated.Report.ThrowIfErrors();
+var capacity = project.AnalyzeResourceAllocation(calculated);
+project.ApplySchedule(calculated);
+```
+
+Set `Settings.StatusDate` when rescheduling remaining work. `RedistributeEffortDrivenWork` and `RecalculateActualCosts` opt into their respective calculations; ordinary load/save keeps stored values. Use `CaptureBaseline` to capture a calculated baseline and `AnalyzeEarnedValue` to inspect planned value, earned value, actual cost, and variance against a selected baseline.
+
+`CalculateLeveling` is a separate, non-mutating operation. Its options bound iterations and delay, choose priority ordering, restrict moves to available slack, and optionally split eligible work. `ApplyLeveling` applies a valid current result. See [the scheduling matrix](SUPPORT.md#scheduling-and-assignment-analysis) for unsupported combinations and tie-breaking rules.
+
+Custom-field formulas use `CalculateCustomFields` followed by `ApplyCustomFields`. Lookup setters validate field identity and table membership. `GetOutlineCodeText` and `SetOutlineCodeValue` handle hierarchical outline values and masks. `EvaluateIndicators` applies explicit typed rules. `AddRecurringTask` creates finite occurrences from caller-provided starts; recurrence rules can generate those starts within a bounded range.
+
+External scheduling requires an explicit `ProjectExternalProjectResolver`. OfficeIMO does not discover or fetch linked files. Resource-pool analysis uses caller-supplied document, schedule, and resource bindings; it reports shared capacity without changing other projects.
+
+## Create views and exchange tables
+
+```csharp
+var calculated = project.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
+calculated.Report.ThrowIfErrors();
+var view = project.CreateView(calculated, new ProjectViewOptions {
+    Kind = ProjectViewKind.Gantt,
+    Timescale = ProjectViewTimescale.Week,
+    BaselineNumber = 0
+});
+foreach (var row in view.Rows)
+    Console.WriteLine($"{row.Name}: {row.Start} — {row.Finish}");
+```
+
+Views are immutable snapshots. Available layouts are Gantt, task usage, resource usage, resource histogram, network, timeline, and table. Options select tasks/resources, columns, dates, critical tasks, summaries, parent groups, baseline, and page dimensions. `Render()` creates portable drawing pages. Native Project view definitions and styles are not imported into these layouts.
+
+`ExportTables` projects tasks, resources, assignments, and calendar intervals into mapped tables. The default rejects omitted project semantics; pass `allowLossyProjection: true` only after accepting the projection's diagnostic report. `ProjectDocument.ImportTables` creates a new document from explicit column mappings and import options. These tables are a data-exchange contract, not a complete project backup.
+
+The optional [OfficeIMO.Workflows](../OfficeIMO.Workflows/README.md) package owns PDF/SVG/PNG/HTML output, editable Word/PowerPoint/Excel reports, and CSV/Excel table transport. The base Project package depends only on the shared Core owner.
+
 ## Coverage and limits
 
-See [the operation matrix](SUPPORT.md) for tested features, dialects, native-format boundaries, and platform evidence. The model includes tasks, resources, assignments, dependencies, calendars, baselines, custom fields, and compact XML timephased intervals. Rendering and online service integration are unsupported.
+See [the operation matrix](SUPPORT.md) for tested features, dialects, native-format boundaries, and platform evidence. Advanced calculation and report support follow the declared profiles; native curves, native view/style fidelity, and online service integration remain outside them.
 
 Input limits bound bytes, XML characters/depth/elements/attributes, task outlines, entity counts, timephased intervals, and retained diagnostics. DTDs and external entities are prohibited. No linked project, schema, image, or other external resource is fetched. Set `ProjectLoadOptions` deliberately for unusually large trusted files; output has a separate `MaxOutputBytes` limit.

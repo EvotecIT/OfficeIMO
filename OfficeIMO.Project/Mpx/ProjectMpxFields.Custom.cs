@@ -7,7 +7,7 @@ internal static partial class ProjectMpxFields {
     internal sealed class CustomMapping {
         internal readonly int Id;
         internal readonly string FieldId, Name, Kind;
-        internal CustomMapping(int id, ProjectNativeCustomField field) { Id = id; FieldId = field.Id.ToString(CultureInfo.InvariantCulture); Name = field.Name; Kind = field.Kind; }
+        internal CustomMapping(int id, ProjectCustomFieldIdentity field) { Id = id; FieldId = field.Id.ToString(CultureInfo.InvariantCulture); Name = field.Name; Kind = field.Kind; }
         internal string Parse(string text, ProjectMpxValues values) => Kind switch {
             "Text" => text, "Flag" => values.Flag(text) ? "1" : "0",
             "Number" => ProjectMpxValues.Text(values.Number(text)),
@@ -39,7 +39,7 @@ internal static partial class ProjectMpxFields {
     internal static IEnumerable<CustomMapping> CustomMappings(bool task) => task ? TaskCustom : ResourceCustom;
     private static CustomMapping[] BuildCustom(bool task) {
         var result = new List<CustomMapping>();
-        foreach (var field in task ? ProjectNativeCustomField.TaskFields : ProjectNativeCustomField.ResourceFields) {
+        foreach (var field in task ? ProjectCustomFieldIdentity.TaskFields : ProjectCustomFieldIdentity.ResourceFields) {
             int id = field.Kind switch {
                 "Text" when field.Number <= (task ? 10 : 5) => field.Number + (task ? 3 : 4),
                 "Number" when task && field.Number <= 5 => field.Number + 139,

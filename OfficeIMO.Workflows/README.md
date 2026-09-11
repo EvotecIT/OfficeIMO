@@ -4,6 +4,43 @@
 
 The package does not add a second document or PDF engine. Desktop applications, command-line tools, and services can share this workflow contract while keeping their user-interface and hosting code thin.
 
+## Project reports and table exchange
+
+`ProjectReportWorkflow` exports a calculated Project view through the existing document owners:
+
+```csharp
+using OfficeIMO.Project;
+using OfficeIMO.Workflows;
+
+using var project = ProjectDocument.Load("delivery.xml");
+var schedule = project.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
+schedule.Report.ThrowIfErrors();
+var view = project.CreateView(schedule, new ProjectViewOptions {
+    Kind = ProjectViewKind.TaskUsage,
+    Timescale = ProjectViewTimescale.Week
+});
+File.WriteAllBytes("delivery.pdf", ProjectReportWorkflow.ToPdf(view));
+File.WriteAllText("delivery.html", ProjectReportWorkflow.ToHtml(view));
+using var workbook = ProjectReportWorkflow.CreateExcel(view);
+workbook.Save("delivery.xlsx");
+```
+
+`ToSvg` and `ToPng` return one result per page. Supply an `OfficeRenderingProfile` with the required fonts for explicit Unicode coverage. `CreateWord`, `CreatePowerPoint`, and `CreateExcel` return editable document objects that callers can customize and save. Word and PowerPoint use tables; Excel separates report values, usage, status/groups, baseline dates, and dependencies into worksheets. These exports do not reconstruct Microsoft Project's saved views or native styles.
+
+`ProjectDataWorkflow` transports the Project owner's mapped tables:
+
+```csharp
+var projection = project.ExportTables(allowLossyProjection: true);
+foreach (string notice in projection.Notices)
+    Console.WriteLine(notice);
+using var transfer = ProjectDataWorkflow.CreateExcel(projection);
+transfer.Save("project-data.xlsx");
+foreach (var table in projection.Tables)
+    ProjectDataWorkflow.CreateCsv(table.Table).Save(table.Kind + ".csv");
+```
+
+Loss permission is explicit because tables omit dependencies, native presentation, and other semantics outside the selected exchange fields. `ReadExcel` requires a bounded worksheet rectangle; formula/error cells and numbers that cannot be represented exactly are rejected. `ReadCsv` uses the CSV owner's parsing and quoting rules. Wrap the resulting `ProjectDataTable` in a `ProjectMappedTable` with explicit field mappings before calling `ProjectDocument.ImportTables`. Table import creates a new project and validates identity, references, units, and conflict policy. See [Project support](../OfficeIMO.Project/SUPPORT.md#portable-reports-and-mapped-data-exchange) for the full boundary.
+
 ## Reference from source
 
 When working from an OfficeIMO source checkout, reference the workflow project directly:

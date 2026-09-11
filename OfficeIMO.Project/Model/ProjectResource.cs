@@ -1,11 +1,14 @@
 namespace OfficeIMO.Project;
 
 /// <summary>A work, material, or cost resource; imported rates and actuals are retained without calculation.</summary>
-public sealed class ProjectResource : ProjectNamedEntity {
+public sealed partial class ProjectResource : ProjectNamedEntity {
     internal ProjectResource(ProjectDocument document, int uid) : base(document, uid) {
-        TimephasedData = new ProjectCollection<ProjectTimephasedValue>(document, () => new ProjectTimephasedValue(document), owner: this);
+        TimephasedData = new ProjectCollection<ProjectTimephasedValue>(document, () => new ProjectTimephasedValue(document), true, this);
         Baselines = new ProjectCollection<ProjectBaseline>(document, () => new ProjectBaseline(document), owner: this);
         CustomFields = new ProjectCollection<ProjectCustomFieldValue>(document, () => new ProjectCustomFieldValue(document), owner: this);
+        OutlineCodes = new ProjectCollection<ProjectCustomFieldValue>(document, () => new ProjectCustomFieldValue(document), owner: this);
+        AvailabilityPeriods = new ProjectCollection<ProjectResourceAvailability>(document, () => new ProjectResourceAvailability(document), true, this);
+        Rates = new ProjectCollection<ProjectResourceRate>(document, () => new ProjectResourceRate(document), true, this);
     }
     /// <summary>Compact source timephased intervals.</summary>
     public ProjectCollection<ProjectTimephasedValue> TimephasedData { get; }
@@ -13,6 +16,8 @@ public sealed class ProjectResource : ProjectNamedEntity {
     public ProjectCollection<ProjectBaseline> Baselines { get; }
     /// <summary>Custom values and lookup references.</summary>
     public ProjectCollection<ProjectCustomFieldValue> CustomFields { get; }
+    /// <summary>Outline-code selections referencing hierarchical lookup values.</summary>
+    public ProjectCollection<ProjectCustomFieldValue> OutlineCodes { get; }
     private ProjectCalendar? _calendar;
     /// <summary>Explicit calendar reference; null means no explicit calendar on this object.</summary>
     public ProjectCalendar? Calendar { get => _calendar; set { CheckReference(value); Set(ref _calendar, value, true); if (!Document.Loading) SourceCalendarUid = null; } }

@@ -17,8 +17,8 @@ public sealed partial class ProjectDocument {
             if (assignment.Cost.HasValue && assignment.ActualCost.HasValue && assignment.RemainingCost.HasValue && assignment.Cost != assignment.ActualCost + assignment.RemainingCost)
                 Warn("PROJECT_COST_BALANCE", "Stored cost differs from actual plus remaining cost.", location);
             decimal? minutes = assignment.Work?.Minutes, cost = null;
-            bool hasVariableRates = resource != null && Source?.Element(resource)?.Element(System.Xml.Linq.XName.Get("Rates", XmlNamespace))?.HasElements == true;
-            int? table = (int?)Source?.Element(assignment)?.Element(System.Xml.Linq.XName.Get("CostRateTable", XmlNamespace));
+            bool hasVariableRates = resource?.Rates.Count > 0;
+            int? table = (int?)assignment.CostRateTable;
             if (resource?.Type == ProjectResourceType.Cost) cost = assignment.Cost;
             else if (NativeSource != null) Warn("PROJECT_NATIVE_RATE_ESTIMATE_UNSUPPORTED", "Native rate tables and assignment profiles are retained but not interpreted. No rate-based cost estimate was inferred.", location);
             else if (hasVariableRates || table > 0) Warn("PROJECT_RATE_ESTIMATE_UNSUPPORTED", "Dated rates or a non-default rate table require interval-specific cost calculation.", location);
@@ -30,7 +30,8 @@ public sealed partial class ProjectDocument {
                 else if (minutes.HasValue && resource.StandardRate.HasValue && (overtime == 0 || resource.OvertimeRate.HasValue))
                     cost = ProjectWorkEquation.WorkCost(new ProjectWork(minutes.Value), new ProjectWork(overtime), resource.StandardRate.Value, resource.OvertimeRate ?? 0m, resource.CostPerUse ?? 0m);
             } else if (resource?.Type == ProjectResourceType.Material) {
-                if (assignment.Units.HasValue && resource.StandardRate.HasValue)
+                if (assignment.HasFixedRateUnits == false) Warn("PROJECT_MATERIAL_RATE_ESTIMATE_UNSUPPORTED", "Variable material usage requires a calendar-specific consumption calculation.", location);
+                else if (assignment.Units.HasValue && resource.StandardRate.HasValue)
                     cost = ProjectWorkEquation.MaterialCost(assignment.Units.Value.Value, resource.StandardRate.Value, resource.CostPerUse ?? 0m);
             } else Warn("PROJECT_ASSIGNMENT_RESOURCE", "The resource is unspecified or unresolved; no rate estimate was inferred.", location);
             estimates.Add(new ProjectAssignmentEstimate(assignment, minutes, cost));

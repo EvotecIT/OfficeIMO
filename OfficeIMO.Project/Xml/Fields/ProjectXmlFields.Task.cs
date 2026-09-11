@@ -2,6 +2,11 @@ namespace OfficeIMO.Project;
 
 internal static partial class ProjectXmlFields {
     internal static readonly ProjectXmlField<ProjectTask>[] Task = {
+        new ProjectXmlField<ProjectTask>("IgnoreResourceCalendar", (m,d) => ProjectXmlValue.Boolean(m.IgnoreResourceCalendar), (m,v,d,e) => m.IgnoreResourceCalendar = ProjectXmlValue.ParseBool(v)),
+        new ProjectXmlField<ProjectTask>("FixedCostAccrual", (m,d) => ProjectXmlValue.Integer((int?)m.FixedCostAccrual), (m,v,d,e) => m.FixedCostAccrual = (ProjectCostAccrual)ProjectXmlValue.ParseInt(v)),
+        new ProjectXmlField<ProjectTask>("Stop", (m,d) => ProjectXmlValue.Date(m.Stop), (m,v,d,e) => m.Stop = ProjectXmlValue.ParseDate(v)),
+        new ProjectXmlField<ProjectTask>("Resume", (m,d) => ProjectXmlValue.Date(m.Resume), (m,v,d,e) => m.Resume = ProjectXmlValue.ParseDate(v)),
+        new ProjectXmlField<ProjectTask>("EarnedValueMethod", (m,d) => ProjectXmlValue.Integer((int?)m.EarnedValueMethod), (m,v,d,e) => m.EarnedValueMethod = (ProjectEarnedValueMethod)ProjectXmlValue.ParseInt(v)),
         new ProjectXmlField<ProjectTask>("EarlyStart", (m, d) => ProjectXmlValue.Date(m.EarlyStart), (m, v, d, e) => m.EarlyStart = ProjectXmlValue.ParseDate(v)),
         new ProjectXmlField<ProjectTask>("EarlyFinish", (m, d) => ProjectXmlValue.Date(m.EarlyFinish), (m, v, d, e) => m.EarlyFinish = ProjectXmlValue.ParseDate(v)),
         new ProjectXmlField<ProjectTask>("LateStart", (m, d) => ProjectXmlValue.Date(m.LateStart), (m, v, d, e) => m.LateStart = ProjectXmlValue.ParseDate(v)),
@@ -28,6 +33,8 @@ internal static partial class ProjectXmlFields {
         new ProjectXmlField<ProjectTask>("Type", (m, d) => m.Type.HasValue ? ((int)m.Type.Value).ToString(System.Globalization.CultureInfo.InvariantCulture) : null, (m, v, d, e) => m.Type = (ProjectTaskType)ProjectXmlValue.ParseInt(v)),
         new ProjectXmlField<ProjectTask>("Manual", (m, d) => ProjectXmlValue.Boolean(m.IsManual), (m, v, d, e) => m.IsManual = ProjectXmlValue.ParseBool(v)),
         new ProjectXmlField<ProjectTask>("Milestone", (m, d) => ProjectXmlValue.Boolean(m.IsMilestone), (m, v, d, e) => m.IsMilestone = ProjectXmlValue.ParseBool(v)),
+        new ProjectXmlField<ProjectTask>("Recurring", (m, d) => ProjectXmlValue.Boolean(m.IsRecurring), (m, v, d, e) => m.IsRecurring = ProjectXmlValue.ParseBool(v)),
+        new ProjectXmlField<ProjectTask>("LevelingCanSplit", (m, d) => ProjectXmlValue.Boolean(m.LevelingCanSplit), (m, v, d, e) => m.LevelingCanSplit = ProjectXmlValue.ParseBool(v)),
         new ProjectXmlField<ProjectTask>("EffortDriven", (m, d) => ProjectXmlValue.Boolean(m.EffortDriven), (m, v, d, e) => m.EffortDriven = ProjectXmlValue.ParseBool(v)),
         new ProjectXmlField<ProjectTask>("Active", (m, d) => ProjectXmlValue.Boolean(m.IsActive), (m, v, d, e) => m.IsActive = ProjectXmlValue.ParseBool(v)),
         new ProjectXmlField<ProjectTask>("IsNull", (m, d) => ProjectXmlValue.Boolean(m.IsNull), (m, v, d, e) => m.IsNull = ProjectXmlValue.ParseBool(v)),
@@ -36,6 +43,10 @@ internal static partial class ProjectXmlFields {
         new ProjectXmlField<ProjectTask>("PercentWorkComplete", (m, d) => ProjectXmlValue.Integer(m.PercentWorkComplete), (m, v, d, e) => m.PercentWorkComplete = ProjectXmlValue.ParseInt(v)),
         new ProjectXmlField<ProjectTask>("PhysicalPercentComplete", (m, d) => ProjectXmlValue.Integer(m.PhysicalPercentComplete), (m, v, d, e) => m.PhysicalPercentComplete = ProjectXmlValue.ParseInt(v)),
         new ProjectXmlField<ProjectTask>("Priority", (m, d) => ProjectXmlValue.Integer(m.Priority), (m, v, d, e) => m.Priority = ProjectXmlValue.ParseInt(v)),
+        new ProjectXmlField<ProjectTask>("LevelingDelay", (m, d) => m.LevelingDelay.HasValue ? ProjectXmlValue.Number(m.LevelingDelay.Value.Value * ProjectXmlValue.MinutesPerUnit(m.LevelingDelay.Value.Unit, m.LevelingDelay.Value.IsElapsed, d) * 10m) : null,
+            (m, v, d, e) => m.LevelingDelay = ProjectXmlValue.ParseDuration(ProjectXmlValue.Work(new ProjectWork(ProjectXmlValue.ParseNumber(v) / 10m))!,
+                (int?)e.Element(e.Name.Namespace + "LevelingDelayFormat") ?? (ProjectXmlValue.ParseNumber(v) == 0m ? 3 : throw new InvalidDataException("A nonzero leveling delay requires LevelingDelayFormat.")), d)),
+        new ProjectXmlField<ProjectTask>("LevelingDelayFormat", (m, d) => m.LevelingDelay.HasValue ? ProjectXmlValue.Integer(ProjectXmlValue.DurationFormat(m.LevelingDelay.Value)) : null, (m, v, d, e) => { }),
         new ProjectXmlField<ProjectTask>("Cost", (m, d) => ProjectXmlValue.Money(m.Cost), (m, v, d, e) => m.Cost = ProjectXmlValue.ParseMoney(v)),
         new ProjectXmlField<ProjectTask>("ActualCost", (m, d) => ProjectXmlValue.Money(m.ActualCost), (m, v, d, e) => m.ActualCost = ProjectXmlValue.ParseMoney(v)),
         new ProjectXmlField<ProjectTask>("RemainingCost", (m, d) => ProjectXmlValue.Money(m.RemainingCost), (m, v, d, e) => m.RemainingCost = ProjectXmlValue.ParseMoney(v)),

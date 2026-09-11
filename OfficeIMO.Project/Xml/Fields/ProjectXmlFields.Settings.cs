@@ -2,6 +2,7 @@ namespace OfficeIMO.Project;
 
 internal static partial class ProjectXmlFields {
     internal static readonly ProjectXmlField<ProjectSettings>[] Settings = {
+        new ProjectXmlField<ProjectSettings>("ProjectExternallyEdited", (m, d) => ProjectXmlValue.Boolean(m.ExternallyEdited), (m, v, d, e) => m.ExternallyEdited = ProjectXmlValue.ParseBool(v)),
         new ProjectXmlField<ProjectSettings>("StartDate", (m, d) => ProjectXmlValue.Date(m.StartDate), (m, v, d, e) => m.StartDate = ProjectXmlValue.ParseDate(v)),
         new ProjectXmlField<ProjectSettings>("FinishDate", (m, d) => ProjectXmlValue.Date(m.FinishDate), (m, v, d, e) => m.FinishDate = ProjectXmlValue.ParseDate(v)),
         new ProjectXmlField<ProjectSettings>("ScheduleFromStart", (m, d) => ProjectXmlValue.Boolean(m.ScheduleFromStart), (m, v, d, e) => m.ScheduleFromStart = ProjectXmlValue.ParseBool(v)),

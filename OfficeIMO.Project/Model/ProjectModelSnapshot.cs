@@ -33,8 +33,13 @@ internal static partial class ProjectModelSnapshot {
             string path = Entity(task, "Task"); Fields(task, path, values);
             values[path + "/Parent"] = task.Parent?.Uid; values[path + "/Position"] = position++; values[path + "/IsSummary"] = task.IsSummary;
             Rich(task.Baselines, task.CustomFields, task.TimephasedData, path);
+            Items(task.OutlineCodes, path + "/OutlineCode", Fields);
         }
-        foreach (var resource in document.Resources) { string path = Entity(resource, "Resource"); Fields(resource, path, values); Rich(resource.Baselines, resource.CustomFields, resource.TimephasedData, path); }
+        foreach (var resource in document.Resources) {
+            string path = Entity(resource, "Resource"); Fields(resource, path, values); Rich(resource.Baselines, resource.CustomFields, resource.TimephasedData, path);
+            Items(resource.AvailabilityPeriods, path + "/Availability", Fields); Items(resource.Rates, path + "/Rate", Fields);
+            Items(resource.OutlineCodes, path + "/OutlineCode", Fields);
+        }
         foreach (var assignment in document.Assignments) {
             string path = Entity(assignment, "Assignment"); Fields(assignment, path, values);
             values[path + "/Task"] = assignment.Task?.Uid ?? assignment.SourceTaskUid; values[path + "/Resource"] = assignment.Resource?.Uid ?? assignment.SourceResourceUid;
@@ -50,6 +55,9 @@ internal static partial class ProjectModelSnapshot {
             Fields(item, key, output); output[key + "/Predecessor"] = item.Predecessor?.Uid ?? item.SourcePredecessorUid; output[key + "/Successor"] = item.Successor.Uid;
         });
         Items(document.CustomFields, "/Definition", (item, key, output) => { Fields(item, key, output); Items(item.LookupValues, key + "/Lookup", Fields); });
+        Items(document.OutlineCodes, "/OutlineCode", (item, key, output) => {
+            Fields(item, key, output); Items(item.Masks, key + "/Mask", Fields); Items(item.Values, key + "/Value", Fields);
+        });
         return values;
     }
 }

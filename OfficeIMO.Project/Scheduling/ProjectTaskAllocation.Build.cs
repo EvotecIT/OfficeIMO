@@ -1,0 +1,120 @@
+namespace OfficeIMO.Project;
+
+internal sealed partial class ProjectTaskAllocation {
+    internal bool HasActuals => _entries.Any(e => e.Actual > 0 || e.Assignment.ActualStart.HasValue) || _task.ActualStart.HasValue || _task.ActualDuration?.Value > 0;
+    internal Result Build(DateTime anchor, bool forward, bool costs = false) {
+        _token.ThrowIfCancellationRequested(); ProjectCalendarMath.Local(anchor);
+        if (!forward && HasActuals) throw new NotSupportedException("Backward scheduling of recorded progress requires an explicit remaining-work anchor.");
+        if (!forward) {
+            // Invert every assignment against the same finish bound, then rebuild all
+            // assignments from the latest common task anchor that satisfies that bound.
+            var starts = _entries.Where(e => e.Assignment.Resource!.Type == ProjectResourceType.Work)
+                .Select(e => e.Calendar.Add(e.RemainingCalendar.Add(anchor, -(e.Curves.Length == 0 ? 0m : e.Curves.Max(c => c.To))), -(e.Assignment.DelayMinutes ?? 0m))).ToArray();
+            DateTime start = starts.Length == 0 ? TaskAdd(anchor, -_requestedDuration) : starts.Min();
+            if (_task.Type == ProjectTaskType.FixedDuration) start = Min(start, TaskAdd(anchor, -_requestedDuration));
+            var inverse = Build(start, true, costs);
+            if (inverse.Finish > anchor) throw new InvalidOperationException("Assignment calendars and delays cannot meet the requested finish bound.");
+            return inverse;
+        }
+        var plans = new List<ProjectAssignmentSchedule>();
+        foreach (var entry in _entries) {
+            _token.ThrowIfCancellationRequested();
+            var assignment = entry.Assignment;
+            decimal delay = assignment.DelayMinutes ?? 0m;
+            decimal span = entry.Curves.Length == 0 ? 0m : entry.Curves.Max(c => c.To);
+            DateTime origin = forward ? entry.Calendar.Add(anchor, delay) : entry.Calendar.Add(anchor, -span);
+            if (entry.ActualIntervals.Length != 0) {
+                DateTime actualEnd = entry.ActualIntervals.Max(i => i.Finish);
+                origin = Max(origin, actualEnd);
+                if (entry.RemainingOrigin.HasValue) origin = Max(origin, entry.RemainingOrigin.Value);
+            }
+            if (assignment.Resume.HasValue) origin = Max(origin, assignment.Resume.Value);
+            if (_task.Resume.HasValue) origin = Max(origin, _task.Resume.Value);
+            if (_options.RescheduleRemainingAfterStatusDate) origin = Max(origin, _document.Settings.StatusDate!.Value);
+            var intervals = new List<ProjectAssignmentInterval>(entry.ActualIntervals);
+            decimal regular = entry.Remaining - entry.RemainingOvertime, assignedOvertime = 0m;
+            for (int index = 0; index < entry.Curves.Length; index++) {
+                var curve = entry.Curves[index];
+                decimal overtime = index == entry.Curves.Length - 1 ? entry.RemainingOvertime - assignedOvertime :
+                    regular > 0 ? entry.RemainingOvertime * curve.Work / regular : 0;
+                DateTime from = entry.RemainingCalendar.Add(origin, curve.From), to = entry.RemainingCalendar.Add(origin, curve.To);
+                Expand(entry.RemainingCalendar, from, to, curve.Work + overtime, overtime, false, intervals); assignedOvertime += overtime;
+            }
+            DateTime start = intervals.Count > 0 ? intervals.Min(i => i.Start) : origin;
+            DateTime finish = intervals.Count > 0 ? intervals.Max(i => i.Finish) : entry.RemainingCalendar.Add(origin, span);
+            if (assignment.Resource!.Type == ProjectResourceType.Cost) {
+                start = anchor;
+                finish = TaskAdd(anchor, _requestedDuration);
+            }
+            var charges = new List<ProjectCostInterval>(); decimal? cost = null, actualCost = null;
+            if (costs) (cost, actualCost) = CalculateCosts(entry, intervals, start, finish, charges);
+            plans.Add(new ProjectAssignmentSchedule(assignment, start, finish, entry.Units, intervals, charges, cost, actualCost,
+                assignment.Resource.Type == ProjectResourceType.Material ? intervals.Sum(i => i.Work.Minutes) / 60m : (decimal?)null, origin));
+            CheckCount(plans.Sum(p => p.Intervals.Count + p.Costs.Count));
+        }
+        var workUids = new HashSet<int>(_entries.Where(e => e.Assignment.Resource!.Type == ProjectResourceType.Work).Select(e => e.Assignment.Uid));
+        var workIntervals = plans.Where(p => workUids.Contains(p.AssignmentUid)).SelectMany(p => p.Intervals).ToArray();
+        decimal actualDuration, remainingDuration, duration;
+        DateTime taskStart, taskFinish;
+        if (workIntervals.Length == 0) {
+            actualDuration = _task.ActualDuration is ProjectDuration actual ? actual.Value * ProjectXmlValue.MinutesPerUnit(actual.Unit, actual.IsElapsed, _document) : 0;
+            remainingDuration = RemainingTaskDuration(); duration = actualDuration + remainingDuration;
+            taskStart = _task.ActualStart ?? anchor;
+            DateTime remainingStart = _task.Resume ?? TaskAdd(taskStart, actualDuration);
+            if (_options.RescheduleRemainingAfterStatusDate) remainingStart = Max(remainingStart, _document.Settings.StatusDate!.Value);
+            taskFinish = _task.ActualFinish ?? TaskAdd(remainingStart, remainingDuration);
+        } else {
+            taskStart = _entries.Select((entry, index) => (Entry: entry, Plan: plans[index]))
+                .Where(p => workUids.Contains(p.Plan.AssignmentUid)).Min(p => p.Entry.Actual > 0 ? p.Plan.Start :
+                    p.Entry.Calendar.Add(p.Plan.Start, -(p.Entry.Assignment.DelayMinutes ?? 0m)));
+            taskFinish = workIntervals.Max(i => i.Finish);
+            if (_task.ActualStart.HasValue) taskStart = _task.ActualStart.Value;
+            actualDuration = UnionMinutes(workIntervals.Where(i => i.IsActual));
+            duration = UnionMinutes(workIntervals);
+            if (_task.ActualDuration is ProjectDuration recordedDuration)
+                actualDuration = recordedDuration.Value * ProjectXmlValue.MinutesPerUnit(recordedDuration.Unit, recordedDuration.IsElapsed, _document);
+            // Concurrent actual and remaining assignment effort must not count the same task duration twice.
+            remainingDuration = Math.Max(0m, duration - actualDuration);
+            if (_task.Type == ProjectTaskType.FixedDuration) {
+                actualDuration = _task.ActualDuration is ProjectDuration actual ? actual.Value * ProjectXmlValue.MinutesPerUnit(actual.Unit, actual.IsElapsed, _document) : actualDuration;
+                remainingDuration = RemainingTaskDuration(); duration = actualDuration + remainingDuration;
+                taskFinish = Max(taskFinish, TaskAdd(taskStart, duration));
+            }
+            if (actualDuration > duration) throw new InvalidDataException("Recorded task actual duration exceeds its calculated duration.");
+        }
+        if (_task.IsManual == true) {
+            if (!_task.Start.HasValue || !_task.Finish.HasValue || taskStart < _task.Start || taskFinish > _task.Finish)
+                throw new InvalidOperationException("Calculated assignment work cannot fit within the manual task's stored dates.");
+            taskStart = _task.Start.Value; taskFinish = _task.Finish.Value;
+        }
+        return new Result { Start = taskStart, Finish = taskFinish, Duration = duration, ActualDuration = actualDuration,
+            RemainingDuration = remainingDuration, Assignments = plans.ToArray() };
+    }
+    private static DateTime Max(DateTime first, DateTime second) => first > second ? first : second;
+    private static DateTime Min(DateTime first, DateTime second) => first < second ? first : second;
+    private DateTime TaskAdd(DateTime date, decimal minutes) => _task.Duration?.IsElapsed == true
+        ? date.Add(ProjectXmlValue.MinutesToSpan(minutes)) : _taskCalendar.Add(date, minutes);
+    internal ProjectTaskWorkSchedule Totals(Result result) {
+        var work = result.Assignments.Where(a => _document.Resources.GetByUid(a.ResourceUid).Type == ProjectResourceType.Work).ToArray();
+        decimal totalWork = work.Sum(a => a.Work.Minutes), actualWork = work.Sum(a => a.ActualWork.Minutes);
+        if (work.Length == 0) { totalWork = _task.Work?.Minutes ?? 0m; actualWork = _task.ActualWork?.Minutes ?? 0m; }
+        decimal fixedCost = _task.FixedCost ?? 0m;
+        decimal fraction = result.Duration == 0 ? (_task.ActualFinish.HasValue ? 1m : 0m) : result.ActualDuration / result.Duration;
+        decimal actualFixed = (_task.FixedCostAccrual ?? ProjectCostAccrual.Prorated) switch {
+            ProjectCostAccrual.Start => HasActuals ? fixedCost : 0m,
+            ProjectCostAccrual.End => result.RemainingDuration == 0 && HasActuals ? fixedCost : 0m,
+            _ => fixedCost * fraction
+        };
+        decimal? cost = result.Assignments.All(a => a.Cost.HasValue) ? result.Assignments.Sum(a => a.Cost!.Value) + fixedCost : (decimal?)null;
+        decimal? actualCost = result.Assignments.All(a => a.ActualCost.HasValue) ? result.Assignments.Sum(a => a.ActualCost!.Value) + actualFixed : (decimal?)null;
+        if (!_options.RecalculateActualCosts && _task.ActualCost.HasValue) {
+            if (cost.HasValue && actualCost.HasValue) cost += _task.ActualCost.Value - actualCost.Value;
+            actualCost = _task.ActualCost;
+        }
+        return new ProjectTaskWorkSchedule(new ProjectWork(totalWork), new ProjectWork(actualWork), new ProjectWork(totalWork - actualWork),
+            result.ActualDuration, result.RemainingDuration, cost, actualCost, _task.PhysicalPercentComplete, _task.Duration?.IsElapsed == true);
+    }
+    private static decimal UnionMinutes(IEnumerable<ProjectAssignmentInterval> intervals) => ProjectCalendarMath.Merge(intervals
+        .Where(i => i.Finish > i.Start && i.Work.Minutes > i.OvertimeWork.Minutes).Select(i => new ProjectWorkingRange(i.Start, i.Finish)).ToList())
+        .Sum(i => (i.Finish.Ticks - i.Start.Ticks) / (decimal)TimeSpan.TicksPerMinute);
+}

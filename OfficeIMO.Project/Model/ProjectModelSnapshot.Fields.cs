@@ -18,8 +18,12 @@ internal static partial class ProjectModelSnapshot {
         values[path + "/StatusDate"] = item.StatusDate;
         values[path + "/DefaultTaskType"] = item.DefaultTaskType;
         values[path + "/NewTasksAreManual"] = item.NewTasksAreManual;
+        values[path + "/ExternallyEdited"] = item.ExternallyEdited;
     }
     private static void Fields(ProjectTask item, string path, ProjectModelValues values) {
+        values[path + "/IgnoreResourceCalendar"] = item.IgnoreResourceCalendar;
+        values[path + "/FixedCostAccrual"] = item.FixedCostAccrual;
+        values[path + "/Stop"] = item.Stop; values[path + "/Resume"] = item.Resume; values[path + "/EarnedValueMethod"] = item.EarnedValueMethod;
         values[path + "/Calendar"] = item.Calendar?.Uid;
         values[path + "/DisplayId"] = item.DisplayId;
         values[path + "/Wbs"] = item.Wbs;
@@ -39,6 +43,8 @@ internal static partial class ProjectModelSnapshot {
         values[path + "/Type"] = item.Type;
         values[path + "/IsManual"] = item.IsManual;
         values[path + "/IsMilestone"] = item.IsMilestone;
+        values[path + "/IsRecurring"] = item.IsRecurring;
+        values[path + "/LevelingCanSplit"] = item.LevelingCanSplit;
         values[path + "/EffortDriven"] = item.EffortDriven;
         values[path + "/IsActive"] = item.IsActive;
         values[path + "/IsNull"] = item.IsNull;
@@ -47,6 +53,7 @@ internal static partial class ProjectModelSnapshot {
         values[path + "/PercentWorkComplete"] = item.PercentWorkComplete;
         values[path + "/PhysicalPercentComplete"] = item.PhysicalPercentComplete;
         values[path + "/Priority"] = item.Priority;
+        values[path + "/LevelingDelay"] = item.LevelingDelay;
         values[path + "/Cost"] = item.Cost;
         values[path + "/ActualCost"] = item.ActualCost;
         values[path + "/RemainingCost"] = item.RemainingCost;
@@ -63,6 +70,8 @@ internal static partial class ProjectModelSnapshot {
         values[path + "/FreeSlackMinutes"] = item.FreeSlackMinutes;
     }
     private static void Fields(ProjectResource item, string path, ProjectModelValues values) {
+        values[path + "/AccrueAt"] = item.AccrueAt;
+        values[path + "/CanLevel"] = item.CanLevel;
         values[path + "/Calendar"] = item.Calendar?.Uid;
         values[path + "/DisplayId"] = item.DisplayId;
         values[path + "/Type"] = item.Type;
@@ -83,6 +92,12 @@ internal static partial class ProjectModelSnapshot {
         values[path + "/IsNull"] = item.IsNull;
     }
     private static void Fields(ProjectAssignment item, string path, ProjectModelValues values) {
+        values[path + "/Stop"] = item.Stop; values[path + "/Resume"] = item.Resume;
+        values[path + "/CostRateTable"] = item.CostRateTable;
+        values[path + "/DelayMinutes"] = item.DelayMinutes;
+        values[path + "/HasFixedRateUnits"] = item.HasFixedRateUnits;
+        values[path + "/MaterialRateScale"] = item.MaterialRateScale;
+        values[path + "/WorkContour"] = item.WorkContour;
         values[path + "/Units"] = item.Units;
         values[path + "/Work"] = item.Work;
         values[path + "/ActualWork"] = item.ActualWork;
@@ -121,11 +136,14 @@ internal static partial class ProjectModelSnapshot {
         values[path + "/DurationFormat"] = item.DurationFormat;
     }
     private static void Fields(ProjectCustomFieldDefinition item, string path, ProjectModelValues values) {
+        values[path + "/LookupTableGuid"] = item.LookupTableGuid;
         values[path + "/FieldId"] = item.FieldId;
         values[path + "/FieldName"] = item.FieldName;
         values[path + "/Alias"] = item.Alias;
         values[path + "/FieldType"] = item.FieldType;
         values[path + "/Formula"] = item.Formula;
+        values[path + "/SummaryCalculation"] = item.SummaryCalculation;
+        values[path + "/RollupType"] = item.RollupType;
         values[path + "/Guid"] = item.Guid;
         values[path + "/RestrictValues"] = item.RestrictValues;
     }

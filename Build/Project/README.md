@@ -42,6 +42,11 @@ Other console operations:
 | `schedule-scale` | task count, `dense` or `cancel` | Build a graph with up to four predecessors per task; verify its finish independently or exercise cooperative cancellation |
 | `schedule-edit` | `authored` or XML path, new output directory | Author a calculated resource/calendar schedule, or exercise guarded recalculation of an imported input |
 | `schedule-readback` | expected JSON, producer re-export XML | Verify applied dates after the independent application opens and exports calculated XML |
+| `advanced-schedule` / `advanced-readback` | fixture directory and new output directory / expected XML and application re-export XML | Calculate and apply the supported assignment profile, then compare application dates/work/cost |
+| `advanced-authored` | new output directory | Author resource leveling and a captured baseline |
+| `custom-fields` / `custom-readback` | input XML and new output directory / expected XML and application re-export XML | Edit and calculate local formulas and verify application values |
+| `outline-codes` | producer outline XML, new output directory | Author and edit shared hierarchical lookup values for application readback |
+| `split-authored` | new output directory | Produce interrupted, delayed, completed, and recurring task cases |
 | `native-layout` / `native-records` | MPP path, new output directory | Inspect inert stream bytes or producer-mapped values for differential format research |
 | `scale-create` | output XML, task count, shape | Generate one deterministic scale input |
 | `scale-read-edit-save` | input XML, task count, shape | Exercise lifecycle and independently verify output records |
@@ -53,6 +58,19 @@ Use `New-ProjectFixtures.ps1 -NativeFormat MPP12` to create the tested Project 2
 The optional [independent verifier](../../OfficeIMO.Project.IndependentVerification/README.md) uses MPXJ only as an external reader/writer oracle. It is outside the normal solution and runtime package. [Historical fixture provenance](historical-fixtures.json) records immutable source URLs, hashes, and the upstream repository license. Those third-party binaries are not redistributed here. Download only fixtures needed for a selected check into a separate verification directory and verify their SHA-256 values.
 
 Independent-reader acceptance, mapped-field comparison, and Microsoft Project readback are separate checks. The matrix's core identity checks alone do not establish calendar, custom-field, or application fidelity. Run the independent export and `native-corpus` comparison, then the application oracle on formats that the installed application supports. Calendar comparisons include ordinary weeks and dated exceptions; observations distinguish stored values from independently derived defaults, WBS, remaining duration, and critical flags.
+
+## Report verification
+
+```powershell
+dotnet run --project OfficeIMO.Project.ReportVerification -c Release -- `
+    ./artifacts/project/reports ./fonts/Arial.ttf
+pwsh -NoProfile -Sta -File Build/Project/Test-ProjectReportInteroperability.ps1 `
+    -InputDirectory ./artifacts/project/reports -OutputDirectory ./artifacts/project/report-readback
+```
+
+Supply a font file you are entitled to use. The report verifier creates all portable layouts, small/large/empty cases, PDF/SVG/PNG/HTML output, mapped CSV/Excel data, and editable Office reports. It checks PDF page counts and native package validity. The interoperability script requires installed Word, PowerPoint, and Excel; it opens the reports read-only with macros disabled and exports application PDFs and PowerPoint images. Use `-Applications` to select a subset. It refuses to run while an Office application is already open so it cannot close a user's session. Inspect the generated images and representative pages; successful package loading alone does not establish visual fidelity. Repeat against the `large-native` input subdirectory for long labels and pagination.
+
+`New-ProjectAdvancedFixtures.ps1` and `New-ProjectOutlineFixture.ps1` generate additional producer evidence for assignment calculations, custom fields, and outline codes. The committed [advanced fixture manifest](../../OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/manifest.json) and adjacent README identify application-created recurrence, split, and external-project cases.
 
 ## Offline schema
 

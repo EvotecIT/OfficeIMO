@@ -3,9 +3,10 @@ namespace OfficeIMO.Project;
 /// <summary>A task or summary in a project hierarchy; stored schedule values remain distinct from calculation.</summary>
 public sealed partial class ProjectTask : ProjectNamedEntity {
     internal ProjectTask(ProjectDocument document, int uid) : base(document, uid) {
-        TimephasedData = new ProjectCollection<ProjectTimephasedValue>(document, () => new ProjectTimephasedValue(document), owner: this);
+        TimephasedData = new ProjectCollection<ProjectTimephasedValue>(document, () => new ProjectTimephasedValue(document), true, this);
         Baselines = new ProjectCollection<ProjectBaseline>(document, () => new ProjectBaseline(document), owner: this);
         CustomFields = new ProjectCollection<ProjectCustomFieldValue>(document, () => new ProjectCustomFieldValue(document), owner: this);
+        OutlineCodes = new ProjectCollection<ProjectCustomFieldValue>(document, () => new ProjectCustomFieldValue(document), owner: this);
         Children = new ProjectTaskCollection(document, this);
     }
     /// <summary>Compact source timephased intervals.</summary>
@@ -14,6 +15,8 @@ public sealed partial class ProjectTask : ProjectNamedEntity {
     public ProjectCollection<ProjectBaseline> Baselines { get; }
     /// <summary>Custom values and lookup references.</summary>
     public ProjectCollection<ProjectCustomFieldValue> CustomFields { get; }
+    /// <summary>Outline-code selections referencing hierarchical lookup values.</summary>
+    public ProjectCollection<ProjectCustomFieldValue> OutlineCodes { get; }
     private ProjectCalendar? _calendar;
     /// <summary>Explicit calendar reference; null means no explicit calendar on this object.</summary>
     public ProjectCalendar? Calendar { get => _calendar; set { CheckReference(value); Set(ref _calendar, value, true); if (!Document.Loading) SourceCalendarUid = null; } }

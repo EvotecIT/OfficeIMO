@@ -28,10 +28,13 @@ internal sealed class ProjectCalendarMath {
     private readonly ProjectCalendar[] _calendars;
     private readonly int _maxDays;
     private readonly CancellationToken _token;
+    private readonly ProjectWorkingRange[] _exclusions;
     private readonly Dictionary<DateTime, List<ProjectWorkingRange>> _cache = new Dictionary<DateTime, List<ProjectWorkingRange>>();
-    internal ProjectCalendarMath(IEnumerable<ProjectCalendar> calendars, int maxDays, CancellationToken token) {
+    internal ProjectCalendarMath(IEnumerable<ProjectCalendar> calendars, int maxDays, CancellationToken token,
+        IEnumerable<ProjectWorkingRange>? exclusions = null) {
         if (maxDays < 1 || maxDays > 366000) throw new ArgumentOutOfRangeException(nameof(maxDays));
         _calendars = calendars.Distinct().ToArray(); _maxDays = maxDays; _token = token;
+        _exclusions = Merge(exclusions?.ToList() ?? new List<ProjectWorkingRange>()).ToArray();
         if (_calendars.Length == 0) throw new InvalidOperationException("Calculation requires an explicit calendar.");
         foreach (var calendar in _calendars) {
             calendar.Document.EnsureNotDisposed();
@@ -39,6 +42,8 @@ internal sealed class ProjectCalendarMath {
             ValidateProfile(calendar);
         }
     }
+    internal ProjectCalendarMath Excluding(IReadOnlyList<ProjectWorkingRange> exclusions) =>
+        new ProjectCalendarMath(_calendars, _maxDays, _token, _exclusions.Concat(exclusions));
     internal static void Local(DateTime date) {
         if (date.Kind != DateTimeKind.Unspecified) throw new ArgumentException("Project arithmetic requires DateTimeKind.Unspecified local wall-clock values.");
     }
@@ -65,6 +70,22 @@ internal sealed class ProjectCalendarMath {
             result = result == null ? ranges : Intersect(result, ranges);
         }
         result ??= new List<ProjectWorkingRange>();
+        if (_exclusions.Length != 0) {
+            var available = new List<ProjectWorkingRange>();
+            foreach (var range in result) {
+                DateTime cursor = range.Start;
+                foreach (var excluded in _exclusions) {
+                    _token.ThrowIfCancellationRequested();
+                    if (excluded.Finish <= cursor) continue;
+                    if (excluded.Start >= range.Finish) break;
+                    if (excluded.Start > cursor) available.Add(new ProjectWorkingRange(cursor, excluded.Start));
+                    if (excluded.Finish > cursor) cursor = excluded.Finish;
+                    if (cursor >= range.Finish) break;
+                }
+                if (cursor < range.Finish) available.Add(new ProjectWorkingRange(cursor, range.Finish));
+            }
+            result = available;
+        }
         if (_cache.Count < _maxDays) _cache.Add(date, result);
         return result;
     }

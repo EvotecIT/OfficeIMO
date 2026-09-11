@@ -244,7 +244,7 @@ Current APIs and qualification limits are documented in the [architecture and su
 
 ## Microsoft Project document library
 
-Extend the [typed Project library](../OfficeIMO.Project/README.md) beyond its qualified XML/MPP14/MPT14 lifecycle and date-calculation profiles with broader native semantics, legacy formats, MPX, advanced analysis, and reporting. The [operation matrix](../OfficeIMO.Project/SUPPORT.md) owns the implemented contract and independent application evidence.
+Extend the [typed Project library](../OfficeIMO.Project/README.md) with broader producer/native profiles, explainable scenarios, comparison, and integrated delivery. The [operation matrix](../OfficeIMO.Project/SUPPORT.md) owns the implemented file, calculation, reporting, and data-exchange contracts and their independent application evidence.
 
 The milestones below are ordered product outcomes. Each remains open until its acceptance evidence exists. Implemented contracts move into the package README and operation-level support matrix; delivered history belongs in GitHub Releases. Execution and scope-change rules live in [the repository instructions](../AGENTS.md#project-implementation-discipline).
 
@@ -272,16 +272,14 @@ Read, create, field edit, structural edit, same-generation save, generation conv
 | P04 | Modern MPP read and preservation | [P00 feasibility evidence](../OfficeIMO.Project/SUPPORT.md#native-format-feasibility), current XML model |
 | P05 | Modern MPP editing, new-file writing, and templates | P03, P04 |
 | P06 | Legacy MPP and MPX lifecycle and conversion | P05 |
-| P07 | Advanced scheduling and project semantics | P03, P05; follow P06 in the default delivery order |
-| P08 | Project views, reports, and data exchange | P05, P07 |
-| P09 | Explainable analysis, scenarios, comparison, and merge | P07, P08 |
-| P10 | Qualified package and integrated delivery | Current baseline, P03-P09, and all cross-cutting acceptance criteria |
+| P09 | Explainable analysis, scenarios, comparison, and merge | [Advanced calculation](../OfficeIMO.Project/SUPPORT.md#advanced-calculation-profile) and [portable reports](../OfficeIMO.Project/SUPPORT.md#portable-reports-and-mapped-data-exchange) |
+| P10 | Qualified package and integrated delivery | Current baseline, remaining P03-P06 profiles, P09, and all cross-cutting acceptance criteria |
 
 P02 is the first useful XML product, P05 the first native modern-MPP product, and P06 the legacy-format milestone. Each may ship independently with accurate coverage. P10 is the completion gate for this adopted baseline. No fixed completion date is promised before P00 establishes the writer and fixture risks.
 
 ### P03 — Calendar and scheduling foundation
 
-- [ ] Extend the implemented calendar profile to recurring exceptions and independent assignment scheduling across differing resource calendars.
+- [ ] Extend the implemented calendar profile to recurring exceptions.
 - [ ] Expand interaction evidence beyond the supported FS/SS/FF/SF, forward/backward, constraint/deadline, summary, manual-task, and float fixtures; qualify remaining combinations before removing their diagnostics.
 - [ ] Decode remaining native scheduling inputs so opaque splits, contours, leveling, and external-task records can be rejected or calculated explicitly rather than treated as a supported-model projection.
 
@@ -311,24 +309,6 @@ Acceptance: Microsoft Project opens edited and newly created files without repai
 - [ ] Extend conversion fidelity as native notes, rates, formulas, lookups, and curves gain typed ownership. Preserve explicit pre-write loss reports until independent reopen evidence proves each target mapping.
 
 Acceptance: every claimed generation/operation has independent-producer and reopen evidence. Unsupported profiles remain visible in the matrix. Narrowing native legacy writing requires an explicit scope decision; it cannot disappear during implementation.
-
-### P07 — Advanced scheduling and project semantics
-
-- [ ] Extend the fixed-work/fixed-duration/fixed-units date profile and uniform assignment equations with effort-driven assignment changes, resource availability, independent resource/task calendars, variable material usage, dated rate tables, and cost accrual.
-- [ ] Add actual/remaining work and duration, percent complete/work complete/physical completion distinctions, status-date behavior, splits, overtime, contours, timephased actuals/costs, and baseline/earned-value calculations.
-- [ ] Add explicit resource-overallocation analysis and deterministic resource leveling with documented priority, delay, split, and limit options. Keep leveling separate from ordinary calculation.
-- [ ] Add supported custom-field formulas, lookup tables, outline codes, graphical indicators, recurring tasks, and external project/resource-pool semantics. Use a bounded formula evaluator, never arbitrary code execution; resolve external files only through an explicit caller-controlled resolver.
-
-Acceptance: interaction fixtures verify scheduling, costs, progress, formulas, and leveling against declared expected results. Tie-breaking and unsupported rules are documented; preserved external links without resolution must not masquerade as a fully calculated combined schedule.
-
-### P08 — Project views, reports, and data exchange
-
-- [ ] Implement Gantt, task/resource usage, resource histogram, network, timeline, and tabular report models with selection, timescale, columns, filters/groups, baseline comparison, critical-path styling, legends, and print/page settings.
-- [ ] Reuse Core drawing and existing PDF/HTML/image owners for rendering and pagination. Add thin optional adapters for PDF, SVG, raster images, and HTML; diagnose unsupported native view/style features.
-- [ ] Add mapped Excel/CSV import/export for tasks, resources, assignments, and calendars with identity, units, required-field, conflict, and loss policies. Data-table import is not reconstruction of a complete native project.
-- [ ] Add native editable Word/PowerPoint/Excel reporting through existing format owners and reusable workflow composition. Keep the Project package independent of optional report engines.
-
-Acceptance: inspect actual rendered output for small/large schedules, pagination, clipping, labels, dependency lines, fonts, Unicode, and empty states. Reopen native reports; validate mapped data imports and exports. PDF/images are output projections, not reversible project formats.
 
 ### P09 — Explainable analysis, scenarios, comparison, and merge
 

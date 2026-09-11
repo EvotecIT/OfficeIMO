@@ -93,6 +93,8 @@ public sealed partial class ProjectDocument {
                 if (!value.Id.HasValue || !lookupIds.Add(value.Id.Value))
                     Add("PROJECT_LOOKUP_ID", "Lookup values need unique IDs.", "/Project/ExtendedAttributes/" + field.FieldId);
         }
+        CheckResourceCapacity(Add, cancellationToken);
+        CheckOutlineCodes(Add, cancellationToken);
         if (IsScheduleStale) Add("PROJECT_SCHEDULE_STALE", "Schedule-affecting edits have been made; stored task dates have not been recalculated.", "/Project", ProjectDiagnosticSeverity.Warning);
         if (AreWorkCostTotalsStale) Add("PROJECT_WORK_COST_STALE", "Edits can affect stored work and cost totals. Applying task dates does not recalculate those totals.", "/Project", ProjectDiagnosticSeverity.Warning);
         if (StructureChanged && Source?.HasOpaqueStructures == true)

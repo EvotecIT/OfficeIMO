@@ -14,6 +14,7 @@ internal static partial class ProjectXmlCodec {
         ProjectXmlFields.Write(document.Settings, root, document, ProjectXmlFields.Settings, RootOrder);
         ProjectXmlFields.Apply(document, document.Settings, root, "CalendarUID", ProjectXmlValue.Integer(document.Calendar?.Uid), RootOrder);
         ReplaceContainer(root, "ExtendedAttributes", "ExtendedAttribute", document.CustomFields.Select(field => WriteDefinition(field, document, token)), RootOrder);
+        WriteOutlineCodes(document, root, token);
         ReplaceContainer(root, "Calendars", "Calendar", document.Calendars.Select(calendar => WriteCalendar(calendar, document, token)), RootOrder);
         var links = document.Dependencies.GroupBy(d => d.Successor).ToDictionary(g => g.Key, g => g.ToArray());
         int row = 0;
@@ -39,6 +40,7 @@ internal static partial class ProjectXmlCodec {
                 Field("RemainingDuration", ProjectXmlValue.Duration(task.Duration, document));
             ReplaceChildren(node, "PredecessorLink", links.TryGetValue(task, out var predecessors) ? predecessors.Select(d => WriteDependency(d, document, token)) : Enumerable.Empty<XElement>(), TaskOrder);
             WriteRich(node, task.Baselines, task.CustomFields, task.TimephasedData, document, TaskOrder, token);
+            WriteOutlineSelections(task.OutlineCodes, node, TaskOrder, token);
             return node;
         }), RootOrder);
         ReplaceContainer(root, "Resources", "Resource", document.Resources.Select(resource => {
@@ -48,6 +50,8 @@ internal static partial class ProjectXmlCodec {
             ProjectXmlFields.Apply(document, resource, node, "UID", ProjectXmlValue.Integer(resource.Uid), ResourceOrder);
             ProjectXmlFields.Apply(document, resource, node, "CalendarUID", ProjectXmlValue.Integer(resource.Calendar?.Uid), ResourceOrder);
             WriteRich(node, resource.Baselines, resource.CustomFields, resource.TimephasedData, document, ResourceOrder, token);
+            WriteResourceCapacity(resource, node, token);
+            WriteOutlineSelections(resource.OutlineCodes, node, ResourceOrder, token);
             return node;
         }), RootOrder);
         ReplaceContainer(root, "Assignments", "Assignment", document.Assignments.Select(assignment => {
@@ -109,7 +113,7 @@ internal static partial class ProjectXmlCodec {
     private static void InspectPreservedContent(ProjectDocument document, ProjectLoadOptions options, CancellationToken token) {
         var source = document.Source!;
         int count = 0;
-        var containers = new HashSet<string>("ExtendedAttributes Calendars Tasks Resources Assignments WeekDays WorkingTimes Exceptions WorkWeeks TimePeriod ValueList".Split(' '), StringComparer.Ordinal);
+        var containers = new HashSet<string>("ExtendedAttributes Calendars Tasks Resources Assignments WeekDays WorkingTimes Exceptions WorkWeeks TimePeriod ValueList AvailabilityPeriods Rates".Split(' '), StringComparer.Ordinal);
         var known = new HashSet<XElement>();
         foreach (var pair in source.Elements) {
             token.ThrowIfCancellationRequested();

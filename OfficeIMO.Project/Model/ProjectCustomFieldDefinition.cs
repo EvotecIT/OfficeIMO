@@ -28,9 +28,21 @@ public sealed class ProjectCustomFieldDefinition : ProjectObject {
     /// <summary>Stored formula; null represents an absent source value.</summary>
     public string? Formula { get => _formula; set => Set(ref _formula, value, true); }
 
+    private int? _summaryCalculation;
+    /// <summary>XML CalculationType for summary rows: 0 retains no calculation, 1 rolls up children, and 2 evaluates the formula.</summary>
+    public int? SummaryCalculation { get => _summaryCalculation; set => Set(ref _summaryCalculation, value, true); }
+
+    private int? _rollupType;
+    /// <summary>Stored XML RollupType. Unsupported operators are retained and diagnosed when calculation is requested.</summary>
+    public int? RollupType { get => _rollupType; set => Set(ref _rollupType, value, true); }
+
     private string? _guid;
     /// <summary>Stored guid; null represents an absent source value.</summary>
     public string? Guid { get => _guid; set => Set(ref _guid, value); }
+
+    private string? _lookupTableGuid;
+    /// <summary>Ltuid identifying the shared outline-code lookup table.</summary>
+    public string? LookupTableGuid { get => _lookupTableGuid; set => Set(ref _lookupTableGuid, value); }
 
     private bool? _restrictValues;
     /// <summary>Stored restrict values; null represents an absent source value.</summary>

@@ -23,6 +23,7 @@ internal static partial class ProjectXmlCodec {
         ReadFields(document.Settings, root, document, ProjectXmlFields.Settings);
         document.Settings.SourceCalendarUid = (int?)root.Element(ns + "CalendarUID");
         int entities = 0, timephased = 0;
+        ReadOutlineCodes(document, root, options, ref entities, token);
         foreach (var element in Children(root, "Calendars", "Calendar")) {
             token.ThrowIfCancellationRequested(); CheckEntities(++entities, options);
             var calendar = new ProjectCalendar(document, RequiredUid(element));
@@ -58,6 +59,7 @@ internal static partial class ProjectXmlCodec {
             task.SourceCalendarUid = (int?)element.Element(ns + "CalendarUID");
             if (task.SourceCalendarUid is int calendarUid && document.CalendarIndex.TryGetValue(calendarUid, out var calendar)) task.Calendar = calendar;
             ReadRich(task.Baselines, task.CustomFields, task.TimephasedData, element, document, options, ref timephased, token);
+            ReadOutlineSelections(task.OutlineCodes, element, options, ref entities, token);
         }
         foreach (var element in Children(root, "Resources", "Resource")) {
             token.ThrowIfCancellationRequested(); CheckEntities(++entities, options);
@@ -65,9 +67,11 @@ internal static partial class ProjectXmlCodec {
             if (document.ResourceIndex.ContainsKey(resource.Uid)) throw new InvalidDataException("Duplicate resource UID " + resource.Uid);
             document.Resources.Items.Add(resource); document.ResourceIndex.Add(resource.Uid, resource); Attach(document, resource, element);
             ReadFields(resource, element, document, ProjectXmlFields.Resource);
+            ReadResourceCapacity(resource, element, token);
             resource.SourceCalendarUid = (int?)element.Element(ns + "CalendarUID");
             if (resource.SourceCalendarUid is int calendarUid && document.CalendarIndex.TryGetValue(calendarUid, out var calendar)) resource.Calendar = calendar;
             ReadRich(resource.Baselines, resource.CustomFields, resource.TimephasedData, element, document, options, ref timephased, token);
+            ReadOutlineSelections(resource.OutlineCodes, element, options, ref entities, token);
         }
         var assignmentIds = new HashSet<int>();
         foreach (var element in Children(root, "Assignments", "Assignment")) {

@@ -1,0 +1,25 @@
+body { margin: 0; background: #edf2f7; color: #183047; font-family: Arial, sans-serif; }
+* { box-sizing: border-box; }
+.project-report { max-width: 1120px; margin: auto; padding: 24px; }
+.project-report h1 { font-size: 28px; margin: 0 0 12px; }
+.project-report a { color: #075985; }
+.project-pages { overflow-x: auto; }
+.project-page { margin: 16px 0; break-after: page; min-width: 840px; background: white; }
+.project-page svg { display: block; width: 100%; height: auto; }
+.project-data { overflow: auto; margin: 24px 0; background: white; }
+.project-data table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.project-data caption { text-align: left; font-weight: bold; padding: 12px; }
+.project-data th, .project-data td { padding: 8px; border: 1px solid #ccd5df; text-align: left; white-space: nowrap; }
+.project-data th { background: #e3eaf0; }
+@media (max-width: 600px) {
+    .project-report { padding: 12px; }
+    .project-report h1 { font-size: 23px; }
+}
+@media print {
+    body { background: white; }
+    .project-report { padding: 0; max-width: none; }
+    .project-report > header, .project-data { display: none; }
+    .project-pages { overflow: visible; }
+    .project-page { margin: 0; min-width: 0; break-inside: avoid; }
+    .project-page:last-child { break-after: auto; }
+}

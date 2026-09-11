@@ -9,8 +9,8 @@ internal sealed partial class ProjectScheduler {
             DateTime start = Snap(node, origin, true);
             bool hasDependencyBound = false;
             foreach (var link in node.In) {
-                var predecessor = _nodes[link.Predecessor!];
-                DateTime bound = Lag(link, FromFinish(link) ? predecessor.EarlyFinish : predecessor.EarlyStart, false);
+                var predecessor = PredecessorBounds(link, true);
+                DateTime bound = Lag(link, FromFinish(link) ? predecessor.Finish : predecessor.Start, false);
                 DateTime candidate = ToFinish(link) ? Add(node, bound, -node.Minutes) : bound;
                 start = hasDependencyBound ? Max(start, candidate) : candidate;
                 hasDependencyBound = true;
@@ -24,7 +24,18 @@ internal sealed partial class ProjectScheduler {
                     case ProjectConstraintType.MustFinishOn: start = Add(node, date, -node.Minutes); break;
                 }
             }
+            node.BeforeLevelingAnchor = start;
+            if (task.LevelingDelay is ProjectDuration leveling && leveling.Value > 0) {
+                decimal delay = leveling.Value * ProjectXmlValue.MinutesPerUnit(leveling.Unit, leveling.IsElapsed, _document);
+                start = leveling.IsElapsed ? start.Add(ProjectXmlValue.MinutesToSpan(delay)) : node.Calendar.Add(start, delay);
+            }
+            if (_notBefore != null && _notBefore.TryGetValue(task.Uid, out var minimum)) start = Max(start, minimum);
             node.EarlyStart = Snap(node, start, true); node.EarlyFinish = Add(node, node.EarlyStart, node.Minutes);
+            node.EarlyAnchor = node.EarlyStart;
+            if (node.Allocation != null) {
+                var allocation = node.Allocation.Build(node.EarlyStart, true);
+                node.EarlyStart = allocation.Start; node.EarlyFinish = allocation.Finish; node.Minutes = allocation.Duration;
+            }
             if (task.IsManual == true) { node.EarlyStart = task.Start!.Value; node.EarlyFinish = task.Finish!.Value; }
         }
     }
@@ -33,6 +44,7 @@ internal sealed partial class ProjectScheduler {
         foreach (var node in _order.AsEnumerable().Reverse()) {
             _token.ThrowIfCancellationRequested();
             var task = node.Task;
+            if (node.Allocation?.HasActuals == true) { node.LateStart = node.EarlyStart; node.LateFinish = node.EarlyFinish; node.LateAnchor = node.EarlyAnchor; continue; }
             DateTime finish = Snap(node, horizon, false);
             if (task.Deadline.HasValue) finish = Min(finish, task.Deadline.Value);
             foreach (var link in node.Out) {
@@ -50,6 +62,12 @@ internal sealed partial class ProjectScheduler {
                 }
             }
             node.LateFinish = Snap(node, finish, false); node.LateStart = Add(node, node.LateFinish, -node.Minutes);
+            node.LateAnchor = node.LateStart;
+            if (node.Allocation != null) {
+                var allocation = node.Allocation.Build(node.LateFinish, false);
+                node.LateStart = allocation.Start; node.LateFinish = allocation.Finish;
+                node.LateAnchor = allocation.Start;
+            }
             if (task.ConstraintType == ProjectConstraintType.StartNoLaterThan && task.ConstraintDate.HasValue)
                 node.LateStart = Min(node.LateStart, task.ConstraintDate.Value);
             if (task.IsManual == true) { node.LateStart = task.Start!.Value; node.LateFinish = task.Finish!.Value; }
@@ -72,7 +90,7 @@ internal sealed partial class ProjectScheduler {
                 if (conflict) Error("PROJECT_CONSTRAINT_CONFLICT", "The calculated dates cannot satisfy the task's date constraint.", task);
             }
             foreach (var link in node.In) {
-                var predecessor = _nodes[link.Predecessor!];
+                var predecessor = PredecessorBounds(link, false);
                 DateTime bound = Lag(link, FromFinish(link) ? predecessor.Finish : predecessor.Start, false);
                 DateTime target = ToFinish(link) ? node.Finish : node.Start;
                 // A finish at one shift boundary and the following shift's start represent the same working-time boundary.
@@ -89,6 +107,9 @@ internal sealed partial class ProjectScheduler {
         foreach (var node in _order) {
             _token.ThrowIfCancellationRequested();
             decimal total = node.Task.ConstraintType == ProjectConstraintType.AsLateAsPossible ? 0m : MinutesBetween(node, node.EarlyStart, node.LateStart);
+            if (node.Allocation != null) node.Plan = node.Allocation.Build(node.PlanAnchor, true, true);
+            if (node.Plan != null && (node.Plan.Start != node.Start || node.Plan.Finish != node.Finish))
+                Error("PROJECT_ASSIGNMENT_BOUND_CONFLICT", "Final assignment intervals differ from the task boundaries established by scheduling.", node.Task);
             decimal free = MinutesBetween(node, node.Finish, horizon);
             foreach (var link in node.Out) {
                 var successor = _nodes[link.Successor];
@@ -99,7 +120,9 @@ internal sealed partial class ProjectScheduler {
             if (node.Task.ConstraintType is ProjectConstraintType.MustStartOn or ProjectConstraintType.MustFinishOn) free = 0;
             else if (node.Task.ConstraintType is ProjectConstraintType.StartNoLaterThan or ProjectConstraintType.FinishNoLaterThan) free = Math.Min(free, total);
             results.Add(node.Task, new ProjectTaskSchedule(node.Task.Uid, node.Start, node.Finish, node.EarlyStart, node.EarlyFinish,
-                node.LateStart, node.LateFinish, total, free, total <= _options.CriticalSlackMinutes, false, ResultDuration(node.Task, node.Minutes, node.Elapsed)));
+                node.LateStart, node.LateFinish, total, free, total <= _options.CriticalSlackMinutes, false,
+                ResultDuration(node.Task, node.Plan?.Duration ?? node.Minutes, node.Elapsed), node.Plan == null ? null : node.Allocation!.Totals(node.Plan),
+                node.BeforeLevelingAnchor, node.EarlyAnchor));
         }
         var all = _document.AllTasks.ToArray();
         foreach (var task in all.AsEnumerable().Reverse()) {
@@ -107,13 +130,29 @@ internal sealed partial class ProjectScheduler {
             if (!task.IsSummary || task.IsActive == false) continue;
             var children = (task.Uid == 0 ? _document.Tasks.Where(t => t.Uid != 0) : task.Children).Where(results.ContainsKey).Select(t => results[t]).ToArray();
             if (children.Length == 0) continue;
+            decimal summaryMinutes = CalendarMath(new[] { task.Calendar ?? _document.Calendar ?? throw new InvalidOperationException("Summary rollup requires a project calendar.") })
+                .Between(children.Min(c => c.Start), children.Max(c => c.Finish));
             results.Add(task, new ProjectTaskSchedule(task.Uid, children.Min(c => c.Start), children.Max(c => c.Finish),
                 children.Min(c => c.EarlyStart), children.Max(c => c.EarlyFinish), children.Min(c => c.LateStart), children.Max(c => c.LateFinish),
                 children.Min(c => c.TotalSlackMinutes), children.Min(c => c.FreeSlackMinutes), children.Any(c => c.IsCritical), true,
-                ResultDuration(task, CalendarMath(new[] { task.Calendar ?? _document.Calendar ?? throw new InvalidOperationException("Summary rollup requires a project calendar.") })
-                    .Between(children.Min(c => c.Start), children.Max(c => c.Finish)), false)));
+                ResultDuration(task, summaryMinutes, false), _options.CalculateAssignments ? SummaryTotals(task, children, summaryMinutes) : null));
         }
         return all.Where(results.ContainsKey).Select(t => results[t]).ToArray();
+    }
+    private static ProjectTaskWorkSchedule SummaryTotals(ProjectTask task, ProjectTaskSchedule[] children, decimal duration) {
+        var totals = children.Select(c => c.Calculation!).ToArray();
+        decimal work = totals.Sum(c => c.Work.Minutes), actual = totals.Sum(c => c.ActualWork.Minutes);
+        decimal childDuration = totals.Sum(c => c.ActualDuration.Value + c.RemainingDuration.Value);
+        decimal fraction = childDuration == 0 ? 0m : totals.Sum(c => c.ActualDuration.Value) / childDuration;
+        decimal fixedCost = task.FixedCost ?? 0m;
+        decimal actualFixed = (task.FixedCostAccrual ?? ProjectCostAccrual.Prorated) switch {
+            ProjectCostAccrual.Start => fraction > 0 ? fixedCost : 0m,
+            ProjectCostAccrual.End => fraction == 1m ? fixedCost : 0m,
+            _ => fixedCost * fraction
+        };
+        return new ProjectTaskWorkSchedule(new ProjectWork(work), new ProjectWork(actual), new ProjectWork(work - actual), duration * fraction, duration * (1m - fraction),
+            totals.All(c => c.Cost.HasValue) ? totals.Sum(c => c.Cost!.Value) + fixedCost : (decimal?)null,
+            totals.All(c => c.ActualCost.HasValue) ? totals.Sum(c => c.ActualCost!.Value) + actualFixed : (decimal?)null, task.PhysicalPercentComplete);
     }
     private static decimal MinutesBetween(Node node, DateTime start, DateTime finish) => node.Elapsed
         ? (finish.Ticks - start.Ticks) / (decimal)TimeSpan.TicksPerMinute : node.Calendar.Between(start, finish);

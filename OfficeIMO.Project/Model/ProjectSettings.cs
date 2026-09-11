@@ -4,6 +4,9 @@ namespace OfficeIMO.Project;
 public sealed class ProjectSettings : ProjectObject {
     internal ProjectSettings(ProjectDocument document) : base(document) {
     }
+    private bool? _externallyEdited;
+    /// <summary>MSPDI external-edit marker. False is emitted after explicit schedule application so Microsoft Project imports calculated assignment progress and contours; it may still refresh derived task percentages.</summary>
+    public bool? ExternallyEdited { get => _externallyEdited; set => Set(ref _externallyEdited, value); }
     private ProjectCalendar? _calendar;
     /// <summary>Explicit calendar reference; null means no explicit calendar on this object.</summary>
     public ProjectCalendar? Calendar { get => _calendar; set { CheckReference(value); Set(ref _calendar, value, true); if (!Document.Loading) SourceCalendarUid = null; } }

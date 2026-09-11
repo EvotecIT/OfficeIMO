@@ -43,10 +43,14 @@ try {
             start = [string]$task.Start; finish = [string]$task.Finish
             predecessors = [string]$task.Predecessors; notes = [string]$task.Notes
             text1 = [string]$task.Text1; baselineCost = $task.BaselineCost
+            outlineCode1 = [string]$task.OutlineCode1
+            recurring = [bool]$task.Recurring
+            splitParts = @($task.SplitParts | ForEach-Object { [ordered]@{ start = [string]$_.Start; finish = [string]$_.Finish } })
+            number1 = $task.Number1; number2 = $task.Number2; number3 = $task.Number3; flag1 = [bool]$task.Flag1; date1 = [string]$task.Date1
         }
     })
     $resources = @($project.Resources | Where-Object { $null -ne $_ } | ForEach-Object {
-        [ordered]@{ uid = $_.UniqueID; name = $_.Name; type = [int]$_.Type; standardRate = [string]$_.StandardRate; workMinutes = $_.Work; cost = $_.Cost }
+        [ordered]@{ uid = $_.UniqueID; name = $_.Name; type = [int]$_.Type; standardRate = [string]$_.StandardRate; workMinutes = $_.Work; cost = $_.Cost; number1 = $_.Number1; text1 = [string]$_.Text1 }
     })
     $calendars = @($project.BaseCalendars | ForEach-Object {
         [ordered]@{ name = $_.Name; exceptions = @($_.Exceptions | ForEach-Object {

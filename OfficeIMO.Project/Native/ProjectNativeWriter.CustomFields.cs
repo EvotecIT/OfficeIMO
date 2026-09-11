@@ -8,7 +8,7 @@ internal sealed partial class ProjectNativeWriter {
         string prefix = parent + "/Custom";
         if (!ChangedTree(prefix)) return;
         Handle(prefix + "/Count");
-        var catalog = task ? ProjectNativeCustomField.TaskFields : ProjectNativeCustomField.ResourceFields;
+        var catalog = task ? ProjectCustomFieldIdentity.TaskFields : ProjectCustomFieldIdentity.ResourceFields;
         var written = new HashSet<uint>();
         var retained = new HashSet<string>(values.Where(v => v.FieldId != null).Select(v => v.FieldId!));
         foreach (var old in Original(prefix).Where(p => p.Key.EndsWith("/FieldId", StringComparison.Ordinal))) {

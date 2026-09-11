@@ -1,9 +1,9 @@
 namespace OfficeIMO.Project;
 
 /// <summary>The relationship between a task and resource, with independently stored work, costs, and progress.</summary>
-public sealed class ProjectAssignment : ProjectEntity {
+public sealed partial class ProjectAssignment : ProjectEntity {
     internal ProjectAssignment(ProjectDocument document, int uid) : base(document, uid) {
-        TimephasedData = new ProjectCollection<ProjectTimephasedValue>(document, () => new ProjectTimephasedValue(document), owner: this);
+        TimephasedData = new ProjectCollection<ProjectTimephasedValue>(document, () => new ProjectTimephasedValue(document), true, this);
         Baselines = new ProjectCollection<ProjectBaseline>(document, () => new ProjectBaseline(document), owner: this);
         CustomFields = new ProjectCollection<ProjectCustomFieldValue>(document, () => new ProjectCustomFieldValue(document), owner: this);
     }

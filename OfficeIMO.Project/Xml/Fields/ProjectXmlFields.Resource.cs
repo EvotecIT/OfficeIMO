@@ -14,6 +14,8 @@ internal static partial class ProjectXmlFields {
         new ProjectXmlField<ProjectResource>("EmailAddress", (m, d) => ProjectXmlValue.Text(m.EmailAddress), (m, v, d, e) => m.EmailAddress = v),
         new ProjectXmlField<ProjectResource>("MaterialLabel", (m, d) => ProjectXmlValue.Text(m.MaterialLabel), (m, v, d, e) => m.MaterialLabel = v),
         new ProjectXmlField<ProjectResource>("MaxUnits", (m, d) => ProjectXmlValue.Units(m.MaxUnits), (m, v, d, e) => m.MaxUnits = ProjectXmlValue.ParseUnits(v)),
+        new ProjectXmlField<ProjectResource>("AccrueAt", (m,d) => ProjectXmlValue.Integer((int?)m.AccrueAt), (m,v,d,e) => m.AccrueAt = (ProjectCostAccrual)ProjectXmlValue.ParseInt(v)),
+        new ProjectXmlField<ProjectResource>("CanLevel", (m,d) => ProjectXmlValue.Boolean(m.CanLevel), (m,v,d,e) => m.CanLevel = ProjectXmlValue.ParseBool(v)),
         new ProjectXmlField<ProjectResource>("StandardRate", (m, d) => ProjectXmlValue.Number(m.StandardRate), (m, v, d, e) => m.StandardRate = ProjectXmlValue.ParseNumber(v)),
         new ProjectXmlField<ProjectResource>("OvertimeRate", (m, d) => ProjectXmlValue.Number(m.OvertimeRate), (m, v, d, e) => m.OvertimeRate = ProjectXmlValue.ParseNumber(v)),
         new ProjectXmlField<ProjectResource>("CostPerUse", (m, d) => ProjectXmlValue.Money(m.CostPerUse), (m, v, d, e) => m.CostPerUse = ProjectXmlValue.ParseMoney(v)),

@@ -1,4 +1,11 @@
 using OfficeIMO.Project;
+if (args.Length == 3 && args[0] == "outline-codes") return OutlineCodeProof.Create(args[1], args[2]);
+if (args.Length == 3 && args[0] == "custom-fields") return CustomFieldProof.Create(args[1], args[2]);
+if (args.Length == 3 && args[0] == "custom-readback") return CustomFieldProof.Verify(args[1], args[2]);
+if (args.Length == 3 && args[0] == "advanced-schedule") return AdvancedScheduleProof.Create(args[1], args[2]);
+if (args.Length == 3 && args[0] == "advanced-readback") return AdvancedScheduleProof.Verify(args[1], args[2]);
+if (args.Length == 2 && args[0] == "advanced-authored") return AdvancedScheduleProof.Authored(args[1]);
+if (args.Length == 2 && args[0] == "split-authored") return SplitScheduleProof.Create(args[1]);
 if (args.Length == 3 && args[0] == "mpx-scale") return MpxScale.Run(int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture), args[2]);
 if (args.Length == 3 && args[0] == "mpx-lifecycle-proof") return MpxLifecycleProof.Run(args[1], args[2]);
 if (args.Length == 2 && args[0] == "mpx-encoding-proof") return MpxLifecycleProof.Encodings(args[1]);

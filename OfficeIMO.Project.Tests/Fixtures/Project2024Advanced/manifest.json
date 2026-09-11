@@ -1,0 +1,81 @@
+{
+  "producer": "Microsoft Project",
+  "version": "16.0",
+  "build": "16.0.20326.20132",
+  "locale": "pl-PL",
+  "provenance": "OfficeIMO-authored synthetic schedules produced by Microsoft Project. Advanced fixture scripts create rates, calendars, effort, progress, contours, leveling, fields and rollups; the outline script creates outline.xml. Additional application-authored split, recurring and linked-project cases are described in README.md.",
+  "redistribution": "OfficeIMO-authored synthetic content under the repository MIT license. No customer data or third-party fixture content; Microsoft Project is not redistributed.",
+  "formatFamily": "Microsoft Project XML SaveVersion 14",
+  "files": [
+    {
+      "file": "calendars.xml",
+      "sha256": "cd7b49ad563c434f0928569febdf636dfff3245a40039b29c3ab223bfd475bb9",
+      "bytes": 28790
+    },
+    {
+      "file": "contours.xml",
+      "sha256": "e76b6628c8cbd19d994d5beee4903d21fcd21a8d5066bffc72cbd55da8214999",
+      "bytes": 65104
+    },
+    {
+      "file": "effort-before.xml",
+      "sha256": "416d80e349f92a20cc3aae59897710caf6fad8edc5eabaa08a774b5e236864d0",
+      "bytes": 29844
+    },
+    {
+      "file": "effort.xml",
+      "sha256": "c2d01383cab2714c4a5065080e41ddf084aa14b45bc163839b3439e268853d48",
+      "bytes": 35544
+    },
+    {
+      "file": "external-consumer.xml",
+      "sha256": "83bc1a1d24621dfa359eb8264ba49f383af2c1c3163531eac2c495371ac2a7d3",
+      "bytes": 17709
+    },
+    {
+      "file": "external-owner.xml",
+      "sha256": "695f8984dced1a2c1aef07f11ca8a93dd0725e9b54002eaae3cca7d24708734f",
+      "bytes": 17601
+    },
+    {
+      "file": "fields.xml",
+      "sha256": "0857d2cece59ce5e88c5bc548b01b8d3a66d4ac367fb784182e27d514a14583c",
+      "bytes": 27477
+    },
+    {
+      "file": "leveling.xml",
+      "sha256": "ba7e08da01a79f4a7593465513eb95c981488c619a05152196b142d6a3f72abf",
+      "bytes": 22696
+    },
+    {
+      "file": "outline.xml",
+      "sha256": "9a2839b7e594e8f6b691b8d3f90b64be221ce5c6ea231fe5cf5c147d515ed31e",
+      "bytes": 17267
+    },
+    {
+      "file": "progress.xml",
+      "sha256": "e49453ca24085921af6cda59597753aae5bd68e07b821d9885109030cdd1a807",
+      "bytes": 26535
+    },
+    {
+      "file": "rates.xml",
+      "sha256": "c71b7ad1b070ad4c5babf5d1a2468df525fd3dbc9889c32ce726e89874cb5992",
+      "bytes": 29693
+    },
+    {
+      "file": "recurrence.xml",
+      "sha256": "15ea77630d39252883877cb6bbeabb0335b01d05cf256b72d4401e4eec57cf24",
+      "bytes": 28595
+    },
+    {
+      "file": "rollups.xml",
+      "sha256": "db954c240d3b7937492b74c4e68591de94158859ddeb946b061229fcc8b9d592",
+      "bytes": 50149
+    },
+    {
+      "file": "split.xml",
+      "sha256": "430336eef43510fafa5e4c04f38bfa77989fde223ef62984864642b96d576337",
+      "bytes": 23046
+    }
+  ]
+}

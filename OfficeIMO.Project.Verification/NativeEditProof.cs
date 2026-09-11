@@ -64,7 +64,7 @@ internal static class NativeEditProof {
             var task = d.Tasks.GetByUid(3); var resource = d.Resources.GetByUid(1);
             foreach (bool tasks in new[] { true, false }) {
                 var fields = tasks ? task.CustomFields : resource.CustomFields;
-                foreach (var field in (tasks ? ProjectNativeCustomField.TaskFields : ProjectNativeCustomField.ResourceFields).Where(f => f.Number == 1)) {
+                foreach (var field in (tasks ? ProjectCustomFieldIdentity.TaskFields : ProjectCustomFieldIdentity.ResourceFields).Where(f => f.Number == 1)) {
                     string id = field.Id.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     var value = fields.FirstOrDefault(f => f.FieldId == id) ?? fields.Add(); value.FieldId = id;
                     value.Value = field.Kind switch { "Text" => "Custom scalar edit", "Number" => "12.5", "Cost" => "12345", "Flag" => "1", "Date" => "2026-10-06T08:00:00", "Duration" => "PT16H0M0S", _ => throw new InvalidOperationException() };

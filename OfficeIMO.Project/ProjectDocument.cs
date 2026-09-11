@@ -10,6 +10,7 @@ public sealed partial class ProjectDocument : IDisposable {
     private int _batchDepth;
     private bool _batchChanged;
     internal bool HasPendingBatchChanges => _batchChanged;
+    internal bool HasActiveUpdate => _batchDepth != 0;
     private DocumentAccessMode _accessMode = DocumentAccessMode.ReadWrite;
     private DocumentPersistenceMode _persistenceMode;
     private string? _path;
@@ -41,6 +42,7 @@ public sealed partial class ProjectDocument : IDisposable {
         Assignments = new ProjectAssignmentCollection(this);
         Dependencies = new ProjectDependencyCollection(this);
         CustomFields = new ProjectCollection<ProjectCustomFieldDefinition>(this, () => new ProjectCustomFieldDefinition(this));
+        OutlineCodes = new ProjectCollection<ProjectOutlineCodeDefinition>(this, () => new ProjectOutlineCodeDefinition(this));
     }
 
     private string? _name, _title, _author, _subject, _company, _manager;
@@ -78,6 +80,8 @@ public sealed partial class ProjectDocument : IDisposable {
     public ProjectDependencyCollection Dependencies { get; }
     /// <summary>Project-wide custom-field definitions.</summary>
     public ProjectCollection<ProjectCustomFieldDefinition> CustomFields { get; }
+    /// <summary>Hierarchical lookup tables and masks referenced by outline-code fields.</summary>
+    public ProjectCollection<ProjectOutlineCodeDefinition> OutlineCodes { get; }
     /// <summary>Current mutation revision; no calculation is implied.</summary>
     public long Revision { get; private set; }
     /// <summary>True when edits have not been saved to an associated destination.</summary>

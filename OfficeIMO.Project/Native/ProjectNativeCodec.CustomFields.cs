@@ -29,6 +29,6 @@ internal static partial class ProjectNativeCodec {
             var definition = document.CustomFields.FirstOrDefault(f => f.FieldId == fieldId);
             if (definition != null) definition.FieldName = name;
         }
-        foreach (var field in task ? ProjectNativeCustomField.TaskFields : ProjectNativeCustomField.ResourceFields) Field(field.Relative, field.Kind, field.Number, field.Name);
+        foreach (var field in task ? ProjectCustomFieldIdentity.TaskFields : ProjectCustomFieldIdentity.ResourceFields) Field(field.Relative, field.Kind, field.Number, field.Name);
     }
 }

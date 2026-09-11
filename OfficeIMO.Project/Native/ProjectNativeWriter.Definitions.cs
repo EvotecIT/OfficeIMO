@@ -8,7 +8,7 @@ internal sealed partial class ProjectNativeWriter {
             for (int index = 0; index < _document.CustomFields.Count; index++) {
                 _token.ThrowIfCancellationRequested(); var definition = _document.CustomFields[index]; string path = "/Definition[" + index + "]";
                 if (!uint.TryParse(definition.FieldId, out uint id)) continue;
-                var field = ProjectNativeCustomField.TaskFields.Concat(ProjectNativeCustomField.ResourceFields).FirstOrDefault(f => f.Id == id);
+                var field = ProjectCustomFieldIdentity.TaskFields.Concat(ProjectCustomFieldIdentity.ResourceFields).FirstOrDefault(f => f.Id == id);
                 if (field == null) continue;
                 Handle(path + "/FieldId");
                 if (definition.FieldName == null || definition.FieldName == field.Name) Handle(path + "/FieldName");
@@ -20,7 +20,7 @@ internal sealed partial class ProjectNativeWriter {
             return;
         }
         foreach (bool task in new[] { true, false }) {
-            var catalog = task ? ProjectNativeCustomField.TaskFields : ProjectNativeCustomField.ResourceFields;
+            var catalog = task ? ProjectCustomFieldIdentity.TaskFields : ProjectCustomFieldIdentity.ResourceFields;
             if (_new && !_document.CustomFields.Any(d => uint.TryParse(d.FieldId, out uint id) && catalog.Any(f => f.Id == id))) continue;
             string stream = _profile.DataRoot + "/TBknd" + (task ? "Task" : "Rsc") + "/Props";
             _file.Streams.TryGetValue(stream, out var source);
