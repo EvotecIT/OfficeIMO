@@ -89,7 +89,9 @@ internal static partial class ProjectNativeCodec {
             var link = new ProjectDependency(document) { Predecessor = predecessor, Successor = successor, SourcePredecessorUid = predecessorId,
                 Type = (ProjectDependencyType?)record.Integer(0x0e400007) };
             int format = record.Integer(0x0e40000a) ?? 7;
-            if (format == 19 || format == 20 || format == 51 || format == 52) link.LagPercent = record.Integer(0x0e400009);
+            if (format == 19 || format == 20 || format == 51 || format == 52) {
+                link.LagPercent = record.Integer(0x0e400009); link.LagPercentIsElapsed = format == 20 || format == 52; link.LagPercentIsEstimated = format >= 51;
+            }
             else link.Lag = Duration(record, 0x0e400009, 0x0e40000a, document);
             document.Dependencies.Items.Add(link);
             if (predecessor != null) document.DependencyPairs.Add(ProjectDocument.PairKey(predecessorId, successorId));

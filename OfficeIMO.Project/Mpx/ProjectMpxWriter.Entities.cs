@@ -66,6 +66,8 @@ internal sealed partial class ProjectMpxWriter {
                     var d = link.Dependency; string key = "/Dependency[" + link.Index + "]";
                     if (d.Predecessor == null || d.CrossProject == true || d.CrossProjectName != null) continue;
                     HandleTree(key);
+                    if (d.LagPercentIsElapsed || d.LagPercentIsEstimated)
+                        Diagnostic("PROJECT_MPX_PERCENTAGE_LAG_FORMAT", "MPX output does not represent elapsed or estimated percentage lag; the relationship uses working percentage lag.", key + "/LagPercent");
                     string type = d.Type switch { ProjectDependencyType.FinishToFinish => "FF", ProjectDependencyType.StartToStart => "SS", ProjectDependencyType.StartToFinish => "SF", _ => "FS" };
                     string lag = d.LagPercent.HasValue ? ProjectMpxValues.Text(d.LagPercent.Value) + "%" : ProjectMpxValues.Text(d.Lag);
                     if (lag.Length != 0 && lag[0] != '-') lag = "+" + lag;

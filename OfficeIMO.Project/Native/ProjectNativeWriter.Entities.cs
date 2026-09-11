@@ -140,11 +140,11 @@ internal sealed partial class ProjectNativeWriter {
             editor.Integer(uid, 0x0e400002, link.Predecessor?.Uid ?? link.SourcePredecessorUid); editor.Integer(uid, 0x0e400005, link.Successor.Uid);
             editor.Integer(uid, 0x0e400007, (int)(link.Type ?? ProjectDependencyType.FinishToStart));
             editor.Integer(uid, 0x0e400009, link.LagPercent.HasValue ? Exact(link.LagPercent.Value) : link.Lag.HasValue ? Exact(Minutes(link.Lag.Value) * 10) : 0);
-            editor.Integer(uid, 0x0e40000a, link.LagPercent.HasValue ? 19 : link.Lag.HasValue ? DurationFormat(link.Lag.Value) : 7);
+            editor.Integer(uid, 0x0e40000a, link.LagPercent.HasValue ? link.PercentageLagFormat : link.Lag.HasValue ? DurationFormat(link.Lag.Value) : 7);
             if (link.Predecessor != null) Identity(editor, uid, 0x0e400016, EntityGuid(link.Predecessor, 1));
             Identity(editor, uid, 0x0e400017, EntityGuid(link.Successor, 1));
             if (_profile == ProjectNativeProfile.Mpp14) editor.Set(uid, 0x0e40001c, new byte[] { 1 });
-            foreach (string name in new[] { "Predecessor", "Successor", "Type", "Lag", "LagPercent" }) Handle(path + "/" + name);
+            foreach (string name in new[] { "Predecessor", "Successor", "Type", "Lag", "LagPercent", "LagPercentIsElapsed", "LagPercentIsEstimated" }) Handle(path + "/" + name);
         }
         foreach (var old in Original("/Dependency").Where(p => !_current.ContainsKey(p.Key))) Handle(old.Key);
         editor.Export(_replacements);

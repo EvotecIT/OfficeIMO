@@ -165,6 +165,8 @@ internal static partial class ProjectModelSnapshot {
         values[path + "/Type"] = item.Type;
         values[path + "/Lag"] = item.Lag;
         values[path + "/LagPercent"] = item.LagPercent;
+        values[path + "/LagPercentIsElapsed"] = item.LagPercentIsElapsed;
+        values[path + "/LagPercentIsEstimated"] = item.LagPercentIsEstimated;
         values[path + "/CrossProject"] = item.CrossProject;
         values[path + "/CrossProjectName"] = item.CrossProjectName;
     }

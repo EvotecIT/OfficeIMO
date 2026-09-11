@@ -40,7 +40,9 @@ public sealed partial class ProjectDocument {
             && (resourceView || ProjectViewBuilder.Matches(TaskIndex[t.TaskUid].Name, layout.NameContains))).ToArray();
         if (selected.Length > layout.MaxRows) throw new InvalidOperationException("The selected task count exceeds MaxRows.");
         var selectedIds = new HashSet<int>(selected.Select(t => t.TaskUid));
-        var assignments = schedule.Assignments.Where(a => (!resourceView || selectedIds.Contains(a.TaskUid)) && (resourceIds == null || resourceIds.Contains(a.ResourceUid))).ToArray();
+        var criticalIds = layout.CriticalOnly ? new HashSet<int>(schedule.Tasks.Where(t => t.IsCritical).Select(t => t.TaskUid)) : null;
+        var assignments = schedule.Assignments.Where(a => (!resourceView || selectedIds.Contains(a.TaskUid))
+            && (criticalIds == null || criticalIds.Contains(a.TaskUid)) && (resourceIds == null || resourceIds.Contains(a.ResourceUid))).ToArray();
         var buckets = ProjectViewBuilder.Buckets(layout, resourceView
             ? assignments.Select(a => (a.Start, a.Finish)).ToArray() : selected.Select(t => (t.Start, t.Finish)).ToArray());
         var rows = new List<ProjectViewRow>(); long intervalVisits = 0;
@@ -58,6 +60,8 @@ public sealed partial class ProjectDocument {
                     ProjectViewBuilder.WorkBuckets(labor ? allocations : Array.Empty<ProjectAssignmentSchedule>(), buckets, cancellationToken, ref intervalVisits, layout.MaxIntervalVisits)));
             }
         } else {
+            var criticalTotals = layout.CriticalOnly && resourceIds == null
+                ? CriticalViewTotals(schedule, selectedIds, layout, cancellationToken) : null;
             var contributions = new Dictionary<int, List<ProjectAssignmentSchedule>>(); int contributionCount = 0;
             foreach (var allocation in assignments) {
                 bool projectSummaryVisited = false;
@@ -85,9 +89,13 @@ public sealed partial class ProjectDocument {
                 var labor = rowAssignments.Where(a => (ResourceIndex[a.ResourceUid].Type ?? ProjectResourceType.Work) == ProjectResourceType.Work).ToArray();
                 decimal? cost = resourceIds != null
                     ? rowAssignments.Any(a => !a.Cost.HasValue) ? null : rowAssignments.Sum(a => a.Cost)
+                    : criticalTotals != null ? criticalTotals[result.TaskUid].Cost
                     : result.Calculation?.Cost ?? (schedule.CalculatedAssignments ? null : task.Cost);
+                decimal? workHours = resourceIds != null ? labor.Sum(a => a.Work.Minutes) / 60m
+                    : criticalTotals != null ? criticalTotals[result.TaskUid].WorkMinutes / 60m
+                    : (result.Calculation?.Work ?? task.Work)?.Minutes / 60m;
                 rows.Add(new ProjectViewRow(task.Uid, task.Name ?? "", layout.Grouping == ProjectViewGrouping.ParentTask ? task.Parent?.Name ?? "Root tasks" : "",
-                    result.Start, result.Finish, resourceIds != null ? labor.Sum(a => a.Work.Minutes) / 60m : (result.Calculation?.Work ?? task.Work)?.Minutes / 60m,
+                    result.Start, result.Finish, workHours,
                     cost, result.Calculation?.PercentComplete ?? task.PercentComplete,
                     result.IsCritical, result.IsSummary, baseline?.Start, baseline?.Finish,
                     ProjectViewBuilder.WorkBuckets(labor, buckets, cancellationToken, ref intervalVisits, layout.MaxIntervalVisits)));
@@ -97,13 +105,38 @@ public sealed partial class ProjectDocument {
         var included = new HashSet<int>(rows.Select(r => r.Uid));
         var links = resourceView ? Array.Empty<ProjectViewLink>() : Dependencies.Where(d => d.Predecessor != null && d.CrossProject != true
             && included.Contains(d.Predecessor.Uid) && included.Contains(d.Successor.Uid))
-            .Select(d => new ProjectViewLink(d.Predecessor!.Uid, d.Successor.Uid, d.Type ?? ProjectDependencyType.FinishToStart, d.Lag, d.LagPercent)).ToArray();
+            .Select(d => new ProjectViewLink(d.Predecessor!.Uid, d.Successor.Uid, d.Type ?? ProjectDependencyType.FinishToStart,
+                d.Lag, d.LagPercent, d.LagPercentIsElapsed, d.LagPercentIsEstimated)).ToArray();
         CheckViewSchedule(schedule); cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = NativeSource == null ? Array.Empty<ProjectDiagnostic>() : new[] {
             new ProjectDiagnostic("PROJECT_VIEW_NATIVE_PRESENTATION", ProjectDiagnosticSeverity.Warning,
                 "Native saved view tables, filters, formatting and graphical indicator tables are not interpreted. This report uses the explicit portable layout options.", "/Project/Views", true)
         };
         return new ProjectView(Title ?? Name ?? "Project report", Revision, layout, columns, rows.ToArray(), buckets, links, diagnostics);
+    }
+
+    private Dictionary<int, (decimal? WorkMinutes, decimal? Cost)> CriticalViewTotals(ProjectScheduleResult schedule,
+        HashSet<int> selectedIds, ProjectViewOptions layout, CancellationToken token) {
+        var totals = selectedIds.ToDictionary(uid => uid, _ => ((decimal?)0m, (decimal?)0m));
+        int visits = 0;
+        foreach (var result in schedule.Tasks.Where(t => t.IsCritical)) {
+            var task = TaskIndex[result.TaskUid];
+            decimal? work = result.IsSummary ? 0m : (result.Calculation?.Work ?? task.Work)?.Minutes;
+            decimal? cost = result.IsSummary ? task.FixedCost ?? 0m
+                : result.Calculation?.Cost ?? (schedule.CalculatedAssignments ? null : task.Cost);
+            bool projectSummaryVisited = false;
+            void Add(int uid) {
+                var current = totals[uid]; totals[uid] = (current.Item1 + work, current.Item2 + cost);
+            }
+            for (var owner = task; owner != null; owner = owner.Parent) {
+                token.ThrowIfCancellationRequested();
+                if (++visits > layout.MaxCells) throw new InvalidOperationException("Critical task aggregation exceeds MaxCells.");
+                if (owner.Uid == 0) projectSummaryVisited = true;
+                if (selectedIds.Contains(owner.Uid)) Add(owner.Uid);
+            }
+            if (!projectSummaryVisited && selectedIds.Contains(0)) Add(0);
+        }
+        return totals;
     }
 
     private void CheckViewSchedule(ProjectScheduleResult schedule) {

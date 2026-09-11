@@ -1,7 +1,8 @@
 namespace OfficeIMO.Project;
 
 internal sealed partial class ProjectTaskAllocation {
-    internal bool HasActuals => _entries.Any(e => e.Actual > 0 || e.Assignment.ActualStart.HasValue) || _task.ActualStart.HasValue || _task.ActualDuration?.Value > 0;
+    internal bool HasActuals => _entries.Any(e => e.Actual > 0 || e.Assignment.ActualStart.HasValue || e.Assignment.ActualFinish.HasValue)
+        || _task.ActualStart.HasValue || _task.ActualFinish.HasValue || _task.ActualDuration?.Value > 0;
     internal Result Build(DateTime anchor, bool forward, bool costs = false) {
         _token.ThrowIfCancellationRequested(); ProjectCalendarMath.Local(anchor);
         if (!forward && HasActuals) throw new NotSupportedException("Backward scheduling of recorded progress requires an explicit remaining-work anchor.");
@@ -61,7 +62,9 @@ internal sealed partial class ProjectTaskAllocation {
         if (workIntervals.Length == 0) {
             actualDuration = _task.ActualDuration is ProjectDuration actual ? actual.Value * ProjectXmlValue.MinutesPerUnit(actual.Unit, actual.IsElapsed, _document) : 0;
             remainingDuration = RemainingTaskDuration(); duration = actualDuration + remainingDuration;
-            taskStart = _task.ActualStart ?? anchor;
+            if (_task.ActualFinish.HasValue && !_task.ActualStart.HasValue && actualDuration > 0)
+                throw new InvalidDataException("A completed task with nonzero actual duration requires an actual start.");
+            taskStart = _task.ActualStart ?? _task.ActualFinish ?? anchor;
             DateTime remainingStart = _task.Resume ?? TaskAdd(taskStart, actualDuration);
             if (_options.RescheduleRemainingAfterStatusDate) remainingStart = Max(remainingStart, _document.Settings.StatusDate!.Value);
             taskFinish = _task.ActualFinish ?? TaskAdd(remainingStart, remainingDuration);
@@ -84,6 +87,7 @@ internal sealed partial class ProjectTaskAllocation {
             }
             if (actualDuration > duration) throw new InvalidDataException("Recorded task actual duration exceeds its calculated duration.");
         }
+        if (taskStart > taskFinish) throw new InvalidDataException("Calculated task start must not follow its finish.");
         if (_task.ActualFinish.HasValue && (remainingDuration > 0 || taskFinish != _task.ActualFinish.Value))
             throw new InvalidDataException("A finished task requires completed duration inputs and assignment dates consistent with its actual finish.");
         if (_task.IsManual == true) {

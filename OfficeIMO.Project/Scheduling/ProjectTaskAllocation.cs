@@ -75,14 +75,21 @@ internal sealed partial class ProjectTaskAllocation {
         entry.ActualOvertime = assignment.ActualOvertimeWork?.Minutes ?? 0m;
         entry.RemainingOvertime = (assignment.OvertimeWork?.Minutes ?? entry.ActualOvertime) - entry.ActualOvertime;
         if (entry.ActualOvertime > entry.Actual || entry.RemainingOvertime < 0) throw new InvalidDataException("Overtime must be part of total work and actual overtime must be part of actual work.");
-        if (resource.Type == ProjectResourceType.Cost) return;
+        if (resource.Type == ProjectResourceType.Cost) {
+            if (assignment.Work?.Minutes > 0 || assignment.ActualWork?.Minutes > 0 || assignment.RemainingWork?.Minutes > 0
+                || assignment.TimephasedData.Any(v => v.Type == 1 || v.Type == 2 || v.Type == 3))
+                throw new NotSupportedException("Cost resources accept entered monetary values; work quantities require an explicit work-resource projection.");
+            return;
+        }
         if (assignment.Work.HasValue && assignment.RemainingWork.HasValue
             && Math.Abs(assignment.Work.Value.Minutes - entry.Actual - assignment.RemainingWork.Value.Minutes) > .001m)
             throw new InvalidDataException("Assignment total work must equal actual plus remaining work.");
         decimal? stored = assignment.RemainingWork?.Minutes ?? (assignment.Work?.Minutes - entry.Actual);
         if (resource.Type == ProjectResourceType.Material) {
             decimal quantity = assignment.HasFixedRateUnits == false ? VariableQuantity(assignment, _requestedDuration) : entry.Units;
-            entry.Remaining = stored ?? Math.Max(0, quantity * 60m - entry.Actual);
+            entry.Remaining = stored ?? (quantity * 60m - entry.Actual);
+            if (Math.Abs(entry.Actual + entry.Remaining - quantity * 60m) > .001m)
+                throw new InvalidDataException("Material actual plus remaining consumption must equal the quantity declared by assignment units and rate scale.");
         } else entry.Remaining = redistributed ?? stored ?? (_requestedDuration * entry.Units - entry.Actual);
         if (entry.Remaining < 0 || entry.RemainingOvertime > entry.Remaining) throw new InvalidDataException("Remaining work and overtime are inconsistent.");
         if (assignment.ActualFinish.HasValue && entry.Remaining > 0) throw new InvalidDataException("A completed assignment cannot have remaining work.");

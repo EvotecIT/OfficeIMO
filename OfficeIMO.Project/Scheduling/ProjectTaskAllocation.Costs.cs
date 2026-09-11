@@ -5,7 +5,11 @@ internal sealed partial class ProjectTaskAllocation {
         var assignment = entry.Assignment; var resource = assignment.Resource!;
         if (resource.Type == ProjectResourceType.Cost) {
             var recorded = ReadActualCostCurves(assignment);
-            decimal? value = assignment.Cost; decimal actual = assignment.ActualCost ?? recorded.Sum(c => c.Cost);
+            decimal actual = assignment.ActualCost ?? (recorded.Length > 0 ? recorded.Sum(c => c.Cost)
+                : assignment.Cost.HasValue && assignment.RemainingCost.HasValue ? assignment.Cost.Value - assignment.RemainingCost.Value : 0m);
+            decimal? value = assignment.Cost ?? (assignment.RemainingCost.HasValue ? actual + assignment.RemainingCost.Value : (decimal?)null);
+            if (value.HasValue && assignment.RemainingCost.HasValue && Math.Abs(value.Value - actual - assignment.RemainingCost.Value) > .01m)
+                throw new InvalidDataException("Cost-resource total cost must equal actual plus remaining cost.");
             if (recorded.Length > 0) {
                 if (Math.Abs(recorded.Sum(c => c.Cost) - actual) > .01m)
                     throw new InvalidDataException("Timephased actual costs differ from the stored actual cost.");

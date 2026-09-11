@@ -129,7 +129,9 @@ internal static partial class ProjectXmlCodec {
         int? format = (int?)element.Element(ns + "LagFormat");
         decimal? raw = element.Element(ns + "LinkLag") is XElement lag ? ProjectXmlValue.ParseNumber(lag.Value) : (decimal?)null;
         if (raw.HasValue) {
-            if (format == 19 || format == 20 || format == 51 || format == 52) link.LagPercent = raw.Value;
+            if (format == 19 || format == 20 || format == 51 || format == 52) {
+                link.LagPercent = raw.Value; link.LagPercentIsElapsed = format == 20 || format == 52; link.LagPercentIsEstimated = format >= 51;
+            }
             else link.Lag = ProjectXmlValue.ParseDuration(ProjectXmlValue.Span(ProjectXmlValue.MinutesToSpan(raw.Value / 10)), format, link.Document);
         }
     }
@@ -143,7 +145,7 @@ internal static partial class ProjectXmlCodec {
         Field("CrossProject", ProjectXmlValue.Boolean(link.CrossProject)); Field("CrossProjectName", link.CrossProjectName);
         decimal? rawLag = DependencyLag(link, document);
         Field("LinkLag", rawLag.HasValue ? ProjectXmlValue.Number(decimal.Round(rawLag.Value, 0, MidpointRounding.AwayFromZero)) : null);
-        Field("LagFormat", link.LagPercent.HasValue ? "19" : link.Lag.HasValue ? ProjectXmlValue.Integer(ProjectXmlValue.DurationFormat(link.Lag.Value)) : null);
+        Field("LagFormat", link.LagPercent.HasValue ? ProjectXmlValue.Integer(link.PercentageLagFormat) : link.Lag.HasValue ? ProjectXmlValue.Integer(ProjectXmlValue.DurationFormat(link.Lag.Value)) : null);
         return node;
     }
     internal static decimal? DependencyLag(ProjectDependency link, ProjectDocument document) => link.LagPercent ??

@@ -168,15 +168,15 @@ internal sealed partial class ProjectScheduler {
     private DateTime Snap(Node node, DateTime date, bool forward) => node.Elapsed || node.Minutes == 0 ? date : node.Calendar.Snap(date, forward);
     private DateTime Lag(ProjectDependency link, DateTime date, bool reverse) {
         var successor = _nodes[link.Successor];
-        decimal predecessorMinutes; bool predecessorElapsed;
+        decimal predecessorMinutes;
         if (_externalDependencies.TryGetValue(link, out var external)) {
-            var duration = external.Task.Duration; predecessorElapsed = duration.IsElapsed;
+            var duration = external.Task.Duration;
             predecessorMinutes = duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, external.Document);
-        } else { var predecessor = _nodes[link.Predecessor!]; predecessorMinutes = predecessor.Minutes; predecessorElapsed = predecessor.Elapsed; }
+        } else { var predecessor = _nodes[link.Predecessor!]; predecessorMinutes = predecessor.Minutes; }
         decimal minutes = link.LagPercent.HasValue ? predecessorMinutes * link.LagPercent.Value / 100m : link.Lag.HasValue
             ? link.Lag.Value.Value * ProjectXmlValue.MinutesPerUnit(link.Lag.Value.Unit, link.Lag.Value.IsElapsed, _document) : 0m;
         if (reverse) minutes = -minutes;
-        bool elapsed = link.Lag?.IsElapsed == true || (link.LagPercent.HasValue && predecessorElapsed);
+        bool elapsed = link.Lag?.IsElapsed == true || (link.LagPercent.HasValue && link.LagPercentIsElapsed);
         return elapsed ? date.AddTicks(checked((long)decimal.Round(minutes * TimeSpan.TicksPerMinute, 0, MidpointRounding.AwayFromZero))) : successor.Calendar.Add(date, minutes);
     }
     private (DateTime Start, DateTime Finish) PredecessorBounds(ProjectDependency link, bool early) {

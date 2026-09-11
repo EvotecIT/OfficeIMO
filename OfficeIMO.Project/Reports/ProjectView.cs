@@ -62,8 +62,9 @@ public sealed class ProjectViewRow {
 
 /// <summary>A local dependency between included task rows.</summary>
 public sealed class ProjectViewLink {
-    internal ProjectViewLink(int predecessor, int successor, ProjectDependencyType type, ProjectDuration? lag, decimal? lagPercent) {
+    internal ProjectViewLink(int predecessor, int successor, ProjectDependencyType type, ProjectDuration? lag, decimal? lagPercent, bool elapsed, bool estimated) {
         PredecessorUid = predecessor; SuccessorUid = successor; Type = type; Lag = lag; LagPercent = lagPercent;
+        LagPercentIsElapsed = elapsed; LagPercentIsEstimated = estimated;
     }
     /// <summary>Predecessor UID.</summary>
     public int PredecessorUid { get; }
@@ -75,8 +76,13 @@ public sealed class ProjectViewLink {
     public ProjectDuration? Lag { get; }
     /// <summary>Percentage lag, mutually exclusive with duration lag.</summary>
     public decimal? LagPercent { get; }
+    /// <summary>Whether percentage lag advances elapsed time.</summary>
+    public bool LagPercentIsElapsed { get; }
+    /// <summary>Whether percentage lag is estimated.</summary>
+    public bool LagPercentIsEstimated { get; }
     /// <summary>Invariant lag label with explicit units.</summary>
-    public string LagText => LagPercent.HasValue ? LagPercent.Value.ToString(CultureInfo.InvariantCulture) + "%" : Lag?.ToString() ?? "0";
+    public string LagText => LagPercent.HasValue ? LagPercent.Value.ToString(CultureInfo.InvariantCulture)
+        + (LagPercentIsElapsed ? "e%" : "%") + (LagPercentIsEstimated ? "?" : "") : Lag?.ToString() ?? "0";
 }
 
 /// <summary>Portable immutable report data; rendering creates independent drawing pages.</summary>
