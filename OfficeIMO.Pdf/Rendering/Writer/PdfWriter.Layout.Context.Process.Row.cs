@@ -444,7 +444,7 @@ internal static partial class PdfWriter {
                             ValidateHorizontalRule(hr2);
                             double spacingBefore = ResolveColumnSpacingBefore(hr2.SpacingBefore, consumed);
                             double needed = spacingBefore + hr2.Thickness + hr2.SpacingAfter;
-                            EnsureFixedFlowBlockFits("Horizontal rule", wCol, needed, wCol);
+                            EnsureFixedFlowBlockFits("Horizontal rule", wCol, needed, wCol, activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D));
                             if (line == 0 && hr2.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
@@ -469,8 +469,11 @@ internal static partial class PdfWriter {
                             PdfDocument.ValidateImageStyleForBox(imageStyle, ib2.Width, ib2.Height, nameof(imageStyle.ClipPath));
                             PdfDocument.ValidateImageFitDimensions(ib2.Info, imageStyle.Fit, nameof(imageStyle.Fit));
                             double spacingBefore = ResolveColumnSpacingBefore(imageStyle.SpacingBefore, consumed);
+                            var imageBox = ResolveImageFlowBox(ib2, imageStyle, wCol, spacingBefore, imageStyle.SpacingAfter, activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D));
+                            ciimg.Width = imageBox.Width;
+                            ciimg.Height = imageBox.Height;
                             double needed = spacingBefore + ciimg.Height + imageStyle.SpacingAfter;
-                            EnsureFixedFlowBlockFits("Image", ciimg.Width, needed, wCol);
+                            EnsureFixedFlowBlockFits("Image", ciimg.Width, needed, wCol, activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D));
                             if (imageStyle.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
@@ -499,7 +502,7 @@ internal static partial class PdfWriter {
                             PdfDocument.ValidateDrawingStyle(shapeStyle, "Shape");
                             double spacingBefore = ResolveColumnSpacingBefore(shapeStyle.SpacingBefore, consumed);
                             double needed = spacingBefore + shape.Shape.Height + shapeStyle.SpacingAfter;
-                            EnsureFixedFlowBlockFits("Shape", shape.Shape.Width, needed, wCol);
+                            EnsureFixedFlowBlockFits("Shape", shape.Shape.Width, needed, wCol, activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D));
                             if (shapeStyle.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
@@ -526,7 +529,7 @@ internal static partial class PdfWriter {
                             PdfDocument.ValidateDrawingStyle(drawingStyle, "Drawing");
                             double spacingBefore = ResolveColumnSpacingBefore(drawingStyle.SpacingBefore, consumed);
                             double needed = spacingBefore + drawing.Drawing.Height + drawingStyle.SpacingAfter;
-                            EnsureFixedFlowBlockFits("Drawing", drawing.Drawing.Width, needed, wCol);
+                            EnsureFixedFlowBlockFits("Drawing", drawing.Drawing.Width, needed, wCol, activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D));
                             if (drawingStyle.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
@@ -553,7 +556,7 @@ internal static partial class PdfWriter {
                             double fieldHeight = GetFormFieldHeight(form.Block);
                             double spacingAfter = GetFormFieldSpacingAfter(form.Block);
                             double needed = spacingBefore + fieldHeight + spacingAfter;
-                            EnsureFixedFlowBlockFits(GetFormFieldBlockName(form.Block), fieldWidth, needed, wCol);
+                            EnsureFixedFlowBlockFits(GetFormFieldBlockName(form.Block), fieldWidth, needed, wCol, activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D));
                             if (needed > remain && consumed > 0) break;
                             if (needed > remain && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
@@ -570,7 +573,7 @@ internal static partial class PdfWriter {
                             double annotationHeight = GetAnnotationHeight(annotation.Block);
                             double spacingAfter = GetAnnotationSpacingAfter(annotation.Block);
                             double needed = spacingBefore + annotationHeight + spacingAfter;
-                            EnsureFixedFlowBlockFits("Annotation", annotationWidth, needed, wCol);
+                            EnsureFixedFlowBlockFits("Annotation", annotationWidth, needed, wCol, activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D));
                             if (needed > remain && consumed > 0) break;
                             if (needed > remain && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;

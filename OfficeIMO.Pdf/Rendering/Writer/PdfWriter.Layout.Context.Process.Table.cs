@@ -308,10 +308,10 @@ internal static partial class PdfWriter {
                 y - rowHeight < currentOpts.MarginBottom &&
                 rowHeight <= maxContentHeight;
 
-            bool CanRepeatHeaderWithSegment(int rowIndex) =>
+            bool CanRepeatHeaderWithSegment(int rowIndex, bool requireWholeRow) =>
                 hasRepeatableHeader &&
                 rowIndex >= headerRowCount &&
-                repeatHeaderHeight + MeasureTableRowSegmentHeight(rowIndex, 0, 1, suppressCellObjects: false) <= y - currentOpts.MarginBottom + 0.001;
+                repeatHeaderHeight + (requireWholeRow ? rowHeights[rowIndex] : MeasureTableRowSegmentHeight(rowIndex, 0, 1, suppressCellObjects: false)) <= y - currentOpts.MarginBottom + 0.001;
 
             void ApplyTablePageContinuationSpacing(double requiredFirstSegmentHeight) {
                 double spacing = style.PageContinuationSpacingBefore;
@@ -341,10 +341,10 @@ internal static partial class PdfWriter {
                 }
             }
 
-            void NewTablePage(int rowIndex) {
+            void NewTablePage(int rowIndex, bool requireWholeRow = false) {
                 NewPage();
                 ApplyTablePageContinuationSpacing(GetTableContinuationRequiredHeight(rowIndex));
-                if (CanRepeatHeaderWithSegment(rowIndex)) {
+                if (CanRepeatHeaderWithSegment(rowIndex, requireWholeRow)) {
                     DrawRepeatHeaders();
                 }
             }
@@ -793,9 +793,9 @@ internal static partial class PdfWriter {
                         continue;
                     }
 
-                    NewTablePage(rowIndex);
+                    NewTablePage(rowIndex, requireWholeRow: true);
                 } else if (ShouldBreakBeforeFinalBodyRows(rowIndex)) {
-                    NewTablePage(rowIndex);
+                    NewTablePage(rowIndex, requireWholeRow: true);
                 }
 
                 DrawTableRow(rowIndex, renderAsHeader: rowIndex < headerRowCount);

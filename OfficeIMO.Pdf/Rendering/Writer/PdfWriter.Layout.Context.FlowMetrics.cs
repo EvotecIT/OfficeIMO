@@ -5,25 +5,26 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void EnsureFixedFlowBlockFits(string blockName, double blockWidth, double blockHeight, double availableWidth) {
+        private void EnsureFixedFlowBlockFits(string blockName, double blockWidth, double blockHeight, double availableWidth, double reservedHeight = 0D) {
             if (blockWidth > availableWidth + 0.001) {
                 throw new ArgumentException(blockName + " width exceeds the available page content width.");
             }
 
-            double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+            double availableHeight = GetFullPageContentHeight() - reservedHeight;
             if (blockHeight > availableHeight + 0.001) {
                 throw new ArgumentException(blockName + " height exceeds the available page content height.");
             }
         }
 
-        private (double Width, double Height) ResolveImageFlowBox(ImageBlock image, PdfImageStyle style, double frameWidth, double spacingBefore, double spacingAfter) {
+        private (double Width, double Height) ResolveImageFlowBox(ImageBlock image, PdfImageStyle style, double frameWidth, double spacingBefore, double spacingAfter, double reservedHeight = 0D) {
             double imageWidth = image.Width;
             double imageHeight = image.Height;
             if (!style.ScaleDownToFit) {
                 return (imageWidth, imageHeight);
             }
 
-            double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom - spacingBefore - spacingAfter;
+            double availableHeight = GetFullPageContentHeight() - reservedHeight - imageMeasurementReservedHeight
+                - activeContainerScopes.Sum(scope => scope.Style.PaddingY) - spacingBefore - spacingAfter;
             double scale = 1D;
             if (imageWidth > frameWidth) {
                 scale = Math.Min(scale, frameWidth / imageWidth);
@@ -500,7 +501,8 @@ internal static partial class PdfWriter {
                 }
 
                 return ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.PaddingY +
-                       MeasureFirstNestedVisualHeight(container.Blocks, frameX + style.PaddingX, contentWidth, fontSize);
+                       MeasureWithImageHeightReservation(style.PaddingY * 2D, () =>
+                           MeasureFirstNestedVisualHeight(container.Blocks, frameX + style.PaddingX, contentWidth, fontSize));
             }
 
             if (block is FlowBlock flow && !flow.IsReplayable && flow.Options.ShowIf == null && flow.StaticBlocks != null) {

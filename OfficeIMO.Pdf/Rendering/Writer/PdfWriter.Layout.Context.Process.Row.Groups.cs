@@ -23,7 +23,7 @@ internal static partial class PdfWriter {
             public ColumnGroup Group = null!;
         }
 
-        private bool TryAddColumnGroup(List<ColItem> items, IPdfBlock block, double columnWidth, double columnXOffset) {
+        private bool TryAddColumnGroup(List<ColItem> items, IPdfBlock block, double columnWidth, double columnXOffset, double reservedImageHeight) {
             IReadOnlyList<IPdfBlock> blocks;
             var group = new ColumnGroup { XOffset = columnXOffset, OuterWidth = columnWidth };
             double childX = columnXOffset;
@@ -52,7 +52,7 @@ internal static partial class PdfWriter {
                     return false;
             }
 
-            List<ColItem> children = BuildColumnItems(blocks, childWidth, childX);
+            List<ColItem> children = BuildColumnItems(blocks, childWidth, childX, reservedImageHeight + (group.Style?.PaddingY ?? 0D) * 2D);
             group.Children = children;
             group.ItemCount = children.Count + 2;
             items.Add(new ColGroupStart { Group = group, ColumnXOffset = columnXOffset, ColumnWidth = columnWidth });

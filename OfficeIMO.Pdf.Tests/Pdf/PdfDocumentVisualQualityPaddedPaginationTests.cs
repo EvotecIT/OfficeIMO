@@ -9,6 +9,79 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentVisualQualityTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PaddedFixedObjectsRejectHeightBeyondTheirResumedFrame(bool column) {
+        var options = new PdfOptions { PageWidth = 400, PageHeight = 240, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var style = new PdfPanelStyle { PaddingY = 12, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 };
+        PdfDocument document = PdfDocument.Create(options);
+        if (column) document.Compose(d => d.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, col => col.Panel(panel => panel
+            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Shape(OfficeIMO.Drawing.OfficeShape.Rectangle(25, 185), style: new PdfDrawingStyle { SpacingAfter = 0 }), style))))));
+        else document.Panel(panel => panel.Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Shape(OfficeIMO.Drawing.OfficeShape.Rectangle(25, 185), style: new PdfDrawingStyle { SpacingAfter = 0 }), style);
+        Assert.Throws<ArgumentException>(() => document.ToBytes());
+    }
+
+    [Theory]
+    [InlineData(false, false, false, false)]
+    [InlineData(true, false, false, false)]
+    [InlineData(false, true, false, false)]
+    [InlineData(true, true, false, false)]
+    [InlineData(false, true, false, true)]
+    [InlineData(true, true, false, true)]
+    [InlineData(false, true, true, false)]
+    [InlineData(true, true, true, false)]
+    [InlineData(false, true, true, true)]
+    [InlineData(true, true, true, true)]
+    public void PaddedImageScalingFitsTheResumedFrame(bool column, bool firstChild, bool nested, bool keepTogether) {
+        var options = new PdfOptions { PageWidth = 400, PageHeight = 240, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var style = new PdfPanelStyle { PaddingY = 12, PaddingX = 5, KeepTogether = keepTogether, SpacingAfter = 0 };
+        var imageStyle = new PdfImageStyle { ScaleDownToFit = true, SpacingAfter = 0 };
+        PdfDocument document = PdfDocument.Create(options);
+        Action<PdfContentBuilder> content = panel => {
+            if (!firstChild) panel.Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 });
+            panel.Image(CreateMinimalRgbPng(), 25, 185, style: imageStyle, linkUri: "https://example.test/image");
+        };
+        Action<PdfContentBuilder> outerContent = nested
+            ? panel => panel.Panel(content, new PdfPanelStyle { PaddingY = 8, PaddingX = 5, KeepTogether = keepTogether, SpacingAfter = 0 })
+            : content;
+        if (column) document.Compose(d => d.Page(page => page.Content(body => body.Row(row => row.PercentColumn(100, col => col.Panel(outerContent, style))))));
+        else document.Panel(outerContent, style);
+        byte[] bytes = document.ToBytes();
+        var links = ExtractLinkRectangles(System.Text.Encoding.ASCII.GetString(bytes));
+        var link = Assert.Single(links);
+        double padding = nested ? 20 : 12;
+        Assert.InRange(link.Y1, 25 + padding - 0.01, 215 - padding);
+        Assert.InRange(link.Y2, 25 + padding, 215 - padding + 0.01);
+        SavePaddedPaginationEvidence("padded-image-" + (column ? "column" : "flow") + (firstChild ? "-first" : "") + (nested ? "-nested" : "") + (keepTogether ? "-keep" : ""), bytes);
+    }
+
+    [Fact]
+    public void PaddedRepeatedTableHeaderReservesTheWholeFixedRow() {
+        var options = new PdfOptions { PageWidth = 400, PageHeight = 240, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        byte[] bytes = PdfDocument.Create(options).Panel(panel => panel
+            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Table(new[] { new[] { "Header" }, new[] { "First" }, new[] { "Final" } }, style: new PdfTableStyle {
+                HeaderRowCount = 1, RepeatHeaderRowCount = 1, CellPaddingY = 0,
+                FixedRowHeights = new System.Collections.Generic.List<double?> { 30, 30, 150 },
+                VerticalAlignments = new System.Collections.Generic.List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Bottom },
+                RowAllowBreakAcrossPages = new System.Collections.Generic.List<bool?> { false, false, false }
+            }), new PdfPanelStyle { PaddingY = 20, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 }).ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
+        Assert.Contains("Final", string.Join("", pdf.GetPages().Select(page => page.Text)), StringComparison.Ordinal);
+        Assert.All(pdf.GetPages().SelectMany(page => page.Letters), letter => Assert.True(letter.BoundingBox.Bottom >= 25, "Table text exceeded the bottom margin."));
+        SavePaddedPaginationEvidence("padded-table-fixed-row", bytes);
+    }
+
+    private static void SavePaddedPaginationEvidence(string name, byte[] bytes) {
+        string? evidence = Environment.GetEnvironmentVariable("OFFICEIMO_INVOICE_PDF_EVIDENCE");
+        if (string.IsNullOrWhiteSpace(evidence)) return;
+        Directory.CreateDirectory(evidence!);
+        File.WriteAllBytes(Path.Combine(evidence!, name + ".pdf"), bytes);
+    }
+
+    [Theory]
     [InlineData(220, 240)]
     [InlineData(400, 160)]
     public void NestedPaddedHeadingPreservesTextLinksAndOneHeadingTag(double pageWidth, double pageHeight) {

@@ -233,7 +233,8 @@ internal static partial class PdfWriter {
             double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
             double firstVisualHeight = container.Blocks.Count == 0
                 ? 0D
-                : MeasureNextBlockFirstVisualHeight(container.Blocks[0], outerX + style.PaddingX, contentWidth, currentOpts.DefaultFontSize);
+                : MeasureWithImageHeightReservation(style.PaddingY * 2D, () =>
+                    MeasureNextBlockFirstVisualHeight(container.Blocks[0], outerX + style.PaddingX, contentWidth, currentOpts.DefaultFontSize));
             double minimumStartHeight = spacingBefore + style.PaddingY * 2D + firstVisualHeight;
             if (style.PaddingY * 2D + firstVisualHeight > GetCurrentFramePageStartY() - currentOpts.MarginBottom + 0.001D) {
                 throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
