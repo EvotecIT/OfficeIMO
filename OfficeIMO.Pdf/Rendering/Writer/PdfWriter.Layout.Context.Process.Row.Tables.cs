@@ -127,6 +127,7 @@ internal static partial class PdfWriter {
             Math.Abs(state.Y - columnPageStartY) <= 0.001;
 
         double MeasureColumnTableRowSegmentHeight(int rowIndex, int startLine, int lineCount, bool suppressCellObjects) {
+            if (startLine == 0 && lineCount == table.RowLineCounts[rowIndex]) return table.RowHeights[rowIndex];
             double rowLeading = table.RowLeadings[rowIndex];
             double rowPadTop = GetTableRowMaxPaddingTop(tbColumn, tableStyle, rowIndex, table.Columns);
             double rowPadBottom = GetTableRowMaxPaddingBottom(tbColumn, tableStyle, rowIndex, table.Columns);
@@ -148,7 +149,8 @@ internal static partial class PdfWriter {
                 segmentHeight = Math.Max(segmentHeight, cellContentHeight);
             }
 
-            return segmentHeight;
+            // Keep first-fragment fitting consistent with the configured row height and drawing.
+            return startLine == 0 ? Math.Max(segmentHeight, GetTableRowFixedHeight(tableStyle, rowIndex) ?? GetTableRowMinHeight(tableStyle, rowIndex)) : segmentHeight;
         }
 
         int GetColumnTableRowSegmentLineCountThatFits(int rowIndex, int startLine, double available) {
@@ -201,7 +203,7 @@ internal static partial class PdfWriter {
             bool wholeRowSegment = startLine == 0 && lineCount == table.RowLineCounts[rowIndex];
             double rowPadTop = GetTableRowMaxPaddingTop(tbColumn, tableStyle, rowIndex, table.Columns);
             double rowPadBottom = GetTableRowMaxPaddingBottom(tbColumn, tableStyle, rowIndex, table.Columns);
-            double rowHeight = wholeRowSegment ? table.RowHeights[rowIndex] : MeasureColumnTableRowSegmentHeight(rowIndex, startLine, lineCount, suppressCellObjects);
+            double rowHeight = MeasureColumnTableRowSegmentHeight(rowIndex, startLine, lineCount, suppressCellObjects);
             if (rowUsesBold) {
                 currentPage!.UsedBold = true;
                 usedBold = true;

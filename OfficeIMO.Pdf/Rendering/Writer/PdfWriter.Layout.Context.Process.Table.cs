@@ -353,6 +353,7 @@ internal static partial class PdfWriter {
             }
 
             double MeasureTableRowSegmentHeight(int rowIndex, int startLine, int lineCount, bool suppressCellObjects) {
+                if (startLine == 0 && lineCount == rowLineCounts[rowIndex]) return rowHeights[rowIndex];
                 double rowLeading = rowLeadings[rowIndex];
                 double rowPadTop = GetTableRowMaxPaddingTop(tb, style, rowIndex, cols);
                 double rowPadBottom = GetTableRowMaxPaddingBottom(tb, style, rowIndex, cols);
@@ -374,7 +375,9 @@ internal static partial class PdfWriter {
                     segmentHeight = Math.Max(segmentHeight, cellContentHeight);
                 }
 
-                return segmentHeight;
+                // The first fragment must honor an explicit row-height requirement.
+                // Fit decisions and drawing must use the same height even when all text fits.
+                return startLine == 0 ? Math.Max(segmentHeight, GetTableRowFixedHeight(style, rowIndex) ?? GetTableRowMinHeight(style, rowIndex)) : segmentHeight;
             }
 
             int GetTableRowSegmentLineCountThatFits(int rowIndex, int startLine, double available) {
@@ -433,7 +436,7 @@ internal static partial class PdfWriter {
                 bool wholeRowSegment = startLine == 0 && lineCount == rowLineCounts[rowIndex];
                 double rowPadTop = GetTableRowMaxPaddingTop(tb, style, rowIndex, cols);
                 double rowPadBottom = GetTableRowMaxPaddingBottom(tb, style, rowIndex, cols);
-                double rowHeight = wholeRowSegment ? rowHeights[rowIndex] : MeasureTableRowSegmentHeight(rowIndex, startLine, lineCount, suppressCellObjects);
+                double rowHeight = MeasureTableRowSegmentHeight(rowIndex, startLine, lineCount, suppressCellObjects);
                 double rowBottom = y - rowHeight;
                 if (currentOpts.Debug?.ShowTableRowBoxes == true) { pageDirty = true; DrawRowRect(sb, new PdfColor(1, 0, 1), 0.6, xOrigin, rowBottom, tableWidth, rowHeight); }
                 int bodyRowIndex = bodyRowOffset + rowIndex - headerRowCount;
