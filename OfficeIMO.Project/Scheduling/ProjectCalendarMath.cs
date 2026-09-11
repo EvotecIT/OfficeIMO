@@ -53,9 +53,7 @@ internal sealed class ProjectCalendarMath {
             _token.ThrowIfCancellationRequested();
             if (!seen.Add(current)) throw new InvalidDataException("Calendar inheritance contains a cycle.");
             foreach (var exception in current.Exceptions) {
-                var source = current.Document.Source?.Element(exception);
-                int? type = (int?)source?.Element(source.Name.Namespace + "Type");
-                if (type.HasValue && type != 1) throw new NotSupportedException("Recurring calendar exceptions require an expanded, qualified date range before calculation.");
+                if (exception.HasUnqualifiedRecurrence) throw new NotSupportedException("Recurring calendar exceptions require an expanded, qualified date range before calculation.");
             }
             if (current.HasUnqualifiedNativeRecurrence)
                 throw new NotSupportedException("Unmodeled native calendar metadata must be qualified before calculation.");

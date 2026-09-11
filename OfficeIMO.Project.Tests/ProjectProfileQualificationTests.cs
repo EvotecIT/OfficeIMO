@@ -72,5 +72,20 @@ public sealed class ProjectProfileQualificationTests {
         }
         Assert.Equal(invalid, document.Validate().HasErrors); Assert.Equal(invalid, document.AssessSave().HasErrors);
     }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RecurrenceEnvelopesArePreservedWithoutPretendingTheyAreContinuousClosures(bool edit) {
+        const string xml = "<Project xmlns=\"http://schemas.microsoft.com/project\"><Name>Retained recurrence</Name><StartDate>2026-10-05T08:00:00</StartDate><CalendarUID>1</CalendarUID>"
+            + "<Calendars><Calendar><UID>1</UID><IsBaseCalendar>1</IsBaseCalendar><Exceptions>"
+            + "<Exception><Name>First rule</Name><TimePeriod><FromDate>2026-01-01T00:00:00</FromDate><ToDate>2027-12-31T00:00:00</ToDate></TimePeriod><Type>2</Type><DayWorking>0</DayWorking></Exception>"
+            + "<Exception><Name>Second rule</Name><TimePeriod><FromDate>2026-01-01T00:00:00</FromDate><ToDate>2027-12-31T00:00:00</ToDate></TimePeriod><Type>3</Type><DayWorking>0</DayWorking></Exception>"
+            + "</Exceptions></Calendar></Calendars><Tasks><Task><UID>1</UID><Name>Delivery</Name><Duration>PT8H</Duration></Task></Tasks></Project>";
+        using var document = ProjectDocument.Parse(xml); if (edit) document.Tasks.GetByUid(1).Name = "Edited";
+        Assert.False(document.Validate().HasErrors); Assert.False(document.AssessSave().HasErrors);
+        var saved = document.ToXml(); Assert.Contains("<Type>2</Type>", saved); Assert.Contains("<Type>3</Type>", saved);
+        using var copy = ProjectDocument.Parse(saved); Assert.Equal(edit ? "Edited" : "Delivery", copy.Tasks.GetByUid(1).Name);
+        Assert.True(copy.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }).Report.HasErrors);
+    }
     private static ProjectDocument Create() { var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday; return document; }
 }

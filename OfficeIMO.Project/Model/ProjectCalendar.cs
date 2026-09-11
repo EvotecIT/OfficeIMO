@@ -106,6 +106,15 @@ public sealed class ProjectCalendarException : ProjectObject {
     private string? _name;
     private DateTime? _fromDate, _toDate;
     private bool? _isWorking;
+    /// <summary>Whether retained XML describes a recurrence rather than a qualified continuous date range.</summary>
+    internal bool HasUnqualifiedRecurrence {
+        get {
+            var source = Document.Source?.Element(this);
+            var type = source?.Element(source.Name.Namespace + "Type")?.Value;
+            return type != null && (!int.TryParse(type, System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out var value) || value != 1);
+        }
+    }
     /// <summary>Exception label.</summary>
     public string? Name { get => _name; set => Set(ref _name, value); }
     /// <summary>Inclusive first date.</summary>
