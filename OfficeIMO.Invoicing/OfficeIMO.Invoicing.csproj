@@ -29,5 +29,6 @@
     <Using Include="System.Linq" />
     <Using Include="System.Collections.Generic" />
     <InternalsVisibleTo Include="OfficeIMO.Invoicing.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Invoicing.Validation" />
   </ItemGroup>
 </Project>

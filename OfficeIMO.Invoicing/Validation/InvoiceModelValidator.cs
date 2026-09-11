@@ -8,17 +8,17 @@ public static partial class InvoiceModelValidator {
     /// <summary>Validates the model; use pinned external rules separately for authoritative profile compliance.</summary>
     public static InvoiceModelValidationResult Validate(Invoice invoice) {
         if (invoice == null) throw new ArgumentNullException(nameof(invoice));
-        var diagnostics = new List<InvoiceDiagnostic>();
+        var diagnostics = new InvoiceDiagnosticBuffer();
         var check = new ModelChecks(diagnostics);
         int modelItems;
         try { modelItems = new InvoiceModelLimits().Check(invoice); }
         catch (InvalidDataException exception) {
             check.Error("INV-MODEL-LIMIT", exception.Message, "Invoice");
-            return new InvoiceModelValidationResult(diagnostics, null);
+            return new InvoiceModelValidationResult(diagnostics.ToList(), null);
         }
         catch (XmlException) {
             check.Error("INV-MODEL-XML", "Invoice text contains a character that XML cannot represent.", "Invoice");
-            return new InvoiceModelValidationResult(diagnostics, null);
+            return new InvoiceModelValidationResult(diagnostics.ToList(), null);
         }
         check.Required(invoice.Number, "Number");
         check.Date(invoice.IssueDate, "IssueDate");
@@ -139,13 +139,13 @@ public static partial class InvoiceModelValidator {
         } catch (Exception exception) when (exception is ArgumentException || exception is OverflowException) {
             check.Error("INV-CALCULATION", exception.Message, "Invoice");
         }
-        return new InvoiceModelValidationResult(diagnostics, calculation);
+        return new InvoiceModelValidationResult(diagnostics.ToList(), calculation);
     }
 
     private sealed partial class ModelChecks {
-        private readonly List<InvoiceDiagnostic> _diagnostics;
-        internal ModelChecks(List<InvoiceDiagnostic> diagnostics) => _diagnostics = diagnostics;
-        internal void Error(string code, string message, string path) => _diagnostics.Add(new InvoiceDiagnostic(code, message, path));
+        private readonly InvoiceDiagnosticBuffer _diagnostics;
+        internal ModelChecks(InvoiceDiagnosticBuffer diagnostics) => _diagnostics = diagnostics;
+        internal void Error(string code, string message, string path) => _diagnostics.Add(code, message, path);
         internal void Required(string? value, string path) {
             if (string.IsNullOrWhiteSpace(value)) Error("INV-REQUIRED", "A non-empty value is required.", path);
             else if (value != value!.Trim()) Error("INV-WHITESPACE", "Remove leading or trailing whitespace.", path);

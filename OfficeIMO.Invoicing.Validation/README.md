@@ -33,6 +33,13 @@ to a local tools directory. Keep Saxon's `lib` directory next to its main JAR an
 provide a Java runtime. These external artifacts retain their upstream licenses;
 OfficeIMO does not redistribute the authority rules or Java runtime.
 
+The runner verifies the main JAR and its `xmlresolver-5.3.3.jar`,
+`xmlresolver-5.3.3-data.jar` and `jline-2.14.6.jar` companions at construction and
+before execution. Each invocation runs from a private copy of those verified
+bytes, excluding installation-directory aliases and loose classes. Reports
+identify all four JAR hashes. The configured Java executable remains supplied
+and managed by the caller.
+
 ```csharp
 using OfficeIMO.Invoicing.Validation;
 
@@ -60,7 +67,8 @@ are `Invalid`. Reports include exact input length, SHA-256, release, authority
 artifact hashes and runner identity. Revalidate after any edit to the XML.
 Runner identity is recorded after an invoice-rule process starts, including when
 that process fails. Startup failures and compiler-only executions leave it empty.
-Excess diagnostics are summarized with their highest severity, preserving the
+Reports contain at most 999 detailed diagnostics plus a summary of excess
+diagnostics with their highest severity, preserving the
 distinction between invalid invoice content and a failed validator.
 
 The pinned EN 16931 artifacts differ for zero-rated IGIC (category `L`): CII

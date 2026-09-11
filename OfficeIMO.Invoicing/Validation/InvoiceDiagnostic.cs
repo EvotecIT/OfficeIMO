@@ -43,7 +43,7 @@ public sealed class InvoiceModelValidationResult {
     internal InvoiceModelValidationResult(List<InvoiceDiagnostic> diagnostics, InvoiceCalculation? calculation) {
         Diagnostics = diagnostics.AsReadOnly(); Calculation = calculation;
     }
-    /// <summary>All model and declared-amount diagnostics.</summary>
+    /// <summary>At most 999 model and declared-amount diagnostics, followed by a highest-severity summary when further findings are omitted.</summary>
     public IReadOnlyList<InvoiceDiagnostic> Diagnostics { get; }
     /// <summary>Calculated totals when arithmetic inputs permit calculation.</summary>
     public InvoiceCalculation? Calculation { get; }

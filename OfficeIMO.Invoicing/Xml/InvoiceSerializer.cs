@@ -33,17 +33,20 @@ public static partial class InvoiceSerializer {
         return output.ToArray();
     }
 
-    /// <summary>Returns unsupported target mappings without writing or silently discarding information.</summary>
+    /// <summary>Validates the model and reports unsupported target mappings without writing or silently discarding information.</summary>
     public static IReadOnlyList<InvoiceDiagnostic> InspectTarget(Invoice invoice, InvoiceXmlOptions options) {
         if (invoice == null) throw new ArgumentNullException(nameof(invoice));
         if (options == null) throw new ArgumentNullException(nameof(options));
+        InvoiceModelValidationResult validation = InvoiceModelValidator.Validate(invoice);
+        if (!validation.IsValid) return validation.Diagnostics;
         return GetWriteDiagnostics(invoice, options).AsReadOnly();
     }
 
     private static List<InvoiceDiagnostic> GetWriteDiagnostics(Invoice invoice, InvoiceXmlOptions options) {
-        var diagnostics = new List<InvoiceDiagnostic>();
-        void Unsupported(string path, string text) => diagnostics.Add(new InvoiceDiagnostic("INV-TARGET-UNSUPPORTED", text, path));
+        var diagnostics = new InvoiceDiagnosticBuffer();
+        void Unsupported(string path, string text) => diagnostics.Add("INV-TARGET-UNSUPPORTED", text, path);
         if (invoice.Payment != null) {
+            CheckPaymentProfile(invoice, options, Unsupported);
             if (options.Syntax == InvoiceSyntax.Cii && invoice.Payment.DebitedAccount != null && !InvoiceBankAccountIdentity.IsValidIban(invoice.Payment.DebitedAccount))
                 Unsupported("Payment.DebitedAccount", "The supported CII debtor-account mapping requires a valid IBAN; a generic account identifier cannot be relabeled as an IBAN.");
             for (int index = 0; index < invoice.Payment.Accounts.Count; index++) {
@@ -58,6 +61,8 @@ public static partial class InvoiceSerializer {
         if (options.Syntax == InvoiceSyntax.Ubl && invoice.TypeCode != "380" && invoice.TypeCode != "381" && invoice.TypeCode != "384" && invoice.TypeCode != "389")
             Unsupported("TypeCode", "UBL authoring supports invoice codes 380, 384, 389 and credit note code 381.");
         if (options.Syntax == InvoiceSyntax.Ubl) {
+            if (invoice.Buyer.Identifiers.Count > 1)
+                Unsupported("Buyer.Identifiers", "The EN 16931 UBL mapping permits at most one buyer identifier; CII can preserve multiple buyer identifiers.");
             foreach (InvoiceNote note in invoice.Notes)
                 if (note.SubjectCode == null && InvoiceNote.HasEncodedSubject(note.Text))
                     Unsupported("Notes", "An unclassified note begins with a reserved UBL subject prefix and cannot be represented without changing its meaning.");
@@ -75,7 +80,7 @@ public static partial class InvoiceSerializer {
         InvoicePartyMapping.Check(invoice.Payee, "Payee", Unsupported);
         InvoicePartyMapping.Check(invoice.TaxRepresentative, "TaxRepresentative", Unsupported);
         InvoicePartyMapping.Check(invoice.Buyer, "Buyer", Unsupported);
-        return diagnostics;
+        return diagnostics.ToList();
     }
     private static string Number(decimal value) => value.ToString("0.############################", CultureInfo.InvariantCulture);
     private static string Amount(decimal value) => value.ToString("0.00", CultureInfo.InvariantCulture);
