@@ -26,8 +26,10 @@ internal static class ProjectDeliveryGantt {
         project.Dependencies.Add(design, build);
         project.Dependencies.Add(build, verify);
         project.Dependencies.Add(verify, launch);
+        scope.ActualStart = project.Settings.StartDate;
         scope.ActualDuration = ProjectDuration.WorkingHours(16);
         scope.RemainingDuration = ProjectDuration.WorkingHours(0);
+        design.ActualStart = new DateTime(2026, 10, 7, 8, 0, 0);
         design.ActualDuration = ProjectDuration.WorkingHours(8);
         design.RemainingDuration = ProjectDuration.WorkingHours(8);
 

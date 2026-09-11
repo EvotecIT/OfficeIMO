@@ -2501,8 +2501,8 @@
     {
       "id": "project-delivery-gantt-example.xml",
       "path": "/downloads/showcase/workflows/project-delivery-gantt/example.xml",
-      "bytes": 8959,
-      "sha256": "d8b360f05f51ac5cf5b99b3ec0a5ddbc10a50cb41abfdbb2b4b19660282ab3db",
+      "bytes": 9067,
+      "sha256": "7514af82b4a140e212c6204a2724b9ca60af6d698ff7d9d470152f3128c9da00",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-delivery-gantt",
       "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
     },
@@ -2533,8 +2533,8 @@
     {
       "id": "project-delivery-gantt-report.docx",
       "path": "/downloads/showcase/workflows/project-delivery-gantt/report.docx",
-      "bytes": 101511,
-      "sha256": "92d56a99627516e4e35600cb692241a6ec2f94a0cd0f8afa70a17bb234c67df6",
+      "bytes": 101512,
+      "sha256": "defe47f05eba4092b818c61f1cb6df88cace395e9857bd91ce1f5d205cb90e9f",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-delivery-gantt",
       "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
     },
@@ -2549,16 +2549,16 @@
     {
       "id": "project-delivery-gantt-source",
       "path": "/downloads/showcase/workflows/project-delivery-gantt/ProjectDeliveryGantt.cs.txt",
-      "bytes": 3473,
-      "sha256": "2deec95955412ebeaa0991fea833ee5d8547af4c405f6c584a5d5007f97af1f1",
+      "bytes": 3594,
+      "sha256": "55f8a9e62f925f5808a96793f069fdff21751621bd183f3256e85d8619fc90d9",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
     {
       "id": "project-dependency-network-example.xml",
       "path": "/downloads/showcase/workflows/project-dependency-network/example.xml",
-      "bytes": 12675,
-      "sha256": "a097665a8a6e711b9d54612bd6b485262079de569bd34924f8dc8b489c59cb90",
+      "bytes": 12783,
+      "sha256": "efaaa3d62232f770f9187296a6046eb91faf9ac2ee8ca6eb91069eb244f510a9",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example project-dependency-network",
       "evidence": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export."
     },
@@ -2597,8 +2597,8 @@
     {
       "id": "project-dependency-network-source",
       "path": "/downloads/showcase/workflows/project-dependency-network/ProjectDependencyNetwork.cs.txt",
-      "bytes": 2893,
-      "sha256": "08b88d01832933aa9adc6048440546e7fa43fa71f4979c28a433d0bfc8ff8ea6",
+      "bytes": 3019,
+      "sha256": "485d7a15ac1c53ee0863dcd8e9185f1a8f98ab24b8597415a82e3e17a179c288",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },

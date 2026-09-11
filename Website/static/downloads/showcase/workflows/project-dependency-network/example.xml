@@ -120,6 +120,7 @@
       <PercentComplete>100</PercentComplete>
       <PercentWorkComplete>0</PercentWorkComplete>
       <Cost>0</Cost>
+      <ActualStart>2026-10-05T08:00:00</ActualStart>
       <ActualDuration>PT16H0M0S</ActualDuration>
       <ActualCost>0</ActualCost>
       <ActualWork>PT0H0M0S</ActualWork>
@@ -148,6 +149,7 @@
       <PercentComplete>50</PercentComplete>
       <PercentWorkComplete>0</PercentWorkComplete>
       <Cost>0</Cost>
+      <ActualStart>2026-10-07T08:00:00</ActualStart>
       <ActualDuration>PT8H0M0S</ActualDuration>
       <ActualCost>0.0</ActualCost>
       <ActualWork>PT0H0M0S</ActualWork>

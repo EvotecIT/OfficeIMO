@@ -19,8 +19,10 @@ internal static class ProjectDependencyNetwork {
         }).ToArray();
         foreach (var (from, to) in new[] { (0, 1), (0, 2), (0, 3), (1, 4), (2, 4), (3, 5), (4, 6), (5, 6), (6, 7) })
             project.Dependencies.Add(tasks[from], tasks[to]);
+        tasks[0].ActualStart = project.Settings.StartDate;
         tasks[0].ActualDuration = ProjectDuration.WorkingHours(16);
         tasks[0].RemainingDuration = ProjectDuration.WorkingHours(0);
+        tasks[1].ActualStart = new DateTime(2026, 10, 7, 8, 0, 0);
         tasks[1].ActualDuration = ProjectDuration.WorkingHours(8);
         tasks[1].RemainingDuration = ProjectDuration.WorkingHours(8);
 
