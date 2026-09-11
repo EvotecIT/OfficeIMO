@@ -5,6 +5,9 @@ internal sealed partial class ProjectTaskAllocation {
         var assignment = entry.Assignment; var resource = assignment.Resource!;
         if (resource.Type == ProjectResourceType.Cost) {
             var recorded = ReadActualCostCurves(assignment);
+            if (!assignment.ActualCost.HasValue && recorded.Length == 0 && !(assignment.Cost.HasValue && assignment.RemainingCost.HasValue)
+                && (assignment.ActualStart.HasValue || assignment.ActualFinish.HasValue || assignment.Stop.HasValue))
+                throw new InvalidDataException("Started cost assignments require actual cost, actual-cost intervals, or both total and remaining cost.");
             decimal actual = assignment.ActualCost ?? (recorded.Length > 0 ? recorded.Sum(c => c.Cost)
                 : assignment.Cost.HasValue && assignment.RemainingCost.HasValue ? assignment.Cost.Value - assignment.RemainingCost.Value : 0m);
             decimal? value = assignment.Cost ?? (assignment.RemainingCost.HasValue ? actual + assignment.RemainingCost.Value : (decimal?)null);

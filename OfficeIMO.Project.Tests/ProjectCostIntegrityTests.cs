@@ -3,6 +3,59 @@ namespace OfficeIMO.Project.Tests;
 public sealed class ProjectCostIntegrityTests {
     private static readonly DateTime Monday = new(2026, 10, 5, 8, 0, 0);
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SummaryActualCostRequiresExplicitRecalculation(bool recalculate) {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
+        var summary = document.Tasks.AddSummary("Phase"); summary.FixedCost = 100; summary.ActualCost = 75;
+        var child = summary.Children.Add("Work"); child.Duration = ProjectDuration.WorkingDays(1);
+        child.ActualStart = Monday; child.ActualDuration = new ProjectDuration(4, ProjectDurationUnit.Hour); child.Stop = Monday.AddHours(4);
+        var options = new ProjectScheduleOptions { CalculateAssignments = true, RecalculateActualCosts = recalculate };
+        var schedule = document.CalculateSchedule(options); schedule.Report.ThrowIfErrors();
+        var totals = schedule.Tasks.Single(t => t.TaskUid == summary.Uid).Calculation!;
+        Assert.Equal(recalculate ? 50m : 75m, totals.ActualCost); Assert.Equal(recalculate ? 100m : 125m, totals.Cost);
+        document.ApplySchedule(schedule); Assert.Equal(recalculate ? 50m : 75m, summary.ActualCost);
+        var leveling = document.CalculateLeveling(new ProjectLevelingOptions { ScheduleOptions = options }); leveling.Report.ThrowIfErrors();
+        document.ApplyLeveling(leveling); Assert.Equal(recalculate ? 50m : 75m, summary.ActualCost);
+        using var copy = document.Clone();
+        Assert.Equal(recalculate ? 50m : 75m, copy.CalculateSchedule(options).Tasks.Single(t => t.TaskUid == summary.Uid).Calculation!.ActualCost);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BaselineCannotStoreUnlocatedActualCostAdjustment(bool summaryAdjustment) {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
+        var summary = document.Tasks.AddSummary("Phase"); var task = summary.Children.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1);
+        task.ActualStart = Monday; task.ActualDuration = new ProjectDuration(4, ProjectDurationUnit.Hour); task.Stop = Monday.AddHours(4);
+        var owner = summaryAdjustment ? summary : task; owner.FixedCost = 100; owner.ActualCost = 75;
+        var schedule = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); schedule.Report.ThrowIfErrors();
+        string before = document.ToXml(); long revision = document.Revision;
+        Assert.Throws<InvalidOperationException>(() => document.CaptureBaseline(schedule));
+        Assert.Equal(revision, document.Revision); Assert.Equal(before, document.ToXml());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StartedCostAssignmentRequiresActualAmountEvidence(bool explicitZero) {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
+        var task = document.Tasks.Add("Expense"); task.Duration = ProjectDuration.WorkingDays(1);
+        var assignment = document.Assignments.Add(task, document.Resources.AddCost("Rental"));
+        assignment.ActualStart = Monday; assignment.Stop = Monday.AddHours(1); assignment.RemainingCost = 100;
+        if (explicitZero) assignment.ActualCost = 0;
+        string before = document.ToXml();
+        var schedule = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
+        if (explicitZero) {
+            schedule.Report.ThrowIfErrors(); document.ApplySchedule(schedule);
+            Assert.Equal(0m, assignment.ActualCost); Assert.Equal(100m, assignment.Cost);
+        } else {
+            Assert.True(schedule.Report.HasErrors); Assert.Throws<InvalidDataException>(() => document.ApplySchedule(schedule));
+            Assert.Equal(before, document.ToXml());
+        }
+    }
+
     [Fact]
     public void MissingSummaryActualCostDoesNotHideRecordedChildCosts() {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();

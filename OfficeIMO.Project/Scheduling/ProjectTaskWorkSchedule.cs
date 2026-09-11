@@ -29,9 +29,9 @@ public sealed class ProjectTaskWorkSchedule {
     public int PercentWorkComplete { get; }
     /// <summary>Caller-supplied physical completion; never inferred from dates or effort.</summary>
     public int? PhysicalPercentComplete { get; }
-    /// <summary>Total assignment costs plus the task's fixed cost, when rates are complete.</summary>
+    /// <summary>Calculated assignment or child costs plus fixed cost, adjusted to retain entered task actual cost unless recalculation is enabled.</summary>
     public decimal? Cost { get; }
-    /// <summary>Actual assignment costs plus accrued fixed cost.</summary>
+    /// <summary>Retained task actual cost, or calculated assignment or child actual costs plus accrued fixed cost.</summary>
     public decimal? ActualCost { get; }
     /// <summary>Remaining calculated cost.</summary>
     public decimal? RemainingCost { get; }

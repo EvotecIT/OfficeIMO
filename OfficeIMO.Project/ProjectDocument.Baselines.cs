@@ -108,6 +108,12 @@ public sealed partial class ProjectDocument {
                 if (plan.Cost.HasValue) foreach (var interval in plan.Costs) AddCost(update, interval);
             }
         }
+        foreach (var update in updates) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (update.Cost.HasValue && Math.Abs(update.Values.Where(v => v.Type == update.CostType)
+                    .Sum(v => ProjectXmlValue.ParseMoney(v.Value)) - update.Cost.Value) > .01m)
+                throw new InvalidOperationException("Baseline cost curves must equal the calculated total. Retained actual-cost adjustments require an explicit timephased projection before capture.");
+        }
         cancellationToken.ThrowIfCancellationRequested();
         if (schedule.ModelRevision != Revision) throw new InvalidOperationException("The document changed during baseline capture.");
         foreach (var source in schedule.ExternalSources) source.ValidateCurrent();
