@@ -94,9 +94,11 @@ unknown extensions. `GetOriginalBytes()` always returns the original bytes,
 even after model edits.
 
 Duplicate invoice-currency or accounting-currency VAT totals are reported as
-unmapped data. Parsing retains the first total for each currency and excludes
-breakdowns from duplicate UBL totals. An explicit lossy rewrite uses those
-retained values; the resulting model must still pass validation.
+unmapped data. UBL parsing retains the first invoice-currency total that includes
+a VAT breakdown, keeping that group's amount and breakdown together. For CII
+and accounting-currency amounts, parsing retains the first total. An explicit
+lossy rewrite uses those retained values; the resulting model must still pass
+validation.
 
 Declared source line and VAT amounts are preserved. Model checks permit up to
 0.02 difference from the unrounded line formula and a conservative 0.01 VAT

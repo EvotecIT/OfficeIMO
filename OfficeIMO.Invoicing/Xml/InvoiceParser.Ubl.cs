@@ -107,7 +107,9 @@ public static partial class InvoiceParser {
                 invoice.DeclaredTotals = invoice.DeclaredTotals ?? new InvoiceDeclaredTotals();
                 if (invoice.DeclaredTotals.TaxTotal.HasValue) {
                     c.Loss(tax, "Invoice currency VAT total is duplicated.");
-                    continue;
+                    // A total without a breakdown is provisional. Keep the amount and
+                    // breakdown from the first complete group together when one follows.
+                    if (invoice.DeclaredTaxes.Count != 0 || !tax.Elements(Cac + "TaxSubtotal").Any()) continue;
                 }
                 invoice.DeclaredTotals.TaxTotal = value;
             } else if (currency != null && currency == invoice.TaxCurrency) {
