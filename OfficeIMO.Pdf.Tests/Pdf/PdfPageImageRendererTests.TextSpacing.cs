@@ -1,4 +1,7 @@
-using System.Linq;
+using System;
+using System.Globalization;
+using System.IO;
+using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -7,24 +10,69 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
     [Theory]
-    [InlineData("2 Tc (spaced) Tj", false)]
-    [InlineData("4 Tw (spaced text) Tj", false)]
-    [InlineData("2 Tc (spaced) Tj", true)]
-    [InlineData("4 Tw (spaced text) Tj", true)]
-    public void RenderPage_DoesNotScaleAggregateAdvanceForExplicitTextSpacing(string textOperation, bool clipped) {
-        string clipOperation = clipped ? "20 90 50 30 re W n " : string.Empty;
-        string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj";
-        byte[] pdf = BuildSingleStreamPdf(
-            clipOperation + "BT /F1 20 Tf 20 100 Td " + textOperation + " ET",
-            "<< /Font << /F1 5 0 R >> >>",
-            font);
+    [InlineData("87,0", -0.5, 0, false, false)]
+    [InlineData("73%", 2, 0, false, false)]
+    [InlineData("A B", 0, 4, false, false)]
+    [InlineData("87,0", -0.5, 0, true, false)]
+    [InlineData("A B", 2, 4, true, false)]
+    [InlineData("87,0", -0.5, 0, false, true)]
+    [InlineData("A B", 2, 4, true, true)]
+    [InlineData("87,0", -8, 0, false, false)]
+    [InlineData("87,0", -6, 0, false, false)]
+    public void RenderPage_SpacedTextMatchesIndividuallyPositionedGlyphs(
+        string value, double characterSpacing, double wordSpacing, bool clipped, bool rotated) {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        const string resources = "<< /Font << /F1 5 0 R >> >>";
+        string clip = clipped ? "90 80 26 30 re W n " : string.Empty;
+        string matrix = rotated ? "0 1 -1 0 100 100 Tm " : "1 0 0 1 100 100 Tm ";
+        string stream = clip + "BT /F1 10 Tf " + matrix +
+            FormattableString.Invariant($"{characterSpacing} Tc {wordSpacing} Tw ({value}) Tj ET");
 
-        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-        OfficeDrawingText text = clipped
-            ? Assert.Single(Assert.IsType<OfficeDrawingGroup>(Assert.Single(drawing.Elements)).Drawing.Elements.OfType<OfficeDrawingText>())
-            : Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
+        // Courier has a 600-unit advance. Spacing moves the next glyph, while each
+        // painted glyph remains six points wide. Explicit origins form the reference.
+        var reference = new StringBuilder(clip);
+        double offset = 0;
+        foreach (char character in value) {
+            reference.Append("BT /F1 10 Tf ").Append(matrix)
+                .Append(offset.ToString("R", CultureInfo.InvariantCulture)).Append(" 0 Td (")
+                .Append(character).Append(") Tj ET ");
+            offset += 6 + characterSpacing + (character == ' ' ? wordSpacing : 0);
+        }
 
-        Assert.Null(text.TextAdvanceWidth);
-        Assert.Equal(OfficeTextOverflowBehavior.Ellipsis, text.OverflowBehavior);
+        OfficeDrawing actual = PdfPageImageRenderer.RenderPage(BuildSingleStreamPdf(stream, resources, font));
+        OfficeDrawing expected = PdfPageImageRenderer.RenderPage(BuildSingleStreamPdf(reference.ToString(), resources, font));
+        byte[] expectedPixels = OfficeDrawingRasterRenderer.Render(expected).GetPixels();
+        Assert.Contains(expectedPixels, channel => channel != 0);
+        Assert.Equal(expectedPixels, OfficeDrawingRasterRenderer.Render(actual).GetPixels());
+    }
+
+    [Fact]
+    public void ExportImage_ExcelSummaryKeepsEveryDigitAndPercentage() {
+        // Desktop Excel PDF from the documented two-service operational dashboard example.
+        string path = Path.Combine(AppContext.BaseDirectory, "Pdf", "Fixtures", "Interoperability", "excel-operational-summary.pdf");
+        PdfReadDocument document = PdfReadDocument.Open(File.ReadAllBytes(path));
+        Assert.Contains("87,0", document.Pages[0].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("73%", document.Pages[0].ExtractText(), StringComparison.Ordinal);
+
+        var exported = document.Pages[0].ExportImage(OfficeImageExportFormat.Png);
+        Assert.True(OfficePngReader.TryDecode(exported.Bytes, out OfficeRasterImage? image));
+        foreach (var bounds in new[] {
+            (Left: 221, Top: 86, Right: 225, Bottom: 95),
+            (Left: 225, Top: 86, Right: 229, Bottom: 95),
+            (Left: 229, Top: 86, Right: 231, Bottom: 95),
+            (Left: 231, Top: 86, Right: 235, Bottom: 95),
+            (Left: 221, Top: 107, Right: 225, Bottom: 115),
+            (Left: 225, Top: 107, Right: 229, Bottom: 115),
+            (Left: 229, Top: 107, Right: 236, Bottom: 115)
+        }) {
+            int painted = 0;
+            for (int y = bounds.Top; y < bounds.Bottom; y++) {
+                for (int x = bounds.Left; x < bounds.Right; x++) {
+                    OfficeColor pixel = image.GetPixel(x, y);
+                    if (pixel.A > 0 && pixel.R < 180 && pixel.G < 180 && pixel.B < 180) painted++;
+                }
+            }
+            Assert.True(painted > 0, $"Missing glyph in {bounds}.");
+        }
     }
 }

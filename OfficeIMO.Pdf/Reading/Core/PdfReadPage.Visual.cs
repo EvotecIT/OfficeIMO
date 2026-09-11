@@ -263,7 +263,7 @@ public sealed partial class PdfReadPage {
         PdfTextClippingBudget patternTextClippingBudget,
         CancellationToken cancellationToken = default) {
         if (element.Effect.IsDefault) {
-            AddDrawingElementCore(drawing, pageHeight, element, invocationTextClippingBudget);
+            AddDrawingElementCore(drawing, pageHeight, element, invocationTextClippingBudget, cancellationToken);
             return;
         }
 
@@ -311,7 +311,7 @@ public sealed partial class PdfReadPage {
         }
 
         var isolated = new OfficeDrawing(drawing.Width, drawing.Height);
-        AddDrawingElementCore(isolated, pageHeight, element, invocationTextClippingBudget);
+        AddDrawingElementCore(isolated, pageHeight, element, invocationTextClippingBudget, cancellationToken);
         if (isolated.Elements.Count == 0) return;
         OfficeDrawingSoftMask? softMask = element.Effect.SoftMask == null
             ? null
@@ -336,13 +336,14 @@ public sealed partial class PdfReadPage {
         OfficeDrawing drawing,
         double pageHeight,
         PdfPageDrawingElement element,
-        PdfTextClippingBudget textClippingBudget) {
+        PdfTextClippingBudget textClippingBudget,
+        CancellationToken cancellationToken) {
         switch (element.Kind) {
             case PdfPageDrawingElementKind.Primitive:
                 AddVisualPrimitive(drawing, element.Primitive, textClippingBudget);
                 break;
             case PdfPageDrawingElementKind.Text:
-                AddTextSpan(drawing, pageHeight, element.TextSpan!);
+                AddTextSpan(drawing, pageHeight, element.TextSpan!, cancellationToken);
                 break;
             case PdfPageDrawingElementKind.Image:
                 AddImagePlacement(drawing, pageHeight, element.ImagePlacement!, element.Image!);

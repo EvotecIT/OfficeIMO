@@ -2,7 +2,8 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Projects signed text-space character advances onto a span's resolved baseline direction.</summary>
 internal static class PdfTextAdvanceProjection {
-    internal static bool TryGetResolvedBoundaries(PdfTextSpan span, out double[] boundaries) {
+    internal static bool TryGetResolvedBoundaries(PdfTextSpan span, out double[] boundaries,
+        bool allowStationaryGlyphOrigins = false) {
         IReadOnlyList<double>? advances = span.CharacterAdvances;
         if (advances is null || advances.Count != span.Text.Length) {
             boundaries = Array.Empty<double>();
@@ -22,7 +23,10 @@ internal static class PdfTextAdvanceProjection {
                 return false;
             }
         }
-        if (Math.Abs(signedTotal) <= double.Epsilon) {
+        // Rendering can retain overprinted glyphs when their painted widths are known.
+        // Geometry consumers keep the conservative aggregate fallback for zero movement.
+        if (Math.Abs(signedTotal) <= double.Epsilon &&
+            (!allowStationaryGlyphOrigins || span.CharacterAdvanceDirection == 0D)) {
             boundaries = Array.Empty<double>();
             return false;
         }
