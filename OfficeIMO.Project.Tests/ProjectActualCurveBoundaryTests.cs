@@ -29,6 +29,38 @@ public sealed class ProjectActualCurveBoundaryTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void ActualCurveTimingSurvivesInferredTaskProgress(bool discontinuous) {
+        using var document = Create(); var task = document.Tasks.Add("Parallel progress"); task.Type = ProjectTaskType.FixedUnits;
+        task.Duration = ProjectDuration.WorkingHours(discontinuous ? 10 : 8);
+        var first = document.Assignments.Add(task, document.Resources.AddWork("First engineer"));
+        var second = document.Assignments.Add(task, document.Resources.AddWork("Second engineer"));
+        if (discontinuous) {
+            first.Work = first.ActualWork = ProjectWork.Hours(4); second.Work = ProjectWork.Hours(8);
+            Add(first, 2, Monday, Monday.AddHours(2), "PT2H");
+            Add(first, 2, Monday.AddDays(1), Monday.AddDays(1).AddHours(2), "PT2H");
+        } else {
+            first.Work = ProjectWork.Hours(8); first.ActualWork = ProjectWork.Hours(2);
+            Add(first, 2, Monday, Monday.AddHours(2), "PT2H");
+            second.Work = second.ActualWork = ProjectWork.Hours(4);
+            Add(second, 2, Monday, Monday.AddHours(4), "PT4H");
+        }
+        var options = new ProjectScheduleOptions { CalculateAssignments = true };
+        var original = document.CalculateSchedule(options); original.Report.ThrowIfErrors();
+        Assert.Equal(discontinuous ? 360m : 240m, original.Tasks.Single().Calculation!.RemainingDuration.Value);
+        document.ApplySchedule(original);
+        using var reopened = document.Clone();
+        foreach (var candidate in new[] { document, reopened }) {
+            var repeated = candidate.CalculateSchedule(options); repeated.Report.ThrowIfErrors();
+            Assert.Equal(original.Assignments.Select(a => (a.Start, a.Finish, a.Work, a.ActualWork)),
+                repeated.Assignments.Select(a => (a.Start, a.Finish, a.Work, a.ActualWork)));
+            Assert.Equal(original.Tasks.Single().Duration, repeated.Tasks.Single().Duration);
+            Assert.Equal(original.Tasks.Single().Calculation!.RemainingDuration, repeated.Tasks.Single().Calculation!.RemainingDuration);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void RecordedActualDurationRequiresAnActualAnchor(bool assigned) {
         using var document = Create(); var task = document.Tasks.Add("Missing actual start"); task.Type = ProjectTaskType.FixedUnits;
         task.Duration = ProjectDuration.WorkingHours(16); task.ActualDuration = task.RemainingDuration = ProjectDuration.WorkingHours(8);
@@ -37,6 +69,15 @@ public sealed class ProjectActualCurveBoundaryTests {
         var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
         Assert.True(result.Report.HasErrors); Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result));
         Assert.Equal(revision, document.Revision); Assert.Equal(ProjectDuration.WorkingHours(8), task.RemainingDuration);
+        task.ActualStart = Monday;
+        var repaired = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); repaired.Report.ThrowIfErrors();
+        Assert.Equal(Monday.AddDays(1).AddHours(9), repaired.Tasks.Single().Finish);
+        Assert.Equal(480m, repaired.Tasks.Single().Calculation!.RemainingDuration.Value);
+        document.ApplySchedule(repaired);
+        using var reopened = document.Clone();
+        var repeated = reopened.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); repeated.Report.ThrowIfErrors();
+        Assert.Equal(repaired.Tasks.Single().Finish, repeated.Tasks.Single().Finish);
+        Assert.Equal(repaired.Tasks.Single().Duration, repeated.Tasks.Single().Duration);
     }
 
     [Theory]

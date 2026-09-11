@@ -19,11 +19,14 @@ internal sealed partial class ProjectTaskAllocation {
         }
         var recordedWork = _entries.Where(e => e.Assignment.Resource!.Type == ProjectResourceType.Work)
             .SelectMany(e => e.ActualIntervals).ToArray();
+        decimal unrepresentedActualDuration = Math.Max(0m, _actualTaskDuration - UnionMinutes(recordedWork));
         DateTime? actualTaskStart = _task.ActualStart ?? (recordedWork.Length > 0 ? recordedWork.Min(i => i.Start) : (DateTime?)null);
         if (_actualTaskDuration > 0 && !actualTaskStart.HasValue)
             throw new InvalidDataException("Recorded task actual duration requires an actual start or dated actual work before calculation.");
         DateTime? actualTaskEnd = _task.ActualDuration.HasValue && actualTaskStart.HasValue
             ? TaskAdd(actualTaskStart.Value, _actualTaskDuration) : (DateTime?)null;
+        if (actualTaskEnd.HasValue && unrepresentedActualDuration > 0 && recordedWork.Length > 0)
+            actualTaskEnd = Max(actualTaskEnd.Value, recordedWork.Max(i => i.Finish));
         var plans = new List<ProjectAssignmentSchedule>();
         long intervalCount = 0;
         foreach (var entry in _entries) {
@@ -38,9 +41,9 @@ internal sealed partial class ProjectTaskAllocation {
                 if (entry.RemainingOrigin.HasValue) origin = Max(origin, entry.RemainingOrigin.Value);
             }
             if (assignment.Resume.HasValue) origin = Max(origin, assignment.Resume.Value);
-            // An unstarted parallel assignment can overlap another assignment's actual work.
-            // Applying inferred task progress must not move that independent remaining curve.
-            if (actualTaskEnd.HasValue && (entry.ActualIntervals.Length > 0 || assignment.ActualStart.HasValue || recordedWork.Length == 0))
+            // Explicit task progress beyond the recorded assignment intervals anchors the remainder.
+            // Inferred actual duration must keep concurrent and discontinuous curves unchanged.
+            if (actualTaskEnd.HasValue && unrepresentedActualDuration > 0)
                 origin = Max(origin, actualTaskEnd.Value);
             if (_task.Resume.HasValue) origin = Max(origin, _task.Resume.Value);
             if (_options.RescheduleRemainingAfterStatusDate) origin = Max(origin, _document.Settings.StatusDate!.Value);
@@ -93,8 +96,7 @@ internal sealed partial class ProjectTaskAllocation {
             duration = UnionMinutes(workIntervals);
             if (_task.ActualDuration is ProjectDuration recordedDuration)
                 actualDuration = recordedDuration.Value * ProjectXmlValue.MinutesPerUnit(recordedDuration.Unit, recordedDuration.IsElapsed, _document);
-            if (actualTaskEnd.HasValue)
-                duration = actualDuration + RemainingMinutesOutsideActualPeriod(workIntervals, actualTaskStart!.Value, actualTaskEnd.Value);
+            duration += unrepresentedActualDuration;
             // Concurrent actual and remaining assignment effort must not count the same task duration twice.
             remainingDuration = Math.Max(0m, duration - actualDuration);
             if (_task.Type == ProjectTaskType.FixedDuration) {
@@ -184,17 +186,4 @@ internal sealed partial class ProjectTaskAllocation {
     private static decimal UnionMinutes(IEnumerable<ProjectAssignmentInterval> intervals) => ProjectCalendarMath.Merge(intervals
         .Where(i => i.Finish > i.Start && i.Work.Minutes > i.OvertimeWork.Minutes).Select(i => new ProjectWorkingRange(i.Start, i.Finish)).ToList())
         .Sum(i => (i.Finish.Ticks - i.Start.Ticks) / (decimal)TimeSpan.TicksPerMinute);
-
-    private decimal RemainingMinutesOutsideActualPeriod(IEnumerable<ProjectAssignmentInterval> intervals, DateTime actualStart, DateTime actualFinish) {
-        var remaining = ProjectCalendarMath.Merge(intervals.Where(i => !i.IsActual && i.Finish > i.Start && i.Work.Minutes > i.OvertimeWork.Minutes)
-            .Select(i => new ProjectWorkingRange(i.Start, i.Finish)).ToList());
-        decimal duration = 0;
-        foreach (var range in remaining) {
-            _token.ThrowIfCancellationRequested();
-            duration += (range.Finish.Ticks - range.Start.Ticks) / (decimal)TimeSpan.TicksPerMinute;
-            DateTime from = Max(range.Start, actualStart), to = Min(range.Finish, actualFinish);
-            if (from < to) duration -= _taskCalendar.Between(from, to);
-        }
-        return duration;
-    }
 }
