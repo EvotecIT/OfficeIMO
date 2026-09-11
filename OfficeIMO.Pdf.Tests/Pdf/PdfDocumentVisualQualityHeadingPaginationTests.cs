@@ -17,7 +17,7 @@ public partial class PdfDocumentVisualQualityTests {
             CreateOutlineFromHeadings = true
         };
         string heading = string.Join(" ", Enumerable.Repeat("Heading text", 100)) + " FINAL-MARKER";
-        byte[] bytes = PdfDocument.Create(options).H1(heading, linkUri: "https://example.test/heading").Paragraph(p => p.Text("Following paragraph")).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).TaggedPdfCatalogMarkers().H1(heading, linkUri: "https://example.test/heading").Paragraph(p => p.Text("Following paragraph")).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.True(pdf.NumberOfPages > 2);
         Assert.Contains("FINAL-MARKER", string.Join("", pdf.GetPages().Select(page => page.Text)), StringComparison.Ordinal);
@@ -30,6 +30,9 @@ public partial class PdfDocumentVisualQualityTests {
         }
         var rectangles = ExtractLinkRectangles(System.Text.Encoding.ASCII.GetString(bytes));
         Assert.True(rectangles.Count > pdf.NumberOfPages);
+        string content = System.Text.Encoding.ASCII.GetString(bytes);
+        Assert.Equal(pdf.NumberOfPages, CountOccurrences(content, "/StructParents "));
+        Assert.Equal(rectangles.Count, CountOccurrences(content, "/Type /OBJR /Obj "));
         Assert.All(rectangles, rectangle => {
             Assert.InRange(rectangle.Y1, options.MarginBottom - 1, options.PageHeight - options.MarginTop + 1);
             Assert.InRange(rectangle.Y2, options.MarginBottom - 1, options.PageHeight - options.MarginTop + 1);
