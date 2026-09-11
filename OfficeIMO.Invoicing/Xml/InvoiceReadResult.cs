@@ -44,15 +44,26 @@ public sealed class InvoiceConversionResult {
 public static class InvoiceConverter {
     /// <summary>Converts only when the source mapping, model and target contract are complete; reports every detected loss.</summary>
     public static InvoiceConversionResult Convert(byte[] xml, InvoiceXmlOptions target) {
+        if (xml == null) throw new ArgumentNullException(nameof(xml));
         if (target == null) throw new ArgumentNullException(nameof(target));
-        InvoiceReadResult source = InvoiceParser.Read(xml);
+        InvoiceReadResult source;
+        try { source = InvoiceParser.Read(xml); }
+        catch (Exception exception) when (exception is InvalidDataException || exception is System.Xml.XmlException) {
+            return new InvoiceConversionResult(null, new[] { new InvoiceDiagnostic("INV-CONVERSION-INPUT", exception.Message, "Source") });
+        }
         var diagnostics = source.UnmappedData.ToList();
         InvoiceModelValidationResult validation = InvoiceModelValidator.Validate(source.Invoice);
         diagnostics.AddRange(validation.Diagnostics);
         if (validation.IsValid) diagnostics.AddRange(InvoiceSerializer.InspectTarget(source.Invoice, target));
         if (source.Declaration.Profile != target.Profile)
             diagnostics.Add(new InvoiceDiagnostic("INV-PROFILE-CHANGE", "The output guideline differs from the source. Run the target's pinned validation rules before use.", "Guideline", InvoiceDiagnosticSeverity.Information));
-        byte[]? output = diagnostics.Any(d => d.Severity == InvoiceDiagnosticSeverity.Error) ? null : InvoiceSerializer.Write(source.Invoice, target);
+        byte[]? output = null;
+        if (!diagnostics.Any(d => d.Severity == InvoiceDiagnosticSeverity.Error)) {
+            try { output = InvoiceSerializer.Write(source.Invoice, target); }
+            catch (InvalidDataException exception) {
+                diagnostics.Add(new InvoiceDiagnostic("INV-CONVERSION-OUTPUT", exception.Message, "Target"));
+            }
+        }
         return new InvoiceConversionResult(output, diagnostics.AsReadOnly());
     }
 }

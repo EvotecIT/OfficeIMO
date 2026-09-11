@@ -43,6 +43,18 @@ public static partial class InvoiceSerializer {
     private static List<InvoiceDiagnostic> GetWriteDiagnostics(Invoice invoice, InvoiceXmlOptions options) {
         var diagnostics = new List<InvoiceDiagnostic>();
         void Unsupported(string path, string text) => diagnostics.Add(new InvoiceDiagnostic("INV-TARGET-UNSUPPORTED", text, path));
+        if (invoice.Payment != null) {
+            if (options.Syntax == InvoiceSyntax.Cii && invoice.Payment.DebitedAccount != null && !InvoiceBankAccountIdentity.IsValidIban(invoice.Payment.DebitedAccount))
+                Unsupported("Payment.DebitedAccount", "The supported CII debtor-account mapping requires a valid IBAN; a generic account identifier cannot be relabeled as an IBAN.");
+            for (int index = 0; index < invoice.Payment.Accounts.Count; index++) {
+                InvoiceBankAccount account = invoice.Payment.Accounts[index];
+                bool validIban = InvoiceBankAccountIdentity.IsValidIban(account.Identifier);
+                if (account.IsIban && !validIban)
+                    Unsupported("Payment.Accounts[" + index + "]", "An account marked as an IBAN must have a valid IBAN identifier and checksum.");
+                else if (options.Syntax == InvoiceSyntax.Ubl && !account.IsIban && validIban)
+                    Unsupported("Payment.Accounts[" + index + "]", "UBL cannot preserve an explicit proprietary-account classification for an identifier that is a valid IBAN.");
+            }
+        }
         if (options.Syntax == InvoiceSyntax.Ubl && invoice.TypeCode != "380" && invoice.TypeCode != "381" && invoice.TypeCode != "384" && invoice.TypeCode != "389")
             Unsupported("TypeCode", "UBL authoring supports invoice codes 380, 384, 389 and credit note code 381.");
         if (options.Syntax == InvoiceSyntax.Ubl) {
