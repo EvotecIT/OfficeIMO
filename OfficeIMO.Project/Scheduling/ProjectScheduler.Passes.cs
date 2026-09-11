@@ -47,6 +47,9 @@ internal sealed partial class ProjectScheduler {
             if (node.Allocation?.HasActuals == true) { node.LateStart = node.EarlyStart; node.LateFinish = node.EarlyFinish; node.LateAnchor = node.EarlyAnchor; continue; }
             DateTime finish = Snap(node, horizon, false);
             if (task.Deadline.HasValue) finish = Min(finish, task.Deadline.Value);
+            // Percentage lags need assignment-derived effort duration before predecessor inversion.
+            if (node.Allocation != null && node.Out.Any(link => link.LagPercent.HasValue))
+                node.Minutes = node.Allocation.Build(finish, false).Duration;
             foreach (var link in node.Out) {
                 var successor = _nodes[link.Successor];
                 DateTime bound = Lag(link, ToFinish(link) ? successor.LateFinish : successor.LateStart, true);
@@ -65,7 +68,7 @@ internal sealed partial class ProjectScheduler {
             node.LateAnchor = node.LateStart;
             if (node.Allocation != null) {
                 var allocation = node.Allocation.Build(node.LateFinish, false);
-                node.LateStart = allocation.Start; node.LateFinish = allocation.Finish;
+                node.LateStart = allocation.Start; node.LateFinish = allocation.Finish; node.Minutes = allocation.Duration;
                 node.LateAnchor = allocation.Start;
             }
             if (task.ConstraintType == ProjectConstraintType.StartNoLaterThan && task.ConstraintDate.HasValue)

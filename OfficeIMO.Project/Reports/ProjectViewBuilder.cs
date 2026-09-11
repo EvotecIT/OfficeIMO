@@ -79,10 +79,15 @@ internal static class ProjectViewBuilder {
         foreach (var assignment in assignments) foreach (var interval in assignment.Intervals) {
             token.ThrowIfCancellationRequested();
             if (++visits > maxVisits) throw new InvalidOperationException("Report exceeds MaxIntervalVisits.");
-            if (interval.Finish <= interval.Start) continue;
+            if (interval.Finish < interval.Start) continue;
             // Locate the first intersecting bucket without scanning unrelated dates.
             int low = 0, high = buckets.Length;
             while (low < high) { int middle = low + (high - low) / 2; if (buckets[middle].Finish <= interval.Start) low = middle + 1; else high = middle; }
+            if (interval.Start == interval.Finish) {
+                if (low < buckets.Length && buckets[low].Start <= interval.Start)
+                    result[low] += interval.Work.Minutes / 60m;
+                continue;
+            }
             for (int i = low; i < buckets.Length && buckets[i].Start < interval.Finish; i++) {
                 if (++visits > maxVisits) throw new InvalidOperationException("Report exceeds MaxIntervalVisits.");
                 var from = interval.Start > buckets[i].Start ? interval.Start : buckets[i].Start;

@@ -29,6 +29,7 @@ internal sealed partial class ProjectTaskAllocation {
         var overtime = assignment.TimephasedData.Where(v => v.Type == 3).OrderBy(v => v.Start).ToArray();
         var result = new List<ProjectAssignmentInterval>();
         if (actual.Length == 0) {
+            if (overtime.Length != 0) throw new InvalidDataException("Timephased actual overtime requires explicit actual-work intervals before calculation.");
             if (entry.Actual == 0) return result.ToArray();
             DateTime start = assignment.ActualStart ?? _task.ActualStart ?? throw new InvalidOperationException("Actual work requires an explicit actual start or timephased actual work.");
             decimal regular = entry.Actual - entry.ActualOvertime;

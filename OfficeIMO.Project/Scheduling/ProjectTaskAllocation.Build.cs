@@ -119,7 +119,13 @@ internal sealed partial class ProjectTaskAllocation {
     internal ProjectTaskWorkSchedule Totals(Result result) {
         var work = result.Assignments.Where(a => _document.Resources.GetByUid(a.ResourceUid).Type == ProjectResourceType.Work).ToArray();
         decimal totalWork = work.Sum(a => a.Work.Minutes), actualWork = work.Sum(a => a.ActualWork.Minutes);
-        if (work.Length == 0) { totalWork = _task.Work?.Minutes ?? 0m; actualWork = _task.ActualWork?.Minutes ?? 0m; }
+        if (work.Length == 0) {
+            actualWork = _task.ActualWork?.Minutes ?? (_task.Work?.Minutes - _task.RemainingWork?.Minutes) ?? 0m;
+            totalWork = _task.Work?.Minutes ?? actualWork + (_task.RemainingWork?.Minutes ?? 0m);
+            if (actualWork < 0 || actualWork > totalWork || (_task.RemainingWork.HasValue
+                && Math.Abs(totalWork - actualWork - _task.RemainingWork.Value.Minutes) > .001m))
+                throw new InvalidDataException("Task total work must equal actual plus remaining work.");
+        }
         if ((_task.PercentComplete > 0 && result.ActualDuration == 0 && !_task.ActualFinish.HasValue)
             || (_task.PercentWorkComplete > 0 && actualWork == 0))
             throw new InvalidDataException("Recorded task completion requires explicit actual duration or work before calculation.");

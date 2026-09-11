@@ -82,7 +82,7 @@ internal sealed partial class ProjectTaskAllocation {
         if (resource.Type == ProjectResourceType.Material) {
             decimal quantity = assignment.HasFixedRateUnits == false ? VariableQuantity(assignment, _requestedDuration) : entry.Units;
             entry.Remaining = stored ?? Math.Max(0, quantity * 60m - entry.Actual);
-        } else entry.Remaining = redistributed ?? stored ?? _requestedDuration * entry.Units;
+        } else entry.Remaining = redistributed ?? stored ?? (_requestedDuration * entry.Units - entry.Actual);
         if (entry.Remaining < 0 || entry.RemainingOvertime > entry.Remaining) throw new InvalidDataException("Remaining work and overtime are inconsistent.");
         if (assignment.ActualFinish.HasValue && entry.Remaining > 0) throw new InvalidDataException("A completed assignment cannot have remaining work.");
         if (resource.Type == ProjectResourceType.Work && entry.Units <= 0 && entry.Remaining > entry.RemainingOvertime)
