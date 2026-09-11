@@ -161,6 +161,9 @@ public sealed partial class PdfReadPage {
     // Project these runs individually instead of fitting the whole run as a drawing label.
     private static bool TryAddSpacedText(OfficeDrawing drawing, double pageHeight, PdfTextSpan span, PageContentBudget pageContentBudget,
         System.Threading.CancellationToken cancellationToken) {
+        // Nested forms, patterns and transparency groups share the render invocation token.
+        cancellationToken = pageContentBudget.CancellationToken;
+        if (!CanExpandSpacedText(span, cancellationToken)) return false;
         pageContentBudget.ChargePositionedTextCharacters(span.Text.Length);
         if (!PdfTextSpanGeometry.TryGetPaintedGlyphGeometry(span, out double[] boundaries,
             out IReadOnlyList<int> characterLengths, out IReadOnlyList<double> paintedAdvances,
@@ -186,6 +189,29 @@ public sealed partial class PdfReadPage {
             characterOffset += characterLengths[index];
         }
         return true;
+    }
+
+    private static bool CanExpandSpacedText(PdfTextSpan span, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        // PDF character codes are not shaping clusters. Expand only basic Latin
+        // display runs; retain whole-run shaping for other scripts, marks and emoji.
+        // Supporting those at individual origins requires a shaped-glyph run contract.
+        if (span.HasActualText) return false;
+        for (int index = 0; index < span.Text.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (span.Text[index] < ' ' || span.Text[index] > '~') return false;
+        }
+        IReadOnlyList<int>? lengths = span.GlyphCharacterLengths;
+        IReadOnlyList<double>? widths = span.GlyphPaintedAdvances;
+        if (lengths == null || widths == null || lengths.Count == 0 || lengths.Count != widths.Count) return false;
+        long count = 0;
+        for (int index = 0; index < lengths.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (lengths[index] <= 0 || widths[index] <= 0D || double.IsNaN(widths[index]) || double.IsInfinity(widths[index])) return false;
+            count += lengths[index];
+        }
+        if (count != span.Text.Length) return false;
+        return PdfTextAdvanceProjection.CanResolveBoundaries(span, cancellationToken);
     }
 
 }

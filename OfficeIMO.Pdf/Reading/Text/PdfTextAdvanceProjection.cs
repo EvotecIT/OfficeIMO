@@ -3,7 +3,14 @@ namespace OfficeIMO.Pdf;
 /// <summary>Projects signed text-space character advances onto a span's resolved baseline direction.</summary>
 internal static class PdfTextAdvanceProjection {
     internal static bool TryGetResolvedBoundaries(PdfTextSpan span, out double[] boundaries,
-        bool allowStationaryGlyphOrigins = false) {
+        bool allowStationaryGlyphOrigins = false) =>
+        TryGetResolvedBoundariesCore(span, out boundaries, allowStationaryGlyphOrigins, false, default);
+
+    internal static bool CanResolveBoundaries(PdfTextSpan span, System.Threading.CancellationToken cancellationToken) =>
+        TryGetResolvedBoundariesCore(span, out _, true, true, cancellationToken);
+
+    private static bool TryGetResolvedBoundariesCore(PdfTextSpan span, out double[] boundaries,
+        bool allowStationaryGlyphOrigins, bool validateOnly, System.Threading.CancellationToken cancellationToken) {
         IReadOnlyList<double>? advances = span.CharacterAdvances;
         if (advances is null || advances.Count != span.Text.Length) {
             boundaries = Array.Empty<double>();
@@ -12,6 +19,7 @@ internal static class PdfTextAdvanceProjection {
 
         double signedTotal = 0D;
         for (int i = 0; i < advances.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             double advance = advances[i];
             if (!IsFinite(advance)) {
                 boundaries = Array.Empty<double>();
@@ -37,6 +45,10 @@ internal static class PdfTextAdvanceProjection {
         double directionSign = span.CharacterAdvanceDirection != 0D
             ? span.CharacterAdvanceDirection
             : signedTotal < 0D ? -1D : 1D;
+        if (validateOnly) {
+            boundaries = Array.Empty<double>();
+            return true;
+        }
         boundaries = new double[advances.Count + 1];
         for (int i = 0; i < advances.Count; i++) {
             boundaries[i + 1] = boundaries[i] + advances[i] * directionSign;

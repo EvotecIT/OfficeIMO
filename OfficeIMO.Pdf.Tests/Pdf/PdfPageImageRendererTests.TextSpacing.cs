@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
@@ -9,6 +10,75 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
+    [Fact]
+    public void SpacedTextProjectionObservesInvocationCancellationWhenCallerOmitsToken() {
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        PdfReadPage page = PdfReadDocument.Open(BuildSingleStreamPdf("", "<< >>")).Pages[0];
+        var budget = new PdfReadPage.PageContentBudget(page, cancellation.Token);
+        var span = new PdfTextSpan("AB", "F1", 10, 20, 100, 14, OfficeColor.Black, true, 0D, "Courier", null,
+            characterAdvances: new[] { 7D, 7D }, canScaleAggregateAdvance: false,
+            glyphCharacterLengths: new[] { 1, 1 }, glyphPaintedAdvances: new CancellingGlyphWidths(cancellation));
+        var drawing = new OfficeDrawing(240, 200);
+        var method = typeof(PdfReadPage).GetMethod("AddTextSpan", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+        var exception = Assert.Throws<System.Reflection.TargetInvocationException>(() => method.Invoke(null,
+            new object[] { drawing, 200D, span, budget, default(System.Threading.CancellationToken) }));
+        Assert.IsType<OperationCanceledException>(exception.InnerException);
+        Assert.Empty(drawing.Elements);
+    }
+
+    private sealed class CancellingGlyphWidths : System.Collections.Generic.IReadOnlyList<double> {
+        private readonly System.Threading.CancellationTokenSource _cancellation;
+        internal CancellingGlyphWidths(System.Threading.CancellationTokenSource cancellation) => _cancellation = cancellation;
+        public int Count => 2;
+        public double this[int index] { get { _cancellation.Cancel(); return 6D; } }
+        public System.Collections.Generic.IEnumerator<double> GetEnumerator() {
+            for (int index = 0; index < Count; index++) yield return this[index];
+        }
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
+    [Theory]
+    [InlineData("06280628", "بب")]
+    [InlineData("0915093F", "कि")]
+    [InlineData("00610301", "a\u0301")]
+    public void RenderPage_SpacingRetainsContextualTextRuns(string unicode, string expectedText) {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier /ToUnicode 6 0 R >>\nendobj";
+        string cmap = "2 beginbfchar\n<41> <" + unicode.Substring(0, 4) + ">\n<42> <" + unicode.Substring(4) + ">\nendbfchar";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 20 Tf 2 Tw 20 100 Td (AB) Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font, BuildStreamObject(6, "<<", cmap));
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPositionedTextCharactersPerPage = 1 }
+        });
+        PdfTextSpan span = Assert.Single(document.Pages[0].GetTextSpans());
+        Assert.Equal(expectedText, span.Text);
+        Assert.False(span.CanScaleAggregateAdvance);
+        OfficeDrawing drawing = document.Pages[0].ToDrawing();
+        // No word separator occurs: Tw must not change shaping, nor consume an expansion budget.
+        OfficeDrawingText text = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal(expectedText, text.Text);
+        var expected = new OfficeDrawing(drawing.Width, drawing.Height).AddText(text.Text, text.X, text.Y,
+            text.Width, text.Height, text.Font, text.Color, wrapText: false);
+        expected.Fonts.AddRange(drawing.Fonts);
+        Assert.Equal(OfficeDrawingRasterRenderer.Render(expected).GetPixels(), OfficeDrawingRasterRenderer.Render(drawing).GetPixels());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RenderPage_PositioningBudgetCountsPaintedExpansionOnly(bool actualText) {
+        string font = actualText
+            ? "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj"
+            : "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier /FirstChar 65 /LastChar 66 /Widths [0 0] >>\nendobj";
+        string content = actualText ? "/Span << /ActualText (Long replacement text) >> BDC " : "";
+        content += "BT /F1 10 Tf 1 Tc 20 100 Td (AB) Tj ET";
+        if (actualText) content += " EMC";
+        PdfReadDocument document = PdfReadDocument.Open(BuildSingleStreamPdf(content, "<< /Font << /F1 5 0 R >> >>", font),
+            new PdfLoadOptions { Limits = new PdfReadLimits { MaxPositionedTextCharactersPerPage = actualText ? 2 : 1 } });
+        // ActualText replaces extraction, while the display retains the two original glyphs.
+        // Zero-width glyphs use the aggregate fallback and consume no expansion budget.
+        Assert.Equal(actualText ? 2 : 1, document.Pages[0].ToDrawing().Elements.OfType<OfficeDrawingText>().Count());
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
