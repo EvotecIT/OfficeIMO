@@ -15,6 +15,8 @@ internal sealed partial class ProjectScheduler {
         }
     }
     private void CheckSourceProfile() {
+        if (_document.MpxSource?.Unmodeled.Count > 0)
+            Error("PROJECT_MPX_SCHEDULING_PROFILE", "MPX contains unmodeled fields or records that may affect scheduling. Supply a fully typed scheduling model before calculation.");
         if (_document.AllTasks.Any(task => task.IsRecurring == true))
             _diagnostics.Add(new ProjectDiagnostic("PROJECT_EXPANDED_RECURRENCE", ProjectDiagnosticSeverity.Warning,
                 "Calculation schedules the stored recurring occurrences independently. It does not infer or regenerate a recurrence rule from the series marker.", "/Project"));

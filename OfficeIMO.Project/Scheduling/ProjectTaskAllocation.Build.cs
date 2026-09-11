@@ -132,7 +132,7 @@ internal sealed partial class ProjectTaskAllocation {
             actualCost = _task.ActualCost;
         }
         return new ProjectTaskWorkSchedule(new ProjectWork(totalWork), new ProjectWork(actualWork), new ProjectWork(totalWork - actualWork),
-            result.ActualDuration, result.RemainingDuration, cost, actualCost, _task.PhysicalPercentComplete, _task.Duration?.IsElapsed == true);
+            result.ActualDuration, result.RemainingDuration, cost, actualCost, _task.PhysicalPercentComplete, _task.Duration?.IsElapsed == true, _task.ActualFinish.HasValue);
     }
     private static decimal UnionMinutes(IEnumerable<ProjectAssignmentInterval> intervals) => ProjectCalendarMath.Merge(intervals
         .Where(i => i.Finish > i.Start && i.Work.Minutes > i.OvertimeWork.Minutes).Select(i => new ProjectWorkingRange(i.Start, i.Finish)).ToList())

@@ -57,7 +57,7 @@ public sealed partial class ProjectDocument {
             } catch (Exception exception) when (EarnedValueInputFailure(exception)) { Warn(exception.Message); earned = null; }
             try {
                 if (assignments.Length == 0 || task.IsSummary) {
-                    if (task.ActualFinish <= status || task.Stop <= status || task.Finish <= status) actual = task.ActualCost;
+                    if (ActualCostBoundaryKnown(task.ActualStart, task.Stop, task.ActualFinish, status)) actual = task.ActualCost;
                     else if ((task.ActualCost ?? 0m) == 0) actual = 0m;
                     else Warn("Actual cost at this boundary requires assignment cost curves.");
                 } else {
@@ -66,15 +66,17 @@ public sealed partial class ProjectDocument {
                         cancellationToken.ThrowIfCancellationRequested();
                         var actualCurves = assignment.TimephasedData.Where(v => v.Type == 6).ToArray();
                         if (actualCurves.Length > 0) {
+                            if (assignment.ActualCost.HasValue && Math.Abs(actualCurves.Sum(c => ProjectXmlValue.ParseMoney(c.Value!)) - assignment.ActualCost.Value) > .02m)
+                                throw new InvalidDataException("Actual cost curves differ from the stored assignment actual cost.");
                             var effective = new List<ProjectCalendar> { task.IgnoreResourceCalendar == true ? calendar : assignment.Resource?.Calendar ?? Calendar ?? calendar };
                             if (task.Calendar != null && task.IgnoreResourceCalendar != true) effective.Add(task.Calendar);
                             sum += CostThrough(actualCurves, status, new ProjectCalendarMath(effective, maxCalendarDays, cancellationToken));
-                        } else if (assignment.ActualFinish <= status || assignment.Stop <= status || assignment.Finish <= status || (assignment.ActualCost ?? 0m) == 0m)
+                        } else if (ActualCostBoundaryKnown(assignment.ActualStart, assignment.Stop, assignment.ActualFinish, status) || (assignment.ActualCost ?? 0m) == 0m)
                             sum += assignment.ActualCost ?? 0m;
                         else complete = false;
                     }
                     decimal fixedActual = (task.ActualCost ?? sum) - assignments.Sum(a => a.ActualCost ?? 0m);
-                    if (fixedActual != 0 && !(task.Stop <= status || task.ActualFinish <= status || task.Finish <= status)) complete = false;
+                    if (fixedActual != 0 && !ActualCostBoundaryKnown(task.ActualStart, task.Stop, task.ActualFinish, status)) complete = false;
                     actual = complete ? sum + fixedActual : (decimal?)null;
                     if (!complete) Warn("Actual cost at this boundary cannot be reconstructed without complete actual cost curves.");
                 }
@@ -88,6 +90,11 @@ public sealed partial class ProjectDocument {
     }
     private static bool EarnedValueInputFailure(Exception exception) => exception is InvalidDataException || exception is FormatException ||
         exception is OverflowException || exception is InvalidOperationException || exception is ArgumentException;
+    private bool ActualCostBoundaryKnown(DateTime? start, DateTime? stop, DateTime? finish, DateTime status) {
+        if (start > status || finish > status || stop > status) return false;
+        if (finish <= status) return true;
+        return stop <= status && !(Settings.StatusDate > status);
+    }
     private decimal? CompletionAtStatus(ProjectTask task, ProjectAssignment[] assignments, DateTime status, Action<string> warn) {
         var actualCurves = assignments.SelectMany(a => a.TimephasedData).Where(v => v.Type == 2).ToArray();
         var starts = assignments.Select(a => a.ActualStart).Concat(actualCurves.Select(v => v.Start)).Append(task.ActualStart)

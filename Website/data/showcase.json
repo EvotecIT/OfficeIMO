@@ -5447,7 +5447,7 @@
       "image_height": 1550,
       "image_alt": "Delivery Gantt with progress generated from the linked C# example",
       "title": "Delivery Gantt with progress",
-      "description": "Create a calculated delivery plan with progress bars, a status date, a launch milestone, and a Word report.",
+      "description": "Create a delivery plan in C# with progress bars, a status date, and a launch milestone. Export the calculated Gantt to Word, PDF, SVG, and PNG.",
       "input": "Task durations, dependencies, and actual duration",
       "output": "XML + PNG + SVG + PDF + DOCX",
       "proof": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export.",
@@ -5519,7 +5519,7 @@
           "project-milestone-timeline"
         ]
       },
-      "search_text": "Delivery Gantt with progress Create a calculated delivery plan with progress bars, a status date, a launch milestone, and a Word report. Project .NET C# walkthrough code schedule exports"
+      "search_text": "Delivery Gantt with progress Create a delivery plan in C# with progress bars, a status date, and a launch milestone. Export the calculated Gantt to Word, PDF, SVG, and PNG. Project .NET C# walkthrough code schedule exports"
     },
     {
       "id": "project-dependency-network",
@@ -5541,7 +5541,7 @@
       "image_height": 2705,
       "image_alt": "Parallel dependency network generated from the linked C# example",
       "title": "Parallel dependency network",
-      "description": "Render dependency stages, parallel task lanes, progress, and cross-task references from a calculated release plan.",
+      "description": "Render a dependency network in C# with parallel task lanes, progress, and cross-task references. Export the calculated release plan to PDF, SVG, and PNG.",
       "input": "A fork-and-join dependency graph",
       "output": "XML + PNG + SVG + PDF",
       "proof": "The complete C# example generates these exports. The runner reopens and validates the Project XML and any Office documents, and verifies the PDF page count. The preview is the actual 300-DPI PNG export.",
@@ -5609,7 +5609,7 @@
           "project-milestone-timeline"
         ]
       },
-      "search_text": "Parallel dependency network Render dependency stages, parallel task lanes, progress, and cross-task references from a calculated release plan. Project .NET C# walkthrough code schedule exports"
+      "search_text": "Parallel dependency network Render a dependency network in C# with parallel task lanes, progress, and cross-task references. Export the calculated release plan to PDF, SVG, and PNG. Project .NET C# walkthrough code schedule exports"
     },
     {
       "id": "project-milestone-timeline",

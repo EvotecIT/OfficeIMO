@@ -46,7 +46,7 @@ public sealed partial class ProjectDocument {
                     ProjectXmlValue.Work(new ProjectWork(interval.Work.Minutes - interval.OvertimeWork.Minutes))!));
                 lastFinish = interval.Finish;
             }
-            if (plan.ActualCost != target.ActualCost) update.ReplacedTypes.Add(6);
+            if (plan.ActualCost != target.ActualCost || result.RecalculatedActualCosts && plan.Cost.HasValue) update.ReplacedTypes.Add(6);
             if (update.ReplacedTypes.Contains(6))
                 foreach (var charge in plan.Costs.Where(c => c.IsActual))
                     update.Values.Add((6, charge.Start, charge.Finish, ProjectXmlValue.Money(charge.Cost)!));

@@ -39,6 +39,8 @@ The tested Project build exports a cost-resource assignment of 300 to XML with a
 
 ## Scheduling and assignment analysis
 
+MPX sources with unmodeled fields or records require a fully typed model before scheduling. Opaque assignment delays, predecessor syntax, and other omitted source semantics are not silently ignored by calculation.
+
 Mixed work/material calculations require the declared task duration to match the duration calculated from work assignments, and material intervals must fit the final task dates. Inputs requiring a new material-consumption projection are rejected before application; stored material quantities and curves are not silently rescaled.
 
 Eight synthetic schedules cover delivery dependencies, task/resource calendar interactions, all link kinds, positive/negative/elapsed/percentage lag, all eight constraint types, deadlines, backward scheduling, fixed-work/fixed-units/fixed-duration tasks, baseline-rich input, and dated work weeks. Native and XML inputs are compared with Project 2024's exported start/finish, early/late dates, total/free float, and critical flags. This corpus qualifies those combinations, not arbitrary Microsoft Project schedules.

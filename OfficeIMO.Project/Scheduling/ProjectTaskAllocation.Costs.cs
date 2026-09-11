@@ -45,11 +45,11 @@ internal sealed partial class ProjectTaskAllocation {
         }
         if (perUse != 0) charges.Add(new ProjectCostInterval(start, start, perUse, began));
         decimal total = charges.Sum(c => c.Cost), computedActual = charges.Where(c => c.IsActual).Sum(c => c.Cost);
-        if (!_options.RecalculateActualCosts && assignment.ActualCost.HasValue) {
-            decimal storedActual = assignment.ActualCost.Value;
-            if (storedActual != computedActual) {
+        var stored = assignment.TimephasedData.Where(v => v.Type == 6).ToArray();
+        if (!_options.RecalculateActualCosts && (assignment.ActualCost.HasValue || stored.Length > 0)) {
+            decimal storedActual = assignment.ActualCost ?? stored.Sum(v => ProjectXmlValue.ParseMoney(v.Value!));
+            if (storedActual != computedActual || stored.Length > 0) {
                 charges.RemoveAll(c => c.IsActual);
-                var stored = assignment.TimephasedData.Where(v => v.Type == 6).ToArray();
                 if (stored.Length > 0) {
                     foreach (var value in stored) { RequireInterval(value); charges.Add(new ProjectCostInterval(value.Start!.Value, value.Finish!.Value, ProjectXmlValue.ParseMoney(value.Value!), true)); }
                     if (Math.Abs(charges.Where(c => c.IsActual).Sum(c => c.Cost) - storedActual) > .01m)

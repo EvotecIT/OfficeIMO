@@ -73,9 +73,11 @@ public sealed class ProjectTaskSchedule {
 /// <summary>Immutable schedule proposal bound to one document and mutation revision.</summary>
 public sealed class ProjectScheduleResult {
     internal readonly ProjectDocument Document;
+    internal readonly bool RecalculatedActualCosts;
     internal ProjectScheduleResult(ProjectDocument document, long revision, IEnumerable<ProjectTaskSchedule> tasks, IEnumerable<ProjectDiagnostic> diagnostics,
-        IEnumerable<ProjectAssignmentSchedule>? assignments = null, bool calculatedAssignments = false, IEnumerable<ProjectExternalScheduleSource>? externalSources = null) {
+        IEnumerable<ProjectAssignmentSchedule>? assignments = null, bool calculatedAssignments = false, IEnumerable<ProjectExternalScheduleSource>? externalSources = null, bool recalculatedActualCosts = false) {
         Document = document; ModelRevision = revision;
+        RecalculatedActualCosts = recalculatedActualCosts;
         Tasks = new ReadOnlyCollection<ProjectTaskSchedule>(tasks.ToArray());
         Report = new ProjectReport(revision, diagnostics);
         Assignments = new ReadOnlyCollection<ProjectAssignmentSchedule>((assignments ?? Array.Empty<ProjectAssignmentSchedule>()).ToArray());

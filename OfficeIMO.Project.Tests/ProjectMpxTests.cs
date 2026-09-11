@@ -6,6 +6,17 @@ public sealed class ProjectMpxTests {
     private static ProjectDocument Read(string text) => ProjectDocument.Load(new MemoryStream(Encoding.ASCII.GetBytes(text)));
     private static ProjectSaveOptions Options(bool allow = true) => new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4, LossPolicy = allow ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block };
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OpaqueAssignmentDelayBlocksScheduling(bool calculateAssignments) {
+        const string source = "MPX,OfficeIMO fixture,4.0,ANSI\r\n41,40,49,1,42\r\n50,1,1,Engineer,100/h\r\n61,90,98,1,40\r\n70,1,1,Task,1d\r\n75,1,1,8h,,,,,,,,,1d,1\r\n";
+        using var document = Read(source); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = calculateAssignments });
+        Assert.Contains(result.Report.Diagnostics, d => d.Code == "PROJECT_MPX_SCHEDULING_PROFILE" && d.Severity == ProjectDiagnosticSeverity.Error);
+        Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result));
+    }
+
     [Fact]
     public void DeclaredLocaleControlsDatesCurrencyDurationAndQuotedNotes() {
         const string source = "MPX;OfficeIMO fixture;4.0;ANSI\r\n10;EUR;1;2;.;,\r\n11;2;0;1;7,5;37,5\r\n12;1;1;480;/;:;AM;PM\r\n" +

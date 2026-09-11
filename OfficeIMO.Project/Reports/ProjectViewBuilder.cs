@@ -46,6 +46,8 @@ internal static class ProjectViewBuilder {
         if (options.Kind == ProjectViewKind.Table || options.Kind == ProjectViewKind.Network) return Array.Empty<ProjectViewBucket>();
         if (ranges.Length == 0 && (!options.Start.HasValue || !options.Finish.HasValue)) return Array.Empty<ProjectViewBucket>();
         var start = options.Start ?? ranges.Min(t => t.Start).Date;
+        if (!options.Start.HasValue && options.Timescale == ProjectViewTimescale.Week)
+            start = start.AddDays(-((int)start.DayOfWeek + 6) % 7);
         var finish = options.Finish ?? ranges.Max(t => t.Finish);
         // A zero-duration event at an inferred end needs space inside the exclusive range.
         // Leave explicit caller clipping unchanged and retain a visible marker at midnight too.
