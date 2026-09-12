@@ -76,9 +76,9 @@ public sealed class PdfWatermarkWorkflowTests {
             int split = invocation.IndexOf(" " + splitOperator, StringComparison.Ordinal) + 1;
             Assert.True(split > 0, "Fixture must contain the selected resource operator.");
             objects[additionalNumber] = new PdfIndirectObject(additionalNumber, 0, new PdfStream(new PdfDictionary(),
-                System.Text.Encoding.ASCII.GetBytes(invocation[..split])));
+                System.Text.Encoding.ASCII.GetBytes(invocation.Substring(0, split))));
             objects[additionalNumber + 1] = new PdfIndirectObject(additionalNumber + 1, 0, new PdfStream(new PdfDictionary(),
-                System.Text.Encoding.ASCII.GetBytes(invocation[split..])));
+                System.Text.Encoding.ASCII.GetBytes(invocation.Substring(split))));
             contents.Items.Add(new PdfReference(additionalNumber + 1, 0));
             shared = PdfPageExtractor.ExtractPages(objects, read.UncheckedMetadata, read.Pages.Select(item => item.ObjectNumber).ToArray(),
                 catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailer));

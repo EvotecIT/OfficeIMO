@@ -25,6 +25,9 @@ internal sealed partial class PdfWorkspace {
             var pages = candidate.GetPageLayouts(options: null, cancellationToken);
             if (previewPage < 1 || previewPage > pages.Count)
                 throw new ArgumentOutOfRangeException(nameof(previewPage));
+            int[] selected = settings.TargetPages?.Resolve(pages.Count).ToArray() ?? Enumerable.Range(1, pages.Count).ToArray();
+            if (!selected.Contains(previewPage))
+                throw new ArgumentException("The preview page must receive the watermark.", nameof(previewPage));
             var page = pages[previewPage - 1];
             var rendered = candidate.Render.DisplayPage(previewPage, new PdfPageDisplayOptions {
                 Scale = Math.Min(1.5D, 1000D / Math.Max(page.VisualWidth, page.VisualHeight)),
@@ -32,7 +35,6 @@ internal sealed partial class PdfWorkspace {
             }, cancellationToken);
             if (!rendered.Succeeded || rendered.Bytes is null)
                 throw new InvalidOperationException(string.Join(Environment.NewLine, rendered.Diagnostics));
-            int[] selected = settings.TargetPages?.Resolve(pages.Count).ToArray() ?? Enumerable.Range(1, pages.Count).ToArray();
             return new PdfWatermarkPreview(this, revision, candidate.ToBytes(), rendered.Bytes, selected, page.VisualWidth, page.VisualHeight);
         }, cancellationToken).ConfigureAwait(false);
     }

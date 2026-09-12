@@ -9,6 +9,58 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class WatermarkPreviewTests {
     [Fact]
+    public async Task PreviewFollowsTargetRangeAndCannotReviewAnUnchangedPage() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            byte[] source = PdfDocument.Create(document => {
+                document.Page(page => page.Content(content => content.Text("First page")));
+                document.Page(page => page.Content(content => content.Text("Second page")));
+            }).ToBytes();
+            await WithDocument(async workspace => {
+                var settings = new PdfWatermarkOptions { Text = "SECOND PAGE MARK", TargetPages = PdfPageSelector.Parse("2") };
+                await Assert.ThrowsAsync<ArgumentException>(() => workspace.PrepareWatermarkAsync(settings, 1, CancellationToken.None));
+                using var model = new Features.Editor.WatermarkPreviewViewModel(2, 1,
+                    ((App)Application.Current!).Services.Localizer, workspace.PrepareWatermarkAsync,
+                    _ => Task.FromResult<byte[]?>(null));
+                var dialog = new Features.Editor.WatermarkDialog(model) { Width = 1000, Height = 740 };
+                try {
+                    dialog.Show();
+                    await TextEditingReviewTests.WaitUntilAsync(() => model.CanApply);
+                    model.Text = settings.Text;
+                    model.PageRange = "2";
+                    Assert.False(model.CanApply);
+                    await model.PreviewCommand.ExecuteAsync(null);
+                    Assert.True(model.CanApply, model.ErrorMessage);
+                    Assert.Equal(2, model.PreviewPage);
+                    var preview = model.Prepared!;
+                    Assert.Equal(new[] { 2 }, preview.Pages);
+                    Assert.NotEmpty(preview.PageImage);
+                    var candidate = PdfDocument.Load(preview.DocumentBytes);
+                    var displayOptions = new PdfPageDisplayOptions {
+                        Scale = Math.Min(1.5D, 1000D / Math.Max(preview.PageWidth, preview.PageHeight)),
+                        MaximumOutputBytes = 8 * 1024 * 1024
+                    };
+                    Assert.Equal(candidate.Render.DisplayPage(2, displayOptions).Bytes, preview.PageImage);
+                    Assert.NotEqual(candidate.Render.DisplayPage(1, displayOptions).Bytes, preview.PageImage);
+                    Assert.Equal(source, workspace.CopyBytes());
+                    dialog.UpdateLayout();
+                    using var frame = dialog.CaptureRenderedFrame();
+                    Assert.NotNull(frame);
+                    string? output = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
+                    if (!string.IsNullOrWhiteSpace(output)) {
+                        Directory.CreateDirectory(output);
+                        frame.Save(Path.Combine(output, "watermark-target-page.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+                    }
+                    await workspace.ApplyWatermarkAsync(preview, CancellationToken.None);
+                    Assert.Equal(preview.DocumentBytes, workspace.CopyBytes());
+                    Assert.Equal(new[] { 2 }, Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Stamp.ReadWatermarks()).TargetPages!.Resolve(2));
+                } finally { dialog.Close(); }
+            }, source);
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task ReopeningSingleWatermarkRestoresSettingsAndRevisionSupportsUndo() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {

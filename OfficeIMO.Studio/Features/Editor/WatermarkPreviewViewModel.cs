@@ -130,6 +130,11 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
                 Color = PdfColor.FromRgb(color.R, color.G, color.B), BehindContent = BehindContent,
                 TargetPages = string.IsNullOrWhiteSpace(PageRange) ? null : PdfPageSelector.Parse(PageRange)
             };
+            if (options.TargetPages is not null) {
+                var selected = options.TargetPages.Resolve(PageCount);
+                if (!selected.Contains(PreviewPage)) PreviewPage = selected[0];
+            }
+            version = _settingsVersion;
             PdfWatermarkPreview result = await _prepare(options, PreviewPage, cancellation.Token).ConfigureAwait(true);
             if (_disposed || version != _settingsVersion) return;
             using var stream = new MemoryStream(result.PageImage, writable: false);
