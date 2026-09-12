@@ -66,6 +66,8 @@ internal sealed partial class ProjectNativeWriter {
     }
     private void Metadata(string stream, Guid section, (string Name, uint Id)[] fields) {
         var changes = new Dictionary<uint, string?>();
+        if (_new && section == OfficeOlePropertySetWriter.SummaryInformationFormatId)
+            changes[18] = ProjectNativeSource.ProducerMarker + ":" + _document.NativeIdentity.ToString("D");
         foreach (var field in fields) {
             string path = "/Project/" + field.Name; Handle(path);
             if (!_new && !Changed(path)) continue;

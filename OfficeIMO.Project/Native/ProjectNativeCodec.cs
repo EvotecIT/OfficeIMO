@@ -103,4 +103,11 @@ internal static partial class ProjectNativeCodec {
         document.Settings.DefaultFinishTime = defaultFinish.HasValue ? TimeSpan.FromMinutes(defaultFinish.Value.UInt16() / 10d) : null;
         document.Settings.StatusDate = Get(0x0240003e)?.Date();
     }
+
+    private static Guid? EntityGuid(ProjectDocument document, ProjectNativeRecord record, uint id, byte kind) {
+        if (record.Value(id) is not ProjectNativeValue value) return null;
+        var guid = new Guid(value.Copy());
+        return document.NativeSource!.GeneratedIdentitySeed is Guid seed
+            && guid == ProjectNativeWriter.DeriveNativeGuid(seed, record.Uid, kind) ? null : guid;
+    }
 }

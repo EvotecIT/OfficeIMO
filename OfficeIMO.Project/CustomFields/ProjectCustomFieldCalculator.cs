@@ -106,6 +106,7 @@ internal sealed partial class ProjectCustomFieldCalculator {
         "Flag" => text == null ? false : ProjectXmlValue.ParseBool(text),
         "Date" => text == null ? throw new InvalidDataException("The referenced date field has no value.") : ProjectXmlValue.ParseDate(text),
         "Duration" => text == null ? 0m : ProjectXmlValue.ParseWork(text).Minutes,
+        "Cost" => text == null ? 0m : decimal.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture) / 100m,
         _ => text == null ? 0m : decimal.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture)
     });
     private string Format(ProjectCustomFieldIdentity identity, ProjectFormulaValue value) => identity.Kind switch {
@@ -113,6 +114,7 @@ internal sealed partial class ProjectCustomFieldCalculator {
         "Flag" => value.FlagIn(_culture) ? "1" : "0",
         "Date" => ProjectXmlValue.Date(value.Date)!,
         "Duration" => ProjectXmlValue.Work(new ProjectWork(value.NumberIn(_culture)))!,
+        "Cost" => (value.NumberIn(_culture) * 100m).ToString(CultureInfo.InvariantCulture),
         _ => value.NumberIn(_culture).ToString(CultureInfo.InvariantCulture)
     };
 }

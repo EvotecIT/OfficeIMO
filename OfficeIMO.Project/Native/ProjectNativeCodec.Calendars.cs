@@ -11,7 +11,7 @@ internal static partial class ProjectNativeCodec {
             CheckEntityBudget(document, options);
             int parent = record.Integer(0x0d400006) ?? 0;
             var calendar = new ProjectCalendar(document, record.Uid) { Name = record.Text(0x0d400001), IsBaseCalendar = record.Integer(0x0d400007) == -1 };
-            if (record.Value(0x0d40001b) is ProjectNativeValue guid) calendar.Guid = new Guid(guid.Copy());
+            calendar.Guid = EntityGuid(document, record, 0x0d40001b, 5);
             if (document.CalendarIndex.ContainsKey(calendar.Uid)) throw new InvalidDataException("Duplicate native calendar UID.");
             document.CalendarIndex.Add(calendar.Uid, calendar); document.Calendars.Items.Add(calendar); bases.Add(calendar.Uid, parent);
             var pattern = record.Value(0x0d400008);

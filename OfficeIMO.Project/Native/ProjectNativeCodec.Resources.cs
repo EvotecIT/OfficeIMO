@@ -18,7 +18,7 @@ internal static partial class ProjectNativeCodec {
             };
             decimal? units = record.Number(0x0c400004);
             if (units.HasValue) resource.MaxUnits = ProjectUnits.Fraction(units.Value / 10000m);
-            if (record.Value(0x0c4002d8) is ProjectNativeValue guid) resource.Guid = new Guid(guid.Copy());
+            resource.Guid = EntityGuid(document, record, 0x0c4002d8, 2);
             int calendarId = record.Integer(0x0c400038) ?? -1;
             if (document.CalendarIndex.TryGetValue(calendarId, out var calendar)) {
                 resource.Calendar = calendar;
@@ -53,7 +53,7 @@ internal static partial class ProjectNativeCodec {
             };
             decimal? units = record.Number(0x0f400007);
             if (units.HasValue) assignment.Units = ProjectUnits.Fraction(units.Value / 10000m);
-            if (record.Value(0x0f40027c) is ProjectNativeValue guid) assignment.Guid = new Guid(guid.Copy());
+            assignment.Guid = EntityGuid(document, record, 0x0f40027c, 3);
             if (document.AssignmentIndex.ContainsKey(assignment.Uid)) throw new InvalidDataException("Duplicate native assignment UID.");
             document.AssignmentIndex.Add(assignment.Uid, assignment); document.Assignments.Items.Add(assignment);
             if (task != null && resource != null) document.AssignmentPairs.Add(ProjectDocument.PairKey(taskId, resourceId));

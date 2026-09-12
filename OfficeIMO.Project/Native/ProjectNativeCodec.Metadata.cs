@@ -11,7 +11,16 @@ internal static partial class ProjectNativeCodec {
                 string? Text(uint id) => section.Properties.TryGetValue(id, out var value) ? value.AsString() : null;
                 if (section.FormatId == OfficeOlePropertySetWriter.SummaryInformationFormatId) {
                     document.Title = Text(2); document.Subject = Text(3); document.Author = Text(4);
-                    document.NativeSource!.CreatedByOfficeIMO = string.Equals(Text(18), "OfficeIMO.Project", StringComparison.Ordinal);
+                    string? producer = Text(18);
+                    document.NativeSource!.CreatedByOfficeIMO = string.Equals(producer, ProjectNativeSource.ProducerMarker, StringComparison.Ordinal);
+                    string prefix = ProjectNativeSource.ProducerMarker + ":";
+                    if (producer != null && producer.StartsWith(prefix, StringComparison.Ordinal)
+                        && Guid.TryParseExact(producer.Substring(prefix.Length), "D", out var seed)) {
+                        document.NativeSource.CreatedByOfficeIMO = true;
+                        document.NativeSource.GeneratedIdentitySeed = seed;
+                        document.NativeIdentity = seed;
+                        if (document.Guid == seed) document.Guid = null;
+                    }
                 } else if (section.FormatId == OfficeOlePropertySetWriter.DocumentSummaryInformationFormatId) {
                     document.Manager = Text(14); document.Company = Text(15);
                 }

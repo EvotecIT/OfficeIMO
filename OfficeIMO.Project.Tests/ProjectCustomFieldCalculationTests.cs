@@ -57,6 +57,29 @@ public sealed class ProjectCustomFieldCalculationTests {
         Assert.Equal(expected, Assert.Single(result.Values).Value);
     }
     [Theory]
+    [InlineData(true, "188743786", "188743787")]
+    [InlineData(false, "205521019", "205521020")]
+    public void CustomCostFormulasUseCurrencyUnitsAndStoreHundredths(bool taskField, string sourceId, string formulaId) {
+        using var document = ProjectDocument.Create();
+        ProjectEntity entity;
+        if (taskField) {
+            var task = document.Tasks.Add("Task"); task.Cost = 12.34m; entity = task;
+        } else {
+            var resource = document.Resources.AddWork("Resource"); resource.Cost = 12.34m; entity = resource;
+        }
+        var source = document.CustomFields.Add(); source.FieldId = sourceId;
+        var stored = taskField ? ((ProjectTask)entity).CustomFields.Add() : ((ProjectResource)entity).CustomFields.Add();
+        stored.FieldId = sourceId; stored.Value = "1234";
+        var formula = document.CustomFields.Add(); formula.FieldId = formulaId; formula.Formula = "[Cost1] + [Cost]";
+
+        var result = document.CalculateCustomFields(); result.Report.ThrowIfErrors();
+
+        Assert.Equal("2468.00", Assert.Single(result.Values).Value);
+        document.ApplyCustomFields(result);
+        var applied = taskField ? ((ProjectTask)entity).CustomFields : ((ProjectResource)entity).CustomFields;
+        Assert.Equal("2468.00", applied.Single(value => value.FieldId == formulaId).Value);
+    }
+    [Theory]
     [InlineData("Shell(\"anything\")")]
     [InlineData("1 / 0")]
     [InlineData("[Number1] + 1")]

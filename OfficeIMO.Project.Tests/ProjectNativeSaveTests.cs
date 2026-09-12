@@ -135,20 +135,29 @@ public sealed class ProjectNativeSaveTests {
         using var document = ProjectNativeAuthoringTests.Create(); document.Guid = Guid.NewGuid();
         using var first = new MemoryStream(); document.Save(first, Allow());
         using var original = ProjectDocument.Load(new MemoryStream(first.ToArray()));
+        var originalFile = Compound(first.ToArray());
+        var originalProperties = ProjectNativeProperties.Read(originalFile.Streams["   114/Props"], default);
+        var originalTask = Table(first.ToArray(), "Task", 0x14, 0x0b400056).Records.Single(r => r.Uid == 1);
+        var originalResource = Table(first.ToArray(), "Rsc", 0x15, 0x0c40001b).Records.Single(r => r.Uid == 1);
+        var originalCalendarGuid = new Guid(originalProperties[0x024013c2].Copy());
+        var originalTaskGuid = new Guid(originalTask.Value(0x0b400477)!.Value.Copy());
+        var originalResourceGuid = new Guid(originalResource.Value(0x0c4002d8)!.Value.Copy());
+        Assert.Null(original.Calendar!.Guid); Assert.Null(original.Tasks.GetByUid(1).Guid); Assert.Null(original.Resources.GetByUid(1).Guid);
         document.Guid = Guid.NewGuid();
         var child = document.Tasks.GetByUid(1).Children.Add("Later child"); child.Duration = ProjectDuration.WorkingDays(1);
         var assignment = document.Assignments.Add(child, document.Resources.GetByUid(1)); assignment.Units = ProjectUnits.Percent(100);
         using var second = new MemoryStream(); document.Save(second, Allow());
         using var loaded = ProjectDocument.Load(new MemoryStream(second.ToArray()));
         Assert.Equal(document.Guid, loaded.Guid);
-        Assert.Equal(original.Calendar!.Guid, loaded.Calendar!.Guid);
+        Assert.Null(loaded.Calendar!.Guid);
         var file = Compound(second.ToArray()); var properties = ProjectNativeProperties.Read(file.Streams["   114/Props"], default);
-        Assert.Equal(original.Calendar.Guid, new Guid(properties[0x024013c2].Copy()));
+        Assert.Equal(originalCalendarGuid, new Guid(properties[0x024013c2].Copy()));
         var taskRow = Table(second.ToArray(), "Task", 0x14, 0x0b400056).Records.Single(r => r.Uid == child.Uid);
-        Assert.Equal(original.Tasks.GetByUid(1).Guid, new Guid(taskRow.Value(0x0b40047f)!.Value.Copy()));
+        Assert.Equal(originalTaskGuid, new Guid(taskRow.Value(0x0b40047f)!.Value.Copy()));
         var assignmentRow = Table(second.ToArray(), "Assn", 0x17, 0x0f400000).Records.Single(r => r.Uid == assignment.Uid);
-        Assert.Equal(original.Resources.GetByUid(1).Guid, new Guid(assignmentRow.Value(0x0f40027e)!.Value.Copy()));
-        Assert.Equal(loaded.Tasks.GetByUid(child.Uid).Guid, new Guid(assignmentRow.Value(0x0f40027d)!.Value.Copy()));
+        Assert.Equal(originalResourceGuid, new Guid(assignmentRow.Value(0x0f40027e)!.Value.Copy()));
+        Assert.Equal(new Guid(taskRow.Value(0x0b400477)!.Value.Copy()), new Guid(assignmentRow.Value(0x0f40027d)!.Value.Copy()));
+        Assert.Null(loaded.Tasks.GetByUid(child.Uid).Guid);
     }
 
     private static OfficeCompoundFile Compound(byte[] bytes) {

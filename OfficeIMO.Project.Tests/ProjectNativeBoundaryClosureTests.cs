@@ -58,6 +58,37 @@ public sealed class ProjectNativeBoundaryClosureTests {
     [Theory]
     [InlineData(ProjectFileFormat.Mpp12)]
     [InlineData(ProjectFileFormat.Mpp14)]
+    public void GeneratedNativeIdentitiesDoNotMaterializeAbsentPublicGuids(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        var explicitGuid = new Guid("57e42c89-4898-47e8-b184-d9130eb2d3bb");
+        document.Tasks.GetByUid(2).Guid = explicitGuid;
+        Assert.Null(document.Guid);
+        Assert.All(document.AllTasks.Where(task => task.Uid != 2), task => Assert.Null(task.Guid));
+        Assert.All(document.Resources, resource => Assert.Null(resource.Guid));
+        Assert.All(document.Calendars, calendar => Assert.Null(calendar.Guid));
+        Assert.All(document.Assignments, assignment => Assert.Null(assignment.Guid));
+
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+
+        Assert.Null(reopened.Guid);
+        Assert.Equal(explicitGuid, reopened.Tasks.GetByUid(2).Guid);
+        Assert.All(reopened.AllTasks.Where(task => task.Uid != 2), task => Assert.Null(task.Guid));
+        Assert.All(reopened.Resources, resource => Assert.Null(resource.Guid));
+        Assert.All(reopened.Calendars, calendar => Assert.Null(calendar.Guid));
+        Assert.All(reopened.Assignments, assignment => Assert.Null(assignment.Guid));
+
+        var later = reopened.Tasks.GetByUid(1).Children.Add("Later"); later.Duration = ProjectDuration.WorkingDays(1);
+        var laterAssignment = reopened.Assignments.Add(later, reopened.Resources.GetByUid(1)); laterAssignment.Units = ProjectUnits.Percent(100);
+        using var second = new MemoryStream(); reopened.Save(second, Native(format));
+        using var twiceReopened = ProjectDocument.Load(new MemoryStream(second.ToArray()));
+        Assert.Null(twiceReopened.Tasks.GetByUid(later.Uid).Guid);
+        Assert.Null(twiceReopened.Assignments.GetByUid(laterAssignment.Uid).Guid);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
     public void GeneratedNativeProjectSummaryTracksAnExplicitProjectGuid(ProjectFileFormat format) {
         using var document = ProjectNativeAuthoringTests.Create();
         document.Guid = new Guid("429757aa-d385-46b1-9161-8a6046c584a4");

@@ -33,7 +33,7 @@ internal static partial class ProjectNativeCodec {
                 PercentComplete = record.Integer(0x0b400020), PercentWorkComplete = record.Integer(0x0b400021),
                 Priority = table.IsLegacy8 ? ProjectNativeLegacy8Values.Priority(record.Integer(0x0b400019)) : record.Integer(0x0b400019)
             };
-            if (record.Value(0x0b400477) is ProjectNativeValue guid) task.Guid = new Guid(guid.Copy());
+            task.Guid = EntityGuid(document, record, 0x0b400477, 1);
             int calendarId = record.Integer(0x0b400191) ?? -1;
             if (document.CalendarIndex.TryGetValue(calendarId, out var calendar)) task.Calendar = calendar;
             else if (calendarId > 0) task.SourceCalendarUid = calendarId;
@@ -61,8 +61,9 @@ internal static partial class ProjectNativeCodec {
     private static bool IsSyntheticProjectSummary(ProjectDocument document, ProjectNativeRecord record) {
         if (document.NativeSource?.CreatedByOfficeIMO != true || record.Integer(0x0b400017) != 0 || record.Integer(0x0b4000f9) != 0 ||
             record.Boolean(0x0b40005c) != true || record.Text(0x0b40000e) != (document.Name ?? "Project")) return false;
-        if (document.Guid.HasValue && record.Value(0x0b400477) is ProjectNativeValue identity && identity.Length == 16)
-            return new Guid(identity.Copy()) == ProjectNativeWriter.DeriveNativeGuid(document.Guid.Value, 0, ProjectNativeWriter.SyntheticProjectSummaryKind);
+        Guid? projectIdentity = document.Guid ?? document.NativeSource.GeneratedIdentitySeed;
+        if (projectIdentity.HasValue && record.Value(0x0b400477) is ProjectNativeValue identity && identity.Length == 16)
+            return new Guid(identity.Copy()) == ProjectNativeWriter.DeriveNativeGuid(projectIdentity.Value, 0, ProjectNativeWriter.SyntheticProjectSummaryKind);
         // MPP8/9 schemas have no task GUID field. Explicit UID-zero tasks written by
         // this package carry the ordinary task defaults; the native-only row does not.
         return document.NativeInfo!.Profile.Version <= 9 && !record.Integer(0x0b400019).HasValue && !record.Integer(0x0b400080).HasValue;

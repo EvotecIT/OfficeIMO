@@ -43,11 +43,13 @@ public sealed class ProjectNativeStreamInfo {
 }
 
 internal sealed class ProjectNativeSource {
+    internal const string ProducerMarker = "OfficeIMO.Project";
     internal readonly byte[] Bytes;
     internal readonly ProjectNativeInfo Info;
     internal Dictionary<string, object?> Snapshot = new Dictionary<string, object?>();
     internal long ModelRevision;
     internal bool CreatedByOfficeIMO;
+    internal Guid? GeneratedIdentitySeed;
     internal IReadOnlyList<ProjectDiagnostic> UnrepresentedValues = Array.Empty<ProjectDiagnostic>();
     internal ProjectNativeSource(byte[] bytes, ProjectNativeInfo info) { Bytes = bytes; Info = info; }
 }
