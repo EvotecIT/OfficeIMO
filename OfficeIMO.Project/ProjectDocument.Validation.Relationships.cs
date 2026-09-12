@@ -87,6 +87,10 @@ public sealed partial class ProjectDocument {
             } catch (OverflowException) {
                 add("PROJECT_LAG_RANGE", "The dependency lag exceeds the representable range.", location + "/LinkLag");
             }
+            if (link.CrossProject == true && link.Predecessor != null) {
+                add("PROJECT_CROSS_PROJECT_REFERENCE", "A cross-project dependency cannot retain a predecessor from this project.", location);
+                continue;
+            }
             if (link.Predecessor == null) {
                 add("PROJECT_PREDECESSOR_REFERENCE", link.CrossProject == true ? "An external predecessor is preserved but not resolved or calculated." : "The predecessor task is missing.", location,
                     link.CrossProject == true ? ProjectDiagnosticSeverity.Warning : ProjectDiagnosticSeverity.Error);

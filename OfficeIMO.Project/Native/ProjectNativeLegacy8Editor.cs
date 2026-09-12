@@ -80,11 +80,11 @@ internal sealed class ProjectNativeLegacy8Editor : IProjectNativeTableEditor {
     public void Add(int uid) {
         _token.ThrowIfCancellationRequested();
         if (_rows.ContainsKey(uid)) throw new InvalidOperationException("Project 98 UID already exists.");
-        if ((long)(_records.Count + 1) * _width > _budget) throw new InvalidDataException("Project 98 fixed table exceeds its byte budget.");
+        if ((long)(_records.Count + 1) * _width > _budget) throw OfficeOutputLimit.Create("Project 98 fixed table exceeds its byte budget.");
         _rows.Add(uid, _records.Count); _records.Add(new byte[_width]); _dirty = true;
     }
     public void AddReserved(int index) {
-        if ((long)(_records.Count + 1) * _width > _budget) throw new InvalidDataException("Project 98 reserved table exceeds its byte budget.");
+        if ((long)(_records.Count + 1) * _width > _budget) throw OfficeOutputLimit.Create("Project 98 reserved table exceeds its byte budget.");
         var row = new byte[_width]; Put(row, 0, unchecked((int)0xffff0000) + index); Put(row, _flags, 4);
         _records.Add(row); _dirty = true;
     }

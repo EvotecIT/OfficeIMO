@@ -38,7 +38,10 @@ internal sealed class ProjectNativePropertySet {
                 length = checked(length + 16); externalLength = checked(externalLength + entry.Bytes.Length);
             } else length = checked(length + 12 + entry.Bytes.Length + (entry.Bytes.Length & 1));
         }
-        if (length + externalLength + _trailer.Length > maxBytes || length > int.MaxValue || _entries.Count > ushort.MaxValue) throw new InvalidDataException("Native property output exceeds its byte or entry budget.");
+        if (length + externalLength + _trailer.Length > maxBytes)
+            throw OfficeIMO.Core.Internal.OfficeOutputLimit.Create("Native property output exceeds its byte budget.");
+        if (length > int.MaxValue || _entries.Count > ushort.MaxValue)
+            throw new InvalidDataException("Native property output exceeds its supported size or entry count.");
         using var output = new MemoryStream(checked((int)(length + externalLength + _trailer.Length))); using var writer = new BinaryWriter(output);
         writer.Write((int)length - 4); writer.Write((int)length - 4); writer.Write(_flags); writer.Write((ushort)_entries.Count); writer.Write(_entryFlags);
         foreach (var entry in _entries) {

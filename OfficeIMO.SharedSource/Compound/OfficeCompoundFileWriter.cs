@@ -91,7 +91,7 @@ namespace OfficeIMO.Core.Internal {
                 throw new ArgumentException("At least one compound stream is required.", nameof(source));
             }
             OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams, source, removals);
-            if (GetSerializedLength(layout) > maxOutputBytes) throw new InvalidDataException("Compound output exceeds the configured byte limit.");
+            if (GetSerializedLength(layout) > maxOutputBytes) throw OfficeOutputLimit.Create("Compound output exceeds the configured byte limit.");
             cancellationToken.ThrowIfCancellationRequested();
             using (var output = CreateExactOutput(layout)) {
                 Write(

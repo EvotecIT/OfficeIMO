@@ -42,8 +42,8 @@ internal sealed class ProjectNativeTableEditor : IProjectNativeTableEditor {
             _metadata.Add(Slice(first, 16 + index * _metadataWidth, _metadataWidth));
             _secondaryMetadata.Add(Slice(second, 16 + index * _secondaryMetadataWidth, _secondaryMetadataWidth));
         }
-        Append(_fixed, source.Streams[_prefix + "FixedData"]);
-        if (source.Streams.TryGetValue(_prefix + "Fixed2Data", out var secondaryData)) Append(_secondary, secondaryData);
+        AppendSource(_fixed, source.Streams[_prefix + "FixedData"]);
+        if (source.Streams.TryGetValue(_prefix + "Fixed2Data", out var secondaryData)) AppendSource(_secondary, secondaryData);
         foreach (var record in _table.Records) {
             int uid = record.Integer(uidField) ?? throw new InvalidDataException("Native record UID is absent.");
             if (_rows.ContainsKey(uid)) throw new InvalidDataException("Duplicate native record UID.");
@@ -160,7 +160,11 @@ internal sealed class ProjectNativeTableEditor : IProjectNativeTableEditor {
     }
     private void Append(MemoryStream stream, byte[] bytes) {
         _token.ThrowIfCancellationRequested();
-        if (bytes.Length > _budget - stream.Length) throw new InvalidDataException("Native output stream exceeds its byte budget.");
+        if (bytes.Length > _budget - stream.Length)
+            throw OfficeOutputLimit.Create("Native output stream exceeds its byte budget.");
+        stream.Position = stream.Length; stream.Write(bytes, 0, bytes.Length);
+    }
+    private static void AppendSource(MemoryStream stream, byte[] bytes) {
         stream.Position = stream.Length; stream.Write(bytes, 0, bytes.Length);
     }
     private static void SetPresence(byte[] bytes, int position, bool present) {

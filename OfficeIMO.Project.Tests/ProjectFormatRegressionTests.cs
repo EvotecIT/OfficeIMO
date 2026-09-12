@@ -62,6 +62,84 @@ public sealed class ProjectFormatRegressionTests {
     }
 
     [Theory]
+    [InlineData(ProjectFileFormat.Mpp8, false)]
+    [InlineData(ProjectFileFormat.Mpp8, true)]
+    [InlineData(ProjectFileFormat.Mpt8, false)]
+    [InlineData(ProjectFileFormat.Mpt8, true)]
+    [InlineData(ProjectFileFormat.Mpp9, false)]
+    [InlineData(ProjectFileFormat.Mpp9, true)]
+    [InlineData(ProjectFileFormat.Mpt9, false)]
+    [InlineData(ProjectFileFormat.Mpt9, true)]
+    [InlineData(ProjectFileFormat.Mpp12, false)]
+    [InlineData(ProjectFileFormat.Mpp12, true)]
+    [InlineData(ProjectFileFormat.Mpt12, false)]
+    [InlineData(ProjectFileFormat.Mpt12, true)]
+    [InlineData(ProjectFileFormat.Mpp14, false)]
+    [InlineData(ProjectFileFormat.Mpp14, true)]
+    [InlineData(ProjectFileFormat.Mpt14, false)]
+    [InlineData(ProjectFileFormat.Mpt14, true)]
+    public void GeneratedNativeAssessmentHonorsTheExactByteLimit(ProjectFileFormat format, bool editLoadedDocument) {
+        using var authored = ProjectNativeAuthoringTests.Create();
+        ProjectDocument document;
+        if (editLoadedDocument) {
+            using var source = new MemoryStream();
+            authored.Save(source, new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow });
+            document = ProjectDocument.Load(new MemoryStream(source.ToArray()));
+            document.Tasks.GetByUid(2).Name = "Edited generated native document";
+        } else document = authored;
+        using (document == authored ? null : document) {
+            var generatedOptions = new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow };
+            byte[] generated = ProjectNativeWriter.Plan(document, generatedOptions, true, default).Bytes!;
+            var exact = new ProjectSaveOptions { Format = format, MaxOutputBytes = generated.Length, LossPolicy = OfficeConversionLossPolicy.Allow };
+            document.AssessSave(exact).ThrowIfErrors();
+            var tooSmall = new ProjectSaveOptions { Format = format, MaxOutputBytes = generated.Length - 1, LossPolicy = OfficeConversionLossPolicy.Allow };
+            var assessment = document.AssessSave(tooSmall);
+            Assert.Contains(assessment.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_OUTPUT_LIMIT" && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
+            using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, true);
+            Assert.Throws<InvalidDataException>(() => document.Save(destination, tooSmall));
+            Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
+        }
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpt8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpt9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpt12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    [InlineData(ProjectFileFormat.Mpt14)]
+    public void GeneratedNativeAssessmentReportsIntermediateOutputLimits(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        var options = new ProjectSaveOptions { Format = format, MaxOutputBytes = 1, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var assessment = document.AssessSave(options);
+        Assert.Contains(assessment.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_OUTPUT_LIMIT" && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
+        using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, true);
+        Assert.Throws<InvalidDataException>(() => document.Save(destination, options));
+        Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
+    }
+
+    [Fact]
+    public void EditedNativeAssessmentUsesTheFinalOutputSizeAfterShrinkingSourceStreams() {
+        using var authored = ProjectNativeAuthoringTests.Create();
+        authored.Tasks.GetByUid(2).Name = new string('X', 240);
+        using var source = new MemoryStream();
+        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, LossPolicy = OfficeConversionLossPolicy.Allow };
+        authored.Save(source, options);
+        byte[] original = source.ToArray();
+        using var document = ProjectDocument.Load(new MemoryStream(original));
+        document.Tasks.GetByUid(2).Name = "Short name";
+        byte[] generated = ProjectNativeWriter.Plan(document, options, true, default).Bytes!;
+        Assert.True(generated.Length < original.Length);
+        var bounded = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, MaxOutputBytes = generated.Length, LossPolicy = OfficeConversionLossPolicy.Allow };
+        document.AssessSave(bounded).ThrowIfErrors();
+        using var output = new MemoryStream();
+        document.Save(output, bounded);
+        Assert.Equal(generated, output.ToArray());
+    }
+
+    [Theory]
     [InlineData(ProjectFileFormat.Xml)]
     [InlineData(ProjectFileFormat.Mpx4)]
     [InlineData(ProjectFileFormat.Mpp8)]

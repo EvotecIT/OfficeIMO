@@ -56,7 +56,9 @@ internal sealed partial class ProjectNativeWriter {
             _file = ProjectNativeCreation.Empty(stagingStart, options.MaxOutputBytes, token, _profile);
         }
         else {
-            var limits = new OfficeCompoundReadOptions(int.MaxValue, int.MaxValue, options.MaxOutputBytes, options.MaxOutputBytes);
+            long maximumStreamBytes = Math.Max(1L, document.NativeInfo!.Streams.Select(stream => (long)stream.Length).DefaultIfEmpty().Max());
+            long totalStreamBytes = Math.Max(1L, document.NativeInfo.Streams.Sum(stream => (long)stream.Length));
+            var limits = new OfficeCompoundReadOptions(int.MaxValue, int.MaxValue, maximumStreamBytes, totalStreamBytes);
             if (!OfficeCompoundFileReader.TryRead(document.NativeSource!.Bytes, limits, token, out var file, out var error) || file == null)
                 throw new InvalidDataException("Native source could not be staged: " + error);
             _file = file;
@@ -65,16 +67,31 @@ internal sealed partial class ProjectNativeWriter {
     }
 
     internal static (ProjectReport Report, byte[]? Bytes) Plan(ProjectDocument document, ProjectSaveOptions options, bool serialize, CancellationToken token) {
-        var writer = new ProjectNativeWriter(document, options, token);
+        ProjectNativeWriter writer;
+        try { writer = new ProjectNativeWriter(document, options, token); }
+        catch (InvalidDataException exception) when (OfficeOutputLimit.Is(exception)) { return (OutputLimitReport(document), null); }
         try { writer.Build(); }
+        catch (InvalidDataException exception) when (OfficeOutputLimit.Is(exception)) { writer.AddOutputLimitDiagnostic(); }
         catch (Exception ex) when (ex is ArgumentException || ex is OverflowException || ex is NotSupportedException) {
             writer.AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_VALUE_UNREPRESENTABLE", ProjectDiagnosticSeverity.Error, ex.Message, "/"));
         }
         var report = new ProjectReport(document.Revision, writer._diagnostics);
-        if (!serialize || report.HasErrors || (report.HasLoss && options.LossPolicy == OfficeConversionLossPolicy.Block)) return (report, null);
-        byte[] bytes = OfficeCompoundFileWriter.Rewrite(writer._file, writer._replacements, maxOutputBytes: options.MaxOutputBytes, cancellationToken: token);
-        return (report, bytes);
+        if (report.HasErrors) return (report, null);
+        byte[] bytes;
+        try { bytes = OfficeCompoundFileWriter.Rewrite(writer._file, writer._replacements, maxOutputBytes: options.MaxOutputBytes, cancellationToken: token); }
+        catch (InvalidDataException exception) when (OfficeOutputLimit.Is(exception)) {
+            writer.AddOutputLimitDiagnostic();
+            return (new ProjectReport(document.Revision, writer._diagnostics), null);
+        }
+        return !serialize || report.HasLoss && options.LossPolicy == OfficeConversionLossPolicy.Block ? (report, null) : (report, bytes);
     }
+
+    private static ProjectReport OutputLimitReport(ProjectDocument document) => new ProjectReport(document.Revision, new[] {
+        new ProjectDiagnostic("PROJECT_OUTPUT_LIMIT", ProjectDiagnosticSeverity.Error, "Native output exceeds MaxOutputBytes.", "/")
+    });
+
+    private void AddOutputLimitDiagnostic() => AddDiagnostic(new ProjectDiagnostic("PROJECT_OUTPUT_LIMIT", ProjectDiagnosticSeverity.Error,
+        "Native output exceeds MaxOutputBytes.", "/"));
 
     private void Build() {
         ValidateIdentities();
@@ -185,7 +202,8 @@ internal sealed partial class ProjectNativeWriter {
     }
     private byte[] Text(string value) {
         if (value.IndexOf('\0') >= 0) throw new ArgumentException("Native strings cannot contain embedded NUL characters.");
-        if (((long)value.Length + 1) * 2 > _options.MaxOutputBytes) throw new ArgumentException("Native text exceeds the output byte budget.");
+        if (((long)value.Length + 1) * 2 > _options.MaxOutputBytes)
+            throw OfficeOutputLimit.Create("Native text exceeds the output byte budget.");
         return new UnicodeEncoding(false, false, true).GetBytes(value + "\0");
     }
     private static int Exact(decimal value) { if (decimal.Truncate(value) != value) throw new ArgumentException("Native integer precision would truncate this value."); return checked((int)value); }

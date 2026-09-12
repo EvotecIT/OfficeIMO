@@ -25,8 +25,9 @@ internal sealed partial class ProjectNativeWriter {
             if (count > ushort.MaxValue) throw new NotSupportedException("MPP9 calendar override expansion exceeds 65535 dates.");
             for (int i = 0; i < count; i++) {
                 _token.ThrowIfCancellationRequested(); dates.Add(from.Value.Date.AddDays(i));
-                if (dates.Count > ushort.MaxValue || 424L + dates.Count * 64L > _options.MaxOutputBytes)
-                    throw new NotSupportedException("MPP9 calendar override expansion exceeds its record or byte budget.");
+                if (dates.Count > ushort.MaxValue) throw new NotSupportedException("MPP9 calendar override expansion exceeds its record budget.");
+                if (424L + dates.Count * 64L > _options.MaxOutputBytes)
+                    throw OfficeIMO.Core.Internal.OfficeOutputLimit.Create("MPP9 calendar override expansion exceeds its byte budget.");
             }
         }
         foreach (var exception in calendar.Exceptions) AddRange(exception.FromDate, exception.ToDate);

@@ -117,6 +117,19 @@ public sealed class ProjectSchedulingTests {
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "PROJECT_DEADLINE_MISSED");
     }
     [Fact]
+    public void LocalDependencyCannotBeMarkedAsCrossProject() {
+        using var document = ProjectDocument.Create();
+        var predecessor = document.Tasks.Add("Predecessor");
+        var successor = document.Tasks.Add("Successor");
+        var link = document.Dependencies.Add(predecessor, successor);
+        link.CrossProject = true;
+        var report = document.Validate();
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_CROSS_PROJECT_REFERENCE" && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
+        using var output = new MemoryStream();
+        Assert.Throws<InvalidDataException>(() => document.Save(output));
+        Assert.Empty(output.ToArray());
+    }
+    [Fact]
     public void CyclesAndConflictingManualDatesBlockApplication() {
         using var document = Standard();
         var a = document.Tasks.Add("A"); a.Duration = ProjectDuration.WorkingDays(2);
