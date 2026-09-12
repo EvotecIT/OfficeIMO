@@ -25,11 +25,24 @@ public sealed partial class HtmlConversionDocument {
         if (ReferenceEquals(resolved.ParserProvider, Providers.AngleSharpHtmlParser.Instance)) {
             document = HtmlDocumentParser.ParseDocument(html, cancellationToken);
         } else {
-            sourceSnapshot = resolved.ParserProvider.Parse(html, new Dom.HtmlParseOptions {
-                MaxInputCharacters = resolved.Limits.MaxInputCharacters,
-                MaxNodes = resolved.Limits.MaxHtmlNodes,
-                MaxDepth = resolved.Limits.MaxHtmlDepth
-            }, cancellationToken) ?? throw new InvalidOperationException("The HTML parser provider returned no document.");
+            try {
+                sourceSnapshot = resolved.ParserProvider.Parse(html, new Dom.HtmlParseOptions {
+                    MaxInputCharacters = resolved.Limits.MaxInputCharacters,
+                    MaxNodes = resolved.Limits.MaxHtmlNodes,
+                    MaxDepth = resolved.Limits.MaxHtmlDepth
+                }, cancellationToken) ?? throw new InvalidOperationException("The HTML parser provider returned no document.");
+            } catch (Dom.HtmlParseLimitException exception) when (
+                exception.LimitName == nameof(Dom.HtmlParseOptions.MaxInputCharacters)
+                || exception.LimitName == nameof(Dom.HtmlParseOptions.MaxNodes)
+                || exception.LimitName == nameof(Dom.HtmlParseOptions.MaxDepth)) {
+                string source = exception.LimitName == nameof(Dom.HtmlParseOptions.MaxNodes) ? nameof(HtmlConversionLimits.MaxHtmlNodes)
+                    : exception.LimitName == nameof(Dom.HtmlParseOptions.MaxDepth) ? nameof(HtmlConversionLimits.MaxHtmlDepth)
+                    : nameof(HtmlConversionLimits.MaxInputCharacters);
+                string code = exception.LimitName == nameof(Dom.HtmlParseOptions.MaxNodes) ? HtmlRenderDiagnosticCodes.NodeLimitExceeded
+                    : exception.LimitName == nameof(Dom.HtmlParseOptions.MaxDepth) ? HtmlConversionDiagnosticCodes.HtmlDepthLimitExceeded
+                    : HtmlRenderDiagnosticCodes.InputCharacterLimitExceeded;
+                throw new HtmlDomLimitException(code, "The HTML parser exceeded a shared conversion limit.", source, exception.Actual, exception.Maximum, exception);
+            }
             sourceSnapshot = CaptureOwnedTree(sourceSnapshot, resolved.Limits, cancellationToken);
             document = NativeDomBridge.GetNativeDocument(sourceSnapshot, cancellationToken);
         }
