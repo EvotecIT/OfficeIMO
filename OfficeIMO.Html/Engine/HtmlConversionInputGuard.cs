@@ -17,54 +17,53 @@ internal static class HtmlConversionInputGuard {
             limits.MaxInputCharacters.Value);
     }
 
-    internal static void ValidateDocument(IDocument document, HtmlConversionLimits limits) {
+    internal static void ValidateDocument(IDocument document, HtmlConversionLimits limits, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         HtmlDomLimitTracker? tracker = HtmlDomLimitTracker.Create(limits.MaxHtmlNodes, limits.MaxHtmlDepth);
         var cssBudget = new HtmlCssByteBudget(limits);
 
-        var pending = new Stack<(INode Node, int Depth, int SrcDocDepth)>();
-        for (int index = document.ChildNodes.Length - 1; index >= 0; index--) {
-            pending.Push((document.ChildNodes[index], 1, 0));
-        }
-
-        while (pending.Count > 0) {
-            (INode node, int depth, int srcDocDepth) = pending.Pop();
-            if (node is IElement element) {
-                tracker?.RecordElementStart(depth);
-                ValidateSemanticAttributes(element, limits.MaxSemanticMetadataCharacters);
-                if (string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase)) {
-                    cssBudget.ReserveOrThrow(element.TextContent ?? string.Empty);
+        // Retain one enumerator per ancestor, rather than buffering every sibling before checking its budget.
+        var pending = new Stack<(IEnumerator<INode> Nodes, int ParentDepth, int SrcDocDepth)>();
+        pending.Push((document.ChildNodes.GetEnumerator(), 0, 0));
+        try {
+            while (pending.Count > 0) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var level = pending.Peek();
+                if (!level.Nodes.MoveNext()) { level.Nodes.Dispose(); pending.Pop(); continue; }
+                INode node = level.Nodes.Current;
+                int depth = level.ParentDepth + (node is IElement ? 1 : 0);
+                if (node is IElement element) {
+                    tracker?.RecordElementStart(depth);
+                    ValidateSemanticAttributes(element, limits.MaxSemanticMetadataCharacters, cancellationToken);
+                    if (string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase)) {
+                        cssBudget.ReserveOrThrow(element.TextContent ?? string.Empty);
+                    }
+                    if (level.SrcDocDepth < MaxSrcDocDepth) {
+                        string? source = element.GetAttribute("srcdoc");
+                        if (!string.IsNullOrWhiteSpace(source)) {
+                            ValidateSource(source!, limits);
+                            IHtmlDocument nested = HtmlDocumentParser.ParseDocument(source!, cancellationToken);
+                            pending.Push((nested.ChildNodes.GetEnumerator(), depth, level.SrcDocDepth + 1));
+                        }
+                    }
+                    if (element is IHtmlTemplateElement template) {
+                        pending.Push((((IEnumerable<INode>)new[] { template.Content }).GetEnumerator(), depth, level.SrcDocDepth));
+                    }
+                } else {
+                    tracker?.RecordNode();
                 }
-                if (srcDocDepth < MaxSrcDocDepth) {
-                    PushSrcDoc(element, depth, srcDocDepth, limits, pending);
-                }
-            } else {
-                tracker?.RecordNode();
+                pending.Push((node.ChildNodes.GetEnumerator(), depth, level.SrcDocDepth));
             }
-            for (int index = node.ChildNodes.Length - 1; index >= 0; index--) {
-                pending.Push((node.ChildNodes[index], depth + 1, srcDocDepth));
-            }
+        } finally {
+            while (pending.Count != 0) pending.Pop().Nodes.Dispose();
         }
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
-    private static void PushSrcDoc(
-        IElement element,
-        int parentDepth,
-        int srcDocDepth,
-        HtmlConversionLimits limits,
-        Stack<(INode Node, int Depth, int SrcDocDepth)> pending) {
-        string? source = element.GetAttribute("srcdoc");
-        if (string.IsNullOrWhiteSpace(source)) return;
-
-        ValidateSource(source!, limits);
-        IHtmlDocument nested = HtmlDocumentParser.ParseDocument(source!);
-        for (int index = nested.ChildNodes.Length - 1; index >= 0; index--) {
-            pending.Push((nested.ChildNodes[index], parentDepth + 1, srcDocDepth + 1));
-        }
-    }
-
-    private static void ValidateSemanticAttributes(IElement element, int? maximumCharacters) {
+    private static void ValidateSemanticAttributes(IElement element, int? maximumCharacters, CancellationToken cancellationToken) {
         if (!maximumCharacters.HasValue) return;
         foreach (IAttr attribute in element.Attributes) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!attribute.Name.StartsWith("data-officeimo-", StringComparison.OrdinalIgnoreCase)
                 || attribute.Value.Length <= maximumCharacters.Value) {
                 continue;

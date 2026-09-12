@@ -32,6 +32,8 @@ public sealed class HtmlConversionLimits {
     public static HtmlConversionLimits CreateTrustedProfile() => new HtmlConversionLimits();
 
     /// <summary>Maximum UTF-16 source characters, or <c>null</c> for no source-length limit.</summary>
+    /// <remarks>Owned conversion input also checks aggregate attached node names and values before capture,
+    /// then bounds canonical HTML as it is serialized. Namespace URIs are not counted as node data.</remarks>
     public int? MaxInputCharacters { get; set; }
 
     /// <summary>Maximum DOM nodes, or <c>null</c> for no node limit.</summary>

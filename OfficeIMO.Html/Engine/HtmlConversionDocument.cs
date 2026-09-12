@@ -31,7 +31,11 @@ public sealed partial class HtmlConversionDocument {
         Dom.HtmlDocument? sourceSnapshot = null) {
         SourceHtml = sourceHtml ?? throw new ArgumentNullException(nameof(sourceHtml));
         _sourceDocument = sourceDocument ?? throw new ArgumentNullException(nameof(sourceDocument));
-        _document = new Lazy<Dom.HtmlDocument>(() => sourceSnapshot ?? AnalyzeSource(() => NativeDomBridge.Import(_sourceDocument).Freeze()), LazyThreadSafetyMode.ExecutionAndPublication);
+        _document = new Lazy<Dom.HtmlDocument>(() => sourceSnapshot ?? AnalyzeSource(() => NativeDomBridge.Import(_sourceDocument, new Dom.HtmlParseOptions {
+            MaxInputCharacters = options.Limits.MaxInputCharacters,
+            MaxNodes = options.Limits.MaxHtmlNodes,
+            MaxDepth = options.Limits.MaxHtmlDepth
+        }).Freeze()), LazyThreadSafetyMode.ExecutionAndPublication);
         HasExplicitDocumentEnvelope = sourceDocument.Doctype != null ||
             sourceSnapshot?.DocumentElement?.SourceIndex >= 0 || sourceSnapshot?.Head?.SourceIndex >= 0 || sourceSnapshot?.Body?.SourceIndex >= 0 ||
             sourceDocument.DocumentElement?.SourceReference?.Position.Index >= 0 ||

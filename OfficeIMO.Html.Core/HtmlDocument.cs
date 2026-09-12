@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace OfficeIMO.Html.Dom;
 
@@ -77,6 +78,44 @@ public sealed class HtmlDocument : HtmlNode {
     }
     /// <summary>Finds a node by its document-local identity, including detached nodes.</summary>
     public HtmlNode? GetNode(int nodeId) => _nodes.TryGetValue(nodeId, out HtmlNode? node) ? node : null;
+    internal int RegisteredNodeCount => _nodes.Count;
+
+    // Walk one sibling at a time so callers can stop on a budget without buffering a wide tree.
+    internal IEnumerable<(HtmlNode Node, int Depth)> AttachedNodes() {
+        yield return (this, 0);
+        var pending = new Stack<(IEnumerator<HtmlNode> Nodes, int Depth)>();
+        pending.Push((ChildNodes.GetEnumerator(), 0));
+        try {
+            while (pending.Count != 0) {
+                var level = pending.Peek();
+                if (!level.Nodes.MoveNext()) { level.Nodes.Dispose(); pending.Pop(); continue; }
+                HtmlNode node = level.Nodes.Current;
+                int depth = level.Depth + (node is HtmlElement ? 1 : 0);
+                yield return (node, depth);
+                if (node is HtmlElement element && element.TemplateContent != null)
+                    pending.Push((((IEnumerable<HtmlNode>)new[] { element.TemplateContent }).GetEnumerator(), depth));
+                pending.Push((node.ChildNodes.GetEnumerator(), depth));
+            }
+        } finally { while (pending.Count != 0) pending.Pop().Nodes.Dispose(); }
+    }
+
+    internal HtmlDocument CloneAttached(CancellationToken cancellationToken = default) {
+        var clone = new HtmlDocument(Services, ProviderId, Mode);
+        foreach (var entry in AttachedNodes()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            HtmlNode source = entry.Node;
+            if (ReferenceEquals(source, this)) continue;
+            HtmlNode copy = CloneNode(source, clone, cancellationToken);
+            if (source.TemplateHost != null) {
+                var host = (HtmlElement)clone._nodes[source.TemplateHost.NodeId];
+                host.TemplateContent = copy;
+                copy.TemplateHost = host;
+            } else clone._nodes[source.Parent!.NodeId].AppendChild(copy);
+        }
+        clone._nextNodeId = _nextNodeId;
+        clone.Revision = Revision;
+        return clone;
+    }
     /// <summary>Freezes this instance. Every retained node handle becomes read-only.</summary>
     public HtmlDocument Freeze() { IsReadOnly = true; return this; }
     /// <summary>Creates an independent mutable clone, preserving node IDs and source positions.</summary>
@@ -113,11 +152,14 @@ public sealed class HtmlDocument : HtmlNode {
         EnsureMutable();
         return Register(new HtmlNode(this, NextId(), kind, text ?? throw new ArgumentNullException(nameof(text))));
     }
-    private static HtmlNode CloneNode(HtmlNode source, HtmlDocument clone) {
+    private static HtmlNode CloneNode(HtmlNode source, HtmlDocument clone, CancellationToken cancellationToken = default) {
         HtmlNode copy;
         if (source is HtmlElement element) {
             var newElement = new HtmlElement(clone, source.NodeId, element.LocalName, element.NamespaceUri, element.Prefix);
-            foreach (HtmlAttribute attribute in element.Attributes) newElement.SetAttribute(attribute.Name, attribute.Value, attribute.NamespaceUri);
+            foreach (HtmlAttribute attribute in element.Attributes) {
+                cancellationToken.ThrowIfCancellationRequested();
+                newElement.SetAttribute(attribute.Name, attribute.Value, attribute.NamespaceUri);
+            }
             copy = newElement;
         } else if (source is HtmlDocumentType type) copy = new HtmlDocumentType(clone, source.NodeId, type.Name, type.PublicIdentifier, type.SystemIdentifier);
         else copy = new HtmlNode(clone, source.NodeId, source.Kind, source.Data);

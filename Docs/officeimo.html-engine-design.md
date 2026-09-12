@@ -31,7 +31,7 @@ The design was checked against OfficeIMO source commit `cd669cee1a9924693b26a400
 | Capability | Existing owner and evidence | Design implication |
 | --- | --- | --- |
 | Shared conversion input | [`HtmlConversionDocument`](../OfficeIMO.Html/Engine/HtmlConversionDocument.cs) retains source and lazily builds policy, logical, semantic, style and resource projections | Evolve this facade; preserve explicit trust and conversion profiles |
-| HTML parser | [`HtmlDocumentParser`](../OfficeIMO.Html/Parsing/HtmlDocumentParser.cs) uses AngleSharp; public methods return `IHtmlDocument` | Parser replacement requires owning the document contract and migrating public APIs |
+| HTML parser | [`AngleSharpHtmlParser`](../OfficeIMO.Html.AngleSharp/AngleSharpHtmlParser.cs) implements the owned `IHtmlParserProvider` contract and returns `HtmlDocument`; native parsing remains an internal provider helper | Qualify replacement parsers against the owned document contract and the same recovery fixtures |
 | CSS processing | [`HtmlComputedStyleEngine.Rules`](../OfficeIMO.Html/Styles/HtmlComputedStyleEngine.Rules.cs) combines AngleSharp.Css with raw-rule recovery and protected declaration transformations | Own lossless CSS syntax before adding more parser-specific recovery layers |
 | Layout | [`HtmlRenderLayoutEngine`](../OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.cs) already has block, inline, table, flex, grid, positioning, pagination and related implementations | Audit and adapt existing algorithms behind clearer intermediate representations; avoid a second permanent renderer |
 | Render result | [`HtmlRenderDocument`](../OfficeIMO.Html/Rendering/HtmlRenderDocument.cs) carries shared pages, fonts, text and diagnostics | Extend its scene and semantic mapping rather than add a PDF-specific layout model |
@@ -49,11 +49,11 @@ The target package graph is acyclic:
 
 ```mermaid
 flowchart BT
-    HC[OfficeIMO.Html.Core: proposed syntax and DOM leaf]
+    HC[OfficeIMO.Html.Core: existing DOM leaf, syntax extensions planned]
     OC[OfficeIMO.Core: existing drawing and document primitives]
     H[OfficeIMO.Html: styles, resources, semantics and layout] --> HC
     H --> OC
-    A[OfficeIMO.Html.AngleSharp: proposed transitional provider] --> HC
+    A[OfficeIMO.Html.AngleSharp: existing transitional provider] --> HC
     P[OfficeIMO.Html.Pdf: existing adapter] --> H
     P --> PDF[OfficeIMO.Pdf]
     PDF --> OC

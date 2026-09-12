@@ -33,11 +33,19 @@ internal AngleSharp/CSS implementation.
 | Catch native selector exceptions | Invalid selectors use `ArgumentException` on the owned selector API. |
 
 `HtmlConversionDocument.FromDocument(tree)` replaces native-DOM conversion inputs.
-Mutable inputs are cloned and frozen. Editing preserves conversion trust, resource
+Conversion capture retains the attached tree and template contents; detached nodes
+are omitted even when the input is frozen. Keep the original owned document when
+detached handles are needed. Mutable inputs are copied and frozen. Editing preserves conversion trust, resource
 policies and limits, and recomputes derived results. Node IDs persist within an edit
 lineage; snapshot IDs differ. Detached nodes remain part of their owning document
 and become read-only when it is frozen. `TextContent` can be set on elements, text,
 comments and fragments; write document text through `Body` or another element.
+
+For owned conversion inputs, `MaxInputCharacters` bounds aggregate attached node
+names and values before capture, as well as the resulting canonical HTML source.
+Increase this limit when an authored tree or its escaped serialization exceeds the
+configured budget. Template content participates in node, depth, CSS and semantic
+metadata limits on the default conversion parser as well as the owned provider.
 
 Use `InputEncodingProvider` on conversion options to replace charset lookup for
 source streams. Explicit encodings retain precedence and streams remain open with

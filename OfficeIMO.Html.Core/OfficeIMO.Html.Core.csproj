@@ -19,6 +19,7 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Html.AngleSharp" />
+    <InternalsVisibleTo Include="OfficeIMO.Html" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
