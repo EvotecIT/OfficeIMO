@@ -89,6 +89,7 @@ internal static partial class ProjectNativeCodec {
         document.Settings.StartDate = Get(0x02400002)?.Date(); document.Settings.FinishDate = Get(0x02400003)?.Date();
         var direction = Get(0x02400004);
         if (direction.HasValue) {
+            if (direction.Value.Length != 2) throw new InvalidDataException("Native scheduling direction has an invalid width.");
             ushort value = direction.Value.UInt16();
             if (value > 1) throw new InvalidDataException("Native scheduling direction is invalid.");
             document.Settings.ScheduleFromStart = value == 1;

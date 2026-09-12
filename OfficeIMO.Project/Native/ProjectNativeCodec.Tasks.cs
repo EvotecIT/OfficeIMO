@@ -83,6 +83,7 @@ internal static partial class ProjectNativeCodec {
         foreach (var record in table.Records) {
             token.ThrowIfCancellationRequested();
             record.Uid = record.Integer(0x0e400000) ?? throw new InvalidDataException("Native dependency UID missing.");
+            if (record.Uid < 0) continue;
             int predecessorId = record.Integer(0x0e400002) ?? -1, successorId = record.Integer(0x0e400005) ?? -1;
             if (!document.TaskIndex.TryGetValue(successorId, out var successor)) throw new InvalidDataException("Native dependency successor is absent.");
             document.TaskIndex.TryGetValue(predecessorId, out var predecessor);

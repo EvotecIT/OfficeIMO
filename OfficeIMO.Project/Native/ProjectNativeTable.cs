@@ -135,7 +135,8 @@ internal sealed partial class ProjectNativeTable {
                 if (!legacyFields.TryGetValue(packed >> 24, out fieldId)) throw new NotSupportedException("The legacy variable field has no storage mapping.");
             } else {
                 fieldId = meta.UInt32(i + 8);
-                if (!Fields.ContainsKey(fieldId)) throw new InvalidDataException("The native variable field has no storage mapping.");
+                if (!Fields.TryGetValue(fieldId, out var field) || !IsVariableStorage(field))
+                    throw new InvalidDataException("The native variable field has no qualified variable storage mapping.");
             }
             int length = data.Int32(offset);
             var value = data.Slice(checked(offset + 4), length);
@@ -147,6 +148,8 @@ internal sealed partial class ProjectNativeTable {
             fields.Add(fieldId, value);
         }
     }
+    private static bool IsVariableStorage(ProjectNativeField field) =>
+        field.Source == 0 || field.Source == 4 || field.Source == 6 || field.Source == 23;
     private byte[] Stream(string name) => OptionalStream(name) ?? throw new InvalidDataException("Required native stream is missing: " + _prefix + name);
     private byte[]? OptionalStream(string name) => _streams.TryGetValue(_prefix + name, out var value) ? value : null;
 }

@@ -58,10 +58,16 @@ internal sealed partial class ProjectNativeTable {
             if (layout.TryGetValue(8, out var indexedOffset) && indexedOffset.Int32() >= 0) {
                 int pointer = data.Int32(indexedOffset.Int32());
                 if (pointer < 0) {
+                    // Reserve the first entry before expanding the block so an exhausted
+                    // shared budget fails before any deferred copy or indexed parse work.
+                    budget?.TakeVariableValues(1);
                     var blob = Block(~pointer);
+                    if (blob.Length == 0) throw new InvalidDataException("Empty Project 98 indexed field block.");
                     var entries = new ProjectNativeValue(blob, 0, blob.Length);
+                    bool first = true;
                     for (int at = 0; at < entries.Length;) {
                         token.ThrowIfCancellationRequested();
+                        if (first) first = false; else budget?.TakeVariableValues(1);
                         int length = entries.Int32(at), position = entries.Int32(checked(at + 4));
                         if (position < 0 || position >= Fields.Count || indexed.ContainsKey(position)) throw new InvalidDataException("Invalid Project 98 indexed field.");
                         indexed.Add(position, entries.Slice(checked(at + 8), length));
@@ -83,10 +89,10 @@ internal sealed partial class ProjectNativeTable {
                     int pointer = data.Int32(field.Offset);
                     if (pointer == -1) continue;
                     if (pointer >= 0) throw new NotSupportedException("Project 98 external variable storage is not yet qualified: " + table + "/" + uid + "/" + id.ToString("X8") + ".");
+                    budget?.TakeVariableValues(1);
                     var bytes = Block(~pointer);
                     value = new ProjectNativeValue(bytes, 0, bytes.Length);
                 }
-                budget?.TakeVariableValues(1);
                 if (!Variable.TryGetValue(uid, out var values)) Variable.Add(uid, values = new Dictionary<uint, ProjectNativeValue>());
                 values.Add(id, value);
             }
