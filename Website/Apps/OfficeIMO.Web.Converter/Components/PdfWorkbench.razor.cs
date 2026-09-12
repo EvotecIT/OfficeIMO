@@ -109,7 +109,9 @@ public partial class PdfWorkbench {
                 loaded.Add(new SelectedDocument(file.Name, extension, "PDF", bytes.LongLength, bytes));
             }
             if (!IsCurrent()) return;
-            Session.Open(loaded); _sessionRevision = Session.Revision;
+            if (append && Files.Count > 0) Session.SelectCurrent(loaded);
+            else Session.Open(loaded);
+            _sessionRevision = Session.Revision;
             Files.Clear();
             Files.AddRange(loaded);
             Diagnostics.Add(new ConversionDiagnostic("Ready", $"{Files.Count} PDF file{(Files.Count == 1 ? string.Empty : "s")} loaded in this tab.", "ocx-dot--good"));

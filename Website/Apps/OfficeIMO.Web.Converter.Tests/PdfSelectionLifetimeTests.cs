@@ -31,6 +31,8 @@ public sealed partial class ProvenanceSelectionLifetimeTests {
             await InvokePdf(component, "RemoveFileAsync", 0);
             Assert.Same(carried, Assert.Single(session.Current));
         }
+        session.RestoreOriginals();
+        Assert.Equal(append ? "original.pdf" : "additional.pdf", Assert.Single(session.Current).Name);
     }
 
     [Theory]

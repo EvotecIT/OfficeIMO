@@ -10,7 +10,7 @@
             <fieldset disabled="@_busy" class="provenance-form">
                 <div class="provenance-source @(_file is null ? null : "provenance-source--selected")">
                     <label class="ocx-dropzone">
-                        <InputFile class="ocx-hidden-input" OnChange="OpenAsync" accept="@string.Join(",", OfficeProvenanceBufferWorkflow.SupportedExtensions)" aria-label="Choose an image or document for provenance inspection" />
+                        <InputFile @key="Session.Revision" class="ocx-hidden-input" OnChange="OpenAsync" accept="@string.Join(",", OfficeProvenanceBufferWorkflow.SupportedExtensions)" aria-label="Choose an image or document for provenance inspection" />
                         <svg class="provenance-file-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M19 4H8a2 2 0 0 0-2 2v20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V11Z"/><path d="M19 4v7h7M11 17h10M11 22h7"/></svg>
                         <strong>@(_file?.Name ?? "Drop your file here")</strong>
                         <small>@(_file is null ? "JPEG, PNG, WebP, PDF, DOCX, XLSX or PPTX" : $"{_file.FormatLabel} · ready in this browser")</small>

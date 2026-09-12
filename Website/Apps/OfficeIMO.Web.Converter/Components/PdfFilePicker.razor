@@ -3,6 +3,7 @@
 <div class="pdf-file-picker">
     <label class="ocx-dropzone @(Files.Count == 0 ? null : "has-file")" for="@FileInputId">
         <InputFile id="@FileInputId"
+                   @key="InputRevision"
                    class="ocx-hidden-input"
                    OnChange="OnFilesSelected"
                    accept=".pdf,application/pdf"
@@ -39,6 +40,7 @@
     [Parameter, EditorRequired] public PdfToolDefinition Tool { get; set; } = PdfToolCatalog.Default;
     [Parameter, EditorRequired] public IReadOnlyList<SelectedDocument> Files { get; set; } = [];
     [Parameter] public long MaxFileBytes { get; set; } = BrowserConversionService.MaxPackageBytes;
+    [Parameter] public int InputRevision { get; set; }
     [Parameter] public EventCallback<InputFileChangeEventArgs> OnFilesSelected { get; set; }
     [Parameter] public EventCallback<int> OnRemove { get; set; }
     [Parameter] public EventCallback<PdfFileMoveRequest> OnMove { get; set; }

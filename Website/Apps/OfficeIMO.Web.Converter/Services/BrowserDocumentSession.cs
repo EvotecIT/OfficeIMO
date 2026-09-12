@@ -11,13 +11,17 @@ public sealed class BrowserDocumentSession {
     public event Action? Changed;
 
     public void Open(IReadOnlyList<SelectedDocument> files) {
+        ValidateSelection(files);
+        Originals = files.ToArray(); Current = Originals; LatestResult = null; NotifySelection();
+    }
+    private static void ValidateSelection(IReadOnlyList<SelectedDocument> files) {
         if (files.Count > BrowserPdfToolService.MaxPdfFiles ||
             files.Any(file => file.Bytes.LongLength > BrowserConversionService.MaxPackageBytes) ||
             files.Sum(file => file.Bytes.LongLength) > BrowserPdfToolService.MaxAggregatePdfBytes)
             throw new InvalidDataException("The selected files exceed this browser workspace's limits.");
-        Originals = files.ToArray(); Current = Originals; LatestResult = null; NotifySelection();
     }
     public void SelectCurrent(IReadOnlyList<SelectedDocument> files) {
+        ValidateSelection(files);
         Current = files.ToArray(); LatestResult = null; NotifySelection();
     }
     public void ChangeTool() { LatestResult = null; NotifySelection(); }

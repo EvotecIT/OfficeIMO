@@ -387,6 +387,10 @@ public static class OfficeProvenanceRemover {
 
         OfficeProvenanceBinary.EnsureOutputWithinLimit(output.LongLength, options.EffectiveMaxOutputBytes);
         OfficeProvenanceOptions outputInspectionOptions = CreateOutputInspectionOptions(options);
+        long remainingExpandedBytes = options.Limits.MaxExpandedContainerBytes - before.ExpandedInspectionBytes;
+        if (remainingExpandedBytes < 0)
+            throw OfficeProvenanceLimitException.Create("Provenance cleanup exceeds the configured cumulative expanded-byte limit before output inspection.");
+        outputInspectionOptions.MaxExpandedContainerBytes = remainingExpandedBytes;
         OfficeProvenanceReport after = forcedFormat.HasValue
             ? OfficeProvenanceInspector.InspectStructuredText(output, outputInspectionOptions)
             : OfficeProvenanceInspector.InspectCore(output, fileName, outputInspectionOptions);

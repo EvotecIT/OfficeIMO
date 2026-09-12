@@ -57,6 +57,11 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         long ownerBytes = ExpandedBytes(bytes) + reopenBytes;
         Assert.True(ownerBytes > 0);
         Assert.True(reopenBytes > 0);
+        var ownerLimits = new OfficeProvenanceRemovalOptions { Limits = { MaxExpandedContainerBytes = ownerBytes - 1 } };
+        Assert.Throws<InvalidDataException>(() => WordDocument.RemoveProvenance(bytes, "budget.docx", ownerLimits));
+        Assert.Equal(ownerBytes - 1, ownerLimits.Limits.MaxExpandedContainerBytes);
+        ownerLimits.Limits.MaxExpandedContainerBytes++;
+        Assert.Equal(ownerResult.ToArray(), WordDocument.RemoveProvenance(bytes, "budget.docx", ownerLimits).ToArray());
         var limits = new OfficeProvenanceRemovalOptions { Limits = { MaxExpandedContainerBytes = ownerBytes + reopenBytes - 1 } };
         Assert.Throws<InvalidDataException>(() => OfficeProvenanceBufferWorkflow.Remove(bytes, "budget.docx", limits));
         Assert.Equal(ownerBytes + reopenBytes - 1, limits.Limits.MaxExpandedContainerBytes);

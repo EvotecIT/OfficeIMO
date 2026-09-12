@@ -7,12 +7,11 @@ on:
     branches: [master]
     paths:
       - "Website/**"
-      - "OfficeIMO.Workflows/**"
+      - "OfficeIMO.*/**"
+      - "Directory.Build.*"
+      - "global.json"
       - "Docs/Compatibility/generated/**"
       - "Build/CompatibilityCatalog/**"
-      - "OfficeIMO.Word/OfficeIMO.Word.csproj"
-      - "OfficeIMO.Excel/OfficeIMO.Excel.csproj"
-      - "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj"
       - ".github/workflows/deploy-website.yml"
   pull_request:
     branches: [master]

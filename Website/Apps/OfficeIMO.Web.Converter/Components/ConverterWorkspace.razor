@@ -23,6 +23,7 @@
                 @if (ActiveRoute.InputKind == ConversionInputKind.File) {
                     <label class="ocx-dropzone @(SelectedFile is null ? null : "has-file")" for="@FileInputId" @key="ActiveRoute.Id">
                         <InputFile id="@FileInputId"
+                                   @key="Session.Revision"
                                    class="ocx-hidden-input"
                                    OnChange="HandleFileSelectedAsync"
                                    accept="@ActiveRoute.Accept"
