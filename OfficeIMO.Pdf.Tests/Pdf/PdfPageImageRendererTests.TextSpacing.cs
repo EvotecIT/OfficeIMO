@@ -11,6 +11,17 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RenderPage_InvisibleLongOrdinaryTextDoesNotMeasureOutlines(bool emptyClip) {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        string prefix = emptyClip ? "0 0 1 1 re W n 10 10 1 1 re W n BT /F1 10 Tf 20 100 Td (" : "BT /F1 10 Tf 1000 100 Td (";
+        byte[] pdf = BuildSingleStreamPdf(prefix + new string('A', 1000000) + ") Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font);
+        Assert.Empty(PdfReadDocument.Open(pdf).Pages[0].ToDrawing().Elements);
+    }
+
+    [Theory]
     [InlineData(false, 1)]
     [InlineData(true, 1)]
     [InlineData(false, 0)]

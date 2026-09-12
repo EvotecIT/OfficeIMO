@@ -12,6 +12,13 @@ public sealed partial class PdfReadPage {
         if (string.IsNullOrEmpty(span.Text) || !span.IsVisible) {
             return;
         }
+        if (span.ClipPath.HasValue) {
+            var sourceClip = span.ClipPath.Value;
+            if (sourceClip.Width <= 0D || sourceClip.Height <= 0D) return;
+            if ((sourceClip.IsRectangle || sourceClip.ToOfficeClipPath(sourceClip.X, sourceClip.Y) != null) &&
+                (!TryFitClipToDrawing(sourceClip, drawing.Width, drawing.Height, out var fittedClip) ||
+                 fittedClip.Width <= 0D || fittedClip.Height <= 0D)) return;
+        }
 
         if (!span.CanScaleAggregateAdvance && TryAddSpacedText(drawing, pageHeight, span, pageContentBudget, cancellationToken)) {
             return;
@@ -22,7 +29,12 @@ public sealed partial class PdfReadPage {
         double width = frame.Width;
         double rawX = frame.X;
         double rawY = frame.Y;
-        var paint = measuredPaint ?? GetTextPaintBounds(drawing, span, frame, pageHeight - span.Y, pageContentBudget.CancellationToken);
+        // Glyph paint bounds describe resolved positioned glyphs. Whole-run fallback
+        // uses a different layout contract and retains its existing frame handling.
+        bool positionedGlyph = measuredPaint.HasValue || span.Text.Length == 1 && TryGetSafePositionedAdvance(span, out _);
+        var paint = measuredPaint ?? (positionedGlyph
+            ? GetTextPaintBounds(drawing, span, frame, pageHeight - span.Y, pageContentBudget.CancellationToken)
+            : (Left: rawX, Top: rawY, Right: rawX + width, Bottom: rawY + height));
         if (!HasVisibleOverlap(paint.Left, paint.Top, paint.Right - paint.Left, paint.Bottom - paint.Top, drawing.Width, drawing.Height)) {
             return;
         }
@@ -33,6 +45,13 @@ public sealed partial class PdfReadPage {
         double x = rawX;
         double y = rawY;
         double baselineY = pageHeight - span.Y;
+        if (!positionedGlyph) {
+            x = Clamp(rawX, 0D, drawing.Width);
+            y = Clamp(rawY, 0D, drawing.Height);
+            baselineY = Clamp(baselineY, 0D, drawing.Height);
+            width = Math.Max(1D, Math.Min(rawX + width, drawing.Width) - x);
+            height = Math.Max(1D, Math.Min(rawY + height, drawing.Height) - y);
+        }
         // An unsupported source clip still needs page clipping. Preserve the raw
         // origin and rotation center; clamping either moves visible glyph ink.
         if (span.ClipPath.HasValue && TryAddClippedTextSpan(drawing, span, x, y, width, height, baselineY,
