@@ -12,6 +12,7 @@ public partial class PdfWorkbench {
     [Parameter] public int Revision { get; set; }
     private int _sessionRevision = -1;
     private bool _disposed;
+    private int _outputGeneration;
     [Inject] private HttpClient Http { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] private BrowserPdfToolService PdfTools { get; set; } = null!;
@@ -170,13 +171,18 @@ public partial class PdfWorkbench {
         string sourceTool = ActiveTool.Id;
         Session.ClearResult();
         IsBusy = true;
-        await ResetResultAsync();
-        Diagnostics.Clear();
-        await InvokeAsync(StateHasChanged);
-        await Task.Yield();
+        Task reset = ResetResultAsync();
+        int generation = _outputGeneration;
+        bool IsCurrent() => !_disposed && generation == _outputGeneration && sourceRevision == Session.Revision && sourceTool == ActiveTool.Id;
+        await using var urls = new ConverterObjectUrlBatch(_interop, IsCurrent);
         try {
-            if (_disposed || sourceRevision != Session.Revision || sourceTool != ActiveTool.Id) return;
-            Result = PdfTools.Execute(new PdfToolRequest(
+            await reset;
+            if (!IsCurrent()) return;
+            Diagnostics.Clear();
+            await InvokeAsync(StateHasChanged);
+            await Task.Yield();
+            if (!IsCurrent()) return;
+            var result = PdfTools.Execute(new PdfToolRequest(
                 ActiveTool,
                 Files.ToArray(),
                 PageSelection,
@@ -187,13 +193,19 @@ public partial class PdfWorkbench {
                 OwnerPassword,
                 RedactionText,
                 DestructiveActionConfirmed));
-            ArtifactUrl = await _interop.CreateObjectUrlAsync(Result.Artifact.Bytes, Result.Artifact.ContentType);
-            if (Result.Report is not null) {
-                ReportUrl = await _interop.CreateObjectUrlAsync(Result.Report.Bytes, Result.Report.ContentType);
+            string artifactUrl = await urls.CreateAsync(result.Artifact.Bytes, result.Artifact.ContentType);
+            string? reportUrl = null;
+            if (result.Report is not null) {
+                reportUrl = await urls.CreateAsync(result.Report.Bytes, result.Report.ContentType);
             }
+            urls.Commit();
+            Result = result;
+            ArtifactUrl = artifactUrl;
+            ReportUrl = reportUrl;
             Diagnostics.Add(new ConversionDiagnostic("Operation complete", Result.Summary, "ocx-dot--good"));
             if (!_disposed && sourceTool == ActiveTool.Id) Session.SetResult(Result.Artifact.Bytes, Result.Artifact.FileName, sourceRevision);
         } catch (Exception ex) {
+            if (!IsCurrent()) return;
             Result = null;
             Diagnostics.Add(new ConversionDiagnostic("PDF operation failed", DescribeFailure(ex), "ocx-dot--bad"));
         } finally {
@@ -220,14 +232,16 @@ public partial class PdfWorkbench {
     }
 
     private async Task ResetResultAsync() {
+        _outputGeneration++;
         Session.ClearResult();
-        if (_interop is not null) {
-            await _interop.RevokeObjectUrlAsync(ArtifactUrl);
-            await _interop.RevokeObjectUrlAsync(ReportUrl);
-        }
+        string? artifactUrl = ArtifactUrl, reportUrl = ReportUrl;
         ArtifactUrl = null;
         ReportUrl = null;
         Result = null;
+        if (_interop is not null) {
+            await _interop.RevokeObjectUrlAsync(artifactUrl);
+            await _interop.RevokeObjectUrlAsync(reportUrl);
+        }
     }
 
 

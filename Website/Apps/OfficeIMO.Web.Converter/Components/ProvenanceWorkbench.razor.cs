@@ -71,18 +71,18 @@ public partial class ProvenanceWorkbench {
     private Task InspectAsync() => RunAsync(false);
     private Task RemoveAsync() => RunAsync(true);
     private async Task RunAsync(bool remove) {
-        if (_file is null || _busy) return;
+        if (_file is null || _busy || _interop is null) return;
         var file = _file;
         int generation = ++_generation;
         int sourceRevision = Session.Revision;
         Session.ClearResult();
         _busy = true;
-        var temporaryUrls = new List<string>();
-        bool committed = false;
+        bool IsCurrent() => !_disposed && generation == _generation && sourceRevision == Session.Revision;
+        await using var urls = new ConverterObjectUrlBatch(_interop, IsCurrent);
         try {
             await ClearResultAsync();
             await Task.Yield();
-            if (_disposed || generation != _generation) return;
+            if (!IsCurrent()) return;
             OfficeProvenanceRemovalResult? removal = null;
             OfficeProvenanceReport report;
             byte[]? output = null;
@@ -92,46 +92,41 @@ public partial class ProvenanceWorkbench {
                 removal = OfficeProvenanceBufferWorkflow.Remove(file.Bytes, file.Name, BrowserProvenancePolicy.Removal(_manifests, _references, _declarations));
                 report = removal.After; output = removal.ToArray();
                 outputName = Path.GetFileNameWithoutExtension(file.Name) + "-provenance-cleaned" + file.Extension;
-                outputUrl = await CreateTemporaryUrlAsync(output, ContentType(file.Extension), temporaryUrls);
+                outputUrl = await urls.CreateAsync(output, ContentType(file.Extension));
                 message = removal.WasChanged ? "A separate copy is ready. Review remaining findings before downloading." : "No selected carriers were removed. The copy retains the original data; review the findings and diagnostics.";
             } else {
                 report = OfficeProvenanceBufferWorkflow.Inspect(file.Bytes, file.Name, BrowserProvenancePolicy.Limits());
                 message = report.Evidence.Count == 0 ? "No supported provenance carriers were found. This is not proof of origin." : "Inspection complete. Choose what to remove from a copy.";
             }
-            if (_disposed || generation != _generation) return;
+            if (!IsCurrent()) return;
             byte[] reportBytes = JsonSerializer.SerializeToUtf8Bytes(new {
                 schemaVersion = 1, operation = remove ? "remove" : "inspect", fileName = file.Name,
                 before = removal?.Before ?? report, after = removal?.After, changes = removal?.Changes,
                 structuralOnly = true, externalReferencesFetched = false
             }, new JsonSerializerOptions { WriteIndented = true });
-            string reportUrl = await CreateTemporaryUrlAsync(reportBytes, "application/json", temporaryUrls);
-            if (_disposed || generation != _generation) return;
+            string reportUrl = await urls.CreateAsync(reportBytes, "application/json");
+            if (!IsCurrent()) return;
             if (file.Extension is ".jpg" or ".jpeg" or ".png" or ".webp") {
                 try {
                     var info = OfficeImageReader.Identify(output ?? file.Bytes, file.Name);
                     if (info.Width > 0 && info.Height > 0 && info.Width <= 8192 && info.Height <= 8192 && (long)info.Width * info.Height <= 16_000_000)
-                        previewUrl = await CreateTemporaryUrlAsync(output ?? file.Bytes, ContentType(file.Extension), temporaryUrls);
+                        previewUrl = await urls.CreateAsync(output ?? file.Bytes, ContentType(file.Extension));
                     else message += " Image preview omitted because its dimensions exceed the browser preview budget.";
                 } catch (Exception ex) when (ex is not OutOfMemoryException) {
                     message += " Image preview is unavailable; the inspection and download remain available.";
                 }
             }
-            if (_disposed || generation != _generation) return;
+            if (!IsCurrent()) return;
+            urls.Commit();
             _report = report; _removal = removal; _outputBytes = output;
             _outputName = outputName; _outputUrl = outputUrl; _reportUrl = reportUrl; _previewUrl = previewUrl;
-            _message = message; committed = true;
+            _message = message;
             if (output is not null) Session.SetResult(output, outputName!, sourceRevision);
         } catch (Exception ex) when (ex is not OutOfMemoryException) {
-            if (generation == _generation && !_disposed) { _report = null; _message = "Operation could not complete: " + ex.Message; }
+            if (IsCurrent()) { _report = null; _message = "Operation could not complete: " + ex.Message; }
         } finally {
-            if (!committed && _interop is not null)
-                foreach (var url in temporaryUrls) await _interop.RevokeObjectUrlAsync(url);
             if (generation == _generation) _busy = false;
         }
-    }
-    private async Task<string> CreateTemporaryUrlAsync(byte[] bytes, string contentType, List<string> urls) {
-        string url = await _interop!.CreateObjectUrlAsync(bytes, contentType);
-        urls.Add(url); return url;
     }
     private async Task OptionsChangedAsync() { ++_generation; _report = _removal?.Before ?? _report; Session.ClearResult(); await ClearResultAsync(); _message = "Removal options changed. Create a new copy to apply them."; }
     private async Task ClearResultAsync() {

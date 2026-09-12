@@ -58,6 +58,14 @@ Files with unknown extensions remain signature-driven: recognized image, HTML, a
 
 Provider-backed verification and signal detection are dependency-injected workflow services. The default CLI does not bundle credentials, trust material, vendor APIs, or a `c2patool` executable, so its `assess` command reports structural and text-integrity evidence unless a host composes additional providers.
 
+## Memory-only and browser hosts
+
+`OfficeProvenanceBufferWorkflow` accepts bytes and a file name without reading files, following external references, or invoking providers. Its qualified input list is JPEG (`.jpg`, `.jpeg`), PNG, WebP, PDF, DOCX, XLSX, and PPTX. File names must use one of those extensions, and the selected format owner validates the content. Other families in this matrix use their package APIs or the local workflow runner.
+
+Removal returns a separate result, reopens its bytes through the same owner, and compares the reopened evidence before returning. The caller's input and options remain unchanged. Input, manifest, output, container-entry, carrier, and embedded-asset limits remain effective during this check. The expanded-data budget covers the owner's before/after inspection and the final reopening cumulatively; reopening does not receive a fresh budget. Package signature policy and structural ambiguity rules still apply.
+
+The browser provenance tool processes files locally in the tab. Its host limits are 25 MiB per input and output, 4 MiB per manifest, 64 MiB cumulative expanded data per operation, 128 carriers, 16,384 container entries, and 256 embedded assets. It enables supported embedded-image inspection, requires structurally valid carriers for removal, and blocks package signature invalidation. Users inspect a file, select supported carrier categories, create a cleaned copy, review the resulting evidence, and download it. This does not perform cryptographic verification or remove visible watermarks.
+
 ## Package-owned adapters
 
 | Package | Inspected content | Signature policy during removal |

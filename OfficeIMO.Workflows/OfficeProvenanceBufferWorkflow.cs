@@ -37,7 +37,12 @@ public static class OfficeProvenanceBufferWorkflow {
             _ => RemoveImage(data, fileName, options)
         };
         var outputLimits = OfficeProvenanceRemover.CreateOutputInspectionOptions(options);
+        long remainingBytes = options.Limits.MaxExpandedContainerBytes;
+        OfficeWorkflowRunner.ConsumeExpandedProcessingBytes(ref remainingBytes, result.Before.ExpandedInspectionBytes);
+        OfficeWorkflowRunner.ConsumeExpandedProcessingBytes(ref remainingBytes, result.After.ExpandedInspectionBytes);
+        outputLimits.MaxExpandedContainerBytes = Math.Max(1, remainingBytes);
         var reopened = Inspect(result.ToArray(), fileName, outputLimits);
+        OfficeWorkflowRunner.ConsumeExpandedProcessingBytes(ref remainingBytes, reopened.ExpandedInspectionBytes);
         OfficeWorkflowRunner.EnsureEquivalent(result.After, reopened);
         return result;
     }

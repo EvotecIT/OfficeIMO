@@ -12,6 +12,8 @@ public partial class ConverterWorkspace {
     [Parameter] public int Revision { get; set; }
     private int _sessionRevision = -1;
     private bool _disposed;
+    private int _outputGeneration;
+    private int _supportGeneration;
     internal const long MaxUploadBytes = BrowserConversionService.MaxPackageBytes;
 
     private const string DefaultMarkdown = """
@@ -206,15 +208,20 @@ This **Markdown** becomes a browser preview or an editable Word document.
         string sourceRoute = ActiveRoute.Id;
         Session.ClearResult();
         IsBusy = true;
-        await ResetOutputAsync();
-        Diagnostics.Clear();
-        await InvokeAsync(StateHasChanged);
-        await Task.Yield();
+        Task reset = ResetOutputAsync();
+        int generation = _outputGeneration;
+        bool IsCurrent() => !_disposed && generation == _outputGeneration && sourceRevision == Session.Revision && sourceRoute == ActiveRoute.Id;
+        await using var urls = new ConverterObjectUrlBatch(_interop, IsCurrent);
         var stopwatch = Stopwatch.StartNew();
 
         try {
-            if (_disposed || sourceRevision != Session.Revision || sourceRoute != ActiveRoute.Id) return;
-            Output = ActiveRoute.InputKind == ConversionInputKind.File
+            await reset;
+            if (!IsCurrent()) return;
+            Diagnostics.Clear();
+            await InvokeAsync(StateHasChanged);
+            await Task.Yield();
+            if (!IsCurrent()) return;
+            var output = ActiveRoute.InputKind == ConversionInputKind.File
                 ? ConversionService.ConvertFile(
                     ActiveRoute,
                     SelectedFile!,
@@ -228,26 +235,29 @@ This **Markdown** becomes a browser preview or an editable Word document.
                     SelectedProfile,
                     GenerateDebugOverlay);
             stopwatch.Stop();
+            string outputUrl = await urls.CreateAsync(output.Bytes, output.ContentType);
+            string? reportUrl = null, overlayUrl = null;
+            if (output.CompanionReport is not null) {
+                reportUrl = await urls.CreateAsync(output.CompanionReport.Bytes, output.CompanionReport.ContentType);
+            }
+            if (output.DebugOverlay is not null) {
+                overlayUrl = await urls.CreateAsync(output.DebugOverlay.Bytes, output.DebugOverlay.ContentType);
+            }
+            urls.Commit();
+            Output = output;
             ElapsedMilliseconds = stopwatch.ElapsedMilliseconds;
-            OutputFileName = Output.FileName;
-            OutputUrl = await _interop.CreateObjectUrlAsync(Output.Bytes, Output.ContentType);
-            if (Output.CompanionReport is not null) {
-                OutputReportFileName = Output.CompanionReport.FileName;
-                OutputReportUrl = await _interop.CreateObjectUrlAsync(
-                    Output.CompanionReport.Bytes,
-                    Output.CompanionReport.ContentType);
-            }
-            if (Output.DebugOverlay is not null) {
-                OutputOverlayFileName = Output.DebugOverlay.FileName;
-                OutputOverlayUrl = await _interop.CreateObjectUrlAsync(
-                    Output.DebugOverlay.Bytes,
-                    Output.DebugOverlay.ContentType);
-            }
+            OutputFileName = output.FileName;
+            OutputUrl = outputUrl;
+            OutputReportUrl = reportUrl;
+            OutputOverlayUrl = overlayUrl;
+            OutputReportFileName = output.CompanionReport?.FileName;
+            OutputOverlayFileName = output.DebugOverlay?.FileName;
             string fidelity = Output.FidelityStatus ?? "Complete";
             if (!_disposed && sourceRoute == ActiveRoute.Id) Session.SetResult(Output.Bytes, Output.FileName, sourceRevision);
             string tone = fidelity is "Complete" or "Reconstructed" ? "ocx-dot--good" : "ocx-dot--warn";
             Diagnostics.Add(new($"{fidelity} conversion", $"Created {Output.FileName} locally in {ElapsedLabel}. {Output.ProvenanceSummary}", tone));
         } catch (Exception ex) {
+            if (!IsCurrent()) return;
             stopwatch.Stop();
             ElapsedMilliseconds = stopwatch.ElapsedMilliseconds;
             Output = null;
@@ -329,30 +339,38 @@ This **Markdown** becomes a browser preview or an editable Word document.
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(OutputSupportUrl)) {
-            await _interop.RevokeObjectUrlAsync(OutputSupportUrl);
+        var output = Output;
+        int revision = Session.Revision, generation = _outputGeneration;
+        bool includeContent = IncludeDocumentContentInSupportBundle;
+        Task reset = InvalidateSupportBundleAsync();
+        int supportGeneration = _supportGeneration;
+        bool IsCurrent() => !_disposed && revision == Session.Revision && generation == _outputGeneration &&
+            supportGeneration == _supportGeneration && ReferenceEquals(Output, output);
+        await using var urls = new ConverterObjectUrlBatch(_interop, IsCurrent);
+        try {
+            await reset;
+            if (!IsCurrent()) return;
+            BrowserConversionArtifact supportBundle = ConversionService.CreateSupportBundle(output, includeContent);
+            string url = await urls.CreateAsync(supportBundle.Bytes, supportBundle.ContentType);
+            urls.Commit();
+            OutputSupportFileName = supportBundle.FileName;
+            OutputSupportUrl = url;
+            Diagnostics.Add(new(
+                "Support bundle ready",
+                includeContent
+                    ? "The bundle includes source and PDF bytes because you opted in."
+                    : "The bundle contains fingerprints and diagnostics only; document content is excluded.",
+                "ocx-dot--good"));
+        } catch (OperationCanceledException) when (!IsCurrent()) {
         }
-        BrowserConversionArtifact supportBundle = ConversionService.CreateSupportBundle(
-            Output,
-            IncludeDocumentContentInSupportBundle);
-        OutputSupportFileName = supportBundle.FileName;
-        OutputSupportUrl = await _interop.CreateObjectUrlAsync(
-            supportBundle.Bytes,
-            supportBundle.ContentType);
-        Diagnostics.Add(new(
-            "Support bundle ready",
-            IncludeDocumentContentInSupportBundle
-                ? "The bundle includes source and PDF bytes because you opted in."
-                : "The bundle contains fingerprints and diagnostics only; document content is excluded.",
-            "ocx-dot--good"));
     }
 
     private async Task InvalidateSupportBundleAsync() {
-        if (_interop is not null && !string.IsNullOrWhiteSpace(OutputSupportUrl)) {
-            await _interop.RevokeObjectUrlAsync(OutputSupportUrl);
-        }
+        _supportGeneration++;
+        string? oldUrl = OutputSupportUrl;
         OutputSupportUrl = null;
         OutputSupportFileName = null;
+        if (_interop is not null) await _interop.RevokeObjectUrlAsync(oldUrl);
     }
 
     private async Task HandleOutputSettingsChangedAsync() {
@@ -361,19 +379,9 @@ This **Markdown** becomes a browser preview or an editable Word document.
     }
 
     private async Task ResetOutputAsync() {
+        _outputGeneration++;
         Session.ClearResult();
-        if (_interop is not null && !string.IsNullOrWhiteSpace(OutputUrl)) {
-            await _interop.RevokeObjectUrlAsync(OutputUrl);
-        }
-        if (_interop is not null && !string.IsNullOrWhiteSpace(OutputReportUrl)) {
-            await _interop.RevokeObjectUrlAsync(OutputReportUrl);
-        }
-        if (_interop is not null && !string.IsNullOrWhiteSpace(OutputOverlayUrl)) {
-            await _interop.RevokeObjectUrlAsync(OutputOverlayUrl);
-        }
-        if (_interop is not null && !string.IsNullOrWhiteSpace(OutputSupportUrl)) {
-            await _interop.RevokeObjectUrlAsync(OutputSupportUrl);
-        }
+        string?[] oldUrls = [OutputUrl, OutputReportUrl, OutputOverlayUrl, OutputSupportUrl];
         OutputUrl = null;
         OutputReportUrl = null;
         OutputOverlayUrl = null;
@@ -383,6 +391,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
         OutputSupportFileName = null;
         Output = null;
         ElapsedMilliseconds = 0;
+        if (_interop is not null) foreach (string? url in oldUrls) await _interop.RevokeObjectUrlAsync(url);
     }
 
 

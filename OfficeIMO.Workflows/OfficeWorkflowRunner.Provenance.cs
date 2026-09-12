@@ -919,7 +919,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         return clone;
     }
 
-    private static void ConsumeExpandedProcessingBytes(ref long remainingBytes, long consumedBytes) {
+    internal static void ConsumeExpandedProcessingBytes(ref long remainingBytes, long consumedBytes) {
         if (consumedBytes < 0 || consumedBytes > remainingBytes) {
             throw OfficeProvenanceLimitException.Create(
                 "The provenance workflow exceeds the configured cumulative expanded-data limit.");
