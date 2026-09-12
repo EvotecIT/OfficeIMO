@@ -39,3 +39,25 @@ node and its attributes. Importing a fragment copies its children; appending tha
 fragment splices them into the destination. Neither operation sanitizes content.
 For cancellation with atomic snapshot publication, perform the import in `Edit`;
 a cancelled import into a mutable document can leave partial detached copies.
+
+CSS inspection is available without an HTML parser or rendering dependency:
+
+```csharp
+using OfficeIMO.Html.Css;
+
+string css = "color: red; --layout: {columns: 2; gap: 12px};";
+foreach (HtmlCssToken token in HtmlCssTokenizer.Tokenize(css)) {
+    Console.WriteLine($"{token.Kind} at {token.Offset}: {token.GetText(css)}");
+}
+```
+
+The tokenizer preserves comments and exact UTF-16 source spans, including original
+line endings. `Value` contains decoded identifiers, strings, URLs and dimension
+units; numeric spelling is available through `GetText`. A zero-length
+`EndOfFile` token terminates the result. Comments are source trivia, not whitespace.
+Tokenization does not validate property values, resolve selectors or compute styles.
+
+`HtmlCssTokenizationOptions` defaults to 8,388,608 UTF-16 characters and one million
+tokens, excluding `EndOfFile`. Set either limit to `null` for caller-bounded input.
+An exceeded budget throws `HtmlCssTokenizationLimitException`; cancellation throws
+`OperationCanceledException`. Neither operation returns a partial list.

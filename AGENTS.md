@@ -3,7 +3,7 @@
 ## Long-running HTML engine work
 
 - `feature/html-engine` is the long-running HTML engine integration branch. Commit and push validated increments, but do not open a PR for it until the maintainer explicitly requests one.
-- The current implementation objective is to complete H1-H2 and their missing H0 baseline evidence in `Docs/ROADMAP.md`: finish the owned document platform and shared consumer adoption. Continue this work while foundation PR #2491 proceeds through its separate review/CI/merge follow-through; its merge is not an implementation prerequisite.
+- The current implementation objective is H3-H4 in `Docs/ROADMAP.md`: owned CSS syntax/query/style contracts and static rendering qualification. Carry forward unfinished H0-H2 work when it is a concrete prerequisite; do not mark those milestones complete merely because implementation has advanced. Continue while foundation PR #2491 proceeds through its separate review/CI/merge follow-through; its merge is not an implementation prerequisite.
 - Keep foundation PR maintenance in its own worktree. Carry validated foundation fixes and merged default-branch changes into the engine branch only when its worktree is clean; preserve ongoing edits and avoid rewriting pushed history.
 - Track the engine design in `Docs/officeimo.html-engine-design.md` and open product work in `Docs/ROADMAP.md`. A foundation release does not complete the broader engine program.
 

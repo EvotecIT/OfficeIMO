@@ -1,3 +1,5 @@
+using OfficeIMO.Html.Css;
+
 namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
@@ -93,50 +95,25 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private static IEnumerable<string> SplitCssDeclarations(string styleText) {
-        int depth = 0;
-        char quote = '\0';
+        var closers = new Stack<HtmlCssTokenKind>();
         int start = 0;
-        for (int i = 0; i < styleText.Length; i++) {
-            char current = styleText[i];
-            if (quote != '\0') {
-                if (current == quote && !IsEscaped(styleText, i)) {
-                    quote = '\0';
-                }
-
-                continue;
-            }
-
-            if (current == '"' || current == '\'') {
-                quote = current;
-                continue;
-            }
-
-            if (current == '\\'
-                && HtmlCssEscapeDecoder.TryDecodeEscape(
-                    styleText,
-                    i,
-                    out _,
-                    out int consumedCharacters)) {
-                i += consumedCharacters - 1;
-                continue;
-            }
-
-            if (current == '(') {
-                depth++;
-                continue;
-            }
-
-            if (current == ')') {
-                if (depth > 0) {
-                    depth--;
-                }
-
-                continue;
-            }
-
-            if (current == ';' && depth == 0) {
-                yield return styleText.Substring(start, i - start);
-                start = i + 1;
+        foreach (HtmlCssToken token in HtmlCssTokenizer.Enumerate(styleText)) {
+            switch (token.Kind) {
+                case HtmlCssTokenKind.Function:
+                case HtmlCssTokenKind.OpenParenthesis: closers.Push(HtmlCssTokenKind.CloseParenthesis); break;
+                case HtmlCssTokenKind.OpenBracket: closers.Push(HtmlCssTokenKind.CloseBracket); break;
+                case HtmlCssTokenKind.OpenBrace: closers.Push(HtmlCssTokenKind.CloseBrace); break;
+                case HtmlCssTokenKind.CloseParenthesis:
+                case HtmlCssTokenKind.CloseBracket:
+                case HtmlCssTokenKind.CloseBrace:
+                    if (closers.Count > 0 && closers.Peek() == token.Kind) closers.Pop();
+                    break;
+                case HtmlCssTokenKind.Semicolon:
+                    if (closers.Count == 0) {
+                        yield return styleText.Substring(start, token.Offset - start);
+                        start = token.Offset + token.Length;
+                    }
+                    break;
             }
         }
 
