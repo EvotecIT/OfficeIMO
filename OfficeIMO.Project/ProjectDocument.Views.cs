@@ -41,8 +41,10 @@ public sealed partial class ProjectDocument {
         if (!resourceView && selected.Length > layout.MaxRows) throw new InvalidOperationException("The selected task count exceeds MaxRows.");
         var selectedIds = new HashSet<int>(selected.Select(t => t.TaskUid));
         var criticalIds = layout.CriticalOnly ? new HashSet<int>(schedule.Tasks.Where(t => t.IsCritical).Select(t => t.TaskUid)) : null;
-        var assignments = schedule.Assignments.Where(a => (!resourceView || selectedIds.Contains(a.TaskUid))
-            && (criticalIds == null || criticalIds.Contains(a.TaskUid)) && (resourceIds == null || resourceIds.Contains(a.ResourceUid))).ToArray();
+        IEnumerable<ProjectAssignmentSchedule> assignmentSelection = schedule.Assignments;
+        if (resourceView) assignmentSelection = assignmentSelection.Where(a => selectedIds.Contains(a.TaskUid));
+        var assignments = assignmentSelection.Where(a => (criticalIds == null || criticalIds.Contains(a.TaskUid))
+            && (resourceIds == null || resourceIds.Contains(a.ResourceUid))).ToArray();
         var buckets = ProjectViewBuilder.Buckets(layout, resourceView
             ? assignments.Select(a => (a.Start, a.Finish)).ToArray() : selected.Select(t => (t.Start, t.Finish)).ToArray());
         var rows = new List<ProjectViewRow>(); long intervalVisits = 0;

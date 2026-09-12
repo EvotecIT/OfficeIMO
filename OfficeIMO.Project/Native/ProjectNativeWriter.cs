@@ -19,7 +19,7 @@ internal sealed partial class ProjectNativeWriter {
     private readonly List<ProjectDiagnostic> _diagnostics = new List<ProjectDiagnostic>();
     private readonly bool _new;
     private readonly ProjectNativeProfile _profile;
-    private readonly bool _structureChanged, _scheduleChanged, _taskGuidsChanged, _resourceGuidsChanged, _calendarGuidsChanged, _calendarBindingsChanged;
+    private readonly bool _structureChanged, _scheduleChanged, _projectGuidChanged, _taskGuidsChanged, _resourceGuidsChanged, _calendarGuidsChanged, _calendarBindingsChanged;
 
     private ProjectNativeWriter(ProjectDocument document, ProjectSaveOptions options, CancellationToken token) {
         _document = document; _options = options; _token = token; _profile = ProjectNativeProfile.ForFormat(options.Format);
@@ -40,6 +40,7 @@ internal sealed partial class ProjectNativeWriter {
             && !k.EndsWith("/Name", StringComparison.Ordinal) && !k.EndsWith("/DisplayId", StringComparison.Ordinal) && !k.EndsWith("/Guid", StringComparison.Ordinal)
             && !k.EndsWith("/Initials", StringComparison.Ordinal) && !k.EndsWith("/Group", StringComparison.Ordinal) && !k.EndsWith("/EmailAddress", StringComparison.Ordinal)
             && !k.EndsWith("/Notes", StringComparison.Ordinal) && !k.EndsWith("/Wbs", StringComparison.Ordinal) && !k.EndsWith("/Contact", StringComparison.Ordinal));
+        _projectGuidChanged = _changes.Contains("/Project/Guid");
         _taskGuidsChanged = _changes.Any(k => k.StartsWith("/Task[", StringComparison.Ordinal) && k.EndsWith("/Guid", StringComparison.Ordinal));
         _resourceGuidsChanged = _changes.Any(k => k.StartsWith("/Resource[", StringComparison.Ordinal) && k.EndsWith("/Guid", StringComparison.Ordinal));
         _calendarGuidsChanged = _changes.Any(k => k.StartsWith("/Calendar[", StringComparison.Ordinal) && k.EndsWith("/Guid", StringComparison.Ordinal));
@@ -204,6 +205,7 @@ internal sealed partial class ProjectNativeWriter {
         return NativeGuid(entity.Uid, kind);
     }
     private Guid NativeGuid(int uid, byte kind) => DeriveNativeGuid(_document.NativeIdentity, uid, kind);
+    private Guid SyntheticProjectSummaryGuid() => DeriveNativeGuid(_document.Guid ?? _document.NativeIdentity, 0, SyntheticProjectSummaryKind);
     internal static Guid DeriveNativeGuid(Guid identity, int uid, byte kind) {
         using var hash = System.Security.Cryptography.SHA256.Create();
         // The public project GUID is editable; implicit entity identities must survive those edits.

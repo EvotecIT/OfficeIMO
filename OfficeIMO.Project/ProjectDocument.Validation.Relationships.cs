@@ -22,6 +22,8 @@ public sealed partial class ProjectDocument {
             }
             foreach (var exception in calendar.Exceptions) {
                 token.ThrowIfCancellationRequested();
+                if (!exception.FromDate.HasValue || !exception.ToDate.HasValue)
+                    add("PROJECT_CALENDAR_PERIOD", "An incomplete calendar-exception date range is retained in XML; calendar arithmetic and native output require both bounds.", location + "/Exception", ProjectDiagnosticSeverity.Warning);
                 CheckDateRange(exception.FromDate, exception.ToDate, location + "/Exception", add);
                 CheckIntervals(exception.WorkingTimes, location + "/Exception", add, token);
                 CheckWorkingStatus(exception.IsWorking, exception.WorkingTimes.Count, location + "/Exception", add);

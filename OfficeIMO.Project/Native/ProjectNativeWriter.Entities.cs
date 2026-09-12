@@ -2,17 +2,19 @@ namespace OfficeIMO.Project;
 
 internal sealed partial class ProjectNativeWriter {
     private void WriteTasks() {
-        if (!_new && !ChangedTree("/Task")) return;
+        if (!_new && !ChangedTree("/Task") && !_projectGuidChanged) return;
         using var editor = Editor("Task", 0x14, 0x0b400056);
         if (_new) {
             for (int i = 0; i < 3; i++) editor.AddReserved(i);
             if (!_document.TaskIndex.ContainsKey(0)) {
                 editor.Add(0); editor.Integer(0, 0x0b400056, 0); editor.Integer(0, 0x0b400017, 0); editor.Integer(0, 0x0b4000f9, 0);
                 editor.Set(0, 0x0b40000e, Text(_document.Name ?? "Project")); editor.Set(0, 0x0b40005c, new byte[] { 1 });
-                Identity(editor, 0, 0x0b400477, NativeGuid(0, SyntheticProjectSummaryKind));
+                Identity(editor, 0, 0x0b400477, SyntheticProjectSummaryGuid());
                 SortPosition(editor, 0, 0x0b400479, 1);
             }
         }
+        if (!_new && _projectGuidChanged && !_document.TaskIndex.ContainsKey(0) && editor.Contains(0))
+            Identity(editor, 0, 0x0b400477, SyntheticProjectSummaryGuid());
         if (!_new && !_document.TaskIndex.ContainsKey(0) && ChangedTree("/Task[UID=0]")) {
             AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_PROJECT_SUMMARY_REQUIRED", ProjectDiagnosticSeverity.Error,
                 "An explicit native project-summary task cannot be deleted. Keep task UID 0 or convert to XML.", "/Task[UID=0]"));
@@ -45,10 +47,10 @@ internal sealed partial class ProjectNativeWriter {
                 editor.Integer(task.Uid, 0x0b4000f9, level); editor.Integer(task.Uid, 0x0b4000a0, task.Parent?.Uid ?? 0);
                 editor.Set(task.Uid, 0x0b40005c, new byte[] { task.IsSummary ? (byte)1 : (byte)0 });
             }
-            if (_new || StructureChanged || added || _taskGuidsChanged) {
+            if (_new || StructureChanged || added || _taskGuidsChanged || _projectGuidChanged) {
                 var parent = task.Parent;
                 Guid parentGuid = parent != null ? EntityGuid(parent, 1) : task.Uid == 0 ? Guid.Empty
-                    : _document.TaskIndex.TryGetValue(0, out var projectSummary) ? EntityGuid(projectSummary, 1) : NativeGuid(0, SyntheticProjectSummaryKind);
+                    : _document.TaskIndex.TryGetValue(0, out var projectSummary) ? EntityGuid(projectSummary, 1) : SyntheticProjectSummaryGuid();
                 Identity(editor, task.Uid, 0x0b40047f, parentGuid);
             }
             if (!ProjectXmlValue.TryTaskDurationFormat(task, out _))

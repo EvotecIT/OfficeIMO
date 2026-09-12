@@ -56,6 +56,19 @@ public sealed class ProjectNativeBoundaryClosureTests {
     }
 
     [Theory]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    public void GeneratedNativeProjectSummaryTracksAnExplicitProjectGuid(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        document.Guid = new Guid("429757aa-d385-46b1-9161-8a6046c584a4");
+        using var first = new MemoryStream(); document.Save(first, Native(format));
+        document.Guid = new Guid("01c67d06-90f8-49a9-bfbd-c5b0665d84af");
+        using var second = new MemoryStream(); document.Save(second, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(second.ToArray()));
+        Assert.DoesNotContain(reopened.AllTasks, task => task.Uid == 0);
+    }
+
+    [Theory]
     [InlineData(ProjectFileFormat.Mpp8)]
     [InlineData(ProjectFileFormat.Mpp9)]
     [InlineData(ProjectFileFormat.Mpp12)]

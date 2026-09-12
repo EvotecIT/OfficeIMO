@@ -92,6 +92,19 @@ public sealed class ProjectValidationBoundaryTests {
         Assert.True(document.AssessSave().HasErrors);
     }
 
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void CalendarExceptionCalculationRequiresBothDateBounds(bool from, bool to) {
+        using var document = ProjectDocument.Create(); var calendar = document.Calendars.AddStandardWorkingWeek();
+        var exception = calendar.Exceptions.Add();
+        if (from) exception.FromDate = Monday; if (to) exception.ToDate = Monday;
+        exception.IsWorking = false;
+        Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "PROJECT_CALENDAR_PERIOD"
+            && diagnostic.Severity == ProjectDiagnosticSeverity.Warning);
+        Assert.Throws<NotSupportedException>(() => calendar.GetWorkingIntervals(Monday));
+    }
+
     [Fact]
     public void XmlUidZeroCannotDeclareAnOrdinaryTask() {
         const string xml = "<Project xmlns=\"http://schemas.microsoft.com/project\"><Tasks><Task><UID>0</UID><Name>Work</Name><Summary>0</Summary></Task></Tasks></Project>";

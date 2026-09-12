@@ -59,6 +59,8 @@ internal sealed class ProjectCalendarMath {
                     throw new NotSupportedException("Work-week calculation requires explicit start and finish dates.");
             foreach (var exception in current.Exceptions) {
                 if (exception.HasUnqualifiedRecurrence) throw new NotSupportedException("Recurring calendar exceptions require an expanded, qualified date range before calculation.");
+                if (!exception.FromDate.HasValue || !exception.ToDate.HasValue)
+                    throw new NotSupportedException("Calendar-exception calculation requires explicit start and finish dates.");
             }
             if (current.HasUnqualifiedNativeRecurrence)
                 throw new NotSupportedException("Unmodeled native calendar metadata must be qualified before calculation.");
