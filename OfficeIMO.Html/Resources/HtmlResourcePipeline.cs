@@ -31,8 +31,12 @@ public static partial class HtmlResourcePipeline {
     /// <summary>
     /// Builds a resource manifest from a parsed document.
     /// </summary>
-    public static HtmlResourceManifest BuildManifest(Dom.HtmlDocument document, HtmlResourcePipelineOptions? options = null) =>
-        BuildManifest(NativeDomBridge.GetNativeDocument(document), options);
+    public static HtmlResourceManifest BuildManifest(Dom.HtmlDocument document, HtmlResourcePipelineOptions? options = null) {
+        HtmlResourcePipelineOptions resolved = options ?? new HtmlResourcePipelineOptions();
+        HtmlConversionLimits limits = resolved.Limits ?? HtmlConversionLimits.CreateUntrustedProfile();
+        Dom.HtmlDocument snapshot = HtmlConversionInputGuard.CaptureOwnedTree(document, limits, CancellationToken.None);
+        return BuildManifest(NativeDomBridge.GetNativeDocument(snapshot), resolved);
+    }
 
     internal static HtmlResourceManifest BuildManifest(IHtmlDocument document, HtmlResourcePipelineOptions? options = null) {
         if (document == null) {

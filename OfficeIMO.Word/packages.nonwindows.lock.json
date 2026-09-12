@@ -103,6 +103,12 @@
           "DocumentFormat.OpenXml.Framework": "3.5.1"
         }
       },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "TAIL+a3ZwsY9iWioFxJAal2ViYg5OpnU8GWX4ihChjA4U2pjzoBkqmquwX3sG252PZB6213nz0WpXMYIazoEcw=="
+      },
       "DocumentFormat.OpenXml.Framework": {
         "type": "Transitive",
         "resolved": "3.5.1",
@@ -135,6 +141,12 @@
         "dependencies": {
           "DocumentFormat.OpenXml.Framework": "3.5.1"
         }
+      },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[8.0.31, )",
+        "resolved": "8.0.31",
+        "contentHash": "OJdAGATV2QoVWL11zlDLEluA06q8rK+cgZR47ohrO8V+Qj5z9dlvN7bG9/0e5t0IOe+yD8tREC0bpsEgDGrzIQ=="
       },
       "DocumentFormat.OpenXml.Framework": {
         "type": "Transitive",

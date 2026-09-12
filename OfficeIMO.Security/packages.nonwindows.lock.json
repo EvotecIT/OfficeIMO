@@ -239,6 +239,12 @@
         "resolved": "2.7.0",
         "contentHash": "U+12df8UEWHgBi04YVf/Lgi2dy3SItlIYvHjjEVa/BngCQIzDCDRBk50DDByCfDvSbe5pRNFr3b7UrVK2kMcLw=="
       },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "TAIL+a3ZwsY9iWioFxJAal2ViYg5OpnU8GWX4ihChjA4U2pjzoBkqmquwX3sG252PZB6213nz0WpXMYIazoEcw=="
+      },
       "System.Security.Cryptography.Pkcs": {
         "type": "Direct",
         "requested": "[10.0.10, )",
@@ -312,6 +318,12 @@
         "requested": "[2.7.0, 3.0.0)",
         "resolved": "2.7.0",
         "contentHash": "U+12df8UEWHgBi04YVf/Lgi2dy3SItlIYvHjjEVa/BngCQIzDCDRBk50DDByCfDvSbe5pRNFr3b7UrVK2kMcLw=="
+      },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[8.0.31, )",
+        "resolved": "8.0.31",
+        "contentHash": "OJdAGATV2QoVWL11zlDLEluA06q8rK+cgZR47ohrO8V+Qj5z9dlvN7bG9/0e5t0IOe+yD8tREC0bpsEgDGrzIQ=="
       },
       "System.Security.Cryptography.Pkcs": {
         "type": "Direct",

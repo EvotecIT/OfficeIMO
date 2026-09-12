@@ -51,8 +51,11 @@ public static class HtmlNormalizer {
     /// <summary>
     /// Normalizes an already parsed HTML document.
     /// </summary>
-    public static string Normalize(Dom.HtmlDocument document, HtmlNormalizationOptions? options = null) =>
-        Normalize(NativeDomBridge.GetNativeDocument(document), options);
+    public static string Normalize(Dom.HtmlDocument document, HtmlNormalizationOptions? options = null) {
+        HtmlNormalizationOptions resolved = CopyOptions(options ?? new HtmlNormalizationOptions());
+        Dom.HtmlDocument snapshot = HtmlConversionInputGuard.CaptureOwnedTree(document, resolved.Limits, CancellationToken.None);
+        return Normalize(NativeDomBridge.GetNativeDocument(snapshot), resolved);
+    }
 
     internal static string Normalize(IHtmlDocument document, HtmlNormalizationOptions? options = null) {
         if (document == null) {
@@ -252,13 +255,14 @@ public static class HtmlNormalizer {
     }
 
     private static HtmlNormalizationOptions CopyOptions(HtmlNormalizationOptions options) {
+        HtmlConversionLimits limits = (options.Limits ?? HtmlConversionLimits.CreateUntrustedProfile()).Clone();
         return new HtmlNormalizationOptions {
             BaseUri = options.BaseUri,
             BaseElementBaseUri = options.BaseElementBaseUri,
             UrlPolicy = (options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
             ResourceUrlPolicy = (options.ResourceUrlPolicy ?? HtmlResourceUrlPolicy.Create(options.UrlPolicy)).Clone(),
-            Limits = (options.Limits ?? HtmlConversionLimits.CreateUntrustedProfile()).Clone(),
-            MaxResponsiveImageCandidates = options.MaxResponsiveImageCandidates,
+            Limits = limits,
+            MaxResponsiveImageCandidates = HtmlConversionLimits.Minimum(options.MaxResponsiveImageCandidates, limits.MaxResponsiveImageCandidates),
             UseBodyContentsOnly = options.UseBodyContentsOnly,
             PreserveComments = options.PreserveComments,
             PreserveSkippedElementMarkers = options.PreserveSkippedElementMarkers,

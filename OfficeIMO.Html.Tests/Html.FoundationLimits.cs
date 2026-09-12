@@ -102,6 +102,8 @@ public sealed class HtmlFoundationLimitTests {
         if (kind == "text") root.TextContent = value;
         if (kind == "attribute") root.SetAttribute("title", value);
         Assert.Equal("MaxInputCharacters", Assert.Throws<HtmlDomLimitException>(() => HtmlConversionDocument.FromDocument(owned, Options(characters: 128))).LimitSource);
+        Assert.Equal("MaxInputCharacters", Assert.Throws<HtmlDomLimitException>(() => HtmlNormalizer.Normalize(owned, new HtmlNormalizationOptions { Limits = Options(characters: 128).Limits })).LimitSource);
+        Assert.Equal("MaxInputCharacters", Assert.Throws<HtmlDomLimitException>(() => HtmlResourcePipeline.BuildManifest(owned, new HtmlResourcePipelineOptions { Limits = Options(characters: 128).Limits })).LimitSource);
     }
 
     [Fact]
@@ -111,6 +113,33 @@ public sealed class HtmlFoundationLimitTests {
         owned.AppendChild(root);
         for (int i = 0; i < 20; i++) root.AppendChild(owned.CreateTextNode("1234567890"));
         Assert.Equal("MaxInputCharacters", Assert.Throws<HtmlDomLimitException>(() => HtmlConversionDocument.FromDocument(owned, Options(characters: 128))).LimitSource);
+        Assert.Equal("MaxInputCharacters", Assert.Throws<HtmlDomLimitException>(() => HtmlNormalizer.Normalize(owned, new HtmlNormalizationOptions { Limits = Options(characters: 128).Limits })).LimitSource);
+        Assert.Equal("MaxInputCharacters", Assert.Throws<HtmlDomLimitException>(() => HtmlResourcePipeline.BuildManifest(owned, new HtmlResourcePipelineOptions { Limits = Options(characters: 128).Limits })).LimitSource);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OwnedAnalysisChecksAttachedTemplateDataAndAllowsExplicitUnboundedInput(bool freeze) {
+        HtmlDocument owned = Parse("<p>Visible</p><template><span></span></template>").Clone();
+        owned.QuerySelector("template")!.TemplateContent!.QuerySelector("span")!.TextContent = new string('x', 1024);
+        owned.CreateTextNode(new string('y', 4096));
+        if (freeze) owned.Freeze();
+        var bounded = Options(characters: 128).Limits;
+        Assert.Equal("MaxInputCharacters", Assert.Throws<HtmlDomLimitException>(() => HtmlNormalizer.Normalize(owned, new HtmlNormalizationOptions { Limits = bounded })).LimitSource);
+        Assert.Equal("MaxInputCharacters", Assert.Throws<HtmlDomLimitException>(() => HtmlResourcePipeline.BuildManifest(owned, new HtmlResourcePipelineOptions { Limits = bounded })).LimitSource);
+        Assert.Contains("Visible", HtmlNormalizer.Normalize(owned, new HtmlNormalizationOptions { Limits = Options().Limits }));
+        Assert.NotNull(HtmlResourcePipeline.BuildManifest(owned, new HtmlResourcePipelineOptions { Limits = Options().Limits }));
+        Assert.Equal(1024, owned.QuerySelector("template")!.TemplateContent!.QuerySelector("span")!.TextContent.Length);
+    }
+
+    [Fact]
+    public void OwnedAnalysisDoesNotChargeDetachedEditingHistory() {
+        HtmlDocument owned = Parse("<p>Visible</p>").Clone();
+        owned.CreateTextNode(new string('x', 4096));
+        var limits = Options(characters: 128).Limits;
+        Assert.Contains("Visible", HtmlNormalizer.Normalize(owned, new HtmlNormalizationOptions { Limits = limits }));
+        Assert.NotNull(HtmlResourcePipeline.BuildManifest(owned, new HtmlResourcePipelineOptions { Limits = limits }));
     }
 
     [Theory]
@@ -140,6 +169,34 @@ public sealed class HtmlFoundationLimitTests {
         Assert.Equal("Changed", projected.Body!.TextContent);
         Assert.Throws<OperationCanceledException>(() => NativeDomBridge.GetNativeDocument(owned, cancelled));
         Assert.Same(projected, NativeDomBridge.GetNativeDocument(owned));
+    }
+
+    private const string ResponsiveSource = "<img srcset='https://example.test/first.png 1x, https://example.test/second.png 2x'>";
+
+    [Theory]
+    [InlineData(1, null, false)]
+    [InlineData(1, 2, false)]
+    [InlineData(2, 1, false)]
+    [InlineData(null, null, true)]
+    public void StandaloneNormalizationIntersectsSharedAndLegacyResponsiveLimits(int? shared, int? legacy, bool includesSecond) {
+        var options = new HtmlNormalizationOptions { Limits = new HtmlConversionLimits { MaxResponsiveImageCandidates = shared }, MaxResponsiveImageCandidates = legacy };
+        foreach (string normalized in new[] { HtmlNormalizer.Normalize(ResponsiveSource, options), HtmlNormalizer.Normalize(Parse(ResponsiveSource), options) }) {
+            Assert.Contains("first.png", normalized);
+            Assert.Equal(includesSecond, normalized.Contains("second.png"));
+        }
+    }
+
+    [Theory]
+    [InlineData(1, null, 1)]
+    [InlineData(1, 2, 1)]
+    [InlineData(2, 1, 1)]
+    [InlineData(null, null, 2)]
+    public void StandaloneDiscoveryIntersectsSharedAndLegacyResponsiveLimits(int? shared, int? legacy, int count) {
+        var options = new HtmlResourcePipelineOptions { Limits = new HtmlConversionLimits { MaxResponsiveImageCandidates = shared }, MaxResponsiveImageCandidates = legacy };
+        foreach (HtmlResourceManifest manifest in new[] { HtmlResourcePipeline.BuildManifest(ResponsiveSource, options), HtmlResourcePipeline.BuildManifest(Parse(ResponsiveSource), options) }) {
+            Assert.Equal(count, manifest.Resources.Count);
+            Assert.Contains(manifest.Resources, resource => resource.Source.Contains("first.png"));
+        }
     }
 
     private sealed class SuppliedParser : IHtmlParserProvider {

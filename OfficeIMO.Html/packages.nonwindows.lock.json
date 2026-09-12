@@ -30,16 +30,6 @@
           "Microsoft.NETCore.Platforms": "1.1.0"
         }
       },
-      "System.Text.Encoding.CodePages": {
-        "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg==",
-        "dependencies": {
-          "System.Memory": "4.5.5",
-          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
-        }
-      },
       "Microsoft.NETCore.Platforms": {
         "type": "Transitive",
         "resolved": "1.1.0",
@@ -70,7 +60,27 @@
         "resolved": "6.0.0",
         "contentHash": "/iUeP3tq1S0XdNNoMz5C9twLSrM/TH+qElHkXWaPvuNOt+99G75NrV0OS2EqHx5wMN7popYjpc8oTjC1y16DLg=="
       },
+      "System.Text.Encoding.CodePages": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg==",
+        "dependencies": {
+          "System.Memory": "4.5.5",
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        }
+      },
       "officeimo.core": {
+        "type": "Project"
+      },
+      "officeimo.html.anglesharp": {
+        "type": "Project",
+        "dependencies": {
+          "AngleSharp": "[1.7.1, )",
+          "OfficeIMO.Html.Core": "[3.4.2, )",
+          "System.Text.Encoding.CodePages": "[8.0.0, )"
+        }
+      },
+      "officeimo.html.core": {
         "type": "Project"
       }
     },
@@ -96,64 +106,32 @@
           "AngleSharp": "[1.5.0, 2.0.0)"
         }
       },
-      "System.Text.Encoding.CodePages": {
+      "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "TAIL+a3ZwsY9iWioFxJAal2ViYg5OpnU8GWX4ihChjA4U2pjzoBkqmquwX3sG252PZB6213nz0WpXMYIazoEcw=="
       },
       "officeimo.core": {
         "type": "Project"
+      },
+      "officeimo.html.anglesharp": {
+        "type": "Project",
+        "dependencies": {
+          "AngleSharp": "[1.7.1, )",
+          "OfficeIMO.Html.Core": "[3.4.2, )"
+        }
+      },
+      "officeimo.html.core": {
+        "type": "Project"
       }
     },
-    "net10.0/linux-arm64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
-      }
-    },
-    "net10.0/linux-x64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
-      }
-    },
-    "net10.0/osx-arm64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
-      }
-    },
-    "net10.0/osx-x64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
-      }
-    },
-    "net10.0/win-arm64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
-      }
-    },
-    "net10.0/win-x64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
-      }
-    },
+    "net10.0/linux-arm64": {},
+    "net10.0/linux-x64": {},
+    "net10.0/osx-arm64": {},
+    "net10.0/osx-x64": {},
+    "net10.0/win-arm64": {},
+    "net10.0/win-x64": {},
     "net8.0": {
       "AngleSharp": {
         "type": "Direct",
@@ -170,63 +148,31 @@
           "AngleSharp": "[1.5.0, 2.0.0)"
         }
       },
-      "System.Text.Encoding.CodePages": {
+      "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
+        "requested": "[8.0.31, )",
+        "resolved": "8.0.31",
+        "contentHash": "OJdAGATV2QoVWL11zlDLEluA06q8rK+cgZR47ohrO8V+Qj5z9dlvN7bG9/0e5t0IOe+yD8tREC0bpsEgDGrzIQ=="
       },
       "officeimo.core": {
         "type": "Project"
+      },
+      "officeimo.html.anglesharp": {
+        "type": "Project",
+        "dependencies": {
+          "AngleSharp": "[1.7.1, )",
+          "OfficeIMO.Html.Core": "[3.4.2, )"
+        }
+      },
+      "officeimo.html.core": {
+        "type": "Project"
       }
     },
-    "net8.0/linux-arm64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
-      }
-    },
-    "net8.0/linux-x64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
-      }
-    },
-    "net8.0/osx-arm64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
-      }
-    },
-    "net8.0/osx-x64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
-      }
-    },
-    "net8.0/win-arm64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
-      }
-    },
-    "net8.0/win-x64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Direct",
-        "requested": "[8.0.0, )",
-        "resolved": "8.0.0",
-        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
-      }
-    }
+    "net8.0/linux-arm64": {},
+    "net8.0/linux-x64": {},
+    "net8.0/osx-arm64": {},
+    "net8.0/osx-x64": {},
+    "net8.0/win-arm64": {},
+    "net8.0/win-x64": {}
   }
 }

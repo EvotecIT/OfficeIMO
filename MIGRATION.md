@@ -41,11 +41,16 @@ lineage; snapshot IDs differ. Detached nodes remain part of their owning documen
 and become read-only when it is frozen. `TextContent` can be set on elements, text,
 comments and fragments; write document text through `Body` or another element.
 
-For owned conversion inputs, `MaxInputCharacters` bounds aggregate attached node
-names and values before capture, as well as the resulting canonical HTML source.
+For owned inputs, `MaxInputCharacters` bounds aggregate attached node names and
+values before conversion capture, standalone normalization or resource discovery.
+`HtmlConversionDocument` also bounds the resulting canonical HTML source.
 Increase this limit when an authored tree or its escaped serialization exceeds the
 configured budget. Template content participates in node, depth, CSS and semantic
 metadata limits on the default conversion parser as well as the owned provider.
+
+Standalone normalization and resource discovery apply the shared
+`Limits.MaxResponsiveImageCandidates` cap. Their separate candidate settings can
+tighten that cap; a larger setting does not relax the shared limit.
 
 `HtmlComputedStyleEngine.Compute(ownedDocument)` preserves the previous prepared-DOM
 style computation contract without injecting untrusted-input budgets. To apply
@@ -917,7 +922,7 @@ implementation and options belong to `OfficeIMO.Pdf`.
 | Register MHT/MHTML with Reader | Reference `OfficeIMO.Reader.Email`, import `OfficeIMO.Reader.Email`, and call `AddMhtmlHandler()`. `AddEmailHandlers()` and `OfficeIMO.Reader.All` include it automatically. |
 | Read EPUB through Reader | No source change. `OfficeIMO.Reader.Epub` still reuses the HTML projection but no longer receives Email, RTF, or MHTML transitively. |
 
-No `OfficeIMO.Html.Core`, separate document-model package, or `OfficeIMO.Reader.Mhtml` package was introduced. The base HTML, Email, and Reader APIs stay focused; optional bridges carry the extra dependency edges. `OfficeIMO.Email.Image` and `OfficeIMO.Reader.Email` now reuse `OfficeIMO.Email.Html` for body choice, RTF fallback, sanitization, and embedded-resource resolution instead of maintaining adapter-specific policies.
+`OfficeIMO.Email.Image` and `OfficeIMO.Reader.Email` reuse `OfficeIMO.Email.Html` for body choice, RTF fallback, sanitization, and embedded-resource resolution instead of maintaining adapter-specific policies.
 
 ## OfficeIMO 3.1
 

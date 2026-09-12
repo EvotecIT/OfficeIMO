@@ -47,7 +47,7 @@ permissions:
 env:
   DOTNET_VERSION: |
     8.0.418
-    10.0.103
+    10.0.112
   NODE_VERSION: 24.x
   NPM_AUDIT_LEVEL: moderate
 

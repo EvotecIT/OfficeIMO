@@ -132,7 +132,7 @@
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
           "Microsoft.Bcl.AsyncInterfaces": "[10.0.9, )",
-          "OfficeIMO.Core": "[3.4.0, )",
+          "OfficeIMO.Core": "[3.4.2, )",
           "System.Text.Encoding.CodePages": "[10.0.9, )",
           "System.Text.Json": "[10.0.7, 11.0.0)"
         }
@@ -140,7 +140,7 @@
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.0, )"
+          "OfficeIMO.Core": "[3.4.2, )"
         }
       }
     },
@@ -151,6 +151,12 @@
     ".NETStandard,Version=v2.0/win-arm64": {},
     ".NETStandard,Version=v2.0/win-x64": {},
     "net10.0": {
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "TAIL+a3ZwsY9iWioFxJAal2ViYg5OpnU8GWX4ihChjA4U2pjzoBkqmquwX3sG252PZB6213nz0WpXMYIazoEcw=="
+      },
       "DocumentFormat.OpenXml": {
         "type": "Transitive",
         "resolved": "3.5.1",
@@ -179,13 +185,13 @@
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.4.0, )"
+          "OfficeIMO.Core": "[3.4.2, )"
         }
       },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.0, )"
+          "OfficeIMO.Core": "[3.4.2, )"
         }
       }
     },
@@ -196,6 +202,12 @@
     "net10.0/win-arm64": {},
     "net10.0/win-x64": {},
     "net8.0": {
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[8.0.31, )",
+        "resolved": "8.0.31",
+        "contentHash": "OJdAGATV2QoVWL11zlDLEluA06q8rK+cgZR47ohrO8V+Qj5z9dlvN7bG9/0e5t0IOe+yD8tREC0bpsEgDGrzIQ=="
+      },
       "DocumentFormat.OpenXml": {
         "type": "Transitive",
         "resolved": "3.5.1",
@@ -229,14 +241,14 @@
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.4.0, )",
+          "OfficeIMO.Core": "[3.4.2, )",
           "System.Text.Encoding.CodePages": "[10.0.9, )"
         }
       },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.0, )"
+          "OfficeIMO.Core": "[3.4.2, )"
         }
       }
     },
