@@ -4,6 +4,16 @@ OfficeIMO.Project creates, reads, edits, and saves Microsoft Project XML (MSPDI)
 
 Load and save retain stored schedule values. Call `CalculateSchedule` to inspect calculated dates and float, and `ApplySchedule` or `Recalculate` to update task dates explicitly. Work, cost, actuals, and timephased values remain independently stored. Microsoft Project may calculate those values when it opens an authored file.
 
+## Reference from source
+
+To use an OfficeIMO checkout, add a project reference from your application. Adjust the paths to your application and checkout:
+
+```shell
+dotnet add MyApp/MyApp.csproj reference OfficeIMO/OfficeIMO.Project/OfficeIMO.Project.csproj
+```
+
+The project reference also includes the matching `OfficeIMO.Core` dependency. The examples below use the `OfficeIMO.Project` namespace.
+
 ## Author a project
 
 ```csharp

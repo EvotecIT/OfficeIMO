@@ -25,6 +25,8 @@ internal sealed partial class ProjectTaskAllocation {
     }
     private ProjectAssignmentInterval[] ActualIntervals(Entry entry) {
         var assignment = entry.Assignment;
+        if (entry.Actual == 0 && assignment.Stop.HasValue)
+            throw new NotSupportedException("A stopped work or material assignment requires explicit nonzero actual work before calculation.");
         var actual = assignment.TimephasedData.Where(v => v.Type == 2).OrderBy(v => v.Start).ToArray();
         var overtime = assignment.TimephasedData.Where(v => v.Type == 3).OrderBy(v => v.Start).ToArray();
         ValidateActualCurves(entry, actual, overtime);

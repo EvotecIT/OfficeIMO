@@ -441,7 +441,7 @@ _Dependency footprint:_ only `OfficeIMO.Core`; no external parser or runtime dep
 
 Native producer profiles, opaque-record preservation, scheduling, legacy formats, and rendering have separate [operation boundaries](OfficeIMO.Project/SUPPORT.md).
 
-_Dependency footprint:_ only `OfficeIMO.Core` 3.4.3 or later; no COM, external parser, or network dependency in file operations.
+_Dependency footprint:_ only the matching coordinated `OfficeIMO.Core` release; no COM, external parser, or network dependency in file operations.
 
 #### [OfficeIMO.DocBook](OfficeIMO.DocBook/README.md)
 

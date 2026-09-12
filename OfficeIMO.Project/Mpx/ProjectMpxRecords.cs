@@ -40,7 +40,7 @@ internal sealed class ProjectMpxRecords {
         bool quoted = false, closed = false, started = false; int fieldCount = 0, recordCount = 0;
         void FinishField() {
             if (++fieldCount > options.MaxElements) throw new InvalidDataException("MPX exceeds its field limit.");
-            fields.Add(field.ToString().Trim(' ', '\t')); field.Clear(); closed = false; started = false;
+            fields.Add(closed ? field.ToString() : field.ToString().Trim(' ', '\t')); field.Clear(); closed = false; started = false;
         }
         for (int i = 0; i < text.Length; i++) {
             if ((i & 4095) == 0) token.ThrowIfCancellationRequested();
@@ -70,7 +70,10 @@ internal sealed class ProjectMpxRecords {
                 if (started || closed) throw new InvalidDataException("Unexpected quotation mark in MPX field.");
                 quoted = true; started = true; field.Clear(); continue;
             }
-            if (closed && c != ' ' && c != '\t') throw new InvalidDataException("Content follows a closed MPX quoted field.");
+            if (closed) {
+                if (c != ' ' && c != '\t') throw new InvalidDataException("Content follows a closed MPX quoted field.");
+                continue;
+            }
             field.Append(c); if (c != ' ' && c != '\t') started = true;
         }
         if (quoted) throw new InvalidDataException("Unterminated MPX quoted field.");
@@ -81,6 +84,7 @@ internal sealed class ProjectMpxRecords {
         string.Join(separator.ToString(), fields.Select(value => {
             string text = value ?? "";
             if (text.IndexOfAny(new[] { '\r', '\n', '\0' }) >= 0) throw new InvalidDataException("MPX fields cannot contain physical newlines or NUL.");
-            return text.IndexOf(separator) >= 0 || text.IndexOf('"') >= 0 ? "\"" + text.Replace("\"", "\"\"") + "\"" : text;
+            bool edgeWhitespace = text.Length > 0 && (text[0] == ' ' || text[0] == '\t' || text[text.Length - 1] == ' ' || text[text.Length - 1] == '\t');
+            return edgeWhitespace || text.IndexOf(separator) >= 0 || text.IndexOf('"') >= 0 ? "\"" + text.Replace("\"", "\"\"") + "\"" : text;
         })) + "\r\n";
 }

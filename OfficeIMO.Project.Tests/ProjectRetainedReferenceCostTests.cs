@@ -134,8 +134,8 @@ public sealed class ProjectRetainedReferenceCostTests {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
         var task = document.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1);
         var resource = material ? document.Resources.AddMaterial("Parts") : document.Resources.AddWork("Engineer"); resource.StandardRate = 100;
-        var assignment = document.Assignments.Add(task, resource); assignment.ActualStart = Monday; assignment.Stop = Monday.AddHours(1); assignment.ActualCost = 25;
-        var value = assignment.TimephasedData.Add(); value.Uid = assignment.Uid; value.Type = 6; value.Start = Monday; value.Finish = assignment.Stop; value.Value = "2500";
+        var assignment = document.Assignments.Add(task, resource); assignment.ActualStart = Monday; assignment.ActualCost = 25;
+        var value = assignment.TimephasedData.Add(); value.Uid = assignment.Uid; value.Type = 6; value.Start = Monday; value.Finish = Monday.AddHours(1); value.Value = "2500";
         var schedule = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); schedule.Report.ThrowIfErrors(); document.ApplySchedule(schedule);
         Assert.Same(value, assignment.TimephasedData.Single(v => v.Type == 6)); Assert.Equal(Monday, value.Start); Assert.Equal(Monday.AddHours(1), value.Finish);
         using var copy = document.Clone(); Assert.Equal(25m, copy.Assignments.Single().ActualCost);

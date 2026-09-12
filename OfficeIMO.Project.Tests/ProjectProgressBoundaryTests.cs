@@ -3,6 +3,31 @@ namespace OfficeIMO.Project.Tests;
 public sealed class ProjectProgressBoundaryTests {
     private static readonly DateTime Monday = new(2026, 10, 5, 8, 0, 0);
 
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, true, true)]
+    public void StoppedAssignmentsWithoutActualWorkCannotReplaceStoredProgress(bool material, bool explicitZero, bool zeroCurve) {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
+        var task = document.Tasks.Add("Stopped"); task.Duration = ProjectDuration.WorkingDays(1);
+        var resource = material ? document.Resources.AddMaterial("Parts") : document.Resources.AddWork("Engineer");
+        var assignment = document.Assignments.Add(task, resource); assignment.ActualStart = Monday; assignment.Stop = Monday.AddHours(1);
+        if (explicitZero) assignment.ActualWork = ProjectWork.Hours(0);
+        if (zeroCurve) {
+            var curve = assignment.TimephasedData.Add(); curve.Uid = assignment.Uid; curve.Type = 2;
+            curve.Start = Monday; curve.Finish = assignment.Stop; curve.Value = "PT0H0M0S";
+            assignment.Resume = Monday.AddHours(2);
+        }
+        string before = document.ToXml();
+        var schedule = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
+        Assert.Contains(schedule.Report.Diagnostics, d => d.Severity == ProjectDiagnosticSeverity.Error && d.Message.Contains("stopped"));
+        Assert.Throws<InvalidDataException>(() => document.ApplySchedule(schedule)); Assert.Equal(before, document.ToXml());
+        using var copy = document.Clone(); Assert.Equal(assignment.Stop, copy.Assignments.Single().Stop);
+    }
+
     [Fact]
     public void InconsistentActualCostCurvesCannotProduceKnownHistoricalTotals() {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();

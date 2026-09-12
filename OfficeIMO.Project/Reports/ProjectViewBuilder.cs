@@ -31,7 +31,7 @@ internal static class ProjectViewBuilder {
         if (input == null) return null;
         var result = new HashSet<int>(); var valid = new HashSet<int>(available); int count = 0;
         foreach (int uid in input) {
-            if (++count > limit) throw new ArgumentException("Selection exceeds MaxRows.", name);
+            if (++count > limit) throw new ArgumentException("Selection exceeds its input limit.", name);
             if (!valid.Contains(uid)) throw new ArgumentException("Selection contains an unknown UID: " + uid, name);
             result.Add(uid);
         }

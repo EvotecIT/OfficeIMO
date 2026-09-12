@@ -7,6 +7,30 @@ public sealed class ProjectMpxTests {
     private static ProjectSaveOptions Options(bool allow = true) => new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4, LossPolicy = allow ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block };
 
     [Theory]
+    [InlineData("  padded  ")]
+    [InlineData("\tpadded\t")]
+    [InlineData(" \"quoted\" ")]
+    [InlineData(" \t ")]
+    public void QuotedPayloadWhitespaceSurvivesReadingAndEditedRewrites(string value) {
+        string quoted = " \t\"" + value.Replace("\"", "\"\"") + "\"\t ";
+        string source = "MPX,Fixture,4.0,ANSI\r\n41,40,49,1\r\n50,1,1," + quoted
+            + "\r\n61,90,98,1,14\r\n70,1,1," + quoted + "," + quoted + "\r\n";
+        using var project = Read(source);
+        Assert.Equal(value, project.Tasks[0].Name); Assert.Equal(value, project.Tasks[0].Notes); Assert.Equal(value, project.Resources[0].Name);
+        project.Tasks[0].Name = value + " edited ";
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(value + " edited ", reopened.Tasks[0].Name);
+        Assert.Equal(value, reopened.Tasks[0].Notes); Assert.Equal(value, reopened.Resources[0].Name);
+    }
+
+    [Fact]
+    public void UnquotedPaddingAndEmptyQuotedFieldsHaveDistinctFraming() {
+        using var project = Read("MPX,Fixture,4.0,ANSI\r\n61,90,98,1,14\r\n70,1,1, \tTask\t , \t\"\" \t\r\n");
+        Assert.Equal("Task", project.Tasks[0].Name); Assert.True(string.IsNullOrEmpty(project.Tasks[0].Notes));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void OpaqueAssignmentDelayBlocksScheduling(bool calculateAssignments) {

@@ -9,8 +9,8 @@ public sealed partial class ProjectDocument {
         var input = options ?? new ProjectViewOptions();
         var layout = ProjectViewBuilder.CopyOptions(input);
         var taskSelection = input.TaskUids; var resourceSelection = input.ResourceUids; var columnSelection = input.Columns;
-        var taskIds = ProjectViewBuilder.SelectIds(taskSelection, TaskIndex.Keys, layout.MaxRows, nameof(input.TaskUids));
-        var resourceIds = ProjectViewBuilder.SelectIds(resourceSelection, ResourceIndex.Keys, layout.MaxRows, nameof(input.ResourceUids));
+        var taskIds = ProjectViewBuilder.SelectIds(taskSelection, TaskIndex.Keys, Math.Max(layout.MaxRows, TaskIndex.Count), nameof(input.TaskUids));
+        var resourceIds = ProjectViewBuilder.SelectIds(resourceSelection, ResourceIndex.Keys, Math.Max(layout.MaxRows, ResourceIndex.Count), nameof(input.ResourceUids));
         var defaultColumns = layout.Kind == ProjectViewKind.Gantt || layout.Kind == ProjectViewKind.ResourceUsage || layout.Kind == ProjectViewKind.ResourceHistogram
             ? new[] { ProjectViewColumn.Uid, ProjectViewColumn.Name }
             : new[] { ProjectViewColumn.Uid, ProjectViewColumn.Name, ProjectViewColumn.Start, ProjectViewColumn.Finish };
@@ -38,7 +38,7 @@ public sealed partial class ProjectDocument {
             && (resourceTaskIds == null || resourceTaskIds.Contains(t.TaskUid))
             && (layout.IncludeSummaries || !t.IsSummary) && (!layout.CriticalOnly || t.IsCritical)
             && (resourceView || ProjectViewBuilder.Matches(TaskIndex[t.TaskUid].Name, layout.NameContains))).ToArray();
-        if (selected.Length > layout.MaxRows) throw new InvalidOperationException("The selected task count exceeds MaxRows.");
+        if (!resourceView && selected.Length > layout.MaxRows) throw new InvalidOperationException("The selected task count exceeds MaxRows.");
         var selectedIds = new HashSet<int>(selected.Select(t => t.TaskUid));
         var criticalIds = layout.CriticalOnly ? new HashSet<int>(schedule.Tasks.Where(t => t.IsCritical).Select(t => t.TaskUid)) : null;
         var assignments = schedule.Assignments.Where(a => (!resourceView || selectedIds.Contains(a.TaskUid))
