@@ -218,7 +218,7 @@ Extend the existing HTML engine into a shared document platform, static web rend
 
 ### H7-H9: runtime and interaction
 
-- [ ] Extend the trusted local session with bounded resource loading and a named execution profile. Qualify task/microtask ordering, mutation/layout integration, resource policy and readiness against representative documents. Prove OS isolation before advertising hostile-content execution; process termination alone is insufficient.
+- [ ] Qualify a named execution profile across task/microtask ordering, mutation/layout integration, resource policy and readiness against representative documents. Prove OS isolation before advertising hostile-content execution; process termination alone is insufficient.
 - [ ] Admit one selected web-application profile with named module, fetch, storage, navigation, observer and form requirements. Add framework application fixtures and web-platform tests for those contracts, including origins, credentials, failure and cancellation; do not infer browser compatibility from interpreter language coverage.
 - [ ] Introduce OfficeIMO session automation with shared locators, input/focus/scroll behavior, actionability, waits, state reporting and capture. Prove representative standalone workflows against each advertised provider. HtmlTinkerX can adopt these contracts through a thin provider later and retain external-browser selection for uncovered workflows.
 - [ ] Scope broader APIs such as shadow DOM/custom elements, canvas, workers, service workers, media and WebGL individually. Start an owned JavaScript implementation only with a versioned language scope, Test262 gate, runtime integration tests and resource/performance budget. Keep static distribution independent from this work.

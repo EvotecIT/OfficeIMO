@@ -9,6 +9,8 @@ internal sealed class HtmlRuntimeWireDocument {
     public HtmlDocumentMode Mode { get; set; }
     public string? Error { get; set; }
     public List<HtmlRuntimeWireNode> Nodes { get; set; } = new();
+    public Uri DocumentUrl { get; set; } = new("https://officeimo.invalid/");
+    public List<HtmlRuntimeResource> Resources { get; set; } = new();
 
     internal HtmlDocument Materialize(IHtmlDomServices services, HtmlScriptRequest request, CancellationToken token) {
         if (Nodes == null || Nodes.Count > request.MaxNodes) throw new HtmlScriptRuntimeException("Captured node budget exceeded.");

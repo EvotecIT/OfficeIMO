@@ -53,7 +53,11 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimeSession {
     public Task<HtmlScriptCapture> CaptureAsync(string? readyExpression = null, CancellationToken cancellationToken = default) =>
         SendAsync(Command("capture", readyExpression ?? _options.ReadyExpression), (response, token) => {
             HtmlRuntimeWireDocument document = response.Document ?? throw new HtmlScriptRuntimeException("The worker returned no captured document.");
-            return new HtmlScriptCapture(document.Materialize(_services, _options, token), document.ProviderId);
+            if (document.Resources == null || document.Resources.Count > _options.ResourcePolicy.MaxRequests ||
+                document.Resources.Any(resource => resource == null || resource.Length > _options.ResourcePolicy.MaxResourceBytes) ||
+                document.Resources.Sum(resource => resource.Length) > _options.ResourcePolicy.MaxTotalBytes)
+                throw new HtmlScriptRuntimeException("Captured resources exceed their budget.");
+            return new HtmlScriptCapture(document.Materialize(_services, _options, token), document.ProviderId, document.DocumentUrl, document.Resources);
         }, cancellationToken);
 
     private HtmlRuntimeCommand Command(string kind, string script) {

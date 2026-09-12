@@ -2,10 +2,16 @@ using OfficeIMO.Html.Dom;
 
 namespace OfficeIMO.Html.Runtime;
 
-/// <summary>A local scripted document supplied by a trusted caller. Network loading is not part of this profile.</summary>
+/// <summary>A scripted document supplied by a trusted caller, with explicit resource authority.</summary>
 public sealed class HtmlScriptRequest {
     /// <summary>Complete HTML source. Inline classic scripts execute while the document loads.</summary>
     public string Html { get; set; } = string.Empty;
+    /// <summary>Document identity and base for relative resource URLs. No document navigation is performed.</summary>
+    public Uri DocumentUrl { get; set; } = new("https://officeimo.invalid/");
+    /// <summary>Optional immutable resources for offline scripts, stylesheets and other document assets.</summary>
+    public IReadOnlyList<HtmlRuntimeResource> Resources { get; set; } = Array.Empty<HtmlRuntimeResource>();
+    /// <summary>Network authority and cumulative resource budgets. Network access is disabled by default.</summary>
+    public HtmlRuntimeResourcePolicy ResourcePolicy { get; set; } = new();
     /// <summary>Classic scripts executed in order after document loading.</summary>
     public IReadOnlyList<string> Scripts { get; set; } = Array.Empty<string>();
     /// <summary>A JavaScript expression which must evaluate to boolean true before capture.</summary>
@@ -40,7 +46,20 @@ public sealed class HtmlScriptRequest {
             length += script.Length;
         }
         if (length > MaxInputCharacters) throw new ArgumentException("The combined script input exceeds MaxInputCharacters.");
+        HtmlRuntimeResourcePolicy.ValidateUrl(DocumentUrl);
+        var policy = (ResourcePolicy ?? throw new ArgumentNullException(nameof(ResourcePolicy))).Snapshot();
+        ArgumentNullException.ThrowIfNull(Resources);
+        if (Resources.Count > policy.MaxRequests) throw new ArgumentException("Too many supplied resources.");
+        var resources = Resources.ToArray();
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        long resourceBytes = 0;
+        foreach (var resource in resources) {
+            if (resource == null || !keys.Add(HtmlRuntimeResourcePolicy.Key(resource.Url))) throw new ArgumentException("Resources must have unique non-null URL identities.");
+            if (resource.Length > policy.MaxResourceBytes || (resourceBytes += resource.Length) > policy.MaxTotalBytes)
+                throw new ArgumentException("Supplied resource bytes exceed their budget.");
+        }
         return new HtmlScriptRequest { Html = Html, Scripts = scripts, ReadyExpression = ReadyExpression, Timeout = Timeout,
+            DocumentUrl = DocumentUrl, Resources = resources, ResourcePolicy = policy,
             SessionTimeout = SessionTimeout, PollInterval = PollInterval, MaxInputCharacters = MaxInputCharacters, MaxOutputCharacters = MaxOutputCharacters,
             MaxNodes = MaxNodes, MaxDepth = MaxDepth, MaxPendingPromiseRejections = MaxPendingPromiseRejections };
     }
@@ -57,17 +76,23 @@ public interface IHtmlScriptRuntimeProvider {
 /// <summary>A completed scripted-document capture. Subsequent inspection and conversion are inert.</summary>
 public sealed class HtmlScriptCapture {
     /// <summary>Creates a capture from an independent frozen document supplied by a runtime provider.</summary>
-    public HtmlScriptCapture(HtmlDocument document, string providerId) {
+    public HtmlScriptCapture(HtmlDocument document, string providerId, Uri? documentUrl = null, IReadOnlyList<HtmlRuntimeResource>? resources = null) {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
         if (!document.IsReadOnly) throw new ArgumentException("A captured document must be frozen.", nameof(document));
         Document = document;
         ProviderId = providerId;
+        DocumentUrl = HtmlRuntimeResourcePolicy.ValidateUrl(documentUrl ?? new Uri("https://officeimo.invalid/"));
+        Resources = Array.AsReadOnly((resources ?? Array.Empty<HtmlRuntimeResource>()).ToArray());
     }
     /// <summary>Frozen owned document, including structural DOM mutations and template contents.</summary>
     public HtmlDocument Document { get; }
     /// <summary>Actual runtime implementation and version used by the worker.</summary>
     public string ProviderId { get; }
+    /// <summary>Document URL used to resolve references during execution.</summary>
+    public Uri DocumentUrl { get; }
+    /// <summary>Immutable resource responses loaded before capture, for offline inspection or render resolution.</summary>
+    public IReadOnlyList<HtmlRuntimeResource> Resources { get; }
 }
 
 /// <summary>Script execution, worker protocol or capture failed. No partial document is returned.</summary>

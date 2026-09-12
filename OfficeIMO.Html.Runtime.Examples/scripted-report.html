@@ -3,17 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>Scripted service report</title>
-  <style>
-    body { font-family: Arial, sans-serif; font-size: 16px; color: #20343d; margin: 36px; }
-    h1 { font-size: 30px; margin-bottom: 8px; }
-    .intro { color: #536975; }
-    .status { margin: 24px 0; padding: 16px; background: #e3f4ef; border-left: 5px solid #17785b; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th, td { text-align: left; padding: 12px; border-bottom: 1px solid #cbd7dc; }
-    th { background: #edf2f4; }
-    .total { font-weight: bold; font-size: 20px; }
-    button { display: none; }
-  </style>
+  <link rel="stylesheet" href="scripted-report.css">
 </head>
 <body>
   <h1>Service activity report</h1>
@@ -26,21 +16,6 @@
   </table>
   <p class="total" id="total"></p>
   <p>Document inspection, Markdown and rendered output use the same captured content.</p>
-  <script>
-    document.querySelector('#prepare').addEventListener('click', () => {
-      Promise.resolve([{ name: 'Document conversion', count: 24 }, { name: 'Content extraction', count: 18 }])
-        .then(services => setTimeout(() => {
-          for (const service of services) {
-            const row = document.createElement('tr');
-            const name = document.createElement('td'); name.textContent = service.name;
-            const count = document.createElement('td'); count.textContent = String(service.count);
-            row.appendChild(name); row.appendChild(count); document.querySelector('#rows').appendChild(row);
-          }
-          document.querySelector('#total').textContent = 'Total: ' + services.reduce((total, service) => total + service.count, 0);
-          document.querySelector('#status').textContent = 'Ready — all service results received.';
-          window.reportReady = true;
-        }, 25));
-    });
-  </script>
+  <script src="scripted-report.js"></script>
 </body>
 </html>

@@ -6,12 +6,14 @@ using AngleSharp.Scripting;
 using Jint;
 using AngleSharp.Html.Dom.Events;
 using AngleSharp.Html.Parser;
+using AngleSharp.Io;
 
 namespace OfficeIMO.Html.Runtime.Worker;
 
 internal sealed class ScriptedDocumentSession : IDisposable {
     private readonly IBrowsingContext _context;
     private readonly RuntimeScriptErrors _errors;
+    private readonly RuntimeResourceLoader _resources;
     private Engine _engine = null!;
     private readonly HtmlScriptRequest _options;
     private IDocument _document = null!;
@@ -20,7 +22,10 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private ScriptedDocumentSession(HtmlScriptRequest options) {
         _options = options;
         _errors = new RuntimeScriptErrors(options.MaxPendingPromiseRejections);
-        var configuration = Configuration.Default.WithCss().WithJs(new JsScriptingOptions { MaxCallStackDepth = 512 }).WithEventLoop();
+        _resources = new RuntimeResourceLoader(options);
+        var configuration = Configuration.Default.WithCss().WithJs(new JsScriptingOptions { MaxCallStackDepth = 512 }).WithEventLoop()
+            .With(new RuntimeResourceRequester(_resources, _errors))
+            .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true, IsNavigationDisabled = true });
         var scripting = configuration.Services.OfType<JsScriptingService>().Single();
         var scriptObservers = configuration.Services.OfType<IAttributeObserver>().Where(observer => observer.GetType().Assembly == typeof(JsScriptingService).Assembly).ToArray();
         // Replace only the script observer; retain CSS and native DOM attribute observers.
@@ -45,7 +50,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     internal static async Task<ScriptedDocumentSession> OpenAsync(HtmlScriptRequest request, CancellationToken token) {
         var session = new ScriptedDocumentSession(request);
         try {
-            session._document = await session._context.OpenAsync(source => source.Content(request.Html), token).WaitUntilAvailable(token);
+            session._document = await session._context.OpenAsync(source => source.Address(request.DocumentUrl.AbsoluteUri).Content(request.Html), token).WaitUntilAvailable(token);
             session._loop = session._context.GetService<IEventLoop>() ?? throw new HtmlScriptRuntimeException("The provider did not create an event loop.");
             foreach (string script in request.Scripts) await session.ExecuteAsync(script, token);
             await session.OnLoop(() => true, token);
@@ -68,7 +73,9 @@ internal sealed class ScriptedDocumentSession : IDisposable {
                 if (_document.ExecuteScript(expression) is not true) return (Ready: false, Document: (HtmlRuntimeWireDocument?)null);
                 _errors.ThrowIfFailed();
                 // Readiness and capture share a task so timers cannot mutate between them.
-                return (Ready: true, Document: capture ? RuntimeDomCapture.Capture(_document, _options, token) : null);
+                var document = capture ? RuntimeDomCapture.Capture(_document, _options, token) : null;
+                if (document != null) { document.DocumentUrl = new Uri(_document.Url); document.Resources = _resources.Capture().ToList(); }
+                return (Ready: true, Document: document);
             }, token);
             if (result.Ready) return result.Document;
             await Task.Delay(_options.PollInterval, token);
@@ -97,6 +104,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
 
     public void Dispose() {
         _loop?.CancelAll();
+        _resources.Dispose();
         _context.Dispose();
     }
 }

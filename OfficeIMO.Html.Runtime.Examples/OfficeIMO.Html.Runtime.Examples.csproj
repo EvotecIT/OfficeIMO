@@ -5,5 +5,7 @@
     <ProjectReference Include="../OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj" />
     <ProjectReference Include="../OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj" />
     <None Include="scripted-report.html" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="scripted-report.css" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="scripted-report.js" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
