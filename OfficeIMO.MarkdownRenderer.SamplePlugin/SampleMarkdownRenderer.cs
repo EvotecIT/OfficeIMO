@@ -233,7 +233,7 @@ public static class SampleMarkdownRenderer {
         }
 
         var element = context.Element;
-        if (!element.TagName.Equals("SECTION", StringComparison.OrdinalIgnoreCase)
+        if (!element.LocalName.Equals("SECTION", StringComparison.OrdinalIgnoreCase)
             || !element.ClassList.Contains("sample-status-panel")) {
             return null;
         }
@@ -248,9 +248,9 @@ public static class SampleMarkdownRenderer {
         string? caption = null;
 
         foreach (var child in element.Children) {
-            if (child.TagName.Equals("HEADER", StringComparison.OrdinalIgnoreCase)) {
+            if (child.LocalName.Equals("HEADER", StringComparison.OrdinalIgnoreCase)) {
                 title = context.NormalizeBlockText(child.TextContent);
-            } else if (child.TagName.Equals("FOOTER", StringComparison.OrdinalIgnoreCase)) {
+            } else if (child.LocalName.Equals("FOOTER", StringComparison.OrdinalIgnoreCase)) {
                 caption = context.NormalizeBlockText(child.TextContent);
             }
         }
@@ -289,7 +289,7 @@ public static class SampleMarkdownRenderer {
         }
 
         var element = context.Element;
-        if (!element.TagName.Equals("SPAN", StringComparison.OrdinalIgnoreCase)
+        if (!element.LocalName.Equals("SPAN", StringComparison.OrdinalIgnoreCase)
             || !element.ClassList.Contains(StatusBadgeCssClass)) {
             return null;
         }

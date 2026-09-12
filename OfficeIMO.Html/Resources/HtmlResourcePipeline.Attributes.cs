@@ -43,7 +43,9 @@ public static partial class HtmlResourcePipeline {
             return;
         }
 
-        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(raw, options.MaxResponsiveImageCandidates)) {
+        int? candidateLimit = HtmlConversionLimits.Minimum(options.MaxResponsiveImageCandidates,
+            (options.Limits ?? HtmlConversionLimits.CreateUntrustedProfile()).MaxResponsiveImageCandidates);
+        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(raw, candidateLimit)) {
             AddRaw(manifest, kind, element, attributeName, candidate.Url, baseUri, options);
         }
     }

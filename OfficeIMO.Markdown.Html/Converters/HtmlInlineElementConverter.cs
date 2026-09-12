@@ -1,5 +1,7 @@
 using AngleSharp.Dom;
 using OfficeIMO.Markdown;
+using OfficeIMO.Html;
+using OfficeIMO.Html.Dom;
 
 namespace OfficeIMO.Markdown.Html;
 
@@ -8,9 +10,11 @@ namespace OfficeIMO.Markdown.Html;
 /// </summary>
 public sealed class HtmlInlineElementConversionContext {
     private readonly HtmlToMarkdownConverter.ConversionContext? _conversionContext;
+    private readonly IElement _nativeElement;
+    private HtmlElement? _element;
 
     internal HtmlInlineElementConversionContext(IElement element, HtmlToMarkdownOptions options, HtmlToMarkdownConverter.ConversionContext? conversionContext) {
-        Element = element ?? throw new ArgumentNullException(nameof(element));
+        _nativeElement = element ?? throw new ArgumentNullException(nameof(element));
         Options = options ?? throw new ArgumentNullException(nameof(options));
         _conversionContext = conversionContext;
     }
@@ -18,7 +22,7 @@ public sealed class HtmlInlineElementConversionContext {
     /// <summary>
     /// HTML element being converted.
     /// </summary>
-    public IElement Element { get; }
+    public HtmlElement Element => _element ??= NativeDomBridge.Wrap(_nativeElement);
 
     /// <summary>
     /// Active HTML-to-markdown options.
@@ -27,16 +31,19 @@ public sealed class HtmlInlineElementConversionContext {
 
     /// <summary>
     /// Converts the supplied HTML nodes into an inline markdown sequence using the current conversion profile.
+    /// Missing collections and null entries contribute no output; non-null nodes must belong to this callback snapshot.
     /// </summary>
-    public InlineSequence ConvertNodesToInlineSequence(IEnumerable<INode> nodes) {
-        return HtmlToMarkdownConverter.ConvertInlineNodesToInlineSequence(nodes ?? Array.Empty<INode>(), _conversionContext);
+    public InlineSequence ConvertNodesToInlineSequence(IEnumerable<HtmlNode?>? nodes) {
+        return HtmlToMarkdownConverter.ConvertInlineNodesToInlineSequence(
+            (nodes ?? Enumerable.Empty<HtmlNode?>()).Where(node => node != null)
+                .Select(node => NativeDomBridge.GetCallbackNative(node!, Element.Document)), _conversionContext);
     }
 
     /// <summary>
     /// Converts the current element's children into an inline markdown sequence using the current conversion profile.
     /// </summary>
     public InlineSequence ConvertChildNodesToInlineSequence() {
-        return ConvertNodesToInlineSequence(Element.ChildNodes);
+        return HtmlToMarkdownConverter.ConvertInlineNodesToInlineSequence(_nativeElement.ChildNodes, _conversionContext);
     }
 
     /// <summary>

@@ -29,7 +29,7 @@ concurrency:
 env:
   DOTNET_VERSION: |
     8.0.418
-    10.0.103
+    10.0.112
   BUILD_CONFIGURATION: 'Release'
   TEST_VERBOSITY: minimal # set to 'detailed' to restore full test output
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
@@ -61,6 +61,28 @@ jobs:
           name: studio-tests-${{ matrix.os }}
           path: TestResults/Studio
           if-no-files-found: ignore
+
+  studio-locked-restore:
+    name: 'Studio locked restore (${{ matrix.os }})'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Validate the Studio release restore graph
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $config = Get-Content Build/Studio/powerforge.dotnetpublish.json -Raw | ConvertFrom-Json
+          $runtimeProperty = '-p:RuntimeIdentifiers="' + $config.DotNet.MsBuildProperties.RuntimeIdentifiers + '"'
+          dotnet restore $config.Targets[0].ProjectPath --locked-mode -p:OfficeIMOStudioLockedRestore=true -p:SelfContained=true -p:PublishSingleFile=true $runtimeProperty
+          git diff --exit-code -- '**/packages*.lock.json'
 
   invoice-standards:
     name: Invoice schema and business rules
@@ -212,6 +234,8 @@ jobs:
             'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
             'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
             'OfficeIMO.Email/OfficeIMO.Email.csproj',
+            'OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj',
+            'OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj',
             'OfficeIMO.Html/OfficeIMO.Html.csproj',
             'OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj',
             'OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj',
@@ -243,6 +267,8 @@ jobs:
           $coreVersion = Get-PackedPackageVersion 'OfficeIMO.Core'
           $markdownVersion = Get-PackedPackageVersion 'OfficeIMO.Markdown'
           $rtfVersion = Get-PackedPackageVersion 'OfficeIMO.Rtf'
+          $htmlCoreVersion = Get-PackedPackageVersion 'OfficeIMO.Html.Core'
+          $htmlAngleSharpVersion = Get-PackedPackageVersion 'OfficeIMO.Html.AngleSharp'
           $htmlVersion = Get-PackedPackageVersion 'OfficeIMO.Html'
           $htmlRtfVersion = Get-PackedPackageVersion 'OfficeIMO.Html.Rtf'
           $markdownHtmlVersion = Get-PackedPackageVersion 'OfficeIMO.Markdown.Html'
@@ -278,6 +304,8 @@ jobs:
             'OfficeIMO.Rtf',
             'OfficeIMO.Email',
             'OfficeIMO.Email.Html',
+            'OfficeIMO.Html.Core',
+            'OfficeIMO.Html.AngleSharp',
             'OfficeIMO.Html',
             'OfficeIMO.Html.Rtf',
             'OfficeIMO.Markdown.Html',
@@ -308,6 +336,8 @@ jobs:
             @{ Id = 'officeimo.core'; Version = $coreVersion },
             @{ Id = 'officeimo.markdown'; Version = $markdownVersion },
             @{ Id = 'officeimo.rtf'; Version = $rtfVersion },
+            @{ Id = 'officeimo.html.core'; Version = $htmlCoreVersion },
+            @{ Id = 'officeimo.html.anglesharp'; Version = $htmlAngleSharpVersion },
             @{ Id = 'officeimo.html'; Version = $htmlVersion },
             @{ Id = 'officeimo.html.rtf'; Version = $htmlRtfVersion },
             @{ Id = 'officeimo.markdown.html'; Version = $markdownHtmlVersion },
@@ -375,6 +405,8 @@ jobs:
           $projects = @(
             'OfficeIMO.Core/OfficeIMO.Core.csproj',
             'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
+            'OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj',
+            'OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj',
             'OfficeIMO.Html/OfficeIMO.Html.csproj',
             'OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj',
             'OfficeIMO.OneNote/OfficeIMO.OneNote.csproj',
@@ -401,6 +433,8 @@ jobs:
           $packageIds = @(
             'OfficeIMO.Core',
             'OfficeIMO.Markdown',
+            'OfficeIMO.Html.Core',
+            'OfficeIMO.Html.AngleSharp',
             'OfficeIMO.Html',
             'OfficeIMO.Reader.Core',
             'OfficeIMO.OneNote',

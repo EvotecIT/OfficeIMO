@@ -235,7 +235,7 @@ public static class EmailBodyProjection {
         Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) ? uri : null;
 
     private static string CreateSafeEmailHtml(HtmlConversionDocument document) {
-        AngleSharp.Html.Dom.IHtmlDocument safe = document.CreateDocumentForConversion();
+        AngleSharp.Html.Dom.IHtmlDocument safe = document.CreateNativeDocumentForConversion();
         foreach (IElement element in safe.QuerySelectorAll("script,iframe,object,embed,form").ToArray()) {
             element.Remove();
         }

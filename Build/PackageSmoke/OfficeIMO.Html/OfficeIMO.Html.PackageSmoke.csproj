@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(EnableOfficeIMOHtmlPackageSmoke)' == 'true'">
+    <PackageReference Include="OfficeIMO.Markdown.Html" Version="[$(OfficeIMOHtmlPackageVersion)]" />
     <PackageReference Include="OfficeIMO.Html" Version="[$(OfficeIMOHtmlPackageVersion)]" />
     <PackageReference Include="OfficeIMO.Word.Html" Version="[$(OfficeIMOHtmlPackageVersion)]" />
     <PackageReference Include="OfficeIMO.Excel.Html" Version="[$(OfficeIMOHtmlPackageVersion)]" />

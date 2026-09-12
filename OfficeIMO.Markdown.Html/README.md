@@ -71,6 +71,7 @@ string markdown = source.ToMarkdown(options);
 
 - `SmartHref` emits self-describing links such as `<a href="https://example.com">https://example.com</a>` as plain text.
 - `ExcludeSelectors` and `ElementFilters` remove matching HTML before conversion.
+- `ElementFilters` and custom converter contexts expose immutable `OfficeIMO.Html.Dom` snapshots. A filter returning `true` removes its element. Use `LocalName` for HTML tag names and pass nodes from the current callback snapshot to its child-conversion helpers.
 - `TagAliases` lets custom or legacy tag names reuse built-in converters.
 - `PassThroughTags` preserves selected elements as raw HTML.
 - `UnknownBlockHandling` and `UnknownInlineHandling` choose whether unknown elements are preserved, bypassed, dropped, or rejected.

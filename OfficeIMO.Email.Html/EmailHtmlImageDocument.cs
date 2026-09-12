@@ -63,7 +63,7 @@ public sealed class EmailHtmlImageDocument {
         options.UseBodyContentsOnly = false;
         options.ResourceUrlPolicy = compatibleResources;
         HtmlConversionDocument conversion = HtmlConversionDocument.Parse(html, options);
-        IHtmlDocument document = conversion.CreateDocumentForConversion();
+        IHtmlDocument document = conversion.CreateNativeDocumentForConversion();
         IHtmlDocument sourceDocument = conversion.CreateSourceDocumentForConversion();
         var leadingNodes = new List<string>();
         var trailingNodes = new List<string>();

@@ -106,8 +106,7 @@ internal static class PdfImageExportEngine {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
-        OfficeDrawing drawing = page.ToDrawing(cancellationToken);
-        drawing.ApplyImageExportOptions(options);
+        OfficeDrawing drawing = page.ToDrawing(cancellationToken, drawing => drawing.ApplyImageExportOptions(options));
         PdfImageExportOptions effective = options.Clone();
         double requestedScale = options.Scale;
         effective.Scale = options.ResolveScale(drawing);

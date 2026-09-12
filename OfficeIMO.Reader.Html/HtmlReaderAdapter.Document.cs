@@ -84,7 +84,7 @@ internal static partial class HtmlReaderAdapter {
             effectiveHtmlOptions,
             projectionOptions.BaseUri);
         var filtered = HtmlToMarkdownConverter.PrepareDocument(
-            conversionDocument.CreateDocumentForConversion(HtmlCssMediaContext.Screen),
+            conversionDocument.CreateNativeDocumentForConversion(HtmlCssMediaContext.Screen),
             projectionOptions);
         projectionOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(filtered, projectionOptions.BaseUri);
         HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromDocument(filtered, useBodyContentsOnly: false);

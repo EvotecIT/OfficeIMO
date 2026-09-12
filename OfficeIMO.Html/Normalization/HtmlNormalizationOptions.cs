@@ -22,7 +22,7 @@ public sealed class HtmlNormalizationOptions {
     /// <summary>Shared source, DOM, stylesheet, and semantic-metadata limits applied before normalization.</summary>
     public HtmlConversionLimits Limits { get; set; } = HtmlConversionLimits.CreateUntrustedProfile();
 
-    /// <summary>Optional maximum number of candidates normalized from one responsive source set.</summary>
+    /// <summary>Optional additional cap on candidates from one responsive source set; the stricter shared or local cap applies.</summary>
     public int? MaxResponsiveImageCandidates { get; set; }
 
     /// <summary>When true, only body contents are emitted instead of a full document shell.</summary>

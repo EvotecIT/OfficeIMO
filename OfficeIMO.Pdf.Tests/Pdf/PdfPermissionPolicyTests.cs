@@ -132,6 +132,7 @@ public class PdfPermissionPolicyTests {
         Assert.Throws<PdfPermissionDeniedException>(() => document.Pages[0].GetImages());
         Assert.Throws<PdfPermissionDeniedException>(() => document.Pages[0].GetImagePlacements());
         Assert.Throws<PdfPermissionDeniedException>(() => document.Pages[0].ToDrawing());
+        Assert.Throws<PdfPermissionDeniedException>(() => document.Pages[0].ToDrawing(new OfficeIMO.Drawing.OfficeFontFaceCollection()));
         Assert.Throws<PdfPermissionDeniedException>(() => PdfImageExtractor.ExtractImages(document));
         Assert.Throws<PdfPermissionDeniedException>(() => PdfImageExtractor.ExtractImagePlacements(document));
         Assert.Throws<PdfPermissionDeniedException>(() => PdfDocument.Load(pdf, enforced).Images.Find(new PdfPageRegion(1, 0D, 0D, 100D, 100D)));
@@ -144,6 +145,7 @@ public class PdfPermissionPolicyTests {
         Assert.NotEmpty(authorized.Pages[0].GetImages());
         Assert.NotEmpty(authorized.Pages[0].GetImagePlacements());
         Assert.NotEmpty(authorized.Pages[0].ToDrawing().Elements);
+        Assert.NotEmpty(authorized.Pages[0].ToDrawing(new OfficeIMO.Drawing.OfficeFontFaceCollection()).Elements);
     }
 
     [Fact]

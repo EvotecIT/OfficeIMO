@@ -24,7 +24,7 @@ public static partial class HtmlExcelConverterExtensions {
     public static HtmlToExcelResult ToExcelDocumentResult(this HtmlConversionDocument document, HtmlToExcelOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
-        IHtmlDocument adapterDocument = document.CreateDocumentForConversion(mediaContext);
+        IHtmlDocument adapterDocument = document.CreateNativeDocumentForConversion(mediaContext);
         HtmlToExcelOptions resolved = options?.Clone() ?? new HtmlToExcelOptions();
         bool targetSemantic = resolved.Mode != HtmlImportMode.Generic
             && (resolved.Mode == HtmlImportMode.Semantic

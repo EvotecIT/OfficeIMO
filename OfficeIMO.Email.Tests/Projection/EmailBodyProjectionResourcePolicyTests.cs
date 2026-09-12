@@ -145,7 +145,7 @@ public sealed class EmailBodyProjectionResourcePolicyTests {
             "second@example.test", 1, "second.png", "shared.png"));
 
         EmailBodyProjectionResult projection = EmailBodyProjection.Create(document);
-        AngleSharp.Dom.IElement image = projection.Document.CreateDocumentForConversion()
+        OfficeIMO.Html.Dom.HtmlElement image = projection.Document.CreateDocumentForConversion()
             .QuerySelector("img")!;
 
         Assert.False(image.HasAttribute("src"));

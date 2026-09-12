@@ -11,6 +11,111 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### Owned HTML documents and callbacks
+
+Public HTML APIs now use `OfficeIMO.Html.Dom.HtmlDocument`, `HtmlElement` and
+`HtmlNode` from `OfficeIMO.Html.Core`. Update all OfficeIMO packages together and
+recompile consumers that previously passed AngleSharp nodes. The current default
+implementation is supplied by `OfficeIMO.Html.AngleSharp`; converters retain their
+internal AngleSharp/CSS implementation.
+
+| Previous code or behavior | Replacement |
+| --- | --- |
+| `AngleSharp.Html.Dom.IHtmlDocument html = conversion.CreateDocumentForConversion()` | Use `HtmlDocument` or `var`; the result is an independent mutable conversion tree. |
+| Mutate a retained source tree | Read `conversion.Document`; use `conversion.Edit(edit => ...)` to obtain a new conversion snapshot. |
+| Pass native DOMs to `HtmlNormalizer`, `HtmlResourcePipeline`, `HtmlComputedStyleEngine` or `OfficeHtmlSemanticEnvelope` | Pass an owned document, or use the string/conversion-document overload. |
+| Dictionaries keyed by `AngleSharp.Dom.IElement` from computed-style APIs | Use `HtmlElement` keys. For `Compute(conversion)`, keys belong to `conversion.Document`. |
+| Native nodes in Markdown filters and custom converter contexts | Use owned nodes. Callback snapshots are read-only; a filter returning `true` still removes the matching element. |
+| `context.Element.TagName == "SPAN"` | Compare `context.Element.LocalName == "span"` for HTML elements; foreign-content case is preserved. |
+| `QuerySelectorAll(...).Length` | Use `.Count`; query results are `IReadOnlyList<HtmlElement>`. |
+| Pass native nodes to custom context conversion helpers | Pass nodes from that callback's owned snapshot. Cross-snapshot nodes are rejected. |
+| In-place `HtmlActiveMediaFilter.Filter(nativeDocument, media)` returning a Boolean | Assign the returned owned snapshot from `HtmlActiveMediaFilter.Filter(document, media)`; the input is unchanged. |
+| Catch native selector exceptions | Invalid selectors use `ArgumentException` on the owned selector API. |
+
+`HtmlConversionDocument.FromDocument(tree)` replaces native-DOM conversion inputs.
+Conversion capture retains the attached tree and template contents; detached nodes
+are omitted even when the input is frozen. Keep the original owned document when
+detached handles are needed. Mutable inputs are copied and frozen. Editing preserves conversion trust, resource
+policies and limits, and recomputes derived results. Node IDs persist within an edit
+lineage; snapshot IDs differ. Detached nodes remain part of their owning document
+and become read-only when it is frozen. `TextContent` can be set on elements, text,
+comments and fragments; write document text through `Body` or another element.
+
+For owned inputs, `MaxInputCharacters` bounds aggregate attached node names and
+values before conversion capture, standalone normalization or resource discovery.
+`HtmlConversionDocument` also bounds the resulting canonical HTML source.
+Increase this limit when an authored tree or its escaped serialization exceeds the
+configured budget. Template content participates in node, depth, CSS and semantic
+metadata limits on the default conversion parser as well as the owned provider.
+
+Standalone normalization and resource discovery apply the shared
+`Limits.MaxResponsiveImageCandidates` cap. Their separate candidate settings can
+tighten that cap; a larger setting does not relax the shared limit.
+
+`HtmlComputedStyleEngine.Compute(ownedDocument)` preserves the previous prepared-DOM
+style computation contract without injecting untrusted-input budgets. To apply
+custom budgets, pass a `HtmlConversionDocument` created with your chosen limits.
+Raw-string style computation continues to use the default untrusted profile.
+
+Use `InputEncodingProvider` on conversion options to replace charset lookup for
+source streams. Explicit encodings retain precedence and streams remain open with
+seekable positions restored. The default web charset provider still registers
+`CodePagesEncodingProvider` globally; it is isolated in the provider package rather
+than removed. External stylesheet/data-URI decoding has separate provider arguments.
+
+### PDF positioned-text rendering limit
+
+PDF page-image export and `PdfReadPage.ToDrawing()` now limit positioned-text
+expansion to 100,000 characters per page render. Explicitly spaced basic Latin
+runs can expand into individual glyphs to preserve their recorded positions.
+The limit is shared across the page and its repeated forms and patterns; runs
+that are culled or rendered as a whole do not consume this expansion budget.
+
+Documents that exceed the default throw `PdfReadLimitException` with
+`Kind == PdfReadLimitKind.PositionedTextCharacters`. Handle that failure like
+other configured PDF read limits. For a trusted document that needs more
+positioned glyphs, raise this limit when loading it:
+
+```csharp
+var options = new PdfLoadOptions {
+    Limits = new PdfReadLimits { MaxPositionedTextCharactersPerPage = 200_000 }
+};
+var document = PdfReadDocument.Open(pdfBytes, options);
+var image = document.Pages[0].ExportImage(OfficeImageExportFormat.Png);
+```
+
+Other read and raster limits retain their defaults. Raising this value increases
+the amount of drawing geometry a page may allocate; choose a bound appropriate
+for the documents your application accepts.
+
+Visibility work has a separate 100,000-character limit,
+`MaxPositionedTextWorkCharactersPerPage`. It counts characters that need a glyph
+string to be materialized or an uncached ink measurement, including off-page or
+clipped-out glyphs. Allocation-free cache hits do not count. Work is shared across
+nested page rendering paths and resets for each render. Exceeding it throws
+`PdfReadLimitException` with `Kind == PdfReadLimitKind.PositionedTextWorkCharacters`.
+Raise this property in `PdfLoadOptions.Limits` for trusted documents that need
+more visibility work, independently of the limit on visible drawing elements.
+Glyphs with no resolved ink consume no scene-expansion budget.
+
+### Configure PDF drawing fonts before projection
+
+If you add substitute fonts to the drawing returned by `PdfReadPage.ToDrawing()`,
+move that configuration into the new overload. Visibility checks now measure
+glyph ink during projection; changing fonts afterward cannot restore culled glyphs.
+
+```csharp
+var fonts = new OfficeFontFaceCollection();
+fonts.Add("Courier New", File.ReadAllBytes("fonts/CourierSubstitute.ttf"));
+var drawing = document.Pages[0].ToDrawing(fonts);
+```
+
+Pass an optional `textShapingProvider` and `textShapingLanguage` to the same
+overload when using custom shaping. Fonts and shaping apply before visibility
+checks in nested forms, patterns, and masks as well as the page. The parameterless
+overload remains available for default rendering. Image export already accepts
+the profile through `PdfImageExportOptions`.
+
 ### Factur-X profile declarations
 
 The Factur-X attachment helpers now derive XMP `ConformanceLevel` from the
@@ -870,7 +975,7 @@ implementation and options belong to `OfficeIMO.Pdf`.
 | Register MHT/MHTML with Reader | Reference `OfficeIMO.Reader.Email`, import `OfficeIMO.Reader.Email`, and call `AddMhtmlHandler()`. `AddEmailHandlers()` and `OfficeIMO.Reader.All` include it automatically. |
 | Read EPUB through Reader | No source change. `OfficeIMO.Reader.Epub` still reuses the HTML projection but no longer receives Email, RTF, or MHTML transitively. |
 
-No `OfficeIMO.Html.Core`, separate document-model package, or `OfficeIMO.Reader.Mhtml` package was introduced. The base HTML, Email, and Reader APIs stay focused; optional bridges carry the extra dependency edges. `OfficeIMO.Email.Image` and `OfficeIMO.Reader.Email` now reuse `OfficeIMO.Email.Html` for body choice, RTF fallback, sanitization, and embedded-resource resolution instead of maintaining adapter-specific policies.
+`OfficeIMO.Email.Image` and `OfficeIMO.Reader.Email` reuse `OfficeIMO.Email.Html` for body choice, RTF fallback, sanitization, and embedded-resource resolution instead of maintaining adapter-specific policies.
 
 ## OfficeIMO 3.1
 

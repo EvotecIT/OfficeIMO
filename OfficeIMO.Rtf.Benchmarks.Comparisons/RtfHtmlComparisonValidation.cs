@@ -1,8 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Security.Cryptography;
-using AngleSharp.Dom;
-using AngleSharp.Html.Dom;
+using OfficeIMO.Html.Dom;
 using OfficeIMO.Html;
 
 namespace OfficeIMO.Rtf.Benchmarks.Comparisons;
@@ -59,7 +58,7 @@ internal static partial class RtfHtmlComparisonValidation {
             throw new InvalidOperationException($"{implementation} produced empty HTML for '{scale}'.");
         }
 
-        IHtmlDocument document = HtmlConversionDocument.Parse(html).CreateDocumentForConversion();
+        HtmlDocument document = HtmlConversionDocument.Parse(html).CreateDocumentForConversion();
         string text = ExtractSemanticText(document);
         if (text.Length == 0) {
             throw new InvalidOperationException($"{implementation} produced HTML without visible text for '{scale}'.");
@@ -74,9 +73,9 @@ internal static partial class RtfHtmlComparisonValidation {
             implementation,
             Encoding.UTF8.GetByteCount(html),
             RecordMarkerRegex().Matches(text).Count,
-            document.QuerySelectorAll("table").Length,
+            document.QuerySelectorAll("table").Count,
             tableCells.Length,
-            document.QuerySelectorAll("img").Length,
+            document.QuerySelectorAll("img").Count,
             semanticTokens.Length,
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\u001F', semanticTokens)))),
             tableCells,
@@ -137,22 +136,22 @@ internal static partial class RtfHtmlComparisonValidation {
     private static string NormalizeWhitespace(string value) =>
         WhitespaceRegex().Replace(value, " ").Trim();
 
-    private static string ExtractSemanticText(IHtmlDocument document) {
+    private static string ExtractSemanticText(HtmlDocument document) {
         var builder = new StringBuilder();
-        INode? root = document.Body ?? document.DocumentElement;
+        HtmlNode? root = document.Body ?? document.DocumentElement;
         if (root != null) AppendSemanticText(root, builder);
         return NormalizeWhitespace(builder.ToString());
     }
 
-    private static void AppendSemanticText(INode node, StringBuilder builder) {
-        if (node is IText text) {
-            builder.Append(text.Data);
+    private static void AppendSemanticText(HtmlNode node, StringBuilder builder) {
+        if (node.Kind == HtmlNodeKind.Text) {
+            builder.Append(node.TextContent);
             return;
         }
 
-        bool boundary = node is IElement element && IsSemanticBlockBoundary(element.TagName);
+        bool boundary = node is HtmlElement element && IsSemanticBlockBoundary(element.LocalName.ToUpperInvariant());
         if (boundary) builder.Append(' ');
-        foreach (INode child in node.ChildNodes) AppendSemanticText(child, builder);
+        foreach (HtmlNode child in node.ChildNodes) AppendSemanticText(child, builder);
         if (boundary) builder.Append(' ');
     }
 

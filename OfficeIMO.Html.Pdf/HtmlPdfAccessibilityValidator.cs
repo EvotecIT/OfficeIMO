@@ -56,7 +56,7 @@ public static class HtmlPdfAccessibilityValidator {
         if (sourceDocument == null) throw new ArgumentNullException(nameof(sourceDocument));
         HtmlPdfAccessibilityValidationResult artifactResult = Validate(pdfBytes);
         var issues = new List<HtmlPdfAccessibilityIssue>(artifactResult.Issues);
-        IHtmlDocument document = sourceDocument.CreateDocumentForConversion(HtmlCssMediaContext.Print);
+        IHtmlDocument document = sourceDocument.CreateNativeDocumentForConversion(HtmlCssMediaContext.Print);
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document, HtmlCssMediaContext.Print);
         foreach (IElement element in document.QuerySelectorAll("img,input[type=image],svg")) {
             if (IsExcludedFromAccessibilityValidation(element, styles)) continue;

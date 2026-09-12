@@ -3,40 +3,62 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    private static void AddTextSpan(OfficeDrawing drawing, double pageHeight, PdfTextSpan span) {
-        if (string.IsNullOrEmpty(span.Text) || !span.IsVisible) {
+    private static readonly string[] BasicLatinGlyphStrings = Enumerable.Range(' ', '~' - ' ' + 1)
+        .Select(static character => ((char)character).ToString()).ToArray();
+
+    private static void AddTextSpan(OfficeDrawing drawing, double pageHeight, PdfTextSpan span, PageContentBudget pageContentBudget,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        AddTextSpanCore(drawing, pageHeight, span, pageContentBudget, null, cancellationToken);
+
+    private static void AddTextSpanCore(OfficeDrawing drawing, double pageHeight, PdfTextSpan span, PageContentBudget pageContentBudget,
+        (double Left, double Top, double Right, double Bottom)? measuredPaint, System.Threading.CancellationToken cancellationToken) {
+        if (string.IsNullOrEmpty(span.Text) || !span.IsVisible || span.Color is { A: 0 }) {
+            return;
+        }
+        if (span.ClipPath.HasValue) {
+            var sourceClip = span.ClipPath.Value;
+            if (sourceClip.Width <= 0D || sourceClip.Height <= 0D) return;
+            if ((sourceClip.IsRectangle || sourceClip.ToOfficeClipPath(sourceClip.X, sourceClip.Y) != null) &&
+                (!TryFitClipToDrawing(sourceClip, drawing.Width, drawing.Height, out var fittedClip) ||
+                 fittedClip.Width <= 0D || fittedClip.Height <= 0D)) return;
+        }
+
+        if (!span.CanScaleAggregateAdvance && TryAddSpacedText(drawing, pageHeight, span, pageContentBudget, cancellationToken)) {
             return;
         }
 
-        double height = Math.Max(1D, span.FontSize * 1.25D);
-        double width = Math.Max(span.Advance, span.Text.Length * span.FontSize * 0.55D);
-        double rawX = span.X;
-        double rawY = pageHeight - span.Y - span.FontSize;
-        if (!HasVisibleOverlap(rawX, rawY, width, height, drawing.Width, drawing.Height)) {
+        var frame = GetTextFrame(pageHeight, span.X, span.Y, span.FontSize, span.Text.Length, span.Advance);
+        double height = frame.Height;
+        double width = frame.Width;
+        double rawX = frame.X;
+        double rawY = frame.Y;
+        // Glyph paint bounds describe resolved positioned glyphs. Whole-run fallback
+        // uses a different layout contract and retains its existing frame handling.
+        bool positionedGlyph = measuredPaint.HasValue || span.Text.Length == 1 && TryGetSafePositionedAdvance(span, out _);
+        var paint = measuredPaint ?? (positionedGlyph
+            ? GetTextPaintBounds(drawing, span, frame, pageHeight - span.Y, pageContentBudget)
+            : (Left: rawX, Top: rawY, Right: rawX + width, Bottom: rawY + height));
+        if (!HasVisibleOverlap(paint.Left, paint.Top, paint.Right - paint.Left, paint.Bottom - paint.Top, drawing.Width, drawing.Height)) {
             return;
         }
+
+        if (TryAddClippedTextSpan(drawing, span, rawX, rawY, width, height, pageHeight - span.Y,
+            span.ClipPath ?? PdfPageClipPath.Rectangle(0D, 0D, drawing.Width, drawing.Height), paint)) return;
 
         double x = rawX;
         double y = rawY;
-        double clippedRight = Math.Min(rawX + width, drawing.Width);
-        double clippedBottom = Math.Min(rawY + height, drawing.Height);
         double baselineY = pageHeight - span.Y;
-        if (!span.ClipPath.HasValue &&
-            (rawX < 0D || rawY < 0D || rawX + width > drawing.Width || rawY + height > drawing.Height)) {
-            PdfPageClipPath pageClip = PdfPageClipPath.Rectangle(0D, 0D, drawing.Width, drawing.Height);
-            if (TryAddClippedTextSpan(drawing, span, x, y, width, height, baselineY, pageClip)) {
-                return;
-            }
+        if (!positionedGlyph) {
+            x = Clamp(rawX, 0D, drawing.Width);
+            y = Clamp(rawY, 0D, drawing.Height);
+            baselineY = Clamp(baselineY, 0D, drawing.Height);
+            width = Math.Max(1D, Math.Min(rawX + width, drawing.Width) - x);
+            height = Math.Max(1D, Math.Min(rawY + height, drawing.Height) - y);
         }
-
-        x = Clamp(rawX, 0D, drawing.Width);
-        y = Clamp(rawY, 0D, drawing.Height);
-        baselineY = Clamp(baselineY, 0D, drawing.Height);
-        width = Math.Max(1D, clippedRight - x);
-        height = Math.Max(1D, clippedBottom - y);
-        if (TryAddClippedTextSpan(drawing, span, x, y, width, height, baselineY)) {
-            return;
-        }
+        // An unsupported source clip still needs page clipping. Preserve the raw
+        // origin and rotation center; clamping either moves visible glyph ink.
+        if (span.ClipPath.HasValue && TryAddClippedTextSpan(drawing, span, x, y, width, height, baselineY,
+            PdfPageClipPath.Rectangle(0D, 0D, drawing.Width, drawing.Height), paint)) return;
 
         if (TryGetSafePositionedAdvance(span, out double textAdvance)) {
             drawing.AddPositionedText(
@@ -65,7 +87,8 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private static bool TryAddClippedTextSpan(OfficeDrawing drawing, PdfTextSpan span, double x, double y, double width, double height, double baselineY, PdfPageClipPath? overrideClipPath = null) {
+    private static bool TryAddClippedTextSpan(OfficeDrawing drawing, PdfTextSpan span, double x, double y, double width, double height, double baselineY, PdfPageClipPath? overrideClipPath = null,
+        (double Left, double Top, double Right, double Bottom)? paintBounds = null) {
         PdfPageClipPath? activeClipPath = overrideClipPath ?? span.ClipPath;
         if (!activeClipPath.HasValue) {
             return false;
@@ -83,11 +106,13 @@ public sealed partial class PdfReadPage {
 
         double clipRight = clip.X + clip.Width;
         double clipBottom = clip.Y + clip.Height;
-        if (clip.IsRectangle && x >= clip.X && y >= clip.Y && x + width <= clipRight && y + height <= clipBottom) {
+        var paint = paintBounds ?? (x, y, x + width, y + height);
+        if (clip.IsRectangle && paint.Item1 >= clip.X && paint.Item2 >= clip.Y && paint.Item3 <= clipRight && paint.Item4 <= clipBottom &&
+            x >= 0D && y >= 0D && x + width <= drawing.Width && y + height <= drawing.Height) {
             return false;
         }
 
-        if (x + width <= clip.X || y + height <= clip.Y || x >= clipRight || y >= clipBottom) {
+        if (paint.Item3 <= clip.X || paint.Item4 <= clip.Y || paint.Item1 >= clipRight || paint.Item2 >= clipBottom) {
             return true;
         }
 
@@ -102,6 +127,7 @@ public sealed partial class PdfReadPage {
             }
 
             clip = drawingClip;
+            if (clip.Width <= 0D || clip.Height <= 0D) return true;
             officeClipPath = clip.ToOfficeClipPath(clip.X, clip.Y);
             if (officeClipPath == null) {
                 return false;
@@ -150,6 +176,153 @@ public sealed partial class PdfReadPage {
     private static bool TryGetSafePositionedAdvance(PdfTextSpan span, out double advance) {
         advance = span.Advance;
         return span.CanScaleAggregateAdvance && advance > 0D && !double.IsNaN(advance) && !double.IsInfinity(advance);
+    }
+
+    // Character and word spacing move the next glyph without stretching the painted glyph.
+    // Project these runs individually instead of fitting the whole run as a drawing label.
+    private static bool TryAddSpacedText(OfficeDrawing drawing, double pageHeight, PdfTextSpan span, PageContentBudget pageContentBudget,
+        System.Threading.CancellationToken cancellationToken) {
+        // Nested forms, patterns and transparency groups share the render invocation token.
+        cancellationToken = pageContentBudget.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfPageClipPath? activeClip = span.ClipPath;
+        OfficeClipPath? sharedClip = null;
+        PdfPageClipPath sharedClipBounds = default;
+        bool canCullClip = false;
+        if (activeClip.HasValue) {
+            PdfPageClipPath clip = activeClip.Value;
+            if (clip.Width <= 0D || clip.Height <= 0D) return true;
+            canCullClip = clip.IsRectangle || clip.ToOfficeClipPath(clip.X, clip.Y) != null;
+            if (canCullClip && !HasVisibleOverlap(clip.X, clip.Y, clip.Width, clip.Height, drawing.Width, drawing.Height)) return true;
+            if (canCullClip && !clip.IsRectangle && TryFitClipToDrawing(clip, drawing.Width, drawing.Height, out sharedClipBounds)) {
+                if (sharedClipBounds.Width <= 0D || sharedClipBounds.Height <= 0D) return true;
+                sharedClip = sharedClipBounds.ToOfficeClipPath(sharedClipBounds.X, sharedClipBounds.Y);
+            }
+        }
+        if (!CanExpandSpacedText(span, cancellationToken, out double direction)) return false;
+        IReadOnlyList<int> characterLengths = span.GlyphCharacterLengths!;
+        IReadOnlyList<double> paintedAdvances = span.GlyphPaintedAdvances!;
+        IReadOnlyList<double> characterAdvances = span.CharacterAdvances!;
+        var measuredGlyphs = new System.Collections.Generic.Dictionary<(string Text, double Advance),
+            (string Text, (double Left, double Top, double Right, double Bottom) Paint)>();
+        var metrics = OfficeDrawingTextLayout.CreateMetrics(drawing, cancellationToken);
+        // A path can contain thousands of commands. Retain it once for the run,
+        // rather than cloning and rasterizing it separately for every glyph.
+        OfficeDrawing glyphDrawing = drawing;
+        if (sharedClip != null) {
+            glyphDrawing = new OfficeDrawing(drawing.Width, drawing.Height) {
+                TextShapingProvider = drawing.TextShapingProvider,
+                TextShapingLanguage = drawing.TextShapingLanguage
+            };
+            glyphDrawing.Fonts.AddRange(drawing.Fonts);
+        }
+        PdfPageClipPath? glyphClip = sharedClip == null ? span.ClipPath :
+            PdfPageClipPath.Rectangle(sharedClipBounds.X, sharedClipBounds.Y, sharedClipBounds.Width, sharedClipBounds.Height);
+
+        double radians = span.RotationDegrees * Math.PI / 180D;
+        double alongX = Math.Cos(radians);
+        double alongY = Math.Sin(radians);
+        int characterOffset = 0;
+        double offset = 0D;
+        for (int index = 0; index < characterLengths.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int length = characterLengths[index];
+            double x = span.X + alongX * offset;
+            double y = span.Y + alongY * offset;
+            var frame = GetTextFrame(pageHeight, x, y, span.FontSize, length, paintedAdvances[index]);
+            // Repeated one-character glyphs use an allocation-free key. Multi-character
+            // mappings must charge their materialization even when measurement is cached.
+            if (length > 1) pageContentBudget.ChargePositionedTextWorkCharacters(length);
+            string text = length == 1 ? BasicLatinGlyphStrings[span.Text[characterOffset] - ' ']
+                : span.Text.Substring(characterOffset, length);
+            var key = (text, paintedAdvances[index]);
+            if (!measuredGlyphs.TryGetValue(key, out var measurement)) {
+                // Single-character keys are already shared strings. Charge their first
+                // outline request even when the resulting glyph is invisible.
+                if (length == 1) pageContentBudget.ChargePositionedTextWorkCharacters(length);
+                var localFrame = GetTextFrame(span.FontSize, 0, 0, span.FontSize, length, paintedAdvances[index]);
+                measurement = (text, MeasureTextPaintBounds(metrics, text, span, localFrame, span.FontSize, paintedAdvances[index], includeEmptyFrame: false));
+                if (measuredGlyphs.Count < 256) measuredGlyphs[key] = measurement;
+            }
+            var localPaint = measurement.Paint;
+            var paint = (Left: localPaint.Left + x, Top: localPaint.Top + frame.Y,
+                Right: localPaint.Right + x, Bottom: localPaint.Bottom + frame.Y);
+            if (HasPaintOverlap(drawing, paint, canCullClip ? activeClip : null)) {
+                // Charge only visible scene expansion, before creating a drawing element.
+                pageContentBudget.ChargePositionedTextCharacters(length);
+                var glyph = new PdfTextSpan(measurement.Text, span.FontResource, span.FontSize,
+                    x, y, paintedAdvances[index], span.Color, span.IsVisible, span.RotationDegrees, span.BaseFont, glyphClip,
+                    drawingFontFamily: span.DrawingFontFamily, fontWeight: span.FontWeight,
+                    fontDescriptorFlags: span.FontDescriptorFlags);
+                AddTextSpanCore(glyphDrawing, pageHeight, glyph, pageContentBudget, paint, cancellationToken);
+            }
+            // Stream origins instead of allocating an array for a potentially huge
+            // off-page run. Nonpainting prefixes still move later glyphs correctly.
+            int end = characterOffset + length;
+            for (; characterOffset < end; characterOffset++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                offset += characterAdvances[characterOffset] * direction;
+            }
+        }
+        if (sharedClip != null && glyphDrawing.Elements.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            drawing.AddClippedDrawing(glyphDrawing, sharedClipBounds.X, sharedClipBounds.Y, sharedClip,
+                -sharedClipBounds.X, -sharedClipBounds.Y);
+        }
+        return true;
+    }
+
+    private static (double X, double Y, double Width, double Height) GetTextFrame(
+        double pageHeight, double x, double y, double fontSize, int textLength, double advance) =>
+        (x, pageHeight - y - fontSize, Math.Max(advance, textLength * fontSize * .55D), Math.Max(1D, fontSize * 1.25D));
+
+    private static (double Left, double Top, double Right, double Bottom) GetTextPaintBounds(OfficeDrawing drawing, PdfTextSpan span,
+        (double X, double Y, double Width, double Height) frame, double baseline, PageContentBudget pageContentBudget) {
+        pageContentBudget.ChargePositionedTextWorkCharacters(span.Text.Length);
+        return MeasureTextPaintBounds(OfficeDrawingTextLayout.CreateMetrics(drawing, pageContentBudget.CancellationToken),
+            span.Text, span, frame, baseline, span.Advance);
+    }
+
+    private static (double Left, double Top, double Right, double Bottom) MeasureTextPaintBounds(OfficeRasterCanvas metrics, string text, PdfTextSpan span,
+        (double X, double Y, double Width, double Height) frame, double baseline, double advance, bool includeEmptyFrame = true) {
+        var bounds = metrics.MeasurePositionedTextBounds(text, frame.X, frame.Y, frame.Width, frame.Height, Math.Max(1D, span.FontSize),
+            ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
+            advance > 0D ? advance : frame.Width, OfficeTextAlignment.Left, OfficeTextFeatureSettings.Default, "", Math.Max(1D, span.FontSize),
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None);
+        if (!bounds.HasInk && !includeEmptyFrame) return (0D, 0D, 0D, 0D);
+        return new OfficeImageFrameTransform(-span.RotationDegrees, frame.X, baseline).CreateDestinationTransform()
+            .TransformRectangleBounds(bounds.Left, bounds.Top, bounds.Right - bounds.Left, bounds.Bottom - bounds.Top);
+    }
+
+    private static bool HasPaintOverlap(OfficeDrawing drawing,
+        (double Left, double Top, double Right, double Bottom) paint, PdfPageClipPath? clip) =>
+        HasVisibleOverlap(paint.Left, paint.Top, paint.Right - paint.Left, paint.Bottom - paint.Top, drawing.Width, drawing.Height) &&
+        (!clip.HasValue || paint.Right > clip.Value.X && paint.Bottom > clip.Value.Y &&
+            paint.Left < clip.Value.X + clip.Value.Width && paint.Top < clip.Value.Y + clip.Value.Height);
+
+    private static bool CanExpandSpacedText(PdfTextSpan span, System.Threading.CancellationToken cancellationToken,
+        out double direction) {
+        direction = 0D;
+        cancellationToken.ThrowIfCancellationRequested();
+        // PDF character codes are not shaping clusters. Expand only basic Latin
+        // display runs; retain whole-run shaping for other scripts, marks and emoji.
+        // Supporting those at individual origins requires a shaped-glyph run contract.
+        if (span.HasActualText) return false;
+        for (int index = 0; index < span.Text.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (span.Text[index] < ' ' || span.Text[index] > '~') return false;
+        }
+        IReadOnlyList<int>? lengths = span.GlyphCharacterLengths;
+        IReadOnlyList<double>? widths = span.GlyphPaintedAdvances;
+        if (lengths == null || widths == null || lengths.Count == 0 || lengths.Count != widths.Count) return false;
+        long count = 0;
+        for (int index = 0; index < lengths.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (lengths[index] <= 0 || widths[index] <= 0D || double.IsNaN(widths[index]) || double.IsInfinity(widths[index])) return false;
+            count += lengths[index];
+        }
+        if (count != span.Text.Length) return false;
+        return PdfTextAdvanceProjection.TryGetResolvedDirection(span, cancellationToken, out direction);
     }
 
 }
