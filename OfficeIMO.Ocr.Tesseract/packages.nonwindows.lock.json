@@ -97,7 +97,7 @@
       "officeimo.ocr.process": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Ocr": "[3.4.2, )",
+          "OfficeIMO.Ocr": "[3.4.3, )",
           "System.Text.Json": "[10.0.7, 11.0.0)"
         }
       }
@@ -121,7 +121,7 @@
       "officeimo.ocr.process": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Ocr": "[3.4.2, )"
+          "OfficeIMO.Ocr": "[3.4.3, )"
         }
       }
     },
@@ -144,7 +144,7 @@
       "officeimo.ocr.process": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Ocr": "[3.4.2, )"
+          "OfficeIMO.Ocr": "[3.4.3, )"
         }
       }
     },
