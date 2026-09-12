@@ -61,6 +61,25 @@ public sealed class ProjectDataTests {
     }
 
     [Fact]
+    public void TablesRoundTripAnExplicitlyUnassignedResource() {
+        const string xml = "<Project xmlns=\"http://schemas.microsoft.com/project\"><Tasks><Task><UID>1</UID><Name>Task</Name></Task></Tasks>"
+            + "<Assignments><Assignment><UID>7</UID><TaskUID>1</TaskUID></Assignment></Assignments></Project>";
+        using var source = ProjectDocument.Parse(xml);
+        source.Validate().ThrowIfErrors();
+        var exported = source.ExportTables(allowLossyProjection: true);
+        var assignmentTable = exported.Tables.Single(t => t.Kind == ProjectDataKind.Assignments);
+        int resourceColumn = Array.IndexOf(assignmentTable.Table.Headers.ToArray(), ProjectDataField.ResourceUid.ToString());
+        Assert.Equal("-1", Assert.Single(assignmentTable.Table.Rows)[resourceColumn]);
+        var result = ProjectDocument.ImportTables(exported.Tables);
+        using var imported = result.Document;
+        var assignment = Assert.Single(imported.Assignments);
+        Assert.Equal(7, assignment.Uid);
+        Assert.Equal(1, assignment.Task!.Uid);
+        Assert.Null(assignment.Resource);
+        Assert.Equal(-1, assignment.SourceResourceUid);
+    }
+
+    [Fact]
     public void ExplicitHeaderMappingPreservesSparseIdentitiesAndForwardParents() {
         var table = new ProjectDataTable(new[] { "Identifier", "Label", "Parent", "Duration", "Extra" }, new[] {
             new[] { "900", "Child", "42", "60", "ignored" }, new[] { "42", "Parent", "", "", "ignored" }

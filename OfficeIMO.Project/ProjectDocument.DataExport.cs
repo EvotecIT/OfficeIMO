@@ -17,7 +17,7 @@ public sealed partial class ProjectDocument {
             t.Start, t.Finish, t.Duration is ProjectDuration duration ? duration.Value * ProjectTimeUnits.MinutesPerUnit(duration.Unit, duration.IsElapsed, Settings) : (decimal?)null,
             t.Duration?.IsElapsed, t.Work?.Minutes, t.Cost, t.PercentComplete)), maxRows, maxCells);
         var resources = ProjectDataSchema.Export(ProjectDataKind.Resources, Resources.Select(r => Values(r.Uid, r.Name, r.Type, r.Calendar?.Uid, r.MaxUnits?.Value)), maxRows, maxCells);
-        var assignments = ProjectDataSchema.Export(ProjectDataKind.Assignments, Assignments.Select(a => Values(a.Uid, a.Task?.Uid, a.Resource?.Uid, a.Units?.Value,
+        var assignments = ProjectDataSchema.Export(ProjectDataKind.Assignments, Assignments.Select(a => Values(a.Uid, a.Task?.Uid, a.Resource?.Uid ?? a.SourceResourceUid, a.Units?.Value,
             a.Start, a.Finish, a.Work?.Minutes, a.Cost)), maxRows, maxCells);
         var calendars = ProjectDataSchema.Export(ProjectDataKind.Calendars, Calendars.Select(c => Values(c.Uid, c.Name, c.BaseCalendar?.Uid,
             ProjectDataSchema.WeekDay(c, DayOfWeek.Sunday), ProjectDataSchema.WeekDay(c, DayOfWeek.Monday), ProjectDataSchema.WeekDay(c, DayOfWeek.Tuesday),

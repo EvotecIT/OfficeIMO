@@ -45,10 +45,12 @@ internal static class ProjectDataSchema {
         internal int Number { get; }
         internal string? Get(ProjectDataField field) => _indexes.TryGetValue(field, out int index) && !string.IsNullOrEmpty(_values[index]) ? _values[index] : null;
         internal InvalidDataException Error(ProjectDataField field, string reason) => new InvalidDataException(_table.Kind + " row " + Number + ", " + field + ": " + reason);
-        internal int? Integer(ProjectDataField field, bool required = false) {
+        internal int? Integer(ProjectDataField field, bool required = false, bool allowUnassigned = false) {
             var text = Get(field);
             if (text == null) { if (required) throw Error(field, "a value is required"); return null; }
-            if (!int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int value)) throw Error(field, "expected a nonnegative integer");
+            if (allowUnassigned && text == "-1") return -1;
+            if (!int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int value))
+                throw Error(field, allowUnassigned ? "expected a nonnegative integer or -1 for unassigned" : "expected a nonnegative integer");
             return value;
         }
         internal decimal? Decimal(ProjectDataField field) {

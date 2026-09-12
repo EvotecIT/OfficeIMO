@@ -90,9 +90,11 @@ public sealed partial class ProjectDocument {
     private void ImportAssignments(ProjectDataSchema.Row[] rows, CancellationToken token) {
         foreach (var row in rows) {
             token.ThrowIfCancellationRequested(); int uid = ImportUid(row, AssignmentIndex);
-            int taskUid = row.Integer(ProjectDataField.TaskUid, true)!.Value, resourceUid = row.Integer(ProjectDataField.ResourceUid, true)!.Value;
-            var task = Lookup(TaskIndex, taskUid, "assignment task"); var resource = Lookup(ResourceIndex, resourceUid, "assignment resource");
-            if (!AssignmentPairs.Add(PairKey(taskUid, resourceUid))) throw row.Error(ProjectDataField.ResourceUid, "duplicate task/resource assignment");
+            int taskUid = row.Integer(ProjectDataField.TaskUid, true)!.Value;
+            int resourceUid = row.Integer(ProjectDataField.ResourceUid, required: true, allowUnassigned: true)!.Value;
+            var task = Lookup(TaskIndex, taskUid, "assignment task");
+            var resource = resourceUid == -1 ? null : Lookup(ResourceIndex, resourceUid, "assignment resource");
+            if (resource != null && !AssignmentPairs.Add(PairKey(taskUid, resourceUid))) throw row.Error(ProjectDataField.ResourceUid, "duplicate task/resource assignment");
             var assignment = new ProjectAssignment(this, uid) { Task = task, Resource = resource, SourceTaskUid = taskUid, SourceResourceUid = resourceUid,
                 Start = row.Date(ProjectDataField.Start), Finish = row.Date(ProjectDataField.Finish), Cost = row.Decimal(ProjectDataField.Cost) };
             if (row.Decimal(ProjectDataField.Units) is decimal units) assignment.Units = ProjectUnits.Fraction(units);
