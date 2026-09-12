@@ -10,6 +10,46 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(true, 1)]
+    [InlineData(false, 0)]
+    [InlineData(true, 0)]
+    public void RenderPage_RotatedInkCrossesEdgeWhenOriginIsOutside(bool clipped, int spacing) {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        double origin = clipped ? 141 : 241;
+        string clip = clipped ? "110 80 30 40 re W n " : "";
+        byte[] pdf = BuildSingleStreamPdf(clip + $"BT /F1 10 Tf {spacing} Tc 0 1 -1 0 {origin} 100 Tm (A) Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font);
+        OfficeDrawing actual = PdfPageImageRenderer.RenderPage(pdf);
+        var expected = new OfficeDrawing(240, 200);
+        expected.AddClippedPositionedText("A", origin, 90, 6, 12.5,
+            clipped ? 110 : 0, clipped ? 80 : 0,
+            OfficeClipPath.Rectangle(clipped ? 30 : 240, clipped ? 40 : 200),
+            new OfficeImageFrameTransform(-90, origin, 100), new OfficeFontInfo("Courier New", 10),
+            OfficeColor.Black, textAdvanceWidth: 6);
+        byte[] pixels = OfficeDrawingRasterRenderer.Render(expected).GetPixels();
+        Assert.Contains(pixels, channel => channel != 0);
+        Assert.Equal(pixels, OfficeDrawingRasterRenderer.Render(actual).GetPixels());
+    }
+
+    [Theory]
+    [InlineData(-1, 100, "0 -1 1 0", 270)]
+    [InlineData(100, 201, "-1 0 0 -1", 180)]
+    [InlineData(100, -1, "1 0 0 1", 0)]
+    public void RenderPage_PreservesTextOriginsAtOtherPageEdges(int x, int pdfY, string matrix, int rotation) {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf($"BT /F1 10 Tf 1 Tc {matrix} {x} {pdfY} Tm (A) Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font);
+        var expected = new OfficeDrawing(240, 200);
+        expected.AddClippedPositionedText("A", x, 200 - pdfY - 10, 6, 12.5, 0, 0, OfficeClipPath.Rectangle(240, 200),
+            new OfficeImageFrameTransform(-rotation, x, 200 - pdfY), new OfficeFontInfo("Courier New", 10),
+            OfficeColor.Black, textAdvanceWidth: 6);
+        byte[] pixels = OfficeDrawingRasterRenderer.Render(expected).GetPixels();
+        Assert.Contains(pixels, channel => channel != 0);
+        Assert.Equal(pixels, OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf)).GetPixels());
+    }
+
     [Fact]
     public void RenderPage_SpacedRunRetainsComplexClipOnce() {
         const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
