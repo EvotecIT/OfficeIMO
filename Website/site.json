@@ -1,6 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/schemas/powerforge.web.sitespec.schema.json",
   "SchemaVersion": 1,
+  "MediaViewer": { "Enabled": true },
   "Name": "OfficeIMO",
   "BaseUrl": "https://officeimo.com",
   "DefaultTheme": "officeimo",

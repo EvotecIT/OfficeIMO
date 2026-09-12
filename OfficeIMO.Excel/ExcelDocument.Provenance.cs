@@ -9,6 +9,10 @@ using OfficeIMO.Security;
 namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
+    /// <summary>Validates and inspects encoded workbook bytes without accessing the filesystem.</summary>
+    public static OfficeProvenanceReport InspectProvenance(byte[] data, string fileName = "workbook.xlsx", OfficeProvenanceOptions? options = null) =>
+        OfficeProvenancePackageMutation.Inspect(data, fileName, options, ValidatePackage);
+
     private const string SignatureOriginContentType = "application/vnd.openxmlformats-package.digital-signature-origin";
     private const string SignaturePartContentType = "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml";
     private const string SignatureRelationshipPrefix = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/";
@@ -38,11 +42,15 @@ public partial class ExcelDocument {
         ValidateXlsbDetectionMetadata(data, options);
         if (XlsbPackageDetector.TryFindWorkbookPart(
             data, options.MaxAssetBytes, options.MaxAssetBytes, out _)) {
+            if (options.RequireStandardOpenXmlDocument)
+                throw new InvalidDataException("The memory-only workflow requires an XLSX workbook, not a binary workbook.");
             ValidateUniqueXlsbPartNames(data);
             return;
         }
         using var stream = new MemoryStream(data, writable: false);
         using SpreadsheetDocument document = SpreadsheetDocument.Open(stream, false);
+        if (options.RequireStandardOpenXmlDocument && document.DocumentType != DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook)
+            throw new InvalidDataException("The memory-only workflow requires an XLSX workbook, not a macro-enabled workbook or template.");
         if (document.WorkbookPart == null || !IsSupportedWorkbookContentType(document.WorkbookPart.ContentType)) {
             throw new InvalidDataException("The package is not an Excel workbook.");
         }

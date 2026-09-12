@@ -35,6 +35,7 @@
 .imo-application-availability { margin: 1.1rem auto; font-size: .88rem; color: var(--imo-text-secondary); }
 .imo-application-facts { display: flex; gap: .8rem 1.8rem; flex-wrap: wrap; justify-content: center; margin: 1.6rem 0 2rem; font-size: .84rem; }
 .imo-application-preview { max-width: 1050px; margin: auto; }
+.imo-application-preview a, .imo-application-gallery a { display:block; border-radius:10px; }
 .imo-application-preview img, .imo-application-gallery img { width: 100%; border-radius: 10px; border: 1px solid var(--imo-glass-border); box-shadow: 0 18px 55px #0002; }
 .imo-application-preview figcaption, .imo-application-gallery figcaption { margin-top: .85rem; color: var(--imo-text-secondary); font-size: .88rem; line-height: 1.5; }
 .imo-application-channels { padding-top: 3.5rem; }

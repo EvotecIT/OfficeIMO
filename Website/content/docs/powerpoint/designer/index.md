@@ -12,7 +12,7 @@ Use this when a generated deck should feel designed without forcing every caller
 
 A `PowerPointDesignBrief` packages brand color, stable seed, purpose, identity, and creative direction. Start with a pack when you want a strong direction quickly, then override individual palette or layout knobs only where needed. Callers can inspect alternatives before choosing one.
 
-![PowerPoint design brief alternatives](/images/powerpoint/examples/design-brief-alternatives.png)
+<a href="/images/powerpoint/examples/design-brief-alternatives.png" data-pf-media><img src="/images/powerpoint/examples/design-brief-alternatives.png" alt="PowerPoint design brief alternatives" width="1600" height="900" loading="lazy" decoding="async" /></a>
 
 ```csharp
 PowerPointDesignBrief brief = PowerPointDesignBrief
@@ -46,7 +46,7 @@ Use `PowerPointDesignBrief.DescribeCreativeDirectionPacks()` to list pack names,
 Use `ContentFirst` for content-fit defaults, `DesignFirst` for more seeded variation, `Compact` for denser business decks,
 or `VisualFirst` when visual proof and hero compositions should win when the content allows it.
 
-![PowerPoint selected direction slide](/images/powerpoint/examples/design-brief-selected.png)
+<a href="/images/powerpoint/examples/design-brief-selected.png" data-pf-media><img src="/images/powerpoint/examples/design-brief-selected.png" alt="PowerPoint selected direction slide" width="1600" height="900" loading="lazy" decoding="async" /></a>
 
 ## Variation controls
 
@@ -97,7 +97,7 @@ Run the comparison deck from the examples project:
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-layout-strategy
 ```
 
-![PowerPoint layout strategy comparison](/images/powerpoint/examples/layout-strategy-comparison.png)
+<a href="/images/powerpoint/examples/layout-strategy-comparison.png" data-pf-media><img src="/images/powerpoint/examples/layout-strategy-comparison.png" alt="PowerPoint layout strategy comparison" width="1280" height="720" loading="lazy" decoding="async" /></a>
 
 ## Semantic deck plan
 
@@ -140,7 +140,7 @@ composition.AlternativeCount = 4;
 PowerPointCompositionResult result = presentation.Compose(plan, composition);
 ```
 
-![PowerPoint deck plan process slide](/images/powerpoint/examples/deck-plan-process.png)
+<a href="/images/powerpoint/examples/deck-plan-process.png" data-pf-media><img src="/images/powerpoint/examples/deck-plan-process.png" alt="PowerPoint deck plan process slide" width="1600" height="900" loading="lazy" decoding="async" /></a>
 
 Rail process slides can keep the same semantic steps while switching connector treatment. Use `ContinuousRail` for a quiet line, `SegmentArrows` for compact directional flow, `StepDots` for a softer editorial rhythm, or `None` when the numbered nodes should stand alone.
 
@@ -237,7 +237,7 @@ plan.AddCustom("Why this alternative wins", composer => {
 presentation.Compose(plan, PowerPointCompositionOptions.FromBrief(brief));
 ```
 
-![PowerPoint deck plan advisor summary](/images/powerpoint/examples/deck-plan-advisor-summary.png)
+<a href="/images/powerpoint/examples/deck-plan-advisor-summary.png" data-pf-media><img src="/images/powerpoint/examples/deck-plan-advisor-summary.png" alt="PowerPoint deck plan advisor summary" width="1600" height="900" loading="lazy" decoding="async" /></a>
 
 ## Runnable examples
 

@@ -14,6 +14,7 @@
                 <PdfFilePicker @key="ActiveTool.Id"
                                Tool="ActiveTool"
                                Files="Files"
+                               InputRevision="Session.Revision"
                                OnFilesSelected="HandleFilesSelectedAsync"
                                OnRemove="RemoveFileAsync"
                                OnMove="MoveFileAsync" />
@@ -25,15 +26,15 @@
                     }
                 </div>
 
-                <PdfToolSettings Tool="ActiveTool"
-                                 @bind-PageSelection="PageSelection"
-                                 @bind-PagesPerDocument="PagesPerDocument"
-                                 @bind-RotationDegrees="RotationDegrees"
-                                 @bind-OptimizationProfile="OptimizationProfile"
-                                 @bind-UserPassword="UserPassword"
-                                 @bind-OwnerPassword="OwnerPassword"
-                                 @bind-RedactionText="RedactionText"
-                                 @bind-DestructiveActionConfirmed="DestructiveActionConfirmed" />
+                <PdfToolSettings Tool="ActiveTool" Disabled="IsBusy"
+                                 @bind-PageSelection="PageSelection" @bind-PageSelection:after="HandleSettingsChangedAsync"
+                                 @bind-PagesPerDocument="PagesPerDocument" @bind-PagesPerDocument:after="HandleSettingsChangedAsync"
+                                 @bind-RotationDegrees="RotationDegrees" @bind-RotationDegrees:after="HandleSettingsChangedAsync"
+                                 @bind-OptimizationProfile="OptimizationProfile" @bind-OptimizationProfile:after="HandleSettingsChangedAsync"
+                                 @bind-UserPassword="UserPassword" @bind-UserPassword:after="HandleSettingsChangedAsync"
+                                 @bind-OwnerPassword="OwnerPassword" @bind-OwnerPassword:after="HandleSettingsChangedAsync"
+                                 @bind-RedactionText="RedactionText" @bind-RedactionText:after="HandleSettingsChangedAsync"
+                                 @bind-DestructiveActionConfirmed="DestructiveActionConfirmed" @bind-DestructiveActionConfirmed:after="HandleSettingsChangedAsync" />
 
                 <div class="ocx-diagnostics" aria-live="polite">
                     @foreach (ConversionDiagnostic diagnostic in Diagnostics) {
