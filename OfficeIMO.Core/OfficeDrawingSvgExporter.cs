@@ -46,7 +46,8 @@ public static partial class OfficeDrawingSvgExporter {
     internal static void AppendEmbeddedFonts(
         StringBuilder sb,
         OfficeFontFaceCollection fonts,
-        System.Threading.CancellationToken cancellationToken) {
+        System.Threading.CancellationToken cancellationToken,
+        string familyPrefix = "") {
         if (fonts.Faces.Count == 0) {
             return;
         }
@@ -57,14 +58,14 @@ public static partial class OfficeDrawingSvgExporter {
             AppendEmbeddedFontFace(
                 sb,
                 face,
-                face.ResourceFamilyName,
+                familyPrefix + face.ResourceFamilyName,
                 includeUnicodeRange: false,
                 cancellationToken);
             if (!string.Equals(face.ResourceFamilyName, face.FamilyName, StringComparison.Ordinal)) {
                 AppendEmbeddedFontFace(
                     sb,
                     face,
-                    face.FamilyName,
+                    familyPrefix + face.FamilyName,
                     includeUnicodeRange: true,
                     cancellationToken);
             }

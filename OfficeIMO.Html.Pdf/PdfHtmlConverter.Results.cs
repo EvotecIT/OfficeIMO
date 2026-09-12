@@ -9,7 +9,7 @@ public static partial class PdfHtmlConverterExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         return ReadForHtml(document, options, cancellationToken)
-            .ToHtmlResult(CreateRenderOptionsAfterPreselection(options), cancellationToken);
+            .ToHtmlResult(CreateRenderOptionsAfterPreselection(options, document), cancellationToken);
     }
 
     /// <summary>

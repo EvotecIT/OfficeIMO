@@ -325,7 +325,7 @@ PdfToHtmlOptions reviewOptions = PdfToHtmlOptions.CreatePositionedReviewProfile(
 reviewOptions.ImageExportMode = PdfHtmlImageExportMode.EmbeddedDataUri;
 PdfConversionReport saveReport = sourcePdf.SaveAsHtml("quarterly-review.html", reviewOptions).RequireSuccess().Report!;
 
-PdfHtmlConversionResult reviewResult = sourcePdf.Read().ToHtmlResult(reviewOptions);
+PdfHtmlConversionResult reviewResult = sourcePdf.ToHtmlResult(reviewOptions);
 foreach (PdfConversionWarning warning in reviewResult.Report.Warnings) {
     Console.WriteLine($"{warning.Code}: {warning.Message}");
 }
@@ -334,6 +334,10 @@ foreach (PdfConversionWarning warning in reviewResult.Report.Warnings) {
 The named profiles emit the shared responsive OfficeIMO document shell, stable profile metadata, and adapter-owned PDF review styles. `PdfHtmlConversionResult.Report` and the report returned by save APIs retain the established `PdfConversionReport` type but are frozen snapshots (`IsReadOnly` is `true`); the mutable report used while conversion is in progress is never exposed as result state. The positioned-review profile also enables inert link and form-widget overlays. Set `IncludeDefaultStyles = false` to omit the theme and presentation layer. Positioned output still emits its minimal structural CSS because absolute page geometry is part of that profile's fidelity contract.
 
 PDF-to-HTML profiles describe how an existing PDF is projected to review HTML. They are unrelated to HTML-to-PDF, which has one direct rendering path. HTML-to-PDF and HTML-to-PNG/JPEG/TIFF/SVG/WebP use the same `HtmlRenderOptions` scene and diagnostics; `HtmlToPdfOptions` extends that shared options type with PDF-only settings. PDF page images use `OfficeIMO.Pdf`'s `ToImage()` / `ToImages()` API instead of routing through HTML. An image is embedded into HTML as a resource; turning image pixels into document structure is an OCR workflow, not an image-rendering profile.
+
+When the source is an opened `PdfDocument`, positioned review uses the shared PDF drawing renderer to retain supported vector artwork, clipping, paint order, images, and embedded fonts as inline SVG. Text remains selectable. Browser font substitution can affect text whose fonts are unavailable, and renderer diagnostics appear in the conversion report.
+
+Already-read logical documents use the logical positioned projection because they do not retain the original drawing resources. Opened documents also use that projection for pages with form widgets, OCR-only text blocks, restricted reading-order projection, or image settings that require placeholders, omission, or a smaller byte limit. Check the report for content that could not be reproduced; positioned review is not a guarantee of identical appearance for every PDF.
 
 Semantic output uses the shared crop-, rotation-, spanning-band-, and column-aware PDF reading order by default. Set `PdfToHtmlOptions.UseSharedPageReadingOrder = false` only when source sequence is deliberately preferred; positioned-review output always retains source geometry.
 
