@@ -69,11 +69,22 @@ internal static class ProjectLeveler {
         var anchors = new Dictionary<int, DateTime>();
         var splits = new Dictionary<int, IReadOnlyList<ProjectWorkingRange>>();
         var originals = initial.Tasks.ToDictionary(t => t.TaskUid);
-        bool WithinDelayLimits(ProjectScheduleResult proposal) => proposal.Tasks.Where(t => !t.IsSummary).All(t => {
-            var original = originals[t.TaskUid];
-            return !(t.Start > original.Start && (t.Start - original.Start).TotalDays > options.MaxDelayDays)
-                && !(t.ForwardAnchor > original.ForwardAnchor && (t.ForwardAnchor - original.Start).TotalDays > options.MaxDelayDays);
-        });
+        var originalRemainingStarts = initial.Assignments.ToDictionary(a => a.AssignmentUid,
+            a => a.Intervals.Where(i => !i.IsActual).Select(i => (DateTime?)i.Start).Min());
+        bool WithinDelayLimits(ProjectScheduleResult proposal) {
+            foreach (var task in proposal.Tasks.Where(t => !t.IsSummary)) {
+                var original = originals[task.TaskUid];
+                if (task.Start > original.Start && (task.Start - original.Start).TotalDays > options.MaxDelayDays
+                    || task.ForwardAnchor > original.ForwardAnchor && (task.ForwardAnchor - original.Start).TotalDays > options.MaxDelayDays) return false;
+            }
+            foreach (var assignment in proposal.Assignments) {
+                DateTime? start = assignment.Intervals.Where(i => !i.IsActual).Select(i => (DateTime?)i.Start).Min();
+                DateTime? original = originalRemainingStarts[assignment.AssignmentUid];
+                if (start.HasValue && (!original.HasValue || start > original)
+                    && (start.Value - originals[assignment.TaskUid].Start).TotalDays > options.MaxDelayDays) return false;
+            }
+            return true;
+        }
         ProjectLevelingResult Result(string? error = null) => new ProjectLevelingResult(current, capacity,
             anchors.OrderBy(p => p.Key).Select(p => new ProjectLevelingMove(p.Key, originals[p.Key].Start, p.Value)),
             error == null ? Array.Empty<ProjectDiagnostic>() : new[] { new ProjectDiagnostic("PROJECT_LEVELING_INCOMPLETE", ProjectDiagnosticSeverity.Error, error, "/Project") },

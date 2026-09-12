@@ -4,6 +4,47 @@ public sealed class ProjectStopLevelingFormulaTests {
     private static readonly DateTime Monday = new(2026, 10, 5, 8, 0, 0);
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FixedDurationRemainderHonorsStopBeyondAssignmentCoverage(bool shortRemainingCurve) {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
+        var task = document.Tasks.Add("Fixed"); task.Type = ProjectTaskType.FixedDuration; task.Duration = ProjectDuration.WorkingHours(8);
+        task.ActualDuration = ProjectDuration.WorkingHours(1); task.RemainingDuration = ProjectDuration.WorkingHours(7); task.ActualStart = Monday; task.Stop = Monday.AddDays(1);
+        var assignment = document.Assignments.Add(task, document.Resources.AddWork("Engineer")); assignment.Work = ProjectWork.Hours(shortRemainingCurve ? 2 : 1);
+        assignment.ActualWork = ProjectWork.Hours(1); assignment.ActualStart = Monday;
+        if (shortRemainingCurve) {
+            var curve = assignment.TimephasedData.Add(); curve.Uid = assignment.Uid; curve.Type = 1; curve.Start = task.Stop; curve.Finish = task.Stop.Value.AddHours(1); curve.Value = "PT1H";
+        } else assignment.ActualFinish = Monday.AddHours(1);
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); result.Report.ThrowIfErrors();
+        Assert.Equal(Monday.AddDays(1).AddHours(8), result.Tasks.Single().Finish);
+        document.ApplySchedule(result); using var copy = document.Clone();
+        Assert.Equal(result.Tasks.Single().Finish, copy.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }).Tasks.Single().Finish);
+    }
+
+    [Theory]
+    [InlineData(4, false)]
+    [InlineData(7, true)]
+    public void LevelingBoundsRemainingWorkAfterResourceCalendarSnapping(int maxDays, bool accepted) {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
+        var thursday = Monday.AddDays(3); document.Settings.StartDate = thursday;
+        var calendar = document.Calendars.Add("Sparse resource");
+        foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek))) calendar.SetWorkingDay(day,
+            day == DayOfWeek.Thursday ? new[] { ProjectWorkingTime.Hours(8, 9) } : day == DayOfWeek.Friday ? new[] { ProjectWorkingTime.Hours(16, 17) } : Array.Empty<ProjectWorkingTime>());
+        var resource = document.Resources.AddWork("Engineer"); resource.Calendar = calendar;
+        var task = document.Tasks.Add("Progressed"); task.Duration = ProjectDuration.WorkingHours(2); task.ActualDuration = ProjectDuration.WorkingHours(1);
+        task.ActualStart = thursday; task.Stop = thursday.AddHours(1);
+        var assignment = document.Assignments.Add(task, resource); assignment.Work = ProjectWork.Hours(2); assignment.ActualWork = ProjectWork.Hours(1); assignment.ActualStart = thursday;
+        var locked = document.Tasks.Add("Locked"); locked.Duration = ProjectDuration.WorkingHours(1); locked.Priority = 1000;
+        locked.ConstraintType = ProjectConstraintType.MustStartOn; locked.ConstraintDate = thursday.AddDays(1).AddHours(8); document.Assignments.Add(locked, resource);
+        var result = document.CalculateLeveling(new ProjectLevelingOptions { MaxDelayDays = maxDays });
+        Assert.Equal(!accepted, result.Report.HasErrors);
+        if (!accepted) { Assert.Throws<InvalidDataException>(() => document.ApplyLeveling(result)); return; }
+        var plan = result.Schedule.Assignments.Single(a => a.AssignmentUid == assignment.Uid);
+        Assert.Equal(thursday.AddDays(7), plan.Intervals.Single(i => !i.IsActual).Start);
+        Assert.Equal(thursday, plan.Intervals.Single(i => i.IsActual).Start);
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]

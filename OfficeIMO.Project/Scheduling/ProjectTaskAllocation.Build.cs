@@ -45,9 +45,7 @@ internal sealed partial class ProjectTaskAllocation {
             // Inferred actual duration must keep concurrent and discontinuous curves unchanged.
             if (actualTaskEnd.HasValue && unrepresentedActualDuration > 0)
                 origin = Max(origin, actualTaskEnd.Value);
-            if (_task.Stop.HasValue) origin = Max(origin, _task.Stop.Value);
-            if (_task.Resume.HasValue) origin = Max(origin, _task.Resume.Value);
-            if (_options.RescheduleRemainingAfterStatusDate) origin = Max(origin, _document.Settings.StatusDate!.Value);
+            origin = BoundRemainingTaskStart(origin);
             var intervals = new List<ProjectAssignmentInterval>(entry.ActualIntervals);
             decimal regular = entry.Remaining - entry.RemainingOvertime, assignedOvertime = 0m;
             for (int index = 0; index < entry.Curves.Length; index++) {
@@ -83,10 +81,7 @@ internal sealed partial class ProjectTaskAllocation {
             if (_task.ActualFinish.HasValue && !_task.ActualStart.HasValue && actualDuration > 0)
                 throw new InvalidDataException("A completed task with nonzero actual duration requires an actual start.");
             taskStart = _task.ActualStart ?? _task.ActualFinish ?? anchor;
-            DateTime remainingStart = TaskAdd(taskStart, actualDuration);
-            if (_task.Stop.HasValue) remainingStart = Max(remainingStart, _task.Stop.Value);
-            if (_task.Resume.HasValue) remainingStart = Max(remainingStart, _task.Resume.Value);
-            if (_options.RescheduleRemainingAfterStatusDate) remainingStart = Max(remainingStart, _document.Settings.StatusDate!.Value);
+            DateTime remainingStart = BoundRemainingTaskStart(TaskAdd(taskStart, actualDuration));
             taskFinish = _task.ActualFinish ?? TaskAdd(remainingStart, remainingDuration);
         } else {
             taskStart = _entries.Select((entry, index) => (Entry: entry, Plan: plans[index]))
@@ -104,7 +99,9 @@ internal sealed partial class ProjectTaskAllocation {
             if (_task.Type == ProjectTaskType.FixedDuration) {
                 actualDuration = _task.ActualDuration is ProjectDuration actual ? actual.Value * ProjectXmlValue.MinutesPerUnit(actual.Unit, actual.IsElapsed, _document) : actualDuration;
                 remainingDuration = RemainingTaskDuration(); duration = actualDuration + remainingDuration;
-                taskFinish = Max(taskFinish, TaskAdd(taskStart, duration));
+                DateTime remainingStart = TaskAdd(taskStart, actualDuration);
+                if (recordedWork.Length > 0) remainingStart = Max(remainingStart, recordedWork.Max(i => i.Finish));
+                taskFinish = Max(taskFinish, TaskAdd(BoundRemainingTaskStart(remainingStart), remainingDuration));
             }
             if (actualDuration > duration) throw new InvalidDataException("Recorded task actual duration exceeds its calculated duration.");
         }
@@ -148,6 +145,12 @@ internal sealed partial class ProjectTaskAllocation {
     }
     private static DateTime Max(DateTime first, DateTime second) => first > second ? first : second;
     private static DateTime Min(DateTime first, DateTime second) => first < second ? first : second;
+    private DateTime BoundRemainingTaskStart(DateTime start) {
+        if (_task.Stop.HasValue) start = Max(start, _task.Stop.Value);
+        if (_task.Resume.HasValue) start = Max(start, _task.Resume.Value);
+        if (_options.RescheduleRemainingAfterStatusDate) start = Max(start, _document.Settings.StatusDate!.Value);
+        return start;
+    }
     private DateTime TaskAdd(DateTime date, decimal minutes) => _task.Duration?.IsElapsed == true
         ? date.Add(ProjectXmlValue.MinutesToSpan(minutes)) : _taskCalendar.Add(date, minutes);
     internal ProjectTaskWorkSchedule Totals(Result result) {
