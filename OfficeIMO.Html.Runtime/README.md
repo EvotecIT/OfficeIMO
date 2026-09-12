@@ -1,7 +1,7 @@
 # OfficeIMO.Html.Runtime
 
-Execute a trusted local scripted document in a disposable process and capture an
-independent OfficeIMO document. The optional worker uses AngleSharp, AngleSharp.Css,
+Execute a trusted local scripted document in a persistent, disposable session and
+capture independent OfficeIMO documents. The optional worker uses AngleSharp, AngleSharp.Css,
 AngleSharp.Js and Jint; ordinary HTML parsing and conversion do not depend on it.
 
 Build or publish `OfficeIMO.Html.Runtime.Worker` and deploy its complete output
@@ -22,11 +22,47 @@ var status = capture.Document.QuerySelector("#status")!.TextContent;
 // Use the captured document with HtmlConversionDocument.FromDocument for conversion.
 ```
 
+Keep a session open when a workflow needs several operations. Globals, listeners
+and the live DOM survive between commands; each capture is an independent snapshot:
+
+```csharp
+await using var session = await runtime.OpenTrustedAsync(new HtmlScriptRequest {
+    Html = reportHtml,
+    Timeout = TimeSpan.FromSeconds(10),
+    SessionTimeout = TimeSpan.FromMinutes(2)
+}, cancellationToken);
+
+var before = await session.CaptureAsync(cancellationToken: cancellationToken);
+await session.ExecuteAsync("document.querySelector('#prepare').click()", cancellationToken);
+await session.WaitForAsync("window.reportReady === true", cancellationToken);
+var title = await session.EvaluateAsync("document.title", cancellationToken);
+var after = await session.CaptureAsync(cancellationToken: cancellationToken);
+```
+
+`OpenTrustedAsync` loads the document and runs the supplied scripts. It leaves
+readiness to `WaitForAsync` or `CaptureAsync`. Evaluation returns a detached
+`JsonElement` using JavaScript JSON serialization; undefined, cyclic values and
+other unsupported results fail the session. Captures never expose interpreter objects.
+
 The initial profile targets .NET 8 and .NET 10 hosts and workers. It
 supports inline classic scripts, supplied post-load scripts, DOM changes, provider
 events, promises and timers. Readiness is an explicit JavaScript expression that
 must return boolean `true`. Capture runs in the same event-loop task as that check.
 It does not infer network idle, font readiness or layout stability.
+
+Commands are serialized. `Timeout` includes time waiting for another command,
+execution and result transfer. A queued cancellation or timeout leaves the active
+command and session usable. Cancellation or failure after admission terminates
+the worker; open a new session to continue. `SessionTimeout` also counts idle time.
+The one-shot `CaptureTrustedAsync` applies `Timeout` to the complete open-and-capture
+operation. Disposing a session interrupts active execution and releases the worker.
+
+Unhandled script, timer and listener errors, and promise rejections still unhandled
+at a checked script-turn boundary, fail the session instead of returning a successful
+snapshot. Rejections handled in the same turn are allowed within
+`MaxPendingPromiseRejections`. Listener registration supports callback identity,
+object listeners, capture and `once`; passive and signal-controlled registrations
+are rejected. Event properties and inline attributes support replacement and removal.
 
 Capture transfers nodes and attributes structurally, including namespaces,
 document mode and template contents. It does not serialize and reparse HTML.
@@ -39,7 +75,7 @@ only through CSSOM, or shadow roots. DOM-backed style text and attributes are ca
 The process is terminated on cancellation, timeout or response-budget failure.
 This is a **trusted-content execution profile**, not an OS sandbox for hostile
 scripts. Network loading and host CLR capabilities are not configured. Strict OS
-isolation, persistent interactive sessions, modules, navigation, fetched resources,
+isolation, modules, navigation, fetched resources,
 and framework-application qualification remain separate runtime work.
 
 Run the standalone report example after building the worker:

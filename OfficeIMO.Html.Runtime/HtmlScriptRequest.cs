@@ -10,8 +10,10 @@ public sealed class HtmlScriptRequest {
     public IReadOnlyList<string> Scripts { get; set; } = Array.Empty<string>();
     /// <summary>A JavaScript expression which must evaluate to boolean true before capture.</summary>
     public string ReadyExpression { get; set; } = "true";
-    /// <summary>Total execution deadline, including worker startup and snapshot transfer.</summary>
+    /// <summary>Deadline per session command, including queue admission and capture transfer; total deadline for CaptureTrustedAsync.</summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
+    /// <summary>Maximum live worker lifetime, including idle time, from startup until termination.</summary>
+    public TimeSpan SessionTimeout { get; set; } = TimeSpan.FromMinutes(5);
     /// <summary>Interval between readiness checks. This does not imply network or layout stability.</summary>
     public TimeSpan PollInterval { get; set; } = TimeSpan.FromMilliseconds(10);
     /// <summary>Combined UTF-16 source budget for HTML, supplied scripts and the readiness expression.</summary>
@@ -22,12 +24,15 @@ public sealed class HtmlScriptRequest {
     public int MaxNodes { get; set; } = 100_000;
     /// <summary>Maximum captured element nesting depth.</summary>
     public int MaxDepth { get; set; } = 256;
+    /// <summary>Maximum tracked promise rejections awaiting a handler within one script turn.</summary>
+    public int MaxPendingPromiseRejections { get; set; } = 1024;
 
     internal HtmlScriptRequest Snapshot() {
         if (Html == null || Scripts == null || ReadyExpression == null) throw new ArgumentException("HTML, scripts and readiness are required.");
         if (Timeout <= TimeSpan.Zero || Timeout > TimeSpan.FromMinutes(5)) throw new ArgumentOutOfRangeException(nameof(Timeout));
+        if (SessionTimeout <= TimeSpan.Zero || SessionTimeout > TimeSpan.FromHours(1)) throw new ArgumentOutOfRangeException(nameof(SessionTimeout));
         if (PollInterval < TimeSpan.FromMilliseconds(1) || PollInterval > Timeout) throw new ArgumentOutOfRangeException(nameof(PollInterval));
-        if (MaxInputCharacters <= 0 || MaxOutputCharacters <= 0 || MaxNodes <= 0 || MaxDepth <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputCharacters), "Resource limits must be positive.");
+        if (MaxInputCharacters <= 0 || MaxOutputCharacters <= 0 || MaxNodes <= 0 || MaxDepth <= 0 || MaxPendingPromiseRejections <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputCharacters), "Resource limits must be positive.");
         var scripts = Scripts.ToArray();
         long length = (long)Html.Length + ReadyExpression.Length;
         foreach (string script in scripts) {
@@ -36,13 +41,15 @@ public sealed class HtmlScriptRequest {
         }
         if (length > MaxInputCharacters) throw new ArgumentException("The combined script input exceeds MaxInputCharacters.");
         return new HtmlScriptRequest { Html = Html, Scripts = scripts, ReadyExpression = ReadyExpression, Timeout = Timeout,
-            PollInterval = PollInterval, MaxInputCharacters = MaxInputCharacters, MaxOutputCharacters = MaxOutputCharacters,
-            MaxNodes = MaxNodes, MaxDepth = MaxDepth };
+            SessionTimeout = SessionTimeout, PollInterval = PollInterval, MaxInputCharacters = MaxInputCharacters, MaxOutputCharacters = MaxOutputCharacters,
+            MaxNodes = MaxNodes, MaxDepth = MaxDepth, MaxPendingPromiseRejections = MaxPendingPromiseRejections };
     }
 }
 
 /// <summary>Optional execution provider. Implementations return independent snapshots without exposing interpreter objects.</summary>
 public interface IHtmlScriptRuntimeProvider {
+    /// <summary>Opens a persistent trusted local document after loading HTML and executing supplied scripts.</summary>
+    Task<IHtmlRuntimeSession> OpenTrustedAsync(HtmlScriptRequest request, CancellationToken cancellationToken = default);
     /// <summary>Executes trusted local content and captures it when the explicit readiness condition holds.</summary>
     Task<HtmlScriptCapture> CaptureTrustedAsync(HtmlScriptRequest request, CancellationToken cancellationToken = default);
 }

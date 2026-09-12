@@ -7,11 +7,16 @@ using OfficeIMO.Pdf;
 
 if (args.Length != 2) throw new ArgumentException("Supply the deployed worker DLL path and an output directory.");
 var runtime = new HtmlProcessRuntimeProvider(args[0], AngleSharpDomServices.Instance);
-var captured = await runtime.CaptureTrustedAsync(new HtmlScriptRequest {
+await using var session = await runtime.OpenTrustedAsync(new HtmlScriptRequest {
     Html = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "scripted-report.html")),
-    Scripts = new[] { "document.querySelector('#prepare').click();" },
     ReadyExpression = "window.reportReady === true"
 });
+var initial = await session.CaptureAsync("true");
+await session.ExecuteAsync("document.querySelector('#prepare').click();");
+await session.WaitForAsync("window.reportReady === true");
+var captured = await session.CaptureAsync();
+await session.DisposeAsync();
+if (initial.Document.OuterHtml == captured.Document.OuterHtml) throw new InvalidOperationException("The report did not change between captures.");
 var document = HtmlConversionDocument.FromDocument(captured.Document);
 string output = Path.GetFullPath(args[1]);
 Directory.CreateDirectory(output);

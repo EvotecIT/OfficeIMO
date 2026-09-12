@@ -1,16 +1,38 @@
-using System.Text.Json;
 using OfficeIMO.Html.Runtime;
 using OfficeIMO.Html.Runtime.Worker;
 
-// One request and one response per process. The parent owns deadline termination.
+// One live document per process, with sequential commands and bounded frames.
+using Stream input = Console.OpenStandardInput();
+using Stream output = Console.OpenStandardOutput();
+ScriptedDocumentSession? session = null;
+HtmlScriptRequest? options = null;
 try {
-    string json = await HtmlProcessRuntimeProvider.ReadBoundedAsync(Console.In, 64 * 1024 * 1024, CancellationToken.None);
-    HtmlScriptRequest request = (JsonSerializer.Deserialize<HtmlScriptRequest>(json)
-        ?? throw new HtmlScriptRuntimeException("A runtime request is required.")).Snapshot();
-    HtmlRuntimeWireDocument capture = await ScriptedDocumentCapture.RunAsync(request);
-    string response = JsonSerializer.Serialize(capture);
-    if (response.Length > request.MaxOutputCharacters) throw new HtmlScriptRuntimeException("The capture exceeds MaxOutputCharacters.");
-    await Console.Out.WriteAsync(response);
-} catch (Exception error) {
-    await Console.Out.WriteAsync(JsonSerializer.Serialize(new HtmlRuntimeWireDocument { Error = error.Message }));
-}
+    while (true) {
+        HtmlRuntimeCommand? command = await HtmlRuntimeProtocol.ReadAsync<HtmlRuntimeCommand>(input, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
+        if (command == null) break;
+        var response = new HtmlRuntimeResponse { Id = command.Id };
+        try {
+            if (session == null) {
+                if (command.Kind != "open" || command.Request == null) throw new HtmlScriptRuntimeException("The first command must open a document.");
+                options = command.Request.Snapshot();
+                using var deadline = new CancellationTokenSource(options.Timeout);
+                session = await ScriptedDocumentSession.OpenAsync(options, deadline.Token);
+            } else {
+                if (command.Script == null || command.Script.Length > options!.MaxInputCharacters) throw new HtmlScriptRuntimeException("The command script is missing or exceeds its budget.");
+                using var deadline = new CancellationTokenSource(options.Timeout);
+                switch (command.Kind) {
+                    case "execute": await session.ExecuteAsync(command.Script, deadline.Token); break;
+                    case "evaluate": response.ValueJson = await session.EvaluateAsync(command.Script, deadline.Token); break;
+                    case "wait": await session.WaitAsync(command.Script, false, deadline.Token); break;
+                    case "capture": response.Document = await session.WaitAsync(command.Script, true, deadline.Token); break;
+                    default: throw new HtmlScriptRuntimeException("Unknown runtime command.");
+                }
+            }
+            await HtmlRuntimeProtocol.WriteAsync(output, response, options!.MaxOutputCharacters, CancellationToken.None);
+        } catch (Exception error) {
+            response = new HtmlRuntimeResponse { Id = command.Id, Error = error.Message };
+            await HtmlRuntimeProtocol.WriteAsync(output, response, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
+            break;
+        }
+    }
+} finally { session?.Dispose(); }

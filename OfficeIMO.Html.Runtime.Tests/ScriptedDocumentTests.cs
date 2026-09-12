@@ -21,6 +21,7 @@ public sealed class ScriptedDocumentTests {
     }
 
     private sealed class ExampleProvider : IHtmlScriptRuntimeProvider {
+        public Task<IHtmlRuntimeSession> OpenTrustedAsync(HtmlScriptRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<HtmlScriptCapture> CaptureTrustedAsync(HtmlScriptRequest request, CancellationToken cancellationToken = default) =>
             Task.FromResult(new HtmlScriptCapture(new HtmlDocument(AngleSharpDomServices.Instance, "example").Freeze(), "ExampleProvider/1"));
     }
