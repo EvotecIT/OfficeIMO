@@ -147,7 +147,6 @@ This **Markdown** becomes a browser preview or an editable Word document.
         IBrowserFile file = args.File;
         string extension = Path.GetExtension(file.Name).ToLowerInvariant();
         if (!ActiveRoute.Accept.Split(',').Contains(extension, StringComparer.OrdinalIgnoreCase)) {
-            SelectedFile = null;
             Diagnostics.Add(new("Unsupported file", $"Choose a {ActiveRoute.Source} file for this route.", "ocx-dot--bad"));
             return;
         }
@@ -161,10 +160,10 @@ This **Markdown** becomes a browser preview or an editable Word document.
             Session.Open([SelectedFile]); _sessionRevision = Session.Revision;
             Diagnostics.Add(new("Ready", $"{file.Name} is loaded in this browser tab.", "ocx-dot--good"));
         } catch (IOException) {
-            SelectedFile = null;
+            if (_disposed || revision != Session.Revision || routeId != ActiveRoute.Id) return;
             Diagnostics.Add(new("File too large", $"The browser demo accepts files up to {FormatBytes(MaxUploadBytes)}.", "ocx-dot--bad"));
         } catch (Exception ex) {
-            SelectedFile = null;
+            if (_disposed || revision != Session.Revision || routeId != ActiveRoute.Id) return;
             Diagnostics.Add(new("Could not read file", DescribeFailure(ex), "ocx-dot--bad"));
         }
     }

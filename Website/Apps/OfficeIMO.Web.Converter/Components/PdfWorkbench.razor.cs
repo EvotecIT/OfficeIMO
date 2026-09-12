@@ -83,11 +83,11 @@ public partial class PdfWorkbench {
         int revision = Session.Revision;
         await ResetResultAsync();
         Diagnostics.Clear();
-        IReadOnlyList<IBrowserFile> selected = ActiveTool.InputMode == PdfToolInputMode.Single
+        try {
+            IReadOnlyList<IBrowserFile> selected = ActiveTool.InputMode == PdfToolInputMode.Single
             ? [args.File]
             : args.GetMultipleFiles(ActiveTool.InputMode == PdfToolInputMode.Pair ? 2 : BrowserPdfToolService.MaxPdfFiles);
-        var loaded = new List<SelectedDocument>(selected.Count);
-        try {
+            var loaded = new List<SelectedDocument>(selected.Count);
             foreach (IBrowserFile file in selected) {
                 string extension = Path.GetExtension(file.Name).ToLowerInvariant();
                 if (!string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase)) {
@@ -109,7 +109,7 @@ public partial class PdfWorkbench {
             Session.Open(Files); _sessionRevision = Session.Revision;
             Diagnostics.Add(new ConversionDiagnostic("Ready", $"{Files.Count} PDF file{(Files.Count == 1 ? string.Empty : "s")} loaded in this tab.", "ocx-dot--good"));
         } catch (Exception ex) {
-            Files.Clear();
+            if (_disposed || revision != Session.Revision) return;
             Diagnostics.Add(new ConversionDiagnostic("Could not load PDFs", DescribeFailure(ex), "ocx-dot--bad"));
         }
     }
