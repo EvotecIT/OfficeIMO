@@ -12,7 +12,7 @@ public sealed partial class PdfReadPage {
 
     private static void AddTextSpanCore(OfficeDrawing drawing, double pageHeight, PdfTextSpan span, PageContentBudget pageContentBudget,
         (double Left, double Top, double Right, double Bottom)? measuredPaint, System.Threading.CancellationToken cancellationToken) {
-        if (string.IsNullOrEmpty(span.Text) || !span.IsVisible) {
+        if (string.IsNullOrEmpty(span.Text) || !span.IsVisible || span.Color is { A: 0 }) {
             return;
         }
         if (span.ClipPath.HasValue) {
@@ -208,7 +208,14 @@ public sealed partial class PdfReadPage {
         var metrics = OfficeDrawingTextLayout.CreateMetrics(drawing, cancellationToken);
         // A path can contain thousands of commands. Retain it once for the run,
         // rather than cloning and rasterizing it separately for every glyph.
-        OfficeDrawing glyphDrawing = sharedClip == null ? drawing : new OfficeDrawing(drawing.Width, drawing.Height);
+        OfficeDrawing glyphDrawing = drawing;
+        if (sharedClip != null) {
+            glyphDrawing = new OfficeDrawing(drawing.Width, drawing.Height) {
+                TextShapingProvider = drawing.TextShapingProvider,
+                TextShapingLanguage = drawing.TextShapingLanguage
+            };
+            glyphDrawing.Fonts.AddRange(drawing.Fonts);
+        }
         PdfPageClipPath? glyphClip = sharedClip == null ? span.ClipPath :
             PdfPageClipPath.Rectangle(sharedClipBounds.X, sharedClipBounds.Y, sharedClipBounds.Width, sharedClipBounds.Height);
 

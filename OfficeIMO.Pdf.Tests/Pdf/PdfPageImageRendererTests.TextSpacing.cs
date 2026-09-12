@@ -10,6 +10,25 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
+    [Theory]
+    [InlineData("/ca 0", "")]
+    [InlineData("/CA 0", "1 Tr ")]
+    public void RenderPage_FullyTransparentSpacedTextDoesNotConsumePositioningBudgets(string opacity, string renderingMode) {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        string text = new string('A', PdfReadLimits.Default.MaxPositionedTextCharactersPerPage + 1);
+        byte[] pdf = BuildSingleStreamPdf("/Zero gs BT /F1 10 Tf 1 Tc " + renderingMode + "20 100 Td (" + text + ") Tj ET",
+            "<< /Font << /F1 5 0 R >> /ExtGState << /Zero 6 0 R >> >>", font,
+            "6 0 obj\n<< /Type /ExtGState " + opacity + " >>\nendobj");
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits {
+                MaxPositionedTextCharactersPerPage = 1,
+                MaxPositionedTextWorkCharactersPerPage = 1
+            }
+        });
+
+        Assert.Empty(document.Pages[0].ToDrawing().Elements);
+    }
+
     [Fact]
     public void ToDrawing_WithFontProfileHonorsCancellationBeforeShaping() {
         byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf 1 Tc 10 100 Td (AB) Tj ET");
@@ -121,16 +140,20 @@ public partial class PdfPageImageRendererTests {
     [InlineData(1, "pattern")]
     [InlineData(0, "mask")]
     [InlineData(1, "mask")]
+    [InlineData(1, "curve")]
     [InlineData(1, "shaped-page")]
     [InlineData(1, "shaped-blend")]
     [InlineData(1, "shaped-pattern")]
     [InlineData(1, "shaped-mask")]
+    [InlineData(1, "shaped-curve")]
     public void ExportImage_UsesCallerFontBeforeCullingEdgeGlyph(int spacing, string host) {
         bool shaped = host.StartsWith("shaped-", StringComparison.Ordinal);
         if (shaped) host = host.Substring("shaped-".Length);
         const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
         string text = $"BT /F1 10 Tf {spacing} Tc 0 1 -1 0 260 100 Tm (A) Tj ET";
-        byte[] pdf = BuildSingleStreamPdf((host == "blend" ? "/GS gs " : "") + text,
+        string content = (host == "blend" ? "/GS gs " : string.Empty) +
+            (host == "curve" ? "0 0 m 240 0 l 240 200 l 0 200 l h W n " : string.Empty) + text;
+        byte[] pdf = BuildSingleStreamPdf(content,
             "<< /Font << /F1 5 0 R >> /ExtGState << /GS 6 0 R >> >>", font,
             "6 0 obj\n<< /Type /ExtGState /BM /Multiply >>\nendobj");
         if (host == "pattern") {
