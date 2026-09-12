@@ -81,7 +81,8 @@ internal sealed partial class ProjectTaskAllocation {
             if (_task.ActualFinish.HasValue && !_task.ActualStart.HasValue && actualDuration > 0)
                 throw new InvalidDataException("A completed task with nonzero actual duration requires an actual start.");
             taskStart = _task.ActualStart ?? _task.ActualFinish ?? anchor;
-            DateTime remainingStart = BoundRemainingTaskStart(TaskAdd(taskStart, actualDuration));
+            DateTime remainingStart = TaskAdd(taskStart, actualDuration);
+            if (remainingDuration > 0) remainingStart = BoundRemainingTaskStart(remainingStart);
             taskFinish = _task.ActualFinish ?? TaskAdd(remainingStart, remainingDuration);
         } else {
             taskStart = _entries.Select((entry, index) => (Entry: entry, Plan: plans[index]))
@@ -101,7 +102,8 @@ internal sealed partial class ProjectTaskAllocation {
                 remainingDuration = RemainingTaskDuration(); duration = actualDuration + remainingDuration;
                 DateTime remainingStart = TaskAdd(taskStart, actualDuration);
                 if (recordedWork.Length > 0) remainingStart = Max(remainingStart, recordedWork.Max(i => i.Finish));
-                taskFinish = Max(taskFinish, TaskAdd(BoundRemainingTaskStart(remainingStart), remainingDuration));
+                if (remainingDuration > 0) remainingStart = BoundRemainingTaskStart(remainingStart);
+                taskFinish = Max(taskFinish, TaskAdd(remainingStart, remainingDuration));
             }
             if (actualDuration > duration) throw new InvalidDataException("Recorded task actual duration exceeds its calculated duration.");
         }

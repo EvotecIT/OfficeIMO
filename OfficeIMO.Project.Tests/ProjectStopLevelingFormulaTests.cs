@@ -4,6 +4,24 @@ public sealed class ProjectStopLevelingFormulaTests {
     private static readonly DateTime Monday = new(2026, 10, 5, 8, 0, 0);
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void CompletedDurationDoesNotMoveToALaterStatusDate(bool assigned, bool actualFinish) {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday; document.Settings.StatusDate = Monday.AddDays(1);
+        var task = document.Tasks.Add("Complete"); task.Type = ProjectTaskType.FixedDuration; task.Duration = task.ActualDuration = ProjectDuration.WorkingHours(8);
+        task.RemainingDuration = ProjectDuration.WorkingHours(0); task.ActualStart = Monday; if (actualFinish) task.ActualFinish = Monday.AddHours(9);
+        if (assigned) {
+            var assignment = document.Assignments.Add(task, document.Resources.AddWork("Engineer")); assignment.Work = assignment.ActualWork = ProjectWork.Hours(8);
+            assignment.ActualStart = Monday; assignment.ActualFinish = Monday.AddHours(9);
+        }
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true, RescheduleRemainingAfterStatusDate = true }); result.Report.ThrowIfErrors();
+        Assert.Equal(Monday.AddHours(9), result.Tasks.Single().Finish);
+        document.ApplySchedule(result); using var copy = document.Clone(); Assert.Equal(task.Finish, copy.Tasks[0].Finish);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void FixedDurationRemainderHonorsStopBeyondAssignmentCoverage(bool shortRemainingCurve) {
