@@ -4,7 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <VersionPrefix>3.4.2</VersionPrefix>
+    <VersionPrefix>3.4.3</VersionPrefix>
     <PackageId>OfficeIMO.AI</PackageId>
     <Description>Provider-neutral document AI operations with bounded evidence, source citations and validated extraction.</Description>
     <Authors>Przemyslaw Klys</Authors>

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Pinned schema and Schematron validation for OfficeIMO electronic invoices.</Description>
-    <VersionPrefix>3.4.2</VersionPrefix>
+    <VersionPrefix>3.4.3</VersionPrefix>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <Company>Evotec</Company><Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Invoicing.Validation</PackageId>
