@@ -5,6 +5,8 @@ namespace OfficeIMO.Html.Runtime;
 /// <summary>A live scripted document. Operations are serialized; captured documents are independent.</summary>
 /// <remarks>Dispose the session when finished. Cancellation or failure after command admission terminates the session.</remarks>
 public interface IHtmlRuntimeSession : IAsyncDisposable {
+    /// <summary>Resolves and performs a structured automation request. Expected action failures are returned without terminating the session.</summary>
+    Task<HtmlAutomationResult> AutomateAsync(HtmlAutomationRequest request, CancellationToken cancellationToken = default);
     /// <summary>Runs a classic script in the existing document without returning interpreter objects.</summary>
     Task ExecuteAsync(string script, CancellationToken cancellationToken = default);
     /// <summary>Evaluates an expression and returns a JSON value. Undefined and non-serializable results fail the operation.</summary>

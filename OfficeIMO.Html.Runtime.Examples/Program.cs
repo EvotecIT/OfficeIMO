@@ -19,7 +19,7 @@ await using var session = await runtime.OpenTrustedAsync(new HtmlScriptRequest {
     ReadyExpression = "window.reportReady === true"
 });
 var initial = await session.CaptureAsync("true");
-await session.ExecuteAsync("document.querySelector('#prepare').click();");
+await session.Locator("#prepare").ClickAsync();
 await session.WaitForAsync("window.reportReady === true");
 var captured = await session.CaptureAsync();
 await session.DisposeAsync();

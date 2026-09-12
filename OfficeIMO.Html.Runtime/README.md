@@ -33,7 +33,7 @@ await using var session = await runtime.OpenTrustedAsync(new HtmlScriptRequest {
 }, cancellationToken);
 
 var before = await session.CaptureAsync(cancellationToken: cancellationToken);
-await session.ExecuteAsync("document.querySelector('#prepare').click()", cancellationToken);
+await session.Locator("#prepare").ClickAsync(cancellationToken);
 await session.WaitForAsync("window.reportReady === true", cancellationToken);
 var title = await session.EvaluateAsync("document.title", cancellationToken);
 var after = await session.CaptureAsync(cancellationToken: cancellationToken);
@@ -43,6 +43,48 @@ var after = await session.CaptureAsync(cancellationToken: cancellationToken);
 readiness to `WaitForAsync` or `CaptureAsync`. Evaluation returns a detached
 `JsonElement` using JavaScript JSON serialization; undefined, cyclic values and
 other unsupported results fail the session. Captures never expose interpreter objects.
+
+Use locators to inspect and interact without composing JavaScript strings:
+
+```csharp
+var name = session.Locator(HtmlLocatorQuery.ByAccessibleName("Report name"));
+await name.FillAsync("Quarterly", cancellationToken);
+await session.Locator(HtmlLocatorQuery.ByText("Add adjustment")).ClickAsync(cancellationToken);
+await name.WaitForValueAsync("Quarterly", cancellationToken);
+HtmlRuntimeElementState state = await name.InspectAsync(cancellationToken);
+```
+
+Locators resolve the current DOM on every operation, including after an application
+replaces a node. CSS, normalized text and bounded accessible-name queries support
+scopes and explicit `Nth` selection. Actions require exactly one match; `CountAsync`
+counts all matches. Text queries select the smallest matching elements. Name queries
+use OfficeIMO's shared ARIA, HTML label, alternative-text and title rules, with text
+fallback for buttons, links, headings, options and explicitly role-bearing elements.
+This is a bounded naming subset, not a complete browser accessibility tree.
+
+The current interaction profile supports DOM clicks, fill for text-like inputs and
+textareas, checkbox/radio checking, exact option-value selection, focus, blur and
+state waits. Focus events, `document.activeElement`, `:focus` and `:focus-within`
+share session state. Fill sends cancelable `beforeinput`, changes the live value,
+then sends `input`; a changed text control sends `change` when it loses focus.
+`SetCheckedAsync` leaves an already matching checked state untouched, including
+indeterminate presentation. Option values must identify unique options; an empty
+selection clears them. Disabled, readonly, hidden and inert markup affect readiness.
+
+Missing or temporarily unavailable targets are retried within the session command
+deadline. Ambiguous, unsupported and page-rejected actions throw
+`HtmlAutomationException` with a structured result and leave the session usable.
+Use `AutomateAsync` to receive that result directly or set `WaitForReady = false`.
+Script failures and cancellation after command admission still terminate the worker.
+
+Clicks dispatch DOM events and checkbox/radio activation. They do not yet perform
+pointer hit testing, scrolling, keyboard input, navigation or form submission/reset.
+An uncancelled link or form default reports `Unsupported` after dispatching its click;
+page handlers may already have changed the document. `IsHiddenByMarkup` does not
+measure computed visibility, occlusion or layout stability. Script-triggered `.click()`
+still uses the retained provider's activation behavior. The retained JavaScript DOM
+adapter also drops some property assignments on select elements, including `onfocus`;
+select property-assignment compatibility remains an application-qualification gap.
 
 Supply external scripts and stylesheets without a web server, or explicitly enable
 HTTP resource loading:
@@ -161,7 +203,7 @@ buffered fetch, state updates, controlled input events, storage restoration,
 mutation delivery and independent captures converted to Markdown and searchable
 PDF. These paths do not establish general framework compatibility or a complete
 web-application profile. Modules, history/navigation, layout-driven interaction,
-combined mutation/promise ordering and live form-state capture remain unqualified.
+combined mutation/promise ordering and general framework compatibility remain unqualified.
 
 Commands are serialized. `Timeout` includes time waiting for another command,
 execution and result transfer. A queued cancellation or timeout leaves the active

@@ -15,16 +15,17 @@ try {
             if (session == null) {
                 if (command.Kind != "open" || command.Request == null) throw new HtmlScriptRuntimeException("The first command must open a document.");
                 options = command.Request.Snapshot();
-                using var deadline = new CancellationTokenSource(options.Timeout);
+                using var deadline = new CancellationTokenSource(options!.Timeout);
                 session = await ScriptedDocumentSession.OpenAsync(options, deadline.Token);
             } else {
-                if (command.Script == null || command.Script.Length > options!.MaxInputCharacters) throw new HtmlScriptRuntimeException("The command script is missing or exceeds its budget.");
-                using var deadline = new CancellationTokenSource(options.Timeout);
+                if (command.Kind != "automation" && (command.Script == null || command.Script.Length > options!.MaxInputCharacters)) throw new HtmlScriptRuntimeException("The command script is missing or exceeds its budget.");
+                using var deadline = new CancellationTokenSource(options!.Timeout);
                 switch (command.Kind) {
-                    case "execute": await session.ExecuteAsync(command.Script, deadline.Token); break;
-                    case "evaluate": response.ValueJson = await session.EvaluateAsync(command.Script, deadline.Token); break;
-                    case "wait": await session.WaitAsync(command.Script, false, deadline.Token); break;
-                    case "capture": response.Document = await session.WaitAsync(command.Script, true, deadline.Token); break;
+                    case "automation": response.Automation = await session.AutomateAsync((command.Automation ?? throw new HtmlScriptRuntimeException("The automation request is missing.")).Snapshot(options!.MaxInputCharacters), deadline.Token); break;
+                    case "execute": await session.ExecuteAsync(command.Script!, deadline.Token); break;
+                    case "evaluate": response.ValueJson = await session.EvaluateAsync(command.Script!, deadline.Token); break;
+                    case "wait": await session.WaitAsync(command.Script!, false, deadline.Token); break;
+                    case "capture": response.Document = await session.WaitAsync(command.Script!, true, deadline.Token); break;
                     default: throw new HtmlScriptRuntimeException("Unknown runtime command.");
                 }
             }

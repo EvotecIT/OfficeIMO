@@ -125,6 +125,9 @@ public static partial class HtmlAccessibilitySemantics {
                 if (svgTitle.Length > 0) return svgTitle;
             }
 
+            string formLabel = ResolveFormLabel(element, resolutionPath, context, depth);
+            if (formLabel.Length > 0) return formLabel;
+
             if (includeTextFallback) {
                 string text = context.GetBoundedText(element);
                 if (text.Length > 0) return text;
@@ -213,7 +216,7 @@ public static partial class HtmlAccessibilitySemantics {
     private static bool IsTokenSeparator(char value) =>
         value == ' ' || value == '\t' || value == '\r' || value == '\n' || value == '\f';
 
-    internal sealed class HtmlAccessibleNameContext {
+    internal sealed partial class HtmlAccessibleNameContext {
         private const int MaximumAggregateNameCharacters = 4 * 1024 * 1024;
         private const int MaximumTraversalWork = 4 * 1024 * 1024;
         private int _remainingCharacters = MaximumAggregateNameCharacters;

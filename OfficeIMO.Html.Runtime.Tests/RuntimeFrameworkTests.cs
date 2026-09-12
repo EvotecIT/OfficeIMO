@@ -25,7 +25,8 @@ public sealed class RuntimeFrameworkTests {
         });
         var before = await session.CaptureAsync("document.querySelector('#total').textContent==='Total: 42'");
         Assert.Equal("Report: Monthly", before.Document.QuerySelector("#report-name")!.TextContent);
-        await session.ExecuteAsync("document.querySelector('#increment').click();const input=document.querySelector('#name');input.value='Quarterly';input.dispatchEvent(new Event('input',{bubbles:true}))");
+        await session.Locator(HtmlLocatorQuery.ByText("Add adjustment")).ClickAsync();
+        await session.Locator(HtmlLocatorQuery.ByAccessibleName("Report name")).FillAsync("Quarterly");
         await session.WaitForAsync("document.querySelector('#adjustments').textContent==='Adjustments: 1' && localStorage.getItem('report:name')==='Quarterly'");
         var after = await session.CaptureAsync();
         Assert.Equal("Report: Quarterly", after.Document.QuerySelector("#report-name")!.TextContent);

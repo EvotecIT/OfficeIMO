@@ -53,6 +53,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Html.Benchmarks" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.Runtime.Worker" />
     <InternalsVisibleTo Include="OfficeIMO.Epub.Image" />
     <InternalsVisibleTo Include="OfficeIMO.Excel.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Pdf" />

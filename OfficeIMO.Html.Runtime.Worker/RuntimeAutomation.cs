@@ -1,0 +1,165 @@
+using AngleSharp.Dom;
+using AngleSharp.Dom.Events;
+using AngleSharp.Html.Dom;
+using AngleSharp.Html.Dom.Events;
+
+namespace OfficeIMO.Html.Runtime.Worker;
+
+internal sealed class RuntimeAutomation(IDocument document, HtmlScriptRequest options, RuntimeFocusController focus) {
+    private readonly RuntimeLocatorResolver _locators = new(document, options);
+
+    internal HtmlAutomationResult Run(HtmlAutomationRequest request, CancellationToken token) {
+        IReadOnlyList<IElement> matches;
+        try { matches = _locators.Resolve(request.Query, token); }
+        catch (DomException error) { return Failure(HtmlAutomationStatus.InvalidLocator, error.Message); }
+        if (request.Action == HtmlAutomationAction.Count) return new() { MatchCount = matches.Count };
+        if (request.Action == HtmlAutomationAction.Wait && request.WaitState == HtmlLocatorWaitState.Detached)
+            return matches.Count == 0 ? new() : Failure(HtmlAutomationStatus.NotReady, "The locator still matches attached elements.", matches.Count);
+        if (matches.Count == 0) return Failure(HtmlAutomationStatus.NotFound, "The locator matches no attached element.");
+        if (matches.Count != 1) return Failure(HtmlAutomationStatus.Ambiguous, "The operation requires exactly one element. Scope the query or select an explicit index.", matches.Count);
+        IElement element = matches[0];
+        if (request.Action == HtmlAutomationAction.Inspect) return Success(element);
+        if (request.Action == HtmlAutomationAction.Wait) {
+            var state = Inspect(element);
+            bool ready = request.WaitState switch {
+                HtmlLocatorWaitState.Attached => true,
+                HtmlLocatorWaitState.Enabled => !state.IsDisabled,
+                HtmlLocatorWaitState.Disabled => state.IsDisabled,
+                HtmlLocatorWaitState.Editable => state.IsEditable,
+                HtmlLocatorWaitState.Focused => state.IsFocused,
+                HtmlLocatorWaitState.Value => state.Value != null && state.Value == request.Value,
+                HtmlLocatorWaitState.Text => state.Text == RuntimeLocatorResolver.Normalize(request.Value),
+                HtmlLocatorWaitState.Checked => state.IsChecked != null && state.IsChecked == request.Checked,
+                _ => false
+            };
+            return ready ? Success(element) : Failure(HtmlAutomationStatus.NotReady, "The requested element state has not been reached.", 1, state);
+        }
+        if (request.Action == HtmlAutomationAction.Blur) { focus.Blur(element); return Success(element); }
+        if (RuntimeFocusController.Disabled(element) || RuntimeFocusController.HiddenByMarkup(element))
+            return Failure(HtmlAutomationStatus.NotReady, "The element is disabled, hidden by markup or inside an inert subtree.", 1, Inspect(element));
+        return request.Action switch {
+            HtmlAutomationAction.Focus => RuntimeFocusController.CanFocus(element)
+                ? focus.Focus(element) ? Success(element) : Failure(HtmlAutomationStatus.Rejected, "Page handlers redirected focus.", 1, Inspect(element))
+                : Failure(HtmlAutomationStatus.Unsupported, "This element is not focusable.", 1, Inspect(element)),
+            HtmlAutomationAction.Fill => Fill(element, request.Value!),
+            HtmlAutomationAction.SelectOptions => Select(element, request.Values),
+            HtmlAutomationAction.SetChecked => SetChecked(element, request.Checked!.Value),
+            HtmlAutomationAction.Click => Activate(element, focusTarget: true),
+            _ => Failure(HtmlAutomationStatus.Unsupported, "Unsupported automation operation.", 1)
+        };
+    }
+
+    internal HtmlRuntimeElementState Inspect(IElement element) => new() {
+        ElementName = element.LocalName, Id = element.Id ?? string.Empty,
+        AccessibleName = RuntimeLocatorResolver.AccessibleName(element),
+        Text = RuntimeLocatorResolver.Normalize(element.TextContent), Value = RuntimeFocusController.Value(element),
+        SelectedValues = element is IHtmlSelectElement select ? Array.AsReadOnly(select.Options.Where(option => option.IsSelected).Select(option => option.Value).ToArray()) : Array.Empty<string>(),
+        IsChecked = element is IHtmlInputElement check && check.Type is "checkbox" or "radio" ? check.IsChecked : null,
+        IsIndeterminate = element is IHtmlInputElement mixed && mixed.Type == "checkbox" && mixed.IsIndeterminate,
+        IsDisabled = RuntimeFocusController.Disabled(element), IsReadOnly = ReadOnly(element), IsEditable = SupportsFill(element) && ReadyToEdit(element),
+        IsHiddenByMarkup = RuntimeFocusController.HiddenByMarkup(element), IsFocused = ReferenceEquals(focus.Focused, element), IsConnected = RuntimeFocusController.IsConnected(element)
+    };
+
+    private HtmlAutomationResult Fill(IElement element, string value) {
+        if (!SupportsFill(element)) return Failure(HtmlAutomationStatus.Unsupported, "Fill supports text, search, email, URL, telephone and password inputs and textareas.", 1, Inspect(element));
+        if (!ReadyToEdit(element)) return Failure(HtmlAutomationStatus.NotReady, "The text control is not editable.", 1, Inspect(element));
+        if (!focus.Focus(element) || !SupportsFill(element) || !ReadyToEdit(element)) return Failure(HtmlAutomationStatus.Rejected, "Focus handlers changed the editing target.", 1, Inspect(element));
+        var beforeInput = new InputEvent("beforeinput", true, true, value);
+        element.Dispatch(beforeInput);
+        if (beforeInput.IsDefaultPrevented) return Failure(HtmlAutomationStatus.Rejected, "The page cancelled beforeinput.", 1, Inspect(element));
+        if (!SupportsFill(element) || !ReadyToEdit(element) || !ReferenceEquals(focus.Focused, element)) return Failure(HtmlAutomationStatus.Rejected, "Beforeinput handlers changed the editing target.", 1, Inspect(element));
+        focus.ChangedByUser(element);
+        if (element is IHtmlInputElement input) {
+            string normalized = value.Replace("\r", string.Empty).Replace("\n", string.Empty);
+            input.Value = input.Type is "email" or "url" ? normalized.Trim(' ', '\t', '\f') : normalized;
+        }
+        else ((IHtmlTextAreaElement)element).Value = value;
+        element.Dispatch(new InputEvent("input", true, false, value));
+        return Success(element);
+    }
+
+    private HtmlAutomationResult Select(IElement element, IReadOnlyList<string> values) {
+        if (element is not IHtmlSelectElement select) return Failure(HtmlAutomationStatus.Unsupported, "SelectOptions requires a select element.", 1, Inspect(element));
+        string[] requested = values.Distinct(StringComparer.Ordinal).ToArray();
+        if (!select.IsMultiple && requested.Length > 1) return Failure(HtmlAutomationStatus.InvalidValue, "A dropdown accepts at most one selected option.", 1);
+        var selected = new HashSet<IHtmlOptionElement>();
+        foreach (string value in requested) {
+            IHtmlOptionElement[] candidates = select.Options.Where(option => string.Equals(option.Value, value, StringComparison.Ordinal)).ToArray();
+            if (candidates.Length != 1) return Failure(HtmlAutomationStatus.InvalidValue, "Each requested option value must identify exactly one option.", 1);
+            if (HtmlFormControlSemantics.IsOptionEffectivelyDisabled(candidates[0])) return Failure(HtmlAutomationStatus.NotReady, "A requested option is disabled.", 1);
+            selected.Add(candidates[0]);
+        }
+        if (!focus.Focus(element) || !RuntimeFocusController.IsConnected(element) || RuntimeFocusController.Disabled(element) || RuntimeFocusController.HiddenByMarkup(element))
+            return Failure(HtmlAutomationStatus.Rejected, "Focus handlers changed the selection target.", 1, Inspect(element));
+        // A focus handler may replace or disable an option. Validate the retained references before mutation.
+        if (!select.IsMultiple && requested.Length > 1 || selected.Any(option => !select.Options.Contains(option)
+            || HtmlFormControlSemantics.IsOptionEffectivelyDisabled(option))
+            || requested.Any(value => {
+                var current = select.Options.Where(option => string.Equals(option.Value, value, StringComparison.Ordinal)).ToArray();
+                return current.Length != 1 || !selected.Contains(current[0]);
+            }))
+            return Failure(HtmlAutomationStatus.Rejected, "Focus handlers changed the requested options.", 1, Inspect(element));
+        bool changed = select.Options.Any(option => option.IsSelected != selected.Contains(option));
+        foreach (IHtmlOptionElement option in select.Options) option.IsSelected = selected.Contains(option);
+        if (changed) { element.Dispatch(new Event("input", true, false)); element.Dispatch(new Event("change", true, false)); }
+        return Success(element);
+    }
+
+    private HtmlAutomationResult SetChecked(IElement element, bool value) {
+        if (element is not IHtmlInputElement input || input.Type is not ("checkbox" or "radio"))
+            return Failure(HtmlAutomationStatus.Unsupported, "SetChecked requires a checkbox or radio input.", 1, Inspect(element));
+        if (input.Type == "radio" && !value) return Failure(HtmlAutomationStatus.InvalidValue, "A radio is unchecked by choosing another radio in its group.", 1);
+        if (input.IsChecked == value) return Success(element);
+        HtmlAutomationResult result = Activate(element, true);
+        if (result.Status != HtmlAutomationStatus.Success) return result;
+        return input.IsChecked == value ? Success(element)
+            : Failure(HtmlAutomationStatus.Rejected, "The page prevented the requested checked state.", 1, Inspect(element));
+    }
+
+    internal HtmlAutomationResult Activate(IElement element, bool focusTarget) {
+        if (element is not IHtmlElement) return Failure(HtmlAutomationStatus.Unsupported, "DOM activation requires an HTML element.", 1);
+        if (RuntimeFocusController.Disabled(element)) return Failure(HtmlAutomationStatus.NotReady, "The element is disabled.", 1, Inspect(element));
+        if (focusTarget && RuntimeFocusController.CanFocus(element) && !focus.Focus(element))
+            return Failure(HtmlAutomationStatus.Rejected, "Page handlers redirected focus.", 1, Inspect(element));
+        if (!RuntimeFocusController.IsConnected(element) || RuntimeFocusController.Disabled(element) || RuntimeFocusController.HiddenByMarkup(element)) return Failure(HtmlAutomationStatus.Rejected, "The activation target changed during focus.", 1, Inspect(element));
+        var check = element as IHtmlInputElement;
+        bool isChoice = check?.Type is "checkbox" or "radio";
+        var saved = new Dictionary<IHtmlInputElement, bool>();
+        bool mixed = check?.IsIndeterminate == true;
+        if (isChoice) {
+            saved.Add(check!, check!.IsChecked);
+            if (check.Type == "radio" && !string.IsNullOrEmpty(check.Name)) {
+                var owner = HtmlFormControlSemantics.ResolveFormOwner(check);
+                foreach (var other in document.QuerySelectorAll("input").OfType<IHtmlInputElement>())
+                    if (!ReferenceEquals(other, check) && other.Type == "radio" && other.Name == check.Name && ReferenceEquals(HtmlFormControlSemantics.ResolveFormOwner(other), owner))
+                        saved.Add(other, other.IsChecked);
+                foreach (var other in saved.Keys) other.IsChecked = ReferenceEquals(other, check);
+            } else check.IsChecked = check.Type == "radio" || !check.IsChecked;
+            check.IsIndeterminate = false;
+        }
+        var click = new MouseEvent();
+        click.Init("click", true, true, document.DefaultView, 1, 0, 0, 0, 0, false, false, false, false, MouseButton.Primary, null);
+        element.Dispatch(click);
+        if (click.IsDefaultPrevented) {
+            foreach (var pair in saved) pair.Key.IsChecked = pair.Value;
+            if (isChoice) check!.IsIndeterminate = mixed;
+            return Success(element);
+        }
+        if (isChoice && saved[check!] != check!.IsChecked) {
+            element.Dispatch(new Event("input", true, false)); element.Dispatch(new Event("change", true, false));
+        }
+        string type = HtmlFormControlSemantics.GetEffectiveType(element.LocalName, element.GetAttribute("type"));
+        if (element is IHtmlAnchorElement && element.HasAttribute("href")
+            || element is IHtmlButtonElement or IHtmlInputElement && type is "submit" or "reset" && HtmlFormControlSemantics.ResolveFormOwner(element) != null)
+            return Failure(HtmlAutomationStatus.Unsupported, "The click was dispatched, but its uncancelled navigation or form default action is outside this interaction profile.", 1, Inspect(element));
+        return Success(element);
+    }
+
+    private static bool SupportsFill(IElement element) => element is IHtmlTextAreaElement
+        || element is IHtmlInputElement input && input.Type is "text" or "search" or "email" or "url" or "tel" or "password";
+    private static bool ReadOnly(IElement element) => element.HasAttribute("readonly")
+        && HtmlFormControlSemantics.IsReadOnlyStateApplicable(element.LocalName, HtmlFormControlSemantics.GetEffectiveType(element.LocalName, element.GetAttribute("type")));
+    private static bool ReadyToEdit(IElement element) => RuntimeFocusController.IsConnected(element) && !ReadOnly(element) && !RuntimeFocusController.Disabled(element) && !RuntimeFocusController.HiddenByMarkup(element);
+    private HtmlAutomationResult Success(IElement element) => new() { MatchCount = 1, Element = Inspect(element) };
+    private static HtmlAutomationResult Failure(HtmlAutomationStatus status, string message, int count = 0, HtmlRuntimeElementState? state = null) => new() { Status = status, Message = message, MatchCount = count, Element = state };
+}

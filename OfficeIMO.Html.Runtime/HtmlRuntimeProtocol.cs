@@ -41,6 +41,7 @@ internal sealed class HtmlRuntimeCommand {
     public string Kind { get; set; } = string.Empty;
     public HtmlScriptRequest? Request { get; set; }
     public string? Script { get; set; }
+    public HtmlAutomationRequest? Automation { get; set; }
 }
 
 internal sealed class HtmlRuntimeResponse {
@@ -48,4 +49,5 @@ internal sealed class HtmlRuntimeResponse {
     public string? Error { get; set; }
     public string? ValueJson { get; set; }
     public HtmlRuntimeWireDocument? Document { get; set; }
+    public HtmlAutomationResult? Automation { get; set; }
 }

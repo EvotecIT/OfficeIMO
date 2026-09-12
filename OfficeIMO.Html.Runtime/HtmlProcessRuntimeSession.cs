@@ -38,6 +38,13 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimeSession {
 
     internal Task OpenAsync(CancellationToken token) => SendAsync(new HtmlRuntimeCommand { Kind = "open", Request = _options }, token);
 
+    public Task<HtmlAutomationResult> AutomateAsync(HtmlAutomationRequest request, CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        var snapshot = request.Snapshot(_options.MaxInputCharacters);
+        return SendAsync(new HtmlRuntimeCommand { Kind = "automation", Automation = snapshot },
+            (response, _) => response.Automation ?? throw new HtmlScriptRuntimeException("The worker returned no automation result."), cancellationToken);
+    }
+
     public Task ExecuteAsync(string script, CancellationToken cancellationToken = default) => SendAsync(Command("execute", script), cancellationToken);
 
     public Task<JsonElement> EvaluateAsync(string expression, CancellationToken cancellationToken = default) =>

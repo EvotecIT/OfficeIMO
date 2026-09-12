@@ -15,6 +15,7 @@
     <EmbeddedResource Include="RuntimeStorageBootstrap.js" LogicalName="OfficeIMO.RuntimeStorageBootstrap.js" />
     <EmbeddedResource Include="RuntimeWindowBootstrap.js" LogicalName="OfficeIMO.RuntimeWindowBootstrap.js" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
+    <ProjectReference Include="../OfficeIMO.Html/OfficeIMO.Html.csproj" />
     <PackageReference Include="AngleSharp" Version="1.7.1" />
     <PackageReference Include="AngleSharp.Css" Version="1.0.1" />
     <PackageReference Include="AngleSharp.Js" Version="1.0.1" />

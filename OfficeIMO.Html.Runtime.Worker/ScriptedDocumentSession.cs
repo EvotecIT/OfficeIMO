@@ -19,12 +19,16 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private IDocument _document = null!;
     private IEventLoop _loop = null!;
     private RuntimeFetchBindings? _fetch;
+    private readonly RuntimeFocusController _focus = new();
+    private RuntimeAutomation _automation = null!;
 
     private ScriptedDocumentSession(HtmlScriptRequest options) {
         _options = options;
         _errors = new RuntimeScriptErrors(options.MaxPendingPromiseRejections);
         _resources = new RuntimeResourceLoader(options);
         var configuration = Configuration.Default.WithCss().WithJs(new JsScriptingOptions { MaxCallStackDepth = 512 }).WithEventLoop()
+            .Without<AngleSharp.Css.IPseudoClassSelectorFactory>()
+            .With((AngleSharp.Css.IPseudoClassSelectorFactory)_focus.CreateSelectors())
             .With(new RuntimeResourceRequester(_resources, _errors))
             .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true, IsNavigationDisabled = true });
         var scripting = configuration.Services.OfType<JsScriptingService>().Single();
@@ -50,6 +54,8 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             RuntimeUrlBindings.Install(_engine, document.DefaultView!);
             RuntimeObserverBindings.Install(_engine, document, _errors.Report);
             RuntimeStorageBindings.Install(_engine, options.MaxStorageCharacters);
+            _automation = new RuntimeAutomation(document, options, _focus);
+            RuntimeInteractionBindings.Install(_engine, document, _focus);
             _fetch = new RuntimeFetchBindings(_engine, document, _loop, _resources, options, _errors);
         };
     }
@@ -66,6 +72,15 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     }
 
     internal Task ExecuteAsync(string script, CancellationToken token) => OnLoop(() => { _document.ExecuteScript(script); return true; }, token);
+
+    internal async Task<HtmlAutomationResult> AutomateAsync(HtmlAutomationRequest request, CancellationToken token) {
+        while (true) {
+            token.ThrowIfCancellationRequested();
+            HtmlAutomationResult result = await OnLoop(() => _automation.Run(request, token), token);
+            if (!request.WaitForReady || result.Status is not (HtmlAutomationStatus.NotFound or HtmlAutomationStatus.NotReady)) return result;
+            await Task.Delay(_options.PollInterval, token);
+        }
+    }
 
     internal Task<string> EvaluateAsync(string expression, CancellationToken token) => OnLoop(() => {
         var value = _engine.Evaluate("JSON.stringify((" + expression + "\n))");
