@@ -2139,9 +2139,17 @@ public sealed partial class PdfReadPage {
         private readonly Dictionary<PdfStream, byte[]> _decodedStreams = new();
         private long _decodedBytes;
         private long _remainingColorFunctionEvaluationWork;
+        private long _positionedTextCharacters;
+        private long _positionedTextWorkCharacters;
+        private readonly Action<OfficeDrawing>? _configureDrawing;
 
-        internal PageContentBudget(PdfReadPage page, CancellationToken cancellationToken = default) {
+        internal PageContentBudget(PdfReadPage page, CancellationToken cancellationToken = default)
+            : this(page, null, cancellationToken) { }
+
+        internal PageContentBudget(PdfReadPage page, Action<OfficeDrawing>? configureDrawing,
+            CancellationToken cancellationToken) {
             CancellationToken = cancellationToken;
+            _configureDrawing = configureDrawing;
             _page = page;
             _remainingColorFunctionEvaluationWork = Math.Max(1, page._limits.MaxContentOperations);
             ColorFunctionResolutionContext = new PdfColorFunctionResolutionContext(
@@ -2150,6 +2158,10 @@ public sealed partial class PdfReadPage {
 
         internal CancellationToken CancellationToken { get; }
         internal PdfColorFunctionResolutionContext ColorFunctionResolutionContext { get; }
+
+        // The render invocation owns both resource limits and its final text profile.
+        // Nested forms and pattern tiles must configure it before measuring glyphs.
+        internal void ConfigureDrawing(OfficeDrawing drawing) => _configureDrawing?.Invoke(drawing);
 
         internal bool TryConsumeColorFunctionEvaluation(int evaluationCost) =>
             TryConsumeColorFunctionEvaluations(evaluationCost, 1L);
@@ -2165,6 +2177,24 @@ public sealed partial class PdfReadPage {
             if (cost > _remainingColorFunctionEvaluationWork) return false;
             _remainingColorFunctionEvaluationWork -= cost;
             return true;
+        }
+
+        internal void ChargePositionedTextCharacters(int count) {
+            CancellationToken.ThrowIfCancellationRequested();
+            _positionedTextCharacters += count;
+            if (_positionedTextCharacters > _page._limits.MaxPositionedTextCharactersPerPage) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.PositionedTextCharacters,
+                    _page._limits.MaxPositionedTextCharactersPerPage, _positionedTextCharacters);
+            }
+        }
+
+        internal void ChargePositionedTextWorkCharacters(int count) {
+            CancellationToken.ThrowIfCancellationRequested();
+            _positionedTextWorkCharacters += count;
+            if (_positionedTextWorkCharacters > _page._limits.MaxPositionedTextWorkCharactersPerPage) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.PositionedTextWorkCharacters,
+                    _page._limits.MaxPositionedTextWorkCharactersPerPage, _positionedTextWorkCharacters);
+            }
         }
 
         internal byte[] Decode(PdfStream stream) {

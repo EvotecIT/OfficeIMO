@@ -5,16 +5,41 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeDrawingRasterRenderer {
     private static void RenderTransformedPositionedText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
         canvas.CancellationToken.ThrowIfCancellationRequested();
-        _ = OfficeRasterExportPlanner.Resolve(text.Width, text.Height, OfficeImageExportFormat.Png,
-            new OfficeImageExportOptions { Scale = scale, MaximumRasterPixels = maximumRasterPixels, RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw });
-        var layer = new OfficeRasterImage(Math.Max(1, (int)Math.Ceiling(text.Width * scale)), Math.Max(1, (int)Math.Ceiling(text.Height * scale)));
+        double left = 0D, top = 0D, right = text.Width * scale, bottom = text.Height * scale;
+        double sourceSize = Math.Max(1D, text.Font.Size * scale);
+        string[] lines = text.Text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        double lineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scale;
+        for (int index = 0; index < lines.Length; index++) {
+            double offset = index * lineHeight;
+            if (offset >= text.Height * scale) break;
+            if (lines[index].Length == 0) continue;
+            double advance = lines.Length == 1 && text.TextAdvanceWidth.HasValue
+                ? text.TextAdvanceWidth.Value * scale
+                : Math.Max(.001D, canvas.MeasureText(lines[index], sourceSize * text.BaselineScale, text.Font.FamilyName, text.Font.Style));
+            var bounds = canvas.MeasurePositionedTextBounds(lines[index], 0D, offset + text.BaselineOffset * scale,
+                text.Width * scale, text.Height * scale - offset, sourceSize * text.BaselineScale, text.Font, advance,
+                text.Alignment, text.FeatureSettings, text.FontPalette, sourceSize, text.UnderlineStyle, text.StrikethroughStyle);
+            left = Math.Min(left, bounds.Left); top = Math.Min(top, bounds.Top);
+            right = Math.Max(right, bounds.Right); bottom = Math.Max(bottom, bounds.Bottom);
+        }
+        left = Math.Floor(left); top = Math.Floor(top);
+        right = Math.Ceiling(right); bottom = Math.Ceiling(bottom);
+        // Transparent sampling support is optional; actual ink and the caller's pixel
+        // ceiling are not. An exact-fit frame must not fail solely because of padding.
+        double paddedWidth = right - left + 2D, paddedHeight = bottom - top + 2D;
+        if (paddedHeight > 0D && paddedWidth <= maximumRasterPixels / paddedHeight) {
+            left -= 1D; top -= 1D; right += 1D; bottom += 1D;
+        }
+        _ = OfficeRasterExportPlanner.Resolve(right - left, bottom - top, OfficeImageExportFormat.Png,
+            new OfficeImageExportOptions { MaximumRasterPixels = maximumRasterPixels, RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw });
+        var layer = new OfficeRasterImage(Math.Max(1, (int)(right - left)), Math.Max(1, (int)(bottom - top)));
         var local = new OfficeRasterCanvas(layer, font: canvas.OutlineFont, fonts: canvas.Fonts,
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
             diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource, cancellationToken: canvas.CancellationToken);
-        RenderPositionedTextLines(local, text, scale, 0D, 0D, text.Width * scale, text.Height * scale);
+        RenderPositionedTextLines(local, text, scale, -left, -top, text.Width * scale, text.Height * scale);
         var frame = new OfficeImageFrameTransform(text.RotationDegrees, text.RotationCenterX * scale, text.RotationCenterY * scale,
             text.FlipHorizontal, text.FlipVertical);
-        OfficeTransform transform = OfficeTransform.Translate(text.X * scale, text.Y * scale).Then(frame.CreateDestinationTransform());
+        OfficeTransform transform = OfficeTransform.Translate(text.X * scale + left, text.Y * scale + top).Then(frame.CreateDestinationTransform());
         canvas.DrawAffineImage(layer, transform, 1D, OfficeBlendMode.Normal, interpolate: true);
     }
 

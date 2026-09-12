@@ -20,6 +20,8 @@ public sealed class PdfReadLimits {
     internal const long DefaultMaxTotalJavaScriptBytes = 32L * 1024L * 1024L;
     internal const int DefaultMaxAttachments = 100_000;
     internal const long DefaultMaxTotalAttachmentBytes = 256L * 1024L * 1024L;
+    internal const int DefaultMaxPositionedTextCharactersPerPage = 100_000;
+    internal const int DefaultMaxPositionedTextWorkCharactersPerPage = 100_000;
     internal const int DefaultMaxType3GlyphInvocationsPerPage = 1_000_000;
 
     /// <summary>Creates default parser budgets that callers can customize without changing another options instance.</summary>
@@ -130,6 +132,12 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum Type 3 glyph programs invoked while rendering one page, including nested forms. Default: 1,000,000.</summary>
     public int MaxType3GlyphInvocationsPerPage { get; init; } = DefaultMaxType3GlyphInvocationsPerPage;
 
+    /// <summary>Maximum characters expanded into individually positioned drawing glyphs per page, including nested forms. Glyph frames rejected by page or clip bounds do not count. Default: 100,000.</summary>
+    public int MaxPositionedTextCharactersPerPage { get; init; } = DefaultMaxPositionedTextCharactersPerPage;
+
+    /// <summary>Maximum characters materialized or measured for positioned-glyph visibility in one page render, including invisible glyphs and nested forms. Charged before glyph strings or outlines are allocated. Default: 100,000.</summary>
+    public int MaxPositionedTextWorkCharactersPerPage { get; init; } = DefaultMaxPositionedTextWorkCharactersPerPage;
+
     internal PdfReadLimits WithMinimumInputBytes(long minimumInputBytes) {
         return WithMinimumStructure(minimumInputBytes, MaxIndirectObjects);
     }
@@ -179,6 +187,8 @@ public sealed class PdfReadLimits {
             MaxContentOperations = SaturatingAdd(MaxContentOperations, growth.AdditionalContentOperations),
             MaxContentOperands = SaturatingAdd(MaxContentOperands, growth.AdditionalContentOperands),
             MaxContentNestingDepth = SaturatingAdd(MaxContentNestingDepth, growth.AdditionalContentNestingDepth),
+            MaxPositionedTextCharactersPerPage = MaxPositionedTextCharactersPerPage,
+            MaxPositionedTextWorkCharactersPerPage = MaxPositionedTextWorkCharactersPerPage,
             MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage
         };
     }
@@ -231,6 +241,8 @@ public sealed class PdfReadLimits {
             MaxContentOperations = sources.Max(static limits => limits.MaxContentOperations),
             MaxContentOperands = sources.Max(static limits => limits.MaxContentOperands),
             MaxContentNestingDepth = sources.Max(static limits => limits.MaxContentNestingDepth),
+            MaxPositionedTextCharactersPerPage = sources.Max(static limits => limits.MaxPositionedTextCharactersPerPage),
+            MaxPositionedTextWorkCharactersPerPage = sources.Max(static limits => limits.MaxPositionedTextWorkCharactersPerPage),
             MaxType3GlyphInvocationsPerPage = sources.Max(static limits => limits.MaxType3GlyphInvocationsPerPage)
         };
     }
@@ -325,6 +337,8 @@ public sealed class PdfReadLimits {
             MaxContentOperations = MaxContentOperations,
             MaxContentOperands = MaxContentOperands,
             MaxContentNestingDepth = MaxContentNestingDepth,
+            MaxPositionedTextCharactersPerPage = MaxPositionedTextCharactersPerPage,
+            MaxPositionedTextWorkCharactersPerPage = MaxPositionedTextWorkCharactersPerPage,
             MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage
         };
     }
@@ -398,6 +412,8 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxContentOperations, nameof(MaxContentOperations), "Maximum content operations must be positive.");
         ValidatePositive(MaxContentOperands, nameof(MaxContentOperands), "Maximum content operands must be positive.");
         ValidatePositive(MaxContentNestingDepth, nameof(MaxContentNestingDepth), "Maximum content nesting depth must be positive.");
+        ValidatePositive(MaxPositionedTextCharactersPerPage, nameof(MaxPositionedTextCharactersPerPage), "Maximum positioned text characters per page must be positive.");
+        ValidatePositive(MaxPositionedTextWorkCharactersPerPage, nameof(MaxPositionedTextWorkCharactersPerPage), "Maximum positioned text work characters per page must be positive.");
         ValidatePositive(MaxType3GlyphInvocationsPerPage, nameof(MaxType3GlyphInvocationsPerPage), "Maximum Type 3 glyph invocations per page must be positive.");
     }
 

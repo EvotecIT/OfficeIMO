@@ -111,26 +111,50 @@ public sealed partial class PdfReadPage {
     /// </summary>
     public OfficeDrawing ToDrawing() => ToDrawing(CancellationToken.None);
 
-    internal OfficeDrawing ToDrawing(CancellationToken cancellationToken) {
+    /// <summary>
+    /// Projects supported page content using the supplied fonts and shaping profile before checking glyph visibility.
+    /// </summary>
+    /// <param name="fonts">Fonts to add after embedded fonts, replacing faces with matching family and style.</param>
+    /// <param name="textShapingProvider">Optional provider used for glyph shaping and visibility measurements.</param>
+    /// <param name="textShapingLanguage">Optional language passed to the shaping provider.</param>
+    /// <param name="cancellationToken">Token used to cancel page projection.</param>
+    /// <returns>A drawing scene with the supplied profile applied to the page and nested drawings.</returns>
+    /// <remarks>Supply substitute fonts here; adding fonts after projection cannot restore glyphs already culled.</remarks>
+    public OfficeDrawing ToDrawing(OfficeFontFaceCollection fonts,
+        IOfficeTextShapingProvider? textShapingProvider = null,
+        string? textShapingLanguage = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(fonts, nameof(fonts));
+        return ToDrawing(cancellationToken, drawing => {
+            drawing.Fonts.AddRange(fonts);
+            drawing.TextShapingProvider = textShapingProvider;
+            drawing.TextShapingLanguage = textShapingLanguage;
+        });
+    }
+
+    internal OfficeDrawing ToDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandContentExtraction?.Invoke("visual content");
-        return ToDisplayDrawing(cancellationToken);
+        return ToDisplayDrawing(cancellationToken, configureDrawing);
     }
 
     // Used only by the raster display path; never return this drawing through a public viewing API.
-    internal OfficeDrawing ToDisplayDrawing(CancellationToken cancellationToken) {
+    internal OfficeDrawing ToDisplayDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null) {
         cancellationToken.ThrowIfCancellationRequested();
         PrepareOutputIntentRendering(cancellationToken);
         (double Width, double Height) size = GetVisualPageSize();
         Matrix2D pageTransform = GetVisualPageTransform();
         var drawing = new OfficeDrawing(size.Width, size.Height);
         var textOutputBudget = CreateTextOutputBudget();
-        var pageContentBudget = new PageContentBudget(this, cancellationToken);
+        var pageContentBudget = new PageContentBudget(this, configureDrawing, cancellationToken);
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var invocationTextClippingBudget = new PdfTextClippingBudget();
         var patternTextClippingBudget = new PdfTextClippingBudget();
         cancellationToken.ThrowIfCancellationRequested();
         RegisterEmbeddedFonts(drawing, ResolveDictionary(GetInheritedValue("Resources")), new HashSet<PdfStream>(), 0);
+        // Visibility must use the same font and shaping profile as the final rasterizer.
+        // Configure after embedded fonts so each caller retains its font precedence policy.
+        pageContentBudget.ConfigureDrawing(drawing);
 
         cancellationToken.ThrowIfCancellationRequested();
         List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken);
@@ -263,7 +287,7 @@ public sealed partial class PdfReadPage {
         PdfTextClippingBudget patternTextClippingBudget,
         CancellationToken cancellationToken = default) {
         if (element.Effect.IsDefault) {
-            AddDrawingElementCore(drawing, pageHeight, element, invocationTextClippingBudget);
+            AddDrawingElementCore(drawing, pageHeight, element, invocationTextClippingBudget, pageContentBudget, cancellationToken);
             return;
         }
 
@@ -310,8 +334,12 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        var isolated = new OfficeDrawing(drawing.Width, drawing.Height);
-        AddDrawingElementCore(isolated, pageHeight, element, invocationTextClippingBudget);
+        var isolated = new OfficeDrawing(drawing.Width, drawing.Height) {
+            TextShapingProvider = drawing.TextShapingProvider,
+            TextShapingLanguage = drawing.TextShapingLanguage
+        };
+        isolated.Fonts.AddRange(drawing.Fonts);
+        AddDrawingElementCore(isolated, pageHeight, element, invocationTextClippingBudget, pageContentBudget, cancellationToken);
         if (isolated.Elements.Count == 0) return;
         OfficeDrawingSoftMask? softMask = element.Effect.SoftMask == null
             ? null
@@ -336,13 +364,15 @@ public sealed partial class PdfReadPage {
         OfficeDrawing drawing,
         double pageHeight,
         PdfPageDrawingElement element,
-        PdfTextClippingBudget textClippingBudget) {
+        PdfTextClippingBudget textClippingBudget,
+        PageContentBudget pageContentBudget,
+        CancellationToken cancellationToken) {
         switch (element.Kind) {
             case PdfPageDrawingElementKind.Primitive:
                 AddVisualPrimitive(drawing, element.Primitive, textClippingBudget);
                 break;
             case PdfPageDrawingElementKind.Text:
-                AddTextSpan(drawing, pageHeight, element.TextSpan!);
+                AddTextSpan(drawing, pageHeight, element.TextSpan!, pageContentBudget, cancellationToken);
                 break;
             case PdfPageDrawingElementKind.Image:
                 AddImagePlacement(drawing, pageHeight, element.ImagePlacement!, element.Image!);
@@ -2479,9 +2509,10 @@ public sealed partial class PdfReadPage {
     }
 
     private void AddTextSpans(OfficeDrawing drawing, double pageHeight, Matrix2D pageTransform) {
+        var pageContentBudget = new PageContentBudget(this);
         IReadOnlyList<PdfTextSpan> spans = GetVisualTextSpans(pageHeight, pageTransform);
         for (int i = 0; i < spans.Count; i++) {
-            AddTextSpan(drawing, pageHeight, spans[i]);
+            AddTextSpan(drawing, pageHeight, spans[i], pageContentBudget);
         }
     }
 
