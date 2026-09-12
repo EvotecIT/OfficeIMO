@@ -13,7 +13,7 @@ internal static partial class ProjectNativeCodec {
                 Type = table.IsLegacy8 ? ProjectResourceType.Work : record.Boolean(0x0c4002df) == true ? ProjectResourceType.Cost : record.Boolean(0x0c40012a) == true ? ProjectResourceType.Work : ProjectResourceType.Material,
                 MaterialLabel = record.Text(0x0c40012b),
                 StandardRate = record.Number(0x0c400006), OvertimeRate = record.Number(0x0c400007), CostPerUse = record.Number(0x0c400012) / 100m,
-                Cost = record.Number(0x0c40000c) / 100m, ActualCost = record.Number(0x0c40000b) / 100m,
+                Cost = record.Number(0x0c40000c) / 100m, ActualCost = record.Number(0x0c40000b) / 100m, RemainingCost = record.Number(0x0c400015) / 100m,
                 Work = Work(record, 0x0c40000d), ActualWork = Work(record, 0x0c40000e), RemainingWork = Work(record, 0x0c400016)
             };
             decimal? units = record.Number(0x0c400004);

@@ -21,6 +21,7 @@ internal static partial class ProjectXmlFields {
         new ProjectXmlField<ProjectResource>("CostPerUse", (m, d) => ProjectXmlValue.Money(m.CostPerUse), (m, v, d, e) => m.CostPerUse = ProjectXmlValue.ParseMoney(v)),
         new ProjectXmlField<ProjectResource>("Cost", (m, d) => ProjectXmlValue.Money(m.Cost), (m, v, d, e) => m.Cost = ProjectXmlValue.ParseMoney(v)),
         new ProjectXmlField<ProjectResource>("ActualCost", (m, d) => ProjectXmlValue.Money(m.ActualCost), (m, v, d, e) => m.ActualCost = ProjectXmlValue.ParseMoney(v)),
+        new ProjectXmlField<ProjectResource>("RemainingCost", (m, d) => ProjectXmlValue.Money(m.RemainingCost), (m, v, d, e) => m.RemainingCost = ProjectXmlValue.ParseMoney(v)),
         new ProjectXmlField<ProjectResource>("Work", (m, d) => ProjectXmlValue.Work(m.Work), (m, v, d, e) => m.Work = ProjectXmlValue.ParseWork(v)),
         new ProjectXmlField<ProjectResource>("ActualWork", (m, d) => ProjectXmlValue.Work(m.ActualWork), (m, v, d, e) => m.ActualWork = ProjectXmlValue.ParseWork(v)),
         new ProjectXmlField<ProjectResource>("RemainingWork", (m, d) => ProjectXmlValue.Work(m.RemainingWork), (m, v, d, e) => m.RemainingWork = ProjectXmlValue.ParseWork(v)),

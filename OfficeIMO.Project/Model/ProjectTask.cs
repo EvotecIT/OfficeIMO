@@ -19,8 +19,8 @@ public sealed partial class ProjectTask : ProjectNamedEntity {
     public ProjectCollection<ProjectCustomFieldValue> OutlineCodes { get; }
     private ProjectCalendar? _calendar;
     /// <summary>Explicit calendar reference; null means no explicit calendar on this object.</summary>
-    public ProjectCalendar? Calendar { get => _calendar; set { CheckReference(value); Set(ref _calendar, value, true); if (!Document.Loading) SourceCalendarUid = null; } }
-    internal int? SourceCalendarUid { get; set; }
+    public ProjectCalendar? Calendar { get => _calendar; set => SetCalendarReference(ref _calendar, value, ref SourceCalendarUid); }
+    internal int? SourceCalendarUid;
     /// <summary>Immediate child tasks in outline order.</summary>
     public ProjectTaskCollection Children { get; }
     /// <summary>Parent summary, or null for a top-level task.</summary>

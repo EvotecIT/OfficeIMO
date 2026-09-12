@@ -20,8 +20,8 @@ public sealed partial class ProjectResource : ProjectNamedEntity {
     public ProjectCollection<ProjectCustomFieldValue> OutlineCodes { get; }
     private ProjectCalendar? _calendar;
     /// <summary>Explicit calendar reference; null means no explicit calendar on this object.</summary>
-    public ProjectCalendar? Calendar { get => _calendar; set { CheckReference(value); Set(ref _calendar, value, true); if (!Document.Loading) SourceCalendarUid = null; } }
-    internal int? SourceCalendarUid { get; set; }
+    public ProjectCalendar? Calendar { get => _calendar; set => SetCalendarReference(ref _calendar, value, ref SourceCalendarUid); }
+    internal int? SourceCalendarUid;
 
     private int? _displayId;
     /// <summary>Display row identifier, separate from the stable UID.</summary>
@@ -70,6 +70,10 @@ public sealed partial class ProjectResource : ProjectNamedEntity {
     private decimal? _actualCost;
     /// <summary>Stored actual cost; null represents an absent source value.</summary>
     public decimal? ActualCost { get => _actualCost; set => Set(ref _actualCost, value, true); }
+
+    private decimal? _remainingCost;
+    /// <summary>Stored remaining cost; explicit assignment calculation refreshes this resource total.</summary>
+    public decimal? RemainingCost { get => _remainingCost; set => Set(ref _remainingCost, value, true); }
 
     private ProjectWork? _work;
     /// <summary>Stored work; null represents an absent source value.</summary>

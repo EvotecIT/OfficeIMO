@@ -9,8 +9,8 @@ public sealed class ProjectSettings : ProjectObject {
     public bool? ExternallyEdited { get => _externallyEdited; set => Set(ref _externallyEdited, value); }
     private ProjectCalendar? _calendar;
     /// <summary>Explicit calendar reference; null means no explicit calendar on this object.</summary>
-    public ProjectCalendar? Calendar { get => _calendar; set { CheckReference(value); Set(ref _calendar, value, true); if (!Document.Loading) SourceCalendarUid = null; } }
-    internal int? SourceCalendarUid { get; set; }
+    public ProjectCalendar? Calendar { get => _calendar; set => SetCalendarReference(ref _calendar, value, ref SourceCalendarUid); }
+    internal int? SourceCalendarUid;
 
     private DateTime? _startDate;
     /// <summary>Stored local project date; null preserves an absent value.</summary>

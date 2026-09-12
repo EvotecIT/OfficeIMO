@@ -61,6 +61,7 @@ internal static partial class ProjectMpxFields {
         new Field<ProjectResource>(23, "Remaining Work", "RemainingWork", (t, s, v) => t.RemainingWork = v.Work(s), t => ProjectMpxValues.Text(t.RemainingWork)),
         new Field<ProjectResource>(30, "Cost", "Cost", (t, s, v) => t.Cost = v.Number(s), t => ProjectMpxValues.Text(t.Cost)),
         new Field<ProjectResource>(32, "Actual Cost", "ActualCost", (t, s, v) => t.ActualCost = v.Number(s), t => ProjectMpxValues.Text(t.ActualCost)),
+        new Field<ProjectResource>(33, "Remaining Cost", "RemainingCost", (t, s, v) => t.RemainingCost = v.Number(s), t => ProjectMpxValues.Text(t.RemainingCost)),
         new Field<ProjectResource>(41, "Max Units", "MaxUnits", (t, s, v) => t.MaxUnits = v.Units(s), t => ProjectMpxValues.Text(t.MaxUnits)),
         new Field<ProjectResource>(42, "Standard Rate", "StandardRate", (t, s, v) => t.StandardRate = v.Rate(s), t => ProjectMpxValues.Text(t.StandardRate) + (t.StandardRate == null ? "" : "/h")),
         new Field<ProjectResource>(43, "Overtime Rate", "OvertimeRate", (t, s, v) => t.OvertimeRate = v.Rate(s), t => ProjectMpxValues.Text(t.OvertimeRate) + (t.OvertimeRate == null ? "" : "/h")),

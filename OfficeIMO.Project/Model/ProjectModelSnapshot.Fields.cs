@@ -3,7 +3,7 @@ namespace OfficeIMO.Project;
 /// <summary>Typed model inventory for fidelity comparisons, independent of file codecs and runtime reflection.</summary>
 internal static partial class ProjectModelSnapshot {
     private static void Fields(ProjectSettings item, string path, ProjectModelValues values) {
-        values[path + "/Calendar"] = item.Calendar?.Uid;
+        values[path + "/Calendar"] = item.Calendar?.Uid ?? item.SourceCalendarUid;
         values[path + "/StartDate"] = item.StartDate;
         values[path + "/FinishDate"] = item.FinishDate;
         values[path + "/ScheduleFromStart"] = item.ScheduleFromStart;
@@ -24,7 +24,7 @@ internal static partial class ProjectModelSnapshot {
         values[path + "/IgnoreResourceCalendar"] = item.IgnoreResourceCalendar;
         values[path + "/FixedCostAccrual"] = item.FixedCostAccrual;
         values[path + "/Stop"] = item.Stop; values[path + "/Resume"] = item.Resume; values[path + "/EarnedValueMethod"] = item.EarnedValueMethod;
-        values[path + "/Calendar"] = item.Calendar?.Uid;
+        values[path + "/Calendar"] = item.Calendar?.Uid ?? item.SourceCalendarUid;
         values[path + "/DisplayId"] = item.DisplayId;
         values[path + "/Wbs"] = item.Wbs;
         values[path + "/Duration"] = item.Duration;
@@ -72,7 +72,7 @@ internal static partial class ProjectModelSnapshot {
     private static void Fields(ProjectResource item, string path, ProjectModelValues values) {
         values[path + "/AccrueAt"] = item.AccrueAt;
         values[path + "/CanLevel"] = item.CanLevel;
-        values[path + "/Calendar"] = item.Calendar?.Uid;
+        values[path + "/Calendar"] = item.Calendar?.Uid ?? item.SourceCalendarUid;
         values[path + "/DisplayId"] = item.DisplayId;
         values[path + "/Type"] = item.Type;
         values[path + "/Initials"] = item.Initials;
@@ -85,6 +85,7 @@ internal static partial class ProjectModelSnapshot {
         values[path + "/CostPerUse"] = item.CostPerUse;
         values[path + "/Cost"] = item.Cost;
         values[path + "/ActualCost"] = item.ActualCost;
+        values[path + "/RemainingCost"] = item.RemainingCost;
         values[path + "/Work"] = item.Work;
         values[path + "/ActualWork"] = item.ActualWork;
         values[path + "/RemainingWork"] = item.RemainingWork;

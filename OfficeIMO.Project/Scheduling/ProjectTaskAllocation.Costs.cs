@@ -18,13 +18,7 @@ internal sealed partial class ProjectTaskAllocation {
             if (recorded.Length > 0) {
                 if (Math.Abs(recorded.Sum(c => c.Cost) - actual) > .01m)
                     throw new InvalidDataException("Timephased actual costs differ from the stored actual cost.");
-                foreach (var interval in recorded) {
-                    if (interval.Start < start || interval.Finish > finish
-                        || (assignment.ActualStart.HasValue && interval.Start < assignment.ActualStart)
-                        || (assignment.ActualFinish.HasValue && interval.Finish > assignment.ActualFinish)
-                        || (assignment.Stop.HasValue && interval.Finish > assignment.Stop))
-                        throw new InvalidDataException("Actual-cost intervals must fit the task span and recorded assignment actual dates.");
-                }
+                ValidateActualCostDates(assignment, recorded, start, finish);
                 charges.AddRange(recorded);
             } else if (value.HasValue || actual != 0) {
                 var actualDate = assignment.ActualStart ?? assignment.ActualFinish ?? start;
@@ -33,6 +27,10 @@ internal sealed partial class ProjectTaskAllocation {
             if (value.HasValue) charges.Add(new ProjectCostInterval(finish, finish, value.Value - actual, false));
             return (value, actual);
         }
+        var stored = _options.RecalculateActualCosts ? Array.Empty<ProjectCostInterval>() : ReadActualCostCurves(assignment);
+        ValidateActualCostDates(assignment, stored, start, finish);
+        if (stored.Length > 0 && assignment.ActualCost.HasValue && Math.Abs(stored.Sum(v => v.Cost) - assignment.ActualCost.Value) > .01m)
+            throw new InvalidDataException("Timephased actual costs differ from the stored actual cost.");
         var table = assignment.CostRateTable ?? ProjectCostRateTable.A;
         var usage = new List<ProjectCostInterval>(); bool complete = true;
         foreach (var interval in intervals) {
@@ -70,7 +68,6 @@ internal sealed partial class ProjectTaskAllocation {
         }
         if (perUse != 0) charges.Add(new ProjectCostInterval(start, start, perUse, began));
         decimal total = charges.Sum(c => c.Cost), computedActual = charges.Where(c => c.IsActual).Sum(c => c.Cost);
-        var stored = _options.RecalculateActualCosts ? Array.Empty<ProjectCostInterval>() : ReadActualCostCurves(assignment);
         if (!_options.RecalculateActualCosts && (assignment.ActualCost.HasValue || stored.Length > 0)) {
             decimal storedActual = assignment.ActualCost ?? stored.Sum(v => v.Cost);
             if (storedActual != computedActual || stored.Length > 0) {
@@ -93,5 +90,16 @@ internal sealed partial class ProjectTaskAllocation {
             CheckCount(values.Count);
         }
         return values.ToArray();
+    }
+
+    private void ValidateActualCostDates(ProjectAssignment assignment, IEnumerable<ProjectCostInterval> intervals, DateTime start, DateTime finish) {
+        foreach (var interval in intervals) {
+            _token.ThrowIfCancellationRequested();
+            if (interval.Start < start || interval.Finish > finish
+                || (assignment.ActualStart.HasValue && interval.Start < assignment.ActualStart)
+                || (assignment.ActualFinish.HasValue && interval.Finish > assignment.ActualFinish)
+                || (assignment.Stop.HasValue && interval.Finish > assignment.Stop))
+                throw new InvalidDataException("Actual-cost intervals must fit the task span and recorded assignment actual dates.");
+        }
     }
 }

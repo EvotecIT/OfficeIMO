@@ -12,7 +12,7 @@ internal static partial class ProjectXmlCodec {
         if (document.Source == null) root.Add(new XElement(root.Name.Namespace + "SaveVersion", 14));
         ProjectXmlFields.Write(document, root, document, DocumentFields, RootOrder);
         ProjectXmlFields.Write(document.Settings, root, document, ProjectXmlFields.Settings, RootOrder);
-        ProjectXmlFields.Apply(document, document.Settings, root, "CalendarUID", ProjectXmlValue.Integer(document.Calendar?.Uid), RootOrder);
+        ProjectXmlFields.Apply(document, document.Settings, root, "CalendarUID", ProjectXmlValue.Integer(document.Calendar?.Uid ?? document.Settings.SourceCalendarUid), RootOrder);
         ReplaceContainer(root, "ExtendedAttributes", "ExtendedAttribute", document.CustomFields.Select(field => WriteDefinition(field, document, token)), RootOrder);
         WriteOutlineCodes(document, root, token);
         ReplaceContainer(root, "Calendars", "Calendar", document.Calendars.Select(calendar => WriteCalendar(calendar, document, token)), RootOrder);
@@ -30,7 +30,7 @@ internal static partial class ProjectXmlCodec {
             Field("ID", ProjectXmlValue.Integer(document.StructureChanged || document.Source == null ? (task.Uid == 0 ? 0 : ++row) : task.DisplayId));
             Field("OutlineLevel", ProjectXmlValue.Integer(document.StructureChanged || document.Source == null ? level : task.SourceOutlineLevel));
             Field("Summary", ProjectXmlValue.Boolean(task.IsSummary));
-            Field("CalendarUID", ProjectXmlValue.Integer(task.Calendar?.Uid));
+            Field("CalendarUID", ProjectXmlValue.Integer(task.Calendar?.Uid ?? task.SourceCalendarUid));
             Field("DurationFormat", task.Duration.HasValue ? ProjectXmlValue.Integer(ProjectXmlValue.DurationFormat(task.Duration.Value)) : null);
             // Project imports a newly authored, unstarted task as zero duration when
             // RemainingDuration is absent. This initial value is a serialization default,
@@ -48,7 +48,7 @@ internal static partial class ProjectXmlCodec {
             var node = NewNode(document, resource, "Resource");
             ProjectXmlFields.Write(resource, node, document, ProjectXmlFields.Resource, ResourceOrder);
             ProjectXmlFields.Apply(document, resource, node, "UID", ProjectXmlValue.Integer(resource.Uid), ResourceOrder);
-            ProjectXmlFields.Apply(document, resource, node, "CalendarUID", ProjectXmlValue.Integer(resource.Calendar?.Uid), ResourceOrder);
+            ProjectXmlFields.Apply(document, resource, node, "CalendarUID", ProjectXmlValue.Integer(resource.Calendar?.Uid ?? resource.SourceCalendarUid), ResourceOrder);
             WriteRich(node, resource.Baselines, resource.CustomFields, resource.TimephasedData, document, ResourceOrder, token);
             WriteResourceCapacity(resource, node, token);
             WriteOutlineSelections(resource.OutlineCodes, node, ResourceOrder, token);

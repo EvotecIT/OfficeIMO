@@ -16,14 +16,13 @@ public sealed partial class ProjectCalendar : ProjectNamedEntity {
             var visited = new HashSet<ProjectCalendar>();
             for (var current = value; current != null; current = current.BaseCalendar)
                 if (current == this || !visited.Add(current)) throw new ArgumentException("Calendar inheritance must not contain a cycle.");
-            Set(ref _baseCalendar, value, true);
-            if (!Document.Loading) SourceBaseCalendarUid = null;
+            SetCalendarReference(ref _baseCalendar, value, ref SourceBaseCalendarUid);
         }
     }
     private bool? _isBaseCalendar;
     /// <summary>Source base-calendar flag; null preserves absence.</summary>
     public bool? IsBaseCalendar { get => _isBaseCalendar; set => Set(ref _isBaseCalendar, value, true); }
-    internal int? SourceBaseCalendarUid { get; set; }
+    internal int? SourceBaseCalendarUid;
     internal bool HasUnqualifiedNativeRecurrence { get; set; }
     internal void BindLoadedBaseCalendar(ProjectCalendar? calendar) {
         if (!Document.Loading) throw new InvalidOperationException("Bulk calendar binding is only valid during load.");

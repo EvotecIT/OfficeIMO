@@ -46,7 +46,7 @@ internal static partial class ProjectModelSnapshot {
             Rich(assignment.Baselines, assignment.CustomFields, assignment.TimephasedData, path);
         }
         foreach (var calendar in document.Calendars) {
-            string path = Entity(calendar, "Calendar"); Fields(calendar, path, values); values[path + "/BaseCalendar"] = calendar.BaseCalendar?.Uid;
+            string path = Entity(calendar, "Calendar"); Fields(calendar, path, values); values[path + "/BaseCalendar"] = calendar.BaseCalendar?.Uid ?? calendar.SourceBaseCalendarUid;
             Days(calendar.WeekDays, path);
             Items(calendar.Exceptions, path + "/Exception", (item, key, output) => { Fields(item, key, output); Items(item.WorkingTimes, key + "/Time", Fields); });
             Items(calendar.WorkWeeks, path + "/Week", (item, key, output) => { Fields(item, key, output); Days(item.WeekDays, key); });

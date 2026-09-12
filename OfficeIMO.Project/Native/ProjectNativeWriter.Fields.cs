@@ -76,6 +76,7 @@ internal sealed partial class ProjectNativeWriter {
         Field(editor, uid, path, "CostPerUse", 0x0c400000u | 0x12, Kind.Number, 100);
         Field(editor, uid, path, "Cost", 0x0c400000u | 0x0c, Kind.Number, 100);
         Field(editor, uid, path, "ActualCost", 0x0c400000u | 0x0b, Kind.Number, 100);
+        Field(editor, uid, path, "RemainingCost", 0x0c400000u | 0x15, Kind.Number, 100);
         Field(editor, uid, path, "MaxUnits", 0x0c400000u | 0x04, Kind.Units, 1);
     }
     private void WriteAssignmentFields(IProjectNativeTableEditor editor, int uid, string path) {

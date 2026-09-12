@@ -68,7 +68,7 @@ internal static partial class ProjectXmlCodec {
         Field("UID", ProjectXmlValue.Integer(calendar.Uid)); Field("Name", calendar.Name);
         Field("GUID", ProjectXmlValue.Identifier(calendar.Guid));
         Field("IsBaseCalendar", ProjectXmlValue.Boolean(calendar.IsBaseCalendar));
-        Field("BaseCalendarUID", ProjectXmlValue.Integer(calendar.BaseCalendar?.Uid ?? (calendar.IsBaseCalendar == true ? -1 : (int?)null)));
+        Field("BaseCalendarUID", ProjectXmlValue.Integer(calendar.BaseCalendar?.Uid ?? calendar.SourceBaseCalendarUid ?? (calendar.IsBaseCalendar == true ? -1 : (int?)null)));
         ReplaceContainer(node, "WeekDays", "WeekDay", calendar.WeekDays.Select(day => {
             token.ThrowIfCancellationRequested();
             var result = NewNode(document, day, "WeekDay");

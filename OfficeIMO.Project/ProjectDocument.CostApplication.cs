@@ -27,16 +27,18 @@ public sealed partial class ProjectDocument {
         foreach (var group in Assignments.Where(a => a.Resource != null).GroupBy(a => a.Resource!)) {
             token.ThrowIfCancellationRequested();
             if (!group.Any(a => plans.ContainsKey(a.Uid))) continue;
-            bool costKnown = true, actualKnown = true;
+            bool costKnown = true, actualKnown = true, remainingKnown = true;
             foreach (var assignment in group) {
                 token.ThrowIfCancellationRequested();
                 plans.TryGetValue(assignment.Uid, out var plan);
                 costKnown &= (plan == null ? assignment.Cost : plan.Cost).HasValue;
                 actualKnown &= (plan == null ? assignment.ActualCost : plan.ActualCost).HasValue;
+                remainingKnown &= (plan == null ? assignment.RemainingCost : plan.RemainingCost).HasValue;
             }
             string location = "/Resource[UID=" + group.Key.Uid + "]";
             Check(group.Key.Cost, costKnown, location + "/Cost");
             Check(group.Key.ActualCost, actualKnown, location + "/ActualCost");
+            Check(group.Key.RemainingCost, remainingKnown, location + "/RemainingCost");
         }
     }
 }

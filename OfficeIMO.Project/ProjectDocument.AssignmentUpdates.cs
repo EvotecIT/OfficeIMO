@@ -56,12 +56,12 @@ public sealed partial class ProjectDocument {
     }
     private sealed class ResourceUpdate {
         internal ProjectResource Target = null!;
-        internal decimal? Work, ActualWork, RemainingWork, Cost, ActualCost;
+        internal decimal? Work, ActualWork, RemainingWork, Cost, ActualCost, RemainingCost;
         internal void Apply() {
             Target.Work = Work.HasValue ? new ProjectWork(Work.Value) : (ProjectWork?)null;
             Target.ActualWork = ActualWork.HasValue ? new ProjectWork(ActualWork.Value) : (ProjectWork?)null;
             Target.RemainingWork = RemainingWork.HasValue ? new ProjectWork(RemainingWork.Value) : (ProjectWork?)null;
-            Target.Cost = Cost; Target.ActualCost = ActualCost;
+            Target.Cost = Cost; Target.ActualCost = ActualCost; Target.RemainingCost = RemainingCost;
         }
     }
     private ResourceUpdate[] PrepareResourceUpdates(ProjectScheduleResult result) {
@@ -79,7 +79,8 @@ public sealed partial class ProjectDocument {
                 ActualWork = Sum(entries.Select(e => e.Plan == null ? e.Source.ActualWork?.Minutes : e.Plan.ActualWork.Minutes)),
                 RemainingWork = Sum(entries.Select(e => e.Plan == null ? e.Source.RemainingWork?.Minutes : e.Plan.RemainingWork.Minutes)),
                 Cost = Sum(entries.Select(e => e.Plan == null ? e.Source.Cost : e.Plan.Cost)),
-                ActualCost = Sum(entries.Select(e => e.Plan == null ? e.Source.ActualCost : e.Plan.ActualCost)) });
+                ActualCost = Sum(entries.Select(e => e.Plan == null ? e.Source.ActualCost : e.Plan.ActualCost)),
+                RemainingCost = Sum(entries.Select(e => e.Plan == null ? e.Source.RemainingCost : e.Plan.RemainingCost)) });
         }
         return updates.ToArray();
     }

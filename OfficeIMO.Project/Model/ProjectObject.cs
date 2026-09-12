@@ -25,6 +25,14 @@ public abstract class ProjectObject {
         if (value != null && (value.Document != Document || !value.Attached))
             throw new ArgumentException("The referenced object must belong to this project and still be attached.");
     }
+
+    internal void SetCalendarReference(ref ProjectCalendar? field, ProjectCalendar? value, ref int? sourceUid) {
+        CheckReference(value);
+        bool clearUnresolved = !Document.Loading && sourceUid.HasValue && field == value;
+        Set(ref field, value, true);
+        if (!Document.Loading) sourceUid = null;
+        if (clearUnresolved) Document.Touch(true);
+    }
 }
 
 /// <summary>An entity whose stable UID is separate from its display position.</summary>
