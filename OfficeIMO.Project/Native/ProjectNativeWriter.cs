@@ -5,6 +5,7 @@ namespace OfficeIMO.Project;
 
 /// <summary>Plans native updates against immutable source bytes and a complete typed model inventory.</summary>
 internal sealed partial class ProjectNativeWriter {
+    internal const byte SyntheticProjectSummaryKind = byte.MaxValue;
     private readonly ProjectDocument _document;
     private readonly ProjectSaveOptions _options;
     private readonly CancellationToken _token;
@@ -202,10 +203,11 @@ internal sealed partial class ProjectNativeWriter {
         if (entity.Guid.HasValue) return entity.Guid.Value;
         return NativeGuid(entity.Uid, kind);
     }
-    private Guid NativeGuid(int uid, byte kind) {
+    private Guid NativeGuid(int uid, byte kind) => DeriveNativeGuid(_document.NativeIdentity, uid, kind);
+    internal static Guid DeriveNativeGuid(Guid identity, int uid, byte kind) {
         using var hash = System.Security.Cryptography.SHA256.Create();
         // The public project GUID is editable; implicit entity identities must survive those edits.
-        byte[] seed = new byte[21]; Buffer.BlockCopy(_document.NativeIdentity.ToByteArray(), 0, seed, 0, 16);
+        byte[] seed = new byte[21]; Buffer.BlockCopy(identity.ToByteArray(), 0, seed, 0, 16);
         Buffer.BlockCopy(BitConverter.GetBytes(uid), 0, seed, 16, 4); seed[20] = kind;
         byte[] digest = hash.ComputeHash(seed); var result = new byte[16]; Buffer.BlockCopy(digest, 0, result, 0, 16); return new Guid(result);
     }

@@ -47,6 +47,7 @@ internal sealed class ProjectNativeSource {
     internal readonly ProjectNativeInfo Info;
     internal Dictionary<string, object?> Snapshot = new Dictionary<string, object?>();
     internal long ModelRevision;
+    internal bool CreatedByOfficeIMO;
     internal IReadOnlyList<ProjectDiagnostic> UnrepresentedValues = Array.Empty<ProjectDiagnostic>();
     internal ProjectNativeSource(byte[] bytes, ProjectNativeInfo info) { Bytes = bytes; Info = info; }
 }

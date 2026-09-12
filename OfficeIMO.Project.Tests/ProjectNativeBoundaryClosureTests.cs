@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using OfficeIMO.Core.Internal;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Project.Tests;
 
@@ -39,6 +40,50 @@ public sealed class ProjectNativeBoundaryClosureTests {
         using var output = new MemoryStream(); document.Save(output, Native(ProjectFileFormat.Mpp9));
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.Equal("DELIVERY.DESIGN", reopened.Tasks.GetByUid(2).Wbs);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    public void GeneratedNativeProjectSummaryDoesNotEnterTheTypedModel(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        int[] expected = document.AllTasks.Select(task => task.Uid).ToArray(); Assert.DoesNotContain(0, expected);
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(expected, reopened.AllTasks.Select(task => task.Uid));
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    public void ExplicitProjectSummaryRemainsInTheTypedModel(ProjectFileFormat format) {
+        using var seed = ProjectNativeAuthoringTests.Create(); var xml = XDocument.Parse(seed.ToXml());
+        XNamespace ns = XmlContracts.Ns; var tasks = xml.Root!.Element(ns + "Tasks")!;
+        tasks.AddFirst(new XElement(ns + "Task", new XElement(ns + "UID", 0), new XElement(ns + "ID", 0),
+            new XElement(ns + "Name", "Explicit project summary"), new XElement(ns + "OutlineLevel", 0), new XElement(ns + "Summary", 1)));
+        using var document = ProjectDocument.Parse(xml.ToString(SaveOptions.DisableFormatting));
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal("Explicit project summary", reopened.Tasks.GetByUid(0).Name);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    public void NativeCalendarKindUsesItsBaseReferenceWhenTheFlagIsAbsent(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        var resource = document.Resources.First(item => item.Uid > 0); var derived = resource.Calendar!;
+        Assert.NotNull(derived.BaseCalendar); derived.IsBaseCalendar = null;
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        var copied = reopened.Resources.GetByUid(resource.Uid).Calendar!;
+        Assert.False(copied.IsBaseCalendar); Assert.NotNull(copied.BaseCalendar);
     }
 
     [Fact]

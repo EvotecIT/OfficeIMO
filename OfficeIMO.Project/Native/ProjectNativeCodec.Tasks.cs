@@ -7,6 +7,7 @@ internal static partial class ProjectNativeCodec {
             token.ThrowIfCancellationRequested();
             record.Uid = record.Integer(0x0b400056) ?? throw new InvalidDataException("A task has no native UID.");
             if (record.Uid < 0) continue;
+            if (record.Uid == 0 && IsSyntheticProjectSummary(document, record)) continue;
             CheckEntityBudget(document, options);
             if (ordered.Count >= options.MaxTasks) throw new InvalidDataException("Native task budget exceeded.");
             var task = new ProjectTask(document, record.Uid) {
@@ -55,6 +56,16 @@ internal static partial class ProjectNativeCodec {
             (parent?.Children ?? document.Tasks).Items.Add(task);
             parents.Push(task);
         }
+    }
+
+    private static bool IsSyntheticProjectSummary(ProjectDocument document, ProjectNativeRecord record) {
+        if (document.NativeSource?.CreatedByOfficeIMO != true || record.Integer(0x0b400017) != 0 || record.Integer(0x0b4000f9) != 0 ||
+            record.Boolean(0x0b40005c) != true || record.Text(0x0b40000e) != (document.Name ?? "Project")) return false;
+        if (document.Guid.HasValue && record.Value(0x0b400477) is ProjectNativeValue identity && identity.Length == 16)
+            return new Guid(identity.Copy()) == ProjectNativeWriter.DeriveNativeGuid(document.Guid.Value, 0, ProjectNativeWriter.SyntheticProjectSummaryKind);
+        // MPP8/9 schemas have no task GUID field. Explicit UID-zero tasks written by
+        // this package carry the ordinary task defaults; the native-only row does not.
+        return document.NativeInfo!.Profile.Version <= 9 && !record.Integer(0x0b400019).HasValue && !record.Integer(0x0b400080).HasValue;
     }
 
     private static void ReadTaskBaseline(ProjectDocument document, ProjectNativeRecord record, ProjectTask task) {

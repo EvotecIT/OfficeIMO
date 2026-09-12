@@ -9,7 +9,7 @@ internal sealed partial class ProjectNativeWriter {
             if (!_document.TaskIndex.ContainsKey(0)) {
                 editor.Add(0); editor.Integer(0, 0x0b400056, 0); editor.Integer(0, 0x0b400017, 0); editor.Integer(0, 0x0b4000f9, 0);
                 editor.Set(0, 0x0b40000e, Text(_document.Name ?? "Project")); editor.Set(0, 0x0b40005c, new byte[] { 1 });
-                Identity(editor, 0, 0x0b400477, NativeGuid(0, 1));
+                Identity(editor, 0, 0x0b400477, NativeGuid(0, SyntheticProjectSummaryKind));
                 SortPosition(editor, 0, 0x0b400479, 1);
             }
         }
@@ -43,7 +43,7 @@ internal sealed partial class ProjectNativeWriter {
             if (_new || StructureChanged || added || _taskGuidsChanged) {
                 var parent = task.Parent;
                 Guid parentGuid = parent != null ? EntityGuid(parent, 1) : task.Uid == 0 ? Guid.Empty
-                    : _document.TaskIndex.TryGetValue(0, out var projectSummary) ? EntityGuid(projectSummary, 1) : NativeGuid(0, 1);
+                    : _document.TaskIndex.TryGetValue(0, out var projectSummary) ? EntityGuid(projectSummary, 1) : NativeGuid(0, SyntheticProjectSummaryKind);
                 Identity(editor, task.Uid, 0x0b40047f, parentGuid);
             }
             if (!ProjectXmlValue.TryTaskDurationFormat(task, out _))

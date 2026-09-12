@@ -9,9 +9,10 @@ internal sealed partial class ProjectNativeWriter {
         Removed(editor, "Calendar", _document.CalendarIndex.Keys);
         foreach (var calendar in _document.Calendars) {
             _token.ThrowIfCancellationRequested(); string path = Path(calendar, "Calendar"); bool added = !editor.Contains(calendar.Uid);
+            bool derived = calendar.BaseCalendar != null || calendar.IsBaseCalendar == false;
             owners.TryGetValue(calendar, out var resources);
             var owner = resources?.Length == 1 ? resources[0] : null;
-            if (calendar.IsBaseCalendar == false && owner == null) {
+            if (derived && owner == null) {
                 AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_CALENDAR_OWNER", ProjectDiagnosticSeverity.Error,
                     "Each native derived calendar must belong to exactly one resource.", path)); continue;
             }
@@ -25,8 +26,8 @@ internal sealed partial class ProjectNativeWriter {
             Handle(path + "/BaseCalendar"); Handle(path + "/IsBaseCalendar");
             if (added || Changed(path + "/BaseCalendar")) editor.Integer(calendar.Uid, 0x0d400006, calendar.BaseCalendar?.Uid ?? (_profile.Version <= 9 ? -1 : 0));
             if (added || Changed(path + "/IsBaseCalendar") || _calendarBindingsChanged) {
-                editor.Integer(calendar.Uid, 0x0d400007, calendar.IsBaseCalendar == false ? owner!.Uid : -1);
-                editor.Set(calendar.Uid, 0x0d400000, new byte[] { calendar.IsBaseCalendar == false ? (byte)0 : (byte)1 });
+                editor.Integer(calendar.Uid, 0x0d400007, derived ? owner!.Uid : -1);
+                editor.Set(calendar.Uid, 0x0d400000, new byte[] { derived ? (byte)0 : (byte)1 });
             }
             if (added || Changed(path + "/BaseCalendar") || _calendarGuidsChanged) Identity(editor, calendar.Uid, 0x0d40001d, calendar.BaseCalendar == null ? Guid.Empty : EntityGuid(calendar.BaseCalendar, 5));
             if (added || _calendarBindingsChanged || _resourceGuidsChanged) Identity(editor, calendar.Uid, 0x0d40001c, owner == null ? Guid.Empty : EntityGuid(owner, 2));

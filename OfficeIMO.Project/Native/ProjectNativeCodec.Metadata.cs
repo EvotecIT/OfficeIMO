@@ -11,6 +11,7 @@ internal static partial class ProjectNativeCodec {
                 string? Text(uint id) => section.Properties.TryGetValue(id, out var value) ? value.AsString() : null;
                 if (section.FormatId == OfficeOlePropertySetWriter.SummaryInformationFormatId) {
                     document.Title = Text(2); document.Subject = Text(3); document.Author = Text(4);
+                    document.NativeSource!.CreatedByOfficeIMO = string.Equals(Text(18), "OfficeIMO.Project", StringComparison.Ordinal);
                 } else if (section.FormatId == OfficeOlePropertySetWriter.DocumentSummaryInformationFormatId) {
                     document.Manager = Text(14); document.Company = Text(15);
                 }

@@ -5,6 +5,8 @@ using System.Xml.Linq;
 namespace OfficeIMO.Project;
 
 internal static class ProjectXmlValue {
+    private static readonly string[] LocalDateFormats = { "yyyy-MM-dd", "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF" };
+    private static readonly string[] LocalClockFormats = { "HH:mm:ss", "HH:mm:ss.FFFFFFF" };
     internal static string? Text(string? value) => value;
     internal static string? Integer(int? value) => value?.ToString(CultureInfo.InvariantCulture);
     internal static string? Number(decimal? value) => value?.ToString(CultureInfo.InvariantCulture);
@@ -40,8 +42,16 @@ internal static class ProjectXmlValue {
     internal static decimal ParseMoney(string value) => ParseNumber(value) / 100;
     internal static bool ParseBool(string value) => XmlConvert.ToBoolean(value);
     internal static Guid ParseGuid(string value) => System.Guid.Parse(value);
-    internal static DateTime ParseDate(string value) => XmlConvert.ToDateTimeOffset(value).DateTime;
-    internal static TimeSpan ParseClock(string value) => XmlConvert.ToDateTimeOffset("2000-01-01T" + value).TimeOfDay;
+    internal static DateTime ParseDate(string value) {
+        if (!DateTime.TryParseExact(value, LocalDateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+            throw new InvalidDataException("Project dates require a local ISO value without a timezone suffix.");
+        return DateTime.SpecifyKind(parsed, DateTimeKind.Unspecified);
+    }
+    internal static TimeSpan ParseClock(string value) {
+        if (!DateTime.TryParseExact(value, LocalClockFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+            throw new InvalidDataException("Project clock times require a local ISO value without a timezone suffix.");
+        return parsed.TimeOfDay;
+    }
     internal static ProjectWork ParseWork(string value) => new ProjectWork((decimal)XmlConvert.ToTimeSpan(value).Ticks / TimeSpan.TicksPerMinute);
     internal static ProjectUnits ParseUnits(string value) => ProjectUnits.Fraction(ParseNumber(value));
     internal static TimeSpan MinutesToSpan(decimal minutes) => TimeSpan.FromTicks(checked((long)decimal.Round(minutes * TimeSpan.TicksPerMinute, 0, MidpointRounding.AwayFromZero)));
