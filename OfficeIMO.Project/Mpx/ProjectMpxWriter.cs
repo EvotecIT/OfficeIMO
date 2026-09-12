@@ -84,8 +84,6 @@ internal sealed partial class ProjectMpxWriter {
             if (pair.Value != null && !_handled.Contains(pair.Key)) Diagnostic("PROJECT_MPX_FIELD_LOSS", "This modeled value has no MPX 4.0 representation and is omitted.", pair.Key);
             else if (pair.Value is DateTime date && date.Ticks % TimeSpan.TicksPerMinute != 0)
                 Diagnostic("PROJECT_MPX_DATE_PRECISION", "Qualified MPX dates require whole minutes.", pair.Key, false);
-            else if (pair.Value is string text && text != text.Trim(' ', '\t'))
-                Diagnostic("PROJECT_MPX_WHITESPACE", "MPX trims leading and trailing spaces and tabs in fields.", pair.Key);
         }
         if (_document.Source?.HasOpaqueStructures == true) Diagnostic("PROJECT_MPX_XML_CONTENT_LOSS", "Unmodeled XML elements and attributes are omitted from MPX.", "/");
         if (_document.NativeSource != null) Diagnostic("PROJECT_MPX_NATIVE_CONTENT_LOSS", "Native presentation, macros, embedded content, signatures, and unmodeled records are omitted from MPX.", "/");

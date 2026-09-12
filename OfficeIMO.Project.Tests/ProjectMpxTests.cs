@@ -18,7 +18,8 @@ public sealed class ProjectMpxTests {
         using var project = Read(source);
         Assert.Equal(value, project.Tasks[0].Name); Assert.Equal(value, project.Tasks[0].Notes); Assert.Equal(value, project.Resources[0].Name);
         project.Tasks[0].Name = value + " edited ";
-        using var output = new MemoryStream(); project.Save(output, Options());
+        project.AssessSave(Options(false)).RequireNoLoss();
+        using var output = new MemoryStream(); project.Save(output, Options(false));
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.Equal(value + " edited ", reopened.Tasks[0].Name);
         Assert.Equal(value, reopened.Tasks[0].Notes); Assert.Equal(value, reopened.Resources[0].Name);
