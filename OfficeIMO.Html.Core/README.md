@@ -20,6 +20,12 @@ detached editing history. The original document and its handles remain unchanged
 release them when they are no longer needed. The returned copy is mutable and can
 be frozen after editing. A cancelled attached clone returns no partial document.
 
+`GetAttribute(name)`, `HasAttribute(name)` and `RemoveAttribute(name)` use the
+qualified attribute name, including namespaced attributes. Use the namespace and
+local-name overloads to select a specific namespace. `Id`, `ClassName` and
+`ClassList` reflect only empty-namespace attributes. `SetAttribute` adds or
+replaces an attribute in the supplied namespace; its default is the empty namespace.
+
 Use `OfficeIMO.Html.AngleSharp` for the current parser and syntax implementation, and `OfficeIMO.Html` for resource policy, conversion, styles and rendering.
 
 To copy content between documents, import it into the destination and then insert

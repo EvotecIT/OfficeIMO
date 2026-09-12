@@ -93,9 +93,7 @@ public static class HtmlNormalizer {
     }
 
     private static string NormalizeDocument(IHtmlDocument document, HtmlNormalizationOptions options, int srcDocDepth) {
-        INode root = options.UseBodyContentsOnly
-            ? HtmlDocumentParser.GetConversionRoot(document, useBodyContentsOnly: true)
-            : document.DocumentElement;
+        INode root = HtmlDocumentParser.GetConversionRoot(document, options.UseBodyContentsOnly);
 
         var builder = new StringBuilder();
         if (!options.UseBodyContentsOnly && root is IElement documentElement) {

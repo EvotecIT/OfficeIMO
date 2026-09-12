@@ -6,7 +6,8 @@ namespace OfficeIMO.Html.Dom;
 public sealed class HtmlAttribute {
     /// <summary>Creates an attribute without interpreting its value as markup or a URL.</summary>
     public HtmlAttribute(string name, string value, string? namespaceUri = null) {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("An attribute name is required.", nameof(name));
+        // Preserve parser-recovered names; HTML whitespace is not .NET Unicode whitespace.
+        if (string.IsNullOrEmpty(name)) throw new ArgumentException("An attribute name is required.", nameof(name));
         Name = name;
         Value = value ?? throw new ArgumentNullException(nameof(value));
         NamespaceUri = namespaceUri ?? string.Empty;

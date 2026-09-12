@@ -12,7 +12,7 @@ namespace OfficeIMO.Html;
 /// <summary>Explicit structural bridge for the existing native-DOM CSS/layout implementation. Never reparses serialized source.</summary>
 internal static class NativeDomBridge {
     private static readonly ConditionalWeakTable<HtmlDocument, NativeState> OwnedStates = new ConditionalWeakTable<HtmlDocument, NativeState>();
-    private static readonly ConditionalWeakTable<IHtmlDocument, CallbackState> CallbackSnapshots = new ConditionalWeakTable<IHtmlDocument, CallbackState>();
+    private static readonly ConditionalWeakTable<IHtmlDocument, Lazy<CallbackState>> CallbackSnapshots = new ConditionalWeakTable<IHtmlDocument, Lazy<CallbackState>>();
     private static readonly ConditionalWeakTable<HtmlDocument, CallbackState> CallbackSources = new ConditionalWeakTable<HtmlDocument, CallbackState>();
     private static readonly object CacheSync = new object();
 
@@ -21,6 +21,7 @@ internal static class NativeDomBridge {
         internal IHtmlDocument Native { get; }
         internal HtmlDocument Owned { get; }
         internal long Revision { get; set; }
+        internal object DetachedSync { get; } = new object();
         // Frozen snapshots can materialize separate detached roots concurrently with attached-tree reads.
         internal ConcurrentDictionary<int, INode> ToNative { get; } = new ConcurrentDictionary<int, INode>();
         internal ConcurrentDictionary<INode, HtmlNode> ToOwned { get; } = new ConcurrentDictionary<INode, HtmlNode>();
@@ -75,28 +76,43 @@ internal static class NativeDomBridge {
 
     internal static HtmlElement Wrap(IElement native) {
         IHtmlDocument document = native.Owner as IHtmlDocument ?? throw new ArgumentException("An HTML document is required.", nameof(native));
+        // Only publication is global. Snapshot construction is serialized for this native document.
+        Lazy<CallbackState> snapshot;
         lock (CacheSync) {
-            if (!CallbackSnapshots.TryGetValue(document, out CallbackState? state)) {
-                IHtmlDocument clone = HtmlDocumentParser.CloneDocument(document);
-                HtmlDocument owned = Import(clone).Freeze();
-                NativeState clonedState = GetState(owned);
-                state = new CallbackState();
-                var pending = new Stack<(INode Original, INode Clone)>();
-                pending.Push((document, clone));
-                while (pending.Count != 0) {
-                    var pair = pending.Pop();
-                    HtmlNode ownedNode = clonedState.ToOwned[pair.Clone];
-                    state.ToOwned.Add(pair.Original, ownedNode);
-                    state.ToOriginal.Add(ownedNode.NodeId, pair.Original);
-                    for (int index = 0; index < pair.Original.ChildNodes.Length; index++) pending.Push((pair.Original.ChildNodes[index], pair.Clone.ChildNodes[index]));
-                    if (pair.Original is IHtmlTemplateElement sourceTemplate && pair.Clone is IHtmlTemplateElement cloneTemplate) pending.Push((sourceTemplate.Content, cloneTemplate.Content));
-                }
-                CallbackSnapshots.Add(document, state);
-                CallbackSources.Add(owned, state);
+            if (!CallbackSnapshots.TryGetValue(document, out snapshot!)) {
+                snapshot = new Lazy<CallbackState>(() => CreateCallbackSnapshot(document), LazyThreadSafetyMode.ExecutionAndPublication);
+                CallbackSnapshots.Add(document, snapshot);
             }
-            if (!state.ToOwned.TryGetValue(native, out HtmlNode? node)) throw new InvalidOperationException("The element is outside the retained callback snapshot.");
-            return (HtmlElement)node;
         }
+        CallbackState state;
+        try { state = snapshot.Value; }
+        catch {
+            lock (CacheSync) {
+                if (CallbackSnapshots.TryGetValue(document, out Lazy<CallbackState>? current) && ReferenceEquals(current, snapshot)) CallbackSnapshots.Remove(document);
+            }
+            throw;
+        }
+        if (!state.ToOwned.TryGetValue(native, out HtmlNode? node)) throw new InvalidOperationException("The element is outside the retained callback snapshot.");
+        return (HtmlElement)node;
+    }
+
+    private static CallbackState CreateCallbackSnapshot(IHtmlDocument document) {
+        IHtmlDocument clone = HtmlDocumentParser.CloneDocument(document);
+        HtmlDocument owned = Import(clone).Freeze();
+        NativeState clonedState = GetState(owned);
+        var state = new CallbackState();
+        var pending = new Stack<(INode Original, INode Clone)>();
+        pending.Push((document, clone));
+        while (pending.Count != 0) {
+            var pair = pending.Pop();
+            HtmlNode ownedNode = clonedState.ToOwned[pair.Clone];
+            state.ToOwned.Add(pair.Original, ownedNode);
+            state.ToOriginal.Add(ownedNode.NodeId, pair.Original);
+            for (int index = 0; index < pair.Original.ChildNodes.Length; index++) pending.Push((pair.Original.ChildNodes[index], pair.Clone.ChildNodes[index]));
+            if (pair.Original is IHtmlTemplateElement sourceTemplate && pair.Clone is IHtmlTemplateElement cloneTemplate) pending.Push((sourceTemplate.Content, cloneTemplate.Content));
+        }
+        lock (CacheSync) CallbackSources.Add(owned, state);
+        return state;
     }
 
     internal static INode GetCallbackNative(HtmlNode node, HtmlDocument scope) {
@@ -121,8 +137,8 @@ internal static class NativeDomBridge {
 
     internal static NativeState GetState(HtmlNode node) {
         if (node == null) throw new ArgumentNullException(nameof(node));
-        lock (CacheSync) {
-            NativeState state = GetState(node.Document);
+        NativeState state = GetState(node.Document);
+        lock (state.DetachedSync) {
             if (!state.ToNative.ContainsKey(node.NodeId)) {
                 HtmlNode root = node;
                 while (root.Parent != null || root.TemplateHost != null) root = root.Parent ?? root.TemplateHost!;
@@ -144,11 +160,16 @@ internal static class NativeDomBridge {
         lock (CacheSync) {
             cancellationToken.ThrowIfCancellationRequested();
             if (OwnedStates.TryGetValue(document, out NativeState? state) && state.Revision == document.Revision) return state;
-            state = Export(document, cancellationToken);
+        }
+        // Concurrent first readers may build candidates, but only one complete state is installed.
+        // No tree traversal or provider materialization may hold the process-wide cache lock.
+        NativeState candidate = Export(document, cancellationToken);
+        lock (CacheSync) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (OwnedStates.TryGetValue(document, out NativeState? state) && state.Revision == document.Revision) return state;
             OwnedStates.Remove(document);
-            OwnedStates.Add(document, state);
-            return state;
+            OwnedStates.Add(document, candidate);
+            return candidate;
         }
     }
 

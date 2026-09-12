@@ -28,22 +28,22 @@ public sealed class HtmlElement : HtmlNode {
     public override string NodeName => Prefix.Length == 0 ? LocalName : Prefix + ":" + LocalName;
     /// <summary>Ordered attributes.</summary>
     public IReadOnlyList<HtmlAttribute> Attributes => _attributesView;
-    /// <summary>Element identifier, or an empty string.</summary>
-    public string Id => GetAttribute("id") ?? string.Empty;
-    /// <summary>Whitespace-separated class names, or an empty string.</summary>
-    public string ClassName => GetAttribute("class") ?? string.Empty;
+    /// <summary>Value of the empty-namespace id attribute, or an empty string.</summary>
+    public string Id => GetAttribute(string.Empty, "id") ?? string.Empty;
+    /// <summary>Value of the empty-namespace class attribute, or an empty string.</summary>
+    public string ClassName => GetAttribute(string.Empty, "class") ?? string.Empty;
     /// <summary>Class tokens for inspection.</summary>
     public IReadOnlyList<string> ClassList => ClassName.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries);
     /// <summary>Template contents, retained separately from normal child nodes.</summary>
     public HtmlNode? TemplateContent { get; internal set; }
 
-    /// <summary>Reads an attribute by its qualified name.</summary>
+    /// <summary>Reads the first attribute with this qualified name, regardless of namespace.</summary>
     public string? GetAttribute(string name) => _attributes.FirstOrDefault(attribute => NamesEqual(attribute.Name, name))?.Value;
     /// <summary>Checks whether a qualified attribute is present.</summary>
     public bool HasAttribute(string name) => _attributes.Any(attribute => NamesEqual(attribute.Name, name));
     /// <summary>Reads an attribute by namespace URI and local name.</summary>
     public string? GetAttribute(string namespaceUri, string localName) => _attributes.FirstOrDefault(attribute => attribute.NamespaceUri == namespaceUri && attribute.LocalName == localName)?.Value;
-    /// <summary>Adds or replaces an attribute on a mutable element.</summary>
+    /// <summary>Adds or replaces an attribute in the supplied namespace; omitting the namespace selects the empty namespace.</summary>
     public void SetAttribute(string name, string value, string? namespaceUri = null) {
         Document.EnsureMutable();
         if (NamespaceUri == HtmlNamespace && string.IsNullOrEmpty(namespaceUri)) name = HtmlNames.LowerAscii(name);
@@ -53,7 +53,7 @@ public sealed class HtmlElement : HtmlNode {
         if (index >= 0) _attributes[index] = replacement; else _attributes.Add(replacement);
         Document.Touch();
     }
-    /// <summary>Removes an attribute if present.</summary>
+    /// <summary>Removes the first attribute with this qualified name, regardless of namespace.</summary>
     public void RemoveAttribute(string name) {
         Document.EnsureMutable();
         int index = _attributes.FindIndex(attribute => NamesEqual(attribute.Name, name));
