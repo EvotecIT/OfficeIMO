@@ -32,5 +32,5 @@ jobs:
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       dotnet_workloads: wasm-tools
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 6d91ea8a08b92b5f5df7f6c20823a01258fc405f
+      powerforge_ref: 94a484b20838cbb3ba78db08babdd1405c0ba941
       report_artifact_name: powerforge-website-reports
