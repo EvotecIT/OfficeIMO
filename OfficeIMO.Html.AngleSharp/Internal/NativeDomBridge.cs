@@ -241,6 +241,9 @@ internal static class NativeDomBridge {
                 if (attribute.NamespaceUri.Length == 0) constructable.SetOwnAttribute(attribute.Name, attribute.Value);
                 else constructable.SetAttribute(attribute.NamespaceUri, attribute.Name, attribute.Value);
             }
+            // Parser factories defer initialization until attributes have been supplied.
+            // Complete that lifecycle before exposing the node to clone/layout consumers.
+            constructable.SetupElement();
             return result;
         }
         if (source is HtmlDocumentType type) {

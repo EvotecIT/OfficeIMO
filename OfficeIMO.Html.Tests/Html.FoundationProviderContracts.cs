@@ -10,6 +10,22 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlFoundationProviderContractTests {
     [Theory]
+    [InlineData("", "text")]
+    [InlineData("text", "text")]
+    [InlineData("checkbox", "checkbox")]
+    [InlineData("number", "number")]
+    public void ExportedInputControlsRetainInitializedTypesAndValuesWhenCloned(string inputType, string expectedType) {
+        var original = HtmlConversionDocument.Parse("<input value='7' type='" + inputType + "'>");
+        var edited = original.Edit(document => document.Body!.SetAttribute("data-edited", "true"));
+        var native = NativeDomBridge.GetNativeDocument(edited.Document);
+        var clone = native.Clone(true);
+        var input = Assert.IsAssignableFrom<AngleSharp.Html.Dom.IHtmlInputElement>(((AngleSharp.Dom.IDocument)clone).QuerySelector("input"));
+        Assert.Equal(expectedType, input.Type);
+        Assert.Equal("7", input.Value);
+        Assert.Equal("7", edited.Document.QuerySelector("input")!.GetAttribute("value"));
+    }
+
+    [Theory]
     [InlineData("\u00a0")]
     [InlineData("\u2003")]
     [InlineData("\u202f")]

@@ -45,8 +45,11 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             var document = ((HtmlParseEvent)args).Document;
             _engine = _context.GetService<JsScriptingService>()!.GetOrCreateJint(document);
             _errors.Attach(_engine);
-            RuntimeEventBindings.Install(_engine, document.DefaultView!, _errors.Report);
+            var normalizeWindow = RuntimeWindowBindings.Install(_engine, document.DefaultView!);
+            RuntimeEventBindings.Install(_engine, document.DefaultView!, _errors.Report, normalizeWindow);
             RuntimeUrlBindings.Install(_engine, document.DefaultView!);
+            RuntimeObserverBindings.Install(_engine, document, _errors.Report);
+            RuntimeStorageBindings.Install(_engine, options.MaxStorageCharacters);
             _fetch = new RuntimeFetchBindings(_engine, document, _loop, _resources, options, _errors);
         };
     }

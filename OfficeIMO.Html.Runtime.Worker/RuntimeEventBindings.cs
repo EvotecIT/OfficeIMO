@@ -7,13 +7,13 @@ using Jint.Runtime.Descriptors;
 namespace OfficeIMO.Html.Runtime.Worker;
 
 internal static class RuntimeEventBindings {
-    internal static void Install(Engine engine, AngleSharp.Dom.IEventTarget window, Action<string> report) {
+    internal static void Install(Engine engine, AngleSharp.Dom.IEventTarget window, Action<string> report, JsValue normalizeWindow) {
         using var stream = typeof(RuntimeEventBindings).Assembly.GetManifestResourceStream("OfficeIMO.RuntimeBootstrap.js")!;
         using var reader = new StreamReader(stream);
         JsValue factory = engine.Evaluate(reader.ReadToEnd());
         JsValue reporter = JsValue.FromObject(engine, report);
         var listeners = new RuntimeListenerBindings(engine, window);
-        var listenerMethods = engine.Invoke(factory, new[] { listeners.Add, listeners.RemoveListener, reporter }).AsObject();
+        var listenerMethods = engine.Invoke(factory, new[] { listeners.Add, listeners.RemoveListener, reporter, JsValue.Undefined, normalizeWindow }).AsObject();
         var visited = new HashSet<ObjectInstance>(ReferenceEqualityComparer.Instance) { engine.Global };
         foreach (var property in engine.Global.GetOwnProperties().ToArray()) {
             if (property.Value.Value is Function constructor && constructor.Get("prototype") is ObjectInstance prototype) visited.Add(prototype);
@@ -29,13 +29,17 @@ internal static class RuntimeEventBindings {
             }
             if (prototype.GetOwnProperty("dispatchEvent").Value is Function dispatch) {
                 // Normalize the JS return contract against the event's cancellation state.
-                var wrapper = engine.Invoke(factory, new JsValue[] { dispatch, JsValue.Undefined, reporter, "dispatch" });
+                var wrapper = engine.Invoke(factory, new JsValue[] { dispatch, JsValue.Undefined, reporter, "dispatch", normalizeWindow });
                 prototype.FastSetProperty("dispatchEvent", new PropertyDescriptor(wrapper, true, false, true));
+            }
+            if (prototype.GetOwnProperty("composedPath").Value is Function) {
+                var wrapper = engine.Invoke(factory, new JsValue[] { JsValue.Undefined, JsValue.Undefined, reporter, "path", normalizeWindow });
+                prototype.FastSetProperty("composedPath", new PropertyDescriptor(wrapper, true, false, true));
             }
             foreach (var handler in prototype.GetOwnProperties().ToArray()) {
                 if (!handler.Key.IsString() || !handler.Key.AsString().StartsWith("on", StringComparison.Ordinal) ||
                     handler.Value.Get is not Function getter || handler.Value.Set is not Function setter) continue;
-                var accessors = engine.Invoke(factory, new JsValue[] { getter, setter, reporter, "handler" }).AsObject();
+                var accessors = engine.Invoke(factory, new JsValue[] { getter, setter, reporter, "handler", normalizeWindow }).AsObject();
                 prototype.FastSetProperty(handler.Key, new GetSetPropertyDescriptor(accessors.Get("get"), accessors.Get("set"), handler.Value.Enumerable, true));
             }
         }

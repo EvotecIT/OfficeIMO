@@ -32,6 +32,8 @@ public sealed class HtmlScriptRequest {
     public int MaxDepth { get; set; } = 256;
     /// <summary>Maximum tracked promise rejections awaiting a handler within one script turn.</summary>
     public int MaxPendingPromiseRejections { get; set; } = 1024;
+    /// <summary>Maximum retained UTF-16 key and value characters in each session-local Web Storage area.</summary>
+    public int MaxStorageCharacters { get; set; } = 1024 * 1024;
 
     internal HtmlScriptRequest Snapshot() {
         if (Html == null || Scripts == null || ReadyExpression == null) throw new ArgumentException("HTML, scripts and readiness are required.");
@@ -39,6 +41,7 @@ public sealed class HtmlScriptRequest {
         if (SessionTimeout <= TimeSpan.Zero || SessionTimeout > TimeSpan.FromHours(1)) throw new ArgumentOutOfRangeException(nameof(SessionTimeout));
         if (PollInterval < TimeSpan.FromMilliseconds(1) || PollInterval > Timeout) throw new ArgumentOutOfRangeException(nameof(PollInterval));
         if (MaxInputCharacters <= 0 || MaxOutputCharacters <= 0 || MaxNodes <= 0 || MaxDepth <= 0 || MaxPendingPromiseRejections <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputCharacters), "Resource limits must be positive.");
+        if (MaxStorageCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxStorageCharacters));
         var scripts = Scripts.ToArray();
         long length = (long)Html.Length + ReadyExpression.Length;
         foreach (string script in scripts) {
@@ -61,7 +64,8 @@ public sealed class HtmlScriptRequest {
         return new HtmlScriptRequest { Html = Html, Scripts = scripts, ReadyExpression = ReadyExpression, Timeout = Timeout,
             DocumentUrl = DocumentUrl, Resources = resources, ResourcePolicy = policy,
             SessionTimeout = SessionTimeout, PollInterval = PollInterval, MaxInputCharacters = MaxInputCharacters, MaxOutputCharacters = MaxOutputCharacters,
-            MaxNodes = MaxNodes, MaxDepth = MaxDepth, MaxPendingPromiseRejections = MaxPendingPromiseRejections };
+            MaxNodes = MaxNodes, MaxDepth = MaxDepth, MaxPendingPromiseRejections = MaxPendingPromiseRejections,
+            MaxStorageCharacters = MaxStorageCharacters };
     }
 }
 

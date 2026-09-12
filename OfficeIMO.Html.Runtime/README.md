@@ -130,6 +130,39 @@ events, promises and timers. Readiness is an explicit JavaScript expression that
 must return boolean `true`. Capture runs in the same event-loop task as that check.
 It does not infer network idle, font readiness or layout stability.
 
+Global variables, `window`, `globalThis`, `document.defaultView`, window event
+receivers and function timer receivers refer to the same session window. Event
+paths through the light DOM retain their initial node identities when a
+listener changes the tree; shadow-tree paths are unsupported. Function
+timers retain their additional callback arguments. String timer handlers are
+unsupported. `queueMicrotask` shares Jint's FIFO promise-job queue; callback errors
+fail the session.
+
+`MutationObserver` supports element, text and fragment targets, subtree changes,
+attribute filters, old values, `takeRecords()` and `disconnect()`. Callbacks receive
+a JavaScript records array and the observer instance. Inapplicable added/removed
+node lists are empty NodeLists. Document targets are explicitly unsupported because
+the retained provider redirects their observation to the document element.
+Mutation notifications still use a separate provider queue: they do not yet share
+browser ordering with promise jobs. Wait for an application condition that includes
+required observer work before capture.
+
+`localStorage` and `sessionStorage` provide independent, initially empty in-memory
+areas for each runtime session. Values survive commands and application remounts,
+but are discarded when the session exits. They do not share data with another
+session or a host browser profile, and there are no cross-window storage events.
+Both support string keys/values, named property access, enumeration, removal and
+clear. `MaxStorageCharacters` limits the combined UTF-16 key/value length in each
+area, defaulting to 1 Mi characters. A rejected write throws `QuotaExceededError`
+and leaves the previous value intact.
+
+The test-only Preact 10.29.8 fixture proves UMD loading, mount/unmount, hook effects,
+buffered fetch, state updates, controlled input events, storage restoration,
+mutation delivery and independent captures converted to Markdown and searchable
+PDF. These paths do not establish general framework compatibility or a complete
+web-application profile. Modules, history/navigation, layout-driven interaction,
+combined mutation/promise ordering and live form-state capture remain unqualified.
+
 Commands are serialized. `Timeout` includes time waiting for another command,
 execution and result transfer. A queued cancellation or timeout leaves the active
 command and session usable. Cancellation or failure after admission terminates
