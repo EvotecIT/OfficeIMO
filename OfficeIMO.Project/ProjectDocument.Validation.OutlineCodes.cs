@@ -4,7 +4,7 @@ public sealed partial class ProjectDocument {
     private void CheckOutlineCodes(Finding add, CancellationToken token) {
         var guids = new HashSet<Guid>();
         var indexes = new Dictionary<ProjectOutlineCodeDefinition, ProjectOutlineCodeIndex>();
-        var sharedFields = new Dictionary<string, ProjectCustomFieldDefinition>(StringComparer.Ordinal);
+        var scalarFields = new Dictionary<string, ProjectCustomFieldDefinition>(StringComparer.Ordinal);
         foreach (var table in OutlineCodes) {
             token.ThrowIfCancellationRequested();
             if (table.Guid != null && (!System.Guid.TryParse(table.Guid, out var guid) || !guids.Add(guid)))
@@ -14,18 +14,18 @@ public sealed partial class ProjectDocument {
         }
         foreach (var definition in CustomFields) {
             token.ThrowIfCancellationRequested();
-            if (definition.LookupTableGuid == null) continue;
             string id = ProjectCustomFieldIdentity.NormalizeId(definition.FieldId ?? "");
-            try { _ = GetCustomFieldLookupTable(definition); }
-            catch (InvalidDataException exception) { add("PROJECT_LOOKUP_TABLE_REFERENCE", exception.Message, "/Definition/" + id); }
-            if (sharedFields.ContainsKey(id))
-                add("PROJECT_LOOKUP_TABLE_REFERENCE", "Shared lookup fields require unique numeric field identities.", "/Definition/" + id);
-            else sharedFields.Add(id, definition);
+            if (definition.LookupTableGuid != null) {
+                try { _ = GetCustomFieldLookupTable(definition); }
+                catch (InvalidDataException exception) { add("PROJECT_LOOKUP_TABLE_REFERENCE", exception.Message, "/Definition/" + id); }
+            }
+            // Duplicate definition identities are diagnosed by the general custom-field validation.
+            if (!scalarFields.ContainsKey(id)) scalarFields.Add(id, definition);
         }
         void CheckScalar(ProjectEntity entity, ProjectCollection<ProjectCustomFieldValue> fields) {
             foreach (var selection in fields) {
                 token.ThrowIfCancellationRequested();
-                if (selection.FieldId == null || !sharedFields.TryGetValue(ProjectCustomFieldIdentity.NormalizeId(selection.FieldId), out var definition)) continue;
+                scalarFields.TryGetValue(ProjectCustomFieldIdentity.NormalizeId(selection.FieldId ?? ""), out var definition);
                 try { _ = ProjectCustomFieldLookup.Text(this, definition, selection); }
                 catch (Exception exception) when (exception is InvalidDataException || exception is NotSupportedException) {
                     string path = "/" + (entity is ProjectTask ? "Task" : "Resource") + "[UID=" + entity.Uid + "]/ExtendedAttribute";
