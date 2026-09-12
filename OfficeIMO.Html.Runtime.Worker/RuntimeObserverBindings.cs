@@ -18,7 +18,6 @@ internal static class RuntimeObserverBindings {
                     try {
                         var values = new JsArray(engine, records.Select(record => JsValue.FromObject(engine, record)).ToArray());
                         engine.Invoke(callback, new JsValue[] { values });
-                        engine.Advanced.ProcessTasks();
                     } catch (Exception error) { report(error.Message); }
                 }
             });

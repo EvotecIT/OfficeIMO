@@ -98,7 +98,6 @@ internal sealed class RuntimeFetchBindings : IDisposable {
                     }
                     try {
                         _engine.Invoke(callback, new JsValue[] { json });
-                        _engine.Advanced.ProcessTasks();
                     } catch (Exception error) { _errors.Report(error.Message); }
                 }
             }, TaskPriority.Normal);

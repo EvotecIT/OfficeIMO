@@ -26,7 +26,8 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         _options = options;
         _errors = new RuntimeScriptErrors(options.MaxPendingPromiseRejections);
         _resources = new RuntimeResourceLoader(options);
-        var configuration = Configuration.Default.WithCss().WithJs(new JsScriptingOptions { MaxCallStackDepth = 512 }).WithEventLoop()
+        var configuration = Configuration.Default.WithCss().WithJs(new JsScriptingOptions { MaxCallStackDepth = 512 })
+            .WithEventLoop(context => new RuntimeEventLoop(context, () => _engine, _errors))
             .Without<AngleSharp.Css.IPseudoClassSelectorFactory>()
             .With((AngleSharp.Css.IPseudoClassSelectorFactory)_focus.CreateSelectors())
             .With(new RuntimeResourceRequester(_resources, _errors))

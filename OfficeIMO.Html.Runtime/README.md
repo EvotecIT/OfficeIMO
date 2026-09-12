@@ -190,7 +190,11 @@ fail the session.
 Session event-loop operations drain pending promise jobs before their work and
 complete jobs queued by native DOM actions before admitting the next command.
 Typed waits therefore observe promise-driven application updates without an extra
-`ExecuteAsync` call. Command deadlines still bound a nonterminating promise job.
+`ExecuteAsync` call. Native timer, resource and lifecycle tasks also finish their
+promise jobs before the event loop starts its next task, even while the caller is
+not polling the session. A rejection still unhandled at that boundary is retained
+as a session failure; adding a handler in a later timer cannot erase it. Command
+deadlines and the session lifetime still bound a nonterminating promise job.
 
 `MutationObserver` supports element, text and fragment targets, subtree changes,
 attribute filters, old values, `takeRecords()` and `disconnect()`. Callbacks receive
