@@ -90,7 +90,7 @@ public partial class ProvenanceWorkbench {
             string message;
             if (remove) {
                 removal = OfficeProvenanceBufferWorkflow.Remove(file.Bytes, file.Name, BrowserProvenancePolicy.Removal(_manifests, _references, _declarations));
-                report = removal.Before; output = removal.ToArray();
+                report = removal.After; output = removal.ToArray();
                 outputName = Path.GetFileNameWithoutExtension(file.Name) + "-provenance-cleaned" + file.Extension;
                 outputUrl = await CreateTemporaryUrlAsync(output, ContentType(file.Extension), temporaryUrls);
                 message = removal.WasChanged ? "A separate copy is ready. Review remaining findings before downloading." : "No selected carriers were removed. The copy retains the original data; review the findings and diagnostics.";
@@ -101,7 +101,7 @@ public partial class ProvenanceWorkbench {
             if (_disposed || generation != _generation) return;
             byte[] reportBytes = JsonSerializer.SerializeToUtf8Bytes(new {
                 schemaVersion = 1, operation = remove ? "remove" : "inspect", fileName = file.Name,
-                before = report, after = removal?.After, changes = removal?.Changes,
+                before = removal?.Before ?? report, after = removal?.After, changes = removal?.Changes,
                 structuralOnly = true, externalReferencesFetched = false
             }, new JsonSerializerOptions { WriteIndented = true });
             string reportUrl = await CreateTemporaryUrlAsync(reportBytes, "application/json", temporaryUrls);
@@ -133,7 +133,7 @@ public partial class ProvenanceWorkbench {
         string url = await _interop!.CreateObjectUrlAsync(bytes, contentType);
         urls.Add(url); return url;
     }
-    private async Task OptionsChangedAsync() { ++_generation; Session.ClearResult(); await ClearResultAsync(); _message = "Removal options changed. Create a new copy to apply them."; }
+    private async Task OptionsChangedAsync() { ++_generation; _report = _removal?.Before ?? _report; Session.ClearResult(); await ClearResultAsync(); _message = "Removal options changed. Create a new copy to apply them."; }
     private async Task ClearResultAsync() {
         var urls = new[] { _outputUrl, _reportUrl, _previewUrl };
         _outputUrl = _reportUrl = _previewUrl = _outputName = null; _outputBytes = null; _removal = null;

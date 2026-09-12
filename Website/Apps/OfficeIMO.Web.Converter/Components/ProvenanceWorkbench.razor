@@ -40,7 +40,6 @@
             }
             @if (_removal is not null) {
                 <p><strong>@_removal.Changes.Count change@(_removal.Changes.Count == 1 ? "" : "s")</strong> · @_removal.After.Evidence.Count finding@(_removal.After.Evidence.Count == 1 ? "" : "s") remain. Output was re-inspected.</p>
-                @foreach (var diagnostic in _removal.After.Diagnostics) { <p class="provenance-diagnostic">@diagnostic</p> }
             }
             <div class="ocx-output-actions">
                 @if (_reportUrl is not null) { <a class="ocx-button ocx-button--secondary" href="@_reportUrl" download="provenance-report.json">Download report</a> }

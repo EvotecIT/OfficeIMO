@@ -102,12 +102,13 @@ This **Markdown** becomes a browser preview or an editable Word document.
     protected override async Task OnParametersSetAsync() {
         var route = ConversionRouteCatalog.Find(RouteId);
         bool changed = ActiveRoute.Id != route.Id;
+        bool hadWorkingFile = SelectedFile is not null;
         await SelectRouteAsync(route);
         if (changed || _sessionRevision != Session.Revision) {
             _sessionRevision = Session.Revision;
             await ResetOutputAsync();
             SelectedFile = Session.Current.FirstOrDefault(file => route.Accept.Split(',').Contains(file.Extension, StringComparer.OrdinalIgnoreCase));
-            if (route.InputKind == ConversionInputKind.Text && SelectedFile is null && Session.Revision > 0) TextInput = string.Empty;
+            if (route.InputKind == ConversionInputKind.Text && SelectedFile is null && (Session.Current.Count > 0 || hadWorkingFile)) TextInput = string.Empty;
             if (route.InputKind == ConversionInputKind.Text && SelectedFile is not null) {
                 string text = System.Text.Encoding.UTF8.GetString(SelectedFile.Bytes);
                 if (text.Length <= BrowserConversionService.MaxTextInputChars) TextInput = text;
