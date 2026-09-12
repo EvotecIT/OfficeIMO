@@ -1,7 +1,7 @@
 @namespace OfficeIMO.Web.Converter.Components
 
 <div class="pdf-file-picker">
-    <label class="ocx-dropzone" for="@FileInputId">
+    <label class="ocx-dropzone @(Files.Count == 0 ? null : "has-file")" for="@FileInputId">
         <InputFile id="@FileInputId"
                    class="ocx-hidden-input"
                    OnChange="OnFilesSelected"
@@ -24,10 +24,10 @@
                     <span><strong>@file.Name</strong><small>@ConverterWorkspace.FormatBytes(file.Size)</small></span>
                     <div>
                         @if (Tool.InputMode == PdfToolInputMode.Multiple) {
-                            <button type="button" disabled="@(index == 0)" title="Move earlier" @onclick="() => OnMove.InvokeAsync(new PdfFileMoveRequest(fileIndex, -1))">↑</button>
-                            <button type="button" disabled="@(index == Files.Count - 1)" title="Move later" @onclick="() => OnMove.InvokeAsync(new PdfFileMoveRequest(fileIndex, 1))">↓</button>
+                            <button type="button" disabled="@(index == 0)" title="Move earlier" aria-label="@($"Move {file.Name} earlier")" @onclick="() => OnMove.InvokeAsync(new PdfFileMoveRequest(fileIndex, -1))">↑</button>
+                            <button type="button" disabled="@(index == Files.Count - 1)" title="Move later" aria-label="@($"Move {file.Name} later")" @onclick="() => OnMove.InvokeAsync(new PdfFileMoveRequest(fileIndex, 1))">↓</button>
                         }
-                        <button type="button" title="Remove file" @onclick="() => OnRemove.InvokeAsync(fileIndex)">×</button>
+                        <button type="button" title="Remove file" aria-label="@($"Remove {file.Name}")" @onclick="() => OnRemove.InvokeAsync(fileIndex)">×</button>
                     </div>
                 </li>
             }

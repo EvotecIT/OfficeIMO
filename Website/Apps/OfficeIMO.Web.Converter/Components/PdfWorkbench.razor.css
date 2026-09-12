@@ -8,3 +8,6 @@
 .pdf-workbench .ocx-actionbar>span small{font-size:.7rem;font-weight:600}
 @media(max-width:900px){.pdf-workbench__grid{grid-template-columns:1fr}}
 @media(max-width:720px){.pdf-workbench{width:min(100% - 1rem,1312px)}.pdf-workbench__grid{display:block}.pdf-workbench__mobile-run{display:flex}.pdf-workbench .ocx-actionbar{display:none}}
+
+.pdf-workbench ::deep .pdf-tool-settings { margin-top:20px; }
+.pdf-workbench .ocx-diagnostics:not(:empty) { margin-top:16px; }

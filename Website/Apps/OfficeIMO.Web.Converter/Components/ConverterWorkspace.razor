@@ -21,7 +21,7 @@
                 </div>
 
                 @if (ActiveRoute.InputKind == ConversionInputKind.File) {
-                    <label class="ocx-dropzone" for="@FileInputId" @key="ActiveRoute.Id">
+                    <label class="ocx-dropzone @(SelectedFile is null ? null : "has-file")" for="@FileInputId" @key="ActiveRoute.Id">
                         <InputFile id="@FileInputId"
                                    class="ocx-hidden-input"
                                    OnChange="HandleFileSelectedAsync"

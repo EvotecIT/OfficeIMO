@@ -34,11 +34,12 @@
         </header>
         @if (Session.Originals.Count > 0 || Session.Current.Count > 0 || Session.LatestResult is not null) {
             <section class="ocx-session" aria-label="Files in this session">
-                <span><strong>Working file@(Session.Current.Count == 1 ? "" : "s")</strong> @string.Join(", ", Session.Current.Select(file => file.Name))</span>
-                @if (Session.LatestResult is not null) { <button type="button" class="ocx-button ocx-button--primary" @onclick="Session.UseResult">Use result as working file</button> }
-                <button type="button" class="ocx-text-action" @onclick="Session.RestoreOriginals">Restore original@(Session.Originals.Count == 1 ? "" : "s")</button>
-                <button type="button" class="ocx-text-action" @onclick="Session.Clear">Clear session</button>
-                <small>Choose another tool to continue with compatible files. Files stay in this tab; closing it clears the session.</small>
+                <div class="ocx-session-file"><span>Working file@(Session.Current.Count == 1 ? "" : "s")</span><strong>@(Session.Current.Count == 0 ? "No working file selected" : string.Join(", ", Session.Current.Select(file => file.Name)))</strong></div>
+                <div class="ocx-session-actions">
+                    @if (Session.LatestResult is not null) { <button type="button" class="ocx-button ocx-button--primary" @onclick="Session.UseResult">Use result as working file</button> }
+                    <button type="button" class="ocx-button ocx-button--secondary" @onclick="Session.RestoreOriginals">Restore original@(Session.Originals.Count == 1 ? "" : "s")</button>
+                    <button type="button" class="ocx-text-action" @onclick="Session.Clear">Clear session</button>
+                </div>
             </section>
         }
         @if (IsProvenanceWorkspace) {

@@ -35,7 +35,7 @@
       <ul class="imo-application-facts">{{ for fact in app.facts }}<li>{{ fact }}</li>{{ end }}</ul>
       {{ if app.image }}
       <figure class="imo-application-preview">
-        <a data-pf-media data-pf-media-group="studio" data-pf-media-light="/images/studio/workspace-light.png" data-pf-media-dark="/images/studio/workspace-dark.png" href="{{ app.image }}" aria-label="Open full-size Studio screenshot"><img decoding="async" src="{{ app.image }}" width="1440" height="960" alt="{{ app.imageAlt }}" fetchpriority="high" /></a>
+        <a data-pf-media data-pf-media-group="studio" data-pf-media-caption="Studio · Document workspace" data-pf-media-light="/images/studio/workspace-light.png" data-pf-media-dark="/images/studio/workspace-dark.png" href="{{ app.image }}" aria-label="Open full-size Studio screenshot"><img decoding="async" src="{{ app.image }}" width="1440" height="960" alt="{{ app.imageAlt }}" fetchpriority="high" /></a>
         <figcaption>{{ app.caption }}</figcaption>
       </figure>
       {{ else }}
