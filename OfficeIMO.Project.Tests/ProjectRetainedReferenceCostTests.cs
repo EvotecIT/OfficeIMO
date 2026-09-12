@@ -111,6 +111,23 @@ public sealed class ProjectRetainedReferenceCostTests {
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void FailedRateRecalculationCannotRetainInvalidCostCurves(bool material, bool inconsistentAmount) {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
+        var task = document.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1);
+        var resource = material ? document.Resources.AddMaterial("Parts") : document.Resources.AddWork("Engineer");
+        var assignment = document.Assignments.Add(task, resource); assignment.ActualCost = 25;
+        var value = assignment.TimephasedData.Add(); value.Uid = assignment.Uid; value.Type = 6;
+        value.Start = inconsistentAmount ? Monday : Monday.AddDays(1); value.Finish = value.Start; value.Value = inconsistentAmount ? "5000" : "2500";
+        string before = document.ToXml();
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true, RecalculateActualCosts = true });
+        Assert.True(result.Report.HasErrors); Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result)); Assert.Equal(before, document.ToXml());
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void ValidRetainedActualCostsPreserveTheirTiming(bool material) {

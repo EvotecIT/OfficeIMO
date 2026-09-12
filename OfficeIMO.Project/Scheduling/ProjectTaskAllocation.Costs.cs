@@ -27,10 +27,7 @@ internal sealed partial class ProjectTaskAllocation {
             if (value.HasValue) charges.Add(new ProjectCostInterval(finish, finish, value.Value - actual, false));
             return (value, actual);
         }
-        var stored = _options.RecalculateActualCosts ? Array.Empty<ProjectCostInterval>() : ReadActualCostCurves(assignment);
-        ValidateActualCostDates(assignment, stored, start, finish);
-        if (stored.Length > 0 && assignment.ActualCost.HasValue && Math.Abs(stored.Sum(v => v.Cost) - assignment.ActualCost.Value) > .01m)
-            throw new InvalidDataException("Timephased actual costs differ from the stored actual cost.");
+        var stored = _options.RecalculateActualCosts ? Array.Empty<ProjectCostInterval>() : ReadRetainedActualCosts(assignment, start, finish);
         var table = assignment.CostRateTable ?? ProjectCostRateTable.A;
         var usage = new List<ProjectCostInterval>(); bool complete = true;
         foreach (var interval in intervals) {
@@ -54,6 +51,8 @@ internal sealed partial class ProjectTaskAllocation {
             }
         }
         if (!complete) {
+            // Failed recalculation retains source actuals, so those records must still be eligible for application.
+            if (_options.RecalculateActualCosts) ReadRetainedActualCosts(assignment, start, finish);
             Warn("PROJECT_RATE_INCOMPLETE", "The selected rate table does not cover every work interval. Total cost was not inferred.", assignment);
             return (null, assignment.ActualCost);
         }
@@ -101,5 +100,13 @@ internal sealed partial class ProjectTaskAllocation {
                 || (assignment.Stop.HasValue && interval.Finish > assignment.Stop))
                 throw new InvalidDataException("Actual-cost intervals must fit the task span and recorded assignment actual dates.");
         }
+    }
+
+    private ProjectCostInterval[] ReadRetainedActualCosts(ProjectAssignment assignment, DateTime start, DateTime finish) {
+        var stored = ReadActualCostCurves(assignment);
+        ValidateActualCostDates(assignment, stored, start, finish);
+        if (stored.Length > 0 && assignment.ActualCost.HasValue && Math.Abs(stored.Sum(v => v.Cost) - assignment.ActualCost.Value) > .01m)
+            throw new InvalidDataException("Timephased actual costs differ from the stored actual cost.");
+        return stored;
     }
 }
