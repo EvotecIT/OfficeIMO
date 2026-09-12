@@ -38,5 +38,5 @@ jobs:
       engine_mode: source
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: ace2abf07aa0012e3419dd3a63fb95965fbe9989
+      powerforge_ref: de606761b02201ccec8b1b459a96a55d39d288ed
       report_artifact_name: powerforge-website-maintenance-reports
