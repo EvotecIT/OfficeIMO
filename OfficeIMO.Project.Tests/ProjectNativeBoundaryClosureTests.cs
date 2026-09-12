@@ -61,14 +61,40 @@ public sealed class ProjectNativeBoundaryClosureTests {
     [InlineData(ProjectFileFormat.Mpp12)]
     [InlineData(ProjectFileFormat.Mpp14)]
     public void ExplicitProjectSummaryRemainsInTheTypedModel(ProjectFileFormat format) {
-        using var seed = ProjectNativeAuthoringTests.Create(); var xml = XDocument.Parse(seed.ToXml());
-        XNamespace ns = XmlContracts.Ns; var tasks = xml.Root!.Element(ns + "Tasks")!;
-        tasks.AddFirst(new XElement(ns + "Task", new XElement(ns + "UID", 0), new XElement(ns + "ID", 0),
-            new XElement(ns + "Name", "Explicit project summary"), new XElement(ns + "OutlineLevel", 0), new XElement(ns + "Summary", 1)));
-        using var document = ProjectDocument.Parse(xml.ToString(SaveOptions.DisableFormatting));
+        using var document = ExplicitSummary();
         using var output = new MemoryStream(); document.Save(output, Native(format));
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.Equal("Explicit project summary", reopened.Tasks.GetByUid(0).Name);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    public void ExplicitNativeProjectSummaryDeletionIsRejected(ProjectFileFormat format) {
+        using var source = ExplicitSummary(); using var output = new MemoryStream(); source.Save(output, Native(format));
+        using var document = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.True(document.Tasks.Remove(document.Tasks.GetByUid(0)));
+        var report = document.AssessSave(Native(format));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_PROJECT_SUMMARY_REQUIRED"
+            && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
+        Assert.Throws<InvalidDataException>(() => document.Save(new MemoryStream(), Native(format)));
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    public void ReservedNativeResourceDeletionIsRejected(ProjectFileFormat format) {
+        using var source = ProjectNativeAuthoringTests.Create(); using var output = new MemoryStream(); source.Save(output, Native(format));
+        using var document = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.True(document.Resources.Remove(document.Resources.GetByUid(0)));
+        var report = document.AssessSave(Native(format));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_RESERVED_RESOURCE_REQUIRED"
+            && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
+        Assert.Throws<InvalidDataException>(() => document.Save(new MemoryStream(), Native(format)));
     }
 
     [Theory]
@@ -84,6 +110,19 @@ public sealed class ProjectNativeBoundaryClosureTests {
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         var copied = reopened.Resources.GetByUid(resource.Uid).Calendar!;
         Assert.False(copied.IsBaseCalendar); Assert.NotNull(copied.BaseCalendar);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    public void CrossProjectDependenciesAreRejectedBeforeNativeSerialization(ProjectFileFormat format) {
+        using var document = ProjectDocument.Load(ProjectResourceCapacityTests.Fixture("external-consumer"));
+        var report = document.AssessSave(Native(format));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_CROSS_PROJECT_DEPENDENCY"
+            && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
+        Assert.Throws<InvalidDataException>(() => document.Save(new MemoryStream(), Native(format)));
     }
 
     [Fact]
@@ -187,6 +226,14 @@ public sealed class ProjectNativeBoundaryClosureTests {
     private static ProjectSaveOptions Native(ProjectFileFormat format) => new() {
         Format = format, LossPolicy = OfficeConversionLossPolicy.Allow
     };
+
+    private static ProjectDocument ExplicitSummary() {
+        using var seed = ProjectNativeAuthoringTests.Create(); var xml = XDocument.Parse(seed.ToXml());
+        XNamespace ns = XmlContracts.Ns; var tasks = xml.Root!.Element(ns + "Tasks")!;
+        tasks.AddFirst(new XElement(ns + "Task", new XElement(ns + "UID", 0), new XElement(ns + "ID", 0),
+            new XElement(ns + "Name", "Explicit project summary"), new XElement(ns + "OutlineLevel", 0), new XElement(ns + "Summary", 1)));
+        return ProjectDocument.Parse(xml.ToString(SaveOptions.DisableFormatting));
+    }
 
     private static byte[] NewNative(ProjectFileFormat format) {
         using var document = ProjectNativeAuthoringTests.Create();

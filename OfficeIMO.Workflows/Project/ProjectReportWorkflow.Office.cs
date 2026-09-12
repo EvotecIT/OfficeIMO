@@ -82,6 +82,7 @@ public static partial class ProjectReportWorkflow {
     public static ExcelDocument CreateExcel(ProjectView view, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(view);
         cancellationToken.ThrowIfCancellationRequested();
+        ValidateExcelGrid(view);
         var document = ExcelDocument.Create();
         try {
             var sheet = document.AddWorksheet("Report");

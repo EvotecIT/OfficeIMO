@@ -4,6 +4,15 @@ using OfficeIMO.Project;
 namespace OfficeIMO.Workflows;
 
 public static partial class ProjectReportWorkflow {
+    private static void ValidateExcelGrid(ProjectView view) {
+        if (view.Rows.Count > A1.MaxRows - 1)
+            throw new InvalidOperationException("The report has more rows than an Excel worksheet can contain.");
+        if (view.Links.Count > A1.MaxRows - 1)
+            throw new InvalidOperationException("The dependency table has more rows than an Excel worksheet can contain.");
+        if (IsUsage(view) && view.Buckets.Count > A1.MaxColumns - 2)
+            throw new InvalidOperationException("The usage table has more time buckets than an Excel worksheet can contain.");
+    }
+
     private static void AddExcelSupplementalTables(ExcelDocument document, ProjectView view, CancellationToken token) {
         var status = document.AddWorksheet("Status and groups");
         WriteHeaders(status, "UID", "Name", "Status", "Group");

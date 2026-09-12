@@ -13,7 +13,12 @@ internal sealed partial class ProjectNativeWriter {
                 SortPosition(editor, 0, 0x0b400479, 1);
             }
         }
-        Removed(editor, "Task", _document.TaskIndex.Keys);
+        if (!_new && !_document.TaskIndex.ContainsKey(0) && ChangedTree("/Task[UID=0]")) {
+            AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_PROJECT_SUMMARY_REQUIRED", ProjectDiagnosticSeverity.Error,
+                "An explicit native project-summary task cannot be deleted. Keep task UID 0 or convert to XML.", "/Task[UID=0]"));
+            HandleTree("/Task[UID=0]");
+        }
+        Removed(editor, "Task", _document.TaskIndex.Keys, preserveZero: true);
         int row = 0; var levels = new Dictionary<ProjectTask, int>();
         foreach (var task in _document.AllTasks) {
             _token.ThrowIfCancellationRequested(); string path = Path(task, "Task"); bool added = !editor.Contains(task.Uid);
@@ -64,7 +69,12 @@ internal sealed partial class ProjectNativeWriter {
                 if (_profile != ProjectNativeProfile.Mpp8) editor.Set(0, 0x0c40012a, new byte[] { 1 });
             }
         }
-        Removed(editor, "Resource", _document.ResourceIndex.Keys);
+        if (!_new && !_document.ResourceIndex.ContainsKey(0) && ChangedTree("/Resource[UID=0]")) {
+            AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_RESERVED_RESOURCE_REQUIRED", ProjectDiagnosticSeverity.Error,
+                "The reserved native resource cannot be deleted. Keep resource UID 0 or convert to XML.", "/Resource[UID=0]"));
+            HandleTree("/Resource[UID=0]");
+        }
+        Removed(editor, "Resource", _document.ResourceIndex.Keys, preserveZero: true);
         int row = 0;
         foreach (var resource in _document.Resources) {
             _token.ThrowIfCancellationRequested(); string path = Path(resource, "Resource"); bool added = !editor.Contains(resource.Uid);
@@ -135,6 +145,12 @@ internal sealed partial class ProjectNativeWriter {
         int index = 0;
         foreach (var link in _document.Dependencies) {
             _token.ThrowIfCancellationRequested(); int uid = index + 1; string path = "/Dependency[" + index++ + "]";
+            foreach (string name in new[] { "Predecessor", "Successor", "Type", "CrossProject", "CrossProjectName", "Lag", "LagPercent", "LagPercentIsElapsed", "LagPercentIsEstimated" }) Handle(path + "/" + name);
+            if (link.CrossProject == true || link.CrossProjectName != null) {
+                AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_CROSS_PROJECT_DEPENDENCY", ProjectDiagnosticSeverity.Error,
+                    "Native output cannot represent cross-project dependencies. Remove the link or save as Project XML.", path));
+                continue;
+            }
             editor.Add(uid); editor.Integer(uid, 0x0e400000, uid);
             Identity(editor, uid, 0x0e400015, NativeGuid(uid, 4));
             editor.Integer(uid, 0x0e400002, link.Predecessor?.Uid ?? link.SourcePredecessorUid); editor.Integer(uid, 0x0e400005, link.Successor.Uid);
@@ -144,7 +160,6 @@ internal sealed partial class ProjectNativeWriter {
             if (link.Predecessor != null) Identity(editor, uid, 0x0e400016, EntityGuid(link.Predecessor, 1));
             Identity(editor, uid, 0x0e400017, EntityGuid(link.Successor, 1));
             if (_profile == ProjectNativeProfile.Mpp14) editor.Set(uid, 0x0e40001c, new byte[] { 1 });
-            foreach (string name in new[] { "Predecessor", "Successor", "Type", "Lag", "LagPercent", "LagPercentIsElapsed", "LagPercentIsEstimated" }) Handle(path + "/" + name);
         }
         foreach (var old in Original("/Dependency").Where(p => !_current.ContainsKey(p.Key))) Handle(old.Key);
         editor.Export(_replacements);

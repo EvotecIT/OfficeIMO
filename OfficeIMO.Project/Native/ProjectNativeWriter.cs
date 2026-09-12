@@ -143,9 +143,9 @@ internal sealed partial class ProjectNativeWriter {
     private void SortPosition(IProjectNativeTableEditor editor, int uid, uint id, int position) {
         if (_profile.HasExtendedRecords) editor.Set(uid, id, BitConverter.GetBytes((double)position));
     }
-    private void Removed(IProjectNativeTableEditor editor, string kind, IEnumerable<int> retained) {
+    private void Removed(IProjectNativeTableEditor editor, string kind, IEnumerable<int> retained, bool preserveZero = false) {
         var keep = new HashSet<int>(retained);
-        foreach (int uid in editor.Uids.ToArray()) if (!keep.Contains(uid) && uid != 0) { editor.Delete(uid); HandleTree("/" + kind + "[UID=" + uid + "]"); }
+        foreach (int uid in editor.Uids.ToArray()) if (!keep.Contains(uid) && (!preserveZero || uid != 0)) { editor.Delete(uid); HandleTree("/" + kind + "[UID=" + uid + "]"); }
     }
     private void Field(IProjectNativeTableEditor editor, int uid, string path, string name, uint id, Kind kind = Kind.Integer, decimal scale = 1, uint format = 0, bool force = false) {
         string key = path + "/" + name;

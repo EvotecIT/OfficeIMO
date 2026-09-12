@@ -25,6 +25,20 @@ public sealed class ProjectReportWorkflowTests {
     }
 
     [Fact]
+    public void UsageExportRejectsBucketsBeyondTheExcelColumnLimit() {
+        using var project = Create(1);
+        var schedule = project.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
+        var start = project.Settings.StartDate!.Value.Date;
+        var view = project.CreateView(schedule, new ProjectViewOptions {
+            Kind = ProjectViewKind.TaskUsage, Timescale = ProjectViewTimescale.Day,
+            Start = start, Finish = start.AddDays(A1.MaxColumns - 1),
+            MaxBuckets = A1.MaxColumns, MaxCells = A1.MaxColumns
+        });
+        Assert.Equal(A1.MaxColumns - 1, view.Buckets.Count);
+        Assert.Throws<InvalidOperationException>(() => ProjectReportWorkflow.CreateExcel(view));
+    }
+
+    [Fact]
     public void EditablePresentationPaginatesLongLabelsWithoutLosingRows() {
         using var project = Create(40);
         project.Tasks[0].Name = "Long task label with implementation, verification and documented handover for the shared service";
