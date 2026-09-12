@@ -43,6 +43,12 @@ public sealed class SearchablePdfOcrViewModelTests {
 
         await viewModel.OpenOutputCommand.ExecuteAsync(null);
         Assert.Equal(output, opened);
+
+        viewModel.UseDocument(Path.Combine(directory, "another-scan.pdf"));
+        Assert.False(viewModel.HasOutput);
+        Assert.False(viewModel.OpenOutputCommand.CanExecute(null));
+        Assert.False(viewModel.HasError);
+        Assert.Equal("another-scan-searchable.pdf", Path.GetFileName(viewModel.OutputPath));
     }
 
     [Fact]

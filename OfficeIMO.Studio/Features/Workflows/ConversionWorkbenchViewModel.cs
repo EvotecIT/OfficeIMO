@@ -116,7 +116,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     public bool CanEditQueue => !IsBusy;
     public string QueueSummary => Jobs.Count == 0
         ? T("Queue.Empty", "No jobs")
-        : _localizer.FormatOrDefault("Conversion.Queue.Count", "{0:N0} {1}", Jobs.Count, Jobs.Count == 1 ? T("Queue.Job", "job") : T("Queue.Jobs", "jobs"));
+        : _localizer.Format("Conversion.Queue.Count", Jobs.Count);
 
     partial void OnIsBusyChanged(bool value) {
         OnPropertyChanged(nameof(CanCancel));

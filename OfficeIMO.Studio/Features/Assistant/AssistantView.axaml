@@ -7,14 +7,28 @@
         <TextBlock Text="{loc:Loc Assistant.Title}" FontSize="20" FontWeight="SemiBold" />
         <TextBlock Text="{loc:Loc Assistant.ReadOnly}" Classes="muted" TextWrapping="Wrap" />
         <TextBlock Text="{Binding Connections.Summary}" Foreground="{DynamicResource StudioAccentBrush}" TextWrapping="Wrap" FontSize="12" MaxLines="2" TextTrimming="CharacterEllipsis" />
-        <ToggleButton Classes="tool" Content="{loc:Loc Assistant.Connections}" IsChecked="{Binding ShowConnections}" HorizontalAlignment="Stretch" />
+        <Button Classes="tool" Content="{loc:Loc Assistant.Connections}" Click="ManageConnectionsClick" HorizontalAlignment="Stretch" />
       </StackPanel>
       <Grid Grid.Row="1">
         <ScrollViewer IsVisible="{Binding ShowConnections}" HorizontalScrollBarVisibility="Disabled">
-          <ai:ConnectionsView DataContext="{Binding Connections}" />
+          <Border Classes="card" Margin="0,8">
+            <StackPanel Spacing="12">
+              <TextBlock Text="{loc:Loc Connections.Welcome}" Classes="sectionTitle" />
+              <TextBlock Text="{loc:Loc Connections.WelcomeHelp}" Classes="muted" />
+              <Button Classes="primary" Content="{loc:Loc Connections.ChooseProvider}" Click="ManageConnectionsClick" />
+            </StackPanel>
+          </Border>
         </ScrollViewer>
         <ScrollViewer x:Name="ConversationScroll" IsVisible="{Binding !ShowConnections}" HorizontalScrollBarVisibility="Disabled">
           <StackPanel Spacing="8">
+          <StackPanel Spacing="8" IsVisible="{Binding !HasConversation}" IsEnabled="{Binding !IsBusy}">
+            <TextBlock Text="{loc:Loc Assistant.StartWith}" Classes="sectionTitle" />
+            <WrapPanel>
+              <Button Classes="tool" Content="{loc:Loc Assistant.Summarize}" Command="{Binding UsePromptCommand}" CommandParameter="Summary" Margin="0,0,6,6" />
+              <Button Classes="tool" Content="{loc:Loc Assistant.ActionItems}" Command="{Binding UsePromptCommand}" CommandParameter="Actions" Margin="0,0,6,6" />
+              <Button Classes="tool" Content="{loc:Loc Assistant.KeyFacts}" Command="{Binding UsePromptCommand}" CommandParameter="KeyFacts" Margin="0,0,6,6" />
+            </WrapPanel>
+          </StackPanel>
           <TextBlock Text="{Binding EvidenceSummary}" TextWrapping="Wrap" Classes="muted" />
           <WrapPanel>
             <Button Classes="tool" Content="{loc:Loc Assistant.PrepareEvidence}" Command="{Binding PrepareEvidenceCommand}" Margin="0,0,6,6" />
@@ -48,7 +62,7 @@
           </StackPanel>
         </ScrollViewer>
       </Grid>
-      <StackPanel Grid.Row="2" Spacing="8">
+      <StackPanel Grid.Row="2" Spacing="8" IsVisible="{Binding !ShowConnections}">
         <TextBlock Text="{Binding Status}" TextWrapping="Wrap" FontSize="12" AutomationProperties.LiveSetting="Polite" />
         <ProgressBar IsVisible="{Binding IsBusy}" IsIndeterminate="True" Height="3" />
         <StackPanel IsEnabled="{Binding !IsBusy}" Spacing="6">

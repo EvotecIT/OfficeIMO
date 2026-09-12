@@ -619,6 +619,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ClearSearchResults();
         _sceneCoordinator = sceneCoordinator;
         _renderCoordinator = renderCoordinator;
+        ApplyPresentationCachePolicy();
 
         if (isDocumentTransition) {
             OrganizerPageRange = string.Empty;

@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\OfficeIMO.Studio.ico" />
+    <AvaloniaResource Include="Assets\OfficeIMO.Studio.png" />
     <None Update="Assets\OfficeIMO.Studio.png" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />

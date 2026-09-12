@@ -35,6 +35,29 @@ env:
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
 
 jobs:
+  studio-contracts:
+    name: 'Studio workflows and accessibility / ${{ matrix.os }}'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Test Studio
+        run: dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --logger "trx;LogFileName=studio.trx" --results-directory TestResults/Studio
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: studio-tests-${{ matrix.os }}
+          path: TestResults/Studio
+          if-no-files-found: ignore
+
   invoice-standards:
     name: Invoice schema and business rules
     runs-on: ubuntu-latest

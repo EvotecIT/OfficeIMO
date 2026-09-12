@@ -109,7 +109,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     public bool HasOutput => !string.IsNullOrWhiteSpace(PublishedPath);
     public string SourceSummary => Sources.Count == 0
         ? T("Sources.Empty", "No sources")
-        : _localizer.FormatOrDefault("Assembly.Sources.Count", "{0:N0} {1}", Sources.Count, Sources.Count == 1 ? T("Sources.One", "source") : T("Sources.Many", "sources"));
+        : _localizer.Format("Assembly.Sources.Count", Sources.Count);
     private bool CanRun => !IsBusy && HasSources && !string.IsNullOrWhiteSpace(OutputPath);
 
     internal void UseDocument(string? path) {

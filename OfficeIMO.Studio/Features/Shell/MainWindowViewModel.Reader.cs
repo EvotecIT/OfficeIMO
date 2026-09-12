@@ -183,6 +183,7 @@ public sealed partial class MainWindowViewModel {
             _comparisonSession = session;
             _comparisonSceneCoordinator = candidateSceneCoordinator;
             _comparisonRenderCoordinator = candidateRenderCoordinator;
+            ApplyPresentationCachePolicy();
             candidateSceneCoordinator = null;
             candidateRenderCoordinator = null;
             foreach (PdfPageViewModel page in candidatePages) ComparisonPages.Add(page);

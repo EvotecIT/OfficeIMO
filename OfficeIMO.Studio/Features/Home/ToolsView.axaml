@@ -5,9 +5,10 @@
              xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
              x:Class="OfficeIMO.Studio.Features.Home.ToolsView"
              x:DataType="shell:MainWindowViewModel">
-  <ScrollViewer Background="{DynamicResource StudioPanelBrush}" VerticalScrollBarVisibility="Auto">
+  <ScrollViewer Background="{DynamicResource StudioWindowBrush}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <StackPanel Margin="28,24" Spacing="18" MaxWidth="1080" HorizontalAlignment="Stretch">
       <TextBlock Text="{loc:Loc Tools.Tools}" Classes="pageTitle" />
+      <TextBlock Text="{loc:Loc Tools.Introduction}" Classes="muted" />
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
         <TextBox Text="{Binding Commands.ToolQuery, Mode=TwoWay}" PlaceholderText="{loc:Loc Commands.SearchTools}"
                  AutomationProperties.Name="{loc:Loc Commands.SearchTools}" MinHeight="36" />
@@ -20,10 +21,10 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="shell:StudioCommandItem">
-            <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
+            <Border Classes="card" Padding="20">
               <StackPanel Spacing="8">
-                <TextBlock Text="{Binding Category}" Classes="muted" FontSize="12" />
-                <Button Classes="tool" Command="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                <TextBlock Text="{Binding Category}" Classes="eyebrow" />
+                <Button Classes="ghost" Command="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="0,4"
                         AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Description}">
                   <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="SemiBold" />
                 </Button>

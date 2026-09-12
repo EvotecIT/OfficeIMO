@@ -6,6 +6,7 @@ using IntelligenceX.OpenAI.Auth;
 using OfficeIMO.AI;
 using OfficeIMO.AI.IntelligenceX;
 using OfficeIMO.Studio.Infrastructure.Localization;
+using OfficeIMO.Studio.Infrastructure.Preferences;
 
 namespace OfficeIMO.Studio.Features.Assistant;
 
@@ -17,17 +18,20 @@ internal sealed partial class StudioAiConnections : ObservableObject {
     private CancellationTokenSource? _operation;
     private long _revision;
 
-    internal StudioAiConnections(string root, IStudioLocalizer localizer) {
+    internal StudioAiConnections(string root, IStudioLocalizer localizer, StudioPreferencesService? preferences = null) {
         _localizer = localizer;
+        ProviderChoices = CreateProviderChoices(localizer);
         _chatGptStore = new FileAuthBundleStore(Path.Combine(root, "AI", "chatgpt-auth.json"));
         _copilotStore = new FileAuthBundleStore(Path.Combine(root, "AI", "copilot-auth.json"));
+        _preferences = preferences;
+        RestoreSelection();
         Status = Text("NotConnected", "Choose a connection. No document is sent during sign-in or model discovery.");
     }
 
     internal event EventHandler? Changed;
     internal long Revision => _revision;
     internal Func<Uri, Task>? OpenUri { get; set; }
-    public IReadOnlyList<string> Providers { get; } = ["ChatGPT", "OpenAI-compatible API", "GitHub Copilot", "Local model"];
+    public IReadOnlyList<string> Providers { get; } = ["ChatGPT", "OpenAI-compatible API", "GitHub Copilot", "Local model", "LM Studio", "Ollama"];
     public ObservableCollection<string> Models { get; } = [];
     public ObservableCollection<string> Accounts { get; } = [];
     public bool HasSavedAccounts => Accounts.Count > 0;
@@ -42,9 +46,9 @@ internal sealed partial class StudioAiConnections : ObservableObject {
     [ObservableProperty] private bool _isConnected;
     public bool IsChatGpt => ProviderIndex == 0;
     public bool IsCopilot => ProviderIndex == 2;
-    public bool IsLocal => ProviderIndex == 3;
-    public bool UsesEndpoint => ProviderIndex is 1 or 3;
-    public bool UsesCredential => ProviderIndex is 1 or 2 or 3;
+    public bool IsLocal => ProviderIndex is 3 or 4 or 5;
+    public bool UsesEndpoint => ProviderIndex == 1 || IsLocal;
+    public bool UsesCredential => !IsChatGpt;
     public bool CanSignIn => ProviderIndex == 0 || (ProviderIndex == 2 && !string.IsNullOrWhiteSpace(GitHubClientId));
     public bool CanConnect => !IsBusy;
     public bool CanUse => IsConnected && !IsBusy && !string.IsNullOrWhiteSpace(Model);
@@ -53,8 +57,12 @@ internal sealed partial class StudioAiConnections : ObservableObject {
     partial void OnProviderIndexChanged(int value) {
         AccountId = string.Empty; ApiKey = string.Empty; Model = string.Empty; Models.Clear(); Accounts.Clear();
         OnPropertyChanged(nameof(HasSavedAccounts));
-        Endpoint = value == 3 ? "http://localhost:11434/v1/" : "https://api.openai.com/v1/";
+        Endpoint = ProviderChoices[value].Endpoint ?? "https://api.openai.com/v1/";
         foreach (string name in new[] { nameof(IsChatGpt), nameof(IsCopilot), nameof(IsLocal), nameof(UsesEndpoint), nameof(UsesCredential), nameof(CanSignIn) }) OnPropertyChanged(name);
+        ShowAdvanced = false;
+        Status = Text("NotConnected", "Choose a connection. No document is sent during sign-in or model discovery.");
+        OnPropertyChanged(nameof(SelectedProvider));
+        OnPropertyChanged(nameof(IsApi));
         Invalidate();
     }
     partial void OnModelChanged(string value) => Invalidate(keepConnection: true);
@@ -67,7 +75,7 @@ internal sealed partial class StudioAiConnections : ObservableObject {
         ConnectCommand.NotifyCanExecuteChanged(); SignInCommand.NotifyCanExecuteChanged(); ImportCodexLoginCommand.NotifyCanExecuteChanged();
         SignOutCommand.NotifyCanExecuteChanged();
     }
-    partial void OnIsConnectedChanged(bool value) => OnPropertyChanged(nameof(CanUse));
+    partial void OnIsConnectedChanged(bool value) { OnPropertyChanged(nameof(CanUse)); OnPropertyChanged(nameof(ConnectionHeading)); }
 
     private void Invalidate(bool keepConnection = false) {
         _revision++;
@@ -149,7 +157,7 @@ internal sealed partial class StudioAiConnections : ObservableObject {
             if (signOut) {
                 await client.LogoutAsync(cancellation.Token);
                 if (revision != _revision) return;
-                ApiKey = string.Empty; AccountId = string.Empty; Models.Clear();
+                ApiKey = string.Empty; AccountId = string.Empty; Model = string.Empty; Models.Clear();
                 Status = Text("SignedOut", "Signed out of the selected Studio connection.");
                 return;
             }
@@ -171,10 +179,10 @@ internal sealed partial class StudioAiConnections : ObservableObject {
             Status = account is null ? Text("Connected", "Connected. Select or enter a model before asking a question.")
                 : _localizer.FormatOrDefault("Assistant.AccountConnected", "Connected as {0} ({1}).", account.Email ?? account.AccountId ?? "account", account.PlanType ?? Providers[ProviderIndex]);
         } catch (OperationCanceledException) {
-            Status = Text("Cancelled", "Connection cancelled or timed out. Reconnect to inspect saved sign-in state; no new model was selected.");
+            if (revision == _revision) Status = Text("Cancelled", "Connection cancelled or timed out. Reconnect to inspect saved sign-in state; no new model was selected.");
         } catch (Exception exception) {
             // Provider exceptions may contain credentials, response bodies or authorization URLs.
-            Status = StudioAiFailureText.FromException(_localizer, exception);
+            if (revision == _revision) Status = StudioAiFailureText.FromException(_localizer, exception);
         } finally { if (ReferenceEquals(_operation, cancellation)) _operation = null; IsBusy = false; }
     }
 

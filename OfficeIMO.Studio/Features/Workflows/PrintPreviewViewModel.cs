@@ -196,13 +196,7 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
             }
             _preparedPrint = prepared;
             OnPropertyChanged(nameof(HasPreview));
-            Summary = _localizer.FormatOrDefault(
-                "PrintPreview.Summary",
-                "{0:N0} {1} · {2:N0} {3}",
-                plan.SelectedPages.Count,
-                plan.SelectedPages.Count == 1 ? T("Count.Page", "page") : T("Count.Pages", "pages"),
-                plan.Sheets.Count,
-                plan.Sheets.Count == 1 ? T("Count.Sheet", "sheet") : T("Count.Sheets", "sheets"));
+            Summary = _localizer.Format("PrintPreview.Summary", plan.SelectedPages.Count, plan.Sheets.Count);
             Status = T("Status.Completed", "Print preview ready") + (prepared.Diagnostics.Count == 0 ? string.Empty : " " + string.Join(" ", prepared.Diagnostics));
             ProgressFraction = 1D;
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) {

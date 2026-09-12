@@ -22,16 +22,18 @@
         WindowDecorations="Full"
         ExtendClientAreaTitleBarHeightHint="42"
         DragDrop.AllowDrop="True">
-  <Grid RowDefinitions="54,*" ColumnDefinitions="116,*">
+  <Grid RowDefinitions="Auto,*" ColumnDefinitions="116,*">
     <Border Grid.Row="0" Grid.ColumnSpan="2" Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" Margin="12,0">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" Margin="12,0" MinHeight="54">
 
 
 
-        <Grid Grid.Column="0" ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+        <Grid Grid.Column="0" ColumnDefinitions="Auto,*,Auto" Margin="0,6,0,0">
+          <Image Source="avares://OfficeIMO.Studio/Assets/OfficeIMO.Studio.png" Width="28" Height="28" Margin="4,0,12,6"
+                 AutomationProperties.Name="OfficeIMO Studio" />
           <ListBox x:Name="DocumentTabs" x:DataType="shell:StudioDocumentTabHost"
-                   Grid.Column="0" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
+                   Grid.Column="1" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
                    IsVisible="{Binding HasTabs}" SelectionMode="Single"
                    Background="Transparent" BorderThickness="0"
                    ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
@@ -45,12 +47,20 @@
               <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
                 <Setter Property="Background" Value="Transparent" />
               </Style>
+              <Style Selector="Border.documentTab">
+                <Setter Property="Background" Value="{DynamicResource StudioWindowBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1,1,1,0" />
+              </Style>
+              <Style Selector="ListBoxItem:selected Border.documentTab">
+                <Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+                <Setter Property="BorderThickness" Value="1,1,1,2" />
+              </Style>
             </ListBox.Styles>
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="shell:StudioDocumentTabViewModel">
-                <Border MinWidth="150" MaxWidth="250" Height="37" Padding="11,4,5,4"
-                        Background="{DynamicResource StudioWindowBrush}"
-                        BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,1,1,0"
+                <Border Classes="documentTab" MinWidth="150" MaxWidth="250" Height="37" Padding="11,4,5,4"
                         CornerRadius="7,7,0,0">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="7">
                     <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold"
@@ -63,7 +73,7 @@
               </DataTemplate>
             </ListBox.ItemTemplate>
           </ListBox>
-          <Button x:Name="OpenDocumentTabButton" Grid.Column="1" Classes="ghost" x:DataType="shell:StudioDocumentTabHost"
+          <Button x:Name="OpenDocumentTabButton" Grid.Column="2" Classes="ghost" x:DataType="shell:StudioDocumentTabHost"
                   Command="{Binding OpenNewTabCommand}" Content="+" FontSize="18" Padding="8,1"
                   AutomationProperties.Name="{loc:Loc MainWindow.OpenAnotherDocument}"
                   AutomationProperties.HelpText="{loc:Loc MainWindow.OpenAnotherDocument}"
@@ -114,7 +124,7 @@
         <ToggleButton Grid.Row="4" Classes="nav"
                      IsChecked="{Binding IsConversionMode, Mode=OneWay}" Command="{Binding Commands[Convert]}"
                      AutomationProperties.Name="{loc:Loc MainWindow.Convert}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconJobs}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Convert}" FontSize="12" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconConvert}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Convert}" FontSize="12" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
         </ToggleButton>
         <ToggleButton Grid.Row="5" Classes="nav" IsChecked="{Binding IsJobsMode, Mode=OneWay}" Command="{Binding Commands[Jobs]}"
                       AutomationProperties.Name="{loc:Loc Jobs.Title}">
@@ -130,7 +140,7 @@
 
     <SplitView x:Name="AssistantHost" Grid.Row="1" Grid.Column="1" PanePlacement="Right" OpenPaneLength="400"
                IsPaneOpen="{Binding IsAssistantVisible, Mode=TwoWay}" DisplayMode="Overlay">
-      <SplitView.Pane><ai:AssistantView DataContext="{Binding Assistant}" /></SplitView.Pane>
+      <SplitView.Pane><Border IsVisible="{Binding IsAssistantVisible}"><ai:AssistantView DataContext="{Binding Assistant}" /></Border></SplitView.Pane>
     <Grid RowDefinitions="Auto,*">
       <StackPanel Grid.Row="0">
         <Border IsVisible="{Binding HasError}" Background="{DynamicResource StudioErrorSoftBrush}"

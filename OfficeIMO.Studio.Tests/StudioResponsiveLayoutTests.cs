@@ -45,7 +45,7 @@ public sealed class StudioResponsiveLayoutTests {
 
     [Theory]
     [InlineData("en", 13)]
-    [InlineData("qps-ploc", 17)]
+    [InlineData("en-XA", 17)]
     public async Task DocumentCommandsStayWithinTheWorkspaceWithExpandedLabels(string culture, int fontSize) {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
