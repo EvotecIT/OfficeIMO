@@ -45,6 +45,7 @@ internal sealed partial class ProjectTaskAllocation {
             // Inferred actual duration must keep concurrent and discontinuous curves unchanged.
             if (actualTaskEnd.HasValue && unrepresentedActualDuration > 0)
                 origin = Max(origin, actualTaskEnd.Value);
+            if (_task.Stop.HasValue) origin = Max(origin, _task.Stop.Value);
             if (_task.Resume.HasValue) origin = Max(origin, _task.Resume.Value);
             if (_options.RescheduleRemainingAfterStatusDate) origin = Max(origin, _document.Settings.StatusDate!.Value);
             var intervals = new List<ProjectAssignmentInterval>(entry.ActualIntervals);
@@ -83,6 +84,7 @@ internal sealed partial class ProjectTaskAllocation {
                 throw new InvalidDataException("A completed task with nonzero actual duration requires an actual start.");
             taskStart = _task.ActualStart ?? _task.ActualFinish ?? anchor;
             DateTime remainingStart = TaskAdd(taskStart, actualDuration);
+            if (_task.Stop.HasValue) remainingStart = Max(remainingStart, _task.Stop.Value);
             if (_task.Resume.HasValue) remainingStart = Max(remainingStart, _task.Resume.Value);
             if (_options.RescheduleRemainingAfterStatusDate) remainingStart = Max(remainingStart, _document.Settings.StatusDate!.Value);
             taskFinish = _task.ActualFinish ?? TaskAdd(remainingStart, remainingDuration);

@@ -69,6 +69,11 @@ internal static class ProjectLeveler {
         var anchors = new Dictionary<int, DateTime>();
         var splits = new Dictionary<int, IReadOnlyList<ProjectWorkingRange>>();
         var originals = initial.Tasks.ToDictionary(t => t.TaskUid);
+        bool WithinDelayLimits(ProjectScheduleResult proposal) => proposal.Tasks.Where(t => !t.IsSummary).All(t => {
+            var original = originals[t.TaskUid];
+            return !(t.Start > original.Start && (t.Start - original.Start).TotalDays > options.MaxDelayDays)
+                && !(t.ForwardAnchor > original.ForwardAnchor && (t.ForwardAnchor - original.Start).TotalDays > options.MaxDelayDays);
+        });
         ProjectLevelingResult Result(string? error = null) => new ProjectLevelingResult(current, capacity,
             anchors.OrderBy(p => p.Key).Select(p => new ProjectLevelingMove(p.Key, originals[p.Key].Start, p.Value)),
             error == null ? Array.Empty<ProjectDiagnostic>() : new[] { new ProjectDiagnostic("PROJECT_LEVELING_INCOMPLETE", ProjectDiagnosticSeverity.Error, error, "/Project") },
@@ -100,7 +105,7 @@ internal static class ProjectLeveler {
                     ranges.Add(new ProjectWorkingRange(conflict.Start, conflict.Finish));
                     var nextSplits = new Dictionary<int, IReadOnlyList<ProjectWorkingRange>>(splits) { [task.Uid] = ProjectCalendarMath.Merge(ranges) };
                     var splitSchedule = new ProjectScheduler(document, options.ScheduleOptions, token, anchors, splits: nextSplits).Calculate();
-                    if (!splitSchedule.Report.HasErrors &&
+                    if (!splitSchedule.Report.HasErrors && WithinDelayLimits(splitSchedule) &&
                         splitSchedule.Tasks.Single(t => t.TaskUid == task.Uid).Finish <= originals[task.Uid].Finish.AddDays(options.MaxDelayDays) &&
                         (!options.WithinAvailableSlack || splitSchedule.Tasks.All(t => t.IsSummary || t.Finish <= originals[t.TaskUid].LateFinish))) {
                         current = splitSchedule; splits = nextSplits; moved = true; break;
@@ -111,7 +116,7 @@ internal static class ProjectLeveler {
                 if ((anchor - originals[task.Uid].Start).TotalDays > options.MaxDelayDays) continue;
                 var nextAnchors = new Dictionary<int, DateTime>(anchors) { [task.Uid] = anchor };
                 var next = new ProjectScheduler(document, options.ScheduleOptions, token, nextAnchors, splits: splits).Calculate();
-                if (next.Report.HasErrors) continue;
+                if (next.Report.HasErrors || !WithinDelayLimits(next)) continue;
                 if (options.WithinAvailableSlack && next.Tasks.Any(t => !t.IsSummary && t.Finish > originals[t.TaskUid].LateFinish)) continue;
                 current = next; anchors = nextAnchors; moved = true; break;
             }

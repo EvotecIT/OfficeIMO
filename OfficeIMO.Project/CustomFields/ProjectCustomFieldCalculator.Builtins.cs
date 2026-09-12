@@ -37,7 +37,7 @@ internal sealed partial class ProjectCustomFieldCalculator {
                 "remaining work" or "205520918" => resource.RemainingWork?.Minutes,
                 "cost" or "205520908" => resource.Cost,
                 "actual cost" or "205520907" => resource.ActualCost,
-                "remaining cost" or "205520917" => resource.Cost.HasValue && resource.ActualCost.HasValue ? resource.Cost - resource.ActualCost : null,
+                "remaining cost" or "205520917" => resource.RemainingCost,
                 _ => throw new NotSupportedException("Resource field '" + name + "' is outside the supported formula profile.")
             };
         }
