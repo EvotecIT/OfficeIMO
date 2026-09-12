@@ -200,6 +200,26 @@ public sealed class ProjectMpxTests {
     }
 
     [Fact]
+    public void MissingDefaultStartTimeRemainsAbsentAcrossAnEditedRewrite() {
+        const string source = "MPX,Fixture,4.0,ANSI\r\n12,2,1,,/,:,AM,PM,0,0\r\n61,90,1\r\n70,1,Task\r\n";
+        using var project = Read(source);
+        Assert.Null(project.Settings.DefaultStartTime);
+        Assert.Null(project.Settings.CurrencySymbol);
+        Assert.Null(project.Settings.CurrencyDigits);
+        project.Tasks[0].Name = "Edited";
+        project.AssessSave(Options(false)).RequireNoLoss();
+        using var output = new MemoryStream(); project.Save(output, Options(false));
+        var records = ProjectMpxRecords.Read(output.ToArray(), new ProjectLoadOptions(), default).Records;
+        Assert.Equal("", records.Single(r => r[0] == "12")[3]);
+        Assert.Equal("", records.Single(r => r[0] == "10")[1]);
+        Assert.Equal("", records.Single(r => r[0] == "10")[3]);
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Null(reopened.Settings.DefaultStartTime);
+        Assert.Null(reopened.Settings.CurrencySymbol);
+        Assert.Null(reopened.Settings.CurrencyDigits);
+    }
+
+    [Fact]
     public void LimitsCancellationAndPrecisionFailBeforeDestinationChanges() {
         const string text = "MPX,Fixture,4.0,ANSI\r\n61,90,1\r\n70,1,First\r\n70,2,Second\r\n";
         Assert.Throws<InvalidDataException>(() => ProjectDocument.Load(new MemoryStream(Encoding.ASCII.GetBytes(text)), new ProjectLoadOptions { MaxTasks = 1 }));

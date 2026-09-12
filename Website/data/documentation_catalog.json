@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 238,
-    "productionComponentCount": 125,
+    "projectCount": 240,
+    "productionComponentCount": 127,
     "testProjectCount": 47,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 34,
     "apiReferenceCount": 26,
     "conceptualPageCount": 97,
-    "conceptualWordCount": 43431
+    "conceptualWordCount": 43486
   },
   "categories": [
     {
@@ -1035,7 +1035,7 @@
           "description": "Managed Microsoft Project XML and modern MPP/MPT authoring and editing, explicit task scheduling, and assessed source-preserving save with typed and fluent APIs.",
           "kind": "package",
           "projectPath": "OfficeIMO.Project/OfficeIMO.Project.csproj",
-          "sourceFileCount": 187,
+          "sourceFileCount": 188,
           "referencingTestProjectCount": 1,
           "docsUrl": "/docs/project/",
           "apiUrl": null,
@@ -1149,7 +1149,7 @@
     },
     {
       "name": "Publishing and conversion",
-      "componentCount": 22,
+      "componentCount": 24,
       "components": [
         {
           "name": "OfficeIMO.AsciiDoc",
@@ -1197,11 +1197,37 @@
           "description": "HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.",
           "kind": "package",
           "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-          "sourceFileCount": 299,
+          "sourceFileCount": 301,
           "referencingTestProjectCount": 6,
           "docsUrl": "/docs/html/",
           "apiUrl": "/api/html/",
           "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html"
+        },
+        {
+          "name": "OfficeIMO.Html.AngleSharp",
+          "packageId": "OfficeIMO.Html.AngleSharp",
+          "category": "Publishing and conversion",
+          "description": "AngleSharp-backed HTML parsing and syntax services for the owned OfficeIMO HTML document model.",
+          "kind": "package",
+          "projectPath": "OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj",
+          "sourceFileCount": 6,
+          "referencingTestProjectCount": 0,
+          "docsUrl": "/docs/html/",
+          "apiUrl": null,
+          "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.AngleSharp"
+        },
+        {
+          "name": "OfficeIMO.Html.Core",
+          "packageId": "OfficeIMO.Html.Core",
+          "category": "Publishing and conversion",
+          "description": "Owned HTML document, node, editing and parser provider contracts for OfficeIMO.",
+          "kind": "package",
+          "projectPath": "OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
+          "sourceFileCount": 9,
+          "referencingTestProjectCount": 0,
+          "docsUrl": "/docs/html/",
+          "apiUrl": null,
+          "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Core"
         },
         {
           "name": "OfficeIMO.Html.Pdf",
@@ -1560,7 +1586,7 @@
           "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
           "kind": "package",
           "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-          "sourceFileCount": 573,
+          "sourceFileCount": 574,
           "referencingTestProjectCount": 11,
           "docsUrl": "/docs/capabilities/packages/",
           "apiUrl": null,
@@ -1824,7 +1850,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 573,
+      "sourceFileCount": 574,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -2123,11 +2149,37 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 299,
+      "sourceFileCount": 301,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html"
+    },
+    {
+      "name": "OfficeIMO.Html.AngleSharp",
+      "packageId": "OfficeIMO.Html.AngleSharp",
+      "category": "Publishing and conversion",
+      "description": "AngleSharp-backed HTML parsing and syntax services for the owned OfficeIMO HTML document model.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj",
+      "sourceFileCount": 6,
+      "referencingTestProjectCount": 0,
+      "docsUrl": "/docs/html/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.AngleSharp"
+    },
+    {
+      "name": "OfficeIMO.Html.Core",
+      "packageId": "OfficeIMO.Html.Core",
+      "category": "Publishing and conversion",
+      "description": "Owned HTML document, node, editing and parser provider contracts for OfficeIMO.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
+      "sourceFileCount": 9,
+      "referencingTestProjectCount": 0,
+      "docsUrl": "/docs/html/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Core"
     },
     {
       "name": "OfficeIMO.Html.Pdf",
@@ -2695,7 +2747,7 @@
       "description": "Managed Microsoft Project XML and modern MPP/MPT authoring and editing, explicit task scheduling, and assessed source-preserving save with typed and fluent APIs.",
       "kind": "package",
       "projectPath": "OfficeIMO.Project/OfficeIMO.Project.csproj",
-      "sourceFileCount": 187,
+      "sourceFileCount": 188,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/project/",
       "apiUrl": null,

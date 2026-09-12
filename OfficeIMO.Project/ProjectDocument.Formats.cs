@@ -83,9 +83,11 @@ public sealed partial class ProjectDocument {
                         "XML task duration, actual duration, and remaining duration share one format. Use the same unit and flags.", "/Task[UID=" + task.Uid + "]"));
             }
         }
-        if (format == ProjectFileFormat.Xml && NativeSource == null && MpxSource == null
-            && ProjectXmlCodec.RetainedBytes(this, options) is byte[] retainedXml)
-            AddRetainedOutputLimit(diagnostics, retainedXml, options);
+        if (format == ProjectFileFormat.Xml && !diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error)
+            && !ProjectXmlCodec.IsWithinOutputLimit(this, WithFormat(options, format,
+                NativeSource != null || MpxSource != null ? false : (bool?)null), token))
+            diagnostics.Add(new ProjectDiagnostic("PROJECT_OUTPUT_LIMIT", ProjectDiagnosticSeverity.Error,
+                "Project XML output exceeds MaxOutputBytes.", "/"));
         if (format == ProjectFileFormat.Mpx4) {
             diagnostics.RemoveAll(d => d.Code == "PROJECT_OPAQUE_REFERENCES");
             if (includeNativePlan && !diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error))

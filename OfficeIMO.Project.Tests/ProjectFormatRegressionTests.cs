@@ -34,6 +34,34 @@ public sealed class ProjectFormatRegressionTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GeneratedXmlAssessmentHonorsTheExactByteLimit(bool editLoadedDocument) {
+        using var authored = ProjectDocument.Create(); authored.Calendar = authored.Calendars.AddStandardWorkingWeek();
+        authored.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0); authored.Tasks.Add("Generated document");
+        ProjectDocument document;
+        if (editLoadedDocument) {
+            byte[] source = ProjectXmlCodec.Write(authored, new ProjectSaveOptions { Format = ProjectFileFormat.Xml }, default);
+            document = ProjectDocument.Load(new MemoryStream(source));
+            document.Tasks[0].Name = "Edited generated document";
+        } else {
+            document = authored;
+        }
+        using (document == authored ? null : document) {
+            var generatedOptions = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, PreserveUnchangedBytes = false, LossPolicy = OfficeConversionLossPolicy.Allow };
+            byte[] generated = ProjectXmlCodec.Write(document, generatedOptions, default);
+            var exact = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, PreserveUnchangedBytes = false, MaxOutputBytes = generated.Length, LossPolicy = OfficeConversionLossPolicy.Allow };
+            document.AssessSave(exact).ThrowIfErrors();
+            var tooSmall = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, PreserveUnchangedBytes = false, MaxOutputBytes = generated.Length - 1, LossPolicy = OfficeConversionLossPolicy.Allow };
+            var assessment = document.AssessSave(tooSmall);
+            Assert.Contains(assessment.Diagnostics, d => d.Code == "PROJECT_OUTPUT_LIMIT" && d.Severity == ProjectDiagnosticSeverity.Error);
+            using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, true);
+            Assert.Throws<InvalidDataException>(() => document.Save(destination, tooSmall));
+            Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
+        }
+    }
+
+    [Theory]
     [InlineData(ProjectFileFormat.Xml)]
     [InlineData(ProjectFileFormat.Mpx4)]
     [InlineData(ProjectFileFormat.Mpp8)]

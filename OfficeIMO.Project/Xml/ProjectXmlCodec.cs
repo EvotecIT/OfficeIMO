@@ -44,13 +44,28 @@ internal static partial class ProjectXmlCodec {
             if (original.LongLength > options.MaxOutputBytes) throw new InvalidDataException("Project output exceeds MaxOutputBytes.");
             return original;
         }
+        return WriteGenerated(document, options, cancellationToken, true)!;
+    }
+
+    internal static bool IsWithinOutputLimit(ProjectDocument document, ProjectSaveOptions options, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (RetainedBytes(document, options) is byte[] original) return original.LongLength <= options.MaxOutputBytes;
+        try {
+            WriteGenerated(document, options, cancellationToken, false);
+            return true;
+        } catch (InvalidDataException exception) when (exception.Message.StartsWith("The artifact exceeds the configured output limit", StringComparison.Ordinal)) {
+            return false;
+        }
+    }
+
+    private static byte[]? WriteGenerated(ProjectDocument document, ProjectSaveOptions options, CancellationToken cancellationToken, bool captureBytes) {
         var xml = WriteDocument(document, cancellationToken);
         using var buffer = new OfficeBoundedMemoryStream(options.MaxOutputBytes);
         using (var writer = XmlWriter.Create(buffer, new XmlWriterSettings { Encoding = new UTF8Encoding(false), Indent = options.Indent, CloseOutput = false, NewLineHandling = NewLineHandling.Entitize })) {
             xml.Save(writer);
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return buffer.ToArray();
+        return captureBytes ? buffer.ToArray() : null;
     }
 
     internal static byte[]? RetainedBytes(ProjectDocument document, ProjectSaveOptions options) =>

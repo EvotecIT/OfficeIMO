@@ -93,7 +93,7 @@ internal sealed partial class ProjectMpxWriter {
     private void Settings() {
         var s = _document.Settings;
         if (s.CurrencyDigits > 2) throw new NotSupportedException("MPX supports at most two currency decimal digits.");
-        Record("10", Value("/Settings/CurrencySymbol", s.CurrencySymbol ?? "$"), _document.MpxSource?.CurrencyPosition ?? "1", Value("/Settings/CurrencyDigits", s.CurrencyDigits ?? 2), ",", ".");
+        Record("10", Value("/Settings/CurrencySymbol", s.CurrencySymbol), _document.MpxSource?.CurrencyPosition ?? "1", Value("/Settings/CurrencyDigits", s.CurrencyDigits), ",", ".");
         Handle("/Settings/MinutesPerDay"); Handle("/Settings/MinutesPerWeek");
         Record("11", "2", s.DefaultTaskType == null ? "" : s.DefaultTaskType == ProjectTaskType.FixedDuration ? "1" : "0", "1",
             ProjectMpxValues.Text(_values.MinutesPerDay / 60m), ProjectMpxValues.Text(_values.MinutesPerWeek / 60m));
@@ -101,9 +101,13 @@ internal sealed partial class ProjectMpxWriter {
         if (s.DaysPerMonth == 20) Handle("/Settings/DaysPerMonth");
         if (s.NewTasksAreManual == false) Handle("/Settings/NewTasksAreManual");
         Handle("/Settings/DefaultStartTime");
-        decimal time = (s.DefaultStartTime ?? TimeSpan.FromHours(8)).Ticks / (decimal)TimeSpan.TicksPerMinute;
-        if (time != decimal.Truncate(time)) throw new NotSupportedException("MPX default time is measured in whole minutes.");
-        Record("12", "2", "1", ProjectMpxValues.Text(time), "/", ":", "AM", "PM", _document.MpxSource?.DateFormat ?? "0", _document.MpxSource?.BarDateFormat ?? "0");
+        string defaultTime = "";
+        if (s.DefaultStartTime.HasValue) {
+            decimal time = s.DefaultStartTime.Value.Ticks / (decimal)TimeSpan.TicksPerMinute;
+            if (time != decimal.Truncate(time)) throw new NotSupportedException("MPX default time is measured in whole minutes.");
+            defaultTime = ProjectMpxValues.Text(time);
+        }
+        Record("12", "2", "1", defaultTime, "/", ":", "AM", "PM", _document.MpxSource?.DateFormat ?? "0", _document.MpxSource?.BarDateFormat ?? "0");
     }
     private void Header() {
         string calendar = "Standard";
