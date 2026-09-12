@@ -59,30 +59,27 @@ public partial class PdfWorkbench {
 
     [Parameter] public string? ToolId { get; set; }
 
-    protected override async Task OnParametersSetAsync() {
+    protected override Task OnParametersSetAsync() {
+        if (_disposed) return Task.CompletedTask;
         var tool = PdfToolCatalog.Find(ToolId);
         bool changed = ActiveTool.Id != tool.Id;
-        await SelectToolAsync(tool);
-        if (changed || _sessionRevision != Session.Revision) {
-            _sessionRevision = Session.Revision;
-            await ResetResultAsync(); Files.Clear();
-            var current = Session.Current.Where(file => file.Extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase));
-            Files.AddRange(tool.InputMode == PdfToolInputMode.Single ? current.Take(1) : tool.InputMode == PdfToolInputMode.Pair ? current.Take(2) : current);
-        }
-    }
-
-    private async Task SelectToolAsync(PdfToolDefinition tool) {
-        if (ActiveTool.Id == tool.Id) return;
-        await ResetResultAsync();
+        if (!changed && _sessionRevision == Session.Revision) return Task.CompletedTask;
+        _sessionRevision = Session.Revision;
         ActiveTool = tool;
+        if (changed) { ResetSettings(); Diagnostics.Clear(); }
         Files.Clear();
-        ResetSettings();
-        Diagnostics.Clear();
+        var current = Session.Current.Where(file => file.Extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase));
+        Files.AddRange(tool.InputMode == PdfToolInputMode.Single ? current.Take(1) : tool.InputMode == PdfToolInputMode.Pair ? current.Take(2) : current);
+        return ResetResultAsync();
     }
 
     private async Task HandleFilesSelectedAsync(InputFileChangeEventArgs args) {
         int revision = Session.Revision;
-        await ResetResultAsync();
+        Task reset = ResetResultAsync();
+        int generation = _outputGeneration;
+        bool IsCurrent() => !_disposed && revision == Session.Revision && generation == _outputGeneration;
+        await reset;
+        if (!IsCurrent()) return;
         Diagnostics.Clear();
         try {
             IReadOnlyList<IBrowserFile> selected = ActiveTool.InputMode == PdfToolInputMode.Single
@@ -104,24 +101,28 @@ public partial class PdfWorkbench {
             if (aggregate > BrowserPdfToolService.MaxAggregatePdfBytes) {
                 throw new InvalidDataException($"Selected PDFs exceed the {ConverterWorkspace.FormatBytes(BrowserPdfToolService.MaxAggregatePdfBytes)} combined limit.");
             }
-            if (_disposed || revision != Session.Revision) return;
+            if (!IsCurrent()) return;
             Files.Clear();
             Files.AddRange(loaded);
             Session.Open(Files); _sessionRevision = Session.Revision;
             Diagnostics.Add(new ConversionDiagnostic("Ready", $"{Files.Count} PDF file{(Files.Count == 1 ? string.Empty : "s")} loaded in this tab.", "ocx-dot--good"));
         } catch (Exception ex) {
-            if (_disposed || revision != Session.Revision) return;
+            if (!IsCurrent()) return;
             Diagnostics.Add(new ConversionDiagnostic("Could not load PDFs", DescribeFailure(ex), "ocx-dot--bad"));
         }
     }
 
     private async Task LoadSampleAsync() {
         int revision = Session.Revision;
-        await ResetResultAsync();
+        Task reset = ResetResultAsync();
+        int generation = _outputGeneration;
+        bool IsCurrent() => !_disposed && revision == Session.Revision && generation == _outputGeneration;
+        await reset;
+        if (!IsCurrent()) return;
         Diagnostics.Clear();
         try {
             byte[] bytes = await Http.GetByteArrayAsync("samples/showcase-dashboard.pdf");
-            if (_disposed || revision != Session.Revision) return;
+            if (!IsCurrent()) return;
             Files.Clear();
             Files.Add(CreateSample(bytes, ActiveTool.InputMode == PdfToolInputMode.Pair ? "expected" : "showcase"));
             if (ActiveTool.InputMode != PdfToolInputMode.Single) {
@@ -133,6 +134,7 @@ public partial class PdfWorkbench {
             Session.Open(Files); _sessionRevision = Session.Revision;
             Diagnostics.Add(new ConversionDiagnostic("Sample ready", $"{Files.Count} product PDF file{(Files.Count == 1 ? string.Empty : "s")} loaded locally.", "ocx-dot--good"));
         } catch (Exception ex) {
+            if (!IsCurrent()) return;
             Diagnostics.Add(new ConversionDiagnostic("Could not load sample", DescribeFailure(ex), "ocx-dot--bad"));
         }
     }
@@ -140,29 +142,29 @@ public partial class PdfWorkbench {
     private static SelectedDocument CreateSample(byte[] bytes, string suffix) =>
         new($"officeimo-{suffix}.pdf", ".pdf", "PDF", bytes.LongLength, bytes);
 
-    private async Task RemoveFileAsync(int index) {
-        if (index < 0 || index >= Files.Count) return;
-        await ResetResultAsync();
+    private Task RemoveFileAsync(int index) {
+        if (index < 0 || index >= Files.Count) return Task.CompletedTask;
         Files.RemoveAt(index);
         Session.SelectCurrent(Files); _sessionRevision = Session.Revision;
         Diagnostics.Clear();
+        return ResetResultAsync();
     }
 
-    private async Task MoveFileAsync(PdfFileMoveRequest request) {
+    private Task MoveFileAsync(PdfFileMoveRequest request) {
         int target = request.Index + request.Offset;
-        if (request.Index < 0 || request.Index >= Files.Count || target < 0 || target >= Files.Count) return;
-        await ResetResultAsync();
+        if (request.Index < 0 || request.Index >= Files.Count || target < 0 || target >= Files.Count) return Task.CompletedTask;
         SelectedDocument file = Files[request.Index];
         Files.RemoveAt(request.Index);
         Files.Insert(target, file);
         Session.SelectCurrent(Files); _sessionRevision = Session.Revision;
+        return ResetResultAsync();
     }
 
-    private async Task ClearFilesAsync() {
-        await ResetResultAsync();
+    private Task ClearFilesAsync() {
         Files.Clear();
         Session.SelectCurrent(Files); _sessionRevision = Session.Revision;
         Diagnostics.Clear();
+        return ResetResultAsync();
     }
 
     private async Task RunAsync() {

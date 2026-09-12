@@ -11,6 +11,31 @@ namespace OfficeIMO.Web.Converter.Tests;
 
 public sealed class ProvenanceSelectionLifetimeTests {
     [Theory]
+    [InlineData(false, "pptx-pdf")]
+    [InlineData(false, "docx-pdf")]
+    [InlineData(true, "compare")]
+    [InlineData(true, "inspect")]
+    public async Task NewerRouteParametersWinWhilePriorCleanupIsPending(bool pdf, string finalId) {
+        var session = new BrowserDocumentSession();
+        session.Open([new("one.pdf", ".pdf", "PDF", 1, [1]), new("two.pdf", ".pdf", "PDF", 1, [2])]);
+        object component = pdf ? new PdfWorkbench() : new ConverterWorkspace();
+        var js = new DelayedRevocation();
+        Set(component, "Session", session); Set(component, "_interop", new ConverterInterop(js));
+        Set(component, pdf ? "ArtifactUrl" : "OutputUrl", "blob:previous");
+        Set(component, pdf ? "ToolId" : "RouteId", pdf ? "merge" : "xlsx-pdf");
+        var lifecycle = component.GetType().GetMethod("OnParametersSetAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        session.ChangeTool();
+        var first = (Task)lifecycle.Invoke(component, null)!;
+        await js.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Set(component, pdf ? "ToolId" : "RouteId", finalId);
+        session.ChangeTool();
+        await (Task)lifecycle.Invoke(component, null)!;
+        js.Release.SetResult(); await first.WaitAsync(TimeSpan.FromSeconds(5));
+        var active = component.GetType().GetProperty(pdf ? "ActiveTool" : "ActiveRoute", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(component)!;
+        Assert.Equal(finalId, active.GetType().GetProperty("Id")!.GetValue(active));
+    }
+
+    [Theory]
     [InlineData(false, "clear")]
     [InlineData(true, "clear")]
     [InlineData(false, "tool")]
@@ -44,7 +69,7 @@ public sealed class ProvenanceSelectionLifetimeTests {
     }
 
     private static void Set(object target, string name, object value) {
-        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
         var property = target.GetType().GetProperty(name, flags);
         if (property is not null) property.SetValue(target, value);
         else target.GetType().GetField(name, flags)!.SetValue(target, value);
