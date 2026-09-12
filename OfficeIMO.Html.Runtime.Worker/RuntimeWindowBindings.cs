@@ -22,7 +22,11 @@ internal static class RuntimeWindowBindings {
         using var stream = typeof(RuntimeWindowBindings).Assembly.GetManifestResourceStream("OfficeIMO.RuntimeWindowBootstrap.js")!;
         using var reader = new StreamReader(stream);
         var methodFactory = engine.Evaluate(reader.ReadToEnd());
+        var unsupportedWorker = engine.Evaluate("(function Worker(){const error=new Error('Dedicated workers are outside this session profile');error.name='NotSupportedError';throw error;})");
         foreach (var prototype in prototypes) {
+            var worker = prototype.GetOwnProperty("Worker");
+            if (worker.Value is Function)
+                prototype.FastSetProperty("Worker", new PropertyDescriptor(unsupportedWorker, worker.Writable, worker.Enumerable, worker.Configurable));
             foreach (string name in new[] { "setTimeout", "setInterval", "clearTimeout", "clearInterval" }) {
                 var descriptor = prototype.GetOwnProperty(name);
                 if (descriptor.Value is not Function timer) continue;

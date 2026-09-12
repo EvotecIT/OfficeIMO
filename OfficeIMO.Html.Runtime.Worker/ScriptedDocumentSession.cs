@@ -21,18 +21,31 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private RuntimeFetchBindings? _fetch;
     private readonly RuntimeFocusController _focus = new();
     private RuntimeAutomation _automation = null!;
+    private RuntimeModuleLoader _modules = null!;
+    private readonly RuntimeScriptingService _scripting;
 
     private ScriptedDocumentSession(HtmlScriptRequest options) {
         _options = options;
         _errors = new RuntimeScriptErrors(options.MaxPendingPromiseRejections);
         _resources = new RuntimeResourceLoader(options);
-        var configuration = Configuration.Default.WithCss().WithJs(new JsScriptingOptions { MaxCallStackDepth = 512 })
+        var configuration = Configuration.Default.WithCss().WithJs(new JsScriptingOptions {
+                MaxCallStackDepth = 512,
+                ConfigureEngine = (window, engineOptions) => {
+                    if (_modules != null) throw new HtmlScriptRuntimeException("Additional worker or window interpreters are outside this session profile.");
+                    _modules = new RuntimeModuleLoader(window.Document, _resources, () => _loop, () => _engine, options.MaxModuleCount);
+                    engineOptions.EnableModules(_modules).UseHostFactory(_ => new RuntimeModuleHost());
+                }
+            })
             .WithEventLoop(context => new RuntimeEventLoop(context, () => _engine, _errors))
             .Without<AngleSharp.Css.IPseudoClassSelectorFactory>()
             .With((AngleSharp.Css.IPseudoClassSelectorFactory)_focus.CreateSelectors())
             .With(new RuntimeResourceRequester(_resources, _errors))
-            .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true, IsNavigationDisabled = true });
+            .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true, IsNavigationDisabled = true })
+            .WithOnly<IResourceLoader>(context => new RuntimeDocumentResourceLoader(context));
         var scripting = configuration.Services.OfType<JsScriptingService>().Single();
+        _scripting = new RuntimeScriptingService(scripting, () => _modules, options);
+        configuration = configuration.Without<IScriptingService>()
+            .With(scripting).With(_scripting);
         var scriptObservers = configuration.Services.OfType<IAttributeObserver>().Where(observer => observer.GetType().Assembly == typeof(JsScriptingService).Assembly).ToArray();
         // Replace only the script observer; retain CSS and native DOM attribute observers.
         configuration = configuration.Without(scriptObservers).With(new RuntimeEventAttributeObserver(host => _engine ?? scripting.GetOrCreateJint(host.Owner!)));
@@ -73,7 +86,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         } catch { session.Dispose(); throw; }
     }
 
-    internal Task ExecuteAsync(string script, CancellationToken token) => OnLoop(() => { _document.ExecuteScript(script); return true; }, token);
+    internal Task ExecuteAsync(string script, CancellationToken token) => OnLoop(() => { _scripting.EvaluateScript(_document, script, "text/javascript", _document.BaseUri); return true; }, token);
 
     internal async Task<HtmlAutomationResult> AutomateAsync(HtmlAutomationRequest request, CancellationToken token) {
         while (true) {
@@ -85,7 +98,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     }
 
     internal Task<string> EvaluateAsync(string expression, CancellationToken token) => OnLoop(() => {
-        var value = _engine.Evaluate("JSON.stringify((" + expression + "\n))");
+        var value = _engine.Evaluate("JSON.stringify((" + expression + "\n))", _document.BaseUri);
         if (!value.IsString()) throw new HtmlScriptRuntimeException("The expression did not produce a JSON value.");
         return value.AsString();
     }, token);
@@ -94,7 +107,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         while (true) {
             token.ThrowIfCancellationRequested();
             var result = await OnLoop(() => {
-                if (_document.ExecuteScript(expression) is not true) return (Ready: false, Document: (HtmlRuntimeWireDocument?)null);
+                if (_scripting.EvaluateScript(_document, expression, "text/javascript", _document.BaseUri) is not true) return (Ready: false, Document: (HtmlRuntimeWireDocument?)null);
                 _errors.ThrowIfFailed();
                 // Readiness and capture share a task so timers cannot mutate between them.
                 var document = capture ? RuntimeDomCapture.Capture(_document, _options, token) : null;

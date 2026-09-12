@@ -38,6 +38,7 @@ internal sealed class RuntimeResourceLoader : IDisposable {
         try {
             await _concurrency.WaitAsync(operation.Token).ConfigureAwait(false);
             admitted = true;
+            string responseFragment = requestedUrl.Fragment;
             requestedUrl = new Uri(HtmlRuntimeResourcePolicy.Key(requestedUrl));
             var currentUrl = requestedUrl;
             string method = fetch?.Method ?? "GET";
@@ -69,6 +70,9 @@ internal sealed class RuntimeResourceLoader : IDisposable {
                 if (response.StatusCode is 301 or 302 or 303 or 307 or 308 && response.Headers.TryGetValue("Location", out string? location)) {
                     if (++redirects > _policy.MaxRedirects) throw new HtmlScriptRuntimeException("Resource redirect budget exceeded.");
                     Uri next = new Uri(currentUrl, location);
+                    // Redirects inherit the current fragment unless Location supplies
+                    // one explicitly (including an empty '#'). Never send it over HTTP.
+                    if (location.Contains('#')) responseFragment = next.Fragment;
                     CheckOrigin(next);
                     if (fetch != null && HtmlRuntimeResourcePolicy.Origin(next) != HtmlRuntimeResourcePolicy.Origin(currentUrl)) {
                         // A second origin change requires redirect-tainted origin semantics.
@@ -83,7 +87,8 @@ internal sealed class RuntimeResourceLoader : IDisposable {
                     currentUrl = new Uri(HtmlRuntimeResourcePolicy.Key(next));
                     continue;
                 }
-                var result = new HtmlRuntimeResource(requestedUrl, response.Buffer, response.ContentType, response.StatusCode, response.FinalUrl, redirects, response.Headers, response.StatusText);
+                var finalUrl = new Uri(HtmlRuntimeResourcePolicy.Key(response.FinalUrl) + responseFragment);
+                var result = new HtmlRuntimeResource(requestedUrl, response.Buffer, response.ContentType, response.StatusCode, finalUrl, redirects, response.Headers, response.StatusText);
                 // A POST response at an image/script URL must not replace its retained GET asset.
                 if (fetch == null || fetch.Method == "GET") { lock (_sync) _loaded[HtmlRuntimeResourcePolicy.Key(requestedUrl)] = result; }
                 return result;

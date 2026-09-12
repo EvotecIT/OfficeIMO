@@ -1,0 +1,227 @@
+{
+  "Repository": "https://github.com/AngleSharp/AngleSharp.Js",
+  "Commit": "7161da4cec7a57ad76d7426bbcf981e0c97900e1",
+  "Version": "1.0.1",
+  "Files": [
+    {
+      "path": "src/AngleSharp.Js/Attributes/DomConstructorFunctionAttribute.cs",
+      "sha": "6e6b44b8606dd48a906a55f10272bbbe53fcb966",
+      "size": 841
+    },
+    {
+      "path": "src/AngleSharp.Js/Cache/CollectionTypeCache.cs",
+      "sha": "c92578022eab19cdf640b4fde8b776fbc7013acb",
+      "size": 7579
+    },
+    {
+      "path": "src/AngleSharp.Js/Cache/CreatorCache.cs",
+      "sha": "445bed318728faf9f8173ca48152edff534436ab",
+      "size": 9029
+    },
+    {
+      "path": "src/AngleSharp.Js/Cache/DomShape.cs",
+      "sha": "bb65f12a4a340de0160ecd00acb22cd24246a7ff",
+      "size": 2284
+    },
+    {
+      "path": "src/AngleSharp.Js/Cache/DomShapeCache.cs",
+      "sha": "fa47cab4fe08a6fb2d6e6ad42536d356beaaa72a",
+      "size": 19876
+    },
+    {
+      "path": "src/AngleSharp.Js/Cache/LibrarySet.cs",
+      "sha": "22bd1c368a7ee8b3a0aca9347c4659c643e1d365",
+      "size": 2112
+    },
+    {
+      "path": "src/AngleSharp.Js/Cache/MethodCache.cs",
+      "sha": "364787eb3e59d290b417102411e3d07ab2692953",
+      "size": 2441
+    },
+    {
+      "path": "src/AngleSharp.Js/Cache/PrototypeCache.cs",
+      "sha": "29dae3618892f98b31ca3d53d6f9d19cf8474916",
+      "size": 1323
+    },
+    {
+      "path": "src/AngleSharp.Js/Cache/PrototypeTypeCache.cs",
+      "sha": "70b08cb31945e26c3df5a1e0e58993fb49b036a9",
+      "size": 9859
+    },
+    {
+      "path": "src/AngleSharp.Js/Cache/ReferenceCache.cs",
+      "sha": "c46542b82595fd0c3ea7d14ec26598dd2a456b21",
+      "size": 529
+    },
+    {
+      "path": "src/AngleSharp.Js/Cache/ScriptCache.cs",
+      "sha": "99faff41304cbf66951dfd100c3a00e52e4effbc",
+      "size": 1854
+    },
+    {
+      "path": "src/AngleSharp.Js/Dom/Console.cs",
+      "sha": "5dc332167e68bfca7973af573c67690547e7c2e7",
+      "size": 841
+    },
+    {
+      "path": "src/AngleSharp.Js/Dom/DomParser.cs",
+      "sha": "882ed45e287bbf72fb5eb0bc29041656a93e6ce7",
+      "size": 2636
+    },
+    {
+      "path": "src/AngleSharp.Js/Dom/ElementPseudoExtensions.cs",
+      "sha": "1e298be9bc20612c413e58f342839945a38e22ca",
+      "size": 5627
+    },
+    {
+      "path": "src/AngleSharp.Js/Dom/EventAttributeObserver.cs",
+      "sha": "55928c4d5050e2ded5b9d8af14f8d19d406a06cd",
+      "size": 6509
+    },
+    {
+      "path": "src/AngleSharp.Js/Dom/Screen.cs",
+      "sha": "fe21b655f92e9a79d7488afb78d98908ed1335d5",
+      "size": 1492
+    },
+    {
+      "path": "src/AngleSharp.Js/Dom/WindowBase64.cs",
+      "sha": "3a2de0a54bbc5eeb40c239a53da29560150e4d44",
+      "size": 4648
+    },
+    {
+      "path": "src/AngleSharp.Js/Dom/WindowExtensions.cs",
+      "sha": "add3fdf3a7421f8782da319f211a5216fbf241c9",
+      "size": 4007
+    },
+    {
+      "path": "src/AngleSharp.Js/Dom/Worker.cs",
+      "sha": "1185dca9900a173e897f4918234d2706baabaa50",
+      "size": 8697
+    },
+    {
+      "path": "src/AngleSharp.Js/EngineInstance.cs",
+      "sha": "1506e23d54cfdb7ba4c2144109728ffb63178ec6",
+      "size": 10919
+    },
+    {
+      "path": "src/AngleSharp.Js/Extensions/DomDelegates.cs",
+      "sha": "339d05b75bd3ce9c67dad26b2292d2aa6f70e531",
+      "size": 3859
+    },
+    {
+      "path": "src/AngleSharp.Js/Extensions/EngineExtensions.cs",
+      "sha": "c13d3b0af120f02b342bac3477a514ec730a7be6",
+      "size": 16299
+    },
+    {
+      "path": "src/AngleSharp.Js/Extensions/Extensibility.cs",
+      "sha": "970c562bcd9730f960e0afdf78d9b3e8e30ce37b",
+      "size": 2625
+    },
+    {
+      "path": "src/AngleSharp.Js/Extensions/JsValueExtensions.cs",
+      "sha": "2085451d196b127b72d0fa55db76dccbc3f89f3d",
+      "size": 4922
+    },
+    {
+      "path": "src/AngleSharp.Js/Extensions/ReflectionExtensions.cs",
+      "sha": "b598fb5939eab4398d641bc8802e9f557161bc8e",
+      "size": 5262
+    },
+    {
+      "path": "src/AngleSharp.Js/IConsoleLogger.cs",
+      "sha": "b62916d163c06b7eafe692f7c10ebc5538307480",
+      "size": 347
+    },
+    {
+      "path": "src/AngleSharp.Js/JsApiExtensions.cs",
+      "sha": "b055e1191ffcb4e51904b3893f21c28f07c39a21",
+      "size": 1220
+    },
+    {
+      "path": "src/AngleSharp.Js/JsConfigurationExtensions.cs",
+      "sha": "7fd7e71b979bbee468e472eaf38417ba43b06fbf",
+      "size": 3850
+    },
+    {
+      "path": "src/AngleSharp.Js/JsDocumentExtensions.cs",
+      "sha": "77444a74104054fa9b60c2cb118fc74f6d66f412",
+      "size": 6130
+    },
+    {
+      "path": "src/AngleSharp.Js/JsEventLoop.cs",
+      "sha": "fb59f1bae9d8860f16e670033dc566f83c05628c",
+      "size": 5744
+    },
+    {
+      "path": "src/AngleSharp.Js/JsImportMap.cs",
+      "sha": "247c99b70cfe70fc5a109d5e41cb903c643113f3",
+      "size": 1080
+    },
+    {
+      "path": "src/AngleSharp.Js/JsModuleLoader.cs",
+      "sha": "ec547c4d50c23a543ac0a0210aa4fe9eb432f736",
+      "size": 4330
+    },
+    {
+      "path": "src/AngleSharp.Js/JsNavigationHandler.cs",
+      "sha": "fae57843e59a2d14e2b642b7042011b515605993",
+      "size": 1836
+    },
+    {
+      "path": "src/AngleSharp.Js/JsScriptingOptions.cs",
+      "sha": "6499a2b5cb3e1e81bf3940a64b047b698c3b4de5",
+      "size": 1146
+    },
+    {
+      "path": "src/AngleSharp.Js/JsScriptingService.cs",
+      "sha": "74a95ba5d714efa366fdbda9bb2bdd6892a6af14",
+      "size": 5086
+    },
+    {
+      "path": "src/AngleSharp.Js/Proxies/DomCollectionInstance.cs",
+      "sha": "d30a2b1c216d170605dafc5a4b935c6c92e61100",
+      "size": 7967
+    },
+    {
+      "path": "src/AngleSharp.Js/Proxies/DomConstructorFunctionInstance.cs",
+      "sha": "6a95c26d52dcd910daa63f00023250360373e1fd",
+      "size": 1701
+    },
+    {
+      "path": "src/AngleSharp.Js/Proxies/DomConstructorInstance.cs",
+      "sha": "b11a1cd6857327194e2861e0a3daec2190fc7852",
+      "size": 5610
+    },
+    {
+      "path": "src/AngleSharp.Js/Proxies/DomEventDefinition.cs",
+      "sha": "e62cef3cda091a6b3d42da0a7bd07b132aa09fbe",
+      "size": 3277
+    },
+    {
+      "path": "src/AngleSharp.Js/Proxies/DomIndexers.cs",
+      "sha": "d60b184f0a0ebe318b514147cc524bbd5ab12eb9",
+      "size": 8346
+    },
+    {
+      "path": "src/AngleSharp.Js/Proxies/DomNodeInstance.cs",
+      "sha": "f0628fd62eb3b0372a943724e8c50e48c2098814",
+      "size": 10602
+    },
+    {
+      "path": "src/AngleSharp.Js/Proxies/DomPrototypeState.cs",
+      "sha": "06ed35d4c86d459887322e88e4dc322318adf203",
+      "size": 6117
+    },
+    {
+      "path": "src/AngleSharp.Js/Proxies/IDomProxy.cs",
+      "sha": "e6b07f2ac131bd3e8a1969012df1f1b4de37af14",
+      "size": 968
+    },
+    {
+      "path": "src/AngleSharp.Js/Proxies/Indexer.cs",
+      "sha": "12f135ff4689f24574365a22bfa1aa132cad0822",
+      "size": 3200
+    }
+  ]
+}

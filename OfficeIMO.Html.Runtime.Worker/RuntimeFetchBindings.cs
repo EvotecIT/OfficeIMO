@@ -80,7 +80,7 @@ internal sealed class RuntimeFetchBindings : IDisposable {
             bool cors = HtmlRuntimeResourcePolicy.Origin(response.FinalUrl) != HtmlRuntimeResourcePolicy.Origin(_options.DocumentUrl);
             bool hasBody = request.Method != "HEAD" && response.StatusCode is not (204 or 205 or 304);
             json = JsonSerializer.Serialize(new {
-                status = response.StatusCode, statusText = response.StatusText, url = response.FinalUrl.AbsoluteUri,
+                status = response.StatusCode, statusText = response.StatusText, url = HtmlRuntimeResourcePolicy.Key(response.FinalUrl),
                 redirected = response.RedirectCount > 0, type = cors ? "cors" : "basic", headers = RuntimeFetchCors.Expose(response, cors),
                 body = hasBody ? Convert.ToBase64String(response.Buffer) : "", hasBody
             });

@@ -18,7 +18,7 @@
     <ProjectReference Include="../OfficeIMO.Html/OfficeIMO.Html.csproj" />
     <PackageReference Include="AngleSharp" Version="1.7.1" />
     <PackageReference Include="AngleSharp.Css" Version="1.0.1" />
-    <PackageReference Include="AngleSharp.Js" Version="1.0.1" />
+    <ProjectReference Include="../OfficeIMO.Html.Runtime.AngleSharpJs/OfficeIMO.Html.Runtime.AngleSharpJs.csproj" />
     <PackageReference Include="Jint" Version="4.16.0" />
   </ItemGroup>
 </Project>

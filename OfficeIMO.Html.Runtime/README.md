@@ -2,7 +2,9 @@
 
 Execute a trusted local scripted document in a persistent, disposable session and
 capture independent OfficeIMO documents. The optional worker uses AngleSharp, AngleSharp.Css,
-AngleSharp.Js and Jint; ordinary HTML parsing and conversion do not depend on it.
+retained AngleSharp.Js DOM bindings and Jint; ordinary HTML parsing and conversion
+do not depend on it. The bindings are built from a pinned source dependency with
+an engine-configuration hook; see [binding provenance](../OfficeIMO.Html.Runtime.AngleSharpJs/README.md).
 
 Build or publish `OfficeIMO.Html.Runtime.Worker` and deploy its complete output
 directory. Supply its DLL path and the inert DOM services to the process provider:
@@ -214,11 +216,34 @@ clear. `MaxStorageCharacters` limits the combined UTF-16 key/value length in eac
 area, defaulting to 1 Mi characters. A rejected write throws `QuotaExceededError`
 and leaves the previous value intact.
 
+JavaScript module scripts support document-relative and root-relative URLs,
+static and dynamic imports, cyclic graphs, live bindings and `import.meta.url`.
+Top-level `await` can wait for promise jobs, timers or fetch completion while the
+native event loop continues. Classic external scripts resolve dynamic imports
+against their own script URL. Captures remain independent after module execution.
+
+Supply module sources as `HtmlRuntimeResource` values with a JavaScript MIME type,
+or enable bounded network loading through `ResourcePolicy`. Modules share the
+existing response-byte, request, redirect, origin and concurrency budgets.
+Cross-origin modules require CORS approval even when their origin is allowlisted.
+File and data URLs, credentialed requests and import attributes are unsupported.
+Dedicated worker construction throws `NotSupportedError`; a session owns one interpreter.
+`MaxModuleCount` bounds retained module sources, including inline roots and failed
+loads, and defaults to 1024. Repeated imports reuse the interpreter's module map;
+failed source loads remain failures within that session.
+
+One inline import map can precede all module imports. Exact entries, trailing-slash
+prefixes and normalized URL scopes are supported; the longest matching scope or
+prefix wins, and null entries block resolution. Multiple maps and maps introduced
+after imports begin are rejected. Module script loading and evaluation settle
+before their document execution operation completes. Full browser lifecycle timing,
+module preload, integrity metadata and `import.meta.resolve` remain unqualified.
+
 The test-only Preact 10.29.8 fixture proves UMD loading, mount/unmount, hook effects,
 buffered fetch, state updates, controlled input and select events, storage restoration,
 mutation delivery and independent captures converted to Markdown and searchable
 PDF. These paths do not establish general framework compatibility or a complete
-web-application profile. Modules, history/navigation, layout-driven interaction,
+web-application profile. Full module lifecycle, history/navigation, layout-driven interaction,
 combined mutation/promise ordering and general framework compatibility remain unqualified.
 
 Commands are serialized. `Timeout` includes time waiting for another command,

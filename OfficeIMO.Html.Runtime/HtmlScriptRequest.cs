@@ -34,6 +34,8 @@ public sealed class HtmlScriptRequest {
     public int MaxPendingPromiseRejections { get; set; } = 1024;
     /// <summary>Maximum retained UTF-16 key and value characters in each session-local Web Storage area.</summary>
     public int MaxStorageCharacters { get; set; } = 1024 * 1024;
+    /// <summary>Maximum distinct module sources retained per session, including inline roots and failed loads.</summary>
+    public int MaxModuleCount { get; set; } = 1024;
 
     internal HtmlScriptRequest Snapshot() {
         if (Html == null || Scripts == null || ReadyExpression == null) throw new ArgumentException("HTML, scripts and readiness are required.");
@@ -42,6 +44,7 @@ public sealed class HtmlScriptRequest {
         if (PollInterval < TimeSpan.FromMilliseconds(1) || PollInterval > Timeout) throw new ArgumentOutOfRangeException(nameof(PollInterval));
         if (MaxInputCharacters <= 0 || MaxOutputCharacters <= 0 || MaxNodes <= 0 || MaxDepth <= 0 || MaxPendingPromiseRejections <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputCharacters), "Resource limits must be positive.");
         if (MaxStorageCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxStorageCharacters));
+        if (MaxModuleCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxModuleCount));
         var scripts = Scripts.ToArray();
         long length = (long)Html.Length + ReadyExpression.Length;
         foreach (string script in scripts) {
@@ -65,7 +68,7 @@ public sealed class HtmlScriptRequest {
             DocumentUrl = DocumentUrl, Resources = resources, ResourcePolicy = policy,
             SessionTimeout = SessionTimeout, PollInterval = PollInterval, MaxInputCharacters = MaxInputCharacters, MaxOutputCharacters = MaxOutputCharacters,
             MaxNodes = MaxNodes, MaxDepth = MaxDepth, MaxPendingPromiseRejections = MaxPendingPromiseRejections,
-            MaxStorageCharacters = MaxStorageCharacters };
+            MaxStorageCharacters = MaxStorageCharacters, MaxModuleCount = MaxModuleCount };
     }
 }
 
