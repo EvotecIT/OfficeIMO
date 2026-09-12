@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Optional PDF presentation and hybrid CII invoice generation for OfficeIMO.Invoicing.</Description>
-    <VersionPrefix>3.4.2</VersionPrefix>
+    <VersionPrefix>3.4.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
     <Company>Evotec</Company>

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Typed electronic invoices, CII/UBL authoring, parsing, conversion, and model validation for .NET.</Description>
-    <VersionPrefix>3.4.2</VersionPrefix>
+    <VersionPrefix>3.4.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
     <Company>Evotec</Company>
