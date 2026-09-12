@@ -28,9 +28,19 @@ internal static class OfficeProvenancePackageMutation {
         string fullPath = Path.GetFullPath(filePath);
         byte[] data;
         using (var stream = File.OpenRead(fullPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes, options.CancellationToken);
+        return Inspect(data, fullPath, options, validatePackage);
+    }
+
+    /// <summary>Validates an in-memory package before inspecting its provenance.</summary>
+    internal static OfficeProvenanceReport Inspect(byte[] data, string fileName, OfficeProvenanceOptions? options,
+        Action<byte[], OfficeProvenanceOptions> validatePackage) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        options ??= new OfficeProvenanceOptions();
+        OfficeProvenanceBinary.ValidateLimits(options);
+        if (data.LongLength > options.MaxAssetBytes) throw new InvalidDataException("The package exceeds the inspection byte limit.");
         options.CancellationToken.ThrowIfCancellationRequested();
         validatePackage(data, options);
-        return OfficeProvenanceInspector.Inspect(data, fullPath, options);
+        return OfficeProvenanceInspector.Inspect(data, fileName, options);
     }
 
     internal static OfficeProvenanceRemovalResult RemoveFile(

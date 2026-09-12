@@ -8,6 +8,10 @@ using OfficeIMO.Web.Converter.Services;
 namespace OfficeIMO.Web.Converter.Components;
 
 public partial class PdfWorkbench {
+    [Inject] private BrowserDocumentSession Session { get; set; } = null!;
+    [Parameter] public int Revision { get; set; }
+    private int _sessionRevision = -1;
+    private bool _disposed;
     [Inject] private HttpClient Http { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] private BrowserPdfToolService PdfTools { get; set; } = null!;
@@ -54,7 +58,17 @@ public partial class PdfWorkbench {
 
     [Parameter] public string? ToolId { get; set; }
 
-    protected override Task OnParametersSetAsync() => SelectToolAsync(PdfToolCatalog.Find(ToolId));
+    protected override async Task OnParametersSetAsync() {
+        var tool = PdfToolCatalog.Find(ToolId);
+        bool changed = ActiveTool.Id != tool.Id;
+        await SelectToolAsync(tool);
+        if (changed || _sessionRevision != Session.Revision) {
+            _sessionRevision = Session.Revision;
+            await ResetResultAsync(); Files.Clear();
+            var current = Session.Current.Where(file => file.Extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase));
+            Files.AddRange(tool.InputMode == PdfToolInputMode.Single ? current.Take(1) : tool.InputMode == PdfToolInputMode.Pair ? current.Take(2) : current);
+        }
+    }
 
     private async Task SelectToolAsync(PdfToolDefinition tool) {
         if (ActiveTool.Id == tool.Id) return;
@@ -66,6 +80,7 @@ public partial class PdfWorkbench {
     }
 
     private async Task HandleFilesSelectedAsync(InputFileChangeEventArgs args) {
+        int revision = Session.Revision;
         await ResetResultAsync();
         Diagnostics.Clear();
         IReadOnlyList<IBrowserFile> selected = ActiveTool.InputMode == PdfToolInputMode.Single
@@ -88,8 +103,10 @@ public partial class PdfWorkbench {
             if (aggregate > BrowserPdfToolService.MaxAggregatePdfBytes) {
                 throw new InvalidDataException($"Selected PDFs exceed the {ConverterWorkspace.FormatBytes(BrowserPdfToolService.MaxAggregatePdfBytes)} combined limit.");
             }
+            if (_disposed || revision != Session.Revision) return;
             Files.Clear();
             Files.AddRange(loaded);
+            Session.Open(Files); _sessionRevision = Session.Revision;
             Diagnostics.Add(new ConversionDiagnostic("Ready", $"{Files.Count} PDF file{(Files.Count == 1 ? string.Empty : "s")} loaded in this tab.", "ocx-dot--good"));
         } catch (Exception ex) {
             Files.Clear();
@@ -98,10 +115,12 @@ public partial class PdfWorkbench {
     }
 
     private async Task LoadSampleAsync() {
+        int revision = Session.Revision;
         await ResetResultAsync();
         Diagnostics.Clear();
         try {
             byte[] bytes = await Http.GetByteArrayAsync("samples/showcase-dashboard.pdf");
+            if (_disposed || revision != Session.Revision) return;
             Files.Clear();
             Files.Add(CreateSample(bytes, ActiveTool.InputMode == PdfToolInputMode.Pair ? "expected" : "showcase"));
             if (ActiveTool.InputMode != PdfToolInputMode.Single) {
@@ -110,6 +129,7 @@ public partial class PdfWorkbench {
             if (ActiveTool.Kind == PdfToolKind.Redact) {
                 RedactionText = "Critical blockers";
             }
+            Session.Open(Files); _sessionRevision = Session.Revision;
             Diagnostics.Add(new ConversionDiagnostic("Sample ready", $"{Files.Count} product PDF file{(Files.Count == 1 ? string.Empty : "s")} loaded locally.", "ocx-dot--good"));
         } catch (Exception ex) {
             Diagnostics.Add(new ConversionDiagnostic("Could not load sample", DescribeFailure(ex), "ocx-dot--bad"));
@@ -123,6 +143,7 @@ public partial class PdfWorkbench {
         if (index < 0 || index >= Files.Count) return;
         await ResetResultAsync();
         Files.RemoveAt(index);
+        Session.SelectCurrent(Files); _sessionRevision = Session.Revision;
         Diagnostics.Clear();
     }
 
@@ -133,22 +154,28 @@ public partial class PdfWorkbench {
         SelectedDocument file = Files[request.Index];
         Files.RemoveAt(request.Index);
         Files.Insert(target, file);
+        Session.SelectCurrent(Files); _sessionRevision = Session.Revision;
     }
 
     private async Task ClearFilesAsync() {
         await ResetResultAsync();
         Files.Clear();
+        Session.SelectCurrent(Files); _sessionRevision = Session.Revision;
         Diagnostics.Clear();
     }
 
     private async Task RunAsync() {
         if (!CanRun || _interop is null) return;
+        int sourceRevision = Session.Revision;
+        string sourceTool = ActiveTool.Id;
+        Session.ClearResult();
         IsBusy = true;
         await ResetResultAsync();
         Diagnostics.Clear();
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
         try {
+            if (_disposed || sourceRevision != Session.Revision || sourceTool != ActiveTool.Id) return;
             Result = PdfTools.Execute(new PdfToolRequest(
                 ActiveTool,
                 Files.ToArray(),
@@ -165,6 +192,7 @@ public partial class PdfWorkbench {
                 ReportUrl = await _interop.CreateObjectUrlAsync(Result.Report.Bytes, Result.Report.ContentType);
             }
             Diagnostics.Add(new ConversionDiagnostic("Operation complete", Result.Summary, "ocx-dot--good"));
+            if (!_disposed && sourceTool == ActiveTool.Id) Session.SetResult(Result.Artifact.Bytes, Result.Artifact.FileName, sourceRevision);
         } catch (Exception ex) {
             Result = null;
             Diagnostics.Add(new ConversionDiagnostic("PDF operation failed", DescribeFailure(ex), "ocx-dot--bad"));
@@ -187,6 +215,7 @@ public partial class PdfWorkbench {
     }
 
     private async Task ResetResultAsync() {
+        Session.ClearResult();
         if (_interop is not null) {
             await _interop.RevokeObjectUrlAsync(ArtifactUrl);
             await _interop.RevokeObjectUrlAsync(ReportUrl);
@@ -203,6 +232,7 @@ public partial class PdfWorkbench {
     };
 
     public async ValueTask DisposeAsync() {
+        _disposed = true;
         if (_interop is null) return;
         await _interop.RevokeObjectUrlAsync(ArtifactUrl);
         await _interop.RevokeObjectUrlAsync(ReportUrl);

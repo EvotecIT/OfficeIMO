@@ -1,0 +1,56 @@
+@namespace OfficeIMO.Web.Converter.Components
+@using OfficeIMO.Provenance
+@using OfficeIMO.Workflows
+@implements IAsyncDisposable
+
+<section class="pdf-workbench provenance-workbench" aria-label="Provenance workbench">
+    <div class="pdf-workbench__grid">
+        <section class="ocx-input-panel">
+            <h2>Choose an image or document</h2>
+            <p>Inspect Content Credentials and supported source declarations. Create a separate copy with the selected provenance removed.</p>
+            <fieldset disabled="@_busy">
+                <label class="ocx-dropzone">
+                    <InputFile class="ocx-hidden-input" OnChange="OpenAsync" accept="@string.Join(",", OfficeProvenanceBufferWorkflow.SupportedExtensions)" aria-label="Choose an image or document for provenance inspection" />
+                    <strong>@(_file?.Name ?? "Drop a file here or choose one")</strong>
+                    <small>JPEG, PNG, WebP, PDF, DOCX, XLSX, PPTX · up to 25 MB</small>
+                    <span class="ocx-button ocx-button--choose">Choose file</span>
+                </label>
+                <button type="button" class="ocx-button ocx-button--secondary" @onclick="LoadSampleAsync">Try a sample image</button>
+                <button type="button" class="ocx-button ocx-button--secondary" disabled="@(_file is null)" @onclick="InspectAsync">Inspect provenance</button>
+                <h3>Remove from the copy</h3>
+                <label class="ocx-toggle"><input type="checkbox" @bind="_manifests" @bind:after="OptionsChangedAsync" /> Embedded Content Credentials</label>
+                <label class="ocx-toggle"><input type="checkbox" @bind="_references" @bind:after="OptionsChangedAsync" /> External credential references</label>
+                <label class="ocx-toggle"><input type="checkbox" @bind="_declarations" @bind:after="OptionsChangedAsync" /> AI-specific IPTC source declarations</label>
+                <p>Visible marks and image pixels are unchanged by provenance cleanup. Other personal metadata is outside this tool's scope. Signed or ambiguous documents may be preserved or rejected.</p>
+                <button type="button" class="ocx-button ocx-button--primary" disabled="@(_file is null || _report is null || !(_manifests || _references || _declarations))" @onclick="RemoveAsync">Create cleaned copy</button>
+            </fieldset>
+        </section>
+        <section class="ocx-output-panel" aria-label="Provenance result">
+            <h2>@(_removal is null ? "Inspection" : "Cleaned copy")</h2>
+            <p role="status">@(_busy ? "Processing locally…" : _message)</p>
+            @if (_report is not null) {
+                <p><strong>@_report.Evidence.Count provenance finding@(_report.Evidence.Count == 1 ? "" : "s")</strong> · @_file?.FormatLabel</p>
+                <p>Structural inspection does not verify authenticity or establish whether a file was created by AI. External references are not fetched.</p>
+                <ul class="provenance-evidence">
+                    @foreach (var evidence in _report.Evidence) {
+                        <li><strong>@(evidence.Carrier switch { OfficeProvenanceCarrierKind.C2paManifest => "Embedded Content Credentials", OfficeProvenanceCarrierKind.C2paExternalManifest => "External credential reference", _ => "IPTC source declaration" })</strong><span>@evidence.Location</span><span>@(evidence.IsStructurallyValid ? "Structurally recognized" : "Malformed or ambiguous; preserved")</span></li>
+                    }
+                </ul>
+                @foreach (var diagnostic in _report.Diagnostics) { <p class="provenance-diagnostic">@diagnostic</p> }
+            }
+            @if (_removal is not null) {
+                <p><strong>@_removal.Changes.Count change@(_removal.Changes.Count == 1 ? "" : "s")</strong> · @_removal.After.Evidence.Count finding@(_removal.After.Evidence.Count == 1 ? "" : "s") remain. Output was re-inspected.</p>
+                @foreach (var diagnostic in _removal.After.Diagnostics) { <p class="provenance-diagnostic">@diagnostic</p> }
+            }
+            <div class="ocx-output-actions">
+                @if (_reportUrl is not null) { <a class="ocx-button ocx-button--secondary" href="@_reportUrl" download="provenance-report.json">Download report</a> }
+                @if (_outputUrl is not null) { <a class="ocx-button ocx-button--primary" href="@_outputUrl" download="@_outputName">Download copy</a> }
+            </div>
+            @if (_previewUrl is not null) {
+                <figure class="provenance-preview"><img src="@_previewUrl" alt="@($"Preview of {_file?.Name}")" /><figcaption>@(_outputUrl is null ? "Original image" : "Cleaned image") · Original colors</figcaption></figure>
+            } else if (_file?.Extension == ".pdf" && _report is not null) {
+                <PdfArtifactPreview Bytes="@(_outputBytes ?? _file.Bytes)" FileName="@(_outputName ?? _file.Name)" />
+            }
+        </section>
+    </div>
+</section>

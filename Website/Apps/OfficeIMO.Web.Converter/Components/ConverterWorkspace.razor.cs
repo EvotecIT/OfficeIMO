@@ -8,6 +8,10 @@ using OfficeIMO.Web.Converter.Services;
 namespace OfficeIMO.Web.Converter.Components;
 
 public partial class ConverterWorkspace {
+    [Inject] private BrowserDocumentSession Session { get; set; } = null!;
+    [Parameter] public int Revision { get; set; }
+    private int _sessionRevision = -1;
+    private bool _disposed;
     internal const long MaxUploadBytes = BrowserConversionService.MaxPackageBytes;
 
     private const string DefaultMarkdown = """
@@ -95,7 +99,22 @@ This **Markdown** becomes a browser preview or an editable Word document.
 
     [Parameter] public string? RouteId { get; set; }
 
-    protected override Task OnParametersSetAsync() => SelectRouteAsync(ConversionRouteCatalog.Find(RouteId));
+    protected override async Task OnParametersSetAsync() {
+        var route = ConversionRouteCatalog.Find(RouteId);
+        bool changed = ActiveRoute.Id != route.Id;
+        await SelectRouteAsync(route);
+        if (changed || _sessionRevision != Session.Revision) {
+            _sessionRevision = Session.Revision;
+            await ResetOutputAsync();
+            SelectedFile = Session.Current.FirstOrDefault(file => route.Accept.Split(',').Contains(file.Extension, StringComparer.OrdinalIgnoreCase));
+            if (route.InputKind == ConversionInputKind.Text && SelectedFile is null && Session.Revision > 0) TextInput = string.Empty;
+            if (route.InputKind == ConversionInputKind.Text && SelectedFile is not null) {
+                string text = System.Text.Encoding.UTF8.GetString(SelectedFile.Bytes);
+                if (text.Length <= BrowserConversionService.MaxTextInputChars) TextInput = text;
+                else { TextInput = string.Empty; Diagnostics.Add(new("Text too large", "The working file exceeds this text tool's limit.", "ocx-dot--warn")); }
+            }
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (!firstRender || _interop is null) {
@@ -120,6 +139,8 @@ This **Markdown** becomes a browser preview or an editable Word document.
     }
 
     private async Task HandleFileSelectedAsync(InputFileChangeEventArgs args) {
+        int revision = Session.Revision;
+        string routeId = ActiveRoute.Id;
         await ResetOutputAsync();
         Diagnostics.Clear();
         IBrowserFile file = args.File;
@@ -134,7 +155,9 @@ This **Markdown** becomes a browser preview or an editable Word document.
             await using Stream source = file.OpenReadStream(MaxUploadBytes);
             using var buffer = new MemoryStream();
             await source.CopyToAsync(buffer);
+            if (_disposed || revision != Session.Revision || routeId != ActiveRoute.Id) return;
             SelectedFile = new(file.Name, extension, ActiveRoute.Source, file.Size, buffer.ToArray());
+            Session.Open([SelectedFile]); _sessionRevision = Session.Revision;
             Diagnostics.Add(new("Ready", $"{file.Name} is loaded in this browser tab.", "ocx-dot--good"));
         } catch (IOException) {
             SelectedFile = null;
@@ -146,6 +169,8 @@ This **Markdown** becomes a browser preview or an editable Word document.
     }
 
     private async Task LoadSampleAsync() {
+        int revision = Session.Revision;
+        string routeId = ActiveRoute.Id;
         SampleDocument sample = ActiveRoute.Id switch {
             "pdf-docx" or "pdf-xlsx" or "pdf-pptx" or "pdf-html" or "pdf-png" => new("Sample PDF", "samples/showcase-dashboard.pdf", "OfficeIMO-Showcase.pdf", ".pdf"),
             "xlsx-pdf" => new("Sample XLSX", "samples/basic.xlsx", "OfficeIMO-Table.xlsx", ".xlsx"),
@@ -156,7 +181,9 @@ This **Markdown** becomes a browser preview or an editable Word document.
         Diagnostics.Clear();
         try {
             byte[] bytes = await Http.GetByteArrayAsync(sample.Path);
+            if (_disposed || revision != Session.Revision || routeId != ActiveRoute.Id) return;
             SelectedFile = new(sample.FileName, sample.Extension, ActiveRoute.Source, bytes.LongLength, bytes);
+            Session.Open([SelectedFile]); _sessionRevision = Session.Revision;
             Diagnostics.Add(new("Sample ready", $"{sample.FileName} is loaded locally.", "ocx-dot--good"));
         } catch (Exception ex) {
             Diagnostics.Add(new("Could not load sample", DescribeFailure(ex), "ocx-dot--bad"));
@@ -175,6 +202,9 @@ This **Markdown** becomes a browser preview or an editable Word document.
             return;
         }
 
+        int sourceRevision = Session.Revision;
+        string sourceRoute = ActiveRoute.Id;
+        Session.ClearResult();
         IsBusy = true;
         await ResetOutputAsync();
         Diagnostics.Clear();
@@ -183,6 +213,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
         var stopwatch = Stopwatch.StartNew();
 
         try {
+            if (_disposed || sourceRevision != Session.Revision || sourceRoute != ActiveRoute.Id) return;
             Output = ActiveRoute.InputKind == ConversionInputKind.File
                 ? ConversionService.ConvertFile(
                     ActiveRoute,
@@ -213,6 +244,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
                     Output.DebugOverlay.ContentType);
             }
             string fidelity = Output.FidelityStatus ?? "Complete";
+            if (!_disposed && sourceRoute == ActiveRoute.Id) Session.SetResult(Output.Bytes, Output.FileName, sourceRevision);
             string tone = fidelity is "Complete" or "Reconstructed" ? "ocx-dot--good" : "ocx-dot--warn";
             Diagnostics.Add(new($"{fidelity} conversion", $"Created {Output.FileName} locally in {ElapsedLabel}. {Output.ProvenanceSummary}", tone));
         } catch (Exception ex) {
@@ -324,6 +356,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
     }
 
     private async Task ResetOutputAsync() {
+        Session.ClearResult();
         if (_interop is not null && !string.IsNullOrWhiteSpace(OutputUrl)) {
             await _interop.RevokeObjectUrlAsync(OutputUrl);
         }
@@ -377,6 +410,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
             : $"{warning.Construct} · {warning.Code}";
 
     public async ValueTask DisposeAsync() {
+        _disposed = true;
         if (_interop is not null) {
             await _interop.UnregisterWebMcpToolAsync();
             await _interop.RevokeObjectUrlAsync(OutputUrl);

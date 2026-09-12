@@ -404,7 +404,7 @@ public static class OfficeProvenanceRemover {
         MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets)
     };
 
-    private static OfficeProvenanceOptions CreateOutputInspectionOptions(OfficeProvenanceRemovalOptions source) => new OfficeProvenanceOptions {
+    internal static OfficeProvenanceOptions CreateOutputInspectionOptions(OfficeProvenanceRemovalOptions source) => new OfficeProvenanceOptions {
         MaxAssetBytes = source.EffectiveMaxOutputBytes,
         MaxManifestBytes = Math.Min(source.Limits.MaxManifestBytes, source.EffectiveMaxOutputBytes),
         MaxCarriers = source.Limits.MaxCarriers,

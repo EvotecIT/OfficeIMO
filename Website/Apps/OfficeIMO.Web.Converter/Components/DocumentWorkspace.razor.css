@@ -19,7 +19,13 @@
 .ocx-workspace-overlay { display:none; }
 .ocx-workspace-content ::deep .ocx-conversion-workspace, .ocx-workspace-content ::deep .pdf-workbench-shell { width:100%; max-width:none; margin:0; padding:0; }
 .ocx-workspace-content ::deep .ocx-converter, .ocx-workspace-content ::deep .pdf-workbench { width:100%; margin:0; border-radius:12px; box-shadow:0 8px 28px #14213a0a; }
-.ocx-workspace-content ::deep .ocx-workspace, .ocx-workspace-content ::deep .pdf-workbench__grid { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+.ocx-workspace-content ::deep .ocx-workspace, .ocx-workspace-content ::deep .pdf-workbench__grid { grid-template-columns:minmax(260px,.7fr) minmax(0,1.3fr); }
+.ocx-session { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:14px; margin-bottom:20px; border:1px solid var(--ocx-border); border-radius:8px; font-size:13px; overflow-wrap:anywhere; }
+.ocx-session span { flex:1 1 220px; min-width:0; }
+.ocx-session small { flex-basis:100%; color:var(--ocx-muted); }
+.is-focused .ocx-workspace-content ::deep .ocx-input-panel, .is-focused .ocx-workspace-content ::deep .ocx-route-contract, .is-focused .ocx-workspace-content ::deep .ocx-actionbar { display:none; }
+.is-focused .ocx-workspace-content ::deep .ocx-workspace, .is-focused .ocx-workspace-content ::deep .pdf-workbench__grid { grid-template-columns:minmax(0,1fr); }
+.is-focused .ocx-workspace-content ::deep .ocx-preview-stage { min-height:65dvh; }
 .ocx-workspace-content ::deep .ocx-route-contract { margin-top:0; }
 @media (max-width:1199px) {
     .ocx-workspace-shell { grid-template-columns:240px minmax(0,1fr); }

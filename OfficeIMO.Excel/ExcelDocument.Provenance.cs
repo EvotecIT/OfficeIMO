@@ -9,6 +9,10 @@ using OfficeIMO.Security;
 namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
+    /// <summary>Validates and inspects encoded workbook bytes without accessing the filesystem.</summary>
+    public static OfficeProvenanceReport InspectProvenance(byte[] data, string fileName = "workbook.xlsx", OfficeProvenanceOptions? options = null) =>
+        OfficeProvenancePackageMutation.Inspect(data, fileName, options, ValidatePackage);
+
     private const string SignatureOriginContentType = "application/vnd.openxmlformats-package.digital-signature-origin";
     private const string SignaturePartContentType = "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml";
     private const string SignatureRelationshipPrefix = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/";

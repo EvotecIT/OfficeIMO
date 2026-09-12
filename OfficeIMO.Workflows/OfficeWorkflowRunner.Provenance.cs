@@ -950,7 +950,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         destination.MaxEmbeddedAssets = source.MaxEmbeddedAssets;
     }
 
-    private static void EnsureEquivalent(OfficeProvenanceReport expected, OfficeProvenanceReport actual) {
+    internal static void EnsureEquivalent(OfficeProvenanceReport expected, OfficeProvenanceReport actual) {
         bool evidenceMatches = expected.Evidence.Count == actual.Evidence.Count &&
             expected.Evidence.Zip(actual.Evidence).All(pair =>
                 pair.First.Carrier == pair.Second.Carrier &&
