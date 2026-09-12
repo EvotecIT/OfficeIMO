@@ -20,8 +20,8 @@ internal sealed class RuntimeScriptErrors {
 
     internal void Report(string message) => Interlocked.CompareExchange(ref _firstError, message, null);
 
-    internal void ThrowIfFailed() {
+    internal void ThrowIfFailed(bool includeRejections = true) {
         if (_firstError is string error) throw new HtmlScriptRuntimeException(error);
-        if (_rejections.Count != 0) throw new HtmlScriptRuntimeException("Unhandled promise rejection: " + _rejections.Values.First());
+        if (includeRejections && _rejections.Count != 0) throw new HtmlScriptRuntimeException("Unhandled promise rejection: " + _rejections.Values.First());
     }
 }

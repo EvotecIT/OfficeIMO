@@ -56,6 +56,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             RuntimeStorageBindings.Install(_engine, options.MaxStorageCharacters);
             _automation = new RuntimeAutomation(document, options, _focus);
             RuntimeInteractionBindings.Install(_engine, document, _focus);
+            RuntimeSelectBindings.Install(_engine);
             _fetch = new RuntimeFetchBindings(_engine, document, _loop, _resources, options, _errors);
         };
     }
@@ -110,8 +111,15 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             lock (_engine) {
                 try {
                     token.ThrowIfCancellationRequested();
+                    // Native timer callbacks may leave a rejection whose catch is already
+                    // queued. Preserve fatal errors, but check rejections after the checkpoint.
+                    _errors.ThrowIfFailed(includeRejections: false);
+                    _engine.Advanced.ProcessTasks();
                     _errors.ThrowIfFailed();
                     T result = action();
+                    // Native DOM actions can invoke JS callbacks without entering Evaluate.
+                    // Complete their promise jobs before admitting the next session command.
+                    _engine.Advanced.ProcessTasks();
                     _errors.ThrowIfFailed();
                     completion.TrySetResult(result);
                 } catch (Exception error) {

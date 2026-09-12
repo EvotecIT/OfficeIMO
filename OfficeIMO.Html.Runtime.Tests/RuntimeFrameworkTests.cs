@@ -25,6 +25,14 @@ public sealed class RuntimeFrameworkTests {
         });
         var before = await session.CaptureAsync("document.querySelector('#total').textContent==='Total: 42'");
         Assert.Equal("Report: Monthly", before.Document.QuerySelector("#report-name")!.TextContent);
+        var region = session.Locator(HtmlLocatorQuery.ByAccessibleName("Region"));
+        await region.SelectOptionsAsync(new[] { "South" });
+        await session.Locator("#total").WaitForTextAsync("Total: 18");
+        var filtered = await session.CaptureAsync();
+        await session.ExecuteAsync("document.querySelector('#region').selectedIndex=1;document.querySelector('#region').dispatchEvent(new Event('change',{bubbles:true}))");
+        await session.Locator("#total").WaitForTextAsync("Total: 24");
+        await region.SelectOptionsAsync(new[] { "all" });
+        await session.Locator("#total").WaitForTextAsync("Total: 42");
         await session.Locator(HtmlLocatorQuery.ByText("Add adjustment")).ClickAsync();
         await session.Locator(HtmlLocatorQuery.ByAccessibleName("Report name")).FillAsync("Quarterly");
         await session.WaitForAsync("document.querySelector('#adjustments').textContent==='Adjustments: 1' && localStorage.getItem('report:name')==='Quarterly'");
@@ -37,6 +45,8 @@ public sealed class RuntimeFrameworkTests {
         Assert.Equal("Report: Quarterly", restored.Document.QuerySelector("#report-name")!.TextContent);
         Assert.Equal("Adjustments: 0", restored.Document.QuerySelector("#adjustments")!.TextContent);
         await session.DisposeAsync();
+        Assert.Equal("Total: 18", filtered.Document.QuerySelector("#total")!.TextContent);
+        Assert.Contains("Total: 18", PdfReadDocument.Open(HtmlConversionDocument.FromDocument(filtered.Document).ToPdfBytes()).ExtractText());
         Assert.Equal("Report: Monthly", before.Document.QuerySelector("#report-name")!.TextContent);
         Assert.Equal("Monthly", before.Document.QuerySelector("#name")!.FormState!.Value);
         Assert.Equal("Adjustments: 1", after.Document.QuerySelector("#adjustments")!.TextContent);

@@ -82,9 +82,16 @@ pointer hit testing, scrolling, keyboard input, navigation or form submission/re
 An uncancelled link or form default reports `Unsupported` after dispatching its click;
 page handlers may already have changed the document. `IsHiddenByMarkup` does not
 measure computed visibility, occlusion or layout stability. Script-triggered `.click()`
-still uses the retained provider's activation behavior. The retained JavaScript DOM
-adapter also drops some property assignments on select elements, including `onfocus`;
-select property-assignment compatibility remains an application-qualification gap.
+still uses the retained provider's activation behavior.
+
+Select controls support handler properties and inline handlers, ordinary property
+writes, `item`/`namedItem` lookup, and assignment to `value` or `selectedIndex`.
+The options collection also supports `item`, `namedItem` and `selectedIndex`.
+A value write chooses the first exact, case-sensitive match, even in a multiple
+select; an unmatched value or out-of-range index clears selection. Script property
+writes do not synthesize input/change events. Automation and capture read the same
+native option state. Indexed option replacement, length writes and complete dynamic
+default-selection behavior remain outside the qualified select contract.
 
 Supply external scripts and stylesheets without a web server, or explicitly enable
 HTTP resource loading:
@@ -180,6 +187,11 @@ timers retain their additional callback arguments. String timer handlers are
 unsupported. `queueMicrotask` shares Jint's FIFO promise-job queue; callback errors
 fail the session.
 
+Session event-loop operations drain pending promise jobs before their work and
+complete jobs queued by native DOM actions before admitting the next command.
+Typed waits therefore observe promise-driven application updates without an extra
+`ExecuteAsync` call. Command deadlines still bound a nonterminating promise job.
+
 `MutationObserver` supports element, text and fragment targets, subtree changes,
 attribute filters, old values, `takeRecords()` and `disconnect()`. Callbacks receive
 a JavaScript records array and the observer instance. Inapplicable added/removed
@@ -199,7 +211,7 @@ area, defaulting to 1 Mi characters. A rejected write throws `QuotaExceededError
 and leaves the previous value intact.
 
 The test-only Preact 10.29.8 fixture proves UMD loading, mount/unmount, hook effects,
-buffered fetch, state updates, controlled input events, storage restoration,
+buffered fetch, state updates, controlled input and select events, storage restoration,
 mutation delivery and independent captures converted to Markdown and searchable
 PDF. These paths do not establish general framework compatibility or a complete
 web-application profile. Modules, history/navigation, layout-driven interaction,
@@ -217,7 +229,11 @@ at a checked script-turn boundary, fail the session instead of returning a succe
 snapshot. Rejections handled in the same turn are allowed within
 `MaxPendingPromiseRejections`. Listener registration supports callback identity,
 object listeners, capture and `once`; passive and signal-controlled registrations
-are rejected. Event properties and inline attributes support replacement and removal.
+are rejected. Event properties and inline attributes share session-owned registration
+for ordinary and collection-backed elements such as select. Replacing a handler
+preserves its listener position; clearing and assigning again creates a new position.
+Body/window handler aliases share the window target. Specialized error/beforeunload
+callback signatures remain outside the qualified handler profile.
 
 Capture transfers nodes and attributes structurally, including namespaces,
 document mode and template contents. It does not serialize and reparse HTML.

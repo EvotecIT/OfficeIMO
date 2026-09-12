@@ -13,6 +13,7 @@ internal static class RuntimeEventBindings {
         JsValue factory = engine.Evaluate(reader.ReadToEnd());
         JsValue reporter = JsValue.FromObject(engine, report);
         var listeners = new RuntimeListenerBindings(engine, window);
+        var handlers = new RuntimeEventHandlerBindings(engine, window);
         var listenerMethods = engine.Invoke(factory, new[] { listeners.Add, listeners.RemoveListener, reporter, JsValue.Undefined, normalizeWindow }).AsObject();
         var visited = new HashSet<ObjectInstance>(ReferenceEqualityComparer.Instance) { engine.Global };
         foreach (var property in engine.Global.GetOwnProperties().ToArray()) {
@@ -38,8 +39,9 @@ internal static class RuntimeEventBindings {
             }
             foreach (var handler in prototype.GetOwnProperties().ToArray()) {
                 if (!handler.Key.IsString() || !handler.Key.AsString().StartsWith("on", StringComparison.Ordinal) ||
-                    handler.Value.Get is not Function getter || handler.Value.Set is not Function setter) continue;
-                var accessors = engine.Invoke(factory, new JsValue[] { getter, setter, reporter, "handler", normalizeWindow }).AsObject();
+                    handler.Value.Get is not Function || handler.Value.Set is not Function) continue;
+                var owned = handlers.Accessors(handler.Key.AsString());
+                var accessors = engine.Invoke(factory, new JsValue[] { owned.Get, owned.Set, reporter, "handler", normalizeWindow }).AsObject();
                 prototype.FastSetProperty(handler.Key, new GetSetPropertyDescriptor(accessors.Get("get"), accessors.Get("set"), handler.Value.Enumerable, true));
             }
         }

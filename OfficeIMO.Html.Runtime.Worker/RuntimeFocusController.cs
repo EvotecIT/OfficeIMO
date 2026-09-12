@@ -70,7 +70,7 @@ internal sealed class RuntimeFocusController {
     internal static string? Value(IElement element) => element switch {
         IHtmlInputElement input => input.Value,
         IHtmlTextAreaElement area => area.Value,
-        IHtmlSelectElement select => select.Value,
+        IHtmlSelectElement select => select.Value ?? string.Empty,
         _ => null
     };
     internal static bool HiddenByMarkup(IElement element) {
