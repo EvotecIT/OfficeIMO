@@ -34,3 +34,12 @@
 - Keep opt-in benchmark runners outside the normal solution when their dependency or license profile should not affect normal restore and build.
 - Add a comparison lane only when every implementation performs equivalent work and the output is validated. Keep OfficeIMO-specific workflows out of parity runners that cannot measure the same contract without artificial adapters.
 - Keep benchmark execution and evidence-publication policy here or in benchmark tooling. Benchmark READMEs should explain how to run a suite, what it measures, how it validates output, and how to interpret its results.
+
+## Independent HTML engine development
+
+- Keep the architecture in `Docs/officeimo.html-engine-design.md` and open milestones in `Docs/ROADMAP.md`; do not introduce a second program backlog. Update generated support contracts only when behavior is implemented and qualified.
+- Develop the engine on dedicated branches/worktrees under the configured Evotec repository root. Use a long-lived semantic integration branch such as `feature/html-engine` and short milestone branches when they improve isolation. Commit coherent changes and push checkpoints; keep exact owner/consumer commits in validation records.
+- For this program, do not open a PR automatically at each checkpoint. Prepare a normal ready-for-review PR when a selected milestone is complete: implementation, consumer migration, focused tests, representative rendered evidence, relevant package/platform validation, current documentation and risk-appropriate local review. Static-engine, parser-independence and interactive-runtime milestones can become ready separately; readiness does not require finishing every long-term browser API.
+- Treat pushes as branch backups, not release qualification. Inspect existing workflow triggers before relying on branch CI; use current build/test tooling for explicit branch validation where needed. Do not add release/publishing triggers as part of checkpoint setup.
+- Keep upstream integration deliberate and regular. Inspect all worktrees before branch operations, use one coordinator for integration history, preserve unrelated work and avoid history rewrites on shared branches. Do not leave a giant unvalidated merge until the end of the program.
+- Keep test references and optional provider comparisons outside default runtime dependencies. Store bulky corpus outputs in a named task-owned location, retain compact manifests and decisive evidence, and remove superseded output before repeated runs.
