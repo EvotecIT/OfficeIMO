@@ -92,6 +92,8 @@ $measuredCommitIsAncestor = $LASTEXITCODE -eq 0
 $measuredPaths = @(
     'OfficeIMO.Core',
     'OfficeIMO.Html',
+    'OfficeIMO.Html.Core',
+    'OfficeIMO.Html.AngleSharp',
     'OfficeIMO.Html.Pdf',
     # The public HtmlTinkerX package pin is proven by Test-HtmlPdfBrowserPackages.ps1.
     # Benchmarks use the exact HtmlTinkerX source checkout, so a pin-only project-file

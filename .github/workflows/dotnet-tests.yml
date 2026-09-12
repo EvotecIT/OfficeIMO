@@ -218,6 +218,8 @@ jobs:
           $coreVersion = Get-PackedPackageVersion 'OfficeIMO.Core'
           $markdownVersion = Get-PackedPackageVersion 'OfficeIMO.Markdown'
           $rtfVersion = Get-PackedPackageVersion 'OfficeIMO.Rtf'
+          $htmlCoreVersion = Get-PackedPackageVersion 'OfficeIMO.Html.Core'
+          $htmlAngleSharpVersion = Get-PackedPackageVersion 'OfficeIMO.Html.AngleSharp'
           $htmlVersion = Get-PackedPackageVersion 'OfficeIMO.Html'
           $htmlRtfVersion = Get-PackedPackageVersion 'OfficeIMO.Html.Rtf'
           $markdownHtmlVersion = Get-PackedPackageVersion 'OfficeIMO.Markdown.Html'
@@ -253,6 +255,8 @@ jobs:
             'OfficeIMO.Rtf',
             'OfficeIMO.Email',
             'OfficeIMO.Email.Html',
+            'OfficeIMO.Html.Core',
+            'OfficeIMO.Html.AngleSharp',
             'OfficeIMO.Html',
             'OfficeIMO.Html.Rtf',
             'OfficeIMO.Markdown.Html',
@@ -283,6 +287,8 @@ jobs:
             @{ Id = 'officeimo.core'; Version = $coreVersion },
             @{ Id = 'officeimo.markdown'; Version = $markdownVersion },
             @{ Id = 'officeimo.rtf'; Version = $rtfVersion },
+            @{ Id = 'officeimo.html.core'; Version = $htmlCoreVersion },
+            @{ Id = 'officeimo.html.anglesharp'; Version = $htmlAngleSharpVersion },
             @{ Id = 'officeimo.html'; Version = $htmlVersion },
             @{ Id = 'officeimo.html.rtf'; Version = $htmlRtfVersion },
             @{ Id = 'officeimo.markdown.html'; Version = $markdownHtmlVersion },
@@ -378,6 +384,8 @@ jobs:
           $packageIds = @(
             'OfficeIMO.Core',
             'OfficeIMO.Markdown',
+            'OfficeIMO.Html.Core',
+            'OfficeIMO.Html.AngleSharp',
             'OfficeIMO.Html',
             'OfficeIMO.Reader.Core',
             'OfficeIMO.OneNote',

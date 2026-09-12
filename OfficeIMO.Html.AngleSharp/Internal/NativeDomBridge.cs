@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using AngleSharp.Dom;
@@ -20,9 +21,12 @@ internal static class NativeDomBridge {
         internal IHtmlDocument Native { get; }
         internal HtmlDocument Owned { get; }
         internal long Revision { get; set; }
-        internal Dictionary<int, INode> ToNative { get; } = new Dictionary<int, INode>();
-        internal Dictionary<INode, HtmlNode> ToOwned { get; } = new Dictionary<INode, HtmlNode>();
-        internal void Add(INode native, HtmlNode owned) { ToNative.Add(owned.NodeId, native); ToOwned.Add(native, owned); }
+        // Frozen snapshots can materialize separate detached roots concurrently with attached-tree reads.
+        internal ConcurrentDictionary<int, INode> ToNative { get; } = new ConcurrentDictionary<int, INode>();
+        internal ConcurrentDictionary<INode, HtmlNode> ToOwned { get; } = new ConcurrentDictionary<INode, HtmlNode>();
+        internal void Add(INode native, HtmlNode owned) {
+            if (!ToNative.TryAdd(owned.NodeId, native) || !ToOwned.TryAdd(native, owned)) throw new InvalidOperationException("A node has already been mapped.");
+        }
     }
 
     internal static HtmlDocument Import(IHtmlDocument native, HtmlParseOptions? options = null, CancellationToken cancellationToken = default) {
@@ -107,7 +111,26 @@ internal static class NativeDomBridge {
     internal static IHtmlDocument GetNativeDocument(HtmlDocument document) => GetState(document).Native;
     internal static INode GetNative(HtmlNode node) {
         if (node == null) throw new ArgumentNullException(nameof(node));
-        return GetState(node.Document).ToNative[node.NodeId];
+        return GetState(node).ToNative[node.NodeId];
+    }
+
+    internal static NativeState GetState(HtmlNode node) {
+        if (node == null) throw new ArgumentNullException(nameof(node));
+        lock (CacheSync) {
+            NativeState state = GetState(node.Document);
+            if (!state.ToNative.ContainsKey(node.NodeId)) {
+                HtmlNode root = node;
+                while (root.Parent != null || root.TemplateHost != null) root = root.Parent ?? root.TemplateHost!;
+                // Detached trees are exported only when directly queried or serialized. Build mappings
+                // separately so an invalid detached tree cannot poison the attached conversion cache.
+                var detached = new NativeState(state.Native, node.Document);
+                INode native = ExportNode(root, state.Native);
+                detached.Add(native, root);
+                ExportChildren(detached, root, native);
+                foreach (var pair in detached.ToOwned) state.Add(pair.Key, pair.Value);
+            }
+            return state;
+        }
     }
 
     internal static NativeState GetState(HtmlDocument document) {
@@ -143,17 +166,17 @@ internal static class NativeDomBridge {
         foreach (INode child in native.ChildNodes.ToArray()) native.RemoveChild(child);
         var state = new NativeState(native, document);
         state.Add(native, document);
+        ExportChildren(state, document, native);
+        return state;
+    }
+
+    private static void ExportChildren(NativeState state, HtmlNode root, INode nativeRoot) {
         var pending = new Stack<(HtmlNode Owned, INode Native)>();
-        pending.Push((document, native));
-        foreach (HtmlNode detached in document.Nodes.Where(node => node.Parent == null && node.TemplateHost == null && node.Kind != HtmlNodeKind.Document)) {
-            INode converted = ExportNode(detached, native);
-            state.Add(converted, detached);
-            pending.Push((detached, converted));
-        }
+        pending.Push((root, nativeRoot));
         while (pending.Count != 0) {
             var current = pending.Pop();
             foreach (HtmlNode child in current.Owned.ChildNodes) {
-                INode converted = ExportNode(child, native);
+                INode converted = ExportNode(child, state.Native);
                 current.Native.AppendChild(converted);
                 state.Add(converted, child);
                 pending.Push((child, converted));
@@ -163,7 +186,6 @@ internal static class NativeDomBridge {
                 pending.Push((element.TemplateContent, template.Content));
             }
         }
-        return state;
     }
 
     private static INode ExportNode(HtmlNode source, IHtmlDocument document) {

@@ -23,7 +23,7 @@ public sealed class AngleSharpDomServices : IHtmlDomServices {
     public IReadOnlyList<HtmlElement> QuerySelectorAll(HtmlNode scope, string selector) {
         if (scope == null) throw new ArgumentNullException(nameof(scope));
         if (selector == null) throw new ArgumentNullException(nameof(selector));
-        var state = NativeDomBridge.GetState(scope.Document);
+        var state = NativeDomBridge.GetState(scope);
         INode native = state.ToNative[scope.NodeId];
         try {
             IEnumerable<IElement> elements = native is IParentNode parent ? parent.QuerySelectorAll(selector) : Array.Empty<IElement>();

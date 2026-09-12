@@ -4,6 +4,7 @@
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="'$([MSBuild]::IsOsPlatform(`Windows`))'">$(TargetFrameworks);net472</TargetFrameworks>
     <VersionPrefix>3.4.2</VersionPrefix>
+    <PackageId>OfficeIMO.Html.AngleSharp</PackageId>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

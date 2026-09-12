@@ -77,7 +77,6 @@ public sealed class HtmlDocument : HtmlNode {
     }
     /// <summary>Finds a node by its document-local identity, including detached nodes.</summary>
     public HtmlNode? GetNode(int nodeId) => _nodes.TryGetValue(nodeId, out HtmlNode? node) ? node : null;
-    internal IEnumerable<HtmlNode> Nodes => _nodes.Values;
     /// <summary>Freezes this instance. Every retained node handle becomes read-only.</summary>
     public HtmlDocument Freeze() { IsReadOnly = true; return this; }
     /// <summary>Creates an independent mutable clone, preserving node IDs and source positions.</summary>

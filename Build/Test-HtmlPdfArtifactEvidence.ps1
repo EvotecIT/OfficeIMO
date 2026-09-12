@@ -157,6 +157,8 @@ $measuredCommitIsAncestor = $LASTEXITCODE -eq 0
 $measuredPaths = @(
     'OfficeIMO.Core',
     'OfficeIMO.Html',
+    'OfficeIMO.Html.Core',
+    'OfficeIMO.Html.AngleSharp',
     'OfficeIMO.Html.Pdf',
     ':(glob)OfficeIMO.Html.Pdf.Browser/**/*.cs',
     'OfficeIMO.Pdf',

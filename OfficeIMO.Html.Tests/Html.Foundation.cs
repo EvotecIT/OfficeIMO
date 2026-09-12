@@ -124,6 +124,53 @@ public sealed class HtmlFoundationTests {
         Assert.Null(document.QuerySelector("section"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ConversionAndScopedQueriesIgnoreUnrelatedDetachedTrees(bool frozen) {
+        HtmlDocument document = Parse("<p>Attached</p>").Clone();
+        HtmlElement invalid = document.CreateElement("aside");
+        invalid.AppendChild(document.CreateElement("invalid@name", "urn:foreign"));
+        HtmlElement detached = document.CreateElement("section");
+        HtmlElement child = document.CreateElement("b");
+        child.TextContent = "Detached";
+        detached.AppendChild(child);
+        if (frozen) document.Freeze();
+
+        var converted = HtmlConversionDocument.FromDocument(document, new HtmlConversionDocumentOptions {
+            Limits = new HtmlConversionLimits { MaxHtmlNodes = 5 }
+        });
+        Assert.Contains("Attached", converted.ToMarkdown());
+        Assert.DoesNotContain("Detached", converted.ToMarkdown());
+        Assert.Throws<InvalidOperationException>(() => invalid.OuterHtml);
+        Assert.Equal("Attached", document.QuerySelector("p")!.TextContent);
+        Assert.Equal("Detached", detached.QuerySelector("b")!.TextContent);
+        Assert.True(child.Matches("section > b"));
+        Assert.Equal("<section><b>Detached</b></section>", detached.OuterHtml);
+    }
+
+    [Fact]
+    public async Task FrozenDetachedRootsCanBeQueriedAlongsideTheAttachedTree() {
+        HtmlDocument document = Parse("<p>Attached</p>").Clone();
+        HtmlElement[] roots = Enumerable.Range(0, 16).Select(index => {
+            HtmlElement root = document.CreateElement("section");
+            HtmlElement template = document.CreateElement("template");
+            root.AppendChild(template);
+            HtmlElement content = document.CreateElement("b");
+            content.TextContent = index.ToString();
+            document.GetOrCreateTemplateContent(template).AppendChild(content);
+            return root;
+        }).ToArray();
+        document.Freeze();
+        await Task.WhenAll(roots.Select(root => Task.Run(() => {
+            HtmlElement template = root.QuerySelector("template")!;
+            Assert.Equal(template.TemplateContent!.TextContent, template.TemplateContent.QuerySelector("b")!.TextContent);
+            Assert.Contains("<template><b>", root.OuterHtml);
+            Assert.Equal("Attached", document.QuerySelector("p")!.TextContent);
+            Assert.Null(document.QuerySelector("section"));
+        })));
+    }
+
     [Fact]
     public void TemplatesRemainSeparateAndRejectCycles() {
         HtmlDocument document = Parse("<template id='t'><table><tr><td>Value</td></tr></table></template>").Clone();
@@ -279,6 +326,7 @@ public sealed class HtmlFoundationTests {
             var document = new HtmlDocument(AngleSharpDomServices.Instance, Id);
             HtmlElement html = document.CreateElement("html"), body = document.CreateElement("body"), p = document.CreateElement("p");
             document.AppendChild(html); html.AppendChild(body); body.AppendChild(p); p.TextContent = "From provider";
+            document.CreateElement("invalid@detached", "urn:foreign");
             return Returned = document;
         }
     }
