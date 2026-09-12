@@ -69,6 +69,7 @@
 
   <ItemGroup>
     <None Include="Pdf\Fixtures\Interoperability\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Pdf\Fixtures\Rendering\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

@@ -450,6 +450,7 @@ public sealed partial class PdfReadPage {
         consumesInheritedLineState = false;
         hasMalformedStrictInvocation = false;
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
+        pageContentBudget.ConfigureDrawing(drawing);
         string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
         if (content.Length == 0) return drawing;
         hasMalformedStrictInvocation = HasMalformedStrictInvocation(

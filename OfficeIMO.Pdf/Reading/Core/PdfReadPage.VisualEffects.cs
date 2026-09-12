@@ -1033,6 +1033,7 @@ public sealed partial class PdfReadPage {
             fallbackResources ??
             pageResources;
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
+        pageContentBudget.ConfigureDrawing(drawing);
         string content = WrapFormContentWithBoundingBoxClip(
             decodedContent ?? PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)),
             form.Dictionary);

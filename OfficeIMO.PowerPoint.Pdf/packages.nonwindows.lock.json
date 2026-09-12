@@ -96,7 +96,7 @@
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.3, )"
         }
       },
       "officeimo.powerpoint": {
@@ -104,7 +104,7 @@
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
           "Microsoft.Bcl.AsyncInterfaces": "[10.0.9, )",
-          "OfficeIMO.Core": "[3.4.2, )",
+          "OfficeIMO.Core": "[3.4.3, )",
           "System.Text.Encoding.CodePages": "[8.0.0, )"
         }
       }
@@ -149,14 +149,14 @@
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.3, )"
         }
       },
       "officeimo.powerpoint": {
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.3, )"
         }
       }
     },
@@ -200,14 +200,14 @@
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.3, )"
         }
       },
       "officeimo.powerpoint": {
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.3, )"
         }
       }
     },

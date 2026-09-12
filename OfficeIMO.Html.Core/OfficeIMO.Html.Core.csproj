@@ -3,7 +3,7 @@
     <Description>Owned HTML document, node, editing and parser provider contracts for OfficeIMO.</Description>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="'$([MSBuild]::IsOsPlatform(`Windows`))'">$(TargetFrameworks);net472</TargetFrameworks>
-    <VersionPrefix>3.4.2</VersionPrefix>
+    <VersionPrefix>3.4.3</VersionPrefix>
     <PackageId>OfficeIMO.Html.Core</PackageId>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>

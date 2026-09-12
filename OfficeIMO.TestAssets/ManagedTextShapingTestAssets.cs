@@ -151,6 +151,9 @@ internal static class ManagedTextShapingTestAssets {
             distinctSecondGlyph: true);
     }
 
+    internal static byte[] CreateFontWithTallGlyph(int scalar, int height) =>
+        CreateFontFromCmap(CreateFormat12Cmap(new[] { scalar }), baseGlyphHeight: height);
+
     private static byte[] CreateFontFromCmap(
         byte[] cmap,
         bool includeTrailingMetric = false,

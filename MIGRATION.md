@@ -63,6 +63,59 @@ seekable positions restored. The default web charset provider still registers
 `CodePagesEncodingProvider` globally; it is isolated in the provider package rather
 than removed. External stylesheet/data-URI decoding has separate provider arguments.
 
+### PDF positioned-text rendering limit
+
+PDF page-image export and `PdfReadPage.ToDrawing()` now limit positioned-text
+expansion to 100,000 characters per page render. Explicitly spaced basic Latin
+runs can expand into individual glyphs to preserve their recorded positions.
+The limit is shared across the page and its repeated forms and patterns; runs
+that are culled or rendered as a whole do not consume this expansion budget.
+
+Documents that exceed the default throw `PdfReadLimitException` with
+`Kind == PdfReadLimitKind.PositionedTextCharacters`. Handle that failure like
+other configured PDF read limits. For a trusted document that needs more
+positioned glyphs, raise this limit when loading it:
+
+```csharp
+var options = new PdfLoadOptions {
+    Limits = new PdfReadLimits { MaxPositionedTextCharactersPerPage = 200_000 }
+};
+var document = PdfReadDocument.Open(pdfBytes, options);
+var image = document.Pages[0].ExportImage(OfficeImageExportFormat.Png);
+```
+
+Other read and raster limits retain their defaults. Raising this value increases
+the amount of drawing geometry a page may allocate; choose a bound appropriate
+for the documents your application accepts.
+
+Visibility work has a separate 100,000-character limit,
+`MaxPositionedTextWorkCharactersPerPage`. It counts characters that need a glyph
+string to be materialized or an uncached ink measurement, including off-page or
+clipped-out glyphs. Allocation-free cache hits do not count. Work is shared across
+nested page rendering paths and resets for each render. Exceeding it throws
+`PdfReadLimitException` with `Kind == PdfReadLimitKind.PositionedTextWorkCharacters`.
+Raise this property in `PdfLoadOptions.Limits` for trusted documents that need
+more visibility work, independently of the limit on visible drawing elements.
+Glyphs with no resolved ink consume no scene-expansion budget.
+
+### Configure PDF drawing fonts before projection
+
+If you add substitute fonts to the drawing returned by `PdfReadPage.ToDrawing()`,
+move that configuration into the new overload. Visibility checks now measure
+glyph ink during projection; changing fonts afterward cannot restore culled glyphs.
+
+```csharp
+var fonts = new OfficeFontFaceCollection();
+fonts.Add("Courier New", File.ReadAllBytes("fonts/CourierSubstitute.ttf"));
+var drawing = document.Pages[0].ToDrawing(fonts);
+```
+
+Pass an optional `textShapingProvider` and `textShapingLanguage` to the same
+overload when using custom shaping. Fonts and shaping apply before visibility
+checks in nested forms, patterns, and masks as well as the page. The parameterless
+overload remains available for default rendering. Image export already accepts
+the profile through `PdfImageExportOptions`.
+
 ### Factur-X profile declarations
 
 The Factur-X attachment helpers now derive XMP `ConformanceLevel` from the

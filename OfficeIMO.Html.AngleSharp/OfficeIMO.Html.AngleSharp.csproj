@@ -3,7 +3,7 @@
     <Description>AngleSharp-backed HTML parsing and syntax services for the owned OfficeIMO HTML document model.</Description>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="'$([MSBuild]::IsOsPlatform(`Windows`))'">$(TargetFrameworks);net472</TargetFrameworks>
-    <VersionPrefix>3.4.2</VersionPrefix>
+    <VersionPrefix>3.4.3</VersionPrefix>
     <PackageId>OfficeIMO.Html.AngleSharp</PackageId>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
