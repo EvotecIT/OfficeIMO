@@ -30,6 +30,8 @@ public partial class WordDocument {
         OfficeProvenanceZip.ValidateForOwningPackageMutation(data, _);
         using var stream = new MemoryStream(data, writable: false);
         using WordprocessingDocument document = WordprocessingDocument.Open(stream, false);
+        if (_.RequireStandardOpenXmlDocument && document.DocumentType != DocumentFormat.OpenXml.WordprocessingDocumentType.Document)
+            throw new InvalidDataException("The memory-only workflow requires a DOCX document, not a macro-enabled document or template.");
         if (document.MainDocumentPart == null || !IsSupportedMainPartContentType(document.MainDocumentPart.ContentType)) {
             throw new InvalidDataException("The package is not a Word document.");
         }

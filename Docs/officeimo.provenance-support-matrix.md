@@ -60,7 +60,7 @@ Provider-backed verification and signal detection are dependency-injected workfl
 
 ## Memory-only and browser hosts
 
-`OfficeProvenanceBufferWorkflow` accepts bytes and a file name without reading files, following external references, or invoking providers. Its qualified input list is JPEG (`.jpg`, `.jpeg`), PNG, WebP, PDF, DOCX, XLSX, and PPTX. File names must use one of those extensions, and the selected format owner validates the content. Other families in this matrix use their package APIs or the local workflow runner.
+`OfficeProvenanceBufferWorkflow` accepts bytes and a file name without reading files, following external references, or invoking providers. Its qualified input list is JPEG (`.jpg`, `.jpeg`), PNG, WebP, PDF, DOCX, XLSX, and PPTX. File names must use one of those extensions, and the selected format owner validates the content and Office package subtype. Renaming a macro-enabled document, template, slideshow, or binary workbook to a qualified extension does not make it supported. Other families in this matrix use their package APIs or the local workflow runner.
 
 Removal returns a separate result, reopens its bytes through the same owner, and compares the reopened evidence before returning. The caller's input and options remain unchanged. Input, manifest, output, container-entry, carrier, and embedded-asset limits remain effective during this check. The expanded-data budget covers the owner's before/after inspection and the final reopening cumulatively; reopening does not receive a fresh budget. Package signature policy and structural ambiguity rules still apply.
 

@@ -16,6 +16,11 @@ internal readonly struct OfficeProvenanceSignatureStripResult {
 }
 
 internal static class OfficeProvenancePackageMutation {
+    internal static OfficeProvenanceRemovalOptions ForStandardOpenXmlDocument(OfficeProvenanceRemovalOptions source) {
+        var copy = Clone(source, source.SignatureMutationPolicy, source.EffectiveMaxOutputBytes, source.Limits.MaxExpandedContainerBytes);
+        copy.Limits.RequireStandardOpenXmlDocument = true;
+        return copy;
+    }
     /// <summary>Reads a bounded package, validates ownership, and inspects the same bytes for provenance.</summary>
     internal static OfficeProvenanceReport InspectFile(
         string filePath,
@@ -224,6 +229,7 @@ internal static class OfficeProvenancePackageMutation {
         clone.Limits.MaxContainerEntries = source.Limits.MaxContainerEntries;
         clone.Limits.MaxExpandedContainerBytes = maximumExpandedBytes;
         clone.Limits.CancellationToken = source.Limits.CancellationToken;
+        clone.Limits.RequireStandardOpenXmlDocument = source.Limits.RequireStandardOpenXmlDocument;
         clone.Limits.ProcessEmbeddedAssets = source.ProcessEmbeddedAssets && source.Limits.ProcessEmbeddedAssets;
         clone.Limits.MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets);
         return clone;

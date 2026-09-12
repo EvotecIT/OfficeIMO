@@ -42,11 +42,15 @@ public partial class ExcelDocument {
         ValidateXlsbDetectionMetadata(data, options);
         if (XlsbPackageDetector.TryFindWorkbookPart(
             data, options.MaxAssetBytes, options.MaxAssetBytes, out _)) {
+            if (options.RequireStandardOpenXmlDocument)
+                throw new InvalidDataException("The memory-only workflow requires an XLSX workbook, not a binary workbook.");
             ValidateUniqueXlsbPartNames(data);
             return;
         }
         using var stream = new MemoryStream(data, writable: false);
         using SpreadsheetDocument document = SpreadsheetDocument.Open(stream, false);
+        if (options.RequireStandardOpenXmlDocument && document.DocumentType != DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook)
+            throw new InvalidDataException("The memory-only workflow requires an XLSX workbook, not a macro-enabled workbook or template.");
         if (document.WorkbookPart == null || !IsSupportedWorkbookContentType(document.WorkbookPart.ContentType)) {
             throw new InvalidDataException("The package is not an Excel workbook.");
         }

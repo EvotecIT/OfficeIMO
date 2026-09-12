@@ -30,6 +30,8 @@ public sealed partial class PowerPointPresentation {
         OfficeProvenanceZip.ValidateForOwningPackageMutation(data, _);
         using var stream = new MemoryStream(data, writable: false);
         using PresentationDocument document = PresentationDocument.Open(stream, false);
+        if (_.RequireStandardOpenXmlDocument && document.DocumentType != DocumentFormat.OpenXml.PresentationDocumentType.Presentation)
+            throw new InvalidDataException("The memory-only workflow requires a PPTX presentation, not a macro-enabled presentation, template, or slideshow.");
         if (document.PresentationPart == null || !IsSupportedPresentationContentType(document.PresentationPart.ContentType)) {
             throw new InvalidDataException("The package is not a PowerPoint presentation.");
         }

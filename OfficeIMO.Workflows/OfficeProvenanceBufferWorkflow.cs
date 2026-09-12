@@ -16,6 +16,7 @@ public static class OfficeProvenanceBufferWorkflow {
     /// <summary>Inspects the supplied bytes through their format owner. Structural findings are not authenticity verification.</summary>
     public static OfficeProvenanceReport Inspect(byte[] data, string fileName, OfficeProvenanceOptions? options = null) {
         ValidateInput(data, fileName);
+        options = (options ?? new OfficeProvenanceOptions()).ForStandardOpenXmlDocument();
         return OfficeProvenanceWorkflowAdapter.ResolveByPath(fileName) switch {
             OfficeProvenanceWorkflowAdapter.ProvenanceOwner.Word => WordDocument.InspectProvenance(data, fileName, options),
             OfficeProvenanceWorkflowAdapter.ProvenanceOwner.Excel => ExcelDocument.InspectProvenance(data, fileName, options),
@@ -28,7 +29,7 @@ public static class OfficeProvenanceBufferWorkflow {
     /// <summary>Creates a separate cleaned result and re-inspects its bytes. Signed or ambiguous inputs retain the owner's mutation policy.</summary>
     public static OfficeProvenanceRemovalResult Remove(byte[] data, string fileName, OfficeProvenanceRemovalOptions? options = null) {
         ValidateInput(data, fileName);
-        options ??= new OfficeProvenanceRemovalOptions();
+        options = OfficeProvenancePackageMutation.ForStandardOpenXmlDocument(options ?? new OfficeProvenanceRemovalOptions());
         var result = OfficeProvenanceWorkflowAdapter.ResolveByPath(fileName) switch {
             OfficeProvenanceWorkflowAdapter.ProvenanceOwner.Word => WordDocument.RemoveProvenance(data, fileName, options),
             OfficeProvenanceWorkflowAdapter.ProvenanceOwner.Excel => ExcelDocument.RemoveProvenance(data, fileName, options),
