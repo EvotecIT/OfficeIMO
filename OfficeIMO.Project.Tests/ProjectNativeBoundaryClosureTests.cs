@@ -33,6 +33,15 @@ public sealed class ProjectNativeBoundaryClosureTests {
     }
 
     [Fact]
+    public void Mpp9SourceZeroVariableFieldsRoundTrip() {
+        using var document = ProjectNativeAuthoringTests.Create();
+        document.Tasks.GetByUid(2).Wbs = "DELIVERY.DESIGN";
+        using var output = new MemoryStream(); document.Save(output, Native(ProjectFileFormat.Mpp9));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal("DELIVERY.DESIGN", reopened.Tasks.GetByUid(2).Wbs);
+    }
+
+    [Fact]
     public void UnmappedNativeVariableFieldsFailBeforeTheirDataOffsetsAreRead() {
         byte[] source = File.ReadAllBytes(ProjectNativeTests.Fixture("delivery.mpp"));
         var compound = Compound(source);

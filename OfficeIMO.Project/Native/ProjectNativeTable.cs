@@ -124,7 +124,7 @@ internal sealed partial class ProjectNativeTable {
         if (meta.Length < 24 || meta.UInt32() != 0xfadfadba || (meta.Length - 24) % stride != 0 || meta.Int32(8) != (meta.Length - 24) / stride)
             throw new InvalidDataException("Unrecognized native variable metadata header.");
         budget?.TakeVariableValues((meta.Length - 24) / stride);
-        var legacyFields = _profile == ProjectNativeProfile.Mpp9 ? Fields.Values.Where(f => f.Source == 4 || f.Source == 6)
+        var legacyFields = _profile == ProjectNativeProfile.Mpp9 ? Fields.Values.Where(IsVariableStorage)
             .ToDictionary(f => (uint)(f.Offset >> 16) & 255, f => f.Id) : null;
         for (int i = 24; i < meta.Length; i += stride) {
             token.ThrowIfCancellationRequested();
