@@ -6,7 +6,7 @@ internal sealed partial class ProjectNativeTable {
     internal bool IsLegacy8 => _profile == ProjectNativeProfile.Mpp8;
 
     /// <summary>Reads the Project 98 table descriptor and its fixed records without interpreting process pointers.</summary>
-    internal ProjectNativeTable(OfficeCompoundFile file, string table, ProjectNativeValue descriptor, int maxRecords, CancellationToken token) {
+    internal ProjectNativeTable(OfficeCompoundFile file, string table, ProjectNativeValue descriptor, int maxRecords, CancellationToken token, ProjectNativeReadBudget? budget = null) {
         _profile = ProjectNativeProfile.Mpp8; _prefix = _profile.DataRoot + "/" + table + "/";
         _streams = file.Streams.ToDictionary(s => s.Key, s => s.Value, StringComparer.Ordinal);
         var layout = ProjectNativeProperties.Read(descriptor.Copy(), token);
@@ -86,6 +86,7 @@ internal sealed partial class ProjectNativeTable {
                     var bytes = Block(~pointer);
                     value = new ProjectNativeValue(bytes, 0, bytes.Length);
                 }
+                budget?.TakeVariableValues(1);
                 if (!Variable.TryGetValue(uid, out var values)) Variable.Add(uid, values = new Dictionary<uint, ProjectNativeValue>());
                 values.Add(id, value);
             }

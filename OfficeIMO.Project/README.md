@@ -245,4 +245,4 @@ The optional [OfficeIMO.Workflows](../OfficeIMO.Workflows/README.md) package own
 
 See [the operation matrix](SUPPORT.md) for tested features, dialects, native-format boundaries, and platform evidence. Advanced calculation and report support follow the declared profiles; native curves, native view/style fidelity, and online service integration remain outside them.
 
-Input limits bound bytes, XML characters/depth/elements/attributes, task outlines, entity counts, timephased intervals, and retained diagnostics. DTDs and external entities are prohibited. No linked project, schema, image, or other external resource is fetched. Set `ProjectLoadOptions` deliberately for unusually large trusted files; output has a separate `MaxOutputBytes` limit.
+Input limits bound bytes, XML characters/depth/elements/attributes, task outlines, entity counts, native variable values, timephased intervals, and retained diagnostics. DTDs and external entities are prohibited. No linked project, schema, image, or other external resource is fetched. Set `ProjectLoadOptions` deliberately for unusually large trusted files; output has a separate `MaxOutputBytes` limit.

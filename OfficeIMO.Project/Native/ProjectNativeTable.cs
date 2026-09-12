@@ -10,6 +10,16 @@ internal sealed class ProjectNativeField {
     internal bool LegacyIndirect;
 }
 
+/// <summary>Shares the caller's native variable-value budget across every materialized table.</summary>
+internal sealed class ProjectNativeReadBudget {
+    private int _remaining;
+    internal ProjectNativeReadBudget(int maxVariableValues) => _remaining = maxVariableValues;
+    internal void TakeVariableValues(int count) {
+        if (count < 0 || count > _remaining) throw new InvalidDataException("Native variable value budget exceeded.");
+        _remaining -= count;
+    }
+}
+
 /// <summary>Bounded fixed/variable table access for a qualified MPP14 container.</summary>
 internal sealed partial class ProjectNativeTable {
     internal readonly Dictionary<uint, ProjectNativeField> Fields = new Dictionary<uint, ProjectNativeField>();
@@ -21,13 +31,13 @@ internal sealed partial class ProjectNativeTable {
     internal readonly int MetadataWidth, SecondaryMetadataWidth;
 
     internal ProjectNativeTable(OfficeCompoundFile file, string table, ProjectNativeValue primaryMap, ProjectNativeValue? extendedMap,
-        int maxRecords, CancellationToken token, ProjectNativeProfile? profile = null) {
+        int maxRecords, CancellationToken token, ProjectNativeProfile? profile = null, ProjectNativeReadBudget? budget = null) {
         _streams = file.Streams.ToDictionary(s => s.Key, s => s.Value, StringComparer.Ordinal);
         _profile = profile ?? ProjectNativeProfile.Mpp14;
         _prefix = _profile.DataRoot + "/" + table + "/";
         ReadMap(primaryMap, false, token);
         if (extendedMap.HasValue) ReadMap(extendedMap.Value, true, token);
-        ReadVariable(maxRecords, token);
+        ReadVariable(maxRecords, budget, token);
         byte[] metaBytes = Stream("FixedMeta"), fixedBytes = Stream("FixedData");
         var meta = new ProjectNativeValue(metaBytes, 0, metaBytes.Length);
         if (meta.Length < 16 || meta.UInt32() != 0xfadfadba) throw new InvalidDataException("Unrecognized native fixed metadata header.");
@@ -105,7 +115,7 @@ internal sealed partial class ProjectNativeTable {
         }
     }
 
-    private void ReadVariable(int maxRecords, CancellationToken token, ProjectNativeProfile? profile = null) {
+    private void ReadVariable(int maxRecords, ProjectNativeReadBudget? budget, CancellationToken token) {
         var bytes = Stream("VarMeta");
         var meta = new ProjectNativeValue(bytes, 0, bytes.Length);
         var dataBytes = OptionalStream("Var2Data") ?? Array.Empty<byte>();
@@ -113,6 +123,7 @@ internal sealed partial class ProjectNativeTable {
         int stride = _profile == ProjectNativeProfile.Mpp9 ? 8 : 12;
         if (meta.Length < 24 || meta.UInt32() != 0xfadfadba || (meta.Length - 24) % stride != 0 || meta.Int32(8) != (meta.Length - 24) / stride)
             throw new InvalidDataException("Unrecognized native variable metadata header.");
+        budget?.TakeVariableValues((meta.Length - 24) / stride);
         var legacyFields = _profile == ProjectNativeProfile.Mpp9 ? Fields.Values.Where(f => f.Source == 4 || f.Source == 6)
             .ToDictionary(f => (uint)(f.Offset >> 16) & 255, f => f.Id) : null;
         for (int i = 24; i < meta.Length; i += stride) {
@@ -122,7 +133,10 @@ internal sealed partial class ProjectNativeTable {
             if (legacyFields != null) {
                 uint packed = unchecked((uint)uid); uid = (int)(packed & 0x00ffffff);
                 if (!legacyFields.TryGetValue(packed >> 24, out fieldId)) throw new NotSupportedException("The legacy variable field has no storage mapping.");
-            } else fieldId = meta.UInt32(i + 8);
+            } else {
+                fieldId = meta.UInt32(i + 8);
+                if (!Fields.ContainsKey(fieldId)) throw new InvalidDataException("The native variable field has no storage mapping.");
+            }
             int length = data.Int32(offset);
             var value = data.Slice(checked(offset + 4), length);
             if (!Variable.TryGetValue(uid, out var fields)) {

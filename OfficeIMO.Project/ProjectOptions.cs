@@ -22,6 +22,8 @@ public sealed class ProjectLoadOptions : DocumentLoadOptions {
     public int MaxTasks { get; set; } = 100_000;
     /// <summary>Maximum combined task/resource/calendar/assignment entities.</summary>
     public int MaxEntities { get; set; } = 300_000;
+    /// <summary>Maximum total variable field values materialized from native MPP/MPT tables.</summary>
+    public int MaxNativeValues { get; set; } = 1_000_000;
     /// <summary>Maximum timephased intervals, without implicit expansion.</summary>
     public int MaxTimephasedValues { get; set; } = 1_000_000;
     /// <summary>Maximum retained diagnostics; truncation is itself diagnosed.</summary>
@@ -31,7 +33,7 @@ public sealed class ProjectLoadOptions : DocumentLoadOptions {
         if (PackageSecurity != null)
             throw new NotSupportedException("PackageSecurity applies to packaged document formats. Use the Project XML limits for this codec; XML never resolves external entities or fetches external resources.");
         if (MaxInputBytes < 1 || MaxInputBytes > int.MaxValue || MaxCompoundEntries < 1 || MaxCompoundStreams < 1 || MaxCharacters < 1 || MaxDepth < 1 || MaxOutlineDepth < 1 ||
-            MaxElements < 1 || MaxAttributes < 1 || MaxTasks < 1 || MaxEntities < 1 ||
+            MaxElements < 1 || MaxAttributes < 1 || MaxTasks < 1 || MaxEntities < 1 || MaxNativeValues < 1 ||
             MaxTimephasedValues < 1 || MaxDiagnostics < 1) throw new ArgumentOutOfRangeException(nameof(ProjectLoadOptions), "All limits must be positive and in-memory input must fit an Int32 byte array.");
         if (!Enum.IsDefined(typeof(DocumentAccessMode), AccessMode) || !Enum.IsDefined(typeof(DocumentPersistenceMode), PersistenceMode))
             throw new ArgumentOutOfRangeException(nameof(ProjectLoadOptions), "Unknown lifecycle policy.");

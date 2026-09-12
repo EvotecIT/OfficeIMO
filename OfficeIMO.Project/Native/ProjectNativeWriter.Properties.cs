@@ -6,7 +6,7 @@ internal sealed partial class ProjectNativeWriter {
     private void WriteProperties() {
         var props = new ProjectNativePropertySet(_file.Streams[_profile.Properties], _token, _profile == ProjectNativeProfile.Mpp8);
         void Property(string path, uint id, int type, Func<object, byte[]> encode) {
-            Handle(path); if (!Changed(path)) return;
+            Handle(path); if (!_new && !Changed(path)) return;
             _current.TryGetValue(path, out var value);
             if (value == null) props.Remove(id);
             else try { props.Set(id, type, encode(value)); }
@@ -68,7 +68,7 @@ internal sealed partial class ProjectNativeWriter {
         var changes = new Dictionary<uint, string?>();
         foreach (var field in fields) {
             string path = "/Project/" + field.Name; Handle(path);
-            if (!Changed(path)) continue;
+            if (!_new && !Changed(path)) continue;
             _current.TryGetValue(path, out var value);
             if (value is string text) {
                 try { _ = Text(text); }

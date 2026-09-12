@@ -39,6 +39,7 @@ internal static partial class ProjectNativeCodec {
         foreach (var record in table.Records) {
             token.ThrowIfCancellationRequested();
             record.Uid = record.Integer(0x0f400000) ?? throw new InvalidDataException("Native assignment UID missing.");
+            if (record.Uid < 0) continue;
             CheckEntityBudget(document, options);
             int taskId = record.Integer(0x0f400001) ?? -1, resourceId = record.Integer(0x0f400002) ?? -1;
             document.TaskIndex.TryGetValue(taskId, out var task); document.ResourceIndex.TryGetValue(resourceId, out var resource);
