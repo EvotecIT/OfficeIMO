@@ -214,6 +214,11 @@ public partial class PdfWorkbench {
         DestructiveActionConfirmed = false;
     }
 
+    private async Task HandleSettingsChangedAsync() {
+        Diagnostics.Clear();
+        await ResetResultAsync();
+    }
+
     private async Task ResetResultAsync() {
         Session.ClearResult();
         if (_interop is not null) {

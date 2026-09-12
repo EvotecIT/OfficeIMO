@@ -356,6 +356,11 @@ This **Markdown** becomes a browser preview or an editable Word document.
         OutputSupportFileName = null;
     }
 
+    private async Task HandleOutputSettingsChangedAsync() {
+        Diagnostics.Clear();
+        await ResetOutputAsync();
+    }
+
     private async Task ResetOutputAsync() {
         Session.ClearResult();
         if (_interop is not null && !string.IsNullOrWhiteSpace(OutputUrl)) {

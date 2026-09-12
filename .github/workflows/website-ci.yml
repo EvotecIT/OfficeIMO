@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "Website/**"
+      - "OfficeIMO.Workflows/**"
       - "Docs/Compatibility/generated/**"
       - "Build/CompatibilityCatalog/**"
       - "OfficeIMO.Word/OfficeIMO.Word.csproj"

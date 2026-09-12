@@ -35,13 +35,13 @@
                     <div class="ocx-input-actions">
                         <button type="button" class="ocx-text-action" data-load-sample="@ActiveRoute.Id" @onclick="LoadSampleAsync">Try a sample</button>
                         @if (ActiveRoute.Id == "xlsx-pdf") {
-                            <label class="ocx-toggle"><input type="checkbox" @bind="LimitExcelRows" /><span>Browser-safe preview: up to 250 rows (skips sheet layout and media)</span></label>
+                            <label class="ocx-toggle"><input type="checkbox" @bind="LimitExcelRows" @bind:after="HandleOutputSettingsChangedAsync" disabled="@IsBusy" /><span>Browser-safe preview: up to 250 rows (skips sheet layout and media)</span></label>
                         }
                     </div>
                 } else {
                     <div class="ocx-editor-shell">
                         <div class="ocx-editor-shell__bar"><span>@ActiveRoute.Source source</span><button type="button" @onclick="LoadTextSampleAsync">Reset sample</button></div>
-                        <textarea class="ocx-textarea" aria-label="@ActiveRoute.Source input" maxlength="@BrowserConversionService.MaxTextInputChars" @bind="TextInput" @bind:event="oninput"></textarea>
+                        <textarea class="ocx-textarea" aria-label="@ActiveRoute.Source input" maxlength="@BrowserConversionService.MaxTextInputChars" @bind="TextInput" @bind:after="HandleOutputSettingsChangedAsync" disabled="@IsBusy" @bind:event="oninput"></textarea>
                     </div>
                 }
 
@@ -53,9 +53,9 @@
                             <span class="ocx-settings__chevron" aria-hidden="true"></span>
                         </summary>
                         <div class="ocx-settings__body">
-                            <label for="pdf-profile"><span>PDF profile</span><select id="pdf-profile" @bind="SelectedProfileId">@foreach (BrowserPdfProfile profile in PdfProfiles) { <option value="@profile.Id">@profile.Label</option> }</select></label>
+                            <label for="pdf-profile"><span>PDF profile</span><select id="pdf-profile" @bind="SelectedProfileId" @bind:after="HandleOutputSettingsChangedAsync" disabled="@IsBusy">@foreach (BrowserPdfProfile profile in PdfProfiles) { <option value="@profile.Id">@profile.Label</option> }</select></label>
                             <p>@SelectedProfile.Description</p>
-                            <label class="ocx-toggle"><input type="checkbox" @bind="GenerateDebugOverlay" /><span>Generate first-page layout overlay</span></label>
+                            <label class="ocx-toggle"><input type="checkbox" @bind="GenerateDebugOverlay" @bind:after="HandleOutputSettingsChangedAsync" disabled="@IsBusy" /><span>Generate first-page layout overlay</span></label>
                         </div>
                     </details>
                 }
@@ -68,7 +68,7 @@
                             <span class="ocx-settings__chevron" aria-hidden="true"></span>
                         </summary>
                         <div class="ocx-settings__body">
-                            <label for="powerpoint-import-profile"><span>Slide content</span><select id="powerpoint-import-profile" @bind="SelectedPowerPointImportProfileId" @bind:after="HandlePowerPointImportProfileChangedAsync">@foreach (BrowserPowerPointImportProfile profile in PowerPointImportProfiles) { <option value="@profile.Id">@profile.Label</option> }</select></label>
+                            <label for="powerpoint-import-profile"><span>Slide content</span><select id="powerpoint-import-profile" @bind="SelectedPowerPointImportProfileId" disabled="@IsBusy" @bind:after="HandlePowerPointImportProfileChangedAsync">@foreach (BrowserPowerPointImportProfile profile in PowerPointImportProfiles) { <option value="@profile.Id">@profile.Label</option> }</select></label>
                             <p>@SelectedPowerPointImportProfile.Description</p>
                         </div>
                     </details>
