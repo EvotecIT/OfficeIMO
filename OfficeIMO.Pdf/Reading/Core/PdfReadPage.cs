@@ -2140,6 +2140,7 @@ public sealed partial class PdfReadPage {
         private long _decodedBytes;
         private long _remainingColorFunctionEvaluationWork;
         private long _positionedTextCharacters;
+        private long _positionedTextWorkCharacters;
         private readonly Action<OfficeDrawing>? _configureDrawing;
 
         internal PageContentBudget(PdfReadPage page, CancellationToken cancellationToken = default)
@@ -2184,6 +2185,15 @@ public sealed partial class PdfReadPage {
             if (_positionedTextCharacters > _page._limits.MaxPositionedTextCharactersPerPage) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.PositionedTextCharacters,
                     _page._limits.MaxPositionedTextCharactersPerPage, _positionedTextCharacters);
+            }
+        }
+
+        internal void ChargePositionedTextWorkCharacters(int count) {
+            CancellationToken.ThrowIfCancellationRequested();
+            _positionedTextWorkCharacters += count;
+            if (_positionedTextWorkCharacters > _page._limits.MaxPositionedTextWorkCharactersPerPage) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.PositionedTextWorkCharacters,
+                    _page._limits.MaxPositionedTextWorkCharactersPerPage, _positionedTextWorkCharacters);
             }
         }
 

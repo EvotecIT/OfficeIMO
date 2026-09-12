@@ -11,6 +11,95 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
     [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public void ExportImage_MultiCharacterGlyphMappingsChargeMaterializationBeforeMeasurement(int glyphCount) {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier /ToUnicode 6 0 R >>\nendobj";
+        const string cmap = "1 beginbfchar\n<41> <00410042>\nendbfchar";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf 1 Tc 1000 100 Td (" + new string('A', glyphCount) + ") Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font, BuildStreamObject(6, "<<", cmap));
+        var document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPositionedTextWorkCharactersPerPage = glyphCount * 2 - 1 }
+        });
+        var provider = new OfficeIMO.TestAssets.ManagedTextShapingTestAssets.RecordingProvider();
+        var options = new PdfImageExportOptions { TextShapingProvider = provider };
+        options.Fonts.Add("Courier New", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont('A', 'B'));
+        var error = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ExportImage(OfficeImageExportFormat.Png, options));
+        Assert.Equal(PdfReadLimitKind.PositionedTextWorkCharacters, error.Kind);
+        Assert.Equal(glyphCount * 2, error.Actual);
+        if (glyphCount == 1) Assert.Empty(provider.Requests);
+        else Assert.NotEmpty(provider.Requests);
+    }
+
+    [Fact]
+    public void ExportImage_SpacesWithVisibleCustomFontInkStillConsumePositioningBudget() {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf -6 Tc 20 100 Td (A B) Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font);
+        var document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPositionedTextCharactersPerPage = 2 }
+        });
+        var options = new PdfImageExportOptions();
+        options.Fonts.Add("Courier New", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont(' ', 'A', 'B'));
+        var error = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ExportImage(OfficeImageExportFormat.Png, options));
+        Assert.Equal(PdfReadLimitKind.PositionedTextCharacters, error.Kind);
+        Assert.Equal(3, error.Actual);
+    }
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    [InlineData(true, 1)]
+    public void ExportImage_BoundsInvisibleGlyphWorkBeforeCallingShapingProvider(bool forms, int spacing) {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        const string resources = "<< /Font << /F1 5 0 R >> >>";
+        string content = $"BT /F1 10 Tf {spacing} Tc 1000 100 Td " + (forms ? "(A) Tj" : "(A) Tj (B) Tj (C) Tj") + " ET";
+        byte[] pdf = forms
+            ? BuildSingleStreamPdf("/Fm Do /Fm Do /Fm Do", "<< /XObject << /Fm 6 0 R >> >>", font,
+                BuildStreamObject(6, "<< /Type /XObject /Subtype /Form /BBox [0 0 2000 200] /Resources " + resources, content))
+            : BuildSingleStreamPdf(content, resources, font);
+        var document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPositionedTextWorkCharactersPerPage = 2 }
+        });
+        var provider = new OfficeIMO.TestAssets.ManagedTextShapingTestAssets.RecordingProvider();
+        var options = new PdfImageExportOptions { TextShapingProvider = provider };
+        options.Fonts.Add("Courier New", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont('A', 'B', 'C'));
+        var error = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ExportImage(OfficeImageExportFormat.Png, options));
+        Assert.Equal(PdfReadLimitKind.PositionedTextWorkCharacters, error.Kind);
+        Assert.Equal(2, error.Limit);
+        Assert.Equal(3, error.Actual);
+        Assert.NotEmpty(provider.Requests);
+        Assert.DoesNotContain(provider.Requests, request => request.Text.Contains("C"));
+    }
+
+    [Fact]
+    public void RenderPage_RepeatedInvisibleGlyphsReuseOneWorkCharge() {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf 1 Tc 1000 100 Td (" + new string('A', 100001) + ") Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font);
+        var document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPositionedTextWorkCharactersPerPage = 1, MaxPositionedTextCharactersPerPage = 1 }
+        });
+        Assert.Empty(document.Pages[0].ToDrawing().Elements);
+        Assert.Empty(document.Pages[0].ToDrawing().Elements);
+    }
+
+    [Fact]
+    public void RenderPage_OverprintedBlankSpacesDoNotConsumePositioningBudget() {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        string content = string.Concat(Enumerable.Repeat("A ", 50001)) + "B";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf -6 Tc 20 100 Td (" + content + ") Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font);
+        var drawing = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPositionedTextWorkCharactersPerPage = 3 }
+        }).Pages[0].ToDrawing();
+        Assert.Equal(50002, drawing.Elements.Count);
+        Assert.All(drawing.Elements.Take(50001), element => Assert.Equal("A", Assert.IsType<OfficeDrawingText>(element).Text));
+        Assert.Equal("B", Assert.IsType<OfficeDrawingText>(drawing.Elements.Last()).Text);
+    }
+
+    [Theory]
     [InlineData(0, "page")]
     [InlineData(1, "page")]
     [InlineData(0, "blend")]

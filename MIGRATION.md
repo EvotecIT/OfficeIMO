@@ -36,6 +36,16 @@ Other read and raster limits retain their defaults. Raising this value increases
 the amount of drawing geometry a page may allocate; choose a bound appropriate
 for the documents your application accepts.
 
+Visibility work has a separate 100,000-character limit,
+`MaxPositionedTextWorkCharactersPerPage`. It counts characters that need a glyph
+string to be materialized or an uncached ink measurement, including off-page or
+clipped-out glyphs. Allocation-free cache hits do not count. Work is shared across
+nested page rendering paths and resets for each render. Exceeding it throws
+`PdfReadLimitException` with `Kind == PdfReadLimitKind.PositionedTextWorkCharacters`.
+Raise this property in `PdfLoadOptions.Limits` for trusted documents that need
+more visibility work, independently of the limit on visible drawing elements.
+Glyphs with no resolved ink consume no scene-expansion budget.
+
 ### Factur-X profile declarations
 
 The Factur-X attachment helpers now derive XMP `ConformanceLevel` from the
