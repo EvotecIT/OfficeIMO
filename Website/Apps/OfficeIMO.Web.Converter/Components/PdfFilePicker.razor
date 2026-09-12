@@ -11,7 +11,7 @@
         <span class="ocx-dropzone__icon pdf-file-picker__icon"><i></i><b>PDF</b></span>
         <strong>@DropzoneTitle</strong>
         <small>Files stay in this browser tab · up to @ConverterWorkspace.FormatBytes(MaxFileBytes) each</small>
-        <span class="ocx-button ocx-button--choose">Choose PDF@(AllowsMultiple ? "s" : null)</span>
+        <span class="ocx-button ocx-button--choose">@(AllowsMultiple && Files.Count > 0 ? "Add PDFs" : AllowsMultiple ? "Choose PDFs" : "Choose PDF")</span>
     </label>
 
     @if (Files.Count > 0) {

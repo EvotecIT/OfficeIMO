@@ -82,29 +82,36 @@ public partial class PdfWorkbench {
         if (!IsCurrent()) return;
         Diagnostics.Clear();
         try {
+            bool append = ActiveTool.InputMode != PdfToolInputMode.Single;
+            int maximumFiles = ActiveTool.InputMode == PdfToolInputMode.Pair ? 2 : BrowserPdfToolService.MaxPdfFiles;
+            int remainingFiles = maximumFiles - Files.Count;
+            if (append && (remainingFiles <= 0 || args.FileCount > remainingFiles))
+                throw new InvalidDataException($"This tool accepts up to {maximumFiles} PDFs. Remove a selected file before adding more.");
             IReadOnlyList<IBrowserFile> selected = ActiveTool.InputMode == PdfToolInputMode.Single
             ? [args.File]
-            : args.GetMultipleFiles(ActiveTool.InputMode == PdfToolInputMode.Pair ? 2 : BrowserPdfToolService.MaxPdfFiles);
-            var loaded = new List<SelectedDocument>(selected.Count);
+            : args.GetMultipleFiles(remainingFiles);
+            var loaded = append ? new List<SelectedDocument>(Files) : new List<SelectedDocument>(selected.Count);
+            long aggregate = loaded.Sum(static file => file.Bytes.LongLength);
             foreach (IBrowserFile file in selected) {
                 string extension = Path.GetExtension(file.Name).ToLowerInvariant();
                 if (!string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase)) {
                     throw new InvalidDataException($"{file.Name} is not a PDF file.");
                 }
+                if (file.Size > BrowserPdfToolService.MaxAggregatePdfBytes - aggregate)
+                    throw new InvalidDataException($"Selected PDFs exceed the {ConverterWorkspace.FormatBytes(BrowserPdfToolService.MaxAggregatePdfBytes)} combined limit.");
                 await using Stream source = file.OpenReadStream(BrowserConversionService.MaxPackageBytes);
                 using var buffer = new MemoryStream();
                 await source.CopyToAsync(buffer);
                 byte[] bytes = buffer.ToArray();
+                aggregate += bytes.LongLength;
+                if (aggregate > BrowserPdfToolService.MaxAggregatePdfBytes)
+                    throw new InvalidDataException($"Selected PDFs exceed the {ConverterWorkspace.FormatBytes(BrowserPdfToolService.MaxAggregatePdfBytes)} combined limit.");
                 loaded.Add(new SelectedDocument(file.Name, extension, "PDF", bytes.LongLength, bytes));
             }
-            long aggregate = loaded.Sum(static file => file.Size);
-            if (aggregate > BrowserPdfToolService.MaxAggregatePdfBytes) {
-                throw new InvalidDataException($"Selected PDFs exceed the {ConverterWorkspace.FormatBytes(BrowserPdfToolService.MaxAggregatePdfBytes)} combined limit.");
-            }
             if (!IsCurrent()) return;
+            Session.Open(loaded); _sessionRevision = Session.Revision;
             Files.Clear();
             Files.AddRange(loaded);
-            Session.Open(Files); _sessionRevision = Session.Revision;
             Diagnostics.Add(new ConversionDiagnostic("Ready", $"{Files.Count} PDF file{(Files.Count == 1 ? string.Empty : "s")} loaded in this tab.", "ocx-dot--good"));
         } catch (Exception ex) {
             if (!IsCurrent()) return;

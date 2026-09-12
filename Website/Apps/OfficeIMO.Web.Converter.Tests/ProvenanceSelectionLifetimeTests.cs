@@ -9,7 +9,7 @@ using Xunit;
 
 namespace OfficeIMO.Web.Converter.Tests;
 
-public sealed class ProvenanceSelectionLifetimeTests {
+public sealed partial class ProvenanceSelectionLifetimeTests {
     [Theory]
     [InlineData(false, "pptx-pdf")]
     [InlineData(false, "docx-pdf")]
