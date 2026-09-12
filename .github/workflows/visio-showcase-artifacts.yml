@@ -41,7 +41,7 @@ permissions:
 env:
   DOTNET_VERSION: |
     8.0.418
-    10.0.103
+    10.0.112
   BUILD_CONFIGURATION: Release
   SHOWCASE_PATH: OfficeIMO.Examples/bin/Release/net8.0/Documents/Visio Showcase
 

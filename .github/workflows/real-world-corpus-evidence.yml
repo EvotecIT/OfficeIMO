@@ -31,7 +31,7 @@ permissions:
   contents: read
 
 env:
-  DOTNET_VERSION: '10.0.x'
+  DOTNET_VERSION: '10.0.112'
   BUILD_CONFIGURATION: Release
 
 jobs:

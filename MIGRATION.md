@@ -11,6 +11,58 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### Owned HTML documents and callbacks
+
+Public HTML APIs now use `OfficeIMO.Html.Dom.HtmlDocument`, `HtmlElement` and
+`HtmlNode` from `OfficeIMO.Html.Core`. Update all OfficeIMO packages together and
+recompile consumers that previously passed AngleSharp nodes. The current default
+implementation is supplied by `OfficeIMO.Html.AngleSharp`; converters retain their
+internal AngleSharp/CSS implementation.
+
+| Previous code or behavior | Replacement |
+| --- | --- |
+| `AngleSharp.Html.Dom.IHtmlDocument html = conversion.CreateDocumentForConversion()` | Use `HtmlDocument` or `var`; the result is an independent mutable conversion tree. |
+| Mutate a retained source tree | Read `conversion.Document`; use `conversion.Edit(edit => ...)` to obtain a new conversion snapshot. |
+| Pass native DOMs to `HtmlNormalizer`, `HtmlResourcePipeline`, `HtmlComputedStyleEngine` or `OfficeHtmlSemanticEnvelope` | Pass an owned document, or use the string/conversion-document overload. |
+| Dictionaries keyed by `AngleSharp.Dom.IElement` from computed-style APIs | Use `HtmlElement` keys. For `Compute(conversion)`, keys belong to `conversion.Document`. |
+| Native nodes in Markdown filters and custom converter contexts | Use owned nodes. Callback snapshots are read-only; a filter returning `true` still removes the matching element. |
+| `context.Element.TagName == "SPAN"` | Compare `context.Element.LocalName == "span"` for HTML elements; foreign-content case is preserved. |
+| `QuerySelectorAll(...).Length` | Use `.Count`; query results are `IReadOnlyList<HtmlElement>`. |
+| Pass native nodes to custom context conversion helpers | Pass nodes from that callback's owned snapshot. Cross-snapshot nodes are rejected. |
+| In-place `HtmlActiveMediaFilter.Filter(nativeDocument, media)` returning a Boolean | Assign the returned owned snapshot from `HtmlActiveMediaFilter.Filter(document, media)`; the input is unchanged. |
+| Catch native selector exceptions | Invalid selectors use `ArgumentException` on the owned selector API. |
+
+`HtmlConversionDocument.FromDocument(tree)` replaces native-DOM conversion inputs.
+Conversion capture retains the attached tree and template contents; detached nodes
+are omitted even when the input is frozen. Keep the original owned document when
+detached handles are needed. Mutable inputs are copied and frozen. Editing preserves conversion trust, resource
+policies and limits, and recomputes derived results. Node IDs persist within an edit
+lineage; snapshot IDs differ. Detached nodes remain part of their owning document
+and become read-only when it is frozen. `TextContent` can be set on elements, text,
+comments and fragments; write document text through `Body` or another element.
+
+For owned inputs, `MaxInputCharacters` bounds aggregate attached node names and
+values before conversion capture, standalone normalization or resource discovery.
+`HtmlConversionDocument` also bounds the resulting canonical HTML source.
+Increase this limit when an authored tree or its escaped serialization exceeds the
+configured budget. Template content participates in node, depth, CSS and semantic
+metadata limits on the default conversion parser as well as the owned provider.
+
+Standalone normalization and resource discovery apply the shared
+`Limits.MaxResponsiveImageCandidates` cap. Their separate candidate settings can
+tighten that cap; a larger setting does not relax the shared limit.
+
+`HtmlComputedStyleEngine.Compute(ownedDocument)` preserves the previous prepared-DOM
+style computation contract without injecting untrusted-input budgets. To apply
+custom budgets, pass a `HtmlConversionDocument` created with your chosen limits.
+Raw-string style computation continues to use the default untrusted profile.
+
+Use `InputEncodingProvider` on conversion options to replace charset lookup for
+source streams. Explicit encodings retain precedence and streams remain open with
+seekable positions restored. The default web charset provider still registers
+`CodePagesEncodingProvider` globally; it is isolated in the provider package rather
+than removed. External stylesheet/data-URI decoding has separate provider arguments.
+
 ### PDF positioned-text rendering limit
 
 PDF page-image export and `PdfReadPage.ToDrawing()` now limit positioned-text
@@ -923,7 +975,7 @@ implementation and options belong to `OfficeIMO.Pdf`.
 | Register MHT/MHTML with Reader | Reference `OfficeIMO.Reader.Email`, import `OfficeIMO.Reader.Email`, and call `AddMhtmlHandler()`. `AddEmailHandlers()` and `OfficeIMO.Reader.All` include it automatically. |
 | Read EPUB through Reader | No source change. `OfficeIMO.Reader.Epub` still reuses the HTML projection but no longer receives Email, RTF, or MHTML transitively. |
 
-No `OfficeIMO.Html.Core`, separate document-model package, or `OfficeIMO.Reader.Mhtml` package was introduced. The base HTML, Email, and Reader APIs stay focused; optional bridges carry the extra dependency edges. `OfficeIMO.Email.Image` and `OfficeIMO.Reader.Email` now reuse `OfficeIMO.Email.Html` for body choice, RTF fallback, sanitization, and embedded-resource resolution instead of maintaining adapter-specific policies.
+`OfficeIMO.Email.Image` and `OfficeIMO.Reader.Email` reuse `OfficeIMO.Email.Html` for body choice, RTF fallback, sanitization, and embedded-resource resolution instead of maintaining adapter-specific policies.
 
 ## OfficeIMO 3.1
 

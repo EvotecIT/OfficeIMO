@@ -54,7 +54,7 @@ jobs:
         with:
           dotnet-version: |
             8.0.x
-            10.0.x
+            10.0.112
 
       - name: Run provenance-bound scorecard
         shell: pwsh

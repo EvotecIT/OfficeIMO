@@ -4,6 +4,11 @@ namespace OfficeIMO.Html;
 /// Options for building the shared OfficeIMO HTML conversion document.
 /// </summary>
 public sealed class HtmlConversionDocumentOptions {
+    /// <summary>Inert parser supplying the document contract. The current provider is retained by default.</summary>
+    public Dom.IHtmlParserProvider ParserProvider { get; set; } = Providers.AngleSharpHtmlParser.Instance;
+    /// <summary>Charset labels used when loading source HTML bytes. Explicit encodings override sniffing.
+    /// External resource decoders use their own configured/default provider.</summary>
+    public Dom.IHtmlEncodingProvider InputEncodingProvider { get; set; } = Providers.AngleSharpEncodingProvider.Instance;
     private HtmlInputTrust _trust = HtmlInputTrust.Untrusted;
     private HtmlUrlPolicy _urlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
     private HtmlUrlPolicy _resourceUrlPolicy = CreateResourcePolicy(HtmlUrlPolicy.CreateWebOnlyProfile());
@@ -96,6 +101,8 @@ public sealed class HtmlConversionDocumentOptions {
     public HtmlConversionDocumentOptions Clone() {
         HtmlNormalizationOptions normalization = NormalizationOptions ?? new HtmlNormalizationOptions();
         return new HtmlConversionDocumentOptions {
+            ParserProvider = ParserProvider,
+            InputEncodingProvider = InputEncodingProvider,
             Profile = Profile,
             Trust = Trust,
             BaseUri = BaseUri,
@@ -122,6 +129,8 @@ public sealed class HtmlConversionDocumentOptions {
     }
 
     internal void Validate() {
+        if (ParserProvider == null) throw new ArgumentNullException(nameof(ParserProvider));
+        if (InputEncodingProvider == null) throw new ArgumentNullException(nameof(InputEncodingProvider));
         if (!Enum.IsDefined(typeof(HtmlInputTrust), Trust)) throw new ArgumentOutOfRangeException(nameof(Trust));
         if (!Enum.IsDefined(typeof(HtmlConversionProfile), Profile)) throw new ArgumentOutOfRangeException(nameof(Profile));
         (Limits ?? ResolveDefaultLimits(Trust)).Validate();

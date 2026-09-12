@@ -13,7 +13,11 @@ public sealed class HtmlDomLimitException : InvalidOperationException {
     /// <param name="actual">Observed value.</param>
     /// <param name="limit">Configured limit.</param>
     public HtmlDomLimitException(string code, string message, string source, long actual, long limit)
-        : base(message) {
+        : this(code, message, source, actual, limit, null) { }
+
+    // Keep the provider failure available when translating a shared conversion budget.
+    internal HtmlDomLimitException(string code, string message, string source, long actual, long limit, Exception? innerException)
+        : base(message, innerException) {
         Code = code ?? throw new ArgumentNullException(nameof(code));
         LimitSource = source ?? throw new ArgumentNullException(nameof(source));
         Actual = actual;

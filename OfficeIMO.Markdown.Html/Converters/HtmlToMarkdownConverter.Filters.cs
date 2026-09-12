@@ -25,20 +25,24 @@ internal sealed partial class HtmlToMarkdownConverter {
             return;
         }
 
-        var elements = root.QuerySelectorAll("*").ToList();
-        for (int i = 0; i < elements.Count; i++) {
-            var element = elements[i];
-            if (element.Parent == null) {
-                continue;
-            }
+        try {
+            var elements = root.QuerySelectorAll("*").ToList();
+            for (int i = 0; i < elements.Count; i++) {
+                var element = elements[i];
+                if (element.Parent == null) {
+                    continue;
+                }
 
-            for (int j = 0; j < options.ElementFilters.Count; j++) {
-                var filter = options.ElementFilters[j];
-                if (filter != null && filter(element)) {
-                    RemoveElement(element);
-                    break;
+                for (int j = 0; j < options.ElementFilters.Count; j++) {
+                    var filter = options.ElementFilters[j];
+                    if (filter != null && filter(OfficeIMO.Html.NativeDomBridge.Wrap(element))) {
+                        RemoveElement(element);
+                        break;
+                    }
                 }
             }
+        } finally {
+            if (root.Owner is AngleSharp.Html.Dom.IHtmlDocument document) OfficeIMO.Html.NativeDomBridge.ReleaseCallbackSnapshot(document);
         }
     }
 

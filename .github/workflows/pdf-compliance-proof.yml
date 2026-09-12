@@ -16,6 +16,8 @@ on:
       - 'OfficeIMO.Invoicing.Pdf.Tests/**'
       - 'OfficeIMO.Core/**'
       - 'OfficeIMO.Html/**'
+      - 'OfficeIMO.Html.Core/**'
+      - 'OfficeIMO.Html.AngleSharp/**'
       - 'OfficeIMO.Html.Pdf/**'
       - 'OfficeIMO.Mhtml/**'
       - 'OfficeIMO.Mhtml.Pdf/**'
@@ -48,6 +50,8 @@ on:
       - 'OfficeIMO.Invoicing.Pdf.Tests/**'
       - 'OfficeIMO.Core/**'
       - 'OfficeIMO.Html/**'
+      - 'OfficeIMO.Html.Core/**'
+      - 'OfficeIMO.Html.AngleSharp/**'
       - 'OfficeIMO.Html.Pdf/**'
       - 'OfficeIMO.Mhtml/**'
       - 'OfficeIMO.Mhtml.Pdf/**'
@@ -117,7 +121,7 @@ permissions:
 env:
   DOTNET_VERSION: |
     8.0.418
-    10.0.103
+    10.0.112
   BUILD_CONFIGURATION: Release
   PROOF_PATH: artifacts/pdf-compliance-proof
   VERAPDF_VERSION: 1.30.2

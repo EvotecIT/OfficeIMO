@@ -53,7 +53,11 @@ public static class OfficeHtmlSemanticEnvelope {
     }
 
     /// <summary>Inspects a parsed document using the shared compatibility rules.</summary>
-    public static OfficeHtmlSemanticEnvelopeInfo Inspect(IHtmlDocument document, string expectedSource) {
+    /// <summary>Inspects the semantic envelope in an owned HTML document.</summary>
+    public static OfficeHtmlSemanticEnvelopeInfo Inspect(Dom.HtmlDocument document, string expectedSource) =>
+        Inspect(NativeDomBridge.GetNativeDocument(document), expectedSource);
+
+    internal static OfficeHtmlSemanticEnvelopeInfo Inspect(IHtmlDocument document, string expectedSource) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (string.IsNullOrWhiteSpace(expectedSource)) throw new ArgumentException("Expected source cannot be empty.", nameof(expectedSource));
 

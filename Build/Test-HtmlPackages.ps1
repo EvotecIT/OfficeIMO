@@ -1,10 +1,15 @@
 param(
-    [string] $Version = '3.3.0'
+    [string] $Version = '3.3.0',
+    [string] $ArtifactsPath
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-$workingPath = Join-Path ([System.IO.Path]::GetTempPath()) ('officeimo-html-package-smoke-' + [Guid]::NewGuid().ToString('N'))
+$retainArtifacts = -not [string]::IsNullOrWhiteSpace($ArtifactsPath)
+$workingPath = if ($retainArtifacts) { [System.IO.Path]::GetFullPath($ArtifactsPath) } else {
+    Join-Path ([System.IO.Path]::GetTempPath()) ('officeimo-html-package-smoke-' + [Guid]::NewGuid().ToString('N'))
+}
+if (Test-Path -LiteralPath $workingPath) { throw "Choose a new artifact directory: $workingPath" }
 $feedPath = Join-Path $workingPath 'feed'
 $configPath = Join-Path $workingPath 'nuget\nuget.config'
 $packagesPath = Join-Path $workingPath 'packages'
@@ -13,7 +18,11 @@ New-Item -ItemType Directory -Path $feedPath -Force | Out-Null
 try {
     $projects = @(
         'OfficeIMO.Core/OfficeIMO.Core.csproj',
+        'OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj',
+        'OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj',
         'OfficeIMO.Html/OfficeIMO.Html.csproj',
+        'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
+        'OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj',
         'OfficeIMO.Word/OfficeIMO.Word.csproj',
         'OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj',
         'OfficeIMO.Excel/OfficeIMO.Excel.csproj',
@@ -52,7 +61,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Packed HTML consumer failed on $framework." }
     }
 } finally {
-    if (Test-Path -LiteralPath $workingPath) {
-        Remove-Item -LiteralPath $workingPath -Recurse -Force
+    if (-not $retainArtifacts -and (Test-Path -LiteralPath $workingPath)) {
+        Remove-Item -LiteralPath $workingPath -Recurse
     }
 }

@@ -29,7 +29,7 @@ public partial class Html {
         var converter = new HtmlToWordConverter();
 
         using WordDocument document = await converter.ConvertAsync(
-            HtmlConversionDocument.Parse(html.ToString()).CreateDocumentForConversion(),
+            HtmlConversionDocument.Parse(html.ToString()).CreateNativeDocumentForConversion(),
             options);
 
         Assert.Equal(paragraphCount, document.Paragraphs.Count);
@@ -62,7 +62,7 @@ public partial class Html {
         var converter = new HtmlToWordConverter();
 
         using WordDocument document = await converter.ConvertAsync(
-            HtmlConversionDocument.Parse(html.ToString()).CreateDocumentForConversion(),
+            HtmlConversionDocument.Parse(html.ToString()).CreateNativeDocumentForConversion(),
             options);
 
         WordTable table = Assert.Single(document.Tables);
@@ -110,7 +110,7 @@ public partial class Html {
         var converter = new HtmlToWordConverter();
 
         using WordDocument document = await converter.ConvertAsync(
-            HtmlConversionDocument.Parse(html).CreateDocumentForConversion(),
+            HtmlConversionDocument.Parse(html).CreateNativeDocumentForConversion(),
             HtmlToWordOptions.CreateUntrustedHtmlProfile());
 
         Assert.Equal(3, document.Images.Count);

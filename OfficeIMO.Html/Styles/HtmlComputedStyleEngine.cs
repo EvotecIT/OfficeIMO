@@ -354,7 +354,7 @@ public static partial class HtmlComputedStyleEngine {
     /// <summary>
     /// Computes styles for every element in the supplied document using style tags and inline style attributes.
     /// </summary>
-    public static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(IHtmlDocument document, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
+    internal static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(IHtmlDocument document, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
         return ComputeStyleSet(document, MediaEnvironment.CreateDefault(mediaContext), false, limits: null).Elements;
     }
 
@@ -420,32 +420,51 @@ public static partial class HtmlComputedStyleEngine {
     /// <summary>
     /// Parses raw HTML through the bounded shared conversion document and computes styles for matching elements.
     /// </summary>
-    public static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(string html, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
+    public static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(string html, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
         return Compute(HtmlConversionDocument.Parse(html), mediaContext);
     }
 
     /// <summary>Computes styles from a retained conversion document without reparsing its HTML source.</summary>
-    public static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(
+    public static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
         HtmlConversionDocument document,
         HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return Compute(document.CreateSourceDocumentForConversion(), mediaContext, document.Limits);
+        return Compute(document.Document, mediaContext, document.Limits);
+    }
+
+    /// <summary>Computes styles keyed by owned nodes from the supplied document snapshot.</summary>
+    /// <remarks>A prepared document retains the unbounded computation contract. To apply input and CSS
+    /// budgets, create an HtmlConversionDocument with explicit limits and use that overload.</remarks>
+    public static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
+        Dom.HtmlDocument document, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) =>
+        Compute(document, mediaContext, limits: null);
+
+    private static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
+        Dom.HtmlDocument document, HtmlCssMediaContext mediaContext, HtmlConversionLimits? limits) {
+        IHtmlDocument native = NativeDomBridge.GetNativeDocument(document);
+        if (limits != null) HtmlConversionInputGuard.ValidateDocument(native, limits);
+        var state = NativeDomBridge.GetState(document);
+        var computed = limits == null ? Compute(native, mediaContext) : Compute(native, mediaContext, limits);
+        return computed.ToDictionary(pair => (Dom.HtmlElement)state.ToOwned[pair.Key], pair => pair.Value);
     }
 
     /// <summary>
     /// Creates a compact summary from computed style results.
     /// </summary>
-    public static HtmlComputedStyleSummary Summarize(IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
-        if (styles == null) {
-            throw new ArgumentNullException(nameof(styles));
-        }
+    public static HtmlComputedStyleSummary Summarize(IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> styles) =>
+        SummarizeValues((styles ?? throw new ArgumentNullException(nameof(styles))).Values, styles.Count);
+
+    internal static HtmlComputedStyleSummary Summarize(IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) =>
+        SummarizeValues((styles ?? throw new ArgumentNullException(nameof(styles))).Values, styles.Count);
+
+    private static HtmlComputedStyleSummary SummarizeValues(IEnumerable<HtmlComputedStyle> styles, int count) {
 
         var propertyNames = new List<string>();
         var fontFamilies = new List<string>();
         var colorValues = new List<string>();
         int styledElementCount = 0;
         int hiddenElementCount = 0;
-        foreach (HtmlComputedStyle style in styles.Values) {
+        foreach (HtmlComputedStyle style in styles) {
             if (style.Properties.Count > 0) {
                 styledElementCount++;
             }
@@ -467,7 +486,7 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         return new HtmlComputedStyleSummary(
-            styles.Count,
+            count,
             styledElementCount,
             hiddenElementCount,
             propertyNames,

@@ -10,7 +10,7 @@
 
 OfficeIMO is a family of COM-free .NET libraries for creating, reading, editing, converting, and exporting Office and document formats. It runs in services, desktop applications, build agents, containers, and automation hosts without Microsoft Office, Excel, PowerPoint, Visio, or LibreOffice automation.
 
-This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, OPML, DocBook, CSV, EPUB, ZIP, drawing, Apple iWork source, legacy Word `.doc`, legacy Excel `.xls`, and legacy PowerPoint `.ppt`/`.pot`/`.pps` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML uses AngleSharp for DOM and CSS parsing. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
+This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, OPML, DocBook, CSV, EPUB, ZIP, drawing, Apple iWork source, legacy Word `.doc`, legacy Excel `.xls`, and legacy PowerPoint `.ppt`/`.pot`/`.pps` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML exposes owned document and provider contracts while retaining AngleSharp for parsing and CSS execution. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
 
 Applications should keep OfficeIMO packages on the same coordinated version. Converters compose package-owned document models and expose result-bearing APIs when callers need fidelity diagnostics.
 
@@ -42,7 +42,9 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Drawing, OneNote, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, OPML, DocBook, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
 | Apple iWork source reading | No third-party document engine | Bounded package, Snappy/IWA, protobuf-envelope, record-preservation, and Pages/Numbers/Keynote projection layers |
 | Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls`/`.ppt` support |
-| HTML | [AngleSharp](https://github.com/AngleSharp/AngleSharp) and AngleSharp.Css | Resource policy, media filtering, layout scene, and PNG/JPEG/TIFF/SVG/WebP output; opt-in bridges add RTF, MHTML, email-image, and PDF workflows |
+| HTML document contracts (`OfficeIMO.Html.Core`) | None | Owned nodes, immutable snapshots, edits and parser/charset contracts |
+| HTML syntax provider (`OfficeIMO.Html.AngleSharp`) | AngleSharp and `System.Text.Encoding.CodePages` | Translation to owned nodes, selector/serialization services and charset-provider integration |
+| HTML conversion and rendering | [AngleSharp](https://github.com/AngleSharp/AngleSharp) and AngleSharp.Css | Resource policy, media filtering, layout scene, and PNG/JPEG/TIFF/SVG/WebP output; opt-in bridges add RTF, MHTML, email-image, and PDF workflows |
 | PDF | No third-party PDF or cryptographic dependency | PDF parsing/writing/rendering, password security, signature structure, preservation policy, limits, and diagnostics |
 | Email, email stores, and address books | `System.Text.Encoding.CodePages` | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, protected-wrapper preservation, limits, and diagnostics |
 | Optional Security provider | [Bouncy Castle](https://www.bouncycastle.org/csharp/) and `System.Security.Cryptography.Xml` | CMS/S/MIME/RFC 3161/X.509/XML DSig orchestration behind one typed provider explicitly supplied to Word, PDF, or Email |
@@ -59,13 +61,6 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated source packages | 101 |
-| Documented package, tool, and example projects below | 108 |
-| Native format, foundation, and shared-service packages | 29 |
-| Conversion and cloud bridge packages | 36 |
-| Unified Reader packages | 29 |
-| Markdown renderer and OfficeIMO Markup surfaces | 10 |
-| Runnable example projects | 1 |
 | Modern Office authoring/editing | `.docx`, `.xlsx`, `.pptx`, `.vsdx`, `.vstx`, `.vssx`, `.vsdm`, `.vstm`, `.vssm` |
 | First-party legacy binary support | Word 97–2003 `.doc`, Excel BIFF8 `.xls`, PowerPoint 97–2003 `.ppt`/`.pot`/`.pps` |
 | First-party Apple iWork source support | Modern IWA-based `.pages`, `.numbers`, and `.key` read/inspect plus editable or visual-fallback projection; no iWork authoring |
@@ -347,6 +342,18 @@ _Dependency footprint:_ only `OfficeIMO.Core`; Markdown parsing and writing are 
 - [x] Markdown and HTML import through OfficeIMO's existing document engines
 
 _Dependency footprint:_ OfficeIMO Markdown, Markdown.Html, and HTML plus `System.Text.Json` on compatibility targets; no Atlassian SDK.
+
+#### [OfficeIMO.Html.Core](OfficeIMO.Html.Core/README.md)
+
+- [x] Owned HTML nodes, attributes, document modes, source offsets and separate template contents
+- [x] Immutable snapshots, independent edits, stable node IDs and detached-node ownership
+- [x] Parser, selector/serialization and charset contracts without graphics or browser dependencies
+
+#### [OfficeIMO.Html.AngleSharp](OfficeIMO.Html.AngleSharp/README.md)
+
+- [x] Inert full-document parsing with source limits and cooperative cancellation
+- [x] Selectors and serialization over owned nodes, preserving parser recovery during edits
+- [x] Existing web encoding aliases and code-page support behind a replaceable provider
 
 #### [OfficeIMO.Html](OfficeIMO.Html/README.md)
 

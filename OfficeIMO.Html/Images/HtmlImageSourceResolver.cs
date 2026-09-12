@@ -5,7 +5,7 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Resolves image sources from common HTML image, lazy-loading, and picture/source patterns.
 /// </summary>
-public static class HtmlImageSourceResolver {
+public static partial class HtmlImageSourceResolver {
     private static readonly string[] LazySourceAttributes = { "data-src", "data-original", "data-original-src", "data-lazy-src" };
     private static readonly string[] SourceAttributes = { "src" };
     private static readonly string[] SrcSetAttributes = { "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset" };
@@ -14,7 +14,7 @@ public static class HtmlImageSourceResolver {
     /// <summary>
     /// Resolves the best image source from an element, including lazy-loading attributes, source sets, and parent picture fallbacks.
     /// </summary>
-    public static string ResolveImageSource(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, bool allowParentPictureFallback = true) {
+    internal static string ResolveImageSource(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, bool allowParentPictureFallback = true) {
         foreach (string candidate in ResolveImageSourceCandidates(element, baseUri, policy, allowParentPictureFallback)) {
             return candidate;
         }
@@ -25,14 +25,14 @@ public static class HtmlImageSourceResolver {
     /// <summary>
     /// Resolves all image source candidates from an element in browser-like preference order.
     /// </summary>
-    public static IReadOnlyList<string> ResolveImageSourceCandidates(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, bool allowParentPictureFallback = true) {
+    internal static IReadOnlyList<string> ResolveImageSourceCandidates(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, bool allowParentPictureFallback = true) {
         return ResolveImageSourceCandidates(element, baseUri, policy, allowParentPictureFallback, null);
     }
 
     /// <summary>
     /// Resolves image source candidates from an element in browser-like preference order, limiting responsive candidates from picture/source-set inputs.
     /// </summary>
-    public static IReadOnlyList<string> ResolveImageSourceCandidates(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, bool allowParentPictureFallback, int? maxResponsiveCandidates) {
+    internal static IReadOnlyList<string> ResolveImageSourceCandidates(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, bool allowParentPictureFallback, int? maxResponsiveCandidates) {
         var candidates = new CandidateAccumulator();
         if (element == null) {
             return candidates.Items;
@@ -101,7 +101,7 @@ public static class HtmlImageSourceResolver {
     /// <summary>
     /// Resolves the preferred source from a <c>picture</c> element.
     /// </summary>
-    public static string ResolvePictureSource(IElement pictureElement, Uri? baseUri, HtmlUrlPolicy? policy) {
+    internal static string ResolvePictureSource(IElement pictureElement, Uri? baseUri, HtmlUrlPolicy? policy) {
         foreach (string candidate in ResolvePictureSourceCandidates(pictureElement, baseUri, policy)) {
             return candidate;
         }
@@ -112,14 +112,14 @@ public static class HtmlImageSourceResolver {
     /// <summary>
     /// Resolves all source candidates from a <c>picture</c> element.
     /// </summary>
-    public static IReadOnlyList<string> ResolvePictureSourceCandidates(IElement pictureElement, Uri? baseUri, HtmlUrlPolicy? policy) {
+    internal static IReadOnlyList<string> ResolvePictureSourceCandidates(IElement pictureElement, Uri? baseUri, HtmlUrlPolicy? policy) {
         return ResolvePictureSourceCandidates(pictureElement, baseUri, policy, null);
     }
 
     /// <summary>
     /// Resolves source candidates from a <c>picture</c> element, stopping after the requested number of responsive candidates.
     /// </summary>
-    public static IReadOnlyList<string> ResolvePictureSourceCandidates(IElement pictureElement, Uri? baseUri, HtmlUrlPolicy? policy, int? maxCandidates) {
+    internal static IReadOnlyList<string> ResolvePictureSourceCandidates(IElement pictureElement, Uri? baseUri, HtmlUrlPolicy? policy, int? maxCandidates) {
         var candidates = new CandidateAccumulator();
         if (pictureElement == null) {
             return candidates.Items;
@@ -203,7 +203,7 @@ public static class HtmlImageSourceResolver {
     /// <summary>
     /// Resolves the first allowed candidate from each supplied source-set attribute in order.
     /// </summary>
-    public static string ResolveUrlFromSrcSetAttributes(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, params string[] attributeNames) {
+    internal static string ResolveUrlFromSrcSetAttributes(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, params string[] attributeNames) {
         if (element == null || attributeNames == null || attributeNames.Length == 0) {
             return string.Empty;
         }
@@ -221,7 +221,7 @@ public static class HtmlImageSourceResolver {
     /// <summary>
     /// Resolves and normalizes the first non-empty source-set attribute.
     /// </summary>
-    public static string ResolveNormalizedSrcSetAttributes(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, params string[] attributeNames) {
+    internal static string ResolveNormalizedSrcSetAttributes(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, params string[] attributeNames) {
         if (element == null || attributeNames == null || attributeNames.Length == 0) {
             return string.Empty;
         }
@@ -239,7 +239,7 @@ public static class HtmlImageSourceResolver {
     /// <summary>
     /// Resolves the first allowed URL attribute from an element.
     /// </summary>
-    public static string ResolveUrlAttributes(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, params string[] attributeNames) {
+    internal static string ResolveUrlAttributes(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, params string[] attributeNames) {
         if (element == null || attributeNames == null || attributeNames.Length == 0) {
             return string.Empty;
         }

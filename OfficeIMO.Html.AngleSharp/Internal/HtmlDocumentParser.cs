@@ -8,7 +8,7 @@ using System.Threading;
 namespace OfficeIMO.Html;
 
 /// <summary>
-/// Shared document parsing and base URI helpers for OfficeIMO HTML ingestion packages.
+/// Native parser and tree helpers for the existing conversion implementation.
 /// </summary>
 internal static class HtmlDocumentParser {
     /// <summary>

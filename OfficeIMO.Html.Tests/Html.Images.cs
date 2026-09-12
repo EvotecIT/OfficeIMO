@@ -1570,7 +1570,7 @@ namespace OfficeIMO.Tests {
             OfficeIMO.Html.HtmlConversionDocument source = OfficeIMO.Html.HtmlConversionDocument.Parse(html);
 
             using var doc = await converter.ConvertAsync(
-                source.CreateDocumentForConversion(),
+                source.CreateNativeDocumentForConversion(),
                 options);
 
             Assert.Equal(2, doc.Images.Count);

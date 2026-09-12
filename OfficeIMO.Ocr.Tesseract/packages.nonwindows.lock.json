@@ -97,7 +97,7 @@
       "officeimo.ocr.process": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Ocr": "[3.4.0, )",
+          "OfficeIMO.Ocr": "[3.4.3, )",
           "System.Text.Json": "[10.0.7, 11.0.0)"
         }
       }
@@ -109,13 +109,19 @@
     ".NETStandard,Version=v2.0/win-arm64": {},
     ".NETStandard,Version=v2.0/win-x64": {},
     "net10.0": {
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "xi+BDjFpW+Sb+MHFHaH6Y/gV9I8BluFwRXc1QyCdoZbIK26eNiBeFuMTe/FMwc33G1wdHCyDg7CVTmb8OdQrMQ=="
+      },
       "officeimo.ocr": {
         "type": "Project"
       },
       "officeimo.ocr.process": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Ocr": "[3.4.0, )"
+          "OfficeIMO.Ocr": "[3.4.3, )"
         }
       }
     },
@@ -126,13 +132,19 @@
     "net10.0/win-arm64": {},
     "net10.0/win-x64": {},
     "net8.0": {
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[8.0.31, )",
+        "resolved": "8.0.31",
+        "contentHash": "OJdAGATV2QoVWL11zlDLEluA06q8rK+cgZR47ohrO8V+Qj5z9dlvN7bG9/0e5t0IOe+yD8tREC0bpsEgDGrzIQ=="
+      },
       "officeimo.ocr": {
         "type": "Project"
       },
       "officeimo.ocr.process": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Ocr": "[3.4.0, )"
+          "OfficeIMO.Ocr": "[3.4.3, )"
         }
       }
     },
