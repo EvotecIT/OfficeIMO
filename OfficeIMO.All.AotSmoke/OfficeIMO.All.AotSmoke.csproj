@@ -45,6 +45,8 @@
     <ProjectReference Include="..\OfficeIMO.GoogleWorkspace.Drive\OfficeIMO.GoogleWorkspace.Drive.csproj" />
     <ProjectReference Include="..\OfficeIMO.GoogleWorkspace.Sync\OfficeIMO.GoogleWorkspace.Sync.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.AngleSharp\OfficeIMO.Html.AngleSharp.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.Core\OfficeIMO.Html.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Rtf\OfficeIMO.Html.Rtf.csproj" />
     <ProjectReference Include="..\OfficeIMO.IWork\OfficeIMO.IWork.csproj" />
@@ -157,6 +159,8 @@
     <TrimmerRootAssembly Include="OfficeIMO.GoogleWorkspace.Drive" />
     <TrimmerRootAssembly Include="OfficeIMO.GoogleWorkspace.Sync" />
     <TrimmerRootAssembly Include="OfficeIMO.Html" />
+    <TrimmerRootAssembly Include="OfficeIMO.Html.AngleSharp" />
+    <TrimmerRootAssembly Include="OfficeIMO.Html.Core" />
     <TrimmerRootAssembly Include="OfficeIMO.Html.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.Html.Rtf" />
     <TrimmerRootAssembly Include="OfficeIMO.IWork" />
