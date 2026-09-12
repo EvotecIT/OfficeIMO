@@ -64,7 +64,6 @@
             {{ else }}
             <a href="{{ card.image }}" data-pf-media data-pf-media-caption="{{ card.title | html.escape }}" aria-label="Open preview: {{ card.title | html.escape }}">
               <img src="{{ card.image }}" alt="{{ card.image_alt | html.escape }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async" />
-              <span class="imo-example__preview-action" aria-hidden="true">Open preview ↗</span>
             </a>
             {{ end }}
           </div>
