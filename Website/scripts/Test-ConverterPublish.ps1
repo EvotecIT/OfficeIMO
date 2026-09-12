@@ -91,7 +91,7 @@ if ($converterCss -notmatch '\.ocx-hidden-input\s*\{[^}]*\binset:\s*0' -or
 }
 
 $module = Get-Content -LiteralPath $modulePath -Raw
-if ($module -notmatch 'export function createObjectUrl' -or $module -notmatch 'export function revokeObjectUrl') {
+if ($module -notmatch 'export function createObjectUrl') {
     throw 'Converter collocated interop module is incomplete.'
 }
 

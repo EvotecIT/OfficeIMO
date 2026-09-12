@@ -39,7 +39,8 @@ public static class OfficeProvenanceBufferWorkflow {
         var outputLimits = OfficeProvenanceRemover.CreateOutputInspectionOptions(options);
         long remainingBytes = options.Limits.MaxExpandedContainerBytes;
         OfficeWorkflowRunner.ConsumeExpandedProcessingBytes(ref remainingBytes, result.Before.ExpandedInspectionBytes);
-        OfficeWorkflowRunner.ConsumeExpandedProcessingBytes(ref remainingBytes, result.After.ExpandedInspectionBytes);
+        if (!ReferenceEquals(result.Before, result.After))
+            OfficeWorkflowRunner.ConsumeExpandedProcessingBytes(ref remainingBytes, result.After.ExpandedInspectionBytes);
         outputLimits.MaxExpandedContainerBytes = Math.Max(1, remainingBytes);
         var reopened = Inspect(result.ToArray(), fileName, outputLimits);
         OfficeWorkflowRunner.ConsumeExpandedProcessingBytes(ref remainingBytes, reopened.ExpandedInspectionBytes);

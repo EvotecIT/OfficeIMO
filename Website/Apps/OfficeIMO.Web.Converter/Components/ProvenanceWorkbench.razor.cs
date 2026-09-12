@@ -30,14 +30,18 @@ public partial class ProvenanceWorkbench {
     protected override async Task OnParametersSetAsync() {
         if (_revision == Session.Revision) return;
         _revision = Session.Revision;
-        ++_generation;
-        await ClearResultAsync(); _report = null;
+        int generation = ++_generation;
+        await ClearResultAsync();
+        if (_disposed || generation != _generation || _revision != Session.Revision) return;
+        _report = null;
         _file = Session.Current.FirstOrDefault(file => OfficeProvenanceBufferWorkflow.SupportedExtensions.Contains(file.Extension, StringComparer.OrdinalIgnoreCase));
         _message = _file is null ? "Choose a supported file to inspect." : "Working file ready for inspection.";
         _busy = false;
     }
     private async Task OpenAsync(InputFileChangeEventArgs args) {
         int generation = ++_generation;
+        int sourceRevision = Session.Revision;
+        bool IsCurrent() => !_disposed && generation == _generation && sourceRevision == Session.Revision;
         _busy = true;
         try {
             var file = args.File;
@@ -45,27 +49,33 @@ public partial class ProvenanceWorkbench {
             if (!OfficeProvenanceBufferWorkflow.SupportedExtensions.Contains(extension)) throw new NotSupportedException("Choose JPEG, PNG, WebP, PDF, DOCX, XLSX, or PPTX.");
             await using var input = file.OpenReadStream(BrowserConversionService.MaxPackageBytes);
             using var memory = new MemoryStream(); await input.CopyToAsync(memory);
-            if (_disposed || generation != _generation) return;
-            await ClearResultAsync(); _report = null;
+            if (!IsCurrent()) return;
+            await ClearResultAsync();
+            if (!IsCurrent()) return;
+            _report = null;
             _file = new(file.Name, extension, extension.TrimStart('.').ToUpperInvariant(), memory.Length, memory.ToArray());
             Session.Open([_file]); _revision = Session.Revision;
             _message = "File ready. Inspect it to see supported provenance.";
         } catch (Exception ex) when (ex is not OutOfMemoryException) {
-            if (generation == _generation) _message = "Could not open file: " + ex.Message;
+            if (IsCurrent()) _message = "Could not open file: " + ex.Message;
         } finally { if (generation == _generation) _busy = false; }
     }
     private async Task LoadSampleAsync() {
         if (_busy) return;
         int generation = ++_generation;
+        int sourceRevision = Session.Revision;
+        bool IsCurrent() => !_disposed && generation == _generation && sourceRevision == Session.Revision;
         _busy = true;
         try {
             byte[] bytes = await Http.GetByteArrayAsync("samples/provenance-demo.png");
-            if (_disposed || generation != _generation) return;
-            await ClearResultAsync(); _report = null;
+            if (!IsCurrent()) return;
+            await ClearResultAsync();
+            if (!IsCurrent()) return;
+            _report = null;
             _file = new("provenance-demo.png", ".png", "PNG", bytes.LongLength, bytes);
             Session.Open([_file]); _revision = Session.Revision;
             _message = "Sample ready. Its AI source declaration is test metadata added for this demonstration.";
-        } catch (Exception ex) { if (generation == _generation) _message = "Could not load sample: " + ex.Message; }
+        } catch (Exception ex) { if (IsCurrent()) _message = "Could not load sample: " + ex.Message; }
         finally { if (generation == _generation) _busy = false; }
     }
     private Task InspectAsync() => RunAsync(false);
@@ -128,7 +138,14 @@ public partial class ProvenanceWorkbench {
             if (generation == _generation) _busy = false;
         }
     }
-    private async Task OptionsChangedAsync() { ++_generation; _report = _removal?.Before ?? _report; Session.ClearResult(); await ClearResultAsync(); _message = "Removal options changed. Create a new copy to apply them."; }
+    private async Task OptionsChangedAsync() {
+        int generation = ++_generation;
+        int sourceRevision = Session.Revision;
+        _report = _removal?.Before ?? _report; Session.ClearResult();
+        await ClearResultAsync();
+        if (!_disposed && generation == _generation && sourceRevision == Session.Revision)
+            _message = "Removal options changed. Create a new copy to apply them.";
+    }
     private async Task ClearResultAsync() {
         var urls = new[] { _outputUrl, _reportUrl, _previewUrl };
         _outputUrl = _reportUrl = _previewUrl = _outputName = null; _outputBytes = null; _removal = null;

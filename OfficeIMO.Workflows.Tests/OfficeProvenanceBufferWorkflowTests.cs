@@ -2,10 +2,38 @@ using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
 using OfficeIMO.Provenance;
+using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed partial class OfficeProvenanceWorkflowTests {
+    [Fact]
+    public async Task UnchangedPdfChargesEachActualInspectionOnceInBothWorkflowHosts() {
+        using var scope = new TempScope();
+        string path = Path.Combine(scope.Path, "unchanged.pdf");
+        const long expanded = 512;
+        byte[] bytes = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Keep this attachment."))
+            .AttachFile(new PdfEmbeddedFile("claim.c2pa", new byte[expanded], "application/c2pa", PdfAssociatedFileRelationship.C2paManifest)).ToBytes();
+        File.WriteAllBytes(path, bytes);
+        var owner = PdfProvenance.Remove(bytes, new OfficeProvenanceRemovalOptions { RemoveC2paManifests = false });
+        Assert.Same(owner.Before, owner.After);
+        Assert.Single(owner.Before.Evidence);
+        var options = new OfficeProvenanceRemovalOptions { RemoveC2paManifests = false, Limits = { MaxExpandedContainerBytes = 2 * expanded } };
+        Assert.Equal(bytes, OfficeProvenanceBufferWorkflow.Remove(bytes, "unchanged.pdf", options).ToArray());
+        options.Limits.MaxExpandedContainerBytes--;
+        var limit = Assert.Throws<PdfReadLimitException>(() => OfficeProvenanceBufferWorkflow.Remove(bytes, "unchanged.pdf", options));
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, limit.Kind);
+        var request = new OfficeProvenanceWorkflowRequest {
+            Operation = OfficeProvenanceWorkflowOperation.Remove, InputPath = path,
+            OutputPath = Path.Combine(scope.Path, "copy.pdf")
+        };
+        // The path host also performs an initial workflow inspection before calling the owner.
+        request.Removal.Limits.MaxExpandedContainerBytes = 3 * expanded;
+        request.Removal.RemoveC2paManifests = false;
+        var result = await new OfficeWorkflowRunner().RunProvenanceAsync(request);
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(bytes, File.ReadAllBytes(request.OutputPath));
+    }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
