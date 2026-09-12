@@ -163,7 +163,7 @@ public sealed partial class HtmlDocument : HtmlNode {
             var newElement = new HtmlElement(clone, source.NodeId, element.LocalName, element.NamespaceUri, element.Prefix);
             foreach (HtmlAttribute attribute in element.Attributes) {
                 cancellationToken.ThrowIfCancellationRequested();
-                newElement.SetAttribute(attribute.Name, attribute.Value, attribute.NamespaceUri);
+                newElement.SetAttribute(attribute);
             }
             copy = newElement;
         } else if (source is HtmlDocumentType type) copy = new HtmlDocumentType(clone, source.NodeId, type.Name, type.PublicIdentifier, type.SystemIdentifier);

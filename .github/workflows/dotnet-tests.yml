@@ -35,6 +35,23 @@ env:
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
 
 jobs:
+  html-runtime:
+    name: 'Scripted HTML (${{ matrix.os }} / ${{ matrix.framework }})'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        framework: [net8.0, net10.0]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Validate scripted-document capture and conversion
+        run: dotnet test OfficeIMO.Html.Runtime.Tests/OfficeIMO.Html.Runtime.Tests.csproj -c Release -f ${{ matrix.framework }}
+
   studio-locked-restore:
     name: 'Studio locked restore (${{ matrix.os }})'
     runs-on: ${{ matrix.os }}

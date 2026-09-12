@@ -47,9 +47,14 @@ public sealed class HtmlElement : HtmlNode {
     public void SetAttribute(string name, string value, string? namespaceUri = null) {
         Document.EnsureMutable();
         if (NamespaceUri == HtmlNamespace && string.IsNullOrEmpty(namespaceUri)) name = HtmlNames.LowerAscii(name);
-        var replacement = new HtmlAttribute(name, value, namespaceUri);
-        int index = _attributes.FindIndex(attribute => attribute.NamespaceUri == replacement.NamespaceUri &&
-            (replacement.NamespaceUri.Length == 0 ? NamesEqual(attribute.Name, name) : attribute.LocalName == replacement.LocalName));
+        SetAttribute(new HtmlAttribute(name, value, namespaceUri));
+    }
+    /// <summary>Adds or replaces an exact attribute by namespace and local name, preserving its qualified name and case.</summary>
+    /// <remarks>Use this overload when importing structural DOM state, including namespace-aware script mutations.</remarks>
+    public void SetAttribute(HtmlAttribute replacement) {
+        Document.EnsureMutable();
+        if (replacement == null) throw new ArgumentNullException(nameof(replacement));
+        int index = _attributes.FindIndex(attribute => attribute.NamespaceUri == replacement.NamespaceUri && attribute.LocalName == replacement.LocalName);
         if (index >= 0) _attributes[index] = replacement; else _attributes.Add(replacement);
         Document.Touch();
     }

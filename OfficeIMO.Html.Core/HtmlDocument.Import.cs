@@ -49,7 +49,7 @@ public sealed partial class HtmlDocument {
             HtmlElement copy = CreateElement(element.LocalName, element.NamespaceUri, element.Prefix);
             foreach (HtmlAttribute attribute in element.Attributes) {
                 cancellationToken.ThrowIfCancellationRequested();
-                copy.SetAttribute(attribute.Name, attribute.Value, attribute.NamespaceUri);
+                copy.SetAttribute(attribute);
             }
             if (element.TemplateContent != null) GetOrCreateTemplateContent(copy);
             return copy;

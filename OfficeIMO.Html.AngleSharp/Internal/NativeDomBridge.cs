@@ -178,7 +178,7 @@ internal static class NativeDomBridge {
             HtmlElement result = document.CreateElement(element.LocalName, element.NamespaceUri ?? string.Empty, element.Prefix);
             foreach (IAttr attribute in element.Attributes) {
                 cancellationToken.ThrowIfCancellationRequested();
-                result.SetAttribute(attribute.Name, attribute.Value, attribute.NamespaceUri);
+                result.SetAttribute(new HtmlAttribute(attribute.Name, attribute.Value, attribute.NamespaceUri));
             }
             if (element.SourceReference?.Position.Index is int index && index >= 0) document.SetSourceIndex(result, index);
             return result;

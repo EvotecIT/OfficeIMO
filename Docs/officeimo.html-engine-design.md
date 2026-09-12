@@ -187,7 +187,9 @@ Distinguish two paths: native layout of captured HTML/CSS/assets, and importing 
 
 ## Browser runtime evolution
 
-The initial engine is inert even when the input contains scripts. A later optional runtime owns realms, DOM bindings, event dispatch, tasks/microtasks, timers, navigation, fetch, storage, origins and invalidation. Runtime mutations update the same owned DOM; there is no separate scripting DOM to synchronize.
+The static engine is inert even when the input contains scripts. An optional OfficeIMO runtime owns the public session, execution, readiness and capture contracts. Its implementation supplies realms, DOM bindings, event dispatch, tasks/microtasks, timers, navigation, fetch, storage, origins and invalidation as each profile is qualified. A session has one authoritative live document. A transitional provider may retain that document in its native representation and produce independent OfficeIMO snapshots at an explicit capture boundary; do not maintain two independently mutable DOMs or expose provider nodes as public session results. A future owned live DOM replaces the provider implementation without changing the session contract.
+
+The next functional deliverable is a standalone OfficeIMO workflow from scripted HTML to an explicitly ready document and rendered or semantic output. Retain effective HTML, CSS and JavaScript providers while establishing that workflow. Expand CSS and layout where its fixtures expose missing behavior; owned parser replacement and full static-engine qualification are not prerequisites. HtmlTinkerX can reuse this engine later, but its current helper APIs, package graph and workflows do not define the runtime's boundary or acceptance criteria.
 
 A JavaScript interpreter can execute language code but does not supply a web platform. Evaluate the Jint dependency already present in HtmlTinkerX for the first bounded runtime, preserving a provider boundary. Language testing uses [Test262](https://github.com/tc39/test262); page behavior needs additional DOM and web API tests. Event scheduling follows the [HTML event-loop model](https://html.spec.whatwg.org/multipage/webappapis.html#event-loops).
 
