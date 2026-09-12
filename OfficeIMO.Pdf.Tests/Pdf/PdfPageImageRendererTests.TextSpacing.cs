@@ -10,6 +10,19 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
+    [Fact]
+    public void ToDrawing_WithFontProfileHonorsCancellationBeforeShaping() {
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf 1 Tc 10 100 Td (AB) Tj ET");
+        var provider = new OfficeIMO.TestAssets.ManagedTextShapingTestAssets.RecordingProvider();
+        var fonts = new OfficeFontFaceCollection();
+        fonts.Add("Courier New", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont('A', 'B'));
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() => PdfReadDocument.Open(pdf).Pages[0]
+            .ToDrawing(fonts, provider, cancellationToken: cancellation.Token));
+        Assert.Empty(provider.Requests);
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(3)]
@@ -142,6 +155,9 @@ public partial class PdfPageImageRendererTests {
             OfficeColor.Black, textAdvanceWidth: 6);
         byte[] pixels = OfficeDrawingRasterRenderer.Render(expected).GetPixels();
         Assert.Contains(pixels, channel => channel != 0);
+        var projected = PdfReadDocument.Open(pdf).Pages[0].ToDrawing(options.Fonts,
+            options.TextShapingProvider, options.TextShapingLanguage);
+        Assert.Equal(pixels, OfficeDrawingRasterRenderer.Render(projected).GetPixels());
         var exported = PdfReadDocument.Open(pdf).Pages[0].ExportImage(OfficeImageExportFormat.Png, options);
         Assert.True(OfficePngReader.TryDecode(exported.Bytes, out OfficeRasterImage? raster));
         Assert.Equal(pixels, raster!.GetPixels());

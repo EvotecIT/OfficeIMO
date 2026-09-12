@@ -111,6 +111,27 @@ public sealed partial class PdfReadPage {
     /// </summary>
     public OfficeDrawing ToDrawing() => ToDrawing(CancellationToken.None);
 
+    /// <summary>
+    /// Projects supported page content using the supplied fonts and shaping profile before checking glyph visibility.
+    /// </summary>
+    /// <param name="fonts">Fonts to add after embedded fonts, replacing faces with matching family and style.</param>
+    /// <param name="textShapingProvider">Optional provider used for glyph shaping and visibility measurements.</param>
+    /// <param name="textShapingLanguage">Optional language passed to the shaping provider.</param>
+    /// <param name="cancellationToken">Token used to cancel page projection.</param>
+    /// <returns>A drawing scene with the supplied profile applied to the page and nested drawings.</returns>
+    /// <remarks>Supply substitute fonts here; adding fonts after projection cannot restore glyphs already culled.</remarks>
+    public OfficeDrawing ToDrawing(OfficeFontFaceCollection fonts,
+        IOfficeTextShapingProvider? textShapingProvider = null,
+        string? textShapingLanguage = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(fonts, nameof(fonts));
+        return ToDrawing(cancellationToken, drawing => {
+            drawing.Fonts.AddRange(fonts);
+            drawing.TextShapingProvider = textShapingProvider;
+            drawing.TextShapingLanguage = textShapingLanguage;
+        });
+    }
+
     internal OfficeDrawing ToDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandContentExtraction?.Invoke("visual content");

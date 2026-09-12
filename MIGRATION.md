@@ -46,6 +46,24 @@ Raise this property in `PdfLoadOptions.Limits` for trusted documents that need
 more visibility work, independently of the limit on visible drawing elements.
 Glyphs with no resolved ink consume no scene-expansion budget.
 
+### Configure PDF drawing fonts before projection
+
+If you add substitute fonts to the drawing returned by `PdfReadPage.ToDrawing()`,
+move that configuration into the new overload. Visibility checks now measure
+glyph ink during projection; changing fonts afterward cannot restore culled glyphs.
+
+```csharp
+var fonts = new OfficeFontFaceCollection();
+fonts.Add("Courier New", File.ReadAllBytes("fonts/CourierSubstitute.ttf"));
+var drawing = document.Pages[0].ToDrawing(fonts);
+```
+
+Pass an optional `textShapingProvider` and `textShapingLanguage` to the same
+overload when using custom shaping. Fonts and shaping apply before visibility
+checks in nested forms, patterns, and masks as well as the page. The parameterless
+overload remains available for default rendering. Image export already accepts
+the profile through `PdfImageExportOptions`.
+
 ### Factur-X profile declarations
 
 The Factur-X attachment helpers now derive XMP `ConformanceLevel` from the
