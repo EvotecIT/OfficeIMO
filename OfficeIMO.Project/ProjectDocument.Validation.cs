@@ -50,7 +50,7 @@ public sealed partial class ProjectDocument {
             CheckDate(task.Deadline, location + "/Deadline", Add); CheckDate(task.ConstraintDate, location + "/ConstraintDate", Add);
             if (task.Calendar == null && task.SourceCalendarUid > 0)
                 Add("PROJECT_CALENDAR_REFERENCE", "The task references a missing calendar.", location);
-            if (task.Calendar?.IsBaseCalendar == false)
+            if (task.Calendar != null && (task.Calendar.BaseCalendar != null || task.Calendar.IsBaseCalendar == false))
                 Add("PROJECT_TASK_CALENDAR_KIND", "An explicit task calendar must be a base calendar. A derived resource calendar belongs on the resource.", location);
             CheckRich(task.Baselines, task.CustomFields, task.TimephasedData, location, Add, cancellationToken);
         }

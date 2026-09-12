@@ -220,6 +220,32 @@ public sealed class ProjectMpxTests {
     }
 
     [Fact]
+    public void MissingAssignmentDatesRemainAbsentWhenTaskDatesArePresent() {
+        using var project = ProjectDocument.Create();
+        project.Calendar = project.Calendars.AddStandardWorkingWeek();
+        var task = project.Tasks.Add("Scheduled task");
+        task.Start = new DateTime(2026, 10, 5, 8, 0, 0); task.Finish = new DateTime(2026, 10, 5, 17, 0, 0);
+        var assignment = project.Assignments.Add(task, project.Resources.AddWork("Engineer"));
+        Assert.Null(assignment.Start); Assert.Null(assignment.Finish);
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(task.Start, reopened.Tasks[0].Start); Assert.Equal(task.Finish, reopened.Tasks[0].Finish);
+        Assert.Null(reopened.Assignments[0].Start); Assert.Null(reopened.Assignments[0].Finish);
+    }
+
+    [Fact]
+    public void MissingAssignmentRemainingWorkRemainsAbsentWhenWorkIsPresent() {
+        using var project = ProjectDocument.Create();
+        var assignment = project.Assignments.Add(project.Tasks.Add("Task"), project.Resources.AddWork("Engineer"));
+        assignment.Work = ProjectWork.Hours(8);
+        Assert.Null(assignment.ActualWork); Assert.Null(assignment.RemainingWork);
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(480m, reopened.Assignments[0].Work!.Value.Minutes);
+        Assert.Null(reopened.Assignments[0].ActualWork); Assert.Null(reopened.Assignments[0].RemainingWork);
+    }
+
+    [Fact]
     public void LimitsCancellationAndPrecisionFailBeforeDestinationChanges() {
         const string text = "MPX,Fixture,4.0,ANSI\r\n61,90,1\r\n70,1,First\r\n70,2,Second\r\n";
         Assert.Throws<InvalidDataException>(() => ProjectDocument.Load(new MemoryStream(Encoding.ASCII.GetBytes(text)), new ProjectLoadOptions { MaxTasks = 1 }));

@@ -97,13 +97,11 @@ internal static partial class ProjectMpxCodec {
             _taskAssignmentCount++;
             if (Has(r, 3)) item.Work = _values.Work(r[3]);
             if (Has(r, 5)) item.ActualWork = _values.Work(r[5]);
-            if (item.Work.HasValue && (item.ActualWork?.Minutes ?? 0) <= item.Work.Value.Minutes)
-                item.RemainingWork = new ProjectWork(item.Work.Value.Minutes - (item.ActualWork?.Minutes ?? 0));
             if (Has(r, 6)) item.OvertimeWork = _values.Work(r[6]);
             if (Has(r, 7)) item.Cost = _values.Number(r[7]);
             if (Has(r, 9)) item.ActualCost = _values.Number(r[9]);
-            item.Start = Has(r, 10) ? _values.Date(r[10]) : _task!.Start;
-            item.Finish = Has(r, 11) ? _values.Date(r[11]) : _task!.Finish;
+            item.Start = Has(r, 10) ? _values.Date(r[10]) : (DateTime?)null;
+            item.Finish = Has(r, 11) ? _values.Date(r[11]) : (DateTime?)null;
             if (Has(r, 4) || Has(r, 8)) { var baseline = item.Baselines.Add(); baseline.Number = 0; if (Has(r, 4)) baseline.Work = _values.Work(r[4]); if (Has(r, 8)) baseline.Cost = _values.Number(r[8]); }
             if (Has(r, 12)) Opaque("Assignment delay remains in the original MPX bytes.", "/Assignment[UID=" + item.Uid + "]/Delay");
             Tail(r, 14);

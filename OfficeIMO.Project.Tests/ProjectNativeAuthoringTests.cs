@@ -144,6 +144,7 @@ public sealed class ProjectNativeAuthoringTests {
         document.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0); document.Settings.ScheduleFromStart = true;
         document.Calendar = document.Calendars.AddStandardWorkingWeek();
         var summary = document.Tasks.AddSummary("Delivery"); var task = summary.Children.Add("Design café / Łódź / 日本語");
+        summary.IsManual = false; summary.IsActive = true; task.IsManual = false; task.IsActive = true;
         task.Duration = ProjectDuration.WorkingDays(1); task.Start = document.Settings.StartDate; task.Finish = task.Start.Value.AddHours(9);
         var resource = document.Resources.AddWork("Engineer"); resource.Calendar = document.Calendars.Add("Engineer", document.Calendar);
         resource.StandardRate = 100; resource.MaxUnits = ProjectUnits.Percent(100);

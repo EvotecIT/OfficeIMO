@@ -188,4 +188,16 @@ public sealed class ProjectSchedulingTests {
         task.Calendar = null; document.Resources.AddWork("Engineer").Calendar = invalidBase;
         document.Validate().ThrowIfErrors();
     }
+    [Fact]
+    public void TaskCalendarClassificationUsesTheBaseReferenceWhenTheFlagIsAbsent() {
+        using var document = Standard();
+        var derived = document.Calendars.Add("Resource calendar", document.Calendar!); derived.IsBaseCalendar = null;
+        var task = document.Tasks.Add("Task"); task.Calendar = derived;
+        document.Resources.AddWork("Engineer").Calendar = derived;
+        Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "PROJECT_TASK_CALENDAR_KIND"
+            && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
+        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, LossPolicy = OfficeConversionLossPolicy.Allow };
+        Assert.Contains(document.AssessSave(options).Diagnostics, diagnostic => diagnostic.Code == "PROJECT_TASK_CALENDAR_KIND");
+        Assert.Throws<InvalidDataException>(() => document.Save(new MemoryStream(), options));
+    }
 }

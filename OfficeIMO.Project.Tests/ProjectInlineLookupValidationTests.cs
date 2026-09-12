@@ -2,38 +2,46 @@ namespace OfficeIMO.Project.Tests;
 
 public sealed class ProjectInlineLookupValidationTests {
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public void MissingLookupListsRejectReferencesButAllowUnrestrictedText(bool resource, bool defined) {
+    [InlineData("task", false)]
+    [InlineData("task", true)]
+    [InlineData("resource", false)]
+    [InlineData("resource", true)]
+    [InlineData("assignment", false)]
+    [InlineData("assignment", true)]
+    public void MissingLookupListsRejectReferencesButAllowUnrestrictedText(string owner, bool defined) {
         using var document = ProjectDocument.Create();
-        string fieldId = resource ? "205521008" : "188743767";
+        var task = document.Tasks.Add("Task"); var resource = document.Resources.AddWork("Resource");
+        string fieldId = owner == "resource" ? "205521008" : "188743767";
         if (defined) document.CustomFields.Add().FieldId = fieldId;
-        var selection = resource ? document.Resources.AddWork("Resource").CustomFields.Add() : document.Tasks.Add("Task").CustomFields.Add();
+        var selection = owner == "task" ? task.CustomFields.Add() : owner == "resource" ? resource.CustomFields.Add() : document.Assignments.Add(task, resource).CustomFields.Add();
         selection.FieldId = fieldId; selection.ValueId = "1";
         Assert.Contains(document.Validate().Diagnostics, d => d.Code == "PROJECT_LOOKUP_VALUE_REFERENCE");
         selection.ValueId = null; selection.Value = "10";
         using var copy = document.Clone(); copy.Validate().ThrowIfErrors();
-        var reopened = resource ? copy.Resources[0].CustomFields.Single() : copy.Tasks[0].CustomFields.Single();
+        var reopened = owner == "task" ? copy.Tasks[0].CustomFields.Single() : owner == "resource" ? copy.Resources[0].CustomFields.Single() : copy.Assignments[0].CustomFields.Single();
         Assert.Equal("10", reopened.Value); Assert.Null(reopened.ValueId);
     }
 
     [Theory]
-    [InlineData(false, "text")]
-    [InlineData(true, "text")]
-    [InlineData(false, "id")]
-    [InlineData(true, "id")]
-    [InlineData(false, "guid")]
-    [InlineData(true, "guid")]
-    [InlineData(false, "disagreement")]
-    [InlineData(true, "disagreement")]
-    public void InvalidInlineSelectionsAreRejectedBeforeXmlOutput(bool resource, string invalid) {
+    [InlineData("task", "text")]
+    [InlineData("resource", "text")]
+    [InlineData("assignment", "text")]
+    [InlineData("task", "id")]
+    [InlineData("resource", "id")]
+    [InlineData("assignment", "id")]
+    [InlineData("task", "guid")]
+    [InlineData("resource", "guid")]
+    [InlineData("assignment", "guid")]
+    [InlineData("task", "disagreement")]
+    [InlineData("resource", "disagreement")]
+    [InlineData("assignment", "disagreement")]
+    public void InvalidInlineSelectionsAreRejectedBeforeXmlOutput(string owner, string invalid) {
         using var document = ProjectDocument.Create();
-        var definition = document.CustomFields.Add(); definition.FieldId = resource ? "205521008" : "188743767";
+        var task = document.Tasks.Add("Task"); var resource = document.Resources.AddWork("Resource");
+        var definition = document.CustomFields.Add(); definition.FieldId = owner == "resource" ? "205521008" : "188743767";
         definition.RestrictValues = invalid == "text";
         var entry = definition.LookupValues.Add(); entry.Id = 1; entry.Value = "10"; entry.Guid = "FE8E76CE-E116-492D-B215-D94A1599B709";
-        var selection = resource ? document.Resources.AddWork("Resource").CustomFields.Add() : document.Tasks.Add("Task").CustomFields.Add();
+        var selection = owner == "task" ? task.CustomFields.Add() : owner == "resource" ? resource.CustomFields.Add() : document.Assignments.Add(task, resource).CustomFields.Add();
         selection.FieldId = definition.FieldId;
         if (invalid == "text") selection.Value = "20";
         if (invalid == "id") selection.ValueId = "2";
@@ -47,7 +55,7 @@ public sealed class ProjectInlineLookupValidationTests {
         selection.Value = "10"; selection.ValueId = "1"; selection.ValueGuid = entry.Guid;
         document.Validate().ThrowIfErrors();
         using var copy = document.Clone(); copy.Validate().ThrowIfErrors();
-        var reopened = resource ? copy.Resources[0].CustomFields.Single() : copy.Tasks[0].CustomFields.Single();
+        var reopened = owner == "task" ? copy.Tasks[0].CustomFields.Single() : owner == "resource" ? copy.Resources[0].CustomFields.Single() : copy.Assignments[0].CustomFields.Single();
         Assert.Equal("10", reopened.Value); Assert.Equal("1", reopened.ValueId); Assert.Equal(entry.Guid, reopened.ValueGuid);
     }
 }

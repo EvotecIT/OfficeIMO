@@ -28,7 +28,8 @@ public sealed partial class ProjectDocument {
                 scalarFields.TryGetValue(ProjectCustomFieldIdentity.NormalizeId(selection.FieldId ?? ""), out var definition);
                 try { _ = ProjectCustomFieldLookup.Text(this, definition, selection); }
                 catch (Exception exception) when (exception is InvalidDataException || exception is NotSupportedException) {
-                    string path = "/" + (entity is ProjectTask ? "Task" : "Resource") + "[UID=" + entity.Uid + "]/ExtendedAttribute";
+                    string kind = entity is ProjectTask ? "Task" : entity is ProjectResource ? "Resource" : "Assignment";
+                    string path = "/" + kind + "[UID=" + entity.Uid + "]/ExtendedAttribute";
                     add("PROJECT_LOOKUP_VALUE_REFERENCE", exception.Message, path);
                 }
             }
@@ -56,5 +57,6 @@ public sealed partial class ProjectDocument {
         }
         foreach (var task in AllTasks) { Check(task, task.OutlineCodes); CheckScalar(task, task.CustomFields); }
         foreach (var resource in Resources) { Check(resource, resource.OutlineCodes); CheckScalar(resource, resource.CustomFields); }
+        foreach (var assignment in Assignments) CheckScalar(assignment, assignment.CustomFields);
     }
 }

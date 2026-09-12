@@ -29,14 +29,16 @@ internal sealed partial class ProjectNativeWriter {
             if (added) {
                 editor.Add(task.Uid); editor.Integer(task.Uid, 0x0b400056, task.Uid);
                 Identity(editor, task.Uid, 0x0b400477, EntityGuid(task, 1));
-                editor.Integer(task.Uid, 0x0b400019, _profile == ProjectNativeProfile.Mpp8 ? 4 : 500); editor.Integer(task.Uid, 0x0b400080, 0); editor.Integer(task.Uid, 0x0b400011, 0);
                 if (_profile == ProjectNativeProfile.Mpp14) {
                     editor.Set(task.Uid, 0x0b4004ff, new byte[] { 1 }); editor.Set(task.Uid, 0x0b400500, new byte[] { 0 });
                 }
-                editor.Integer(task.Uid, 0x0b4000b5, task.Duration.HasValue ? DurationFormat(task.Duration.Value) : 7);
-                if (task.Duration.HasValue && !task.RemainingDuration.HasValue && !task.ActualDuration.HasValue && (task.PercentComplete ?? 0) == 0)
-                    editor.Integer(task.Uid, 0x0b40001f, Exact(Minutes(task.Duration.Value) * 10));
             }
+            if ((added || Changed(path + "/IsManual")) && !task.IsManual.HasValue)
+                Loss("PROJECT_NATIVE_TASK_DEFAULT", "Native output normalizes an absent manual mode to automatic.", path + "/IsManual");
+            if ((added || Changed(path + "/IsActive")) && !task.IsActive.HasValue)
+                Loss("PROJECT_NATIVE_TASK_DEFAULT", _profile == ProjectNativeProfile.Mpp14
+                    ? "Native output normalizes an absent active state to inactive."
+                    : "Native output normalizes an absent active state to active.", path + "/IsActive");
             int level = task.Uid == 0 ? 0 : task.Parent == null ? 1 : levels[task.Parent] + 1; levels[task] = level;
             WriteTaskFields(editor, task.Uid, path);
             if (task.IsNull != true) Handle(path + "/IsNull");
@@ -97,12 +99,18 @@ internal sealed partial class ProjectNativeWriter {
             if (added || Changed(path + "/Calendar") || _calendarGuidsChanged)
                 Identity(editor, resource.Uid, 0x0c4002d9, resource.Calendar == null ? Guid.Empty : EntityGuid(resource.Calendar, 5));
             if (added || Changed(path + "/Type")) {
-                if (_profile != ProjectNativeProfile.Mpp8) editor.Set(resource.Uid, 0x0c40012a, new byte[] { resource.Type == null || resource.Type == ProjectResourceType.Work ? (byte)1 : (byte)0 });
-                else if (resource.Type != null && resource.Type != ProjectResourceType.Work) AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_RESOURCE_TYPE", ProjectDiagnosticSeverity.Error,
-                    "Project 98 output supports work resources only.", path + "/Type"));
-                if (_profile.HasExtendedRecords) editor.Set(resource.Uid, 0x0c4002df, new byte[] { resource.Type == ProjectResourceType.Cost ? (byte)1 : (byte)0 });
-                else if (resource.Type == ProjectResourceType.Cost) AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_RESOURCE_TYPE", ProjectDiagnosticSeverity.Error,
-                    "Cost resources require MPP12 or later.", path + "/Type"));
+                if (!resource.Type.HasValue) AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_RESOURCE_TYPE", ProjectDiagnosticSeverity.Error,
+                    "Native output requires an explicit resource type.", path + "/Type"));
+                else {
+                    if (_profile != ProjectNativeProfile.Mpp8) editor.Set(resource.Uid, 0x0c40012a,
+                        new byte[] { resource.Type == ProjectResourceType.Work ? (byte)1 : (byte)0 });
+                    else if (resource.Type != ProjectResourceType.Work) AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_RESOURCE_TYPE", ProjectDiagnosticSeverity.Error,
+                        "Project 98 output supports work resources only.", path + "/Type"));
+                    if (_profile.HasExtendedRecords) editor.Set(resource.Uid, 0x0c4002df,
+                        new byte[] { resource.Type == ProjectResourceType.Cost ? (byte)1 : (byte)0 });
+                    else if (resource.Type == ProjectResourceType.Cost) AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_RESOURCE_TYPE", ProjectDiagnosticSeverity.Error,
+                        "Cost resources require MPP12 or later.", path + "/Type"));
+                }
             }
             WriteBaselines(editor, resource.Uid, path, resource.Baselines, 1);
             WriteCustomFields(editor, resource.Uid, path, resource.CustomFields, false);
@@ -128,10 +136,6 @@ internal sealed partial class ProjectNativeWriter {
                 if (_profile.HasExtendedRecords) editor.Set(assignment.Uid, 0x0f400283, new byte[] { 1 });
                 if (_profile != ProjectNativeProfile.Mpp8) { editor.Set(assignment.Uid, 0x0f400118, new byte[] { 1 }); editor.Set(assignment.Uid, 0x0f40010d, new byte[] { 1 }); }
                 editor.Integer(assignment.Uid, 0x0f400037, 7);
-                if (assignment.Work.HasValue && !assignment.RemainingWork.HasValue && !assignment.ActualWork.HasValue) {
-                    editor.Set(assignment.Uid, 0x0f40000c, BitConverter.GetBytes((double)(assignment.Work.Value.Minutes * 1000)));
-                    editor.Set(assignment.Uid, 0x0f40000b, BitConverter.GetBytes((double)(assignment.Work.Value.Minutes * 1000)));
-                }
             }
             Handle(path + "/Uid"); WriteAssignmentFields(editor, assignment.Uid, path);
             if ((_taskGuidsChanged || Changed(path + "/Task")) && assignment.Task != null) Identity(editor, assignment.Uid, 0x0f40027d, EntityGuid(assignment.Task, 1));

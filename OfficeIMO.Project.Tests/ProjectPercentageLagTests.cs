@@ -96,6 +96,7 @@ public sealed class ProjectPercentageLagTests {
         document.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
         var first = document.Tasks.Add("Prepare"); first.Duration = ProjectDuration.WorkingDays(1);
         var second = document.Tasks.Add("Accept"); second.Duration = ProjectDuration.WorkingMinutes(0);
+        first.IsManual = second.IsManual = false; first.IsActive = second.IsActive = true;
         document.Dependencies.Add(first, second).LagPercent = 50; return document;
     }
 }

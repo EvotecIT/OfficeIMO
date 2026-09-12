@@ -176,6 +176,81 @@ public sealed class ProjectNativeBoundaryClosureTests {
     [InlineData(ProjectFileFormat.Mpp9)]
     [InlineData(ProjectFileFormat.Mpp12)]
     [InlineData(ProjectFileFormat.Mpp14)]
+    public void MissingNativeResourceTypeIsRejectedExplicitly(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        var resource = document.Resources.AddWork("Untyped resource"); resource.Type = null;
+        var options = Native(format);
+        var report = document.AssessSave(options);
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_RESOURCE_TYPE"
+            && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
+        using var output = new MemoryStream(); Assert.Throws<InvalidDataException>(() => document.Save(output, options));
+        Assert.Empty(output.ToArray()); Assert.Null(resource.Type);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpt8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpt9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpt12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    [InlineData(ProjectFileFormat.Mpt14)]
+    public void NewNativeTasksKeepAbsentStoredValuesAndReportBooleanDefaults(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        foreach (var item in document.AllTasks) { item.IsManual = null; item.IsActive = null; }
+        var task = document.Tasks.GetByUid(2); var assignment = document.Assignments.Single();
+        Assert.Null(task.Priority); Assert.Null(task.Type); Assert.Null(task.ConstraintType);
+        Assert.Null(task.IsManual); Assert.Null(task.IsActive); Assert.Null(task.RemainingDuration);
+        Assert.NotNull(task.Duration); Assert.NotNull(assignment.Work); Assert.Null(assignment.RemainingWork);
+
+        var report = document.AssessSave(Native(format));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsManual", StringComparison.Ordinal));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsActive", StringComparison.Ordinal));
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        task = reopened.Tasks.GetByUid(2); assignment = reopened.Assignments.Single();
+        Assert.Null(task.Priority); Assert.Null(task.Type); Assert.Null(task.ConstraintType);
+        Assert.False(task.IsManual); Assert.True(task.IsActive); Assert.Null(task.RemainingDuration);
+        Assert.NotNull(task.Duration); Assert.NotNull(assignment.Work); Assert.Null(assignment.RemainingWork);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpt8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpt9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpt12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    [InlineData(ProjectFileFormat.Mpt14)]
+    public void ClearingNativeTaskBooleanDefaultsReportsTheirNormalization(ProjectFileFormat format) {
+        using var source = ProjectNativeAuthoringTests.Create();
+        using var initial = new MemoryStream(); source.Save(initial, Native(format));
+        using var document = ProjectDocument.Load(new MemoryStream(initial.ToArray()));
+        var task = document.Tasks.GetByUid(2); task.IsManual = null; task.IsActive = null;
+        var strict = new ProjectSaveOptions { Format = format };
+        var report = document.AssessSave(strict);
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsManual", StringComparison.Ordinal));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsActive", StringComparison.Ordinal));
+        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
+
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.False(reopened.Tasks.GetByUid(2).IsManual);
+        Assert.Equal(format == ProjectFileFormat.Mpp14 || format == ProjectFileFormat.Mpt14
+            ? false : true, reopened.Tasks.GetByUid(2).IsActive);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
     public void ResourceCalendarWithoutBaseOrExplicitDerivedKindIsRejected(ProjectFileFormat format) {
         using var document = ProjectNativeAuthoringTests.Create();
         var calendar = document.Resources.First(item => item.Uid > 0).Calendar!;

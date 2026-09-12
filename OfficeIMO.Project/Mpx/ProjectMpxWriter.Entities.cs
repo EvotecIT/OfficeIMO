@@ -107,7 +107,6 @@ internal sealed partial class ProjectMpxWriter {
         _token.ThrowIfCancellationRequested(); string path = Path(item, "Assignment");
         if (item.Resource == null || item.Task == null) throw new InvalidDataException("MPX assignments require resolved task and resource references.");
         Handle(path + "/Uid"); Handle(path + "/Task"); Handle(path + "/Resource"); Handle(path + "/Baseline/Count");
-        if (item.Work.HasValue && item.RemainingWork?.Minutes == item.Work.Value.Minutes - (item.ActualWork?.Minutes ?? 0)) Handle(path + "/RemainingWork");
         if (item.Uid != uid) Diagnostic("PROJECT_MPX_ASSIGNMENT_ID", "MPX has no assignment UID field; assignment identities are assigned again in task order.", path + "/Uid");
         ProjectBaseline? baseline = null; string baselinePath = "";
         for (int i = 0; i < item.Baselines.Count; i++) if (item.Baselines[i].Number == 0) { baseline = item.Baselines[i]; baselinePath = path + "/Baseline[" + i + "]"; Handle(baselinePath + "/Number"); }
