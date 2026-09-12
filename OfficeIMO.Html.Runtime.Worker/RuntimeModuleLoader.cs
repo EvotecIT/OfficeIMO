@@ -24,7 +24,7 @@ internal sealed class RuntimeModuleLoader(IDocument document, RuntimeResourceLoa
         try {
             if (moduleRequest.Attributes.Length != 0) throw new HtmlScriptRuntimeException("Only JavaScript modules without import attributes are supported.");
             Uri url = referencingModuleLocation == null && _sources.ContainsKey(moduleRequest.Specifier) ? new Uri(moduleRequest.Specifier)
-                : ImportMap.Resolve(moduleRequest.Specifier, Uri.TryCreate(referencingModuleLocation, UriKind.Absolute, out var referrer) ? referrer : new Uri(document.BaseUri));
+                : ImportMap.Resolve(moduleRequest.Specifier, Uri.TryCreate(referencingModuleLocation, UriKind.Absolute, out var referrer) ? referrer : new Uri(RuntimeDocumentUrls.Base(document)));
             HtmlRuntimeResourcePolicy.ValidateUrl(url);
             return new ResolvedSpecifier(moduleRequest, url.AbsoluteUri, url, SpecifierType.RelativeOrAbsolute);
         } catch (Exception error) when (error is ArgumentException or UriFormatException or HtmlScriptRuntimeException) {

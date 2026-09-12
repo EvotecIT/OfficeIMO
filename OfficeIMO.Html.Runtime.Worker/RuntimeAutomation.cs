@@ -5,7 +5,7 @@ using AngleSharp.Html.Dom.Events;
 
 namespace OfficeIMO.Html.Runtime.Worker;
 
-internal sealed class RuntimeAutomation(IDocument document, HtmlScriptRequest options, RuntimeFocusController focus) {
+internal sealed class RuntimeAutomation(IDocument document, HtmlScriptRequest options, RuntimeFocusController focus, RuntimeHistoryBindings history) {
     private readonly RuntimeLocatorResolver _locators = new(document, options);
 
     internal HtmlAutomationResult Run(HtmlAutomationRequest request, CancellationToken token) {
@@ -121,7 +121,8 @@ internal sealed class RuntimeAutomation(IDocument document, HtmlScriptRequest op
         if (RuntimeFocusController.Disabled(element)) return Failure(HtmlAutomationStatus.NotReady, "The element is disabled.", 1, Inspect(element));
         if (focusTarget && RuntimeFocusController.CanFocus(element) && !focus.Focus(element))
             return Failure(HtmlAutomationStatus.Rejected, "Page handlers redirected focus.", 1, Inspect(element));
-        if (!RuntimeFocusController.IsConnected(element) || RuntimeFocusController.Disabled(element) || RuntimeFocusController.HiddenByMarkup(element)) return Failure(HtmlAutomationStatus.Rejected, "The activation target changed during focus.", 1, Inspect(element));
+        if (RuntimeFocusController.Disabled(element) || focusTarget && (!RuntimeFocusController.IsConnected(element) || RuntimeFocusController.HiddenByMarkup(element))) return Failure(HtmlAutomationStatus.Rejected, "The activation target changed during focus.", 1, Inspect(element));
+        var anchor = element is IHtmlButtonElement or IHtmlInputElement ? null : element.Closest("a[href]") as IHtmlAnchorElement;
         var check = element as IHtmlInputElement;
         bool isChoice = check?.Type is "checkbox" or "radio";
         var saved = new Dictionary<IHtmlInputElement, bool>();
@@ -130,7 +131,11 @@ internal sealed class RuntimeAutomation(IDocument document, HtmlScriptRequest op
             saved.Add(check!, check!.IsChecked);
             if (check.Type == "radio" && !string.IsNullOrEmpty(check.Name)) {
                 var owner = HtmlFormControlSemantics.ResolveFormOwner(check);
-                foreach (var other in document.QuerySelectorAll("input").OfType<IHtmlInputElement>())
+                INode root=check;
+                while(root.Parent!=null)root=root.Parent;
+                var peers=root is IParentNode parent ? parent.QuerySelectorAll("input").OfType<IHtmlInputElement>() : Enumerable.Empty<IHtmlInputElement>();
+                if(root is IHtmlInputElement rootInput)peers=peers.Prepend(rootInput);
+                foreach (var other in peers)
                     if (!ReferenceEquals(other, check) && other.Type == "radio" && other.Name == check.Name && ReferenceEquals(HtmlFormControlSemantics.ResolveFormOwner(other), owner))
                         saved.Add(other, other.IsChecked);
                 foreach (var other in saved.Keys) other.IsChecked = ReferenceEquals(other, check);
@@ -138,7 +143,7 @@ internal sealed class RuntimeAutomation(IDocument document, HtmlScriptRequest op
             check.IsIndeterminate = false;
         }
         var click = new MouseEvent();
-        click.Init("click", true, true, document.DefaultView, 1, 0, 0, 0, 0, false, false, false, false, MouseButton.Primary, null);
+        click.Init("click", true, true, document.DefaultView, focusTarget ? 1 : 0, 0, 0, 0, 0, false, false, false, false, MouseButton.Primary, null);
         element.Dispatch(click);
         if (click.IsDefaultPrevented) {
             foreach (var pair in saved) pair.Key.IsChecked = pair.Value;
@@ -149,8 +154,14 @@ internal sealed class RuntimeAutomation(IDocument document, HtmlScriptRequest op
             element.Dispatch(new Event("input", true, false)); element.Dispatch(new Event("change", true, false));
         }
         string type = HtmlFormControlSemantics.GetEffectiveType(element.LocalName, element.GetAttribute("type"));
-        if (element is IHtmlAnchorElement && element.HasAttribute("href")
-            || element is IHtmlButtonElement or IHtmlInputElement && type is "submit" or "reset" && HtmlFormControlSemantics.ResolveFormOwner(element) != null)
+        if (anchor != null && anchor.HasAttribute("href")) {
+            string target = anchor.GetAttribute("target") ?? document.QuerySelector("base[target]")?.GetAttribute("target") ?? "";
+            if (anchor.HasAttribute("download") || target.Length > 0 && target.ToLowerInvariant() is not ("_self" or "_top" or "_parent"))
+                return Failure(HtmlAutomationStatus.Unsupported,"Downloads and additional browsing contexts are outside this interaction profile.",1,Inspect(element));
+            try { RuntimeDocumentUrls.Base(document); history.NavigateFragment(anchor.Href); }
+            catch (Jint.Runtime.JavaScriptException error) { return Failure(HtmlAutomationStatus.Unsupported,error.Message,1,Inspect(element)); }
+        }
+        if (element is IHtmlButtonElement or IHtmlInputElement && type is "submit" or "reset" && HtmlFormControlSemantics.ResolveFormOwner(element) != null)
             return Failure(HtmlAutomationStatus.Unsupported, "The click was dispatched, but its uncancelled navigation or form default action is outside this interaction profile.", 1, Inspect(element));
         return Success(element);
     }

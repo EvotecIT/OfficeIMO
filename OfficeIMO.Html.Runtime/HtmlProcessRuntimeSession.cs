@@ -64,7 +64,7 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimeSession {
                 document.Resources.Any(resource => resource == null || resource.Length > _options.ResourcePolicy.MaxResourceBytes) ||
                 document.Resources.Sum(resource => resource.Length) > _options.ResourcePolicy.MaxTotalBytes)
                 throw new HtmlScriptRuntimeException("Captured resources exceed their budget.");
-            return new HtmlScriptCapture(document.Materialize(_services, _options, token), document.ProviderId, document.DocumentUrl, document.Resources);
+            return new HtmlScriptCapture(document.Materialize(_services, _options, token), document.ProviderId, document.DocumentUrl, document.Resources, document.BaseUri);
         }, cancellationToken);
 
     private HtmlRuntimeCommand Command(string kind, string script) {

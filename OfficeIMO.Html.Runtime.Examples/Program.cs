@@ -24,7 +24,7 @@ await session.WaitForAsync("window.reportReady === true");
 var captured = await session.CaptureAsync();
 await session.DisposeAsync();
 if (initial.Document.OuterHtml == captured.Document.OuterHtml) throw new InvalidOperationException("The report did not change between captures.");
-var document = HtmlConversionDocument.FromDocument(captured.Document, new() { BaseUri = captured.DocumentUrl });
+var document = HtmlConversionDocument.FromDocument(captured.CreateStandaloneDocument(), new() { BaseUri = captured.DocumentUrl });
 var resources = captured.Resources.ToDictionary(resource => resource.Url.AbsoluteUri, StringComparer.Ordinal);
 HtmlRenderResourceResolver resolver = (request, _) => Task.FromResult(resources.TryGetValue(request.Uri.AbsoluteUri, out var resource)
     ? new HtmlResolvedResource(resource.Content, resource.ContentType, resource.FinalUrl, resource.RedirectCount) : null);

@@ -79,12 +79,14 @@ deadline. Ambiguous, unsupported and page-rejected actions throw
 Use `AutomateAsync` to receive that result directly or set `WaitForReady = false`.
 Script failures and cancellation after command admission still terminate the worker.
 
-Clicks dispatch DOM events and checkbox/radio activation. They do not yet perform
-pointer hit testing, scrolling, keyboard input, navigation or form submission/reset.
-An uncancelled link or form default reports `Unsupported` after dispatching its click;
-page handlers may already have changed the document. `IsHiddenByMarkup` does not
-measure computed visibility, occlusion or layout stability. Script-triggered `.click()`
-still uses the retained provider's activation behavior.
+Clicks dispatch DOM events, checkbox/radio activation and same-document fragment
+navigation. Script-triggered `.click()` uses the same activation owner, including
+cancellation and a recursion guard; it can activate hidden or detached elements
+without applying the locator's visibility/focus requirements. Downloads, additional
+browsing contexts, cross-document links and form submission/reset report
+`Unsupported` after click dispatch. Page handlers may already have changed the
+document. Pointer hit testing, scrolling and keyboard input remain unqualified.
+`IsHiddenByMarkup` does not measure computed visibility, occlusion or layout stability.
 
 Select controls support handler properties and inline handlers, ordinary property
 writes, `item`/`namedItem` lookup, and assignment to `value` or `selectedIndex`.
@@ -171,8 +173,11 @@ Unsupported fetch options are rejected instead of silently changing their meanin
 `capture.Resources` retains immutable loaded responses, including their requested
 and final URLs. Use these responses with OfficeIMO's existing
 `HtmlRenderResourceResolver` to render after the worker exits without fetching
-again. Pass `capture.DocumentUrl` as the conversion document's base URI. The report
-example demonstrates this wiring. Capture does not wait for arbitrary outstanding
+again. Convert `capture.CreateStandaloneDocument()` to preserve the effective
+`capture.BaseUri`, including a relative base element frozen before a route change.
+This independent snapshot writes an absolute base href; `capture.Document` retains
+the authored attributes and `capture.DocumentUrl` identifies the current route.
+The report example demonstrates this wiring. Capture does not wait for arbitrary outstanding
 loads; use an explicit condition that represents the application's readiness.
 
 The initial profile targets .NET 8 and .NET 10 hosts and workers. It
@@ -239,11 +244,43 @@ after imports begin are rejected. Module script loading and evaluation settle
 before their document execution operation completes. Full browser lifecycle timing,
 module preload, integrity metadata and `import.meta.resolve` remain unqualified.
 
+Same-document application routing supports `history.pushState`, `replaceState`,
+`back`, `forward`, and nonzero `go` traversals. Route changes update the retained
+document URL and capture identity without replacing the DOM or interpreter.
+Relative fetches and newly executed scripts use the active document base. An
+active base element keeps its resolved URL across history rewrites; changing or
+removing it updates subsequent URL reads and runtime loads.
+
+History state is copied on insertion and restored independently on traversal.
+The state graph supports ordinary objects, sparse arrays, cycles, shared references,
+maps, sets, dates, regular expressions, errors with causes, boxed primitives,
+BigInt, fixed-length ArrayBuffers, typed arrays and DataViews. Functions, symbols,
+proxies, promises, DOM nodes, shared/resizable buffers and other unsupported objects
+fail with `DataCloneError`. This is history-state storage; it does not expose a
+general `structuredClone` or transferable-object API.
+
+`MaxHistoryEntries` defaults to 128 and retains the first and current entries while
+evicting older intermediate entries. `MaxHistoryStateBytes` defaults to 1 MiB per
+state; `MaxHistoryTotalStateBytes` defaults to 8 MiB across retained states. These
+are estimates that count UTF-16 strings, binary data, array slots and graph overhead.
+State graphs have a depth limit of 256. A state that cannot fit fails before its
+history update. `MaxPendingHistoryTasks` defaults to 1024 for queued traversals and
+fragment notifications.
+
+`location` and `document.location` share the session route. Fragment assignment,
+`assign`, `replace`, and uncancelled fragment links fire `popstate`, then a queued
+`hashchange`; promise jobs run before that hash notification. Back/forward traversal
+is asynchronous. History-created events expose their state or URL pair and are
+trusted; script redispatch clears that status. `scrollRestoration` stores the
+entry's preference, but scrolling is not implemented. Reload, cross-document
+loading, additional browsing contexts and the newer Navigation API remain outside
+this profile and are not implied by history support.
+
 The test-only Preact 10.29.8 fixture proves UMD loading, mount/unmount, hook effects,
 buffered fetch, state updates, controlled input and select events, storage restoration,
 mutation delivery and independent captures converted to Markdown and searchable
 PDF. These paths do not establish general framework compatibility or a complete
-web-application profile. Full module lifecycle, history/navigation, layout-driven interaction,
+web-application profile. Full module lifecycle, cross-document navigation, layout-driven interaction,
 combined mutation/promise ordering and general framework compatibility remain unqualified.
 
 Commands are serialized. `Timeout` includes time waiting for another command,
@@ -283,9 +320,9 @@ The process is terminated on cancellation, timeout or response-budget failure.
 This is a **trusted-content execution profile**, not an OS sandbox for hostile
 scripts. Host CLR capabilities are not configured. Resource policy covers the
 document resource loader; it is not a sandbox for every capability an interpreter
-may expose. Modules, XHR, navigation and framework applications are outside
-the qualified profile. Document navigation is disabled. Strict OS isolation and
-broader application behavior remain separate runtime work.
+may expose. The tested module and same-document routing paths do not establish
+general framework compatibility. XHR, cross-document loading and strict OS
+isolation remain separate runtime work.
 
 The retained interpreter has a known async declaration limitation: in a statement
 such as `const before = state, result = await operation()`, an earlier initializer

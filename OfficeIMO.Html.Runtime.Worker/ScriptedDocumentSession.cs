@@ -23,6 +23,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private RuntimeAutomation _automation = null!;
     private RuntimeModuleLoader _modules = null!;
     private readonly RuntimeScriptingService _scripting;
+    private RuntimeHistoryBindings _history = null!;
 
     private ScriptedDocumentSession(HtmlScriptRequest options) {
         _options = options;
@@ -68,8 +69,9 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             RuntimeUrlBindings.Install(_engine, document.DefaultView!);
             RuntimeObserverBindings.Install(_engine, document, _errors.Report);
             RuntimeStorageBindings.Install(_engine, options.MaxStorageCharacters);
-            _automation = new RuntimeAutomation(document, options, _focus);
-            RuntimeInteractionBindings.Install(_engine, document, _focus);
+            _history = new RuntimeHistoryBindings(_engine, document, _loop, options);
+            _automation = new RuntimeAutomation(document, options, _focus, _history);
+            RuntimeInteractionBindings.Install(_engine, document, _focus, _automation);
             RuntimeSelectBindings.Install(_engine);
             _fetch = new RuntimeFetchBindings(_engine, document, _loop, _resources, options, _errors);
         };
@@ -86,7 +88,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         } catch { session.Dispose(); throw; }
     }
 
-    internal Task ExecuteAsync(string script, CancellationToken token) => OnLoop(() => { _scripting.EvaluateScript(_document, script, "text/javascript", _document.BaseUri); return true; }, token);
+    internal Task ExecuteAsync(string script, CancellationToken token) => OnLoop(() => { _scripting.EvaluateScript(_document, script, "text/javascript", RuntimeDocumentUrls.Base(_document)); return true; }, token);
 
     internal async Task<HtmlAutomationResult> AutomateAsync(HtmlAutomationRequest request, CancellationToken token) {
         while (true) {
@@ -98,7 +100,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     }
 
     internal Task<string> EvaluateAsync(string expression, CancellationToken token) => OnLoop(() => {
-        var value = _engine.Evaluate("JSON.stringify((" + expression + "\n))", _document.BaseUri);
+        var value = _engine.Evaluate("JSON.stringify((" + expression + "\n))", RuntimeDocumentUrls.Base(_document));
         if (!value.IsString()) throw new HtmlScriptRuntimeException("The expression did not produce a JSON value.");
         return value.AsString();
     }, token);
@@ -107,11 +109,11 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         while (true) {
             token.ThrowIfCancellationRequested();
             var result = await OnLoop(() => {
-                if (_scripting.EvaluateScript(_document, expression, "text/javascript", _document.BaseUri) is not true) return (Ready: false, Document: (HtmlRuntimeWireDocument?)null);
+                if (_scripting.EvaluateScript(_document, expression, "text/javascript", RuntimeDocumentUrls.Base(_document)) is not Jint.Native.JsValue ready || !ready.IsBoolean() || !ready.AsBoolean()) return (Ready: false, Document: (HtmlRuntimeWireDocument?)null);
                 _errors.ThrowIfFailed();
                 // Readiness and capture share a task so timers cannot mutate between them.
                 var document = capture ? RuntimeDomCapture.Capture(_document, _options, token) : null;
-                if (document != null) { document.DocumentUrl = new Uri(_document.Url); document.Resources = _resources.Capture().ToList(); }
+                if (document != null) { document.DocumentUrl = new Uri(_document.Url); document.BaseUri = new Uri(RuntimeDocumentUrls.Base(_document)); document.Resources = _resources.Capture().ToList(); }
                 return (Ready: true, Document: document);
             }, token);
             if (result.Ready) return result.Document;

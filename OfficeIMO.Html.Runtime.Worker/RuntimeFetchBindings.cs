@@ -59,7 +59,7 @@ internal sealed class RuntimeFetchBindings : IDisposable {
         if (json.Length > _options.MaxInputCharacters) throw new HtmlScriptRuntimeException("Fetch request exceeds the input character budget.");
         var request = JsonSerializer.Deserialize<RuntimeFetchRequest>(json) ?? throw new HtmlScriptRuntimeException("Invalid fetch request.");
         // Read live base URI only on the interpreter thread; the document's origin is fixed by the loader.
-        var url = new Uri(new Uri(_document.BaseUri), request.Url);
+        var url = new Uri(new Uri(RuntimeDocumentUrls.Base(_document)), request.Url);
         CancellationTokenSource cancellation;
         int id;
         lock (_sync) {

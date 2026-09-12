@@ -23,8 +23,9 @@
         }
         eventPaths.set(event, path);
     }
-    return function (add, remove, report, kind, normalizeWindow) {
+    return function (add, remove, report, kind, normalizeWindow, untrust) {
         if (kind === 'dispatch') return function (event) {
+            if (event instanceof Event) untrust(event);
             if (event instanceof Event && event.eventPhase === 0) rememberPath(event, normalizeWindow(this), true);
             add.call(this, event);
             return !event.defaultPrevented;

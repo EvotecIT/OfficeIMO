@@ -36,6 +36,14 @@ public sealed class HtmlScriptRequest {
     public int MaxStorageCharacters { get; set; } = 1024 * 1024;
     /// <summary>Maximum distinct module sources retained per session, including inline roots and failed loads.</summary>
     public int MaxModuleCount { get; set; } = 1024;
+    /// <summary>Maximum retained same-document history entries, including the first and current entries.</summary>
+    public int MaxHistoryEntries { get; set; } = 128;
+    /// <summary>Maximum estimated serialized bytes in one history state graph.</summary>
+    public int MaxHistoryStateBytes { get; set; } = 1024 * 1024;
+    /// <summary>Maximum estimated serialized bytes retained across all history state graphs.</summary>
+    public int MaxHistoryTotalStateBytes { get; set; } = 8 * 1024 * 1024;
+    /// <summary>Maximum queued history traversals and fragment-change notifications.</summary>
+    public int MaxPendingHistoryTasks { get; set; } = 1024;
 
     internal HtmlScriptRequest Snapshot() {
         if (Html == null || Scripts == null || ReadyExpression == null) throw new ArgumentException("HTML, scripts and readiness are required.");
@@ -45,6 +53,9 @@ public sealed class HtmlScriptRequest {
         if (MaxInputCharacters <= 0 || MaxOutputCharacters <= 0 || MaxNodes <= 0 || MaxDepth <= 0 || MaxPendingPromiseRejections <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputCharacters), "Resource limits must be positive.");
         if (MaxStorageCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxStorageCharacters));
         if (MaxModuleCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxModuleCount));
+        if (MaxHistoryEntries < 2) throw new ArgumentOutOfRangeException(nameof(MaxHistoryEntries));
+        if (MaxPendingHistoryTasks <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPendingHistoryTasks));
+        if (MaxHistoryStateBytes <= 0 || MaxHistoryTotalStateBytes < MaxHistoryStateBytes) throw new ArgumentOutOfRangeException(nameof(MaxHistoryStateBytes));
         var scripts = Scripts.ToArray();
         long length = (long)Html.Length + ReadyExpression.Length;
         foreach (string script in scripts) {
@@ -68,7 +79,8 @@ public sealed class HtmlScriptRequest {
             DocumentUrl = DocumentUrl, Resources = resources, ResourcePolicy = policy,
             SessionTimeout = SessionTimeout, PollInterval = PollInterval, MaxInputCharacters = MaxInputCharacters, MaxOutputCharacters = MaxOutputCharacters,
             MaxNodes = MaxNodes, MaxDepth = MaxDepth, MaxPendingPromiseRejections = MaxPendingPromiseRejections,
-            MaxStorageCharacters = MaxStorageCharacters, MaxModuleCount = MaxModuleCount };
+            MaxStorageCharacters = MaxStorageCharacters, MaxModuleCount = MaxModuleCount,
+            MaxHistoryEntries = MaxHistoryEntries, MaxHistoryStateBytes = MaxHistoryStateBytes, MaxHistoryTotalStateBytes = MaxHistoryTotalStateBytes, MaxPendingHistoryTasks = MaxPendingHistoryTasks };
     }
 }
 
@@ -81,23 +93,26 @@ public interface IHtmlScriptRuntimeProvider {
 }
 
 /// <summary>A completed scripted-document capture. Subsequent inspection and conversion are inert.</summary>
-public sealed class HtmlScriptCapture {
+public sealed partial class HtmlScriptCapture {
     /// <summary>Creates a capture from an independent frozen document supplied by a runtime provider.</summary>
-    public HtmlScriptCapture(HtmlDocument document, string providerId, Uri? documentUrl = null, IReadOnlyList<HtmlRuntimeResource>? resources = null) {
+    public HtmlScriptCapture(HtmlDocument document, string providerId, Uri? documentUrl = null, IReadOnlyList<HtmlRuntimeResource>? resources = null, Uri? baseUri = null) {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
         if (!document.IsReadOnly) throw new ArgumentException("A captured document must be frozen.", nameof(document));
         Document = document;
         ProviderId = providerId;
         DocumentUrl = HtmlRuntimeResourcePolicy.ValidateUrl(documentUrl ?? new Uri("https://officeimo.invalid/"));
+        BaseUri = ResolveBaseUri(document,DocumentUrl,baseUri);
         Resources = Array.AsReadOnly((resources ?? Array.Empty<HtmlRuntimeResource>()).ToArray());
     }
     /// <summary>Frozen owned document, including structural DOM mutations and template contents.</summary>
     public HtmlDocument Document { get; }
     /// <summary>Actual runtime implementation and version used by the worker.</summary>
     public string ProviderId { get; }
-    /// <summary>Document URL used to resolve references during execution.</summary>
+    /// <summary>Current document URL, including same-document route changes.</summary>
     public Uri DocumentUrl { get; }
+    /// <summary>Effective base URI at capture, including a base element frozen before a route change.</summary>
+    public Uri BaseUri { get; }
     /// <summary>Immutable resource responses loaded before capture, for offline inspection or render resolution.</summary>
     public IReadOnlyList<HtmlRuntimeResource> Resources { get; }
 }

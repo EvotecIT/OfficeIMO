@@ -10,6 +10,7 @@ internal sealed class HtmlRuntimeWireDocument {
     public string? Error { get; set; }
     public List<HtmlRuntimeWireNode> Nodes { get; set; } = new();
     public Uri DocumentUrl { get; set; } = new("https://officeimo.invalid/");
+    public Uri? BaseUri { get; set; }
     public List<HtmlRuntimeResource> Resources { get; set; } = new();
 
     internal HtmlDocument Materialize(IHtmlDomServices services, HtmlScriptRequest request, CancellationToken token) {
