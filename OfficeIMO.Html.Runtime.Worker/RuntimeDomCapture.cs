@@ -32,10 +32,21 @@ internal static class RuntimeDomCapture {
             var node = new HtmlRuntimeWireNode { Parent = entry.Parent, IsTemplateContent = entry.Template };
             switch (source) {
                 case IElement element:
+                    if (element is IHtmlInputElement file && string.Equals(file.Type, "file", StringComparison.OrdinalIgnoreCase)
+                        && ((file.Files?.Length ?? 0) != 0 || !string.IsNullOrEmpty(file.Value)))
+                        throw new HtmlScriptRuntimeException("Capturing selected files is not supported.");
                     node.Kind = HtmlNodeKind.Element;
                     node.Name = element.LocalName;
                     node.NamespaceUri = element.NamespaceUri ?? string.Empty;
                     node.Prefix = element.Prefix;
+                    node.FormState = element switch {
+                        IHtmlInputElement input => new HtmlFormControlState(HtmlFormControlStateKind.Input, input.Value ?? string.Empty, input.IsChecked, input.IsIndeterminate),
+                        IHtmlTextAreaElement area => new HtmlFormControlState(HtmlFormControlStateKind.TextArea, area.Value ?? string.Empty),
+                        IHtmlSelectElement => new HtmlFormControlState(HtmlFormControlStateKind.Select),
+                        IHtmlOptionElement option => new HtmlFormControlState(HtmlFormControlStateKind.Option, isSelected: option.IsSelected),
+                        _ => null
+                    };
+                    Count(node.FormState?.Value);
                     foreach (IAttr attribute in element.Attributes) {
                         token.ThrowIfCancellationRequested();
                         Count(attribute.Name); Count(attribute.Value); Count(attribute.NamespaceUri);

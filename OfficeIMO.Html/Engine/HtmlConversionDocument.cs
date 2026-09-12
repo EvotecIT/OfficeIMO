@@ -160,10 +160,9 @@ public sealed partial class HtmlConversionDocument {
     internal IHtmlDocument CreatePolicyNormalizedDocumentForConversion(IHtmlDocument preparedDocument) {
         if (preparedDocument == null) throw new ArgumentNullException(nameof(preparedDocument));
         return AnalyzeSource(() => {
-            string adapterHtml = HtmlNormalizer.Normalize(
+            IHtmlDocument normalized = HtmlNormalizer.NormalizeToDocument(
                 preparedDocument,
                 ConfigureAdapterNormalization(preparedDocument, _options));
-            IHtmlDocument normalized = HtmlDocumentParser.ParseDocument(adapterHtml);
             HtmlConversionInputGuard.ValidateDocument(normalized, _options.Limits);
             return normalized;
         });
@@ -251,8 +250,7 @@ public sealed partial class HtmlConversionDocument {
 
     private IHtmlDocument BuildAdapterDocument() {
         return AnalyzeSource(() => {
-            string adapterHtml = HtmlNormalizer.Normalize(_sourceDocument, ConfigureAdapterNormalization(_sourceDocument, _options));
-            IHtmlDocument document = HtmlDocumentParser.ParseDocument(adapterHtml);
+            IHtmlDocument document = HtmlNormalizer.NormalizeToDocument(_sourceDocument, ConfigureAdapterNormalization(_sourceDocument, _options));
             HtmlConversionInputGuard.ValidateDocument(document, _options.Limits);
             return document;
         });

@@ -12,6 +12,19 @@ includes this package as a dependency.
 
 Parsed documents are immutable snapshots. Use `document.Edit(editor => ...)` to produce a new snapshot, or `Clone()` for a mutable tree with one owner. Node IDs survive cloning; snapshot identities are independent. Attribute values and text are decoded data. Serializing HTML does not sanitize it.
 
+Runtime captures can attach immutable `HtmlFormControlState` to an element's
+`FormState` property. This retains current input and textarea values, input
+checkedness and indeterminate state, and option selections independently of HTML
+attributes and text. Clone and import preserve the state. On a mutable tree,
+replace it to edit the captured value or set it to null to return to authored
+defaults. Ordinary HTML serialization retains attributes and text; it does not
+encode this separate state. Use the owned document with OfficeIMO conversion to
+inspect or render the captured values.
+Option state also applies when an option is imported into a select with no live
+state. A select with explicit live state can retain an empty selection. When an
+edit changes a multi-select into a dropdown, the last selected option in document
+order becomes its effective selection; the stored option flags remain available.
+
 `Clone()` retains detached nodes so existing node IDs remain addressable. For a
 long-lived editor that no longer needs removed content, start the next session
 with `document.CloneAttached(cancellationToken)`. It copies the attached tree and

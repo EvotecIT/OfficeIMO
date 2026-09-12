@@ -181,6 +181,7 @@ internal static class NativeDomBridge {
                 result.SetAttribute(new HtmlAttribute(attribute.Name, attribute.Value, attribute.NamespaceUri));
             }
             if (element.SourceReference?.Position.Index is int index && index >= 0) document.SetSourceIndex(result, index);
+            result.FormState = NativeFormState.Get(element);
             return result;
         }
         if (source is IDocumentType type) return document.CreateDocumentType(type.Name, type.PublicIdentifier, type.SystemIdentifier);
@@ -220,6 +221,7 @@ internal static class NativeDomBridge {
                 pending.Push((element.TemplateContent, template.Content));
             }
         }
+        NativeFormState.ApplyTree(nativeRoot, cancellationToken);
     }
 
     private static INode ExportNode(HtmlNode source, IHtmlDocument document, CancellationToken cancellationToken = default) {
@@ -244,6 +246,7 @@ internal static class NativeDomBridge {
             // Parser factories defer initialization until attributes have been supplied.
             // Complete that lifecycle before exposing the node to clone/layout consumers.
             constructable.SetupElement();
+            NativeFormState.Attach(result, element.FormState);
             return result;
         }
         if (source is HtmlDocumentType type) {

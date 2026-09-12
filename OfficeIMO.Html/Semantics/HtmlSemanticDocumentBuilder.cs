@@ -414,6 +414,7 @@ internal static class HtmlSemanticDocumentBuilder {
             element.GetAttribute("name") ?? string.Empty,
             HtmlFormControlSemantics.GetValues(element),
             HtmlFormControlSemantics.IsEffectivelyChecked(element),
+            HtmlFormControlSemantics.IsIndeterminate(element),
             HtmlFormControlSemantics.IsEffectivelyDisabled(element),
             element.HasAttribute("required")
                 && HtmlFormControlSemantics.IsRequiredStateApplicable(elementName, effectiveType),

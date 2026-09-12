@@ -144,6 +144,9 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FormFieldTypographyStaticFallback = "HtmlRenderFormFieldTypographyStaticFallback";
     /// <summary>A textarea with wrap=off used truthful static rendering because PDF multiline widgets cannot preserve no-wrap appearance semantics.</summary>
     public const string FormFieldNoWrapStaticFallback = "HtmlRenderFormFieldNoWrapStaticFallback";
+
+    /// <summary>An indeterminate checkbox retained its static appearance because PDF fields cannot represent mixed state.</summary>
+    public const string FormFieldIndeterminateStaticFallback = "HtmlRenderFormFieldIndeterminateStaticFallback";
     /// <summary>A CSS opacity value used the opaque fallback.</summary>
     public const string OpacityValueUnsupported = "HtmlRenderOpacityValueUnsupported";
     /// <summary>A CSS border radius contained invalid or unsupported syntax and used square-corner fallback.</summary>
@@ -285,6 +288,7 @@ public static class HtmlRenderDiagnosticCodes {
         FormFieldBorderStyleStaticFallback,
         FormFieldTypographyStaticFallback,
         FormFieldNoWrapStaticFallback,
+        FormFieldIndeterminateStaticFallback,
         OpacityValueUnsupported,
         BorderRadiusValueUnsupported,
         BoxShadowLayerLimit,

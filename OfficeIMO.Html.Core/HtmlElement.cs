@@ -9,6 +9,7 @@ namespace OfficeIMO.Html.Dom;
 public sealed class HtmlElement : HtmlNode {
     private readonly List<HtmlAttribute> _attributes = new List<HtmlAttribute>();
     private readonly ReadOnlyCollection<HtmlAttribute> _attributesView;
+    private HtmlFormControlState? _formState;
 
     internal HtmlElement(HtmlDocument document, int id, string name, string namespaceUri, string? prefix = null) : base(document, id, HtmlNodeKind.Element) {
         LocalName = name;
@@ -36,6 +37,19 @@ public sealed class HtmlElement : HtmlNode {
     public IReadOnlyList<string> ClassList => ClassName.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries);
     /// <summary>Template contents, retained separately from normal child nodes.</summary>
     public HtmlNode? TemplateContent { get; internal set; }
+    /// <summary>Optional immutable live form properties. Attributes and text retain their authored defaults.</summary>
+    /// <remarks>Assignment requires a mutable document and a matching HTML form element.
+    /// Set to null to use attribute-based form semantics again.</remarks>
+    public HtmlFormControlState? FormState {
+        get => _formState;
+        set {
+            Document.EnsureMutable();
+            if (value != null && (NamespaceUri != HtmlNamespace || LocalName != value.ElementName))
+                throw new ArgumentException("The form state must match this HTML element.", nameof(value));
+            _formState = value;
+            Document.Touch();
+        }
+    }
 
     /// <summary>Reads the first attribute with this qualified name, regardless of namespace.</summary>
     public string? GetAttribute(string name) => _attributes.FirstOrDefault(attribute => NamesEqual(attribute.Name, name))?.Value;

@@ -181,8 +181,15 @@ Capture transfers nodes and attributes structurally, including namespaces,
 document mode and template contents. It does not serialize and reparse HTML.
 The result is frozen, has fresh document-local identities and no original source
 positions, and remains usable after the worker exits. Editing a captured document
-does not resume JavaScript execution. The current capture does not include event
-listeners, JavaScript globals, live form-property state, stylesheet changes made
+does not resume JavaScript execution. Input values, checkedness, indeterminate
+state, textarea values and option selections are retained in `HtmlElement.FormState`.
+They survive cloning, import and policy-normalized conversion; semantic inspection
+and PDF/SVG/raster rendering use those captured values. Attributes and textarea
+text retain their authored defaults, so ordinary HTML serialization does not
+restore live values when reopened. Selected files and text selection are not
+captured; a capture with selected files fails explicitly.
+
+The current capture does not include event listeners, JavaScript globals, stylesheet changes made
 only through CSSOM, or shadow roots. DOM-backed style text and attributes are captured.
 
 The process is terminated on cancellation, timeout or response-budget failure.

@@ -43,6 +43,7 @@ internal sealed class HtmlRuntimeWireDocument {
                     token.ThrowIfCancellationRequested();
                     element.SetAttribute(new HtmlAttribute(attribute.Name, attribute.Value, attribute.NamespaceUri));
                 }
+                element.FormState = entry.FormState;
             }
             nodes.Add(node);
             depths.Add(depth);
@@ -63,6 +64,7 @@ internal sealed class HtmlRuntimeWireNode {
     public string SystemIdentifier { get; set; } = string.Empty;
     public bool IsTemplateContent { get; set; }
     public List<HtmlRuntimeWireAttribute> Attributes { get; set; } = new();
+    public HtmlFormControlState? FormState { get; set; }
 }
 
 internal sealed class HtmlRuntimeWireAttribute {

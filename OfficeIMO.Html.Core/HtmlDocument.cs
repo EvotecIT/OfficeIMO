@@ -165,6 +165,7 @@ public sealed partial class HtmlDocument : HtmlNode {
                 cancellationToken.ThrowIfCancellationRequested();
                 newElement.SetAttribute(attribute);
             }
+            newElement.FormState = element.FormState;
             copy = newElement;
         } else if (source is HtmlDocumentType type) copy = new HtmlDocumentType(clone, source.NodeId, type.Name, type.PublicIdentifier, type.SystemIdentifier);
         else copy = new HtmlNode(clone, source.NodeId, source.Kind, source.Data);

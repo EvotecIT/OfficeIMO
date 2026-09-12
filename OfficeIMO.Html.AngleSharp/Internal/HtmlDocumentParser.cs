@@ -249,10 +249,13 @@ internal static class HtmlDocumentParser {
     /// <summary>
     /// Creates a deep DOM clone so a target adapter can safely apply local transformations without reparsing text.
     /// </summary>
-    public static IHtmlDocument CloneDocument(IHtmlDocument document) {
+    public static IHtmlDocument CloneDocument(IHtmlDocument document, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.Clone(true) as IHtmlDocument
+        cancellationToken.ThrowIfCancellationRequested();
+        var clone = document.Clone(true) as IHtmlDocument
             ?? throw new InvalidOperationException("The HTML DOM implementation did not produce a document clone.");
+        NativeFormState.CopyTree(document, clone, cancellationToken);
+        return clone;
     }
 
     /// <summary>

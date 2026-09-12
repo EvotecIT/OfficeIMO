@@ -34,6 +34,7 @@ public static class HtmlRenderEngine {
             HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
             operationCancellationToken.ThrowIfCancellationRequested();
             IHtmlDocument renderDocument = document.CreateDocumentForRendering();
+            HtmlRenderInputGuard.ValidateFormState(document.SourceHtml.Length, renderDocument, resolved, operationCancellationToken);
             return RenderDocument(
                 renderDocument,
                 resolved,
@@ -115,7 +116,8 @@ public static class HtmlRenderEngine {
         }
         resolved.Validate();
         return ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
-            IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
+            IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document, operationCancellationToken);
+            HtmlRenderInputGuard.ValidateFormState(null, renderDocument, resolved, operationCancellationToken);
             HtmlEditableLayoutProjector.CopyMarkers(document, renderDocument);
             if (!sourceAlreadyValidated) {
                 HtmlRenderInputGuard.ValidateSource(
@@ -201,6 +203,7 @@ public static class HtmlRenderEngine {
             HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
             operationCancellationToken.ThrowIfCancellationRequested();
             IHtmlDocument renderDocument = document.CreateDocumentForRendering();
+            HtmlRenderInputGuard.ValidateFormState(document.SourceHtml.Length, renderDocument, resolved, operationCancellationToken);
             return await RenderDocumentAsync(
                 renderDocument,
                 resolved,
@@ -222,7 +225,8 @@ public static class HtmlRenderEngine {
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.Validate();
         return await ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
-            IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
+            IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document, operationCancellationToken);
+            HtmlRenderInputGuard.ValidateFormState(null, renderDocument, resolved, operationCancellationToken);
             HtmlRenderInputGuard.ValidateSource(renderDocument.DocumentElement?.OuterHtml ?? string.Empty, resolved);
             return await RenderDocumentAsync(
                 renderDocument,
