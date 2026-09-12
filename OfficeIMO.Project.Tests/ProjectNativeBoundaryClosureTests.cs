@@ -73,6 +73,21 @@ public sealed class ProjectNativeBoundaryClosureTests {
     [InlineData(ProjectFileFormat.Mpp9)]
     [InlineData(ProjectFileFormat.Mpp12)]
     [InlineData(ProjectFileFormat.Mpp14)]
+    public void GeneratedNativeProjectSummaryTracksAProjectRename(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        using var first = new MemoryStream(); document.Save(first, Native(format));
+        document.Name = "Renamed native project";
+        using var second = new MemoryStream(); document.Save(second, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(second.ToArray()));
+        Assert.Equal("Renamed native project", reopened.Name);
+        Assert.DoesNotContain(reopened.AllTasks, task => task.Uid == 0);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
     public void ExplicitProjectSummaryRemainsInTheTypedModel(ProjectFileFormat format) {
         using var document = ExplicitSummary();
         using var output = new MemoryStream(); document.Save(output, Native(format));
@@ -233,6 +248,29 @@ public sealed class ProjectNativeBoundaryClosureTests {
         using var output = new MemoryStream(); document.Save(output, Native(ProjectFileFormat.Mpp14));
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.Null(reopened.Settings.ScheduleFromStart);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    public void MissingNativeDefaultClocksRemainAbsentThroughEditsAndXmlConversion(ProjectFileFormat format) {
+        byte[] source = RewriteProperties(NewNative(format), properties => {
+            properties.Remove(0x0240001c);
+            properties.Remove(0x02400021);
+        });
+        using var document = ProjectDocument.Load(new MemoryStream(source));
+        Assert.Null(document.Settings.DefaultStartTime);
+        Assert.Null(document.Settings.DefaultFinishTime);
+        string xml = document.ToXml(new ProjectSaveOptions { Format = ProjectFileFormat.Xml, LossPolicy = OfficeConversionLossPolicy.Allow });
+        Assert.DoesNotContain("DefaultStartTime", xml);
+        Assert.DoesNotContain("DefaultFinishTime", xml);
+        document.Tasks.First(task => task.Uid > 0).Name = "Edited without default clocks";
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Null(reopened.Settings.DefaultStartTime);
+        Assert.Null(reopened.Settings.DefaultFinishTime);
     }
 
     [Fact]

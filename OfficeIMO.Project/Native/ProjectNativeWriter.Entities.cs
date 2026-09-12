@@ -2,7 +2,7 @@ namespace OfficeIMO.Project;
 
 internal sealed partial class ProjectNativeWriter {
     private void WriteTasks() {
-        if (!_new && !ChangedTree("/Task") && !_projectGuidChanged) return;
+        if (!_new && !ChangedTree("/Task") && !_projectNameChanged && !_projectGuidChanged) return;
         using var editor = Editor("Task", 0x14, 0x0b400056);
         if (_new) {
             for (int i = 0; i < 3; i++) editor.AddReserved(i);
@@ -13,8 +13,10 @@ internal sealed partial class ProjectNativeWriter {
                 SortPosition(editor, 0, 0x0b400479, 1);
             }
         }
-        if (!_new && _projectGuidChanged && !_document.TaskIndex.ContainsKey(0) && editor.Contains(0))
-            Identity(editor, 0, 0x0b400477, SyntheticProjectSummaryGuid());
+        if (!_new && !_document.TaskIndex.ContainsKey(0) && editor.Contains(0)) {
+            if (_projectNameChanged) editor.Set(0, 0x0b40000e, Text(_document.Name ?? "Project"));
+            if (_projectGuidChanged) Identity(editor, 0, 0x0b400477, SyntheticProjectSummaryGuid());
+        }
         if (!_new && !_document.TaskIndex.ContainsKey(0) && ChangedTree("/Task[UID=0]")) {
             AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_PROJECT_SUMMARY_REQUIRED", ProjectDiagnosticSeverity.Error,
                 "An explicit native project-summary task cannot be deleted. Keep task UID 0 or convert to XML.", "/Task[UID=0]"));

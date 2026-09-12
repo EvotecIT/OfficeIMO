@@ -19,7 +19,7 @@ internal sealed partial class ProjectNativeWriter {
     private readonly List<ProjectDiagnostic> _diagnostics = new List<ProjectDiagnostic>();
     private readonly bool _new;
     private readonly ProjectNativeProfile _profile;
-    private readonly bool _structureChanged, _scheduleChanged, _projectGuidChanged, _taskGuidsChanged, _resourceGuidsChanged, _calendarGuidsChanged, _calendarBindingsChanged;
+    private readonly bool _structureChanged, _scheduleChanged, _projectNameChanged, _projectGuidChanged, _taskGuidsChanged, _resourceGuidsChanged, _calendarGuidsChanged, _calendarBindingsChanged;
 
     private ProjectNativeWriter(ProjectDocument document, ProjectSaveOptions options, CancellationToken token) {
         _document = document; _options = options; _token = token; _profile = ProjectNativeProfile.ForFormat(options.Format);
@@ -40,6 +40,7 @@ internal sealed partial class ProjectNativeWriter {
             && !k.EndsWith("/Name", StringComparison.Ordinal) && !k.EndsWith("/DisplayId", StringComparison.Ordinal) && !k.EndsWith("/Guid", StringComparison.Ordinal)
             && !k.EndsWith("/Initials", StringComparison.Ordinal) && !k.EndsWith("/Group", StringComparison.Ordinal) && !k.EndsWith("/EmailAddress", StringComparison.Ordinal)
             && !k.EndsWith("/Notes", StringComparison.Ordinal) && !k.EndsWith("/Wbs", StringComparison.Ordinal) && !k.EndsWith("/Contact", StringComparison.Ordinal));
+        _projectNameChanged = _changes.Contains("/Project/Name");
         _projectGuidChanged = _changes.Contains("/Project/Guid");
         _taskGuidsChanged = _changes.Any(k => k.StartsWith("/Task[", StringComparison.Ordinal) && k.EndsWith("/Guid", StringComparison.Ordinal));
         _resourceGuidsChanged = _changes.Any(k => k.StartsWith("/Resource[", StringComparison.Ordinal) && k.EndsWith("/Guid", StringComparison.Ordinal));

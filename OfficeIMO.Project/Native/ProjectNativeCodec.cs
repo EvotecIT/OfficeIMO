@@ -98,8 +98,9 @@ internal static partial class ProjectNativeCodec {
         document.Settings.DaysPerMonth = Get(0x0240138f)?.UInt16();
         document.Settings.CurrencyCode = Get(0x024013bb)?.Unicode(); document.Settings.CurrencySymbol = Get(0x02400010)?.Unicode();
         document.Settings.CurrencyDigits = Get(0x02400012)?.UInt16();
-        document.Settings.DefaultStartTime = TimeSpan.FromMinutes((Get(0x0240001c)?.UInt16() ?? 4800) / 10d);
-        document.Settings.DefaultFinishTime = TimeSpan.FromMinutes((Get(0x02400021)?.UInt16() ?? 10200) / 10d);
+        ProjectNativeValue? defaultStart = Get(0x0240001c), defaultFinish = Get(0x02400021);
+        document.Settings.DefaultStartTime = defaultStart.HasValue ? TimeSpan.FromMinutes(defaultStart.Value.UInt16() / 10d) : null;
+        document.Settings.DefaultFinishTime = defaultFinish.HasValue ? TimeSpan.FromMinutes(defaultFinish.Value.UInt16() / 10d) : null;
         document.Settings.StatusDate = Get(0x0240003e)?.Date();
     }
 }
