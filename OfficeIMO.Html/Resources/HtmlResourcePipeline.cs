@@ -31,7 +31,10 @@ public static partial class HtmlResourcePipeline {
     /// <summary>
     /// Builds a resource manifest from a parsed document.
     /// </summary>
-    public static HtmlResourceManifest BuildManifest(IHtmlDocument document, HtmlResourcePipelineOptions? options = null) {
+    public static HtmlResourceManifest BuildManifest(Dom.HtmlDocument document, HtmlResourcePipelineOptions? options = null) =>
+        BuildManifest(NativeDomBridge.GetNativeDocument(document), options);
+
+    internal static HtmlResourceManifest BuildManifest(IHtmlDocument document, HtmlResourcePipelineOptions? options = null) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }

@@ -1,10 +1,10 @@
-using AngleSharp.Text;
+using OfficeIMO.Html.Dom;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Html;
 
 /// <summary>Canonical bounded-prefix encoding resolution for HTML, CSS, and textual data URIs.</summary>
-internal static class HtmlTextEncodingResolver {
+internal sealed class HtmlTextEncodingResolver {
     private const int HtmlPrescanLength = 1024;
     private const int CssSniffLength = 4096;
     private static readonly Encoding Utf8 = new UTF8Encoding(false);
@@ -12,11 +12,11 @@ internal static class HtmlTextEncodingResolver {
         "^@charset \\\"([^\\\"]+)\\\";",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-    static HtmlTextEncodingResolver() {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-    }
+    internal static HtmlTextEncodingResolver Default { get; } = new HtmlTextEncodingResolver(Providers.AngleSharpEncodingProvider.Instance);
+    private readonly IHtmlEncodingProvider _provider;
+    internal HtmlTextEncodingResolver(IHtmlEncodingProvider provider) => _provider = provider ?? throw new ArgumentNullException(nameof(provider));
 
-    internal static Encoding ResolveHtmlEncoding(Stream stream, Encoding? explicitEncoding = null) {
+    internal Encoding ResolveHtmlEncoding(Stream stream, Encoding? explicitEncoding = null) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (explicitEncoding != null) return explicitEncoding;
         if (!stream.CanSeek) return Utf8;
@@ -32,7 +32,7 @@ internal static class HtmlTextEncodingResolver {
         }
     }
 
-    internal static Stream PrepareHtmlStream(Stream stream, Encoding? explicitEncoding, out Encoding encoding) {
+    internal Stream PrepareHtmlStream(Stream stream, Encoding? explicitEncoding, out Encoding encoding) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (explicitEncoding != null || stream.CanSeek) {
             encoding = ResolveHtmlEncoding(stream, explicitEncoding);
@@ -45,7 +45,7 @@ internal static class HtmlTextEncodingResolver {
         return new PrefixReplayStream(prefix, count, stream);
     }
 
-    internal static async Task<(Stream Stream, Encoding Encoding)> PrepareHtmlStreamAsync(
+    internal async Task<(Stream Stream, Encoding Encoding)> PrepareHtmlStreamAsync(
         Stream stream,
         Encoding? explicitEncoding,
         CancellationToken cancellationToken) {
@@ -69,12 +69,12 @@ internal static class HtmlTextEncodingResolver {
         return (new PrefixReplayStream(prefix, count, stream), encoding);
     }
 
-    internal static Encoding ResolveDataUriEncoding(string metadata) {
+    internal Encoding ResolveDataUriEncoding(string metadata) {
         string? charset = ReadContentTypeCharset(metadata);
         return charset == null ? Utf8 : GetEncoding(charset);
     }
 
-    internal static bool TryDecodeCss(byte[] bytes, string? contentType, out string css) {
+    internal bool TryDecodeCss(byte[] bytes, string? contentType, out string css) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         try {
             Encoding encoding = ResolveBomEncoding(bytes)
@@ -99,18 +99,18 @@ internal static class HtmlTextEncodingResolver {
         }
     }
 
-    internal static string DecodeCss(byte[] bytes, string? contentType = null) {
+    internal string DecodeCss(byte[] bytes, string? contentType = null) {
         if (TryDecodeCss(bytes, contentType, out string css)) return css;
         throw new DecoderFallbackException("The stylesheet encoding is unsupported or its byte sequence is invalid.");
     }
 
-    private static Encoding? ResolveHtmlEncoding(byte[] prefix, int count) {
+    private Encoding? ResolveHtmlEncoding(byte[] prefix, int count) {
         Encoding? encoding = ResolveBomEncoding(prefix, count)
             ?? PrescanHtmlEncoding(prefix, count);
         return encoding == null ? null : WithReplacementDecoderFallback(encoding);
     }
 
-    private static Encoding? PrescanHtmlEncoding(byte[] bytes, int count) {
+    private Encoding? PrescanHtmlEncoding(byte[] bytes, int count) {
         if (StartsWith(bytes, count, 0, 0x3C, 0x00, 0x3F, 0x00, 0x78, 0x00)) {
             return new UnicodeEncoding(false, false, true);
         }
@@ -160,7 +160,7 @@ internal static class HtmlTextEncodingResolver {
         return null;
     }
 
-    private static Encoding? PrescanMetaAttributes(byte[] bytes, int count, ref int position) {
+    private Encoding? PrescanMetaAttributes(byte[] bytes, int count, ref int position) {
         var attributeNames = new HashSet<string>(StringComparer.Ordinal);
         bool gotPragma = false;
         bool? needPragma = null;
@@ -172,7 +172,7 @@ internal static class HtmlTextEncodingResolver {
             if (name == "http-equiv") {
                 if (value == "content-type") gotPragma = true;
             } else if (name == "content") {
-                Encoding? contentEncoding = TextEncoding.Parse(value);
+                Encoding? contentEncoding = _provider.ResolveMetaContent(value);
                 if (contentEncoding != null && charset == null && !charsetFailed) {
                     charset = contentEncoding;
                     needPragma = true;
@@ -188,7 +188,7 @@ internal static class HtmlTextEncodingResolver {
         return charset;
     }
 
-    private static bool TryReadPrescanAttribute(
+    private bool TryReadPrescanAttribute(
         byte[] bytes,
         int count,
         ref int position,
@@ -249,29 +249,24 @@ internal static class HtmlTextEncodingResolver {
         return name.Length > 0;
     }
 
-    private static Encoding? ResolveHtmlLabel(string label) {
-        if (string.Equals(label.Trim(), "x-user-defined", StringComparison.OrdinalIgnoreCase)) {
-            return TextEncoding.Resolve("windows-1252");
-        }
-        return TextEncoding.IsSupported(label) ? TextEncoding.Resolve(label) : null;
-    }
+    private Encoding? ResolveHtmlLabel(string label) => _provider.ResolveLabel(label);
 
-    private static Encoding NormalizeHtmlDeclaredEncoding(Encoding encoding) =>
+    private Encoding NormalizeHtmlDeclaredEncoding(Encoding encoding) =>
         IsUtf16(encoding) ? Utf8 : encoding;
 
-    private static bool IsMetaStart(byte[] bytes, int count, int position) =>
+    private bool IsMetaStart(byte[] bytes, int count, int position) =>
         StartsWithAsciiCaseInsensitive(bytes, count, position, "<meta")
         && position + 5 < count
         && (IsHtmlSpace(bytes[position + 5]) || bytes[position + 5] == 0x2F);
 
-    private static bool IsTagStart(byte[] bytes, int count, int position) {
+    private bool IsTagStart(byte[] bytes, int count, int position) {
         if (position >= count || bytes[position] != 0x3C) return false;
         int namePosition = position + 1;
         if (namePosition < count && bytes[namePosition] == 0x2F) namePosition++;
         return namePosition < count && IsAsciiAlpha(bytes[namePosition]);
     }
 
-    private static bool StartsWithAsciiCaseInsensitive(byte[] bytes, int count, int position, string value) {
+    private bool StartsWithAsciiCaseInsensitive(byte[] bytes, int count, int position, string value) {
         if (position < 0 || count - position < value.Length) return false;
         for (int index = 0; index < value.Length; index++) {
             if (ToLowerAscii(bytes[position + index]) != (byte)value[index]) return false;
@@ -279,7 +274,7 @@ internal static class HtmlTextEncodingResolver {
         return true;
     }
 
-    private static bool StartsWith(byte[] bytes, int count, int position, params byte[] value) {
+    private bool StartsWith(byte[] bytes, int count, int position, params byte[] value) {
         if (position < 0 || count - position < value.Length) return false;
         for (int index = 0; index < value.Length; index++) {
             if (bytes[position + index] != value[index]) return false;
@@ -287,23 +282,23 @@ internal static class HtmlTextEncodingResolver {
         return true;
     }
 
-    private static int FindSequence(byte[] bytes, int start, int end, params byte[] value) {
+    private int FindSequence(byte[] bytes, int start, int end, params byte[] value) {
         for (int position = start; position <= end - value.Length; position++) {
             if (StartsWith(bytes, end, position, value)) return position;
         }
         return -1;
     }
 
-    private static bool IsHtmlSpace(byte value) =>
+    private bool IsHtmlSpace(byte value) =>
         value == 0x09 || value == 0x0A || value == 0x0C || value == 0x0D || value == 0x20;
 
-    private static bool IsAsciiAlpha(byte value) =>
+    private bool IsAsciiAlpha(byte value) =>
         value >= 0x41 && value <= 0x5A || value >= 0x61 && value <= 0x7A;
 
-    private static byte ToLowerAscii(byte value) =>
+    private byte ToLowerAscii(byte value) =>
         value >= 0x41 && value <= 0x5A ? (byte)(value + 0x20) : value;
 
-    private static Encoding? ResolveBomEncoding(byte[] bytes, int? count = null) {
+    private Encoding? ResolveBomEncoding(byte[] bytes, int? count = null) {
         int length = count ?? bytes.Length;
         if (length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) return new UTF8Encoding(true, true);
         if (length >= 4 && bytes[0] == 0xFF && bytes[1] == 0xFE && bytes[2] == 0x00 && bytes[3] == 0x00) {
@@ -317,20 +312,20 @@ internal static class HtmlTextEncodingResolver {
         return null;
     }
 
-    private static Encoding? ResolveCharsetEncoding(Regex pattern, string? source) {
+    private Encoding? ResolveCharsetEncoding(Regex pattern, string? source) {
         string? charset = ReadCharset(pattern, source);
         return charset == null ? null : NormalizeCssDeclaredEncoding(GetEncoding(charset));
     }
 
-    private static Encoding? ResolveContentTypeCharsetEncoding(string? source) {
+    private Encoding? ResolveContentTypeCharsetEncoding(string? source) {
         string? charset = ReadContentTypeCharset(source);
         return charset == null ? null : NormalizeCssDeclaredEncoding(GetEncoding(charset));
     }
 
-    private static Encoding NormalizeCssDeclaredEncoding(Encoding encoding) =>
+    private Encoding NormalizeCssDeclaredEncoding(Encoding encoding) =>
         IsUtf16(encoding) ? new UTF8Encoding(false, true) : encoding;
 
-    private static string? ReadContentTypeCharset(string? source) {
+    private string? ReadContentTypeCharset(string? source) {
         if (string.IsNullOrWhiteSpace(source)) return null;
         int position = 0;
         while (position < source!.Length) {
@@ -380,36 +375,37 @@ internal static class HtmlTextEncodingResolver {
         return null;
     }
 
-    private static bool IsHttpWhitespace(char value) =>
+    private bool IsHttpWhitespace(char value) =>
         value == ' ' || value == '\t' || value == '\r' || value == '\n';
 
-    private static string? ReadCharset(Regex pattern, string? source) {
+    private string? ReadCharset(Regex pattern, string? source) {
         if (string.IsNullOrWhiteSpace(source)) return null;
         Match match = pattern.Match(source!);
         return match.Success ? match.Groups[1].Value.Trim() : null;
     }
 
-    private static Encoding GetEncoding(string charset) {
+    private Encoding GetEncoding(string charset) {
         string label = charset.Trim();
         Encoding? encoding = ResolveHtmlLabel(label);
         if (encoding == null) throw new ArgumentException($"Unsupported character encoding label '{label}'.", nameof(charset));
-        return Encoding.GetEncoding(
-            encoding.CodePage,
-            EncoderFallback.ExceptionFallback,
-            DecoderFallback.ExceptionFallback);
+        var strict = (Encoding)encoding.Clone();
+        strict.EncoderFallback = EncoderFallback.ExceptionFallback;
+        strict.DecoderFallback = DecoderFallback.ExceptionFallback;
+        return strict;
     }
 
-    private static Encoding WithReplacementDecoderFallback(Encoding encoding) => Encoding.GetEncoding(
-        encoding.CodePage,
-        encoding.EncoderFallback,
-        new DecoderReplacementFallback("\uFFFD"));
+    private Encoding WithReplacementDecoderFallback(Encoding encoding) {
+        var replacement = (Encoding)encoding.Clone();
+        replacement.DecoderFallback = new DecoderReplacementFallback("\uFFFD");
+        return replacement;
+    }
 
-    private static string GetAsciiPrefix(byte[] bytes) =>
+    private string GetAsciiPrefix(byte[] bytes) =>
         Encoding.ASCII.GetString(bytes, 0, Math.Min(bytes.Length, CssSniffLength));
 
-    private static bool IsUtf16(Encoding encoding) => encoding.CodePage == 1200 || encoding.CodePage == 1201;
+    private bool IsUtf16(Encoding encoding) => encoding.CodePage == 1200 || encoding.CodePage == 1201;
 
-    private static int GetPreambleLength(byte[] bytes, Encoding encoding) {
+    private int GetPreambleLength(byte[] bytes, Encoding encoding) {
         byte[] preamble = encoding.GetPreamble();
         if (preamble.Length == 0 || bytes.Length < preamble.Length) return 0;
         for (int index = 0; index < preamble.Length; index++) {
@@ -418,7 +414,7 @@ internal static class HtmlTextEncodingResolver {
         return preamble.Length;
     }
 
-    private static int ReadPrefix(Stream stream, byte[] prefix) {
+    private int ReadPrefix(Stream stream, byte[] prefix) {
         int count = 0;
         while (count < prefix.Length) {
             int read = stream.Read(prefix, count, prefix.Length - count);

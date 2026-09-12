@@ -202,12 +202,10 @@ Extend the existing HTML engine into a shared document platform, static web rend
 
 ### H0-H2: foundation and first consumers
 
-- [ ] Inventory public AngleSharp types, internal DOM retention, selector use, CSS recovery, encoding assumptions and direct/reverse consumers. Map each existing logical, semantic, render and resource model to its durable responsibility. Include HtmlTinkerX's browser and browserless paths and identify dependencies unrelated to HTML rendering.
-- [ ] Freeze a small, independently authored acceptance bundle with responsive layout, external CSS, a redistributable font, an image, a link and a table. Capture semantic, DOM, PDF, SVG/raster and browser-reference evidence with pinned assets and environment. Use existing corpus/gallery infrastructure.
-- [ ] Establish source, document identity/revision, snapshot/mutation, fragment-context and serialization contracts. Implement the smallest owned DOM boundary and working provider translation required by the acceptance bundle. Make the approved public API breaks after the slice proves the shape, remove superseded paths and migrate affected consumers within the foundation milestone.
-- [ ] Complete the first end-to-end slice: parse once, query, edit one node, inspect diagnostics/resources, export editable content, render a continuous image and produce paged PDF. Measure parse-only cost and temporary dual-DOM memory. Demonstrate that changing a node or resource invalidates the right cached result.
-- [ ] Move the lightweight owned contract into a leaf package when introducing the second consumer. Run one real HtmlTinkerX extraction/Markdown workflow against packed local artifacts, then sweep OfficeIMO format adapters and old public signatures before widening adoption. Do not publish downstream pins for unavailable owner packages.
-- [ ] Complete a reviewable foundation milestone with current providers, migrated consumers, preserved conversion behavior, focused rendering/resource/package evidence and migration documentation. Prepare its PR once usable; continue component development from that base instead of waiting for full engine or dependency independence.
+- [ ] Extend the owned full-document API with contextual fragment parsing, broader source-location mapping and explicit long-lived document retention policies. Keep the existing immutable snapshot/edit contract as the consumer boundary.
+- [ ] Freeze a wider independently authored acceptance bundle with responsive layout, external CSS, a redistributable font, an image, a link and a table. Capture DOM, semantic, PDF, SVG/raster and browser-reference evidence using the existing corpus/gallery infrastructure.
+- [ ] Calibrate formal parse/query/edit allocation, retained-memory and cancellation budgets in the existing benchmark tooling. The retained native/owned adapter has a measurable memory cost; qualify reductions without regressing source recovery or conversion output.
+- [ ] Widen HtmlTinkerX adoption from its verified extraction/Markdown consumer path to its other DOM consumers and packaging surfaces. Keep browser execution, minification, diffing and email inlining as separately owned capabilities. Publish consumer pins only for available owner packages.
 
 ### H3-H6: static engine and dependency retirement
 

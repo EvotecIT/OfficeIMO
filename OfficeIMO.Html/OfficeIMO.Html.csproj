@@ -42,11 +42,12 @@
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.7.1" />
     <PackageReference Include="AngleSharp.Css" Version="1.0.1" />
-    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.Core\OfficeIMO.Html.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.AngleSharp\OfficeIMO.Html.AngleSharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

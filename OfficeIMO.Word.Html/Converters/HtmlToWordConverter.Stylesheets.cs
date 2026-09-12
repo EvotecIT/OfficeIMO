@@ -128,7 +128,7 @@ namespace OfficeIMO.Word.Html {
 
             byte[] bytes = memory.ToArray();
             return new DecodedStylesheet(
-                HtmlTextEncodingResolver.DecodeCss(bytes, content.Headers.ContentType?.ToString()),
+                HtmlTextEncodingResolver.Default.DecodeCss(bytes, content.Headers.ContentType?.ToString()),
                 bytes.LongLength);
         }
 
@@ -147,7 +147,7 @@ namespace OfficeIMO.Word.Html {
 
             byte[] bytes = File.ReadAllBytes(path);
             try {
-                return new DecodedStylesheet(HtmlTextEncodingResolver.DecodeCss(bytes), bytes.LongLength);
+                return new DecodedStylesheet(HtmlTextEncodingResolver.Default.DecodeCss(bytes), bytes.LongLength);
             } catch (DecoderFallbackException exception) {
                 AddDiagnostic(
                     _options,

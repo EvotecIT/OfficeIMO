@@ -1536,14 +1536,14 @@ public static partial class HtmlProvenance {
             throw new InvalidDataException("The HTML document exceeds the configured text-integrity byte limit.");
         }
         cancellationToken.ThrowIfCancellationRequested();
-        Encoding encoding = HtmlTextEncodingResolver.ResolveHtmlEncoding(stream);
+        Encoding encoding = HtmlTextEncodingResolver.Default.ResolveHtmlEncoding(stream);
         cancellationToken.ThrowIfCancellationRequested();
         return encoding;
     }
 
     private static string DecodeHtml(byte[] data, out Encoding encoding, out bool hadPreamble) {
         using var stream = new MemoryStream(data, writable: false);
-        encoding = HtmlTextEncodingResolver.ResolveHtmlEncoding(stream);
+        encoding = HtmlTextEncodingResolver.Default.ResolveHtmlEncoding(stream);
         byte[] preamble = encoding.GetPreamble();
         hadPreamble = preamble.Length != 0 && data.Length >= preamble.Length &&
             preamble.SequenceEqual(data.Take(preamble.Length));

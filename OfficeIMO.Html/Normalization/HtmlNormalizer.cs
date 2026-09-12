@@ -51,7 +51,10 @@ public static class HtmlNormalizer {
     /// <summary>
     /// Normalizes an already parsed HTML document.
     /// </summary>
-    public static string Normalize(IHtmlDocument document, HtmlNormalizationOptions? options = null) {
+    public static string Normalize(Dom.HtmlDocument document, HtmlNormalizationOptions? options = null) =>
+        Normalize(NativeDomBridge.GetNativeDocument(document), options);
+
+    internal static string Normalize(IHtmlDocument document, HtmlNormalizationOptions? options = null) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }

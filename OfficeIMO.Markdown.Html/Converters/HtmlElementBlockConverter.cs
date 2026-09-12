@@ -1,5 +1,7 @@
 using AngleSharp.Dom;
 using OfficeIMO.Markdown;
+using OfficeIMO.Html;
+using OfficeIMO.Html.Dom;
 
 namespace OfficeIMO.Markdown.Html;
 
@@ -10,6 +12,8 @@ public sealed class HtmlElementBlockConversionContext {
     private readonly Func<IEnumerable<INode>, IReadOnlyList<IMarkdownBlock>> _convertNodesToBlocks;
     private readonly Func<IEnumerable<INode>, InlineSequence> _convertNodesToInlineSequence;
     private readonly Func<string?, string> _normalizeBlockText;
+    private readonly IElement _nativeElement;
+    private HtmlElement? _element;
 
     internal HtmlElementBlockConversionContext(
         IElement element,
@@ -17,7 +21,7 @@ public sealed class HtmlElementBlockConversionContext {
         Func<IEnumerable<INode>, IReadOnlyList<IMarkdownBlock>> convertNodesToBlocks,
         Func<IEnumerable<INode>, InlineSequence> convertNodesToInlineSequence,
         Func<string?, string> normalizeBlockText) {
-        Element = element ?? throw new ArgumentNullException(nameof(element));
+        _nativeElement = element ?? throw new ArgumentNullException(nameof(element));
         Options = options ?? throw new ArgumentNullException(nameof(options));
         _convertNodesToBlocks = convertNodesToBlocks ?? throw new ArgumentNullException(nameof(convertNodesToBlocks));
         _convertNodesToInlineSequence = convertNodesToInlineSequence ?? throw new ArgumentNullException(nameof(convertNodesToInlineSequence));
@@ -25,22 +29,25 @@ public sealed class HtmlElementBlockConversionContext {
     }
 
     /// <summary>Current HTML element being converted.</summary>
-    public IElement Element { get; }
+    public HtmlElement Element => _element ??= NativeDomBridge.Wrap(_nativeElement);
 
     /// <summary>Effective HTML-to-markdown options.</summary>
     public HtmlToMarkdownOptions Options { get; }
 
     /// <summary>Converts the supplied nodes using the base block converter.</summary>
-    public IReadOnlyList<IMarkdownBlock> ConvertNodesToBlocks(IEnumerable<INode> nodes) => _convertNodesToBlocks(nodes);
+    public IReadOnlyList<IMarkdownBlock> ConvertNodesToBlocks(IEnumerable<HtmlNode> nodes) => _convertNodesToBlocks(ToNativeNodes(nodes));
 
     /// <summary>Converts the current element's child nodes using the base block converter.</summary>
-    public IReadOnlyList<IMarkdownBlock> ConvertChildNodesToBlocks() => _convertNodesToBlocks(Element.ChildNodes);
+    public IReadOnlyList<IMarkdownBlock> ConvertChildNodesToBlocks() => _convertNodesToBlocks(_nativeElement.ChildNodes);
 
     /// <summary>Converts the supplied nodes using the base inline converter.</summary>
-    public InlineSequence ConvertNodesToInlineSequence(IEnumerable<INode> nodes) => _convertNodesToInlineSequence(nodes);
+    public InlineSequence ConvertNodesToInlineSequence(IEnumerable<HtmlNode> nodes) => _convertNodesToInlineSequence(ToNativeNodes(nodes));
 
     /// <summary>Converts the current element's child nodes using the base inline converter.</summary>
-    public InlineSequence ConvertChildNodesToInlineSequence() => _convertNodesToInlineSequence(Element.ChildNodes);
+    public InlineSequence ConvertChildNodesToInlineSequence() => _convertNodesToInlineSequence(_nativeElement.ChildNodes);
+
+    private IEnumerable<INode> ToNativeNodes(IEnumerable<HtmlNode> nodes) =>
+        (nodes ?? throw new ArgumentNullException(nameof(nodes))).Select(node => NativeDomBridge.GetCallbackNative(node, Element.Document));
 
     /// <summary>Normalizes HTML text content using the base block text rules.</summary>
     public string NormalizeBlockText(string? value) => _normalizeBlockText(value);

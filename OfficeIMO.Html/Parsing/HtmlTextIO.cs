@@ -10,7 +10,7 @@ internal static class HtmlTextIO {
     /// <summary>Reads HTML text while detecting a byte-order mark and leaving the source stream open.</summary>
     public static string Read(Stream stream) {
         ValidateReadable(stream);
-        Stream input = HtmlTextEncodingResolver.PrepareHtmlStream(stream, null, out Encoding encoding);
+        Stream input = HtmlTextEncodingResolver.Default.PrepareHtmlStream(stream, null, out Encoding encoding);
         using var reader = new StreamReader(input, encoding, true, 4096, true);
         return reader.ReadToEnd();
     }
@@ -19,7 +19,7 @@ internal static class HtmlTextIO {
     public static async Task<string> ReadAsync(Stream stream, CancellationToken cancellationToken = default) {
         ValidateReadable(stream);
         cancellationToken.ThrowIfCancellationRequested();
-        (Stream input, Encoding encoding) = await HtmlTextEncodingResolver
+        (Stream input, Encoding encoding) = await HtmlTextEncodingResolver.Default
             .PrepareHtmlStreamAsync(stream, null, cancellationToken)
             .ConfigureAwait(false);
         using var reader = new StreamReader(input, encoding, true, 4096, true);

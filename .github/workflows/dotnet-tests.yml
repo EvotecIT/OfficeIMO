@@ -185,6 +185,8 @@ jobs:
             'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
             'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
             'OfficeIMO.Email/OfficeIMO.Email.csproj',
+            'OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj',
+            'OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj',
             'OfficeIMO.Html/OfficeIMO.Html.csproj',
             'OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj',
             'OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj',
@@ -348,6 +350,8 @@ jobs:
           $projects = @(
             'OfficeIMO.Core/OfficeIMO.Core.csproj',
             'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
+            'OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj',
+            'OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj',
             'OfficeIMO.Html/OfficeIMO.Html.csproj',
             'OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj',
             'OfficeIMO.OneNote/OfficeIMO.OneNote.csproj',

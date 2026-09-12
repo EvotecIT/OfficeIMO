@@ -15,7 +15,7 @@ public sealed partial class HtmlConversionDocument {
     public static HtmlConversionDocument Load(Stream stream, HtmlConversionDocumentOptions? options = null, Encoding? encoding = null) {
         HtmlConversionDocumentOptions resolved = (options ?? new HtmlConversionDocumentOptions()).Clone();
         resolved.Validate();
-        return Parse(ReadText(stream, encoding, resolved.Limits), resolved);
+        return Parse(ReadText(stream, encoding, resolved.Limits, resolved.InputEncodingProvider), resolved);
     }
 
     /// <summary>Asynchronously loads and parses an HTML file.</summary>
@@ -37,18 +37,18 @@ public sealed partial class HtmlConversionDocument {
         CancellationToken cancellationToken = default) {
         HtmlConversionDocumentOptions resolved = (options ?? new HtmlConversionDocumentOptions()).Clone();
         resolved.Validate();
-        string html = await ReadTextAsync(stream, encoding, resolved.Limits, cancellationToken).ConfigureAwait(false);
+        string html = await ReadTextAsync(stream, encoding, resolved.Limits, resolved.InputEncodingProvider, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        return Parse(html, resolved);
+        return Parse(html, resolved, cancellationToken);
     }
 
-    private static string ReadText(Stream stream, Encoding? encoding, HtmlConversionLimits limits) {
+    private static string ReadText(Stream stream, Encoding? encoding, HtmlConversionLimits limits, Dom.IHtmlEncodingProvider encodingProvider) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         long position = stream.CanSeek ? stream.Position : 0;
         try {
             if (stream.CanSeek) stream.Position = 0;
-            Stream input = HtmlTextEncodingResolver.PrepareHtmlStream(stream, encoding, out Encoding resolvedEncoding);
+            Stream input = new HtmlTextEncodingResolver(encodingProvider).PrepareHtmlStream(stream, encoding, out Encoding resolvedEncoding);
             if (stream.CanSeek) stream.Position = 0;
             using var reader = new StreamReader(input, resolvedEncoding, encoding == null, 1024, true);
             var builder = new StringBuilder();
@@ -65,13 +65,13 @@ public sealed partial class HtmlConversionDocument {
         }
     }
 
-    private static async Task<string> ReadTextAsync(Stream stream, Encoding? encoding, HtmlConversionLimits limits, CancellationToken cancellationToken) {
+    private static async Task<string> ReadTextAsync(Stream stream, Encoding? encoding, HtmlConversionLimits limits, Dom.IHtmlEncodingProvider encodingProvider, CancellationToken cancellationToken) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         long position = stream.CanSeek ? stream.Position : 0;
         try {
             if (stream.CanSeek) stream.Position = 0;
-            (Stream input, Encoding resolvedEncoding) = await HtmlTextEncodingResolver
+            (Stream input, Encoding resolvedEncoding) = await new HtmlTextEncodingResolver(encodingProvider)
                 .PrepareHtmlStreamAsync(stream, encoding, cancellationToken)
                 .ConfigureAwait(false);
             if (stream.CanSeek) stream.Position = 0;

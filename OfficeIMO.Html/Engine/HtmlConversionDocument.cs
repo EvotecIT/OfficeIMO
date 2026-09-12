@@ -8,6 +8,7 @@ namespace OfficeIMO.Html;
 /// </summary>
 public sealed partial class HtmlConversionDocument {
     private readonly IHtmlDocument _sourceDocument;
+    private readonly Lazy<Dom.HtmlDocument> _document;
     private readonly HtmlConversionDocumentOptions _options;
     private readonly HtmlCssMediaContext _mediaContext;
     private readonly Lazy<IHtmlDocument> _adapterDocument;
@@ -26,10 +27,13 @@ public sealed partial class HtmlConversionDocument {
         string sourceHtml,
         IHtmlDocument sourceDocument,
         HtmlConversionDocumentOptions options,
-        Uri? baseUri) {
+        Uri? baseUri,
+        Dom.HtmlDocument? sourceSnapshot = null) {
         SourceHtml = sourceHtml ?? throw new ArgumentNullException(nameof(sourceHtml));
         _sourceDocument = sourceDocument ?? throw new ArgumentNullException(nameof(sourceDocument));
+        _document = new Lazy<Dom.HtmlDocument>(() => sourceSnapshot ?? AnalyzeSource(() => NativeDomBridge.Import(_sourceDocument).Freeze()), LazyThreadSafetyMode.ExecutionAndPublication);
         HasExplicitDocumentEnvelope = sourceDocument.Doctype != null ||
+            sourceSnapshot?.DocumentElement?.SourceIndex >= 0 || sourceSnapshot?.Head?.SourceIndex >= 0 || sourceSnapshot?.Body?.SourceIndex >= 0 ||
             sourceDocument.DocumentElement?.SourceReference?.Position.Index >= 0 ||
             sourceDocument.Head?.SourceReference?.Position.Index >= 0 ||
             sourceDocument.Body?.SourceReference?.Position.Index >= 0;
@@ -72,6 +76,9 @@ public sealed partial class HtmlConversionDocument {
     /// <summary>Original HTML supplied by the caller.</summary>
     public string SourceHtml { get; }
 
+    /// <summary>Owned, immutable source DOM. Access does not normalize content, fetch resources or execute scripts.</summary>
+    public Dom.HtmlDocument Document => _document.Value;
+
     /// <summary>
     /// Gets whether the parsed source contained an actual document envelope tag or doctype.
     /// Text in comments, escaped markup, and prefix tags such as <c>bodyguard</c> do not count.
@@ -81,19 +88,24 @@ public sealed partial class HtmlConversionDocument {
     /// <summary>
     /// Creates an independent policy-normalized DOM for the conversion profile's default media context.
     /// </summary>
-    public IHtmlDocument CreateDocumentForConversion() => CreateDocumentForConversion(_mediaContext);
+    public Dom.HtmlDocument CreateDocumentForConversion() => CreateDocumentForConversion(_mediaContext);
 
     /// <summary>
     /// Creates a policy-normalized DOM filtered for a target media context without reparsing source HTML or mutating shared state.
     /// </summary>
     /// <param name="mediaContext">Screen or print media context selected by the target adapter.</param>
     /// <returns>An independent DOM clone that the target adapter may safely mutate.</returns>
-    public IHtmlDocument CreateDocumentForConversion(HtmlCssMediaContext mediaContext) {
+    public Dom.HtmlDocument CreateDocumentForConversion(HtmlCssMediaContext mediaContext) =>
+        NativeDomBridge.Import(CreateNativeDocumentForConversion(mediaContext));
+
+    /// <summary>Native DOM boundary retained for the existing format/CSS implementation.</summary>
+    internal IHtmlDocument CreateNativeDocumentForConversion(HtmlCssMediaContext? mediaContext = null) {
+        HtmlCssMediaContext effectiveMedia = mediaContext ?? _mediaContext;
         IHtmlDocument canonical = _adapterDocument.Value;
         IHtmlDocument document;
         lock (_analysisSync) document = HtmlDocumentParser.CloneDocument(canonical);
         var diagnostics = new HtmlDiagnosticReport();
-        HtmlActiveMediaFilter.Filter(document, mediaContext, diagnostics);
+        HtmlActiveMediaFilter.Filter(document, effectiveMedia, diagnostics);
         if (diagnostics.Count > 0) {
             lock (_diagnosticSync) _diagnostics.AddRange(diagnostics);
         }
@@ -106,7 +118,7 @@ public sealed partial class HtmlConversionDocument {
     internal HtmlSemanticDocument CreateSemanticDocumentForConversion(HtmlCssMediaContext mediaContext) {
         if (!Enum.IsDefined(typeof(HtmlCssMediaContext), mediaContext)) throw new ArgumentOutOfRangeException(nameof(mediaContext));
         if (mediaContext == _mediaContext) return _semanticDocument.Value;
-        IHtmlDocument document = CreateDocumentForConversion(mediaContext);
+        IHtmlDocument document = CreateNativeDocumentForConversion(mediaContext);
         return AnalyzeSource(() => HtmlSemanticDocumentBuilder.FromDocument(document, mediaContext, _options.Limits));
     }
 
@@ -228,7 +240,7 @@ public sealed partial class HtmlConversionDocument {
     /// <summary>HTML text target adapters should use when no adapter-specific source preference is configured.</summary>
     public string HtmlForConversion {
         get {
-            IHtmlDocument document = CreateDocumentForConversion();
+            IHtmlDocument document = CreateNativeDocumentForConversion();
             return document.DocumentElement?.OuterHtml ?? SourceHtml;
         }
     }

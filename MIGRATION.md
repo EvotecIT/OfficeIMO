@@ -11,6 +11,40 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### Owned HTML documents and callbacks
+
+Public HTML APIs now use `OfficeIMO.Html.Dom.HtmlDocument`, `HtmlElement` and
+`HtmlNode` from `OfficeIMO.Html.Core`. Update all OfficeIMO packages together and
+recompile consumers that previously passed AngleSharp nodes. The current default
+implementation is supplied by `OfficeIMO.Html.AngleSharp`; converters retain their
+internal AngleSharp/CSS implementation.
+
+| Previous code or behavior | Replacement |
+| --- | --- |
+| `AngleSharp.Html.Dom.IHtmlDocument html = conversion.CreateDocumentForConversion()` | Use `HtmlDocument` or `var`; the result is an independent mutable conversion tree. |
+| Mutate a retained source tree | Read `conversion.Document`; use `conversion.Edit(edit => ...)` to obtain a new conversion snapshot. |
+| Pass native DOMs to `HtmlNormalizer`, `HtmlResourcePipeline`, `HtmlComputedStyleEngine` or `OfficeHtmlSemanticEnvelope` | Pass an owned document, or use the string/conversion-document overload. |
+| Dictionaries keyed by `AngleSharp.Dom.IElement` from computed-style APIs | Use `HtmlElement` keys. For `Compute(conversion)`, keys belong to `conversion.Document`. |
+| Native nodes in Markdown filters and custom converter contexts | Use owned nodes. Callback snapshots are read-only; a filter returning `true` still removes the matching element. |
+| `context.Element.TagName == "SPAN"` | Compare `context.Element.LocalName == "span"` for HTML elements; foreign-content case is preserved. |
+| `QuerySelectorAll(...).Length` | Use `.Count`; query results are `IReadOnlyList<HtmlElement>`. |
+| Pass native nodes to custom context conversion helpers | Pass nodes from that callback's owned snapshot. Cross-snapshot nodes are rejected. |
+| In-place `HtmlActiveMediaFilter.Filter(nativeDocument, media)` returning a Boolean | Assign the returned owned snapshot from `HtmlActiveMediaFilter.Filter(document, media)`; the input is unchanged. |
+| Catch native selector exceptions | Invalid selectors use `ArgumentException` on the owned selector API. |
+
+`HtmlConversionDocument.FromDocument(tree)` replaces native-DOM conversion inputs.
+Mutable inputs are cloned and frozen. Editing preserves conversion trust, resource
+policies and limits, and recomputes derived results. Node IDs persist within an edit
+lineage; snapshot IDs differ. Detached nodes remain part of their owning document
+and become read-only when it is frozen. `TextContent` can be set on elements, text,
+comments and fragments; write document text through `Body` or another element.
+
+Use `InputEncodingProvider` on conversion options to replace charset lookup for
+source streams. Explicit encodings retain precedence and streams remain open with
+seekable positions restored. The default web charset provider still registers
+`CodePagesEncodingProvider` globally; it is isolated in the provider package rather
+than removed. External stylesheet/data-URI decoding has separate provider arguments.
+
 ### Factur-X profile declarations
 
 The Factur-X attachment helpers now derive XMP `ConformanceLevel` from the

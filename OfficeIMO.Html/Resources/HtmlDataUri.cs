@@ -71,13 +71,14 @@ public sealed class HtmlDataUri {
     }
 
     /// <summary>Decodes the payload using its declared charset, or UTF-8 when no charset is declared.</summary>
-    public string DecodeText() => HtmlTextEncodingResolver.ResolveDataUriEncoding(Metadata).GetString(DecodeBytes());
+    public string DecodeText(Dom.IHtmlEncodingProvider? encodingProvider = null) =>
+        (encodingProvider == null ? HtmlTextEncodingResolver.Default : new HtmlTextEncodingResolver(encodingProvider)).ResolveDataUriEncoding(Metadata).GetString(DecodeBytes());
 
     /// <summary>Attempts to decode the payload using its declared charset, or UTF-8 when none is declared.</summary>
-    public bool TryDecodeText(out string text) {
+    public bool TryDecodeText(out string text, Dom.IHtmlEncodingProvider? encodingProvider = null) {
         text = string.Empty;
         try {
-            text = DecodeText();
+            text = DecodeText(encodingProvider);
             return true;
         } catch (ArgumentException) {
             return false;

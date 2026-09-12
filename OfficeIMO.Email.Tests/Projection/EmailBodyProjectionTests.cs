@@ -212,7 +212,7 @@ public sealed class EmailBodyProjectionTests {
             new EmailBodyProjectionOptions {
                 RemoteResourcePolicy = EmailRemoteResourcePolicy.AllowByConsumerResolver
             });
-        AngleSharp.Html.Dom.IHtmlDocument html = result.Document.CreateDocumentForConversion();
+        OfficeIMO.Html.Dom.HtmlDocument html = result.Document.CreateDocumentForConversion();
 
         Assert.Equal("https://cdn.example/image.png", html.QuerySelector("#web")!.GetAttribute("src"));
         Assert.False(html.QuerySelector("#mail")!.HasAttribute("src"));

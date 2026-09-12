@@ -6,18 +6,18 @@ namespace OfficeIMO.Html;
 /// Resolves the small, deterministic subset of HTML and ARIA accessibility semantics
 /// used by OfficeIMO document conversion pipelines.
 /// </summary>
-public static class HtmlAccessibilitySemantics {
+public static partial class HtmlAccessibilitySemantics {
     private const int MaximumAccessibleNameCharacters = 4096;
     private const int MaximumAriaResolutionDepth = 64;
     private const int MaximumTokenSourceCharacters = 8192;
     private const int MaximumTokens = 256;
 
     /// <summary>Returns whether an element declares the requested ARIA role.</summary>
-    public static bool HasRole(IElement element, string role) =>
+    internal static bool HasRole(IElement element, string role) =>
         element != null && ContainsToken(element.GetAttribute("role"), role);
 
     /// <summary>Returns whether an element declares the requested EPUB structural semantic.</summary>
-    public static bool HasEpubType(IElement element, string semanticType) {
+    internal static bool HasEpubType(IElement element, string semanticType) {
         if (element == null || string.IsNullOrWhiteSpace(semanticType)) return false;
 
         string? value = element.GetAttribute("epub:type");
@@ -36,7 +36,7 @@ public static class HtmlAccessibilitySemantics {
     /// Resolves a heading level from a native heading element or an ARIA heading role.
     /// ARIA levels outside the Markdown heading range are clamped to levels 1 through 6.
     /// </summary>
-    public static bool TryGetHeadingLevel(IElement element, out int level) {
+    internal static bool TryGetHeadingLevel(IElement element, out int level) {
         level = 0;
         if (element == null) return false;
 
@@ -68,7 +68,7 @@ public static class HtmlAccessibilitySemantics {
     /// </summary>
     /// <param name="element">Element to name.</param>
     /// <param name="includeTextFallback">Whether normalized descendant text may supply the name.</param>
-    public static string GetAccessibleName(IElement element, bool includeTextFallback = false) =>
+    internal static string GetAccessibleName(IElement element, bool includeTextFallback = false) =>
         GetAccessibleName(element, includeTextFallback, new HtmlAccessibleNameContext());
 
     internal static string GetAccessibleName(IElement element, bool includeTextFallback,
@@ -80,7 +80,7 @@ public static class HtmlAccessibilitySemantics {
     /// Resolves an accessible image name, including image <c>alt</c> semantics for custom
     /// elements that a converter explicitly aliases to an image.
     /// </summary>
-    public static string GetImageAccessibleName(IElement element) {
+    internal static string GetImageAccessibleName(IElement element) {
         var context = new HtmlAccessibleNameContext();
         return context.Limit(GetAccessibleName(element,
             includeTextFallback: false, treatAsImage: true, new HashSet<IElement>(),
@@ -137,7 +137,7 @@ public static class HtmlAccessibilitySemantics {
     }
 
     /// <summary>Returns whether an element is explicitly hidden from the accessibility tree.</summary>
-    public static bool IsAriaHidden(IElement element) =>
+    internal static bool IsAriaHidden(IElement element) =>
         element != null
         && string.Equals(element.GetAttribute("aria-hidden")?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
 

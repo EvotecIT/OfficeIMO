@@ -54,12 +54,12 @@ public static class HtmlActiveMediaFilter {
     /// Removes inactive media content from a prepared DOM in place without serializing and reparsing it.
     /// </summary>
     /// <returns>Whether the document was changed.</returns>
-    public static bool Filter(IHtmlDocument document, HtmlCssMediaContext mediaContext) {
+    internal static bool Filter(IHtmlDocument document, HtmlCssMediaContext mediaContext) {
         return Filter(document, mediaContext, diagnostics: null);
     }
 
     /// <summary>Filters a prepared DOM while reporting CSS parser or transformation failures.</summary>
-    public static bool Filter(IHtmlDocument document, HtmlCssMediaContext mediaContext, HtmlDiagnosticReport? diagnostics) {
+    internal static bool Filter(IHtmlDocument document, HtmlCssMediaContext mediaContext, HtmlDiagnosticReport? diagnostics) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         try {
             return FilterDocument(document, mediaContext, diagnostics);
@@ -67,6 +67,14 @@ public static class HtmlActiveMediaFilter {
             ReportFailure(diagnostics, "document", exception);
             return false;
         }
+    }
+
+    /// <summary>Returns an independent filtered snapshot, leaving the supplied document unchanged.</summary>
+    public static Dom.HtmlDocument Filter(Dom.HtmlDocument document, HtmlCssMediaContext mediaContext, HtmlDiagnosticReport? diagnostics = null) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        IHtmlDocument native = HtmlDocumentParser.CloneDocument(NativeDomBridge.GetNativeDocument(document));
+        Filter(native, mediaContext, diagnostics);
+        return NativeDomBridge.Import(native).Freeze();
     }
 
     /// <summary>

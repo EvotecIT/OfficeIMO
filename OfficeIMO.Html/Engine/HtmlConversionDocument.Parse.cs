@@ -6,18 +6,70 @@ public sealed partial class HtmlConversionDocument {
     /// <summary>
     /// Parses HTML and builds a shared conversion document with logical, style, resource, and normalized-output evidence.
     /// </summary>
-    public static HtmlConversionDocument Parse(string html, HtmlConversionDocumentOptions? options = null) {
+    public static HtmlConversionDocument Parse(string html, HtmlConversionDocumentOptions? options = null) => Parse(html, options, CancellationToken.None);
+
+    /// <summary>Parses inert HTML with explicit cooperative cancellation.</summary>
+    public static HtmlConversionDocument Parse(string html, HtmlConversionDocumentOptions? options, CancellationToken cancellationToken) {
         if (html == null) {
             throw new ArgumentNullException(nameof(html));
         }
 
         HtmlConversionDocumentOptions resolved = options?.Clone() ?? new HtmlConversionDocumentOptions();
         resolved.Validate();
+        cancellationToken.ThrowIfCancellationRequested();
         HtmlConversionInputGuard.ValidateSource(html, resolved.Limits);
-        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+        // Keep the existing provider's retained native tree until owned nodes are requested.
+        // This avoids eagerly duplicating the DOM for render-only and semantic-only callers.
+        Dom.HtmlDocument? sourceSnapshot = null;
+        IHtmlDocument document;
+        if (ReferenceEquals(resolved.ParserProvider, Providers.AngleSharpHtmlParser.Instance)) {
+            document = HtmlDocumentParser.ParseDocument(html, cancellationToken);
+        } else {
+            sourceSnapshot = resolved.ParserProvider.Parse(html, new Dom.HtmlParseOptions {
+                MaxInputCharacters = resolved.Limits.MaxInputCharacters,
+                MaxNodes = resolved.Limits.MaxHtmlNodes,
+                MaxDepth = resolved.Limits.MaxHtmlDepth
+            }, cancellationToken) ?? throw new InvalidOperationException("The HTML parser provider returned no document.");
+            ValidateOwnedTree(sourceSnapshot, resolved.Limits);
+            if (!sourceSnapshot.IsReadOnly) sourceSnapshot = sourceSnapshot.Clone().Freeze();
+            document = NativeDomBridge.GetNativeDocument(sourceSnapshot);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         HtmlConversionInputGuard.ValidateDocument(document, resolved.Limits);
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, resolved.BaseUri);
-        return new HtmlConversionDocument(html, document, resolved, baseUri);
+        return new HtmlConversionDocument(html, document, resolved, baseUri, sourceSnapshot);
+    }
+
+    /// <summary>Creates a conversion snapshot from an owned tree without reparsing its serialized markup.</summary>
+    public static HtmlConversionDocument FromDocument(Dom.HtmlDocument document, HtmlConversionDocumentOptions? options = null) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        HtmlConversionDocumentOptions resolved = options?.Clone() ?? new HtmlConversionDocumentOptions();
+        resolved.Validate();
+        ValidateOwnedTree(document, resolved.Limits);
+        Dom.HtmlDocument snapshot = document.IsReadOnly ? document : document.Clone().Freeze();
+        IHtmlDocument native = NativeDomBridge.GetNativeDocument(snapshot);
+        HtmlConversionInputGuard.ValidateDocument(native, resolved.Limits);
+        string source = snapshot.OuterHtml;
+        HtmlConversionInputGuard.ValidateSource(source, resolved.Limits);
+        return new HtmlConversionDocument(source, native, resolved, HtmlDocumentParser.ResolveEffectiveBaseUri(native, resolved.BaseUri), snapshot);
+    }
+
+    /// <summary>Edits an independent source snapshot and retains this conversion's trust, resource and fidelity options.</summary>
+    public HtmlConversionDocument Edit(Action<Dom.HtmlDocument> edit) => FromDocument(Document.Edit(edit), _options);
+
+    private static void ValidateOwnedTree(Dom.HtmlDocument document, HtmlConversionLimits limits) {
+        var tracker = HtmlDomLimitTracker.Create(limits.MaxHtmlNodes, limits.MaxHtmlDepth);
+        if (tracker == null) return;
+        var pending = new Stack<(Dom.HtmlNode Node, int Depth)>();
+        foreach (Dom.HtmlNode node in document.ChildNodes) pending.Push((node, node is Dom.HtmlElement ? 1 : 0));
+        while (pending.Count != 0) {
+            var current = pending.Pop();
+            if (current.Node is Dom.HtmlElement element) {
+                tracker.RecordElementStart(current.Depth);
+                if (element.TemplateContent != null) pending.Push((element.TemplateContent, current.Depth));
+            } else tracker.RecordNode();
+            foreach (Dom.HtmlNode child in current.Node.ChildNodes) pending.Push((child, current.Depth + (child is Dom.HtmlElement ? 1 : 0)));
+        }
     }
 
     /// <summary>

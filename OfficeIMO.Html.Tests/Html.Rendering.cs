@@ -2109,7 +2109,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlComputedStyle_DirAttributeParticipatesAsAnOverridablePresentationalHint() {
         const string html = "<!doctype html><html id='root' dir='rtl' style='direction:ltr'><body id='body'><p id='rtl' dir='rtl'><span id='child'>Text</span></p></body></html>";
 
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(html);
+        IReadOnlyDictionary<OfficeIMO.Html.Dom.HtmlElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(html);
 
         Assert.Equal("ltr", styles.Single(pair => pair.Key.Id == "root").Value.GetValue("direction"));
         Assert.Equal("ltr", styles.Single(pair => pair.Key.Id == "body").Value.GetValue("direction"));
