@@ -25,6 +25,7 @@ public sealed partial class ProjectDocument {
         var existing = fields.SingleOrDefault(v => ProjectCustomFieldIdentity.SameId(v.FieldId, fieldId));
         using (BeginUpdate()) {
             var selected = existing ?? fields.Add(); selected.FieldId = fieldId;
+            selected.Value = null; selected.DurationFormat = null;
             selected.ValueId = value.ValueId!.Value.ToString(CultureInfo.InvariantCulture); selected.ValueGuid = value.Guid;
         }
     }

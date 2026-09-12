@@ -60,12 +60,15 @@ public sealed class ProjectDataTests {
         Assert.NotEqual(task.Uid, imported.Tasks.Add("New task").Uid);
     }
 
-    [Fact]
-    public void TablesRoundTripAnExplicitlyUnassignedResource() {
-        const string xml = "<Project xmlns=\"http://schemas.microsoft.com/project\"><Tasks><Task><UID>1</UID><Name>Task</Name></Task></Tasks>"
-            + "<Assignments><Assignment><UID>7</UID><TaskUID>1</TaskUID></Assignment></Assignments></Project>";
+    [Theory]
+    [InlineData("")]
+    [InlineData("<ResourceUID>-65535</ResourceUID>")]
+    public void TablesNormalizeAndRoundTripUnassignedResources(string resourceUidXml) {
+        string xml = "<Project xmlns=\"http://schemas.microsoft.com/project\"><Tasks><Task><UID>1</UID><Name>Task</Name></Task></Tasks>"
+            + "<Assignments><Assignment><UID>7</UID><TaskUID>1</TaskUID>" + resourceUidXml + "</Assignment></Assignments></Project>";
         using var source = ProjectDocument.Parse(xml);
         source.Validate().ThrowIfErrors();
+        Assert.Equal(resourceUidXml.Length == 0 ? -1 : -65535, Assert.Single(source.Assignments).SourceResourceUid);
         var exported = source.ExportTables(allowLossyProjection: true);
         var assignmentTable = exported.Tables.Single(t => t.Kind == ProjectDataKind.Assignments);
         int resourceColumn = Array.IndexOf(assignmentTable.Table.Headers.ToArray(), ProjectDataField.ResourceUid.ToString());

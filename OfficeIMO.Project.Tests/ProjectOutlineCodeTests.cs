@@ -52,6 +52,23 @@ public sealed class ProjectOutlineCodeTests {
         using var rejected = new MemoryStream(); Assert.Throws<InvalidDataException>(() => project.Save(rejected)); Assert.Empty(rejected.ToArray());
     }
     [Fact]
+    public void SetOutlineCodeValueRepairsLegacyScalarSelectionPayload() {
+        using var project = ProjectDocument.Load(ProjectResourceCapacityTests.Fixture("outline"));
+        var table = Assert.Single(project.OutlineCodes);
+        var task = project.Tasks.GetByUid(1);
+        var selected = Assert.Single(task.OutlineCodes);
+        selected.Value = "legacy";
+        selected.DurationFormat = 7;
+        Assert.Contains(project.Validate().Diagnostics, d => d.Code == "PROJECT_OUTLINE_SELECTION");
+
+        project.SetOutlineCodeValue(task, "188744096", table.Values[1]);
+
+        Assert.Null(selected.Value);
+        Assert.Null(selected.DurationFormat);
+        Assert.DoesNotContain(project.Validate().Diagnostics, d => d.Code == "PROJECT_OUTLINE_SELECTION");
+        Assert.Equal("Design.01", project.GetOutlineCodeText(task, "188744096"));
+    }
+    [Fact]
     public void InvalidOutlineReferencesAndCyclesAreRejectedBeforeSerialization() {
         using var project = ProjectDocument.Load(ProjectResourceCapacityTests.Fixture("outline"));
         var table = project.OutlineCodes[0]; var task = project.Tasks.GetByUid(1);
