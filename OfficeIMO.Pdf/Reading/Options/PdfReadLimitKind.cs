@@ -129,5 +129,11 @@ public enum PdfReadLimitKind {
     TotalDecodedStreamBytes = 41,
 
     /// <summary>Bounded comparison and traversal work performed by semantic reconstruction.</summary>
-    UnderstandingWork = 42
+    UnderstandingWork = 42,
+
+    /// <summary>Characters expanded into individually positioned drawing glyphs on one page.</summary>
+    PositionedTextCharacters = 43,
+
+    /// <summary>Characters materialized or measured for positioned-glyph visibility on one page, including invisible glyphs.</summary>
+    PositionedTextWorkCharacters = 44
 }

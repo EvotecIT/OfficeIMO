@@ -395,6 +395,16 @@ IReadOnlyList<OfficeImageExportResult> pages = markdown
 
 Source conversion warnings are copied into every page result. Use `PdfReadPage.ToDrawing()` only when an intermediate `OfficeDrawing` is needed.
 
+Supply replacement fonts and any shaping provider during projection so glyph visibility uses the final font profile:
+
+```csharp
+var fonts = new OfficeFontFaceCollection();
+fonts.Add("Courier New", File.ReadAllBytes("fonts/CourierSubstitute.ttf"));
+OfficeDrawing drawing = document.Pages[0].ToDrawing(fonts);
+```
+
+Use the PDF's resolved font family name when registering a replacement. The overload also accepts `textShapingProvider`, `textShapingLanguage`, and `cancellationToken`. Supplied faces replace matching embedded faces and apply to nested drawings. Adding fonts after `ToDrawing()` cannot restore glyphs already discarded by visibility checks.
+
 ### Write a generated PDF
 
 ```csharp
