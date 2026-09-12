@@ -40,6 +40,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     # Temporary: Avalonia.Headless 12.1.1/12.1.2 session teardown races on Windows.
+    # Upstream fix: https://github.com/AvaloniaUI/Avalonia/pull/22222
     # Restore enforcement after consuming the upstream lifetime fix; keep tests and TRX visible.
     continue-on-error: ${{ matrix.os == 'windows-latest' }}
     strategy:
