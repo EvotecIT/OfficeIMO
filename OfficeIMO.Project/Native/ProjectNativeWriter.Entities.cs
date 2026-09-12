@@ -88,7 +88,7 @@ internal sealed partial class ProjectNativeWriter {
             }
             WriteResourceFields(editor, resource.Uid, path); Handle(path + "/Uid"); Handle(path + "/Type");
             if (resource.IsNull != true) Handle(path + "/IsNull");
-            if (resource.Calendar?.IsBaseCalendar == true) AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_RESOURCE_CALENDAR", ProjectDiagnosticSeverity.Error,
+            if (resource.Calendar != null && resource.Calendar.BaseCalendar == null && resource.Calendar.IsBaseCalendar != false) AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_RESOURCE_CALENDAR", ProjectDiagnosticSeverity.Error,
                 "Native resources require a resource-specific derived calendar. Create it with Calendars.Add(resourceName, baseCalendar).", path + "/Calendar"));
             if (added || Changed(path + "/Calendar") || _calendarGuidsChanged)
                 Identity(editor, resource.Uid, 0x0c4002d9, resource.Calendar == null ? Guid.Empty : EntityGuid(resource.Calendar, 5));

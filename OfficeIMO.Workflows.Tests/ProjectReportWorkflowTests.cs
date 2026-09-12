@@ -39,6 +39,14 @@ public sealed class ProjectReportWorkflowTests {
     }
 
     [Fact]
+    public void MappedTableExportRejectsRowsBeyondTheExcelWorksheetLimit() {
+        var error = Assert.Throws<InvalidOperationException>(() =>
+            ProjectDataWorkflow.ValidateExcelGrid(A1.MaxRows, 1, "Tasks"));
+        Assert.Contains("row worksheet limit", error.Message, StringComparison.Ordinal);
+        ProjectDataWorkflow.ValidateExcelGrid(A1.MaxRows - 1, A1.MaxColumns, "Tasks");
+    }
+
+    [Fact]
     public void EditablePresentationPaginatesLongLabelsWithoutLosingRows() {
         using var project = Create(40);
         project.Tasks[0].Name = "Long task label with implementation, verification and documented handover for the shared service";

@@ -117,6 +117,21 @@ public sealed class ProjectNativeBoundaryClosureTests {
     [InlineData(ProjectFileFormat.Mpp9)]
     [InlineData(ProjectFileFormat.Mpp12)]
     [InlineData(ProjectFileFormat.Mpp14)]
+    public void ResourceCalendarWithoutBaseOrExplicitDerivedKindIsRejected(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        var calendar = document.Resources.First(item => item.Uid > 0).Calendar!;
+        calendar.BaseCalendar = null; calendar.IsBaseCalendar = null;
+        var report = document.AssessSave(Native(format));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_RESOURCE_CALENDAR"
+            && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
+        Assert.Throws<InvalidDataException>(() => document.Save(new MemoryStream(), Native(format)));
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
     public void CrossProjectDependenciesAreRejectedBeforeNativeSerialization(ProjectFileFormat format) {
         using var document = ProjectDocument.Load(ProjectResourceCapacityTests.Fixture("external-consumer"));
         var report = document.AssessSave(Native(format));

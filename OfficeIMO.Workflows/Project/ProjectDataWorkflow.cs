@@ -38,6 +38,7 @@ public static class ProjectDataWorkflow {
         var document = ExcelDocument.Create();
         try {
             foreach (var mapped in export.Tables) {
+                ValidateExcelGrid(mapped.Table.Rows.Count, mapped.Table.Headers.Count, mapped.Kind.ToString());
                 var sheet = document.AddWorksheet(mapped.Kind.ToString());
                 for (int c = 0; c < mapped.Table.Headers.Count; c++) sheet.CellValue(1, c + 1, mapped.Table.Headers[c]);
                 for (int r = 0; r < mapped.Table.Rows.Count; r++) {
@@ -48,10 +49,18 @@ public static class ProjectDataWorkflow {
                 }
                 sheet.Freeze(1); sheet.AutoFitColumns(ct: cancellationToken);
             }
+            ValidateExcelGrid(export.Notices.Count, 1, "Transfer notes");
             var notes = document.AddWorksheet("Transfer notes"); notes.CellValue(1, 1, "Projection boundaries");
             for (int i = 0; i < export.Notices.Count; i++) notes.CellValue(i + 2, 1, export.Notices[i]);
             return document;
         } catch { document.Dispose(); throw; }
+    }
+
+    internal static void ValidateExcelGrid(int dataRowCount, int columnCount, string tableName) {
+        if (dataRowCount < 0 || dataRowCount > A1.MaxRows - 1)
+            throw new InvalidOperationException($"Project table '{tableName}' exceeds Excel's {A1.MaxRows:N0}-row worksheet limit including its header.");
+        if (columnCount < 1 || columnCount > A1.MaxColumns)
+            throw new InvalidOperationException($"Project table '{tableName}' exceeds Excel's {A1.MaxColumns:N0}-column worksheet limit.");
     }
 
     /// <summary>Reads an explicitly bounded worksheet rectangle with headers in its first row. Formula and error cells are rejected; numeric/date cells use invariant underlying values.</summary>

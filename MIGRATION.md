@@ -11,20 +11,6 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
-### Project XML dependency
-
-Keep `OfficeIMO.Project` and `OfficeIMO.Core` on the same coordinated release. Core supplies the shared
-document I/O, atomic file replacement, and bounded XML primitives used by the Project
-assembly. If an application explicitly pins the transitive Core dependency, update
-that pin with Project and perform a clean restore; an older Core assembly can lack
-the internal assembly access required by Project.
-
-### Project report layout defaults
-
-Project PNG output now defaults to 300 DPI. Calls that supply explicit `OfficeDrawingRasterRenderOptions` retain their chosen scale; new callers can use `ProjectImageExportOptions` or `ProjectReportWorkflow.Images(view).WithQuality(...)`. Word and PowerPoint reports now include chart images before editable data tables. Pass `ProjectOfficeReportOptions { IncludeCharts = false }` to retain table-only output. Network views default to dependency columns; choose `ProjectNetworkLayout.Compact` for the previous sequential grid. Use `ProjectViewPage.RowIndices` when mapping dependency pages to source rows.
-
-Project report drawings now trim unused page height. Set `ProjectViewOptions.FitPageHeightToContent = false` when a consumer requires every drawing page to retain the configured dimensions. Gantt, resource usage, and resource histogram views now default to UID and name columns; supply `Columns` explicitly to retain a previous selection of date or numeric columns. Native Word, PowerPoint, and Excel exports retain their document page dimensions.
-
 ### PDF positioned-text rendering limit
 
 PDF page-image export and `PdfReadPage.ToDrawing()` now limit positioned-text
