@@ -37,6 +37,12 @@
         "resolved": "8.4.2",
         "contentHash": "WadCzGEc2U+3e20avRLng4qNtt4zoOGWrdUISqJWrHe3/FSnrYjuM5Sb4yQb09LhkBXrrI4Zt3dLKgRMbItsrg=="
       },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "xi+BDjFpW+Sb+MHFHaH6Y/gV9I8BluFwRXc1QyCdoZbIK26eNiBeFuMTe/FMwc33G1wdHCyDg7CVTmb8OdQrMQ=="
+      },
       "AngleSharp": {
         "type": "Transitive",
         "resolved": "1.7.1",
@@ -294,8 +300,20 @@
         "dependencies": {
           "AngleSharp": "[1.7.1, )",
           "AngleSharp.Css": "[1.0.1, )",
-          "OfficeIMO.Core": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.2, )",
+          "OfficeIMO.Html.AngleSharp": "[3.4.2, )",
+          "OfficeIMO.Html.Core": "[3.4.2, )"
         }
+      },
+      "officeimo.html.anglesharp": {
+        "type": "Project",
+        "dependencies": {
+          "AngleSharp": "[1.7.1, )",
+          "OfficeIMO.Html.Core": "[3.4.2, )"
+        }
+      },
+      "officeimo.html.core": {
+        "type": "Project"
       },
       "officeimo.html.pdf": {
         "type": "Project",

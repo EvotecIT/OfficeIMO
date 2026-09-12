@@ -43,7 +43,7 @@ public sealed partial class HtmlConversionDocument {
                     : HtmlRenderDiagnosticCodes.InputCharacterLimitExceeded;
                 throw new HtmlDomLimitException(code, "The HTML parser exceeded a shared conversion limit.", source, exception.Actual, exception.Maximum, exception);
             }
-            sourceSnapshot = CaptureOwnedTree(sourceSnapshot, resolved.Limits, cancellationToken);
+            sourceSnapshot = HtmlConversionInputGuard.CaptureOwnedTree(sourceSnapshot, resolved.Limits, cancellationToken);
             document = NativeDomBridge.GetNativeDocument(sourceSnapshot, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
@@ -58,7 +58,7 @@ public sealed partial class HtmlConversionDocument {
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlConversionDocumentOptions resolved = options?.Clone() ?? new HtmlConversionDocumentOptions();
         resolved.Validate();
-        Dom.HtmlDocument snapshot = CaptureOwnedTree(document, resolved.Limits, CancellationToken.None);
+        Dom.HtmlDocument snapshot = HtmlConversionInputGuard.CaptureOwnedTree(document, resolved.Limits, CancellationToken.None);
         IHtmlDocument native = NativeDomBridge.GetNativeDocument(snapshot);
         HtmlConversionInputGuard.ValidateDocument(native, resolved.Limits);
         string source = HtmlConversionSourceWriter.Serialize(native, resolved.Limits);
@@ -71,41 +71,6 @@ public sealed partial class HtmlConversionDocument {
         Dom.HtmlDocument clone = Document.CloneAttached();
         try { edit(clone); return FromDocument(clone, _options); }
         finally { clone.Freeze(); }
-    }
-
-    private static Dom.HtmlDocument CaptureOwnedTree(Dom.HtmlDocument document, HtmlConversionLimits limits, CancellationToken cancellationToken) {
-        var tracker = HtmlDomLimitTracker.Create(limits.MaxHtmlNodes, limits.MaxHtmlDepth);
-        long characters = 0;
-        int nodes = 0;
-        void Reserve(string? value) {
-            characters += value?.Length ?? 0;
-            HtmlConversionSourceWriter.ValidateLength(characters, limits);
-        }
-        foreach (var current in document.AttachedNodes()) {
-            cancellationToken.ThrowIfCancellationRequested();
-            nodes++;
-            if (ReferenceEquals(current.Node, document)) continue;
-            if (current.Node is Dom.HtmlElement element) {
-                tracker?.RecordElementStart(current.Depth);
-                Reserve(element.LocalName);
-                Reserve(element.Prefix);
-                foreach (Dom.HtmlAttribute attribute in element.Attributes) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    Reserve(attribute.Name);
-                    Reserve(attribute.Value);
-                }
-            } else {
-                tracker?.RecordNode();
-                if (current.Node is Dom.HtmlDocumentType type) {
-                    Reserve(type.Name);
-                    Reserve(type.PublicIdentifier);
-                    Reserve(type.SystemIdentifier);
-                } else Reserve(current.Node.Data);
-            }
-        }
-        return document.IsReadOnly && nodes == document.RegisteredNodeCount
-            ? document
-            : document.CloneAttached(cancellationToken).Freeze();
     }
 
     /// <summary>

@@ -4,6 +4,13 @@ PowerForge owns Studio publishing, signing, checksums, portable archives, the ge
 
 The checked-in `packages.lock.json` files cover Studio's complete project-reference graph and all supported runtime identifiers. Release restores run in locked mode so package or runtime-asset changes must be reviewed and committed before signing.
 
+Windows releases use `packages.lock.json`; Unix releases use `packages.nonwindows.lock.json`.
+Ordinary development restores use temporary locks under `obj` on both platforms.
+The SDK baseline in `global.json` and CI is part of the release restore contract:
+single-file publishing adds SDK-provided analyzer packages. Refresh both platform
+lock sets when that baseline or the publish dependency graph changes. CI checks
+the six-runtime, single-file restore graph on Windows and Ubuntu.
+
 Avalonia and CommunityToolkit.Mvvm are the only explicitly trusted build-code providers. PowerForge still verifies their exact archives through the committed lock before allowing the XAML compiler and MVVM source generator to execute; Avalonia's separate telemetry build package is excluded from Studio.
 
 ```powershell

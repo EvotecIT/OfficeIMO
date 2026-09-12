@@ -4,7 +4,7 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html;
 
 /// <summary>Applies shared source and DOM limits before expensive conversion analysis begins.</summary>
-internal static class HtmlConversionInputGuard {
+internal static partial class HtmlConversionInputGuard {
     internal const int MaxSrcDocDepth = 8;
 
     internal static void ValidateSource(string html, HtmlConversionLimits limits) {

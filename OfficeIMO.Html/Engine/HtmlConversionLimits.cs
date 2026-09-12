@@ -122,7 +122,7 @@ public sealed class HtmlConversionLimits {
         }
     }
 
-    private static int? Minimum(int? first, int? second) {
+    internal static int? Minimum(int? first, int? second) {
         if (!first.HasValue) return second;
         if (!second.HasValue) return first;
         return Math.Min(first.Value, second.Value);
