@@ -36,6 +36,8 @@
     "OfficeIMO.GoogleWorkspace.Drive": "3.4.X",
     "OfficeIMO.GoogleWorkspace.Sync": "3.4.X",
     "OfficeIMO.Html": "3.4.X",
+    "OfficeIMO.Html.Core": "3.4.X",
+    "OfficeIMO.Html.AngleSharp": "3.4.X",
     "OfficeIMO.Html.Pdf": "3.4.X",
     "OfficeIMO.Html.Pdf.Browser": "3.4.X",
     "OfficeIMO.Html.Rtf": "3.4.X",

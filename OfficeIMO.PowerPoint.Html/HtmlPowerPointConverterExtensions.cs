@@ -24,7 +24,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     public static HtmlToPowerPointResult ToPowerPointPresentationResult(this HtmlConversionDocument document, HtmlToPowerPointOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
-        IHtmlDocument adapterDocument = document.CreateDocumentForConversion(mediaContext);
+        IHtmlDocument adapterDocument = document.CreateNativeDocumentForConversion(mediaContext);
         HtmlToPowerPointOptions resolved = options?.Clone() ?? new HtmlToPowerPointOptions();
         bool targetSemantic = resolved.Mode != HtmlImportMode.Generic
             && (resolved.Mode == HtmlImportMode.Semantic

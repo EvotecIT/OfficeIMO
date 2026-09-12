@@ -19,7 +19,7 @@ public sealed class HtmlResourcePipelineOptions {
     /// <summary>Shared source, DOM, stylesheet, and semantic-metadata limits applied before discovery.</summary>
     public HtmlConversionLimits Limits { get; set; } = HtmlConversionLimits.CreateUntrustedProfile();
 
-    /// <summary>Maximum responsive image candidates considered per source set. Null means unbounded.</summary>
+    /// <summary>Additional responsive image candidate cap per source set. Null adds no cap; a stricter shared limit still applies.</summary>
     public int? MaxResponsiveImageCandidates { get; set; } = HtmlConversionLimits.DefaultMaxResponsiveImageCandidates;
 
     /// <summary>CSS media context used when deciding whether media-gated resources are active.</summary>

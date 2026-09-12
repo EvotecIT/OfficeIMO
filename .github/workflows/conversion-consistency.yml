@@ -32,7 +32,7 @@ jobs:
         with:
           dotnet-version: |
             8.0.418
-            10.0.103
+            10.0.112
       - name: Build the comparison tool
         run: dotnet build Build/ConversionConsistency/OfficeIMO.ConversionConsistency.Tool.csproj -c Release -f net8.0
       - name: Install independent renderers

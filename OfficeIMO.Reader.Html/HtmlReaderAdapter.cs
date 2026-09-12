@@ -270,7 +270,7 @@ internal static partial class HtmlReaderAdapter {
     private static string ReadAllText(Stream stream, Encoding? explicitEncoding, CancellationToken cancellationToken) {
         var sb = new StringBuilder();
         var buffer = new char[16 * 1024];
-        Stream input = HtmlTextEncodingResolver.PrepareHtmlStream(stream, explicitEncoding, out Encoding encoding);
+        Stream input = HtmlTextEncodingResolver.Default.PrepareHtmlStream(stream, explicitEncoding, out Encoding encoding);
         if (stream.CanSeek) stream.Position = 0;
         using var reader = new StreamReader(input, encoding, detectEncodingFromByteOrderMarks: explicitEncoding == null, bufferSize: 16 * 1024, leaveOpen: true);
 

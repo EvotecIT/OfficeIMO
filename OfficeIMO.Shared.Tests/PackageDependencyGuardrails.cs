@@ -373,7 +373,11 @@ public sealed class PackageDependencyGuardrailTests {
         string projectPath = GetRepositoryPath("OfficeIMO.Html/OfficeIMO.Html.csproj");
         string[] references = GetProjectReferences(projectPath);
 
-        Assert.Equal(["../OfficeIMO.Core/OfficeIMO.Core.csproj"], references);
+        Assert.Equal([
+            "../OfficeIMO.Core/OfficeIMO.Core.csproj",
+            "../OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
+            "../OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj"
+        ], references);
         Assert.DoesNotContain(references, static reference => reference.Contains("OfficeIMO.Email", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(references, static reference => reference.Contains("OfficeIMO.Rtf", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(references, static reference => reference.Contains("OfficeIMO.Mhtml", StringComparison.OrdinalIgnoreCase));

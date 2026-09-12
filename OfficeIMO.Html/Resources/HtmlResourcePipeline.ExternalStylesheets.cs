@@ -40,9 +40,10 @@ public static partial class HtmlResourcePipeline {
     /// <param name="bytes">Encoded stylesheet bytes.</param>
     /// <param name="contentType">Optional transport content type containing a charset.</param>
     /// <param name="css">Decoded stylesheet text when successful.</param>
+    /// <param name="encodingProvider">Optional web charset provider for this decoding operation.</param>
     /// <returns><see langword="true"/> when the stylesheet encoding is supported and valid.</returns>
-    public static bool TryDecodeStylesheet(byte[] bytes, string? contentType, out string css) =>
-        HtmlTextEncodingResolver.TryDecodeCss(bytes, contentType, out css);
+    public static bool TryDecodeStylesheet(byte[] bytes, string? contentType, out string css, Dom.IHtmlEncodingProvider? encodingProvider = null) =>
+        (encodingProvider == null ? HtmlTextEncodingResolver.Default : new HtmlTextEncodingResolver(encodingProvider)).TryDecodeCss(bytes, contentType, out css);
 
     /// <summary>
     /// Parses an external stylesheet and builds the same policy-aware resource manifest used by

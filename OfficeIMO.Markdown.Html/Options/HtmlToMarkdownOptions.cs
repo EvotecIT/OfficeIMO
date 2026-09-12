@@ -207,7 +207,7 @@ public sealed class HtmlToMarkdownOptions {
     /// <summary>
     /// Predicates for elements that should be removed before conversion. Return <see langword="true"/> to remove an element.
     /// </summary>
-    public List<Func<IElement, bool>> ElementFilters { get; } = new();
+    public List<Func<OfficeIMO.Html.Dom.HtmlElement, bool>> ElementFilters { get; } = new();
 
     /// <summary>
     /// Maps an HTML tag name to another tag name before built-in conversion is selected.
