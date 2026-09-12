@@ -31,10 +31,12 @@ public sealed class HtmlInlineElementConversionContext {
 
     /// <summary>
     /// Converts the supplied HTML nodes into an inline markdown sequence using the current conversion profile.
+    /// Missing collections and null entries contribute no output; non-null nodes must belong to this callback snapshot.
     /// </summary>
-    public InlineSequence ConvertNodesToInlineSequence(IEnumerable<HtmlNode> nodes) {
-        if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-        return HtmlToMarkdownConverter.ConvertInlineNodesToInlineSequence(nodes.Select(node => NativeDomBridge.GetCallbackNative(node, Element.Document)), _conversionContext);
+    public InlineSequence ConvertNodesToInlineSequence(IEnumerable<HtmlNode?>? nodes) {
+        return HtmlToMarkdownConverter.ConvertInlineNodesToInlineSequence(
+            (nodes ?? Enumerable.Empty<HtmlNode?>()).Where(node => node != null)
+                .Select(node => NativeDomBridge.GetCallbackNative(node!, Element.Document)), _conversionContext);
     }
 
     /// <summary>

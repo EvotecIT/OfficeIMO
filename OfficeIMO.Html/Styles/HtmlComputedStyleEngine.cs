@@ -433,16 +433,19 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     /// <summary>Computes styles keyed by owned nodes from the supplied document snapshot.</summary>
+    /// <remarks>A prepared document retains the unbounded computation contract. To apply input and CSS
+    /// budgets, create an HtmlConversionDocument with explicit limits and use that overload.</remarks>
     public static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
         Dom.HtmlDocument document, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) =>
-        Compute(document, mediaContext, HtmlConversionLimits.CreateUntrustedProfile());
+        Compute(document, mediaContext, limits: null);
 
     private static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
-        Dom.HtmlDocument document, HtmlCssMediaContext mediaContext, HtmlConversionLimits limits) {
+        Dom.HtmlDocument document, HtmlCssMediaContext mediaContext, HtmlConversionLimits? limits) {
         IHtmlDocument native = NativeDomBridge.GetNativeDocument(document);
-        HtmlConversionInputGuard.ValidateDocument(native, limits);
+        if (limits != null) HtmlConversionInputGuard.ValidateDocument(native, limits);
         var state = NativeDomBridge.GetState(document);
-        return Compute(native, mediaContext, limits).ToDictionary(pair => (Dom.HtmlElement)state.ToOwned[pair.Key], pair => pair.Value);
+        var computed = limits == null ? Compute(native, mediaContext) : Compute(native, mediaContext, limits);
+        return computed.ToDictionary(pair => (Dom.HtmlElement)state.ToOwned[pair.Key], pair => pair.Value);
     }
 
     /// <summary>

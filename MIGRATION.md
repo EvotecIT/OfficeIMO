@@ -47,6 +47,11 @@ Increase this limit when an authored tree or its escaped serialization exceeds t
 configured budget. Template content participates in node, depth, CSS and semantic
 metadata limits on the default conversion parser as well as the owned provider.
 
+`HtmlComputedStyleEngine.Compute(ownedDocument)` preserves the previous prepared-DOM
+style computation contract without injecting untrusted-input budgets. To apply
+custom budgets, pass a `HtmlConversionDocument` created with your chosen limits.
+Raw-string style computation continues to use the default untrusted profile.
+
 Use `InputEncodingProvider` on conversion options to replace charset lookup for
 source streams. Explicit encodings retain precedence and streams remain open with
 seekable positions restored. The default web charset provider still registers
