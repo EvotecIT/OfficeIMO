@@ -23,7 +23,7 @@ public sealed partial class HtmlDocument {
         EnsureMutable();
         if (source.Kind == HtmlNodeKind.Document) throw new ArgumentException("Import a document's children instead of the document itself.", nameof(source));
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlNode result = ImportShallowNode(source);
+        HtmlNode result = ImportShallowNode(source, cancellationToken);
         if (!deep) return result;
 
         var pending = new Stack<(HtmlNode Source, HtmlNode Target)>();
@@ -33,7 +33,7 @@ public sealed partial class HtmlDocument {
             var pair = pending.Pop();
             foreach (HtmlNode child in pair.Source.ChildNodes) {
                 cancellationToken.ThrowIfCancellationRequested();
-                HtmlNode copy = ImportShallowNode(child);
+                HtmlNode copy = ImportShallowNode(child, cancellationToken);
                 pair.Target.AppendChild(copy);
                 pending.Push((child, copy));
             }
@@ -44,10 +44,13 @@ public sealed partial class HtmlDocument {
         return result;
     }
 
-    private HtmlNode ImportShallowNode(HtmlNode source) {
+    private HtmlNode ImportShallowNode(HtmlNode source, CancellationToken cancellationToken) {
         if (source is HtmlElement element) {
             HtmlElement copy = CreateElement(element.LocalName, element.NamespaceUri, element.Prefix);
-            foreach (HtmlAttribute attribute in element.Attributes) copy.SetAttribute(attribute.Name, attribute.Value, attribute.NamespaceUri);
+            foreach (HtmlAttribute attribute in element.Attributes) {
+                cancellationToken.ThrowIfCancellationRequested();
+                copy.SetAttribute(attribute.Name, attribute.Value, attribute.NamespaceUri);
+            }
             if (element.TemplateContent != null) GetOrCreateTemplateContent(copy);
             return copy;
         }

@@ -101,4 +101,20 @@ public sealed class HtmlImportTests {
         Assert.Contains("Source", edited.ToMarkdown());
         Assert.True(edited.Document.IsReadOnly);
     }
+
+    [Fact]
+    public void SameDocumentImportCopiesBeforeInsertionWithoutReusingHandles() {
+        HtmlDocument document = Parse("<section id='original'><b>Source</b></section>").Clone();
+        HtmlElement original = document.QuerySelector("section")!;
+        HtmlElement copied = (HtmlElement)document.ImportNode(original);
+        Assert.Null(copied.Parent);
+        Assert.NotEqual(original.NodeId, copied.NodeId);
+        Assert.NotEqual(original.FirstChild!.NodeId, copied.FirstChild!.NodeId);
+        copied.SetAttribute("id", "copy");
+        copied.QuerySelector("b")!.TextContent = "Changed";
+        document.Body!.AppendChild(copied);
+        Assert.Equal("Source", document.QuerySelector("#original")!.TextContent);
+        Assert.Equal("Changed", document.QuerySelector("#copy")!.TextContent);
+        Assert.Equal(2, document.QuerySelectorAll("section").Count);
+    }
 }

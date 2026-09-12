@@ -99,7 +99,12 @@ public sealed partial class HtmlDocument : HtmlNode {
         } finally { while (pending.Count != 0) pending.Pop().Nodes.Dispose(); }
     }
 
-    internal HtmlDocument CloneAttached(CancellationToken cancellationToken = default) {
+    /// <summary>Creates an independent mutable copy of the attached tree, including template contents,
+    /// without retaining detached editing history. Attached node IDs and original source offsets are preserved.</summary>
+    /// <param name="cancellationToken">Cooperative cancellation while copying nodes and attributes.</param>
+    /// <remarks>The original document and its retained handles remain unchanged. Use this copy as the next
+    /// editing session when removed nodes no longer need to be addressable. Cancellation returns no partial copy.</remarks>
+    public HtmlDocument CloneAttached(CancellationToken cancellationToken = default) {
         var clone = new HtmlDocument(Services, ProviderId, Mode);
         foreach (var entry in AttachedNodes()) {
             cancellationToken.ThrowIfCancellationRequested();
