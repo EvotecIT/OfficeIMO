@@ -5,6 +5,21 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingPositionedTextTransformTests {
     [Theory]
+    [InlineData(27)]
+    [InlineData(90)]
+    [InlineData(180)]
+    [InlineData(270)]
+    [InlineData(315)]
+    public void FullCanvasPositionedTextFitsExactPixelCeiling(int rotation) {
+        var drawing = new OfficeDrawing(100, 100).AddPositionedText("A", 0, 0, 100, 100,
+            new OfficeImageFrameTransform(rotation, 50, 50), new OfficeFontInfo("Proof Sans", 12), textAdvanceWidth: 10);
+        drawing.Fonts.Add("Proof Sans", File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "SourceSansPro-Regular.otf")));
+        var expected = OfficeDrawingRasterRenderer.Render(drawing);
+        var actual = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 10000 });
+        Assert.Equal(expected.GetPixels(), actual.GetPixels());
+    }
+
+    [Theory]
     [InlineData(90, OfficeFontStyle.Underline, 40)]
     [InlineData(180, OfficeFontStyle.Strikethrough, 2)]
     [InlineData(270, OfficeFontStyle.Underline | OfficeFontStyle.Strikethrough, 2)]

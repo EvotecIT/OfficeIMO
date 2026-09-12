@@ -2140,9 +2140,15 @@ public sealed partial class PdfReadPage {
         private long _decodedBytes;
         private long _remainingColorFunctionEvaluationWork;
         private long _positionedTextCharacters;
+        private readonly Action<OfficeDrawing>? _configureDrawing;
 
-        internal PageContentBudget(PdfReadPage page, CancellationToken cancellationToken = default) {
+        internal PageContentBudget(PdfReadPage page, CancellationToken cancellationToken = default)
+            : this(page, null, cancellationToken) { }
+
+        internal PageContentBudget(PdfReadPage page, Action<OfficeDrawing>? configureDrawing,
+            CancellationToken cancellationToken) {
             CancellationToken = cancellationToken;
+            _configureDrawing = configureDrawing;
             _page = page;
             _remainingColorFunctionEvaluationWork = Math.Max(1, page._limits.MaxContentOperations);
             ColorFunctionResolutionContext = new PdfColorFunctionResolutionContext(
@@ -2151,6 +2157,10 @@ public sealed partial class PdfReadPage {
 
         internal CancellationToken CancellationToken { get; }
         internal PdfColorFunctionResolutionContext ColorFunctionResolutionContext { get; }
+
+        // The render invocation owns both resource limits and its final text profile.
+        // Nested forms and pattern tiles must configure it before measuring glyphs.
+        internal void ConfigureDrawing(OfficeDrawing drawing) => _configureDrawing?.Invoke(drawing);
 
         internal bool TryConsumeColorFunctionEvaluation(int evaluationCost) =>
             TryConsumeColorFunctionEvaluations(evaluationCost, 1L);

@@ -22,9 +22,14 @@ public static partial class OfficeDrawingRasterRenderer {
             left = Math.Min(left, bounds.Left); top = Math.Min(top, bounds.Top);
             right = Math.Max(right, bounds.Right); bottom = Math.Max(bottom, bounds.Bottom);
         }
-        // Keep a pixel of sampling support around the ink, preserving negative bearings.
-        left = Math.Floor(left) - 1D; top = Math.Floor(top) - 1D;
-        right = Math.Ceiling(right) + 1D; bottom = Math.Ceiling(bottom) + 1D;
+        left = Math.Floor(left); top = Math.Floor(top);
+        right = Math.Ceiling(right); bottom = Math.Ceiling(bottom);
+        // Transparent sampling support is optional; actual ink and the caller's pixel
+        // ceiling are not. An exact-fit frame must not fail solely because of padding.
+        double paddedWidth = right - left + 2D, paddedHeight = bottom - top + 2D;
+        if (paddedHeight > 0D && paddedWidth <= maximumRasterPixels / paddedHeight) {
+            left -= 1D; top -= 1D; right += 1D; bottom += 1D;
+        }
         _ = OfficeRasterExportPlanner.Resolve(right - left, bottom - top, OfficeImageExportFormat.Png,
             new OfficeImageExportOptions { MaximumRasterPixels = maximumRasterPixels, RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw });
         var layer = new OfficeRasterImage(Math.Max(1, (int)(right - left)), Math.Max(1, (int)(bottom - top)));

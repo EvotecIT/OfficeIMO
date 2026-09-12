@@ -11,6 +11,31 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### PDF positioned-text rendering limit
+
+PDF page-image export and `PdfReadPage.ToDrawing()` now limit positioned-text
+expansion to 100,000 characters per page render. Explicitly spaced basic Latin
+runs can expand into individual glyphs to preserve their recorded positions.
+The limit is shared across the page and its repeated forms and patterns; runs
+that are culled or rendered as a whole do not consume this expansion budget.
+
+Documents that exceed the default throw `PdfReadLimitException` with
+`Kind == PdfReadLimitKind.PositionedTextCharacters`. Handle that failure like
+other configured PDF read limits. For a trusted document that needs more
+positioned glyphs, raise this limit when loading it:
+
+```csharp
+var options = new PdfLoadOptions {
+    Limits = new PdfReadLimits { MaxPositionedTextCharactersPerPage = 200_000 }
+};
+var document = PdfReadDocument.Open(pdfBytes, options);
+var image = document.Pages[0].ExportImage(OfficeImageExportFormat.Png);
+```
+
+Other read and raster limits retain their defaults. Raising this value increases
+the amount of drawing geometry a page may allocate; choose a bound appropriate
+for the documents your application accepts.
+
 ### Factur-X profile declarations
 
 The Factur-X attachment helpers now derive XMP `ConformanceLevel` from the

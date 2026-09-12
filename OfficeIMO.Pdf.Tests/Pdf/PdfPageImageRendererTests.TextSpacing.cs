@@ -11,6 +11,71 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
     [Theory]
+    [InlineData(0, "page")]
+    [InlineData(1, "page")]
+    [InlineData(0, "blend")]
+    [InlineData(1, "blend")]
+    [InlineData(0, "pattern")]
+    [InlineData(1, "pattern")]
+    [InlineData(0, "mask")]
+    [InlineData(1, "mask")]
+    [InlineData(1, "shaped-page")]
+    [InlineData(1, "shaped-blend")]
+    [InlineData(1, "shaped-pattern")]
+    [InlineData(1, "shaped-mask")]
+    public void ExportImage_UsesCallerFontBeforeCullingEdgeGlyph(int spacing, string host) {
+        bool shaped = host.StartsWith("shaped-", StringComparison.Ordinal);
+        if (shaped) host = host.Substring("shaped-".Length);
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        string text = $"BT /F1 10 Tf {spacing} Tc 0 1 -1 0 260 100 Tm (A) Tj ET";
+        byte[] pdf = BuildSingleStreamPdf((host == "blend" ? "/GS gs " : "") + text,
+            "<< /Font << /F1 5 0 R >> /ExtGState << /GS 6 0 R >> >>", font,
+            "6 0 obj\n<< /Type /ExtGState /BM /Multiply >>\nendobj");
+        if (host == "pattern") {
+            pdf = BuildSingleStreamPdf("/Pattern cs /P scn 0 0 240 200 re f", "<< /Pattern << /P 6 0 R >> >>", font,
+                "6 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 240 200] /XStep 240 /YStep 200 " +
+                $"/Resources << /Font << /F1 5 0 R >> >> /Length {text.Length} >>\nstream\n{text}\nendstream\nendobj");
+        } else if (host == "mask") {
+            pdf = BuildSingleStreamPdf("/GS gs 0 0 240 200 re f", "<< /ExtGState << /GS 6 0 R >> >>", font,
+                "6 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 7 0 R >> >>\nendobj",
+                "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Group << /S /Transparency >> " +
+                $"/Resources << /Font << /F1 5 0 R >> >> /Length {text.Length} >>\nstream\n{text}\nendstream\nendobj");
+        }
+        var options = new PdfImageExportOptions { BackgroundColor = OfficeColor.Transparent };
+        Assert.True(options.Fonts.TryAdd("Courier New", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithTallGlyph('A', shaped ? 700 : 4000)));
+        if (shaped) {
+            options.TextShapingProvider = new RaisedEdgeGlyphProvider();
+            options.TextShapingLanguage = "pl-PL";
+        }
+        var expected = new OfficeDrawing(240, 200).ApplyImageExportOptions(options);
+        expected.AddClippedPositionedText("A", 260, 90, 6, 12.5, 0, 0, OfficeClipPath.Rectangle(240, 200),
+            new OfficeImageFrameTransform(-90, 260, 100), new OfficeFontInfo("Courier New", 10),
+            OfficeColor.Black, textAdvanceWidth: 6);
+        byte[] pixels = OfficeDrawingRasterRenderer.Render(expected).GetPixels();
+        Assert.Contains(pixels, channel => channel != 0);
+        var exported = PdfReadDocument.Open(pdf).Pages[0].ExportImage(OfficeImageExportFormat.Png, options);
+        Assert.True(OfficePngReader.TryDecode(exported.Bytes, out OfficeRasterImage? raster));
+        Assert.Equal(pixels, raster!.GetPixels());
+        var renderOptions = new PdfPageRenderOptions {
+            Fonts = options.Fonts, Background = OfficeColor.Transparent,
+            TextShapingProvider = options.TextShapingProvider, TextShapingLanguage = options.TextShapingLanguage
+        };
+        foreach (bool forDisplay in new[] { false, true }) {
+            var rendered = PdfPageImageRenderer.RenderPage(PdfReadDocument.Open(pdf), 1, renderOptions,
+                System.Threading.CancellationToken.None, forDisplay);
+            Assert.True(OfficePngReader.TryDecode(rendered.Bytes!, out OfficeRasterImage? batchRaster));
+            Assert.Equal(pixels, batchRaster!.GetPixels());
+        }
+    }
+
+    private sealed class RaisedEdgeGlyphProvider : IOfficeTextShapingProvider {
+        public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
+            Assert.Equal("pl-PL", request.Language);
+            return new OfficeTextShapingResult(new[] { new OfficeShapedGlyph(1, request.Text, 0, 500, offsetY: 3000) });
+        }
+    }
+
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void RenderPage_InvisibleLongOrdinaryTextDoesNotMeasureOutlines(bool emptyClip) {

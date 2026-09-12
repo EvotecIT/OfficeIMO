@@ -111,26 +111,29 @@ public sealed partial class PdfReadPage {
     /// </summary>
     public OfficeDrawing ToDrawing() => ToDrawing(CancellationToken.None);
 
-    internal OfficeDrawing ToDrawing(CancellationToken cancellationToken) {
+    internal OfficeDrawing ToDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandContentExtraction?.Invoke("visual content");
-        return ToDisplayDrawing(cancellationToken);
+        return ToDisplayDrawing(cancellationToken, configureDrawing);
     }
 
     // Used only by the raster display path; never return this drawing through a public viewing API.
-    internal OfficeDrawing ToDisplayDrawing(CancellationToken cancellationToken) {
+    internal OfficeDrawing ToDisplayDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null) {
         cancellationToken.ThrowIfCancellationRequested();
         PrepareOutputIntentRendering(cancellationToken);
         (double Width, double Height) size = GetVisualPageSize();
         Matrix2D pageTransform = GetVisualPageTransform();
         var drawing = new OfficeDrawing(size.Width, size.Height);
         var textOutputBudget = CreateTextOutputBudget();
-        var pageContentBudget = new PageContentBudget(this, cancellationToken);
+        var pageContentBudget = new PageContentBudget(this, configureDrawing, cancellationToken);
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var invocationTextClippingBudget = new PdfTextClippingBudget();
         var patternTextClippingBudget = new PdfTextClippingBudget();
         cancellationToken.ThrowIfCancellationRequested();
         RegisterEmbeddedFonts(drawing, ResolveDictionary(GetInheritedValue("Resources")), new HashSet<PdfStream>(), 0);
+        // Visibility must use the same font and shaping profile as the final rasterizer.
+        // Configure after embedded fonts so each caller retains its font precedence policy.
+        pageContentBudget.ConfigureDrawing(drawing);
 
         cancellationToken.ThrowIfCancellationRequested();
         List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken);
@@ -310,7 +313,11 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        var isolated = new OfficeDrawing(drawing.Width, drawing.Height);
+        var isolated = new OfficeDrawing(drawing.Width, drawing.Height) {
+            TextShapingProvider = drawing.TextShapingProvider,
+            TextShapingLanguage = drawing.TextShapingLanguage
+        };
+        isolated.Fonts.AddRange(drawing.Fonts);
         AddDrawingElementCore(isolated, pageHeight, element, invocationTextClippingBudget, pageContentBudget, cancellationToken);
         if (isolated.Elements.Count == 0) return;
         OfficeDrawingSoftMask? softMask = element.Effect.SoftMask == null
