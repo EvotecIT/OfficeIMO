@@ -202,7 +202,7 @@ Extend the existing HTML engine into a shared document platform, static web rend
 
 ### H0-H2: foundation and first consumers
 
-- [ ] Extend the owned full-document API with contextual fragment parsing, broader source-location mapping and explicit long-lived document retention policies. Keep the existing immutable snapshot/edit contract as the consumer boundary.
+- [ ] Extend the owned full-document API with contextual fragment parsing, broader source-location mapping and explicit long-lived document retention policies. Qualify namespace, attributes, document mode and ancestor-form context; the current provider's public fragment entry point loses SVG namespace and ancestor-form context. Use the owned import operation for insertion and keep the immutable snapshot/edit contract as the consumer boundary.
 - [ ] Freeze a wider independently authored acceptance bundle with responsive layout, external CSS, a redistributable font, an image, a link and a table. Capture DOM, semantic, PDF, SVG/raster and browser-reference evidence using the existing corpus/gallery infrastructure.
 - [ ] Calibrate formal parse/query/edit allocation, retained-memory and cancellation budgets in the existing benchmark tooling. The retained native/owned adapter has a measurable memory cost; qualify reductions without regressing source recovery or conversion output.
 - [ ] Widen HtmlTinkerX adoption from its verified extraction/Markdown consumer path to its other DOM consumers and packaging surfaces. Keep browser execution, minification, diffing and email inlining as separately owned capabilities. Publish consumer pins only for available owner packages.

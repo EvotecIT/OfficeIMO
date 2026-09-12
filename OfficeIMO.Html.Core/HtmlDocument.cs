@@ -5,7 +5,7 @@ using System.Linq;
 namespace OfficeIMO.Html.Dom;
 
 /// <summary>An owned HTML tree with explicit snapshot and mutation semantics. Mutable documents require a single owner.</summary>
-public sealed class HtmlDocument : HtmlNode {
+public sealed partial class HtmlDocument : HtmlNode {
     private int _nextNodeId;
     private readonly Dictionary<int, HtmlNode> _nodes = new Dictionary<int, HtmlNode>();
 
