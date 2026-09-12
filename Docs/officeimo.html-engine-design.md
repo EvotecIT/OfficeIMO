@@ -4,6 +4,8 @@ This is a proposed architecture for extending OfficeIMO's existing HTML engine i
 
 The objective is to parse, inspect, query, edit, style, lay out, render, and convert HTML through OfficeIMO-owned contracts. OfficeIMO converters, HtmlTinkerX, document readers, and preview hosts should consume the same implementation. Runtime dependencies can supply difficult algorithms initially; each must have an explicit replacement boundary and evidence for its eventual removal.
 
+Delivery prioritizes usable components. Keep AngleSharp, HarfBuzz, CodePages and other effective providers for as long as they help deliver the required behavior. Isolate their contracts early; replace their implementations when correctness, capability, deployment, licensing, performance or maintenance evidence justifies the work. Dependency removal is a later qualification track, not a prerequisite for releasing useful rendering or runtime capabilities.
+
 ## Product boundaries
 
 There are three separately useful products, with different acceptance criteria:
@@ -63,7 +65,7 @@ flowchart BT
 
 Keep computed styles, semantic projection, resource orchestration and layout in `OfficeIMO.Html` initially. Extract a separate CSS package only if a measured consumer requirement justifies it. Existing graphics primitives remain in `OfficeIMO.Core`; do not create another font or image implementation under Html. Create optional runtime/provider packages only when an executable consumer is ready to use them.
 
-During transition, the Html composition layer may reference the AngleSharp provider to preserve a default parser. The provider translates into owned nodes and tokens; it does not control the render pipeline. The eventual managed parser lives in the leaf, and the default graph drops the provider. An optional interop package can remain for callers intentionally using AngleSharp.
+The Html composition layer may reference an AngleSharp provider to supply the default parser. The provider translates into owned nodes and tokens; it does not control the render pipeline. It can remain the implementation across multiple usable releases. A later managed parser lives in the leaf, and the default graph drops the provider only after qualification. Add optional interop only for a demonstrated consumer requirement; do not preserve provider-specific public APIs by default.
 
 HtmlTinkerX retains website workflows, extraction recipes, sessions, authentication integration and PowerShell/CLI surfaces. Shared DOM/CSS/rendering algorithms move to OfficeIMO. Inspect each remaining HtmlTinkerX dependency by capability: replacing HTML rendering alone does not replace JavaScript minification, DOM diffing, email inlining or every legacy parser surface.
 
@@ -204,12 +206,30 @@ Removing a third-party JavaScript engine is a later language-runtime project cov
 
 ## Dependency retirement
 
+### Replaceable provider contracts
+
+Replaceability means that the engine can use another implementation without changing its public document model or rewriting consumers. The algorithm behind that boundary can still be substantial work.
+
+| Dependency | Boundary to establish now | What remains owned by OfficeIMO |
+| --- | --- | --- |
+| AngleSharp | Parse source/fragment into owned nodes and parse diagnostics | Document identity, mutation, serialization policy, query contract and consumer-facing types |
+| CSS parser | Parse into owned syntax/declaration data; isolate any selector implementation used temporarily | Source retention, cascade decisions, computed-value contract and capability reporting |
+| HarfBuzz | Existing shared shaping request/result contract | Fonts, glyph/cluster/logical-text mapping, lifetime, fallback policy and layout consumption |
+| CodePages | Central encoding resolution/decoding boundary using owned metadata and suitable BCL types | Label policy, BOM/HTML precedence, errors, streaming behavior and limits |
+| Script interpreter | Runtime provider bound to owned host/DOM contracts | Web API behavior, origins, scheduling policy, resource access and process isolation |
+
+Do not expose provider nodes, native handles or provider exception types as normal public results. Translate errors and define cancellation, disposal and resource ownership at the boundary. Keep provider setup and configuration in composition/provider code; do not scatter encoding registrations or library-version checks through consumers. Existing .NET/BCL contracts do not need replacement wrappers merely to remove a NuGet dependency.
+
+Use capability-specific contracts rather than mirroring every third-party method. Prove the first real implementation through contract fixtures; later run replacement providers against the same fixtures. A fake second parser does not establish replaceability. For CodePages, test actual legacy byte decoding and unavailable-encoding behavior; for shaping, test real glyph/cluster output and lifetime. Package separation follows real deployment and consumer needs, not one package per interface.
+
+### Removal gates
+
 Here, independence means no third-party runtime packages or browser binaries in the advertised default profile. The .NET runtime/BCL, OS services and clearly declared font/Unicode/data resources remain. Test tools and optional providers are separate. If a stronger goal excludes OS text, TLS, codecs or all external data, it requires a different platform scope.
 
 | Dependency | Short-term role | Replacement/removal gate |
 | --- | --- | --- |
 | AngleSharp.Css | Current CSS parser while owned syntax is established | CSS grammar/recovery and cascade fixtures pass; existing protected-token/raw-recovery paths are removed |
-| AngleSharp HTML/DOM | Transitional parser and legacy API interop | Owned DOM consumers migrated; selected full HTML parsing corpus, fragment/encoding tests, resource bounds and performance gates pass |
+| AngleSharp HTML/DOM | Production parser behind owned contracts | Selected full HTML parsing corpus, fragment/encoding tests, resource bounds and performance gates pass through a qualified replacement |
 | Encoding.CodePages | Current legacy encoding support | Explicit encoding compatibility matrix passes without it, or it remains only in a separately selected encoding provider; never silently narrow accepted inputs |
 | HarfBuzz/native typography | Optional complex shaping | Managed script/font/feature corpus meets text, cluster, glyph and geometry requirements on supported platforms |
 | Playwright/browser binaries | Explicit external execution/capture provider and independent test reference | Static runtime graph excludes them first; later selected interactive workloads pass on the owned runtime |
@@ -218,7 +238,7 @@ Here, independence means no third-party runtime packages or browser binaries in 
 
 Check complete packed transitive graphs, runtime native assets, browser downloads and data requirements for each supported target. `PrivateAssets` does not remove a runtime need. Do not describe a package as dependency-free just because its project file contains only project references.
 
-Existing public `IHtmlDocument`/`IElement` APIs make final AngleSharp removal a versioned migration. Add owned entry points first; keep old APIs working during the transition with documented interop. A major release can remove those signatures after consumer migration. Moving a method to an extension class does not preserve binary compatibility. Record actual upgrade actions in `MIGRATION.md` when implemented; this proposal does not authorize silent breaking changes.
+Breaking API changes are accepted for this program. Replace public `IHtmlDocument`/`IElement` contracts during the foundation milestone once owned alternatives have end-to-end proof, while AngleSharp remains the parser implementation. Remove superseded paths and migrate affected consumers together. Do not carry duplicate APIs, obsolete overloads or compatibility wrappers solely to avoid an approved break. Preserve existing document/conversion behavior unless an intentional behavior change is separately documented and validated. Record actual upgrade actions in `MIGRATION.md` and use an appropriate breaking release version; removing the parser dependency itself can happen much later without another public API change.
 
 ## Qualification and failure analysis
 
@@ -255,6 +275,10 @@ The recommended first slice crosses the whole architecture: one independently au
 
 This slice tests whether the boundaries are useful to both OfficeIMO and HtmlTinkerX. Do not first rewrite every parser or expose dozens of speculative interfaces. Migrate one real HtmlTinkerX extraction/Markdown workflow as the second consumer, using packed artifacts in a local feed and explicit source pins.
 
-After that slice, choose CSS replacement priority from measured recovery failures, then strengthen formatting/fragmentation and the page corpus. HTML parser replacement can proceed once its DOM boundary is stable; it need not block static rendering improvements. Managed typography advances in the shared owner on its own corpus. Optional browser runtime work begins only with an explicit first application/API profile and isolation proof.
+After that slice, strengthen usable style/layout/conversion components and the page corpus with the existing providers. Move CSS replacement ahead only when measured recovery failures obstruct that work. HTML parser replacement can proceed once its DOM boundary is stable; it need not block static rendering improvements. Managed typography advances in the shared owner on its own corpus. Optional browser runtime work begins with an explicit first application/API profile and isolation proof, without waiting for parser, shaping or encoding independence.
+
+The recommended first implementation PR is a complete foundation milestone: owned contracts, working provider-backed implementations, removal of replaced public paths, migration of affected in-repository consumers, representative downstream proof, preserved conversion behavior and documented upgrade actions. Include focused regression, rendering, package and resource-lifetime evidence. Keep layout expansion, new browser behavior and provider reimplementation out of that first milestone unless required to preserve an existing contract.
+
+Prove the first slice before freezing the breaking API shape. Then submit the foundation as a normal ready-for-review PR and continue larger work from that stable base. Small follow-up PRs can deliver complete reusable components; experimental components remain on development branches until usable. A PR may still contain intentional API breaks, but each release has a coherent migration contract. A single final PR combining contract changes, consumer migration, layout redesign and dependency retirement would make regressions and review much harder to isolate. PR publication, merge and package release remain distinct actions.
 
 The open milestones and their readiness gates are maintained once in the [roadmap](ROADMAP.md#independent-html-engine). A static-engine release, an AngleSharp-free package and an interactive-runtime release are separate reviewable outcomes. Calendar forecasts should follow the first slice and the measured remaining failure classes. Broad browser compatibility remains the largest and least predictable part of the program.
