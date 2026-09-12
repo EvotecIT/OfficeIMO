@@ -11,6 +11,11 @@ single-file publishing adds SDK-provided analyzer packages. Refresh both platfor
 lock sets when that baseline or the publish dependency graph changes. CI checks
 the six-runtime, single-file restore graph on Windows and Ubuntu.
 
+Release restores disable SDK offline library packs so platform locks refer to the
+configured package feed. Distribution SDKs can ship rebuilt analyzer packages
+under the same version with different hashes. Use a fresh package directory when
+refreshing release locks if the local cache contains those rebuilt packages.
+
 Avalonia and CommunityToolkit.Mvvm are the only explicitly trusted build-code providers. PowerForge still verifies their exact archives through the committed lock before allowing the XAML compiler and MVVM source generator to execute; Avalonia's separate telemetry build package is excluded from Studio.
 
 ```powershell
