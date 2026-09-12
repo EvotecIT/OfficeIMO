@@ -53,7 +53,7 @@ public sealed partial class MainWindowViewModel {
         double deltaY = ObjectMoveY;
         var imageOptions = new PdfImageEditOptions { Layer = PlaceEditedImageBehindContent ? PdfImageEditLayer.BehindExistingContent : PdfImageEditLayer.AboveExistingContent };
         ClearObjectSelection();
-        bool succeeded = await RunMutationAsync(
+        await RunMutationAsync(
             token => selection.Kind switch {
                 PdfEditorSelectionKind.Text => _workspace.MoveSelectedTextAsync(selection, deltaX, deltaY, token, CreateProgress()),
                 PdfEditorSelectionKind.Image => _workspace.MoveSelectedImageAsync(selection, deltaX, deltaY, token, CreateProgress(), imageOptions),
@@ -61,8 +61,7 @@ public sealed partial class MainWindowViewModel {
                     _workspace.MoveAnnotationAsync(objectNumber, selection.PageNumber, deltaX, deltaY, token, CreateProgress()),
                 _ => throw new InvalidOperationException("The selected object cannot be moved.")
             },
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) OperationStatus = "Selected object moved. Save when ready.";
+            cancellationToken, successStatus: "Selected object moved. Save when ready.").ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -89,17 +88,16 @@ public sealed partial class MainWindowViewModel {
         }
         ClearObjectSelection();
         var imageOptions = new PdfImageEditOptions { Layer = PlaceEditedImageBehindContent ? PdfImageEditLayer.BehindExistingContent : PdfImageEditLayer.AboveExistingContent };
-        bool succeeded = await RunMutationAsync(
+        await RunMutationAsync(
             token => workspace.ReplaceSelectedImageAsync(selection, bytes, token, CreateProgress(), imageOptions),
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) OperationStatus = "Selected image replaced. Save when ready.";
+            cancellationToken, successStatus: "Selected image replaced. Save when ready.").ConfigureAwait(true);
     }
 
     [RelayCommand]
     private async Task DeleteSelectedObjectAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedObject is not PdfEditorSelection selection) return;
         ClearObjectSelection();
-        bool succeeded = await RunMutationAsync(
+        await RunMutationAsync(
             token => selection.Kind switch {
                 PdfEditorSelectionKind.Text => _workspace.ReplaceSelectedTextAsync(selection, string.Empty, options: null, token, CreateProgress()),
                 PdfEditorSelectionKind.Image => _workspace.RemoveSelectedImageAsync(selection, token, CreateProgress()),
@@ -107,8 +105,7 @@ public sealed partial class MainWindowViewModel {
                     _workspace.RemoveAnnotationAsync(objectNumber, token, CreateProgress()),
                 _ => throw new InvalidOperationException("The selected object cannot be deleted.")
             },
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) OperationStatus = "Selected object removed. Save when ready.";
+            cancellationToken, successStatus: "Selected object removed. Save when ready.").ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -121,9 +118,8 @@ public sealed partial class MainWindowViewModel {
             SelectedAnnotationX + SelectedAnnotationWidth,
             SelectedAnnotationY + SelectedAnnotationHeight);
         ClearObjectSelection();
-        bool succeeded = await RunMutationAsync(
+        await RunMutationAsync(
             token => _workspace.ResizeAnnotationAsync(objectNumber, selection.PageNumber, rectangle, token, CreateProgress()),
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) OperationStatus = "Annotation geometry updated. Save when ready.";
+            cancellationToken, successStatus: "Annotation geometry updated. Save when ready.").ConfigureAwait(true);
     }
 }

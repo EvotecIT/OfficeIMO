@@ -2,6 +2,8 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Controls arbitrary visual canvas content stamped onto existing PDF pages.</summary>
 public sealed class PdfCanvasStampOptions {
+    internal string? ContentIdentifier { get; set; }
+    internal PdfWatermarkOptions? WatermarkSettings { get; set; }
     private double _opacity = 1D;
     private PdfOptions? _renderingOptions;
 

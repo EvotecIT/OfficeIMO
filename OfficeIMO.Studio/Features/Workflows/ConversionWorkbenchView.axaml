@@ -55,7 +55,7 @@
       </ScrollViewer>
     </Border>
 
-    <Grid Grid.Column="1" RowDefinitions="68,*" Margin="18,0">
+    <Grid Grid.Column="1" RowDefinitions="68,Auto,*" Margin="18,0">
       <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
         <StackPanel>
           <TextBlock Classes="sectionTitle" Text="{loc:Loc ConversionWorkbench.ConversionQueue}" />
@@ -68,7 +68,22 @@
         </StackPanel>
       </Grid>
 
-      <Border Grid.Row="1" Classes="card" Padding="0" ClipToBounds="True">
+      <Border Grid.Row="1" IsVisible="{Binding ConversionWorkbench.HasUnmatchedInputs}" Classes="card" Margin="0,0,0,12" Padding="16">
+        <StackPanel Spacing="10" IsEnabled="{Binding ConversionWorkbench.CanEditQueue}">
+          <TextBlock Text="{Binding ConversionWorkbench.UnmatchedInputMessage}" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding ConversionWorkbench.MatchingInputRoutes}">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel ItemSpacing="8" LineSpacing="8" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="workflow:ConversionRouteChoice">
+                <Button Classes="tool" Content="{Binding Label}" CommandParameter="{Binding}"
+                        Command="{ReflectionBinding $parent[UserControl].DataContext.ConversionWorkbench.UseInputRouteCommand}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Classes="ghost" Content="{loc:Loc MainWindow.Dismiss}" Command="{Binding ConversionWorkbench.DismissUnmatchedInputsCommand}" />
+        </StackPanel>
+      </Border>
+      <Border Grid.Row="2" Classes="card" Padding="0" ClipToBounds="True">
         <Grid>
           <Border IsVisible="{Binding !ConversionWorkbench.HasJobs}" Padding="36">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="360">
@@ -128,6 +143,20 @@
           <TextBlock Classes="eyebrow" Text="{loc:Loc ConversionWorkbench.SELECTEDJOB}" />
           <TextBlock Classes="sectionTitle" Text="{loc:Loc ConversionWorkbench.DetailsAndFidelity}" />
           <Border Height="1" Background="{DynamicResource StudioBorderBrush}" />
+          <TextBlock Text="{loc:Loc ConversionWorkbench.Result}" Classes="muted" FontSize="12" Margin="0,5,0,0" />
+          <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Summary}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.SelectedJob.OutputPath}"
+                     FontSize="12" TextWrapping="Wrap" />
+          <WrapPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.HasOutput}">
+            <Button Classes="tool" Content="{loc:Loc Conversion.Preview.Action}" Command="{Binding ConversionWorkbench.PreviewOutputCommand}" Margin="0,0,6,6" />
+            <Button Classes="tool" Content="{loc:Loc Conversion.Output.Open}" Command="{Binding ConversionWorkbench.OpenOutputCommand}" Margin="0,0,0,6" />
+          </WrapPanel>
+          <TextBlock Text="{Binding ConversionWorkbench.OutputPreviewStatus}" TextWrapping="Wrap" FontSize="12" />
+          <ItemsControl ItemsSource="{Binding ConversionWorkbench.OutputPreviewPages}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate><Border Background="White" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1" Margin="0,4" HorizontalAlignment="Center"><Image Source="{Binding}" Stretch="Uniform" MaxHeight="320" /></Border></DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
           <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Route.Description}" TextWrapping="Wrap" />
           <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Fidelity}"
                      Foreground="{DynamicResource StudioAccentBrush}" FontWeight="SemiBold" TextWrapping="Wrap" />
@@ -168,20 +197,6 @@
           <TextBlock Text="{loc:Loc ConversionWorkbench.KnownLimitations}" Classes="muted" FontSize="12" Margin="0,5,0,0" />
           <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.KnownLimitations}" TextWrapping="Wrap" />
           </StackPanel></Expander>
-          <TextBlock Text="{loc:Loc ConversionWorkbench.Result}" Classes="muted" FontSize="12" Margin="0,5,0,0" />
-          <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Summary}" TextWrapping="Wrap" />
-          <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.SelectedJob.OutputPath}"
-                     FontSize="12" TextWrapping="Wrap" />
-          <WrapPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.HasOutput}">
-            <Button Classes="tool" Content="{loc:Loc Conversion.Preview.Action}" Command="{Binding ConversionWorkbench.PreviewOutputCommand}" Margin="0,0,6,6" />
-            <Button Classes="tool" Content="{loc:Loc Conversion.Output.Open}" Command="{Binding ConversionWorkbench.OpenOutputCommand}" Margin="0,0,0,6" />
-          </WrapPanel>
-          <TextBlock Text="{Binding ConversionWorkbench.OutputPreviewStatus}" TextWrapping="Wrap" FontSize="12" />
-          <ItemsControl ItemsSource="{Binding ConversionWorkbench.OutputPreviewPages}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate><Border Background="White" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1" Margin="0,4" HorizontalAlignment="Center"><Image Source="{Binding}" Stretch="Uniform" MaxHeight="320" /></Border></DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
           <ItemsControl ItemsSource="{Binding ConversionWorkbench.SelectedJob.Diagnostics}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>

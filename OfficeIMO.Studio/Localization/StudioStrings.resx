@@ -229,7 +229,7 @@
     <value>Add text</value>
   </data>
   <data name="DocumentWorkspace.AddWatermark" xml:space="preserve">
-    <value>Add watermark</value>
+    <value>Watermarks</value>
   </data>
   <data name="DocumentWorkspace.AllowACustomValue" xml:space="preserve">
     <value>Allow a custom value</value>
@@ -1538,6 +1538,10 @@
   <data name="ImageOcr.ReviewText" xml:space="preserve"><value>Recognized text</value></data>
   <data name="ImageOcr.SaveText" xml:space="preserve"><value>Save reviewed text</value></data>
   <data name="ImageOcr.ActualPixels" xml:space="preserve"><value>Show actual pixels</value></data>
+  <data name="OcrSession.Empty.Title" xml:space="preserve"><value>Turn scans into searchable documents</value></data>
+  <data name="OcrSession.Empty.Description" xml:space="preserve"><value>Add PDFs to create searchable copies, or add images to extract editable text. You can review the recognized text before saving.</value></data>
+  <data name="OcrSession.Setup.Folder" xml:space="preserve"><value>Choose an output folder to enable recognition.</value></data>
+  <data name="OcrSession.Setup.Language" xml:space="preserve"><value>Select at least one recognition language.</value></data>
   <data name="OcrSession.Title" xml:space="preserve"><value>OCR session</value></data>
   <data name="OcrSession.Hint" xml:space="preserve"><value>PDFs produce searchable copies. Images produce editable text files. Review each result before saving; finished outputs appear in Jobs.</value></data>
   <data name="OcrSession.Add" xml:space="preserve"><value>Add PDFs or images</value></data>
@@ -2028,4 +2032,38 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Ocr.PrepareOptional" xml:space="preserve"><value>Prepare a scan (optional)</value></data>
   <data name="Ocr.TextOnly" xml:space="preserve"><value>Need just the text?</value></data>
   <data name="Ocr.Status.SourceSelected" xml:space="preserve"><value>Source selected. Check the language and destination, then recognize and review the text.</value></data>
+  <data name="Conversion.Intake.Mismatch" xml:space="preserve"><value>{0:N0} selected file(s) cannot use {1}. Choose a conversion below to add them, or dismiss this selection.</value></data>
+  <data name="Conversion.Intake.Unsupported" xml:space="preserve"><value>No available conversion accepts these selected file types. Add a supported document or dismiss this selection.</value></data>
+  <data name="Watermark.Title" xml:space="preserve"><value>Watermarks</value></data>
+  <data name="Watermark.Image" xml:space="preserve"><value>Use an image</value></data>
+  <data name="Watermark.Text" xml:space="preserve"><value>Watermark text</value></data>
+  <data name="Watermark.ChooseImage" xml:space="preserve"><value>Choose image…</value></data>
+  <data name="Watermark.Size" xml:space="preserve"><value>Size (points)</value></data>
+  <data name="Watermark.Width" xml:space="preserve"><value>Width</value></data>
+  <data name="Watermark.Height" xml:space="preserve"><value>Height</value></data>
+  <data name="Watermark.Position" xml:space="preserve"><value>Position (points)</value></data>
+  <data name="Watermark.CenterHint" xml:space="preserve"><value>Leave Left or Top empty to center on that axis.</value></data>
+  <data name="Watermark.Left" xml:space="preserve"><value>Left</value></data>
+  <data name="Watermark.Top" xml:space="preserve"><value>Top</value></data>
+  <data name="Watermark.Rotation" xml:space="preserve"><value>Rotation (degrees)</value></data>
+  <data name="Watermark.Opacity" xml:space="preserve"><value>Opacity (%)</value></data>
+  <data name="Watermark.FontSize" xml:space="preserve"><value>Font size (points)</value></data>
+  <data name="Watermark.Color" xml:space="preserve"><value>Text color</value></data>
+  <data name="Watermark.Gray" xml:space="preserve"><value>Gray</value></data>
+  <data name="Watermark.Red" xml:space="preserve"><value>Red</value></data>
+  <data name="Watermark.Blue" xml:space="preserve"><value>Blue</value></data>
+  <data name="Watermark.Green" xml:space="preserve"><value>Green</value></data>
+  <data name="Watermark.Black" xml:space="preserve"><value>Black</value></data>
+  <data name="Watermark.Behind" xml:space="preserve"><value>Place behind page content</value></data>
+  <data name="Watermark.Pages" xml:space="preserve"><value>Apply to pages</value></data>
+  <data name="Watermark.PagesHint" xml:space="preserve"><value>All pages, or 1, 3-5</value></data>
+  <data name="Watermark.PreviewPage" xml:space="preserve"><value>Preview page</value></data>
+  <data name="Watermark.Preview" xml:space="preserve"><value>Update preview</value></data>
+  <data name="Watermark.Apply" xml:space="preserve"><value>Apply watermark</value></data>
+  <data name="Watermark.ReviewHint" xml:space="preserve"><value>Review the preview before applying. After changing a setting, update the preview to enable Apply.</value></data>
+  <data name="Watermark.ChooseImageFirst" xml:space="preserve"><value>Choose an image to preview the watermark.</value></data>
+  <data name="Watermark.InvalidColor" xml:space="preserve"><value>Enter a color such as #2563EB.</value></data>
+  <data name="Watermark.DragHint" xml:space="preserve"><value>Drag on the page to move the watermark. Release to refresh the preview.</value></data>
+  <data name="Watermark.New" xml:space="preserve"><value>Add a new watermark</value></data>
+  <data name="Watermark.Choose" xml:space="preserve"><value>Choose a watermark to edit, or add a new one</value></data>
 </root>

@@ -81,6 +81,8 @@ public sealed partial class MainWindowViewModel {
     public bool IsProtectDocumentMode => DocumentMode == StudioDocumentMode.Protect;
 
     partial void OnDocumentModeChanged(StudioDocumentMode value) {
+        ResetNotificationScopeForNavigation();
+        NotifyVisibleNotifications();
         OnPropertyChanged(nameof(SelectedDocumentModeCommand));
         if (value is not StudioDocumentMode.Annotate and not StudioDocumentMode.Edit &&
             SelectedEditorToolChoice.Tool != PdfEditorTool.Select) {
@@ -97,6 +99,8 @@ public sealed partial class MainWindowViewModel {
     }
 
     partial void OnWorkspaceModeChanged(StudioWorkspaceMode value) {
+        ResetNotificationScopeForNavigation();
+        NotifyVisibleNotifications();
         OnPropertyChanged(nameof(SecurityWarning));
         OnPropertyChanged(nameof(HasSecurityWarning));
     }
@@ -214,13 +218,14 @@ public sealed partial class MainWindowViewModel {
     private void ShowFormsMode() {
         if (SelectedPage is not null) NewFormFieldPageNumber = SelectedPage.PageNumber;
         DocumentMode = StudioDocumentMode.Forms;
+        ShowDocumentProperties();
     }
 
     [RelayCommand]
     private void ShowProtectMode() {
         if (SelectedPage is not null) SignaturePageNumber = SelectedPage.PageNumber;
-        if (SigningCertificates.Count == 0) RefreshSigningCertificatesCommand.Execute(null);
         DocumentMode = StudioDocumentMode.Protect;
+        if (SigningCertificates.Count == 0) RefreshSigningCertificatesCommand.Execute(null);
     }
 
     [RelayCommand]

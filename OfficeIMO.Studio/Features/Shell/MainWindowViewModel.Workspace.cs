@@ -132,15 +132,15 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task UndoAsync(CancellationToken cancellationToken) {
         if (_workspace?.CanUndo != true) return;
-        bool succeeded = await RunMutationAsync(token => _workspace.UndoAsync(token), cancellationToken).ConfigureAwait(true);
-        if (succeeded) OperationStatus = UiText("Workspace.UndoComplete");
+        await RunMutationAsync(token => _workspace.UndoAsync(token), cancellationToken,
+            successStatus: UiText("Workspace.UndoComplete")).ConfigureAwait(true);
     }
 
     [RelayCommand]
     private async Task RedoAsync(CancellationToken cancellationToken) {
         if (_workspace?.CanRedo != true) return;
-        bool succeeded = await RunMutationAsync(token => _workspace.RedoAsync(token), cancellationToken).ConfigureAwait(true);
-        if (succeeded) OperationStatus = UiText("Workspace.RedoComplete");
+        await RunMutationAsync(token => _workspace.RedoAsync(token), cancellationToken,
+            successStatus: UiText("Workspace.RedoComplete")).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -152,8 +152,8 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task DiscardRecoveryAsync(CancellationToken cancellationToken) {
         if (_workspace is null) return;
-        bool succeeded = await RunStandaloneAsync(token => _workspace.DiscardRecoveryAsync(token), cancellationToken).ConfigureAwait(true);
-        if (succeeded) OperationStatus = UiText("Workspace.RecoveryDiscarded");
+        await RunStandaloneAsync(token => _workspace.DiscardRecoveryAsync(token), cancellationToken,
+            UiText("Workspace.RecoveryDiscarded")).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -288,8 +288,10 @@ public sealed partial class MainWindowViewModel {
     private async Task<bool> RunMutationAsync(
         Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken,
-        IReadOnlyCollection<int>? organizerSelection = null) {
-        bool succeeded = await RunStandaloneAsync(operation, cancellationToken).ConfigureAwait(true);
+        IReadOnlyCollection<int>? organizerSelection = null,
+        string? successStatus = null) {
+        using var notifications = BeginNotificationScope();
+        bool succeeded = await RunStandaloneAsync(operation, cancellationToken, successStatus).ConfigureAwait(true);
         if (succeeded && _workspace is not null) {
             ClearSignatureValidation();
             RefreshWorkspacePresentation(organizerSelection);
@@ -297,7 +299,9 @@ public sealed partial class MainWindowViewModel {
         return succeeded;
     }
 
-    private async Task<bool> RunStandaloneAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken) {
+    private async Task<bool> RunStandaloneAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken,
+        string? successStatus = null) {
+        using var notifications = BeginNotificationScope();
         if (IsWorkspaceBusy) return false;
         var currentCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _operationCancellation = currentCancellation;
@@ -307,7 +311,7 @@ public sealed partial class MainWindowViewModel {
         try {
             await operation(currentCancellation.Token).ConfigureAwait(true);
             OperationProgressFraction = 1D;
-            OperationStatus = UiText("Workspace.OperationCompleted");
+            OperationStatus = successStatus ?? UiText("Workspace.OperationCompleted");
             return true;
         } catch (OperationCanceledException) when (currentCancellation.IsCancellationRequested) {
             OperationStatus = UiText("Workspace.OperationCancelled");

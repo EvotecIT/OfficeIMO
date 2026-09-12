@@ -191,8 +191,23 @@ public sealed class StudioOcrSessionTests {
             var window = new Window { Width = width, Height = height, Content = new OcrSessionView { DataContext = model } };
             try {
                 window.Show();
-                await model.AddFilesCommand.ExecuteAsync(null);
+                Assert.False(model.HasItems);
+                Assert.False(model.CanRun);
+                Assert.False(model.RemoveSelectedCommand.CanExecute(null));
+                Capture(window, $"ocr-session-empty-{width}-{dark}");
+                var add = Assert.Single(window.GetVisualDescendants().OfType<Button>(), button =>
+                    ReferenceEquals(button.Command, model.AddFilesCommand) && button.Classes.Contains("primary"));
+                Point addPoint = add.TranslatePoint(new Point(add.Bounds.Width / 2, add.Bounds.Height / 2), window)!.Value;
+                window.MouseDown(addPoint, Avalonia.Input.MouseButton.Left);
+                window.MouseUp(addPoint, Avalonia.Input.MouseButton.Left);
+                if (model.AddFilesCommand.ExecutionTask is { } intake) await intake;
+                Assert.True(model.HasItems);
+                Assert.True(model.RemoveSelectedCommand.CanExecute(null));
+                Assert.False(model.CanRun);
+                Assert.False(string.IsNullOrWhiteSpace(model.SetupHint));
                 await model.ChooseOutputFolderCommand.ExecuteAsync(null);
+                Assert.True(model.CanRun);
+                Assert.Empty(model.SetupHint);
                 Capture(window, $"ocr-session-setup-{width}-{dark}");
                 var running = model.RunCommand.ExecuteAsync(null);
                 await WaitFor(() => model.ImageReview is not null, running, model);

@@ -399,6 +399,10 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             return false;
         }
 
+        if (selected.WatermarkId is not null) {
+            ObjectSelected?.Invoke(CreateSelection(scene.PageNumber, selected));
+            return true;
+        }
         if (selected.Kind == PdfInteractionKind.Text) {
             IReadOnlyList<PdfPageInteractionRegion> word = scene.Interactions.SelectWord(point.X, point.Y, tolerance: 2D);
             if (word.Count > 0) {
@@ -450,7 +454,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         ObjectNumber: region.ObjectNumber,
         Subtype: region.Subtype,
         ImagePlacement: region.ImagePlacement,
-        FieldName: region.FieldName);
+        FieldName: region.FieldName,
+        WatermarkId: region.WatermarkId);
 
     private async Task CopySelectionAsync() {
         IClipboard? clipboard = TopLevel.GetTopLevel(this)?.Clipboard;

@@ -72,6 +72,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
 
     partial void OnSelectedRouteChanged(ConversionRouteChoice value) {
         OnPropertyChanged(nameof(AvailableProfiles));
+        OnPropertyChanged(nameof(UnmatchedInputMessage));
         SelectedProfile = AvailableProfiles.First();
     }
 
@@ -127,12 +128,20 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         AddFilesCommand.NotifyCanExecuteChanged();
         RemoveSelectedCommand.NotifyCanExecuteChanged();
         ClearQueueCommand.NotifyCanExecuteChanged();
+        UseInputRouteCommand.NotifyCanExecuteChanged();
+        DismissUnmatchedInputsCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand(CanExecute = nameof(CanEditQueue))]
     private async Task AddFilesAsync(CancellationToken cancellationToken) {
         IReadOnlyList<string> paths = await _pickFiles(cancellationToken).ConfigureAwait(true);
         if (IsBusy) return;
+        if (paths.Count == 0) return;
+        AddPaths(_unmatchedInputs.Concat(paths).Distinct(StringComparer.Ordinal).ToArray());
+    }
+
+    private void AddPaths(IReadOnlyList<string> paths) {
+        var unmatched = new List<string>();
         int added = 0;
         int skipped = 0;
         int skippedForLimit = 0;
@@ -151,6 +160,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
             bool accepts = SelectedRoute.Route.SourceExtensions.Any(item =>
                 string.Equals(NormalizeExtension(item), extension, StringComparison.OrdinalIgnoreCase));
             if (!accepts) {
+                unmatched.Add(path);
                 skipped++;
                 continue;
             }
@@ -177,8 +187,11 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
             added++;
         }
         NotifyQueueChanged();
+        SetUnmatchedInputs(unmatched);
         Status = skippedForLimit > 0
             ? _localizer.FormatOrDefault("Conversion.Queue.Limit", "The queue is limited to {0:N0} jobs; {1:N0} additional file(s) were not added.", OfficeWorkflowRunner.MaximumBatchRequestCount, skippedForLimit)
+            : HasUnmatchedInputs
+            ? UnmatchedInputMessage
             : added == 0
             ? _localizer.FormatOrDefault("Conversion.Add.NoNewFiles", "No files matched {0} that could be added; files already queued for this route were skipped.", SelectedRoute.Route.Source)
             : skipped == 0
@@ -205,6 +218,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     private void ClearQueue() {
         if (IsBusy) return;
         Jobs.Clear();
+        SetUnmatchedInputs([]);
         SelectedJob = null;
         ProgressFraction = 0D;
         Status = T("Queue.Cleared", "Queue cleared.");

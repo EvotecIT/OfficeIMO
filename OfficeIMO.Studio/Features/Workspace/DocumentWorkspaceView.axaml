@@ -357,7 +357,6 @@
                   </ComboBox>
                   <TextBlock Text="{loc:Loc DocumentWorkspace.Text}" FontSize="12" /><TextBox Text="{Binding EditorText}" AcceptsReturn="True" MinHeight="62" />
                   <TextBlock Text="{loc:Loc DocumentWorkspace.FontSize}" FontSize="12" /><NumericUpDown Value="{Binding EditorFontSize}" Minimum="4" Maximum="144" />
-                  <TextBlock Text="{loc:Loc DocumentWorkspace.WatermarkText}" FontSize="12" /><TextBox Text="{Binding WatermarkText}" />
                   <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.AddWatermark}" Content="{loc:Loc DocumentWorkspace.AddWatermark}" Command="{Binding ApplyWatermarkCommand}" IsEnabled="{Binding CanEditPageContent}" />
                   <Separator Margin="0,4" />
                   <TextBlock Text="{loc:Loc DocumentWorkspace.FindAndReplace}" FontWeight="SemiBold" />

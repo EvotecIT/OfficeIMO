@@ -121,7 +121,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<string, System.Security.Cryptography.X509Certificates.X509Certificate2>? loadSigningCertificate = null,
         Func<CancellationToken, Task<string?>>? pickSaveRedactionReport = null,
         IScanTextRecognitionService? scanTextRecognition = null,
-        Func<CancellationToken, Task<string?>>? pickPrintOutput = null) {
+        Func<CancellationToken, Task<string?>>? pickPrintOutput = null,
+        Func<WatermarkPreviewViewModel, Task<bool>>? reviewWatermark = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -145,6 +146,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _reviewProtection = reviewProtection ?? (_ => Task.FromResult(false));
         _showProtectionResult = showProtectionResult ?? (_ => Task.CompletedTask);
         _reviewSigning = reviewSigning ?? (_ => Task.FromResult(false));
+        _reviewWatermark = reviewWatermark ?? (_ => Task.FromResult(false));
         _showSigningResult = showSigningResult ?? (_ => Task.CompletedTask);
         _loadSigningCertificate = loadSigningCertificate ?? LoadSigningCertificate;
         _reviewPageExtraction = reviewPageExtraction ?? (_ => Task.FromResult(false));

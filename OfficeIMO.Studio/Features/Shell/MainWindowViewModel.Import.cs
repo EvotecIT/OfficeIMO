@@ -11,6 +11,7 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task ImportPagesAsync(CancellationToken cancellationToken) {
+        using var notifications = BeginNotificationScope();
         if (_workspace is null || !CanImportPages || IsWorkspaceBusy || _reviewingPageImport) return;
         PdfWorkspace workspace = _workspace;
         long revision = workspace.Revision;

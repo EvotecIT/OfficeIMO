@@ -12,7 +12,7 @@ namespace OfficeIMO.Studio.Tests;
 /// <summary>Repeatable native UI acceptance against synthetic documents and an isolated profile.</summary>
 internal static class StudioExperienceProbe {
     internal static int Run(string root, string scenario, int width, int height, string culture, string theme) {
-        if (scenario is not ("home" or "document" or "tabs" or "assistant" or "connections" or "ocr" or "convert")
+        if (scenario is not ("home" or "document" or "tabs" or "assistant" or "connections" or "ocr" or "convert" or "watermark" or "watermark-image")
             || width < 960 || height < 620 || !Enum.TryParse(theme, true, out StudioThemePreference appearance)) return 2;
         root = Path.GetFullPath(root);
         Directory.CreateDirectory(root);
@@ -20,11 +20,19 @@ internal static class StudioExperienceProbe {
         new JsonStudioPreferencesStore(paths.PreferencesPath).Save(new StudioPreferences { UiCulture = culture, Theme = appearance, RememberSession = false });
         var services = StudioApplicationServices.Create(paths);
         string source = Path.Combine(root, "quarterly-review.pdf");
-        PdfDocument.Create(document => document.Page(page => page.Content(content => {
+        var sample = PdfDocument.Create(document => document.Page(page => page.Content(content => {
             content.Text("Quarterly review");
             content.Text("The approved budget is 42,000 EUR. The delivery deadline is 30 September.");
             content.Text("Action: prepare the project summary. Owner: the delivery team.");
-        }))).Save(source);
+        })));
+        if (scenario is "watermark" or "watermark-image") {
+            sample = sample.Stamp.Watermark(new PdfWatermarkOptions {
+                Text = "REVIEW COPY", X = 100, Y = 200, Width = 220, Height = 80, FontSize = 28, RotationDegrees = 0,
+                ImageBytes = scenario == "watermark-image"
+                    ? Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=") : null
+            });
+        }
+        sample.Save(source);
         return AppBuilder.Configure(() => new App(services)).UsePlatformDetect().LogToTrace()
             .AfterSetup(builder => Dispatcher.UIThread.Post(async () => {
                 try {
@@ -40,6 +48,7 @@ internal static class StudioExperienceProbe {
                     if (scenario is "assistant" or "connections") window.ViewModel.ToggleAssistantCommand.Execute(null);
                     if (scenario == "ocr") window.ViewModel.ShowOcrCommand.Execute(null);
                     if (scenario == "convert") window.ViewModel.Commands["Convert"].Execute(null);
+                    if (scenario is "watermark" or "watermark-image") window.ViewModel.ShowEditModeCommand.Execute(null);
                     if (scenario == "connections") {
                         var connections = new ConnectionsWindow { DataContext = services.AiConnections };
                         _ = connections.ShowDialog<bool>(window);

@@ -60,4 +60,5 @@ public sealed record PdfEditorSelection(
     int? ObjectNumber = null,
     string? Subtype = null,
     PdfImagePlacement? ImagePlacement = null,
-    string? FieldName = null);
+    string? FieldName = null,
+    string? WatermarkId = null);

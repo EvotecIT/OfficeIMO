@@ -21,18 +21,17 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="shell:StudioCommandItem">
-            <Border Classes="card" Padding="20">
+            <Button Classes="cardAction" Command="{Binding}" Padding="20" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top"
+                    AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Description}">
               <StackPanel Spacing="8">
                 <TextBlock Text="{Binding Category}" Classes="eyebrow" />
-                <Button Classes="ghost" Command="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="0,4"
-                        AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Description}">
-                  <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="SemiBold" />
-                </Button>
+                <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="SemiBold" />
                 <TextBlock Text="{Binding Description}" Classes="muted" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding UnavailableReason}" IsVisible="{Binding HasUnavailableReason}"
                            Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" />
               </StackPanel>
-            </Border>
+            </Button>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>

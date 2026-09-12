@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using PdfCore = OfficeIMO.Pdf;
 
@@ -20,8 +21,17 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(Points(geometry.Height));
         builder.AppendLine(";\">");
 
+        // Native PDF spans already carry the placement of table cells. Reflowing a
+        // detected table here discards that geometry and can duplicate nearby text.
+        // Mixed OCR/native pages still need the logical block/table projection.
+        // Only replace that projection when every block can be represented here.
+        bool hasNativeText = page.TextBlocks.Count > 0 && page.TextBlocks.All(block =>
+            block.Spans.Count > 0 && block.Spans.All(span => span.IsVisible));
+        if (hasNativeText) AppendPositionedNativeText(builder, page, geometry, options);
+
         for (int i = 0; i < page.TextBlocks.Count; i++) {
             PdfCore.PdfLogicalTextBlock block = page.TextBlocks[i];
+            if (hasNativeText) continue;
             if (IsPositionedTextBlockRepresentedByTable(block, page.Tables)) {
                 continue;
             }
@@ -45,9 +55,15 @@ public static partial class PdfHtmlConverterExtensions {
             builder.AppendLine("</div>");
         }
 
-        for (int i = 0; i < page.Tables.Count; i++) {
-            AppendPositionedTable(builder, geometry, page.Tables[i]);
+        if (!hasNativeText) {
+            for (int i = 0; i < page.Tables.Count; i++) {
+                AppendPositionedTable(builder, geometry, page.Tables[i]);
+            }
         }
+
+        if (page.VectorPrimitiveCount > 0) AddWarning(options, "VectorAppearanceNotExported",
+            "Positioned HTML does not reproduce PDF vector artwork, including some logos, backgrounds, and borders. Compare the output with the source PDF.",
+            PdfCore.PdfConversionWarningSeverity.Warning);
 
         if (options.IncludeImagePlaceholders) {
             AppendPositionedImagePlaceholders(builder, page, options);

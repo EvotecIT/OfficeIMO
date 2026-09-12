@@ -1,0 +1,82 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:OfficeIMO.Studio.Features.Editor" xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+        x:Class="OfficeIMO.Studio.Features.Editor.WatermarkDialog" x:DataType="local:WatermarkPreviewViewModel"
+        Title="{loc:Loc Watermark.Title}" Width="1000" Height="740" MinWidth="720" MinHeight="540"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
+  <Grid Margin="20" RowDefinitions="Auto,*,Auto" RowSpacing="16">
+    <TextBlock Text="{loc:Loc Watermark.Title}" Classes="pageTitle" />
+    <Grid Grid.Row="1" ColumnDefinitions="300,*" ColumnSpacing="20">
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="10" IsEnabled="{Binding CanEdit}">
+          <ComboBox ItemsSource="{Binding Watermarks}" SelectedItem="{Binding SelectedWatermark}"
+                    HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Watermark.Choose}" />
+          <CheckBox Content="{loc:Loc Watermark.Image}" IsChecked="{Binding UseImage}" />
+          <TextBox Text="{Binding Text}" IsVisible="{Binding !UseImage}" AcceptsReturn="True" MinHeight="64"
+                   AutomationProperties.Name="{loc:Loc Watermark.Text}" />
+          <Button Content="{loc:Loc Watermark.ChooseImage}" Command="{Binding ChooseImageCommand}" IsVisible="{Binding UseImage}" />
+          <TextBlock Text="{loc:Loc Watermark.Size}" FontWeight="SemiBold" />
+          <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10">
+            <TextBlock Text="{loc:Loc Watermark.Width}" /><TextBlock Grid.Column="1" Text="{loc:Loc Watermark.Height}" />
+            <NumericUpDown Grid.Row="1" AutomationProperties.Name="{loc:Loc Watermark.Width}" Value="{Binding Width}" Minimum="1" Maximum="10000" />
+            <NumericUpDown Grid.Row="1" Grid.Column="1" AutomationProperties.Name="{loc:Loc Watermark.Height}" Value="{Binding Height}" Minimum="1" Maximum="10000" />
+          </Grid>
+          <TextBlock Text="{loc:Loc Watermark.Position}" FontWeight="SemiBold" />
+          <TextBlock Text="{loc:Loc Watermark.CenterHint}" Classes="muted" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10">
+            <TextBlock Text="{loc:Loc Watermark.Left}" /><TextBlock Grid.Column="1" Text="{loc:Loc Watermark.Top}" />
+            <NumericUpDown Grid.Row="1" AutomationProperties.Name="{loc:Loc Watermark.Left}" Value="{Binding X}" Minimum="0" Maximum="10000" />
+            <NumericUpDown Grid.Row="1" Grid.Column="1" AutomationProperties.Name="{loc:Loc Watermark.Top}" Value="{Binding Y}" Minimum="0" Maximum="10000" />
+          </Grid>
+          <TextBlock Text="{loc:Loc Watermark.Rotation}" />
+          <NumericUpDown AutomationProperties.Name="{loc:Loc Watermark.Rotation}" Value="{Binding Rotation}" Minimum="-180" Maximum="180" Increment="5" />
+          <TextBlock Text="{loc:Loc Watermark.Opacity}" />
+          <NumericUpDown AutomationProperties.Name="{loc:Loc Watermark.Opacity}" Value="{Binding Opacity}" Minimum="0" Maximum="100" Increment="5" />
+          <StackPanel Spacing="8" IsVisible="{Binding !UseImage}">
+            <TextBlock Text="{loc:Loc Watermark.FontSize}" />
+            <NumericUpDown AutomationProperties.Name="{loc:Loc Watermark.FontSize}" Value="{Binding FontSize}" Minimum="1" Maximum="300" />
+            <TextBlock Text="{loc:Loc Watermark.Color}" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Button Background="#64748B" Tag="#64748B" Width="34" Height="30" Click="OnColor" AutomationProperties.Name="{loc:Loc Watermark.Gray}" />
+              <Button Background="#DC2626" Tag="#DC2626" Width="34" Height="30" Click="OnColor" AutomationProperties.Name="{loc:Loc Watermark.Red}" />
+              <Button Background="#2563EB" Tag="#2563EB" Width="34" Height="30" Click="OnColor" AutomationProperties.Name="{loc:Loc Watermark.Blue}" />
+              <Button Background="#16A34A" Tag="#16A34A" Width="34" Height="30" Click="OnColor" AutomationProperties.Name="{loc:Loc Watermark.Green}" />
+              <Button Background="#000000" Tag="#000000" Width="34" Height="30" Click="OnColor" AutomationProperties.Name="{loc:Loc Watermark.Black}" />
+            </StackPanel>
+            <TextBox Text="{Binding Color}" AutomationProperties.Name="{loc:Loc Watermark.Color}" />
+          </StackPanel>
+          <CheckBox Content="{loc:Loc Watermark.Behind}" IsChecked="{Binding BehindContent}" />
+          <TextBlock Text="{loc:Loc Watermark.Pages}" FontWeight="SemiBold" />
+          <TextBox Text="{Binding PageRange}" PlaceholderText="{loc:Loc Watermark.PagesHint}" AutomationProperties.Name="{loc:Loc Watermark.Pages}" />
+        </StackPanel>
+      </ScrollViewer>
+      <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto" RowSpacing="10">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Text="{loc:Loc Watermark.PreviewPage}" VerticalAlignment="Center" />
+          <NumericUpDown AutomationProperties.Name="{loc:Loc Watermark.PreviewPage}" Value="{Binding PreviewPage}" Minimum="1" Maximum="{Binding PageCount}" IsEnabled="{Binding CanEdit}" Width="95" />
+        </StackPanel>
+        <Border Grid.Row="1" Background="{DynamicResource StudioWindowBrush}" Padding="12" CornerRadius="8">
+          <Grid x:Name="PreviewSurface" Background="Transparent" ClipToBounds="True"
+                PointerPressed="OnPreviewPressed" PointerMoved="OnPreviewMoved" PointerReleased="OnPreviewReleased"
+                PointerCaptureLost="OnPreviewCaptureLost">
+            <Image Source="{Binding PreviewImage}" Stretch="Uniform" AutomationProperties.Name="{loc:Loc Watermark.Preview}" />
+            <Canvas IsHitTestVisible="False">
+              <Border x:Name="PlacementOutline" IsVisible="False" BorderBrush="{DynamicResource StudioAccentBrush}"
+                      BorderThickness="2" Background="#225478FF" RenderTransformOrigin="50%,50%" />
+            </Canvas>
+          </Grid>
+        </Border>
+        <StackPanel Grid.Row="2" Spacing="8">
+          <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Height="4" />
+          <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource StudioErrorBrush}" TextWrapping="Wrap" />
+          <TextBlock Text="{loc:Loc Watermark.ReviewHint}" Classes="muted" TextWrapping="Wrap" />
+          <TextBlock Text="{loc:Loc Watermark.DragHint}" Classes="muted" TextWrapping="Wrap" />
+        </StackPanel>
+      </Grid>
+    </Grid>
+    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Content="{loc:Loc Common.Cancel}" Click="OnCancel" IsCancel="True" />
+      <Button Content="{loc:Loc Watermark.Preview}" Command="{Binding PreviewCommand}" />
+      <Button Content="{loc:Loc Watermark.Apply}" Classes="primary" Click="OnApply" IsEnabled="{Binding CanApply}" />
+    </StackPanel>
+  </Grid>
+</Window>
