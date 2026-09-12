@@ -44,7 +44,8 @@ public sealed partial class ProjectDocument {
             var totals = new ProjectResourceTotals(resource, grouped.TryGetValue(resource, out var assignments) ? assignments : Array.Empty<ProjectAssignment>());
             resources.Add(totals);
             if ((totals.Cost.HasValue && resource.Cost.HasValue && totals.Cost != resource.Cost) ||
-                (totals.ActualCost.HasValue && resource.ActualCost.HasValue && totals.ActualCost != resource.ActualCost))
+                (totals.ActualCost.HasValue && resource.ActualCost.HasValue && totals.ActualCost != resource.ActualCost) ||
+                (totals.RemainingCost.HasValue && resource.RemainingCost.HasValue && totals.RemainingCost != resource.RemainingCost))
                 Warn("PROJECT_RESOURCE_CACHED_TOTAL", "Stored resource costs differ from the sum of stored assignment costs. Both observations are retained.", "/Resource[UID=" + resource.Uid + "]");
         }
         if (Revision != revision) throw new InvalidOperationException("The document changed during assignment analysis.");

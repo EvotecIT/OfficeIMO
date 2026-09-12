@@ -9,7 +9,7 @@ public sealed class ProjectResourceTotals {
         Cost = Sum(assignments.Select(a => a.Cost)); ActualCost = Sum(assignments.Select(a => a.ActualCost)); RemainingCost = Sum(assignments.Select(a => a.RemainingCost));
         WorkMinutes = Sum(assignments.Select(a => a.Work?.Minutes)); ActualWorkMinutes = Sum(assignments.Select(a => a.ActualWork?.Minutes));
         RemainingWorkMinutes = Sum(assignments.Select(a => a.RemainingWork?.Minutes));
-        StoredResourceCost = resource.Cost; StoredResourceActualCost = resource.ActualCost;
+        StoredResourceCost = resource.Cost; StoredResourceActualCost = resource.ActualCost; StoredResourceRemainingCost = resource.RemainingCost;
     }
     private static decimal? Sum(IEnumerable<decimal?> values) {
         decimal sum = 0; foreach (var value in values) { if (!value.HasValue) return null; sum = checked(sum + value.Value); } return sum;
@@ -34,6 +34,8 @@ public sealed class ProjectResourceTotals {
     public decimal? StoredResourceCost { get; }
     /// <summary>Independently stored/cached resource actual cost.</summary>
     public decimal? StoredResourceActualCost { get; }
+    /// <summary>Independently stored/cached resource remaining cost.</summary>
+    public decimal? StoredResourceRemainingCost { get; }
 }
 
 /// <summary>A uniform-rate estimate and actual/remaining consistency assessment for one assignment.</summary>

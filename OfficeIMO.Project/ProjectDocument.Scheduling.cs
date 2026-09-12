@@ -30,6 +30,11 @@ public sealed partial class ProjectDocument {
         var dates = result.Tasks.ToDictionary(t => t.TaskUid);
         var assignmentUpdates = PrepareAssignmentUpdates(result);
         var resourceUpdates = PrepareResourceUpdates(result);
+        var progressDurations = result.Tasks.Where(t => t.Calculation != null).ToDictionary(t => t.TaskUid, t => {
+            decimal scale = ProjectXmlValue.MinutesPerUnit(t.Duration.Unit, t.Duration.IsElapsed, this);
+            return (Actual: new ProjectDuration(t.Calculation!.ActualDuration.Value / scale, t.Duration.Unit, t.Duration.IsElapsed, t.Duration.IsEstimated),
+                Remaining: new ProjectDuration(t.Calculation.RemainingDuration.Value / scale, t.Duration.Unit, t.Duration.IsElapsed, t.Duration.IsEstimated));
+        });
         using (BeginUpdate()) {
             if (result.CalculatedAssignments) Settings.ExternallyEdited = false;
             if (!Settings.ScheduleFromStart.HasValue) Settings.ScheduleFromStart = true;
@@ -38,7 +43,7 @@ public sealed partial class ProjectDocument {
                 task.Duration = item.Duration;
                 if (item.Calculation is ProjectTaskWorkSchedule calculation) {
                     task.Work = calculation.Work; task.ActualWork = calculation.ActualWork; task.RemainingWork = calculation.RemainingWork;
-                    task.ActualDuration = calculation.ActualDuration; task.RemainingDuration = calculation.RemainingDuration;
+                    task.ActualDuration = progressDurations[item.TaskUid].Actual; task.RemainingDuration = progressDurations[item.TaskUid].Remaining;
                     task.PercentComplete = calculation.PercentComplete; task.PercentWorkComplete = calculation.PercentWorkComplete;
                     task.Cost = calculation.Cost; task.ActualCost = calculation.ActualCost; task.RemainingCost = calculation.RemainingCost;
                 } else if (!task.IsSummary && task.IsManual != true) task.RemainingDuration = item.Duration;

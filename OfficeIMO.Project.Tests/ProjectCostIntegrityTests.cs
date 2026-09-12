@@ -28,7 +28,7 @@ public sealed class ProjectCostIntegrityTests {
     public void BaselineCannotStoreUnlocatedActualCostAdjustment(bool summaryAdjustment) {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
         var summary = document.Tasks.AddSummary("Phase"); var task = summary.Children.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1);
-        task.ActualStart = Monday; task.ActualDuration = new ProjectDuration(4, ProjectDurationUnit.Hour); task.Stop = Monday.AddHours(4);
+        task.ActualStart = Monday; task.ActualDuration = ProjectDuration.WorkingDays(.5m); task.Stop = Monday.AddHours(4);
         var owner = summaryAdjustment ? summary : task; owner.FixedCost = 100; owner.ActualCost = 75;
         var schedule = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); schedule.Report.ThrowIfErrors();
         string before = document.ToXml(); long revision = document.Revision;

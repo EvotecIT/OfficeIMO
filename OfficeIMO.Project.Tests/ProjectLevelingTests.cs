@@ -22,7 +22,7 @@ public sealed class ProjectLevelingTests {
         var result = document.CalculateLeveling(new ProjectLevelingOptions { AllowSplitting = true }); result.Report.ThrowIfErrors(); Assert.NotEmpty(result.Splits);
         document.ApplyLeveling(result);
         Assert.False(document.Settings.ExternallyEdited);
-        if (completed) Assert.Equal(ProjectDuration.WorkingMinutes(120), task.ActualDuration);
+        if (completed) Assert.Equal(ProjectDuration.WorkingDays(.25m), task.ActualDuration);
         using var copy = document.Clone();
         foreach (var candidate in new[] { document, copy }) {
             var after = candidate.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); after.Report.ThrowIfErrors();

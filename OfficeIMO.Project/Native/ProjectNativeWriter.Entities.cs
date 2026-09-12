@@ -46,7 +46,7 @@ internal sealed partial class ProjectNativeWriter {
                     : _document.TaskIndex.TryGetValue(0, out var projectSummary) ? EntityGuid(projectSummary, 1) : NativeGuid(0, 1);
                 Identity(editor, task.Uid, 0x0b40047f, parentGuid);
             }
-            if (new[] { task.Duration, task.ActualDuration, task.RemainingDuration }.Where(d => d.HasValue).Select(d => DurationFormat(d!.Value)).Distinct().Skip(1).Any())
+            if (!ProjectXmlValue.TryTaskDurationFormat(task, out _))
                 AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_DURATION_FORMAT", ProjectDiagnosticSeverity.Error,
                     "Native task duration, actual duration, and remaining duration share one format. Use the same unit and flags.", path));
             WriteBaselines(editor, task.Uid, path, task.Baselines, 0);

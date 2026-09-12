@@ -75,6 +75,14 @@ public sealed partial class ProjectDocument {
         }
         if (format == ProjectFileFormat.Mpx4 && ProjectMpxWriter.CanRetain(this, options)) return ProjectMpxWriter.Plan(this, options, false, token).Report;
         var diagnostics = Validate(token).Diagnostics.ToList();
+        if (format == ProjectFileFormat.Xml) {
+            foreach (var task in AllTasks) {
+                token.ThrowIfCancellationRequested();
+                if (!ProjectXmlValue.TryTaskDurationFormat(task, out _))
+                    diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_DURATION_FORMAT", ProjectDiagnosticSeverity.Error,
+                        "XML task duration, actual duration, and remaining duration share one format. Use the same unit and flags.", "/Task[UID=" + task.Uid + "]"));
+            }
+        }
         if (format == ProjectFileFormat.Xml && NativeSource == null && MpxSource == null
             && ProjectXmlCodec.RetainedBytes(this, options) is byte[] retainedXml)
             AddRetainedOutputLimit(diagnostics, retainedXml, options);

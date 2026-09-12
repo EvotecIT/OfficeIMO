@@ -67,7 +67,7 @@ internal static class ProjectDataSchema {
                 CultureInfo.InvariantCulture, DateTimeStyles.None, out var value)) throw Error(field, "expected a local ISO date without timezone suffix");
             return DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
         }
-        internal string Name() => Get(ProjectDataField.Name) ?? throw Error(ProjectDataField.Name, "a name is required");
+        internal string? Name() => _indexes.TryGetValue(ProjectDataField.Name, out int index) ? _values[index] : null;
     }
 
     internal static Row[] Read(ProjectMappedTable table, ProjectDataImportOptions options, List<string> notices) {

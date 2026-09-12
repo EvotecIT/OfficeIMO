@@ -31,7 +31,9 @@ internal static partial class ProjectXmlCodec {
             Field("OutlineLevel", ProjectXmlValue.Integer(document.StructureChanged || document.Source == null ? level : task.SourceOutlineLevel));
             Field("Summary", ProjectXmlValue.Boolean(task.IsSummary));
             Field("CalendarUID", ProjectXmlValue.Integer(task.Calendar?.Uid ?? task.SourceCalendarUid));
-            Field("DurationFormat", task.Duration.HasValue ? ProjectXmlValue.Integer(ProjectXmlValue.DurationFormat(task.Duration.Value)) : null);
+            if (!ProjectXmlValue.TryTaskDurationFormat(task, out int? durationFormat))
+                throw new InvalidDataException("XML task durations require one shared unit and flags.");
+            Field("DurationFormat", ProjectXmlValue.Integer(durationFormat));
             // Project imports a newly authored, unstarted task as zero duration when
             // RemainingDuration is absent. This initial value is a serialization default,
             // not calendar arithmetic or recalculation of an imported schedule.

@@ -50,6 +50,17 @@ internal static class ProjectXmlValue {
     internal static string? Duration(ProjectDuration? duration, ProjectDocument document) => duration.HasValue
         ? Span(MinutesToSpan(checked(duration.Value.Value * MinutesPerUnit(duration.Value.Unit, duration.Value.IsElapsed, document)))) : null;
     internal static int DurationFormat(ProjectDuration duration) => 3 + (int)duration.Unit * 2 + (duration.IsElapsed ? 1 : 0) + (duration.IsEstimated ? 32 : 0);
+
+    internal static bool TryTaskDurationFormat(ProjectTask task, out int? format) {
+        format = null;
+        foreach (var duration in new[] { task.Duration, task.ActualDuration, task.RemainingDuration }) {
+            if (!duration.HasValue) continue;
+            int current = DurationFormat(duration.Value);
+            if (format.HasValue && format.Value != current) return false;
+            format = current;
+        }
+        return true;
+    }
     internal static ProjectDuration ParseDuration(string text, int? format, ProjectDocument document) {
         int code = format ?? 7;
         bool estimated = code >= 32;

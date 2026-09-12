@@ -104,7 +104,7 @@ public sealed partial class ProjectDocument {
     private bool ActualCostBoundaryKnown(DateTime? start, DateTime? stop, DateTime? finish, DateTime status) {
         if (start > status || finish > status || stop > status) return false;
         if (finish <= status) return true;
-        return stop <= status && !(Settings.StatusDate > status);
+        return Settings.StatusDate <= status || stop <= status && !(Settings.StatusDate > status);
     }
     private decimal? CompletionAtStatus(ProjectTask task, ProjectAssignment[] assignments, DateTime status, Action<string> warn) {
         var actualCurves = assignments.SelectMany(a => a.TimephasedData).Where(v => v.Type == 2).ToArray();
