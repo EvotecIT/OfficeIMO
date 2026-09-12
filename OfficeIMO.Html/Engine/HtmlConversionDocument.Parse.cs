@@ -30,13 +30,13 @@ public sealed partial class HtmlConversionDocument {
                 MaxNodes = resolved.Limits.MaxHtmlNodes,
                 MaxDepth = resolved.Limits.MaxHtmlDepth
             }, cancellationToken) ?? throw new InvalidOperationException("The HTML parser provider returned no document.");
-            ValidateOwnedTree(sourceSnapshot, resolved.Limits);
-            if (!sourceSnapshot.IsReadOnly) sourceSnapshot = sourceSnapshot.Clone().Freeze();
-            document = NativeDomBridge.GetNativeDocument(sourceSnapshot);
+            sourceSnapshot = CaptureOwnedTree(sourceSnapshot, resolved.Limits, cancellationToken);
+            document = NativeDomBridge.GetNativeDocument(sourceSnapshot, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlConversionInputGuard.ValidateDocument(document, resolved.Limits);
+        HtmlConversionInputGuard.ValidateDocument(document, resolved.Limits, cancellationToken);
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, resolved.BaseUri);
+        cancellationToken.ThrowIfCancellationRequested();
         return new HtmlConversionDocument(html, document, resolved, baseUri, sourceSnapshot);
     }
 
@@ -45,31 +45,54 @@ public sealed partial class HtmlConversionDocument {
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlConversionDocumentOptions resolved = options?.Clone() ?? new HtmlConversionDocumentOptions();
         resolved.Validate();
-        ValidateOwnedTree(document, resolved.Limits);
-        Dom.HtmlDocument snapshot = document.IsReadOnly ? document : document.Clone().Freeze();
+        Dom.HtmlDocument snapshot = CaptureOwnedTree(document, resolved.Limits, CancellationToken.None);
         IHtmlDocument native = NativeDomBridge.GetNativeDocument(snapshot);
         HtmlConversionInputGuard.ValidateDocument(native, resolved.Limits);
-        string source = snapshot.OuterHtml;
-        HtmlConversionInputGuard.ValidateSource(source, resolved.Limits);
+        string source = HtmlConversionSourceWriter.Serialize(native, resolved.Limits);
         return new HtmlConversionDocument(source, native, resolved, HtmlDocumentParser.ResolveEffectiveBaseUri(native, resolved.BaseUri), snapshot);
     }
 
     /// <summary>Edits an independent source snapshot and retains this conversion's trust, resource and fidelity options.</summary>
-    public HtmlConversionDocument Edit(Action<Dom.HtmlDocument> edit) => FromDocument(Document.Edit(edit), _options);
+    public HtmlConversionDocument Edit(Action<Dom.HtmlDocument> edit) {
+        if (edit == null) throw new ArgumentNullException(nameof(edit));
+        Dom.HtmlDocument clone = Document.CloneAttached();
+        try { edit(clone); return FromDocument(clone, _options); }
+        finally { clone.Freeze(); }
+    }
 
-    private static void ValidateOwnedTree(Dom.HtmlDocument document, HtmlConversionLimits limits) {
+    private static Dom.HtmlDocument CaptureOwnedTree(Dom.HtmlDocument document, HtmlConversionLimits limits, CancellationToken cancellationToken) {
         var tracker = HtmlDomLimitTracker.Create(limits.MaxHtmlNodes, limits.MaxHtmlDepth);
-        if (tracker == null) return;
-        var pending = new Stack<(Dom.HtmlNode Node, int Depth)>();
-        foreach (Dom.HtmlNode node in document.ChildNodes) pending.Push((node, node is Dom.HtmlElement ? 1 : 0));
-        while (pending.Count != 0) {
-            var current = pending.Pop();
-            if (current.Node is Dom.HtmlElement element) {
-                tracker.RecordElementStart(current.Depth);
-                if (element.TemplateContent != null) pending.Push((element.TemplateContent, current.Depth));
-            } else tracker.RecordNode();
-            foreach (Dom.HtmlNode child in current.Node.ChildNodes) pending.Push((child, current.Depth + (child is Dom.HtmlElement ? 1 : 0)));
+        long characters = 0;
+        int nodes = 0;
+        void Reserve(string? value) {
+            characters += value?.Length ?? 0;
+            HtmlConversionSourceWriter.ValidateLength(characters, limits);
         }
+        foreach (var current in document.AttachedNodes()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            nodes++;
+            if (ReferenceEquals(current.Node, document)) continue;
+            if (current.Node is Dom.HtmlElement element) {
+                tracker?.RecordElementStart(current.Depth);
+                Reserve(element.LocalName);
+                Reserve(element.Prefix);
+                foreach (Dom.HtmlAttribute attribute in element.Attributes) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Reserve(attribute.Name);
+                    Reserve(attribute.Value);
+                }
+            } else {
+                tracker?.RecordNode();
+                if (current.Node is Dom.HtmlDocumentType type) {
+                    Reserve(type.Name);
+                    Reserve(type.PublicIdentifier);
+                    Reserve(type.SystemIdentifier);
+                } else Reserve(current.Node.Data);
+            }
+        }
+        return document.IsReadOnly && nodes == document.RegisteredNodeCount
+            ? document
+            : document.CloneAttached(cancellationToken).Freeze();
     }
 
     /// <summary>

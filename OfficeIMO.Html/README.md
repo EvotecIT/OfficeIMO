@@ -52,10 +52,13 @@ byte[] preview = edited.ToPng();
 `Document` is an immutable source snapshot. `Edit` clones it and freezes the result;
 the original document, retained node handles and cached conversion results remain
 unchanged. `Clone` returns a mutable tree for a single owner, while
-`HtmlConversionDocument.FromDocument` captures an independent conversion snapshot.
+`HtmlConversionDocument.FromDocument` captures the attached tree, including template
+contents, as an immutable conversion snapshot.
 `CreateDocumentForConversion` returns a mutable, policy-normalized owned tree.
 Use `NodeId` within an edit lineage and `SnapshotId` to distinguish tree instances.
-Clones retain detached nodes and original source offsets. Edited HTML is serialized
+General-purpose `HtmlDocument.Clone` retains detached nodes and original source
+offsets. Conversion capture and conversion edits omit detached editing history;
+attached nodes retain their IDs and source offsets. Edited HTML is serialized
 from the tree; it does not preserve the original spelling of entities or whitespace
 inside tags. Template contents are exposed separately through `TemplateContent`.
 
@@ -76,8 +79,13 @@ provider through `OfficeIMO.Drawing.HarfBuzz`.
 
 The current structural adapter retains a native tree alongside an owned tree when
 owned nodes are requested. Conversion-only parsing keeps the owned projection lazy.
-Source length is checked before parsing; node/depth limits are checked after the
-native parser constructs its tree. Cancellation is cooperative, not a hard worker
+Source length is checked before parsing; node/depth limits, including template
+contents, are checked after the native parser constructs its tree. For owned input,
+`MaxInputCharacters` also bounds aggregate attached names, attribute values, text,
+comments and doctype identifiers before copying or native projection. Canonical
+source serialization stops when its expanded output exceeds that limit. These are
+separate checks: an owned tree can contain data that HTML serialization omits, such
+as children of void elements. Cancellation is cooperative, not a hard worker
 memory or execution-time limit. Fragment-context parsing and provider-independent CSS
 execution remain separate work; parsing a string here uses full-document HTML rules.
 
