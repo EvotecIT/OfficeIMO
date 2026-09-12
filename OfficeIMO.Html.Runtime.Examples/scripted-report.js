@@ -1,5 +1,6 @@
 document.querySelector('#prepare').addEventListener('click', () => {
-    Promise.resolve([{ name: 'Document conversion', count: 24 }, { name: 'Content extraction', count: 18 }])
+    fetch('scripted-report.json')
+        .then(response => { if (!response.ok) throw new Error('Report data unavailable'); return response.json(); })
         .then(services => setTimeout(() => {
             for (const service of services) {
                 const row = document.createElement('tr');

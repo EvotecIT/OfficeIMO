@@ -67,11 +67,55 @@ var request = new HtmlScriptRequest {
 Supplied resources take precedence over HTTP. Network loading is disabled by
 default. When enabled, it permits the document origin and explicitly added
 `AllowedOrigins`. Each redirect target is checked before a request is sent.
-Requests use GET, without cookies, authentication, or the host proxy. Resource
+Document resources use GET, without cookies, host credentials, or the host proxy. Resource
 deadlines include concurrency admission, redirects and response reading; byte
 limits also apply when the server omits a content length. Request counts and total
 loaded bytes accumulate across session commands. A missing, blocked, failed or
 oversized document resource fails the session.
+
+Classic scripts can use `fetch` with native JavaScript promises:
+
+```javascript
+const response = await fetch('/api/report', { signal: controller.signal });
+if (!response.ok) throw new Error('Report unavailable: ' + response.status);
+const report = await response.json();
+document.querySelector('#total').textContent = String(report.total);
+```
+
+Create `controller` with `new AbortController()` when cancellation is needed, or
+omit the options argument. Fetch resolves HTTP error statuses as responses and
+rejects network, policy and deadline failures. Applications can catch these
+rejections and continue using the session. Unhandled rejections still fail it.
+
+The fetch profile buffers each complete response before resolving. It supports
+GET, HEAD, POST, PUT, PATCH, DELETE and OPTIONS; string, URLSearchParams,
+ArrayBuffer and typed-array request bodies; immutable response headers; status,
+URL and redirect metadata; and `text()`, `json()`, `arrayBuffer()` and `clone()`.
+A non-null response body can be consumed once; clones have independent consumption
+state. Text uses UTF-8 decoding. Abort signals cancel queued or active transport
+and reject unread response consumption with the signal's reason.
+
+Fetch uses the document's live base URI and the same resource policy and cumulative
+budgets as document loads. `MaxRequestBytes` limits each encoded request body;
+`MaxTotalRequestBytes` counts bodies sent across commands, including redirect
+replays. Supplied resources answer GET and HEAD; other methods require network
+permission. Captures retain completed GET loads, including their response
+metadata, without replacing assets with POST results.
+
+Additional allowed origins must also pass CORS response checks. Unsafe cross-origin
+methods and headers require preflight permission; preflight requests count toward
+the resource budgets. Fetch hides cookie headers and filters cross-origin response
+headers. Redirects recheck authority, apply method/body rules and remove explicit
+Authorization on an origin change. A cross-origin response redirecting to a
+different origin is explicitly unsupported. Supplied redirects for fetch must
+provide explicit redirect responses and Location headers.
+
+Supported modes are `cors` and `same-origin`, credentials modes are `omit` and
+`same-origin`, and redirect modes are `follow` and `error`. There is no cookie jar,
+HTTP cache or host credential inheritance. Constructed Request/Response objects,
+response streams, Blob/FormData bodies, no-cors/manual redirects, credentialed
+cross-origin requests and compressed responses are outside this profile.
+Unsupported fetch options are rejected instead of silently changing their meaning.
 
 `capture.Resources` retains immutable loaded responses, including their requested
 and final URLs. Use these responses with OfficeIMO's existing
@@ -112,9 +156,15 @@ The process is terminated on cancellation, timeout or response-budget failure.
 This is a **trusted-content execution profile**, not an OS sandbox for hostile
 scripts. Host CLR capabilities are not configured. Resource policy covers the
 document resource loader; it is not a sandbox for every capability an interpreter
-may expose. Modules, fetch/XHR, navigation and framework applications are outside
+may expose. Modules, XHR, navigation and framework applications are outside
 the qualified profile. Document navigation is disabled. Strict OS isolation and
 broader application behavior remain separate runtime work.
+
+The retained interpreter has a known async declaration limitation: in a statement
+such as `const before = state, result = await operation()`, an earlier initializer
+can run again after the await. Keep such declarations in separate statements for
+this profile. This behavior was reproduced in Jint 4.16.0 and 4.16.2 and remains an
+application-qualification gap.
 
 Run the standalone report example after building the worker:
 
@@ -123,8 +173,9 @@ dotnet build OfficeIMO.Html.Runtime.Worker -c Release -f net8.0
 dotnet run --project OfficeIMO.Html.Runtime.Examples -c Release -f net8.0 -- OfficeIMO.Html.Runtime.Worker/bin/Release/net8.0/OfficeIMO.Html.Runtime.Worker.dll output/scripted-report
 ```
 
-The example loads supplied external CSS and JavaScript, dispatches a click, waits
-for promise and timer work to populate a table, then captures the completed report.
+The example loads supplied external CSS and JavaScript, dispatches a click, fetches
+a supplied JSON report, waits for promise and timer work to populate a table, then
+captures the completed report.
 It renders from retained resources after disposal and writes HTML with its assets,
 Markdown, PNG, SVG and a searchable PDF. The source fixture and example are
 independent of HtmlTinkerX.

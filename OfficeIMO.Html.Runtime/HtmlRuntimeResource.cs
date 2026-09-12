@@ -9,7 +9,8 @@ public sealed class HtmlRuntimeResource {
 
     /// <summary>Creates a resource with an absolute HTTP(S) identity and an independent byte snapshot.</summary>
     [JsonConstructor]
-    public HtmlRuntimeResource(Uri url, byte[] content, string contentType, int statusCode = 200, Uri? finalUrl = null, int redirectCount = 0) {
+    public HtmlRuntimeResource(Uri url, byte[] content, string contentType, int statusCode = 200, Uri? finalUrl = null, int redirectCount = 0,
+        IReadOnlyDictionary<string, string>? headers = null, string statusText = "") {
         Url = HtmlRuntimeResourcePolicy.ValidateUrl(url);
         FinalUrl = HtmlRuntimeResourcePolicy.ValidateUrl(finalUrl ?? url);
         if (redirectCount < 0) throw new ArgumentOutOfRangeException(nameof(redirectCount));
@@ -21,6 +22,17 @@ public sealed class HtmlRuntimeResource {
         _content = (byte[])content.Clone();
         ContentType = contentType;
         StatusCode = statusCode;
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        long headerBytes = 0;
+        foreach (var header in headers ?? new Dictionary<string, string>()) {
+            if (values.Count >= 128 || string.IsNullOrEmpty(header.Key) || header.Key.Any(c => !char.IsAsciiLetterOrDigit(c) && !"!#$%&'*+-.^_`|~".Contains(c)) ||
+                header.Value == null || header.Value.IndexOfAny(new[] { '\r', '\n', '\0' }) >= 0 || (headerBytes += header.Key.Length + header.Value.Length) > 32768)
+                throw new ArgumentException("Invalid or oversized resource headers.", nameof(headers));
+            values.Add(header.Key, header.Value);
+        }
+        Headers = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(values);
+        if (statusText == null || statusText.Length > 1024 || statusText.Any(c => c < 32 || c == 127)) throw new ArgumentException("Invalid status text.", nameof(statusText));
+        StatusText = statusText;
     }
 
     /// <summary>Creates a UTF-8 resource, such as a script, stylesheet or JSON document.</summary>
@@ -37,6 +49,10 @@ public sealed class HtmlRuntimeResource {
     public string ContentType { get; }
     /// <summary>HTTP response status.</summary>
     public int StatusCode { get; }
+    /// <summary>Immutable response headers. Browser fetch applies its own exposure rules.</summary>
+    public IReadOnlyDictionary<string, string> Headers { get; }
+    /// <summary>HTTP status text, when supplied by the transport.</summary>
+    public string StatusText { get; }
     /// <summary>Encoded response size.</summary>
     [JsonIgnore]
     public long Length => _content.LongLength;

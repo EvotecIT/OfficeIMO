@@ -13,7 +13,8 @@ await using var session = await runtime.OpenTrustedAsync(new HtmlScriptRequest {
     DocumentUrl = documentUrl,
     Resources = new[] {
         HtmlRuntimeResource.FromText(new Uri(documentUrl, "scripted-report.css"), await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "scripted-report.css")), "text/css"),
-        HtmlRuntimeResource.FromText(new Uri(documentUrl, "scripted-report.js"), await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "scripted-report.js")), "text/javascript")
+        HtmlRuntimeResource.FromText(new Uri(documentUrl, "scripted-report.js"), await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "scripted-report.js")), "text/javascript"),
+        HtmlRuntimeResource.FromText(new Uri(documentUrl, "scripted-report.json"), await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "scripted-report.json")), "application/json")
     },
     ReadyExpression = "window.reportReady === true"
 });
@@ -31,7 +32,7 @@ var renderOptions = new HtmlRenderOptions { ResourceResolver = resolver };
 string output = Path.GetFullPath(args[1]);
 Directory.CreateDirectory(output);
 await File.WriteAllTextAsync(Path.Combine(output, "report.html"), captured.Document.OuterHtml);
-foreach (string asset in new[] { "scripted-report.css", "scripted-report.js" })
+foreach (string asset in new[] { "scripted-report.css", "scripted-report.js", "scripted-report.json" })
     await File.WriteAllBytesAsync(Path.Combine(output, asset), resources[new Uri(documentUrl, asset).AbsoluteUri].Content);
 await File.WriteAllTextAsync(Path.Combine(output, "report.md"), document.ToMarkdown());
 await File.WriteAllTextAsync(Path.Combine(output, "report.svg"), await document.ToSvgAsync(renderOptions));

@@ -9,6 +9,8 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="RuntimeBootstrap.js" LogicalName="OfficeIMO.RuntimeBootstrap.js" />
+    <EmbeddedResource Include="RuntimeFetchBootstrap.js" LogicalName="OfficeIMO.RuntimeFetchBootstrap.js" />
+    <EmbeddedResource Include="RuntimeUrlBootstrap.js" LogicalName="OfficeIMO.RuntimeUrlBootstrap.js" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
     <PackageReference Include="AngleSharp" Version="1.7.1" />
     <PackageReference Include="AngleSharp.Css" Version="1.0.1" />

@@ -18,6 +18,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private readonly HtmlScriptRequest _options;
     private IDocument _document = null!;
     private IEventLoop _loop = null!;
+    private RuntimeFetchBindings? _fetch;
 
     private ScriptedDocumentSession(HtmlScriptRequest options) {
         _options = options;
@@ -31,6 +32,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         // Replace only the script observer; retain CSS and native DOM attribute observers.
         configuration = configuration.Without(scriptObservers).With(new RuntimeEventAttributeObserver(host => _engine ?? scripting.GetOrCreateJint(host.Owner!)));
         _context = BrowsingContext.New(configuration);
+        _loop = _context.GetService<IEventLoop>() ?? throw new HtmlScriptRuntimeException("The provider did not create an event loop.");
         _context.AddEventListener("error", (_, error) => _errors.Report(error switch {
             AngleSharp.Dom.Events.ErrorEvent scriptError => scriptError.Message,
             AngleSharp.Browser.Dom.Events.TrackEvent tracked => tracked.Error?.Message ?? "Script execution failed.",
@@ -44,6 +46,8 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             _engine = _context.GetService<JsScriptingService>()!.GetOrCreateJint(document);
             _errors.Attach(_engine);
             RuntimeEventBindings.Install(_engine, document.DefaultView!, _errors.Report);
+            RuntimeUrlBindings.Install(_engine, document.DefaultView!);
+            _fetch = new RuntimeFetchBindings(_engine, document, _loop, _resources, options, _errors);
         };
     }
 
@@ -85,24 +89,27 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private Task<T> OnLoop<T>(Func<T> action, CancellationToken token) {
         var completion = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
         _loop.Enqueue(_ => {
-            try {
-                token.ThrowIfCancellationRequested();
-                _errors.ThrowIfFailed();
-                T result = action();
-                _errors.ThrowIfFailed();
-                completion.TrySetResult(result);
-            } catch (Exception error) {
-                // Preserve a listener's reported JS error when the provider rethrows an
-                // outer invocation failure with an empty or less useful message.
-                try { _errors.ThrowIfFailed(); }
-                catch (Exception tracked) { error = tracked; }
-                completion.TrySetException(error);
+            lock (_engine) {
+                try {
+                    token.ThrowIfCancellationRequested();
+                    _errors.ThrowIfFailed();
+                    T result = action();
+                    _errors.ThrowIfFailed();
+                    completion.TrySetResult(result);
+                } catch (Exception error) {
+                    // Preserve a listener's reported JS error when the provider rethrows an
+                    // outer invocation failure with an empty or less useful message.
+                    try { _errors.ThrowIfFailed(); }
+                    catch (Exception tracked) { error = tracked; }
+                    completion.TrySetException(error);
+                }
             }
         }, TaskPriority.Normal);
         return completion.Task.WaitAsync(token);
     }
 
     public void Dispose() {
+        _fetch?.Dispose();
         _loop?.CancelAll();
         _resources.Dispose();
         _context.Dispose();

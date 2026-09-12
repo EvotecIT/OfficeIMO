@@ -16,12 +16,16 @@ public sealed class HtmlRuntimeResourcePolicy {
     public long MaxResourceBytes { get; set; } = 4 * 1024 * 1024;
     /// <summary>Maximum combined supplied resource bytes, and separately the cumulative bytes read by loads over the session.</summary>
     public long MaxTotalBytes { get; set; } = 16 * 1024 * 1024;
+    /// <summary>Maximum encoded fetch request body size.</summary>
+    public long MaxRequestBytes { get; set; } = 1024 * 1024;
+    /// <summary>Maximum request body bytes sent over the session, including redirect replays.</summary>
+    public long MaxTotalRequestBytes { get; set; } = 16 * 1024 * 1024;
     /// <summary>Maximum redirects in one load. Every target is checked before requesting it.</summary>
     public int MaxRedirects { get; set; } = 5;
 
     internal HtmlRuntimeResourcePolicy Snapshot() {
         if (Timeout <= TimeSpan.Zero || Timeout > TimeSpan.FromMinutes(5) || MaxConcurrentRequests <= 0 || MaxRequests <= 0 ||
-            MaxResourceBytes <= 0 || MaxResourceBytes > int.MaxValue || MaxTotalBytes <= 0 || MaxRedirects < 0)
+            MaxResourceBytes <= 0 || MaxResourceBytes > int.MaxValue || MaxTotalBytes <= 0 || MaxRedirects < 0 || MaxRequestBytes <= 0 || MaxRequestBytes > int.MaxValue || MaxTotalRequestBytes <= 0)
             throw new ArgumentException("Resource limits must be positive and within supported ranges.");
         ArgumentNullException.ThrowIfNull(AllowedOrigins);
         if (AllowedOrigins.Count > MaxRequests) throw new ArgumentException("Too many resource origins.");
@@ -32,7 +36,7 @@ public sealed class HtmlRuntimeResourcePolicy {
         }).ToArray();
         return new HtmlRuntimeResourcePolicy { AllowNetwork = AllowNetwork, AllowedOrigins = origins, Timeout = Timeout,
             MaxConcurrentRequests = MaxConcurrentRequests, MaxRequests = MaxRequests, MaxResourceBytes = MaxResourceBytes,
-            MaxTotalBytes = MaxTotalBytes, MaxRedirects = MaxRedirects };
+            MaxTotalBytes = MaxTotalBytes, MaxRedirects = MaxRedirects, MaxRequestBytes = MaxRequestBytes, MaxTotalRequestBytes = MaxTotalRequestBytes };
     }
 
     internal static Uri ValidateUrl(Uri url) {

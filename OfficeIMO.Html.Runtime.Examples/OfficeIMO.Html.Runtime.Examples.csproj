@@ -7,5 +7,6 @@
     <None Include="scripted-report.html" CopyToOutputDirectory="PreserveNewest" />
     <None Include="scripted-report.css" CopyToOutputDirectory="PreserveNewest" />
     <None Include="scripted-report.js" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="scripted-report.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
