@@ -112,6 +112,8 @@ internal static class NativeDomBridge {
     }
 
     internal static IHtmlDocument GetNativeDocument(HtmlDocument document, CancellationToken cancellationToken = default) => GetState(document, cancellationToken).Native;
+    /// <summary>Preserves optional-node inputs for helpers whose established contract handles missing elements.</summary>
+    internal static INode? GetNativeOrNull(HtmlNode? node) => node == null ? null : GetNative(node);
     internal static INode GetNative(HtmlNode node) {
         if (node == null) throw new ArgumentNullException(nameof(node));
         return GetState(node).ToNative[node.NodeId];

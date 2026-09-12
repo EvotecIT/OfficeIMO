@@ -34,20 +34,21 @@ public sealed class HtmlElementBlockConversionContext {
     /// <summary>Effective HTML-to-markdown options.</summary>
     public HtmlToMarkdownOptions Options { get; }
 
-    /// <summary>Converts the supplied nodes using the base block converter.</summary>
-    public IReadOnlyList<IMarkdownBlock> ConvertNodesToBlocks(IEnumerable<HtmlNode> nodes) => _convertNodesToBlocks(ToNativeNodes(nodes));
+    /// <summary>Converts the supplied nodes using the base block converter, skipping null entries.</summary>
+    public IReadOnlyList<IMarkdownBlock> ConvertNodesToBlocks(IEnumerable<HtmlNode?> nodes) => _convertNodesToBlocks(ToNativeNodes(nodes));
 
     /// <summary>Converts the current element's child nodes using the base block converter.</summary>
     public IReadOnlyList<IMarkdownBlock> ConvertChildNodesToBlocks() => _convertNodesToBlocks(_nativeElement.ChildNodes);
 
-    /// <summary>Converts the supplied nodes using the base inline converter.</summary>
-    public InlineSequence ConvertNodesToInlineSequence(IEnumerable<HtmlNode> nodes) => _convertNodesToInlineSequence(ToNativeNodes(nodes));
+    /// <summary>Converts the supplied nodes using the base inline converter, skipping null entries.</summary>
+    public InlineSequence ConvertNodesToInlineSequence(IEnumerable<HtmlNode?> nodes) => _convertNodesToInlineSequence(ToNativeNodes(nodes));
 
     /// <summary>Converts the current element's child nodes using the base inline converter.</summary>
     public InlineSequence ConvertChildNodesToInlineSequence() => _convertNodesToInlineSequence(_nativeElement.ChildNodes);
 
-    private IEnumerable<INode> ToNativeNodes(IEnumerable<HtmlNode> nodes) =>
-        (nodes ?? throw new ArgumentNullException(nameof(nodes))).Select(node => NativeDomBridge.GetCallbackNative(node, Element.Document));
+    private IEnumerable<INode> ToNativeNodes(IEnumerable<HtmlNode?> nodes) =>
+        (nodes ?? throw new ArgumentNullException(nameof(nodes))).Where(node => node != null)
+            .Select(node => NativeDomBridge.GetCallbackNative(node!, Element.Document));
 
     /// <summary>Normalizes HTML text content using the base block text rules.</summary>
     public string NormalizeBlockText(string? value) => _normalizeBlockText(value);
