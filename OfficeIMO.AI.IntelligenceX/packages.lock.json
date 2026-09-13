@@ -8,6 +8,12 @@
         "resolved": "0.1.1",
         "contentHash": "r4K9tmwcyPa31hatRLI2FVWL2IpO8m4VG13Vfu/HbIast3TuV/4N8OZNiJDmo5KE1rFL4xt+tJLa584sHoc44g=="
       },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "xi+BDjFpW+Sb+MHFHaH6Y/gV9I8BluFwRXc1QyCdoZbIK26eNiBeFuMTe/FMwc33G1wdHCyDg7CVTmb8OdQrMQ=="
+      },
       "officeimo.ai": {
         "type": "Project",
         "dependencies": {
@@ -17,6 +23,12 @@
       "officeimo.reader.core": {
         "type": "Project"
       }
-    }
+    },
+    "net10.0/linux-arm64": {},
+    "net10.0/linux-x64": {},
+    "net10.0/osx-arm64": {},
+    "net10.0/osx-x64": {},
+    "net10.0/win-arm64": {},
+    "net10.0/win-x64": {}
   }
 }
