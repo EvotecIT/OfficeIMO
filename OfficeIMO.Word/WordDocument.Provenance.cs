@@ -26,11 +26,16 @@ public partial class WordDocument {
         OfficeProvenanceRemovalOptions? options = null) =>
         OfficeProvenancePackageMutation.Remove(documentBytes, fileName, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);
 
-    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions _) {
-        OfficeProvenanceZip.ValidateForOwningPackageMutation(data, _);
+    private static void ValidatePackage(byte[] data, string fileName, OfficeProvenanceOptions options) {
+        OfficeProvenanceZip.ValidateForOwningPackageMutation(data, options);
         using var stream = new MemoryStream(data, writable: false);
         using WordprocessingDocument document = WordprocessingDocument.Open(stream, false);
-        if (_.RequireStandardOpenXmlDocument && document.DocumentType != DocumentFormat.OpenXml.WordprocessingDocumentType.Document)
+        string expectedExtension = WordFormatCatalog.GetByExtension(fileName).Extension;
+        string actualExtension = WordFormatCatalog.GetDescriptor(document.DocumentType).Extension;
+        if (!string.Equals(expectedExtension, actualExtension, StringComparison.OrdinalIgnoreCase)) {
+            throw new InvalidDataException($"The Word package subtype '{actualExtension}' does not match filename extension '{expectedExtension}'.");
+        }
+        if (options.RequireStandardOpenXmlDocument && document.DocumentType != DocumentFormat.OpenXml.WordprocessingDocumentType.Document)
             throw new InvalidDataException("The memory-only workflow requires a DOCX document, not a macro-enabled document or template.");
         if (document.MainDocumentPart == null || !IsSupportedMainPartContentType(document.MainDocumentPart.ContentType)) {
             throw new InvalidDataException("The package is not a Word document.");

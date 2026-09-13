@@ -507,7 +507,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
-    public async Task InspectReentersTheDetectedHtmlOwnerForAnUnknownExtension() {
+    public async Task InspectDoesNotInferAnOwnerFromUnknownExtensionContent() {
         using var scope = new TempScope();
         string input = scope.Write("asset.bin", HtmlWithExternalManifest("body"));
 
@@ -517,11 +517,10 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 InputPath = input
             });
 
-        Assert.True(result.Succeeded, result.Summary);
-        Assert.Equal("OfficeIMO.Html", result.OwnerPackage);
-        Assert.Equal(OfficeProvenanceAssetFormat.Html, result.Inspection!.Format);
-        Assert.Equal(OfficeProvenanceCarrierKind.C2paExternalManifest, Assert.Single(result.Inspection.Evidence).Carrier);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "InspectionSnapshot");
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, result.FailureKind);
+        Assert.Null(result.Inspection);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "InspectionSnapshot");
     }
 
     [Fact]

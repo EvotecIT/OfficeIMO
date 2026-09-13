@@ -326,7 +326,9 @@ PdfRedactionBatchResult batch = await runner.RunRedactionBatchAsync(
 
 ## Inspect and remove provenance
 
-The provenance workflow keeps format logic in its owning package. `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, `OfficeIMO.Visio`, `OfficeIMO.OpenDocument`, `OfficeIMO.Epub`, `OfficeIMO.Pdf`, `OfficeIMO.Html`, and `OfficeIMO.Markdown` handle their formats; `OfficeIMO.Core` handles supported images and structured text. Consumers can discover the exact extension-to-owner map through `OfficeProvenanceWorkflowCatalog.All`.
+The provenance workflow keeps format logic in its owning package. `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, `OfficeIMO.Visio`, `OfficeIMO.OpenDocument`, `OfficeIMO.Epub`, `OfficeIMO.Pdf`, `OfficeIMO.Html`, and `OfficeIMO.Markdown` handle their formats; `OfficeIMO.Core` handles supported images and structured text. Consumers can discover the exact extension, structural format, owner, operation, memory-only, and browser contract through `OfficeProvenanceWorkflowCatalog.All`, `ToJson()`, or `ToMarkdown()`.
+
+The workflow requires a registered extension and matching structural format. It does not infer ownership for unknown extensions or generic containers. Applications that already own such a format context can call the lower-level `OfficeProvenanceInspector` API directly for signature-based inspection.
 
 ```csharp
 using OfficeIMO.Workflows;
@@ -350,12 +352,12 @@ OfficeProvenanceWorkflowResult removal = await runner.RunProvenanceAsync(
 
 `Assess` combines the owner-specific structural report with exact Unicode findings and optional `IOfficeProvenanceVerifier` / `IOfficeProvenanceSignalDetector` services supplied to the runner. It preserves each provider's result and does not infer a universal authorship verdict.
 
-Removal is strict by default. It removes only selected, structurally valid carriers and blocks a package-signature-invalidating save unless the caller explicitly selects `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures`. The output is written to a sibling staging file, reopened through the same format owner, checked against the removal report, and only then published under the requested conflict policy. Generic ZIP packages can be inspected but are not mutated without a registered format owner.
+Removal is strict by default. It removes only selected, structurally valid carriers and blocks a package-signature-invalidating save unless the caller explicitly selects `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures`. The output is written to a sibling staging file, reopened through the same format owner, checked against the removal report, and only then published under the requested conflict policy. Generic ZIP packages and renamed package subtypes are rejected because the workflow has no matching registered format owner for them.
 
 Use `RunProvenanceBatchAsync` for bounded sequential batches. Sequential execution keeps parser and provider resource use predictable, while per-request progress includes an overall batch fraction.
 
 
-For a memory-only host, `OfficeProvenanceBufferWorkflow.Inspect(bytes, fileName, options)` and `Remove(bytes, fileName, removalOptions)` use the same format owners without opening paths or following remote references. The supported families are JPEG, PNG, WebP, PDF, DOCX, XLSX, and PPTX. Removal returns a separate result and re-inspects its bytes before returning. Specify limits appropriate to the host; a browser should use tighter limits than a local batch runner.
+For a memory-only host, `OfficeProvenanceBufferWorkflow.Inspect(bytes, fileName, options)` and `Remove(bytes, fileName, removalOptions)` use the same catalog and format owners without opening paths or following remote references. Read the qualified extensions from `OfficeProvenanceWorkflowCatalog.MemoryOnlyExtensions`; the current families are JPEG, PNG, WebP, PDF, DOCX, XLSX, and PPTX. Removal returns a separate result and re-inspects its bytes before returning. Specify limits appropriate to the host; a browser should use tighter limits than a local batch runner.
 
 ```csharp
 var inspection = OfficeProvenanceBufferWorkflow.Inspect(inputBytes, "report.docx");

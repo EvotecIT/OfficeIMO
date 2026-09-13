@@ -1,4 +1,5 @@
 using OfficeIMO.Provenance;
+using OfficeIMO.Web.Converter.Components;
 using OfficeIMO.Web.Converter.Models;
 using OfficeIMO.Web.Converter.Services;
 using OfficeIMO.Workflows;
@@ -7,6 +8,17 @@ using Xunit;
 namespace OfficeIMO.Web.Converter.Tests;
 
 public sealed class BrowserDocumentWorkflowTests {
+    [Fact]
+    public void ProvenanceBrowserSelectionIsGeneratedFromTheSharedQualifiedCatalog() {
+        Assert.Equal(OfficeProvenanceBufferWorkflow.SupportedExtensions, OfficeProvenanceWorkflowCatalog.BrowserExtensions);
+        Assert.All(OfficeProvenanceWorkflowCatalog.BrowserCapabilities, capability => {
+            Assert.True(capability.BrowserAvailable);
+            Assert.False(string.IsNullOrWhiteSpace(capability.BrowserLabel));
+            Assert.Contains(capability.BrowserLabel!, ProvenanceWorkbench.BrowserFormatSummary, StringComparison.Ordinal);
+        });
+        Assert.DoesNotContain("ISO", ProvenanceWorkbench.BrowserFormatSummary, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void SessionChainsResultsAndRestoresOriginalSelection() {
         var session = new BrowserDocumentSession();

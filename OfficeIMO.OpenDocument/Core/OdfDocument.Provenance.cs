@@ -16,7 +16,7 @@ public abstract partial class OdfDocument {
         string fullPath = Path.GetFullPath(filePath);
         byte[] data;
         using (Stream stream = File.OpenRead(fullPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes, options.CancellationToken);
-        ValidatePackageForInspection(data, options);
+        ValidatePackageForInspection(data, fullPath, options);
         return OfficeProvenanceInspector.Inspect(data, fullPath, options);
     }
 
@@ -41,7 +41,6 @@ public abstract partial class OdfDocument {
         string fileName = "document.odt",
         OfficeProvenanceRemovalOptions? options = null) {
         options ??= new OfficeProvenanceRemovalOptions();
-        ValidatePackage(packageBytes, options.Limits);
         return OfficeProvenancePackageMutation.Remove(
             packageBytes,
             fileName,
@@ -72,16 +71,30 @@ public abstract partial class OdfDocument {
         OdfMediaTypes.GraphicsTemplate
     };
 
-    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options) {
-        ValidatePackage(data, options, rejectEncrypted: true);
+    private static void ValidatePackage(byte[] data, string fileName, OfficeProvenanceOptions options) {
+        ValidatePackage(data, fileName, options, rejectEncrypted: true);
     }
 
-    private static void ValidatePackageForInspection(byte[] data, OfficeProvenanceOptions options) {
-        ValidatePackage(data, options, rejectEncrypted: false);
+    private static void ValidatePackageForInspection(byte[] data, string fileName, OfficeProvenanceOptions options) {
+        ValidatePackage(data, fileName, options, rejectEncrypted: false);
     }
 
-    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options, bool rejectEncrypted) {
+    private static void ValidatePackage(byte[] data, string fileName, OfficeProvenanceOptions options, bool rejectEncrypted) {
         string mediaType = OfficeProvenanceZip.ReadValidatedMimetypeEntry(data, SupportedMimetypes, options.MaxContainerEntries);
+        string expectedMediaType = Path.GetExtension(fileName).ToLowerInvariant() switch {
+            ".odt" => OdfMediaTypes.Text,
+            ".ods" => OdfMediaTypes.Spreadsheet,
+            ".odp" => OdfMediaTypes.Presentation,
+            ".odg" => OdfMediaTypes.Graphics,
+            ".ott" => OdfMediaTypes.TextTemplate,
+            ".ots" => OdfMediaTypes.SpreadsheetTemplate,
+            ".otp" => OdfMediaTypes.PresentationTemplate,
+            ".otg" => OdfMediaTypes.GraphicsTemplate,
+            _ => throw new NotSupportedException("The filename extension is not an OfficeIMO-owned OpenDocument format.")
+        };
+        if (!string.Equals(mediaType, expectedMediaType, StringComparison.Ordinal)) {
+            throw new InvalidDataException($"The OpenDocument package media type '{mediaType}' does not match filename extension '{Path.GetExtension(fileName)}'.");
+        }
         using var input = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false);
         var exactEntryNames = new HashSet<string>(StringComparer.Ordinal);

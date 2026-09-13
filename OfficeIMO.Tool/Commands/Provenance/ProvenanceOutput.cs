@@ -8,7 +8,7 @@ namespace OfficeIMO.Tool.Commands.Provenance;
 internal static class ProvenanceOutput {
     internal static async Task WriteCapabilitiesAsync(TextWriter writer, ProvenanceOutputFormat format) {
         ProvenanceCapabilitiesDto dto = new(
-            "officeimo.provenance.capabilities.v1",
+            "officeimo.provenance.capabilities.v2",
             OfficeProvenanceWorkflowCatalog.All.Select(ToDto).ToArray());
         if (format == ProvenanceOutputFormat.Json) {
             await writer.WriteLineAsync(JsonSerializer.Serialize(dto, ProvenanceJsonContext.Default.ProvenanceCapabilitiesDto)).ConfigureAwait(false);
@@ -17,7 +17,8 @@ internal static class ProvenanceOutput {
         foreach (ProvenanceCapabilityDto capability in dto.Capabilities) {
             await writer.WriteLineAsync(
                 capability.Id + " | " + capability.OwnerPackage + " | " +
-                string.Join(',', capability.Extensions) + " | remove=" + capability.CanRemove.ToString().ToLowerInvariant()).ConfigureAwait(false);
+                string.Join(',', capability.Extensions) + " | remove=" + capability.CanRemove.ToString().ToLowerInvariant() +
+                " | browser=" + capability.BrowserAvailable.ToString().ToLowerInvariant()).ConfigureAwait(false);
         }
     }
 
@@ -103,6 +104,14 @@ internal static class ProvenanceOutput {
         capability.CanInspect,
         capability.CanAssess,
         capability.CanRemove,
+        capability.MemoryOnlyExtensions,
+        capability.BrowserAvailable,
+        capability.BrowserLabel,
+        capability.Formats.Select(static format => new ProvenanceCapabilityFormatDto(
+            format.Extension,
+            format.AssetFormats.Select(static assetFormat => assetFormat.ToString()).ToArray(),
+            format.MemoryOnlyAvailable,
+            format.BrowserAvailable)).ToArray(),
         capability.Notes);
 
     private static ProvenanceResultDto ToDto(OfficeProvenanceWorkflowResult result) => new(
@@ -169,7 +178,24 @@ internal static class ProvenanceOutput {
 }
 
 internal sealed record ProvenanceCapabilitiesDto(string Schema, IReadOnlyList<ProvenanceCapabilityDto> Capabilities);
-internal sealed record ProvenanceCapabilityDto(string Id, string Label, IReadOnlyList<string> Extensions, string OwnerPackage, bool CanInspect, bool CanAssess, bool CanRemove, string Notes);
+internal sealed record ProvenanceCapabilityDto(
+    string Id,
+    string Label,
+    IReadOnlyList<string> Extensions,
+    string OwnerPackage,
+    bool CanInspect,
+    bool CanAssess,
+    bool CanRemove,
+    IReadOnlyList<string> MemoryOnlyExtensions,
+    bool BrowserAvailable,
+    string? BrowserLabel,
+    IReadOnlyList<ProvenanceCapabilityFormatDto> Formats,
+    string Notes);
+internal sealed record ProvenanceCapabilityFormatDto(
+    string Extension,
+    IReadOnlyList<string> AssetFormats,
+    bool MemoryOnlyAvailable,
+    bool BrowserAvailable);
 internal sealed record ProvenanceBatchDto(string Schema, IReadOnlyList<ProvenanceResultDto> Results);
 internal sealed record ProvenanceResultDto(
     string Schema,

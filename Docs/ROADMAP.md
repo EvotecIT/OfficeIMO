@@ -259,6 +259,7 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 
 ## Security and protected content
 
+- [ ] Expand provenance to another file family only after its OfficeIMO owner provides the required bounded read, preserve, write, reopen, and exact carrier-validation contract, then qualify path, byte/stream, CLI, and browser hosts separately. Keep BMFF/AVIF, audio, video, and other containers outside provenance until OfficeIMO genuinely supports the underlying format; do not create provenance-only parsers to inflate the advertised list.
 - [ ] Establish cross-platform elapsed, allocation, managed-peak, and output-size budgets for detached CMS verification of platform-produced and OfficeIMO-produced 1 KiB payloads. Preserve typed findings, certificate policy, and richer-structure fallback, and add Linux/macOS measurements before treating the lane as settled.
 - [ ] Reduce structural-provenance allocation beyond the current 1 MiB-manifest Windows baseline: SVG uses 9.11 MiB to inspect and 23.54 MiB to remove, structured text uses 3.67 MiB and 8.68 MiB, and ZIP uses 2.01 MiB and 8.12 MiB. Profile the remaining PNG CRC/JUMBF time, retain exact removal-output validation, and add Linux/macOS evidence for the same bounded inspect-and-selective-remove contract.
 - [ ] Add OCR-backed concealed-text assessment for raster images using bounded OCR regions plus pixel, geometry, and contrast evidence, with explicit safe-redaction policy. Never classify image metadata alone as visible or concealed text.
