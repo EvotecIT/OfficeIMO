@@ -52,9 +52,12 @@ public static partial class PdfHtmlConverterExtensions {
             return ReportImageAppearanceFallback(options);
         }
         token.ThrowIfCancellationRequested();
-        builder.Append("<div class=\"pdf-page-appearance\" aria-hidden=\"true\" style=\"position:absolute;inset:0\">");
-        builder.Append(Encoding.UTF8.GetString(svg));
-        builder.AppendLine("</div>");
+        // Keep the visual SVG in an image document. Inline SVG text participates in
+        // browser find, selection, and copy even when aria-hidden, which would expose
+        // the same content a second time beside the logical text overlay.
+        builder.Append("<img class=\"pdf-page-appearance\" aria-hidden=\"true\" alt=\"\" draggable=\"false\" decoding=\"sync\" src=\"data:image/svg+xml;base64,");
+        builder.Append(Convert.ToBase64String(svg));
+        builder.AppendLine("\" style=\"position:absolute;inset:0;width:100%;height:100%;user-select:none;pointer-events:none\" />");
         foreach (var diagnostic in sourcePage.GetRenderCapabilityDiagnostics(token)) {
             AddWarning(options, diagnostic.Code, "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + ": " + diagnostic.Message,
                 PdfCore.PdfConversionWarningSeverity.Warning);

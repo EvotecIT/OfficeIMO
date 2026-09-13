@@ -6,6 +6,14 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingSvgFontScopeTests {
+    [Theory]
+    [InlineData("\"ACME, Sans\", Arial", "ACME, Sans", "Arial")]
+    [InlineData("'ACME, Sans', Arial", "ACME, Sans", "Arial")]
+    [InlineData("ACME\\, Sans, Arial", "ACME, Sans", "Arial")]
+    public void FontFamilyParserKeepsQuotedAndEscapedCommas(string value, string first, string second) {
+        Assert.Equal(new[] { first, second }, OfficeFontFamilyParser.Parse(value));
+    }
+
     [Fact]
     public void InlinePagesKeepSameNamedFontsIndependent() {
         var first = CreateDrawing('A');
@@ -22,6 +30,33 @@ public sealed class DrawingSvgFontScopeTests {
         Assert.Equal("B", secondXml.Descendants().Single(x => x.Name.LocalName == "text").Value);
         Assert.Equal(firstSvg, OfficeDrawingSvgExporter.ToSvg(first, 1, OfficeSvgSizeUnit.Point, null, "page-1-"));
         Assert.Equal("Shared Font", first.Fonts.Faces[0].FamilyName);
+    }
+
+    [Fact]
+    public void InlineSvgScopesAQuotedFamilyContainingAComma() {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add("ACME, Sans", ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30, new OfficeFontInfo("\"ACME, Sans\", Arial", 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(
+            drawing, 1, OfficeSvgSizeUnit.Point, null, "page-1-"));
+
+        Assert.Equal("\"page-1-ACME, Sans\", Arial",
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
+    }
+
+    [Fact]
+    public void InlineSvgKeepsAnUnmatchedCommaFamilyQuotedWhileScopingTheEmbeddedFallback() {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add("ACME, Sans", ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30,
+            new OfficeFontInfo("\"Missing, Family\", \"ACME, Sans\"", 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(
+            drawing, 1, OfficeSvgSizeUnit.Point, null, "page-1-"));
+
+        Assert.Equal("\"Missing, Family\", \"page-1-ACME, Sans\"",
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
     }
 
     private static OfficeDrawing CreateDrawing(char letter) {

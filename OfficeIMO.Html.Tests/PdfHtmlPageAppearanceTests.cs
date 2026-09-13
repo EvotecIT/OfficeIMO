@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using AngleSharp.Html.Parser;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
@@ -36,7 +37,8 @@ public sealed class PdfHtmlPageAppearanceTests {
         string embedded = pdf.ToHtml(options);
         Assert.Contains("pdf-page-appearance", embedded);
         using var imageHtml = new HtmlParser().ParseDocument(embedded);
-        Assert.NotEmpty(imageHtml.QuerySelectorAll(".pdf-page-appearance svg rect[fill]"));
+        Assert.Contains(DecodeAppearanceSvg(imageHtml.QuerySelector("img.pdf-page-appearance")!.GetAttribute("src"))
+            .Descendants(), node => node.Name.LocalName == "rect" && node.Attribute("fill") is not null);
         Assert.Equal(0, pdf.ToHtmlResult(options).Summary.ImagePlaceholderCount);
         options.MaxEmbeddedImageBytes = 0;
         var limited = pdf.ToHtmlResult(options);
@@ -86,12 +88,16 @@ public sealed class PdfHtmlPageAppearanceTests {
         var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
         var result = pdf.ToHtmlResult(options);
         using var html = new HtmlParser().ParseDocument(result.Value);
-        Assert.Single(html.QuerySelectorAll(".pdf-page-appearance svg"));
-        Assert.NotEmpty(html.QuerySelectorAll(".pdf-page-appearance svg path, .pdf-page-appearance svg rect"));
-        Assert.Equal("true", html.QuerySelector(".pdf-page-appearance")!.GetAttribute("aria-hidden"));
+        var appearance = Assert.Single(html.QuerySelectorAll("img.pdf-page-appearance"));
+        Assert.Contains(DecodeAppearanceSvg(appearance.GetAttribute("src"))
+            .Descendants(), node => node.Name.LocalName is "path" or "rect");
+        Assert.Equal("true", appearance.GetAttribute("aria-hidden"));
+        Assert.Equal(string.Empty, appearance.GetAttribute("alt"));
+        Assert.Equal("false", appearance.GetAttribute("draggable"));
         var textOverlay = Assert.Single(html.QuerySelectorAll(".pdf-text-overlay"));
         Assert.Contains("Invoice sample", textOverlay.TextContent);
         Assert.Equal("transparent", textOverlay.GetAttribute("fill"));
+        Assert.Equal(1, CountOccurrences(html.Body!.TextContent, "Invoice sample"));
         Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "VectorAppearanceNotExported");
         Assert.Equal(result.Value, pdf.ToHtml(options));
         using var stream = new MemoryStream();
@@ -122,8 +128,9 @@ public sealed class PdfHtmlPageAppearanceTests {
         var result = pdf.ToHtmlResult(options);
         using var html = new HtmlParser().ParseDocument(result.Value);
 
-        Assert.Single(html.QuerySelectorAll(".pdf-page-appearance svg"));
-        Assert.NotEmpty(html.QuerySelectorAll(".pdf-page-appearance svg path, .pdf-page-appearance svg rect"));
+        var appearance = Assert.Single(html.QuerySelectorAll("img.pdf-page-appearance"));
+        Assert.Contains(DecodeAppearanceSvg(appearance.GetAttribute("src"))
+            .Descendants(), node => node.Name.LocalName is "path" or "rect");
         Assert.Contains("Invoice sample", string.Join(" ", html.QuerySelectorAll(".pdf-text-overlay").Select(node => node.TextContent)));
         Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "VectorAppearanceNotExported");
     }
@@ -197,5 +204,22 @@ public sealed class PdfHtmlPageAppearanceTests {
     private static void WriteAscii(Stream stream, string value) {
         byte[] bytes = Encoding.ASCII.GetBytes(value);
         stream.Write(bytes, 0, bytes.Length);
+    }
+
+    private static XElement DecodeAppearanceSvg(string? source) {
+        const string prefix = "data:image/svg+xml;base64,";
+        Assert.NotNull(source);
+        Assert.StartsWith(prefix, source, StringComparison.Ordinal);
+        return XElement.Parse(Encoding.UTF8.GetString(Convert.FromBase64String(source!.Substring(prefix.Length))));
+    }
+
+    private static int CountOccurrences(string value, string expected) {
+        int count = 0;
+        int offset = 0;
+        while ((offset = value.IndexOf(expected, offset, StringComparison.Ordinal)) >= 0) {
+            count++;
+            offset += expected.Length;
+        }
+        return count;
     }
 }

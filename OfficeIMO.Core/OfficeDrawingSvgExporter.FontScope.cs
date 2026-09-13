@@ -26,9 +26,16 @@ public static partial class OfficeDrawingSvgExporter {
             var names = OfficeFontFamilyParser.Parse(attribute.Value).ToArray();
             if (!names.Any(families.ContainsKey)) continue;
             attribute.Value = string.Join(", ", names.Select(name => families.TryGetValue(name, out var scoped)
-                ? "\"" + EscapeCssString(scoped) + "\"" : name));
+                ? QuoteCssFamily(scoped)
+                : RequiresQuotedCssFamily(name) ? QuoteCssFamily(name) : name));
         }
         cancellationToken.ThrowIfCancellationRequested();
         return root.ToString(SaveOptions.DisableFormatting);
     }
+
+    private static bool RequiresQuotedCssFamily(string family) =>
+        family.IndexOf(',') >= 0 || family.IndexOf('"') >= 0 ||
+        family.IndexOf('\'') >= 0 || family.IndexOf('\\') >= 0;
+
+    private static string QuoteCssFamily(string family) => "\"" + EscapeCssString(family) + "\"";
 }
