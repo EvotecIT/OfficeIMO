@@ -3,12 +3,6 @@ export function createObjectUrl(bytes, contentType) {
   return URL.createObjectURL(blob);
 }
 
-export function revokeObjectUrl(url) {
-  if (url) {
-    URL.revokeObjectURL(url);
-  }
-}
-
 const toolName = "convert_selected_document";
 let activeConverter = null;
 let registered = false;

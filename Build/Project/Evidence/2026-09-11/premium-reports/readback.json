@@ -1,0 +1,31 @@
+[
+  {
+    "Application": "Word",
+    "Version": "16.0",
+    "Tables": 3,
+    "Pages": 2,
+    "Text": "/\r\f\rPlatform release · delivery plan\rGantt\rUID\r\u0007Name\r\u0007\r\u00071\r\u0007Discovery & scope\r\u0007\r\u00072\r\u0007API design\r\u0007\r\u00073\r\u0007Interface design\r\u0007\r\u00074\r\u0007Data migration plan\r\u0007\r\u00075\r\u0007Build & integrate\r\u0007\r\u00076\r\u0007Migration rehearsal\r\u0007\r\u00077\r\u0007Acceptance & launch readiness\r\u0007\r\u00078\r\u0007Release\r\u0007\r\u0007Status and groups\rUID\r\u0007Name\r\u0007Status\r\u0007Group\r\u0007\r\u00071\r\u0007Discovery & scope\r\u0007Task; critical\r\u0007\r\u0007\r\u00072\r\u0007API design\r\u0007Task; critical\r\u0007\r\u0007\r\u00073\r\u0007Interface design\r\u0007Task; critical\r\u0007\r\u0007\r\u00074\r\u0007Data migration plan\r\u0007Task\r\u0007\r\u0007\r\u00075\r\u0007Build & integrate\r\u0007Task; critical\r\u0007\r\u0007\r\u00076\r\u0007Migration rehearsal\r\u0007Task\r\u0007\r\u0007\r\u00077\r\u0007Acceptance & launch readiness\r\u0007Task; critical\r\u0007\r\u0007\r\u00078\r\u0007Release\r\u0007Task; critical\r\u0007\r\u0007\r\u0007Dependencies\rPredecessor UID\r\u0007Successor UID\r\u0007Type\r\u0007Lag\r\u0007\r\u00071\r\u00072\r\u0007Finish to start (FS)\r\u00070\r\u0007\r\u00071\r\u00073\r\u0007Finish to start (FS)\r\u00070\r\u0007\r\u00071\r\u00074\r\u0007Finish to start (FS)\r\u00070\r\u0007\r\u00072\r\u00075\r\u0007Finish to start (FS)\r\u00070\r\u0007\r\u00073\r\u00075\r\u0007Finish to start (FS)\r\u00070\r\u0007\r\u00074\r\u00076\r\u0007Finish to start (FS)\r\u00070\r\u0007\r\u00075\r\u00077\r\u0007Finish to start (FS)\r\u00070\r\u0007\r\u00076\r\u00077\r\u0007Finish to start (FS)\r\u00070\r\u0007\r\u00077\r\u00078\r\u0007Finish to start (FS)\r\u00070\r\u0007\r\u0007\r"
+  },
+  {
+    "Application": "PowerPoint",
+    "Version": "16.0",
+    "Slides": [
+      {
+        "Number": 1,
+        "Shapes": 1
+      },
+      {
+        "Number": 2,
+        "Shapes": 3
+      },
+      {
+        "Number": 3,
+        "Shapes": 3
+      },
+      {
+        "Number": 4,
+        "Shapes": 3
+      }
+    ]
+  }
+]

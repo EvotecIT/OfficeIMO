@@ -83,8 +83,21 @@
     },
     {
       "task": "exec",
-      "id": "test-pdf-workflow-content",
+      "id": "test-content-layout-contracts",
       "dependsOn": ["test-capability-claims"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-ContentLayoutContracts.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "test-pdf-workflow-content",
+      "dependsOn": ["test-content-layout-contracts"],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -1364,8 +1377,23 @@
     },
     {
       "task": "exec",
-      "id": "verify-website-presentation",
+      "id": "verify-content-layout-contracts",
       "dependsOn": ["build-site-xref-refresh"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-ContentLayoutContracts.ps1",
+        "-PublishedRoot",
+        "./_site"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "verify-website-presentation",
+      "dependsOn": ["verify-content-layout-contracts"],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",

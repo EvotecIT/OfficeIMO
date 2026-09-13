@@ -7,6 +7,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Security;
 using OfficeIMO.Word;
+using OfficeIMO.Workflows;
 
 string outputDirectory = GetOption(args, "--output")
     ?? Path.Combine(Directory.GetCurrentDirectory(), "Docs", "Compatibility", "generated");
@@ -28,6 +29,8 @@ var outputs = new SortedDictionary<string, string>(StringComparer.Ordinal) {
     ["conversion-routes.json"] = EnsureFinalNewline(OfficeConversionCapabilityCatalog.ToJson()),
     ["conversion-routes.md"] = EnsureFinalNewline(OfficeConversionCapabilityCatalog.ToMarkdown()),
     ["office-formats.json"] = SerializeFormats(),
+    ["provenance.json"] = EnsureFinalNewline(OfficeProvenanceWorkflowCatalog.ToJson()),
+    ["provenance.md"] = EnsureFinalNewline(OfficeProvenanceWorkflowCatalog.ToMarkdown()),
     ["protected-content.json"] = EnsureFinalNewline(OfficeProtectionCapabilityCatalog.Current.ToJson()),
     ["protected-content.md"] = EnsureFinalNewline(OfficeProtectionCapabilityCatalog.Current.ToMarkdown()),
     ["README.md"] = CreateReadme(capabilityCatalogs)
@@ -125,6 +128,11 @@ static string CreateReadme(IEnumerable<(string Name, OfficeCapabilityCatalog Cat
             .Append(" | [Markdown](").Append(name).AppendLine(".md) |");
     }
     OfficeProtectionCapabilityCatalog protection = OfficeProtectionCapabilityCatalog.Current;
+    markdown.Append("| ").Append(OfficeProvenanceWorkflowCatalog.Id)
+        .Append(" | ").Append(OfficeProvenanceWorkflowCatalog.SchemaVersion)
+        .Append(" | ").Append(OfficeProvenanceWorkflowCatalog.All.Count)
+        .Append(" | [JSON](provenance.json)")
+        .AppendLine(" | [Markdown](provenance.md) |");
     markdown.Append("| ").Append(protection.Id)
         .Append(" | ").Append(protection.SchemaVersion)
         .Append(" | ").Append(protection.Capabilities.Count)

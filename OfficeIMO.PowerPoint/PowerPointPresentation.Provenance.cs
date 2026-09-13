@@ -4,6 +4,10 @@ using OfficeIMO.Provenance;
 namespace OfficeIMO.PowerPoint;
 
 public sealed partial class PowerPointPresentation {
+    /// <summary>Validates and inspects encoded presentation bytes without accessing the filesystem.</summary>
+    public static OfficeProvenanceReport InspectProvenance(byte[] data, string fileName = "presentation.pptx", OfficeProvenanceOptions? options = null) =>
+        OfficeProvenancePackageMutation.Inspect(data, fileName, options, ValidatePackage);
+
     /// <summary>Inspects C2PA and IPTC provenance in a saved Open XML presentation and its supported embedded images.</summary>
     public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
         OfficeProvenancePackageMutation.InspectFile(filePath, options, ValidatePackage);
@@ -22,10 +26,17 @@ public sealed partial class PowerPointPresentation {
         OfficeProvenanceRemovalOptions? options = null) =>
         OfficeProvenancePackageMutation.Remove(presentationBytes, fileName, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);
 
-    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions _) {
-        OfficeProvenanceZip.ValidateForOwningPackageMutation(data, _);
+    private static void ValidatePackage(byte[] data, string fileName, OfficeProvenanceOptions options) {
+        OfficeProvenanceZip.ValidateForOwningPackageMutation(data, options);
         using var stream = new MemoryStream(data, writable: false);
         using PresentationDocument document = PresentationDocument.Open(stream, false);
+        string expectedExtension = PowerPointFormatCatalog.GetByExtension(fileName).Extension;
+        string actualExtension = PowerPointFormatCatalog.GetDescriptor(document.DocumentType).Extension;
+        if (!string.Equals(expectedExtension, actualExtension, StringComparison.OrdinalIgnoreCase)) {
+            throw new InvalidDataException($"The PowerPoint package subtype '{actualExtension}' does not match filename extension '{expectedExtension}'.");
+        }
+        if (options.RequireStandardOpenXmlDocument && document.DocumentType != DocumentFormat.OpenXml.PresentationDocumentType.Presentation)
+            throw new InvalidDataException("The memory-only workflow requires a PPTX presentation, not a macro-enabled presentation, template, or slideshow.");
         if (document.PresentationPart == null || !IsSupportedPresentationContentType(document.PresentationPart.ContentType)) {
             throw new InvalidDataException("The package is not a PowerPoint presentation.");
         }

@@ -4,7 +4,8 @@
   <details class="imo-api-component-group">
     <summary><strong>{{ category.name }}</strong><span>{{ category.componentCount }} components</span></summary>
     <div class="imo-api-component-group__grid">
-      {{ for component in data.documentation_catalog.components }}{{ if component.category == category.name }}
+      {{ for component_index in category.componentIndexes }}
+      {{ component = data.documentation_catalog.components[component_index] }}
       <article class="imo-api-component-row">
         <div><strong>{{ component.name }}</strong><p>{{ component.description }}</p></div>
         <nav aria-label="{{ component.name }} resources">
@@ -13,7 +14,7 @@
           {{ if component.packageUrl }}<a href="{{ component.packageUrl }}" target="_blank" rel="noopener">{{ component.name }} package</a>{{ end }}
         </nav>
       </article>
-      {{ end }}{{ end }}
+      {{ end }}
     </div>
   </details>
   {{ end }}

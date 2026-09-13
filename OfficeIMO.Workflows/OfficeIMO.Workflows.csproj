@@ -29,6 +29,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Project\OfficeIMO.Project.csproj" />
+    <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
@@ -52,4 +54,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Project/ProjectReport.css" LogicalName="OfficeIMO.Workflows.Project.ProjectReport.css" />
+  </ItemGroup>
 </Project>

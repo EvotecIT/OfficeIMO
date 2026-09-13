@@ -1,0 +1,81 @@
+﻿{
+    "producer":  "Microsoft Project",
+    "version":  "16.0",
+    "build":  "16.0.20326.20144",
+    "locale":  "pl-PL",
+    "provenance":  "Synthetic schedules created by Build/Project/New-ProjectFixtures.ps1; no customer data or third-party fixture content.",
+    "redistribution":  "OfficeIMO-authored synthetic content; MIT repository license. Microsoft Project is the producer and is not redistributed.",
+    "formatFamily":  "MPP12 and Project XML SaveVersion 14",
+    "files":  [
+                  {
+                      "file":  "actuals.mpp",
+                      "sha256":  "65e2621a9f7654886376f0629849e7283b5ee47177c893c6c35d614d112dbe83",
+                      "bytes":  257536
+                  },
+                  {
+                      "file":  "actuals.xml",
+                      "sha256":  "c6f492aba39a3777a1b7880a0ad4609db37fce34c7fb45873575a8fb0fb8cd9b",
+                      "bytes":  40451
+                  },
+                  {
+                      "file":  "calendars.mpp",
+                      "sha256":  "5a771694a5de9eeb30f334b30f98816b3555e83f6b2b254f68855f65661b34b5",
+                      "bytes":  258048
+                  },
+                  {
+                      "file":  "calendars.xml",
+                      "sha256":  "27743d05c23e10999581834adc2f67688a2dd07eb68b993ad25e7b7db7b4b22d",
+                      "bytes":  41342
+                  },
+                  {
+                      "file":  "custom-fields.mpp",
+                      "sha256":  "e8d66bb7078c748c576191e8144196f9f50c81d348459c4e7069275421b62a58",
+                      "bytes":  258048
+                  },
+                  {
+                      "file":  "custom-fields.xml",
+                      "sha256":  "03b8082b3e11111ececa5c84e1941ce4688de2a7e455a969d65225aa8046f7b1",
+                      "bytes":  39811
+                  },
+                  {
+                      "file":  "delivery.mpp",
+                      "sha256":  "a1582404db58326b1c06bda48c545e120bb5e04119f3ce63a30e1069c9ef35f6",
+                      "bytes":  257536
+                  },
+                  {
+                      "file":  "delivery.xml",
+                      "sha256":  "ff3476f877a6693d2852e2c6a4e61838beb1c816afe7f2d61296f007d529d925",
+                      "bytes":  38489
+                  },
+                  {
+                      "file":  "empty.mpp",
+                      "sha256":  "f31d645f2e163584291c32c336a2c336cf5782afc8a701ffa70b8c9ff1bb1ef4",
+                      "bytes":  247296
+                  },
+                  {
+                      "file":  "empty.xml",
+                      "sha256":  "eb0c64a92a478916298498931cdd0890248776dcf3e4d92126cb6305a884009f",
+                      "bytes":  10502
+                  },
+                  {
+                      "file":  "relationships.mpp",
+                      "sha256":  "7004121600031680163c229eff5952ed04c024d60f9b993d86761928551978a0",
+                      "bytes":  265216
+                  },
+                  {
+                      "file":  "relationships.xml",
+                      "sha256":  "2e0744142a5431e0ca5f32983896d6254df708d1ffbca3c0a257f794f0f71028",
+                      "bytes":  70356
+                  },
+                  {
+                      "file":  "resources.mpp",
+                      "sha256":  "c49e5923409bc41c2c8c303e82ab8fa69416a01aa9f1f2277472de988ca92032",
+                      "bytes":  259072
+                  },
+                  {
+                      "file":  "resources.xml",
+                      "sha256":  "046809a90a632e749c1fda4ea7828f986c7c958a2a1bfe6c92c87aa18414a33d",
+                      "bytes":  47467
+                  }
+              ]
+}

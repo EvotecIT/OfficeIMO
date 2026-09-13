@@ -6,7 +6,7 @@
         @if (Tool.RequiresPageSelection) {
             <label>
                 <span>@(Tool.Kind == PdfToolKind.Reorder ? "Complete page order" : "Pages")</span>
-                <input type="text" value="@PageSelection" @oninput="HandlePageSelection" placeholder="@(Tool.Kind == PdfToolKind.Reorder ? "3,1,2,4-last" : "1-3,5,last")" />
+                <input disabled="@Disabled" type="text" value="@PageSelection" @oninput="HandlePageSelection" placeholder="@(Tool.Kind == PdfToolKind.Reorder ? "3,1,2,4-last" : "1-3,5,last")" />
                 @if (Tool.Kind == PdfToolKind.Reorder) {
                     <small>Include every source page exactly once; subsets, omissions, and duplicates are rejected.</small>
                 } else {
@@ -17,13 +17,13 @@
         @if (Tool.RequiresPagesPerDocument) {
             <label>
                 <span>Pages per output PDF</span>
-                <input type="number" min="1" max="500" value="@PagesPerDocument" @onchange="HandlePagesPerDocument" />
+                <input disabled="@Disabled" type="number" min="1" max="500" value="@PagesPerDocument" @onchange="HandlePagesPerDocument" />
             </label>
         }
         @if (Tool.RequiresRotation) {
             <label>
                 <span>Rotation</span>
-                <select value="@RotationDegrees" @onchange="HandleRotation">
+                <select disabled="@Disabled" value="@RotationDegrees" @onchange="HandleRotation">
                     <option value="90">90° clockwise</option>
                     <option value="180">180°</option>
                     <option value="270">270° clockwise</option>
@@ -33,7 +33,7 @@
         @if (Tool.RequiresOptimizationProfile) {
             <label>
                 <span>Lossless profile</span>
-                <select value="@OptimizationProfile" @onchange="HandleOptimizationProfile">
+                <select disabled="@Disabled" value="@OptimizationProfile" @onchange="HandleOptimizationProfile">
                     @foreach (PdfOptimizationProfile profile in OptimizationProfiles) {
                         <option value="@profile">@ProfileLabel(profile)</option>
                     }
@@ -44,26 +44,26 @@
         @if (Tool.RequiresUserPassword) {
             <label>
                 <span>Document-open password</span>
-                <input type="password" autocomplete="new-password" value="@UserPassword" @oninput="HandleUserPassword" />
+                <input disabled="@Disabled" type="password" autocomplete="new-password" value="@UserPassword" @oninput="HandleUserPassword" />
             </label>
         }
         @if (Tool.RequiresOwnerPassword) {
             <label>
                 <span>@(Tool.Kind == PdfToolKind.Unlock ? "Owner password" : "Owner password for changes")</span>
-                <input type="password" autocomplete="new-password" value="@OwnerPassword" @oninput="HandleOwnerPassword" />
+                <input disabled="@Disabled" type="password" autocomplete="new-password" value="@OwnerPassword" @oninput="HandleOwnerPassword" />
                 <small>Passwords stay in memory for this operation and are cleared after it finishes.</small>
             </label>
         }
         @if (Tool.RequiresRedactionText) {
             <label>
                 <span>Literal text to remove</span>
-                <input type="text" value="@RedactionText" @oninput="HandleRedactionText" placeholder="Sensitive marker" />
+                <input disabled="@Disabled" type="text" value="@RedactionText" @oninput="HandleRedactionText" placeholder="Sensitive marker" />
                 <small>Matching is case-insensitive. The output is checked in extracted text, encoded strings, and decoded streams.</small>
             </label>
         }
         @if (Tool.RequiresDestructiveConfirmation) {
             <label class="pdf-tool-settings__confirmation">
-                <input type="checkbox" checked="@DestructiveActionConfirmed" @onchange="HandleConfirmation" />
+                <input disabled="@Disabled" type="checkbox" checked="@DestructiveActionConfirmed" @onchange="HandleConfirmation" />
                 <span>I understand the downloaded copy permanently @(Tool.Kind == PdfToolKind.Redact ? "removes matching content" : "removes the selected pages").</span>
             </label>
         }
@@ -79,6 +79,7 @@
     ];
 
     [Parameter, EditorRequired] public PdfToolDefinition Tool { get; set; } = PdfToolCatalog.Default;
+    [Parameter] public bool Disabled { get; set; }
     [Parameter] public string PageSelection { get; set; } = "all";
     [Parameter] public int PagesPerDocument { get; set; } = 1;
     [Parameter] public int RotationDegrees { get; set; } = 90;

@@ -319,6 +319,16 @@
     ]
   },
   {
+    "title": "Project",
+    "items": [
+      {
+        "title": "Project plans and reports",
+        "path": "project/index.md",
+        "href": "/docs/project/"
+      }
+    ]
+  },
+  {
     "title": "Visio",
     "items": [
       {

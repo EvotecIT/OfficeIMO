@@ -14,6 +14,7 @@
                 <PdfFilePicker @key="ActiveTool.Id"
                                Tool="ActiveTool"
                                Files="Files"
+                               InputRevision="Session.Revision"
                                OnFilesSelected="HandleFilesSelectedAsync"
                                OnRemove="RemoveFileAsync"
                                OnMove="MoveFileAsync" />
@@ -25,15 +26,15 @@
                     }
                 </div>
 
-                <PdfToolSettings Tool="ActiveTool"
-                                 @bind-PageSelection="PageSelection"
-                                 @bind-PagesPerDocument="PagesPerDocument"
-                                 @bind-RotationDegrees="RotationDegrees"
-                                 @bind-OptimizationProfile="OptimizationProfile"
-                                 @bind-UserPassword="UserPassword"
-                                 @bind-OwnerPassword="OwnerPassword"
-                                 @bind-RedactionText="RedactionText"
-                                 @bind-DestructiveActionConfirmed="DestructiveActionConfirmed" />
+                <PdfToolSettings Tool="ActiveTool" Disabled="IsBusy"
+                                 @bind-PageSelection="PageSelection" @bind-PageSelection:after="HandleSettingsChangedAsync"
+                                 @bind-PagesPerDocument="PagesPerDocument" @bind-PagesPerDocument:after="HandleSettingsChangedAsync"
+                                 @bind-RotationDegrees="RotationDegrees" @bind-RotationDegrees:after="HandleSettingsChangedAsync"
+                                 @bind-OptimizationProfile="OptimizationProfile" @bind-OptimizationProfile:after="HandleSettingsChangedAsync"
+                                 @bind-UserPassword="UserPassword" @bind-UserPassword:after="HandleSettingsChangedAsync"
+                                 @bind-OwnerPassword="OwnerPassword" @bind-OwnerPassword:after="HandleSettingsChangedAsync"
+                                 @bind-RedactionText="RedactionText" @bind-RedactionText:after="HandleSettingsChangedAsync"
+                                 @bind-DestructiveActionConfirmed="DestructiveActionConfirmed" @bind-DestructiveActionConfirmed:after="HandleSettingsChangedAsync" />
 
                 <div class="ocx-diagnostics" aria-live="polite">
                     @foreach (ConversionDiagnostic diagnostic in Diagnostics) {
@@ -53,10 +54,4 @@
         </footer>
     </section>
 
-    <section class="ocx-utility-rail" aria-label="PDF workbench facts">
-        <div><span class="ocx-utility-icon ocx-utility-icon--private" aria-hidden="true">✓</span><span><strong>Browser-local</strong><small>No upload, account, credits, or queue</small></span></div>
-        <div><span class="ocx-utility-icon" aria-hidden="true">□</span><span><strong>Bounded workflow</strong><small>25 MB each · 75 MB combined · 500 pages</small></span></div>
-        <div><span class="ocx-utility-icon" aria-hidden="true">&lt;/&gt;</span><span><strong>OfficeIMO.Pdf engine</strong><small>First-party APIs and operation reports</small></span></div>
-        <a href="/products/pdf/" target="_top"><strong>Need the .NET API?</strong><span>PDF capabilities and limits →</span></a>
-    </section>
 </div>

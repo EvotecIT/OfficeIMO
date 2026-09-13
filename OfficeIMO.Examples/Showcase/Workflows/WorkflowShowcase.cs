@@ -19,6 +19,9 @@ internal static class WorkflowShowcase {
     private sealed record Example(string Format, Action<string> Generate);
 
     private static readonly Dictionary<string, Example> Examples = new(StringComparer.Ordinal) {
+        ["project-delivery-gantt"] = new("project", ProjectDeliveryGantt.Create),
+        ["project-dependency-network"] = new("project", ProjectDependencyNetwork.Create),
+        ["project-milestone-timeline"] = new("project", ProjectMilestoneTimeline.Create),
         ["word-project-charter"] = new("word", ProjectCharter.Create),
         ["word-meeting-minutes"] = new("word", MeetingMinutes.Create),
         ["word-onboarding-checklist"] = new("word", OnboardingChecklist.Create),
@@ -78,6 +81,24 @@ internal static class WorkflowShowcase {
     private static void ValidateAndPreview(string format, string folder) {
         string preview = Path.Combine(folder, "preview.pdf");
         switch (format) {
+            case "project":
+                using (var project = OfficeIMO.Project.ProjectDocument.Load(Path.Combine(folder, "example.xml")))
+                    project.Validate().ThrowIfErrors();
+                if (OfficeIMO.Pdf.PdfDocument.Load(File.ReadAllBytes(preview)).Read().PageCount != 1)
+                    throw new InvalidOperationException("Expected a one-page Project showcase report.");
+                if (File.Exists(Path.Combine(folder, "report.docx"))) {
+                    using var document = WordDocument.Load(Path.Combine(folder, "report.docx"));
+                    if (document.ValidateDocument().Count != 0) throw new InvalidOperationException("Invalid Project Word report.");
+                }
+                if (File.Exists(Path.Combine(folder, "report.pptx"))) {
+                    using var presentation = PowerPointPresentation.Load(Path.Combine(folder, "report.pptx"));
+                    if (presentation.ValidateDocument().Count != 0) throw new InvalidOperationException("Invalid Project presentation.");
+                }
+                if (File.Exists(Path.Combine(folder, "report.xlsx"))) {
+                    using var workbook = ExcelDocument.Load(Path.Combine(folder, "report.xlsx"));
+                    if (!workbook.DocumentIsValid) throw new InvalidOperationException("Invalid Project workbook.");
+                }
+                break;
             case "word":
                 using (WordDocument document = WordDocument.Load(Path.Combine(folder, "example.docx"))) {
                     var errors = document.ValidateDocument();

@@ -1,0 +1,231 @@
+{
+  "baseCommit": "c1d3f9d8e14c00e59a1204e7564ad51658f6cc2f",
+  "profile": "MPP14/MPT14 using Microsoft Project 2024 build 16.0.20326.20144",
+  "tests": {
+    "windows": {
+      "net8": 136,
+      "net10": 136,
+      "net472": 136
+    },
+    "ubuntuWsl": {
+      "net8": 136,
+      "net10": 136
+    },
+    "sharedCompoundNet10": 14
+  },
+  "localReview": "Three reproduced correctness findings fixed; one targeted read-only confirmation accepted the remediations. Packaged-consumer checks additionally qualified explicit omission diagnostics for unmapped caches.",
+  "packageConsumer": "Passed isolated local Core/Project 3.4.3 package consumption: native README, repeated project identity edit, all duration-only baseline slots, MPT creation and template-derived MPP, XML conversion.",
+  "nativeAot": "The same packaged workflow passed as a Linux x64 .NET 8 NativeAOT executable.",
+  "aotSha256": "94a2fd5ce03a23fcf4b087b721c28319d6aa97a2e8e8f122dd9080cc52b8edce",
+  "packages": [
+    {
+      "name": "OfficeIMO.Core.3.4.3.nupkg",
+      "sha256": "f161213b392f9dfa2e576295f0ef17293b662f0c07168e5b19046891a9a570a5"
+    },
+    {
+      "name": "OfficeIMO.Project.3.4.3.nupkg",
+      "sha256": "0a1babd13a7ee23576d4d307324270ee6763f57121f79f01c2676ac7d2bb744f"
+    }
+  ],
+  "applicationCases": 17,
+  "additionalConsumerCases": 3,
+  "semanticAssertions": 86,
+  "limitations": [
+    "Only the declared Project 2024 MPP14/MPT14 profile is qualified.",
+    "Opaque records are retained during native edits but are not semantically remapped; structural and schedule edits require explicit loss acceptance.",
+    "Curves, formulas, lookup/rate metadata, native notes editing, and unmapped caches remain outside the writer profile.",
+    "Fifteen final native application cases used enabled alerts; two converted XML cases used disabled alerts. The alerts-enabled XML import did not complete and is unqualified.",
+    "Duration-only baseline application evidence checks baseline semantics; incomplete assignment work in that isolated fixture let Project recalculate main task duration. Complete README/template fixtures separately retained their expected 480-minute task durations.",
+    "Package artifacts are local proof, not a public release."
+  ],
+  "sourceFiles": [
+    {
+      "path": "Build/Project/Test-ProjectInteroperability.ps1",
+      "sha256": "c98492810630eb3fb79f1ac58deea5377289760ce41fea0b1f0e4888a56d3aa6"
+    },
+    {
+      "path": "OfficeIMO.Core/Internal/Ole/OfficeOleCompoundObjectReader.cs",
+      "sha256": "1976fa458a6e2ff9344ba788c5857280672748f868fd2e5b243001247bdbbf17"
+    },
+    {
+      "path": "OfficeIMO.Core/Internal/Ole/OfficeOleCompoundObjectWriter.cs",
+      "sha256": "d91fefed79f2095ff350484a528dcbe4cd956cd2ccdb11d63943021b32c50243"
+    },
+    {
+      "path": "OfficeIMO.Core/Internal/Ole/OfficeOlePropertySetEditor.cs",
+      "sha256": "319021351c32e65dfdfa1bef650e41bc267f3e1f293c2f017ec0c8c049ba421b"
+    },
+    {
+      "path": "OfficeIMO.Project.Tests/ProjectNativeAuthoringTests.cs",
+      "sha256": "2dd925f175b038eb7386b72ec651180cc5b470ccc9f1ede93158c7a537318152"
+    },
+    {
+      "path": "OfficeIMO.Project.Tests/ProjectNativeContainerTests.cs",
+      "sha256": "c326bc856604fabb525eadc0173e82901c5a5de5c15998dba4861e2ff492ee53"
+    },
+    {
+      "path": "OfficeIMO.Project.Tests/ProjectNativeSaveTests.cs",
+      "sha256": "c2b9d65aefed882c68f447d1a18ba3f7351e00dc301f86294cea99668953db0a"
+    },
+    {
+      "path": "OfficeIMO.Project.Tests/ProjectNativeTests.cs",
+      "sha256": "43c1e1f843fccfd04d21c2b58d4faba9b704afb10b6ade73aa4d0cb4a8ddc69f"
+    },
+    {
+      "path": "OfficeIMO.Project.Verification/NativeEditProof.cs",
+      "sha256": "f85146ee9050af99f9300aef56141ddb00462b70da6f32b68308c4a0fb032de7"
+    },
+    {
+      "path": "OfficeIMO.Project.Verification/NativeWriterProof.cs",
+      "sha256": "7a0f43ebebcafa88e5a6ad8316c2e054f02c8c953d102d4e2f9798c74640d47c"
+    },
+    {
+      "path": "OfficeIMO.Project.Verification/Program.cs",
+      "sha256": "13d395bcaf5d8e59efdaa8ccf64f3662cbd487e4a1469329478d3c036077e6a7"
+    },
+    {
+      "path": "OfficeIMO.Project/Model/ProjectModelSnapshot.cs",
+      "sha256": "ad6ab24ab52af9edb53e990a8ada0a01c3702551fbf8485fe63807ee8ce859f6"
+    },
+    {
+      "path": "OfficeIMO.Project/Model/ProjectModelSnapshot.Fields.cs",
+      "sha256": "b707b2ab0c9e148e9fdfe54cdc302e2d0d2b044fdddef788666473bdc3e5496a"
+    },
+    {
+      "path": "OfficeIMO.Project/Model/ProjectModelValues.cs",
+      "sha256": "942b628bf4ce8f5be1eabf90c80765e81e117b497383ee23265be005480205f8"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeCodec.cs",
+      "sha256": "9dec78b757eb1f88eca5885d80ed0661a5317f0c924a39cf23917d72c7e9bfa6"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeCodec.CustomFields.cs",
+      "sha256": "34a562e5adb012e5e57aee0bdbaf275d8db2b9da36dbbc4f913b009c15d655b1"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeCodec.Resources.cs",
+      "sha256": "e28c3bef0fc321a729baf7b86a2c13089f689dd24cd751479fc0f0099807ca2f"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeCodec.Tasks.cs",
+      "sha256": "197f7ecbd63f11726966712a17c119baccbc81f50e977494c5ca4823bec7e6c2"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeCreation.cs",
+      "sha256": "dc8c86020fa3a4f29cb35cfba823727944b3ada07274f9a89059257882c00a60"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeCustomField.cs",
+      "sha256": "410432fb0495077d62c22a1711da3de05934f4d59045b2a45e00a870659d7648"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativePropertySet.cs",
+      "sha256": "d71b7c05ec43dd7ac6cd9fb060e0802b3c706cd29862e82e4b3df42934119585"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeSource.cs",
+      "sha256": "d6a1045e0ecb0652d6bd17debf0e9c5415d3418259eb7a4cb289d9c537006246"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeTable.cs",
+      "sha256": "1d9b45c473dcfb60db9266b8d6840fe5faa5a7218b6ca13baceec98086e80c75"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeTableEditor.cs",
+      "sha256": "17b9b09890b340a6f38a7bbf1fd3022f3819863d7880da3be1318b7f05015d9a"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeWriter.Baselines.cs",
+      "sha256": "1496f89be006c61ba271963f250962ca9acee8f6c46792420b19583de937d805"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeWriter.Calendars.cs",
+      "sha256": "948f3fa18c3b594f411641d10c3f4177bd707dd90992c424ee52fd0c844b677c"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeWriter.cs",
+      "sha256": "e2e4c7457f8d38b9c88b72994e166958abab437aa04a1c8e775de42a31b3b500"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeWriter.CustomFields.cs",
+      "sha256": "bf3170a01b491657b3a85d4cbfdf263009699d9e518a95e91075ed2dc9abbd93"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeWriter.Definitions.cs",
+      "sha256": "56f519867ef00f34520c276fc5453a451bf70fdf6aa9b6d2c5856c37ba2abe8d"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeWriter.Entities.cs",
+      "sha256": "1064d6791bd2bcc5ea2da1ce0c9061ded6490d7b0016b0c1cf14fc1e96c59c47"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeWriter.Fields.cs",
+      "sha256": "0815cf3320eb93ead3b6119cd8cb47b8cb4e2e3cea12a7406a38c257a4a89756"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/ProjectNativeWriter.Properties.cs",
+      "sha256": "14cb9314021a9fc25d51692571eec17cff13b18f49f494de7eda5ae859fa22f9"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/Schema/ProjectNativeSchema.cs",
+      "sha256": "b66374c517ea6165c19873514a8a95cd21dfaec4e2d4bf1e6ff11a9df137b46b"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/Schema/ProjectNativeSchemaCatalog.Assignment.cs",
+      "sha256": "1a35a05583cae15a04ed0e80751ca73b2f45c623a6ff39bf0d44b21aebcc0ef5"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/Schema/ProjectNativeSchemaCatalog.Calendar.cs",
+      "sha256": "4b0793715f76b2dfa311be6d33314b692f35b2110022d1a49beb48f28d1aa21f"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/Schema/ProjectNativeSchemaCatalog.Dependency.cs",
+      "sha256": "cd73efc9a47a4f406a8c2e7cf015ac0b47ddec2594407632904365c91d237529"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/Schema/ProjectNativeSchemaCatalog.Resource.cs",
+      "sha256": "d5b9ed1a65cbb198ad79daf7981968cb92c8e4768e588d61820aec62436ed272"
+    },
+    {
+      "path": "OfficeIMO.Project/Native/Schema/ProjectNativeSchemaCatalog.Task.cs",
+      "sha256": "05a73d9883015435d8eb8ac0e069c1aab52530359c882fbe4ce5e86584f95023"
+    },
+    {
+      "path": "OfficeIMO.Project/OfficeIMO.Project.csproj",
+      "sha256": "ca9ab2247fe5c733522ef9ddd63ef4e32738f4a53144efbea3606635edca61d9"
+    },
+    {
+      "path": "OfficeIMO.Project/ProjectDocument.cs",
+      "sha256": "e9865951e588805bd19d547841a1b1216bdef6883405b0224a8adb94b158e03f"
+    },
+    {
+      "path": "OfficeIMO.Project/ProjectDocument.Formats.cs",
+      "sha256": "4b0cc361102d81958cd2edca30bdc15c67942a2b4609f43b7d48395b5bee3c50"
+    },
+    {
+      "path": "OfficeIMO.Project/ProjectDocument.Lifecycle.cs",
+      "sha256": "5db96055ea9ea3bdd3887d1893f0302c9cc2636f6773de8fabf821af962e5aa2"
+    },
+    {
+      "path": "OfficeIMO.Project/ProjectDocument.Mutation.cs",
+      "sha256": "6e4cc5f171635ff545a5e7762d5f2593c1bb656743c45d0fd9b1a0375997df8c"
+    },
+    {
+      "path": "OfficeIMO.Project/ProjectOptions.cs",
+      "sha256": "8a1f27bd7cfcc881f28701d91188f09a62d2f372b0f1bebad70d28a670419588"
+    },
+    {
+      "path": "OfficeIMO.Project/README.md",
+      "sha256": "4c3b8e9ed624bc04a338ffb19328e7d26fc739e5aef37d67f38798cb44a27b49"
+    },
+    {
+      "path": "OfficeIMO.Project/SUPPORT.md",
+      "sha256": "6716c88c17cea1e3e437e7e79312d85bf087aa9f210f8346e9496cab7f4e2668"
+    },
+    {
+      "path": "OfficeIMO.SharedSource/Compound/OfficeCompoundFileWriter.cs",
+      "sha256": "7deb6ad549b936eab1b29f1c0921bfab571034a8d801f16b98dbf711b51769f2"
+    }
+  ]
+}

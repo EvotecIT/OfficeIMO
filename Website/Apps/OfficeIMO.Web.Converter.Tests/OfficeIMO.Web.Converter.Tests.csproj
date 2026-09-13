@@ -18,6 +18,7 @@
     <ProjectReference Include="..\OfficeIMO.Web.Converter\OfficeIMO.Web.Converter.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\OfficeIMO.Web.Converter\wwwroot\samples\provenance-demo.png" Link="samples\provenance-demo.png" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Web.Converter\wwwroot\samples\basic.xlsx"
           Link="samples\basic.xlsx"
           CopyToOutputDirectory="PreserveNewest" />

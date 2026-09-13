@@ -19,8 +19,8 @@ public partial class WordTableStyleDetails {
 
         TableBorders borders = new TableBorders(
             new TopBorder() { Val = style.ToOpenXml(), Size = size, Color = colorHex },
-            new BottomBorder() { Val = style.ToOpenXml(), Size = size, Color = colorHex },
             new LeftBorder() { Val = style.ToOpenXml(), Size = size, Color = colorHex },
+            new BottomBorder() { Val = style.ToOpenXml(), Size = size, Color = colorHex },
             new RightBorder() { Val = style.ToOpenXml(), Size = size, Color = colorHex },
             new InsideHorizontalBorder() { Val = style.ToOpenXml(), Size = size, Color = colorHex },
             new InsideVerticalBorder() { Val = style.ToOpenXml(), Size = size, Color = colorHex }
@@ -48,8 +48,8 @@ public partial class WordTableStyleDetails {
 
         TableBorders borders = new TableBorders(
             new TopBorder() { Val = outsideStyle.ToOpenXml(), Size = outsideSize, Color = outsideColorHex },
-            new BottomBorder() { Val = outsideStyle.ToOpenXml(), Size = outsideSize, Color = outsideColorHex },
             new LeftBorder() { Val = outsideStyle.ToOpenXml(), Size = outsideSize, Color = outsideColorHex },
+            new BottomBorder() { Val = outsideStyle.ToOpenXml(), Size = outsideSize, Color = outsideColorHex },
             new RightBorder() { Val = outsideStyle.ToOpenXml(), Size = outsideSize, Color = outsideColorHex },
             new InsideHorizontalBorder() { Val = insideStyle.ToOpenXml(), Size = insideSize, Color = insideColorHex },
             new InsideVerticalBorder() { Val = insideStyle.ToOpenXml(), Size = insideSize, Color = insideColorHex }

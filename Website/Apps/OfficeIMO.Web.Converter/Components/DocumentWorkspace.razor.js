@@ -14,11 +14,11 @@ export function connect(component) {
     window.addEventListener("message", selectionHandler);
     navigationHandler = event => {
         if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-        const link = event.target.closest?.('#workspace-navigation a[data-route], #workspace-navigation a[data-pdf-tool]');
+        const link = event.target.closest?.('#workspace-navigation a[data-route], #workspace-navigation a[data-pdf-tool], #workspace-navigation a[data-workspace]');
         if (!link) return;
         event.preventDefault();
         event.stopImmediatePropagation();
-        component.invokeMethodAsync('RestoreSelection', link.dataset.pdfTool ? 'pdf' : 'convert', link.dataset.route ?? null, link.dataset.pdfTool ?? null);
+        component.invokeMethodAsync('RestoreSelection', link.dataset.workspace || (link.dataset.pdfTool ? 'pdf' : 'convert'), link.dataset.route ?? null, link.dataset.pdfTool ?? null);
     };
     document.addEventListener('click', navigationHandler, true);
     menuKeyHandler = event => {
@@ -42,14 +42,14 @@ export function connect(component) {
     };
     window.addEventListener('keydown', menuKeyHandler);
 }
-export function publishSelection(workspace, route, tool, replace) {
+export function publishSelection(workspace, route, tool, title, replace) {
     const content = document.querySelector('.ocx-workspace-content');
     if (content) content.scrollTop = 0;
     if (window.innerWidth < 1024 && document.activeElement?.closest('#workspace-navigation')) {
         document.querySelector('#workspace-title')?.focus({ preventScroll: true });
     }
     if (window.parent !== window) {
-        window.parent.postMessage({ type: "officeimo:workspace-selection", workspace, route, tool, replace }, window.location.origin);
+        window.parent.postMessage({ type: "officeimo:workspace-selection", workspace, route, tool, title, replace }, window.location.origin);
     }
 }
 export function focusMenu(open) {

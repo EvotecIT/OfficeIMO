@@ -9,6 +9,10 @@ using OfficeIMO.Security;
 namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
+    /// <summary>Validates and inspects encoded workbook bytes without accessing the filesystem.</summary>
+    public static OfficeProvenanceReport InspectProvenance(byte[] data, string fileName = "workbook.xlsx", OfficeProvenanceOptions? options = null) =>
+        OfficeProvenancePackageMutation.Inspect(data, fileName, options, ValidatePackage);
+
     private const string SignatureOriginContentType = "application/vnd.openxmlformats-package.digital-signature-origin";
     private const string SignaturePartContentType = "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml";
     private const string SignatureRelationshipPrefix = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/";
@@ -33,16 +37,28 @@ public partial class ExcelDocument {
         OfficeProvenanceRemovalOptions? options = null) =>
         OfficeProvenancePackageMutation.Remove(workbookBytes, fileName, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);
 
-    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options) {
+    private static void ValidatePackage(byte[] data, string fileName, OfficeProvenanceOptions options) {
         OfficeProvenanceZip.ValidateForOwningPackageMutation(data, options);
         ValidateXlsbDetectionMetadata(data, options);
+        string expectedExtension = ExcelFormatCatalog.GetByExtension(fileName).Extension;
         if (XlsbPackageDetector.TryFindWorkbookPart(
             data, options.MaxAssetBytes, options.MaxAssetBytes, out _)) {
+            if (!string.Equals(expectedExtension, ".xlsb", StringComparison.OrdinalIgnoreCase)) {
+                throw new InvalidDataException($"The Excel package subtype '.xlsb' does not match filename extension '{expectedExtension}'.");
+            }
+            if (options.RequireStandardOpenXmlDocument)
+                throw new InvalidDataException("The memory-only workflow requires an XLSX workbook, not a binary workbook.");
             ValidateUniqueXlsbPartNames(data);
             return;
         }
         using var stream = new MemoryStream(data, writable: false);
         using SpreadsheetDocument document = SpreadsheetDocument.Open(stream, false);
+        string actualExtension = ExcelFormatCatalog.GetDescriptor(document.DocumentType).Extension;
+        if (!string.Equals(expectedExtension, actualExtension, StringComparison.OrdinalIgnoreCase)) {
+            throw new InvalidDataException($"The Excel package subtype '{actualExtension}' does not match filename extension '{expectedExtension}'.");
+        }
+        if (options.RequireStandardOpenXmlDocument && document.DocumentType != DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook)
+            throw new InvalidDataException("The memory-only workflow requires an XLSX workbook, not a macro-enabled workbook or template.");
         if (document.WorkbookPart == null || !IsSupportedWorkbookContentType(document.WorkbookPart.ContentType)) {
             throw new InvalidDataException("The package is not an Excel workbook.");
         }

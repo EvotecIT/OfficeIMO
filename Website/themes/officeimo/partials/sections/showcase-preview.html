@@ -15,7 +15,7 @@
       {{ if for.index < 4 }}
       <article class="imo-showcase-card" role="listitem">
         {{ if card.image }}
-        <a class="imo-showcase-card__media" href="{{ card.artifact_url }}" aria-label="{{ card.artifact_label }}: {{ card.title }}">
+        <a class="imo-showcase-card__media" href="{{ card.image }}" data-pf-media data-pf-media-caption="{{ card.title | html.escape }}" aria-label="Open preview: {{ card.title | html.escape }}">
           <img src="{{ card.image }}" alt="{{ card.image_alt ?? card.title }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async" />
         </a>
         {{ end }}

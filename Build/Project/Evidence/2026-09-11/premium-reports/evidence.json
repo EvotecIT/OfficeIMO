@@ -1,0 +1,23 @@
+[
+  {
+    "kind": "Gantt",
+    "pages": 1,
+    "width": 5000,
+    "height": 2001,
+    "dpi": 299.9994
+  },
+  {
+    "kind": "Network",
+    "pages": 1,
+    "width": 6667,
+    "height": 2705,
+    "dpi": 299.9994
+  },
+  {
+    "kind": "Timeline",
+    "pages": 1,
+    "width": 5000,
+    "height": 2500,
+    "dpi": 299.9994
+  }
+]

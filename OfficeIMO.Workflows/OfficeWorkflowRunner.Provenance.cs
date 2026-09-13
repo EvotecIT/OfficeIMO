@@ -43,7 +43,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         try {
             cancellationToken.ThrowIfCancellationRequested();
             validated = ValidateProvenanceRequest(request);
-            string ownerPackage = GetPackage(validated.Owner);
+            string ownerPackage = validated.Capability.OwnerPackage;
             Report(progress, validated.Id, "validate", "Validating provenance input and limits", 0.05D);
             cancellationToken.ThrowIfCancellationRequested();
             failureStage = WorkflowFailureStage.Input;
@@ -89,23 +89,13 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                     cancellationToken),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
-            ProvenanceOwner refinedOwner = Refine(validated.Owner, structural.Format);
             if (structural.Format == OfficeProvenanceAssetFormat.Unknown) {
                 throw new NotSupportedException("The input is not a supported provenance asset.");
             }
-            if (refinedOwner != validated.Owner) {
-                structural = await Task.Run(
-                    () => OfficeProvenanceWorkflowAdapter.Inspect(
-                        refinedOwner,
-                        operationInputPath,
-                        inspectionOptions,
-                        validated.InputPath,
-                        cancellationToken),
-                    cancellationToken).ConfigureAwait(false);
-                cancellationToken.ThrowIfCancellationRequested();
+            if (!validated.Format.AssetFormats.Contains(structural.Format)) {
+                throw new InvalidDataException(
+                    $"The input contents identify as {structural.Format}, which does not match the registered {validated.Format.Extension} format.");
             }
-            validated = validated with { Owner = refinedOwner };
-            ownerPackage = GetPackage(refinedOwner);
 
             if (validated.Operation == OfficeProvenanceWorkflowOperation.Inspect) {
                 inputSnapshot.VerifyPrimaryFile(cancellationToken);
@@ -122,7 +112,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 Report(progress, validated.Id, "assess", "Collecting optional verification and signal evidence", 0.55D);
                 Encoding? textEncoding = validated.Assessment.InspectTextIntegrity && IsTextLike(structural.Format)
                     ? OfficeProvenanceWorkflowAdapter.ResolveTextEncoding(
-                        refinedOwner,
+                        validated.Owner,
                         structural.Format,
                         operationInputPath,
                         validated.Assessment.TextIntegrity.MaxEncodedBytes,
@@ -160,7 +150,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                     DescribeAssessment(assessment), diagnostics, assessment: assessment);
             }
 
-            if (refinedOwner == ProvenanceOwner.Core && !SupportsCoreRemoval(structural.Format)) {
+            if (validated.Owner == ProvenanceOwner.Core && !SupportsCoreRemoval(structural.Format)) {
                 throw new NotSupportedException(
                     "Inspection is supported, but no safe mutation owner is registered for this asset format.");
             }
@@ -186,7 +176,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 removalOptions.Limits.MaxExpandedContainerBytes = Math.Max(1L, remainingExpandedBytes);
                 removal = await Task.Run(
                     () => OfficeProvenanceWorkflowAdapter.Remove(
-                        refinedOwner, operationInputPath, stagingPath, removalOptions, cancellationToken),
+                        validated.Owner, operationInputPath, stagingPath, removalOptions, cancellationToken),
                     cancellationToken).ConfigureAwait(false);
             } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
                 failureStage = WorkflowFailureStage.Output;
@@ -194,7 +184,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             }
             cancellationToken.ThrowIfCancellationRequested();
             ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, removal.Before.ExpandedInspectionBytes);
-            ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, removal.After.ExpandedInspectionBytes);
+            if (!ReferenceEquals(removal.Before, removal.After))
+                ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, removal.After.ExpandedInspectionBytes);
             inputSnapshot!.VerifyPrimaryFile(cancellationToken);
 
             failureStage = WorkflowFailureStage.Output;
@@ -217,7 +208,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             outputInspectionOptions.MaxExpandedContainerBytes = Math.Max(1L, remainingExpandedBytes);
             OfficeProvenanceReport reopened = await Task.Run(
                 () => OfficeProvenanceWorkflowAdapter.Inspect(
-                    refinedOwner,
+                    validated.Owner,
                     stagingPath,
                     outputInspectionOptions,
                     validated.OutputPath,
@@ -353,9 +344,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
     private static string GetResultPackage(
         ValidatedProvenanceRequest? validated,
         OfficeProvenanceWorkflowRequest request) {
-        if (validated is not null) return GetPackage(validated.Owner);
+        if (validated is not null) return validated.Capability.OwnerPackage;
         try {
-            return GetPackage(ResolveByPath(request.InputPath));
+            return OfficeProvenanceWorkflowCatalog.FindByPath(request.InputPath)?.OwnerPackage ?? "OfficeIMO.Core";
         } catch (Exception exception) when (exception is ArgumentException or NotSupportedException) {
             return "OfficeIMO.Core";
         }
@@ -796,6 +787,14 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         if (string.IsNullOrWhiteSpace(request.InputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(request));
         string inputPath = Path.GetFullPath(request.InputPath);
         if (!File.Exists(inputPath)) throw new FileNotFoundException("The provenance input file does not exist.", inputPath);
+        OfficeProvenanceWorkflowCapability capability = OfficeProvenanceWorkflowCatalog.FindByPath(inputPath) ??
+            throw new NotSupportedException(
+                "The provenance workflow accepts only formats registered to an OfficeIMO owner. Use the owning low-level API when inspecting unregistered content.");
+        OfficeProvenanceWorkflowFormat format = OfficeProvenanceWorkflowCatalog.FindFormatByPath(inputPath)!;
+        if (!capability.Supports(request.Operation)) {
+            throw new NotSupportedException(
+                $"The OfficeIMO owner for {format.Extension} does not support the requested {request.Operation} provenance operation.");
+        }
         OfficeWorkflowLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
         OfficeProvenanceOptions inspection = CloneInspectionOptions(
             request.Inspection ?? throw new ArgumentException("Inspection options cannot be null.", nameof(request)),
@@ -831,7 +830,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             request.Operation,
             inputPath,
             outputPath,
-            ResolveByPath(inputPath),
+            capability.Owner,
+            capability,
+            format,
             request.ConflictPolicy,
             request.BatchBlockedOutputIdentities,
             request.BatchOwnReservedOutputIdentity,
@@ -919,7 +920,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         return clone;
     }
 
-    private static void ConsumeExpandedProcessingBytes(ref long remainingBytes, long consumedBytes) {
+    internal static void ConsumeExpandedProcessingBytes(ref long remainingBytes, long consumedBytes) {
         if (consumedBytes < 0 || consumedBytes > remainingBytes) {
             throw OfficeProvenanceLimitException.Create(
                 "The provenance workflow exceeds the configured cumulative expanded-data limit.");
@@ -950,7 +951,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         destination.MaxEmbeddedAssets = source.MaxEmbeddedAssets;
     }
 
-    private static void EnsureEquivalent(OfficeProvenanceReport expected, OfficeProvenanceReport actual) {
+    internal static void EnsureEquivalent(OfficeProvenanceReport expected, OfficeProvenanceReport actual) {
         bool evidenceMatches = expected.Evidence.Count == actual.Evidence.Count &&
             expected.Evidence.Zip(actual.Evidence).All(pair =>
                 pair.First.Carrier == pair.Second.Carrier &&
@@ -1018,6 +1019,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         string InputPath,
         string? OutputPath,
         ProvenanceOwner Owner,
+        OfficeProvenanceWorkflowCapability Capability,
+        OfficeProvenanceWorkflowFormat Format,
         OfficeWorkflowConflictPolicy ConflictPolicy,
         SortedSet<string>? BatchBlockedOutputIdentities,
         string? BatchOwnReservedOutputIdentity,

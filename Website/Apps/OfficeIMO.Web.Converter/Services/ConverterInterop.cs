@@ -5,7 +5,6 @@ namespace OfficeIMO.Web.Converter.Services;
 public sealed class ConverterInterop(IJSRuntime js) : IAsyncDisposable {
     internal const string ModulePath = "./Components/ConverterWorkspace.razor.js";
     internal const string CreateObjectUrlMethod = "createObjectUrl";
-    internal const string RevokeObjectUrlMethod = "revokeObjectUrl";
     internal const string RegisterWebMcpToolMethod = "registerWebMcpTool";
     internal const string UnregisterWebMcpToolMethod = "unregisterWebMcpTool";
 
@@ -23,8 +22,8 @@ public sealed class ConverterInterop(IJSRuntime js) : IAsyncDisposable {
         if (string.IsNullOrWhiteSpace(url)) {
             return;
         }
-        IJSObjectReference module = await GetModuleAsync();
-        await module.InvokeVoidAsync(RevokeObjectUrlMethod, url);
+        // Cleanup may finish after the component has disposed its imported module.
+        await js.InvokeVoidAsync("URL.revokeObjectURL", url);
     }
 
     public async ValueTask RegisterWebMcpToolAsync<T>(DotNetObjectReference<T> converter) where T : class {

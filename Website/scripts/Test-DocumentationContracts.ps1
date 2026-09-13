@@ -322,6 +322,24 @@ $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json
 if ($catalog.repository.productionComponentCount -ne @($catalog.components).Count) {
     Add-Failure 'The OfficeIMO component summary does not match the generated component list.'
 }
+$categoryComponentIndexes = @($catalog.categories | ForEach-Object { @($_.componentIndexes) })
+if ($categoryComponentIndexes.Count -ne @($catalog.components).Count -or
+    @($categoryComponentIndexes | Sort-Object -Unique).Count -ne @($catalog.components).Count) {
+    Add-Failure 'Documentation catalog category indexes must cover every component exactly once.'
+}
+foreach ($category in @($catalog.categories)) {
+    $indexes = @($category.componentIndexes)
+    if ($indexes.Count -ne [int] $category.componentCount) {
+        Add-Failure "Documentation category '$($category.name)' index count does not match its component count."
+        continue
+    }
+    foreach ($index in $indexes) {
+        if ([int] $index -lt 0 -or [int] $index -ge @($catalog.components).Count -or
+            [string] $catalog.components[[int] $index].category -ne [string] $category.name) {
+            Add-Failure "Documentation category '$($category.name)' contains an invalid component index '$index'."
+        }
+    }
+}
 if ([int] $catalog.repository.conceptualPageCount -ne $docs.Count) {
     Add-Failure "The generated conceptual page count is $($catalog.repository.conceptualPageCount); expected $($docs.Count) from the current documentation source."
 }

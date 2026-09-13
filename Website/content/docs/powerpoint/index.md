@@ -32,7 +32,7 @@ order: 30
 
 For decks that should look intentional without hand-positioning every object, use designer briefs and semantic deck plans. A brief can propose several visual directions from the same brand, while a deck plan lets the library score how well those directions fit the content before rendering editable slides.
 
-![PowerPoint designer deck plan process slide](/images/powerpoint/examples/deck-plan-process.png)
+<a href="/images/powerpoint/examples/deck-plan-process.png" data-pf-media><img src="/images/powerpoint/examples/deck-plan-process.png" alt="PowerPoint designer deck plan process slide" width="1600" height="900" loading="lazy" decoding="async" /></a>
 
 ```csharp
 PowerPointDesignBrief brief = PowerPointDesignBrief

@@ -1,0 +1,59 @@
+[
+  {
+    "TaskUid": 1,
+    "Start": "2026-10-05T08:00:00",
+    "Finish": "2026-10-19T12:00:00",
+    "Duration": {
+      "Value": 10.5,
+      "Unit": 2,
+      "IsElapsed": false,
+      "IsEstimated": false
+    },
+    "EarlyStart": "2026-10-05T08:00:00",
+    "EarlyFinish": "2026-10-19T12:00:00",
+    "LateStart": "2026-10-07T08:00:00",
+    "LateFinish": "2026-10-19T12:00:00",
+    "TotalSlackMinutes": 0,
+    "FreeSlackMinutes": 0,
+    "IsCritical": true,
+    "IsSummary": true
+  },
+  {
+    "TaskUid": 2,
+    "Start": "2026-10-05T08:00:00",
+    "Finish": "2026-10-07T17:00:00",
+    "Duration": {
+      "Value": 3,
+      "Unit": 2,
+      "IsElapsed": false,
+      "IsEstimated": false
+    },
+    "EarlyStart": "2026-10-05T08:00:00",
+    "EarlyFinish": "2026-10-07T17:00:00",
+    "LateStart": "2026-10-07T08:00:00",
+    "LateFinish": "2026-10-09T17:00:00",
+    "TotalSlackMinutes": 960,
+    "FreeSlackMinutes": 960,
+    "IsCritical": false,
+    "IsSummary": false
+  },
+  {
+    "TaskUid": 3,
+    "Start": "2026-10-12T08:00:00",
+    "Finish": "2026-10-19T12:00:00",
+    "Duration": {
+      "Value": 5,
+      "Unit": 2,
+      "IsElapsed": false,
+      "IsEstimated": false
+    },
+    "EarlyStart": "2026-10-12T08:00:00",
+    "EarlyFinish": "2026-10-19T12:00:00",
+    "LateStart": "2026-10-12T08:00:00",
+    "LateFinish": "2026-10-19T12:00:00",
+    "TotalSlackMinutes": 0,
+    "FreeSlackMinutes": 0,
+    "IsCritical": true,
+    "IsSummary": false
+  }
+]

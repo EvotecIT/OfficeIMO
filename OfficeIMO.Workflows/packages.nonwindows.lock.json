@@ -45,6 +45,12 @@
       "officeimo.core": {
         "type": "Project"
       },
+      "officeimo.csv": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.3, )"
+        }
+      },
       "officeimo.epub": {
         "type": "Project",
         "dependencies": {
@@ -136,6 +142,12 @@
           "OfficeIMO.Core": "[3.4.3, )",
           "OfficeIMO.Pdf": "[3.4.3, )",
           "OfficeIMO.PowerPoint": "[3.4.3, )"
+        }
+      },
+      "officeimo.project": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.3, )"
         }
       },
       "officeimo.reader.core": {
@@ -233,6 +245,12 @@
       "officeimo.core": {
         "type": "Project"
       },
+      "officeimo.csv": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.3, )"
+        }
+      },
       "officeimo.epub": {
         "type": "Project",
         "dependencies": {
@@ -325,6 +343,12 @@
           "OfficeIMO.Core": "[3.4.3, )",
           "OfficeIMO.Pdf": "[3.4.3, )",
           "OfficeIMO.PowerPoint": "[3.4.3, )"
+        }
+      },
+      "officeimo.project": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.3, )"
         }
       },
       "officeimo.reader.core": {

@@ -42,7 +42,7 @@
       {{ end }}
       {{ if preview }}
       <figure class="imo-product-example">
-        <a href="{{ preview.image }}" aria-label="Open full-size preview: {{ preview.title }}"><img src="{{ preview.image }}" width="{{ preview.image_width }}" height="{{ preview.image_height }}" alt="{{ preview.image_alt }}" decoding="async" fetchpriority="high" /></a>
+        <a href="{{ preview.image }}" data-pf-media data-pf-media-caption="{{ preview.title | html.escape }}" aria-label="Open full-size preview: {{ preview.title }}"><img src="{{ preview.image }}" width="{{ preview.image_width }}" height="{{ preview.image_height }}" alt="{{ preview.image_alt }}" decoding="async" fetchpriority="high" /></a>
         <figcaption><strong>{{ preview.title }}</strong><p>{{ preview.proof }}</p><a href="{{ preview.artifact_url }}">{{ preview.artifact_label }}</a> · <a href="{{ preview.source_url }}">View source</a> · <a href="/showcase/#{{ preview.id }}">Explore the example</a></figcaption>
       </figure>
       {{ else }}

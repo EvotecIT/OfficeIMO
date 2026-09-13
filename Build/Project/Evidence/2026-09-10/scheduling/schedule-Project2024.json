@@ -1,0 +1,875 @@
+{
+  "comparisons": [
+    {
+      "fixture": "delivery",
+      "format": ".xml",
+      "revision": 0,
+      "results": [
+        {
+          "TaskUid": 0,
+          "Start": "2026-10-05T08:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 8,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T08:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": true
+        },
+        {
+          "TaskUid": 1,
+          "Start": "2026-10-05T08:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 8,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T08:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": true
+        },
+        {
+          "TaskUid": 2,
+          "Start": "2026-10-05T08:00:00",
+          "Finish": "2026-10-07T17:00:00",
+          "Duration": {
+            "Value": 3,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T08:00:00",
+          "EarlyFinish": "2026-10-07T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-07T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 3,
+          "Start": "2026-10-08T08:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 5,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-08T08:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-08T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 4,
+          "Start": "2026-10-14T17:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 0,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-14T17:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-14T17:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "fixture": "delivery",
+      "format": ".mpp",
+      "revision": 0,
+      "results": [
+        {
+          "TaskUid": 0,
+          "Start": "2026-10-05T08:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 8,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T08:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": true
+        },
+        {
+          "TaskUid": 1,
+          "Start": "2026-10-05T08:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 8,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T08:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": true
+        },
+        {
+          "TaskUid": 2,
+          "Start": "2026-10-05T08:00:00",
+          "Finish": "2026-10-07T17:00:00",
+          "Duration": {
+            "Value": 3,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T08:00:00",
+          "EarlyFinish": "2026-10-07T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-07T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 3,
+          "Start": "2026-10-08T08:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 5,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-08T08:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-08T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 4,
+          "Start": "2026-10-14T17:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 0,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-14T17:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-14T17:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        }
+      ],
+      "diagnostics": [
+        {
+          "Code": "PROJECT_NATIVE_SCHEDULE_PROJECTION",
+          "Severity": 1,
+          "Message": "Calculation uses decoded scalar values and calendars. Native contours, splits, leveling, and other opaque scheduling records are not interpreted; this is a projection of the supported model.",
+          "Location": "/Project",
+          "RepresentsLoss": false
+        }
+      ]
+    },
+    {
+      "fixture": "relationships",
+      "format": ".xml",
+      "revision": 0,
+      "results": [
+        {
+          "TaskUid": 0,
+          "Start": "2026-10-02T10:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 8.75,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-02T10:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": true
+        },
+        {
+          "TaskUid": 1,
+          "Start": "2026-10-02T10:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 8.75,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-02T10:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": true
+        },
+        {
+          "TaskUid": 2,
+          "Start": "2026-10-05T08:00:00",
+          "Finish": "2026-10-07T17:00:00",
+          "Duration": {
+            "Value": 3,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T08:00:00",
+          "EarlyFinish": "2026-10-07T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-07T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 3,
+          "Start": "2026-10-08T08:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 5,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-08T08:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-08T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 4,
+          "Start": "2026-10-14T17:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 0,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-14T17:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-14T17:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 5,
+          "Start": "2026-10-08T10:00:00",
+          "Finish": "2026-10-09T10:00:00",
+          "Duration": {
+            "Value": 1,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-08T10:00:00",
+          "EarlyFinish": "2026-10-09T10:00:00",
+          "LateStart": "2026-10-14T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 1800,
+          "FreeSlackMinutes": 1800,
+          "IsCritical": false,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 6,
+          "Start": "2026-10-05T10:00:00",
+          "Finish": "2026-10-06T10:00:00",
+          "Duration": {
+            "Value": 1,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T10:00:00",
+          "EarlyFinish": "2026-10-06T10:00:00",
+          "LateStart": "2026-10-14T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 3240,
+          "FreeSlackMinutes": 3240,
+          "IsCritical": false,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 7,
+          "Start": "2026-10-07T10:00:00",
+          "Finish": "2026-10-08T10:00:00",
+          "Duration": {
+            "Value": 1,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-07T10:00:00",
+          "EarlyFinish": "2026-10-08T10:00:00",
+          "LateStart": "2026-10-14T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 2280,
+          "FreeSlackMinutes": 2280,
+          "IsCritical": false,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 8,
+          "Start": "2026-10-02T10:00:00",
+          "Finish": "2026-10-05T10:00:00",
+          "Duration": {
+            "Value": 1,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-02T10:00:00",
+          "EarlyFinish": "2026-10-05T10:00:00",
+          "LateStart": "2026-10-14T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 3720,
+          "FreeSlackMinutes": 3720,
+          "IsCritical": false,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 9,
+          "Start": "2026-10-07T08:00:00",
+          "Finish": "2026-10-07T17:00:00",
+          "Duration": {
+            "Value": 1,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-07T08:00:00",
+          "EarlyFinish": "2026-10-07T17:00:00",
+          "LateStart": "2026-10-14T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 2400,
+          "FreeSlackMinutes": 2400,
+          "IsCritical": false,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 10,
+          "Start": "2026-10-09T13:00:00",
+          "Finish": "2026-10-12T12:00:00",
+          "Duration": {
+            "Value": 1,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-09T13:00:00",
+          "EarlyFinish": "2026-10-12T12:00:00",
+          "LateStart": "2026-10-14T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 1200,
+          "FreeSlackMinutes": 1200,
+          "IsCritical": false,
+          "IsSummary": false
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "fixture": "relationships",
+      "format": ".mpp",
+      "revision": 0,
+      "results": [
+        {
+          "TaskUid": 0,
+          "Start": "2026-10-02T10:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 8.75,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-02T10:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": true
+        },
+        {
+          "TaskUid": 1,
+          "Start": "2026-10-02T10:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 8.75,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-02T10:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": true
+        },
+        {
+          "TaskUid": 2,
+          "Start": "2026-10-05T08:00:00",
+          "Finish": "2026-10-07T17:00:00",
+          "Duration": {
+            "Value": 3,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T08:00:00",
+          "EarlyFinish": "2026-10-07T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-07T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 3,
+          "Start": "2026-10-08T08:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 5,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-08T08:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-08T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 4,
+          "Start": "2026-10-14T17:00:00",
+          "Finish": "2026-10-14T17:00:00",
+          "Duration": {
+            "Value": 0,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-14T17:00:00",
+          "EarlyFinish": "2026-10-14T17:00:00",
+          "LateStart": "2026-10-14T17:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 5,
+          "Start": "2026-10-08T10:00:00",
+          "Finish": "2026-10-09T10:00:00",
+          "Duration": {
+            "Value": 1,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-08T10:00:00",
+          "EarlyFinish": "2026-10-09T10:00:00",
+          "LateStart": "2026-10-14T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 1800,
+          "FreeSlackMinutes": 1800,
+          "IsCritical": false,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 6,
+          "Start": "2026-10-05T10:00:00",
+          "Finish": "2026-10-06T10:00:00",
+          "Duration": {
+            "Value": 1,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T10:00:00",
+          "EarlyFinish": "2026-10-06T10:00:00",
+          "LateStart": "2026-10-14T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 3240,
+          "FreeSlackMinutes": 3240,
+          "IsCritical": false,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 7,
+          "Start": "2026-10-07T10:00:00",
+          "Finish": "2026-10-08T10:00:00",
+          "Duration": {
+            "Value": 1,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-07T10:00:00",
+          "EarlyFinish": "2026-10-08T10:00:00",
+          "LateStart": "2026-10-14T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 2280,
+          "FreeSlackMinutes": 2280,
+          "IsCritical": false,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 8,
+          "Start": "2026-10-02T10:00:00",
+          "Finish": "2026-10-05T10:00:00",
+          "Duration": {
+            "Value": 1,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-02T10:00:00",
+          "EarlyFinish": "2026-10-05T10:00:00",
+          "LateStart": "2026-10-14T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 3720,
+          "FreeSlackMinutes": 3720,
+          "IsCritical": false,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 9,
+          "Start": "2026-10-07T08:00:00",
+          "Finish": "2026-10-07T17:00:00",
+          "Duration": {
+            "Value": 1,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-07T08:00:00",
+          "EarlyFinish": "2026-10-07T17:00:00",
+          "LateStart": "2026-10-14T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 2400,
+          "FreeSlackMinutes": 2400,
+          "IsCritical": false,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 10,
+          "Start": "2026-10-09T13:00:00",
+          "Finish": "2026-10-12T12:00:00",
+          "Duration": {
+            "Value": 1,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-09T13:00:00",
+          "EarlyFinish": "2026-10-12T12:00:00",
+          "LateStart": "2026-10-14T08:00:00",
+          "LateFinish": "2026-10-14T17:00:00",
+          "TotalSlackMinutes": 1200,
+          "FreeSlackMinutes": 1200,
+          "IsCritical": false,
+          "IsSummary": false
+        }
+      ],
+      "diagnostics": [
+        {
+          "Code": "PROJECT_NATIVE_SCHEDULE_PROJECTION",
+          "Severity": 1,
+          "Message": "Calculation uses decoded scalar values and calendars. Native contours, splits, leveling, and other opaque scheduling records are not interpreted; this is a projection of the supported model.",
+          "Location": "/Project",
+          "RepresentsLoss": false
+        }
+      ]
+    },
+    {
+      "fixture": "calendars",
+      "format": ".xml",
+      "revision": 0,
+      "results": [
+        {
+          "TaskUid": 0,
+          "Start": "2026-10-05T08:00:00",
+          "Finish": "2026-10-19T17:00:00",
+          "Duration": {
+            "Value": 11,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T08:00:00",
+          "EarlyFinish": "2026-10-19T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-19T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": true
+        },
+        {
+          "TaskUid": 1,
+          "Start": "2026-10-05T08:00:00",
+          "Finish": "2026-10-19T17:00:00",
+          "Duration": {
+            "Value": 11,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T08:00:00",
+          "EarlyFinish": "2026-10-19T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-19T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": true
+        },
+        {
+          "TaskUid": 2,
+          "Start": "2026-10-05T08:00:00",
+          "Finish": "2026-10-07T17:00:00",
+          "Duration": {
+            "Value": 3,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T08:00:00",
+          "EarlyFinish": "2026-10-07T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-07T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 3,
+          "Start": "2026-10-08T08:00:00",
+          "Finish": "2026-10-19T17:00:00",
+          "Duration": {
+            "Value": 5,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-08T08:00:00",
+          "EarlyFinish": "2026-10-19T17:00:00",
+          "LateStart": "2026-10-08T08:00:00",
+          "LateFinish": "2026-10-19T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 4,
+          "Start": "2026-10-19T17:00:00",
+          "Finish": "2026-10-19T17:00:00",
+          "Duration": {
+            "Value": 0,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-19T17:00:00",
+          "EarlyFinish": "2026-10-19T17:00:00",
+          "LateStart": "2026-10-19T17:00:00",
+          "LateFinish": "2026-10-19T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "fixture": "calendars",
+      "format": ".mpp",
+      "revision": 0,
+      "results": [
+        {
+          "TaskUid": 0,
+          "Start": "2026-10-05T08:00:00",
+          "Finish": "2026-10-19T17:00:00",
+          "Duration": {
+            "Value": 11,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T08:00:00",
+          "EarlyFinish": "2026-10-19T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-19T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": true
+        },
+        {
+          "TaskUid": 1,
+          "Start": "2026-10-05T08:00:00",
+          "Finish": "2026-10-19T17:00:00",
+          "Duration": {
+            "Value": 11,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T08:00:00",
+          "EarlyFinish": "2026-10-19T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-19T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": true
+        },
+        {
+          "TaskUid": 2,
+          "Start": "2026-10-05T08:00:00",
+          "Finish": "2026-10-07T17:00:00",
+          "Duration": {
+            "Value": 3,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-05T08:00:00",
+          "EarlyFinish": "2026-10-07T17:00:00",
+          "LateStart": "2026-10-05T08:00:00",
+          "LateFinish": "2026-10-07T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 3,
+          "Start": "2026-10-08T08:00:00",
+          "Finish": "2026-10-19T17:00:00",
+          "Duration": {
+            "Value": 5,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-08T08:00:00",
+          "EarlyFinish": "2026-10-19T17:00:00",
+          "LateStart": "2026-10-08T08:00:00",
+          "LateFinish": "2026-10-19T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        },
+        {
+          "TaskUid": 4,
+          "Start": "2026-10-19T17:00:00",
+          "Finish": "2026-10-19T17:00:00",
+          "Duration": {
+            "Value": 0,
+            "Unit": 2,
+            "IsElapsed": false,
+            "IsEstimated": true
+          },
+          "EarlyStart": "2026-10-19T17:00:00",
+          "EarlyFinish": "2026-10-19T17:00:00",
+          "LateStart": "2026-10-19T17:00:00",
+          "LateFinish": "2026-10-19T17:00:00",
+          "TotalSlackMinutes": 0,
+          "FreeSlackMinutes": 0,
+          "IsCritical": true,
+          "IsSummary": false
+        }
+      ],
+      "diagnostics": [
+        {
+          "Code": "PROJECT_NATIVE_SCHEDULE_PROJECTION",
+          "Severity": 1,
+          "Message": "Calculation uses decoded scalar values and calendars. Native contours, splits, leveling, and other opaque scheduling records are not interpreted; this is a projection of the supported model.",
+          "Location": "/Project",
+          "RepresentsLoss": false
+        }
+      ]
+    }
+  ],
+  "differences": []
+}

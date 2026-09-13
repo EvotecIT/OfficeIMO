@@ -1,0 +1,294 @@
+﻿{
+    "producer":  "Microsoft Project",
+    "version":  "16.0",
+    "applicationAlertsEnabled":  false,
+    "build":  "16.0.20326.20132",
+    "inputSha256":  "e501ee2a95faa5886ced6911114b6a84f363e804b00250ea463678f139e4f60b",
+    "tasks":  [
+                  {
+                      "uid":  1,
+                      "id":  1,
+                      "name":  "Delivery",
+                      "outlineLevel":  1,
+                      "summary":  false,
+                      "durationMinutes":  1440,
+                      "workMinutes":  2400,
+                      "cost":  4000,
+                      "actualDurationMinutes":  0,
+                      "remainingDurationMinutes":  1440,
+                      "critical":  true,
+                      "totalSlackMinutes":  0,
+                      "percentComplete":  0,
+                      "percentWorkComplete":  0,
+                      "constraintType":  0,
+                      "taskType":  0,
+                      "priority":  500,
+                      "wbs":  "1",
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/08/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0,
+                      "outlineCode1":  "",
+                      "recurring":  false,
+                      "splitParts":  [
+                                         {
+                                             "start":  "10/05/2026 08:00:00",
+                                             "finish":  "10/05/2026 17:00:00"
+                                         },
+                                         {
+                                             "start":  "10/07/2026 08:00:00",
+                                             "finish":  "10/08/2026 17:00:00"
+                                         }
+                                     ],
+                      "number1":  0,
+                      "number2":  0,
+                      "number3":  0,
+                      "flag1":  false,
+                      "date1":  "NA"
+                  },
+                  {
+                      "uid":  2,
+                      "id":  2,
+                      "name":  "Reserved",
+                      "outlineLevel":  1,
+                      "summary":  false,
+                      "durationMinutes":  480,
+                      "workMinutes":  480,
+                      "cost":  800,
+                      "actualDurationMinutes":  0,
+                      "remainingDurationMinutes":  480,
+                      "critical":  true,
+                      "totalSlackMinutes":  0,
+                      "percentComplete":  0,
+                      "percentWorkComplete":  0,
+                      "constraintType":  2,
+                      "taskType":  0,
+                      "priority":  1000,
+                      "wbs":  "2",
+                      "start":  "10/06/2026 08:00:00",
+                      "finish":  "10/06/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0,
+                      "outlineCode1":  "",
+                      "recurring":  false,
+                      "splitParts":  [
+                                         {
+                                             "start":  "10/06/2026 08:00:00",
+                                             "finish":  "10/06/2026 17:00:00"
+                                         }
+                                     ],
+                      "number1":  0,
+                      "number2":  0,
+                      "number3":  0,
+                      "flag1":  false,
+                      "date1":  "NA"
+                  }
+              ],
+    "resources":  [
+                      {
+                          "uid":  1,
+                          "name":  "First",
+                          "type":  0,
+                          "standardRate":  "100,00 zł/hr",
+                          "workMinutes":  1440,
+                          "cost":  2400,
+                          "number1":  0,
+                          "text1":  ""
+                      },
+                      {
+                          "uid":  2,
+                          "name":  "Second",
+                          "type":  0,
+                          "standardRate":  "100,00 zł/hr",
+                          "workMinutes":  1440,
+                          "cost":  2400,
+                          "number1":  0,
+                          "text1":  ""
+                      }
+                  ],
+    "calendars":  [
+                      {
+                          "name":  "Standard",
+                          "exceptions":  [
+
+                                         ]
+                      }
+                  ],
+    "assignments":  [
+                        {
+                            "uid":  2097153,
+                            "taskUid":  1,
+                            "resourceUid":  1,
+                            "units":  1,
+                            "cost":  2400,
+                            "workMinutes":  1440
+                        },
+                        {
+                            "uid":  2097154,
+                            "taskUid":  1,
+                            "resourceUid":  2,
+                            "units":  1,
+                            "cost":  1600,
+                            "workMinutes":  960
+                        },
+                        {
+                            "uid":  2097155,
+                            "taskUid":  2,
+                            "resourceUid":  2,
+                            "units":  1,
+                            "cost":  800,
+                            "workMinutes":  480
+                        }
+                    ],
+    "nativeRoundTrip":  {
+                            "sha256":  "a63c674e40528fa2ccfb623a70d1214394475e5fca36cd376719c6979c507783",
+                            "sameObservedSemantics":  true,
+                            "reopened":  {
+                                             "tasks":  [
+                                                           {
+                                                               "uid":  1,
+                                                               "id":  1,
+                                                               "name":  "Delivery",
+                                                               "outlineLevel":  1,
+                                                               "summary":  false,
+                                                               "durationMinutes":  1440,
+                                                               "workMinutes":  2400,
+                                                               "cost":  4000,
+                                                               "actualDurationMinutes":  0,
+                                                               "remainingDurationMinutes":  1440,
+                                                               "critical":  true,
+                                                               "totalSlackMinutes":  0,
+                                                               "percentComplete":  0,
+                                                               "percentWorkComplete":  0,
+                                                               "constraintType":  0,
+                                                               "taskType":  0,
+                                                               "priority":  500,
+                                                               "wbs":  "1",
+                                                               "start":  "10/05/2026 08:00:00",
+                                                               "finish":  "10/08/2026 17:00:00",
+                                                               "predecessors":  "",
+                                                               "notes":  "",
+                                                               "text1":  "",
+                                                               "baselineCost":  0,
+                                                               "outlineCode1":  "",
+                                                               "recurring":  false,
+                                                               "splitParts":  [
+                                                                                  {
+                                                                                      "start":  "10/05/2026 08:00:00",
+                                                                                      "finish":  "10/05/2026 17:00:00"
+                                                                                  },
+                                                                                  {
+                                                                                      "start":  "10/07/2026 08:00:00",
+                                                                                      "finish":  "10/08/2026 17:00:00"
+                                                                                  }
+                                                                              ],
+                                                               "number1":  0,
+                                                               "number2":  0,
+                                                               "number3":  0,
+                                                               "flag1":  false,
+                                                               "date1":  "NA"
+                                                           },
+                                                           {
+                                                               "uid":  2,
+                                                               "id":  2,
+                                                               "name":  "Reserved",
+                                                               "outlineLevel":  1,
+                                                               "summary":  false,
+                                                               "durationMinutes":  480,
+                                                               "workMinutes":  480,
+                                                               "cost":  800,
+                                                               "actualDurationMinutes":  0,
+                                                               "remainingDurationMinutes":  480,
+                                                               "critical":  true,
+                                                               "totalSlackMinutes":  0,
+                                                               "percentComplete":  0,
+                                                               "percentWorkComplete":  0,
+                                                               "constraintType":  2,
+                                                               "taskType":  0,
+                                                               "priority":  1000,
+                                                               "wbs":  "2",
+                                                               "start":  "10/06/2026 08:00:00",
+                                                               "finish":  "10/06/2026 17:00:00",
+                                                               "predecessors":  "",
+                                                               "notes":  "",
+                                                               "text1":  "",
+                                                               "baselineCost":  0,
+                                                               "outlineCode1":  "",
+                                                               "recurring":  false,
+                                                               "splitParts":  [
+                                                                                  {
+                                                                                      "start":  "10/06/2026 08:00:00",
+                                                                                      "finish":  "10/06/2026 17:00:00"
+                                                                                  }
+                                                                              ],
+                                                               "number1":  0,
+                                                               "number2":  0,
+                                                               "number3":  0,
+                                                               "flag1":  false,
+                                                               "date1":  "NA"
+                                                           }
+                                                       ],
+                                             "resources":  [
+                                                               {
+                                                                   "uid":  1,
+                                                                   "name":  "First",
+                                                                   "type":  0,
+                                                                   "standardRate":  "100,00 zł/hr",
+                                                                   "workMinutes":  1440,
+                                                                   "cost":  2400,
+                                                                   "number1":  0,
+                                                                   "text1":  ""
+                                                               },
+                                                               {
+                                                                   "uid":  2,
+                                                                   "name":  "Second",
+                                                                   "type":  0,
+                                                                   "standardRate":  "100,00 zł/hr",
+                                                                   "workMinutes":  1440,
+                                                                   "cost":  2400,
+                                                                   "number1":  0,
+                                                                   "text1":  ""
+                                                               }
+                                                           ],
+                                             "calendars":  [
+                                                               {
+                                                                   "name":  "Standard",
+                                                                   "exceptions":  [
+
+                                                                                  ]
+                                                               }
+                                                           ],
+                                             "assignments":  [
+                                                                 {
+                                                                     "uid":  2097153,
+                                                                     "taskUid":  1,
+                                                                     "resourceUid":  1,
+                                                                     "units":  1,
+                                                                     "cost":  2400,
+                                                                     "workMinutes":  1440
+                                                                 },
+                                                                 {
+                                                                     "uid":  2097154,
+                                                                     "taskUid":  1,
+                                                                     "resourceUid":  2,
+                                                                     "units":  1,
+                                                                     "cost":  1600,
+                                                                     "workMinutes":  960
+                                                                 },
+                                                                 {
+                                                                     "uid":  2097155,
+                                                                     "taskUid":  2,
+                                                                     "resourceUid":  2,
+                                                                     "units":  1,
+                                                                     "cost":  800,
+                                                                     "workMinutes":  480
+                                                                 }
+                                                             ]
+                                         }
+                        },
+    "reexportSha256":  "d9e4eeb5e28c86abd71d21491d4166db10bc15e013c05ddbb86e890ca553fb45"
+}

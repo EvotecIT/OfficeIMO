@@ -388,6 +388,11 @@
   cursor: pointer;
   transition: border-color 160ms, background 160ms;
 }
+.ocx-dropzone.has-file { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; min-height:0; padding:18px; gap:6px 16px; text-align:left; }
+.ocx-dropzone.has-file > strong { grid-column:1; font-size:14px; overflow-wrap:anywhere; }
+.ocx-dropzone.has-file > small { grid-column:1; margin:0; font-size:12px; }
+.ocx-dropzone.has-file .ocx-dropzone__icon { display:none; }
+.ocx-dropzone.has-file .ocx-button--choose { grid-column:2; grid-row:1 / 3; min-width:100px; box-shadow:none; }
 .ocx-dropzone:hover { border-color: var(--ocx-blue); background-color: #f3f7ff; }
 [data-theme="dark"] .ocx-dropzone:hover { background-color: #101d31; }
 
@@ -442,8 +447,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
-  padding: 0.48rem 0.75rem;
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  line-height: 1.35;
+  gap: 0.5rem;
   border: 1px solid var(--ocx-border-strong);
   border-radius: 8px;
   background: var(--ocx-panel);
@@ -452,7 +459,10 @@
   font-weight: 760;
   cursor: pointer;
 }
-.ocx-button:hover { background: var(--ocx-bg-alt); }
+.ocx-button:hover:not(:disabled) { background: var(--ocx-bg-alt); }
+.ocx-button:disabled { background: var(--ocx-bg-alt); color: var(--ocx-muted); border-color: var(--ocx-border); cursor: not-allowed; box-shadow: none; }
+.ocx-button:focus-visible, .ocx-text-action:focus-visible { outline: 2px solid var(--ocx-blue); outline-offset: 3px; }
+.ocx-button--primary:hover:not(:disabled) { background: var(--ocx-action-hover); color: var(--ocx-action-text); }
 .ocx-button--primary { border-color: var(--ocx-action-hover); background: var(--ocx-action-bg); color: var(--ocx-action-text); }
 
 .ocx-input-actions {
@@ -538,7 +548,7 @@
 .ocx-warning-summary strong { font-size: 0.78rem; }
 .ocx-warning-summary span { font-size: 0.72rem; line-height: 1.45; }
 [data-theme="dark"] .ocx-warning-summary { border-color: #735b28; background: #2a2416; color: #f7d787; }
-.ocx-output-actions { margin-bottom: 0.6rem; }
+.ocx-output-actions { gap: 0.75rem; margin-bottom: 1.25rem; }
 .ocx-support-content { justify-content: flex-end; margin: -0.15rem 0 0.55rem; }
 .ocx-diagnostics { display: grid; gap: 0.4rem; margin-top: 0.6rem; }
 .ocx-diagnostic-group { display: grid; gap: 0.3rem; padding: 0.5rem; border: 1px solid #f0c36a; border-radius: 8px; background: color-mix(in srgb, #fff8e6 62%, var(--ocx-panel)); }
@@ -837,29 +847,13 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.ocx-workspace::after {
-  content: "→";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border: 1px solid var(--ocx-border);
-  border-radius: 50%;
-  background: var(--ocx-panel);
-  color: var(--ocx-blue);
-  box-shadow: 0 8px 18px rgba(20, 33, 58, 0.1);
-  transform: translate(-50%, -50%);
-}
+
 
 .ocx-input-panel,
 .ocx-output-panel {
   display: flex;
   flex-direction: column;
-  padding: 1.25rem;
+  padding: 1.5rem;
 }
 
 .ocx-output-panel { background: color-mix(in srgb, var(--ocx-bg-alt) 58%, var(--ocx-panel)); }
@@ -891,7 +885,7 @@
 }
 
 .ocx-button--choose:hover { background: var(--ocx-action-hover); }
-.ocx-input-actions { justify-content: center; min-height: 36px; margin: 0.45rem 0 0; }
+.ocx-input-actions { justify-content: center; min-height: 44px; margin: 1rem 0 0; flex-wrap: wrap; }
 .ocx-text-action { min-height: 34px; padding: 0 0.65rem; }
 
 .ocx-settings {

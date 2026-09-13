@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "playwrightCliVersion": "0.1.17",
   "browserEngine": "chromium",
-  "maximumPublishedBytes": 88080384,
+  "maximumPublishedBytes": 100663296,
   "maximumStartupMilliseconds": 25000,
   "maximumBrowserHeapBytes": 536870912,
   "routes": {

@@ -8,6 +8,12 @@ using OfficeIMO.Web.Converter.Services;
 namespace OfficeIMO.Web.Converter.Components;
 
 public partial class ConverterWorkspace {
+    [Inject] private BrowserDocumentSession Session { get; set; } = null!;
+    [Parameter] public int Revision { get; set; }
+    private int _sessionRevision = -1;
+    private bool _disposed;
+    private int _outputGeneration;
+    private int _supportGeneration;
     internal const long MaxUploadBytes = BrowserConversionService.MaxPackageBytes;
 
     private const string DefaultMarkdown = """
@@ -95,7 +101,30 @@ This **Markdown** becomes a browser preview or an editable Word document.
 
     [Parameter] public string? RouteId { get; set; }
 
-    protected override Task OnParametersSetAsync() => SelectRouteAsync(ConversionRouteCatalog.Find(RouteId));
+    protected override Task OnParametersSetAsync() {
+        if (_disposed) return Task.CompletedTask;
+        var route = ConversionRouteCatalog.Find(RouteId);
+        bool changed = ActiveRoute.Id != route.Id;
+        if (!changed && _sessionRevision == Session.Revision) return Task.CompletedTask;
+        bool hadWorkingFile = SelectedFile is not null;
+        _sessionRevision = Session.Revision;
+        if (changed) {
+            ActiveRoute = route;
+            TextInput = IsHtmlInputRoute(route) ? DefaultHtml : DefaultMarkdown;
+            GenerateDebugOverlay = false;
+            IncludeDocumentContentInSupportBundle = false;
+            Diagnostics.Clear();
+        }
+        SelectedFile = Session.Current.FirstOrDefault(file => route.Accept.Split(',').Contains(file.Extension, StringComparer.OrdinalIgnoreCase));
+        if (route.InputKind == ConversionInputKind.Text && SelectedFile is null && (Session.Current.Count > 0 || hadWorkingFile)) TextInput = string.Empty;
+        if (route.InputKind == ConversionInputKind.Text && SelectedFile is not null) {
+            string text = System.Text.Encoding.UTF8.GetString(SelectedFile.Bytes);
+            if (text.Length <= BrowserConversionService.MaxTextInputChars) TextInput = text;
+            else { TextInput = string.Empty; Diagnostics.Add(new("Text too large", "The working file exceeds this text tool's limit.", "ocx-dot--warn")); }
+        }
+        // Publish selection state before asynchronous URL cleanup can yield to another navigation.
+        return ResetOutputAsync();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (!firstRender || _interop is null) {
@@ -106,26 +135,18 @@ This **Markdown** becomes a browser preview or an editable Word document.
         await _interop.RegisterWebMcpToolAsync(_webMcpReference);
     }
 
-    private async Task SelectRouteAsync(ConversionRoute route) {
-        if (ActiveRoute.Id == route.Id) {
-            return;
-        }
-        await ResetOutputAsync();
-        ActiveRoute = route;
-        SelectedFile = null;
-        TextInput = IsHtmlInputRoute(route) ? DefaultHtml : DefaultMarkdown;
-        GenerateDebugOverlay = false;
-        IncludeDocumentContentInSupportBundle = false;
-        Diagnostics.Clear();
-    }
-
     private async Task HandleFileSelectedAsync(InputFileChangeEventArgs args) {
-        await ResetOutputAsync();
+        int revision = Session.Revision;
+        string routeId = ActiveRoute.Id;
+        Task reset = ResetOutputAsync();
+        int generation = _outputGeneration;
+        bool IsCurrent() => !_disposed && revision == Session.Revision && routeId == ActiveRoute.Id && generation == _outputGeneration;
+        await reset;
+        if (!IsCurrent()) return;
         Diagnostics.Clear();
         IBrowserFile file = args.File;
         string extension = Path.GetExtension(file.Name).ToLowerInvariant();
         if (!ActiveRoute.Accept.Split(',').Contains(extension, StringComparer.OrdinalIgnoreCase)) {
-            SelectedFile = null;
             Diagnostics.Add(new("Unsupported file", $"Choose a {ActiveRoute.Source} file for this route.", "ocx-dot--bad"));
             return;
         }
@@ -134,40 +155,51 @@ This **Markdown** becomes a browser preview or an editable Word document.
             await using Stream source = file.OpenReadStream(MaxUploadBytes);
             using var buffer = new MemoryStream();
             await source.CopyToAsync(buffer);
+            if (!IsCurrent()) return;
             SelectedFile = new(file.Name, extension, ActiveRoute.Source, file.Size, buffer.ToArray());
+            Session.Open([SelectedFile]); _sessionRevision = Session.Revision;
             Diagnostics.Add(new("Ready", $"{file.Name} is loaded in this browser tab.", "ocx-dot--good"));
         } catch (IOException) {
-            SelectedFile = null;
+            if (!IsCurrent()) return;
             Diagnostics.Add(new("File too large", $"The browser demo accepts files up to {FormatBytes(MaxUploadBytes)}.", "ocx-dot--bad"));
         } catch (Exception ex) {
-            SelectedFile = null;
+            if (!IsCurrent()) return;
             Diagnostics.Add(new("Could not read file", DescribeFailure(ex), "ocx-dot--bad"));
         }
     }
 
     private async Task LoadSampleAsync() {
+        int revision = Session.Revision;
+        string routeId = ActiveRoute.Id;
         SampleDocument sample = ActiveRoute.Id switch {
             "pdf-docx" or "pdf-xlsx" or "pdf-pptx" or "pdf-html" or "pdf-png" => new("Sample PDF", "samples/showcase-dashboard.pdf", "OfficeIMO-Showcase.pdf", ".pdf"),
             "xlsx-pdf" => new("Sample XLSX", "samples/basic.xlsx", "OfficeIMO-Table.xlsx", ".xlsx"),
             "pptx-pdf" => new("Sample PPTX", "samples/conversion-proof.pptx", "OfficeIMO-Conversion-Proof.pptx", ".pptx"),
             _ => new("Sample DOCX", "samples/business-summary.docx", "OfficeIMO-Monthly-Operations.docx", ".docx")
         };
-        await ResetOutputAsync();
+        Task reset = ResetOutputAsync();
+        int generation = _outputGeneration;
+        bool IsCurrent() => !_disposed && revision == Session.Revision && routeId == ActiveRoute.Id && generation == _outputGeneration;
+        await reset;
+        if (!IsCurrent()) return;
         Diagnostics.Clear();
         try {
             byte[] bytes = await Http.GetByteArrayAsync(sample.Path);
+            if (!IsCurrent()) return;
             SelectedFile = new(sample.FileName, sample.Extension, ActiveRoute.Source, bytes.LongLength, bytes);
+            Session.Open([SelectedFile]); _sessionRevision = Session.Revision;
             Diagnostics.Add(new("Sample ready", $"{sample.FileName} is loaded locally.", "ocx-dot--good"));
         } catch (Exception ex) {
+            if (!IsCurrent()) return;
             Diagnostics.Add(new("Could not load sample", DescribeFailure(ex), "ocx-dot--bad"));
         }
     }
 
-    private async Task LoadTextSampleAsync() {
-        await ResetOutputAsync();
+    private Task LoadTextSampleAsync() {
         TextInput = IsHtmlInputRoute(ActiveRoute) ? DefaultHtml : DefaultMarkdown;
         Diagnostics.Clear();
         Diagnostics.Add(new("Sample ready", $"Sample {ActiveRoute.Source} is ready.", "ocx-dot--good"));
+        return ResetOutputAsync();
     }
 
     private async Task ConvertAsync() {
@@ -175,15 +207,24 @@ This **Markdown** becomes a browser preview or an editable Word document.
             return;
         }
 
+        int sourceRevision = Session.Revision;
+        string sourceRoute = ActiveRoute.Id;
+        Session.ClearResult();
         IsBusy = true;
-        await ResetOutputAsync();
-        Diagnostics.Clear();
-        await InvokeAsync(StateHasChanged);
-        await Task.Yield();
+        Task reset = ResetOutputAsync();
+        int generation = _outputGeneration;
+        bool IsCurrent() => !_disposed && generation == _outputGeneration && sourceRevision == Session.Revision && sourceRoute == ActiveRoute.Id;
+        await using var urls = new ConverterObjectUrlBatch(_interop, IsCurrent);
         var stopwatch = Stopwatch.StartNew();
 
         try {
-            Output = ActiveRoute.InputKind == ConversionInputKind.File
+            await reset;
+            if (!IsCurrent()) return;
+            Diagnostics.Clear();
+            await InvokeAsync(StateHasChanged);
+            await Task.Yield();
+            if (!IsCurrent()) return;
+            var output = ActiveRoute.InputKind == ConversionInputKind.File
                 ? ConversionService.ConvertFile(
                     ActiveRoute,
                     SelectedFile!,
@@ -197,25 +238,29 @@ This **Markdown** becomes a browser preview or an editable Word document.
                     SelectedProfile,
                     GenerateDebugOverlay);
             stopwatch.Stop();
+            string outputUrl = await urls.CreateAsync(output.Bytes, output.ContentType);
+            string? reportUrl = null, overlayUrl = null;
+            if (output.CompanionReport is not null) {
+                reportUrl = await urls.CreateAsync(output.CompanionReport.Bytes, output.CompanionReport.ContentType);
+            }
+            if (output.DebugOverlay is not null) {
+                overlayUrl = await urls.CreateAsync(output.DebugOverlay.Bytes, output.DebugOverlay.ContentType);
+            }
+            urls.Commit();
+            Output = output;
             ElapsedMilliseconds = stopwatch.ElapsedMilliseconds;
-            OutputFileName = Output.FileName;
-            OutputUrl = await _interop.CreateObjectUrlAsync(Output.Bytes, Output.ContentType);
-            if (Output.CompanionReport is not null) {
-                OutputReportFileName = Output.CompanionReport.FileName;
-                OutputReportUrl = await _interop.CreateObjectUrlAsync(
-                    Output.CompanionReport.Bytes,
-                    Output.CompanionReport.ContentType);
-            }
-            if (Output.DebugOverlay is not null) {
-                OutputOverlayFileName = Output.DebugOverlay.FileName;
-                OutputOverlayUrl = await _interop.CreateObjectUrlAsync(
-                    Output.DebugOverlay.Bytes,
-                    Output.DebugOverlay.ContentType);
-            }
+            OutputFileName = output.FileName;
+            OutputUrl = outputUrl;
+            OutputReportUrl = reportUrl;
+            OutputOverlayUrl = overlayUrl;
+            OutputReportFileName = output.CompanionReport?.FileName;
+            OutputOverlayFileName = output.DebugOverlay?.FileName;
             string fidelity = Output.FidelityStatus ?? "Complete";
+            if (!_disposed && sourceRoute == ActiveRoute.Id) Session.SetResult(Output.Bytes, Output.FileName, sourceRevision);
             string tone = fidelity is "Complete" or "Reconstructed" ? "ocx-dot--good" : "ocx-dot--warn";
             Diagnostics.Add(new($"{fidelity} conversion", $"Created {Output.FileName} locally in {ElapsedLabel}. {Output.ProvenanceSummary}", tone));
         } catch (Exception ex) {
+            if (!IsCurrent()) return;
             stopwatch.Stop();
             ElapsedMilliseconds = stopwatch.ElapsedMilliseconds;
             Output = null;
@@ -281,8 +326,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
     private static bool IsHtmlInputRoute(ConversionRoute route) =>
         route.Id is "html-markdown" or "html-pdf";
 
-    private async Task HandlePowerPointImportProfileChangedAsync() {
-        await ResetOutputAsync();
+    private Task HandlePowerPointImportProfileChangedAsync() {
         Diagnostics.Clear();
         if (SelectedFile is not null) {
             Diagnostics.Add(new(
@@ -290,6 +334,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
                 $"{SelectedPowerPointImportProfile.Label} is selected. Convert again to create a matching PPTX and report.",
                 "ocx-dot--good"));
         }
+        return ResetOutputAsync();
     }
 
     private async Task PrepareSupportBundleAsync() {
@@ -297,45 +342,49 @@ This **Markdown** becomes a browser preview or an editable Word document.
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(OutputSupportUrl)) {
-            await _interop.RevokeObjectUrlAsync(OutputSupportUrl);
+        var output = Output;
+        int revision = Session.Revision, generation = _outputGeneration;
+        bool includeContent = IncludeDocumentContentInSupportBundle;
+        Task reset = InvalidateSupportBundleAsync();
+        int supportGeneration = _supportGeneration;
+        bool IsCurrent() => !_disposed && revision == Session.Revision && generation == _outputGeneration &&
+            supportGeneration == _supportGeneration && ReferenceEquals(Output, output);
+        await using var urls = new ConverterObjectUrlBatch(_interop, IsCurrent);
+        try {
+            await reset;
+            if (!IsCurrent()) return;
+            BrowserConversionArtifact supportBundle = ConversionService.CreateSupportBundle(output, includeContent);
+            string url = await urls.CreateAsync(supportBundle.Bytes, supportBundle.ContentType);
+            urls.Commit();
+            OutputSupportFileName = supportBundle.FileName;
+            OutputSupportUrl = url;
+            Diagnostics.Add(new(
+                "Support bundle ready",
+                includeContent
+                    ? "The bundle includes source and PDF bytes because you opted in."
+                    : "The bundle contains fingerprints and diagnostics only; document content is excluded.",
+                "ocx-dot--good"));
+        } catch (OperationCanceledException) when (!IsCurrent()) {
         }
-        BrowserConversionArtifact supportBundle = ConversionService.CreateSupportBundle(
-            Output,
-            IncludeDocumentContentInSupportBundle);
-        OutputSupportFileName = supportBundle.FileName;
-        OutputSupportUrl = await _interop.CreateObjectUrlAsync(
-            supportBundle.Bytes,
-            supportBundle.ContentType);
-        Diagnostics.Add(new(
-            "Support bundle ready",
-            IncludeDocumentContentInSupportBundle
-                ? "The bundle includes source and PDF bytes because you opted in."
-                : "The bundle contains fingerprints and diagnostics only; document content is excluded.",
-            "ocx-dot--good"));
     }
 
     private async Task InvalidateSupportBundleAsync() {
-        if (_interop is not null && !string.IsNullOrWhiteSpace(OutputSupportUrl)) {
-            await _interop.RevokeObjectUrlAsync(OutputSupportUrl);
-        }
+        _supportGeneration++;
+        string? oldUrl = OutputSupportUrl;
         OutputSupportUrl = null;
         OutputSupportFileName = null;
+        if (_interop is not null) await _interop.RevokeObjectUrlAsync(oldUrl);
+    }
+
+    private async Task HandleOutputSettingsChangedAsync() {
+        Diagnostics.Clear();
+        await ResetOutputAsync();
     }
 
     private async Task ResetOutputAsync() {
-        if (_interop is not null && !string.IsNullOrWhiteSpace(OutputUrl)) {
-            await _interop.RevokeObjectUrlAsync(OutputUrl);
-        }
-        if (_interop is not null && !string.IsNullOrWhiteSpace(OutputReportUrl)) {
-            await _interop.RevokeObjectUrlAsync(OutputReportUrl);
-        }
-        if (_interop is not null && !string.IsNullOrWhiteSpace(OutputOverlayUrl)) {
-            await _interop.RevokeObjectUrlAsync(OutputOverlayUrl);
-        }
-        if (_interop is not null && !string.IsNullOrWhiteSpace(OutputSupportUrl)) {
-            await _interop.RevokeObjectUrlAsync(OutputSupportUrl);
-        }
+        _outputGeneration++;
+        Session.ClearResult();
+        string?[] oldUrls = [OutputUrl, OutputReportUrl, OutputOverlayUrl, OutputSupportUrl];
         OutputUrl = null;
         OutputReportUrl = null;
         OutputOverlayUrl = null;
@@ -345,6 +394,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
         OutputSupportFileName = null;
         Output = null;
         ElapsedMilliseconds = 0;
+        if (_interop is not null) foreach (string? url in oldUrls) await _interop.RevokeObjectUrlAsync(url);
     }
 
 
@@ -377,6 +427,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
             : $"{warning.Construct} · {warning.Code}";
 
     public async ValueTask DisposeAsync() {
+        _disposed = true;
         if (_interop is not null) {
             await _interop.UnregisterWebMcpToolAsync();
             await _interop.RevokeObjectUrlAsync(OutputUrl);

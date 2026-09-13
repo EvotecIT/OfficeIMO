@@ -1,0 +1,346 @@
+{
+  "taskBaselines": [
+    {
+      "Number": "0",
+      "Work": "PT10H0M0S",
+      "Cost": "120000",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00",
+      "Duration": "PT40H0M0S"
+    },
+    {
+      "Number": "1",
+      "Work": "PT11H0M0S",
+      "Cost": "120100",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00",
+      "Duration": "PT40H0M0S"
+    },
+    {
+      "Number": "2",
+      "Work": "PT12H0M0S",
+      "Cost": "120200",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00",
+      "Duration": "PT40H0M0S"
+    },
+    {
+      "Number": "3",
+      "Work": "PT13H0M0S",
+      "Cost": "120300",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00",
+      "Duration": "PT40H0M0S"
+    },
+    {
+      "Number": "4",
+      "Work": "PT14H0M0S",
+      "Cost": "120400",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00",
+      "Duration": "PT40H0M0S"
+    },
+    {
+      "Number": "5",
+      "Work": "PT15H0M0S",
+      "Cost": "120500",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00",
+      "Duration": "PT40H0M0S"
+    },
+    {
+      "Number": "6",
+      "Work": "PT16H0M0S",
+      "Cost": "120600",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00",
+      "Duration": "PT40H0M0S"
+    },
+    {
+      "Number": "7",
+      "Work": "PT17H0M0S",
+      "Cost": "120700",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00",
+      "Duration": "PT40H0M0S"
+    },
+    {
+      "Number": "8",
+      "Work": "PT18H0M0S",
+      "Cost": "120800",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00",
+      "Duration": "PT40H0M0S"
+    },
+    {
+      "Number": "9",
+      "Work": "PT19H0M0S",
+      "Cost": "120900",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00",
+      "Duration": "PT40H0M0S"
+    },
+    {
+      "Number": "10",
+      "Work": "PT20H0M0S",
+      "Cost": "121000",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00",
+      "Duration": "PT40H0M0S"
+    }
+  ],
+  "resourceBaselines": [
+    {
+      "Number": "0",
+      "Work": "PT10H0M0S",
+      "Cost": "120000"
+    },
+    {
+      "Number": "1",
+      "Work": "PT11H0M0S",
+      "Cost": "120100"
+    },
+    {
+      "Number": "2",
+      "Work": "PT12H0M0S",
+      "Cost": "120200"
+    },
+    {
+      "Number": "3",
+      "Work": "PT13H0M0S",
+      "Cost": "120300"
+    },
+    {
+      "Number": "4",
+      "Work": "PT14H0M0S",
+      "Cost": "120400"
+    },
+    {
+      "Number": "5",
+      "Work": "PT15H0M0S",
+      "Cost": "120500"
+    },
+    {
+      "Number": "6",
+      "Work": "PT16H0M0S",
+      "Cost": "120600"
+    },
+    {
+      "Number": "7",
+      "Work": "PT17H0M0S",
+      "Cost": "120700"
+    },
+    {
+      "Number": "8",
+      "Work": "PT18H0M0S",
+      "Cost": "120800"
+    },
+    {
+      "Number": "9",
+      "Work": "PT19H0M0S",
+      "Cost": "120900"
+    },
+    {
+      "Number": "10",
+      "Work": "PT20H0M0S",
+      "Cost": "121000"
+    }
+  ],
+  "assignmentBaselines": [
+    {
+      "Number": "0",
+      "Work": "PT10H0M0S",
+      "Cost": "120000",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00"
+    },
+    {
+      "Number": "1",
+      "Work": "PT11H0M0S",
+      "Cost": "120100",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00"
+    },
+    {
+      "Number": "2",
+      "Work": "PT12H0M0S",
+      "Cost": "120200",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00"
+    },
+    {
+      "Number": "3",
+      "Work": "PT13H0M0S",
+      "Cost": "120300",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00"
+    },
+    {
+      "Number": "4",
+      "Work": "PT14H0M0S",
+      "Cost": "120400",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00"
+    },
+    {
+      "Number": "5",
+      "Work": "PT15H0M0S",
+      "Cost": "120500",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00"
+    },
+    {
+      "Number": "6",
+      "Work": "PT16H0M0S",
+      "Cost": "120600",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00"
+    },
+    {
+      "Number": "7",
+      "Work": "PT17H0M0S",
+      "Cost": "120700",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00"
+    },
+    {
+      "Number": "8",
+      "Work": "PT18H0M0S",
+      "Cost": "120800",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00"
+    },
+    {
+      "Number": "9",
+      "Work": "PT19H0M0S",
+      "Cost": "120900",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00"
+    },
+    {
+      "Number": "10",
+      "Work": "PT20H0M0S",
+      "Cost": "121000",
+      "Start": "2026-10-08T08:00:00",
+      "Finish": "2026-10-14T17:00:00"
+    }
+  ],
+  "durationOnlyBaselines": [
+    {
+      "Number": "0",
+      "Duration": "PT8H0M0S"
+    },
+    {
+      "Number": "1",
+      "Duration": "PT16H0M0S"
+    },
+    {
+      "Number": "2",
+      "Duration": "PT24H0M0S"
+    },
+    {
+      "Number": "3",
+      "Duration": "PT32H0M0S"
+    },
+    {
+      "Number": "4",
+      "Duration": "PT40H0M0S"
+    },
+    {
+      "Number": "5",
+      "Duration": "PT48H0M0S"
+    },
+    {
+      "Number": "6",
+      "Duration": "PT56H0M0S"
+    },
+    {
+      "Number": "7",
+      "Duration": "PT64H0M0S"
+    },
+    {
+      "Number": "8",
+      "Duration": "PT72H0M0S"
+    },
+    {
+      "Number": "9",
+      "Duration": "PT80H0M0S"
+    },
+    {
+      "Number": "10",
+      "Duration": "PT88H0M0S"
+    }
+  ],
+  "taskAndResourceCustomValues": [
+    {
+      "FieldID": "188743731",
+      "Value": "Custom scalar edit",
+      "DurationFormat": null
+    },
+    {
+      "FieldID": "188743786",
+      "Value": "12345",
+      "DurationFormat": null
+    },
+    {
+      "FieldID": "188743945",
+      "Value": "2026-10-06T08:00:00",
+      "DurationFormat": null
+    },
+    {
+      "FieldID": "188743752",
+      "Value": "1",
+      "DurationFormat": null
+    },
+    {
+      "FieldID": "188743767",
+      "Value": "12.5",
+      "DurationFormat": null
+    },
+    {
+      "FieldID": "188744339",
+      "Value": "1",
+      "DurationFormat": null
+    },
+    {
+      "FieldID": "188743783",
+      "Value": "PT16H0M0S",
+      "DurationFormat": "7"
+    },
+    {
+      "FieldID": "205520904",
+      "Value": "Custom scalar edit",
+      "DurationFormat": null
+    },
+    {
+      "FieldID": "205521019",
+      "Value": "12345",
+      "DurationFormat": null
+    },
+    {
+      "FieldID": "205521069",
+      "Value": "2026-10-06T08:00:00",
+      "DurationFormat": null
+    },
+    {
+      "FieldID": "205521023",
+      "Value": "1",
+      "DurationFormat": null
+    },
+    {
+      "FieldID": "205521008",
+      "Value": "12.5",
+      "DurationFormat": null
+    },
+    {
+      "FieldID": "205521013",
+      "Value": "PT16H0M0S",
+      "DurationFormat": "7"
+    },
+    {
+      "FieldID": "205521403",
+      "Value": "1",
+      "DurationFormat": null
+    }
+  ]
+}

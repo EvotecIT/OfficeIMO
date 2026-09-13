@@ -39,7 +39,7 @@
               <wp:inline distT="0" distB="0" distL="0" distR="0" wp14:anchorId="00000001" wp14:editId="E00000001">
                 <wp:extent cx="457200" cy="457200" />
                 <wp:effectExtent l="0" t="0" r="0" b="0" />
-                <wp:docPr id="1" name="Kulek" descr="" title="" />
+                <wp:docPr id="1" name="Kulek" descr="" />
                 <wp:cNvGraphicFramePr>
                   <a:graphicFrameLocks noChangeAspect="1" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" />
                 </wp:cNvGraphicFramePr>
