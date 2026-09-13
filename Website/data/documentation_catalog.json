@@ -2,47 +2,189 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 233,
-    "productionComponentCount": 124,
+    "projectCount": 235,
+    "productionComponentCount": 126,
     "testProjectCount": 46,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 31,
     "apiReferenceCount": 26,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42952
+    "conceptualWordCount": 43344
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
-      "componentCount": 28
+      "componentCount": 28,
+      "componentIndexes": [
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107
+      ]
     },
     {
       "name": "Formats and interoperability",
-      "componentCount": 17
+      "componentCount": 17,
+      "componentIndexes": [
+        11,
+        17,
+        18,
+        19,
+        20,
+        21,
+        43,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        114,
+        115
+      ]
     },
     {
       "name": "Foundations and integrations",
-      "componentCount": 14
+      "componentCount": 14,
+      "componentIndexes": [
+        0,
+        9,
+        15,
+        16,
+        53,
+        54,
+        55,
+        56,
+        59,
+        60,
+        61,
+        79,
+        111,
+        125
+      ]
     },
     {
       "name": "Google Workspace",
-      "componentCount": 4
+      "componentCount": 4,
+      "componentIndexes": [
+        29,
+        30,
+        31,
+        32
+      ]
     },
     {
       "name": "Office documents",
-      "componentCount": 21
+      "componentCount": 21,
+      "componentIndexes": [
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123
+      ]
     },
     {
       "name": "Publishing and conversion",
-      "componentCount": 22
+      "componentCount": 24,
+      "componentIndexes": [
+        4,
+        5,
+        6,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        71,
+        72,
+        108,
+        109,
+        110
+      ]
     },
     {
       "name": "Rendering surfaces",
-      "componentCount": 3
+      "componentCount": 3,
+      "componentIndexes": [
+        50,
+        51,
+        52
+      ]
     },
     {
       "name": "Specialized components",
-      "componentCount": 15
+      "componentCount": 15,
+      "componentIndexes": [
+        1,
+        2,
+        3,
+        7,
+        8,
+        10,
+        12,
+        13,
+        14,
+        57,
+        58,
+        70,
+        112,
+        113,
+        124
+      ]
     }
   ],
   "components": [
@@ -183,7 +325,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 563,
+      "sourceFileCount": 564,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -482,11 +624,37 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 299,
+      "sourceFileCount": 301,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html"
+    },
+    {
+      "name": "OfficeIMO.Html.AngleSharp",
+      "packageId": "OfficeIMO.Html.AngleSharp",
+      "category": "Publishing and conversion",
+      "description": "AngleSharp-backed HTML parsing and syntax services for the owned OfficeIMO HTML document model.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj",
+      "sourceFileCount": 6,
+      "referencingTestProjectCount": 0,
+      "docsUrl": "/docs/html/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.AngleSharp"
+    },
+    {
+      "name": "OfficeIMO.Html.Core",
+      "packageId": "OfficeIMO.Html.Core",
+      "category": "Publishing and conversion",
+      "description": "Owned HTML document, node, editing and parser provider contracts for OfficeIMO.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
+      "sourceFileCount": 9,
+      "referencingTestProjectCount": 0,
+      "docsUrl": "/docs/html/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Core"
     },
     {
       "name": "OfficeIMO.Html.Pdf",
@@ -1639,7 +1807,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 70,
+      "sourceFileCount": 71,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
