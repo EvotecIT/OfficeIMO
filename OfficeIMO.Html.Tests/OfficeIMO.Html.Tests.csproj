@@ -71,6 +71,7 @@
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\AdobeVFPrototype-Subset.otf" Link="Fonts\AdobeVFPrototype-Subset.otf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\RobotoFlex.ttf" Link="Fonts\RobotoFlex.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Pdf.Tests\Pdf\Fixtures\Fonts\SourceSerif4-Regular.otf" Link="Fonts\SourceSerif4-Regular.otf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Pdf.Tests\Pdf\Fixtures\Interoperability\Scans\red-rgb.jp2" Link="Pdf\Fixtures\Interoperability\Scans\red-rgb.jp2" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

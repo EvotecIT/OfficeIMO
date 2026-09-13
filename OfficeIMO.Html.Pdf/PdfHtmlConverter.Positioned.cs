@@ -184,6 +184,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static void AppendPositionedImagePlaceholder(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfCore.PdfLogicalImage image, PdfCore.PdfImagePlacement placement, int placementIndex, PdfToHtmlOptions options) {
+        options.EmittedImagePlaceholderCount++;
         PositionedPageGeometry geometry = PositionedPageGeometry.From(page);
         PositionedBox box = geometry.TransformBox(placement.X, placement.Y, Math.Max(1D, placement.Width), Math.Max(1D, placement.Height));
         builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");

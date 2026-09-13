@@ -143,6 +143,7 @@ public sealed class PdfToHtmlOptions {
 
     internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
     internal PdfCore.PdfDocument? VisualSource { get; set; }
+    internal int EmittedImagePlaceholderCount { get; set; }
 
     internal PdfToHtmlOptions CloneForConversion() => new() {
         CancellationToken = CancellationToken,

@@ -815,6 +815,7 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfLogicalImage image,
         PdfToHtmlOptions options,
         long retainedHtmlCharacters) => RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
+            options.EmittedImagePlaceholderCount++;
             builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
             builder.Append(HtmlAttribute(image.ResourceName));
             builder.Append("\" data-page-number=\"");

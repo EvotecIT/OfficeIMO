@@ -37,10 +37,12 @@ public sealed class PdfHtmlPageAppearanceTests {
         Assert.Contains("pdf-page-appearance", embedded);
         using var imageHtml = new HtmlParser().ParseDocument(embedded);
         Assert.NotEmpty(imageHtml.QuerySelectorAll(".pdf-page-appearance svg rect[fill]"));
+        Assert.Equal(0, pdf.ToHtmlResult(options).Summary.ImagePlaceholderCount);
         options.MaxEmbeddedImageBytes = 0;
         var limited = pdf.ToHtmlResult(options);
         Assert.DoesNotContain("pdf-page-appearance", limited.Value);
         Assert.DoesNotContain("data:image/png;base64,", limited.Value);
+        Assert.Equal(1, limited.Summary.ImagePlaceholderCount);
         Assert.Contains(limited.Report.Warnings, warning => warning.Code == "ImageDataTooLarge");
         options.MaxEmbeddedImageBytes = null;
         options.ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly;
@@ -48,6 +50,34 @@ public sealed class PdfHtmlPageAppearanceTests {
         options.ImageExportMode = PdfHtmlImageExportMode.EmbeddedDataUri;
         options.IncludeImagePlaceholders = false;
         Assert.DoesNotContain("data:image/png;base64,", pdf.ToHtml(options));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UnsupportedPageAppearanceImageFallsBackToLogicalImage(bool interpolate) {
+        byte[] jpeg2000 = File.ReadAllBytes(Path.Combine(
+            AppContext.BaseDirectory, "Pdf", "Fixtures", "Interoperability", "Scans", "red-rgb.jp2"));
+        var pdf = PdfDocument.Load(BuildImagePdf(jpeg2000, "/JPXDecode", interpolate));
+
+        var result = pdf.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+
+        Assert.DoesNotContain("pdf-page-appearance", result.Value);
+        Assert.Contains("data:image/jp2;base64,", result.Value);
+        Assert.Equal(1, result.Summary.ImagePlaceholderCount);
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "PageAppearanceImageFallback");
+    }
+
+    [Fact]
+    public void UndecodableNearestNeighborJpegFallsBackWithoutFailingConversion() {
+        var pdf = PdfDocument.Load(BuildImagePdf(new byte[] { 0xff, 0xd8, 0xff, 0xd9 }, "/DCTDecode", interpolate: false));
+
+        var result = pdf.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+
+        Assert.DoesNotContain("pdf-page-appearance", result.Value);
+        Assert.Contains("data:image/jpeg;base64,", result.Value);
+        Assert.Equal(1, result.Summary.ImagePlaceholderCount);
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "PageAppearanceImageFallback");
     }
 
     [Fact]
@@ -119,5 +149,27 @@ public sealed class PdfHtmlPageAppearanceTests {
             twoPages ? $"7 0 obj << /Length {second.Length} >> stream\n" + second + "\nendstream endobj" : "",
             "trailer << /Root 1 0 R /Size 8 >>", "%%EOF"
         }));
+    }
+
+    private static byte[] BuildImagePdf(byte[] image, string filter, bool interpolate) {
+        byte[] content = Encoding.ASCII.GetBytes("q 80 0 0 60 40 50 cm /Im1 Do Q");
+        using var pdf = new MemoryStream();
+        WriteAscii(pdf, "%PDF-1.7\n");
+        WriteAscii(pdf, "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n");
+        WriteAscii(pdf, "2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj\n");
+        WriteAscii(pdf, "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >> endobj\n");
+        WriteAscii(pdf, $"4 0 obj << /Length {content.Length} >> stream\n");
+        pdf.Write(content, 0, content.Length);
+        WriteAscii(pdf, "\nendstream endobj\n");
+        string interpolation = interpolate ? " /Interpolate true" : string.Empty;
+        WriteAscii(pdf, $"5 0 obj << /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter {filter}{interpolation} /Length {image.Length} >> stream\n");
+        pdf.Write(image, 0, image.Length);
+        WriteAscii(pdf, "\nendstream endobj\ntrailer << /Root 1 0 R /Size 6 >>\n%%EOF\n");
+        return pdf.ToArray();
+    }
+
+    private static void WriteAscii(Stream stream, string value) {
+        byte[] bytes = Encoding.ASCII.GetBytes(value);
+        stream.Write(bytes, 0, bytes.Length);
     }
 }

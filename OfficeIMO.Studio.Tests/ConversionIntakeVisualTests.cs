@@ -55,7 +55,7 @@ public sealed class ConversionIntakeVisualTests {
                 int svgEnd = html.IndexOf("</svg>", svgStart, StringComparison.Ordinal);
                 Assert.True(svgEnd > svgStart, "The text layer must be complete.");
                 var textLayer = System.Xml.Linq.XElement.Parse(html[svgStart..(svgEnd + 6)]);
-                string visibleText = string.Join(" ", textLayer.Descendants()
+                string visibleText = string.Concat(textLayer.Descendants()
                     .Where(element => element.Name.LocalName == "text").Select(element => element.Value));
                 Assert.Equal("Conversion evidence", visibleText);
                 Assert.Equal(original, File.ReadAllBytes(files.Source));

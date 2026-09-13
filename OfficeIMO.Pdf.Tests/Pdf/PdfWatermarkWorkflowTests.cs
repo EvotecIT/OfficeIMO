@@ -143,6 +143,36 @@ public sealed class PdfWatermarkWorkflowTests {
     }
 
     [Fact]
+    public void OptimizedImageWatermarkSettingsCanBeReadAndEdited() {
+        byte[] image = CreateSolidBmp(64, 64);
+        var settings = Options(false);
+        settings.ImageBytes = image;
+        byte[] watermarked = PdfDocument.Load(Source()).Stamp.Watermark(settings).ToBytes();
+        var optimization = PdfOptimizer.Optimize(watermarked, new PdfOptimizationOptions {
+            Profile = PdfOptimizationProfile.Custom,
+            MinimumStreamCompressionBytes = 0,
+            KeepOriginalWhenNotSmaller = false
+        });
+
+        Assert.Contains(optimization.Actions, action => action.Kind == "CompressStream");
+        var (objects, _) = PdfSyntax.ParseObjects(optimization.Bytes, null);
+        var watermarkStream = Assert.Single(objects.Values.Select(item => item.Value).OfType<PdfStream>(),
+            stream => stream.Dictionary.Items.ContainsKey("OfficeIMOWatermarkSettings"));
+        var watermarkSettings = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(
+            objects, watermarkStream.Dictionary.Items["OfficeIMOWatermarkSettings"]));
+        var imageStream = Assert.IsType<PdfStream>(PdfObjectLookup.Resolve(objects, watermarkSettings.Items["Image"]));
+        Assert.Equal("FlateDecode", Assert.IsType<PdfName>(imageStream.Dictionary.Items["Filter"]).Name);
+        var saved = Assert.Single(PdfDocument.Load(optimization.Bytes).Stamp.ReadWatermarks());
+        Assert.Equal(image, saved.ImageBytes);
+
+        saved.X = 135;
+        var revised = PdfDocument.Load(optimization.Bytes).Stamp.Watermark(saved);
+        var revisedSettings = Assert.Single(revised.Stamp.ReadWatermarks());
+        Assert.Equal(image, revisedSettings.ImageBytes);
+        Assert.Equal(135, revisedSettings.X);
+    }
+
+    [Fact]
     public void TextWatermarkCanBeRevisedToAnImageAndMovedBehindContent() {
         var settings = Options(false);
         settings.Text = "REPLACE ME";
@@ -261,6 +291,30 @@ public sealed class PdfWatermarkWorkflowTests {
         document.Page(page => page.Size(400, 500).Content(content => content.Text("Original first page")));
         document.Page(page => page.Size(400, 500).Content(content => content.Text("Original second page")));
     }).ToBytes();
+
+    private static byte[] CreateSolidBmp(int width, int height) {
+        int rowLength = ((width * 3 + 3) / 4) * 4;
+        int imageLength = rowLength * height;
+        byte[] bytes = new byte[54 + imageLength];
+        bytes[0] = (byte)'B';
+        bytes[1] = (byte)'M';
+        WriteInt32(bytes, 2, bytes.Length);
+        WriteInt32(bytes, 10, 54);
+        WriteInt32(bytes, 14, 40);
+        WriteInt32(bytes, 18, width);
+        WriteInt32(bytes, 22, height);
+        bytes[26] = 1;
+        bytes[28] = 24;
+        WriteInt32(bytes, 34, imageLength);
+        return bytes;
+    }
+
+    private static void WriteInt32(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+        bytes[offset + 2] = (byte)(value >> 16);
+        bytes[offset + 3] = (byte)(value >> 24);
+    }
 
     private static byte[] Render(byte[] source, int page) {
         var result = PdfDocument.Load(source).Render.DisplayPage(page, new PdfPageDisplayOptions { Scale = 1D });

@@ -58,7 +58,7 @@ public static partial class PdfHtmlConverterExtensions {
         int tableCount = 0;
         int imageCount = 0;
         int imagePlacementCount = 0;
-        int imagePlaceholderCount = 0;
+        int imagePlaceholderCount = options.EmittedImagePlaceholderCount;
         int linkCount = 0;
         int renderedLinkCount = 0;
         int renderedSafeUriLinkCount = 0;
@@ -96,11 +96,6 @@ public static partial class PdfHtmlConverterExtensions {
             for (int imageIndex = 0; imageIndex < page.Images.Count; imageIndex++) {
                 PdfCore.PdfLogicalImage image = page.Images[imageIndex];
                 imagePlacementCount += image.PlacementCount;
-                if (options.IncludeImagePlaceholders) {
-                    imagePlaceholderCount += options.Profile == PdfHtmlProfile.PositionedReview && image.HasPlacements
-                        ? image.PlacementCount
-                        : 1;
-                }
             }
         }
 

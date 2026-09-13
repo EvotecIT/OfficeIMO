@@ -30,6 +30,7 @@ internal static partial class PdfStamper {
     internal static IReadOnlyList<PdfWatermarkOptions> ReadWatermarks(byte[] pdf, PdfLoadOptions? readOptions) {
         var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions);
         var document = PdfReadDocument.Open(pdf, readOptions);
+        int maximumDecodedStreamBytes = PdfLoadOptions.Resolve(readOptions).Limits.MaxDecodedStreamBytes;
         var found = new Dictionary<string, (PdfWatermarkOptions Settings, List<int> Pages)>(StringComparer.Ordinal);
         for (int index = 0; index < document.Pages.Count; index++) {
             var page = (PdfDictionary)objects[document.Pages[index].ObjectNumber].Value;
@@ -53,7 +54,8 @@ internal static partial class PdfStamper {
                     if (settings.Items.TryGetValue("Image", out var imageObject)) {
                         if (PdfObjectLookup.Resolve(objects, imageObject) is not PdfStream image || image.DecodingFailed)
                             throw new InvalidDataException("Watermark image settings cannot be read.");
-                        options.ImageBytes = (byte[])image.Data.Clone();
+                        options.ImageBytes = (byte[])Filters.StreamDecoder.DecodeRequired(
+                            image.Dictionary, image.Data, objects, maximumDecodedStreamBytes).Clone();
                     }
                     options.Validate();
                     found.Add(id, item = (options, new List<int>()));

@@ -22,9 +22,14 @@ public static partial class PdfHtmlConverterExtensions {
         token.ThrowIfCancellationRequested();
         long pixelBudget = 100_000;
         foreach (var image in page.Images) {
-            if (image.SourceImage.Interpolate) continue;
-            pixelBudget -= (long)image.SourceImage.Width * image.SourceImage.Height;
-            if (pixelBudget < 0) return ReportImageAppearanceFallback(options);
+            PdfCore.PdfExtractedImage sourceImage = image.SourceImage;
+            if (!sourceImage.Interpolate) {
+                pixelBudget -= (long)sourceImage.Width * sourceImage.Height;
+                if (pixelBudget < 0) return ReportImageAppearanceFallback(options);
+            }
+            if (!CanRenderPageAppearanceImage(sourceImage, token)) {
+                return ReportImageAppearanceFallback(options);
+            }
         }
         var source = options.VisualSource.GetReadDocument(options.VisualSource.ReadOptions, token);
         var sourcePage = source.Pages[page.PageNumber - 1];
@@ -58,6 +63,21 @@ public static partial class PdfHtmlConverterExtensions {
                 PdfCore.PdfConversionWarningSeverity.Warning);
         }
         return true;
+    }
+
+    private static bool CanRenderPageAppearanceImage(
+        PdfCore.PdfExtractedImage image,
+        System.Threading.CancellationToken cancellationToken) {
+        byte[] imageBytes = image.Bytes;
+        if (image.Interpolate && OfficeSvgImageRenderer.TryResolveEmbeddableContentType(
+                image.MimeType, imageBytes, image.FileExtension, out _)) {
+            return true;
+        }
+        return OfficeRasterImageDecoder.TryDecode(
+            imageBytes,
+            new OfficeRasterDecodeOptions { CancellationToken = cancellationToken },
+            out _,
+            out _);
     }
 
     private static bool ReportImageAppearanceFallback(PdfToHtmlOptions options) {
