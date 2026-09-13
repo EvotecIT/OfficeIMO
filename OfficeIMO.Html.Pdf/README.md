@@ -337,7 +337,7 @@ PDF-to-HTML profiles describe how an existing PDF is projected to review HTML. T
 
 When the source is an opened `PdfDocument`, positioned review uses the shared PDF drawing renderer to retain supported vector artwork, clipping, paint order, images, and embedded fonts as inline SVG. Text remains selectable. Browser font substitution can affect text whose fonts are unavailable, and renderer diagnostics appear in the conversion report.
 
-Already-read logical documents use the logical positioned projection because they do not retain the original drawing resources. Opened documents also use that projection for pages with form widgets, OCR-only text blocks, restricted reading-order projection, or image settings that require placeholders, omission, or a smaller byte limit. Check the report for content that could not be reproduced; positioned review is not a guarantee of identical appearance for every PDF.
+Already-read logical documents use the logical positioned projection because they do not retain the original drawing resources. Opened documents also use that projection for pages with form widgets, restricted reading-order projection, or image settings that require placeholders, omission, or a smaller byte limit. OCR-only pages keep the visual appearance layer and add a transparent searchable text overlay. Check the report for content that could not be reproduced; positioned review is not a guarantee of identical appearance for every PDF.
 
 Semantic output uses the shared crop-, rotation-, spanning-band-, and column-aware PDF reading order by default. Set `PdfToHtmlOptions.UseSharedPageReadingOrder = false` only when source sequence is deliberately preferred; positioned-review output always retains source geometry.
 
