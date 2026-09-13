@@ -20,7 +20,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.TestAssets\HtmlQualificationCorpus.cs" Link="Shared\HtmlQualificationCorpus.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="html-layout-performance-budgets.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\H0\v1\**"
+          Link="Documents\Html\Qualification\H0\v1\%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

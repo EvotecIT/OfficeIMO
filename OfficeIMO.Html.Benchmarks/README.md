@@ -26,6 +26,18 @@ For a quick harness and allocation smoke, use BenchmarkDotNet's dry job:
 dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net8.0 -- --job Dry
 ```
 
+## H0 qualification baseline
+
+The versioned H0 bundle is an independently authored static report with external CSS, a redistributable font, an SVG image, responsive screen profiles, and paged print rules. Capture the current engine evidence in an empty output directory:
+
+```powershell
+dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net10.0 -- --qualification-baseline --output .benchmark-artifacts/html/qualification/h0-v1
+```
+
+The runner verifies every input byte against `manifest.json`, then records the owned DOM and query results, logical and semantic projections, computed-style probes with cascade priority, resource resolution, layout pages, diagnostics, cancellation, provider versions, and source/environment identity. It writes PNG and SVG for each page plus a searchable PDF for the print profile. A missing marker, changed page count, undeclared or unused resource, style mismatch, diagnosed rendering loss, failed PDF readback, or pre-cancellation failure makes the command fail.
+
+Stage timing and allocation values in `baseline.json` are labeled `single-run-observation`. They locate work within one qualification run; use the process-isolated layout evidence and BenchmarkDotNet lanes for repeatable performance comparisons and budgets.
+
 ## Coverage
 
 The deterministic corpus measures parsing, computed styles, layout from prepared styles, combined parse/style/layout, Drawing projection, PNG, SVG, and rendered searchable PDF. Output benchmarks cover both ordinary WinAnsi report text and multilingual Unicode text so managed-font fallback costs remain visible. The paged-purchase-table lane adds 250-row and 2,500-row documents with wrapped descriptions, repeated table headers, CSS page furniture, a one-time totals block, and forward-only PDF object serialization to a non-retained destination. The long-document lane uses deterministic 100-page and 1,000-page legal-style packets with page counters and forced article boundaries; each measured layout and PDF operation rejects output whose exact page count differs from the requested corpus. The static-standards lane measures strict two-page layout and tagged PDF output with running elements, row subgrid, clip paths, SVG, page counters, bookmarks, and PDF semantic roles; setup reopens the generated PDF and requires its page and searchable-text contract before timing begins.

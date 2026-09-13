@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="90" viewBox="0 0 180 90" role="img" aria-labelledby="title desc">
+  <title id="title">Completed service checks</title>
+  <desc id="desc">Three green checks connected by a blue status line.</desc>
+  <rect width="180" height="90" rx="12" fill="#f4f8fc"/>
+  <path d="M35 45h110" stroke="#9bb7d3" stroke-width="6" stroke-linecap="round"/>
+  <g fill="#176b3a" stroke="#fff" stroke-width="3">
+    <circle cx="35" cy="45" r="15"/><circle cx="90" cy="45" r="15"/><circle cx="145" cy="45" r="15"/>
+  </g>
+  <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M28 45l5 5 10-11"/><path d="M83 45l5 5 10-11"/><path d="M138 45l5 5 10-11"/>
+  </g>
+</svg>

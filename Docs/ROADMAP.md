@@ -189,7 +189,7 @@ Current APIs and qualification limits are documented in the [architecture and su
 
 Extend the existing HTML engine into a shared document platform, static web renderer and optional browser runtime. The [engine design](officeimo.html-engine-design.md) defines ownership, dependency direction, representations and qualification rules. Current supported behavior remains in package READMEs and the generated [HTML support matrix](officeimo.html-support-matrix.md).
 
-The owned document boundary and first consumer adoption are implemented. The table lists the remaining milestone outcomes; milestone numbers remain stable identifiers even when work proceeds in a different order.
+The owned document boundary and first consumer adoption are implemented. H0/v1 now freezes one independently authored report and records DOM, query, semantic, style/cascade, resource, layout, PNG, SVG, searchable-PDF, cancellation, provider and environment evidence through the benchmark project. Its stage measurements are single-run observations; repeatable performance budgets and broader cross-platform/browser-reference evidence remain open. The table lists the remaining milestone outcomes; milestone numbers remain stable identifiers even when work proceeds in a different order.
 
 | Milestone | Deliverable | Depends on | Readiness gate |
 | --- | --- | --- | --- |
@@ -203,7 +203,7 @@ The owned document boundary and first consumer adoption are implemented. The tab
 ### Foundation follow-through and consumer adoption
 
 - [ ] Extend the owned full-document API with contextual fragment parsing, broader source-location mapping and explicit long-lived document retention policies. Qualify namespace, attributes, document mode and ancestor-form context; the current provider's public fragment entry point loses SVG namespace and ancestor-form context. Use the owned import operation for insertion and keep the immutable snapshot/edit contract as the consumer boundary.
-- [ ] Freeze a wider independently authored acceptance bundle with responsive layout, external CSS, a redistributable font, an image, a link and a table. Capture DOM, semantic, PDF, SVG/raster and browser-reference evidence using the existing corpus/gallery infrastructure.
+- [ ] Add browser-reference geometry and pixel evidence for the frozen H0/v1 page, then extend the independently authored bundle with held-out pages instead of tuning only to one report.
 - [ ] Calibrate formal parse/query/edit allocation, retained-memory and cancellation budgets in the existing benchmark tooling. The retained native/owned adapter has a measurable memory cost; qualify reductions without regressing source recovery or conversion output.
 - [ ] Widen HtmlTinkerX adoption from its verified extraction/Markdown consumer path to its other DOM consumers and packaging surfaces. Keep browser execution, minification, diffing and email inlining as separately owned capabilities. Publish consumer pins only for available owner packages.
 

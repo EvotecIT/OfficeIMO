@@ -122,15 +122,15 @@ internal readonly struct HtmlCssCascadePriority {
         DeclarationOrder = declarationOrder;
     }
 
-    private bool Inherited { get; }
-    private bool Important { get; }
-    private bool Inline { get; }
-    private CascadeLayerOrder? LayerOrder { get; }
-    private int Ids { get; }
-    private int Classes { get; }
-    private int Elements { get; }
-    private int RuleOrder { get; }
-    private int DeclarationOrder { get; }
+    internal bool Inherited { get; }
+    internal bool Important { get; }
+    internal bool Inline { get; }
+    internal CascadeLayerOrder? LayerOrder { get; }
+    internal int Ids { get; }
+    internal int Classes { get; }
+    internal int Elements { get; }
+    internal int RuleOrder { get; }
+    internal int DeclarationOrder { get; }
 
     internal bool OutranksOrEquals(HtmlCssCascadePriority existing) {
         if (existing.Inherited != Inherited) return !Inherited;

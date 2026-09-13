@@ -24,6 +24,11 @@ Website/static/data/benchmarks/library-comparisons/*.json text eol=lf -diff
 # them exactly, including the measured producer's line endings, on every OS.
 Website/data/pdf_corpus_report.json -text -diff
 
+# The HTML qualification corpus validates every source byte against its manifest.
+# Preserve exact fixture bytes across Windows, Linux, and macOS checkouts.
+OfficeIMO.TestAssets/Documents/Html/Qualification/H0/v1/** text eol=lf -diff
+OfficeIMO.TestAssets/Documents/Html/Qualification/H0/v1/**/*.otf -text -diff
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #

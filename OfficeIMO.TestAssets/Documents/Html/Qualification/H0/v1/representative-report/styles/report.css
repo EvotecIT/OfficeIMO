@@ -1,0 +1,91 @@
+@font-face {
+  font-family: "OfficeIMO Qualification";
+  src: url("../fonts/SourceSansPro-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@page {
+  size: A4;
+  margin: 48px 44px 54px;
+  @top-left { content: "NORTHSTAR · SERVICE REVIEW"; color: #48617d; font-size: 9px; }
+  @bottom-right { content: "Page " counter(page) " of " counter(pages); color: #48617d; font-size: 9px; }
+}
+
+:root {
+  --ink: #18314f;
+  --muted: #5d7088;
+  --line: #cfdae7;
+  --panel: #f4f8fc;
+  --accent: #1e63a7;
+  --success: #176b3a;
+  --warning: #8a4b08;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 32px;
+  color: var(--ink);
+  background: #eaf0f6;
+  font: 14px/1.45 "OfficeIMO Qualification", Arial, sans-serif;
+}
+.site-header, main, footer {
+  width: min(100%, 960px);
+  margin: 0 auto;
+  background: white;
+}
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 34px 40px 28px;
+  border-bottom: 4px solid var(--accent);
+}
+.eyebrow { margin: 0 0 5px; color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: .12em; }
+h1 { margin: 0; color: #15345b; font-size: 32px; line-height: 1.1; }
+h2 { margin: 0 0 14px; color: #15345b; font-size: 20px; }
+.subtitle { margin: 8px 0 0; color: var(--muted); }
+.status-illustration { width: 180px; height: 90px; object-fit: contain; }
+main { padding: 28px 40px 36px; }
+.summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.summary-card { display: flex; flex-direction: column; gap: 4px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.metric { color: var(--accent); font-size: 24px; font-weight: 700; }
+.summary-card small { color: var(--muted); }
+.report-section { margin-top: 30px; }
+.section-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; }
+.review-link { color: #155eef; text-decoration: underline; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+thead { display: table-header-group; }
+th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+thead th { color: #fff; background: #234f7f; }
+tbody tr:nth-child(even) { background: #f7f9fc; }
+.status { display: inline-block; min-width: 58px; padding: 3px 8px; border-radius: 12px; text-align: center; }
+.status.ready { color: var(--success); background: #e6f5eb; }
+.status.review { color: var(--warning); background: #fff1da; }
+.next-actions { display: grid; grid-template-columns: 180px 1fr; gap: 26px; padding: 20px; border-left: 4px solid var(--accent); background: var(--panel); break-inside: avoid; }
+.next-actions ol { margin: 0; padding-left: 20px; }
+.next-actions li + li { margin-top: 8px; }
+footer { padding: 14px 40px 22px; color: var(--muted); font-size: 11px; }
+
+@media (max-width: 600px) {
+  body { padding: 12px; }
+  .site-header { align-items: flex-start; padding: 24px; }
+  .status-illustration { width: 112px; height: 64px; }
+  main { padding: 22px 24px 28px; }
+  .summary-grid { grid-template-columns: 1fr; }
+  .section-heading { align-items: flex-start; flex-direction: column; }
+  .next-actions { grid-template-columns: 1fr; gap: 8px; }
+  th, td { padding: 7px 5px; font-size: 11px; }
+}
+
+@media print {
+  body { padding: 0; background: white; }
+  .site-header, main, footer { width: 100%; }
+  .site-header { padding: 0 0 22px; }
+  main { padding: 24px 0 0; }
+  .next-actions { break-before: page; }
+  footer { padding: 16px 0 0; }
+  .review-link { color: var(--ink); }
+}
