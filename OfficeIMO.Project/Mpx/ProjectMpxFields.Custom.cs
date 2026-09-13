@@ -7,7 +7,8 @@ internal static partial class ProjectMpxFields {
     internal sealed class CustomMapping {
         internal readonly int Id;
         internal readonly string FieldId, Name, Kind;
-        internal CustomMapping(int id, ProjectCustomFieldIdentity field) { Id = id; FieldId = field.Id.ToString(CultureInfo.InvariantCulture); Name = field.Name; Kind = field.Kind; }
+        internal readonly bool IsTask;
+        internal CustomMapping(int id, ProjectCustomFieldIdentity field) { Id = id; FieldId = field.Id.ToString(CultureInfo.InvariantCulture); Name = field.Name; Kind = field.Kind; IsTask = field.IsTask; }
         internal string Parse(string text, ProjectMpxValues values) => Kind switch {
             "Text" => text, "Flag" => values.Flag(text) ? "1" : "0",
             "Number" => ProjectMpxValues.Text(values.Number(text)),

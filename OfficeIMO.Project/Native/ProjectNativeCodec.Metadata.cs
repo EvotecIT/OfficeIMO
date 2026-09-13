@@ -41,7 +41,8 @@ internal static partial class ProjectNativeCodec {
                 string id = values.UInt32(offset).ToString(CultureInfo.InvariantCulture);
                 if (document.CustomFields.Any(f => f.FieldId == id)) throw new InvalidDataException("Duplicate custom-field alias.");
                 var definition = document.CustomFields.Add(); definition.FieldId = id;
-                definition.Alias = values.Slice(offset + 8, 104).Unicode().Split('\0')[0];
+                string alias = values.Slice(offset + 8, 104).Unicode().Split('\0')[0];
+                definition.Alias = alias.Length == 0 ? null : alias;
             }
         }
     }

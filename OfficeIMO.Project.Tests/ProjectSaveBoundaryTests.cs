@@ -143,6 +143,73 @@ public sealed class ProjectSaveBoundaryTests {
     }
 
     [Theory]
+    [InlineData("task duration", "PROJECT_XML_DURATION_PRECISION", "/Task[UID=1]/Duration")]
+    [InlineData("task actual duration", "PROJECT_XML_DURATION_PRECISION", "/Task[UID=1]/ActualDuration")]
+    [InlineData("task remaining duration", "PROJECT_XML_DURATION_PRECISION", "/Task[UID=1]/RemainingDuration")]
+    [InlineData("task work", "PROJECT_XML_WORK_PRECISION", "/Task[UID=1]/Work")]
+    [InlineData("resource work", "PROJECT_XML_WORK_PRECISION", "/Resource[UID=1]/Work")]
+    [InlineData("assignment overtime", "PROJECT_XML_WORK_PRECISION", "/Assignment[UID=1]/OvertimeWork")]
+    [InlineData("task baseline duration", "PROJECT_XML_DURATION_PRECISION", "/Task[UID=1]/Baseline[0]/Duration")]
+    [InlineData("resource baseline work", "PROJECT_XML_WORK_PRECISION", "/Resource[UID=1]/Baseline[0]/Work")]
+    [InlineData("assignment baseline work", "PROJECT_XML_WORK_PRECISION", "/Assignment[UID=1]/Baseline[0]/Work")]
+    public void XmlRejectsValuesThatRequireSubTickRounding(string owner, string code, string location) {
+        using var document = ProjectDocument.Create();
+        var task = document.Tasks.Add("Task"); var resource = document.Resources.AddWork("Engineer");
+        var assignment = document.Assignments.Add(task, resource);
+        var taskBaseline = task.Baselines.Add(); taskBaseline.Number = 0;
+        var resourceBaseline = resource.Baselines.Add(); resourceBaseline.Number = 0;
+        var assignmentBaseline = assignment.Baselines.Add(); assignmentBaseline.Number = 0;
+        var duration = ProjectDuration.WorkingMinutes(0.000000001m); var work = new ProjectWork(0.000000001m);
+        switch (owner) {
+            case "task duration": task.Duration = duration; break;
+            case "task actual duration": task.ActualDuration = duration; break;
+            case "task remaining duration": task.RemainingDuration = duration; break;
+            case "task work": task.Work = work; break;
+            case "resource work": resource.Work = work; break;
+            case "assignment overtime": assignment.OvertimeWork = work; break;
+            case "task baseline duration": taskBaseline.Duration = duration; break;
+            case "resource baseline work": resourceBaseline.Work = work; break;
+            case "assignment baseline work": assignmentBaseline.Work = work; break;
+        }
+        var diagnostic = Assert.Single(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).Diagnostics,
+            item => item.Code == code && item.Location == location);
+        Assert.Equal(ProjectDiagnosticSeverity.Error, diagnostic.Severity);
+        using var output = new MemoryStream();
+        Assert.Throws<InvalidDataException>(() => document.Save(output)); Assert.Equal(0, output.Length);
+    }
+
+    [Theory]
+    [InlineData("0.000000001")]
+    [InlineData("0.0000000025")]
+    public void XmlWorkRejectsPositiveSubTickAndMidpointValues(string text) {
+        using var document = ProjectDocument.Create();
+        document.Tasks.Add("Task").Work = new ProjectWork(decimal.Parse(text, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Contains(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).Diagnostics,
+            item => item.Code == "PROJECT_XML_WORK_PRECISION");
+    }
+
+    [Theory]
+    [InlineData("-0.000000001")]
+    [InlineData("-0.0000000025")]
+    public void XmlDurationRejectsNegativeSubTickAndMidpointValues(string text) {
+        using var document = ProjectDocument.Create();
+        document.Tasks.Add("Task").Duration = ProjectDuration.WorkingMinutes(decimal.Parse(text, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Contains(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).Diagnostics,
+            item => item.Code == "PROJECT_XML_DURATION_PRECISION");
+    }
+
+    [Fact]
+    public void XmlWorkAcceptsAnExactWholeTickValue() {
+        using var document = ProjectDocument.Create(); var work = new ProjectWork(0.000000005m);
+        document.Tasks.Add("Task").Work = work;
+        Assert.DoesNotContain(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).Diagnostics,
+            item => item.Code == "PROJECT_XML_WORK_PRECISION");
+        using var output = new MemoryStream(); document.Save(output);
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(work, reopened.Tasks.Single().Work);
+    }
+
+    [Theory]
     [InlineData("task")]
     [InlineData("resource")]
     [InlineData("assignment")]

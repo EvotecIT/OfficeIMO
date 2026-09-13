@@ -66,19 +66,27 @@ internal sealed partial class ProjectNativeWriter {
         using var buffer = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(_options.MaxOutputBytes);
         using var writer = new BinaryWriter(buffer);
         writer.Write(CalendarWeek(calendar.WeekDays)); writer.Write(calendar.Exceptions.Count);
+        int exceptionIndex = 0;
         foreach (var exception in calendar.Exceptions) {
             _token.ThrowIfCancellationRequested(); var record = new byte[92];
             Put(record, 0, CalendarDay(exception.FromDate)); Put(record, 2, CalendarDay(exception.ToDate));
             Buffer.BlockCopy(CalendarDayPattern(exception.IsWorking, exception.WorkingTimes), 0, record, 4, 60);
             Put(record, 72, 1); byte[] label = Text(exception.Name ?? string.Empty); Put(record, 88, label.Length);
             writer.Write(record); writer.Write(label); Pad(writer);
+            if (exception.Name == null) Loss("PROJECT_NATIVE_CALENDAR_LABEL_DEFAULT",
+                "Native output stores an absent calendar-exception label as an empty label.", Path(calendar, "Calendar") + "/Exception[" + exceptionIndex + "]/Name");
+            exceptionIndex++;
         }
         writer.Write(calendar.WorkWeeks.Count);
+        int weekIndex = 0;
         foreach (var week in calendar.WorkWeeks) {
             _token.ThrowIfCancellationRequested(); writer.Write(CalendarWeek(week.WeekDays));
             var record = new byte[16]; Put(record, 0, CalendarDay(week.FromDate)); Put(record, 2, CalendarDay(week.ToDate));
             byte[] label = Text(week.Name ?? string.Empty); Put(record, 12, label.Length);
             writer.Write(record); writer.Write(label); Pad(writer);
+            if (week.Name == null) Loss("PROJECT_NATIVE_CALENDAR_LABEL_DEFAULT",
+                "Native output stores an absent work-week label as an empty label.", Path(calendar, "Calendar") + "/Week[" + weekIndex + "]/Name");
+            weekIndex++;
         }
         return buffer.ToArray();
     }

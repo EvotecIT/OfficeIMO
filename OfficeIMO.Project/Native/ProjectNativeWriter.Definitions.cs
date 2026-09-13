@@ -2,7 +2,15 @@ namespace OfficeIMO.Project;
 
 internal sealed partial class ProjectNativeWriter {
     private void WriteDefinitions() {
-        if (!ChangedTree("/Definition")) return;
+        bool definitionsChanged = ChangedTree("/Definition");
+        bool customValuesChanged = _changes.Any(key =>
+            (key.StartsWith("/Task[", StringComparison.Ordinal) || key.StartsWith("/Resource[", StringComparison.Ordinal))
+            && key.IndexOf("/Custom[", StringComparison.Ordinal) >= 0);
+        if (!definitionsChanged && !customValuesChanged) return;
+        if (!definitionsChanged) {
+            if (_profile != ProjectNativeProfile.Mpp8) ReportDefinitionNameNormalizations();
+            return;
+        }
         Handle("/Definition/Count");
         if (_profile == ProjectNativeProfile.Mpp8) {
             for (int index = 0; index < _document.CustomFields.Count; index++) {
@@ -12,6 +20,7 @@ internal sealed partial class ProjectNativeWriter {
                 if (field == null) continue;
                 Handle(path + "/FieldId");
                 if (definition.FieldName == null || definition.FieldName == field.Name) Handle(path + "/FieldName");
+                Loss("PROJECT_NATIVE_DEFINITION_LOSS", "Project 98 custom-field definitions have no qualified definition record and are omitted.", path + "/FieldId");
                 if (definition.Alias != null && Changed(path + "/Alias")) {
                     Handle(path + "/Alias");
                     Loss("PROJECT_NATIVE_ALIAS_LOSS", "Project 98 custom-field values are retained, but aliases have no qualified encoding and are omitted.", path + "/Alias");
@@ -49,12 +58,22 @@ internal sealed partial class ProjectNativeWriter {
                 if (!uint.TryParse(definition.FieldId, out uint id)) continue;
                 var field = catalog.FirstOrDefault(f => f.Id == id); if (field == null) continue;
                 string path = "/Definition[" + index + "]";
-                Handle(path + "/FieldId"); if (definition.FieldName == null || definition.FieldName == field.Name) Handle(path + "/FieldName");
+                Handle(path + "/FieldId");
+                bool hasValue = HasCustomValue(task, definition.FieldId);
+                if (definition.FieldName == null || definition.FieldName == field.Name) {
+                    Handle(path + "/FieldName");
+                    string? restoredName = hasValue ? field.Name : null;
+                    if (definition.FieldName != restoredName)
+                        Loss("PROJECT_NATIVE_DEFINITION_NAME_DEFAULT", hasValue
+                            ? "Native custom-field values restore an absent definition name to the canonical field name."
+                            : "Native custom-field definitions without values do not retain their canonical field name.", path + "/FieldName");
+                }
                 Handle(path + "/Alias");
                 if (!Changed(path + "/Alias") && !Changed(path + "/FieldId")) continue;
-                if (definition.Alias == null) { records.Remove(id); continue; }
+                if (definition.Alias != null && definition.Alias.Length == 0)
+                    Loss("PROJECT_NATIVE_ALIAS_EMPTY", "Native output normalizes an explicitly empty custom-field alias to an absent alias.", path + "/Alias");
                 byte[] alias;
-                try { alias = Text(definition.Alias); }
+                try { alias = Text(definition.Alias ?? string.Empty); }
                 catch (ArgumentException ex) { AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_ALIAS_VALUE", ProjectDiagnosticSeverity.Error, ex.Message, path)); continue; }
                 if (alias.Length > 104) { AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_ALIAS_LENGTH", ProjectDiagnosticSeverity.Error, "Native aliases allow at most 51 UTF-16 code units.", path)); continue; }
                 if (!records.TryGetValue(id, out var record)) { record = new byte[112]; Put(record, 0, unchecked((int)id)); Put(record, 4, 16); records.Add(id, record); }
@@ -68,5 +87,23 @@ internal sealed partial class ProjectNativeWriter {
             _replacements[stream] = props.Serialize(_options.MaxOutputBytes, _token);
         }
         if (!_new) Loss("PROJECT_NATIVE_CUSTOM_REFERENCES", "Aliases are updated, but references inside opaque custom-field formulas and lookup metadata are not rewritten.", "/Definition");
+    }
+    private bool HasCustomValue(bool task, string? fieldId) => task
+        ? _document.AllTasks.Any(item => item.CustomFields.Any(value => value.FieldId == fieldId && value.Value != null && value.ValueId == null && value.ValueGuid == null))
+        : _document.Resources.Any(item => item.CustomFields.Any(value => value.FieldId == fieldId && value.Value != null && value.ValueId == null && value.ValueGuid == null));
+    private void ReportDefinitionNameNormalizations() {
+        for (int index = 0; index < _document.CustomFields.Count; index++) {
+            _token.ThrowIfCancellationRequested(); var definition = _document.CustomFields[index];
+            if (!uint.TryParse(definition.FieldId, out uint id)) continue;
+            bool task = ProjectCustomFieldIdentity.TaskFields.Any(field => field.Id == id);
+            var catalog = task ? ProjectCustomFieldIdentity.TaskFields : ProjectCustomFieldIdentity.ResourceFields;
+            var field = catalog.FirstOrDefault(item => item.Id == id); if (field == null) continue;
+            string? restoredName = HasCustomValue(task, definition.FieldId) ? field.Name : null;
+            if ((definition.FieldName == null || definition.FieldName == field.Name) && definition.FieldName != restoredName)
+                Loss("PROJECT_NATIVE_DEFINITION_NAME_DEFAULT", restoredName == null
+                    ? "Native custom-field definitions without values do not retain their canonical field name."
+                    : "Native custom-field values restore an absent definition name to the canonical field name.",
+                    "/Definition[" + index + "]/FieldName");
+        }
     }
 }

@@ -51,7 +51,7 @@ internal sealed partial class ProjectNativeWriter {
             if (task.IsNull != true) Handle(path + "/IsNull");
             Handle(path + "/Uid"); Handle(path + "/Parent"); Handle(path + "/Position"); Handle(path + "/IsSummary");
             int displayId = task.Uid == 0 ? 0 : ++row;
-            CheckDisplayId(task.DisplayId, displayId, path);
+            CheckDisplayId(task.DisplayId, displayId, path, added);
             if (_new || StructureChanged || added || Changed(path + "/DisplayId")) {
                 editor.Integer(task.Uid, 0x0b400017, displayId);
                 SortPosition(editor, task.Uid, 0x0b400479, displayId + 1);
@@ -92,7 +92,7 @@ internal sealed partial class ProjectNativeWriter {
         foreach (var resource in _document.Resources) {
             _token.ThrowIfCancellationRequested(); string path = Path(resource, "Resource"); bool added = !editor.Contains(resource.Uid);
             int displayId = resource.Uid == 0 ? 0 : ++row;
-            CheckDisplayId(resource.DisplayId, displayId, path);
+            CheckDisplayId(resource.DisplayId, displayId, path, added);
             if (added) { editor.Add(resource.Uid); editor.Integer(resource.Uid, 0x0c40001b, resource.Uid);
                 Identity(editor, resource.Uid, 0x0c4002d8, EntityGuid(resource, 2)); }
             if (added || StructureChanged || Changed(path + "/DisplayId")) {
@@ -130,9 +130,11 @@ internal sealed partial class ProjectNativeWriter {
         if ((added || Changed(path + "/" + field)) && !value.HasValue)
             Loss("PROJECT_NATIVE_TASK_DEFAULT", "Native output normalizes an absent " + description + " state to false.", path + "/" + field);
     }
-    private void CheckDisplayId(int? requested, int actual, string path) {
+    private void CheckDisplayId(int? requested, int actual, string path, bool added) {
         string key = path + "/DisplayId"; Handle(key);
-        if (Changed(key) && requested != actual) AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_DISPLAY_ORDER", ProjectDiagnosticSeverity.Error,
+        if (added && !requested.HasValue)
+            Loss("PROJECT_NATIVE_DISPLAY_DEFAULT", "Native output assigns a display ID from collection order to a new row with no requested display ID.", key);
+        else if (Changed(key) && requested != actual) AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_DISPLAY_ORDER", ProjectDiagnosticSeverity.Error,
             "Native display IDs follow collection order. Move tasks through MoveTo; do not assign a conflicting or absent display ID.", key));
     }
     private void WriteAssignments() {

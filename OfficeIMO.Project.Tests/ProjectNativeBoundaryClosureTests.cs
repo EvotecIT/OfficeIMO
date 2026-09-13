@@ -393,6 +393,144 @@ public sealed class ProjectNativeBoundaryClosureTests {
         Assert.Contains("storage mapping", error.Message);
     }
 
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpt8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpt9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpt12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    [InlineData(ProjectFileFormat.Mpt14)]
+    public void NewNativeRowsReportGeneratedDisplayIds(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        var task = document.Tasks.Add("Added task"); task.DisplayId = null;
+        task.IsManual = false; task.IsActive = true; task.IsNull = false; task.IsMilestone = false; task.IsCritical = false; task.EffortDriven = false;
+        var resource = document.Resources.AddWork("Added resource"); resource.DisplayId = null; resource.IsNull = false;
+        var report = document.AssessSave(new ProjectSaveOptions { Format = format });
+        Assert.Contains(report.Diagnostics, item => item.Code == "PROJECT_NATIVE_DISPLAY_DEFAULT" && item.Location == "/Task[UID=" + task.Uid + "]/DisplayId");
+        Assert.Contains(report.Diagnostics, item => item.Code == "PROJECT_NATIVE_DISPLAY_DEFAULT" && item.Location == "/Resource[UID=" + resource.Uid + "]/DisplayId");
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.NotNull(reopened.Tasks.GetByUid(task.Uid).DisplayId);
+        Assert.NotNull(reopened.Resources.GetByUid(resource.Uid).DisplayId);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpt12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    [InlineData(ProjectFileFormat.Mpt14)]
+    public void AbsentNativeCalendarLabelsReportTheirNormalization(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        document.Calendar!.Exceptions[0].Name = null;
+        var week = document.Calendar.WorkWeeks.Add(); week.Name = null;
+        week.FromDate = new DateTime(2026, 10, 19); week.ToDate = new DateTime(2026, 10, 23, 23, 59, 0);
+        var report = document.AssessSave(new ProjectSaveOptions { Format = format });
+        Assert.Equal(2, report.Diagnostics.Count(item => item.Code == "PROJECT_NATIVE_CALENDAR_LABEL_DEFAULT"));
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(string.Empty, reopened.Calendar!.Exceptions[0].Name);
+        Assert.Equal(string.Empty, reopened.Calendar.WorkWeeks[0].Name);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpt8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpt9)]
+    public void ExplicitlyEmptyLegacyExceptionLabelsReportTheirLoss(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create(); document.Calendar!.Exceptions[0].Name = string.Empty;
+        Assert.Contains(document.AssessSave(new ProjectSaveOptions { Format = format }).Diagnostics,
+            item => item.Code == "PROJECT_NATIVE_EXCEPTION_LABEL_LOSS" && item.RepresentsLoss);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpt9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpt12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    [InlineData(ProjectFileFormat.Mpt14)]
+    public void NativeDefinitionsRemainPresentWithoutAliases(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        var definition = document.CustomFields.Single(); definition.Alias = null;
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        var restored = Assert.Single(reopened.CustomFields, item => item.FieldId == definition.FieldId);
+        Assert.Null(restored.Alias);
+    }
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("Text1", false)]
+    public void NativeDefinitionNamesReportTheirReaderEquivalentValue(string? fieldName, bool withValue) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        var definition = document.CustomFields.Single(); definition.FieldName = fieldName;
+        if (!withValue) {
+            var fields = document.Tasks.GetByUid(2).CustomFields; fields.Remove(fields.Single());
+        }
+        var diagnostic = Assert.Single(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14 }).Diagnostics,
+            item => item.Code == "PROJECT_NATIVE_DEFINITION_NAME_DEFAULT");
+        Assert.True(diagnostic.RepresentsLoss);
+        using var output = new MemoryStream(); document.Save(output, Native(ProjectFileFormat.Mpp14));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(withValue ? "Text1" : null, reopened.CustomFields.Single().FieldName);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp9, false, false)]
+    [InlineData(ProjectFileFormat.Mpt9, false, true)]
+    [InlineData(ProjectFileFormat.Mpp12, true, false)]
+    [InlineData(ProjectFileFormat.Mpt12, true, true)]
+    [InlineData(ProjectFileFormat.Mpp14, false, false)]
+    [InlineData(ProjectFileFormat.Mpt14, false, true)]
+    [InlineData(ProjectFileFormat.Mpp9, true, true)]
+    [InlineData(ProjectFileFormat.Mpt9, true, false)]
+    [InlineData(ProjectFileFormat.Mpp12, false, true)]
+    [InlineData(ProjectFileFormat.Mpt12, false, false)]
+    [InlineData(ProjectFileFormat.Mpp14, true, true)]
+    [InlineData(ProjectFileFormat.Mpt14, true, false)]
+    public void ExistingNativeCustomValuePresenceChangesReportDefinitionNameNormalization(ProjectFileFormat format, bool resource, bool addFirst) {
+        using var seed = ProjectNativeAuthoringTests.Create();
+        string fieldId;
+        ProjectCustomFieldDefinition definition;
+        ProjectCollection<ProjectCustomFieldValue> fields;
+        if (resource) {
+            fieldId = "205520904"; definition = seed.CustomFields.Add(); definition.FieldId = fieldId; definition.Alias = "Resource text";
+            fields = seed.Resources.GetByUid(1).CustomFields;
+        } else {
+            fieldId = "188743731"; definition = seed.CustomFields.Single(item => item.FieldId == fieldId);
+            fields = seed.Tasks.GetByUid(2).CustomFields;
+        }
+        definition.FieldName = addFirst ? null : "Text1";
+        var existing = fields.FirstOrDefault(item => item.FieldId == fieldId);
+        if (addFirst && existing != null) fields.Remove(existing);
+        if (!addFirst && existing == null) { existing = fields.Add(); existing.FieldId = fieldId; existing.Value = "Before"; }
+        using var original = new MemoryStream(); seed.Save(original, Native(format));
+        using var document = ProjectDocument.Load(new MemoryStream(original.ToArray()));
+        definition = document.CustomFields.Single(item => item.FieldId == fieldId);
+        fields = resource ? document.Resources.GetByUid(1).CustomFields : document.Tasks.GetByUid(2).CustomFields;
+        if (addFirst) { var value = fields.Add(); value.FieldId = fieldId; value.Value = "After"; }
+        else fields.Remove(fields.Single(item => item.FieldId == fieldId));
+        var diagnostic = Assert.Single(document.AssessSave(new ProjectSaveOptions { Format = format }).Diagnostics,
+            item => item.Code == "PROJECT_NATIVE_DEFINITION_NAME_DEFAULT" && item.Location.EndsWith("/FieldName", StringComparison.Ordinal));
+        Assert.True(diagnostic.RepresentsLoss);
+        using var changed = new MemoryStream(); document.Save(changed, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(changed.ToArray()));
+        Assert.Equal(addFirst ? "Text1" : null, reopened.CustomFields.Single(item => item.FieldId == fieldId).FieldName);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpt8)]
+    public void Project98ReportsDefinitionLossEvenWhenAliasIsAbsent(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        document.CustomFields.Single().Alias = null;
+        Assert.Contains(document.AssessSave(new ProjectSaveOptions { Format = format }).Diagnostics,
+            item => item.Code == "PROJECT_NATIVE_DEFINITION_LOSS" && item.RepresentsLoss);
+    }
+
     [Fact]
     public void FixedNativeFieldsCannotMasqueradeAsVariableStorage() {
         byte[] source = NewNative(ProjectFileFormat.Mpp14);

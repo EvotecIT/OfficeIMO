@@ -145,11 +145,12 @@ public sealed class ProjectNativeAuthoringTests {
         var document = ProjectDocument.Create(); document.Name = "Native project"; document.Title = "Native title";
         document.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0); document.Settings.ScheduleFromStart = true;
         document.Calendar = document.Calendars.AddStandardWorkingWeek();
-        var summary = document.Tasks.AddSummary("Delivery"); var task = summary.Children.Add("Design café / Łódź / 日本語");
+        var summary = document.Tasks.AddSummary("Delivery"); summary.DisplayId = 1;
+        var task = summary.Children.Add("Design café / Łódź / 日本語"); task.DisplayId = 2;
         summary.IsManual = false; summary.IsActive = true; summary.IsNull = false; summary.IsMilestone = false; summary.IsCritical = false; summary.EffortDriven = false;
         task.IsManual = false; task.IsActive = true; task.IsNull = false; task.IsMilestone = false; task.IsCritical = false; task.EffortDriven = false;
         task.Duration = ProjectDuration.WorkingDays(1); task.Start = document.Settings.StartDate; task.Finish = task.Start.Value.AddHours(9);
-        var resource = document.Resources.AddWork("Engineer"); resource.IsNull = false; resource.Calendar = document.Calendars.Add("Engineer", document.Calendar);
+        var resource = document.Resources.AddWork("Engineer"); resource.DisplayId = 1; resource.IsNull = false; resource.Calendar = document.Calendars.Add("Engineer", document.Calendar);
         resource.StandardRate = 100; resource.MaxUnits = ProjectUnits.Percent(100);
         var assignment = document.Assignments.Add(task, resource); assignment.Units = ProjectUnits.Percent(100); assignment.Work = ProjectWork.Hours(8);
         assignment.Start = task.Start; assignment.Finish = task.Finish;

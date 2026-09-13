@@ -26,7 +26,7 @@ internal sealed partial class ProjectMpxWriter {
         if (resource.Calendar == null) return;
         var calendar = resource.Calendar; Handle(path + "/Calendar");
         if (_resourceCalendarOwners.TryGetValue(calendar, out var owner) && owner == resource) {
-            string representedName = resource.Name ?? "Resource";
+            string representedName = string.IsNullOrEmpty(resource.Name) ? "Resource" : resource.Name!;
             if (!string.Equals(calendar.Name, representedName, StringComparison.Ordinal)) Diagnostic("PROJECT_MPX_RESOURCE_CALENDAR_NAME",
                 "MPX derives the resource calendar name from the resource and uses 'Resource' when the resource name is absent.", Path(calendar, "Calendar") + "/Name");
             WriteCalendar(calendar, _calendarNames[calendar.BaseCalendar!], true);

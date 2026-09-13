@@ -132,7 +132,13 @@ public sealed partial class ProjectDocument {
         }
         void CheckWork(ProjectWork? value, string location) {
             if (!value.HasValue) return;
-            try { _ = ProjectXmlValue.MinutesToSpan(value.Value.Minutes); }
+            try {
+                decimal ticks = checked(value.Value.Minutes * TimeSpan.TicksPerMinute);
+                _ = ProjectXmlValue.MinutesToSpan(value.Value.Minutes);
+                if (ticks != decimal.Truncate(ticks))
+                    diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_WORK_PRECISION", ProjectDiagnosticSeverity.Error,
+                        "Project XML work requires a value that converts to whole TimeSpan ticks.", location));
+            }
             catch (OverflowException) {
                 diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_WORK_RANGE", ProjectDiagnosticSeverity.Error,
                     "The work exceeds the duration range representable in Project XML.", location));
@@ -140,7 +146,14 @@ public sealed partial class ProjectDocument {
         }
         void CheckDuration(ProjectDuration? value, string location) {
             if (!value.HasValue) return;
-            try { _ = ProjectXmlValue.Duration(value, this); }
+            try {
+                decimal minutes = checked(value.Value.Value * ProjectXmlValue.MinutesPerUnit(value.Value.Unit, value.Value.IsElapsed, this));
+                decimal ticks = checked(minutes * TimeSpan.TicksPerMinute);
+                _ = ProjectXmlValue.Duration(value, this);
+                if (ticks != decimal.Truncate(ticks))
+                    diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_DURATION_PRECISION", ProjectDiagnosticSeverity.Error,
+                        "Project XML durations require a value that converts to whole TimeSpan ticks.", location));
+            }
             catch (OverflowException) {
                 diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_DURATION_RANGE", ProjectDiagnosticSeverity.Error,
                     "The duration exceeds the range representable in Project XML.", location));

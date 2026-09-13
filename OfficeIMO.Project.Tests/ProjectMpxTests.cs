@@ -6,6 +6,86 @@ public sealed class ProjectMpxTests {
     private static ProjectDocument Read(string text) => ProjectDocument.Load(new MemoryStream(Encoding.ASCII.GetBytes(text)));
     private static ProjectSaveOptions Options(bool allow = true) => new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4, LossPolicy = allow ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block };
 
+    [Theory]
+    [InlineData("task name", "/Task[UID=1]/Name")]
+    [InlineData("task wbs", "/Task[UID=1]/Wbs")]
+    [InlineData("task contact", "/Task[UID=1]/Contact")]
+    [InlineData("resource name", "/Resource[UID=1]/Name")]
+    [InlineData("resource initials", "/Resource[UID=1]/Initials")]
+    [InlineData("resource group", "/Resource[UID=1]/Group")]
+    [InlineData("resource email", "/Resource[UID=1]/EmailAddress")]
+    [InlineData("task custom", "/Task[UID=1]/Custom[0]/Value")]
+    [InlineData("resource custom", "/Resource[UID=1]/Custom[0]/Value")]
+    [InlineData("project name", "/Project/Name")]
+    [InlineData("project company", "/Project/Company")]
+    [InlineData("project manager", "/Project/Manager")]
+    [InlineData("currency", "/Settings/CurrencySymbol")]
+    public void ExplicitlyEmptyMappedTextRequiresLossAcceptance(string owner, string location) {
+        using var project = ProjectDocument.Create();
+        var task = project.Tasks.Add(owner == "task name" ? string.Empty : "Task");
+        var resource = project.Resources.AddWork(owner == "resource name" ? string.Empty : "Engineer");
+        switch (owner) {
+            case "task wbs": task.Wbs = string.Empty; break;
+            case "task contact": task.Contact = string.Empty; break;
+            case "resource initials": resource.Initials = string.Empty; break;
+            case "resource group": resource.Group = string.Empty; break;
+            case "resource email": resource.EmailAddress = string.Empty; break;
+            case "task custom": var taskValue = task.CustomFields.Add(); taskValue.FieldId = "188743731"; taskValue.Value = string.Empty; break;
+            case "resource custom": var resourceValue = resource.CustomFields.Add(); resourceValue.FieldId = "205520904"; resourceValue.Value = string.Empty; break;
+            case "project name": project.Name = string.Empty; break;
+            case "project company": project.Company = string.Empty; break;
+            case "project manager": project.Manager = string.Empty; break;
+            case "currency": project.Settings.CurrencySymbol = string.Empty; break;
+        }
+        var diagnostic = Assert.Single(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_TEXT_EMPTY" && item.Location == location);
+        Assert.True(diagnostic.RepresentsLoss);
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.DoesNotContain(reopened.AssessSave(Options(false)).Diagnostics, item => item.Code == "PROJECT_MPX_TEXT_EMPTY");
+    }
+
+    [Theory]
+    [InlineData("task")]
+    [InlineData("resource")]
+    public void EmptyMpxNotesRemainExplicitlyEmpty(string owner) {
+        using var project = ProjectDocument.Create();
+        if (owner == "task") project.Tasks.Add("Task").Notes = string.Empty;
+        else project.Resources.AddWork("Engineer").Notes = string.Empty;
+        Assert.DoesNotContain(project.AssessSave(Options(false)).Diagnostics, item => item.Code == "PROJECT_MPX_TEXT_EMPTY");
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(string.Empty, owner == "task" ? reopened.Tasks[0].Notes : reopened.Resources[0].Notes);
+    }
+
+    [Fact]
+    public void MpxReservedNaCurrencySymbolRequiresLossAcceptance() {
+        using var project = ProjectDocument.Create(); project.Settings.CurrencySymbol = "NA";
+        Assert.Contains(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_TEXT_NA" && item.Location == "/Settings/CurrencySymbol" && item.RepresentsLoss);
+    }
+
+    [Theory]
+    [InlineData("188743731")]
+    [InlineData("205520904")]
+    public void MpxReportsStandaloneCustomFieldDefinitionLoss(string fieldId) {
+        using var project = ProjectDocument.Create(); var definition = project.CustomFields.Add();
+        definition.FieldId = fieldId; definition.FieldName = "Text1";
+        Assert.Contains(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_DEFINITION_LOSS" && item.Location == "/Definition[0]/FieldId" && item.RepresentsLoss);
+    }
+
+    [Fact]
+    public void EmptyResourceNameUsesReaderEquivalentDerivedCalendarName() {
+        using var project = ProjectDocument.Create(); var baseCalendar = project.Calendars.AddStandardWorkingWeek(); project.Calendar = baseCalendar;
+        var resource = project.Resources.AddWork(string.Empty); resource.Calendar = project.Calendars.Add(string.Empty, baseCalendar);
+        Assert.Contains(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_RESOURCE_CALENDAR_NAME" && item.RepresentsLoss);
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal("Resource", reopened.Resources.Single().Calendar!.Name);
+    }
+
     [Fact]
     public void MissingCalendarNameReportsItsSynthesizedMpxValue() {
         using var project = ProjectDocument.Create(); var calendar = project.Calendars.AddStandardWorkingWeek();

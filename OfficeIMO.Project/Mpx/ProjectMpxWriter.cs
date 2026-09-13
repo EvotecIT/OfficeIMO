@@ -56,6 +56,10 @@ internal sealed partial class ProjectMpxWriter {
     private void Handle(string key) => _handled.Add(key);
     private void HandleTree(string path) { foreach (string key in _snapshot.Keys.Where(k => k == path || k.StartsWith(path + "/", StringComparison.Ordinal) || k.StartsWith(path + "[", StringComparison.Ordinal))) Handle(key); }
     private string Value(string path, object? value) { Handle(path); return ProjectMpxValues.Text(value); }
+    private void CheckEmptyText(string path) {
+        if (_snapshot.TryGetValue(path, out object? value) && value is string text && text.Length == 0)
+            Diagnostic("PROJECT_MPX_TEXT_EMPTY", "MPX normalizes an explicitly empty mapped text field to an absent value.", path);
+    }
     private void Record(params string?[] fields) {
         _token.ThrowIfCancellationRequested();
         string record = ProjectMpxRecords.WriteRecord(fields, _separator);
@@ -76,8 +80,19 @@ internal sealed partial class ProjectMpxWriter {
             var definition = _document.CustomFields[i];
             var mapping = ProjectMpxFields.CustomMappings(true).Concat(ProjectMpxFields.CustomMappings(false)).FirstOrDefault(m => m.FieldId == definition.FieldId);
             if (mapping == null) continue;
-            Handle("/Definition[" + i + "]/FieldId");
-            if (definition.FieldName == mapping.Name) Handle("/Definition[" + i + "]/FieldName");
+            string path = "/Definition[" + i + "]";
+            bool hasValue = mapping.IsTask
+                ? _document.AllTasks.Any(item => item.CustomFields.Any(value => MpxDefines(value, mapping)))
+                : _document.Resources.Any(item => item.CustomFields.Any(value => MpxDefines(value, mapping)));
+            Handle(path + "/FieldId");
+            if (!hasValue) {
+                Diagnostic("PROJECT_MPX_DEFINITION_LOSS", "MPX has no standalone custom-field definition record; a definition without a populated value is omitted.", path + "/FieldId");
+                if (definition.FieldName == null || definition.FieldName == mapping.Name) Handle(path + "/FieldName");
+            } else if (definition.FieldName == mapping.Name) Handle(path + "/FieldName");
+            else if (definition.FieldName == null) {
+                Handle(path + "/FieldName");
+                Diagnostic("PROJECT_MPX_DEFINITION_NAME_DEFAULT", "MPX restores the canonical field name from a populated custom-field value.", path + "/FieldName");
+            }
         }
         foreach (var pair in _snapshot) {
             _token.ThrowIfCancellationRequested();
@@ -90,9 +105,16 @@ internal sealed partial class ProjectMpxWriter {
         foreach (var diagnostic in _document.MpxSource?.Unmodeled ?? Array.Empty<ProjectDiagnostic>())
             Diagnostic("PROJECT_MPX_SOURCE_CONTENT_LOSS", diagnostic.Message + " Rewriting omits this unmodeled content.", diagnostic.Location);
     }
+    private static bool MpxDefines(ProjectCustomFieldValue value, ProjectMpxFields.CustomMapping mapping) =>
+        value.FieldId == mapping.FieldId && value.Value != null && (mapping.Kind != "Text" || value.Value.Length != 0)
+        && value.ValueId == null && value.ValueGuid == null;
     private void Settings() {
         var s = _document.Settings;
         if (s.CurrencyDigits > 2) throw new NotSupportedException("MPX supports at most two currency decimal digits.");
+        if (s.CurrencySymbol != null && ProjectMpxValues.Empty(s.CurrencySymbol))
+            Diagnostic(s.CurrencySymbol.Length == 0 ? "PROJECT_MPX_TEXT_EMPTY" : "PROJECT_MPX_TEXT_NA",
+                s.CurrencySymbol.Length == 0 ? "MPX normalizes an explicitly empty currency symbol to an absent value."
+                    : "MPX reserves NA as an absent-value token, so this currency symbol reopens as absent.", "/Settings/CurrencySymbol");
         Record("10", Value("/Settings/CurrencySymbol", s.CurrencySymbol), _document.MpxSource?.CurrencyPosition ?? "1", Value("/Settings/CurrencyDigits", s.CurrencyDigits), ",", ".");
         Record("11", "2", s.DefaultTaskType == null ? "" : s.DefaultTaskType == ProjectTaskType.FixedDuration ? "1" : "0", "1",
             Value("/Settings/MinutesPerDay", s.MinutesPerDay.HasValue ? s.MinutesPerDay.Value / 60m : (decimal?)null),
@@ -111,6 +133,7 @@ internal sealed partial class ProjectMpxWriter {
         string calendar = "Standard";
         if (_document.Calendar != null) { calendar = _calendarNames[_document.Calendar]; Handle("/Settings/Calendar"); }
         else Diagnostic("PROJECT_MPX_CALENDAR_DEFAULT", "MPX requires a project calendar and normalizes an absent calendar to Standard.", "/Settings/Calendar");
+        CheckEmptyText("/Project/Name"); CheckEmptyText("/Project/Company"); CheckEmptyText("/Project/Manager");
         Record("30", Value("/Project/Name", _document.Name), Value("/Project/Company", _document.Company), Value("/Project/Manager", _document.Manager), calendar,
             Value("/Settings/StartDate", _document.Settings.StartDate), Value("/Settings/FinishDate", _document.Settings.FinishDate),
             _document.Settings.ScheduleFromStart.HasValue ? _document.Settings.ScheduleFromStart.Value ? "0" : "1" : "");

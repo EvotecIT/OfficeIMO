@@ -94,8 +94,8 @@ public sealed class ProjectPercentageLagTests {
     private static ProjectDocument Create() {
         var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
         document.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
-        var first = document.Tasks.Add("Prepare"); first.Duration = ProjectDuration.WorkingDays(1); first.RemainingDuration = first.Duration;
-        var second = document.Tasks.Add("Accept"); second.Duration = ProjectDuration.WorkingMinutes(0); second.RemainingDuration = second.Duration;
+        var first = document.Tasks.Add("Prepare"); first.DisplayId = 1; first.Duration = ProjectDuration.WorkingDays(1); first.RemainingDuration = first.Duration;
+        var second = document.Tasks.Add("Accept"); second.DisplayId = 2; second.Duration = ProjectDuration.WorkingMinutes(0); second.RemainingDuration = second.Duration;
         first.IsManual = second.IsManual = false; first.IsActive = second.IsActive = true;
         first.IsNull = second.IsNull = false; first.IsMilestone = second.IsMilestone = false;
         first.IsCritical = second.IsCritical = false; first.EffortDriven = second.EffortDriven = false;
