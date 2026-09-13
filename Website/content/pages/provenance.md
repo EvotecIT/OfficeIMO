@@ -1,17 +1,16 @@
 ---
 title: "Check and remove file provenance"
-description: "Inspect Content Credentials and supported file-origin records in images and documents, then remove selected records from a separate browser-local copy."
+description: "Inspect Content Credentials and file-origin records in images and documents, then remove selected carrier categories from a separate browser-local copy."
 meta.seo_title: "Check file provenance and Content Credentials | OfficeIMO"
 layout: page
-meta.eyebrow: "Browser-local file inspection"
-meta.outcome: "Understand the origin data embedded in a file"
-meta.primary_label: "Check a file in the browser"
-meta.primary_url: "/convert/?workspace=provenance"
-meta.secondary_label: "Read the provenance support matrix"
-meta.secondary_url: "https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.provenance-support-matrix.md"
 ---
 
 File provenance is origin or editing-history data stored inside a file. It can include **Content Credentials**, links to external credential manifests, and AI source declarations. OfficeIMO lets you inspect the supported records before deciding whether to keep them.
+
+<div class="imo-intent-hero__actions">
+  <a class="imo-btn imo-btn-primary" href="/convert/?workspace=provenance">Check a file in the browser</a>
+  <a class="imo-btn imo-btn-ghost" href="https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.provenance-support-matrix.md">Read the provenance support matrix</a>
+</div>
 
 The browser tool accepts JPEG, PNG, WebP, PDF, DOCX, XLSX, and PPTX files up to 25 MB. The file stays in the current browser tab. Inspection does not upload it to an OfficeIMO server.
 
@@ -20,7 +19,7 @@ The browser tool accepts JPEG, PNG, WebP, PDF, DOCX, XLSX, and PPTX files up to 
 1. Choose a supported image or document.
 2. Inspect the file for supported origin records.
 3. Review each finding and its location.
-4. Select the records you want to remove.
+4. Choose which supported carrier categories to remove. Each selection removes every eligible record in that category.
 5. Create a separate copy and inspect that copy again.
 6. Download the copy and the optional JSON report.
 

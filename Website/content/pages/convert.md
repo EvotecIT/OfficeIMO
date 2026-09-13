@@ -16,7 +16,7 @@ meta.seo_title: "Browser document converter | OfficeIMO"
       <article><strong>Convert</strong><p>Office, HTML, Markdown, and PDF routes return real downloads with fidelity diagnostics.</p></article>
       <article><strong>Organize PDFs</strong><p>Merge, split, extract, delete, reorder, and rotate separate output copies.</p></article>
       <article><strong>Review and secure</strong><p>Inspect, compare, optimize, protect, unlock, and redact with operation evidence.</p></article>
-      <article><strong>Check file origin data</strong><p>Find supported Content Credentials, credential links, and AI source declarations in images and documents, then choose what to remove from a separate copy. <a href="/provenance/">Learn what file provenance means</a>.</p></article>
+      <article><strong>Check file origin data</strong><p>Find supported Content Credentials, credential links, and AI source declarations in images and documents, then choose which carrier categories to remove from a separate copy. <a href="/provenance/">Learn what file provenance means</a>.</p></article>
       <article><strong>Know the boundary</strong><p>OCR, lossy scan compression, and cryptographic signing stay outside the generic browser workflow.</p></article>
     </div>
     <p class="imo-converter-launch__boundary">Each file is limited to 25 MiB. Multi-file PDF workflows accept up to ten files and 75 MiB combined; PDF parsing is capped at 500 pages, split at 100 outputs, and visual comparison at 25 pages. <a href="/docs/converters/browser-playground/">Read the complete browser contract</a>.</p>

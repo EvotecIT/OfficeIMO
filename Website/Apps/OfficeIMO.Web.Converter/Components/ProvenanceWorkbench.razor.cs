@@ -114,7 +114,7 @@ public partial class ProvenanceWorkbench {
                 message = removal.WasChanged ? "A separate copy is ready. Review remaining findings before downloading." : "No selected carriers were removed. The copy retains the original data; review the findings and diagnostics.";
             } else {
                 report = OfficeProvenanceBufferWorkflow.Inspect(file.Bytes, file.Name, BrowserProvenancePolicy.Limits());
-                message = report.Evidence.Count == 0 ? "No supported provenance carriers were found. This is not proof of origin." : "Inspection complete. Choose what to remove from a copy.";
+                message = report.Evidence.Count == 0 ? "No supported provenance carriers were found. This is not proof of origin." : "Inspection complete. Choose which carrier categories to remove from a copy.";
             }
             if (!IsCurrent()) return;
             byte[] reportBytes = JsonSerializer.SerializeToUtf8Bytes(new {

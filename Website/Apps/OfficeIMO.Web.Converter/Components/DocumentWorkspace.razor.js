@@ -42,14 +42,14 @@ export function connect(component) {
     };
     window.addEventListener('keydown', menuKeyHandler);
 }
-export function publishSelection(workspace, route, tool, replace) {
+export function publishSelection(workspace, route, tool, title, replace) {
     const content = document.querySelector('.ocx-workspace-content');
     if (content) content.scrollTop = 0;
     if (window.innerWidth < 1024 && document.activeElement?.closest('#workspace-navigation')) {
         document.querySelector('#workspace-title')?.focus({ preventScroll: true });
     }
     if (window.parent !== window) {
-        window.parent.postMessage({ type: "officeimo:workspace-selection", workspace, route, tool, replace }, window.location.origin);
+        window.parent.postMessage({ type: "officeimo:workspace-selection", workspace, route, tool, title, replace }, window.location.origin);
     }
 }
 export function focusMenu(open) {

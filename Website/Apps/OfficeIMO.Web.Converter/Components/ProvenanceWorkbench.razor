@@ -22,7 +22,7 @@
                         <button type="button" class="ocx-button ocx-button--secondary" disabled="@(_file is null)" @onclick="InspectAsync">Check file origin</button>
                     </div>
                 </div>
-                <details class="provenance-options-disclosure" open="@(_report is not null)"><summary>Remove from the copy<span>Choose what to remove</span></summary>
+                <details class="provenance-options-disclosure" open="@(_report is not null)"><summary>Remove from the copy<span>Choose carrier categories</span></summary>
                 <div class="provenance-options">
                     <label class="provenance-option"><input type="checkbox" @bind="_manifests" @bind:after="OptionsChangedAsync" /><span><strong>Content Credentials</strong><small>Embedded provenance manifests</small></span></label>
                     <label class="provenance-option"><input type="checkbox" @bind="_references" @bind:after="OptionsChangedAsync" /><span><strong>Credential references</strong><small>Links to external manifests</small></span></label>

@@ -8,6 +8,8 @@ $ErrorActionPreference = 'Stop'
 $converterRoot = Join-Path $SiteRoot 'apps/officeimo-converter'
 $indexPath = Join-Path $converterRoot 'index.html'
 $modulePath = Join-Path $converterRoot 'Components/ConverterWorkspace.razor.js'
+$workspaceModulePath = Join-Path $converterRoot 'Components/DocumentWorkspace.razor.js'
+$siteScriptPath = Join-Path $SiteRoot 'js/site.js'
 $frameworkRoot = Join-Path $converterRoot '_framework'
 $appAssemblyPath = Get-ChildItem -LiteralPath $frameworkRoot -File -Filter 'OfficeIMO.Web.Converter*.wasm' -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -notmatch '\.(br|gz)$' } |
@@ -26,6 +28,8 @@ $redirectManifestPath = Join-Path $SiteRoot '_powerforge/redirects.json'
 foreach ($path in @(
         $indexPath,
         $modulePath,
+        $workspaceModulePath,
+        $siteScriptPath,
         $appAssemblyPath,
         $runtimeWasmPath,
         $managedAesNoticePath,
@@ -54,7 +58,10 @@ if ($conversionGuides -notmatch '<h1>Document Conversion Guides for \.NET</h1>')
 $provenanceGuide = Get-Content -LiteralPath $provenanceGuidePath -Raw
 if ($provenanceGuide -notmatch '<h1(?:\s[^>]*)?>Check and remove file provenance</h1>' -or
     $provenanceGuide -notmatch 'Content Credentials' -or
-    $provenanceGuide -notmatch 'does not remove visible watermarks') {
+    $provenanceGuide -notmatch 'does not remove visible watermarks' -or
+    $provenanceGuide -notmatch 'href="/convert/\?workspace=provenance"' -or
+    $provenanceGuide -notmatch 'href="https://github\.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo\.provenance-support-matrix\.md"' -or
+    $provenanceGuide -notmatch 'carrier categories') {
     throw 'The /provenance/ route does not explain the supported file-origin workflow and its limits.'
 }
 
@@ -102,6 +109,14 @@ if ($converterCss -notmatch '\.ocx-hidden-input\s*\{[^}]*\binset:\s*0' -or
 $module = Get-Content -LiteralPath $modulePath -Raw
 if ($module -notmatch 'export function createObjectUrl') {
     throw 'Converter collocated interop module is incomplete.'
+}
+
+$workspaceModule = Get-Content -LiteralPath $workspaceModulePath -Raw
+$siteScript = Get-Content -LiteralPath $siteScriptPath -Raw
+if ($workspaceModule -notmatch 'officeimo:workspace-selection[^\r\n]+title' -or
+    $siteScript -notmatch 'typeof selection\.title' -or
+    $siteScript -notmatch 'document\.title = selection\.title') {
+    throw 'The converter selection protocol does not propagate validated tool titles to the host page.'
 }
 
 & (Join-Path $PSScriptRoot 'Test-ConverterAssetGraph.ps1') -SiteRoot $converterRoot

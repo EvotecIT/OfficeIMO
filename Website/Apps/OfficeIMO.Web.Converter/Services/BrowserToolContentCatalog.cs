@@ -5,7 +5,7 @@ namespace OfficeIMO.Web.Converter.Services;
 internal static class BrowserToolContentCatalog {
     internal static BrowserToolContent Provenance { get; } = new(
         "Check and remove file origin data",
-        "See whether a supported file contains Content Credentials, links to credentials, or AI source declarations. Choose what to remove from a new copy.",
+        "See whether a supported file contains Content Credentials, links to credentials, or AI source declarations. Choose which carrier categories to remove from a new copy.",
         "One JPEG, PNG, WebP, PDF, DOCX, XLSX, or PPTX file up to 25 MB.",
         "A readable inspection result and, when requested, a separate cleaned copy plus a JSON report.",
         "This does not remove visible watermarks, personal metadata, or image pixels. It also cannot prove who or what created a file.",
@@ -15,7 +15,7 @@ internal static class BrowserToolContentCatalog {
         [
             new("Choose a file", "Your file opens only in this browser tab; the original is never changed."),
             new("Inspect its origin data", "Review the supported Content Credentials, credential links, and AI source declarations found in the file."),
-            new("Create and check a copy", "Select records to remove, create a separate copy, and review the re-inspection before downloading it.")
+            new("Create and check a copy", "Choose carrier categories to remove. Every eligible record in a selected category is removed before the copy is re-inspected.")
         ]);
 
     internal static BrowserToolContent For(ConversionRoute route) {

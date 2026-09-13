@@ -91,7 +91,7 @@ public partial class DocumentWorkspace {
         }
         if (_module is not null && _notifyLocation) {
             _notifyLocation = false;
-            await _module.InvokeVoidAsync("publishSelection", WorkspaceId, IsPdfWorkspace || IsProvenanceWorkspace ? null : ActiveRoute.Id, IsPdfWorkspace ? ActiveTool.Id : null, _initialLocation);
+            await _module.InvokeVoidAsync("publishSelection", WorkspaceId, IsPdfWorkspace || IsProvenanceWorkspace ? null : ActiveRoute.Id, IsPdfWorkspace ? ActiveTool.Id : null, ActiveContent.SeoTitle, _initialLocation);
             _initialLocation = false;
         }
     }

@@ -38,6 +38,8 @@ public sealed class BrowserToolContentCatalogTests {
         Assert.Contains("Content Credentials", content.Summary, StringComparison.Ordinal);
         Assert.Contains("visible watermarks", content.Expectation, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("cannot prove", content.Expectation, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("carrier categories", content.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Every eligible record", content.Steps[2].Description, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("/provenance/", content.GuideUrl);
     }
 
