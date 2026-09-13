@@ -54,18 +54,32 @@ internal sealed partial class ProjectMpxWriter {
             Record(header.ToArray());
             for (int day = 0; day < 7; day++) if (header[day + 2] != "2") Record(new[] { resource ? "56" : "25", ProjectMpxValues.Text(day + 1) }.Concat(patterns[day]).ToArray());
             var dates = new SortedSet<DateTime>();
-            void Range(DateTime? from, DateTime? to) {
+            void Range(DateTime? from, DateTime? to, string rangePath) {
                 if (!from.HasValue || !to.HasValue || to.Value.Date < from.Value.Date) throw new NotSupportedException("MPX calendar overrides need an ordered, finite date range.");
+                if (from.Value.TimeOfDay != TimeSpan.Zero) Diagnostic("PROJECT_MPX_CALENDAR_DATE_NORMALIZATION",
+                    "MPX calendar override endpoints are dates; the FromDate time is omitted.", rangePath + "/FromDate");
+                if (to.Value.TimeOfDay != TimeSpan.Zero) Diagnostic("PROJECT_MPX_CALENDAR_DATE_NORMALIZATION",
+                    "MPX calendar override endpoints are dates; the ToDate time is omitted.", rangePath + "/ToDate");
                 int count = checked((int)(to.Value.Date - from.Value.Date).TotalDays + 1);
                 if (count > 366000) throw new NotSupportedException("MPX calendar expansion exceeds 366000 days.");
                 for (int i = 0; i < count; i++) { _token.ThrowIfCancellationRequested(); dates.Add(from.Value.Date.AddDays(i)); if (dates.Count > 366000) throw new NotSupportedException("MPX calendar expansion exceeds 366000 days."); }
             }
             for (var current = calendar; current != null; current = current.BaseCalendar) {
+                string currentPath = Path(current, "Calendar");
                 if (!resource || current == calendar) {
-                    foreach (var exception in current.Exceptions) Range(exception.FromDate, exception.ToDate);
-                    foreach (var day in current.WeekDays.Where(d => d.Day == null)) Range(day.FromDate, day.ToDate);
+                    for (int index = 0; index < current.Exceptions.Count; index++) {
+                        var exception = current.Exceptions[index];
+                        Range(exception.FromDate, exception.ToDate, currentPath + "/Exception[" + index + "]");
+                    }
+                    for (int index = 0; index < current.WeekDays.Count; index++) {
+                        var day = current.WeekDays[index];
+                        if (day.Day == null) Range(day.FromDate, day.ToDate, currentPath + "/Day[" + index + "]");
+                    }
                 }
-                foreach (var week in current.WorkWeeks) Range(week.FromDate, week.ToDate);
+                for (int index = 0; index < current.WorkWeeks.Count; index++) {
+                    var week = current.WorkWeeks[index];
+                    Range(week.FromDate, week.ToDate, currentPath + "/Week[" + index + "]");
+                }
             }
             DateTime? rangeFrom = null, rangeTo = null; string[]? rangePattern = null; int exceptions = 0;
             void Flush() {

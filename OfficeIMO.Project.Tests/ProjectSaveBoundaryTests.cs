@@ -115,7 +115,7 @@ public sealed class ProjectSaveBoundaryTests {
     public void UntypedTimephasedRecordsRemainSerializableButBlockScheduling(string owner) {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
         document.Settings.StartDate = Monday;
-        var task = document.Tasks.Add("Task"); task.Duration = ProjectDuration.WorkingDays(1);
+        var task = document.Tasks.Add("Task"); task.Duration = ProjectDuration.WorkingDays(1); task.RemainingDuration = task.Duration;
         var resource = document.Resources.AddWork("Engineer");
         var assignment = document.Assignments.Add(task, resource);
         var intervals = owner == "task" ? task.TimephasedData : owner == "resource" ? resource.TimephasedData : assignment.TimephasedData;

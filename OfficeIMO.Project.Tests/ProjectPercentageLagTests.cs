@@ -11,8 +11,8 @@ public sealed class ProjectPercentageLagTests {
     public void XmlRetainsPercentageLagFormatAndSchedulesItsOwnTimeBasis(int format) {
         using var source = ProjectDocument.Create(); source.Calendar = source.Calendars.AddStandardWorkingWeek();
         source.Settings.StartDate = new DateTime(2026, 10, 9, 8, 0, 0);
-        var predecessor = source.Tasks.Add("Prepare"); predecessor.Duration = ProjectDuration.WorkingDays(1);
-        var successor = source.Tasks.Add("Accept"); successor.Duration = ProjectDuration.WorkingMinutes(0);
+        var predecessor = source.Tasks.Add("Prepare"); predecessor.Duration = ProjectDuration.WorkingDays(1); predecessor.RemainingDuration = predecessor.Duration;
+        var successor = source.Tasks.Add("Accept"); successor.Duration = ProjectDuration.WorkingMinutes(0); successor.RemainingDuration = successor.Duration;
         source.Dependencies.Add(predecessor, successor).LagPercent = 50;
         var xml = XDocument.Parse(source.ToXml()); var field = xml.Descendants().Single(e => e.Name.LocalName == "LagFormat"); field.Value = format.ToString();
         using var document = ProjectDocument.Parse(xml.ToString());
@@ -94,8 +94,8 @@ public sealed class ProjectPercentageLagTests {
     private static ProjectDocument Create() {
         var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
         document.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
-        var first = document.Tasks.Add("Prepare"); first.Duration = ProjectDuration.WorkingDays(1);
-        var second = document.Tasks.Add("Accept"); second.Duration = ProjectDuration.WorkingMinutes(0);
+        var first = document.Tasks.Add("Prepare"); first.Duration = ProjectDuration.WorkingDays(1); first.RemainingDuration = first.Duration;
+        var second = document.Tasks.Add("Accept"); second.Duration = ProjectDuration.WorkingMinutes(0); second.RemainingDuration = second.Duration;
         first.IsManual = second.IsManual = false; first.IsActive = second.IsActive = true;
         first.IsNull = second.IsNull = false; first.IsMilestone = second.IsMilestone = false;
         first.IsCritical = second.IsCritical = false; first.EffortDriven = second.EffortDriven = false;

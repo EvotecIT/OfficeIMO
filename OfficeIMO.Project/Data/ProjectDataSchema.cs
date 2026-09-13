@@ -53,10 +53,10 @@ internal static class ProjectDataSchema {
                 throw Error(field, allowUnassigned ? "expected a nonnegative integer or -1 for unassigned" : "expected a nonnegative integer");
             return value;
         }
-        internal decimal? Decimal(ProjectDataField field) {
+        internal decimal? Decimal(ProjectDataField field, bool nonnegative = true) {
             var text = Get(field); if (text == null) return null;
-            if (!OfficeInvariantDecimal.TryParseExact(text, false, out decimal value) || value < 0)
-                throw Error(field, "expected an exactly representable nonnegative invariant decimal");
+            if (!OfficeInvariantDecimal.TryParseExact(text, false, out decimal value) || (nonnegative && value < 0))
+                throw Error(field, nonnegative ? "expected an exactly representable nonnegative invariant decimal" : "expected an exactly representable invariant decimal");
             return value;
         }
         internal bool? Flag(ProjectDataField field) {

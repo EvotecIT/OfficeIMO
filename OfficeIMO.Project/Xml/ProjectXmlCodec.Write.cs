@@ -3,6 +3,10 @@ using System.Xml.Linq;
 namespace OfficeIMO.Project;
 
 internal static partial class ProjectXmlCodec {
+    internal static bool RequiresRemainingDurationDefault(ProjectDocument document, ProjectTask task) =>
+        document.Source?.Element(task) == null && task.Duration.HasValue && !task.RemainingDuration.HasValue &&
+        !task.ActualDuration.HasValue && (task.PercentComplete ?? 0) == 0;
+
     private static XDocument WriteDocument(ProjectDocument document, CancellationToken token) {
         var xml = new XDocument(new XDeclaration("1.0", "utf-8", document.Source?.Xml.Declaration?.Standalone));
         if (document.Source != null && !document.Source.Capturing) {
@@ -37,8 +41,7 @@ internal static partial class ProjectXmlCodec {
             // Project imports a newly authored, unstarted task as zero duration when
             // RemainingDuration is absent. This initial value is a serialization default,
             // not calendar arithmetic or recalculation of an imported schedule.
-            if (document.Source?.Element(task) == null && task.Duration.HasValue && !task.RemainingDuration.HasValue &&
-                !task.ActualDuration.HasValue && (task.PercentComplete ?? 0) == 0)
+            if (RequiresRemainingDurationDefault(document, task))
                 Field("RemainingDuration", ProjectXmlValue.Duration(task.Duration, document));
             ReplaceChildren(node, "PredecessorLink", links.TryGetValue(task, out var predecessors) ? predecessors.Select(d => WriteDependency(d, document, token)) : Enumerable.Empty<XElement>(), TaskOrder);
             WriteRich(node, task.Baselines, task.CustomFields, task.TimephasedData, document, TaskOrder, token);

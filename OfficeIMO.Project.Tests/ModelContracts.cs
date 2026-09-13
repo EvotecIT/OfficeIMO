@@ -41,9 +41,10 @@ public class ModelContracts {
                 .Task("design", "Design", t => t.Duration(ProjectDuration.WorkingDays(3)))
                 .Task("build", "Build", t => t.Duration(ProjectDuration.WorkingDays(5)).After("design").Assign("engineer", ProjectUnits.Percent(50))))
             .End();
-        Assert.Equal(normal.ToXml(), fluent.ToXml());
+        var allowXml = new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow };
+        Assert.Equal(normal.ToXml(allowXml), fluent.ToXml(allowXml));
         fluent.Tasks.GetByUid(build.Uid).Notes = "Mixed normal/fluent edit";
-        using var copy = ProjectDocument.Parse(fluent.ToXml());
+        using var copy = ProjectDocument.Parse(fluent.ToXml(allowXml));
         Assert.Equal("Mixed normal/fluent edit", copy.Tasks.GetByUid(build.Uid).Notes);
         Assert.Equal(0.5m, copy.Assignments.Single().Units!.Value.Value);
     }

@@ -52,7 +52,7 @@ public sealed partial class ProjectDocument {
                 throw row.Error(ProjectDataField.Summary, "task UID zero is reserved for an explicit project summary");
             var task = new ProjectTask(this, uid) { Name = row.Name(), SourceSummary = row.Flag(ProjectDataField.Summary) ?? false,
                 Calendar = ImportCalendar(row), Start = row.Date(ProjectDataField.Start), Finish = row.Date(ProjectDataField.Finish),
-                Cost = row.Decimal(ProjectDataField.Cost), PercentComplete = row.Integer(ProjectDataField.PercentComplete) };
+                Cost = row.Decimal(ProjectDataField.Cost, nonnegative: false), PercentComplete = row.Integer(ProjectDataField.PercentComplete) };
             if (row.Decimal(ProjectDataField.DurationMinutes) is decimal duration)
                 task.Duration = new ProjectDuration(duration, ProjectDurationUnit.Minute, row.Flag(ProjectDataField.DurationElapsed) ?? false);
             else if (row.Get(ProjectDataField.DurationElapsed) != null) throw row.Error(ProjectDataField.DurationElapsed, "requires DurationMinutes");
@@ -96,7 +96,7 @@ public sealed partial class ProjectDocument {
             var resource = resourceUid == -1 ? null : Lookup(ResourceIndex, resourceUid, "assignment resource");
             if (resource != null && !AssignmentPairs.Add(PairKey(taskUid, resourceUid))) throw row.Error(ProjectDataField.ResourceUid, "duplicate task/resource assignment");
             var assignment = new ProjectAssignment(this, uid) { Task = task, Resource = resource, SourceTaskUid = taskUid, SourceResourceUid = resourceUid,
-                Start = row.Date(ProjectDataField.Start), Finish = row.Date(ProjectDataField.Finish), Cost = row.Decimal(ProjectDataField.Cost) };
+                Start = row.Date(ProjectDataField.Start), Finish = row.Date(ProjectDataField.Finish), Cost = row.Decimal(ProjectDataField.Cost, nonnegative: false) };
             if (row.Decimal(ProjectDataField.Units) is decimal units) assignment.Units = ProjectUnits.Fraction(units);
             if (row.Decimal(ProjectDataField.WorkMinutes) is decimal work) assignment.Work = new ProjectWork(work);
             Assignments.Items.Add(assignment); AssignmentIndex.Add(uid, assignment);

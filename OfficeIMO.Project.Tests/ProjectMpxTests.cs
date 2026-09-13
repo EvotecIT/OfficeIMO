@@ -18,6 +18,82 @@ public sealed class ProjectMpxTests {
         Assert.Equal("Calendar " + calendar.Uid, reopened.Calendar!.Name);
     }
 
+    [Theory]
+    [InlineData("task", "alpha\u007fbeta", "alpha\nbeta", "PROJECT_MPX_NOTE_DELIMITER")]
+    [InlineData("task", "alpha\r\nbeta", "alpha\nbeta", "PROJECT_MPX_NOTE_LINE_ENDINGS")]
+    [InlineData("resource", "alpha\u007fbeta", "alpha\nbeta", "PROJECT_MPX_NOTE_DELIMITER")]
+    [InlineData("resource", "alpha\rbeta", "alpha\nbeta", "PROJECT_MPX_NOTE_LINE_ENDINGS")]
+    public void NoteDelimiterAndLineEndingNormalizationRequiresLossAcceptance(string owner, string value, string expected, string code) {
+        using var project = ProjectDocument.Create();
+        if (owner == "task") project.Tasks.Add("Task").Notes = value;
+        else project.Resources.AddWork("Engineer").Notes = value;
+
+        var diagnostic = Assert.Single(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == code);
+        Assert.True(diagnostic.RepresentsLoss); Assert.EndsWith("/Notes", diagnostic.Location);
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(expected, owner == "task" ? reopened.Tasks.Single().Notes : reopened.Resources.Single().Notes);
+    }
+
+    [Fact]
+    public void LineFeedNotesRoundTripWithoutANoteNormalizationDiagnostic() {
+        using var project = ProjectDocument.Create(); project.Tasks.Add("Task").Notes = "alpha\nbeta";
+        var report = project.AssessSave(Options());
+        Assert.DoesNotContain(report.Diagnostics, item => item.Code == "PROJECT_MPX_NOTE_DELIMITER" || item.Code == "PROJECT_MPX_NOTE_LINE_ENDINGS");
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal("alpha\nbeta", reopened.Tasks.Single().Notes);
+    }
+
+    [Theory]
+    [InlineData("exception", "/Exception[0]")]
+    [InlineData("legacy", "/Day[7]")]
+    [InlineData("workweek", "/Week[0]")]
+    public void CalendarOverrideEndpointTimesRequireLossAcceptance(string kind, string pathSuffix) {
+        using var project = ProjectDocument.Create(); var calendar = project.Calendars.AddStandardWorkingWeek(); project.Calendar = calendar;
+        var from = new DateTime(2026, 10, 12, 8, 15, 0); var to = new DateTime(2026, 10, 13, 17, 45, 0);
+        if (kind == "exception") {
+            var item = calendar.Exceptions.Add(); item.FromDate = from; item.ToDate = to; item.IsWorking = false;
+        } else if (kind == "legacy") {
+            var item = calendar.WeekDays.Add(); item.FromDate = from; item.ToDate = to; item.IsWorking = false;
+        } else {
+            var item = calendar.WorkWeeks.Add(); item.Name = "Special"; item.FromDate = from; item.ToDate = to;
+        }
+
+        var diagnostics = project.AssessSave(Options(false)).Diagnostics
+            .Where(item => item.Code == "PROJECT_MPX_CALENDAR_DATE_NORMALIZATION").ToArray();
+        Assert.Contains(diagnostics, item => item.Location.EndsWith(pathSuffix + "/FromDate", StringComparison.Ordinal));
+        Assert.Contains(diagnostics, item => item.Location.EndsWith(pathSuffix + "/ToDate", StringComparison.Ordinal));
+        Assert.All(diagnostics, item => Assert.True(item.RepresentsLoss));
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.All(reopened.Calendar!.Exceptions, item => {
+            Assert.Equal(TimeSpan.Zero, item.FromDate!.Value.TimeOfDay);
+            Assert.Equal(TimeSpan.Zero, item.ToDate!.Value.TimeOfDay);
+        });
+    }
+
+    [Fact]
+    public void InheritedAndResourceCalendarEndpointNormalizationUsesTheOwningPaths() {
+        using var project = ProjectDocument.Create(); var parent = project.Calendars.AddStandardWorkingWeek();
+        var parentException = parent.Exceptions.Add(); parentException.FromDate = new DateTime(2026, 10, 12, 8, 0, 0);
+        parentException.ToDate = new DateTime(2026, 10, 12, 17, 0, 0); parentException.IsWorking = false;
+        var projectCalendar = project.Calendars.Add("Project", parent); project.Calendar = projectCalendar;
+        var resource = project.Resources.AddWork("Engineer"); var resourceCalendar = project.Calendars.Add("Engineer", parent); resource.Calendar = resourceCalendar;
+        var resourceException = resourceCalendar.Exceptions.Add(); resourceException.FromDate = new DateTime(2026, 10, 13, 9, 0, 0);
+        resourceException.ToDate = new DateTime(2026, 10, 13, 18, 0, 0); resourceException.IsWorking = false;
+
+        var diagnostics = project.AssessSave(Options(false)).Diagnostics
+            .Where(item => item.Code == "PROJECT_MPX_CALENDAR_DATE_NORMALIZATION").ToArray();
+        Assert.Contains(diagnostics, item => item.Location == "/Calendar[UID=" + parent.Uid + "]/Exception[0]/FromDate");
+        Assert.Contains(diagnostics, item => item.Location == "/Calendar[UID=" + parent.Uid + "]/Exception[0]/ToDate");
+        Assert.Contains(diagnostics, item => item.Location == "/Calendar[UID=" + resourceCalendar.Uid + "]/Exception[0]/FromDate");
+        Assert.Contains(diagnostics, item => item.Location == "/Calendar[UID=" + resourceCalendar.Uid + "]/Exception[0]/ToDate");
+    }
+
     [Fact]
     public void MissingCustomDurationFormatReportsItsMpxDefault() {
         using var project = ProjectDocument.Create(); var task = project.Tasks.Add("Task");

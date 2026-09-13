@@ -41,7 +41,7 @@ public sealed class ProjectCostIntegrityTests {
     [InlineData(true)]
     public void StartedCostAssignmentRequiresActualAmountEvidence(bool explicitZero) {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
-        var task = document.Tasks.Add("Expense"); task.Duration = ProjectDuration.WorkingDays(1);
+        var task = document.Tasks.Add("Expense"); task.Duration = ProjectDuration.WorkingDays(1); task.RemainingDuration = task.Duration;
         var assignment = document.Assignments.Add(task, document.Resources.AddCost("Rental"));
         assignment.ActualStart = Monday; assignment.Stop = Monday.AddHours(1); assignment.RemainingCost = 100;
         if (explicitZero) assignment.ActualCost = 0;
@@ -72,7 +72,7 @@ public sealed class ProjectCostIntegrityTests {
     [InlineData(true, true)]
     public void PartialOrMissingSelectedRateCoverageBlocksApplicationAndBaselineCapture(bool missingTable, bool recalculateActuals) {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
-        var task = document.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1);
+        var task = document.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1); task.RemainingDuration = task.Duration;
         var resource = document.Resources.AddWork("Engineer"); resource.StandardRate = 100;
         var assignment = document.Assignments.Add(task, resource); assignment.Cost = 100;
         if (missingTable) assignment.CostRateTable = ProjectCostRateTable.B;
@@ -95,7 +95,7 @@ public sealed class ProjectCostIntegrityTests {
     [InlineData("resource actual")]
     public void UnknownCostComponentsCannotReplaceRecordedComponents(string owner) {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
-        var task = document.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1);
+        var task = document.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1); task.RemainingDuration = task.Duration;
         var resource = document.Resources.AddWork("Engineer"); var assignment = document.Assignments.Add(task, resource);
         if (owner == "assignment remaining") assignment.RemainingCost = 100;
         if (owner == "task remaining") task.RemainingCost = 100;
@@ -157,7 +157,7 @@ public sealed class ProjectCostIntegrityTests {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
         document.Settings.StartDate = Monday;
         var summary = document.Tasks.AddSummary("Phase");
-        var task = summary.Children.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1);
+        var task = summary.Children.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1); task.RemainingDuration = task.Duration;
         var resource = material ? document.Resources.AddMaterial("Parts") : document.Resources.AddWork("Engineer");
         var assignment = document.Assignments.Add(task, resource);
         if (owner == "assignment") assignment.Cost = 100;

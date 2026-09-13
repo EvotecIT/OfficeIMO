@@ -12,7 +12,7 @@ public sealed class ProjectProgressBoundaryTests {
     [InlineData(true, true, true)]
     public void StoppedAssignmentsWithoutActualWorkCannotReplaceStoredProgress(bool material, bool explicitZero, bool zeroCurve) {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
-        var task = document.Tasks.Add("Stopped"); task.Duration = ProjectDuration.WorkingDays(1);
+        var task = document.Tasks.Add("Stopped"); task.Duration = ProjectDuration.WorkingDays(1); task.RemainingDuration = task.Duration;
         var resource = material ? document.Resources.AddMaterial("Parts") : document.Resources.AddWork("Engineer");
         var assignment = document.Assignments.Add(task, resource); assignment.ActualStart = Monday; assignment.Stop = Monday.AddHours(1);
         if (explicitZero) assignment.ActualWork = ProjectWork.Hours(0);

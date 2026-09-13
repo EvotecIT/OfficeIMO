@@ -6,7 +6,7 @@ public sealed class ProjectProfileQualificationTests {
     [InlineData(false)]
     [InlineData(true)]
     public void MissingResourceTypeBlocksSchedulingWithoutChangingStoredSource(bool assignments) {
-        using var document = Create(); var task = document.Tasks.Add("Delivery"); task.Duration = ProjectDuration.WorkingDays(1);
+        using var document = Create(); var task = document.Tasks.Add("Delivery"); task.Duration = ProjectDuration.WorkingDays(1); task.RemainingDuration = task.Duration;
         var resource = document.Resources.AddWork("Unspecified"); resource.Type = null;
         document.Assignments.Add(task, resource).Work = ProjectWork.Hours(8);
         using var copy = document.Clone(); Assert.Null(copy.Resources.GetByUid(resource.Uid).Type);

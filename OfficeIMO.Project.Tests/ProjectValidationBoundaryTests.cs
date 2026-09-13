@@ -30,6 +30,7 @@ public sealed class ProjectValidationBoundaryTests {
         using var imported = ProjectDocument.ImportTables(new[] { mapped }).Document;
         imported.Calendar = imported.Calendars.AddStandardWorkingWeek(); imported.Settings.StartDate = Monday;
         imported.Tasks.GetByUid(2).FixedCost = 200m;
+        foreach (var task in imported.AllTasks.Where(item => item.Duration.HasValue && !item.RemainingDuration.HasValue)) task.RemainingDuration = task.Duration;
         using var document = xmlRoundTrip ? imported.Clone() : imported;
         var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); result.Report.ThrowIfErrors();
         var summary = Assert.Single(result.Tasks, t => t.TaskUid == 0);
@@ -89,8 +90,8 @@ public sealed class ProjectValidationBoundaryTests {
     [InlineData("negative lag", true)]
     public void XmlDurationsThatCrossTheTimeSpanBoundaryAreRejectedBeforeSave(string field, bool outside) {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
-        var predecessor = document.Tasks.Add("Predecessor"); predecessor.Duration = ProjectDuration.WorkingMinutes(1);
-        var successor = document.Tasks.Add("Successor"); successor.Duration = ProjectDuration.WorkingMinutes(1);
+        var predecessor = document.Tasks.Add("Predecessor"); predecessor.Duration = ProjectDuration.WorkingMinutes(1); predecessor.RemainingDuration = predecessor.Duration;
+        var successor = document.Tasks.Add("Successor"); successor.Duration = ProjectDuration.WorkingMinutes(1); successor.RemainingDuration = successor.Duration;
         decimal value = decimal.Floor(long.MaxValue / (decimal)TimeSpan.TicksPerMinute);
         if (outside) value += 1m;
         if (field == "negative lag") value = -value;
@@ -257,6 +258,7 @@ public sealed class ProjectValidationBoundaryTests {
         var mapped = new ProjectMappedTable(ProjectDataKind.Tasks, table, fields.Select(f => new ProjectDataColumn(f, f.ToString())));
         if (!summary) { Assert.Throws<InvalidDataException>(() => ProjectDocument.ImportTables(new[] { mapped })); return; }
         using var document = ProjectDocument.ImportTables(new[] { mapped }).Document;
+        foreach (var task in document.AllTasks.Where(item => item.Duration.HasValue && !item.RemainingDuration.HasValue)) task.RemainingDuration = task.Duration;
         document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
         var result = document.CalculateSchedule(); result.Report.ThrowIfErrors();
         Assert.Equal(2, result.Tasks.Count); Assert.True(result.Tasks.Single(t => t.TaskUid == 0).IsSummary);

@@ -78,10 +78,12 @@ public class XmlContracts {
         using var document = ProjectDocument.Create();
         var task = document.Tasks.Add("Working");
         task.Duration = ProjectDuration.WorkingDays(5);
+        task.RemainingDuration = task.Duration;
         task.Work = ProjectWork.Hours(40);
         task.Cost = 5000.25m;
         var elapsed = document.Tasks.Add("Elapsed");
         elapsed.Duration = ProjectDuration.ElapsedDays(2).Estimated();
+        elapsed.RemainingDuration = elapsed.Duration;
         var xml = XDocument.Parse(document.ToXml());
         var tasks = xml.Descendants(XName.Get("Task", Ns)).ToArray();
         Assert.Equal("PT40H0M0S", tasks[0].Element(XName.Get("Work", Ns))!.Value);

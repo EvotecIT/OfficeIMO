@@ -177,7 +177,7 @@ public sealed class ProjectSchedulingTests {
     [InlineData("<IgnoreResourceCalendar>1</IgnoreResourceCalendar>")]
     [InlineData("<ExternalTask>1</ExternalTask>")]
     public void UnsupportedRetainedTaskSchedulingInputsBlockApply(string extra) {
-        using var original = Standard(); original.Tasks.Add("A").Duration = ProjectDuration.WorkingDays(1);
+        using var original = Standard(); var authored = original.Tasks.Add("A"); authored.Duration = ProjectDuration.WorkingDays(1); authored.RemainingDuration = authored.Duration;
         var xml = System.Xml.Linq.XDocument.Parse(original.ToXml()); var ns = xml.Root!.Name.Namespace;
         var task = xml.Root.Element(ns + "Tasks")!.Element(ns + "Task")!;
         var field = System.Xml.Linq.XElement.Parse(extra); field.Name = ns + field.Name.LocalName; task.Add(field);

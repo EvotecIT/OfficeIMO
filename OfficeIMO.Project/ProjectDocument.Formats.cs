@@ -1,3 +1,5 @@
+using System.Xml;
+
 namespace OfficeIMO.Project;
 
 public sealed partial class ProjectDocument {
@@ -161,8 +163,21 @@ public sealed partial class ProjectDocument {
                 CheckDuration(baseline.Duration, path + "/Duration"); CheckWork(baseline.Work, path + "/Work");
             }
         }
+        foreach (var field in ProjectModelSnapshot.Capture(this, token)) {
+            token.ThrowIfCancellationRequested();
+            if (field.Value is not string text) continue;
+            try { XmlConvert.VerifyXmlChars(text); }
+            catch (XmlException) {
+                diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_TEXT", ProjectDiagnosticSeverity.Error,
+                    "The text contains a character that XML 1.0 cannot represent.", field.Key));
+            }
+        }
         foreach (var task in AllTasks) {
             token.ThrowIfCancellationRequested(); string path = "/Task[UID=" + task.Uid + "]";
+            if (ProjectXmlCodec.RequiresRemainingDurationDefault(this, task))
+                diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_REMAINING_DURATION_DEFAULT", ProjectDiagnosticSeverity.Warning,
+                    "Project XML requires remaining duration for a newly authored unstarted task and normalizes it to the task duration.",
+                    path + "/RemainingDuration", true));
             Check(task.Cost, path + "/Cost"); Check(task.ActualCost, path + "/ActualCost");
             Check(task.RemainingCost, path + "/RemainingCost"); Check(task.FixedCost, path + "/FixedCost");
             CheckDuration(task.Duration, path + "/Duration"); CheckDuration(task.ActualDuration, path + "/ActualDuration");

@@ -518,7 +518,9 @@ public sealed class ProjectNativeBoundaryClosureTests {
     };
 
     private static ProjectDocument ExplicitSummary() {
-        using var seed = ProjectNativeAuthoringTests.Create(); var xml = XDocument.Parse(seed.ToXml());
+        using var seed = ProjectNativeAuthoringTests.Create();
+        foreach (var task in seed.AllTasks.Where(item => item.Duration.HasValue && !item.RemainingDuration.HasValue)) task.RemainingDuration = task.Duration;
+        var xml = XDocument.Parse(seed.ToXml());
         XNamespace ns = XmlContracts.Ns; var tasks = xml.Root!.Element(ns + "Tasks")!;
         tasks.AddFirst(new XElement(ns + "Task", new XElement(ns + "UID", 0), new XElement(ns + "ID", 0),
             new XElement(ns + "Name", "Explicit project summary"), new XElement(ns + "OutlineLevel", 0), new XElement(ns + "Summary", 1)));

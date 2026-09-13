@@ -25,7 +25,9 @@ public sealed class ProjectNativeAuthoringTests {
 
     [Fact]
     public void XmlToNativeAndNativeToXmlHaveIndependentLossAssessment() {
-        using var source = Create(); string xml = source.ToXml();
+        using var source = Create();
+        foreach (var task in source.AllTasks.Where(item => item.Duration.HasValue && !item.RemainingDuration.HasValue)) task.RemainingDuration = task.Duration;
+        string xml = source.ToXml();
         using var parsed = ProjectDocument.Parse(xml);
         using var output = new MemoryStream(); parsed.Save(output, Native(policy: OfficeConversionLossPolicy.Allow));
         using var native = ProjectDocument.Load(new MemoryStream(output.ToArray()));

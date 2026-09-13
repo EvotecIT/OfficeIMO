@@ -27,7 +27,7 @@ public sealed class ProjectRetainedReferenceCostTests {
     [Fact]
     public void MissingRateCannotEraseOnlyRecordedResourceRemainingCost() {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
-        var task = document.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1);
+        var task = document.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1); task.RemainingDuration = task.Duration;
         var resource = document.Resources.AddWork("Engineer"); resource.RemainingCost = 100;
         document.Assignments.Add(task, resource); string before = document.ToXml();
         var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
@@ -40,7 +40,7 @@ public sealed class ProjectRetainedReferenceCostTests {
     [InlineData(true)]
     public void ResourceRemainingCostCacheFollowsAssignments(bool removeAssignment) {
         using var source = ProjectDocument.Create(); source.Calendar = source.Calendars.AddStandardWorkingWeek(); source.Settings.StartDate = Monday;
-        var task = source.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1);
+        var task = source.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1); task.RemainingDuration = task.Duration;
         var resource = source.Resources.AddWork("Engineer"); resource.StandardRate = 100;
         source.Assignments.Add(task, resource);
         var xml = XDocument.Parse(source.ToXml()); var ns = xml.Root!.Name.Namespace;
@@ -96,7 +96,7 @@ public sealed class ProjectRetainedReferenceCostTests {
     [InlineData(true, "finish")]
     public void RetainedActualCostCurvesMustFitAssignmentDates(bool material, string boundary) {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
-        var task = document.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1);
+        var task = document.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1); task.RemainingDuration = task.Duration;
         var resource = material ? document.Resources.AddMaterial("Parts") : document.Resources.AddWork("Engineer"); resource.StandardRate = 100;
         var assignment = document.Assignments.Add(task, resource); assignment.ActualCost = 25;
         if (boundary == "missing-rate") resource.StandardRate = null;
@@ -117,7 +117,7 @@ public sealed class ProjectRetainedReferenceCostTests {
     [InlineData(true, true)]
     public void FailedRateRecalculationCannotRetainInvalidCostCurves(bool material, bool inconsistentAmount) {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
-        var task = document.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1);
+        var task = document.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingDays(1); task.RemainingDuration = task.Duration;
         var resource = material ? document.Resources.AddMaterial("Parts") : document.Resources.AddWork("Engineer");
         var assignment = document.Assignments.Add(task, resource); assignment.ActualCost = 25;
         var value = assignment.TimephasedData.Add(); value.Uid = assignment.Uid; value.Type = 6;

@@ -24,7 +24,10 @@ internal sealed partial class ProjectMpxWriter {
             if (resource.Calendar != null) { var calendar = resource.Calendar; values[48] = _calendarNames[_resourceCalendarOwners.ContainsKey(calendar) ? calendar.BaseCalendar! : calendar]; }
             Baseline(resource.Baselines, values, path, false); Custom(resource.CustomFields, values, customs, path);
             Record(new[] { "50" }.Concat(fields.Select(f => values.TryGetValue(f, out var v) ? v : "")).ToArray());
-            if (resource.Notes != null) Record("51", ProjectMpxFields.Notes(resource.Notes));
+            if (resource.Notes != null) {
+                NoteDiagnostics(resource.Notes, path + "/Notes");
+                Record("51", ProjectMpxFields.Notes(resource.Notes));
+            }
             ResourceCalendar(resource, path);
         }
     }
@@ -78,11 +81,20 @@ internal sealed partial class ProjectMpxWriter {
                 values[74] = string.Join(_separator.ToString(), expressions);
             }
             Record(new[] { "70" }.Concat(fields.Select(f => values.TryGetValue(f, out var v) ? v : "")).ToArray());
-            if (task.Notes != null) Record("71", ProjectMpxFields.Notes(task.Notes));
+            if (task.Notes != null) {
+                NoteDiagnostics(task.Notes, path + "/Notes");
+                Record("71", ProjectMpxFields.Notes(task.Notes));
+            }
             if (!assignments.TryGetValue(task, out var assigned)) continue;
             if (assigned.Length > 100) throw new NotSupportedException("MPX supports at most 100 assignments per task.");
             foreach (var assignment in assigned) Assignment(assignment, ++assignmentUid);
         }
+    }
+    private void NoteDiagnostics(string notes, string path) {
+        if (notes.IndexOf('\u007f') >= 0)
+            Diagnostic("PROJECT_MPX_NOTE_DELIMITER", "MPX uses U+007F as its note line delimiter; a literal U+007F character reopens as a line feed.", path);
+        if (notes.IndexOf('\r') >= 0)
+            Diagnostic("PROJECT_MPX_NOTE_LINE_ENDINGS", "MPX normalizes carriage-return note line endings to line feeds.", path);
     }
     private void Baseline(ProjectCollection<ProjectBaseline> baselines, Dictionary<int, string> values, string parent, bool task) {
         Handle(parent + "/Baseline/Count");

@@ -16,6 +16,49 @@ public sealed class ProjectDataTests {
         Assert.Equal(decimal.Parse(cost, System.Globalization.CultureInfo.InvariantCulture), document.Tasks[0].Cost);
     }
 
+    [Fact]
+    public void ExportedSignedTaskAndAssignmentCostsRoundTripThroughMappedTables() {
+        using var source = ProjectDocument.Create();
+        var task = source.Tasks.Add("Credit"); task.Cost = -12.34m;
+        var resource = source.Resources.AddWork("Engineer");
+        var assignment = source.Assignments.Add(task, resource); assignment.Cost = -5.67m;
+        var export = source.ExportTables(allowLossyProjection: true);
+
+        using var reopened = ProjectDocument.ImportTables(export.Tables).Document;
+        Assert.Equal(-12.34m, reopened.Tasks.GetByUid(task.Uid).Cost);
+        Assert.Equal(-5.67m, reopened.Assignments.Single().Cost);
+    }
+
+    [Theory]
+    [InlineData(ProjectDataField.DurationMinutes)]
+    [InlineData(ProjectDataField.WorkMinutes)]
+    [InlineData(ProjectDataField.PercentComplete)]
+    public void NonCostMappedTaskQuantitiesStillRejectNegativeValues(ProjectDataField field) {
+        var fields = new[] { ProjectDataField.Uid, ProjectDataField.Name, field };
+        var table = new ProjectDataTable(fields.Select(item => item.ToString()), new[] { new[] { "1", "Task", "-1" } });
+        var mapped = new ProjectMappedTable(ProjectDataKind.Tasks, table, fields.Select(item => new ProjectDataColumn(item, item.ToString())));
+        Assert.Throws<InvalidDataException>(() => ProjectDocument.ImportTables(new[] { mapped }));
+    }
+
+    [Fact]
+    public void MappedResourceAndAssignmentUnitsStillRejectNegativeValues() {
+        var resourceFields = new[] { ProjectDataField.Uid, ProjectDataField.Name, ProjectDataField.MaxUnits };
+        var resourceTable = new ProjectDataTable(resourceFields.Select(item => item.ToString()), new[] { new[] { "1", "Engineer", "-1" } });
+        var resources = new ProjectMappedTable(ProjectDataKind.Resources, resourceTable,
+            resourceFields.Select(item => new ProjectDataColumn(item, item.ToString())));
+        Assert.Throws<InvalidDataException>(() => ProjectDocument.ImportTables(new[] { resources }));
+
+        var taskFields = new[] { ProjectDataField.Uid, ProjectDataField.Name };
+        var taskTable = new ProjectDataTable(taskFields.Select(item => item.ToString()), new[] { new[] { "1", "Task" } });
+        var tasks = new ProjectMappedTable(ProjectDataKind.Tasks, taskTable,
+            taskFields.Select(item => new ProjectDataColumn(item, item.ToString())));
+        var assignmentFields = new[] { ProjectDataField.Uid, ProjectDataField.TaskUid, ProjectDataField.ResourceUid, ProjectDataField.Units };
+        var assignmentTable = new ProjectDataTable(assignmentFields.Select(item => item.ToString()), new[] { new[] { "1", "1", "-1", "-1" } });
+        var assignments = new ProjectMappedTable(ProjectDataKind.Assignments, assignmentTable,
+            assignmentFields.Select(item => new ProjectDataColumn(item, item.ToString())));
+        Assert.Throws<InvalidDataException>(() => ProjectDocument.ImportTables(new[] { tasks, assignments }));
+    }
+
     [Theory]
     [InlineData(DateTimeKind.Utc, false)]
     [InlineData(DateTimeKind.Local, false)]
