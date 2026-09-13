@@ -1,6 +1,25 @@
 namespace OfficeIMO.Project.Tests;
 
 public sealed class ProjectEarnedValueTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HistoricalCompletionWithoutAProgressBoundaryIsUnknown(bool physical) {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
+        var monday = new DateTime(2026, 10, 5, 8, 0, 0); document.Settings.StartDate = monday;
+        var task = document.Tasks.Add("Delivery"); task.Duration = ProjectDuration.WorkingDays(1);
+        var resource = document.Resources.AddWork("Engineer"); resource.StandardRate = 100;
+        document.Assignments.Add(task, resource, ProjectUnits.Fraction(1));
+        document.CaptureBaseline(document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }));
+        if (physical) { task.EarnedValueMethod = ProjectEarnedValueMethod.PhysicalPercentComplete; task.PhysicalPercentComplete = 50; }
+        else task.PercentComplete = 50;
+
+        var result = document.AnalyzeEarnedValue(statusDate: monday.AddHours(4));
+        Assert.Null(Assert.Single(result.Tasks).EarnedValue);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_EARNED_VALUE_INCOMPLETE"
+            && diagnostic.Message.IndexOf("no progress boundary", StringComparison.Ordinal) >= 0);
+    }
+
     [Fact]
     public void InconsistentBaselineCostCurvesInvalidateCurveMetricsButRetainIndependentActualCost() {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
@@ -12,7 +31,7 @@ public sealed class ProjectEarnedValueTests {
         task.Baselines[0].Cost = 100m; task.PercentComplete = 50;
         var result = document.AnalyzeEarnedValue(statusDate: monday.AddHours(4)).Tasks.Single();
         Assert.Null(result.PlannedValue); Assert.Null(result.EarnedValue); Assert.Equal(0m, result.ActualCost);
-        task.EarnedValueMethod = ProjectEarnedValueMethod.PhysicalPercentComplete; task.PhysicalPercentComplete = 50;
+        task.Stop = monday.AddHours(4); task.EarnedValueMethod = ProjectEarnedValueMethod.PhysicalPercentComplete; task.PhysicalPercentComplete = 50;
         Assert.Equal(50m, document.AnalyzeEarnedValue(statusDate: monday.AddHours(4)).Tasks.Single().EarnedValue);
     }
     [Fact]
@@ -24,7 +43,7 @@ public sealed class ProjectEarnedValueTests {
         var assignment = document.Assignments.Add(task, resource, ProjectUnits.Fraction(1)); assignment.Work = ProjectWork.Hours(8); assignment.WorkContour = ProjectWorkContour.Custom;
         var curve = assignment.TimephasedData.Add(); curve.Uid = assignment.Uid; curve.Type = 1; curve.Start = monday; curve.Finish = monday.AddHours(9); curve.Value = "PT8H";
         var schedule = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); schedule.Report.ThrowIfErrors();
-        document.CaptureBaseline(schedule); task.PercentComplete = 50;
+        document.CaptureBaseline(schedule); task.PercentComplete = 50; task.Stop = monday.AddHours(9);
         var result = document.AnalyzeEarnedValue(statusDate: monday.AddHours(9)).Tasks.Single();
         Assert.Equal(950m, result.PlannedValue); Assert.Equal(950m, result.EarnedValue); Assert.Null(result.ActualCost);
     }
@@ -38,7 +57,7 @@ public sealed class ProjectEarnedValueTests {
         var task = document.Tasks.Add("Delivery"); task.Duration = ProjectDuration.WorkingDays(1);
         document.Assignments.Add(task, resource, ProjectUnits.Fraction(1));
         var schedule = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }); schedule.Report.ThrowIfErrors();
-        document.CaptureBaseline(schedule); task.PercentComplete = 50;
+        document.CaptureBaseline(schedule); task.PercentComplete = 50; task.Stop = new DateTime(2026, 10, 5, 22, 0, 0);
         var result = document.AnalyzeEarnedValue(statusDate: new DateTime(2026, 10, 5, 22, 0, 0)).Tasks.Single();
         Assert.Equal(400m, result.PlannedValue); Assert.Equal(400m, result.EarnedValue); Assert.Equal(0m, result.ActualCost);
         task.Baselines[0].Duration = ProjectDuration.WorkingDays(2);
@@ -57,7 +76,7 @@ public sealed class ProjectEarnedValueTests {
         document.Assignments.Add(locked, resource, ProjectUnits.Fraction(1));
         document.ApplyLeveling(document.CalculateLeveling(new ProjectLevelingOptions { AllowSplitting = true }));
         document.CaptureBaseline(document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }));
-        task.PercentComplete = 50;
+        task.PercentComplete = 50; task.Stop = monday.AddDays(1).AddHours(9);
         var analysis = document.AnalyzeEarnedValue(statusDate: monday.AddDays(1).AddHours(9));
         var result = analysis.Tasks.Single(t => t.TaskUid == task.Uid);
         Assert.Equal(2700m, result.BudgetAtCompletion!.Value, 6);

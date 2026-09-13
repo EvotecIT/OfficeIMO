@@ -191,7 +191,7 @@ public sealed class ProjectCostIntegrityTests {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
         var task = document.Tasks.Add("Cure"); task.Duration = new ProjectDuration(24, ProjectDurationUnit.Hour, elapsed: true); task.FixedCost = 240;
         document.CaptureBaseline(document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }));
-        task.PercentComplete = 50;
+        task.PercentComplete = 50; task.Stop = Monday.AddHours(12);
         if (changeCurrentDuration) task.Duration = ProjectDuration.WorkingDays(1);
         var result = Assert.Single(document.AnalyzeEarnedValue(statusDate: Monday.AddHours(12)).Tasks);
         Assert.Equal(120m, result.PlannedValue); Assert.Equal(120m, result.EarnedValue);

@@ -14,7 +14,7 @@ public sealed class ProjectRetainedReferenceCostTests {
     public void ResourceRemainingCostRoundTripsAcrossFormats(ProjectFileFormat format) {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
         document.Settings.StartDate = Monday;
-        var resource = document.Resources.AddWork("Engineer"); resource.Cost = 125; resource.ActualCost = 25; resource.RemainingCost = 100;
+        var resource = document.Resources.AddWork("Engineer"); resource.IsNull = false; resource.Cost = 125; resource.ActualCost = 25; resource.RemainingCost = 100;
         var options = new ProjectSaveOptions { Format = format, LossPolicy = format == ProjectFileFormat.Mpx4 ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block };
         using var stream = new MemoryStream(); document.Save(stream, options); stream.Position = 0;
         using var copy = ProjectDocument.Load(stream); Assert.Equal(100m, copy.Resources.Single(r => r.Name == "Engineer").RemainingCost);

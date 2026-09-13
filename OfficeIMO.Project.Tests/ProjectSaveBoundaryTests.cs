@@ -54,11 +54,17 @@ public sealed class ProjectSaveBoundaryTests {
         Assert.Contains(document.Validate().Diagnostics, d => d.Code == "PROJECT_TIMEPHASED_UID");
         using var output = new MemoryStream();
         Assert.Throws<InvalidDataException>(() => document.Save(output)); Assert.Equal(0, output.Length);
-        interval.Uid = 1;
+        int ownerUid = owner == "resource" ? resource.Uid : owner.StartsWith("assignment", StringComparison.Ordinal) ? assignment.Uid : task.Uid;
+        interval.Uid = ownerUid;
         Assert.False(document.Validate().HasErrors);
         using var copy = ProjectDocument.Parse(document.ToXml()); Assert.False(copy.Validate().HasErrors);
         interval.Value = "opaque retained value";
         Assert.Contains("opaque retained value", document.ToXml());
+        interval.Uid = ownerUid + 100;
+        Assert.Contains(document.Validate().Diagnostics, d => d.Code == "PROJECT_TIMEPHASED_UID"
+            && d.Message.IndexOf("must match", StringComparison.Ordinal) >= 0);
+        using var rejected = new MemoryStream();
+        Assert.Throws<InvalidDataException>(() => document.Save(rejected)); Assert.Equal(0, rejected.Length);
     }
 
     [Theory]

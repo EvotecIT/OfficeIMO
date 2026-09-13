@@ -208,7 +208,8 @@ public sealed class ProjectNativeBoundaryClosureTests {
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsManual", StringComparison.Ordinal));
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
-            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsActive", StringComparison.Ordinal));
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsActive", StringComparison.Ordinal)
+            && diagnostic.Message.EndsWith("to active.", StringComparison.Ordinal));
         using var output = new MemoryStream(); document.Save(output, Native(format));
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         task = reopened.Tasks.GetByUid(2); assignment = reopened.Assignments.Single();
@@ -236,7 +237,9 @@ public sealed class ProjectNativeBoundaryClosureTests {
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsManual", StringComparison.Ordinal));
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
-            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsActive", StringComparison.Ordinal));
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsActive", StringComparison.Ordinal)
+            && diagnostic.Message.EndsWith(format == ProjectFileFormat.Mpp14 || format == ProjectFileFormat.Mpt14
+                ? "to inactive." : "to active.", StringComparison.Ordinal));
         Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
 
         using var output = new MemoryStream(); document.Save(output, Native(format));
@@ -244,6 +247,73 @@ public sealed class ProjectNativeBoundaryClosureTests {
         Assert.False(reopened.Tasks.GetByUid(2).IsManual);
         Assert.Equal(format == ProjectFileFormat.Mpp14 || format == ProjectFileFormat.Mpt14
             ? false : true, reopened.Tasks.GetByUid(2).IsActive);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpt8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpt9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpt12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    [InlineData(ProjectFileFormat.Mpt14)]
+    public void NativeCalendarRangesReportTimeNormalization(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        var exception = document.Calendar!.Exceptions[0];
+        exception.FromDate = exception.FromDate!.Value.AddHours(8);
+        exception.ToDate = exception.FromDate.Value.AddHours(4);
+
+        var report = document.AssessSave(Native(format));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_CALENDAR_DATE_NORMALIZATION"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/FromDate", StringComparison.Ordinal));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_CALENDAR_DATE_NORMALIZATION"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/ToDate", StringComparison.Ordinal));
+
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        var retained = reopened.Calendar!.Exceptions[0];
+        Assert.Equal(TimeSpan.Zero, retained.FromDate!.Value.TimeOfDay);
+        Assert.Equal(new TimeSpan(23, 59, 0), retained.ToDate!.Value.TimeOfDay);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpt8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpt9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpt12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    [InlineData(ProjectFileFormat.Mpt14)]
+    public void NativeNullableEntityFlagsReportTheirGenerationSpecificDefaults(ProjectFileFormat format) {
+        bool legacy8 = format == ProjectFileFormat.Mpp8 || format == ProjectFileFormat.Mpt8;
+        foreach (string field in new[] { "TaskIsNull", "ResourceIsNull", "IsMilestone", "IsCritical", "EffortDriven" }) {
+            using var document = ProjectNativeAuthoringTests.Create();
+            var task = document.Tasks.GetByUid(2); var resource = document.Resources.Single(item => item.Uid > 0);
+            switch (field) {
+                case "TaskIsNull": task.IsNull = null; break;
+                case "ResourceIsNull": resource.IsNull = null; break;
+                case "IsMilestone": task.IsMilestone = null; break;
+                case "IsCritical": task.IsCritical = null; break;
+                case "EffortDriven": task.EffortDriven = null; break;
+            }
+            bool normalizes = field.EndsWith("IsNull", StringComparison.Ordinal) || !legacy8;
+            string location = field == "TaskIsNull" || field == "ResourceIsNull" ? "/IsNull" : "/" + field;
+            var report = document.AssessSave(new ProjectSaveOptions { Format = format });
+            Assert.Equal(normalizes, report.Diagnostics.Any(d => d.RepresentsLoss && d.Location.EndsWith(location, StringComparison.Ordinal)));
+
+            using var output = new MemoryStream(); document.Save(output, Native(format));
+            using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+            bool? actual = field switch {
+                "TaskIsNull" => reopened.Tasks.GetByUid(2).IsNull,
+                "ResourceIsNull" => reopened.Resources.Single(item => item.Uid > 0).IsNull,
+                "IsMilestone" => reopened.Tasks.GetByUid(2).IsMilestone,
+                "IsCritical" => reopened.Tasks.GetByUid(2).IsCritical,
+                _ => reopened.Tasks.GetByUid(2).EffortDriven
+            };
+            Assert.Equal(normalizes ? false : (bool?)null, actual);
+        }
     }
 
     [Theory]

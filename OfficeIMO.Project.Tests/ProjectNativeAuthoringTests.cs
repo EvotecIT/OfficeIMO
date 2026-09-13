@@ -144,9 +144,10 @@ public sealed class ProjectNativeAuthoringTests {
         document.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0); document.Settings.ScheduleFromStart = true;
         document.Calendar = document.Calendars.AddStandardWorkingWeek();
         var summary = document.Tasks.AddSummary("Delivery"); var task = summary.Children.Add("Design café / Łódź / 日本語");
-        summary.IsManual = false; summary.IsActive = true; task.IsManual = false; task.IsActive = true;
+        summary.IsManual = false; summary.IsActive = true; summary.IsNull = false; summary.IsMilestone = false; summary.IsCritical = false; summary.EffortDriven = false;
+        task.IsManual = false; task.IsActive = true; task.IsNull = false; task.IsMilestone = false; task.IsCritical = false; task.EffortDriven = false;
         task.Duration = ProjectDuration.WorkingDays(1); task.Start = document.Settings.StartDate; task.Finish = task.Start.Value.AddHours(9);
-        var resource = document.Resources.AddWork("Engineer"); resource.Calendar = document.Calendars.Add("Engineer", document.Calendar);
+        var resource = document.Resources.AddWork("Engineer"); resource.IsNull = false; resource.Calendar = document.Calendars.Add("Engineer", document.Calendar);
         resource.StandardRate = 100; resource.MaxUnits = ProjectUnits.Percent(100);
         var assignment = document.Assignments.Add(task, resource); assignment.Units = ProjectUnits.Percent(100); assignment.Work = ProjectWork.Hours(8);
         assignment.Start = task.Start; assignment.Finish = task.Finish;
@@ -155,7 +156,7 @@ public sealed class ProjectNativeAuthoringTests {
         var definition = document.CustomFields.Add(); definition.FieldId = "188743731"; definition.FieldName = "Text1"; definition.Alias = "Work area";
         var value = task.CustomFields.Add(); value.FieldId = definition.FieldId; value.Value = "Independent authoring";
         var exception = document.Calendar.Exceptions.Add(); exception.Name = "Maintenance";
-        exception.FromDate = new DateTime(2026, 10, 12); exception.ToDate = exception.FromDate; exception.IsWorking = false;
+        exception.FromDate = new DateTime(2026, 10, 12); exception.ToDate = exception.FromDate.Value.AddHours(23).AddMinutes(59); exception.IsWorking = false;
         return document;
     }
 }

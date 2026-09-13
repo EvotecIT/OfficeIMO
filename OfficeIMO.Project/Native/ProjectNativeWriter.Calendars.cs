@@ -38,6 +38,7 @@ internal sealed partial class ProjectNativeWriter {
                     "This calendar contains unmodeled recurring exceptions. Its working pattern cannot be replaced safely.", path)); continue;
             }
             try {
+                ReportCalendarDateNormalization(calendar, path);
                 editor.Set(calendar.Uid, 0x0d400008, CalendarPattern(calendar));
                 HandleTree(path + "/Day"); HandleTree(path + "/Exception"); HandleTree(path + "/Week");
             } catch (Exception ex) when (ex is ArgumentException || ex is OverflowException || ex is NotSupportedException) {
@@ -45,6 +46,20 @@ internal sealed partial class ProjectNativeWriter {
             }
         }
         editor.Export(_replacements);
+    }
+    private void ReportCalendarDateNormalization(ProjectCalendar calendar, string path) {
+        foreach (var exception in calendar.Exceptions)
+            ReportCalendarDateNormalization(exception.FromDate, exception.ToDate, path + "/Exception");
+        foreach (var week in calendar.WorkWeeks)
+            ReportCalendarDateNormalization(week.FromDate, week.ToDate, path + "/Week");
+    }
+    private void ReportCalendarDateNormalization(DateTime? from, DateTime? to, string path) {
+        if (from.HasValue && from.Value.TimeOfDay != TimeSpan.Zero)
+            Loss("PROJECT_NATIVE_CALENDAR_DATE_NORMALIZATION",
+                _profile.Generation + " stores calendar range starts at midnight; the time component is omitted.", path + "/FromDate");
+        if (to.HasValue && to.Value.TimeOfDay != new TimeSpan(23, 59, 0))
+            Loss("PROJECT_NATIVE_CALENDAR_DATE_NORMALIZATION",
+                _profile.Generation + " stores calendar range ends at 23:59; the time component is normalized.", path + "/ToDate");
     }
     private byte[] CalendarPattern(ProjectCalendar calendar) {
         if (_profile.Version <= 9) return CalendarPattern9(calendar);

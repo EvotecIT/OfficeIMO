@@ -115,8 +115,12 @@ public sealed partial class ProjectDocument {
         if (!completion.HasValue) { warn("Physical earned value requires recorded physical completion."); return null; }
         if (completion == 0 || (completion == 100 && task.ActualFinish <= status)) return completion;
         var boundaries = assignments.SelectMany(a => new[] { a.Stop, a.ActualFinish }).Concat(actualCurves.Select(v => v.Finish))
-            .Concat(new[] { Settings.StatusDate, task.Stop, task.ActualFinish });
-        if (boundaries.Any(d => d.HasValue && d.Value > status)) {
+            .Concat(new[] { Settings.StatusDate, task.Stop, task.ActualFinish }).Where(d => d.HasValue).Select(d => d!.Value).ToArray();
+        if (boundaries.Length == 0) {
+            warn("Stored completion has no progress boundary; historical earned value cannot be reconstructed from the current completion percentage.");
+            return null;
+        }
+        if (boundaries.Any(d => d > status)) {
             warn("Stored completion belongs to a later progress boundary; historical earned value cannot be reconstructed from the current completion percentage.");
             return null;
         }

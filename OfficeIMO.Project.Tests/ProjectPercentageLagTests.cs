@@ -97,6 +97,8 @@ public sealed class ProjectPercentageLagTests {
         var first = document.Tasks.Add("Prepare"); first.Duration = ProjectDuration.WorkingDays(1);
         var second = document.Tasks.Add("Accept"); second.Duration = ProjectDuration.WorkingMinutes(0);
         first.IsManual = second.IsManual = false; first.IsActive = second.IsActive = true;
+        first.IsNull = second.IsNull = false; first.IsMilestone = second.IsMilestone = false;
+        first.IsCritical = second.IsCritical = false; first.EffortDriven = second.EffortDriven = false;
         document.Dependencies.Add(first, second).LagPercent = 50; return document;
     }
 }

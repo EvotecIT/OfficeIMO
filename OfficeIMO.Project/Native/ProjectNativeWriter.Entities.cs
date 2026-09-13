@@ -36,9 +36,16 @@ internal sealed partial class ProjectNativeWriter {
             if ((added || Changed(path + "/IsManual")) && !task.IsManual.HasValue)
                 Loss("PROJECT_NATIVE_TASK_DEFAULT", "Native output normalizes an absent manual mode to automatic.", path + "/IsManual");
             if ((added || Changed(path + "/IsActive")) && !task.IsActive.HasValue)
-                Loss("PROJECT_NATIVE_TASK_DEFAULT", _profile == ProjectNativeProfile.Mpp14
-                    ? "Native output normalizes an absent active state to inactive."
-                    : "Native output normalizes an absent active state to active.", path + "/IsActive");
+                Loss("PROJECT_NATIVE_TASK_DEFAULT", added || _profile != ProjectNativeProfile.Mpp14
+                    ? "Native output normalizes an absent active state to active."
+                    : "Native output normalizes an absent active state to inactive.", path + "/IsActive");
+            if ((added || Changed(path + "/IsNull")) && !task.IsNull.HasValue)
+                Loss("PROJECT_NATIVE_TASK_DEFAULT", "Native output normalizes an absent null-task state to false.", path + "/IsNull");
+            if (_profile != ProjectNativeProfile.Mpp8) {
+                ReportTaskFalseDefault(task.IsMilestone, added, path, "IsMilestone", "milestone");
+                ReportTaskFalseDefault(task.IsCritical, added, path, "IsCritical", "critical");
+                ReportTaskFalseDefault(task.EffortDriven, added, path, "EffortDriven", "effort-driven");
+            }
             int level = task.Uid == 0 ? 0 : task.Parent == null ? 1 : levels[task.Parent] + 1; levels[task] = level;
             WriteTaskFields(editor, task.Uid, path);
             if (task.IsNull != true) Handle(path + "/IsNull");
@@ -93,6 +100,8 @@ internal sealed partial class ProjectNativeWriter {
                 SortPosition(editor, resource.Uid, 0x0c4002da, displayId + 1);
             }
             WriteResourceFields(editor, resource.Uid, path); Handle(path + "/Uid"); Handle(path + "/Type");
+            if ((added || Changed(path + "/IsNull")) && !resource.IsNull.HasValue)
+                Loss("PROJECT_NATIVE_RESOURCE_DEFAULT", "Native output normalizes an absent null-resource state to false.", path + "/IsNull");
             if (resource.IsNull != true) Handle(path + "/IsNull");
             if (resource.Calendar != null && resource.Calendar.BaseCalendar == null && resource.Calendar.IsBaseCalendar != false) AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_RESOURCE_CALENDAR", ProjectDiagnosticSeverity.Error,
                 "Native resources require a resource-specific derived calendar. Create it with Calendars.Add(resourceName, baseCalendar).", path + "/Calendar"));
@@ -116,6 +125,10 @@ internal sealed partial class ProjectNativeWriter {
             WriteCustomFields(editor, resource.Uid, path, resource.CustomFields, false);
         }
         editor.Export(_replacements);
+    }
+    private void ReportTaskFalseDefault(bool? value, bool added, string path, string field, string description) {
+        if ((added || Changed(path + "/" + field)) && !value.HasValue)
+            Loss("PROJECT_NATIVE_TASK_DEFAULT", "Native output normalizes an absent " + description + " state to false.", path + "/" + field);
     }
     private void CheckDisplayId(int? requested, int actual, string path) {
         string key = path + "/DisplayId"; Handle(key);

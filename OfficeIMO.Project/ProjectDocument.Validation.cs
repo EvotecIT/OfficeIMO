@@ -52,7 +52,7 @@ public sealed partial class ProjectDocument {
                 Add("PROJECT_CALENDAR_REFERENCE", "The task references a missing calendar.", location);
             if (task.Calendar != null && (task.Calendar.BaseCalendar != null || task.Calendar.IsBaseCalendar == false))
                 Add("PROJECT_TASK_CALENDAR_KIND", "An explicit task calendar must be a base calendar. A derived resource calendar belongs on the resource.", location);
-            CheckRich(task.Baselines, task.CustomFields, task.TimephasedData, location, Add, cancellationToken);
+            CheckRich(task.Baselines, task.CustomFields, task.TimephasedData, task.Uid, location, Add, cancellationToken);
         }
         foreach (var resource in Resources) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -61,7 +61,7 @@ public sealed partial class ProjectDocument {
             if (resource.Calendar == null && resource.SourceCalendarUid > 0)
                 Add("PROJECT_CALENDAR_REFERENCE", resource.Uid == 0 ? "The reserved resource row retains an implicit calendar reference not exported by Project." : "The resource references a missing calendar.", location,
                     resource.Uid == 0 ? ProjectDiagnosticSeverity.Warning : ProjectDiagnosticSeverity.Error);
-            CheckRich(resource.Baselines, resource.CustomFields, resource.TimephasedData, location, Add, cancellationToken);
+            CheckRich(resource.Baselines, resource.CustomFields, resource.TimephasedData, resource.Uid, location, Add, cancellationToken);
         }
         var assignmentPairs = new HashSet<(int, int)>();
         bool warnedCostResourceImport = false;
@@ -81,7 +81,7 @@ public sealed partial class ProjectDocument {
             }
             CheckDateRange(assignment.Start, assignment.Finish, location, Add);
             CheckDateRange(assignment.ActualStart, assignment.ActualFinish, location + "/Actual", Add);
-            CheckRich(assignment.Baselines, assignment.CustomFields, assignment.TimephasedData, location, Add, cancellationToken);
+            CheckRich(assignment.Baselines, assignment.CustomFields, assignment.TimephasedData, assignment.Uid, location, Add, cancellationToken);
         }
         if (Calendar == null && Settings.SourceCalendarUid > 0)
             Add("PROJECT_CALENDAR_REFERENCE", "The project references a missing calendar.", "/Project/CalendarUID");
@@ -127,7 +127,7 @@ public sealed partial class ProjectDocument {
         if (value < 0 || value > 100) add("PROJECT_PERCENT", "A completion percentage must be between 0 and 100.", location);
     }
     private static void CheckRich(ProjectCollection<ProjectBaseline> baselines, ProjectCollection<ProjectCustomFieldValue> fields,
-        ProjectCollection<ProjectTimephasedValue> timephased, string location, Finding add, CancellationToken token) {
+        ProjectCollection<ProjectTimephasedValue> timephased, int ownerUid, string location, Finding add, CancellationToken token) {
         var numbers = new HashSet<int>();
         foreach (var baseline in baselines) {
             token.ThrowIfCancellationRequested();
@@ -139,7 +139,7 @@ public sealed partial class ProjectDocument {
                 add("PROJECT_BASELINE_NUMBER", "Baselines need a unique number from 0 through 10.", location);
             CheckDateRange(baseline.Start, baseline.Finish, location + "/Baseline", add);
             if (baseline.Duration?.Value < 0) add("PROJECT_NEGATIVE_DURATION", "A baseline duration cannot be negative.", location);
-            CheckTimephased(baseline.TimephasedData, location + "/Baseline", add, token);
+            CheckTimephased(baseline.TimephasedData, ownerUid, location + "/Baseline", add, token);
         }
         var fieldIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var field in fields) {
@@ -147,13 +147,15 @@ public sealed partial class ProjectDocument {
             if (string.IsNullOrWhiteSpace(field.FieldId) || !fieldIds.Add(ProjectCustomFieldIdentity.NormalizeId(field.FieldId!)))
                 add("PROJECT_CUSTOM_FIELD_ID", "Custom values require unique nonempty field IDs within their owner.", location);
         }
-        CheckTimephased(timephased, location, add, token);
+        CheckTimephased(timephased, ownerUid, location, add, token);
     }
-    private static void CheckTimephased(ProjectCollection<ProjectTimephasedValue> intervals, string location, Finding add, CancellationToken token) {
+    private static void CheckTimephased(ProjectCollection<ProjectTimephasedValue> intervals, int ownerUid, string location, Finding add, CancellationToken token) {
         foreach (var interval in intervals) {
             token.ThrowIfCancellationRequested();
             if (!interval.Uid.HasValue)
                 add("PROJECT_TIMEPHASED_UID", "A timephased record requires a UID. Other absent source fields are retained as absent.", location + "/TimephasedData");
+            else if (interval.Uid.Value != ownerUid)
+                add("PROJECT_TIMEPHASED_UID", "A timephased record UID must match its owning task, resource, or assignment.", location + "/TimephasedData");
             CheckDateRange(interval.Start, interval.Finish, location + "/TimephasedData", add);
         }
     }
