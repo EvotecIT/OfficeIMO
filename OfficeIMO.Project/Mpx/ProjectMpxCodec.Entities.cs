@@ -71,7 +71,7 @@ internal static partial class ProjectMpxCodec {
             if (!values.Keys.Any(k => k == 21 || k == 31 || task && (k == 41 || k == 56 || k == 57))) return;
             var baseline = baselines.Add(); baseline.Number = 0;
             if (values.TryGetValue(21, out var text)) { baseline.Work = _values.Work(text); values.Remove(21); }
-            if (values.TryGetValue(31, out text)) { baseline.Cost = _values.Number(text); values.Remove(31); }
+            if (values.TryGetValue(31, out text)) { baseline.Cost = _values.Money(text); values.Remove(31); }
             if (!task) return;
             if (values.TryGetValue(41, out text)) { baseline.Duration = _values.Duration(text); values.Remove(41); }
             if (values.TryGetValue(56, out text)) { baseline.Start = _values.Date(text); values.Remove(56); }
@@ -100,11 +100,11 @@ internal static partial class ProjectMpxCodec {
             if (Has(r, 3)) item.Work = _values.Work(r[3]);
             if (Has(r, 5)) item.ActualWork = _values.Work(r[5]);
             if (Has(r, 6)) item.OvertimeWork = _values.Work(r[6]);
-            if (Has(r, 7)) item.Cost = _values.Number(r[7]);
-            if (Has(r, 9)) item.ActualCost = _values.Number(r[9]);
+            if (Has(r, 7)) item.Cost = _values.Money(r[7]);
+            if (Has(r, 9)) item.ActualCost = _values.Money(r[9]);
             item.Start = Has(r, 10) ? _values.Date(r[10]) : (DateTime?)null;
             item.Finish = Has(r, 11) ? _values.Date(r[11]) : (DateTime?)null;
-            if (Has(r, 4) || Has(r, 8)) { var baseline = item.Baselines.Add(); baseline.Number = 0; if (Has(r, 4)) baseline.Work = _values.Work(r[4]); if (Has(r, 8)) baseline.Cost = _values.Number(r[8]); }
+            if (Has(r, 4) || Has(r, 8)) { var baseline = item.Baselines.Add(); baseline.Number = 0; if (Has(r, 4)) baseline.Work = _values.Work(r[4]); if (Has(r, 8)) baseline.Cost = _values.Money(r[8]); }
             if (Has(r, 12)) Opaque("Assignment delay remains in the original MPX bytes.", "/Assignment[UID=" + item.Uid + "]/Delay");
             Tail(r, 14);
         }

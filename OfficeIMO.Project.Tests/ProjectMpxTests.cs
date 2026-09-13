@@ -118,6 +118,83 @@ public sealed class ProjectMpxTests {
         Assert.Equal(1, reopened.Tasks[0].DisplayId); Assert.Equal(1, reopened.Resources[0].DisplayId);
     }
 
+    [Theory]
+    [InlineData(".", 1.5)]
+    [InlineData("-", -1.5)]
+    public void CurrencySymbolsDoNotAlterMpxNumbers(string symbol, double cost) {
+        using var project = ProjectDocument.Create(); project.Settings.CurrencySymbol = symbol;
+        var task = project.Tasks.Add("Task"); task.Cost = (decimal)cost;
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal((decimal)cost, reopened.Tasks.Single().Cost);
+    }
+
+    [Theory]
+    [InlineData("$12.5", 12.5)]
+    [InlineData("12.5$", 12.5)]
+    [InlineData("-$12.5", -12.5)]
+    [InlineData("($12.5)", -12.5)]
+    public void CurrencyAffixesAreRemovedOnlyFromMoney(string lexical, double expected) {
+        using var project = Read("MPX,Fixture,4.0,ANSI\r\n10,$,1,2,\",\",.\r\n61,90,1,30\r\n70,1,Task," + lexical + "\r\n");
+        Assert.Equal((decimal)expected, project.Tasks.Single().Cost);
+    }
+
+    [Fact]
+    public void DigitCurrencySymbolsDoNotAlterNonMoneyFields() {
+        using var project = ProjectDocument.Create(); project.Settings.CurrencySymbol = "1";
+        project.Settings.MinutesPerDay = 59; project.Settings.MinutesPerWeek = 61;
+        var task = project.Tasks.Add("Task"); task.Duration = ProjectDuration.WorkingHours(1.5m); task.RemainingDuration = task.Duration;
+        task.PercentComplete = 15; task.FreeSlackMinutes = 1.5m; task.Cost = 12.5m;
+        task.ActualCost = -11.5m; task.RemainingCost = 1.25m; task.FixedCost = -0.5m;
+        var number = task.CustomFields.Add(); number.FieldId = "188743767"; number.Value = "12.5";
+        var cost = task.CustomFields.Add(); cost.FieldId = "188743786"; cost.Value = "1250";
+        var baseline = task.Baselines.Add(); baseline.Number = 0; baseline.Cost = -12.5m;
+        var resource = project.Resources.AddWork("Engineer"); resource.MaxUnits = ProjectUnits.Fraction(1.5m);
+        resource.StandardRate = 10.5m; resource.OvertimeRate = 9.5m; resource.CostPerUse = 12.5m;
+        resource.Cost = -12.5m; resource.ActualCost = -2.5m; resource.RemainingCost = 10m;
+        var assignment = project.Assignments.Add(task, resource, ProjectUnits.Fraction(1.5m));
+        assignment.Cost = -12.5m; assignment.ActualCost = 2.5m;
+        var assignmentBaseline = assignment.Baselines.Add(); assignmentBaseline.Number = 0; assignmentBaseline.Cost = -3.5m;
+        using var output = new MemoryStream(); project.Save(output, Options());
+
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray())); var reopenedTask = reopened.Tasks.Single();
+        Assert.Equal(ProjectDuration.WorkingHours(1.5m), reopenedTask.Duration); Assert.Equal(15, reopenedTask.PercentComplete);
+        Assert.Equal(1.5m, reopenedTask.FreeSlackMinutes); Assert.Equal(12.5m, reopenedTask.Cost);
+        Assert.Equal(-11.5m, reopenedTask.ActualCost); Assert.Equal(1.25m, reopenedTask.RemainingCost); Assert.Equal(-0.5m, reopenedTask.FixedCost);
+        Assert.Equal("12.5", reopenedTask.CustomFields.Single(value => value.FieldId == "188743767").Value);
+        Assert.Equal(1250m, decimal.Parse(reopenedTask.CustomFields.Single(value => value.FieldId == "188743786").Value!,
+            System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(-12.5m, reopenedTask.Baselines.Single().Cost);
+        Assert.Equal(1.5m, reopened.Resources.Single().MaxUnits!.Value.Value);
+        var reopenedResource = reopened.Resources.Single();
+        Assert.Equal(10.5m, reopenedResource.StandardRate); Assert.Equal(9.5m, reopenedResource.OvertimeRate);
+        Assert.Equal(12.5m, reopenedResource.CostPerUse); Assert.Equal(-12.5m, reopenedResource.Cost);
+        Assert.Equal(-2.5m, reopenedResource.ActualCost); Assert.Equal(10m, reopenedResource.RemainingCost);
+        var reopenedAssignment = reopened.Assignments.Single();
+        Assert.Equal(1.5m, reopenedAssignment.Units!.Value.Value); Assert.Equal(-12.5m, reopenedAssignment.Cost);
+        Assert.Equal(2.5m, reopenedAssignment.ActualCost); Assert.Equal(-3.5m, reopenedAssignment.Baselines.Single().Cost);
+    }
+
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(59, 61)]
+    [InlineData(481, 2401)]
+    [InlineData(107374182, int.MaxValue)]
+    public void WholeMinuteWorkingSettingsRoundTripThroughDecimalHours(int minutesPerDay, int minutesPerWeek) {
+        using var project = ProjectDocument.Create();
+        project.Settings.MinutesPerDay = minutesPerDay; project.Settings.MinutesPerWeek = minutesPerWeek;
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(minutesPerDay, reopened.Settings.MinutesPerDay);
+        Assert.Equal(minutesPerWeek, reopened.Settings.MinutesPerWeek);
+    }
+
+    [Fact]
+    public void SubMinuteWorkingSettingsRemainInvalidMpxInput() {
+        const string input = "MPX,Fixture,4.0,ANSI\r\n11,2,0,1,0.016,0.016\r\n";
+        Assert.Throws<InvalidDataException>(() => Read(input));
+    }
+
     [Fact]
     public void MissingResourceAndOwnedCalendarNamesReportTheMpxFallback() {
         using var project = ProjectDocument.Create(); var parent = project.Calendars.AddStandardWorkingWeek(); project.Calendar = parent;

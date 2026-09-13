@@ -18,13 +18,30 @@ internal sealed class ProjectMpxValues {
         if (!int.TryParse(value, NumberStyles.Integer, Invariant, out int number)) throw new InvalidDataException("Invalid MPX integer: " + value);
         return number;
     }
-    internal decimal Number(string value) {
-        if (Currency.Length != 0) value = value.Replace(Currency, "").Trim();
+    internal decimal Number(string value) => ParseNumber(value.Trim());
+    internal decimal Money(string value) => ParseNumber(StripCurrencyAffix(value));
+    private decimal ParseNumber(string value) {
         var format = (NumberFormatInfo)Invariant.NumberFormat.Clone();
         format.NumberDecimalSeparator = DecimalSeparator; format.NumberGroupSeparator = GroupSeparator;
         if (!decimal.TryParse(value, NumberStyles.Number | NumberStyles.AllowParentheses, format, out decimal number))
             throw new InvalidDataException("Invalid MPX number: " + value);
         return number;
+    }
+    private string StripCurrencyAffix(string value) {
+        value = value.Trim();
+        if (Currency.Length == 0 || Currency.Any(character => char.IsWhiteSpace(character) || char.IsDigit(character)) || "+-()%".IndexOfAny(Currency.ToCharArray()) >= 0 ||
+            Currency.IndexOf(DecimalSeparator, StringComparison.Ordinal) >= 0 || Currency.IndexOf(GroupSeparator, StringComparison.Ordinal) >= 0)
+            return value;
+        if (value.StartsWith(Currency, StringComparison.Ordinal)) return value.Substring(Currency.Length).TrimStart();
+        if (value.EndsWith(Currency, StringComparison.Ordinal)) return value.Substring(0, value.Length - Currency.Length).TrimEnd();
+        if (value.Length > 1 && (value[0] == '+' || value[0] == '-') && value.Substring(1).StartsWith(Currency, StringComparison.Ordinal))
+            return value[0] + value.Substring(1 + Currency.Length).TrimStart();
+        if (value.Length > 2 && value[0] == '(' && value[value.Length - 1] == ')') {
+            string inner = value.Substring(1, value.Length - 2).Trim();
+            if (inner.StartsWith(Currency, StringComparison.Ordinal)) return "(" + inner.Substring(Currency.Length).TrimStart() + ")";
+            if (inner.EndsWith(Currency, StringComparison.Ordinal)) return "(" + inner.Substring(0, inner.Length - Currency.Length).TrimEnd() + ")";
+        }
+        return value;
     }
     internal int Percent(string value) {
         decimal number = Number(value.TrimEnd('%'));
@@ -54,10 +71,10 @@ internal sealed class ProjectMpxValues {
         ? ProjectUnits.Percent(Number(value.Substring(0, value.Length - 1))) : ProjectUnits.Fraction(Number(value));
     internal decimal Rate(string value) {
         int slash = value.LastIndexOf('/');
-        if (slash < 0) return Number(value);
+        if (slash < 0) return Money(value);
         decimal minutes = Minutes(Duration("1" + value.Substring(slash + 1)));
         if (minutes <= 0) throw new InvalidDataException("Invalid MPX rate unit.");
-        return checked(Number(value.Substring(0, slash)) * 60 / minutes);
+        return checked(Money(value.Substring(0, slash)) * 60 / minutes);
     }
     private DateTimeFormatInfo DateFormat() {
         var format = (DateTimeFormatInfo)Invariant.DateTimeFormat.Clone();

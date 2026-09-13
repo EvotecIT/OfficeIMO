@@ -12,7 +12,7 @@ internal static partial class ProjectMpxFields {
             "Text" => text, "Flag" => values.Flag(text) ? "1" : "0",
             "Number" => ProjectMpxValues.Text(values.Number(text)),
             // MSPDI and the shared model retain custom costs in hundredths of a currency unit.
-            "Cost" => ProjectMpxValues.Text(checked(values.Number(text) * 100)),
+            "Cost" => ProjectMpxValues.Text(checked(values.Money(text) * 100)),
             "Date" => XmlConvert.ToString(values.Date(text), XmlDateTimeSerializationMode.Unspecified),
             "Duration" => XmlConvert.ToString(TimeSpan.FromTicks(checked((long)(values.Minutes(values.Duration(text)) * TimeSpan.TicksPerMinute)))),
             _ => throw new InvalidDataException("Unknown MPX custom value kind.")

@@ -131,7 +131,12 @@ internal static partial class ProjectMpxCodec {
             int Unit(int index, int fallback) { int unit = Has(r, index) ? ProjectMpxValues.Integer(r[index]) : fallback; if (unit < 0 || unit > 3) throw new InvalidDataException("Invalid MPX default unit."); return unit; }
             _values.DefaultDurationUnit = Unit(1, 2); _values.DefaultWorkUnit = Unit(3, 1);
             if (Has(r, 2)) Document.Settings.DefaultTaskType = _values.Flag(r[2]) ? ProjectTaskType.FixedDuration : ProjectTaskType.FixedUnits;
-            int Minutes(int index, int fallback) { decimal minutes = Has(r, index) ? checked(_values.Number(r[index]) * 60) : fallback; if (minutes <= 0 || minutes != decimal.Truncate(minutes)) throw new InvalidDataException("MPX working hours must represent positive whole minutes."); return checked((int)minutes); }
+            int Minutes(int index, int fallback) {
+                if (!Has(r, index)) return fallback;
+                decimal minutes = checked(_values.Number(r[index]) * 60); decimal rounded = decimal.Round(minutes, 0, MidpointRounding.AwayFromZero);
+                if (rounded <= 0 || Math.Abs(minutes - rounded) > 0.0000000001m) throw new InvalidDataException("MPX working hours must represent positive whole minutes.");
+                return checked((int)rounded);
+            }
             _values.MinutesPerDay = Minutes(4, 480); _values.MinutesPerWeek = Minutes(5, 2400);
             if (Has(r, 4)) Document.Settings.MinutesPerDay = _values.MinutesPerDay;
             if (Has(r, 5)) Document.Settings.MinutesPerWeek = _values.MinutesPerWeek;

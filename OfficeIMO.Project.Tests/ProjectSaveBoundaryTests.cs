@@ -109,6 +109,40 @@ public sealed class ProjectSaveBoundaryTests {
     }
 
     [Theory]
+    [InlineData(false, "0.01")]
+    [InlineData(false, "-0.01")]
+    [InlineData(true, "0.01")]
+    [InlineData(true, "-0.01")]
+    public void XmlSlackRequiresWholeTenthsBeforeSerialization(bool freeSlack, string text) {
+        using var document = ProjectDocument.Create(); var task = document.Tasks.Add("Task");
+        decimal value = decimal.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
+        if (freeSlack) task.FreeSlackMinutes = value; else task.TotalSlackMinutes = value;
+        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
+        var diagnostic = Assert.Single(document.AssessSave(options).Diagnostics,
+            item => item.Code == "PROJECT_XML_TENTHS_PRECISION");
+        Assert.EndsWith(freeSlack ? "/FreeSlack" : "/TotalSlack", diagnostic.Location, StringComparison.Ordinal);
+        using var output = new MemoryStream();
+        Assert.Throws<InvalidDataException>(() => document.Save(output, options)); Assert.Equal(0, output.Length);
+    }
+
+    [Theory]
+    [InlineData(false, "0.1")]
+    [InlineData(false, "-0.1")]
+    [InlineData(true, "0.1")]
+    [InlineData(true, "-0.1")]
+    public void XmlSlackAcceptsExactTenths(bool freeSlack, string text) {
+        using var document = ProjectDocument.Create(); var task = document.Tasks.Add("Task");
+        decimal value = decimal.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
+        if (freeSlack) task.FreeSlackMinutes = value; else task.TotalSlackMinutes = value;
+        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
+        Assert.DoesNotContain(document.AssessSave(options).Diagnostics,
+            item => item.Code == "PROJECT_XML_TENTHS_PRECISION" || item.Code == "PROJECT_XML_TENTHS_RANGE");
+        using var output = new MemoryStream(); document.Save(output, options);
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(value, freeSlack ? reopened.Tasks.Single().FreeSlackMinutes : reopened.Tasks.Single().TotalSlackMinutes);
+    }
+
+    [Theory]
     [InlineData("task")]
     [InlineData("resource")]
     [InlineData("assignment")]

@@ -148,7 +148,12 @@ public sealed partial class ProjectDocument {
         }
         void CheckTenths(decimal? value, string location) {
             if (!value.HasValue) return;
-            try { _ = checked(value.Value * 10m); }
+            try {
+                decimal scaled = checked(value.Value * 10m);
+                if (scaled != decimal.Truncate(scaled))
+                    diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_TENTHS_PRECISION", ProjectDiagnosticSeverity.Error,
+                        "The value must use whole tenths for Project XML.", location));
+            }
             catch (OverflowException) {
                 diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_TENTHS_RANGE", ProjectDiagnosticSeverity.Error,
                     "The value exceeds the tenths-based range representable in Project XML.", location));
