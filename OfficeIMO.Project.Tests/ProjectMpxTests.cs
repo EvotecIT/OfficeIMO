@@ -154,6 +154,22 @@ public sealed class ProjectMpxTests {
             Assert.Equal(TimeSpan.Zero, item.FromDate!.Value.TimeOfDay);
             Assert.Equal(TimeSpan.Zero, item.ToDate!.Value.TimeOfDay);
         });
+        if (kind == "legacy") Assert.DoesNotContain(reopened.Calendar.WeekDays, item => item.Day == null);
+    }
+
+    [Fact]
+    public void LegacyDatedWeekdayConversionRequiresExplicitLossAcceptance() {
+        using var project = ProjectDocument.Create(); var calendar = project.Calendars.AddStandardWorkingWeek(); project.Calendar = calendar;
+        var legacy = calendar.WeekDays.Add(); legacy.FromDate = new DateTime(2026, 10, 12); legacy.ToDate = new DateTime(2026, 10, 13); legacy.IsWorking = false;
+        var diagnostic = Assert.Single(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_LEGACY_DAY_CONVERSION");
+        Assert.True(diagnostic.RepresentsLoss); Assert.EndsWith("/Day[7]", diagnostic.Location);
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.DoesNotContain(reopened.Calendar!.WeekDays, item => item.Day == null);
+        var converted = Assert.Single(reopened.Calendar.Exceptions);
+        Assert.Equal(legacy.FromDate, converted.FromDate); Assert.Equal(legacy.ToDate, converted.ToDate);
     }
 
     [Fact]

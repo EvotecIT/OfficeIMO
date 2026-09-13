@@ -86,7 +86,11 @@ internal sealed partial class ProjectMpxWriter {
                     }
                     for (int index = 0; index < current.WeekDays.Count; index++) {
                         var day = current.WeekDays[index];
-                        if (day.Day == null) Range(day.FromDate, day.ToDate, currentPath + "/Day[" + index + "]");
+                        if (day.Day == null) {
+                            Diagnostic("PROJECT_MPX_LEGACY_DAY_CONVERSION",
+                                "MPX represents a dated legacy weekday override as a calendar exception when reopened.", currentPath + "/Day[" + index + "]");
+                            Range(day.FromDate, day.ToDate, currentPath + "/Day[" + index + "]");
+                        }
                     }
                 }
                 for (int index = 0; index < current.WorkWeeks.Count; index++) {

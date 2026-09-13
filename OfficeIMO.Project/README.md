@@ -34,6 +34,7 @@ var build = phase.Children.Add("Build");
 build.Duration = ProjectDuration.WorkingDays(5);
 project.Dependencies.Add(design, build);
 project.Assignments.Add(build, engineer, ProjectUnits.Percent(50));
+project.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
 project.Validate().ThrowIfErrors();
 project.Save("delivery.xml");
 ```
@@ -56,6 +57,7 @@ using var project = ProjectDocument.Create().AsFluent()
     .End();
 
 project.Tasks.GetByUid(3).Notes = "Edited through the normal API.";
+project.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
 project.Save("delivery.xml");
 ```
 
@@ -141,8 +143,17 @@ project.Name = "Delivery";
 project.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
 project.Calendar = project.Calendars.AddStandardWorkingWeek();
 var engineer = project.Resources.AddWork("Engineer");
+engineer.DisplayId = 1;
+engineer.IsNull = false;
 engineer.Calendar = project.Calendars.Add("Engineer", project.Calendar);
 var task = project.Tasks.Add("Design");
+task.DisplayId = 1;
+task.IsManual = false;
+task.IsActive = true;
+task.IsNull = false;
+task.IsMilestone = false;
+task.IsCritical = false;
+task.EffortDriven = false;
 task.Duration = ProjectDuration.WorkingDays(1);
 task.Start = project.Settings.StartDate;
 task.Finish = new DateTime(2026, 10, 5, 17, 0, 0);

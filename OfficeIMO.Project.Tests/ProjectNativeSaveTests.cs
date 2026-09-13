@@ -63,7 +63,7 @@ public sealed class ProjectNativeSaveTests {
         document.Tasks.GetByUid(3).Name = "Current edited task";
         using var clone = document.Clone(); Assert.Equal("Current edited task", clone.Tasks.GetByUid(3).Name);
         Assert.True(document.IsModified);
-        using var xml = new MemoryStream(); document.Save(xml, Allow(ProjectFileFormat.Xml)); Assert.False(document.IsModified);
+        using var xml = new MemoryStream(); document.Save(xml, Allow(ProjectFileFormat.Xml)); Assert.True(document.IsModified);
         using var native = new MemoryStream(); document.Save(native, Allow());
         using var reloaded = ProjectDocument.Load(new MemoryStream(native.ToArray()));
         Assert.Equal("Current edited task", reloaded.Tasks.GetByUid(3).Name);

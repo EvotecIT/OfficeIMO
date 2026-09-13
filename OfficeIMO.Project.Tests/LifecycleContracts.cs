@@ -48,6 +48,62 @@ public class LifecycleContracts {
     }
 
     [Fact]
+    public void ExplicitStreamSaveLeavesTheAssociatedPathIntact() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Project.Tests-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "project.xml");
+        try {
+            File.WriteAllText(path, XmlContracts.Wrap(XmlContracts.TaskXml()));
+            using var document = ProjectDocument.Load(path);
+            document.Tasks[0].Name = "Independent copy";
+            using var copy = new MemoryStream(); document.Save(copy);
+            Assert.True(document.IsModified);
+            document.Tasks[0].Name = "Associated path";
+            document.Save();
+            using var copied = ProjectDocument.Load(new MemoryStream(copy.ToArray()));
+            using var associated = ProjectDocument.Load(path);
+            Assert.Equal("Independent copy", copied.Tasks[0].Name);
+            Assert.Equal("Associated path", associated.Tasks[0].Name);
+        } finally { Directory.Delete(directory, true); }
+    }
+
+    [Fact]
+    public async Task ExplicitAsyncStreamSaveLeavesTheAssociatedStreamIntact() {
+        using var associatedStream = new MemoryStream();
+        byte[] source = Encoding.UTF8.GetBytes(XmlContracts.Wrap(XmlContracts.TaskXml()));
+        associatedStream.Write(source, 0, source.Length); associatedStream.Position = 0;
+        using var document = ProjectDocument.Load(associatedStream);
+        document.Tasks[0].Name = "Independent copy";
+        using var copy = new MemoryStream(); await document.SaveAsync(copy, new ProjectSaveOptions {
+            Format = ProjectFileFormat.Mpx4, LossPolicy = OfficeConversionLossPolicy.Allow
+        });
+        Assert.True(document.IsModified);
+        document.Tasks[0].Name = "Associated stream";
+        document.Save();
+        using var copied = ProjectDocument.Load(new MemoryStream(copy.ToArray()));
+        using var associated = ProjectDocument.Load(new MemoryStream(associatedStream.ToArray()));
+        Assert.Equal("Independent copy", copied.Tasks[0].Name);
+        Assert.Equal("Associated stream", associated.Tasks[0].Name);
+    }
+
+    [Fact]
+    public void IndependentStreamSaveDoesNotSuppressSaveOnDispose() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Project.Tests-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "project.xml");
+        try {
+            File.WriteAllText(path, XmlContracts.Wrap(XmlContracts.TaskXml()));
+            var document = ProjectDocument.Load(path, new ProjectLoadOptions { PersistenceMode = DocumentPersistenceMode.SaveOnDispose });
+            document.Tasks[0].Name = "Persist on dispose";
+            using var copy = new MemoryStream(); document.Save(copy);
+            Assert.True(document.IsModified);
+            document.Dispose();
+            using var associated = ProjectDocument.Load(path);
+            Assert.Equal("Persist on dispose", associated.Tasks[0].Name);
+        } finally { Directory.Delete(directory, true); }
+    }
+
+    [Fact]
     public void NonSeekableInputIsBoundedAndOutputRemainsCallerOwned() {
         using var input = new ForwardStream(Encoding.UTF8.GetBytes(XmlContracts.Wrap(XmlContracts.TaskXml())));
         using var document = ProjectDocument.Load(input);

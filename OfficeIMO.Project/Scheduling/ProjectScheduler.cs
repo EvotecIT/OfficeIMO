@@ -97,7 +97,13 @@ internal sealed partial class ProjectScheduler {
             .GroupBy(a => a.Task!).ToDictionary(g => g.Key, g => g.ToArray());
         foreach (var task in all) {
             _token.ThrowIfCancellationRequested();
-            if (task.IsSummary || task.IsNull == true || task.IsActive == false || task.Uid == 0) continue;
+            if (task.IsSummary) {
+                if (task.ConstraintDate.HasValue || task.Deadline.HasValue ||
+                    task.ConstraintType is not null and not ProjectConstraintType.AsSoonAsPossible)
+                    Error("PROJECT_SUMMARY_BOUND_PROFILE", "Summary task constraints and deadlines are not supported by the scheduling profile.", task);
+                continue;
+            }
+            if (task.IsNull == true || task.IsActive == false || task.Uid == 0) continue;
             var calendar = task.Calendar ?? _document.Calendar;
             if (calendar == null) { Error("PROJECT_CALCULATION_CALENDAR", "Set an explicit task or project calendar.", task); continue; }
             if (task.IsManual != true && !task.Duration.HasValue) { Error("PROJECT_CALCULATION_DURATION", "Automatic tasks require an explicit duration.", task); continue; }

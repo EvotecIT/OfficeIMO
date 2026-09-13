@@ -134,13 +134,13 @@ public sealed partial class ProjectDocument {
     }
 
     /// <summary>Saves to a caller-owned stream. Seekable streams are replaced; non-seekable streams receive bytes at their current position.</summary>
-    /// <remarks>Stream writes cannot promise atomic rollback on I/O failure. File saves use atomic replacement.</remarks>
+    /// <remarks>Stream writes cannot promise atomic rollback on I/O failure. File saves use atomic replacement. An explicit stream does not replace an existing destination association.</remarks>
     public void Save(Stream stream, ProjectSaveOptions? options = null, CancellationToken cancellationToken = default) {
         EnsureMutable(); options ??= new ProjectSaveOptions();
         options = WithFormat(options, ResolveFormat(options));
         var prepared = Serialize(options, cancellationToken); byte[] bytes = prepared.Bytes;
         cancellationToken.ThrowIfCancellationRequested(); OfficeStreamWriter.WriteAllBytes(stream, bytes);
-        _associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, _accessMode); _path = null; AcceptSaved(prepared);
+        if (ReferenceEquals(stream, _associatedStream)) AcceptSaved(prepared);
     }
 
     /// <summary>Asynchronously commits a complete Project file after validation and serialization.</summary>
@@ -152,13 +152,13 @@ public sealed partial class ProjectDocument {
         _path = Path.GetFullPath(path); _associatedStream = null; AcceptSaved(prepared);
     }
 
-    /// <summary>Asynchronously writes the selected format to a caller-owned stream; failure may leave a partial destination.</summary>
+    /// <summary>Asynchronously writes the selected format to a caller-owned stream without replacing an existing destination association; failure may leave a partial destination.</summary>
     public async Task SaveAsync(Stream stream, ProjectSaveOptions? options = null, CancellationToken cancellationToken = default) {
         EnsureMutable(); options ??= new ProjectSaveOptions();
         options = WithFormat(options, ResolveFormat(options));
         var prepared = Serialize(options, cancellationToken); byte[] bytes = prepared.Bytes;
         await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
-        _associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, _accessMode); _path = null; AcceptSaved(prepared);
+        if (ReferenceEquals(stream, _associatedStream)) AcceptSaved(prepared);
     }
 
     private ProjectSerialization Serialize(ProjectSaveOptions options, CancellationToken token) {

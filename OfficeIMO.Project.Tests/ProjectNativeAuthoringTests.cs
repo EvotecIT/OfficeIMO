@@ -111,7 +111,7 @@ public sealed class ProjectNativeAuthoringTests {
         for (int i = 0; i <= 10; i++) { var baseline = task.Baselines.Add(); baseline.Number = i; baseline.Duration = ProjectDuration.WorkingDays(i + 1); }
         using var output = new MemoryStream(); document.Save(output, Native());
         using var loaded = ProjectDocument.Load(new MemoryStream(output.ToArray()));
-        using var clone = document.Clone();
+        using var clone = document.Clone(Native());
         foreach (var result in new[] { loaded, clone }) {
             var baselines = result.Tasks.GetByUid(2).Baselines.OrderBy(b => b.Number).ToArray(); Assert.Equal(11, baselines.Length);
             for (int i = 0; i <= 10; i++) Assert.Equal(ProjectDuration.WorkingDays(i + 1), baselines[i].Duration);

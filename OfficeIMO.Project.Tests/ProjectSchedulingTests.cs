@@ -10,6 +10,25 @@ public sealed class ProjectSchedulingTests {
                 new[] { ProjectWorkingTime.Hours(8, 12), ProjectWorkingTime.Hours(13, 17) });
         return document;
     }
+    [Theory]
+    [InlineData("deadline", false)]
+    [InlineData("constraint", true)]
+    [InlineData("constraint", false)]
+    [InlineData("late", false)]
+    public void SummarySchedulingBoundsAreRejected(string bound, bool backward) {
+        using var document = Standard();
+        document.Settings.ScheduleFromStart = !backward;
+        if (backward) { document.Settings.StartDate = null; document.Settings.FinishDate = Monday.AddDays(5); }
+        var summary = document.Tasks.AddSummary("Bounded summary");
+        summary.Children.Add("Work").Duration = ProjectDuration.WorkingDays(1);
+        if (bound == "deadline") summary.Deadline = Monday;
+        else if (bound == "late") summary.ConstraintType = ProjectConstraintType.AsLateAsPossible;
+        else { summary.ConstraintType = ProjectConstraintType.MustStartOn; summary.ConstraintDate = Monday.AddDays(1); }
+        var result = document.CalculateSchedule();
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_SUMMARY_BOUND_PROFILE"
+            && diagnostic.Severity == ProjectDiagnosticSeverity.Error && diagnostic.Location == "/Task[UID=" + summary.Uid + "]");
+        Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result));
+    }
     [Fact]
     public void CalendarArithmeticTraversesSplitShiftsExceptionsAndInheritedWorkWeeks() {
         using var document = Standard();

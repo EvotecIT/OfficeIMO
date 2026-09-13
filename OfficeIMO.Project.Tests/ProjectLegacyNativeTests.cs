@@ -12,9 +12,10 @@ public sealed class ProjectLegacyNativeTests {
     public void LegacyCurrencyCanRemainAbsentUntilXmlConversionIsRequested() {
         using var document = ProjectNativeAuthoringTests.Create();
         using var initial = new MemoryStream(); document.Save(initial, Native(ProjectFileFormat.Mpp9, true));
-        document.Settings.CurrencyCode = null;
-        Assert.DoesNotContain(document.Validate().Diagnostics, d => d.Code == "PROJECT_CURRENCY_CODE");
-        using var updated = new MemoryStream(); document.Save(updated, Native(ProjectFileFormat.Mpp9, true));
+        using var editing = ProjectDocument.Load(new MemoryStream(initial.ToArray()));
+        editing.Settings.CurrencyCode = null;
+        Assert.DoesNotContain(editing.Validate().Diagnostics, d => d.Code == "PROJECT_CURRENCY_CODE");
+        using var updated = new MemoryStream(); editing.Save(updated, Native(ProjectFileFormat.Mpp9, true));
         using var reopened = ProjectDocument.Load(new MemoryStream(updated.ToArray()));
         Assert.Null(reopened.Settings.CurrencyCode);
         Assert.Contains(reopened.AssessSave(Native(ProjectFileFormat.Xml)).Diagnostics,
@@ -109,10 +110,11 @@ public sealed class ProjectLegacyNativeTests {
     public void GenerationConversionRebuildsStorageAndRequiresExplicitLossAcceptance(ProjectFileFormat source, ProjectFileFormat target) {
         using var document = ProjectNativeAuthoringTests.Create();
         using var first = new MemoryStream(); document.Save(first, Native(source));
+        using var persisted = ProjectDocument.Load(new MemoryStream(first.ToArray()));
         using var next = new MemoryStream();
-        Assert.Contains(document.AssessSave(Native(target)).Diagnostics, d => d.Code == "PROJECT_NATIVE_GENERATION_LOSS");
-        Assert.Throws<InvalidOperationException>(() => document.Save(next, Native(target))); Assert.Empty(next.ToArray());
-        document.Save(next, Native(target, true));
+        Assert.Contains(persisted.AssessSave(Native(target)).Diagnostics, d => d.Code == "PROJECT_NATIVE_GENERATION_LOSS");
+        Assert.Throws<InvalidOperationException>(() => persisted.Save(next, Native(target))); Assert.Empty(next.ToArray());
+        persisted.Save(next, Native(target, true));
         using var read = ProjectDocument.Load(new MemoryStream(next.ToArray()));
         Assert.Equal(target == ProjectFileFormat.Mpp12 ? "MPP12" : "MPP14", read.NativeInfo!.Generation);
         Assert.Equal("Design café / Łódź / 日本語", read.Tasks.GetByUid(2).Name);
