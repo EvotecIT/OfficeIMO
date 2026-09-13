@@ -107,6 +107,7 @@ public sealed partial class MainWindow : Window {
             reviewProtection: preview => new PdfProtectionDialog(preview).ShowDialog<bool>(this),
             showProtectionResult: result => new PdfProtectionDialog(result).ShowDialog(this),
             reviewSigning: preview => new PdfSigningDialog(preview).ShowDialog<bool>(this),
+            reviewWatermark: preview => new WatermarkDialog(preview).ShowDialog<bool>(this),
             showSigningResult: result => new PdfSigningDialog(result).ShowDialog(this),
             reviewPageExtraction: preview => new PageExtractionDialog(preview).ShowDialog<bool>(this),
             showPageExtractionResult: result => new PageExtractionDialog(result).ShowDialog(this),

@@ -1314,10 +1314,11 @@ public sealed class HtmlPdfTests {
         Assert.Contains("body.officeimo-pdf-positioned table.pdf-table", html, StringComparison.Ordinal);
         Assert.Contains("class=\"officeimo-html officeimo-pdf-html officeimo-pdf-positioned\"", html, StringComparison.Ordinal);
         Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\" style=\"width:420pt;height:360pt;\"", html, StringComparison.Ordinal);
-        Assert.Contains("class=\"pdf-text pdf-heading\"", html, StringComparison.Ordinal);
-        Assert.Contains("<table class=\"pdf-table\"", html, StringComparison.Ordinal);
-        Assert.Contains("style=\"left:", html, StringComparison.Ordinal);
-        Assert.Contains("Logical Heading", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-native-text\"", html, StringComparison.Ordinal);
+        Assert.Contains("role=\"heading\"", html, StringComparison.Ordinal);
+        Assert.Contains("<text x=\"", html, StringComparison.Ordinal);
+        using var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+        Assert.Contains("Logical Heading", string.Join(" ", parsed.QuerySelectorAll("svg text").Select(node => node.TextContent)), StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(html, "A-100"));
     }
 
@@ -1385,8 +1386,9 @@ public sealed class HtmlPdfTests {
 
         PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf, layoutOptions).ToHtmlResult(options);
 
-        Assert.False(result.Report.HasWarnings);
-        Assert.Contains("Logical Heading", result.Value, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "PositionedFontSubstitution");
+        using var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(result.Value);
+        Assert.Contains("Logical Heading", string.Join(" ", parsed.QuerySelectorAll("svg text").Select(node => node.TextContent)), StringComparison.Ordinal);
         Assert.Equal(PdfHtmlProfile.PositionedReview, result.Summary.Profile);
         Assert.Equal("pdf-html-positioned-review", result.Summary.ProfileId);
         Assert.Equal(1, result.Summary.SourcePageCount);
@@ -1399,7 +1401,7 @@ public sealed class HtmlPdfTests {
         Assert.True(result.Summary.ImageCount > 0);
         Assert.True(result.Summary.ImagePlacementCount > 0);
         Assert.True(result.Summary.LinkCount > 0);
-        Assert.Equal(0, result.Summary.WarningCount);
+        Assert.Equal(result.Report.Warnings.Count, result.Summary.WarningCount);
         Assert.True(result.Summary.EmitsDocumentShell);
         Assert.True(result.Summary.UsesSharedDocumentStyles);
         Assert.Equal(OfficeVisualThemeKind.Report, result.Summary.Theme);
@@ -1507,7 +1509,8 @@ public sealed class HtmlPdfTests {
         PdfHtmlConversionResult textResult = PdfCore.PdfDocumentReadResult.Load(textPdf).ToHtmlResult(options);
 
         Assert.Single(imageResult.Report.Warnings, item => item.Code == "ImageDataTooLarge");
-        Assert.False(textResult.Report.HasWarnings);
+        Assert.DoesNotContain(textResult.Report.Warnings, item => item.Code == "ImageDataTooLarge");
+        Assert.Contains(textResult.Report.Warnings, item => item.Code == "PositionedFontSubstitution");
     }
 
     [Fact]

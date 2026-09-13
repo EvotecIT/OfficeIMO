@@ -114,7 +114,7 @@ public static partial class OfficeDrawingSvgExporter {
             .Append(Format(drawing.Height))
             .Append("\" role=\"img\">");
 
-        AppendEmbeddedFonts(builder, drawing.Fonts, cancellationToken);
+        AppendEmbeddedFonts(builder, drawing.Fonts, cancellationToken, idPrefix);
         int gradientId = 0;
         int clipPathId = 0;
         var tilingExpansionBudget = new SvgTilingExpansionBudget();
@@ -123,6 +123,9 @@ public static partial class OfficeDrawingSvgExporter {
         builder.Append("</svg>");
         cancellationToken.ThrowIfCancellationRequested();
         string svg = builder.ToString();
+        svg = ScopeEmbeddedFontFamilies(svg, drawing.Fonts, idPrefix, cancellationToken);
+        if (maximumCharacters.HasValue && svg.Length > maximumCharacters.Value)
+            throw new ArgumentOutOfRangeException(nameof(maximumCharacters), "The encoded SVG exceeds its configured character ceiling.");
         cancellationToken.ThrowIfCancellationRequested();
         return svg;
     }

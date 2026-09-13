@@ -11,7 +11,8 @@ public sealed class PdfPageInteractionRegion {
         string? fieldName = null,
         int? objectNumber = null,
         int textIndex = -1,
-        PdfImagePlacement? imagePlacement = null) {
+        PdfImagePlacement? imagePlacement = null,
+        string? watermarkId = null) {
         Kind = kind;
         Quad = quad;
         Text = text;
@@ -21,6 +22,7 @@ public sealed class PdfPageInteractionRegion {
         ObjectNumber = objectNumber;
         TextIndex = textIndex;
         ImagePlacement = imagePlacement;
+        WatermarkId = watermarkId;
     }
 
     /// <summary>Region kind.</summary>
@@ -52,4 +54,7 @@ public sealed class PdfPageInteractionRegion {
     /// The identity is bound to the source PDF revision and can be passed directly to the document image editor.
     /// </summary>
     public PdfImagePlacement? ImagePlacement { get; }
+
+    /// <summary>Editable OfficeIMO watermark identity for this painted occurrence, or null for ordinary content.</summary>
+    public string? WatermarkId { get; }
 }

@@ -16,6 +16,7 @@ internal sealed class PageSceneCoordinator : IDisposable {
     private long _cachedBytes;
     private long _accessSequence;
     private volatile bool _disposed;
+    private bool _cacheEnabled = true;
 
     internal PageSceneCoordinator(
         Func<int, CancellationToken, Task<PdfPageScene>> loadPage,
@@ -82,6 +83,14 @@ internal sealed class PageSceneCoordinator : IDisposable {
         }
     }
 
+    /// <summary>Prevents a late page load from refilling an inactive tab's presentation cache.</summary>
+    internal void SetCacheEnabled(bool enabled) {
+        lock (_sync) {
+            _cacheEnabled = enabled;
+            if (!enabled) { _cache.Clear(); _cachedElements = 0; _cachedBytes = 0; }
+        }
+    }
+
     public void Dispose() {
         if (_disposed) return;
         _disposed = true;
@@ -107,7 +116,7 @@ internal sealed class PageSceneCoordinator : IDisposable {
         if (scene.ElementCount > _maximumElements || scene.EstimatedBytes > _maximumBytes) return;
 
         lock (_sync) {
-            if (_disposed) return;
+            if (_disposed || !_cacheEnabled) return;
             if (_cache.TryGetValue(pageNumber, out CacheEntry? existing)) {
                 _cachedElements -= existing.Scene.ElementCount;
                 _cachedBytes -= existing.Scene.EstimatedBytes;

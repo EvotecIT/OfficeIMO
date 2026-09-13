@@ -61,6 +61,8 @@ internal static partial class PdfStamper {
                 ? long.MaxValue
                 : totalGeneratedBytes + generatedPageBytes;
             var pageOptions = new PdfPageOverlayOptions {
+                ContentIdentifier = effective.ContentIdentifier,
+                WatermarkSettings = effective.WatermarkSettings,
                 TargetPages = PdfPageSelector.Parse(pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                 Fit = PdfPageOverlayFit.Stretch,
                 X = 0D,

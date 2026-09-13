@@ -1143,6 +1143,40 @@ PdfDocument.Load("contract.pdf")
     .Save("contract-reviewed.pdf");
 ```
 
+Use `Stamp.Watermark` when you want to reopen and revise a watermark later:
+
+```csharp
+using System.Linq;
+using OfficeIMO.Pdf;
+
+var watermark = new PdfWatermarkOptions {
+    Text = "DRAFT",
+    RotationDegrees = -30,
+    Opacity = 0.3,
+    Color = PdfColor.FromRgb(180, 30, 30),
+    TargetPages = PdfPageSelector.Parse("1")
+};
+PdfDocument.Load("contract.pdf").Stamp.Watermark(watermark).Save("contract-draft.pdf");
+
+var reopened = PdfDocument.Load("contract-draft.pdf");
+var revision = reopened.Stamp.ReadWatermarks().Single(mark => mark.Id == watermark.Id);
+revision.Text = "APPROVED";
+revision.RotationDegrees = 0;
+revision.TargetPages = null; // Apply the revised watermark to all pages.
+reopened.Stamp.Watermark(revision).Save("contract-approved.pdf");
+```
+
+Each new `PdfWatermarkOptions` has its own identifier. Reusing that identifier
+replaces its previous watermark and removes occurrences outside the new page
+selection. Other watermarks keep their own identifiers. `ReadWatermarks` returns
+editable settings for watermarks created by this API; it does not infer settings
+from arbitrary existing text, images, or older `TextWatermark` stamps.
+
+For an image watermark, set `ImageBytes = System.IO.File.ReadAllBytes("logo.png")`
+instead of text. `Width` and `Height` set its size in points. `X` and `Y` use the
+visual page's top-left origin; leaving either unset centers that axis. Rotation
+is clockwise around the watermark's center, and opacity ranges from 0 to 1.
+
 Import a complete source page above or below selected target pages without
 rasterizing it:
 

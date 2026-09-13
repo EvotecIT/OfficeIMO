@@ -26,6 +26,7 @@ public sealed class ScanPreparationVisualTests {
             var scan = model.OcrWorkbench.Scan;
             scan.Dpi = 72;
             var view = new SearchablePdfOcrView { DataContext = model };
+            view.FindControl<Expander>("ScanPreparationOptions")!.IsExpanded = true;
             var window = new Window { Width = 960, Height = 640, Content = view };
             try {
                 window.Show(); window.UpdateLayout();
@@ -95,6 +96,7 @@ public sealed class ScanPreparationVisualTests {
             model.OcrWorkbench.UseDocument(source);
             var scan = model.OcrWorkbench.Scan; scan.Dpi = 72;
             var view = new SearchablePdfOcrView { DataContext = model };
+            view.FindControl<Expander>("ScanPreparationOptions")!.IsExpanded = true;
             var window = new Window { Width = width, Height = height, Content = view };
             try {
                 window.Show(); window.UpdateLayout();

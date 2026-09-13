@@ -229,7 +229,7 @@
     <value>Add text</value>
   </data>
   <data name="DocumentWorkspace.AddWatermark" xml:space="preserve">
-    <value>Add watermark</value>
+    <value>Watermarks</value>
   </data>
   <data name="DocumentWorkspace.AllowACustomValue" xml:space="preserve">
     <value>Allow a custom value</value>
@@ -946,7 +946,7 @@
     <value>OCR runtime</value>
   </data>
   <data name="SearchablePdfOcr.OfficeIMORendersEachSelectedPageRecognizesWordGeometryRemovesOverlap" xml:space="preserve">
-    <value>OfficeIMO renders each selected page, recognizes word geometry, removes overlap with native text, and writes an invisible searchable layer into a separate PDF.</value>
+    <value>Make scanned pages searchable and selectable. Review the recognized words, exclude mistakes, and save a separate PDF that keeps the original page appearance.</value>
   </data>
   <data name="SearchablePdfOcr.OpenResult" xml:space="preserve">
     <value>Open result</value>
@@ -988,7 +988,7 @@
     <value>SOURCE</value>
   </data>
   <data name="SearchablePdfOcr.TesseractMustBeInstalledOnThisComputerOfficeIMODiscoversIt" xml:space="preserve">
-    <value>Tesseract must be installed on this computer. OfficeIMO discovers it from the environment, PATH, or common installation locations; the application does not install an executable silently.</value>
+    <value>Text recognition runs on this computer using Tesseract. Install Tesseract if it is not available; Studio checks standard installation locations automatically.</value>
   </data>
   <data name="SearchablePdfOcr.TurnScannedPagesIntoASearchablePDFWhileKeepingThe" xml:space="preserve">
     <value>Turn scanned pages into a searchable PDF while keeping the visible page intact.</value>
@@ -1538,6 +1538,10 @@
   <data name="ImageOcr.ReviewText" xml:space="preserve"><value>Recognized text</value></data>
   <data name="ImageOcr.SaveText" xml:space="preserve"><value>Save reviewed text</value></data>
   <data name="ImageOcr.ActualPixels" xml:space="preserve"><value>Show actual pixels</value></data>
+  <data name="OcrSession.Empty.Title" xml:space="preserve"><value>Turn scans into searchable documents</value></data>
+  <data name="OcrSession.Empty.Description" xml:space="preserve"><value>Add PDFs to create searchable copies, or add images to extract editable text. You can review the recognized text before saving.</value></data>
+  <data name="OcrSession.Setup.Folder" xml:space="preserve"><value>Choose an output folder to enable recognition.</value></data>
+  <data name="OcrSession.Setup.Language" xml:space="preserve"><value>Select at least one recognition language.</value></data>
   <data name="OcrSession.Title" xml:space="preserve"><value>OCR session</value></data>
   <data name="OcrSession.Hint" xml:space="preserve"><value>PDFs produce searchable copies. Images produce editable text files. Review each result before saving; finished outputs appear in Jobs.</value></data>
   <data name="OcrSession.Add" xml:space="preserve"><value>Add PDFs or images</value></data>
@@ -1911,4 +1915,155 @@
   <data name="PrintPreview.PaperSource.Default" xml:space="preserve"><value>Printer default</value></data>
   <data name="PrintPreview.PaperSource.Unavailable" xml:space="preserve"><value>Paper-source discovery failed. Printing will use the printer default.</value></data>
   <data name="PrintPreview.FileTypeHint" xml:space="preserve"><value>Use the file extension produced by the selected printer, such as .pdf or .xps.</value></data>
+  <data name="Connections.Title" xml:space="preserve"><value>AI connections</value></data>
+  <data name="Connections.Privacy" xml:space="preserve"><value>Sign-in and model discovery do not send your documents. Cloud questions require your permission.</value></data>
+  <data name="Connections.ChooseProvider" xml:space="preserve"><value>Choose a provider</value></data>
+  <data name="Connections.BeforeConnecting" xml:space="preserve"><value>Before you connect</value></data>
+  <data name="Connections.ConnectAccount" xml:space="preserve"><value>Connect</value></data>
+  <data name="Connections.ApiKey" xml:space="preserve"><value>API key</value></data>
+  <data name="Connections.GitHubClientHint" xml:space="preserve"><value>Your registered GitHub application ID</value></data>
+  <data name="Connections.TestConnection" xml:space="preserve"><value>Connect and find models</value></data>
+  <data name="Connections.Advanced" xml:space="preserve"><value>Advanced connection options</value></data>
+  <data name="Connections.ImportExplanation" xml:space="preserve"><value>Reuse an existing Codex sign-in on this computer. Studio copies it to its own account store only when you choose this action.</value></data>
+  <data name="Connections.Connected" xml:space="preserve"><value>Connection ready</value></data>
+  <data name="Connections.Setup" xml:space="preserve"><value>Connection status</value></data>
+  <data name="Connections.ChooseModel" xml:space="preserve"><value>Choose a model</value></data>
+  <data name="Connections.ModelHelp" xml:space="preserve"><value>Select a model available to this connection. You can change it before asking a question.</value></data>
+  <data name="Connections.ManualModel" xml:space="preserve"><value>Enter a model ID manually</value></data>
+  <data name="Connections.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Connections.UseConnection" xml:space="preserve"><value>Use this connection</value></data>
+  <data name="Connections.Welcome" xml:space="preserve"><value>Your documents, with an assistant</value></data>
+  <data name="Connections.WelcomeHelp" xml:space="preserve"><value>Connect an account or a model running on this computer. Ask questions about the open PDF and review the source references in each answer.</value></data>
+  <data name="Connections.Account" xml:space="preserve"><value>Account sign-in</value></data>
+  <data name="Connections.Cloud" xml:space="preserve"><value>Cloud API</value></data>
+  <data name="Connections.OnDevice" xml:space="preserve"><value>On this computer</value></data>
+  <data name="Connections.CustomLocal" xml:space="preserve"><value>Other local server</value></data>
+  <data name="Connections.ChatGpt.Description" xml:space="preserve"><value>Ask about your documents using your ChatGPT account.</value></data>
+  <data name="Connections.ChatGpt.Preparation" xml:space="preserve"><value>Sign in securely in your browser. Studio keeps its own saved login. You can also reuse an existing Codex sign-in under advanced options.</value></data>
+  <data name="Connections.Copilot.Description" xml:space="preserve"><value>Use models available through your GitHub Copilot account.</value></data>
+  <data name="Connections.Copilot.Preparation" xml:space="preserve"><value>Browser sign-in requires the ID of a GitHub application registered for device authorization. Studio does not include an application registration. Enter your application ID below, or use an existing GitHub credential under advanced options.</value></data>
+  <data name="Connections.Api.Description" xml:space="preserve"><value>Connect OpenAI or another service with an OpenAI-compatible API.</value></data>
+  <data name="Connections.Api.Preparation" xml:space="preserve"><value>Use the base URL and API key provided by your service. API usage may have separate billing from a chat subscription. Remote services require HTTPS.</value></data>
+  <data name="Connections.Local.Description" xml:space="preserve"><value>Connect another OpenAI-compatible server running on this computer.</value></data>
+  <data name="Connections.Local.Preparation" xml:space="preserve"><value>Start your model server and load a text model. Set its base URL under advanced options. This preset accepts only a loopback address on this computer.</value></data>
+  <data name="Connections.LmStudio.Description" xml:space="preserve"><value>Work with a local model served by LM Studio.</value></data>
+  <data name="Connections.LmStudio.Preparation" xml:space="preserve"><value>Open LM Studio, load a text model, and start its local server on port 1234. Then connect to discover models. Change the port or add a server token under advanced options.</value></data>
+  <data name="Connections.Ollama.Description" xml:space="preserve"><value>Work with models installed in Ollama on this computer.</value></data>
+  <data name="Connections.Ollama.Preparation" xml:space="preserve"><value>Start Ollama and download a text model before connecting. Studio uses its local server on port 11434. You can change the address under advanced options.</value></data>
+  <data name="Home.Welcome" xml:space="preserve"><value>What would you like to do?</value></data>
+  <data name="Home.WelcomeDescription" xml:space="preserve"><value>Read, prepare, and work with your documents in OfficeIMO Studio.</value></data>
+  <data name="Tools.Introduction" xml:space="preserve"><value>Choose a task or search by what you want to do. Tools that need an open document explain what to do first.</value></data>
+  <data name="Assembly.Source.Folder" xml:space="preserve"><value>Folder</value></data>
+  <data name="Assembly.Sources.Count" xml:space="preserve"><value>Sources: {0:N0}</value></data>
+  <data name="Assembly.Sources.Skipped" xml:space="preserve"><value>Skipped {0:N0} source(s) that could not be inspected.</value></data>
+  <data name="Assistant.AccountConnected" xml:space="preserve"><value>Connected as {0} ({1}).</value></data>
+  <data name="Assistant.BrowserFailed" xml:space="preserve"><value>The sign-in browser could not be opened. Cancel and try again.</value></data>
+  <data name="Assistant.BrowserSignIn" xml:space="preserve"><value>Complete sign-in in your browser.</value></data>
+  <data name="Assistant.Cancelled" xml:space="preserve"><value>Connection cancelled or timed out. Reconnect to inspect saved sign-in state; no new model was selected.</value></data>
+  <data name="Assistant.ChooseAccount" xml:space="preserve"><value>Several Studio accounts are saved. Select an account before connecting or signing out.</value></data>
+  <data name="Assistant.Connected" xml:space="preserve"><value>Connected. Select or enter a model before asking a question.</value></data>
+  <data name="Assistant.Connecting" xml:space="preserve"><value>Connecting…</value></data>
+  <data name="Assistant.ContextReset" xml:space="preserve"><value>Conversation cleared. The next question uses the current document, scope and connection.</value></data>
+  <data name="Assistant.DeviceCode" xml:space="preserve"><value>Enter code {0} in your browser.</value></data>
+  <data name="Assistant.NoAnswer" xml:space="preserve"><value>No supported answer was returned for the selected evidence.</value></data>
+  <data name="Assistant.NotConnected" xml:space="preserve"><value>Choose a connection. No document is sent during sign-in or model discovery.</value></data>
+  <data name="Assistant.OpenPdf" xml:space="preserve"><value>Open a PDF before asking a document question.</value></data>
+  <data name="Assistant.Progress" xml:space="preserve"><value>{0} · {1}/{2} batches</value></data>
+  <data name="Assistant.Reading" xml:space="preserve"><value>Reading the current document snapshot…</value></data>
+  <data name="Assistant.Ready" xml:space="preserve"><value>Ask about the open PDF. Answers include source references for review.</value></data>
+  <data name="Assistant.ResultStatus" xml:space="preserve"><value>{0} · {1} requests · {2} omitted evidence items. Check source references; a matching quote does not prove the interpretation.</value></data>
+  <data name="Assistant.SelectPage" xml:space="preserve"><value>Select a page first.</value></data>
+  <data name="Assistant.SignedOut" xml:space="preserve"><value>Signed out of the selected Studio connection.</value></data>
+  <data name="Assistant.SourcePage" xml:space="preserve"><value>Page {0} · {1}</value></data>
+  <data name="Assistant.TooLarge" xml:space="preserve"><value>The assistant accepts PDF snapshots up to 32 MiB.</value></data>
+  <data name="Assistant.Unavailable" xml:space="preserve"><value>Finish the current operation and apply form drafts first. The PDF must allow content extraction.</value></data>
+  <data name="Conversion.Add.IdentityFailed" xml:space="preserve"><value>A queued input could not be inspected. Remove or restore it before adding files: {0}</value></data>
+  <data name="Conversion.Add.NoNewFiles" xml:space="preserve"><value>No files matched {0} that could be added; files already queued for this route were skipped.</value></data>
+  <data name="Conversion.Add.SkippedInputs" xml:space="preserve"><value>Added {0:N0}; skipped {1:N0} duplicate, unsupported, or uninspectable file(s).</value></data>
+  <data name="Conversion.Add.Success" xml:space="preserve"><value>Added {0:N0} {1}.</value></data>
+  <data name="Conversion.Job.Queued" xml:space="preserve"><value>Queued</value></data>
+  <data name="Conversion.Job.Running" xml:space="preserve"><value>Running · {0}</value></data>
+  <data name="Conversion.Queue.Count" xml:space="preserve"><value>Queued jobs: {0:N0}</value></data>
+  <data name="Conversion.Queue.Failed" xml:space="preserve"><value>The conversion queue could not finish: {0}</value></data>
+  <data name="Conversion.Queue.Limit" xml:space="preserve"><value>The queue is limited to {0:N0} jobs; {1:N0} additional file(s) were not added.</value></data>
+  <data name="Conversion.Queue.Outcomes" xml:space="preserve"><value>{0:N0} completed · {1:N0} failed · {2:N0} cancelled · {3:N0} need checking</value></data>
+  <data name="FormField.MaximumLength" xml:space="preserve"><value>Up to {0} characters</value></data>
+  <data name="FormField.ReadOnly" xml:space="preserve"><value>Read-only</value></data>
+  <data name="FormField.Required" xml:space="preserve"><value>Required</value></data>
+  <data name="Health.Snapshot" xml:space="preserve"><value>{0:N0} {1} · {2} · PDF {3}
+Read: {4} · General rewrite: {5} · {6}
+Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
+  <data name="ImageOcr.Frame" xml:space="preserve"><value>Image {0}</value></data>
+  <data name="ImageOcr.PreviewUnsupported" xml:space="preserve"><value>The source image cannot be previewed safely.</value></data>
+  <data name="Jobs.Cancelling" xml:space="preserve"><value>Cancellation requested</value></data>
+  <data name="Jobs.Queued" xml:space="preserve"><value>Queued</value></data>
+  <data name="Jobs.Running" xml:space="preserve"><value>Running</value></data>
+  <data name="Jobs.Summary" xml:space="preserve"><value>{0:N0} active · {1:N0} finished</value></data>
+  <data name="Jobs.Unconfirmed" xml:space="preserve"><value>Check output</value></data>
+  <data name="Ocr.Language.Count" xml:space="preserve"><value>{0} languages selected</value></data>
+  <data name="Ocr.Result.Pages" xml:space="preserve"><value>{0:N0} pages</value></data>
+  <data name="Ocr.Result.Summary" xml:space="preserve"><value>Searchable words: {0:N0} · Pages: {1:N0}</value></data>
+  <data name="Ocr.Result.SummaryWithProvider" xml:space="preserve"><value>Searchable words: {0:N0} · Pages: {1:N0} · Provider: {2}</value></data>
+  <data name="Ocr.Review.Page" xml:space="preserve"><value>Page {0}</value></data>
+  <data name="Ocr.Review.PageDetails" xml:space="preserve"><value>Language: {0} · Provider: {1} · Eligible: {2:N0} · Low confidence: {3:N0} · Native overlap: {4:N0}</value></data>
+  <data name="Ocr.Review.Summary" xml:space="preserve"><value>Selected words: {0:N0} · Reviewed pages: {1:N0}. Rejected words remain excluded.</value></data>
+  <data name="OcrSession.ImageRoute" xml:space="preserve"><value>Image → reviewed text</value></data>
+  <data name="OcrSession.Outcomes" xml:space="preserve"><value>Last run: {0} saved · {1} failed · {2} cancelled · {3} need checking. Saved outputs were retained.</value></data>
+  <data name="OcrSession.PdfRoute" xml:space="preserve"><value>PDF → searchable PDF</value></data>
+  <data name="PdfPage.Automation.Annotation" xml:space="preserve"><value>Annotation: {0}</value></data>
+  <data name="PdfPage.Automation.FormField" xml:space="preserve"><value>Form field: {0}</value></data>
+  <data name="PdfPage.Automation.Image" xml:space="preserve"><value>Image</value></data>
+  <data name="PdfPage.Automation.Link" xml:space="preserve"><value>Link: {0}</value></data>
+  <data name="PdfPage.Automation.Text" xml:space="preserve"><value>Page text: {0}</value></data>
+  <data name="PrintPreview.Sheet.Label" xml:space="preserve"><value>Sheet {0}</value></data>
+  <data name="PrintPreview.Status.Failed" xml:space="preserve"><value>Print preview failed: {0}</value></data>
+  <data name="PrintPreview.Summary" xml:space="preserve"><value>Pages: {0:N0} · Sheets: {1:N0}</value></data>
+  <data name="Redaction.DrawnArea" xml:space="preserve"><value>Drawn area</value></data>
+  <data name="Workflow.Status.Cancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="Connections.PreferencesFailed" xml:space="preserve"><value>The connection is ready, but Studio could not save your setup choices. Check access to the Studio data folder and try again.</value></data>
+  <data name="Assistant.StartWith" xml:space="preserve"><value>Start with a question</value></data>
+  <data name="Assistant.Summarize" xml:space="preserve"><value>Summarize</value></data>
+  <data name="Assistant.ActionItems" xml:space="preserve"><value>Find action items</value></data>
+  <data name="Assistant.KeyFacts" xml:space="preserve"><value>Key facts</value></data>
+  <data name="Assistant.Prompt.Summary" xml:space="preserve"><value>Summarize the main points in the selected document evidence. Cite the source for each point and identify any gaps in coverage.</value></data>
+  <data name="Assistant.Prompt.Actions" xml:space="preserve"><value>Find explicit action items, owners, and deadlines in the selected document evidence. Cite the source and say when an owner or date is not stated.</value></data>
+  <data name="Assistant.Prompt.KeyFacts" xml:space="preserve"><value>List the key facts and figures in the selected document evidence with source references. Distinguish stated facts from uncertain or missing information.</value></data>
+  <data name="Ocr.FileOptions" xml:space="preserve"><value>File locations and replacement</value></data>
+  <data name="Ocr.PrepareOptional" xml:space="preserve"><value>Prepare a scan (optional)</value></data>
+  <data name="Ocr.TextOnly" xml:space="preserve"><value>Need just the text?</value></data>
+  <data name="Ocr.Status.SourceSelected" xml:space="preserve"><value>Source selected. Check the language and destination, then recognize and review the text.</value></data>
+  <data name="Conversion.Intake.Mismatch" xml:space="preserve"><value>{0:N0} selected file(s) cannot use {1}. Choose a conversion below to add them, or dismiss this selection.</value></data>
+  <data name="Conversion.Intake.Unsupported" xml:space="preserve"><value>No available conversion accepts these selected file types. Add a supported document or dismiss this selection.</value></data>
+  <data name="Watermark.Title" xml:space="preserve"><value>Watermarks</value></data>
+  <data name="Watermark.Image" xml:space="preserve"><value>Use an image</value></data>
+  <data name="Watermark.Text" xml:space="preserve"><value>Watermark text</value></data>
+  <data name="Watermark.ChooseImage" xml:space="preserve"><value>Choose image…</value></data>
+  <data name="Watermark.Size" xml:space="preserve"><value>Size (points)</value></data>
+  <data name="Watermark.Width" xml:space="preserve"><value>Width</value></data>
+  <data name="Watermark.Height" xml:space="preserve"><value>Height</value></data>
+  <data name="Watermark.Position" xml:space="preserve"><value>Position (points)</value></data>
+  <data name="Watermark.CenterHint" xml:space="preserve"><value>Leave Left or Top empty to center on that axis.</value></data>
+  <data name="Watermark.Left" xml:space="preserve"><value>Left</value></data>
+  <data name="Watermark.Top" xml:space="preserve"><value>Top</value></data>
+  <data name="Watermark.Rotation" xml:space="preserve"><value>Rotation (degrees)</value></data>
+  <data name="Watermark.Opacity" xml:space="preserve"><value>Opacity (%)</value></data>
+  <data name="Watermark.FontSize" xml:space="preserve"><value>Font size (points)</value></data>
+  <data name="Watermark.Color" xml:space="preserve"><value>Text color</value></data>
+  <data name="Watermark.Gray" xml:space="preserve"><value>Gray</value></data>
+  <data name="Watermark.Red" xml:space="preserve"><value>Red</value></data>
+  <data name="Watermark.Blue" xml:space="preserve"><value>Blue</value></data>
+  <data name="Watermark.Green" xml:space="preserve"><value>Green</value></data>
+  <data name="Watermark.Black" xml:space="preserve"><value>Black</value></data>
+  <data name="Watermark.Behind" xml:space="preserve"><value>Place behind page content</value></data>
+  <data name="Watermark.Pages" xml:space="preserve"><value>Apply to pages</value></data>
+  <data name="Watermark.PagesHint" xml:space="preserve"><value>All pages, or 1, 3-5</value></data>
+  <data name="Watermark.PreviewPage" xml:space="preserve"><value>Preview page</value></data>
+  <data name="Watermark.Preview" xml:space="preserve"><value>Update preview</value></data>
+  <data name="Watermark.Apply" xml:space="preserve"><value>Apply watermark</value></data>
+  <data name="Watermark.ReviewHint" xml:space="preserve"><value>Review the preview before applying. After changing a setting, update the preview to enable Apply.</value></data>
+  <data name="Watermark.ChooseImageFirst" xml:space="preserve"><value>Choose an image to preview the watermark.</value></data>
+  <data name="Watermark.InvalidColor" xml:space="preserve"><value>Enter a color such as #2563EB.</value></data>
+  <data name="Watermark.DragHint" xml:space="preserve"><value>Drag on the page to move the watermark. Release to refresh the preview.</value></data>
+  <data name="Watermark.New" xml:space="preserve"><value>Add a new watermark</value></data>
+  <data name="Watermark.Choose" xml:space="preserve"><value>Choose a watermark to edit, or add a new one</value></data>
 </root>

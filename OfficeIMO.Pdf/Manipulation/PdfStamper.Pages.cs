@@ -63,6 +63,7 @@ internal static partial class PdfStamper {
         var reservedFormResourceNames = new HashSet<string>(StringComparer.Ordinal);
         var reservedGraphicsStateResourceNames = new HashSet<string>(StringComparer.Ordinal);
         var isolatedOverlayPages = new HashSet<int>();
+        var watermarkSettingsObjects = new Dictionary<string, int>(StringComparer.Ordinal);
         PdfFileVersion outputVersion = PdfPageExtractor.GetSourceFileVersion(targetPdf);
 
         for (int requestIndex = 0; requestIndex < requests.Count; requestIndex++) {
@@ -110,6 +111,8 @@ internal static partial class PdfStamper {
             formDictionary.Items["Resources"] = sourceResources == null
                 ? new PdfDictionary()
                 : CloneImportedObject(sourceResources, importedObjectNumbers);
+            if (options.ContentIdentifier is { } formIdentifier)
+                formDictionary.Items["OfficeIMOWatermarkResource"] = new PdfStringObj(formIdentifier);
             if (sourceGroup != null) formDictionary.Items["Group"] = CloneImportedObject(sourceGroup, importedObjectNumbers);
             int formObjectNumber = nextObjectNumber++;
             targetObjects[formObjectNumber] = new PdfIndirectObject(formObjectNumber, 0, new PdfStream(formDictionary, formContent));
@@ -120,6 +123,8 @@ internal static partial class PdfStamper {
                 graphicsState.Items["Type"] = new PdfName("ExtGState");
                 graphicsState.Items["ca"] = new PdfNumber(options.Opacity);
                 graphicsState.Items["CA"] = new PdfNumber(options.Opacity);
+                if (options.ContentIdentifier is { } stateIdentifier)
+                    graphicsState.Items["OfficeIMOWatermarkResource"] = new PdfStringObj(stateIdentifier);
                 if (options.BlendMode != OfficeBlendMode.Normal) graphicsState.Items["BM"] = new PdfName(options.BlendMode.ToString());
                 graphicsStateObjectNumber = nextObjectNumber++;
                 targetObjects[graphicsStateObjectNumber] = new PdfIndirectObject(graphicsStateObjectNumber, 0, graphicsState);
@@ -142,6 +147,19 @@ internal static partial class PdfStamper {
                 (double targetWidth, double targetHeight, Matrix2D targetUserToVisual) = targetPage.GetImportGeometry();
                 Matrix2D targetVisualToUser = Invert(targetUserToVisual);
                 PdfStream stamp = BuildImportedPageStampStream(formResourceName, graphicsStateResourceName, sourceWidth, sourceHeight, targetWidth, targetHeight, targetVisualToUser, options);
+                if (options.ContentIdentifier is { } identifier) {
+                    stamp.Dictionary.Items["OfficeIMOWatermarkId"] = new PdfStringObj(identifier);
+                    stamp.Dictionary.Items["OfficeIMOWatermarkBehind"] = new PdfBoolean(options.BehindContent);
+                    if (options.WatermarkSettings is { } settings) {
+                        if (!watermarkSettingsObjects.TryGetValue(identifier, out int settingsNumber)) {
+                            settingsNumber = nextObjectNumber++;
+                            var settingsDictionary = BuildWatermarkSettings(settings, targetObjects, ref nextObjectNumber);
+                            targetObjects[settingsNumber] = new PdfIndirectObject(settingsNumber, 0, settingsDictionary);
+                            watermarkSettingsObjects.Add(identifier, settingsNumber);
+                        }
+                        stamp.Dictionary.Items["OfficeIMOWatermarkSettings"] = new PdfReference(settingsNumber, 0);
+                    }
+                }
                 int stampObjectNumber = nextObjectNumber++;
                 targetObjects[stampObjectNumber] = new PdfIndirectObject(stampObjectNumber, 0, stamp);
                 Dictionary<string, PdfObject>? existingOverride = overrides.TryGetValue(targetPage.ObjectNumber, out Dictionary<string, PdfObject>? currentOverride)
@@ -166,6 +184,9 @@ internal static partial class PdfStamper {
             if (sourceVersion > outputVersion) outputVersion = sourceVersion;
         }
 
+        RemoveWatermarksOutsideTargets(targetObjects, pageObjectNumbers, overrides, requests);
+        if (requests.Any(request => request.Options.ContentIdentifier is not null))
+            PruneUnusedWatermarkResources(targetObjects, pageObjectNumbers, overrides, targetReadOptions);
         return PdfPageExtractor.ExtractPages(
             targetObjects,
             target.UncheckedMetadata,
@@ -291,8 +312,21 @@ internal static partial class PdfStamper {
         PdfObject? existingContents = existingOverride != null && existingOverride.TryGetValue("Contents", out PdfObject? overriddenContents)
             ? overriddenContents
             : page.Items.TryGetValue("Contents", out PdfObject? pageContents) ? pageContents : null;
-        if (isolateExistingContents && existingContents != null) existingContents = IsolateContents(objects, existingContents, ref nextObjectNumber);
+        if (isolateExistingContents && existingContents != null) {
+            var entries = new PdfArray();
+            AppendContentEntries(objects, entries, existingContents);
+            var isolationStamp = (PdfStream)objects[stampObjectNumber].Value;
+            string? isolationId = isolationStamp.Dictionary.Get<PdfStringObj>("OfficeIMOWatermarkId")?.Value;
+            bool alreadyIsolated = isolationId is not null && entries.Items.Any(item =>
+                IsWatermark(objects, item, isolationId, out var stream)
+                && stream!.Dictionary.Get<PdfBoolean>("OfficeIMOWatermarkBehind")?.Value == false);
+            if (!alreadyIsolated) existingContents = IsolateContents(objects, existingContents, ref nextObjectNumber);
+        }
         PdfArray contents = BuildContentsArray(objects, existingContents, stampObjectNumber, behindContent);
+        if (objects[stampObjectNumber].Value is PdfStream replacement
+            && replacement.Dictionary.Get<PdfStringObj>("OfficeIMOWatermarkId") is { } identifier) {
+            contents = ReplaceWatermarkContent(objects, contents, stampObjectNumber, identifier.Value, behindContent);
+        }
         PdfObject? existingResources = existingOverride != null && existingOverride.TryGetValue("Resources", out PdfObject? overriddenResources)
             ? overriddenResources
             : GetInheritedPageValue(objects, page, "Resources");

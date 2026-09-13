@@ -30,6 +30,8 @@ internal sealed record StudioPreferences {
 
     public bool RememberDocumentHistory { get; init; } = true;
 
+    public StudioAiConnectionPreference? AiConnection { get; init; }
+
     internal StudioPreferences Normalize() {
         string culture = Infrastructure.Localization.StudioCultureCatalog.NormalizeOrDefault(UiCulture);
         StudioThemePreference theme = Enum.IsDefined(Theme) ? Theme : StudioThemePreference.System;

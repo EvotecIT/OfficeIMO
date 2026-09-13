@@ -46,8 +46,6 @@ public sealed partial class MainWindowViewModel {
     [NotifyPropertyChangedFor(nameof(HasPendingRedaction))]
     private string? _pendingRedactionSummary;
 
-    [ObservableProperty]
-    private string _watermarkText = "CONFIDENTIAL";
 
     [ObservableProperty]
     private PdfFormFieldViewModel? _selectedFormField;
@@ -244,6 +242,7 @@ public sealed partial class MainWindowViewModel {
         _localizer.GetOrDefault($"Editor.Tool.{tool}.{property}", fallback);
 
     private async void OnPageEditorGestureCompleted(PdfEditorGesture gesture) {
+        using var notifications = BeginNotificationScope();
         bool acceptsEditorGesture = DocumentMode is StudioDocumentMode.Annotate or StudioDocumentMode.Edit ||
                                     DocumentMode == StudioDocumentMode.Protect && ActiveEditorTool == PdfEditorTool.Redact;
         if (_workspace is null ||
@@ -296,10 +295,9 @@ public sealed partial class MainWindowViewModel {
                 }
             }
             properties = properties with { ImageBytes = imageBytes };
-            bool succeeded = await RunMutationAsync(
+            await RunMutationAsync(
                 token => workspace.ApplyEditorGestureAsync(tool, gesture, properties, token, CreateProgress()),
-                CancellationToken.None).ConfigureAwait(true);
-            if (succeeded) OperationStatus = UiText("Editor.EditAdded");
+                CancellationToken.None, successStatus: UiText("Editor.EditAdded")).ConfigureAwait(true);
         } catch (Exception ex) {
             ErrorMessage = ex.Message;
         }
@@ -311,6 +309,11 @@ public sealed partial class MainWindowViewModel {
             return;
         }
 
+        if (selection.WatermarkId is string watermarkId) {
+            ClearObjectSelection();
+            _ = ReviewWatermarkAsync(watermarkId, CancellationToken.None);
+            return;
+        }
         if (selection.Kind == PdfEditorSelectionKind.FormField) {
             SelectFormWidget(selection);
             return;
@@ -477,12 +480,34 @@ public sealed partial class MainWindowViewModel {
     }
 
     [RelayCommand]
-    private async Task ApplyWatermarkAsync(CancellationToken cancellationToken) {
-        if (_workspace is null) return;
-        await RunMutationAsync(
-            token => _workspace.ApplyWatermarkAsync(WatermarkText, token, CreateProgress()),
-            cancellationToken).ConfigureAwait(true);
+    private Task ApplyWatermarkAsync(CancellationToken cancellationToken) => ReviewWatermarkAsync(null, cancellationToken);
+
+    private async Task ReviewWatermarkAsync(string? watermarkId, CancellationToken cancellationToken) {
+        if (_workspace is null || IsWorkspaceBusy || _reviewingWatermark) return;
+        using var notifications = BeginNotificationScope();
+        var workspace = _workspace;
+        _reviewingWatermark = true;
+        try {
+            var existing = await workspace.ReadWatermarksAsync(cancellationToken).ConfigureAwait(true);
+            if (!ReferenceEquals(workspace, _workspace) || _disposed) return;
+            using var preview = new WatermarkPreviewViewModel(workspace.Pages.Count,
+                SelectedPage?.PageNumber ?? 1, _localizer, workspace.PrepareWatermarkAsync, _pickImage, existing);
+            if (watermarkId is not null) {
+                var choice = preview.Watermarks.FirstOrDefault(item => item.Options?.Id == watermarkId);
+                if (choice is null) return;
+                preview.SelectedWatermark = choice;
+            }
+            if (!await _reviewWatermark(preview).ConfigureAwait(true) || preview.Prepared is not { } prepared) return;
+            if (!ReferenceEquals(workspace, _workspace) || _disposed) return;
+            await RunMutationAsync(token => workspace.ApplyWatermarkAsync(prepared, token, CreateProgress()),
+                cancellationToken).ConfigureAwait(true);
+        } catch (OperationCanceledException) { }
+        catch (Exception error) { ErrorMessage = error.Message; }
+        finally { _reviewingWatermark = false; }
     }
+
+    private readonly Func<WatermarkPreviewViewModel, Task<bool>> _reviewWatermark;
+    private bool _reviewingWatermark;
 
     [RelayCommand]
     private async Task ApplyPageNumbersAsync(CancellationToken cancellationToken) {

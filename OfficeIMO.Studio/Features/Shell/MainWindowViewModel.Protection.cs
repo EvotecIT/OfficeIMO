@@ -32,6 +32,7 @@ public sealed partial class MainWindowViewModel {
 
     private async Task SaveProtectionCopyAsync(PdfStandardEncryptionOptions? encryption, string? currentOwnerPassword,
         CancellationToken cancellationToken) {
+        using var notifications = BeginNotificationScope();
         if (_workspace is null || IsWorkspaceBusy || _reviewingProtection) return;
         var workspace = _workspace;
         if (encryption is null && !workspace.IsEncrypted) return;
