@@ -2,6 +2,7 @@ namespace AngleSharp.Html.Dom
 {
     using AngleSharp.Css;
     using AngleSharp.Dom;
+    using AngleSharp.Html.Construction;
     using AngleSharp.Io;
     using System;
     using System.Threading;
@@ -10,11 +11,16 @@ namespace AngleSharp.Html.Dom
     /// <summary>
     /// Represents the HTML style element.
     /// </summary>
-    sealed class HtmlStyleElement : HtmlElement, IHtmlStyleElement
+    sealed class HtmlStyleElement : HtmlElement, IHtmlStyleElement, IConstructableStyleSheetElement
     {
         #region Fields
 
         private IStyleSheet? _sheet;
+        private Boolean _parserInserted;
+        private Boolean? _scriptBlockingEligible;
+        private Int32 _sheetGeneration;
+        private TaskCompletionSource<Boolean> _sheetRetired = NewSheetRetired();
+        private SheetLoad? _sheetLoad;
 
         #endregion
 
@@ -48,6 +54,7 @@ namespace AngleSharp.Html.Dom
                 {
                     _sheet.IsDisabled = value;
                 }
+                Owner?.SignalScriptBlockingStylesChanged();
             }
         }
 
@@ -79,6 +86,7 @@ namespace AngleSharp.Html.Dom
             {
                 _sheet.Media.MediaText = value;
             }
+            Owner?.SignalScriptBlockingStylesChanged();
         }
 
         #endregion
@@ -88,14 +96,22 @@ namespace AngleSharp.Html.Dom
         protected override void NodeIsInserted(Node newNode)
         {
             base.NodeIsInserted(newNode);
-            UpdateSheet();
+            if (!IsReplacingAll)
+            {
+                UpdateSheet();
+            }
         }
 
         protected override void NodeIsRemoved(Node removedNode, Node? oldPreviousSibling)
         {
             base.NodeIsRemoved(removedNode, oldPreviousSibling);
-            UpdateSheet();
+            if (!IsReplacingAll)
+            {
+                UpdateSheet();
+            }
         }
+
+        protected override void ReplacedAll() => UpdateSheet();
 
         private void UpdateSheet()
         {
@@ -109,25 +125,94 @@ namespace AngleSharp.Html.Dom
 
                 if (engine != null)
                 {
-                    var task = CreateSheetAsync(engine, document);
-                    document.DelayLoad(task);
+                    if (_parserInserted && !_scriptBlockingEligible.HasValue)
+                    {
+                        _scriptBlockingEligible = !IsDisabled;
+                    }
+
+                    var cancellation = new CancellationTokenSource();
+                    var previousLoad = _sheetLoad;
+                    var retired = _sheetRetired;
+                    _sheetRetired = NewSheetRetired();
+                    retired.TrySetResult(true);
+                    var generation = Interlocked.Increment(ref _sheetGeneration);
+                    var task = CreateSheetAsync(engine, document, generation, cancellation);
+                    document.DelayLoadUntilRetired(task, _sheetRetired.Task);
+                    var currentLoad = new SheetLoad(cancellation);
+                    _sheetLoad = currentLoad;
+                    if (_scriptBlockingEligible == true)
+                    {
+                        document.AddScriptBlockingStyle(task,
+                            () => !currentLoad.IsRetired && !IsDisabled && document.IsScriptBlockingMedia(Media));
+                    }
+                    previousLoad?.Retire();
+                    document.SignalScriptBlockingStylesChanged();
                 }
             }
         }
 
-        private async Task CreateSheetAsync(IStylingService engine, IDocument document)
+        void IConstructableStyleSheetElement.MarkParserInserted() => _parserInserted = true;
+
+        private async Task CreateSheetAsync(IStylingService engine, IDocument document, Int32 generation, CancellationTokenSource cancellation)
         {
-            var cancel = CancellationToken.None;
-            var response = VirtualResponse.Create(res => res.Content(TextContent).Address(default(Url)));
+            using var response = VirtualResponse.Create(res => res.Content(TextContent).Address(default(Url)));
             var options = new StyleOptions(document)
             {
                 Element = this,
                 IsDisabled = IsDisabled,
                 IsAlternate = false,
             };
-            var task = engine.ParseStylesheetAsync(response, options, cancel);
-            _sheet = await task.ConfigureAwait(false);
-            UpdateMedia(Media!);
+            try
+            {
+                var sheet = await engine.ParseStylesheetAsync(response, options, cancellation.Token).ConfigureAwait(false);
+                var syncRoot = document.Context.GetService<IDomSynchronization>()?.SyncRoot;
+                if (syncRoot is null) ApplySheet(sheet);
+                else lock (syncRoot) ApplySheet(sheet);
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+            }
+            finally
+            {
+                cancellation.Dispose();
+            }
+
+            void ApplySheet(IStyleSheet sheet)
+            {
+                if (generation != Volatile.Read(ref _sheetGeneration))
+                {
+                    return;
+                }
+
+                sheet.IsDisabled = IsDisabled;
+                sheet.Media.MediaText = Media ?? String.Empty;
+                _sheet = sheet;
+            }
+        }
+
+        private static TaskCompletionSource<Boolean> NewSheetRetired() =>
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        private sealed class SheetLoad
+        {
+            private readonly CancellationTokenSource _cancellation;
+            private Int32 _retired;
+
+            internal SheetLoad(CancellationTokenSource cancellation) => _cancellation = cancellation;
+
+            internal Boolean IsRetired => Volatile.Read(ref _retired) != 0;
+
+            internal void Retire()
+            {
+                Interlocked.Exchange(ref _retired, 1);
+                try
+                {
+                    _cancellation.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
         }
 
         #endregion

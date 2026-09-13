@@ -18,7 +18,7 @@ namespace AngleSharp.Html.Parser
     /// 8.2.5 Tree construction, on the following page:
     /// http://www.w3.org/html/wg/drafts/html/master/syntax.html
     /// </summary>
-    class HtmlDomBuilder<TDocument, TElement> : IDisposable
+    class HtmlDomBuilder<TDocument, TElement> : IDisposable, IHtmlParserReentry
         where TElement : class, IConstructableElement
         where TDocument : class, IConstructableDocument
     {
@@ -47,6 +47,10 @@ namespace AngleSharp.Html.Parser
         private Func<IConstructableElement, Boolean>? _shouldEnd;
         private readonly IDomConstructionElementFactory<TDocument, TElement> _elementFactory;
         private Task? _waiting;
+        private IConstructableScriptElement? _pendingReentrantScript;
+        private readonly List<ParserInsertionPoint> _insertionPoints = new();
+        private Int32 _reentryDepth;
+        private Boolean _reentryPaused;
         private readonly Boolean _emitWhitespaceTextNodes;
 
         #endregion
@@ -204,15 +208,33 @@ namespace AngleSharp.Html.Parser
 
                 if (_waiting is not null)
                 {
-                    await _waiting.ConfigureAwait(false);
+                    var waiting = _waiting;
                     _waiting = null;
+                    await waiting.ConfigureAwait(false);
+                }
+
+                while (_pendingReentrantScript is not null)
+                {
+                    var pending = _pendingReentrantScript;
+                    _pendingReentrantScript = null;
+                    _reentryPaused = false;
+                    await RunScript(pending).ConfigureAwait(false);
                 }
             } while (!_ended);
 
             if (_waiting is not null)
             {
-                await _waiting.ConfigureAwait(false);
+                var waiting = _waiting;
                 _waiting = null;
+                await waiting.ConfigureAwait(false);
+            }
+
+            while (_pendingReentrantScript is not null)
+            {
+                var pending = _pendingReentrantScript;
+                _pendingReentrantScript = null;
+                _reentryPaused = false;
+                await RunScript(pending).ConfigureAwait(false);
             }
 
             return _document;
@@ -235,6 +257,114 @@ namespace AngleSharp.Html.Parser
 
                 return false;
             }
+        }
+
+        Boolean IHtmlParserReentry.EnterScript()
+        {
+            var syncRoot = (_document as IDocument)?.Context.GetService<IDomSynchronization>()?.SyncRoot;
+            if (syncRoot is null) return EnterScriptCore();
+            lock (syncRoot) return EnterScriptCore();
+        }
+
+        void IHtmlParserReentry.ExitScript()
+        {
+            var syncRoot = (_document as IDocument)?.Context.GetService<IDomSynchronization>()?.SyncRoot;
+            if (syncRoot is null) ExitScriptCore();
+            else lock (syncRoot) ExitScriptCore();
+        }
+
+        Boolean IHtmlParserReentry.Write(String content)
+        {
+            var syncRoot = (_document as IDocument)?.Context.GetService<IDomSynchronization>()?.SyncRoot;
+            if (syncRoot is null) return WriteCore(content);
+            lock (syncRoot) return WriteCore(content);
+        }
+
+        private Boolean EnterScriptCore()
+        {
+            if (!_ended)
+            {
+                _insertionPoints.Add(new ParserInsertionPoint(_document.Source.Index));
+                return true;
+            }
+            return false;
+        }
+
+        private void ExitScriptCore()
+        {
+            if (_insertionPoints.Count > 0)
+            {
+                _insertionPoints.RemoveAt(_insertionPoints.Count - 1);
+            }
+        }
+
+        private Boolean WriteCore(String content)
+        {
+            if (_ended || _insertionPoints.Count == 0)
+            {
+                return false;
+            }
+
+            if (String.IsNullOrEmpty(content))
+            {
+                return true;
+            }
+
+            var source = _document.Source;
+            var activePoint = _insertionPoints[_insertionPoints.Count - 1];
+            var insertionPoint = activePoint.Position;
+            var tokenizerPosition = source.Index;
+            source.Index = insertionPoint;
+            source.InsertText(content);
+            for (var i = 0; i < _insertionPoints.Count; i++)
+            {
+                if (_insertionPoints[i].Position >= insertionPoint)
+                {
+                    _insertionPoints[i].Position += content.Length;
+                }
+            }
+
+            source.Index = insertionPoint;
+            if (_reentryPaused)
+            {
+                source.Index = tokenizerPosition > insertionPoint
+                    ? tokenizerPosition + content.Length
+                    : tokenizerPosition;
+                return true;
+            }
+
+            _reentryDepth++;
+
+            try
+            {
+                while (!_ended && source.Index < activePoint.Position)
+                {
+                    var token = _tokenizer.GetStructToken();
+                    if (token.Type == HtmlTokenType.EndOfFile)
+                    {
+                        break;
+                    }
+
+                    Consume(ref token);
+                    if (_reentryPaused)
+                    {
+                        break;
+                    }
+                }
+            }
+            finally
+            {
+                _reentryDepth--;
+            }
+
+            return true;
+        }
+
+        private sealed class ParserInsertionPoint
+        {
+            internal ParserInsertionPoint(Int32 position) => Position = position;
+
+            internal Int32 Position { get; set; }
         }
 
         /// <summary>
@@ -813,7 +943,6 @@ namespace AngleSharp.Html.Parser
                         CloseCurrentNode();
 
                         _currentMode = HtmlTreeMode.AfterHead;
-                        _waiting = _document.WaitForReadyAsync(CancellationToken.None);
                         return;
                     }
                     else if (tagName.Is(TagNames.Template))
@@ -4019,7 +4148,18 @@ namespace AngleSharp.Html.Parser
 
                     if (script.Prepare(_document))
                     {
-                        _waiting = RunScript(script);
+                        if (_reentryDepth > 0)
+                        {
+                            if (!script.RunSynchronously())
+                            {
+                                _pendingReentrantScript = script;
+                                _reentryPaused = true;
+                            }
+                        }
+                        else
+                        {
+                            _waiting = RunScript(script);
+                        }
                     }
                 }
             }
@@ -4179,6 +4319,11 @@ namespace AngleSharp.Html.Parser
             if (tag.IsSelfClosing && !acknowledgeSelfClosing)
             {
                 RaiseErrorOccurred(HtmlParseError.TagCannotBeSelfClosed, ref tag);
+            }
+
+            if (element is IConstructableStyleSheetElement styleSheet)
+            {
+                styleSheet.MarkParserInserted();
             }
 
             AuxiliarySetupSteps(element, ref tag);

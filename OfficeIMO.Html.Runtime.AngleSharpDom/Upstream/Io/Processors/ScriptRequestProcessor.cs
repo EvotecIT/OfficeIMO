@@ -19,6 +19,7 @@ namespace AngleSharp.Io.Processors
         private IResponse? _response;
         private IScriptingService? _engine;
         private ScriptOptions? _options;
+        private String? _inlineSource;
 
         #endregion
 
@@ -84,30 +85,51 @@ namespace AngleSharp.Io.Processors
 
             if (_response != null)
             {
-                var cancelled = await _document.QueueTaskAsync(FireBeforeScriptExecuteEvent).ConfigureAwait(false);
-
-                if (!cancelled)
+                var response = _response;
+                try
                 {
+                    var cancelled = await _document.QueueTaskAsync(FireBeforeScriptExecuteEvent).ConfigureAwait(false);
+                    if (cancelled)
+                    {
+                        return;
+                    }
+
                     var options = _options ?? CreateOptions();
                     var insert = _script.IsParserBlocking ? _document.Source.Index : -1;
+                    var writeVersion = _document.ParserWriteVersion;
+                    var previousScript = _document.CurrentScript;
+                    var parserScript = _script.IsParserBlocking;
+                    var ignoreDestructiveWrites = options.IsExternal || options.PreparedType.Isi("module");
 
+                    var enteredParser = parserScript && _document.EnterParserScript();
+                    if (ignoreDestructiveWrites) _document.EnterIgnoreDestructiveWrites();
+                    _document.CurrentScript = options.PreparedType.Isi("module") ? null : _script;
                     try
                     {
-                        await _engine!.EvaluateScriptAsync(_response, options, cancel).ConfigureAwait(false);
+                        await _engine!.EvaluateScriptAsync(response, options, cancel).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
                         /* We omit failed 3rd party services */
                         _context.TrackError(ex);
                     }
+                    finally
+                    {
+                        _document.CurrentScript = previousScript;
+                        if (ignoreDestructiveWrites) _document.ExitIgnoreDestructiveWrites();
+                        if (enteredParser) _document.ExitParserScript();
+                    }
 
                     // Async/deferred scripts must never rewind a parser that
                     // progressed while their evaluation was being scheduled.
-                    if (insert >= 0) _document.Source.Index = insert;
+                    if (insert >= 0 && writeVersion == _document.ParserWriteVersion) _document.Source.Index = insert;
                     await _document.QueueTaskAsync(FireAfterScriptExecuteEvent).ConfigureAwait(false);
                     await _document.QueueTaskAsync(FireLoadEvent).ConfigureAwait(false);
-                    _response.Dispose();
-                    _response = null;
+                }
+                finally
+                {
+                    response.Dispose();
+                    if (ReferenceEquals(_response, response)) _response = null;
                 }
             }
         }
@@ -116,9 +138,58 @@ namespace AngleSharp.Io.Processors
         {
             if (Engine != null)
             {
+                _inlineSource = content;
                 _options = CreateOptions();
                 _response = VirtualResponse.Create(res => res.Content(content).Address(_script.BaseUri));
             }
+        }
+
+        public Boolean RunSynchronously()
+        {
+            if (_response is null || _inlineSource is null || Engine is not ISynchronousScriptingService synchronous)
+            {
+                return false;
+            }
+
+            var options = _options ?? CreateOptions();
+            if (options.PreparedType.Isi("module"))
+            {
+                return false;
+            }
+
+            if (FireBeforeScriptExecuteEvent(CancellationToken.None))
+            {
+                _response.Dispose();
+                _response = null;
+                _inlineSource = null;
+                return true;
+            }
+
+            var previousScript = _document.CurrentScript;
+            var parserScript = _script.IsParserBlocking;
+            var enteredParser = parserScript && _document.EnterParserScript();
+            _document.CurrentScript = options.PreparedType.Isi("importmap") ? null : _script;
+            try
+            {
+                var sourceUrl = RuntimeBaseUrl(options.Document);
+                synchronous.EvaluateScript(options.Document, _inlineSource, options.PreparedType!, sourceUrl);
+            }
+            catch (Exception ex)
+            {
+                _context.TrackError(ex);
+            }
+            finally
+            {
+                _document.CurrentScript = previousScript;
+                if (enteredParser) _document.ExitParserScript();
+            }
+
+            FireAfterScriptExecuteEvent(CancellationToken.None);
+            FireLoadEvent(CancellationToken.None);
+            _response.Dispose();
+            _response = null;
+            _inlineSource = null;
+            return true;
         }
 
         public Task ProcessAsync(ResourceRequest request)
@@ -150,6 +221,8 @@ namespace AngleSharp.Io.Processors
             PreparedType = ScriptLanguage,
             Encoding = TextEncoding.Resolve(_script.CharacterSet)
         };
+
+        private static String RuntimeBaseUrl(IDocument document) => document.BaseUri;
 
         private void FireLoadEvent(CancellationToken _) =>
             _script.FireSimpleEvent(EventNames.Load);

@@ -31,8 +31,9 @@ The local changes have these responsibilities:
   Only parser-blocking scripts restore the parser insertion position.
 - `HtmlDomBuilder` uses an optional `IDomSynchronization` monitor to serialize
   token consumption with the script host. `Document` queues readiness events and
-  snapshots of pending loads on the event loop; `DocumentExtensions` waits for
-  blocking styles without waiting for unrelated async scripts.
+  snapshots of pending loads on the event loop. Parser-created styles and links
+  contribute script blockers only while enabled and active for the worker's media
+  environment; dynamic, alternate, disabled and inactive-media links do not block.
 - `EventNames` uses the standard `readystatechange` name, and `Event` includes
   the active document's window in capture/bubble paths except for load events.
 - `ModifierExtensions` reads the explicit DOM modifier token list so the runtime's
@@ -40,12 +41,20 @@ The local changes have these responsibilities:
 - `Document.Import` clones retained provider tree nodes into the requested owner
   document, keeping layout and form snapshots isolated from the live page resource
   loader. Detached attribute-node ownership remains outside this retained-provider patch.
+- Script execution exposes the prepared classic script through `document.currentScript`,
+  restores nested execution state and keeps module execution at `null`.
+- Dynamically inserted classic scripts expose the force-async IDL state and honor
+  insertion-order execution when callers set `async = false` before insertion.
+- Inline classic scripts inserted by the DOM or `document.write` execute on the
+  active script stack. Parser reentry consumes inserted markup immediately, yields
+  at an external parser-blocking script and resumes without reparsing the source.
 
-`IMutationMicrotaskScheduler`, `IDomMutationListener` and `IDomSynchronization` are narrow integration
-hooks outside the retained source directory. Scheduling, script error handling,
-resource authority and session lifetime belong to the worker. A future provider
-can replace this assembly at those boundaries; it must pass the runtime mutation,
-history and application contracts before replacing it.
+`IMutationMicrotaskScheduler`, `IDomMutationListener`, `IDomSynchronization`,
+`ISynchronousScriptingService` and `IScriptBlockingStyleSheetEvaluator` are narrow
+integration hooks outside the retained source directory. Scheduling, script error
+handling, media evaluation, resource authority and session lifetime belong to the
+worker. A future provider can replace this assembly at those boundaries; it must
+pass the runtime mutation, history and application contracts before replacing it.
 
 The assembly keeps AngleSharp's name and assembly version for the retained CSS
 and JavaScript bindings. It uses public signing with `AngleSharp.PublicKey.bin`;

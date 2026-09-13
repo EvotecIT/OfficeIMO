@@ -56,6 +56,15 @@ namespace AngleSharp.Html.LinkRels
         /// </summary>
         public abstract Task LoadAsync();
 
+        internal void Cancel()
+        {
+            var download = _processor.Download;
+            if (download is not null && !download.IsCompleted)
+            {
+                download.Cancel();
+            }
+        }
+
         #endregion
     }
 }

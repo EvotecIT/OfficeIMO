@@ -23,6 +23,7 @@ namespace AngleSharp.Html.Dom
 
         private Boolean _started;
         private Boolean _forceAsync;
+        private Boolean _ordered;
 
         #endregion
 
@@ -31,7 +32,7 @@ namespace AngleSharp.Html.Dom
         public HtmlScriptElement(Document owner, String? prefix = null, Boolean parserInserted = false, Boolean started = false)
             : base(owner, TagNames.Script, prefix, NodeFlags.Special | NodeFlags.LiteralText)
         {
-            _forceAsync = false;
+            _forceAsync = !parserInserted;
             _started = started;
             _parserInserted = parserInserted;
             _request = new ScriptRequestProcessor(owner.Context, this);
@@ -83,8 +84,12 @@ namespace AngleSharp.Html.Dom
 
         public Boolean IsAsync
         {
-            get => this.GetBoolAttribute(AttributeNames.Async);
-            set => this.SetBoolAttribute(AttributeNames.Async, value);
+            get => _forceAsync || this.GetBoolAttribute(AttributeNames.Async);
+            set
+            {
+                _forceAsync = false;
+                this.SetBoolAttribute(AttributeNames.Async, value);
+            }
         }
 
         public String? Integrity
@@ -102,6 +107,7 @@ namespace AngleSharp.Html.Dom
             var node = new HtmlScriptElement(owner, Prefix, _parserInserted, _started);
             CloneElement(node, owner, deep);
             node._forceAsync = _forceAsync;
+            node._ordered = _ordered;
             return node;
         }
 
@@ -115,7 +121,14 @@ namespace AngleSharp.Html.Dom
 
             if (!_parserInserted && Prepare(Owner))
             {
-                Owner.DelayLoad(RunAsync(CancellationToken.None));
+                if (!_ordered && String.IsNullOrEmpty(Source) && !Type.Isi("module") && _request.RunSynchronously())
+                {
+                    return;
+                }
+
+                Owner.DelayLoad(_ordered
+                    ? Owner.RunOrderedScriptAsync(this, CancellationToken.None)
+                    : RunAsync(CancellationToken.None));
             }
         }
 
@@ -158,6 +171,8 @@ namespace AngleSharp.Html.Dom
             }
 
             _started = true;
+            _ordered = !wasParserInserted && src is { Length: > 0 }
+                && !Type.Isi("module") && !IsAsync;
             IsParserBlocking = _parserInserted && !Type.Isi("module") &&
                 (src is null || (!IsAsync && !IsDeferred));
 
@@ -237,6 +252,11 @@ namespace AngleSharp.Html.Dom
         Task IConstructableScriptElement.RunAsync(CancellationToken cancel)
         {
             return RunAsync(cancel);
+        }
+
+        Boolean IConstructableScriptElement.RunSynchronously()
+        {
+            return _request.RunSynchronously();
         }
 
         Boolean IConstructableScriptElement.Prepare(IConstructableDocument document)

@@ -44,6 +44,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             .WithEventLoop(context => new RuntimeEventLoop(context, () => _engine, _errors))
             .With(new RuntimeDocumentUrls.MutationListener())
             .With(new RuntimeDomSynchronization(() => _engine))
+            .With(new RuntimeScriptBlockingStyleSheetEvaluator(options))
             .Without<AngleSharp.Css.IPseudoClassSelectorFactory>()
             .With((AngleSharp.Css.IPseudoClassSelectorFactory)_focus.CreateSelectors())
             .With(new RuntimeResourceRequester(_resources, _errors))

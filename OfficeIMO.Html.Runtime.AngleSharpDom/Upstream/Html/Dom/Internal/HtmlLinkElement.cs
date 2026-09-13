@@ -1,15 +1,18 @@
 namespace AngleSharp.Html.Dom
 {
     using AngleSharp.Dom;
+    using AngleSharp.Html.Construction;
     using AngleSharp.Html.LinkRels;
     using AngleSharp.Io;
     using AngleSharp.Text;
     using System;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Represents the HTML link element.
     /// </summary>
-    sealed class HtmlLinkElement : HtmlElement, IHtmlLinkElement
+    sealed class HtmlLinkElement : HtmlElement, IHtmlLinkElement, IConstructableStyleSheetElement
     {
         #region Fields
 
@@ -18,7 +21,12 @@ namespace AngleSharp.Html.Dom
         private SettableTokenList? _sizes;
 
         private String? _source;
+        private String? _relationValue;
         private Boolean _relationLoaded;
+        private Boolean _parserInserted;
+        private Boolean? _scriptBlockingEligible;
+        private TaskCompletionSource<Boolean> _loadRetired = NewLoadRetired();
+        private ScriptBlockingLoad? _scriptBlockingLoad;
 
         #endregion
 
@@ -182,9 +190,23 @@ namespace AngleSharp.Html.Dom
         internal void UpdateRel(String value)
         {
             _relList?.Update(value);
+            if (value.Isi(_relationValue))
+            {
+                return;
+            }
+            _relationValue = value;
+            var previousRelation = _relation;
+            var previousBlockingLoad = _scriptBlockingLoad;
+            RetireLoad();
             _relation = CreateFirstLegalRelation();
-
-            LoadRelation();
+            _relationLoaded = false;
+            _scriptBlockingLoad = null;
+            if (Owner != null && Object.ReferenceEquals(this.GetRoot(), Owner))
+            {
+                LoadRelation();
+            }
+            RetireScriptBlockingLoad(previousBlockingLoad);
+            previousRelation?.Cancel();
         }
 
         internal void UpdateSizes(String value)
@@ -200,6 +222,7 @@ namespace AngleSharp.Html.Dom
             {
                 sheet.Media.MediaText = value;
             }
+            Owner?.SignalScriptBlockingStylesChanged();
         }
 
         internal void UpdateDisabled(String value)
@@ -210,14 +233,37 @@ namespace AngleSharp.Html.Dom
             {
                 sheet.IsDisabled = value != null;
             }
+            Owner?.SignalScriptBlockingStylesChanged();
+
+            if (value is null)
+            {
+                LoadRelation();
+            }
         }
 
         internal void UpdateSource(String value)
         {
-            if (!value.Isi(_source))
+            if (_source is null && _relationLoaded)
             {
                 _source = value;
+                return;
+            }
+
+            if (!String.Equals(value, _source, StringComparison.Ordinal))
+            {
+                _source = value;
+                var previousRelation = _relation;
+                var previousBlockingLoad = _scriptBlockingLoad;
+                RetireLoad();
+                _relation = CreateFirstLegalRelation();
                 _relationLoaded = false;
+                _scriptBlockingLoad = null;
+                if (Owner != null && Object.ReferenceEquals(this.GetRoot(), Owner))
+                {
+                    LoadRelation();
+                }
+                RetireScriptBlockingLoad(previousBlockingLoad);
+                previousRelation?.Cancel();
             }
         }
 
@@ -235,11 +281,33 @@ namespace AngleSharp.Html.Dom
                 return;
             }
 
+            var styleSheet = _relation is StyleSheetLinkRelation;
+            if (_parserInserted && styleSheet && !_scriptBlockingEligible.HasValue)
+            {
+                _scriptBlockingEligible = !IsDisabled && !this.IsAlternate();
+            }
+
+            if (styleSheet && IsDisabled)
+            {
+                return;
+            }
+
             _relationLoaded = true;
 
-            var task = _relation.LoadAsync();
-            Owner?.DelayLoad(task);
+            var relation = _relation;
+            var retired = _loadRetired.Task;
+            var task = relation.LoadAsync();
+            Owner?.DelayLoadUntilRetired(task, retired);
+            if (_scriptBlockingEligible == true && Owner != null)
+            {
+                var blockingLoad = new ScriptBlockingLoad();
+                _scriptBlockingLoad = blockingLoad;
+                Owner.AddScriptBlockingStyle(task, () => !blockingLoad.IsRetired
+                    && !IsDisabled && !this.IsAlternate() && Owner.IsScriptBlockingMedia(Media));
+            }
         }
+
+        void IConstructableStyleSheetElement.MarkParserInserted() => _parserInserted = true;
 
         #endregion
 
@@ -261,6 +329,34 @@ namespace AngleSharp.Html.Dom
             }
 
             return null;
+        }
+
+        private void RetireLoad()
+        {
+            var retired = _loadRetired;
+            _loadRetired = NewLoadRetired();
+            retired.TrySetResult(true);
+        }
+
+        private static TaskCompletionSource<Boolean> NewLoadRetired() =>
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        private void RetireScriptBlockingLoad(ScriptBlockingLoad? load)
+        {
+            if (load != null)
+            {
+                load.Retire();
+            }
+            Owner?.SignalScriptBlockingStylesChanged();
+        }
+
+        private sealed class ScriptBlockingLoad
+        {
+            private Int32 _retired;
+
+            internal Boolean IsRetired => Volatile.Read(ref _retired) != 0;
+
+            internal void Retire() => Interlocked.Exchange(ref _retired, 1);
         }
 
         #endregion

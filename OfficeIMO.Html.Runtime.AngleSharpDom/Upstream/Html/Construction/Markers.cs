@@ -26,6 +26,12 @@ public interface IConstructableSvgElement : IConstructableElement;
 public interface IConstructableScriptElement: IConstructableElement
 {
     /// <summary>
+    /// Runs a prepared inline non-module script on the current script stack.
+    /// </summary>
+    /// <returns>True when synchronous execution was available.</returns>
+    Boolean RunSynchronously();
+
+    /// <summary>
     ///
     /// </summary>
     /// <param name="cancel"></param>
@@ -38,6 +44,17 @@ public interface IConstructableScriptElement: IConstructableElement
     /// <param name="document"></param>
     /// <returns></returns>
     Boolean Prepare(IConstructableDocument document);
+}
+
+/// <summary>
+/// Marks a style or stylesheet link created by the active document parser.
+/// </summary>
+public interface IConstructableStyleSheetElement : IConstructableElement
+{
+    /// <summary>
+    /// Records parser creation before the element is initialized.
+    /// </summary>
+    void MarkParserInserted();
 }
 
 /// <summary>

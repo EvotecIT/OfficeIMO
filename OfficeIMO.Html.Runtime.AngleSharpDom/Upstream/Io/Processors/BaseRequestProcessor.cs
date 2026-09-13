@@ -78,7 +78,15 @@ namespace AngleSharp.Io.Processors
         protected async Task FinishDownloadAsync()
         {
             var download = Download!;
-            var response = await download.Task.ConfigureAwait(false);
+            IResponse? response;
+            try
+            {
+                response = await download.Task.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
             var eventName = EventNames.Error;
 
             if (response != null)

@@ -260,6 +260,12 @@ namespace AngleSharp.Dom
         /// <returns>Awaitable task.</returns>
         public static async Task WaitForReadyAsync(this IDocument document)
         {
+            if (document is Document retained)
+            {
+                await retained.WaitForScriptBlockingStylesAsync().ConfigureAwait(false);
+                return;
+            }
+
             // A script waits for its own download in RunAsync. Waiting for every
             // script here would make unrelated async scripts block the parser.
             Task[] styles;

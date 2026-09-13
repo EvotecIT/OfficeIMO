@@ -12,7 +12,7 @@ namespace OfficeIMO.Html.Runtime.Worker;
 
 // Module evaluation yields the native event loop while top-level awaits are pending.
 // Classic execution and the retained DOM wrappers continue using the same Jint engine.
-internal sealed class RuntimeScriptingService(JsScriptingService scripting, Func<RuntimeModuleLoader> modules, HtmlScriptRequest request, Action<string> report) : IScriptingService, IDisposable {
+internal sealed class RuntimeScriptingService(JsScriptingService scripting, Func<RuntimeModuleLoader> modules, HtmlScriptRequest request, Action<string> report) : IScriptingService, ISynchronousScriptingService, IDisposable {
     private JsValue _observeLoad = null!;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly List<Task> _evaluations = [];

@@ -21,6 +21,7 @@ namespace AngleSharp.Dom
         private Node? _parent;
         private NodeList _children;
         private Document? _owner;
+        private Int32 _replaceAllDepth;
 
         #endregion
 
@@ -254,14 +255,22 @@ namespace AngleSharp.Dom
                 }
             }
 
-            for (var i = 0; i < removedNodes.Length; i++)
+            _replaceAllDepth++;
+            try
             {
-                RemoveChild(removedNodes[i], true);
-            }
+                for (var i = 0; i < removedNodes.Length; i++)
+                {
+                    RemoveChild(removedNodes[i], true);
+                }
 
-            for (var i = 0; i < addedNodes.Length; i++)
+                for (var i = 0; i < addedNodes.Length; i++)
+                {
+                    InsertBefore(addedNodes[i], null, true);
+                }
+            }
+            finally
             {
-                InsertBefore(addedNodes[i], null, true);
+                _replaceAllDepth--;
             }
 
             if (!suppressObservers)
@@ -439,6 +448,11 @@ namespace AngleSharp.Dom
         #endregion
 
         #region Protected Methods
+
+        /// <summary>
+        /// Gets whether this node is applying one logical replace-all mutation.
+        /// </summary>
+        protected Boolean IsReplacingAll => _replaceAllDepth != 0;
 
         /// <summary>
         /// Called when ReplaceAll was run.
