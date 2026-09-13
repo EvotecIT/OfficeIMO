@@ -30,7 +30,14 @@ internal sealed partial class ProjectNativeWriter {
                     throw OfficeIMO.Core.Internal.OfficeOutputLimit.Create("MPP9 calendar override expansion exceeds its byte budget.");
             }
         }
-        foreach (var exception in calendar.Exceptions) AddRange(exception.FromDate, exception.ToDate);
+        int exceptionIndex = 0;
+        foreach (var exception in calendar.Exceptions) {
+            if (exception.FromDate.HasValue && exception.ToDate.HasValue && exception.FromDate.Value.Date != exception.ToDate.Value.Date)
+                Loss("PROJECT_NATIVE_CALENDAR_EXCEPTION_SPLIT",
+                    _profile.Generation + " stores each date of a multi-day calendar exception as a separate record.",
+                    Path(calendar, "Calendar") + "/Exception[" + exceptionIndex + "]");
+            AddRange(exception.FromDate, exception.ToDate); exceptionIndex++;
+        }
         bool weeks = HasWorkWeeks(calendar);
         if (weeks) {
             // Materialize ancestor work weeks on derived calendars as well: their

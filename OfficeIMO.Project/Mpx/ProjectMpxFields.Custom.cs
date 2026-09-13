@@ -15,9 +15,14 @@ internal static partial class ProjectMpxFields {
             // MSPDI and the shared model retain custom costs in hundredths of a currency unit.
             "Cost" => ProjectMpxValues.Text(checked(values.Money(text) * 100)),
             "Date" => XmlConvert.ToString(values.Date(text), XmlDateTimeSerializationMode.Unspecified),
-            "Duration" => XmlConvert.ToString(TimeSpan.FromTicks(checked((long)(values.Minutes(values.Duration(text)) * TimeSpan.TicksPerMinute)))),
+            "Duration" => ParseDuration(text, values),
             _ => throw new InvalidDataException("Unknown MPX custom value kind.")
         };
+        private static string ParseDuration(string text, ProjectMpxValues values) {
+            decimal ticks = checked(values.Minutes(values.Duration(text)) * TimeSpan.TicksPerMinute);
+            if (ticks != decimal.Truncate(ticks)) throw new InvalidDataException("MPX custom durations require whole TimeSpan ticks.");
+            return XmlConvert.ToString(TimeSpan.FromTicks(checked((long)ticks)));
+        }
         internal string Write(ProjectCustomFieldValue value, ProjectMpxValues values) {
             if (value.Value == null) return "";
             if (Kind == "Text") return value.Value;

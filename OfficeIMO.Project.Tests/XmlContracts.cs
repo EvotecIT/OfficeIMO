@@ -7,6 +7,19 @@ public class XmlContracts {
     internal static string Wrap(string content) => "<Project xmlns=\"" + Ns + "\">" + content + "</Project>";
     internal static string TaskXml(string content = "", int uid = 7) => "<Tasks><Task><UID>" + uid + "</UID><ID>42</ID><Name>Original</Name><OutlineLevel>1</OutlineLevel>" + content + "</Task></Tasks>";
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OutOfRangeCalendarDayTypesAreRejected(bool workWeek) {
+        string day = "<WeekDay><DayType>8</DayType><DayWorking>0</DayWorking><TimePeriod><FromDate>2026-10-12T00:00:00</FromDate><ToDate>2026-10-12T00:00:00</ToDate></TimePeriod></WeekDay>";
+        string content = workWeek
+            ? "<WorkWeeks><WorkWeek><TimePeriod><FromDate>2026-10-12T00:00:00</FromDate><ToDate>2026-10-16T00:00:00</ToDate></TimePeriod><WeekDays>" + day + "</WeekDays></WorkWeek></WorkWeeks>"
+            : "<WeekDays>" + day + "</WeekDays>";
+        string xml = Wrap("<Calendars><Calendar><UID>1</UID><Name>Calendar</Name>" + content + "</Calendar></Calendars>");
+        var error = Assert.Throws<InvalidDataException>(() => ProjectDocument.Parse(xml));
+        Assert.Contains(workWeek ? "between 1 and 7" : "between 0 and 7", error.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void FieldEditsKeepExtensionNodesBetweenTheirOriginalRecords() {
         string source = Wrap("<Tasks marker=\"keep\"><Task><UID>1</UID><Name>A</Name></Task>" +

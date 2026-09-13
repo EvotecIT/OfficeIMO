@@ -15,8 +15,7 @@ internal static partial class ProjectXmlCodec {
             foreach (var sourceDay in source.Elements(ns + "WeekDay").Concat(Children(source, "WeekDays", "WeekDay"))) {
                 token.ThrowIfCancellationRequested();
                 var day = week.WeekDays.Add(); Attach(calendar.Document, day, sourceDay);
-                int? type = (int?)sourceDay.Element(ns + "DayType");
-                day.Day = type >= 1 && type <= 7 ? (DayOfWeek?)(type - 1) : null;
+                day.Day = ParseDayType(sourceDay.Element(ns + "DayType"), false);
                 day.IsWorking = (bool?)sourceDay.Element(ns + "DayWorking");
                 ReadWorkingTimes(day.WorkingTimes, sourceDay, calendar.Document, token);
             }

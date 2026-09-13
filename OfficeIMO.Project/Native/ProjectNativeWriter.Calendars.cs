@@ -24,6 +24,9 @@ internal sealed partial class ProjectNativeWriter {
             Field(editor, calendar.Uid, path, "Name", 0x0d400001, Kind.Text);
             Field(editor, calendar.Uid, path, "Guid", 0x0d40001b, Kind.Guid);
             Handle(path + "/BaseCalendar"); Handle(path + "/IsBaseCalendar");
+            if (!calendar.IsBaseCalendar.HasValue) Loss("PROJECT_NATIVE_CALENDAR_KIND_DEFAULT",
+                _profile.Generation + " infers an absent calendar kind from its base reference and stores an explicit " + (derived ? "derived" : "base") + " value.",
+                path + "/IsBaseCalendar");
             if (added || Changed(path + "/BaseCalendar")) editor.Integer(calendar.Uid, 0x0d400006, calendar.BaseCalendar?.Uid ?? (_profile.Version <= 9 ? -1 : 0));
             if (added || Changed(path + "/IsBaseCalendar") || _calendarBindingsChanged) {
                 editor.Integer(calendar.Uid, 0x0d400007, derived ? owner!.Uid : -1);

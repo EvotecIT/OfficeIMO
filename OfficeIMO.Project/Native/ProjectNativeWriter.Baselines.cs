@@ -26,6 +26,8 @@ internal sealed partial class ProjectNativeWriter {
             _token.ThrowIfCancellationRequested(); var item = baselines[index];
             if (!item.Number.HasValue || item.Number < 0 || item.Number > 10) continue;
             string path = prefix + "[" + index + "]"; var ids = Ids(item.Number.Value); Handle(path + "/Number");
+            if (item.IsEmpty) Loss("PROJECT_NATIVE_BASELINE_EMPTY",
+                _profile.Generation + " has no empty baseline record, so this baseline disappears when reopened.", path);
             Field(editor, uid, path, "Work", ids.Work, Kind.Work, force: true); Field(editor, uid, path, "Cost", ids.Cost, Kind.Number, 100, force: true);
             if (ids.Start != 0) { Field(editor, uid, path, "Start", ids.Start, Kind.Date, force: true); Field(editor, uid, path, "Finish", ids.Finish, Kind.Date, force: true); }
             if (ids.Duration != 0) Field(editor, uid, path, "Duration", ids.Duration, Kind.Duration, format: ids.Format, force: true);

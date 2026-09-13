@@ -7,6 +7,8 @@ public sealed class ProjectBaseline : ProjectObject {
     }
     /// <summary>Compact source timephased intervals.</summary>
     public ProjectCollection<ProjectTimephasedValue> TimephasedData { get; }
+    internal bool IsEmpty => Start == null && Finish == null && Duration == null && Work == null && Cost == null
+        && FixedCost == null && Bcws == null && Bcwp == null && TimephasedData.Count == 0;
 
     private int? _number;
     /// <summary>Stored number; null represents an absent source value.</summary>

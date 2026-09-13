@@ -474,6 +474,29 @@ public sealed class ProjectMpxTests {
         Assert.False(reopened.Resources.Single().Calendar!.IsBaseCalendar);
     }
 
+    [Fact]
+    public void AdjacentEquivalentExceptionsRequireExplicitMergeAcceptance() {
+        using var project = ProjectDocument.Create(); var calendar = project.Calendars.AddStandardWorkingWeek(); project.Calendar = calendar;
+        foreach (var date in new[] { new DateTime(2026, 10, 12), new DateTime(2026, 10, 13) }) {
+            var exception = calendar.Exceptions.Add(); exception.FromDate = date; exception.ToDate = date; exception.IsWorking = false;
+        }
+        var report = project.AssessSave(Options(false));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_EXCEPTION_MERGE"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/Exception", StringComparison.Ordinal));
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        var merged = Assert.Single(reopened.Calendar!.Exceptions);
+        Assert.Equal(new DateTime(2026, 10, 12), merged.FromDate); Assert.Equal(new DateTime(2026, 10, 13), merged.ToDate);
+    }
+
+    [Fact]
+    public void FractionalTickCustomDurationsAreRejected() {
+        const string source = "MPX,Fixture,4.0,ANSI\r\n61,90,46\r\n70,1,0.000000001m\r\n";
+        var error = Assert.Throws<InvalidDataException>(() => Read(source));
+        Assert.Contains("whole TimeSpan ticks", error.Message, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("task")]
     [InlineData("resource")]

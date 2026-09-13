@@ -106,9 +106,26 @@ internal sealed partial class ProjectMpxWriter {
                 else { Flush(); rangeFrom = rangeTo = date; rangePattern = pattern; }
             }
             Flush();
+            var sourceExceptions = calendar.Exceptions.Where(item => item.FromDate.HasValue && item.ToDate.HasValue)
+                .OrderBy(item => item.FromDate!.Value.Date).ToArray();
+            for (int index = 1; index < sourceExceptions.Length; index++) {
+                var previous = sourceExceptions[index - 1]; var current = sourceExceptions[index];
+                if (current.FromDate!.Value.Date.Ticks - previous.ToDate!.Value.Date.Ticks == TimeSpan.TicksPerDay
+                    && SamePattern(previous, current)) {
+                    Diagnostic("PROJECT_MPX_EXCEPTION_MERGE",
+                        "MPX merges adjacent calendar exceptions with the same working pattern into one record.", path + "/Exception");
+                    break;
+                }
+            }
             HandleTree(path + "/Day"); HandleTree(path + "/Exception"); HandleTree(path + "/Week");
             if (calendar.WorkWeeks.Count != 0) Diagnostic("PROJECT_MPX_WORK_WEEK_FLATTENED", "Bounded work weeks become date exceptions; labels and work-week structure are omitted.", path + "/Week");
             if (calendar.Exceptions.Any(e => e.Name != null)) Diagnostic("PROJECT_MPX_EXCEPTION_LABEL_LOSS", "Calendar exception dates and working times are retained; MPX has no exception labels.", path + "/Exception");
+    }
+    private static bool SamePattern(ProjectCalendarException first, ProjectCalendarException second) {
+        if (first.IsWorking != second.IsWorking || first.WorkingTimes.Count != second.WorkingTimes.Count) return false;
+        for (int index = 0; index < first.WorkingTimes.Count; index++)
+            if (first.WorkingTimes[index].From != second.WorkingTimes[index].From || first.WorkingTimes[index].To != second.WorkingTimes[index].To) return false;
+        return true;
     }
     private static string[] Intervals(IReadOnlyList<ProjectWorkingInterval> intervals) {
         if (intervals.Count > 3) throw new NotSupportedException("MPX allows at most three working intervals per day.");

@@ -14,8 +14,7 @@ internal static partial class ProjectXmlCodec {
         foreach (var day in Children(element, "WeekDays", "WeekDay")) {
             token.ThrowIfCancellationRequested();
             var item = calendar.WeekDays.Add(); Attach(calendar.Document, item, day);
-            int? dayType = (int?)day.Element(ns + "DayType");
-            item.Day = dayType >= 1 && dayType <= 7 ? (DayOfWeek?)(dayType - 1) : null;
+            item.Day = ParseDayType(day.Element(ns + "DayType"), true);
             item.IsWorking = (bool?)day.Element(ns + "DayWorking");
             var legacyPeriod = day.Element(ns + "TimePeriod");
             item.FromDate = legacyPeriod?.Element(ns + "FromDate") is XElement legacyFrom ? ProjectXmlValue.ParseDate(legacyFrom.Value) : (DateTime?)null;
@@ -52,6 +51,13 @@ internal static partial class ProjectXmlCodec {
         }
         calendar.WeekDays.Items.RemoveAll(day => mirrored.Contains(day));
         ReadWorkWeeks(calendar, element, token);
+    }
+    private static DayOfWeek? ParseDayType(XElement? element, bool allowLegacyException) {
+        int? value = (int?)element;
+        if (!value.HasValue) return null;
+        if (value >= 1 && value <= 7) return (DayOfWeek)(value - 1);
+        if (allowLegacyException && value == 0) return null;
+        throw new InvalidDataException("Project XML calendar DayType must be " + (allowLegacyException ? "between 0 and 7." : "between 1 and 7."));
     }
     private static void ReadWorkingTimes(ProjectCollection<ProjectWorkingInterval> intervals, XElement element, ProjectDocument document, CancellationToken token) {
         foreach (var time in Children(element, "WorkingTimes", "WorkingTime")) {

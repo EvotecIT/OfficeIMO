@@ -164,11 +164,53 @@ public sealed class ProjectNativeBoundaryClosureTests {
     public void NativeCalendarKindUsesItsBaseReferenceWhenTheFlagIsAbsent(ProjectFileFormat format) {
         using var document = ProjectNativeAuthoringTests.Create();
         var resource = document.Resources.First(item => item.Uid > 0); var derived = resource.Calendar!;
+        var inferredBase = document.Calendars.AddStandardWorkingWeek("Alternate"); inferredBase.IsBaseCalendar = null;
         Assert.NotNull(derived.BaseCalendar); derived.IsBaseCalendar = null;
+        var report = document.AssessSave(new ProjectSaveOptions { Format = format });
+        Assert.Equal(2, report.Diagnostics.Count(diagnostic => diagnostic.Code == "PROJECT_NATIVE_CALENDAR_KIND_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsBaseCalendar", StringComparison.Ordinal)));
+        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), new ProjectSaveOptions { Format = format }));
         using var output = new MemoryStream(); document.Save(output, Native(format));
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         var copied = reopened.Resources.GetByUid(resource.Uid).Calendar!;
+        Assert.True(reopened.Calendars.GetByUid(inferredBase.Uid).IsBaseCalendar);
         Assert.False(copied.IsBaseCalendar); Assert.NotNull(copied.BaseCalendar);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpt8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpt9)]
+    public void LegacyNativeMultiDayExceptionsRequireExplicitSplitAcceptance(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create(); var exception = document.Calendar!.Exceptions[0];
+        exception.Name = null; exception.ToDate = exception.FromDate!.Value.AddDays(1).AddHours(23).AddMinutes(59);
+        var report = document.AssessSave(new ProjectSaveOptions { Format = format });
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_CALENDAR_EXCEPTION_SPLIT"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/Exception[0]", StringComparison.Ordinal));
+        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), new ProjectSaveOptions { Format = format }));
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(2, reopened.Calendar!.Exceptions.Count);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    public void EmptyNativeBaselinesRequireExplicitLossAcceptance(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create(); var task = document.Tasks.GetByUid(2);
+        var taskBaseline = task.Baselines.Add(); taskBaseline.Number = 1;
+        var resourceBaseline = document.Resources.GetByUid(1).Baselines.Add(); resourceBaseline.Number = 0;
+        var assignmentBaseline = document.Assignments.Single().Baselines.Add(); assignmentBaseline.Number = 0;
+        var report = document.AssessSave(new ProjectSaveOptions { Format = format });
+        Assert.Equal(3, report.Diagnostics.Count(diagnostic => diagnostic.Code == "PROJECT_NATIVE_BASELINE_EMPTY" && diagnostic.RepresentsLoss));
+        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), new ProjectSaveOptions { Format = format }));
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.DoesNotContain(reopened.Tasks.GetByUid(2).Baselines, item => item.Number == 1);
+        Assert.Empty(reopened.Resources.GetByUid(1).Baselines); Assert.Empty(reopened.Assignments.Single().Baselines);
     }
 
     [Theory]
