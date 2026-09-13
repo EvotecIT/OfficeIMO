@@ -54,7 +54,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.AppendLine("\" style=\"position:absolute;inset:0;width:100%;height:100%;overflow:visible\">");
         foreach (PdfCore.PdfLogicalTextBlock block in page.TextBlocks) {
             options.CancellationToken.ThrowIfCancellationRequested();
-            PdfCore.PdfTextSpan? sourceSpan = block.Spans.FirstOrDefault(span => span.IsVisible && !string.IsNullOrEmpty(span.Text));
+            PdfCore.PdfTextSpan? sourceSpan = block.Spans.FirstOrDefault(span => !string.IsNullOrEmpty(span.Text));
             if (sourceSpan is null || string.IsNullOrEmpty(block.Text)) continue;
             PositionedPoint point = geometry.TransformPoint(block.XStart, block.BaselineY);
             builder.Append(block.Kind == PdfCore.PdfLogicalElementKind.Heading

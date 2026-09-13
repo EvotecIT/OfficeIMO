@@ -114,6 +114,27 @@ public sealed class PdfHtmlPageAppearanceTests {
         }
     }
 
+    [Fact]
+    public void OpenedPdfKeepsInvisibleOcrTextWhenAppearanceRenders() {
+        const string content = "0.1 0.5 0.9 rg 40 70 140 45 re f BT /F1 12 Tf 3 Tr 40 140 Td (Searchable OCR text) Tj ET";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
+            "2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj",
+            "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >> endobj",
+            $"4 0 obj << /Length {content.Length} >> stream", content, "endstream endobj",
+            "5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj",
+            "trailer << /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+
+        var result = PdfDocument.Load(source).ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        using var html = new HtmlParser().ParseDocument(result.Value);
+
+        Assert.Single(html.QuerySelectorAll("img.pdf-page-appearance"));
+        var textOverlay = Assert.Single(html.QuerySelectorAll("svg.pdf-text-overlay"));
+        Assert.Contains("Searchable OCR text", textOverlay.TextContent);
+        Assert.Equal(1, CountOccurrences(html.Body!.TextContent, "Searchable OCR text"));
+    }
+
     [Theory]
     [InlineData(false, PdfHtmlImageExportMode.EmbeddedDataUri)]
     [InlineData(true, PdfHtmlImageExportMode.PlaceholderOnly)]

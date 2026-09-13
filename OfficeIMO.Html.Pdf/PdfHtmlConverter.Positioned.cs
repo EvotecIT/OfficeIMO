@@ -25,9 +25,9 @@ public static partial class PdfHtmlConverterExtensions {
         bool hasNativeText = page.TextBlocks.Count > 0 && page.TextBlocks.All(block =>
             block.Spans.Count > 0 && block.Spans.All(span => span.IsVisible));
         if (hasPageAppearance && page.TextBlocks.Any(block =>
-                block.Spans.Any(span => span.IsVisible && !string.IsNullOrEmpty(span.Text)))) {
-            // Keep text searchable, selectable and available to assistive technology
-            // when the visual layer uses outlined glyphs for source fidelity.
+                block.Spans.Any(span => !string.IsNullOrEmpty(span.Text)))) {
+            // Keep source text searchable, selectable and available to assistive technology
+            // when the visual layer uses outlined glyphs or omits invisible OCR text.
             AppendPositionedAppearanceTextLayer(builder, page, geometry, options);
         }
         if (!hasPageAppearance) {
