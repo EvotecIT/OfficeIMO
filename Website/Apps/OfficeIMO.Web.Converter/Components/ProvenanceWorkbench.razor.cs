@@ -26,6 +26,14 @@ public partial class ProvenanceWorkbench {
     private bool _manifests = true, _references = true, _declarations = true;
     private int _revision = -1, _generation;
 
+    private string ResultHeading => _removal is not null
+        ? "Cleaned copy"
+        : _report is null
+            ? "File origin data"
+            : _report.Evidence.Count == 0
+                ? "No supported origin data found"
+                : "Origin data found";
+
     protected override void OnInitialized() => _interop = new(JS);
     protected override async Task OnParametersSetAsync() {
         if (_revision == Session.Revision) return;
@@ -106,7 +114,7 @@ public partial class ProvenanceWorkbench {
                 message = removal.WasChanged ? "A separate copy is ready. Review remaining findings before downloading." : "No selected carriers were removed. The copy retains the original data; review the findings and diagnostics.";
             } else {
                 report = OfficeProvenanceBufferWorkflow.Inspect(file.Bytes, file.Name, BrowserProvenancePolicy.Limits());
-                message = report.Evidence.Count == 0 ? "No supported provenance carriers were found. This is not proof of origin." : "Inspection complete. Choose what to remove from a copy.";
+                message = report.Evidence.Count == 0 ? "No supported provenance carriers were found. This is not proof of origin." : "Inspection complete. Choose which carrier categories to remove from a copy.";
             }
             if (!IsCurrent()) return;
             byte[] reportBytes = JsonSerializer.SerializeToUtf8Bytes(new {

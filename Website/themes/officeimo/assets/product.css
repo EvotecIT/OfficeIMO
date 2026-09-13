@@ -1064,6 +1064,13 @@
 .imo-comparison-map__header strong {
   font-size: .73rem;
 }
+.imo-comparison-map__outcome {
+  margin: .85rem .25rem 0;
+  color: var(--imo-text-secondary);
+  font-size: .78rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
 .imo-comparison-map__canvas {
   position: relative;
   min-height: 310px;

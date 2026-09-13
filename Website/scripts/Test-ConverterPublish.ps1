@@ -8,6 +8,8 @@ $ErrorActionPreference = 'Stop'
 $converterRoot = Join-Path $SiteRoot 'apps/officeimo-converter'
 $indexPath = Join-Path $converterRoot 'index.html'
 $modulePath = Join-Path $converterRoot 'Components/ConverterWorkspace.razor.js'
+$workspaceModulePath = Join-Path $converterRoot 'Components/DocumentWorkspace.razor.js'
+$siteScriptPath = Join-Path $SiteRoot 'js/site.js'
 $frameworkRoot = Join-Path $converterRoot '_framework'
 $appAssemblyPath = Get-ChildItem -LiteralPath $frameworkRoot -File -Filter 'OfficeIMO.Web.Converter*.wasm' -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -notmatch '\.(br|gz)$' } |
@@ -20,17 +22,21 @@ $managedAesNoticePath = Join-Path $licenseRoot 'OfficeIMO.Core-THIRD-PARTY-NOTIC
 $japaneseFontLicensePath = Join-Path $licenseRoot 'OFL-NotoCJK.txt'
 $convertPagePath = Join-Path $SiteRoot 'convert/index.html'
 $conversionGuidesPath = Join-Path $SiteRoot 'convert/guides/index.html'
+$provenanceGuidePath = Join-Path $SiteRoot 'provenance/index.html'
 $redirectManifestPath = Join-Path $SiteRoot '_powerforge/redirects.json'
 
 foreach ($path in @(
         $indexPath,
         $modulePath,
+        $workspaceModulePath,
+        $siteScriptPath,
         $appAssemblyPath,
         $runtimeWasmPath,
         $managedAesNoticePath,
         $japaneseFontLicensePath,
         $convertPagePath,
         $conversionGuidesPath,
+        $provenanceGuidePath,
         $redirectManifestPath
     )) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -47,6 +53,22 @@ if ($convertPage -notmatch $converterFramePattern) {
 $conversionGuides = Get-Content -LiteralPath $conversionGuidesPath -Raw
 if ($conversionGuides -notmatch '<h1>Document Conversion Guides for \.NET</h1>') {
     throw "The /convert/guides/ route does not contain the conversion guide."
+}
+
+$provenanceGuide = Get-Content -LiteralPath $provenanceGuidePath -Raw
+if ($provenanceGuide -notmatch '<h1(?:\s[^>]*)?>Check and remove file provenance</h1>' -or
+    $provenanceGuide -notmatch '<body class="imo-body imo-body--docs imo-body--conversion">' -or
+    $provenanceGuide -notmatch '<link[^>]+href=["'']?/css/product(?:\.[a-f0-9]+)?\.css["'']?(?:\s|/?>)' -or
+    $provenanceGuide -notmatch '<link[^>]+href=["'']?/css/docs(?:\.[a-f0-9]+)?\.css["'']?(?:\s|/?>)' -or
+    $provenanceGuide -notmatch '<h2>Inspection summary</h2>' -or
+    $provenanceGuide -notmatch 'OfficeIMO\.Workflows \+ format packages' -or
+    $provenanceGuide -notmatch 'href=["'']?https://www\.nuget\.org/packages/OfficeIMO\.Workflows["'']?(?:\s|/?>)' -or
+    $provenanceGuide -notmatch 'Content Credentials' -or
+    $provenanceGuide -notmatch 'does not remove visible watermarks' -or
+    $provenanceGuide -notmatch 'href="/convert/\?workspace=provenance"' -or
+    $provenanceGuide -notmatch 'href=["'']?https://github\.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo\.provenance-support-matrix\.md["'']?(?:\s|/?>)' -or
+    $provenanceGuide -notmatch 'carrier categories') {
+    throw 'The /provenance/ route does not explain the supported file-origin workflow and its limits.'
 }
 
 $redirectManifest = Get-Content -LiteralPath $redirectManifestPath -Raw | ConvertFrom-Json
@@ -93,6 +115,21 @@ if ($converterCss -notmatch '\.ocx-hidden-input\s*\{[^}]*\binset:\s*0' -or
 $module = Get-Content -LiteralPath $modulePath -Raw
 if ($module -notmatch 'export function createObjectUrl') {
     throw 'Converter collocated interop module is incomplete.'
+}
+
+$workspaceModule = Get-Content -LiteralPath $workspaceModulePath -Raw
+$siteScript = Get-Content -LiteralPath $siteScriptPath -Raw
+$titleValidation = [regex]::Match(
+    $siteScript,
+    'typeof\s+(?<selection>[A-Za-z_$][\w$]*)\.title\s*(?:!==|!=)\s*["'']string["'']'
+)
+$validatedSelection = if ($titleValidation.Success) {
+    [regex]::Escape($titleValidation.Groups['selection'].Value)
+}
+if ($workspaceModule -notmatch 'officeimo:workspace-selection[^\r\n]+title' -or
+    -not $titleValidation.Success -or
+    $siteScript -notmatch "document\.title\s*=\s*$validatedSelection\.title") {
+    throw 'The converter selection protocol does not propagate validated tool titles to the host page.'
 }
 
 & (Join-Path $PSScriptRoot 'Test-ConverterAssetGraph.ps1') -SiteRoot $converterRoot

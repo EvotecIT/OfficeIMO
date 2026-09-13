@@ -23,6 +23,9 @@ public partial class DocumentWorkspace {
     private bool IsFocused { get; set; }
     private ConversionRoute ActiveRoute { get; set; } = ConversionRouteCatalog.Default;
     private PdfToolDefinition ActiveTool { get; set; } = PdfToolCatalog.Default;
+    private BrowserToolContent ActiveContent => IsProvenanceWorkspace
+        ? BrowserToolContentCatalog.Provenance
+        : IsPdfWorkspace ? BrowserToolContentCatalog.For(ActiveTool) : BrowserToolContentCatalog.For(ActiveRoute);
     private string WorkspaceId => IsProvenanceWorkspace ? "provenance" : IsPdfWorkspace ? "pdf" : "convert";
     private string LibraryId => IsPdfWorkspace ? "pdf" : ActiveRoute.Source switch {
         "DOCX" => "word", "XLSX" => "excel", "PPTX" => "powerpoint", "PDF" => "pdf", "MD" => "markdown", _ => "html"
@@ -32,14 +35,6 @@ public partial class DocumentWorkspace {
         "pdf" => "PDF library", "markdown" => "Markdown library", _ => "HTML library"
     };
     private string LibraryUrl => $"/products/{LibraryId}/";
-    private string GuideUrl => IsPdfWorkspace
-        ? $"/pdf/{ActiveTool.Id switch { "extract" => "extract-pages", "delete" => "delete-pages", "reorder" => "reorder-pages", "rotate" => "rotate-pages", _ => ActiveTool.Id }}/"
-        : ActiveRoute.Id switch {
-            "docx-pdf" => "/convert/word-to-pdf/", "xlsx-pdf" => "/convert/excel-to-pdf/",
-            "pdf-html" => "/convert/pdf-to-html/", "pdf-docx" => "/convert/pdf-to-word/",
-            "pdf-pptx" => "/convert/pdf-to-powerpoint/", "pdf-xlsx" => "/convert/pdf-tables-to-excel/",
-            _ => "/convert/guides/"
-        };
 
     protected override void OnInitialized() {
         Session.Changed += SessionChanged;
@@ -96,7 +91,7 @@ public partial class DocumentWorkspace {
         }
         if (_module is not null && _notifyLocation) {
             _notifyLocation = false;
-            await _module.InvokeVoidAsync("publishSelection", WorkspaceId, IsPdfWorkspace || IsProvenanceWorkspace ? null : ActiveRoute.Id, IsPdfWorkspace ? ActiveTool.Id : null, _initialLocation);
+            await _module.InvokeVoidAsync("publishSelection", WorkspaceId, IsPdfWorkspace || IsProvenanceWorkspace ? null : ActiveRoute.Id, IsPdfWorkspace ? ActiveTool.Id : null, ActiveContent.SeoTitle, _initialLocation);
             _initialLocation = false;
         }
     }
