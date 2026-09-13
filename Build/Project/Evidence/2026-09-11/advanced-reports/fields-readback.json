@@ -1,0 +1,160 @@
+﻿{
+    "producer":  "Microsoft Project",
+    "version":  "16.0",
+    "applicationAlertsEnabled":  false,
+    "build":  "16.0.20326.20132",
+    "inputSha256":  "a43d328f58c707f8895bb711c5de6e02eeb31f60f33264effb5bf85bb610ae06",
+    "tasks":  [
+                  {
+                      "uid":  1,
+                      "id":  1,
+                      "name":  "Design",
+                      "outlineLevel":  1,
+                      "summary":  false,
+                      "durationMinutes":  960,
+                      "workMinutes":  960,
+                      "cost":  1625,
+                      "actualDurationMinutes":  0,
+                      "remainingDurationMinutes":  960,
+                      "critical":  true,
+                      "totalSlackMinutes":  0,
+                      "percentComplete":  0,
+                      "percentWorkComplete":  0,
+                      "constraintType":  0,
+                      "taskType":  0,
+                      "priority":  500,
+                      "wbs":  "1",
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/06/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "DESIGN:24,25",
+                      "baselineCost":  0,
+                      "number1":  24.25,
+                      "number2":  4,
+                      "number3":  2,
+                      "flag1":  true,
+                      "date1":  "10/07/2026 08:00:00"
+                  }
+              ],
+    "resources":  [
+                      {
+                          "uid":  1,
+                          "name":  "Engineer",
+                          "type":  0,
+                          "standardRate":  "100,00 zł/hr",
+                          "workMinutes":  960,
+                          "cost":  1625,
+                          "number1":  16.25,
+                          "text1":  "ENGINEER"
+                      },
+                      {
+                          "uid":  2,
+                          "name":  "Reviewer",
+                          "type":  0,
+                          "standardRate":  "120,00 zł/hr",
+                          "workMinutes":  0,
+                          "cost":  0,
+                          "number1":  0,
+                          "text1":  "REVIEWER"
+                      }
+                  ],
+    "calendars":  [
+                      {
+                          "name":  "Standard",
+                          "exceptions":  [
+
+                                         ]
+                      }
+                  ],
+    "assignments":  [
+                        {
+                            "uid":  2097154,
+                            "taskUid":  1,
+                            "resourceUid":  1,
+                            "units":  1,
+                            "cost":  1625,
+                            "workMinutes":  960
+                        }
+                    ],
+    "nativeRoundTrip":  {
+                            "sha256":  "4061cff47d956396395eeba8cc840636bc84bd3da003434e61736504e8c3f4db",
+                            "sameObservedSemantics":  true,
+                            "reopened":  {
+                                             "tasks":  [
+                                                           {
+                                                               "uid":  1,
+                                                               "id":  1,
+                                                               "name":  "Design",
+                                                               "outlineLevel":  1,
+                                                               "summary":  false,
+                                                               "durationMinutes":  960,
+                                                               "workMinutes":  960,
+                                                               "cost":  1625,
+                                                               "actualDurationMinutes":  0,
+                                                               "remainingDurationMinutes":  960,
+                                                               "critical":  true,
+                                                               "totalSlackMinutes":  0,
+                                                               "percentComplete":  0,
+                                                               "percentWorkComplete":  0,
+                                                               "constraintType":  0,
+                                                               "taskType":  0,
+                                                               "priority":  500,
+                                                               "wbs":  "1",
+                                                               "start":  "10/05/2026 08:00:00",
+                                                               "finish":  "10/06/2026 17:00:00",
+                                                               "predecessors":  "",
+                                                               "notes":  "",
+                                                               "text1":  "DESIGN:24,25",
+                                                               "baselineCost":  0,
+                                                               "number1":  24.25,
+                                                               "number2":  4,
+                                                               "number3":  2,
+                                                               "flag1":  true,
+                                                               "date1":  "10/07/2026 08:00:00"
+                                                           }
+                                                       ],
+                                             "resources":  [
+                                                               {
+                                                                   "uid":  1,
+                                                                   "name":  "Engineer",
+                                                                   "type":  0,
+                                                                   "standardRate":  "100,00 zł/hr",
+                                                                   "workMinutes":  960,
+                                                                   "cost":  1625,
+                                                                   "number1":  16.25,
+                                                                   "text1":  "ENGINEER"
+                                                               },
+                                                               {
+                                                                   "uid":  2,
+                                                                   "name":  "Reviewer",
+                                                                   "type":  0,
+                                                                   "standardRate":  "120,00 zł/hr",
+                                                                   "workMinutes":  0,
+                                                                   "cost":  0,
+                                                                   "number1":  0,
+                                                                   "text1":  "REVIEWER"
+                                                               }
+                                                           ],
+                                             "calendars":  [
+                                                               {
+                                                                   "name":  "Standard",
+                                                                   "exceptions":  [
+
+                                                                                  ]
+                                                               }
+                                                           ],
+                                             "assignments":  [
+                                                                 {
+                                                                     "uid":  2097154,
+                                                                     "taskUid":  1,
+                                                                     "resourceUid":  1,
+                                                                     "units":  1,
+                                                                     "cost":  1625,
+                                                                     "workMinutes":  960
+                                                                 }
+                                                             ]
+                                         }
+                        },
+    "reexportSha256":  "2632f31359d0b458a34c4c94aca3f85b75a2bf99428702e5cef9f53014025602"
+}

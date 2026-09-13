@@ -242,6 +242,12 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         return This;
     }
 
+    /// <summary>Selects a shared output-density preset while retaining format, fonts and safety limits.</summary>
+    public TBuilder WithQuality(OfficeImageExportQuality quality) {
+        Options.UseQuality(quality);
+        return This;
+    }
+
     /// <summary>Configures a print profile with an explicit target DPI.</summary>
     public TBuilder ForPrint(double dpi = 300D) {
         if (dpi <= 0D || double.IsNaN(dpi) || double.IsInfinity(dpi)) throw new ArgumentOutOfRangeException(nameof(dpi));

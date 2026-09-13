@@ -1,0 +1,31 @@
+﻿{
+    "producer":  "Microsoft Project",
+    "version":  "16.0",
+    "build":  "16.0.20326.20144",
+    "locale":  "pl-PL",
+    "provenance":  "Synthetic schedules created by Build/Project/New-ProjectFixtures.ps1; no customer data or third-party fixture content.",
+    "redistribution":  "OfficeIMO-authored synthetic content; MIT repository license. Microsoft Project is the producer and is not redistributed.",
+    "formatFamily":  "MPP14 and Project XML SaveVersion 14",
+    "files":  [
+                  {
+                      "file":  "read-protected.mpp",
+                      "sha256":  "8c092697608de502fe502895daf37598de368b493428dc832233b8b107998647",
+                      "bytes":  244736
+                  },
+                  {
+                      "file":  "read-protected.xml",
+                      "sha256":  "474343ddc1cff3f0ac6f12b9fbf87c52cdada68ebcff9357814c29957d25d673",
+                      "bytes":  38469
+                  },
+                  {
+                      "file":  "write-reserved.mpp",
+                      "sha256":  "8bf797ef669d793f794b3fd69717055a74bcfda7008c4708f161945ad8313759",
+                      "bytes":  243200
+                  },
+                  {
+                      "file":  "write-reserved.xml",
+                      "sha256":  "ea74b459000e473409755df899e3367a62e00e56e948ce7fade8603c4ac1e455",
+                      "bytes":  38469
+                  }
+              ]
+}

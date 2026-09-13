@@ -1,0 +1,728 @@
+using OfficeIMO.Core.Internal;
+
+namespace OfficeIMO.Project.Tests;
+
+public sealed class ProjectMpxTests {
+    private static ProjectDocument Read(string text) => ProjectDocument.Load(new MemoryStream(Encoding.ASCII.GetBytes(text)));
+    private static ProjectSaveOptions Options(bool allow = true) => new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4, LossPolicy = allow ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block };
+
+    [Theory]
+    [InlineData("task name", "/Task[UID=1]/Name")]
+    [InlineData("task wbs", "/Task[UID=1]/Wbs")]
+    [InlineData("task contact", "/Task[UID=1]/Contact")]
+    [InlineData("resource name", "/Resource[UID=1]/Name")]
+    [InlineData("resource initials", "/Resource[UID=1]/Initials")]
+    [InlineData("resource group", "/Resource[UID=1]/Group")]
+    [InlineData("resource email", "/Resource[UID=1]/EmailAddress")]
+    [InlineData("task custom", "/Task[UID=1]/Custom[0]/Value")]
+    [InlineData("resource custom", "/Resource[UID=1]/Custom[0]/Value")]
+    [InlineData("project name", "/Project/Name")]
+    [InlineData("project company", "/Project/Company")]
+    [InlineData("project manager", "/Project/Manager")]
+    [InlineData("currency", "/Settings/CurrencySymbol")]
+    public void ExplicitlyEmptyMappedTextRequiresLossAcceptance(string owner, string location) {
+        using var project = ProjectDocument.Create();
+        var task = project.Tasks.Add(owner == "task name" ? string.Empty : "Task");
+        var resource = project.Resources.AddWork(owner == "resource name" ? string.Empty : "Engineer");
+        switch (owner) {
+            case "task wbs": task.Wbs = string.Empty; break;
+            case "task contact": task.Contact = string.Empty; break;
+            case "resource initials": resource.Initials = string.Empty; break;
+            case "resource group": resource.Group = string.Empty; break;
+            case "resource email": resource.EmailAddress = string.Empty; break;
+            case "task custom": var taskValue = task.CustomFields.Add(); taskValue.FieldId = "188743731"; taskValue.Value = string.Empty; break;
+            case "resource custom": var resourceValue = resource.CustomFields.Add(); resourceValue.FieldId = "205520904"; resourceValue.Value = string.Empty; break;
+            case "project name": project.Name = string.Empty; break;
+            case "project company": project.Company = string.Empty; break;
+            case "project manager": project.Manager = string.Empty; break;
+            case "currency": project.Settings.CurrencySymbol = string.Empty; break;
+        }
+        var diagnostic = Assert.Single(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_TEXT_EMPTY" && item.Location == location);
+        Assert.True(diagnostic.RepresentsLoss);
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.DoesNotContain(reopened.AssessSave(Options(false)).Diagnostics, item => item.Code == "PROJECT_MPX_TEXT_EMPTY");
+    }
+
+    [Theory]
+    [InlineData("task")]
+    [InlineData("resource")]
+    public void EmptyMpxNotesRemainExplicitlyEmpty(string owner) {
+        using var project = ProjectDocument.Create();
+        if (owner == "task") project.Tasks.Add("Task").Notes = string.Empty;
+        else project.Resources.AddWork("Engineer").Notes = string.Empty;
+        Assert.DoesNotContain(project.AssessSave(Options(false)).Diagnostics, item => item.Code == "PROJECT_MPX_TEXT_EMPTY");
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(string.Empty, owner == "task" ? reopened.Tasks[0].Notes : reopened.Resources[0].Notes);
+    }
+
+    [Fact]
+    public void MpxReservedNaCurrencySymbolRequiresLossAcceptance() {
+        using var project = ProjectDocument.Create(); project.Settings.CurrencySymbol = "NA";
+        Assert.Contains(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_TEXT_NA" && item.Location == "/Settings/CurrencySymbol" && item.RepresentsLoss);
+    }
+
+    [Theory]
+    [InlineData("188743731")]
+    [InlineData("205520904")]
+    public void MpxReportsStandaloneCustomFieldDefinitionLoss(string fieldId) {
+        using var project = ProjectDocument.Create(); var definition = project.CustomFields.Add();
+        definition.FieldId = fieldId; definition.FieldName = "Text1";
+        Assert.Contains(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_DEFINITION_LOSS" && item.Location == "/Definition[0]/FieldId" && item.RepresentsLoss);
+    }
+
+    [Fact]
+    public void EmptyResourceNameUsesReaderEquivalentDerivedCalendarName() {
+        using var project = ProjectDocument.Create(); var baseCalendar = project.Calendars.AddStandardWorkingWeek(); project.Calendar = baseCalendar;
+        var resource = project.Resources.AddWork(string.Empty); resource.Calendar = project.Calendars.Add(string.Empty, baseCalendar);
+        Assert.Contains(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_RESOURCE_CALENDAR_NAME" && item.RepresentsLoss);
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal("Resource", reopened.Resources.Single().Calendar!.Name);
+    }
+
+    [Fact]
+    public void MissingCalendarNameReportsItsSynthesizedMpxValue() {
+        using var project = ProjectDocument.Create(); var calendar = project.Calendars.AddStandardWorkingWeek();
+        project.Calendar = calendar; calendar.Name = null;
+        var diagnostic = Assert.Single(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_CALENDAR_NAME_DEFAULT");
+        Assert.True(diagnostic.RepresentsLoss); Assert.EndsWith("/Name", diagnostic.Location);
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal("Calendar " + calendar.Uid, reopened.Calendar!.Name);
+    }
+
+    [Theory]
+    [InlineData("task", "alpha\u007fbeta", "alpha\nbeta", "PROJECT_MPX_NOTE_DELIMITER")]
+    [InlineData("task", "alpha\r\nbeta", "alpha\nbeta", "PROJECT_MPX_NOTE_LINE_ENDINGS")]
+    [InlineData("resource", "alpha\u007fbeta", "alpha\nbeta", "PROJECT_MPX_NOTE_DELIMITER")]
+    [InlineData("resource", "alpha\rbeta", "alpha\nbeta", "PROJECT_MPX_NOTE_LINE_ENDINGS")]
+    public void NoteDelimiterAndLineEndingNormalizationRequiresLossAcceptance(string owner, string value, string expected, string code) {
+        using var project = ProjectDocument.Create();
+        if (owner == "task") project.Tasks.Add("Task").Notes = value;
+        else project.Resources.AddWork("Engineer").Notes = value;
+
+        var diagnostic = Assert.Single(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == code);
+        Assert.True(diagnostic.RepresentsLoss); Assert.EndsWith("/Notes", diagnostic.Location);
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(expected, owner == "task" ? reopened.Tasks.Single().Notes : reopened.Resources.Single().Notes);
+    }
+
+    [Fact]
+    public void LineFeedNotesRoundTripWithoutANoteNormalizationDiagnostic() {
+        using var project = ProjectDocument.Create(); project.Tasks.Add("Task").Notes = "alpha\nbeta";
+        var report = project.AssessSave(Options());
+        Assert.DoesNotContain(report.Diagnostics, item => item.Code == "PROJECT_MPX_NOTE_DELIMITER" || item.Code == "PROJECT_MPX_NOTE_LINE_ENDINGS");
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal("alpha\nbeta", reopened.Tasks.Single().Notes);
+    }
+
+    [Theory]
+    [InlineData("exception", "/Exception[0]")]
+    [InlineData("legacy", "/Day[7]")]
+    [InlineData("workweek", "/Week[0]")]
+    public void CalendarOverrideEndpointTimesRequireLossAcceptance(string kind, string pathSuffix) {
+        using var project = ProjectDocument.Create(); var calendar = project.Calendars.AddStandardWorkingWeek(); project.Calendar = calendar;
+        var from = new DateTime(2026, 10, 12, 8, 15, 0); var to = new DateTime(2026, 10, 13, 17, 45, 0);
+        if (kind == "exception") {
+            var item = calendar.Exceptions.Add(); item.FromDate = from; item.ToDate = to; item.IsWorking = false;
+        } else if (kind == "legacy") {
+            var item = calendar.WeekDays.Add(); item.FromDate = from; item.ToDate = to; item.IsWorking = false;
+        } else {
+            var item = calendar.WorkWeeks.Add(); item.Name = "Special"; item.FromDate = from; item.ToDate = to;
+        }
+
+        var diagnostics = project.AssessSave(Options(false)).Diagnostics
+            .Where(item => item.Code == "PROJECT_MPX_CALENDAR_DATE_NORMALIZATION").ToArray();
+        Assert.Contains(diagnostics, item => item.Location.EndsWith(pathSuffix + "/FromDate", StringComparison.Ordinal));
+        Assert.Contains(diagnostics, item => item.Location.EndsWith(pathSuffix + "/ToDate", StringComparison.Ordinal));
+        Assert.All(diagnostics, item => Assert.True(item.RepresentsLoss));
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.All(reopened.Calendar!.Exceptions, item => {
+            Assert.Equal(TimeSpan.Zero, item.FromDate!.Value.TimeOfDay);
+            Assert.Equal(TimeSpan.Zero, item.ToDate!.Value.TimeOfDay);
+        });
+        if (kind == "legacy") Assert.DoesNotContain(reopened.Calendar.WeekDays, item => item.Day == null);
+    }
+
+    [Fact]
+    public void LegacyDatedWeekdayConversionRequiresExplicitLossAcceptance() {
+        using var project = ProjectDocument.Create(); var calendar = project.Calendars.AddStandardWorkingWeek(); project.Calendar = calendar;
+        var legacy = calendar.WeekDays.Add(); legacy.FromDate = new DateTime(2026, 10, 12); legacy.ToDate = new DateTime(2026, 10, 13); legacy.IsWorking = false;
+        var diagnostic = Assert.Single(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_LEGACY_DAY_CONVERSION");
+        Assert.True(diagnostic.RepresentsLoss); Assert.EndsWith("/Day[7]", diagnostic.Location);
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.DoesNotContain(reopened.Calendar!.WeekDays, item => item.Day == null);
+        var converted = Assert.Single(reopened.Calendar.Exceptions);
+        Assert.Equal(legacy.FromDate, converted.FromDate); Assert.Equal(legacy.ToDate, converted.ToDate);
+    }
+
+    [Fact]
+    public void InheritedAndResourceCalendarEndpointNormalizationUsesTheOwningPaths() {
+        using var project = ProjectDocument.Create(); var parent = project.Calendars.AddStandardWorkingWeek();
+        var parentException = parent.Exceptions.Add(); parentException.FromDate = new DateTime(2026, 10, 12, 8, 0, 0);
+        parentException.ToDate = new DateTime(2026, 10, 12, 17, 0, 0); parentException.IsWorking = false;
+        var projectCalendar = project.Calendars.Add("Project", parent); project.Calendar = projectCalendar;
+        var resource = project.Resources.AddWork("Engineer"); var resourceCalendar = project.Calendars.Add("Engineer", parent); resource.Calendar = resourceCalendar;
+        var resourceException = resourceCalendar.Exceptions.Add(); resourceException.FromDate = new DateTime(2026, 10, 13, 9, 0, 0);
+        resourceException.ToDate = new DateTime(2026, 10, 13, 18, 0, 0); resourceException.IsWorking = false;
+
+        var diagnostics = project.AssessSave(Options(false)).Diagnostics
+            .Where(item => item.Code == "PROJECT_MPX_CALENDAR_DATE_NORMALIZATION").ToArray();
+        Assert.Contains(diagnostics, item => item.Location == "/Calendar[UID=" + parent.Uid + "]/Exception[0]/FromDate");
+        Assert.Contains(diagnostics, item => item.Location == "/Calendar[UID=" + parent.Uid + "]/Exception[0]/ToDate");
+        Assert.Contains(diagnostics, item => item.Location == "/Calendar[UID=" + resourceCalendar.Uid + "]/Exception[0]/FromDate");
+        Assert.Contains(diagnostics, item => item.Location == "/Calendar[UID=" + resourceCalendar.Uid + "]/Exception[0]/ToDate");
+    }
+
+    [Fact]
+    public void MissingCustomDurationFormatReportsItsMpxDefault() {
+        using var project = ProjectDocument.Create(); var task = project.Tasks.Add("Task");
+        var value = task.CustomFields.Add(); value.FieldId = "188743783"; value.Value = "PT1H0M0S";
+        var diagnostic = Assert.Single(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_CUSTOM_DURATION_DEFAULT");
+        Assert.True(diagnostic.RepresentsLoss); Assert.EndsWith("/DurationFormat", diagnostic.Location);
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(3, Assert.Single(reopened.Tasks[0].CustomFields).DurationFormat);
+    }
+
+    [Fact]
+    public void MissingDisplayIdsReportTheirAssignedMpxRows() {
+        using var project = ProjectDocument.Create(); var task = project.Tasks.Add("Task"); var resource = project.Resources.AddWork("Engineer");
+        Assert.Null(task.DisplayId); Assert.Null(resource.DisplayId);
+        var report = project.AssessSave(Options(false));
+        Assert.Contains(report.Diagnostics, item => item.Code == "PROJECT_MPX_TASK_ROWS" && item.Location.EndsWith("/DisplayId", StringComparison.Ordinal));
+        Assert.Contains(report.Diagnostics, item => item.Code == "PROJECT_MPX_RESOURCE_ROWS" && item.Location.EndsWith("/DisplayId", StringComparison.Ordinal));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(1, reopened.Tasks[0].DisplayId); Assert.Equal(1, reopened.Resources[0].DisplayId);
+    }
+
+    [Theory]
+    [InlineData(".", 1.5)]
+    [InlineData("-", -1.5)]
+    public void CurrencySymbolsDoNotAlterMpxNumbers(string symbol, double cost) {
+        using var project = ProjectDocument.Create(); project.Settings.CurrencySymbol = symbol;
+        var task = project.Tasks.Add("Task"); task.Cost = (decimal)cost;
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal((decimal)cost, reopened.Tasks.Single().Cost);
+    }
+
+    [Theory]
+    [InlineData("$12.5", 12.5)]
+    [InlineData("12.5$", 12.5)]
+    [InlineData("-$12.5", -12.5)]
+    [InlineData("($12.5)", -12.5)]
+    public void CurrencyAffixesAreRemovedOnlyFromMoney(string lexical, double expected) {
+        using var project = Read("MPX,Fixture,4.0,ANSI\r\n10,$,1,2,\",\",.\r\n61,90,1,30\r\n70,1,Task," + lexical + "\r\n");
+        Assert.Equal((decimal)expected, project.Tasks.Single().Cost);
+    }
+
+    [Fact]
+    public void DigitCurrencySymbolsDoNotAlterNonMoneyFields() {
+        using var project = ProjectDocument.Create(); project.Settings.CurrencySymbol = "1";
+        project.Settings.MinutesPerDay = 59; project.Settings.MinutesPerWeek = 61;
+        var task = project.Tasks.Add("Task"); task.Duration = ProjectDuration.WorkingHours(1.5m); task.RemainingDuration = task.Duration;
+        task.PercentComplete = 15; task.FreeSlackMinutes = 1.5m; task.Cost = 12.5m;
+        task.ActualCost = -11.5m; task.RemainingCost = 1.25m; task.FixedCost = -0.5m;
+        var number = task.CustomFields.Add(); number.FieldId = "188743767"; number.Value = "12.5";
+        var cost = task.CustomFields.Add(); cost.FieldId = "188743786"; cost.Value = "1250";
+        var baseline = task.Baselines.Add(); baseline.Number = 0; baseline.Cost = -12.5m;
+        var resource = project.Resources.AddWork("Engineer"); resource.MaxUnits = ProjectUnits.Fraction(1.5m);
+        resource.StandardRate = 10.5m; resource.OvertimeRate = 9.5m; resource.CostPerUse = 12.5m;
+        resource.Cost = -12.5m; resource.ActualCost = -2.5m; resource.RemainingCost = 10m;
+        var assignment = project.Assignments.Add(task, resource, ProjectUnits.Fraction(1.5m));
+        assignment.Cost = -12.5m; assignment.ActualCost = 2.5m;
+        var assignmentBaseline = assignment.Baselines.Add(); assignmentBaseline.Number = 0; assignmentBaseline.Cost = -3.5m;
+        using var output = new MemoryStream(); project.Save(output, Options());
+
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray())); var reopenedTask = reopened.Tasks.Single();
+        Assert.Equal(ProjectDuration.WorkingHours(1.5m), reopenedTask.Duration); Assert.Equal(15, reopenedTask.PercentComplete);
+        Assert.Equal(1.5m, reopenedTask.FreeSlackMinutes); Assert.Equal(12.5m, reopenedTask.Cost);
+        Assert.Equal(-11.5m, reopenedTask.ActualCost); Assert.Equal(1.25m, reopenedTask.RemainingCost); Assert.Equal(-0.5m, reopenedTask.FixedCost);
+        Assert.Equal("12.5", reopenedTask.CustomFields.Single(value => value.FieldId == "188743767").Value);
+        Assert.Equal(1250m, decimal.Parse(reopenedTask.CustomFields.Single(value => value.FieldId == "188743786").Value!,
+            System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(-12.5m, reopenedTask.Baselines.Single().Cost);
+        Assert.Equal(1.5m, reopened.Resources.Single().MaxUnits!.Value.Value);
+        var reopenedResource = reopened.Resources.Single();
+        Assert.Equal(10.5m, reopenedResource.StandardRate); Assert.Equal(9.5m, reopenedResource.OvertimeRate);
+        Assert.Equal(12.5m, reopenedResource.CostPerUse); Assert.Equal(-12.5m, reopenedResource.Cost);
+        Assert.Equal(-2.5m, reopenedResource.ActualCost); Assert.Equal(10m, reopenedResource.RemainingCost);
+        var reopenedAssignment = reopened.Assignments.Single();
+        Assert.Equal(1.5m, reopenedAssignment.Units!.Value.Value); Assert.Equal(-12.5m, reopenedAssignment.Cost);
+        Assert.Equal(2.5m, reopenedAssignment.ActualCost); Assert.Equal(-3.5m, reopenedAssignment.Baselines.Single().Cost);
+    }
+
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(59, 61)]
+    [InlineData(481, 2401)]
+    [InlineData(107374182, int.MaxValue)]
+    public void WholeMinuteWorkingSettingsRoundTripThroughDecimalHours(int minutesPerDay, int minutesPerWeek) {
+        using var project = ProjectDocument.Create();
+        project.Settings.MinutesPerDay = minutesPerDay; project.Settings.MinutesPerWeek = minutesPerWeek;
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(minutesPerDay, reopened.Settings.MinutesPerDay);
+        Assert.Equal(minutesPerWeek, reopened.Settings.MinutesPerWeek);
+    }
+
+    [Fact]
+    public void SubMinuteWorkingSettingsRemainInvalidMpxInput() {
+        const string input = "MPX,Fixture,4.0,ANSI\r\n11,2,0,1,0.016,0.016\r\n";
+        Assert.Throws<InvalidDataException>(() => Read(input));
+    }
+
+    [Fact]
+    public void MissingResourceAndOwnedCalendarNamesReportTheMpxFallback() {
+        using var project = ProjectDocument.Create(); var parent = project.Calendars.AddStandardWorkingWeek(); project.Calendar = parent;
+        var resource = project.Resources.AddWork("Engineer"); resource.DisplayId = 1;
+        var calendar = project.Calendars.Add("Engineer", parent); resource.Calendar = calendar;
+        resource.Name = null; calendar.Name = null;
+        var diagnostic = Assert.Single(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_RESOURCE_CALENDAR_NAME");
+        Assert.True(diagnostic.RepresentsLoss); Assert.EndsWith("/Name", diagnostic.Location);
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal("Resource", reopened.Resources[0].Calendar!.Name);
+    }
+
+    [Theory]
+    [InlineData("  padded  ")]
+    [InlineData("\tpadded\t")]
+    [InlineData(" \"quoted\" ")]
+    [InlineData(" \t ")]
+    public void QuotedPayloadWhitespaceSurvivesReadingAndEditedRewrites(string value) {
+        string quoted = " \t\"" + value.Replace("\"", "\"\"") + "\"\t ";
+        string source = "MPX,Fixture,4.0,ANSI\r\n41,40,49,1\r\n50,1,1," + quoted
+            + "\r\n61,90,98,1,14\r\n70,1,1," + quoted + "," + quoted + "\r\n";
+        using var project = Read(source);
+        Assert.Equal(value, project.Tasks[0].Name); Assert.Equal(value, project.Tasks[0].Notes); Assert.Equal(value, project.Resources[0].Name);
+        project.Tasks[0].Name = value + " edited ";
+        project.AssessSave(Options(false)).RequireNoLoss();
+        using var output = new MemoryStream(); project.Save(output, Options(false));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(value + " edited ", reopened.Tasks[0].Name);
+        Assert.Equal(value, reopened.Tasks[0].Notes); Assert.Equal(value, reopened.Resources[0].Name);
+    }
+
+    [Fact]
+    public void UnquotedPaddingAndEmptyQuotedFieldsHaveDistinctFraming() {
+        using var project = Read("MPX,Fixture,4.0,ANSI\r\n61,90,98,1,14\r\n70,1,1, \tTask\t , \t\"\" \t\r\n");
+        Assert.Equal("Task", project.Tasks[0].Name); Assert.True(string.IsNullOrEmpty(project.Tasks[0].Notes));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OpaqueAssignmentDelayBlocksScheduling(bool calculateAssignments) {
+        const string source = "MPX,OfficeIMO fixture,4.0,ANSI\r\n41,40,49,1,42\r\n50,1,1,Engineer,100/h\r\n61,90,98,1,40\r\n70,1,1,Task,1d\r\n75,1,1,8h,,,,,,,,,1d,1\r\n";
+        using var document = Read(source); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = calculateAssignments });
+        Assert.Contains(result.Report.Diagnostics, d => d.Code == "PROJECT_MPX_SCHEDULING_PROFILE" && d.Severity == ProjectDiagnosticSeverity.Error);
+        Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result));
+    }
+
+    [Fact]
+    public void DeclaredLocaleControlsDatesCurrencyDurationAndQuotedNotes() {
+        const string source = "MPX;OfficeIMO fixture;4.0;ANSI\r\n10;EUR;1;2;.;,\r\n11;2;0;1;7,5;37,5\r\n12;1;1;480;/;:;AM;PM\r\n" +
+            "41;40;49;1;42\r\n50;4;91;Engineer;125,5/h\r\n61;90;98;1;40;50;51;30;14;74\r\n" +
+            "70;3;81;\"Design; quoted \"\"name\"\"\";1,5d;05/10/2026 08:00;06/10/2026 12:00;EUR1.234,50;\"line 1\u007fline 2; notes\"\r\n" +
+            "70;5;82;Build;2ed;07/10/2026 08:00;09/10/2026 08:00;;;81FS+0,5d\r\n75;4;0,5;15h;;3h;;125,5;;;;;;91\r\n";
+        using var project = Read(source);
+        var design = project.Tasks.GetByUid(81); var build = project.Tasks.GetByUid(82);
+        Assert.Equal("Design; quoted \"name\"", design.Name);
+        Assert.Equal("line 1\nline 2; notes", design.Notes);
+        Assert.Equal(1234.5m, design.Cost); Assert.Equal(450, project.Settings.MinutesPerDay);
+        Assert.Equal(new DateTime(2026, 10, 5, 8, 0, 0), design.Start);
+        Assert.Equal(ProjectDuration.WorkingDays(1.5m), design.Duration);
+        Assert.Equal(ProjectDuration.ElapsedDays(2), build.Duration);
+        Assert.Equal(ProjectDuration.WorkingDays(0.5m), project.Dependencies.Single().Lag);
+        Assert.Equal(81, project.Dependencies.Single().Predecessor!.Uid);
+        Assert.Equal(91, project.Assignments.Single().Resource!.Uid);
+        Assert.Equal(900m, project.Assignments.Single().Work!.Value.Minutes);
+        Assert.Equal(125.5m, project.Resources.Single().StandardRate);
+        using var output = new MemoryStream(); project.Save(output);
+        Assert.Equal(Encoding.ASCII.GetBytes(source), output.ToArray());
+    }
+
+    [Theory]
+    [InlineData(ProjectMpxEncoding.Windows1252, "café €")]
+    [InlineData(ProjectMpxEncoding.Dos437, "café Ω")]
+    [InlineData(ProjectMpxEncoding.Dos850, "café ø")]
+    [InlineData(ProjectMpxEncoding.MacintoshRoman, "café ")]
+    public void NewFilesUseExplicitCodePagesAndKeepIdsAcrossEdits(ProjectMpxEncoding encoding, string name) {
+        using var project = ProjectDocument.Create(); project.Calendar = project.Calendars.AddStandardWorkingWeek();
+        var summary = project.Tasks.AddSummary(name); var first = summary.Children.Add("First"); var second = summary.Children.Add("Second");
+        first.Duration = ProjectDuration.WorkingHours(3); first.Start = new DateTime(2026, 10, 5, 8, 0, 0); first.Finish = new DateTime(2026, 10, 5, 11, 0, 0);
+        var resource = project.Resources.AddWork("Engineer"); resource.StandardRate = 125;
+        var assignment = project.Assignments.Add(second, resource, ProjectUnits.Percent(50)); assignment.Work = ProjectWork.Hours(4); assignment.Cost = 500;
+        project.Dependencies.Add(first, second).LagPercent = 50;
+        var options = Options(); options.MpxEncoding = encoding; options.MpxSeparator = ';';
+        using var output = new MemoryStream(); project.Save(output, options);
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(name, reopened.Tasks[0].Name); Assert.Equal(summary.Uid, reopened.Tasks.GetByUid(second.Uid).Parent!.Uid);
+        Assert.Equal(first.Start, reopened.Tasks.GetByUid(first.Uid).Start);
+        Assert.Equal(50m, reopened.Dependencies.Single().LagPercent);
+        Assert.Equal(240m, reopened.Assignments.Single().Work!.Value.Minutes);
+        reopened.Tasks.GetByUid(second.Uid).MoveTo(null); reopened.Tasks.GetByUid(first.Uid).Name = name;
+        using var edited = new MemoryStream(); reopened.Save(edited, Options());
+        using var final = ProjectDocument.Load(new MemoryStream(edited.ToArray()));
+        Assert.Null(final.Tasks.GetByUid(second.Uid).Parent); Assert.Equal(name, final.Tasks.GetByUid(first.Uid).Name);
+        Assert.Equal(resource.Uid, final.Assignments.Single().Resource!.Uid);
+    }
+
+    [Fact]
+    public void UnsupportedEncodingFailsBeforeReplacingDestination() {
+        using var project = ProjectDocument.Create(); project.Tasks.Add("日本語");
+        using var output = new MemoryStream(); output.WriteByte(123);
+        Assert.Contains(project.AssessSave(Options()).Diagnostics, d => d.Code == "PROJECT_MPX_UNREPRESENTABLE" && d.Severity == ProjectDiagnosticSeverity.Error);
+        Assert.Throws<InvalidDataException>(() => project.Save(output, Options())); Assert.Equal(new byte[] { 123 }, output.ToArray());
+    }
+
+    [Fact]
+    public void UnmodeledRecordsAreInertAndRequireLossAcceptanceOnlyOnRewrite() {
+        const string source = "MPX,Fixture,4.0,ANSI\r\n61,90,98,1\r\n70,1,15,Task\r\n80,external-project.mpp\r\n81,untrusted-app,topic,item\r\n";
+        using var project = Read(source);
+        Assert.Contains(project.ReadDiagnostics, d => d.Code == "PROJECT_MPX_UNMODELED");
+        using var unchanged = new MemoryStream(); project.Save(unchanged); Assert.Equal(Encoding.ASCII.GetBytes(source), unchanged.ToArray());
+        project.Tasks[0].Name = "Changed";
+        using var edited = new MemoryStream(); Assert.Throws<InvalidOperationException>(() => project.Save(edited, Options(false))); Assert.Empty(edited.ToArray());
+        project.Save(edited, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(edited.ToArray())); Assert.Equal("Changed", reopened.Tasks[0].Name);
+    }
+
+    [Fact]
+    public void LossAssessmentSurvivesSaveAndPendingBatches() {
+        using var project = ProjectDocument.Create(); var task = project.Tasks.Add("Task"); task.Priority = 551;
+        using var output = new MemoryStream(); project.Save(output, Options());
+        Assert.Contains(project.AssessSave(Options(false)).Diagnostics, d => d.Code == "PROJECT_MPX_PRIORITY");
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using (project.BeginUpdate()) {
+            task.Name = "日本語";
+            Assert.Contains(project.AssessSave(Options()).Diagnostics, d => d.Severity == ProjectDiagnosticSeverity.Error);
+        }
+    }
+
+    [Theory]
+    [InlineData("MPX,Fixture,4.0,ANSI\r\n61,90,1\r\n70,1,\"unterminated")]
+    [InlineData("MPX,Fixture,4.0,ANSI\r\n61,90,1\r\n70,1,\"closed\"junk\r\n")]
+    [InlineData("MPX,Fixture,4.0,ANSI\r\n61,90,1\r\n70,1,a\r\n70,1,b\r\n")]
+    [InlineData("MPX,Fixture,4.0,ANSI\r\n71,orphan\r\n")]
+    [InlineData("MPX,Fixture,4.0,ANSI\r\n61,90,1,3\r\n70,1,Task,3\r\n")]
+    [InlineData("MPX,Fixture,4.0,ANSI\r\n61,90,98,3,1\r\n70,1,1,0,Task\r\n")]
+    [InlineData("MPX,Fixture,4.0,ANSI\r\n61,90,98,3,1\r\n70,0,0,1,Task\r\n")]
+    [InlineData("MPX,Fixture,4.0,ANSI\r\n12,2\r\n61,90,1,50\r\n70,1,Task,invalid\r\n")]
+    public void MalformedRecordsFailClosed(string text) => Assert.Throws<InvalidDataException>(() => Read(text));
+
+    [Fact]
+    public void MpxToXmlRequiresAnExplicitCurrencyIdentity() {
+        using var project = Read("MPX,Fixture,4.0,ANSI\r\n61,90,1\r\n70,1,Task\r\n");
+        Assert.Throws<InvalidDataException>(() => project.ToXml());
+        project.Settings.CurrencyCode = "USD";
+        using var xml = ProjectDocument.Parse(project.ToXml()); Assert.Equal("Task", xml.Tasks[0].Name);
+    }
+
+    [Fact]
+    public void MpxWriterUsesTheReservedRowAndLevelForUidZero() {
+        const string xml = "<Project xmlns=\"http://schemas.microsoft.com/project\"><CurrencyCode>USD</CurrencyCode><Tasks>" +
+            "<Task><UID>7</UID><ID>7</ID><Name>Work</Name><OutlineLevel>1</OutlineLevel></Task>" +
+            "<Task><UID>8</UID><ID>8</ID><Name>Child</Name><OutlineLevel>2</OutlineLevel></Task>" +
+            "<Task><UID>9</UID><ID>9</ID><Name>Other root</Name><OutlineLevel>1</OutlineLevel></Task>" +
+            "<Task><UID>0</UID><Name>Summary</Name><Summary>1</Summary></Task></Tasks></Project>";
+        using var project = ProjectDocument.Parse(xml);
+        Assert.Contains(project.AssessSave(Options(false)).Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_TASK_ORDER"
+            && diagnostic.RepresentsLoss && diagnostic.Location == "/Task[UID=0]/Position");
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray())); var summary = reopened.Tasks.GetByUid(0);
+        Assert.Equal(0, summary.DisplayId); Assert.Equal(0, summary.SourceOutlineLevel);
+        Assert.Null(reopened.Tasks.GetByUid(7).Parent); Assert.Equal(7, reopened.Tasks.GetByUid(8).Parent!.Uid);
+        Assert.Null(reopened.Tasks.GetByUid(9).Parent);
+    }
+
+    [Fact]
+    public void MissingBaseCalendarKindAndWeekdaysRequireExplicitLossAcceptance() {
+        using var project = ProjectDocument.Create(); var calendar = project.Calendars.Add("Sparse"); project.Calendar = calendar;
+        calendar.IsBaseCalendar = null;
+        calendar.SetWorkingDay(DayOfWeek.Monday, ProjectWorkingTime.Hours(8, 12));
+        var report = project.AssessSave(Options(false));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_CALENDAR_KIND_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsBaseCalendar", StringComparison.Ordinal));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_CALENDAR_WEEKDAY_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/Day", StringComparison.Ordinal));
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.True(reopened.Calendar!.IsBaseCalendar); Assert.Equal(7, reopened.Calendar.WeekDays.Count);
+        Assert.False(reopened.Calendar.WeekDays.Single(day => day.Day == DayOfWeek.Tuesday).IsWorking);
+    }
+
+    [Fact]
+    public void MissingResourceCalendarKindRequiresExplicitLossAcceptance() {
+        using var project = ProjectDocument.Create(); var parent = project.Calendars.AddStandardWorkingWeek(); project.Calendar = parent;
+        var resource = project.Resources.AddWork("Engineer"); var calendar = project.Calendars.Add("Engineer", parent); resource.Calendar = calendar;
+        calendar.IsBaseCalendar = null;
+        var report = project.AssessSave(Options(false));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_CALENDAR_KIND_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsBaseCalendar", StringComparison.Ordinal));
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.False(reopened.Resources.Single().Calendar!.IsBaseCalendar);
+    }
+
+    [Fact]
+    public void AdjacentEquivalentExceptionsRequireExplicitMergeAcceptance() {
+        using var project = ProjectDocument.Create(); var calendar = project.Calendars.AddStandardWorkingWeek(); project.Calendar = calendar;
+        foreach (var date in new[] { new DateTime(2026, 10, 12), new DateTime(2026, 10, 13) }) {
+            var exception = calendar.Exceptions.Add(); exception.FromDate = date; exception.ToDate = date; exception.IsWorking = false;
+        }
+        var report = project.AssessSave(Options(false));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_EXCEPTION_MERGE"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/Exception", StringComparison.Ordinal));
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        var merged = Assert.Single(reopened.Calendar!.Exceptions);
+        Assert.Equal(new DateTime(2026, 10, 12), merged.FromDate); Assert.Equal(new DateTime(2026, 10, 13), merged.ToDate);
+    }
+
+    [Fact]
+    public void FractionalTickCustomDurationsAreRejected() {
+        const string source = "MPX,Fixture,4.0,ANSI\r\n61,90,46\r\n70,1,0.000000001m\r\n";
+        var error = Assert.Throws<InvalidDataException>(() => Read(source));
+        Assert.Contains("whole TimeSpan ticks", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("task")]
+    [InlineData("resource")]
+    [InlineData("assignment")]
+    public void EmptyDefaultBaselinesRequireExplicitLossAcceptance(string owner) {
+        using var project = ProjectDocument.Create(); var task = project.Tasks.Add("Task");
+        var resource = project.Resources.AddWork("Engineer"); var assignment = project.Assignments.Add(task, resource);
+        var baseline = (owner == "task" ? task.Baselines : owner == "resource" ? resource.Baselines : assignment.Baselines).Add();
+        baseline.Number = 0;
+        var diagnostic = Assert.Single(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_BASELINE_EMPTY");
+        Assert.True(diagnostic.RepresentsLoss); Assert.Contains("/Baseline[0]", diagnostic.Location, StringComparison.Ordinal);
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        int count = owner == "task" ? reopened.Tasks.Single().Baselines.Count
+            : owner == "resource" ? reopened.Resources.Single().Baselines.Count : reopened.Assignments.Single().Baselines.Count;
+        Assert.Equal(0, count);
+    }
+
+    [Fact]
+    public void LiteralNaTextIsDistinctFromAnAbsentDate() {
+        using var project = Read("MPX,Fixture,4.0,ANSI\r\n61,90,1,50,4\r\n70,1,NA,NA,NA\r\n");
+        Assert.Equal("NA", project.Tasks[0].Name); Assert.Null(project.Tasks[0].Start);
+        Assert.Equal("NA", project.Tasks[0].CustomFields.Single().Value);
+    }
+
+    [Fact]
+    public void RepeatedResourceCalendarEditsDoNotAccumulateCalendars() {
+        byte[] bytes;
+        using (var project = ProjectDocument.Create()) {
+            project.Calendar = project.Calendars.AddStandardWorkingWeek();
+            var resource = project.Resources.AddWork("Engineer"); resource.Calendar = project.Calendar;
+            using var output = new MemoryStream(); project.Save(output, Options()); bytes = output.ToArray();
+        }
+        for (int iteration = 0; iteration < 3; iteration++) {
+            using var project = ProjectDocument.Load(new MemoryStream(bytes));
+            Assert.Equal(2, project.Calendars.Count); Assert.Equal(project.Calendar, project.Resources[0].Calendar!.BaseCalendar);
+            project.Resources[0].Name = "Engineer " + iteration;
+            using var output = new MemoryStream(); project.Save(output, Options()); bytes = output.ToArray();
+        }
+    }
+
+    [Fact]
+    public void CustomCostsUseModelHundredthsAndStartFinishDatesRemainSeparate() {
+        using var project = Read("MPX,Fixture,4.0,ANSI\r\n12,1,1,480,/,:\r\n61,90,1,30,36,60,61\r\n70,1,Task,1.5,1.5,Mon 05/10/26 08:00,06 October 2026 17:00\r\n");
+        var task = project.Tasks[0];
+        Assert.Equal(1.5m, task.Cost);
+        Assert.Equal(150m, decimal.Parse(task.CustomFields.Single(f => f.FieldId == "188743786").Value!, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal("2026-10-05T08:00:00", task.CustomFields.Single(f => f.FieldId == "188743732").Value);
+        Assert.Equal("2026-10-06T17:00:00", task.CustomFields.Single(f => f.FieldId == "188743733").Value);
+        task.Name = "Edited";
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(task.CustomFields.Select(f => f.Value), reopened.Tasks[0].CustomFields.Select(f => f.Value));
+    }
+
+    [Fact]
+    public void FractionalProgressReportsNormalizationAndPreservesUnchangedBytes() {
+        const string input = "MPX;Fixture;4.0;ANSI\r\n10;$;1;2;.;,\r\n61;90;1;44\r\n70;1;Task;55,5%\r\n";
+        using var project = Read(input); Assert.Equal(56, project.Tasks[0].PercentComplete);
+        Assert.Contains(project.ReadDiagnostics, d => d.RepresentsLoss && d.Message.StartsWith("Fractional progress", StringComparison.Ordinal));
+        using var output = new MemoryStream(); project.Save(output); Assert.Equal(Encoding.ASCII.GetBytes(input), output.ToArray());
+        project.Tasks[0].Name = "Changed";
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+    }
+
+    [Fact]
+    public void CommentsAndPresentationDeclarationsSurviveAnEdit() {
+        using var project = Read("MPX,Fixture,4.0,ANSI\r\n0,\"A comment, with a separator\"\r\n10,$,3,2,\",\",.\r\n12,1,0,480,/,:,AM,PM,20,9\r\n61,90,1\r\n70,1,Task\r\n");
+        project.Tasks[0].Name = "Edited";
+        using var output = new MemoryStream(); project.Save(output, Options());
+        var records = ProjectMpxRecords.Read(output.ToArray(), new ProjectLoadOptions(), default).Records;
+        Assert.Equal("A comment, with a separator", records.Single(r => r[0] == "0")[1]);
+        Assert.Equal("3", records.Single(r => r[0] == "10")[2]);
+        Assert.Equal("20", records.Single(r => r[0] == "12")[8]);
+        Assert.Equal("9", records.Single(r => r[0] == "12")[9]);
+    }
+
+    [Fact]
+    public void MissingDefaultStartTimeRemainsAbsentAcrossAnEditedRewrite() {
+        const string source = "MPX,Fixture,4.0,ANSI\r\n12,2,1,,/,:,AM,PM,0,0\r\n61,90,1\r\n70,1,Task\r\n";
+        using var project = Read(source);
+        Assert.Null(project.Settings.DefaultStartTime);
+        Assert.Null(project.Settings.CurrencySymbol);
+        Assert.Null(project.Settings.CurrencyDigits);
+        project.Tasks[0].Name = "Edited";
+        project.AssessSave(Options(false)).RequireNoLoss();
+        using var output = new MemoryStream(); project.Save(output, Options(false));
+        var records = ProjectMpxRecords.Read(output.ToArray(), new ProjectLoadOptions(), default).Records;
+        Assert.Equal("", records.Single(r => r[0] == "12")[3]);
+        Assert.Equal("", records.Single(r => r[0] == "10")[1]);
+        Assert.Equal("", records.Single(r => r[0] == "10")[3]);
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Null(reopened.Settings.DefaultStartTime);
+        Assert.Null(reopened.Settings.CurrencySymbol);
+        Assert.Null(reopened.Settings.CurrencyDigits);
+    }
+
+    [Fact]
+    public void MissingAssignmentDatesRemainAbsentWhenTaskDatesArePresent() {
+        using var project = ProjectDocument.Create();
+        project.Calendar = project.Calendars.AddStandardWorkingWeek();
+        var task = project.Tasks.Add("Scheduled task");
+        task.Start = new DateTime(2026, 10, 5, 8, 0, 0); task.Finish = new DateTime(2026, 10, 5, 17, 0, 0);
+        var assignment = project.Assignments.Add(task, project.Resources.AddWork("Engineer"));
+        Assert.Null(assignment.Start); Assert.Null(assignment.Finish);
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(task.Start, reopened.Tasks[0].Start); Assert.Equal(task.Finish, reopened.Tasks[0].Finish);
+        Assert.Null(reopened.Assignments[0].Start); Assert.Null(reopened.Assignments[0].Finish);
+    }
+
+    [Fact]
+    public void MissingAssignmentRemainingWorkRemainsAbsentWhenWorkIsPresent() {
+        using var project = ProjectDocument.Create();
+        var assignment = project.Assignments.Add(project.Tasks.Add("Task"), project.Resources.AddWork("Engineer"));
+        assignment.Work = ProjectWork.Hours(8);
+        Assert.Null(assignment.ActualWork); Assert.Null(assignment.RemainingWork);
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(480m, reopened.Assignments[0].Work!.Value.Minutes);
+        Assert.Null(reopened.Assignments[0].ActualWork); Assert.Null(reopened.Assignments[0].RemainingWork);
+    }
+
+    [Fact]
+    public void MissingTaskResourceAndAssignmentValuesRemainAbsentAcrossMpx() {
+        using var project = ProjectDocument.Create();
+        var task = project.Tasks.Add("Task");
+        var resource = project.Resources.AddWork("Engineer"); resource.MaxUnits = null;
+        var assignment = project.Assignments.Add(task, resource); assignment.Units = null;
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        task = reopened.Tasks.Single(); resource = reopened.Resources.Single(); assignment = reopened.Assignments.Single();
+        Assert.Null(task.Type); Assert.Null(task.Priority); Assert.Null(task.IsManual); Assert.Null(task.IsActive);
+        Assert.Null(resource.MaxUnits); Assert.Null(assignment.Units);
+    }
+
+    [Fact]
+    public void MissingMpxResourceTypeRequiresExplicitLossAcceptance() {
+        using var project = ProjectDocument.Create(); var resource = project.Resources.AddWork("Engineer"); resource.Type = null;
+        var report = project.AssessSave(Options(false));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_RESOURCE_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/Type", StringComparison.Ordinal));
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(ProjectResourceType.Work, reopened.Resources.Single().Type);
+    }
+
+    [Fact]
+    public void MissingMpxSettingsRemainAbsentAcrossAnEditedRewrite() {
+        const string source = "MPX,Fixture,4.0,ANSI\r\n11,2,0,1,,,\r\n61,90,1\r\n70,1,Task\r\n";
+        using var project = Read(source);
+        Assert.Null(project.Settings.MinutesPerDay); Assert.Null(project.Settings.MinutesPerWeek); Assert.Null(project.Settings.DaysPerMonth);
+        project.Tasks[0].Name = "Edited";
+        using var output = new MemoryStream(); project.Save(output, Options(false));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Null(reopened.Settings.MinutesPerDay); Assert.Null(reopened.Settings.MinutesPerWeek); Assert.Null(reopened.Settings.DaysPerMonth);
+    }
+
+    [Fact]
+    public void MissingDependencyTypeAndLagRemainAbsentAcrossMpx() {
+        using var project = ProjectDocument.Create();
+        var predecessor = project.Tasks.Add("Predecessor"); var successor = project.Tasks.Add("Successor");
+        var dependency = project.Dependencies.Add(predecessor, successor); dependency.Type = null; dependency.Lag = null;
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        dependency = Assert.Single(reopened.Dependencies);
+        Assert.Null(dependency.Type); Assert.Null(dependency.Lag); Assert.Null(dependency.LagPercent);
+    }
+
+    [Fact]
+    public void UnsupportedExplicitMpxBooleansRequireLossAcceptance() {
+        using var project = ProjectDocument.Create(); project.Calendar = project.Calendars.AddStandardWorkingWeek();
+        project.Settings.NewTasksAreManual = false;
+        var task = project.Tasks.Add("Task"); task.IsNull = false;
+        var resource = project.Resources.AddWork("Engineer"); resource.IsNull = false;
+        var report = project.AssessSave(Options(false));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_FIELD_LOSS" && diagnostic.Location == "/Settings/NewTasksAreManual");
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_FIELD_LOSS" && diagnostic.Location.EndsWith("/IsNull", StringComparison.Ordinal) && diagnostic.Location.StartsWith("/Task", StringComparison.Ordinal));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_FIELD_LOSS" && diagnostic.Location.EndsWith("/IsNull", StringComparison.Ordinal) && diagnostic.Location.StartsWith("/Resource", StringComparison.Ordinal));
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Null(reopened.Settings.NewTasksAreManual); Assert.Null(reopened.Tasks.Single().IsNull); Assert.Null(reopened.Resources.Single().IsNull);
+    }
+
+    [Fact]
+    public void MissingProjectCalendarRequiresExplicitMpxLossAcceptance() {
+        using var project = ProjectDocument.Create(); project.Tasks.Add("Task");
+        var report = project.AssessSave(Options(false));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_CALENDAR_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location == "/Settings/Calendar");
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.NotNull(reopened.Calendar); Assert.Equal("Standard", reopened.Calendar!.Name);
+    }
+
+    [Fact]
+    public void LimitsCancellationAndPrecisionFailBeforeDestinationChanges() {
+        const string text = "MPX,Fixture,4.0,ANSI\r\n61,90,1\r\n70,1,First\r\n70,2,Second\r\n";
+        Assert.Throws<InvalidDataException>(() => ProjectDocument.Load(new MemoryStream(Encoding.ASCII.GetBytes(text)), new ProjectLoadOptions { MaxTasks = 1 }));
+        Assert.Throws<InvalidDataException>(() => ProjectDocument.Load(new MemoryStream(Encoding.ASCII.GetBytes(text)), new ProjectLoadOptions { MaxElements = 5 }));
+        using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
+        Assert.Throws<OperationCanceledException>(() => ProjectDocument.Load(new MemoryStream(Encoding.ASCII.GetBytes(text)), cancellationToken: cancelled.Token));
+        using var project = ProjectDocument.Create(); var task = project.Tasks.Add("Task"); task.Start = new DateTime(2026, 10, 5, 8, 0, 1);
+        using var output = new MemoryStream(); output.WriteByte(5);
+        Assert.Contains(project.AssessSave(Options()).Diagnostics, d => d.Code == "PROJECT_MPX_DATE_PRECISION");
+        Assert.Throws<InvalidDataException>(() => project.Save(output, Options())); Assert.Equal(new byte[] { 5 }, output.ToArray());
+    }
+}

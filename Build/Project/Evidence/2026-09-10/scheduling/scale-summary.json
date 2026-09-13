@@ -1,0 +1,89 @@
+[
+  {
+    "suite": "project-schedule",
+    "scenario": "Dense100k",
+    "operation": "CreateCalculateValidate",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "100000"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 1561.5494,
+    "meanMs": 1602.3537666666668,
+    "minMs": 1560.1788,
+    "maxMs": 1685.3331,
+    "p95Ms": 1672.9547300000002,
+    "p99Ms": 1682.857426,
+    "stdDevMs": 71.86547819658155,
+    "stdErrMs": 41.49155318223754,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "CalculationAllocatedBytes": 607807901.3333334,
+      "PeakWorkingSetBytes": 428120746.6666667
+    }
+  },
+  {
+    "suite": "project-schedule",
+    "scenario": "Dense10k",
+    "operation": "CreateCalculateValidate",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "10000"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 276.3244,
+    "meanMs": 279.24493333333334,
+    "minMs": 276.0089,
+    "maxMs": 285.4015,
+    "p95Ms": 284.49379,
+    "p99Ms": 285.219958,
+    "stdDevMs": 5.33407629335514,
+    "stdErrMs": 3.0796303838465913,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "CalculationAllocatedBytes": 60777000,
+      "PeakWorkingSetBytes": 98779136
+    }
+  },
+  {
+    "suite": "project-schedule",
+    "scenario": "Dense1k",
+    "operation": "CreateCalculateValidate",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "1000"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 121.0341,
+    "meanMs": 121.00436666666667,
+    "minMs": 118.6794,
+    "maxMs": 123.2996,
+    "p95Ms": 123.07305,
+    "p99Ms": 123.25429,
+    "stdDevMs": 2.3102435073674217,
+    "stdErrMs": 1.333819710872166,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "CalculationAllocatedBytes": 5810736,
+      "PeakWorkingSetBytes": 38400000
+    }
+  }
+]

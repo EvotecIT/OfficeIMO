@@ -50,7 +50,7 @@ namespace OfficeIMO.Core.Internal {
             return TryRead(bytes, options, CancellationToken.None, out compoundFile, out error);
         }
 
-        private static bool TryRead(
+        internal static bool TryRead(
             byte[] bytes,
             OfficeCompoundReadOptions options,
             CancellationToken cancellationToken,

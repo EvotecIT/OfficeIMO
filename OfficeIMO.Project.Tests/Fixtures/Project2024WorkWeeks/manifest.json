@@ -1,0 +1,21 @@
+﻿{
+    "producer":  "Microsoft Project",
+    "version":  "16.0",
+    "build":  "16.0.20326.20144",
+    "locale":  "pl-PL",
+    "provenance":  "Synthetic schedules created by Build/Project/New-ProjectFixtures.ps1; no customer data or third-party fixture content.",
+    "redistribution":  "OfficeIMO-authored synthetic content; MIT repository license. Microsoft Project is the producer and is not redistributed.",
+    "formatFamily":  "MPP14 and Project XML SaveVersion 14",
+    "files":  [
+                  {
+                      "file":  "working-weeks.mpp",
+                      "sha256":  "c3b937f64d27f8f2e0cd823097b8853de2d646238dfd448f42c19e58d025b0a6",
+                      "bytes":  245248
+                  },
+                  {
+                      "file":  "working-weeks.xml",
+                      "sha256":  "33ee24dcef0443a9d29a043cc07e67a7e078cfef7dfa1f469e19632250a5bba9",
+                      "bytes":  42355
+                  }
+              ]
+}

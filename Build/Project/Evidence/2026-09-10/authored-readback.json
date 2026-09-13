@@ -1,0 +1,66 @@
+﻿{
+    "producer":  "Microsoft Project",
+    "version":  "16.0",
+    "build":  "16.0.20326.20144",
+    "inputSha256":  "69eba30d56b337b36f24d67d200406264b065994f717dfa1637423f09c345899",
+    "tasks":  [
+                  {
+                      "uid":  1,
+                      "id":  1,
+                      "name":  "Delivery",
+                      "outlineLevel":  1,
+                      "summary":  true,
+                      "durationMinutes":  3840,
+                      "workMinutes":  2400,
+                      "cost":  5000,
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/14/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0
+                  },
+                  {
+                      "uid":  2,
+                      "id":  2,
+                      "name":  "Design",
+                      "outlineLevel":  2,
+                      "summary":  false,
+                      "durationMinutes":  1440,
+                      "workMinutes":  0,
+                      "cost":  0,
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/07/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0
+                  },
+                  {
+                      "uid":  3,
+                      "id":  3,
+                      "name":  "Build",
+                      "outlineLevel":  2,
+                      "summary":  false,
+                      "durationMinutes":  2400,
+                      "workMinutes":  2400,
+                      "cost":  5000,
+                      "start":  "10/08/2026 08:00:00",
+                      "finish":  "10/14/2026 17:00:00",
+                      "predecessors":  "2",
+                      "notes":  "OfficeIMO authored: café / Łódź / 日本語",
+                      "text1":  "",
+                      "baselineCost":  5000
+                  }
+              ],
+    "resources":  [
+                      {
+                          "uid":  1,
+                          "name":  "Engineer",
+                          "standardRate":  "125,00 zł/hr",
+                          "workMinutes":  2400,
+                          "cost":  5000
+                      }
+                  ],
+    "reexportSha256":  "6276459654b5660edc2d0b6bf533cb018c77cd95d87d8fd6eebe7ceaea424d43"
+}

@@ -1,0 +1,33 @@
+{
+  "sourceCommit": "2f14c575febe984ff8fa40d0bad54c4df6658ede",
+  "tests": {
+    "sharedCompoundNet8": 5,
+    "windows": {
+      "net8": 112,
+      "net472": 112,
+      "net10": 112
+    },
+    "ubuntuWsl": {
+      "net10": 112,
+      "net8": 112
+    }
+  },
+  "localReview": "Three findings addressed; targeted confirmation found no remaining actionable issue",
+  "packageConsumer": "Passed using isolated source-mapped local Core and Project 3.4.3 packages",
+  "nativeAot": "Linux x64 .NET 8 packed consumer passed scheduling, analysis, XML, native metadata, async load and exact-byte save",
+  "packages": [
+    {
+      "name": "OfficeIMO.Core.3.4.3.nupkg",
+      "sha256": "2f0f63692fb3d408a536e854063a12a50e4ce1cd27ab32dc28e7e39d3550542b"
+    },
+    {
+      "name": "OfficeIMO.Project.3.4.3.nupkg",
+      "sha256": "4d339c1663eaa9fd725a7df8f5f79c2b10f97e6810329554fff69368e5f890cb"
+    }
+  ],
+  "limits": [
+    "Project 2024 MPP14 profile; other producers not qualified",
+    "Native curves/formulas/rate tables opaque; edited native save and conversion unavailable",
+    "Synthetic scale results with inherited CPU affinity; not a cross-machine performance guarantee"
+  ]
+}
