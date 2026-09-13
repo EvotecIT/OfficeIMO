@@ -167,6 +167,13 @@ public sealed class OfficeProvenanceReport {
 /// <summary>Bounds structural provenance inspection and removal.</summary>
 public sealed class OfficeProvenanceOptions {
     internal CancellationToken CancellationToken { get; set; }
+    // Memory-only hosts qualify DOCX/XLSX/PPTX; package owners otherwise retain their broader subtype support.
+    internal bool RequireStandardOpenXmlDocument { get; set; }
+    internal OfficeProvenanceOptions ForStandardOpenXmlDocument() {
+        var copy = (OfficeProvenanceOptions)MemberwiseClone();
+        copy.RequireStandardOpenXmlDocument = true;
+        return copy;
+    }
     /// <summary>Maximum encoded asset bytes accepted. Defaults to 256 MiB.</summary>
     public long MaxAssetBytes { get; set; } = 256L * 1024L * 1024L;
     /// <summary>Maximum single manifest-store bytes accepted. Defaults to 64 MiB.</summary>

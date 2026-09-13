@@ -2,7 +2,7 @@
 @implements IAsyncDisposable
 
 <StandaloneSiteHeader />
-<main id="converter-main" class="ocx-workspace-shell" data-workspace-ready="true" data-workspace="@WorkspaceId" tabindex="-1" @onkeydown="HandleKeyDown">
+<main id="converter-main" class="ocx-workspace-shell @(IsFocused ? "is-focused" : null)" data-workspace-ready="true" data-workspace="@WorkspaceId" tabindex="-1" @onkeydown="HandleKeyDown">
     <header class="ocx-workspace-toolbar">
         <strong>Browser tools</strong>
         <span class="ocx-workspace-toolbar__privacy">Files stay in this browser</span>
@@ -10,10 +10,12 @@
     </header>
     <aside id="workspace-navigation" class="ocx-workspace-navigation @(IsMenuOpen ? "is-open" : null)" aria-label="Browser tools">
         <nav aria-label="Choose a browser tool">
+            <h2>Inspect and clean</h2>
+            <a href="/convert/?workspace=provenance" target="_top" data-workspace="provenance" class="@(IsProvenanceWorkspace ? "is-active" : null)" aria-current="@(IsProvenanceWorkspace ? "page" : null)">Provenance</a>
             <h2>Convert documents</h2>
             @foreach (ConversionRoute route in ConversionRouteCatalog.All) {
-                <a href="/convert/?route=@route.Id" target="_top" data-route="@route.Id" class="@(!IsPdfWorkspace && ActiveRoute.Id == route.Id ? "is-active" : null)"
-                   aria-current="@(!IsPdfWorkspace && ActiveRoute.Id == route.Id ? "page" : null)">@route.Title</a>
+                <a href="/convert/?route=@route.Id" target="_top" data-route="@route.Id" class="@(!IsPdfWorkspace && !IsProvenanceWorkspace && ActiveRoute.Id == route.Id ? "is-active" : null)"
+                   aria-current="@(!IsPdfWorkspace && !IsProvenanceWorkspace && ActiveRoute.Id == route.Id ? "page" : null)">@route.Title</a>
             }
             <h2>PDF tools</h2>
             @foreach (PdfToolDefinition tool in PdfToolCatalog.All) {
@@ -27,13 +29,25 @@
     }
     <section class="ocx-workspace-content" aria-labelledby="workspace-title">
         <header class="ocx-workspace-heading">
-            <div><h1 id="workspace-title" tabindex="-1">@(IsPdfWorkspace ? ActiveTool.Label : ActiveRoute.Title)</h1></div>
-            <nav aria-label="Workflow resources"><a href="@GuideUrl" target="_top">Guide</a><a href="@LibraryUrl" target="_top">@LibraryLabel</a></nav>
+            <div><h1 id="workspace-title" tabindex="-1">@(IsProvenanceWorkspace ? "Inspect and remove provenance" : IsPdfWorkspace ? ActiveTool.Label : ActiveRoute.Title)</h1></div>
+            <nav aria-label="Workflow resources"><button type="button" class="ocx-text-action" aria-pressed="@IsFocused" @onclick="() => IsFocused = !IsFocused">@(IsFocused ? "Show source and settings" : "Focus result")</button>@if (!IsProvenanceWorkspace) { <a href="@GuideUrl" target="_top">Guide</a> }</nav>
         </header>
-        @if (IsPdfWorkspace) {
-            <PdfWorkbench ToolId="@ActiveTool.Id" />
+        @if (Session.Originals.Count > 0 || Session.Current.Count > 0 || Session.LatestResult is not null) {
+            <section class="ocx-session" aria-label="Files in this session">
+                <div class="ocx-session-file"><span>Working file@(Session.Current.Count == 1 ? "" : "s")</span><strong>@(Session.Current.Count == 0 ? "No working file selected" : string.Join(", ", Session.Current.Select(file => file.Name)))</strong></div>
+                <div class="ocx-session-actions">
+                    @if (Session.LatestResult is not null) { <button type="button" class="ocx-button ocx-button--primary" @onclick="Session.UseResult">Use result as working file</button> }
+                    <button type="button" class="ocx-button ocx-button--secondary" @onclick="Session.RestoreOriginals">Restore original@(Session.Originals.Count == 1 ? "" : "s")</button>
+                    <button type="button" class="ocx-text-action" @onclick="Session.Clear">Clear session</button>
+                </div>
+            </section>
+        }
+        @if (IsProvenanceWorkspace) {
+            <ProvenanceWorkbench Revision="Session.Revision" />
+        } else if (IsPdfWorkspace) {
+            <PdfWorkbench ToolId="@ActiveTool.Id" Revision="Session.Revision" />
         } else {
-            <ConverterWorkspace RouteId="@ActiveRoute.Id" />
+            <ConverterWorkspace RouteId="@ActiveRoute.Id" Revision="Session.Revision" />
         }
     </section>
 </main>

@@ -3,7 +3,7 @@
   <div class="imo-showcase-card">
     {{ if card.image }}
     <div class="imo-showcase-card-image">
-      <img src="{{ card.image }}" alt="{{ card.title }}" loading="lazy" decoding="async">
+      <a href="{{ card.image }}" data-pf-media data-pf-media-caption="{{ card.title | html.escape }}"><img src="{{ card.image }}" alt="{{ card.title | html.escape }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async"></a>
     </div>
     {{ end }}
     <div class="imo-showcase-card-body">

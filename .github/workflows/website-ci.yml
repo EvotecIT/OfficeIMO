@@ -4,11 +4,11 @@ on:
   pull_request:
     paths:
       - "Website/**"
+      - "OfficeIMO.*/**"
+      - "Directory.Build.*"
+      - "global.json"
       - "Docs/Compatibility/generated/**"
       - "Build/CompatibilityCatalog/**"
-      - "OfficeIMO.Word/OfficeIMO.Word.csproj"
-      - "OfficeIMO.Excel/OfficeIMO.Excel.csproj"
-      - "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj"
       - ".github/workflows/website-ci.yml"
   workflow_dispatch:
 
@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   website-build:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@3fb959e848e8d05744af826b7a74ae7edcc1e41d
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@7854e5d46d3051179378b5a8ef375a3e2d9ee59c
     with:
       website_root: Website
       pipeline_config: Website/pipeline.json
@@ -32,5 +32,5 @@ jobs:
       dotnet_version: "10.0.112"
       dotnet_workloads: wasm-tools
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: fe4f41ff4ae9248c359a38c604e531c9fa605aa4
+      powerforge_ref: d8abd2ec6375c2bbfa4d1eddf3bdbdb553855160
       report_artifact_name: powerforge-website-reports

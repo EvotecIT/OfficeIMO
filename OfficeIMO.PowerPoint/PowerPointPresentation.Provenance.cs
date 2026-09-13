@@ -4,6 +4,10 @@ using OfficeIMO.Provenance;
 namespace OfficeIMO.PowerPoint;
 
 public sealed partial class PowerPointPresentation {
+    /// <summary>Validates and inspects encoded presentation bytes without accessing the filesystem.</summary>
+    public static OfficeProvenanceReport InspectProvenance(byte[] data, string fileName = "presentation.pptx", OfficeProvenanceOptions? options = null) =>
+        OfficeProvenancePackageMutation.Inspect(data, fileName, options, ValidatePackage);
+
     /// <summary>Inspects C2PA and IPTC provenance in a saved Open XML presentation and its supported embedded images.</summary>
     public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
         OfficeProvenancePackageMutation.InspectFile(filePath, options, ValidatePackage);
@@ -26,6 +30,8 @@ public sealed partial class PowerPointPresentation {
         OfficeProvenanceZip.ValidateForOwningPackageMutation(data, _);
         using var stream = new MemoryStream(data, writable: false);
         using PresentationDocument document = PresentationDocument.Open(stream, false);
+        if (_.RequireStandardOpenXmlDocument && document.DocumentType != DocumentFormat.OpenXml.PresentationDocumentType.Presentation)
+            throw new InvalidDataException("The memory-only workflow requires a PPTX presentation, not a macro-enabled presentation, template, or slideshow.");
         if (document.PresentationPart == null || !IsSupportedPresentationContentType(document.PresentationPart.ContentType)) {
             throw new InvalidDataException("The package is not a PowerPoint presentation.");
         }

@@ -4,7 +4,7 @@
 }
 
 .pdf-file-picker:has(.pdf-file-list) .ocx-dropzone {
-    min-height: 210px;
+    min-height: 0;
 }
 
 .pdf-file-picker__icon {
@@ -14,7 +14,7 @@
 
 .pdf-file-list {
     display: grid;
-    gap: .4rem;
+    gap: .75rem;
     list-style: none;
     margin: 0;
     padding: 0;
@@ -62,7 +62,7 @@
 
 .pdf-file-list li > div {
     display: flex;
-    gap: .25rem;
+    gap: .5rem;
 }
 
 .pdf-file-list button {
@@ -71,11 +71,18 @@
     border-radius: .35rem;
     color: var(--ocx-text);
     cursor: pointer;
-    height: 1.8rem;
-    width: 1.8rem;
+    height: 36px;
+    width: 36px;
 }
 
 .pdf-file-list button:disabled {
     cursor: default;
     opacity: .35;
+}
+
+.pdf-file-list button:focus-visible { outline:2px solid var(--ocx-blue); outline-offset:2px; }
+@media(max-width:600px) {
+    .pdf-file-list li { grid-template-columns:auto minmax(0,1fr); padding:14px; gap:12px; }
+    .pdf-file-list li > div { grid-column:2; justify-content:flex-end; }
+    .pdf-file-list button { width:44px; height:44px; }
 }

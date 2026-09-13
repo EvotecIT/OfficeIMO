@@ -35,7 +35,7 @@
       <ul class="imo-application-facts">{{ for fact in app.facts }}<li>{{ fact }}</li>{{ end }}</ul>
       {{ if app.image }}
       <figure class="imo-application-preview">
-        <a href="{{ app.image }}" aria-label="Open full-size Studio screenshot"><img decoding="async" src="{{ app.image }}" width="1440" height="960" alt="{{ app.imageAlt }}" fetchpriority="high" /></a>
+        <a data-pf-media data-pf-media-group="studio" data-pf-media-caption="Studio · Document workspace" data-pf-media-light="/images/studio/workspace-light.png" data-pf-media-dark="/images/studio/workspace-dark.png" href="{{ app.image }}" aria-label="Open full-size Studio screenshot"><img decoding="async" src="{{ app.image }}" width="1440" height="960" alt="{{ app.imageAlt }}" fetchpriority="high" /></a>
         <figcaption>{{ app.caption }}</figcaption>
       </figure>
       {{ else }}
@@ -67,8 +67,8 @@ officeimo convert report.pdf report.md</code></pre>
     <section class="imo-container imo-application-gallery" aria-labelledby="gallery-title">
       <h2 id="gallery-title">A workspace that follows your reading</h2>
       <div class="imo-application-gallery-grid">
-        <figure><a href="/images/studio/workspace-dark.png"><img decoding="async" src="/images/studio/workspace-dark.png" width="1440" height="960" loading="lazy" alt="The same sample PDF open in Studio with dark application appearance." /></a><figcaption>Dark application appearance keeps the PDF's original colors.</figcaption></figure>
-        <figure><a href="/images/studio/find.png"><img decoding="async" src="/images/studio/find.png" width="1440" height="960" loading="lazy" alt="Studio's Find panel showing matches alongside the sample PDF." /></a><figcaption>Find individual occurrences and follow their page highlights.</figcaption></figure>
+        <figure><a data-pf-media data-pf-media-group="studio" href="/images/studio/workspace-dark.png"><img decoding="async" src="/images/studio/workspace-dark.png" width="1440" height="960" loading="lazy" alt="The same sample PDF open in Studio with dark application appearance." /></a><figcaption>Dark application appearance keeps the PDF's original colors.</figcaption></figure>
+        <figure><a data-pf-media data-pf-media-group="studio" href="/images/studio/find.png"><img decoding="async" src="/images/studio/find.png" width="1440" height="960" loading="lazy" alt="Studio's Find panel showing matches alongside the sample PDF." /></a><figcaption>Find individual occurrences and follow their page highlights.</figcaption></figure>
       </div>
     </section>
     {{ end }}

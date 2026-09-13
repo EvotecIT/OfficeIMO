@@ -25,7 +25,7 @@ function Get-ComponentCategory {
 
     switch -Regex ($Name) {
         '^OfficeIMO\.Reader' { return 'Extraction and ingestion' }
-        '^OfficeIMO\.(Word|Excel|PowerPoint|Project)' { return 'Office documents' }
+        '^OfficeIMO\.(Word|Excel|PowerPoint)' { return 'Office documents' }
         '^OfficeIMO\.MarkdownRenderer' { return 'Rendering surfaces' }
         '^OfficeIMO\.(Pdf|Html|Markdown|Rtf|AsciiDoc|Latex|Invoicing)' { return 'Publishing and conversion' }
         '^OfficeIMO\.(Email|OneNote|OpenDocument|Epub|CSV|Visio|IWork)' { return 'Formats and interoperability' }
@@ -43,7 +43,6 @@ function Get-DocumentationUrl {
         '^OfficeIMO\.Word' { return '/docs/word/' }
         '^OfficeIMO\.Excel' { return '/docs/excel/' }
         '^OfficeIMO\.PowerPoint' { return '/docs/powerpoint/' }
-        '^OfficeIMO\.Project$' { return '/docs/project/' }
         '^OfficeIMO\.Pdf' { return '/docs/pdf/' }
         '^OfficeIMO\.Email' { return '/docs/email/' }
         '^OfficeIMO\.OneNote' { return '/docs/onenote/' }
@@ -124,8 +123,16 @@ $components = foreach ($projectFile in ($productionProjects | Sort-Object BaseNa
     }
 }
 
+$componentIndexesByName = @{}
+for ($componentIndex = 0; $componentIndex -lt $components.Count; $componentIndex++) {
+    $componentIndexesByName[[string] $components[$componentIndex]['name']] = $componentIndex
+}
 $categories = @($components | Group-Object { $_['category'] } | Sort-Object Name | ForEach-Object {
-    [ordered]@{ name = $_.Name; componentCount = $_.Count; components = @($_.Group) }
+    [ordered]@{
+        name = $_.Name
+        componentCount = $_.Count
+        componentIndexes = @($_.Group | ForEach-Object { $componentIndexesByName[[string] $_['name']] })
+    }
 })
 $powerShellApiAvailable = Test-Path -LiteralPath (Join-Path $SiteRoot 'data\apidocs\powershell\command-metadata.json') -PathType Leaf
 $powerShellCatalogPath = Join-Path $SiteRoot 'data\pswriteoffice_command_catalog.json'

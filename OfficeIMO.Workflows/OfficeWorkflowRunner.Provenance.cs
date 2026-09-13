@@ -194,7 +194,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             }
             cancellationToken.ThrowIfCancellationRequested();
             ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, removal.Before.ExpandedInspectionBytes);
-            ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, removal.After.ExpandedInspectionBytes);
+            if (!ReferenceEquals(removal.Before, removal.After))
+                ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, removal.After.ExpandedInspectionBytes);
             inputSnapshot!.VerifyPrimaryFile(cancellationToken);
 
             failureStage = WorkflowFailureStage.Output;
@@ -919,7 +920,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         return clone;
     }
 
-    private static void ConsumeExpandedProcessingBytes(ref long remainingBytes, long consumedBytes) {
+    internal static void ConsumeExpandedProcessingBytes(ref long remainingBytes, long consumedBytes) {
         if (consumedBytes < 0 || consumedBytes > remainingBytes) {
             throw OfficeProvenanceLimitException.Create(
                 "The provenance workflow exceeds the configured cumulative expanded-data limit.");
@@ -950,7 +951,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         destination.MaxEmbeddedAssets = source.MaxEmbeddedAssets;
     }
 
-    private static void EnsureEquivalent(OfficeProvenanceReport expected, OfficeProvenanceReport actual) {
+    internal static void EnsureEquivalent(OfficeProvenanceReport expected, OfficeProvenanceReport actual) {
         bool evidenceMatches = expected.Evidence.Count == actual.Evidence.Count &&
             expected.Evidence.Zip(actual.Evidence).All(pair =>
                 pair.First.Carrier == pair.Second.Carrier &&

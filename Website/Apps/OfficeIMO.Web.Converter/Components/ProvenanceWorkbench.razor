@@ -1,0 +1,69 @@
+@namespace OfficeIMO.Web.Converter.Components
+@using OfficeIMO.Provenance
+@using OfficeIMO.Workflows
+@implements IAsyncDisposable
+
+<section class="provenance-workbench" aria-label="Provenance workbench">
+    <div class="pdf-workbench__grid">
+        <section class="ocx-input-panel">
+            <header class="provenance-heading"><p class="provenance-eyebrow">Source file</p><h2>@(_file is null ? "Choose an image or document" : "Original file")</h2><p>See its provenance, then decide what to keep.</p></header>
+            <fieldset disabled="@_busy" class="provenance-form">
+                <div class="provenance-source @(_file is null ? null : "provenance-source--selected")">
+                    <label class="ocx-dropzone">
+                        <InputFile @key="Session.Revision" class="ocx-hidden-input" OnChange="OpenAsync" accept="@string.Join(",", OfficeProvenanceBufferWorkflow.SupportedExtensions)" aria-label="Choose an image or document for provenance inspection" />
+                        <svg class="provenance-file-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M19 4H8a2 2 0 0 0-2 2v20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V11Z"/><path d="M19 4v7h7M11 17h10M11 22h7"/></svg>
+                        <strong>@(_file?.Name ?? "Drop your file here")</strong>
+                        <small>@(_file is null ? "JPEG, PNG, WebP, PDF, DOCX, XLSX or PPTX" : $"{_file.FormatLabel} · ready in this browser")</small>
+                        <span class="ocx-button ocx-button--choose">Choose file</span>
+                        <span class="provenance-upload-limit">Up to 25 MB · no upload to a server</span>
+                    </label>
+                    <div class="provenance-source-actions">
+                        <button type="button" class="ocx-text-action" @onclick="LoadSampleAsync">Try a sample image</button>
+                        <button type="button" class="ocx-button ocx-button--secondary" disabled="@(_file is null)" @onclick="InspectAsync">Inspect provenance</button>
+                    </div>
+                </div>
+                <details class="provenance-options-disclosure" open="@(_report is not null)"><summary>Remove from the copy<span>Choose what to remove</span></summary>
+                <div class="provenance-options">
+                    <label class="provenance-option"><input type="checkbox" @bind="_manifests" @bind:after="OptionsChangedAsync" /><span><strong>Content Credentials</strong><small>Embedded provenance manifests</small></span></label>
+                    <label class="provenance-option"><input type="checkbox" @bind="_references" @bind:after="OptionsChangedAsync" /><span><strong>Credential references</strong><small>Links to external manifests</small></span></label>
+                    <label class="provenance-option"><input type="checkbox" @bind="_declarations" @bind:after="OptionsChangedAsync" /><span><strong>AI source declarations</strong><small>AI-specific IPTC metadata</small></span></label>
+                    <button type="button" class="ocx-button ocx-button--primary provenance-create" disabled="@(_file is null || _report is null || !(_manifests || _references || _declarations))" @onclick="RemoveAsync">@(_busy ? "Processing locally…" : "Create cleaned copy")</button>
+                    <p class="provenance-hint">Your original stays unchanged. Inspect the file before creating a copy.</p>
+                </div>
+                </details>
+            </fieldset>
+            <details class="provenance-help"><summary>What this tool can remove</summary><p>Cleanup removes supported provenance metadata. Visible marks, image pixels and other personal metadata are unchanged. Signed or ambiguous documents may be preserved or rejected.</p><p>Structural inspection does not verify authenticity or establish whether a file was created by AI. External references are not fetched.</p></details>
+        </section>
+        <section class="ocx-output-panel" aria-label="Provenance result" aria-busy="@_busy">
+            <header class="provenance-heading"><p class="provenance-eyebrow">@(_removal is null ? "Inspection result" : "Ready to download")</p><h2>@(_removal is null ? "File provenance" : "Cleaned copy")</h2></header>
+            <p class="provenance-status" role="status">@(_busy ? "Processing locally…" : _message)</p>
+            @if (_report is not null) {
+                <div class="provenance-summary">
+                    <div><strong>@_report.Evidence.Count</strong><span>@(_removal is null ? "Provenance findings" : "Findings remaining")</span></div>
+                    @if (_removal is not null) { <div><strong>@_removal.Changes.Count</strong><span>Changes in the copy</span></div> }
+                    else { <div><strong class="provenance-format">@_file?.FormatLabel</strong><span>Inspected file format</span></div> }
+                </div>
+                @if (_removal is not null) { <p class="provenance-verification">Copy re-inspected. Review any remaining findings below.</p> }
+                @if (_report.Evidence.Count > 0) {
+                    <ul class="provenance-evidence">
+                        @foreach (var evidence in _report.Evidence) {
+                            <li><strong>@(evidence.Carrier switch { OfficeProvenanceCarrierKind.C2paManifest => "Embedded Content Credentials", OfficeProvenanceCarrierKind.C2paExternalManifest => "External credential reference", _ => "IPTC source declaration" })</strong><span>@evidence.Location</span><small>@(evidence.IsStructurallyValid ? "Structurally recognized" : "Malformed or ambiguous; preserved")</small></li>
+                        }
+                    </ul>
+                }
+                @foreach (var diagnostic in _report.Diagnostics) { <p class="provenance-diagnostic">@diagnostic</p> }
+                <div class="ocx-output-actions">
+                    @if (_outputUrl is not null) { <a class="ocx-button ocx-button--primary" href="@_outputUrl" download="@_outputName">Download copy</a> }
+                    @if (_reportUrl is not null) { <a class="ocx-button ocx-button--secondary" href="@_reportUrl" download="provenance-report.json">Download report</a> }
+                </div>
+            } else if (!_busy) {
+                <div class="provenance-empty"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="9" y="5" width="25" height="35" rx="4"/><path d="M15 14h13M15 20h9"/><circle cx="32" cy="32" r="9"/><path d="m38 39 5 5m-15-12 3 3 5-6"/></svg><h3>A clearer view of your file</h3><p>Inspect a file to see its supported provenance. Your findings, preview and downloads will appear here.</p><ol><li>Choose a file</li><li>Review its provenance</li><li>Save a separate copy</li></ol></div>
+            }
+            @if (_previewUrl is not null) {
+                <figure class="provenance-preview"><div><img src="@_previewUrl" alt="@($"Preview of {_file?.Name}")" /></div><figcaption><strong>@(_outputUrl is null ? "Original image" : "Cleaned image")</strong><span>Original colors preserved</span></figcaption></figure>
+            } else if (_file?.Extension == ".pdf" && _report is not null) {
+                <PdfArtifactPreview Bytes="@(_outputBytes ?? _file.Bytes)" FileName="@(_outputName ?? _file.Name)" />
+            }
+        </section>
+    </div>
+</section>

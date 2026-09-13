@@ -4,6 +4,10 @@ using OfficeIMO.Provenance;
 namespace OfficeIMO.Word;
 
 public partial class WordDocument {
+    /// <summary>Validates and inspects encoded Word package bytes without accessing the filesystem.</summary>
+    public static OfficeProvenanceReport InspectProvenance(byte[] data, string fileName = "document.docx", OfficeProvenanceOptions? options = null) =>
+        OfficeProvenancePackageMutation.Inspect(data, fileName, options, ValidatePackage);
+
     /// <summary>Inspects C2PA and IPTC provenance in a saved Open XML document and its supported embedded images.</summary>
     public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
         OfficeProvenancePackageMutation.InspectFile(filePath, options, ValidatePackage);
@@ -26,6 +30,8 @@ public partial class WordDocument {
         OfficeProvenanceZip.ValidateForOwningPackageMutation(data, _);
         using var stream = new MemoryStream(data, writable: false);
         using WordprocessingDocument document = WordprocessingDocument.Open(stream, false);
+        if (_.RequireStandardOpenXmlDocument && document.DocumentType != DocumentFormat.OpenXml.WordprocessingDocumentType.Document)
+            throw new InvalidDataException("The memory-only workflow requires a DOCX document, not a macro-enabled document or template.");
         if (document.MainDocumentPart == null || !IsSupportedMainPartContentType(document.MainDocumentPart.ContentType)) {
             throw new InvalidDataException("The package is not a Word document.");
         }

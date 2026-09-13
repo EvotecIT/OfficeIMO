@@ -407,3 +407,13 @@ OfficeProvenanceWorkflowResult removal = await runner.RunProvenanceAsync(
 Removal is strict by default. It removes only selected, structurally valid carriers and blocks a package-signature-invalidating save unless the caller explicitly selects `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures`. The output is written to a sibling staging file, reopened through the same format owner, checked against the removal report, and only then published under the requested conflict policy. Generic ZIP packages can be inspected but are not mutated without a registered format owner.
 
 Use `RunProvenanceBatchAsync` for bounded sequential batches. Sequential execution keeps parser and provider resource use predictable, while per-request progress includes an overall batch fraction.
+
+
+For a memory-only host, `OfficeProvenanceBufferWorkflow.Inspect(bytes, fileName, options)` and `Remove(bytes, fileName, removalOptions)` use the same format owners without opening paths or following remote references. The supported families are JPEG, PNG, WebP, PDF, DOCX, XLSX, and PPTX. Removal returns a separate result and re-inspects its bytes before returning. Specify limits appropriate to the host; a browser should use tighter limits than a local batch runner.
+
+```csharp
+var inspection = OfficeProvenanceBufferWorkflow.Inspect(inputBytes, "report.docx");
+var result = OfficeProvenanceBufferWorkflow.Remove(inputBytes, "report.docx");
+byte[] cleanedCopy = result.ToArray();
+// Inspect result.After and result.Changes before presenting the copy to the user.
+```
