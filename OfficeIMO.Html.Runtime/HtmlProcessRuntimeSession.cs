@@ -38,6 +38,18 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimeSession {
 
     internal Task OpenAsync(CancellationToken token) => SendAsync(new HtmlRuntimeCommand { Kind = "open", Request = _options }, token);
 
+    public Task NavigateAsync(Uri url, bool replaceHistoryEntry = false, CancellationToken cancellationToken = default) {
+        EnsureWebApplicationProfile();
+        var command = Command("navigate", HtmlRuntimeResourcePolicy.ValidateUrl(url).AbsoluteUri);
+        command.ReplaceHistoryEntry = replaceHistoryEntry;
+        return SendAsync(command, cancellationToken);
+    }
+
+    public Task ReloadAsync(CancellationToken cancellationToken = default) {
+        EnsureWebApplicationProfile();
+        return SendAsync(Command("reload", ""), cancellationToken);
+    }
+
     public Task<HtmlAutomationResult> AutomateAsync(HtmlAutomationRequest request, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
         var snapshot = request.Snapshot(_options.MaxInputCharacters);
@@ -71,6 +83,12 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimeSession {
         ArgumentNullException.ThrowIfNull(script);
         if (script.Length > _options.MaxInputCharacters) throw new ArgumentException("The script exceeds MaxInputCharacters.", nameof(script));
         return new HtmlRuntimeCommand { Kind = kind, Script = script };
+    }
+
+    private void EnsureWebApplicationProfile() {
+        CheckAvailable();
+        if (_options.Profile != HtmlRuntimeProfile.WebApplicationV1)
+            throw new NotSupportedException("Cross-document navigation and reload require HtmlRuntimeProfile.WebApplicationV1.");
     }
 
     private Task<HtmlRuntimeResponse> SendAsync(HtmlRuntimeCommand command, CancellationToken token) => SendAsync(command, (response, _) => response, token);

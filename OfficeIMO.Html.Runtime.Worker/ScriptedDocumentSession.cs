@@ -25,10 +25,11 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private readonly RuntimeScriptingService _scripting;
     private RuntimeHistoryBindings _history = null!;
 
-    private ScriptedDocumentSession(HtmlScriptRequest options) {
+    private ScriptedDocumentSession(HtmlScriptRequest options, RuntimeResourceBudget budget, RuntimeBrowsingStorage storage,
+        RuntimeBrowsingHistory history, Action<RuntimeNavigation>? navigate) {
         _options = options;
         _errors = new RuntimeScriptErrors(options.MaxPendingPromiseRejections);
-        _resources = new RuntimeResourceLoader(options);
+        _resources = new RuntimeResourceLoader(options, budget);
         var configuration = Configuration.Default.WithCss().WithJs(new JsScriptingOptions {
                 MaxCallStackDepth = 512,
                 ConfigureEngine = (window, engineOptions) => {
@@ -72,8 +73,8 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             RuntimeEventBindings.Install(_engine, document.DefaultView!, _errors.Report, normalizeWindow);
             RuntimeUrlBindings.Install(_engine, document.DefaultView!);
             RuntimeObserverBindings.Install(_engine, document, _errors.Report, ((RuntimeEventLoop)_loop).EnqueueMicrotask);
-            RuntimeStorageBindings.Install(_engine, options.MaxStorageCharacters);
-            _history = new RuntimeHistoryBindings(_engine, document, _loop, options);
+            RuntimeStorageBindings.Install(_engine, options.MaxStorageCharacters, storage, HtmlRuntimeResourcePolicy.Origin(options.DocumentUrl));
+            _history = new RuntimeHistoryBindings(_engine, document, _loop, options, history, navigate);
             _automation = new RuntimeAutomation(document, options, _focus, _history);
             RuntimeInteractionBindings.Install(_engine, document, _focus, _automation);
             RuntimeSelectBindings.Install(_engine);
@@ -81,10 +82,16 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         };
     }
 
-    internal static async Task<ScriptedDocumentSession> OpenAsync(HtmlScriptRequest request, CancellationToken token) {
-        var session = new ScriptedDocumentSession(request);
+    internal static async Task<ScriptedDocumentSession> OpenAsync(HtmlScriptRequest request, RuntimeResourceBudget budget,
+        RuntimeBrowsingStorage storage, RuntimeBrowsingHistory history, Action<RuntimeNavigation>? navigate, CancellationToken token, HtmlRuntimeResource? source = null) {
+        var session = new ScriptedDocumentSession(request, budget, storage, history, navigate);
         try {
-            session._document = await session._context.OpenAsync(source => source.Address(request.DocumentUrl.AbsoluteUri).Content(request.Html), token).WaitUntilAvailable(token);
+            string html = source == null ? request.Html : RuntimeHtmlNavigationSource.Decode(source, request.MaxInputCharacters);
+            session._document = await session._context.OpenAsync(response => {
+                response.Address(request.DocumentUrl);
+                response.Content(html);
+                if (source != null) response.Header("Content-Type", source.ContentType).Status(source.StatusCode);
+            }, token).WaitUntilAvailable(token);
             await session._scripting.WaitForModuleEvaluationsAsync(token);
             session._loop = session._context.GetService<IEventLoop>() ?? throw new HtmlScriptRuntimeException("The provider did not create an event loop.");
             foreach (string script in request.Scripts) await session.ExecuteAsync(script, token);
@@ -94,15 +101,11 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     }
 
     internal Task ExecuteAsync(string script, CancellationToken token) => OnLoop(() => { _scripting.EvaluateScript(_document, script, "text/javascript", RuntimeDocumentUrls.Base(_document)); return true; }, token);
+    internal Task NavigateAsync(string target, bool replace, CancellationToken token) => OnLoop(() => { _history.NavigateFragment(target, replace); return true; }, token);
+    internal Task RestoreTraversalAsync(CancellationToken token) => OnLoop(() => { _history.RestoreTraversal(); return true; }, token);
+    internal Task ReloadAsync(CancellationToken token) => OnLoop(() => { _history.Reload(); return true; }, token);
 
-    internal async Task<HtmlAutomationResult> AutomateAsync(HtmlAutomationRequest request, CancellationToken token) {
-        while (true) {
-            token.ThrowIfCancellationRequested();
-            HtmlAutomationResult result = await OnLoop(() => _automation.Run(request, token), token);
-            if (!request.WaitForReady || result.Status is not (HtmlAutomationStatus.NotFound or HtmlAutomationStatus.NotReady)) return result;
-            await Task.Delay(_options.PollInterval, token);
-        }
-    }
+    internal Task<HtmlAutomationResult> AutomateAsync(HtmlAutomationRequest request, CancellationToken token) => OnLoop(() => _automation.Run(request, token), token);
 
     internal Task<string> EvaluateAsync(string expression, CancellationToken token) => OnLoop(() => {
         var value = _engine.Evaluate("JSON.stringify((" + expression + "\n))", RuntimeDocumentUrls.Base(_document));
@@ -110,10 +113,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         return value.AsString();
     }, token);
 
-    internal async Task<HtmlRuntimeWireDocument?> WaitAsync(string expression, bool capture, CancellationToken token) {
-        while (true) {
-            token.ThrowIfCancellationRequested();
-            var result = await OnLoop(() => {
+    internal Task<(bool Ready, HtmlRuntimeWireDocument? Document)> ProbeAsync(string expression, bool capture, CancellationToken token) => OnLoop(() => {
                 if (_scripting.EvaluateScript(_document, expression, "text/javascript", RuntimeDocumentUrls.Base(_document)) is not Jint.Native.JsValue ready || !ready.IsBoolean() || !ready.AsBoolean()) return (Ready: false, Document: (HtmlRuntimeWireDocument?)null);
                 _errors.ThrowIfFailed();
                 // Readiness and capture share a task so timers cannot mutate between them.
@@ -121,10 +121,6 @@ internal sealed class ScriptedDocumentSession : IDisposable {
                 if (document != null) { document.DocumentUrl = new Uri(_document.Url); document.BaseUri = new Uri(RuntimeDocumentUrls.Base(_document)); document.Resources = _resources.Capture().ToList(); }
                 return (Ready: true, Document: document);
             }, token);
-            if (result.Ready) return result.Document;
-            await Task.Delay(_options.PollInterval, token);
-        }
-    }
 
     private Task<T> OnLoop<T>(Func<T> action, CancellationToken token) {
         var completion = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -156,6 +152,10 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     }
 
     public void Dispose() {
+        lock (_engine ?? (object)this) DisposeCore();
+    }
+
+    private void DisposeCore() {
         _scripting.Dispose();
         _fetch?.Dispose();
         _loop?.CancelAll();

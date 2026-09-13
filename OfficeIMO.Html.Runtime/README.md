@@ -42,6 +42,30 @@ var title = await session.EvaluateAsync("document.title", cancellationToken);
 var after = await session.CaptureAsync(cancellationToken: cancellationToken);
 ```
 
+`ScriptedDocumentV1` is the default single-document contract. Select
+`WebApplicationV1` when the workflow needs cross-document navigation, reload, or
+history restoration. The profile keeps one active document while storage,
+resource limits, history and existing locator handles belong to the session:
+
+```csharp
+await using var application = await runtime.OpenTrustedAsync(new HtmlScriptRequest {
+    Profile = HtmlRuntimeProfile.WebApplicationV1,
+    DocumentUrl = new Uri("https://reports.example/start"),
+    Html = startHtml,
+    Resources = new[] {
+        HtmlRuntimeResource.FromText(
+            new Uri("https://reports.example/details"),
+            detailsHtml,
+            "text/html; charset=utf-8")
+    }
+}, cancellationToken);
+
+var heading = application.Locator("h1");
+await application.NavigateAsync(new Uri("https://reports.example/details"), cancellationToken: cancellationToken);
+await heading.WaitForTextAsync("Details", cancellationToken);
+await application.ReloadAsync(cancellationToken);
+```
+
 `OpenTrustedAsync` loads the document and runs the supplied scripts. It leaves
 readiness to `WaitForAsync` or `CaptureAsync`. Evaluation returns a detached
 `JsonElement` using JavaScript JSON serialization; undefined, cyclic values and
@@ -80,12 +104,12 @@ deadline. Ambiguous, unsupported and page-rejected actions throw
 Use `AutomateAsync` to receive that result directly or set `WaitForReady = false`.
 Script failures and cancellation after command admission still terminate the worker.
 
-Clicks dispatch DOM events, checkbox/radio activation and same-document fragment
-navigation. Script-triggered `.click()` uses the same activation owner, including
+Clicks dispatch DOM events, checkbox/radio activation and navigation. Cross-document
+anchor defaults require `WebApplicationV1`. Script-triggered `.click()` uses the same activation owner, including
 cancellation and a recursion guard; it can activate hidden or detached elements
 without applying the locator's visibility/focus requirements. Downloads, additional
-browsing contexts, cross-document links and form submission/reset report
-`Unsupported` after click dispatch. Page handlers may already have changed the
+browsing contexts and form submission/reset report `Unsupported` after click
+dispatch. Page handlers may already have changed the
 document. Pointer hit testing, scrolling and keyboard input remain unqualified.
 `IsHiddenByMarkup` does not measure computed visibility, occlusion or layout stability.
 
@@ -124,7 +148,7 @@ default. When enabled, it permits the document origin and explicitly added
 Document resources use GET, without cookies, host credentials, or the host proxy. Resource
 deadlines include concurrency admission, redirects and response reading; byte
 limits also apply when the server omits a content length. Request counts and total
-loaded bytes accumulate across session commands. A missing, blocked, failed or
+loaded bytes accumulate across commands and document replacements. A missing, blocked, failed or
 oversized document resource fails the session.
 
 Classic scripts can use `fetch` with native JavaScript promises:
@@ -222,7 +246,8 @@ These contracts cover the tested mutation producers; range operations, parser
 lifecycle and shadow-root/slot notification integration need further qualification.
 
 `localStorage` and `sessionStorage` provide independent, initially empty in-memory
-areas for each runtime session. Values survive commands and application remounts,
+areas for each runtime session, partitioned by origin. Values survive commands,
+application remounts and document replacement,
 but are discarded when the session exits. They do not share data with another
 session or a host browser profile, and there are no cross-window storage events.
 Both support string keys/values, named property access, enumeration, removal and
@@ -268,7 +293,7 @@ and one window `load`. Dynamic ordered script loading, `currentScript`,
 `document.write`/parser reentrancy, complete stylesheet blocking rules, module
 preload, integrity metadata and `import.meta.resolve` need further qualification.
 
-Same-document application routing supports `history.pushState`, `replaceState`,
+Application routing supports `history.pushState`, `replaceState`,
 `back`, `forward`, and nonzero `go` traversals. Route changes update the retained
 document URL and capture identity without replacing the DOM or interpreter.
 Relative fetches and newly executed scripts use the active document base. An
@@ -294,21 +319,30 @@ fragment notifications.
 `location` and `document.location` share the session route. Fragment assignment,
 `assign`, `replace`, and uncancelled fragment links fire `popstate`, then a queued
 `hashchange`; promise jobs run before that hash notification. Back/forward traversal
-is asynchronous. History-created events expose their state or URL pair and are
+is asynchronous. Under `WebApplicationV1`, cross-document assignment, anchors,
+host navigation, reload, and traversal load bounded HTML resources into a fresh
+document realm. History state is cloned into the new realm; origin-partitioned
+storage and cumulative resource/navigation budgets remain with the session. A 204
+or 205 response leaves the current document active. Offline traversal and reload
+can replay the retained source for a history document when no supplied resource
+matches; an explicitly supplied response still takes precedence. Navigated HTML
+is admitted as strict UTF-8 before parsing or script execution. History-created events expose their state or URL pair and are
 trusted; script redispatch clears that status. `scrollRestoration` stores the
-entry's preference, but scrolling is not implemented. Reload, cross-document
-loading, additional browsing contexts and the newer Navigation API remain outside
-this profile and are not implied by history support.
+entry's preference, but scrolling is not implemented. Downloads, additional
+browsing contexts, beforeunload/unload and the newer Navigation API remain outside
+this profile.
 
-The test-only Preact 10.29.8 fixture proves UMD loading, mount/unmount, hook effects,
+`WebApplicationV1` names the selected H7 contract. The test-only Preact 10.29.8
+fixture proves UMD loading, mount/unmount, hook effects,
 buffered fetch, state updates, controlled input and select events, storage restoration,
 mutation delivery and independent captures converted to Markdown and searchable
-PDF. These paths do not establish general framework compatibility or a complete
-web-application profile. An observer-driven module report additionally proves
+PDF. Navigation fixtures prove fresh realms, reload, cross-origin storage partitioning,
+structured history restoration, redirects, locator rebinding and cumulative limits.
+These paths do not establish general Preact or browser compatibility. An observer-driven module report additionally proves
 JSON loading, combined mutation/promise ordering, typed updates and captures that
 convert after session disposal. The report module loads from the head and awaits
-document and window readiness before updating the completed body. Remaining script lifecycle, cross-document navigation,
-layout-driven interaction and general framework compatibility remain unqualified.
+document and window readiness before updating the completed body. Remaining script lifecycle,
+form defaults, credentials/cookies, layout-driven interaction and broader framework compatibility remain unqualified.
 
 Commands are serialized. `Timeout` includes time waiting for another command,
 execution and result transfer. A queued cancellation or timeout leaves the active
@@ -345,11 +379,10 @@ only through CSSOM, or shadow roots. DOM-backed style text and attributes are ca
 
 The process is terminated on cancellation, timeout or response-budget failure.
 This is a **trusted-content execution profile**, not an OS sandbox for hostile
-scripts. Host CLR capabilities are not configured. Resource policy covers the
-document resource loader; it is not a sandbox for every capability an interpreter
-may expose. The tested module and same-document routing paths do not establish
-general framework compatibility. XHR, cross-document loading and strict OS
-isolation remain separate runtime work.
+scripts. Host CLR capabilities are not configured. Resource policy covers document
+and fetch loading; it is not a sandbox for every capability an interpreter may
+expose. The tested application profile does not establish general framework
+compatibility. XHR, cookies/credentials and strict OS isolation remain separate runtime work.
 
 The retained interpreter has a known async declaration limitation: in a statement
 such as `const before = state, result = await operation()`, an earlier initializer

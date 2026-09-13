@@ -14,8 +14,12 @@ namespace OfficeIMO.Html.Runtime.Worker;
 internal sealed class RuntimeHistoryBindings {
     private readonly Engine _engine;
     private readonly JsValue _navigate;
+    private readonly JsValue _restore;
+    private readonly JsValue _reload;
 
-    internal RuntimeHistoryBindings(Engine engine, IDocument document, IEventLoop loop, HtmlScriptRequest options) {
+    internal RuntimeHistoryBindings(Engine engine, IDocument document, IEventLoop loop, HtmlScriptRequest options,
+        RuntimeBrowsingHistory? browsingHistory = null, Action<RuntimeNavigation>? requestNavigation = null) {
+        browsingHistory ??= new RuntimeBrowsingHistory();
         _engine = engine;
         var nativeDocument = document as Document ?? throw new HtmlScriptRuntimeException("The DOM provider does not expose its document URL record.");
         var current = new ClrFunction(engine, "currentUrl", (_, _) => document.Url);
@@ -34,6 +38,22 @@ internal sealed class RuntimeHistoryBindings {
             RuntimeDocumentUrls.Rewrite(nativeDocument,args[0].AsString());
             return JsValue.Undefined;
         });
+        var parseNavigation = new ClrFunction(engine, "parseNavigation", (_, args) => {
+            var url = new Url(new Url(RuntimeDocumentUrls.Base(document)), TypeConverter.ToString(args[0]));
+            try { if (url.IsInvalid) throw new ArgumentException(); HtmlRuntimeResourcePolicy.ValidateUrl(new Uri(url.Href)); }
+            catch (Exception error) when (error is ArgumentException or UriFormatException) { throw Error(engine, "SecurityError", "Navigation URLs must use HTTP(S) without credentials."); }
+            return url.Href;
+        });
+        var navigateDocument = new ClrFunction(engine, "navigateDocument", (_, args) => {
+            if (requestNavigation == null) throw Error(engine, "NotSupportedError", "Cross-document navigation is unavailable.");
+            try { requestNavigation(new(new Uri(args[0].AsString()), args[1].AsBoolean(), (int)args[2].AsNumber(), args[3].AsBoolean(), (int)args[4].AsNumber())); }
+            catch (HtmlScriptRuntimeException error) { throw Error(engine, "SecurityError", error.Message); }
+            return JsValue.Undefined;
+        });
+        var persist = new ClrFunction(engine, "saveHistory", (_, args) => {
+            browsingHistory.Entries = args[0]; browsingHistory.Index = (int)args[1].AsNumber();
+            return JsValue.Undefined;
+        });
         var enqueue = new ClrFunction(engine, "queueTraversal", (_, args) => {
             var callback = args[0];
             loop.Enqueue(_ => engine.Invoke(callback), TaskPriority.Normal);
@@ -49,9 +69,14 @@ internal sealed class RuntimeHistoryBindings {
         using var reader = new StreamReader(stream);
         var exports = engine.Invoke(engine.Evaluate(reader.ReadToEnd()), new JsValue[] {
             current, parse, update, enqueue, RuntimeStructuredClone.Create(engine, options.MaxHistoryStateBytes), options.MaxHistoryEntries,
-            options.MaxHistoryTotalStateBytes, options.MaxPendingHistoryTasks, dispatch
+            options.MaxHistoryTotalStateBytes, options.MaxPendingHistoryTasks, dispatch,
+            browsingHistory.Entries, browsingHistory.Index, browsingHistory.Generation,
+            browsingHistory.Transition?.Replace ?? false, browsingHistory.Transition?.EntryIndex ?? -1,
+            browsingHistory.Transition?.Reload ?? false, persist, navigateDocument, parseNavigation
         }).AsObject();
         _navigate = exports.Get("navigate");
+        _restore = exports.Get("restore");
+        _reload = exports.Get("reload");
         var history = exports.Get("history");
         var location = exports.Get("location");
         var nativeWindow = JsValue.FromObject(engine, document.DefaultView).AsObject();
@@ -88,6 +113,8 @@ internal sealed class RuntimeHistoryBindings {
     }
 
     internal void NavigateFragment(string target, bool replace = false) => _engine.Invoke(_navigate, new JsValue[] { target, replace });
+    internal void RestoreTraversal() => _engine.Invoke(_restore);
+    internal void Reload() => _engine.Invoke(_reload);
 
     private static JavaScriptException Error(Engine engine, string name, string message) {
         var error = engine.Intrinsics.Error.Construct(message);

@@ -1,10 +1,27 @@
-((currentUrl, parseRoute, updateRoute, enqueue, snapshot, maximumEntries, maximumBytes, maximumTasks, dispatch) => {
+((currentUrl, parseRoute, updateRoute, enqueue, snapshot, maximumEntries, maximumBytes, maximumTasks, dispatch,
+    initialEntries, initialIndex, documentId, replaceDocument, targetIndex, reload, persist, navigateDocument, parseNavigation) => {
     "use strict";
     const URLCtor = URL, EventCtor = Event, ErrorCtor = Error, define = Object.defineProperty;
     const apply=Reflect.apply, stringIndex=String.prototype.indexOf, stringSlice=String.prototype.slice, setPrototype=Object.setPrototypeOf;
     const clone = value => snapshot(value).value;
-    let entries = setPrototype([{url:currentUrl(),snapshot:{value:null,bytes:0},scroll:'auto'}],null);
+    let entries = setPrototype([{url:currentUrl(),snapshot:{value:null,bytes:0},scroll:'auto',documentId}],null);
     let index = 0, state = null, pending = 0;
+    if(initialEntries!==null) {
+        entries=setPrototype([],null);
+        for(let i=0;i<initialEntries.length;i++) {
+            const old=initialEntries[i];
+            entries[i]={url:old.url,snapshot:{value:clone(old.snapshot.value),bytes:old.snapshot.bytes},scroll:old.scroll,documentId:old.documentId};
+        }
+        index=initialIndex;
+        if(targetIndex>=0 || reload) {
+            if(targetIndex>=0)index=targetIndex;
+            const oldId=entries[index].documentId;
+            for(let i=0;i<entries.length;i++)if(entries[i].documentId===oldId)entries[i].documentId=documentId;
+            entries[index].url=currentUrl();state=clone(entries[index].snapshot.value);
+        } else commit(currentUrl(),{value:null,bytes:0},replaceDocument);
+    }
+    initialEntries=null;
+    persist(entries,index);
     function fail(name,message) { const error=new ErrorCtor(message);error.name=name;throw error; }
     function check(receiver,target) { if(receiver !== target) throw new TypeError('Illegal invocation'); }
     function checkQueue() { if(pending>=maximumTasks)fail('QuotaExceededError','History task queue exceeds its budget'); }
@@ -32,7 +49,7 @@
     function fragment(url) { const offset=apply(stringIndex,url,['#']);return offset<0 ? null : apply(stringSlice,url,[offset+1]); }
     function text(value) {if(typeof value==='symbol')throw new TypeError('Cannot convert a Symbol to a string');return String(value);}
     function commit(url,saved,replace) {
-        const entry={url,snapshot:saved,scroll:entries[index].scroll};
+        const entry={url,snapshot:saved,scroll:entries[index].scroll,documentId};
         const next=setPrototype([],null);
         for(let i=0;i<(replace?entries.length:index+1);i++)next[i]=entries[i];
         let nextIndex=replace ? index : next.length;
@@ -46,7 +63,7 @@
             if(remove<nextIndex)nextIndex--;
         }
         const nextState=clone(saved.value);
-        entries=next;index=nextIndex;state=nextState;updateRoute(url);
+        entries=next;index=nextIndex;state=nextState;updateRoute(url);persist(entries,index);
     }
     const history = {};
     define(history,Symbol.toStringTag,{value:'History'});
@@ -64,12 +81,13 @@
     history.pushState=function(data,unused,url){change(this,data,unused,url,false,arguments.length)};
     history.replaceState=function(data,unused,url){change(this,data,unused,url,true,arguments.length)};
     function traverse(delta){
-        if(delta===0) fail('NotSupportedError','Document reload is outside this session profile');
+        if(delta===0) {navigateDocument(currentUrl(),true,index,true,documentId);return;}
         queue(()=>{
             const next=index+delta;
             if(next<0||next>=entries.length)return;
+            if(entries[next].documentId!==documentId){navigateDocument(entries[next].url,false,next,false,entries[next].documentId);return;}
             const oldUrl=currentUrl(),entry=entries[next],nextState=clone(entry.snapshot.value);
-            index=next;state=nextState;updateRoute(entry.url);
+            index=next;state=nextState;updateRoute(entry.url);persist(entries,index);
             if(fragment(oldUrl)!==fragment(entry.url))queue(()=>event('hashchange',{oldURL:oldUrl,newURL:entry.url}));
             event('popstate',{state});
         });
@@ -78,9 +96,9 @@
     history.back=function(){check(this,history);traverse(-1)};
     history.forward=function(){check(this,history);traverse(1)};
     function navigate(value,replace) {
-        const url=parseRoute(text(value)),oldUrl=currentUrl();
+        const url=parseNavigation(text(value)),oldUrl=currentUrl();
         if(withoutFragment(url)!==withoutFragment(oldUrl) || fragment(url)===null)
-            fail('NotSupportedError','Cross-document navigation is outside this session profile');
+            {navigateDocument(url,replace,-1,false,-1);return;}
         if(url===oldUrl)return;
         checkQueue();
         commit(url,{value:null,bytes:0},replace);
@@ -95,12 +113,13 @@
     }
     location.assign=function(url){check(this,location);if(!arguments.length)throw new TypeError('URL required');navigate(url,false)};
     location.replace=function(url){check(this,location);if(!arguments.length)throw new TypeError('URL required');navigate(url,true)};
-    location.reload=function(){check(this,location);fail('NotSupportedError','Document reload is outside this session profile')};
+    function reloadDocument(){navigateDocument(currentUrl(),true,index,true,documentId)}
+    location.reload=function(){check(this,location);reloadDocument()};
     location.toString=function(){check(this,location);return currentUrl()};
     function History(){throw new TypeError('Illegal constructor');}
     function Location(){throw new TypeError('Illegal constructor');}
     Object.defineProperties(History.prototype,Object.getOwnPropertyDescriptors(history));
     Object.defineProperties(Location.prototype,Object.getOwnPropertyDescriptors(location));
     Object.setPrototypeOf(history,History.prototype);Object.setPrototypeOf(location,Location.prototype);
-    return {history,location,navigate,History,Location,PopStateEvent,HashChangeEvent};
+    return {history,location,navigate,reload:reloadDocument,restore:()=>event('popstate',{state}),History,Location,PopStateEvent,HashChangeEvent};
 })

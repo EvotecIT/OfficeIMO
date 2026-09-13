@@ -4,7 +4,7 @@ using OfficeIMO.Html.Runtime.Worker;
 // One live document per process, with sequential commands and bounded frames.
 using Stream input = Console.OpenStandardInput();
 using Stream output = Console.OpenStandardOutput();
-ScriptedDocumentSession? session = null;
+ScriptedBrowsingSession? session = null;
 HtmlScriptRequest? options = null;
 try {
     while (true) {
@@ -16,11 +16,13 @@ try {
                 if (command.Kind != "open" || command.Request == null) throw new HtmlScriptRuntimeException("The first command must open a document.");
                 options = command.Request.Snapshot();
                 using var deadline = new CancellationTokenSource(options!.Timeout);
-                session = await ScriptedDocumentSession.OpenAsync(options, deadline.Token);
+                session = await ScriptedBrowsingSession.OpenAsync(options, deadline.Token);
             } else {
                 if (command.Kind != "automation" && (command.Script == null || command.Script.Length > options!.MaxInputCharacters)) throw new HtmlScriptRuntimeException("The command script is missing or exceeds its budget.");
                 using var deadline = new CancellationTokenSource(options!.Timeout);
                 switch (command.Kind) {
+                    case "navigate": await session.NavigateAsync(command.Script!, command.ReplaceHistoryEntry, deadline.Token); break;
+                    case "reload": await session.ReloadAsync(deadline.Token); break;
                     case "automation": response.Automation = await session.AutomateAsync((command.Automation ?? throw new HtmlScriptRuntimeException("The automation request is missing.")).Snapshot(options!.MaxInputCharacters), deadline.Token); break;
                     case "execute": await session.ExecuteAsync(command.Script!, deadline.Token); break;
                     case "evaluate": response.ValueJson = await session.EvaluateAsync(command.Script!, deadline.Token); break;
@@ -36,4 +38,4 @@ try {
             break;
         }
     }
-} finally { session?.Dispose(); }
+} finally { if (session != null) await session.DisposeAsync(); }

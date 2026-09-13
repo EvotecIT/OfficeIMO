@@ -18,6 +18,7 @@ public sealed class RuntimeFrameworkTests {
             HtmlRuntimeResource.FromText(new Uri(origin, name), File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Preact", name)), "text/javascript")).ToList();
         resources.Add(HtmlRuntimeResource.FromText(new Uri(origin, "data.json"), "[{\"name\":\"North\",\"value\":24},{\"name\":\"South\",\"value\":18}]", "application/json"));
         await using var session = await runtime.OpenTrustedAsync(new HtmlScriptRequest {
+            Profile = HtmlRuntimeProfile.WebApplicationV1,
             DocumentUrl = origin,
             Html = "<!doctype html><div id='app'></div><script src='/preact.umd.js'></script><script src='/hooks.umd.js'></script><script src='/report.js'></script>",
             Resources = resources,

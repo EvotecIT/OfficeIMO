@@ -6,23 +6,22 @@ namespace OfficeIMO.Html.Runtime.Worker;
 internal sealed class RuntimeResourceLoader : IDisposable {
     private readonly HtmlRuntimeResourcePolicy _policy;
     private readonly Dictionary<string, HtmlRuntimeResource> _supplied;
-    private readonly Dictionary<string, HtmlRuntimeResource> _loaded = new(StringComparer.Ordinal);
+    private readonly RuntimeResourceBudget _budget;
+    private Dictionary<string, HtmlRuntimeResource> _loaded => _budget.Loaded;
     private readonly HashSet<string> _origins;
     private readonly string _documentOrigin;
     private readonly SemaphoreSlim _concurrency;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly HttpClient _client;
-    private readonly object _sync = new();
-    private long _bytes;
-    private long _sentBytes;
-    private long _requests;
+    private object _sync => _budget.Sync;
 
-    internal RuntimeResourceLoader(HtmlScriptRequest options) {
+    internal RuntimeResourceLoader(HtmlScriptRequest options, RuntimeResourceBudget? budget = null) {
+        _budget = budget ?? new RuntimeResourceBudget(options);
         _policy = options.ResourcePolicy;
         _supplied = options.Resources.ToDictionary(resource => HtmlRuntimeResourcePolicy.Key(resource.Url), StringComparer.Ordinal);
         _documentOrigin = HtmlRuntimeResourcePolicy.Origin(options.DocumentUrl);
-        _origins = new HashSet<string>(_policy.AllowedOrigins.Select(HtmlRuntimeResourcePolicy.Origin), StringComparer.OrdinalIgnoreCase) { _documentOrigin };
-        _concurrency = new SemaphoreSlim(_policy.MaxConcurrentRequests);
+        _origins = _budget.Origins;
+        _concurrency = _budget.Concurrency;
         _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false, UseProxy = false,
             AutomaticDecompression = DecompressionMethods.None, MaxResponseHeadersLength = 32 }) { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
     }
@@ -32,6 +31,7 @@ internal sealed class RuntimeResourceLoader : IDisposable {
     internal Task<HtmlRuntimeResource> FetchAsync(Uri url, RuntimeFetchRequest request, CancellationToken token) => LoadAsync(url, request, request.Validate(_policy), token);
 
     private async Task<HtmlRuntimeResource> LoadAsync(Uri requestedUrl, RuntimeFetchRequest? fetch, byte[]? body, CancellationToken token) {
+        _budget.BeginOperation();
         using var deadline = new CancellationTokenSource(_policy.Timeout);
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(token, deadline.Token, _lifetime.Token);
         bool admitted = false;
@@ -95,7 +95,10 @@ internal sealed class RuntimeResourceLoader : IDisposable {
             }
         } catch (OperationCanceledException) when (deadline.IsCancellationRequested && !token.IsCancellationRequested && !_lifetime.IsCancellationRequested) {
             throw new HtmlScriptRuntimeException("The resource load exceeded its deadline.");
-        } finally { if (admitted) _concurrency.Release(); }
+        } finally {
+            if (admitted) _concurrency.Release();
+            _budget.EndOperation();
+        }
     }
 
     private async Task PreflightAsync(Uri url, string method, Dictionary<string, string> headers, CancellationToken token) {
@@ -109,11 +112,11 @@ internal sealed class RuntimeResourceLoader : IDisposable {
 
     private async Task<HtmlRuntimeResource> SendAsync(Uri url, string method, IReadOnlyDictionary<string, string> headers, byte[]? body, CancellationToken token) {
         CheckOrigin(url);
-        if (Interlocked.Increment(ref _requests) > _policy.MaxRequests) throw new HtmlScriptRuntimeException("Resource request budget exceeded.");
+        if (Interlocked.Increment(ref _budget.Requests) > _policy.MaxRequests) throw new HtmlScriptRuntimeException("Resource request budget exceeded.");
         if (_supplied.TryGetValue(HtmlRuntimeResourcePolicy.Key(url), out var supplied) && method is "GET" or "HEAD") {
             CheckOrigin(supplied.FinalUrl);
             if (supplied.RedirectCount > _policy.MaxRedirects) throw new HtmlScriptRuntimeException("Resource redirect budget exceeded.");
-            if (Interlocked.Add(ref _requests, supplied.RedirectCount) > _policy.MaxRequests) throw new HtmlScriptRuntimeException("Resource request budget exceeded.");
+            if (Interlocked.Add(ref _budget.Requests, supplied.RedirectCount) > _policy.MaxRequests) throw new HtmlScriptRuntimeException("Resource request budget exceeded.");
             ReserveBytes(method == "HEAD" ? 0 : supplied.Length);
             var suppliedHeaders = new Dictionary<string, string>(supplied.Headers, StringComparer.OrdinalIgnoreCase) { ["Content-Type"] = supplied.ContentType };
             return new HtmlRuntimeResource(url, method == "HEAD" ? Array.Empty<byte>() : supplied.Buffer, supplied.ContentType, supplied.StatusCode, new Uri(HtmlRuntimeResourcePolicy.Key(supplied.FinalUrl)), supplied.RedirectCount, suppliedHeaders, supplied.StatusText);
@@ -121,8 +124,8 @@ internal sealed class RuntimeResourceLoader : IDisposable {
         if (!_policy.AllowNetwork) throw new HtmlScriptRuntimeException("The resource was not supplied and network loading is disabled.");
         if (body != null) {
             lock (_sync) {
-                if (body.LongLength > _policy.MaxTotalRequestBytes - _sentBytes) throw new HtmlScriptRuntimeException("Total fetch request body byte budget exceeded.");
-                _sentBytes += body.LongLength;
+                if (body.LongLength > _policy.MaxTotalRequestBytes - _budget.SentBytes) throw new HtmlScriptRuntimeException("Total fetch request body byte budget exceeded.");
+                _budget.SentBytes += body.LongLength;
             }
         }
         using var request = new HttpRequestMessage(new HttpMethod(method), url);
@@ -157,8 +160,8 @@ internal sealed class RuntimeResourceLoader : IDisposable {
     }
     private void ReserveBytes(long count) {
         lock (_sync) {
-            if (count > _policy.MaxTotalBytes - _bytes) throw new HtmlScriptRuntimeException("Total resource response byte budget exceeded.");
-            _bytes += count;
+            if (count > _policy.MaxTotalBytes - _budget.ReceivedBytes) throw new HtmlScriptRuntimeException("Total resource response byte budget exceeded.");
+            _budget.ReceivedBytes += count;
         }
     }
     public void Dispose() {

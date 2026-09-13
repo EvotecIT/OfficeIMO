@@ -2,9 +2,13 @@ using System.Text.Json;
 
 namespace OfficeIMO.Html.Runtime;
 
-/// <summary>A live scripted document. Operations are serialized; captured documents are independent.</summary>
+/// <summary>A live scripted session. Operations are serialized; the selected profile controls document replacement and captured documents are independent.</summary>
 /// <remarks>Dispose the session when finished. Cancellation or failure after command admission terminates the session.</remarks>
 public interface IHtmlRuntimeSession : IAsyncDisposable {
+    /// <summary>Navigates the active page to an HTTP(S) URL using the session's resource authority and deadline.</summary>
+    Task NavigateAsync(Uri url, bool replaceHistoryEntry = false, CancellationToken cancellationToken = default);
+    /// <summary>Reloads the current document while preserving session history and origin-scoped storage.</summary>
+    Task ReloadAsync(CancellationToken cancellationToken = default);
     /// <summary>Resolves and performs a structured automation request. Expected action failures are returned without terminating the session.</summary>
     Task<HtmlAutomationResult> AutomateAsync(HtmlAutomationRequest request, CancellationToken cancellationToken = default);
     /// <summary>Runs a classic script in the existing document without returning interpreter objects.</summary>

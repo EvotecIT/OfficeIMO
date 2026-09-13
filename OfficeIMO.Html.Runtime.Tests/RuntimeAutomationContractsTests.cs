@@ -118,16 +118,20 @@ public sealed class RuntimeAutomationContractsTests {
     }
 
     [Fact]
-    public async Task AlreadyCheckedMixedControlIsNotToggledAndNavigationDefaultsAreExplicit() {
+    public async Task AlreadyCheckedMixedControlIsNotToggledAndAnchorDefaultsNavigate() {
+        var next = new Uri("https://runtime.officeimo.test/next");
         await using var session = await Runtime().OpenTrustedAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1,
+            DocumentUrl = new Uri("https://runtime.officeimo.test/start"),
             Html = "<input type='checkbox' checked><a href='/next'>Next</a>",
+            Resources = new[] { HtmlRuntimeResource.FromText(next, "<!doctype html><h1>Next page</h1>", "text/html") },
             Scripts = new[] { "document.querySelector('input').indeterminate=true;window.clicks=0;document.querySelector('input').onclick=()=>clicks++" }
         });
         await session.Locator("input").SetCheckedAsync(true);
         Assert.True((await session.Locator("input").InspectAsync()).IsIndeterminate);
         Assert.Equal(0, (await session.EvaluateAsync("clicks")).GetInt32());
-        Assert.Equal(HtmlAutomationStatus.Unsupported, (await Assert.ThrowsAsync<HtmlAutomationException>(() => session.Locator("a").ClickAsync())).Result.Status);
-        await session.ExecuteAsync("document.querySelector('a').onclick=e=>e.preventDefault()");
         await session.Locator("a").ClickAsync();
+        await session.Locator("h1").WaitForTextAsync("Next page");
+        Assert.Equal(next, (await session.CaptureAsync()).DocumentUrl);
     }
 }

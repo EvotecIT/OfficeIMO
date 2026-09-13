@@ -42,6 +42,7 @@ internal sealed class HtmlRuntimeCommand {
     public HtmlScriptRequest? Request { get; set; }
     public string? Script { get; set; }
     public HtmlAutomationRequest? Automation { get; set; }
+    public bool ReplaceHistoryEntry { get; set; }
 }
 
 internal sealed class HtmlRuntimeResponse {

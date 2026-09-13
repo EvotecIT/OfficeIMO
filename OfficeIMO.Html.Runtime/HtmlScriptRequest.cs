@@ -2,11 +2,13 @@ using OfficeIMO.Html.Dom;
 
 namespace OfficeIMO.Html.Runtime;
 
-/// <summary>A scripted document supplied by a trusted caller, with explicit resource authority.</summary>
+/// <summary>A trusted scripted session with a versioned behavior profile and explicit resource authority.</summary>
 public sealed class HtmlScriptRequest {
+    /// <summary>Versioned behavior contract enabled for this session.</summary>
+    public HtmlRuntimeProfile Profile { get; set; } = HtmlRuntimeProfile.ScriptedDocumentV1;
     /// <summary>Complete HTML source. Inline classic scripts execute while the document loads.</summary>
     public string Html { get; set; } = string.Empty;
-    /// <summary>Document identity and base for relative resource URLs. No document navigation is performed.</summary>
+    /// <summary>Initial document identity and base for relative resource URLs.</summary>
     public Uri DocumentUrl { get; set; } = new("https://officeimo.invalid/");
     /// <summary>Optional immutable resources for offline scripts, stylesheets and other document assets.</summary>
     public IReadOnlyList<HtmlRuntimeResource> Resources { get; set; } = Array.Empty<HtmlRuntimeResource>();
@@ -36,6 +38,8 @@ public sealed class HtmlScriptRequest {
     public int MaxStorageCharacters { get; set; } = 1024 * 1024;
     /// <summary>Maximum distinct module sources retained per session, including inline roots and failed loads.</summary>
     public int MaxModuleCount { get; set; } = 1024;
+    /// <summary>Maximum cross-document loads and reloads admitted over the session lifetime.</summary>
+    public int MaxNavigations { get; set; } = 128;
     /// <summary>Maximum retained same-document history entries, including the first and current entries.</summary>
     public int MaxHistoryEntries { get; set; } = 128;
     /// <summary>Maximum estimated serialized bytes in one history state graph.</summary>
@@ -47,12 +51,14 @@ public sealed class HtmlScriptRequest {
 
     internal HtmlScriptRequest Snapshot() {
         if (Html == null || Scripts == null || ReadyExpression == null) throw new ArgumentException("HTML, scripts and readiness are required.");
+        if (!Enum.IsDefined(Profile)) throw new ArgumentOutOfRangeException(nameof(Profile));
         if (Timeout <= TimeSpan.Zero || Timeout > TimeSpan.FromMinutes(5)) throw new ArgumentOutOfRangeException(nameof(Timeout));
         if (SessionTimeout <= TimeSpan.Zero || SessionTimeout > TimeSpan.FromHours(1)) throw new ArgumentOutOfRangeException(nameof(SessionTimeout));
         if (PollInterval < TimeSpan.FromMilliseconds(1) || PollInterval > Timeout) throw new ArgumentOutOfRangeException(nameof(PollInterval));
         if (MaxInputCharacters <= 0 || MaxOutputCharacters <= 0 || MaxNodes <= 0 || MaxDepth <= 0 || MaxPendingPromiseRejections <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputCharacters), "Resource limits must be positive.");
         if (MaxStorageCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxStorageCharacters));
         if (MaxModuleCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxModuleCount));
+        if (MaxNavigations <= 0) throw new ArgumentOutOfRangeException(nameof(MaxNavigations));
         if (MaxHistoryEntries < 2) throw new ArgumentOutOfRangeException(nameof(MaxHistoryEntries));
         if (MaxPendingHistoryTasks <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPendingHistoryTasks));
         if (MaxHistoryStateBytes <= 0 || MaxHistoryTotalStateBytes < MaxHistoryStateBytes) throw new ArgumentOutOfRangeException(nameof(MaxHistoryStateBytes));
@@ -75,11 +81,11 @@ public sealed class HtmlScriptRequest {
             if (resource.Length > policy.MaxResourceBytes || (resourceBytes += resource.Length) > policy.MaxTotalBytes)
                 throw new ArgumentException("Supplied resource bytes exceed their budget.");
         }
-        return new HtmlScriptRequest { Html = Html, Scripts = scripts, ReadyExpression = ReadyExpression, Timeout = Timeout,
+        return new HtmlScriptRequest { Profile = Profile, Html = Html, Scripts = scripts, ReadyExpression = ReadyExpression, Timeout = Timeout,
             DocumentUrl = DocumentUrl, Resources = resources, ResourcePolicy = policy,
             SessionTimeout = SessionTimeout, PollInterval = PollInterval, MaxInputCharacters = MaxInputCharacters, MaxOutputCharacters = MaxOutputCharacters,
             MaxNodes = MaxNodes, MaxDepth = MaxDepth, MaxPendingPromiseRejections = MaxPendingPromiseRejections,
-            MaxStorageCharacters = MaxStorageCharacters, MaxModuleCount = MaxModuleCount,
+            MaxStorageCharacters = MaxStorageCharacters, MaxModuleCount = MaxModuleCount, MaxNavigations = MaxNavigations,
             MaxHistoryEntries = MaxHistoryEntries, MaxHistoryStateBytes = MaxHistoryStateBytes, MaxHistoryTotalStateBytes = MaxHistoryTotalStateBytes, MaxPendingHistoryTasks = MaxPendingHistoryTasks };
     }
 }
