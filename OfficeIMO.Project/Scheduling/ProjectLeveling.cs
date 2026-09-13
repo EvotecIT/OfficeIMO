@@ -63,6 +63,10 @@ public sealed class ProjectLevelingResult {
 }
 
 internal static class ProjectLeveler {
+    internal static bool IsRepresentableDelay(ProjectTaskSchedule task) {
+        long delay = task.ForwardAnchor.Ticks - task.BeforeLevelingAnchor.Ticks;
+        return delay >= 0 && delay % (TimeSpan.TicksPerMinute / 10) == 0;
+    }
     internal static ProjectLevelingResult Calculate(ProjectDocument document, ProjectLevelingOptions options, CancellationToken token) {
         var initial = document.CalculateSchedule(options.ScheduleOptions, token);
         var current = initial; ProjectResourceAllocationResult? capacity = null;
@@ -82,6 +86,13 @@ internal static class ProjectLeveler {
                 DateTime? original = originalRemainingStarts[assignment.AssignmentUid];
                 if (start.HasValue && (!original.HasValue || start > original)
                     && (start.Value - originals[assignment.TaskUid].Start).TotalDays > options.MaxDelayDays) return false;
+            }
+            return true;
+        }
+        static bool HasRepresentableDelays(ProjectScheduleResult proposal, IEnumerable<int> movedTaskUids) {
+            foreach (int taskUid in movedTaskUids) {
+                var task = proposal.Tasks.Single(t => t.TaskUid == taskUid);
+                if (!IsRepresentableDelay(task)) return false;
             }
             return true;
         }
@@ -105,7 +116,7 @@ internal static class ProjectLeveler {
                 .Where(t => t.IsManual != true && (t.Priority ?? 500) < 1000 && t.ConstraintType != ProjectConstraintType.AsLateAsPossible)
                 .OrderBy(t => options.UseTaskPriority ? t.Priority ?? 500 : 0).ThenByDescending(t => t.Uid).ToArray();
             if (candidates.Length == 0) return Result("The resource conflict involves only recorded actuals, manual tasks, late-scheduled tasks, or tasks with priority 1000.");
-            bool moved = false;
+            bool moved = false, rejectedPrecision = false;
             foreach (var task in candidates) {
                 var taskAssignments = current.Assignments.Where(a => a.TaskUid == task.Uid).ToArray();
                 if (options.AllowSplitting && task.LevelingCanSplit != false &&
@@ -116,7 +127,7 @@ internal static class ProjectLeveler {
                     ranges.Add(new ProjectWorkingRange(conflict.Start, conflict.Finish));
                     var nextSplits = new Dictionary<int, IReadOnlyList<ProjectWorkingRange>>(splits) { [task.Uid] = ProjectCalendarMath.Merge(ranges) };
                     var splitSchedule = new ProjectScheduler(document, options.ScheduleOptions, token, anchors, splits: nextSplits).Calculate();
-                    if (!splitSchedule.Report.HasErrors && WithinDelayLimits(splitSchedule) &&
+                    if (!splitSchedule.Report.HasErrors && WithinDelayLimits(splitSchedule) && HasRepresentableDelays(splitSchedule, anchors.Keys) &&
                         splitSchedule.Tasks.Single(t => t.TaskUid == task.Uid).Finish <= originals[task.Uid].Finish.AddDays(options.MaxDelayDays) &&
                         (!options.WithinAvailableSlack || splitSchedule.Tasks.All(t => t.IsSummary || t.Finish <= originals[t.TaskUid].LateFinish))) {
                         current = splitSchedule; splits = nextSplits; moved = true; break;
@@ -128,10 +139,13 @@ internal static class ProjectLeveler {
                 var nextAnchors = new Dictionary<int, DateTime>(anchors) { [task.Uid] = anchor };
                 var next = new ProjectScheduler(document, options.ScheduleOptions, token, nextAnchors, splits: splits).Calculate();
                 if (next.Report.HasErrors || !WithinDelayLimits(next)) continue;
+                if (!HasRepresentableDelays(next, nextAnchors.Keys)) { rejectedPrecision = true; continue; }
                 if (options.WithinAvailableSlack && next.Tasks.Any(t => !t.IsSummary && t.Finish > originals[t.TaskUid].LateFinish)) continue;
                 current = next; anchors = nextAnchors; moved = true; break;
             }
-            if (!moved) return Result("No permitted task move resolves the current conflict within constraints, delay limits, and the selected slack policy.");
+            if (!moved) return Result(rejectedPrecision
+                ? "The resource conflict requires a leveling delay that cannot be represented in whole tenths of a minute."
+                : "No permitted task move resolves the current conflict within constraints, delay limits, and the selected slack policy.");
         }
         throw new InvalidOperationException("Unreachable leveling state.");
     }

@@ -88,6 +88,23 @@ public sealed class ProjectLevelingTests {
         string xml = "<Project xmlns=\"http://schemas.microsoft.com/project\"><Tasks><Task><UID>1</UID><LevelingDelay>60</LevelingDelay></Task></Tasks></Project>";
         Assert.Throws<InvalidDataException>(() => ProjectDocument.Parse(xml));
     }
+    [Fact]
+    public void CalculationRejectsAConflictAnchorThatApplyCannotRepresent() {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
+        var resource = document.Resources.AddWork("Engineer");
+        var locked = document.Tasks.Add("Manual reservation"); locked.IsManual = true; locked.Start = Monday; locked.Finish = Monday.AddSeconds(1);
+        document.Assignments.Add(locked, resource, ProjectUnits.Fraction(1));
+        var movable = document.Tasks.Add("Movable work"); movable.Duration = ProjectDuration.WorkingHours(1);
+        document.Assignments.Add(movable, resource, ProjectUnits.Fraction(1));
+        long revision = document.Revision;
+
+        var result = document.CalculateLeveling();
+
+        var diagnostic = Assert.Single(result.Report.Diagnostics, d => d.Code == "PROJECT_LEVELING_INCOMPLETE");
+        Assert.Contains("whole tenths of a minute", diagnostic.Message);
+        Assert.Throws<InvalidDataException>(() => document.ApplyLeveling(result));
+        Assert.Equal(revision, document.Revision);
+    }
     private static readonly DateTime Monday = new DateTime(2026, 10, 5, 8, 0, 0);
     private static ProjectDocument Example() {
         var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;

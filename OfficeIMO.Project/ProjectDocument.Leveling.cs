@@ -22,8 +22,8 @@ public sealed partial class ProjectDocument {
         foreach (var move in result.Moves) {
             cancellationToken.ThrowIfCancellationRequested(); var task = Tasks.GetByUid(move.TaskUid);
             var scheduled = result.Schedule.Tasks.Single(t => t.TaskUid == move.TaskUid);
+            if (!ProjectLeveler.IsRepresentableDelay(scheduled)) throw new InvalidOperationException("The proposed leveling delay cannot be represented in whole tenths of a minute.");
             decimal delay = (scheduled.ForwardAnchor.Ticks - scheduled.BeforeLevelingAnchor.Ticks) / (decimal)TimeSpan.TicksPerMinute;
-            if (delay < 0 || delay * 10m % 1m != 0) throw new InvalidOperationException("The proposed leveling delay cannot be represented in whole tenths of a minute.");
             updates.Add((task, new ProjectDuration(delay, ProjectDurationUnit.Minute, elapsed: true)));
         }
         ApplyScheduleCore(result.Schedule, cancellationToken, () => {
