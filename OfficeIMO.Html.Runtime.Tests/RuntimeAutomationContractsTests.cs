@@ -9,6 +9,32 @@ public sealed class RuntimeAutomationContractsTests {
         Path.Combine(AppContext.BaseDirectory, "RuntimeWorker", "OfficeIMO.Html.Runtime.Worker.dll"), AngleSharpDomServices.Instance);
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(65)]
+    public async Task InvalidStylesheetImportDepthIsRejectedBeforeWorkerStartup(int depth) {
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => Runtime().OpenTrustedAsync(new() {
+            MaxStylesheetImportDepth = depth
+        }));
+    }
+
+    [Fact]
+    public void AutomationActionNumericContractRemainsStable() {
+        Assert.Equal(0, (int)HtmlAutomationAction.Inspect);
+        Assert.Equal(1, (int)HtmlAutomationAction.Count);
+        Assert.Equal(2, (int)HtmlAutomationAction.Click);
+        Assert.Equal(3, (int)HtmlAutomationAction.Hover);
+        Assert.Equal(4, (int)HtmlAutomationAction.Press);
+        Assert.Equal(5, (int)HtmlAutomationAction.Fill);
+        Assert.Equal(6, (int)HtmlAutomationAction.SetChecked);
+        Assert.Equal(7, (int)HtmlAutomationAction.SelectOptions);
+        Assert.Equal(8, (int)HtmlAutomationAction.Focus);
+        Assert.Equal(9, (int)HtmlAutomationAction.Blur);
+        Assert.Equal(10, (int)HtmlAutomationAction.ScrollIntoView);
+        Assert.Equal(11, (int)HtmlAutomationAction.Wait);
+        Assert.Equal(12, (int)HtmlAutomationAction.SetSelection);
+    }
+
+    [Theory]
     [InlineData("Total cost")]
     [InlineData("Total\u00a0cost")]
     public async Task NameQueryNormalizesNonbreakingSpacesOnBothOperands(string query) {
@@ -71,6 +97,9 @@ public sealed class RuntimeAutomationContractsTests {
         await using var session = await Runtime().OpenTrustedAsync(new() { Html = "<button>Go</button>", MaxInputCharacters = 256 });
         await Assert.ThrowsAsync<ArgumentException>(() => session.Locator("button").FillAsync(new string('x', 256)));
         await Assert.ThrowsAsync<ArgumentException>(() => session.AutomateAsync(new() { Query = HtmlLocatorQuery.Css("button"), Action = HtmlAutomationAction.SetChecked }));
+        await Assert.ThrowsAsync<ArgumentException>(() => session.AutomateAsync(new() { Query = HtmlLocatorQuery.Css("button"), Modifiers = HtmlKeyboardModifiers.Shift }));
+        await Assert.ThrowsAsync<ArgumentException>(() => session.AutomateAsync(new() { Query = HtmlLocatorQuery.Css("button"), SelectionStart = 0 }));
+        await Assert.ThrowsAsync<ArgumentException>(() => session.AutomateAsync(new() { Query = HtmlLocatorQuery.Css("button"), Action = HtmlAutomationAction.SetSelection, SelectionStart = -1, SelectionEnd = 0 }));
         Assert.Equal(1, await session.Locator("button").CountAsync());
         await session.ExecuteAsync("document.querySelector('button').onclick=()=>{throw new Error('action failure')}");
         var failure = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => session.Locator("button").ClickAsync());
@@ -102,6 +131,20 @@ public sealed class RuntimeAutomationContractsTests {
         Assert.Equal(0, (await session.EvaluateAsync("clicks")).GetInt32());
         Assert.Equal(HtmlAutomationStatus.Rejected, (await Assert.ThrowsAsync<HtmlAutomationException>(() => session.Locator("input").FillAsync("Wrong"))).Result.Status);
         Assert.Equal("Original", (await session.Locator("input").InspectAsync()).Value);
+    }
+
+    [Fact]
+    public async Task SelectionRejectsAControlTypeChangedByFocusHandlers() {
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1,
+            Html = "<input value='Original'>",
+            Scripts = new[] { "document.querySelector('input').onfocus=e=>e.target.type='checkbox'" }
+        });
+
+        var failure = await Assert.ThrowsAsync<HtmlAutomationException>(() => session.Locator("input").SetSelectionAsync(0, 1));
+
+        Assert.Equal(HtmlAutomationStatus.Rejected, failure.Result.Status);
+        Assert.Null((await session.Locator("input").InspectAsync()).SelectionStart);
     }
 
     [Fact]

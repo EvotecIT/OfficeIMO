@@ -35,6 +35,8 @@ The local changes have these responsibilities:
   blocking styles without waiting for unrelated async scripts.
 - `EventNames` uses the standard `readystatechange` name, and `Event` includes
   the active document's window in capture/bubble paths except for load events.
+- `ModifierExtensions` reads the explicit DOM modifier token list so the runtime's
+  typed keyboard contract exposes Alt, Control, Meta and Shift consistently.
 
 `IMutationMicrotaskScheduler`, `IDomMutationListener` and `IDomSynchronization` are narrow integration
 hooks outside the retained source directory. Scheduling, script error handling,

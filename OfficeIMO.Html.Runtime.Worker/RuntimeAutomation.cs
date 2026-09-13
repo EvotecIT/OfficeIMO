@@ -26,7 +26,7 @@ internal sealed partial class RuntimeAutomation {
     internal RuntimeViewport Viewport => _viewport;
 
     internal HtmlAutomationResult Run(HtmlAutomationRequest request, CancellationToken token) {
-        if (!_viewport.Enabled && (request.Action is HtmlAutomationAction.Hover or HtmlAutomationAction.Press or HtmlAutomationAction.ScrollIntoView
+        if (!_viewport.Enabled && (request.Action is HtmlAutomationAction.Hover or HtmlAutomationAction.Press or HtmlAutomationAction.SetSelection or HtmlAutomationAction.ScrollIntoView
             || request.Action == HtmlAutomationAction.Wait && request.WaitState is HtmlLocatorWaitState.Visible or HtmlLocatorWaitState.Hidden or HtmlLocatorWaitState.InViewport))
             return Failure(HtmlAutomationStatus.Unsupported, "Layout and input operations require WebApplicationV1.");
         IReadOnlyList<IElement> matches;
@@ -74,18 +74,24 @@ internal sealed partial class RuntimeAutomation {
             if (!layout.IsVisible) return Failure(HtmlAutomationStatus.NotReady, "The element has no visible layout box.", 1, inspected);
             if (request.Action is (HtmlAutomationAction.Click or HtmlAutomationAction.SetChecked or HtmlAutomationAction.Hover) && !layout.AcceptsPointerEvents)
                 return Failure(HtmlAutomationStatus.NotReady, "The element does not accept pointer events.", 1, inspected);
+            if (request.Action is (HtmlAutomationAction.Click or HtmlAutomationAction.SetChecked or HtmlAutomationAction.Hover) && !layout.ReceivesPointerAtCenter)
+                return Failure(HtmlAutomationStatus.NotReady, "Another element covers the target's interaction point.", 1, inspected);
             if (!layout.IsInViewport) layout = _viewport.ScrollIntoView(element, token);
+            if (request.Action is (HtmlAutomationAction.Click or HtmlAutomationAction.SetChecked or HtmlAutomationAction.Hover)
+                && !layout.ReceivesPointerAtCenter)
+                return Failure(HtmlAutomationStatus.NotReady, "Another element covers the target's interaction point, or scrolled sticky positioning is unqualified.", 1, Inspect(element, layout));
         }
         return request.Action switch {
             HtmlAutomationAction.Focus => RuntimeFocusController.CanFocus(element)
                 ? _focus.Focus(element) ? Success(element) : Failure(HtmlAutomationStatus.Rejected, "Page handlers redirected focus.", 1, Inspect(element))
                 : Failure(HtmlAutomationStatus.Unsupported, "This element is not focusable.", 1, Inspect(element)),
             HtmlAutomationAction.Fill => Fill(element, request.Value!),
+            HtmlAutomationAction.SetSelection => SetSelection(element, request.SelectionStart!.Value, request.SelectionEnd!.Value),
             HtmlAutomationAction.SelectOptions => Select(element, request.Values),
             HtmlAutomationAction.SetChecked => SetChecked(element, request.Checked!.Value, layout),
             HtmlAutomationAction.Click => _viewport.Enabled ? PointerClick(element, layout) : Activate(element, focusTarget: true),
             HtmlAutomationAction.Hover => _viewport.Enabled ? Hover(element, layout) : Failure(HtmlAutomationStatus.Unsupported, "Hover requires WebApplicationV1.", 1, inspected),
-            HtmlAutomationAction.Press => _viewport.Enabled ? Press(element, request.Value!) : Failure(HtmlAutomationStatus.Unsupported, "Press requires WebApplicationV1.", 1, inspected),
+            HtmlAutomationAction.Press => _viewport.Enabled ? Press(element, request.Value!, request.Modifiers) : Failure(HtmlAutomationStatus.Unsupported, "Press requires WebApplicationV1.", 1, inspected),
             _ => Failure(HtmlAutomationStatus.Unsupported, "Unsupported automation operation.", 1)
         };
     }
@@ -97,6 +103,7 @@ internal sealed partial class RuntimeAutomation {
         ElementName = element.LocalName, Id = element.Id ?? string.Empty,
         AccessibleName = RuntimeLocatorResolver.AccessibleName(element),
         Text = RuntimeLocatorResolver.Normalize(element.TextContent), Value = RuntimeFocusController.Value(element),
+        SelectionStart = SelectionStart(element), SelectionEnd = SelectionEnd(element),
         SelectedValues = element is IHtmlSelectElement select ? Array.AsReadOnly(select.Options.Where(option => option.IsSelected).Select(option => option.Value).ToArray()) : Array.Empty<string>(),
         IsChecked = element is IHtmlInputElement check && check.Type is "checkbox" or "radio" ? check.IsChecked : null,
         IsIndeterminate = element is IHtmlInputElement mixed && mixed.Type == "checkbox" && mixed.IsIndeterminate,
@@ -105,6 +112,7 @@ internal sealed partial class RuntimeAutomation {
         IsVisible = _viewport.Enabled ? layout.IsVisible : null,
         IsInViewport = _viewport.Enabled && layout.IsVisible ? layout.IsInViewport : null,
         AcceptsPointerEvents = _viewport.Enabled ? layout.AcceptsPointerEvents : null,
+        ReceivesPointerAtCenter = _viewport.Enabled ? layout.ReceivesPointerAtCenter : null,
         BoundingBox = layout.Box,
         ScrollX = layout.ScrollX,
         ScrollY = layout.ScrollY
@@ -124,6 +132,7 @@ internal sealed partial class RuntimeAutomation {
             input.Value = input.Type is "email" or "url" ? normalized.Trim(' ', '\t', '\f') : normalized;
         }
         else ((IHtmlTextAreaElement)element).Value = value;
+        CollapseSelectionAtEnd(element);
         element.Dispatch(new InputEvent("input", true, false, value));
         return Success(element);
     }
@@ -166,7 +175,8 @@ internal sealed partial class RuntimeAutomation {
             : Failure(HtmlAutomationStatus.Rejected, "The page prevented the requested checked state.", 1, Inspect(element));
     }
 
-    internal HtmlAutomationResult Activate(IElement element, bool focusTarget, RuntimeElementLayout? pointerLayout = null) {
+    internal HtmlAutomationResult Activate(IElement element, bool focusTarget, RuntimeElementLayout? pointerLayout = null,
+        HtmlKeyboardModifiers modifiers = HtmlKeyboardModifiers.None) {
         if (element is not IHtmlElement) return Failure(HtmlAutomationStatus.Unsupported, "DOM activation requires an HTML element.", 1);
         if (RuntimeFocusController.Disabled(element)) return Failure(HtmlAutomationStatus.NotReady, "The element is disabled.", 1, Inspect(element));
         if (focusTarget && RuntimeFocusController.CanFocus(element) && !_focus.Focus(element))
@@ -196,7 +206,12 @@ internal sealed partial class RuntimeAutomation {
         int y = (int)Math.Round((pointerLayout?.Box?.Y ?? 0D) + (pointerLayout?.Box?.Height ?? 0D) / 2D);
         var click = new MouseEvent();
         click.Init("click", true, true, _document.DefaultView, pointerLayout == null && !focusTarget ? 0 : 1,
-            x, y, x, y, false, false, false, false, MouseButton.Primary, null);
+            x, y, x, y,
+            modifiers.HasFlag(HtmlKeyboardModifiers.Control),
+            modifiers.HasFlag(HtmlKeyboardModifiers.Alt),
+            modifiers.HasFlag(HtmlKeyboardModifiers.Shift),
+            modifiers.HasFlag(HtmlKeyboardModifiers.Meta),
+            MouseButton.Primary, null);
         element.Dispatch(click);
         if (click.IsDefaultPrevented) {
             foreach (var pair in saved) pair.Key.IsChecked = pair.Value;

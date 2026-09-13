@@ -112,15 +112,22 @@ Use `AutomateAsync` to receive that result directly or set `WaitForReady = false
 Script failures and cancellation after command admission still terminate the worker.
 
 Under `WebApplicationV1`, locator actions measure the current DOM through the owned
-static CSS/layout engine, including active, non-alternate directly loaded external stylesheets. They reject
-missing layout boxes and `pointer-events:none` where pointer input is required, and
-scroll offscreen targets into the configured viewport. `InspectAsync` reports the
-box, scroll offsets, visibility, viewport intersection and pointer eligibility.
+static CSS/layout engine. Active inline and external stylesheets are copied from
+their live CSSOM state into an isolated measurement clone; loaded `@import` graphs
+are expanded through the runtime resource boundary up to
+`MaxStylesheetImportDepth`, which defaults to 16. Actions reject missing layout
+boxes, `pointer-events:none`, and pointer targets whose measured center is covered
+by a later painted element. They scroll offscreen targets into the configured
+viewport. `InspectAsync` reports the box, scroll offsets, visibility, viewport
+intersection, pointer eligibility, and whether the target receives a center hit.
 `scrollTo`, `scrollBy`, `scrollIntoView` and `getBoundingClientRect` use the same
-viewport from script. Layout is recomputed for every observation or action so DOM
-and style-attribute mutations are visible. CSSOM-only stylesheet mutations,
-stylesheet imports, occlusion/topmost hit testing, transforms and layout stability
-waiting remain outside the qualified actionability model.
+viewport from script. Layout is recomputed for every observation or action so DOM,
+style-attribute, stylesheet-disabled and CSSOM rule mutations are visible.
+Transforms, non-center hit-point selection, complex clipping and layout-stability
+waiting remain outside the qualified actionability model. Because the static
+renderer preserves sticky elements at their stable document position, pointer
+actions are conservatively ineligible after scrolling while an active
+`position:sticky` element exists.
 
 `HoverAsync` sends target pointer/mouse enter, over and move events. `ClickAsync`
 adds primary pointer/mouse down and up before the shared click/default owner, using
@@ -128,16 +135,25 @@ the measured center coordinates. These named pointer events are mouse-compatible
 events; the `PointerEvent` constructor, pointer IDs, pointer capture, multiple
 pointers and device-specific pressure are not provided. Preventing pointer down
 suppresses compatibility mouse down/up, and preventing mouse down suppresses focus.
-There is no occlusion-based retargeting.
+Covered centers are rejected rather than retargeted to another locator.
 
 `PressAsync` sends `keydown` and `keyup`. It accepts one text element plus `Enter`,
 `Space`, `Tab`, `Escape`, `Backspace`, `Delete`, `Home`, `End` and the four arrow
-keys. Text is inserted at the end of supported controls, Backspace removes the last
-text element, Tab advances through the selected tab order, Space activates selected
+keys. `PressWithModifiersAsync` accepts `HtmlKeyboardModifiers` and exposes Alt,
+Control, Meta and Shift on keyboard events and the resulting keyboard activation click. Shift+Tab
+moves backward through the selected tab order, and Control+A or Meta+A selects the
+complete editable value. Other Control, Meta or Alt combinations dispatch their
+events without inventing browser or operating-system shortcuts.
+
+`SetSelectionAsync` sets a text input or textarea range by UTF-16 offsets, and
+`InspectAsync` reports its current start and end. Text and textarea Enter replace
+the current selection; Backspace and Delete remove the selection or one adjacent
+Unicode text element. Home, End and horizontal arrows move or, with Shift, extend
+the caret selection. Fill leaves the caret at the end. Space activates selected
 controls after `keyup`, Enter activates its selected controls after `keydown`, and
-Enter performs selected implicit form submission. Preventing
-`keydown` suppresses the default. Modifiers, reverse Tab, selection/caret editing,
-IME/composition, clipboard input and legacy `keypress` behavior remain unqualified.
+Enter performs selected implicit form submission. Preventing `keydown` suppresses
+the default. Vertical caret motion, IME/composition, clipboard input, multi-key
+pressed-state sequences and legacy `keypress` behavior remain unqualified.
 
 Clicks dispatch checkbox/radio activation, anchor navigation and form defaults.
 `WebApplicationV1` supports cancelable reset and submit events with the initiating
@@ -377,9 +393,10 @@ mutation delivery and independent captures converted to Markdown and searchable
 PDF. Navigation fixtures prove fresh realms, reload, cross-origin storage partitioning,
 structured history and viewport restoration, redirects, locator rebinding and
 cumulative limits. Form fixtures cover reset, GET submission, page cancellation and
-unload decisions. Layout/input fixtures cover computed and external CSS, dynamic
-style changes, geometry, scrolling, primary pointer sequences, keyboard editing,
-focus traversal and keyboard-driven form navigation.
+unload decisions. Layout/input fixtures cover computed CSS, live CSSOM rules,
+bounded external imports, dynamic style changes, geometry, scrolling, center-hit
+occlusion, primary pointer sequences, keyboard editing, focus traversal and
+keyboard-driven form navigation.
 These paths do not establish general Preact or browser compatibility. An observer-driven module report additionally proves
 JSON loading, combined mutation/promise ordering, typed updates and captures that
 convert after session disposal. The report module loads from the head and awaits

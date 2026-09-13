@@ -22,7 +22,8 @@ public sealed class RuntimeLayoutAutomationTests {
         foreach (HtmlAutomationRequest request in new[] {
             new HtmlAutomationRequest { Query = HtmlLocatorQuery.Css("button"), Action = HtmlAutomationAction.ScrollIntoView, WaitForReady = false },
             new HtmlAutomationRequest { Query = HtmlLocatorQuery.Css("button"), Action = HtmlAutomationAction.Wait, WaitState = HtmlLocatorWaitState.Visible, WaitForReady = false },
-            new HtmlAutomationRequest { Query = HtmlLocatorQuery.Css("button"), Action = HtmlAutomationAction.Press, Value = "Enter", WaitForReady = false }
+            new HtmlAutomationRequest { Query = HtmlLocatorQuery.Css("button"), Action = HtmlAutomationAction.Press, Value = "Enter", WaitForReady = false },
+            new HtmlAutomationRequest { Query = HtmlLocatorQuery.Css("button"), Action = HtmlAutomationAction.SetSelection, SelectionStart = 0, SelectionEnd = 0, WaitForReady = false }
         }) {
             Assert.Equal(HtmlAutomationStatus.Unsupported, (await session.AutomateAsync(request)).Status);
         }
@@ -145,6 +146,82 @@ public sealed class RuntimeLayoutAutomationTests {
     }
 
     [Fact]
+    public async Task ExternalStylesheetImportsParticipateWithinTheConfiguredDepth() {
+        var root = new Uri("https://layout.example/app.css");
+        var nested = new Uri("https://layout.example/nested.css");
+        var deepest = new Uri("https://layout.example/deepest.css");
+        var request = Application("<link rel='stylesheet' href='app.css'><button id='target'>Target</button>");
+        request.MaxStylesheetImportDepth = 1;
+        request.Resources = new[] {
+            HtmlRuntimeResource.FromText(root, "@import url('nested.css');body{margin:0}", "text/css; charset=utf-8"),
+            HtmlRuntimeResource.FromText(nested, "@import url('deepest.css');#target{width:90px;height:35px}", "text/css; charset=utf-8"),
+            HtmlRuntimeResource.FromText(deepest, "#target{display:none}", "text/css; charset=utf-8")
+        };
+        await using var shallow = await Runtime().OpenTrustedAsync(request);
+        Assert.True((await shallow.Locator("#target").InspectAsync()).IsVisible);
+
+        request.MaxStylesheetImportDepth = 2;
+        await using var deep = await Runtime().OpenTrustedAsync(request);
+        Assert.False((await deep.Locator("#target").InspectAsync()).IsVisible);
+    }
+
+    [Fact]
+    public async Task ImportedStylesheetCssomMutationsDriveInteractionLayout() {
+        var root = new Uri("https://layout.example/app.css");
+        var nested = new Uri("https://layout.example/nested.css");
+        var request = Application("<link rel='stylesheet' href='app.css'><button id='target'>Target</button>");
+        request.Resources = new[] {
+            HtmlRuntimeResource.FromText(root, "@import url('nested.css');body{margin:0}", "text/css; charset=utf-8"),
+            HtmlRuntimeResource.FromText(nested, "#target{width:90px;height:35px}", "text/css; charset=utf-8")
+        };
+        await using var session = await Runtime().OpenTrustedAsync(request);
+        var target = session.Locator("#target");
+        Assert.True((await target.InspectAsync()).IsVisible);
+
+        await session.ExecuteAsync("const imported=document.styleSheets[0].cssRules[0].styleSheet;imported.insertRule('#target{display:none}',imported.cssRules.length)");
+
+        Assert.False((await target.InspectAsync()).IsVisible);
+
+        await session.ExecuteAsync("document.styleSheets[0].cssRules[0].styleSheet.disabled=true");
+        Assert.True((await target.InspectAsync()).IsVisible);
+    }
+
+    [Fact]
+    public async Task DuplicateImportInstancesRetainIndependentDisabledState() {
+        var shared = new Uri("https://layout.example/shared.css");
+        var request = Application("<style>@import url('shared.css');@import url('shared.css');</style><button id='target'>Target</button>");
+        request.Resources = new[] {
+            HtmlRuntimeResource.FromText(shared, "#target{display:none}", "text/css; charset=utf-8")
+        };
+        await using var session = await Runtime().OpenTrustedAsync(request);
+        var target = session.Locator("#target");
+        Assert.False((await target.InspectAsync()).IsVisible);
+
+        await session.ExecuteAsync("document.styleSheets[0].cssRules[1].styleSheet.disabled=true");
+        Assert.False((await target.InspectAsync()).IsVisible);
+
+        await session.ExecuteAsync("document.styleSheets[0].cssRules[0].styleSheet.disabled=true");
+        Assert.True((await target.InspectAsync()).IsVisible);
+    }
+
+    [Fact]
+    public async Task LiveCssomRulesAndDisabledStateDriveInteractionLayout() {
+        await using var session = await Runtime().OpenTrustedAsync(Application(
+            "<style>body{margin:0}</style><button id='target'>Target</button>"));
+        var target = session.Locator("#target");
+        Assert.True((await target.InspectAsync()).IsVisible);
+
+        await session.ExecuteAsync("document.styleSheets[0].insertRule('#target{display:none}',1)");
+        Assert.False((await target.InspectAsync()).IsVisible);
+
+        await session.ExecuteAsync("document.styleSheets[0].deleteRule(1)");
+        Assert.True((await target.InspectAsync()).IsVisible);
+
+        await session.ExecuteAsync("document.styleSheets[0].insertRule('#target{display:none}',1);document.styleSheets[0].disabled=true");
+        Assert.True((await target.InspectAsync()).IsVisible);
+    }
+
+    [Fact]
     public async Task DisabledAndAlternateExternalStylesheetsStayInactiveForActionability() {
         var disabled = new Uri("https://layout.example/disabled.css");
         var alternate = new Uri("https://layout.example/alternate.css");
@@ -156,9 +233,96 @@ public sealed class RuntimeLayoutAutomationTests {
         await using var session = await Runtime().OpenTrustedAsync(request);
         await session.ExecuteAsync("document.querySelector('link').disabled=true");
 
+        var disabledState = await session.EvaluateAsync("(()=>{const link=document.querySelector('link');return {link:link.disabled,attribute:link.hasAttribute('disabled'),sheet:link.sheet&&link.sheet.disabled}})()");
+        Assert.True(disabledState.GetProperty("link").GetBoolean(), disabledState.ToString());
+
         HtmlRuntimeElementState target = await session.Locator("#target").InspectAsync();
 
         Assert.True(target.IsVisible);
         Assert.NotNull(target.BoundingBox);
+    }
+
+    [Fact]
+    public async Task TopmostPaintedElementGatesPointerActionsAtTheTargetCenter() {
+        const string html = """
+            <style>
+              body{margin:0}
+              #target,#cover{position:absolute;left:20px;top:20px;width:120px;height:40px}
+              #target{z-index:1}
+              #cover{z-index:2;background:#fff}
+            </style>
+            <button id='target' onclick='document.body.dataset.clicked="yes"'>Target</button>
+            <div id='cover'>Cover</div>
+            """;
+        await using var session = await Runtime().OpenTrustedAsync(Application(html));
+        var target = session.Locator("#target");
+
+        HtmlRuntimeElementState covered = await target.InspectAsync();
+        Assert.True(covered.AcceptsPointerEvents);
+        Assert.False(covered.ReceivesPointerAtCenter);
+        HtmlAutomationResult rejected = await session.AutomateAsync(new() {
+            Query = HtmlLocatorQuery.Css("#target"),
+            Action = HtmlAutomationAction.Click,
+            WaitForReady = false
+        });
+        Assert.Equal(HtmlAutomationStatus.NotReady, rejected.Status);
+        Assert.Equal(string.Empty, (await session.EvaluateAsync("document.body.dataset.clicked??''")).GetString());
+
+        await session.ExecuteAsync("document.querySelector('#cover').style.pointerEvents='none'");
+        Assert.True((await target.InspectAsync()).ReceivesPointerAtCenter);
+        await target.ClickAsync();
+        Assert.Equal("yes", (await session.EvaluateAsync("document.body.dataset.clicked")).GetString());
+    }
+
+    [Fact]
+    public async Task FixedOverlayGatesPointerActionsAfterAutomaticScrolling() {
+        const string html = """
+            <style>
+              body{margin:0}
+              #cover{position:fixed;inset:0;z-index:2;background:#fff}
+              #target{display:block;margin-top:700px;width:120px;height:40px}
+            </style>
+            <div id='cover'>Cover</div>
+            <button id='target' onpointermove='document.body.dataset.pointer="yes"' onclick='document.body.dataset.clicked="yes"'>Target</button>
+            """;
+        await using var session = await Runtime().OpenTrustedAsync(Application(html));
+        var target = session.Locator("#target");
+        Assert.False((await target.InspectAsync()).IsInViewport);
+
+        HtmlAutomationResult rejected = await session.AutomateAsync(new() {
+            Query = HtmlLocatorQuery.Css("#target"),
+            Action = HtmlAutomationAction.Click,
+            WaitForReady = false
+        });
+
+        Assert.Equal(HtmlAutomationStatus.NotReady, rejected.Status);
+        Assert.Equal("", (await session.EvaluateAsync("document.body.dataset.pointer??''")).GetString());
+        Assert.Equal("", (await session.EvaluateAsync("document.body.dataset.clicked??''")).GetString());
+    }
+
+    [Fact]
+    public async Task ScrolledStickyLayoutIsConservativelyIneligibleForPointerActions() {
+        const string html = """
+            <style>
+              body{margin:0}
+              #sticky{position:sticky;top:0;height:30px;background:#fff}
+              #target{display:block;margin-top:700px;width:120px;height:40px}
+            </style>
+            <div id='sticky'>Sticky</div>
+            <button id='target' onclick='document.body.dataset.clicked="yes"'>Target</button>
+            """;
+        await using var session = await Runtime().OpenTrustedAsync(Application(html));
+        await session.ExecuteAsync("scrollTo(0,700)");
+
+        HtmlRuntimeElementState target = await session.Locator("#target").InspectAsync();
+        HtmlAutomationResult rejected = await session.AutomateAsync(new() {
+            Query = HtmlLocatorQuery.Css("#target"),
+            Action = HtmlAutomationAction.Click,
+            WaitForReady = false
+        });
+
+        Assert.False(target.ReceivesPointerAtCenter);
+        Assert.Equal(HtmlAutomationStatus.NotReady, rejected.Status);
+        Assert.Equal("", (await session.EvaluateAsync("document.body.dataset.clicked??''")).GetString());
     }
 }

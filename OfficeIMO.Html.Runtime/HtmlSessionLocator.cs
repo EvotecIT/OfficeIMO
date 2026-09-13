@@ -20,6 +20,12 @@ public sealed class HtmlSessionLocator {
     public Task HoverAsync(CancellationToken cancellationToken = default) => Run(new() { Query = Query, Action = HtmlAutomationAction.Hover }, cancellationToken);
     /// <summary>Presses one selected key on the resolved WebApplicationV1 element.</summary>
     public Task PressAsync(string key, CancellationToken cancellationToken = default) => Run(new() { Query = Query, Action = HtmlAutomationAction.Press, Value = key }, cancellationToken);
+    /// <summary>Presses one selected key with explicit modifiers on the resolved WebApplicationV1 element.</summary>
+    public Task PressWithModifiersAsync(string key, HtmlKeyboardModifiers modifiers, CancellationToken cancellationToken = default) =>
+        Run(new() { Query = Query, Action = HtmlAutomationAction.Press, Value = key, Modifiers = modifiers }, cancellationToken);
+    /// <summary>Focuses an editable WebApplicationV1 text control and sets its UTF-16 selection range.</summary>
+    public Task SetSelectionAsync(int start, int end, CancellationToken cancellationToken = default) =>
+        Run(new() { Query = Query, Action = HtmlAutomationAction.SetSelection, SelectionStart = start, SelectionEnd = end }, cancellationToken);
     /// <summary>Focuses and replaces a text input or textarea value, dispatching beforeinput/input. A later blur commits change.</summary>
     public Task FillAsync(string value, CancellationToken cancellationToken = default) => Run(new() { Query = Query, Action = HtmlAutomationAction.Fill, Value = value }, cancellationToken);
     /// <summary>Activates a checkbox/radio to reach the requested state; a page cancellation is reported.</summary>

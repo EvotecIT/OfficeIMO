@@ -44,6 +44,10 @@ public sealed class HtmlRuntimeElementState {
     public string Text { get; init; } = string.Empty;
     /// <summary>Current input, textarea or select value; null for other elements.</summary>
     public string? Value { get; init; }
+    /// <summary>Current UTF-16 selection start for an editable text control; null for other elements.</summary>
+    public int? SelectionStart { get; init; }
+    /// <summary>Current UTF-16 selection end for an editable text control; null for other elements.</summary>
+    public int? SelectionEnd { get; init; }
     /// <summary>Current selected option values in document order.</summary>
     public IReadOnlyList<string> SelectedValues { get; init; } = Array.Empty<string>();
     /// <summary>Current checkbox/radio state; null for other elements.</summary>
@@ -68,6 +72,8 @@ public sealed class HtmlRuntimeElementState {
     public bool? IsInViewport { get; init; }
     /// <summary>Whether computed pointer-events permits pointer activation; null when layout is not enabled.</summary>
     public bool? AcceptsPointerEvents { get; init; }
+    /// <summary>Whether the element or one of its descendants is the topmost pointer target at its measured center; null when layout is not enabled.</summary>
+    public bool? ReceivesPointerAtCenter { get; init; }
     /// <summary>Current bounding box relative to the viewport, or null when the element has no qualified visible box.</summary>
     public HtmlRuntimeRect? BoundingBox { get; init; }
     /// <summary>Current horizontal document scroll offset in CSS pixels.</summary>

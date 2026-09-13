@@ -48,6 +48,8 @@ public sealed class HtmlScriptRequest {
     public int MaxHistoryTotalStateBytes { get; set; } = 8 * 1024 * 1024;
     /// <summary>Maximum queued history traversals and fragment-change notifications.</summary>
     public int MaxPendingHistoryTasks { get; set; } = 1024;
+    /// <summary>Maximum recursive stylesheet import depth used by WebApplicationV1 interaction layout.</summary>
+    public int MaxStylesheetImportDepth { get; set; } = 16;
     /// <summary>Layout viewport width in CSS pixels for WebApplicationV1 inspection and actionability.</summary>
     public double ViewportWidth { get; set; } = 1280D;
     /// <summary>Layout viewport height in CSS pixels for WebApplicationV1 inspection and actionability.</summary>
@@ -65,6 +67,7 @@ public sealed class HtmlScriptRequest {
         if (MaxNavigations <= 0) throw new ArgumentOutOfRangeException(nameof(MaxNavigations));
         if (MaxHistoryEntries < 2) throw new ArgumentOutOfRangeException(nameof(MaxHistoryEntries));
         if (MaxPendingHistoryTasks <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPendingHistoryTasks));
+        if (MaxStylesheetImportDepth <= 0 || MaxStylesheetImportDepth > 64) throw new ArgumentOutOfRangeException(nameof(MaxStylesheetImportDepth));
         if (MaxHistoryStateBytes <= 0 || MaxHistoryTotalStateBytes < MaxHistoryStateBytes) throw new ArgumentOutOfRangeException(nameof(MaxHistoryStateBytes));
         if (!double.IsFinite(ViewportWidth) || ViewportWidth <= 0D)
             throw new ArgumentOutOfRangeException(nameof(ViewportWidth), "Viewport width must be a finite positive value.");
@@ -95,6 +98,7 @@ public sealed class HtmlScriptRequest {
             MaxNodes = MaxNodes, MaxDepth = MaxDepth, MaxPendingPromiseRejections = MaxPendingPromiseRejections,
             MaxStorageCharacters = MaxStorageCharacters, MaxModuleCount = MaxModuleCount, MaxNavigations = MaxNavigations,
             MaxHistoryEntries = MaxHistoryEntries, MaxHistoryStateBytes = MaxHistoryStateBytes, MaxHistoryTotalStateBytes = MaxHistoryTotalStateBytes, MaxPendingHistoryTasks = MaxPendingHistoryTasks,
+            MaxStylesheetImportDepth = MaxStylesheetImportDepth,
             ViewportWidth = ViewportWidth, ViewportHeight = ViewportHeight };
     }
 }

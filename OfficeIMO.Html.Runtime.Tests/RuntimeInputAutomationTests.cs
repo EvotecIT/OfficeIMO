@@ -80,6 +80,79 @@ public sealed class RuntimeInputAutomationTests {
     }
 
     [Fact]
+    public async Task TypedModifiersDriveReverseTabSelectionAndEventState() {
+        const string html = """
+            <style>input,button{display:block;width:120px;height:32px}</style>
+            <input id='first' value='first'><input id='second' value='second'><button id='action'>Action</button>
+            <script>
+              window.keys=[];window.clickState='';
+              for(const input of document.querySelectorAll('input'))
+                input.addEventListener('keydown',e=>keys.push(`${input.id}:${e.key}:${e.altKey}:${e.ctrlKey}:${e.metaKey}:${e.shiftKey}`));
+              document.querySelector('#action').addEventListener('click',e=>clickState=`${e.ctrlKey}:${e.shiftKey}`);
+            </script>
+            """;
+        await using var session = await Runtime().OpenTrustedAsync(Application(html));
+        var second = session.Locator("#second");
+
+        await second.FocusAsync();
+        await second.PressWithModifiersAsync("Tab", HtmlKeyboardModifiers.Shift);
+        Assert.Equal("first", (await session.EvaluateAsync("document.activeElement.id")).GetString());
+
+        var first = session.Locator("#first");
+        await first.PressWithModifiersAsync("a", HtmlKeyboardModifiers.Control);
+        HtmlRuntimeElementState selected = await first.InspectAsync();
+        Assert.Equal(0, selected.SelectionStart);
+        Assert.Equal(5, selected.SelectionEnd);
+        await first.PressWithModifiersAsync("x", HtmlKeyboardModifiers.Control);
+        Assert.Equal("first", (await first.InspectAsync()).Value);
+
+        await session.Locator("#action").PressWithModifiersAsync("Space", HtmlKeyboardModifiers.Control | HtmlKeyboardModifiers.Shift);
+        var result = await session.EvaluateAsync("({keys:keys.join(','),clickState})");
+        Assert.Contains("second:Tab:false:false:false:true", result.GetProperty("keys").GetString());
+        Assert.Contains("first:a:false:true:false:false", result.GetProperty("keys").GetString());
+        Assert.Equal("true:true", result.GetProperty("clickState").GetString());
+    }
+
+    [Fact]
+    public async Task SelectionAndCaretEditingUseUnicodeTextElementBoundaries() {
+        const string html = """
+            <style>input{display:block;width:160px;height:32px}</style>
+            <input id='target' value='A😀éZ'>
+            """;
+        await using var session = await Runtime().OpenTrustedAsync(Application(html));
+        var target = session.Locator("#target");
+
+        await target.SetSelectionAsync(1, 3);
+        await target.PressAsync("B");
+        HtmlRuntimeElementState replaced = await target.InspectAsync();
+        Assert.Equal("ABéZ", replaced.Value);
+        Assert.Equal(2, replaced.SelectionStart);
+        Assert.Equal(2, replaced.SelectionEnd);
+
+        await target.PressWithModifiersAsync("ArrowRight", HtmlKeyboardModifiers.Shift);
+        HtmlRuntimeElementState selected = await target.InspectAsync();
+        Assert.Equal(2, selected.SelectionStart);
+        Assert.Equal(4, selected.SelectionEnd);
+
+        await target.PressAsync("Backspace");
+        await target.PressAsync("Delete");
+        HtmlRuntimeElementState edited = await target.InspectAsync();
+        Assert.Equal("AB", edited.Value);
+        Assert.Equal(2, edited.SelectionStart);
+        Assert.Equal(2, edited.SelectionEnd);
+
+        await target.FillAsync("😀");
+        await target.SetSelectionAsync(1, 1);
+        await target.PressAsync("Backspace");
+        Assert.Equal(string.Empty, (await target.InspectAsync()).Value);
+
+        await target.FillAsync("é");
+        await target.SetSelectionAsync(1, 1);
+        await target.PressAsync("Delete");
+        Assert.Equal(string.Empty, (await target.InspectAsync()).Value);
+    }
+
+    [Fact]
     public async Task PointerHandlersCannotActivateAStaleTarget() {
         const string html = """
             <style>button{display:block;width:120px;height:32px}</style>
