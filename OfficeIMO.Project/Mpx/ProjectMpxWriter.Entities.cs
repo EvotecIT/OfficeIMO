@@ -16,7 +16,7 @@ internal sealed partial class ProjectMpxWriter {
             used.Add(row);
             _resourceRows.Add(resource, row); Handle(path + "/DisplayId"); Handle(path + "/Uid");
             if (resource.Type == ProjectResourceType.Work) Handle(path + "/Type");
-            if (resource.IsNull == false) Handle(path + "/IsNull");
+            else if (!resource.Type.HasValue) Diagnostic("PROJECT_MPX_RESOURCE_DEFAULT", "MPX normalizes an absent resource type to work.", path + "/Type");
             var values = new Dictionary<int, string> { [40] = ProjectMpxValues.Text(row), [49] = ProjectMpxValues.Text(resource.Uid) };
             foreach (var field in ProjectMpxFields.Resources.Where(f => f.Id != 40)) { values[field.Id] = field.Write(resource); Handle(path + "/" + field.ModelKey); }
             if (resource.Calendar != null) { var calendar = resource.Calendar; values[48] = _calendarNames[_resourceCalendarOwners.ContainsKey(calendar) ? calendar.BaseCalendar! : calendar]; }
@@ -56,9 +56,6 @@ internal sealed partial class ProjectMpxWriter {
                 int represented = Math.Max(100, Math.Min(1000, (int)decimal.Round(task.Priority.Value / 100m, 0, MidpointRounding.AwayFromZero) * 100));
                 if (represented != task.Priority.Value) Diagnostic("PROJECT_MPX_PRIORITY", "MPX priority classes round this value to " + represented + ".", path + "/Priority");
             }
-            if (task.IsManual == false) Handle(path + "/IsManual");
-            if (task.IsActive == true) Handle(path + "/IsActive");
-            if (task.IsNull == false) Handle(path + "/IsNull");
             Baseline(task.Baselines, values, path, true); Custom(task.CustomFields, values, customs, path);
             if (incoming.TryGetValue(task, out var links)) {
                 var expressions = new List<string>();
@@ -68,7 +65,7 @@ internal sealed partial class ProjectMpxWriter {
                     HandleTree(key);
                     if (d.LagPercentIsElapsed || d.LagPercentIsEstimated)
                         Diagnostic("PROJECT_MPX_PERCENTAGE_LAG_FORMAT", "MPX output does not represent elapsed or estimated percentage lag; the relationship uses working percentage lag.", key + "/LagPercent");
-                    string type = d.Type switch { ProjectDependencyType.FinishToFinish => "FF", ProjectDependencyType.StartToStart => "SS", ProjectDependencyType.StartToFinish => "SF", _ => "FS" };
+                    string type = d.Type switch { ProjectDependencyType.FinishToFinish => "FF", ProjectDependencyType.StartToStart => "SS", ProjectDependencyType.StartToFinish => "SF", ProjectDependencyType.FinishToStart => "FS", _ => "" };
                     string lag = d.LagPercent.HasValue ? ProjectMpxValues.Text(d.LagPercent.Value) + "%" : ProjectMpxValues.Text(d.Lag);
                     if (lag.Length != 0 && lag[0] != '-') lag = "+" + lag;
                     expressions.Add(ProjectMpxValues.Text(d.Predecessor.Uid) + type + lag);

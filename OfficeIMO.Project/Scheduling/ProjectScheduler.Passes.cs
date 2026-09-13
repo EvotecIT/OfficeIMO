@@ -25,7 +25,11 @@ internal sealed partial class ProjectScheduler {
                 var date = task.ConstraintDate.Value;
                 switch (task.ConstraintType) {
                     case ProjectConstraintType.StartNoEarlierThan: start = Max(start, date); break;
-                    case ProjectConstraintType.FinishNoEarlierThan: start = Max(start, Add(node, date, -node.Minutes)); break;
+                    case ProjectConstraintType.FinishNoEarlierThan:
+                        DateTime finishBoundStart = Add(node, date, -node.Minutes);
+                        if (Add(node, finishBoundStart, node.Minutes) < date) finishBoundStart = Snap(node, date, false);
+                        start = Max(start, finishBoundStart);
+                        break;
                     case ProjectConstraintType.MustStartOn: start = date; break;
                     case ProjectConstraintType.MustFinishOn: start = Add(node, date, -node.Minutes); break;
                 }
@@ -68,7 +72,7 @@ internal sealed partial class ProjectScheduler {
             if (task.ConstraintDate.HasValue) {
                 var date = task.ConstraintDate.Value;
                 switch (task.ConstraintType) {
-                    case ProjectConstraintType.StartNoLaterThan: finish = Min(finish, Add(node, date, node.Minutes)); break;
+                    case ProjectConstraintType.StartNoLaterThan: finish = Min(finish, Add(node, Snap(node, date, false), node.Minutes)); break;
                     case ProjectConstraintType.FinishNoLaterThan: finish = Min(finish, date); break;
                     case ProjectConstraintType.MustStartOn: finish = Add(node, date, node.Minutes); break;
                     case ProjectConstraintType.MustFinishOn: finish = date; break;
@@ -81,8 +85,19 @@ internal sealed partial class ProjectScheduler {
                 node.LateStart = allocation.Start; node.LateFinish = allocation.Finish; node.Minutes = allocation.Duration;
                 node.LateAnchor = allocation.Start;
             }
-            if (task.ConstraintType == ProjectConstraintType.StartNoLaterThan && task.ConstraintDate.HasValue)
-                node.LateStart = Min(node.LateStart, task.ConstraintDate.Value);
+            if (task.ConstraintType == ProjectConstraintType.StartNoLaterThan && task.ConstraintDate.HasValue) {
+                DateTime bound = Snap(node, task.ConstraintDate.Value, false);
+                if (node.LateStart > bound) {
+                    if (node.Allocation == null) {
+                        node.LateAnchor = node.LateStart = bound;
+                        node.LateFinish = Add(node, bound, node.Minutes);
+                    } else {
+                        var allocation = node.Allocation.Build(bound, true);
+                        node.LateStart = allocation.Start; node.LateFinish = allocation.Finish; node.Minutes = allocation.Duration;
+                        node.LateAnchor = bound;
+                    }
+                }
+            }
         }
     }
     private void CheckFinalBounds() {
@@ -94,7 +109,7 @@ internal sealed partial class ProjectScheduler {
                     ProjectConstraintType.MustStartOn => node.Start != date,
                     ProjectConstraintType.MustFinishOn => node.Finish != date,
                     ProjectConstraintType.StartNoEarlierThan => node.Start < date,
-                    ProjectConstraintType.StartNoLaterThan => node.Start > date,
+                    ProjectConstraintType.StartNoLaterThan => node.Start > date && (node.Elapsed || node.Calendar.Between(date, node.Start) > 0),
                     ProjectConstraintType.FinishNoEarlierThan => node.Finish < date,
                     ProjectConstraintType.FinishNoLaterThan => node.Finish > date,
                     _ => false

@@ -50,6 +50,7 @@ internal static partial class ProjectMpxCodec {
         private readonly HashSet<int> _singletons = new HashSet<int>();
         internal Reader(ProjectLoadOptions options, CancellationToken token) {
             _options = options; _token = token; Document.ReadDiagnosticLimit = options.MaxDiagnostics;
+            Document.Settings.MinutesPerDay = null; Document.Settings.MinutesPerWeek = null; Document.Settings.DaysPerMonth = null;
             _values.OnLoss = message => Opaque(message);
         }
         private static string Get(string[] record, int index) => ProjectMpxValues.Get(record, index);
@@ -131,8 +132,9 @@ internal static partial class ProjectMpxCodec {
             _values.DefaultDurationUnit = Unit(1, 2); _values.DefaultWorkUnit = Unit(3, 1);
             if (Has(r, 2)) Document.Settings.DefaultTaskType = _values.Flag(r[2]) ? ProjectTaskType.FixedDuration : ProjectTaskType.FixedUnits;
             int Minutes(int index, int fallback) { decimal minutes = Has(r, index) ? checked(_values.Number(r[index]) * 60) : fallback; if (minutes <= 0 || minutes != decimal.Truncate(minutes)) throw new InvalidDataException("MPX working hours must represent positive whole minutes."); return checked((int)minutes); }
-            Document.Settings.MinutesPerDay = _values.MinutesPerDay = Minutes(4, 480);
-            Document.Settings.MinutesPerWeek = _values.MinutesPerWeek = Minutes(5, 2400);
+            _values.MinutesPerDay = Minutes(4, 480); _values.MinutesPerWeek = Minutes(5, 2400);
+            if (Has(r, 4)) Document.Settings.MinutesPerDay = _values.MinutesPerDay;
+            if (Has(r, 5)) Document.Settings.MinutesPerWeek = _values.MinutesPerWeek;
             // These settings have effects beyond their scalar values; do not pretend they were applied.
             if (r.Skip(6).Any(v => !ProjectMpxValues.Empty(v))) Opaque("Default rates, status propagation, and split settings have no typed mapping.");
         }

@@ -116,6 +116,39 @@ public sealed class ProjectSchedulingTests {
         Assert.Equal(-480, result.Tasks.Single(t => t.TaskUid == b.Uid).TotalSlackMinutes);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "PROJECT_DEADLINE_MISSED");
     }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BackwardStartNoLaterThanSnapsTheWholeTaskBeforeNonworkingTime(bool assignments) {
+        using var document = Standard(); document.Settings.ScheduleFromStart = false;
+        document.Settings.FinishDate = Monday.AddDays(14).AddHours(9);
+        var task = document.Tasks.Add("Constrained"); task.Duration = ProjectDuration.WorkingDays(1);
+        task.ConstraintType = ProjectConstraintType.StartNoLaterThan;
+        task.ConstraintDate = Monday.AddDays(6).AddHours(4); // Sunday noon.
+        if (assignments) document.Assignments.Add(task, document.Resources.AddWork("Engineer"));
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = assignments }); var scheduled = Assert.Single(result.Tasks);
+        Assert.Equal(assignments ? Monday.AddDays(7) : Monday.AddDays(4).AddHours(9), scheduled.Start);
+        Assert.Equal(Monday.AddDays(7).AddHours(9), scheduled.Finish);
+        Assert.Equal(480m, document.Calendar!.WorkingMinutesBetween(scheduled.Start, scheduled.Finish));
+        Assert.True(scheduled.Start <= task.ConstraintDate || document.Calendar.WorkingMinutesBetween(task.ConstraintDate.Value, scheduled.Start) == 0);
+        if (assignments) { var assignment = Assert.Single(result.Assignments); Assert.Equal(scheduled.Start, assignment.Start); Assert.Equal(scheduled.Finish, assignment.Finish); }
+        result.Report.ThrowIfErrors();
+    }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ForwardFinishNoEarlierThanFindsAPlanAfterNonworkingTime(bool assignments) {
+        using var document = Standard();
+        var task = document.Tasks.Add("Constrained"); task.Duration = ProjectDuration.WorkingDays(1);
+        task.ConstraintType = ProjectConstraintType.FinishNoEarlierThan;
+        task.ConstraintDate = Monday.AddDays(6).AddHours(4); // Sunday noon.
+        if (assignments) document.Assignments.Add(task, document.Resources.AddWork("Engineer"));
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = assignments }); var scheduled = Assert.Single(result.Tasks);
+        Assert.True(scheduled.Finish >= task.ConstraintDate);
+        Assert.Equal(480m, document.Calendar!.WorkingMinutesBetween(scheduled.Start, scheduled.Finish));
+        if (assignments) { var assignment = Assert.Single(result.Assignments); Assert.Equal(scheduled.Start, assignment.Start); Assert.Equal(scheduled.Finish, assignment.Finish); }
+        result.Report.ThrowIfErrors();
+    }
     [Fact]
     public void LocalDependencyCannotBeMarkedAsCrossProject() {
         using var document = ProjectDocument.Create();

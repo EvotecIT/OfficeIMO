@@ -94,12 +94,10 @@ internal sealed partial class ProjectMpxWriter {
         var s = _document.Settings;
         if (s.CurrencyDigits > 2) throw new NotSupportedException("MPX supports at most two currency decimal digits.");
         Record("10", Value("/Settings/CurrencySymbol", s.CurrencySymbol), _document.MpxSource?.CurrencyPosition ?? "1", Value("/Settings/CurrencyDigits", s.CurrencyDigits), ",", ".");
-        Handle("/Settings/MinutesPerDay"); Handle("/Settings/MinutesPerWeek");
         Record("11", "2", s.DefaultTaskType == null ? "" : s.DefaultTaskType == ProjectTaskType.FixedDuration ? "1" : "0", "1",
-            ProjectMpxValues.Text(_values.MinutesPerDay / 60m), ProjectMpxValues.Text(_values.MinutesPerWeek / 60m));
+            Value("/Settings/MinutesPerDay", s.MinutesPerDay.HasValue ? s.MinutesPerDay.Value / 60m : (decimal?)null),
+            Value("/Settings/MinutesPerWeek", s.MinutesPerWeek.HasValue ? s.MinutesPerWeek.Value / 60m : (decimal?)null));
         if (s.DefaultTaskType != ProjectTaskType.FixedWork) Handle("/Settings/DefaultTaskType");
-        if (s.DaysPerMonth == 20) Handle("/Settings/DaysPerMonth");
-        if (s.NewTasksAreManual == false) Handle("/Settings/NewTasksAreManual");
         Handle("/Settings/DefaultStartTime");
         string defaultTime = "";
         if (s.DefaultStartTime.HasValue) {
@@ -112,6 +110,7 @@ internal sealed partial class ProjectMpxWriter {
     private void Header() {
         string calendar = "Standard";
         if (_document.Calendar != null) { calendar = _calendarNames[_document.Calendar]; Handle("/Settings/Calendar"); }
+        else Diagnostic("PROJECT_MPX_CALENDAR_DEFAULT", "MPX requires a project calendar and normalizes an absent calendar to Standard.", "/Settings/Calendar");
         Record("30", Value("/Project/Name", _document.Name), Value("/Project/Company", _document.Company), Value("/Project/Manager", _document.Manager), calendar,
             Value("/Settings/StartDate", _document.Settings.StartDate), Value("/Settings/FinishDate", _document.Settings.FinishDate),
             _document.Settings.ScheduleFromStart.HasValue ? _document.Settings.ScheduleFromStart.Value ? "0" : "1" : "");

@@ -36,7 +36,7 @@ internal static partial class ProjectMpxCodec {
             int row = values.TryGetValue(40, out var text) ? ProjectMpxValues.Integer(text) : Document.Resources.Count + 1;
             int uid = Identity(values, 49, row);
             if (row < 0 || row > 9999 || Document.ResourceIndex.ContainsKey(uid) || _resourceRows.ContainsKey(row)) throw new InvalidDataException("Duplicate or invalid MPX resource identity.");
-            var resource = new ProjectResource(Document, uid) { DisplayId = row, Type = ProjectResourceType.Work, MaxUnits = ProjectUnits.Fraction(1) };
+            var resource = new ProjectResource(Document, uid) { DisplayId = row, Type = ProjectResourceType.Work };
             Apply(resource, values, ProjectMpxFields.Resources);
             if (values.TryGetValue(48, out string? calendar)) { resource.Calendar = FindCalendar(calendar); values.Remove(48); }
             Baseline(resource.Baselines, values, false);
@@ -53,8 +53,7 @@ internal static partial class ProjectMpxCodec {
             if (row < 0 || row > 9999 || Document.TaskIndex.ContainsKey(uid) || _taskRows.ContainsKey(row)) throw new InvalidDataException("Duplicate or invalid MPX task identity.");
             int level = values.TryGetValue(3, out text) ? ProjectMpxValues.Integer(text) : row == 0 ? 0 : 1; values.Remove(3);
             if (level < 0 || level > _options.MaxOutlineDepth) throw new InvalidDataException("MPX exceeds MaxOutlineDepth.");
-            var task = new ProjectTask(Document, uid) { DisplayId = row, SourceOutlineLevel = level, IsManual = false, IsActive = true,
-                Type = Document.Settings.DefaultTaskType ?? ProjectTaskType.FixedUnits, Priority = 500 };
+            var task = new ProjectTask(Document, uid) { DisplayId = row, SourceOutlineLevel = level };
             Apply(task, values, ProjectMpxFields.Tasks);
             if (values.TryGetValue(120, out text)) { task.SourceSummary = _values.Flag(text); values.Remove(120); }
             foreach (int field in new[] { 70, 71, 74, 75 }) if (values.TryGetValue(field, out text)) {
@@ -93,7 +92,9 @@ internal static partial class ProjectMpxCodec {
             else { int row = ProjectMpxValues.Integer(Get(r, 1)); _resourceRows.TryGetValue(row, out resource); }
             if (resource == null) throw new InvalidDataException("MPX assignment refers to an undefined resource.");
             if (Document.AssignmentPairs.Contains((_task!.Uid, resource.Uid))) throw new InvalidDataException("Duplicate MPX task-resource assignment.");
-            var item = Document.Assignments.Add(_task!, resource, Has(r, 2) ? _values.Units(r[2]) : ProjectUnits.Fraction(1));
+            bool hasUnits = Has(r, 2);
+            var item = Document.Assignments.Add(_task!, resource, hasUnits ? _values.Units(r[2]) : (ProjectUnits?)null);
+            if (!hasUnits) item.Units = null;
             _taskAssignmentCount++;
             if (Has(r, 3)) item.Work = _values.Work(r[3]);
             if (Has(r, 5)) item.ActualWork = _values.Work(r[5]);
@@ -124,14 +125,13 @@ internal static partial class ProjectMpxCodec {
                 if (!lookup.TryGetValue(id, out var other)) throw new InvalidDataException("MPX dependency refers to an undefined task: " + id);
                 var predecessor = link.Successors ? link.Task : other; var successor = link.Successors ? other : link.Task;
                 if (predecessor == successor) throw new InvalidDataException("An MPX task cannot depend on itself.");
-                var type = match.Groups[2].Value.ToUpperInvariant() switch { "FF" => ProjectDependencyType.FinishToFinish, "SS" => ProjectDependencyType.StartToStart, "SF" => ProjectDependencyType.StartToFinish, _ => ProjectDependencyType.FinishToStart };
+                ProjectDependencyType? type = match.Groups[2].Value.ToUpperInvariant() switch { "FF" => ProjectDependencyType.FinishToFinish, "SS" => ProjectDependencyType.StartToStart, "SF" => ProjectDependencyType.StartToFinish, "FS" => ProjectDependencyType.FinishToStart, _ => null };
                 ProjectDuration? lag = null; decimal? percent = null; string lagText = match.Groups[3].Value;
                 if (lagText.Length != 0) { if (lagText.EndsWith("%", StringComparison.Ordinal)) percent = _values.Number(lagText.TrimEnd('%')); else lag = _values.Duration(lagText); }
-                else lag = new ProjectDuration(0, (ProjectDurationUnit)_values.DefaultDurationUnit);
                 var key = (predecessor.Uid, successor.Uid);
                 resolved.TryGetValue(key, out var existing);
                 if (existing != null) { if (existing.Type != type || !Equals(existing.Lag, lag) || existing.LagPercent != percent) throw new InvalidDataException("Conflicting MPX dependency declarations."); continue; }
-                var dependency = Document.Dependencies.Add(predecessor, successor, type); dependency.Lag = lag; dependency.LagPercent = percent;
+                var dependency = Document.Dependencies.Add(predecessor, successor); dependency.Type = type; dependency.Lag = lag; dependency.LagPercent = percent;
                 resolved.Add(key, dependency);
             }
         }

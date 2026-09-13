@@ -246,6 +246,81 @@ public sealed class ProjectMpxTests {
     }
 
     [Fact]
+    public void MissingTaskResourceAndAssignmentValuesRemainAbsentAcrossMpx() {
+        using var project = ProjectDocument.Create();
+        var task = project.Tasks.Add("Task");
+        var resource = project.Resources.AddWork("Engineer"); resource.MaxUnits = null;
+        var assignment = project.Assignments.Add(task, resource); assignment.Units = null;
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        task = reopened.Tasks.Single(); resource = reopened.Resources.Single(); assignment = reopened.Assignments.Single();
+        Assert.Null(task.Type); Assert.Null(task.Priority); Assert.Null(task.IsManual); Assert.Null(task.IsActive);
+        Assert.Null(resource.MaxUnits); Assert.Null(assignment.Units);
+    }
+
+    [Fact]
+    public void MissingMpxResourceTypeRequiresExplicitLossAcceptance() {
+        using var project = ProjectDocument.Create(); var resource = project.Resources.AddWork("Engineer"); resource.Type = null;
+        var report = project.AssessSave(Options(false));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_RESOURCE_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/Type", StringComparison.Ordinal));
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(ProjectResourceType.Work, reopened.Resources.Single().Type);
+    }
+
+    [Fact]
+    public void MissingMpxSettingsRemainAbsentAcrossAnEditedRewrite() {
+        const string source = "MPX,Fixture,4.0,ANSI\r\n11,2,0,1,,,\r\n61,90,1\r\n70,1,Task\r\n";
+        using var project = Read(source);
+        Assert.Null(project.Settings.MinutesPerDay); Assert.Null(project.Settings.MinutesPerWeek); Assert.Null(project.Settings.DaysPerMonth);
+        project.Tasks[0].Name = "Edited";
+        using var output = new MemoryStream(); project.Save(output, Options(false));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Null(reopened.Settings.MinutesPerDay); Assert.Null(reopened.Settings.MinutesPerWeek); Assert.Null(reopened.Settings.DaysPerMonth);
+    }
+
+    [Fact]
+    public void MissingDependencyTypeAndLagRemainAbsentAcrossMpx() {
+        using var project = ProjectDocument.Create();
+        var predecessor = project.Tasks.Add("Predecessor"); var successor = project.Tasks.Add("Successor");
+        var dependency = project.Dependencies.Add(predecessor, successor); dependency.Type = null; dependency.Lag = null;
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        dependency = Assert.Single(reopened.Dependencies);
+        Assert.Null(dependency.Type); Assert.Null(dependency.Lag); Assert.Null(dependency.LagPercent);
+    }
+
+    [Fact]
+    public void UnsupportedExplicitMpxBooleansRequireLossAcceptance() {
+        using var project = ProjectDocument.Create(); project.Calendar = project.Calendars.AddStandardWorkingWeek();
+        project.Settings.NewTasksAreManual = false;
+        var task = project.Tasks.Add("Task"); task.IsNull = false;
+        var resource = project.Resources.AddWork("Engineer"); resource.IsNull = false;
+        var report = project.AssessSave(Options(false));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_FIELD_LOSS" && diagnostic.Location == "/Settings/NewTasksAreManual");
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_FIELD_LOSS" && diagnostic.Location.EndsWith("/IsNull", StringComparison.Ordinal) && diagnostic.Location.StartsWith("/Task", StringComparison.Ordinal));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_FIELD_LOSS" && diagnostic.Location.EndsWith("/IsNull", StringComparison.Ordinal) && diagnostic.Location.StartsWith("/Resource", StringComparison.Ordinal));
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Null(reopened.Settings.NewTasksAreManual); Assert.Null(reopened.Tasks.Single().IsNull); Assert.Null(reopened.Resources.Single().IsNull);
+    }
+
+    [Fact]
+    public void MissingProjectCalendarRequiresExplicitMpxLossAcceptance() {
+        using var project = ProjectDocument.Create(); project.Tasks.Add("Task");
+        var report = project.AssessSave(Options(false));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_CALENDAR_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location == "/Settings/Calendar");
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.NotNull(reopened.Calendar); Assert.Equal("Standard", reopened.Calendar!.Name);
+    }
+
+    [Fact]
     public void LimitsCancellationAndPrecisionFailBeforeDestinationChanges() {
         const string text = "MPX,Fixture,4.0,ANSI\r\n61,90,1\r\n70,1,First\r\n70,2,Second\r\n";
         Assert.Throws<InvalidDataException>(() => ProjectDocument.Load(new MemoryStream(Encoding.ASCII.GetBytes(text)), new ProjectLoadOptions { MaxTasks = 1 }));
