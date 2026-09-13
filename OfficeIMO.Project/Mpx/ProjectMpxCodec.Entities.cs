@@ -53,6 +53,7 @@ internal static partial class ProjectMpxCodec {
             if (row < 0 || row > 9999 || Document.TaskIndex.ContainsKey(uid) || _taskRows.ContainsKey(row)) throw new InvalidDataException("Duplicate or invalid MPX task identity.");
             int level = values.TryGetValue(3, out text) ? ProjectMpxValues.Integer(text) : row == 0 ? 0 : 1; values.Remove(3);
             if (level < 0 || level > _options.MaxOutlineDepth) throw new InvalidDataException("MPX exceeds MaxOutlineDepth.");
+            if ((level == 0) != (uid == 0)) throw new InvalidDataException("MPX outline level zero is reserved for task UID zero.");
             var task = new ProjectTask(Document, uid) { DisplayId = row, SourceOutlineLevel = level };
             Apply(task, values, ProjectMpxFields.Tasks);
             if (values.TryGetValue(120, out text)) { task.SourceSummary = _values.Flag(text); values.Remove(120); }

@@ -93,6 +93,72 @@ public sealed class ProjectValidationBoundaryTests {
     }
 
     [Theory]
+    [InlineData("weekday", "duplicate")]
+    [InlineData("weekday", "partial")]
+    [InlineData("weekday", "overnight")]
+    [InlineData("weekday", "full day")]
+    [InlineData("legacy", "duplicate")]
+    [InlineData("legacy", "partial")]
+    [InlineData("legacy", "overnight")]
+    [InlineData("legacy", "full day")]
+    [InlineData("exception", "duplicate")]
+    [InlineData("exception", "partial")]
+    [InlineData("exception", "overnight")]
+    [InlineData("exception", "full day")]
+    [InlineData("workweek", "duplicate")]
+    [InlineData("workweek", "partial")]
+    [InlineData("workweek", "overnight")]
+    [InlineData("workweek", "full day")]
+    public void WorkingIntervalsAtTheSamePrecedenceCannotOverlap(string kind, string pattern) {
+        using var document = ProjectDocument.Create(); var calendar = document.Calendars.Add("Calendar");
+        ProjectCollection<ProjectWorkingInterval> times;
+        if (kind == "exception") {
+            var item = calendar.Exceptions.Add(); item.FromDate = Monday; item.ToDate = Monday; item.IsWorking = true; times = item.WorkingTimes;
+        } else {
+            var days = calendar.WeekDays;
+            if (kind == "workweek") {
+                var week = calendar.WorkWeeks.Add(); week.FromDate = Monday; week.ToDate = Monday.AddDays(4); days = week.WeekDays;
+            }
+            var day = days.Add(); day.IsWorking = true;
+            if (kind == "legacy") { day.FromDate = Monday; day.ToDate = Monday; }
+            else day.Day = DayOfWeek.Monday;
+            times = day.WorkingTimes;
+        }
+        (int From, int To, int OtherFrom, int OtherTo) = pattern switch {
+            "duplicate" => (8, 12, 8, 12), "overnight" => (22, 2, 1, 3), "full day" => (8, 8, 12, 13), _ => (8, 12, 10, 14)
+        };
+        var first = times.Add(); first.From = TimeSpan.FromHours(From); first.To = TimeSpan.FromHours(To);
+        var second = times.Add(); second.From = TimeSpan.FromHours(OtherFrom); second.To = TimeSpan.FromHours(OtherTo);
+        Assert.Contains(document.Validate().Diagnostics, d => d.Code == "PROJECT_WORKING_INTERVAL_OVERLAP");
+        foreach (var format in new[] { ProjectFileFormat.Xml, ProjectFileFormat.Mpx4, ProjectFileFormat.Mpp8, ProjectFileFormat.Mpp9,
+            ProjectFileFormat.Mpp12, ProjectFileFormat.Mpp14, ProjectFileFormat.Mpt8, ProjectFileFormat.Mpt9, ProjectFileFormat.Mpt12, ProjectFileFormat.Mpt14 })
+            Assert.True(document.AssessSave(new ProjectSaveOptions { Format = format }).HasErrors);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AdjacentWorkingIntervalsDoNotOverlap(bool overnight) {
+        using var document = ProjectDocument.Create(); var calendar = document.Calendars.Add("Calendar");
+        var day = calendar.WeekDays.Add(); day.Day = DayOfWeek.Monday; day.IsWorking = true;
+        var first = day.WorkingTimes.Add(); first.From = TimeSpan.FromHours(overnight ? 22 : 8); first.To = TimeSpan.FromHours(overnight ? 2 : 12);
+        var second = day.WorkingTimes.Add(); second.From = first.To; second.To = TimeSpan.FromHours(overnight ? 6 : 14);
+        Assert.DoesNotContain(document.Validate().Diagnostics, d => d.Code == "PROJECT_WORKING_INTERVAL_OVERLAP");
+        second.From = TimeSpan.FromHours(overnight ? 1 : 11);
+        Assert.Contains(document.Validate().Diagnostics, d => d.Code == "PROJECT_WORKING_INTERVAL_OVERLAP");
+    }
+
+    [Fact]
+    public void LargeNonOverlappingWorkingIntervalSetsRemainValid() {
+        using var document = ProjectDocument.Create(); var calendar = document.Calendars.Add("Calendar");
+        var day = calendar.WeekDays.Add(); day.Day = DayOfWeek.Monday; day.IsWorking = true;
+        for (int index = 0; index < 10_000; index++) {
+            var interval = day.WorkingTimes.Add(); interval.From = TimeSpan.FromTicks(index * 4L); interval.To = TimeSpan.FromTicks(index * 4L + 1);
+        }
+        Assert.DoesNotContain(document.Validate().Diagnostics, d => d.Code == "PROJECT_WORKING_INTERVAL_OVERLAP");
+    }
+
+    [Theory]
     [InlineData(false, true)]
     [InlineData(true, false)]
     public void CalendarExceptionCalculationRequiresBothDateBounds(bool from, bool to) {
@@ -129,5 +195,9 @@ public sealed class ProjectValidationBoundaryTests {
         var result = document.CalculateSchedule(); result.Report.ThrowIfErrors();
         Assert.Equal(2, result.Tasks.Count); Assert.True(result.Tasks.Single(t => t.TaskUid == 0).IsSummary);
         using var copy = document.Clone(); Assert.True(copy.Tasks.GetByUid(0).IsSummary);
+        using var mpx = new MemoryStream(); document.Save(mpx, new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4, LossPolicy = OfficeConversionLossPolicy.Allow });
+        using var reopened = ProjectDocument.Load(new MemoryStream(mpx.ToArray()));
+        Assert.Equal(0, reopened.Tasks.GetByUid(0).DisplayId); Assert.Equal(0, reopened.Tasks.GetByUid(0).SourceOutlineLevel);
+        Assert.Null(reopened.Tasks.GetByUid(1).Parent);
     }
 }

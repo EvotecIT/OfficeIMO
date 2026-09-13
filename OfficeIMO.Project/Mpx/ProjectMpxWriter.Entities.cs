@@ -27,14 +27,16 @@ internal sealed partial class ProjectMpxWriter {
         }
     }
     private void Tasks() {
-        var tasks = _document.AllTasks.ToArray();
+        var allTasks = _document.AllTasks.ToArray();
+        var tasks = allTasks.Where(task => task.Uid == 0).Concat(allTasks.Where(task => task.Uid != 0)).ToArray();
         bool preserveRows = true; int previous = -1;
         foreach (var task in tasks) {
-            if (!task.DisplayId.HasValue || task.DisplayId <= previous || task.DisplayId > 9999) { preserveRows = false; break; }
+            if (!task.DisplayId.HasValue || (task.DisplayId != 0 && task.DisplayId <= previous) || task.DisplayId > 9999 ||
+                (task.Uid == 0 && task.DisplayId != 0) || (task.Uid != 0 && task.DisplayId == 0)) { preserveRows = false; break; }
             previous = task.DisplayId.Value;
         }
-        int next = tasks.Length != 0 && tasks[0].SourceOutlineLevel == 0 ? 0 : 1;
-        foreach (var task in tasks) _taskRows.Add(task, preserveRows ? task.DisplayId!.Value : next++);
+        int next = 1;
+        foreach (var task in tasks) _taskRows.Add(task, preserveRows ? task.DisplayId!.Value : task.Uid == 0 ? 0 : next++);
         var customs = ProjectMpxFields.CustomMappings(true).ToArray();
         var fields = new[] { 90, 98, 3, 120 }.Concat(ProjectMpxFields.Tasks.Where(f => f.Id != 90 && f.Id != 14).Select(f => f.Id)).Concat(new[] { 21, 31, 41, 56, 57, 74 }).Concat(customs.Select(f => f.Id)).ToArray();
         Record(new[] { "61" }.Concat(fields.Select(f => ProjectMpxValues.Text(f))).ToArray());
@@ -44,7 +46,7 @@ internal sealed partial class ProjectMpxWriter {
         foreach (var task in tasks) {
             _token.ThrowIfCancellationRequested(); string path = Path(task, "Task");
             int level = 1; for (var parent = task.Parent; parent != null; parent = parent.Parent) level++;
-            if (task.Parent == null && task.SourceOutlineLevel == 0) level = 0;
+            if (task.Uid == 0) level = 0;
             var values = new Dictionary<int, string> {
                 [90] = ProjectMpxValues.Text(_taskRows[task]), [98] = ProjectMpxValues.Text(task.Uid), [3] = ProjectMpxValues.Text(level), [120] = ProjectMpxValues.Text(task.IsSummary)
             };

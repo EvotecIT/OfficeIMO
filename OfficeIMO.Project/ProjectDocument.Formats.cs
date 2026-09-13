@@ -75,6 +75,7 @@ public sealed partial class ProjectDocument {
         }
         if (format == ProjectFileFormat.Mpx4 && ProjectMpxWriter.CanRetain(this, options)) return ProjectMpxWriter.Plan(this, options, false, token).Report;
         var diagnostics = Validate(token).Diagnostics.ToList();
+        if (format == ProjectFileFormat.Xml) AddXmlMoneyRangeDiagnostics(diagnostics, token);
         if (format == ProjectFileFormat.Xml) {
             foreach (var task in AllTasks) {
                 token.ThrowIfCancellationRequested();
@@ -118,6 +119,41 @@ public sealed partial class ProjectDocument {
         if (format != ProjectFileFormat.Mpx4 && MpxSource?.Comments.Count > 0) diagnostics.Add(new ProjectDiagnostic("PROJECT_MPX_COMMENT_LOSS", ProjectDiagnosticSeverity.Warning,
             "MPX comment records have no model mapping and are omitted during conversion.", "/", true));
         return new ProjectReport(Revision, diagnostics);
+    }
+    private void AddXmlMoneyRangeDiagnostics(List<ProjectDiagnostic> diagnostics, CancellationToken token) {
+        const decimal maximum = decimal.MaxValue / 100m;
+        const decimal minimum = decimal.MinValue / 100m;
+        void Check(decimal? value, string location) {
+            if (value < minimum || value > maximum)
+                diagnostics.Add(new ProjectDiagnostic("PROJECT_COST_RANGE", ProjectDiagnosticSeverity.Error,
+                    "The cost exceeds the range representable in Project's hundredths-based storage.", location));
+        }
+        void Baselines(ProjectCollection<ProjectBaseline> baselines, string location) {
+            for (int index = 0; index < baselines.Count; index++) {
+                token.ThrowIfCancellationRequested();
+                var baseline = baselines[index]; string path = location + "/Baseline[" + index + "]";
+                Check(baseline.Cost, path + "/Cost"); Check(baseline.FixedCost, path + "/FixedCost");
+                Check(baseline.Bcws, path + "/BCWS"); Check(baseline.Bcwp, path + "/BCWP");
+            }
+        }
+        foreach (var task in AllTasks) {
+            token.ThrowIfCancellationRequested(); string path = "/Task[UID=" + task.Uid + "]";
+            Check(task.Cost, path + "/Cost"); Check(task.ActualCost, path + "/ActualCost");
+            Check(task.RemainingCost, path + "/RemainingCost"); Check(task.FixedCost, path + "/FixedCost");
+            Baselines(task.Baselines, path);
+        }
+        foreach (var resource in Resources) {
+            token.ThrowIfCancellationRequested(); string path = "/Resource[UID=" + resource.Uid + "]";
+            Check(resource.CostPerUse, path + "/CostPerUse"); Check(resource.Cost, path + "/Cost");
+            Check(resource.ActualCost, path + "/ActualCost"); Check(resource.RemainingCost, path + "/RemainingCost");
+            for (int index = 0; index < resource.Rates.Count; index++) Check(resource.Rates[index].CostPerUse, path + "/Rate[" + index + "]/CostPerUse");
+            Baselines(resource.Baselines, path);
+        }
+        foreach (var assignment in Assignments) {
+            token.ThrowIfCancellationRequested(); string path = "/Assignment[UID=" + assignment.Uid + "]";
+            Check(assignment.Cost, path + "/Cost"); Check(assignment.ActualCost, path + "/ActualCost");
+            Check(assignment.RemainingCost, path + "/RemainingCost"); Baselines(assignment.Baselines, path);
+        }
     }
     private static void AddRetainedOutputLimit(List<ProjectDiagnostic> diagnostics, byte[] bytes, ProjectSaveOptions options) {
         if (bytes.LongLength > options.MaxOutputBytes) diagnostics.Add(new ProjectDiagnostic("PROJECT_OUTPUT_LIMIT",

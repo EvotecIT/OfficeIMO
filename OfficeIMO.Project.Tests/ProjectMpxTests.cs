@@ -129,6 +129,8 @@ public sealed class ProjectMpxTests {
     [InlineData("MPX,Fixture,4.0,ANSI\r\n61,90,1\r\n70,1,a\r\n70,1,b\r\n")]
     [InlineData("MPX,Fixture,4.0,ANSI\r\n71,orphan\r\n")]
     [InlineData("MPX,Fixture,4.0,ANSI\r\n61,90,1,3\r\n70,1,Task,3\r\n")]
+    [InlineData("MPX,Fixture,4.0,ANSI\r\n61,90,98,3,1\r\n70,1,1,0,Task\r\n")]
+    [InlineData("MPX,Fixture,4.0,ANSI\r\n61,90,98,3,1\r\n70,0,0,1,Task\r\n")]
     [InlineData("MPX,Fixture,4.0,ANSI\r\n12,2\r\n61,90,1,50\r\n70,1,Task,invalid\r\n")]
     public void MalformedRecordsFailClosed(string text) => Assert.Throws<InvalidDataException>(() => Read(text));
 
@@ -138,6 +140,20 @@ public sealed class ProjectMpxTests {
         Assert.Throws<InvalidDataException>(() => project.ToXml());
         project.Settings.CurrencyCode = "USD";
         using var xml = ProjectDocument.Parse(project.ToXml()); Assert.Equal("Task", xml.Tasks[0].Name);
+    }
+
+    [Fact]
+    public void MpxWriterUsesTheReservedRowAndLevelForUidZero() {
+        const string xml = "<Project xmlns=\"http://schemas.microsoft.com/project\"><CurrencyCode>USD</CurrencyCode><Tasks>" +
+            "<Task><UID>7</UID><ID>7</ID><Name>Work</Name><OutlineLevel>1</OutlineLevel></Task>" +
+            "<Task><UID>8</UID><ID>8</ID><Name>Child</Name><OutlineLevel>2</OutlineLevel></Task>" +
+            "<Task><UID>9</UID><ID>9</ID><Name>Other root</Name><OutlineLevel>1</OutlineLevel></Task>" +
+            "<Task><UID>0</UID><Name>Summary</Name><Summary>1</Summary></Task></Tasks></Project>";
+        using var project = ProjectDocument.Parse(xml); using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray())); var summary = reopened.Tasks.GetByUid(0);
+        Assert.Equal(0, summary.DisplayId); Assert.Equal(0, summary.SourceOutlineLevel);
+        Assert.Null(reopened.Tasks.GetByUid(7).Parent); Assert.Equal(7, reopened.Tasks.GetByUid(8).Parent!.Uid);
+        Assert.Null(reopened.Tasks.GetByUid(9).Parent);
     }
 
     [Fact]

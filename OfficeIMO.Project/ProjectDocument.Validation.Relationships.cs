@@ -65,11 +65,31 @@ public sealed partial class ProjectDocument {
             add("PROJECT_CALENDAR_WORKING_STATUS", "An explicitly working day requires at least one working interval.", location);
     }
     private static void CheckIntervals(ProjectCollection<ProjectWorkingInterval> intervals, string location, Finding add, CancellationToken token) {
+        var ranges = new List<(long Start, long Finish)>();
+        long day = TimeSpan.TicksPerDay;
         foreach (var interval in intervals) {
             token.ThrowIfCancellationRequested();
             if (!interval.From.HasValue || !interval.To.HasValue || interval.From < TimeSpan.Zero || interval.From >= TimeSpan.FromDays(1) ||
-                interval.To < TimeSpan.Zero || interval.To >= TimeSpan.FromDays(1))
+                interval.To < TimeSpan.Zero || interval.To >= TimeSpan.FromDays(1)) {
                 add("PROJECT_WORKING_INTERVAL", "Working intervals need clock times within a day.", location);
+                continue;
+            }
+            long start = interval.From.Value.Ticks, finish = interval.To.Value.Ticks;
+            if (finish == start) ranges.Add((0, day));
+            else if (finish > start) ranges.Add((start, finish));
+            else {
+                ranges.Add((start, day));
+                if (finish > 0) ranges.Add((0, finish));
+            }
+        }
+        long previousFinish = -1;
+        foreach (var range in ranges.OrderBy(range => range.Start).ThenBy(range => range.Finish)) {
+            token.ThrowIfCancellationRequested();
+            if (range.Start < previousFinish) {
+                add("PROJECT_WORKING_INTERVAL_OVERLAP", "Working intervals in the same day cannot overlap; adjacent intervals may share an endpoint.", location);
+                return;
+            }
+            previousFinish = Math.Max(previousFinish, range.Finish);
         }
     }
     private void ValidateDependencies(Finding add, CancellationToken token) {

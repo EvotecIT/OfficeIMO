@@ -4,6 +4,86 @@ public sealed class ProjectSaveBoundaryTests {
     private static readonly DateTime Monday = new(2026, 10, 5, 8, 0, 0);
 
     [Theory]
+    [InlineData("task cost")]
+    [InlineData("task actual")]
+    [InlineData("task remaining")]
+    [InlineData("task fixed")]
+    [InlineData("task baseline cost")]
+    [InlineData("task baseline fixed")]
+    [InlineData("task baseline bcws")]
+    [InlineData("task baseline bcwp")]
+    [InlineData("resource per use")]
+    [InlineData("resource cost")]
+    [InlineData("resource actual")]
+    [InlineData("resource remaining")]
+    [InlineData("resource rate per use")]
+    [InlineData("resource baseline cost")]
+    [InlineData("resource baseline bcws")]
+    [InlineData("resource baseline bcwp")]
+    [InlineData("assignment cost")]
+    [InlineData("assignment actual")]
+    [InlineData("assignment remaining")]
+    [InlineData("assignment baseline cost")]
+    [InlineData("assignment baseline bcws")]
+    [InlineData("assignment baseline bcwp")]
+    public void ProjectHundredthsStorageRejectsOversizedCostsDuringAssessment(string owner) {
+        using var document = ProjectDocument.Create();
+        var task = document.Tasks.Add("Task"); var resource = document.Resources.AddWork("Engineer");
+        var assignment = document.Assignments.Add(task, resource);
+        var taskBaseline = task.Baselines.Add(); taskBaseline.Number = 0;
+        var resourceBaseline = resource.Baselines.Add(); resourceBaseline.Number = 0;
+        var assignmentBaseline = assignment.Baselines.Add(); assignmentBaseline.Number = 0;
+        var rate = resource.Rates.Add(); rate.From = Monday; rate.To = Monday.AddDays(1);
+        string location = owner switch {
+            "task cost" => "/Task[UID=1]/Cost", "task actual" => "/Task[UID=1]/ActualCost", "task remaining" => "/Task[UID=1]/RemainingCost",
+            "task fixed" => "/Task[UID=1]/FixedCost", "task baseline cost" => "/Task[UID=1]/Baseline[0]/Cost",
+            "task baseline fixed" => "/Task[UID=1]/Baseline[0]/FixedCost", "task baseline bcws" => "/Task[UID=1]/Baseline[0]/BCWS",
+            "task baseline bcwp" => "/Task[UID=1]/Baseline[0]/BCWP", "resource per use" => "/Resource[UID=1]/CostPerUse",
+            "resource cost" => "/Resource[UID=1]/Cost", "resource actual" => "/Resource[UID=1]/ActualCost",
+            "resource remaining" => "/Resource[UID=1]/RemainingCost", "resource rate per use" => "/Resource[UID=1]/Rate[0]/CostPerUse",
+            "resource baseline cost" => "/Resource[UID=1]/Baseline[0]/Cost", "resource baseline bcws" => "/Resource[UID=1]/Baseline[0]/BCWS",
+            "resource baseline bcwp" => "/Resource[UID=1]/Baseline[0]/BCWP", "assignment cost" => "/Assignment[UID=1]/Cost",
+            "assignment actual" => "/Assignment[UID=1]/ActualCost", "assignment remaining" => "/Assignment[UID=1]/RemainingCost",
+            "assignment baseline cost" => "/Assignment[UID=1]/Baseline[0]/Cost", "assignment baseline bcws" => "/Assignment[UID=1]/Baseline[0]/BCWS",
+            _ => "/Assignment[UID=1]/Baseline[0]/BCWP"
+        };
+        void Set(decimal value) {
+            switch (owner) {
+                case "task cost": task.Cost = value; break;
+                case "task actual": task.ActualCost = value; break;
+                case "task remaining": task.RemainingCost = value; break;
+                case "task fixed": task.FixedCost = value; break;
+                case "task baseline cost": taskBaseline.Cost = value; break;
+                case "task baseline fixed": taskBaseline.FixedCost = value; break;
+                case "task baseline bcws": taskBaseline.Bcws = value; break;
+                case "task baseline bcwp": taskBaseline.Bcwp = value; break;
+                case "resource per use": resource.CostPerUse = value; break;
+                case "resource cost": resource.Cost = value; break;
+                case "resource actual": resource.ActualCost = value; break;
+                case "resource remaining": resource.RemainingCost = value; break;
+                case "resource rate per use": rate.CostPerUse = value; break;
+                case "resource baseline cost": resourceBaseline.Cost = value; break;
+                case "resource baseline bcws": resourceBaseline.Bcws = value; break;
+                case "resource baseline bcwp": resourceBaseline.Bcwp = value; break;
+                case "assignment cost": assignment.Cost = value; break;
+                case "assignment actual": assignment.ActualCost = value; break;
+                case "assignment remaining": assignment.RemainingCost = value; break;
+                case "assignment baseline cost": assignmentBaseline.Cost = value; break;
+                case "assignment baseline bcws": assignmentBaseline.Bcws = value; break;
+                case "assignment baseline bcwp": assignmentBaseline.Bcwp = value; break;
+            }
+        }
+        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
+        decimal maximum = decimal.MaxValue / 100m, minimum = decimal.MinValue / 100m;
+        Set(maximum); Assert.DoesNotContain(document.AssessSave(options).Diagnostics, d => d.Code == "PROJECT_COST_RANGE");
+        Set(maximum + .01m); Assert.Contains(document.AssessSave(options).Diagnostics, d => d.Code == "PROJECT_COST_RANGE" && d.Location == location);
+        Set(minimum); Assert.DoesNotContain(document.AssessSave(options).Diagnostics, d => d.Code == "PROJECT_COST_RANGE");
+        Set(minimum - .01m); Assert.Contains(document.AssessSave(options).Diagnostics, d => d.Code == "PROJECT_COST_RANGE" && d.Location == location);
+        using var output = new MemoryStream();
+        Assert.Throws<InvalidDataException>(() => document.Save(output)); Assert.Equal(0, output.Length);
+    }
+
+    [Theory]
     [InlineData("task")]
     [InlineData("resource")]
     [InlineData("assignment")]

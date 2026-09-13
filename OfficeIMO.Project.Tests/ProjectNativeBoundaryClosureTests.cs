@@ -386,6 +386,19 @@ public sealed class ProjectNativeBoundaryClosureTests {
         using var reopened = ProjectDocument.Load(new MemoryStream(xml.ToArray())); Assert.Empty(reopened.Assignments);
     }
 
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    public void NativeTaskUidAndOutlineZeroMustIdentifyTheSameSummary(ProjectFileFormat format) {
+        foreach (var mismatch in new[] { (Uid: 1, Level: 0), (Uid: 0, Level: 1) }) {
+            byte[] source = RewriteFixedTaskField(NewNative(format), mismatch.Uid, 0x0b4000f9, mismatch.Level);
+            var error = Assert.Throws<InvalidDataException>(() => ProjectDocument.Load(new MemoryStream(source)));
+            Assert.Contains("outline level zero", error.Message);
+        }
+    }
+
     [Fact]
     public void NegativeNativeDependencyRecordsDoNotEnterTheTypedOrXmlModels() {
         using var sourceDocument = ProjectNativeAuthoringTests.Create();
@@ -503,6 +516,32 @@ public sealed class ProjectNativeBoundaryClosureTests {
         int recordOffset = BitConverter.ToInt32(metadata, 16 + record.MetadataIndex * table.MetadataWidth + 4);
         Buffer.BlockCopy(BitConverter.GetBytes(-1), 0, data, recordOffset + field.Offset, 4);
         return OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { [prefix + "FixedData"] = data });
+    }
+
+    private static byte[] RewriteFixedTaskField(byte[] source, int uid, uint fieldId, int value) {
+        var compound = Compound(source); var profile = ProjectNativeProfile.Detect(compound);
+        var properties = ProjectNativeProperties.Read(compound.Streams[profile.Properties], default, profile == ProjectNativeProfile.Mpp8);
+        ProjectNativeValue? legacyDescriptor = profile == ProjectNativeProfile.Mpp8 ? properties[0x02000001] : (ProjectNativeValue?)null;
+        ProjectNativeTable table = legacyDescriptor.HasValue
+            ? new ProjectNativeTable(compound, "TBkndTask", legacyDescriptor.Value, int.MaxValue, default)
+            : new ProjectNativeTable(compound, "TBkndTask", properties[0x03000014],
+                properties.TryGetValue(0x00020014, out var extended) ? extended : (ProjectNativeValue?)null, int.MaxValue, default, profile);
+        var record = table.Records.Single(item => item.Integer(0x0b400056) == uid);
+        var field = table.Fields[fieldId]; Assert.Equal(10, field.Source); Assert.False(field.Secondary);
+        string prefix = profile.DataRoot + "/TBkndTask/";
+        string dataName = legacyDescriptor.HasValue ? "FixFix   0" : "FixedData";
+        byte[] data = (byte[])compound.Streams[prefix + dataName].Clone();
+        int recordOffset;
+        if (legacyDescriptor.HasValue) {
+            var layout = ProjectNativeProperties.Read(legacyDescriptor.Value.Copy(), default);
+            recordOffset = record.MetadataIndex * layout[5].Int32();
+        } else {
+            byte[] metadata = compound.Streams[prefix + "FixedMeta"];
+            recordOffset = BitConverter.ToInt32(metadata, 16 + record.MetadataIndex * table.MetadataWidth + 4);
+        }
+        byte[] encoded = field.Size == 2 ? BitConverter.GetBytes(checked((short)value)) : BitConverter.GetBytes(value);
+        Assert.Equal(field.Size, encoded.Length); Buffer.BlockCopy(encoded, 0, data, recordOffset + field.Offset, encoded.Length);
+        return OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { [prefix + dataName] = data });
     }
 
     private static OfficeCompoundFile Compound(byte[] source) {

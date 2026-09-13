@@ -48,6 +48,7 @@ internal static partial class ProjectNativeCodec {
         foreach (var task in ordered) {
             int level = task.SourceOutlineLevel ?? throw new InvalidDataException("Native task outline level is absent.");
             if (level < 0 || level > options.MaxOutlineDepth) throw new InvalidDataException("Native outline depth exceeds the configured limit.");
+            if ((level == 0) != (task.Uid == 0)) throw new InvalidDataException("Native outline level zero is reserved for task UID zero.");
             while (parents.Count != 0 && parents.Peek().SourceOutlineLevel >= level) parents.Pop();
             // A project summary remains a separate row; ordinary top-level tasks are not its structural children.
             var parent = parents.Count != 0 && parents.Peek().SourceOutlineLevel > 0 ? parents.Peek() : null;
