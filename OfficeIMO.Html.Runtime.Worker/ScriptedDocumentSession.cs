@@ -7,6 +7,7 @@ using AngleSharp.Scripting;
 using Jint;
 using AngleSharp.Html.Dom.Events;
 using AngleSharp.Html.Dom;
+using AngleSharp.Html;
 using AngleSharp.Html.Parser;
 using AngleSharp.Io;
 
@@ -16,6 +17,8 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private readonly IBrowsingContext _context;
     private readonly RuntimeScriptErrors _errors;
     private readonly RuntimeResourceLoader _resources;
+    private readonly RuntimeSubresourceIntegrity _integrity;
+    private readonly RuntimeModuleSourceCache _moduleSources;
     private Engine _engine = null!;
     private readonly HtmlScriptRequest _options;
     private IDocument _document = null!;
@@ -33,23 +36,30 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         _options = options;
         _errors = new RuntimeScriptErrors(options.MaxPendingPromiseRejections);
         _resources = new RuntimeResourceLoader(options, budget);
+        _integrity = new RuntimeSubresourceIntegrity(options.MaxModuleIntegrityMetadataCharacters);
+        _moduleSources = new RuntimeModuleSourceCache(_resources, options.MaxModuleCount,
+            options.MaxModuleIntegrityMetadataCharacters, _integrity);
+        var linkRelations = new DefaultLinkRelationFactory();
+        linkRelations.Register("modulepreload", link => new RuntimeModulePreloadLinkRelation(link, _moduleSources, () => _modules?.ImportMap, _errors.Report));
         var configuration = Configuration.Default.WithCss().WithJs(new JsScriptingOptions {
                 MaxCallStackDepth = 512,
                 ConfigureEngine = (window, engineOptions) => {
                     if (_modules != null) throw new HtmlScriptRuntimeException("Additional worker or window interpreters are outside this session profile.");
-                    _modules = new RuntimeModuleLoader(window.Document, _resources, () => _loop, () => _engine, options.MaxModuleCount);
-                    engineOptions.EnableModules(_modules).UseHostFactory(_ => new RuntimeModuleHost());
+                    _modules = new RuntimeModuleLoader(window.Document, _moduleSources, () => _loop, () => _engine);
+                    engineOptions.EnableModules(_modules).UseHostFactory(engine => new RuntimeModuleHost(engine, () => _modules));
                 }
             })
             .WithEventLoop(context => new RuntimeEventLoop(context, () => _engine, _errors))
             .With(new RuntimeDocumentUrls.MutationListener())
             .With(new RuntimeDomSynchronization(() => _engine))
             .With(new RuntimeScriptBlockingStyleSheetEvaluator(options))
+            .WithOnly<IIntegrityProvider>(_integrity)
+            .WithOnly<ILinkRelationFactory>(linkRelations)
             .Without<AngleSharp.Css.IPseudoClassSelectorFactory>()
             .With((AngleSharp.Css.IPseudoClassSelectorFactory)_focus.CreateSelectors())
             .With(new RuntimeResourceRequester(_resources, _errors))
             .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true, IsNavigationDisabled = true })
-            .WithOnly<IResourceLoader>(context => new RuntimeDocumentResourceLoader(context));
+            .WithOnly<IResourceLoader>(context => new RuntimeDocumentResourceLoader(context, _moduleSources, () => _modules?.ImportMap));
         var scripting = configuration.Services.OfType<JsScriptingService>().Single();
         _scripting = new RuntimeScriptingService(scripting, () => _modules, options, _errors.Report);
         configuration = configuration.Without<IScriptingService>()

@@ -525,7 +525,7 @@ public sealed class RuntimeScriptLifecycleTests {
             Html = "<script>window.joined=import('/shared.js').then(m=>window.value=m.value);setTimeout(()=>fetch('/release'),1000)</script><script type='module' src='/shared.js'></script>"
         });
         Assert.True((await session.EvaluateAsync("executions===1 && value===42")).GetBoolean());
-        Assert.Equal(2, requests);
+        Assert.Equal(1, requests);
     }
 
     [Theory]

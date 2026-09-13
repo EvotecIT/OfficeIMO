@@ -12,8 +12,7 @@ internal sealed class RuntimeResourceRequester(RuntimeResourceLoader loader, Run
         try {
             if (request.Method != AngleSharp.Io.HttpMethod.Get) throw new HtmlScriptRuntimeException("Document resources require GET requests.");
             var url = new Uri(request.Address.Href);
-            var resource = await (RuntimeDocumentResourceLoader.IsModule(request)
-                ? loader.FetchAsync(url, new RuntimeFetchRequest(), cancel) : loader.LoadAsync(url, cancel)).ConfigureAwait(false);
+            var resource = await loader.LoadAsync(url, cancel).ConfigureAwait(false);
             if (resource.StatusCode < 200 || resource.StatusCode >= 300) throw new HtmlScriptRuntimeException("Document resource loading returned HTTP " + resource.StatusCode + ".");
             return new DefaultResponse {
                 Address = new Url(resource.FinalUrl.AbsoluteUri),

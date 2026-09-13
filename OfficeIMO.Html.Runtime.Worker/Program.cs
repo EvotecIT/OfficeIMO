@@ -32,6 +32,10 @@ try {
                 }
             }
             await HtmlRuntimeProtocol.WriteAsync(output, response, options!.MaxOutputCharacters, CancellationToken.None);
+        } catch (OperationCanceledException) {
+            response = new HtmlRuntimeResponse { Id = command.Id, Error = "The runtime command exceeded its deadline.", ErrorKind = "timeout" };
+            await HtmlRuntimeProtocol.WriteAsync(output, response, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
+            break;
         } catch (Exception error) {
             response = new HtmlRuntimeResponse { Id = command.Id, Error = error.Message };
             await HtmlRuntimeProtocol.WriteAsync(output, response, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);

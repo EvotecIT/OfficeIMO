@@ -1,17 +1,14 @@
-using System.Runtime.CompilerServices;
+using System.Net;
 using AngleSharp;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 
 namespace OfficeIMO.Html.Runtime.Worker;
 
-// Carry module request intent to the shared requester without putting an internal
-// marker on the network or conflating script requests with ordinary images/styles.
-internal sealed class RuntimeDocumentResourceLoader(IBrowsingContext context) : DefaultResourceLoader(context) {
-    private static readonly ConditionalWeakTable<Request, object> ModuleRequests = new();
-    private static readonly object Marker = new();
-    internal static bool IsModule(Request request) => ModuleRequests.TryGetValue(request, out _);
-
+// Root modules join the same source cache as modulepreload and descendant imports.
+// Ordinary document resources continue through AngleSharp's requester boundary.
+internal sealed class RuntimeDocumentResourceLoader(IBrowsingContext context, RuntimeModuleSourceCache sources,
+    Func<RuntimeImportMap?> importMap) : DefaultResourceLoader(context) {
     public override IDownload FetchAsync(ResourceRequest request) {
         if (request.Source is AngleSharp.Dom.IElement element && element.Owner is { } document) {
             string previousBase=document.BaseUri;
@@ -29,8 +26,25 @@ internal sealed class RuntimeDocumentResourceLoader(IBrowsingContext context) : 
             return base.FetchAsync(request);
         if (script.GetAttribute("crossorigin")?.Equals("use-credentials", StringComparison.OrdinalIgnoreCase) == true)
             throw new HtmlScriptRuntimeException("Credentialed module loading is not supported.");
-        var data = new Request { Address = request.Target, Content = Stream.Null, Method = AngleSharp.Io.HttpMethod.Get };
-        ModuleRequests.Add(data, Marker);
-        return DownloadAsync(data, request.Source);
+        var cancellation = new CancellationTokenSource();
+        var task = LoadModuleAsync(request.Target, request.IntegritySnapshot, cancellation.Token);
+        return new RuntimeModuleDownload(new AngleSharp.Dom.Url(request.Target.Href), request.Source, task, cancellation);
+    }
+
+    private async Task<IResponse> LoadModuleAsync(AngleSharp.Dom.Url target, IntegrityMetadataSnapshot? integritySnapshot,
+        CancellationToken token) {
+        var url = new Uri(target.Href);
+        string? integrityMetadata = integritySnapshot != null
+            ? integritySnapshot.Resolve(importMap()?.IntegrityFor(url))
+            : importMap()?.IntegrityFor(url);
+        RuntimeModuleSource source = await sources.GetOrLoad(url.AbsoluteUri, url, integrityMetadata, token).ConfigureAwait(false);
+        return new DefaultResponse {
+            Address = new AngleSharp.Dom.Url(source.Location),
+            StatusCode = (HttpStatusCode)source.StatusCode,
+            Content = new MemoryStream(source.Buffer, writable: false),
+            Headers = new Dictionary<string, string>(source.Headers, StringComparer.OrdinalIgnoreCase) {
+                ["Content-Type"] = source.ContentType
+            }
+        };
     }
 }

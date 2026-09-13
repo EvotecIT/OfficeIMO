@@ -3,6 +3,7 @@ namespace AngleSharp.Scripting
     using AngleSharp.Browser;
     using AngleSharp.Dom;
     using AngleSharp.Html.Dom;
+    using AngleSharp.Io;
     using System.Text;
 
     /// <summary>
@@ -15,6 +16,12 @@ namespace AngleSharp.Scripting
 
         /// <summary>Gets or sets the requested source URL captured during preparation.</summary>
         public string? PreparedSourceUrl { get; set; }
+
+        /// <summary>Gets or sets the integrity metadata captured during preparation.</summary>
+        public string? PreparedIntegrity { get; set; }
+
+        /// <summary>Gets or sets the carrier for the integrity value selected by resource loading.</summary>
+        public IntegrityMetadataSnapshot? PreparedIntegritySnapshot { get; set; }
 
         /// <summary>Gets or sets whether preparation selected an external source.</summary>
         public bool IsExternal { get; set; }

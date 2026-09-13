@@ -77,8 +77,9 @@ namespace AngleSharp.Io.Processors
                 {
                     _response = await download.Task.ConfigureAwait(false);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _context.TrackError(ex);
                     await _document.QueueTaskAsync(FireErrorEvent).ConfigureAwait(false);
                 }
             }
@@ -198,11 +199,14 @@ namespace AngleSharp.Io.Processors
             {
                 _options = CreateOptions();
                 _options.IsExternal = true;
+                request.IntegrityMetadata = _options.PreparedIntegrity;
+                request.IntegritySnapshot = _options.PreparedIntegritySnapshot;
                 Download = _loader.FetchWithCorsAsync(new CorsRequest(request)
                 {
                     Behavior = OriginBehavior.Taint,
                     Setting = _script.CrossOrigin.ToEnum(CorsSetting.None),
-                    Integrity = _context.GetProvider<IIntegrityProvider>()
+                    Integrity = _context.GetProvider<IIntegrityProvider>(),
+                    IntegrityMetadata = _options.PreparedIntegrity
                 });
                 _options.PreparedSourceUrl = request.Target.Href;
                 return Download.Task;
@@ -215,12 +219,19 @@ namespace AngleSharp.Io.Processors
 
         #region Helpers
 
-        private ScriptOptions CreateOptions() => new(_document, _document.Loop!)
+        private ScriptOptions CreateOptions()
         {
-            Element = _script,
-            PreparedType = ScriptLanguage,
-            Encoding = TextEncoding.Resolve(_script.CharacterSet)
-        };
+            var hasIntegrity = _script.HasAttribute(AttributeNames.Integrity);
+            var integrity = hasIntegrity ? _script.GetOwnAttribute(AttributeNames.Integrity) : null;
+            return new(_document, _document.Loop!)
+            {
+                Element = _script,
+                PreparedType = ScriptLanguage,
+                PreparedIntegrity = integrity,
+                PreparedIntegritySnapshot = new IntegrityMetadataSnapshot(hasIntegrity, integrity),
+                Encoding = TextEncoding.Resolve(_script.CharacterSet)
+            };
+        }
 
         private static String RuntimeBaseUrl(IDocument document) => document.BaseUri;
 

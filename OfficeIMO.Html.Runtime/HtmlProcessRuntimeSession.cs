@@ -108,7 +108,10 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimeSession {
             HtmlRuntimeResponse response = await HtmlRuntimeProtocol.ReadAsync<HtmlRuntimeResponse>(_process.StandardOutput.BaseStream, _options.MaxOutputCharacters, operation.Token).ConfigureAwait(false)
                 ?? throw new HtmlScriptRuntimeException("The runtime worker exited before replying.");
             if (response.Id != command.Id) throw new HtmlScriptRuntimeException("The runtime response does not match its command.");
-            if (response.Error != null) throw new HtmlScriptRuntimeException(response.Error);
+            if (response.Error != null) {
+                if (response.ErrorKind == "timeout") throw new TimeoutException(response.Error);
+                throw new HtmlScriptRuntimeException(response.Error);
+            }
             T result = convert(response, operation.Token);
             operation.Token.ThrowIfCancellationRequested();
             return result;

@@ -91,6 +91,24 @@ namespace AngleSharp.Io
             set;
         }
 
+        /// <summary>
+        /// Gets or sets integrity metadata captured when the element request was prepared.
+        /// </summary>
+        public String? IntegrityMetadata
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Gets or sets the shared carrier for the integrity selection made by the loader.
+        /// </summary>
+        public IntegrityMetadataSnapshot? IntegritySnapshot
+        {
+            get;
+            set;
+        }
+
         #endregion
     }
 }

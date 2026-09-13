@@ -324,11 +324,26 @@ Dedicated worker construction throws `NotSupportedError`; a session owns one int
 `MaxModuleCount` bounds retained module sources, including inline roots and failed
 loads, and defaults to 1024. Repeated imports reuse the interpreter's module map;
 failed source loads remain failures within that session.
+`MaxModuleIntegrityMetadataCharacters` bounds the cumulative distinct integrity
+metadata retained for each source and defaults to 65,536 characters.
 
-One inline import map can precede all module imports. Exact entries, trailing-slash
-prefixes and normalized URL scopes are supported; the longest matching scope or
-prefix wins, and null entries block resolution. Multiple maps and maps introduced
-after imports begin are rejected.
+Multiple inline import maps are merged in document order. Existing conflicting
+rules win, later rules that would change an already resolved specifier are ignored,
+and unrelated later rules remain available. Exact entries, trailing-slash prefixes,
+normalized URL scopes and URL integrity metadata are supported; the longest matching
+scope or prefix wins, and null entries block resolution. `import.meta.resolve()` uses
+the same policy-checked resolver as static and dynamic imports.
+
+`modulepreload` starts a bounded module fetch without delaying the document load
+event. A later external root or imported descendant shares the pending or completed
+source, and a changed `href` cancels an otherwise unobserved pending preload. The
+selected profile supports the script destination and credential-free requests. Link
+or script-element integrity takes precedence; otherwise import-map integrity metadata
+applies. An explicitly empty element attribute suppresses that fallback. External
+root modules, preloads and imported descendants verify SHA-256, SHA-384 or SHA-512
+metadata over the original response bytes, selecting the strongest supplied
+algorithm. Integrity and source identity are captured when the request is prepared,
+so later attribute or base changes cannot alter an in-flight load.
 
 Parser-inserted modules without `async` run after parsing, in document order with
 deferred classic scripts, while `readyState` is `interactive`. Async scripts load
@@ -339,13 +354,14 @@ not hold the following deferred script or readiness events, so a module may awai
 module evaluations to settle, within the request deadline. Explicit readiness
 waits still select the application state to capture.
 
-Script preparation retains its type, requested source identity and module base;
+Script preparation retains its type, requested source identity, integrity and module base;
 later element or base changes do not redirect that execution. Parser token
 consumption and script callbacks share a synchronization monitor. Readiness events
 run on the event loop: `readystatechange`, a bubbling document `DOMContentLoaded`,
-and one window `load`. Dynamic ordered script loading, `currentScript`,
-`document.write`/parser reentrancy, complete stylesheet blocking rules, module
-preload, integrity metadata and `import.meta.resolve` need further qualification.
+and one window `load`. Dynamic scripts default to asynchronous execution and honor
+ordered `async=false` insertion. `document.currentScript`, nested parser reentry,
+`document.write`, and parser-blocking external and imported stylesheets share the
+same retained lifecycle.
 
 Application routing supports `history.pushState`, `replaceState`,
 `back`, `forward`, and nonzero `go` traversals. Route changes update the retained
@@ -389,7 +405,8 @@ Committed replacement dispatches `pagehide` with `persisted=false`, then `unload
 Specialized `beforeunload.returnValue` and handler return semantics, additional
 browsing contexts and the newer Navigation API remain outside this profile.
 
-`WebApplicationV1` names the selected H7 contract. The test-only Preact 10.29.8
+`WebApplicationV1` names the selected trusted application and layout-aware
+automation contract. The test-only Preact 10.29.8
 fixture proves UMD loading, mount/unmount, hook effects,
 buffered fetch, state updates, controlled input and select events, storage restoration,
 mutation delivery and independent captures converted to Markdown and searchable
@@ -406,9 +423,10 @@ keyboard-driven form navigation.
 These paths do not establish general Preact or browser compatibility. An observer-driven module report additionally proves
 JSON loading, combined mutation/promise ordering, typed updates and captures that
 convert after session disposal. The report module loads from the head and awaits
-document and window readiness before updating the completed body. Remaining script
-lifecycle, credentials/cookies, OS isolation, broader framework compatibility and
-the explicitly excluded layout/input behavior remain unqualified.
+document and window readiness before updating the completed body. Cookie-backed
+credentials, hostile-code OS isolation, broader framework compatibility, vertical
+caret motion, IME/composition, clipboard integration, multi-key pressed state,
+non-center hit selection and pointer capture remain outside this versioned profile.
 
 Commands are serialized. `Timeout` includes time waiting for another command,
 execution and result transfer. A queued cancellation or timeout leaves the active

@@ -48,5 +48,14 @@ namespace AngleSharp.Io
             get;
             set;
         }
+
+        /// <summary>
+        /// Gets or sets the integrity metadata captured when the request was prepared.
+        /// </summary>
+        public string? IntegrityMetadata
+        {
+            get;
+            set;
+        }
     }
 }

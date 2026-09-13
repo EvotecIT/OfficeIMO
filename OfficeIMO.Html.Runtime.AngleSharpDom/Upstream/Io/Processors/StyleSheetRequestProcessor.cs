@@ -51,11 +51,13 @@ namespace AngleSharp.Io.Processors
             if (IsAvailable && Engine != null && IsDifferentToCurrentDownloadUrl(request.Target))
             {
                 CancelDownload();
+                request.IntegrityMetadata = _link.HasAttribute(AttributeNames.Integrity) ? _link.Integrity : null;
                 Download = DownloadWithCors(new CorsRequest(request)
                 {
                     Setting = _link.CrossOrigin.ToEnum(CorsSetting.None),
                     Behavior = OriginBehavior.Taint,
-                    Integrity = _context.GetProvider<IIntegrityProvider>()
+                    Integrity = _context.GetProvider<IIntegrityProvider>(),
+                    IntegrityMetadata = request.IntegrityMetadata
                 });
                 return FinishDownloadAsync();
             }

@@ -3,6 +3,7 @@ namespace AngleSharp.Html.LinkRels
     using AngleSharp.Dom;
     using AngleSharp.Html.Dom;
     using AngleSharp.Io.Processors;
+    using System;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -46,6 +47,11 @@ namespace AngleSharp.Html.LinkRels
         /// Gets the currently used URL.
         /// </summary>
         public Url? Url => _link.Href is { Length: > 0 } ? new Url(_link.Href) : null;
+
+        /// <summary>
+        /// Gets whether this relation delays the owning document's load event.
+        /// </summary>
+        public virtual Boolean DelaysDocumentLoad => true;
 
         #endregion
 

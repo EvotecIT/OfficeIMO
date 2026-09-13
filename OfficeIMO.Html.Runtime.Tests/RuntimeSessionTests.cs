@@ -68,8 +68,9 @@ public sealed class RuntimeSessionTests {
 
     [Fact]
     public async Task LifetimeExpiryIncludesIdleTime() {
-        await using var session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest { SessionTimeout = TimeSpan.FromSeconds(2) });
-        await Task.Delay(TimeSpan.FromSeconds(2));
+        var lifetime = TimeSpan.FromSeconds(5);
+        await using var session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest { SessionTimeout = lifetime });
+        await Task.Delay(lifetime + TimeSpan.FromMilliseconds(250));
         await Assert.ThrowsAsync<TimeoutException>(() => session.EvaluateAsync("1"));
     }
 

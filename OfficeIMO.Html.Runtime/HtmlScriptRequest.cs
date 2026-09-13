@@ -38,6 +38,8 @@ public sealed class HtmlScriptRequest {
     public int MaxStorageCharacters { get; set; } = 1024 * 1024;
     /// <summary>Maximum distinct module sources retained per session, including inline roots and failed loads.</summary>
     public int MaxModuleCount { get; set; } = 1024;
+    /// <summary>Maximum cumulative integrity-metadata characters retained for one module source.</summary>
+    public int MaxModuleIntegrityMetadataCharacters { get; set; } = 64 * 1024;
     /// <summary>Maximum cross-document loads and reloads admitted over the session lifetime.</summary>
     public int MaxNavigations { get; set; } = 128;
     /// <summary>Maximum retained same-document history entries, including the first and current entries.</summary>
@@ -64,6 +66,8 @@ public sealed class HtmlScriptRequest {
         if (MaxInputCharacters <= 0 || MaxOutputCharacters <= 0 || MaxNodes <= 0 || MaxDepth <= 0 || MaxPendingPromiseRejections <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputCharacters), "Resource limits must be positive.");
         if (MaxStorageCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxStorageCharacters));
         if (MaxModuleCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxModuleCount));
+        if (MaxModuleIntegrityMetadataCharacters <= 0 || MaxModuleIntegrityMetadataCharacters > 8 * 1024 * 1024)
+            throw new ArgumentOutOfRangeException(nameof(MaxModuleIntegrityMetadataCharacters));
         if (MaxNavigations <= 0) throw new ArgumentOutOfRangeException(nameof(MaxNavigations));
         if (MaxHistoryEntries < 2) throw new ArgumentOutOfRangeException(nameof(MaxHistoryEntries));
         if (MaxPendingHistoryTasks <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPendingHistoryTasks));
@@ -96,7 +100,8 @@ public sealed class HtmlScriptRequest {
             DocumentUrl = DocumentUrl, Resources = resources, ResourcePolicy = policy,
             SessionTimeout = SessionTimeout, PollInterval = PollInterval, MaxInputCharacters = MaxInputCharacters, MaxOutputCharacters = MaxOutputCharacters,
             MaxNodes = MaxNodes, MaxDepth = MaxDepth, MaxPendingPromiseRejections = MaxPendingPromiseRejections,
-            MaxStorageCharacters = MaxStorageCharacters, MaxModuleCount = MaxModuleCount, MaxNavigations = MaxNavigations,
+            MaxStorageCharacters = MaxStorageCharacters, MaxModuleCount = MaxModuleCount,
+            MaxModuleIntegrityMetadataCharacters = MaxModuleIntegrityMetadataCharacters, MaxNavigations = MaxNavigations,
             MaxHistoryEntries = MaxHistoryEntries, MaxHistoryStateBytes = MaxHistoryStateBytes, MaxHistoryTotalStateBytes = MaxHistoryTotalStateBytes, MaxPendingHistoryTasks = MaxPendingHistoryTasks,
             MaxStylesheetImportDepth = MaxStylesheetImportDepth,
             ViewportWidth = ViewportWidth, ViewportHeight = ViewportHeight };

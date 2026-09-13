@@ -55,7 +55,7 @@ namespace AngleSharp.Io
             }
             else if (setting == CorsSetting.None)
             {
-                return loader.FetchWithoutCorsAsync(request, cors.Behavior);
+                return loader.FetchWithoutCorsAsync(cors);
             }
 
             throw new DomException(DomError.Network);
@@ -71,7 +71,9 @@ namespace AngleSharp.Io
             var download = loader.FetchAsync(new ResourceRequest(request.Source, url)
             {
                 Origin = request.Origin,
-                IsManualRedirectDesired = true
+                IsManualRedirectDesired = true,
+                IntegrityMetadata = cors.IntegrityMetadata,
+                IntegritySnapshot = request.IntegritySnapshot
             });
 
             return download.Wrap(response =>
@@ -106,14 +108,15 @@ namespace AngleSharp.Io
             });
         }
 
-        private static IDownload FetchWithoutCorsAsync(this IResourceLoader loader, ResourceRequest request, OriginBehavior behavior)
+        private static IDownload FetchWithoutCorsAsync(this IResourceLoader loader, CorsRequest cors)
         {
-            if (behavior == OriginBehavior.Fail)
+            if (cors.Behavior == OriginBehavior.Fail)
             {
                 throw new DomException(DomError.Network);
             }
 
-            return loader.FetchAsync(request);
+            var download = loader.FetchAsync(cors.Request);
+            return download.Wrap(_ => cors.CheckIntegrity(download));
         }
 
         #endregion
@@ -154,23 +157,26 @@ namespace AngleSharp.Io
             {
                 IsCookieBlocked = oldRequest.IsCookieBlocked,
                 IsSameOriginForced = oldRequest.IsSameOriginForced,
-                Origin = oldRequest.Origin
+                Origin = oldRequest.Origin,
+                IntegrityMetadata = oldRequest.IntegrityMetadata,
+                IntegritySnapshot = oldRequest.IntegritySnapshot
             };
             return new CorsRequest(newRequest)
             {
                 Setting = cors.Setting,
                 Behavior = cors.Behavior,
-                Integrity = cors.Integrity
+                Integrity = cors.Integrity,
+                IntegrityMetadata = cors.IntegrityMetadata
             };
         }
 
         private static IDownload CheckIntegrity(this CorsRequest cors, IDownload download)
         {
             var response = download.Task.Result;
-            var value = cors.Request.Source?.GetAttribute(AttributeNames.Integrity);
+            var value = cors.IntegrityMetadata;
             var integrity = cors.Integrity;
 
-            if (value is { Length: > 0 } && integrity != null && response != null)
+            if (value != null && integrity != null && response != null)
             {
                 var content = new MemoryStream();
                 response.Content.CopyTo(content);

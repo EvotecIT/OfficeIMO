@@ -59,20 +59,33 @@ internal sealed class RuntimeScriptingService(JsScriptingService scripting, Func
 
     public async Task EvaluateScriptAsync(IResponse response, ScriptOptions options, CancellationToken cancel) {
         bool isModule = string.Equals(options.PreparedType, "module", StringComparison.OrdinalIgnoreCase);
-        using var reader = new StreamReader(response.Content, isModule ? Encoding.UTF8 : options.Encoding ?? Encoding.UTF8, !isModule);
-        string source = await reader.ReadToEndAsync(cancel).ConfigureAwait(false);
         if (!isModule) {
+            using var reader = new StreamReader(response.Content, options.Encoding ?? Encoding.UTF8, true);
+            string classicSource = await reader.ReadToEndAsync(cancel).ConfigureAwait(false);
             string sourceUrl = options.IsExternal ? response.Address.Href : RuntimeDocumentUrls.Base(options.Document);
-            await options.EventLoop.EnqueueAsync(_ => EvaluateScript(options.Document, source, options.PreparedType!, sourceUrl), TaskPriority.Critical).WaitAsync(cancel);
+            await options.EventLoop.EnqueueAsync(_ => EvaluateScript(options.Document, classicSource, options.PreparedType!, sourceUrl), TaskPriority.Critical).WaitAsync(cancel);
             return;
         }
+        using var content = new MemoryStream();
+        await response.Content.CopyToAsync(content, 81920, cancel).ConfigureAwait(false);
+        byte[] buffer = content.ToArray();
+        string source = Encoding.UTF8.GetString(buffer);
+        if (source.StartsWith('\uFEFF')) source = source[1..];
         var engine = scripting.GetOrCreateJint(options.Document);
         var prepared = await options.EventLoop.EnqueueAsync(_ => {
             bool external = options.IsExternal;
             var baseUrl = new Uri(response.Address.Href);
-            if (external) RuntimeModuleLoader.Validate((int)response.StatusCode, response.Headers.TryGetValue("Content-Type", out var mime) ? mime : "");
-            string identity = modules().Register(source, baseUrl, external ? options.PreparedSourceUrl : null);
-            return (Identity: identity, Source: modules().GetSource(identity));
+            string contentType = response.Headers.TryGetValue("Content-Type", out var mime) ? mime : "text/javascript";
+            if (external) RuntimeModuleLoader.Validate((int)response.StatusCode, contentType);
+            string? integrityMetadata = null;
+            if (external) {
+                if (options.PreparedIntegritySnapshot is not { IsResolved: true } snapshot)
+                    throw new HtmlScriptRuntimeException("The module integrity selection was not completed during resource loading.");
+                integrityMetadata = snapshot.Value;
+            }
+            return modules().Register(source, buffer, baseUrl, external ? options.PreparedSourceUrl : null,
+                integrityMetadata, contentType, (int)response.StatusCode, response.Headers,
+                external);
         }, TaskPriority.Critical).WaitAsync(cancel);
         var moduleSource = await prepared.Source.WaitAsync(_lifetime.Token).WaitAsync(cancel);
         var loaded = await options.EventLoop.EnqueueAsync(_ => {

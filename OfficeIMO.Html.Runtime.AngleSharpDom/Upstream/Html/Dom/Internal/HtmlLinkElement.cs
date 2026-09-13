@@ -297,7 +297,10 @@ namespace AngleSharp.Html.Dom
             var relation = _relation;
             var retired = _loadRetired.Task;
             var task = relation.LoadAsync();
-            Owner?.DelayLoadUntilRetired(task, retired);
+            if (relation.DelaysDocumentLoad)
+            {
+                Owner?.DelayLoadUntilRetired(task, retired);
+            }
             if (_scriptBlockingEligible == true && Owner != null)
             {
                 var blockingLoad = new ScriptBlockingLoad();

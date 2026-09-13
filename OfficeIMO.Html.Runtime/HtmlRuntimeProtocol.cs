@@ -48,6 +48,7 @@ internal sealed class HtmlRuntimeCommand {
 internal sealed class HtmlRuntimeResponse {
     public long Id { get; set; }
     public string? Error { get; set; }
+    public string? ErrorKind { get; set; }
     public string? ValueJson { get; set; }
     public HtmlRuntimeWireDocument? Document { get; set; }
     public HtmlAutomationResult? Automation { get; set; }
