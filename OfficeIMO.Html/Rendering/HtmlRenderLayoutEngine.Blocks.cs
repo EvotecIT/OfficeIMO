@@ -467,6 +467,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var overflowContent = new List<HtmlRenderVisual>();
         var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
+        if (HtmlRenderSourceIdentity.TryGet(element, out string interactionSource)) {
+            OfficeShape geometry = OfficeShape.Rectangle(Math.Max(0.01D, boxWidth), Math.Max(0.01D, boxHeight));
+            geometry.FillColor = null;
+            geometry.StrokeWidth = 0D;
+            visuals.Add(new HtmlRenderShape(geometry, style.MarginLeft, style.MarginTop, visuals.Count, source: interactionSource));
+        }
         AppendLocalPositionedVisuals(
             element,
             Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),

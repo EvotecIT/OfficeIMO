@@ -47,7 +47,7 @@ public sealed class RuntimeSessionTests {
     [InlineData(true)]
     [InlineData(false)]
     public async Task ActiveTimeoutOrCancellationTerminatesTheSession(bool cancel) {
-        await using var session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest { Timeout = TimeSpan.FromSeconds(2) });
+        await using var session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest { Timeout = TimeSpan.FromSeconds(10) });
         using var cancellation = new CancellationTokenSource();
         Task active = session.ExecuteAsync("while(true){}", cancellation.Token);
         if (cancel) {

@@ -48,6 +48,10 @@ public sealed class HtmlScriptRequest {
     public int MaxHistoryTotalStateBytes { get; set; } = 8 * 1024 * 1024;
     /// <summary>Maximum queued history traversals and fragment-change notifications.</summary>
     public int MaxPendingHistoryTasks { get; set; } = 1024;
+    /// <summary>Layout viewport width in CSS pixels for WebApplicationV1 inspection and actionability.</summary>
+    public double ViewportWidth { get; set; } = 1280D;
+    /// <summary>Layout viewport height in CSS pixels for WebApplicationV1 inspection and actionability.</summary>
+    public double ViewportHeight { get; set; } = 720D;
 
     internal HtmlScriptRequest Snapshot() {
         if (Html == null || Scripts == null || ReadyExpression == null) throw new ArgumentException("HTML, scripts and readiness are required.");
@@ -62,6 +66,10 @@ public sealed class HtmlScriptRequest {
         if (MaxHistoryEntries < 2) throw new ArgumentOutOfRangeException(nameof(MaxHistoryEntries));
         if (MaxPendingHistoryTasks <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPendingHistoryTasks));
         if (MaxHistoryStateBytes <= 0 || MaxHistoryTotalStateBytes < MaxHistoryStateBytes) throw new ArgumentOutOfRangeException(nameof(MaxHistoryStateBytes));
+        if (!double.IsFinite(ViewportWidth) || ViewportWidth <= 0D)
+            throw new ArgumentOutOfRangeException(nameof(ViewportWidth), "Viewport width must be a finite positive value.");
+        if (!double.IsFinite(ViewportHeight) || ViewportHeight <= 0D)
+            throw new ArgumentOutOfRangeException(nameof(ViewportHeight), "Viewport height must be a finite positive value.");
         var scripts = Scripts.ToArray();
         long length = (long)Html.Length + ReadyExpression.Length;
         foreach (string script in scripts) {
@@ -86,7 +94,8 @@ public sealed class HtmlScriptRequest {
             SessionTimeout = SessionTimeout, PollInterval = PollInterval, MaxInputCharacters = MaxInputCharacters, MaxOutputCharacters = MaxOutputCharacters,
             MaxNodes = MaxNodes, MaxDepth = MaxDepth, MaxPendingPromiseRejections = MaxPendingPromiseRejections,
             MaxStorageCharacters = MaxStorageCharacters, MaxModuleCount = MaxModuleCount, MaxNavigations = MaxNavigations,
-            MaxHistoryEntries = MaxHistoryEntries, MaxHistoryStateBytes = MaxHistoryStateBytes, MaxHistoryTotalStateBytes = MaxHistoryTotalStateBytes, MaxPendingHistoryTasks = MaxPendingHistoryTasks };
+            MaxHistoryEntries = MaxHistoryEntries, MaxHistoryStateBytes = MaxHistoryStateBytes, MaxHistoryTotalStateBytes = MaxHistoryTotalStateBytes, MaxPendingHistoryTasks = MaxPendingHistoryTasks,
+            ViewportWidth = ViewportWidth, ViewportHeight = ViewportHeight };
     }
 }
 

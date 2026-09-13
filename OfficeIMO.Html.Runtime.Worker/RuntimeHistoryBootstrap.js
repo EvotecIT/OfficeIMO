@@ -1,16 +1,18 @@
 ((currentUrl, parseRoute, updateRoute, enqueue, snapshot, maximumEntries, maximumBytes, maximumTasks, dispatch,
-    initialEntries, initialIndex, documentId, replaceDocument, targetIndex, reload, persist, navigateDocument, parseNavigation) => {
+    initialEntries, initialIndex, documentId, replaceDocument, targetIndex, reload, persist, navigateDocument, parseNavigation,
+    currentScrollX, currentScrollY, restoreScroll) => {
     "use strict";
     const URLCtor = URL, EventCtor = Event, ErrorCtor = Error, define = Object.defineProperty;
     const apply=Reflect.apply, stringIndex=String.prototype.indexOf, stringSlice=String.prototype.slice, setPrototype=Object.setPrototypeOf;
     const clone = value => snapshot(value).value;
-    let entries = setPrototype([{url:currentUrl(),snapshot:{value:null,bytes:0},scroll:'auto',documentId}],null);
+    let entries = setPrototype([{url:currentUrl(),snapshot:{value:null,bytes:0},scroll:'auto',x:0,y:0,documentId}],null);
     let index = 0, state = null, pending = 0;
     if(initialEntries!==null) {
         entries=setPrototype([],null);
         for(let i=0;i<initialEntries.length;i++) {
             const old=initialEntries[i];
-            entries[i]={url:old.url,snapshot:{value:clone(old.snapshot.value),bytes:old.snapshot.bytes},scroll:old.scroll,documentId:old.documentId};
+            entries[i]={url:old.url,snapshot:{value:clone(old.snapshot.value),bytes:old.snapshot.bytes},scroll:old.scroll,
+                x:Number.isFinite(old.x)?old.x:0,y:Number.isFinite(old.y)?old.y:0,documentId:old.documentId};
         }
         index=initialIndex;
         if(targetIndex>=0 || reload) {
@@ -18,7 +20,7 @@
             const oldId=entries[index].documentId;
             for(let i=0;i<entries.length;i++)if(entries[i].documentId===oldId)entries[i].documentId=documentId;
             entries[index].url=currentUrl();state=clone(entries[index].snapshot.value);
-        } else commit(currentUrl(),{value:null,bytes:0},replaceDocument);
+        } else commit(currentUrl(),{value:null,bytes:0},replaceDocument,false);
     }
     initialEntries=null;
     persist(entries,index);
@@ -48,8 +50,11 @@
     function withoutFragment(url) { const offset=apply(stringIndex,url,['#']);return offset<0 ? url : apply(stringSlice,url,[0,offset]); }
     function fragment(url) { const offset=apply(stringIndex,url,['#']);return offset<0 ? null : apply(stringSlice,url,[offset+1]); }
     function text(value) {if(typeof value==='symbol')throw new TypeError('Cannot convert a Symbol to a string');return String(value);}
-    function commit(url,saved,replace) {
-        const entry={url,snapshot:saved,scroll:entries[index].scroll,documentId};
+    function saveScroll() {entries[index].x=currentScrollX();entries[index].y=currentScrollY();persist(entries,index);}
+    function restoreCurrentScroll() {const entry=entries[index];if(entry.scroll==='auto')restoreScroll(entry.x,entry.y);}
+    function commit(url,saved,replace,captureCurrent=true) {
+        if(captureCurrent)saveScroll();
+        const entry={url,snapshot:saved,scroll:entries[index].scroll,x:currentScrollX(),y:currentScrollY(),documentId};
         const next=setPrototype([],null);
         for(let i=0;i<(replace?entries.length:index+1);i++)next[i]=entries[i];
         let nextIndex=replace ? index : next.length;
@@ -69,7 +74,7 @@
     define(history,Symbol.toStringTag,{value:'History'});
     define(history,'length',{get(){check(this,history);return entries.length},enumerable:true});
     define(history,'state',{get(){check(this,history);return state},enumerable:true});
-    define(history,'scrollRestoration',{get(){check(this,history);return entries[index].scroll},set(value){check(this,history);value=text(value);if(value==='auto'||value==='manual')entries[index].scroll=value},enumerable:true});
+    define(history,'scrollRestoration',{get(){check(this,history);return entries[index].scroll},set(value){check(this,history);value=text(value);if(value==='auto'||value==='manual'){entries[index].scroll=value;persist(entries,index)}},enumerable:true});
     function change(receiver,data,unused,url,replace,count) {
         check(receiver,history);
         if(count<2) throw new TypeError('History state requires data and an unused title');
@@ -81,13 +86,14 @@
     history.pushState=function(data,unused,url){change(this,data,unused,url,false,arguments.length)};
     history.replaceState=function(data,unused,url){change(this,data,unused,url,true,arguments.length)};
     function traverse(delta){
-        if(delta===0) {navigateDocument(currentUrl(),true,index,true,documentId);return;}
+        if(delta===0) {saveScroll();navigateDocument(currentUrl(),true,index,true,documentId);return;}
         queue(()=>{
             const next=index+delta;
             if(next<0||next>=entries.length)return;
+            saveScroll();
             if(entries[next].documentId!==documentId){navigateDocument(entries[next].url,false,next,false,entries[next].documentId);return;}
             const oldUrl=currentUrl(),entry=entries[next],nextState=clone(entry.snapshot.value);
-            index=next;state=nextState;updateRoute(entry.url);persist(entries,index);
+            index=next;state=nextState;updateRoute(entry.url);restoreCurrentScroll();persist(entries,index);
             if(fragment(oldUrl)!==fragment(entry.url))queue(()=>event('hashchange',{oldURL:oldUrl,newURL:entry.url}));
             event('popstate',{state});
         });
@@ -98,7 +104,7 @@
     function navigate(value,replace) {
         const url=parseNavigation(text(value)),oldUrl=currentUrl();
         if(withoutFragment(url)!==withoutFragment(oldUrl) || fragment(url)===null)
-            {navigateDocument(url,replace,-1,false,-1);return;}
+            {saveScroll();navigateDocument(url,replace,-1,false,-1);return;}
         if(url===oldUrl)return;
         checkQueue();
         commit(url,{value:null,bytes:0},replace);
@@ -113,7 +119,7 @@
     }
     location.assign=function(url){check(this,location);if(!arguments.length)throw new TypeError('URL required');navigate(url,false)};
     location.replace=function(url){check(this,location);if(!arguments.length)throw new TypeError('URL required');navigate(url,true)};
-    function reloadDocument(){navigateDocument(currentUrl(),true,index,true,documentId)}
+    function reloadDocument(){saveScroll();navigateDocument(currentUrl(),true,index,true,documentId)}
     location.reload=function(){check(this,location);reloadDocument()};
     location.toString=function(){check(this,location);return currentUrl()};
     function History(){throw new TypeError('Illegal constructor');}
@@ -121,5 +127,5 @@
     Object.defineProperties(History.prototype,Object.getOwnPropertyDescriptors(history));
     Object.defineProperties(Location.prototype,Object.getOwnPropertyDescriptors(location));
     Object.setPrototypeOf(history,History.prototype);Object.setPrototypeOf(location,Location.prototype);
-    return {history,location,navigate,reload:reloadDocument,restore:()=>event('popstate',{state}),History,Location,PopStateEvent,HashChangeEvent};
+    return {history,location,navigate,reload:reloadDocument,restore:(dispatchState)=>{restoreCurrentScroll();if(dispatchState)event('popstate',{state})},History,Location,PopStateEvent,HashChangeEvent};
 })

@@ -365,6 +365,8 @@ public static partial class HtmlComputedStyleEngine {
                 return IsKnownKeyword(normalized, "block", "inline", "inline-block", "none", "flex", "inline-flex", "grid", "inline-grid", "table", "table-row", "table-cell", "list-item", "contents", "flow-root");
             case "visibility":
                 return IsKnownKeyword(normalized, "visible", "hidden", "collapse");
+            case "pointer-events":
+                return IsKnownKeyword(normalized, "auto", "none");
             case "text-transform":
                 return IsKnownKeyword(normalized, "none", "uppercase", "lowercase", "capitalize", "full-width", "full-size-kana");
             case "text-decoration-line":

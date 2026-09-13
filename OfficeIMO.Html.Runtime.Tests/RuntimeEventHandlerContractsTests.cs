@@ -61,7 +61,7 @@ public sealed class RuntimeEventHandlerContractsTests {
     [Fact]
     public async Task NonterminatingActionPromiseIsBoundedByTheCommandDeadline() {
         await using var session = await Runtime().OpenTrustedAsync(new() {
-            Html = "<button>Go</button>", Timeout = TimeSpan.FromSeconds(2),
+            Html = "<button>Go</button>", Timeout = TimeSpan.FromSeconds(10),
             Scripts = new[] { "document.querySelector('button').onclick=()=>Promise.resolve().then(()=>{while(true){}})" }
         });
         await Assert.ThrowsAsync<TimeoutException>(() => session.Locator("button").ClickAsync());

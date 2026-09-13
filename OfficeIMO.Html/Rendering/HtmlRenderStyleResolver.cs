@@ -542,6 +542,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     internal static string DescribeSource(IElement element) {
+        if (HtmlRenderSourceIdentity.TryGet(element, out string identity)) return identity;
         string tag = element.TagName.ToLowerInvariant();
         if (!string.IsNullOrWhiteSpace(element.Id)) return tag + "#" + element.Id;
         string? className = element.GetAttribute("class");

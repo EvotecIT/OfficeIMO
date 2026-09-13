@@ -102,6 +102,8 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
                 throw new HtmlScriptRuntimeException("Navigation requires an HTML response.");
         }
         token.ThrowIfCancellationRequested();
+        if (_document != null && !await _document.PromptToUnloadAsync(token)) return;
+        if (_document != null) await _document.CommitUnloadAsync(token);
         _document?.Dispose();
         _document = null;
         _history.Transition = navigation;
@@ -110,7 +112,7 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
         request.Html = string.Empty;
         request.Scripts = Array.Empty<string>();
         _document = await OpenDocumentAsync(request, token, response);
-        if (navigation.EntryIndex >= 0 && !navigation.Reload) await _document.RestoreTraversalAsync(token);
+        if (navigation.EntryIndex >= 0) await _document.RestoreTraversalAsync(dispatchPopState: !navigation.Reload, token);
     }
 
     private bool TryGetRetainedSource(RuntimeNavigation navigation, out HtmlRuntimeResource? source) {

@@ -17,7 +17,7 @@ internal sealed class RuntimeHistoryBindings {
     private readonly JsValue _restore;
     private readonly JsValue _reload;
 
-    internal RuntimeHistoryBindings(Engine engine, IDocument document, IEventLoop loop, HtmlScriptRequest options,
+    internal RuntimeHistoryBindings(Engine engine, IDocument document, IEventLoop loop, HtmlScriptRequest options, RuntimeViewport viewport,
         RuntimeBrowsingHistory? browsingHistory = null, Action<RuntimeNavigation>? requestNavigation = null) {
         browsingHistory ??= new RuntimeBrowsingHistory();
         _engine = engine;
@@ -54,6 +54,12 @@ internal sealed class RuntimeHistoryBindings {
             browsingHistory.Entries = args[0]; browsingHistory.Index = (int)args[1].AsNumber();
             return JsValue.Undefined;
         });
+        var currentScrollX = new ClrFunction(engine, "currentScrollX", (_, _) => viewport.ScrollX);
+        var currentScrollY = new ClrFunction(engine, "currentScrollY", (_, _) => viewport.ScrollY);
+        var restoreScroll = new ClrFunction(engine, "restoreScroll", (_, args) => {
+            viewport.ScrollTo(args[0].AsNumber(), args[1].AsNumber());
+            return JsValue.Undefined;
+        });
         var enqueue = new ClrFunction(engine, "queueTraversal", (_, args) => {
             var callback = args[0];
             loop.Enqueue(_ => engine.Invoke(callback), TaskPriority.Normal);
@@ -72,7 +78,8 @@ internal sealed class RuntimeHistoryBindings {
             options.MaxHistoryTotalStateBytes, options.MaxPendingHistoryTasks, dispatch,
             browsingHistory.Entries, browsingHistory.Index, browsingHistory.Generation,
             browsingHistory.Transition?.Replace ?? false, browsingHistory.Transition?.EntryIndex ?? -1,
-            browsingHistory.Transition?.Reload ?? false, persist, navigateDocument, parseNavigation
+            browsingHistory.Transition?.Reload ?? false, persist, navigateDocument, parseNavigation,
+            currentScrollX, currentScrollY, restoreScroll
         }).AsObject();
         _navigate = exports.Get("navigate");
         _restore = exports.Get("restore");
@@ -113,7 +120,7 @@ internal sealed class RuntimeHistoryBindings {
     }
 
     internal void NavigateFragment(string target, bool replace = false) => _engine.Invoke(_navigate, new JsValue[] { target, replace });
-    internal void RestoreTraversal() => _engine.Invoke(_restore);
+    internal void RestoreTraversal(bool dispatchPopState) => _engine.Invoke(_restore, dispatchPopState);
     internal void Reload() => _engine.Invoke(_reload);
 
     private static JavaScriptException Error(Engine engine, string name, string message) {

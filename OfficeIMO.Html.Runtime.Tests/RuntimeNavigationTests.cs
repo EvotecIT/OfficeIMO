@@ -44,6 +44,40 @@ public sealed class RuntimeNavigationTests {
     }
 
     [Fact]
+    public async Task TraversalAndReloadRestoreOwnedViewportOffsetsWhenAutomatic() {
+        const string tall = "<style>body{margin:0}.space{height:1800px}</style><div class='space'></div>";
+        string initial = Page("First", "window.popped=0;onpopstate=()=>popped++") + tall;
+        var request = Application(initial);
+        request.ViewportWidth = 320;
+        request.ViewportHeight = 160;
+        request.Resources = new[] { Resource(First, initial), Resource(Second, Page("Second") + tall) };
+        await using var session = await Runtime().OpenTrustedAsync(request);
+
+        await session.ExecuteAsync("scrollTo(0,600);location.assign('/second')");
+        Assert.Equal(0D, (await session.EvaluateAsync("scrollY")).GetDouble());
+
+        await session.ExecuteAsync("scrollTo(0,350);history.back()");
+        await session.WaitForAsync("location.pathname==='/first' && popped===1");
+        Assert.Equal(600D, (await session.EvaluateAsync("scrollY")).GetDouble());
+
+        await session.ExecuteAsync("history.forward()");
+        await session.WaitForAsync("location.pathname==='/second'");
+        Assert.Equal(350D, (await session.EvaluateAsync("scrollY")).GetDouble());
+
+        await session.ExecuteAsync("history.scrollRestoration='manual';scrollTo(0,450);history.back()");
+        await session.WaitForAsync("location.pathname==='/first'");
+        await session.ExecuteAsync("scrollTo(0,700);history.forward()");
+        await session.WaitForAsync("location.pathname==='/second'");
+        Assert.Equal(0D, (await session.EvaluateAsync("scrollY")).GetDouble());
+
+        await session.ExecuteAsync("history.scrollRestoration='auto';scrollTo(0,500);location.reload()");
+        Assert.Equal(500D, (await session.EvaluateAsync("scrollY")).GetDouble());
+
+        await session.ExecuteAsync("scrollTo(0,650);history.go(0)");
+        Assert.Equal(650D, (await session.EvaluateAsync("scrollY")).GetDouble());
+    }
+
+    [Fact]
     public async Task ReloadPreservesHistoryStateAndStorageButCreatesFreshGlobals() {
         string initial = Page("First", "window.runs=Number(localStorage.getItem('runs')||0)+1;localStorage.setItem('runs',runs)");
         var request = Application(initial);

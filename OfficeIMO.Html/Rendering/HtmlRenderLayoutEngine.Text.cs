@@ -184,11 +184,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (node is IText textNode) {
             if (textNode.Data.Length > 0) {
                 ReportUnsupportedComplexTextShaping(textNode, inheritedStyle);
+                string source = textNode.ParentElement != null
+                    && HtmlRenderSourceIdentity.TryGet(textNode.ParentElement, out string interactionSource)
+                    ? interactionSource
+                    : inheritedStyle.SemanticRole;
                 runs.Add(new HtmlInlineRun(
                     textNode.Data,
                     inheritedStyle,
                     inheritedLink,
-                    inheritedStyle.SemanticRole,
+                    source,
                     inheritedPaintOffsetX,
                     inheritedPaintOffsetY,
                     textNode.ParentElement,

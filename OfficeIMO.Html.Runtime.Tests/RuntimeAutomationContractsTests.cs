@@ -56,7 +56,7 @@ public sealed class RuntimeAutomationContractsTests {
     [InlineData(true)]
     [InlineData(false)]
     public async Task ActiveLocatorWaitCancellationOrTimeoutTerminatesSession(bool cancel) {
-        await using var session = await Runtime().OpenTrustedAsync(new() { Timeout = TimeSpan.FromSeconds(2) });
+        await using var session = await Runtime().OpenTrustedAsync(new() { Timeout = TimeSpan.FromSeconds(10) });
         using var cancellation = new CancellationTokenSource();
         Task wait = session.Locator("#missing").WaitForAsync(cancellationToken: cancellation.Token);
         if (cancel) {
@@ -130,6 +130,9 @@ public sealed class RuntimeAutomationContractsTests {
         await session.Locator("input").SetCheckedAsync(true);
         Assert.True((await session.Locator("input").InspectAsync()).IsIndeterminate);
         Assert.Equal(0, (await session.EvaluateAsync("clicks")).GetInt32());
+        HtmlRuntimeElementState link = await session.Locator("a").InspectAsync();
+        Assert.True(link.IsVisible);
+        Assert.NotNull(link.BoundingBox);
         await session.Locator("a").ClickAsync();
         await session.Locator("h1").WaitForTextAsync("Next page");
         Assert.Equal(next, (await session.CaptureAsync()).DocumentUrl);

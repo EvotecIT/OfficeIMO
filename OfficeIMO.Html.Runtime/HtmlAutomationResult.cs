@@ -20,6 +20,18 @@ public enum HtmlAutomationStatus {
     Rejected
 }
 
+/// <summary>An immutable element rectangle in CSS pixels relative to the current layout viewport.</summary>
+public sealed class HtmlRuntimeRect {
+    /// <summary>Horizontal viewport coordinate.</summary>
+    public double X { get; init; }
+    /// <summary>Vertical viewport coordinate.</summary>
+    public double Y { get; init; }
+    /// <summary>Rectangle width.</summary>
+    public double Width { get; init; }
+    /// <summary>Rectangle height.</summary>
+    public double Height { get; init; }
+}
+
 /// <summary>An independent snapshot of one live element's inspected properties.</summary>
 public sealed class HtmlRuntimeElementState {
     /// <summary>Element local name.</summary>
@@ -50,6 +62,18 @@ public sealed class HtmlRuntimeElementState {
     public bool IsFocused { get; init; }
     /// <summary>Whether the inspected element remains attached after an action.</summary>
     public bool IsConnected { get; init; }
+    /// <summary>Whether WebApplicationV1 computed a nonempty box that is visible by its qualified CSS model; null when layout is not enabled.</summary>
+    public bool? IsVisible { get; init; }
+    /// <summary>Whether the visible box intersects the current viewport; null when layout is not enabled or no visible box exists.</summary>
+    public bool? IsInViewport { get; init; }
+    /// <summary>Whether computed pointer-events permits pointer activation; null when layout is not enabled.</summary>
+    public bool? AcceptsPointerEvents { get; init; }
+    /// <summary>Current bounding box relative to the viewport, or null when the element has no qualified visible box.</summary>
+    public HtmlRuntimeRect? BoundingBox { get; init; }
+    /// <summary>Current horizontal document scroll offset in CSS pixels.</summary>
+    public double ScrollX { get; init; }
+    /// <summary>Current vertical document scroll offset in CSS pixels.</summary>
+    public double ScrollY { get; init; }
 }
 
 /// <summary>Result of an operation, without provider objects or stale element handles.</summary>

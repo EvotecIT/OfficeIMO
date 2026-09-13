@@ -43,15 +43,18 @@ var after = await session.CaptureAsync(cancellationToken: cancellationToken);
 ```
 
 `ScriptedDocumentV1` is the default single-document contract. Select
-`WebApplicationV1` when the workflow needs cross-document navigation, reload, or
-history restoration. The profile keeps one active document while storage,
-resource limits, history and existing locator handles belong to the session:
+`WebApplicationV1` when the workflow needs cross-document navigation, reload,
+history restoration, layout-aware actions or selected keyboard and pointer input.
+The profile keeps one active document while storage, resource limits, history,
+viewport state and existing locator handles belong to the session:
 
 ```csharp
 await using var application = await runtime.OpenTrustedAsync(new HtmlScriptRequest {
     Profile = HtmlRuntimeProfile.WebApplicationV1,
     DocumentUrl = new Uri("https://reports.example/start"),
     Html = startHtml,
+    ViewportWidth = 1280,
+    ViewportHeight = 720,
     Resources = new[] {
         HtmlRuntimeResource.FromText(
             new Uri("https://reports.example/details"),
@@ -63,6 +66,7 @@ await using var application = await runtime.OpenTrustedAsync(new HtmlScriptReque
 var heading = application.Locator("h1");
 await application.NavigateAsync(new Uri("https://reports.example/details"), cancellationToken: cancellationToken);
 await heading.WaitForTextAsync("Details", cancellationToken);
+await heading.ScrollIntoViewAsync(cancellationToken);
 await application.ReloadAsync(cancellationToken);
 ```
 
@@ -89,11 +93,14 @@ use OfficeIMO's shared ARIA, HTML label, alternative-text and title rules, with 
 fallback for buttons, links, headings, options and explicitly role-bearing elements.
 This is a bounded naming subset, not a complete browser accessibility tree.
 
-The current interaction profile supports DOM clicks, fill for text-like inputs and
+The common interaction surface supports DOM clicks, fill for text-like inputs and
 textareas, checkbox/radio checking, exact option-value selection, focus, blur and
-state waits. Focus events, `document.activeElement`, `:focus` and `:focus-within`
-share session state. Fill sends cancelable `beforeinput`, changes the live value,
-then sends `input`; a changed text control sends `change` when it loses focus.
+state waits. `WebApplicationV1` additionally supports computed-visibility and
+in-viewport waits, bounding boxes, scrolling, primary-pointer hover/click and a
+selected single-key input contract. Focus events, `document.activeElement`,
+`:focus` and `:focus-within` share session state. Fill sends cancelable `beforeinput`,
+changes the live value, then sends `input`; a changed text control sends `change`
+when it loses focus.
 `SetCheckedAsync` leaves an already matching checked state untouched, including
 indeterminate presentation. Option values must identify unique options; an empty
 selection clears them. Disabled, readonly, hidden and inert markup affect readiness.
@@ -104,14 +111,42 @@ deadline. Ambiguous, unsupported and page-rejected actions throw
 Use `AutomateAsync` to receive that result directly or set `WaitForReady = false`.
 Script failures and cancellation after command admission still terminate the worker.
 
-Clicks dispatch DOM events, checkbox/radio activation and navigation. Cross-document
-anchor defaults require `WebApplicationV1`. Script-triggered `.click()` uses the same activation owner, including
-cancellation and a recursion guard; it can activate hidden or detached elements
-without applying the locator's visibility/focus requirements. Downloads, additional
-browsing contexts and form submission/reset report `Unsupported` after click
-dispatch. Page handlers may already have changed the
-document. Pointer hit testing, scrolling and keyboard input remain unqualified.
-`IsHiddenByMarkup` does not measure computed visibility, occlusion or layout stability.
+Under `WebApplicationV1`, locator actions measure the current DOM through the owned
+static CSS/layout engine, including active, non-alternate directly loaded external stylesheets. They reject
+missing layout boxes and `pointer-events:none` where pointer input is required, and
+scroll offscreen targets into the configured viewport. `InspectAsync` reports the
+box, scroll offsets, visibility, viewport intersection and pointer eligibility.
+`scrollTo`, `scrollBy`, `scrollIntoView` and `getBoundingClientRect` use the same
+viewport from script. Layout is recomputed for every observation or action so DOM
+and style-attribute mutations are visible. CSSOM-only stylesheet mutations,
+stylesheet imports, occlusion/topmost hit testing, transforms and layout stability
+waiting remain outside the qualified actionability model.
+
+`HoverAsync` sends target pointer/mouse enter, over and move events. `ClickAsync`
+adds primary pointer/mouse down and up before the shared click/default owner, using
+the measured center coordinates. These named pointer events are mouse-compatible
+events; the `PointerEvent` constructor, pointer IDs, pointer capture, multiple
+pointers and device-specific pressure are not provided. Preventing pointer down
+suppresses compatibility mouse down/up, and preventing mouse down suppresses focus.
+There is no occlusion-based retargeting.
+
+`PressAsync` sends `keydown` and `keyup`. It accepts one text element plus `Enter`,
+`Space`, `Tab`, `Escape`, `Backspace`, `Delete`, `Home`, `End` and the four arrow
+keys. Text is inserted at the end of supported controls, Backspace removes the last
+text element, Tab advances through the selected tab order, Space activates selected
+controls after `keyup`, Enter activates its selected controls after `keydown`, and
+Enter performs selected implicit form submission. Preventing
+`keydown` suppresses the default. Modifiers, reverse Tab, selection/caret editing,
+IME/composition, clipboard input and legacy `keypress` behavior remain unqualified.
+
+Clicks dispatch checkbox/radio activation, anchor navigation and form defaults.
+`WebApplicationV1` supports cancelable reset and submit events with the initiating
+submitter, submitter action/method/target overrides, GET form navigation,
+and script `form.reset()`, `form.submit()` and `form.requestSubmit()`. POST and other
+methods, downloads and additional browsing contexts report `Unsupported` after any
+already-dispatched page events. Script-triggered `.click()` uses the same activation
+and form/navigation owner with a recursion guard, but follows DOM programmatic-click
+semantics: it does not send the locator pointer sequence or apply layout actionability.
 
 Select controls support handler properties and inline handlers, ordinary property
 writes, `item`/`namedItem` lookup, and assignment to `value` or `selectedIndex`.
@@ -326,23 +361,31 @@ storage and cumulative resource/navigation budgets remain with the session. A 20
 or 205 response leaves the current document active. Offline traversal and reload
 can replay the retained source for a history document when no supplied resource
 matches; an explicitly supplied response still takes precedence. Navigated HTML
-is admitted as strict UTF-8 before parsing or script execution. History-created events expose their state or URL pair and are
-trusted; script redispatch clears that status. `scrollRestoration` stores the
-entry's preference, but scrolling is not implemented. Downloads, additional
-browsing contexts, beforeunload/unload and the newer Navigation API remain outside
-this profile.
+is admitted as strict UTF-8 before parsing or script execution. History-created
+events expose their state or URL pair and are trusted; script redispatch clears that
+status. Each history entry retains its viewport offsets. Traversal and reload restore
+them when `scrollRestoration` is `auto`; `manual` starts a replacement document at
+its own offset. A cancelable `beforeunload` can keep the current document active.
+Committed replacement dispatches `pagehide` with `persisted=false`, then `unload`.
+Specialized `beforeunload.returnValue` and handler return semantics, additional
+browsing contexts and the newer Navigation API remain outside this profile.
 
 `WebApplicationV1` names the selected H7 contract. The test-only Preact 10.29.8
 fixture proves UMD loading, mount/unmount, hook effects,
 buffered fetch, state updates, controlled input and select events, storage restoration,
 mutation delivery and independent captures converted to Markdown and searchable
 PDF. Navigation fixtures prove fresh realms, reload, cross-origin storage partitioning,
-structured history restoration, redirects, locator rebinding and cumulative limits.
+structured history and viewport restoration, redirects, locator rebinding and
+cumulative limits. Form fixtures cover reset, GET submission, page cancellation and
+unload decisions. Layout/input fixtures cover computed and external CSS, dynamic
+style changes, geometry, scrolling, primary pointer sequences, keyboard editing,
+focus traversal and keyboard-driven form navigation.
 These paths do not establish general Preact or browser compatibility. An observer-driven module report additionally proves
 JSON loading, combined mutation/promise ordering, typed updates and captures that
 convert after session disposal. The report module loads from the head and awaits
-document and window readiness before updating the completed body. Remaining script lifecycle,
-form defaults, credentials/cookies, layout-driven interaction and broader framework compatibility remain unqualified.
+document and window readiness before updating the completed body. Remaining script
+lifecycle, credentials/cookies, OS isolation, broader framework compatibility and
+the explicitly excluded layout/input behavior remain unqualified.
 
 Commands are serialized. `Timeout` includes time waiting for another command,
 execution and result transfer. A queued cancellation or timeout leaves the active

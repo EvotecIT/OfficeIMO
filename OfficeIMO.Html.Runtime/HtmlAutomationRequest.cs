@@ -8,6 +8,10 @@ public enum HtmlAutomationAction {
     Count,
     /// <summary>Activate an element through DOM click behavior.</summary>
     Click,
+    /// <summary>Move the selected primary pointer over an element.</summary>
+    Hover,
+    /// <summary>Dispatch one selected keyboard key and its qualified default behavior.</summary>
+    Press,
     /// <summary>Replace an editable text control's value and dispatch input.</summary>
     Fill,
     /// <summary>Activate a checkbox or radio to obtain the requested checked state.</summary>
@@ -18,6 +22,8 @@ public enum HtmlAutomationAction {
     Focus,
     /// <summary>Blur the element if it owns focus.</summary>
     Blur,
+    /// <summary>Scroll the layout viewport by the minimum amount needed to expose the element's bounding box.</summary>
+    ScrollIntoView,
     /// <summary>Wait for a locator state without executing caller-supplied JavaScript.</summary>
     Wait
 }
@@ -36,6 +42,12 @@ public enum HtmlLocatorWaitState {
     Editable,
     /// <summary>One element owns focus.</summary>
     Focused,
+    /// <summary>One element has a nonempty box and is visible by the qualified CSS layout model.</summary>
+    Visible,
+    /// <summary>No element matches, or the single match has no visible box.</summary>
+    Hidden,
+    /// <summary>One visible element intersects the current layout viewport.</summary>
+    InViewport,
     /// <summary>The current control value equals Value.</summary>
     Value,
     /// <summary>Normalized element text equals Value.</summary>
@@ -50,7 +62,7 @@ public sealed class HtmlAutomationRequest {
     public HtmlLocatorQuery Query { get; init; } = null!;
     /// <summary>The requested operation.</summary>
     public HtmlAutomationAction Action { get; init; }
-    /// <summary>Text for Fill or a Value/Text wait.</summary>
+    /// <summary>Text for Fill, the key for Press, or a Value/Text wait.</summary>
     public string? Value { get; init; }
     /// <summary>Exact option values for SelectOptions. An empty list clears the selection.</summary>
     public IReadOnlyList<string> Values { get; init; } = Array.Empty<string>();
@@ -64,7 +76,7 @@ public sealed class HtmlAutomationRequest {
     internal HtmlAutomationRequest Snapshot(int maximumCharacters) {
         ArgumentNullException.ThrowIfNull(Query);
         if (!Enum.IsDefined(Action) || !Enum.IsDefined(WaitState)) throw new ArgumentException("Unknown automation operation or condition.");
-        if ((Action == HtmlAutomationAction.Fill || Action == HtmlAutomationAction.Wait && WaitState is HtmlLocatorWaitState.Value or HtmlLocatorWaitState.Text) && Value == null)
+        if ((Action is HtmlAutomationAction.Fill or HtmlAutomationAction.Press || Action == HtmlAutomationAction.Wait && WaitState is HtmlLocatorWaitState.Value or HtmlLocatorWaitState.Text) && Value == null)
             throw new ArgumentException("The operation requires Value.");
         if ((Action == HtmlAutomationAction.SetChecked || Action == HtmlAutomationAction.Wait && WaitState == HtmlLocatorWaitState.Checked) && Checked == null)
             throw new ArgumentException("The operation requires Checked.");

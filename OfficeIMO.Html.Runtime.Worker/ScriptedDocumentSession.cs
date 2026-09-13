@@ -1,10 +1,12 @@
 using AngleSharp;
 using AngleSharp.Browser;
 using AngleSharp.Dom;
+using AngleSharp.Dom.Events;
 using AngleSharp.Js;
 using AngleSharp.Scripting;
 using Jint;
 using AngleSharp.Html.Dom.Events;
+using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using AngleSharp.Io;
 
@@ -21,6 +23,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private RuntimeFetchBindings? _fetch;
     private readonly RuntimeFocusController _focus = new();
     private RuntimeAutomation _automation = null!;
+    private CancellationToken _activeCommandToken;
     private RuntimeModuleLoader _modules = null!;
     private readonly RuntimeScriptingService _scripting;
     private RuntimeHistoryBindings _history = null!;
@@ -74,8 +77,9 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             RuntimeUrlBindings.Install(_engine, document.DefaultView!);
             RuntimeObserverBindings.Install(_engine, document, _errors.Report, ((RuntimeEventLoop)_loop).EnqueueMicrotask);
             RuntimeStorageBindings.Install(_engine, options.MaxStorageCharacters, storage, HtmlRuntimeResourcePolicy.Origin(options.DocumentUrl));
-            _history = new RuntimeHistoryBindings(_engine, document, _loop, options, history, navigate);
-            _automation = new RuntimeAutomation(document, options, _focus, _history);
+            var viewport = new RuntimeViewport((IHtmlDocument)document, options, () => _activeCommandToken, _resources.Capture);
+            _history = new RuntimeHistoryBindings(_engine, document, _loop, options, viewport, history, navigate);
+            _automation = new RuntimeAutomation(document, options, _focus, _history, viewport, _engine);
             RuntimeInteractionBindings.Install(_engine, document, _focus, _automation);
             RuntimeSelectBindings.Install(_engine);
             _fetch = new RuntimeFetchBindings(_engine, document, _loop, _resources, options, _errors);
@@ -102,8 +106,18 @@ internal sealed class ScriptedDocumentSession : IDisposable {
 
     internal Task ExecuteAsync(string script, CancellationToken token) => OnLoop(() => { _scripting.EvaluateScript(_document, script, "text/javascript", RuntimeDocumentUrls.Base(_document)); return true; }, token);
     internal Task NavigateAsync(string target, bool replace, CancellationToken token) => OnLoop(() => { _history.NavigateFragment(target, replace); return true; }, token);
-    internal Task RestoreTraversalAsync(CancellationToken token) => OnLoop(() => { _history.RestoreTraversal(); return true; }, token);
+    internal Task RestoreTraversalAsync(bool dispatchPopState, CancellationToken token) => OnLoop(() => { _history.RestoreTraversal(dispatchPopState); return true; }, token);
     internal Task ReloadAsync(CancellationToken token) => OnLoop(() => { _history.Reload(); return true; }, token);
+    internal Task<bool> PromptToUnloadAsync(CancellationToken token) => OnLoop(() => {
+        var beforeUnload = new Event("beforeunload", bubbles: false, cancelable: true);
+        _document.DefaultView!.Dispatch(beforeUnload);
+        return !beforeUnload.IsDefaultPrevented;
+    }, token);
+    internal Task CommitUnloadAsync(CancellationToken token) => OnLoop(() => {
+        _document.DefaultView!.Dispatch(new PageTransitionEvent("pagehide", bubbles: false, cancelable: false, persisted: false));
+        _document.DefaultView.Dispatch(new Event("unload", bubbles: false, cancelable: false));
+        return true;
+    }, token);
 
     internal Task<HtmlAutomationResult> AutomateAsync(HtmlAutomationRequest request, CancellationToken token) => OnLoop(() => _automation.Run(request, token), token);
 
@@ -126,6 +140,8 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         var completion = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
         _loop.Enqueue(_ => {
             lock (_engine) {
+                CancellationToken previousToken = _activeCommandToken;
+                _activeCommandToken = token;
                 try {
                     token.ThrowIfCancellationRequested();
                     // Native timer callbacks may leave a rejection whose catch is already
@@ -145,6 +161,8 @@ internal sealed class ScriptedDocumentSession : IDisposable {
                     try { _errors.ThrowIfFailed(); }
                     catch (Exception tracked) { error = tracked; }
                     completion.TrySetException(error);
+                } finally {
+                    _activeCommandToken = previousToken;
                 }
             }
         }, TaskPriority.Normal);
