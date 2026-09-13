@@ -6,7 +6,7 @@ order: 80
 
 The project inventory distinguishes NativeAOT evidence from managed deployment. **116 of 126 production projects publish and execute in NativeAOT validation**. The Chromium browser-PDF bridge, local HTML/PDF workbench, and Avalonia-based OfficeIMO Studio use managed cross-platform deployment. The invoice engine, optional PDF adapter and standards validator use managed cross-platform deployment. The document-AI engine, IntelligenceX adapter and headless example target managed .NET 10; NativeAOT support for those projects is not claimed. The WPF/WebView2 renderer is tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
 
-The 114 native-validated projects are not all proved in the same way:
+The 116 native-validated projects are not all proved in the same way:
 
 - **113 production libraries** are fully rooted as complete assemblies across three native hosts: 111 in the main compile graph, with the optional `OfficeIMO.Security` and `OfficeIMO.Provenance.C2pa` packages each exercised in a dedicated host. All three executables must start successfully.
 - **1 optional Google APIs adapter** runs a bounded token-store workflow natively. Its complete Google authorization dependency surface is not advertised as trim-safe because fully rooting `Google.Apis` and `Newtonsoft.Json` produces upstream warnings.
