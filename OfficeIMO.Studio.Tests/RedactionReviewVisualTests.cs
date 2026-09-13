@@ -52,7 +52,8 @@ public sealed class RedactionReviewVisualTests {
                         .Single(button => ReferenceEquals(button.Command, model.ApplyPendingRedactionCommand));
                     Assert.True(apply.IsEnabled, model.ErrorMessage ?? model.PendingRedactionSummary);
                     apply.BringIntoView();
-                    window.UpdateLayout();
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
+                        () => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);
                     Point position = apply.TranslatePoint(default, window)!.Value;
                     Assert.InRange(position.X, 0, window.Bounds.Width - apply.Bounds.Width + 1);
                     Assert.InRange(position.Y, 0, window.Bounds.Height - apply.Bounds.Height + 1);

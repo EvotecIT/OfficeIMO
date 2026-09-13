@@ -118,6 +118,7 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task FindTextReplacementsAsync(CancellationToken token) {
+        using var notifications = BeginNotificationScope();
         if (_workspace is not { } workspace || !CanEditPageContent || string.IsNullOrEmpty(ReplaceAllFindText)) return;
         ClearObjectSelection();
         string find = ReplaceAllFindText;
@@ -190,6 +191,7 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task PreviewTextEditAsync(CancellationToken token) {
+        using var notifications = BeginNotificationScope();
         if (_workspace is not { } workspace || TextEditDraft is not { IsReady: true } draft ||
             !ReferenceEquals(_textReviewWorkspace, workspace) || workspace.Revision != _textReviewRevision) return;
         InvalidateTextPreview();

@@ -88,7 +88,10 @@ public sealed class PdfHtmlPageAppearanceTests {
         using var html = new HtmlParser().ParseDocument(result.Value);
         Assert.Single(html.QuerySelectorAll(".pdf-page-appearance svg"));
         Assert.NotEmpty(html.QuerySelectorAll(".pdf-page-appearance svg path, .pdf-page-appearance svg rect"));
-        Assert.Contains("Invoice sample", string.Join(" ", html.QuerySelectorAll("svg text").Select(node => node.TextContent)));
+        Assert.Equal("true", html.QuerySelector(".pdf-page-appearance")!.GetAttribute("aria-hidden"));
+        var textOverlay = Assert.Single(html.QuerySelectorAll(".pdf-text-overlay"));
+        Assert.Contains("Invoice sample", textOverlay.TextContent);
+        Assert.Equal("transparent", textOverlay.GetAttribute("fill"));
         Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "VectorAppearanceNotExported");
         Assert.Equal(result.Value, pdf.ToHtml(options));
         using var stream = new MemoryStream();
@@ -105,6 +108,26 @@ public sealed class PdfHtmlPageAppearanceTests {
         }
     }
 
+    [Theory]
+    [InlineData(false, PdfHtmlImageExportMode.EmbeddedDataUri)]
+    [InlineData(true, PdfHtmlImageExportMode.PlaceholderOnly)]
+    public void ImageOptionsDoNotDiscardImageFreeVectorArtwork(
+        bool includeImagePlaceholders,
+        PdfHtmlImageExportMode imageExportMode) {
+        var pdf = PdfDocument.Load(Source());
+        var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        options.IncludeImagePlaceholders = includeImagePlaceholders;
+        options.ImageExportMode = imageExportMode;
+
+        var result = pdf.ToHtmlResult(options);
+        using var html = new HtmlParser().ParseDocument(result.Value);
+
+        Assert.Single(html.QuerySelectorAll(".pdf-page-appearance svg"));
+        Assert.NotEmpty(html.QuerySelectorAll(".pdf-page-appearance svg path, .pdf-page-appearance svg rect"));
+        Assert.Contains("Invoice sample", string.Join(" ", html.QuerySelectorAll(".pdf-text-overlay").Select(node => node.TextContent)));
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "VectorAppearanceNotExported");
+    }
+
     [Fact]
     public void AppearanceKeepsSourcePageSelectionAndRotatedGeometry() {
         var pdf = PdfDocument.Load(Source(twoPages: true));
@@ -117,6 +140,9 @@ public sealed class PdfHtmlPageAppearanceTests {
         Assert.Equal("width:180pt;height:240pt;", page.GetAttribute("style"));
         Assert.Contains("Second page", string.Join(" ", page.QuerySelectorAll("svg text").Select(node => node.TextContent)));
         Assert.DoesNotContain("Invoice sample", string.Join(" ", page.QuerySelectorAll("svg text").Select(node => node.TextContent)));
+        var textOverlay = Assert.Single(page.QuerySelectorAll("svg.pdf-text-overlay"));
+        Assert.Contains("Second page", textOverlay.TextContent);
+        Assert.Contains("rotate(90", Assert.Single(textOverlay.QuerySelectorAll("text")).GetAttribute("transform"));
         Assert.Equal(new[] { 2 }, result.Summary.PageNumbers);
         Assert.Equal(2, result.Summary.SourcePageCount);
         Assert.Single(options.PageRanges);

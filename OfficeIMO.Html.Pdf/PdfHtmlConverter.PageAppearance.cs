@@ -10,13 +10,15 @@ namespace OfficeIMO.Html.Pdf;
 public static partial class PdfHtmlConverterExtensions {
     private static bool TryAppendPageAppearance(StringBuilder builder, PdfCore.PdfLogicalPage page,
         int renderIndex, PdfToHtmlOptions options) {
-        if (options.VisualSource is null || !options.IncludeImagePlaceholders ||
-            options.ImageExportMode != PdfHtmlImageExportMode.EmbeddedDataUri ||
+        if (options.VisualSource is null ||
             page.FormWidgets.Count > 0 ||
             page.Analysis.RestrictLogicalProjectionToReadingOrder ||
             page.TextBlocks.Any(block => block.Spans.Count == 0) ||
-            (options.MaxEmbeddedImageBytes.HasValue && page.Images.Any(image =>
-                image.SourceImage.Bytes.LongLength > options.MaxEmbeddedImageBytes.Value))) return false;
+            (page.Images.Count > 0 &&
+                (!options.IncludeImagePlaceholders ||
+                 options.ImageExportMode != PdfHtmlImageExportMode.EmbeddedDataUri ||
+                 (options.MaxEmbeddedImageBytes.HasValue && page.Images.Any(image =>
+                     image.SourceImage.Bytes.LongLength > options.MaxEmbeddedImageBytes.Value))))) return false;
 
         var token = options.CancellationToken;
         token.ThrowIfCancellationRequested();
@@ -50,7 +52,7 @@ public static partial class PdfHtmlConverterExtensions {
             return ReportImageAppearanceFallback(options);
         }
         token.ThrowIfCancellationRequested();
-        builder.Append("<div class=\"pdf-page-appearance\" style=\"position:absolute;inset:0\">");
+        builder.Append("<div class=\"pdf-page-appearance\" aria-hidden=\"true\" style=\"position:absolute;inset:0\">");
         builder.Append(Encoding.UTF8.GetString(svg));
         builder.AppendLine("</div>");
         foreach (var diagnostic in sourcePage.GetRenderCapabilityDiagnostics(token)) {

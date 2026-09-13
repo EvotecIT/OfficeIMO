@@ -151,6 +151,7 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task DiscardRecoveryAsync(CancellationToken cancellationToken) {
+        using var notifications = BeginNotificationScope();
         if (_workspace is null) return;
         await RunStandaloneAsync(token => _workspace.DiscardRecoveryAsync(token), cancellationToken,
             UiText("Workspace.RecoveryDiscarded")).ConfigureAwait(true);
@@ -255,6 +256,7 @@ public sealed partial class MainWindowViewModel {
     private void CancelOperation() => CancelCurrentOperation();
 
     private async Task<bool> RunSaveAsync(string? path, CancellationToken cancellationToken) {
+        using var notifications = BeginNotificationScope();
         if (_workspace is null) return false;
         PdfWorkspace workspace = _workspace;
         if (path is null && _services.Storage.IsRecoveryLocation(workspace.Path)) {

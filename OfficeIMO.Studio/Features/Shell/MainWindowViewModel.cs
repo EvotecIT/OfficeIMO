@@ -438,6 +438,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     internal void CancelPreparedClose() => _discardOnNextTransition = false;
 
     internal async Task<bool> CommitPreparedDiscardAsync() {
+        using var notifications = BeginNotificationScope();
         if (!_discardOnNextTransition || _workspace is null) return true;
         bool succeeded = await RunStandaloneAsync(token => _workspace.DiscardRecoveryAsync(token), CancellationToken.None).ConfigureAwait(true);
         if (succeeded) _discardOnNextTransition = false;

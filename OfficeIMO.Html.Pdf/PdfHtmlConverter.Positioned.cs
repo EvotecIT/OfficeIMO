@@ -22,14 +22,20 @@ public static partial class PdfHtmlConverterExtensions {
         builder.AppendLine(";\">");
 
         bool hasPageAppearance = TryAppendPageAppearance(builder, page, renderIndex, options);
+        bool hasNativeText = page.TextBlocks.Count > 0 && page.TextBlocks.All(block =>
+            block.Spans.Count > 0 && block.Spans.All(span => span.IsVisible));
+        if (hasPageAppearance && page.TextBlocks.Any(block =>
+                block.Spans.Any(span => span.IsVisible && !string.IsNullOrEmpty(span.Text)))) {
+            // Keep text searchable, selectable and available to assistive technology
+            // when the visual layer uses outlined glyphs for source fidelity.
+            AppendPositionedAppearanceTextLayer(builder, page, geometry, options);
+        }
         if (!hasPageAppearance) {
 
             // Native PDF spans already carry the placement of table cells. Reflowing a
             // detected table here discards that geometry and can duplicate nearby text.
             // Mixed OCR/native pages still need the logical block/table projection.
             // Only replace that projection when every block can be represented here.
-            bool hasNativeText = page.TextBlocks.Count > 0 && page.TextBlocks.All(block =>
-                block.Spans.Count > 0 && block.Spans.All(span => span.IsVisible));
             if (hasNativeText) AppendPositionedNativeText(builder, page, geometry, options);
 
             for (int i = 0; i < page.TextBlocks.Count; i++) {

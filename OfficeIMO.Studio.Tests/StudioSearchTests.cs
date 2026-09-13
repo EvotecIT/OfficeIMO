@@ -107,6 +107,31 @@ public sealed class StudioSearchTests {
     }
 
     [Fact]
+    public async Task SearchCompletionRemainsScopedToTheDocumentAfterNavigation() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            Directory.CreateDirectory(services.Paths.Root);
+            string source = Path.Combine(services.Paths.Root, "Search notification scope.pdf");
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Text("Needle")))).Save(source);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            await model.OpenDocumentAsync(source);
+            model.SearchQuery = "needle";
+
+            Task searching = model.SearchCommand.ExecuteAsync(null);
+            Assert.True(model.IsWorkspaceBusy);
+            model.WorkspaceMode = StudioWorkspaceMode.Tools;
+            await searching;
+
+            Assert.False(model.HasVisibleOperationStatus);
+            model.WorkspaceMode = StudioWorkspaceMode.PdfWorkspace;
+            Assert.True(model.HasVisibleOperationStatus);
+            Assert.Equal(services.Localizer.Format("Search.MatchCount", 1), model.OperationStatus);
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task ImageOnlyPageExplainsTheOcrRequirementWithoutInventingMatches() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
@@ -157,8 +182,9 @@ public sealed class StudioSearchTests {
                 var page = model.Pages[10]; page.AttachToViewport(); await page.EnsureRenderedAsync();
                 window.UpdateLayout(); await Task.Delay(80); window.UpdateLayout();
                 Assert.Equal(11, model.SelectedPage!.PageNumber);
-                var canvas = Assert.Single(window.GetVisualDescendants().OfType<OfficeIMO.Studio.Features.Reader.PdfPageCanvas>()
-                    .Where(canvas => canvas.IsEffectivelyVisible && canvas.DataContext == page));
+                var canvas = Assert.Single(
+                    window.GetVisualDescendants().OfType<OfficeIMO.Studio.Features.Reader.PdfPageCanvas>(),
+                    canvas => canvas.IsEffectivelyVisible && canvas.DataContext == page);
                 Assert.Equal(model.SelectedSearchResult.Bounds, canvas.ActiveSearchHighlight);
                 var location = canvas.TranslatePoint(new Point(0, 0), window)!.Value;
                 double highlightedY = location.Y + model.SelectedSearchResult.Bounds.Center.Y * canvas.Bounds.Height / page.Scene!.Drawing.Height;
