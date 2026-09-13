@@ -1,11 +1,19 @@
 ---
 title: "Document Conversion Guides for .NET"
 description: "Choose .NET routes for DOC, DOCX, XLS, XLSX, XLSB, PPT, PPTX, PDF, and web formats, with documented PSWriteOffice routes called out separately."
-layout: docs
+layout: conversion
 meta.eyebrow: "Conversion workflows"
 meta.outcome: "Move documents without hiding fidelity decisions"
 meta.primary_label: "Check format support"
 meta.primary_url: "/compatibility/"
+meta.secondary_label: "Open browser tools"
+meta.secondary_url: "/convert/"
+meta.summary_title: "Guide scope"
+meta.package: "Focused OfficeIMO packages"
+meta.runtime: ".NET, PowerShell, browser, and CLI"
+meta.limit: "Each route names its supported formats, fidelity boundary, and deployment requirements."
+meta.related_label: "Check the complete format matrix"
+meta.related_url: "/compatibility/"
 meta.social_card_badge: "Office conversion"
 ---
 

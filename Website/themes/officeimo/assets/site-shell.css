@@ -134,6 +134,8 @@ body.imo-body { overflow-x: clip; }
 .imo-body--docs .imo-documentation-toolbar__title { color: var(--imo-text); }
 .imo-body--docs .imo-documentation-toolbar__search { color: var(--imo-text-muted); }
 .imo-docs__header h1, .imo-body--docs .api-content h1 { font-size: clamp(28px, 2.6vw, 38px); line-height: 1.15; letter-spacing: -.035em; margin: 0 0 16px; }
+.imo-docs__eyebrow { width: max-content; max-width: 100%; margin: 0 0 10px; color: var(--imo-primary); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.imo-docs__outcome { margin: -4px 0 20px; color: var(--imo-text); font-size: 15px; font-weight: 700; line-height: 1.5; }
 .imo-conversion-summary h2 { font-size: 14px; letter-spacing: 0; margin: 0 0 20px; }
 .imo-conversion-summary dl { display: grid; gap: 16px; margin: 0 0 20px; font-size: 13px; }
 .imo-conversion-summary dt { color: var(--imo-text-muted); font-size: 12px; margin-bottom: 4px; }

@@ -25,17 +25,19 @@
   {{ include "documentation-sidebar" }}
   <div class="imo-docs">
   <main id="content" class="imo-docs__main">
-    <article class="imo-docs__article">
+      <article class="imo-docs__article">
         <header class="imo-docs__header">
+          {{ if page.meta.eyebrow }}<p class="imo-docs__eyebrow">{{ page.meta.eyebrow }}</p>{{ end }}
           <h1>{{ page.title }}</h1>
           {{ if page.description }}<p class="imo-intent-hero__lead">{{ page.description }}</p>{{ end }}
+          {{ if page.meta.outcome }}<p class="imo-docs__outcome">{{ page.meta.outcome }}</p>{{ end }}
           <div class="imo-intent-hero__actions">
             <a class="imo-btn imo-btn-primary" href="{{ page.meta.primary_url ?? page.meta.package_url ?? "/downloads/" }}">{{ page.meta.primary_label ?? "Get the package" }}</a>
             <a class="imo-btn imo-btn-ghost" href="{{ page.meta.secondary_url ?? "/compatibility/" }}">{{ page.meta.secondary_label ?? "Check format support" }}</a>
           </div>
         </header>
       <div class="imo-docs__content imo-intent-content imo-prose markdown-body">
-        {{ if page.meta.howto.steps }}
+        {{ if page.meta.howto && page.meta.howto.steps }}
         <section class="imo-howto" aria-labelledby="conversion-steps-title">
           <p class="imo-section__eyebrow">Practical steps</p>
           <h2 id="conversion-steps-title">{{ page.meta.howto.name ?? "Complete this conversion" }}</h2>
@@ -54,7 +56,7 @@
       <aside class="imo-docs__toc imo-conversion-summary">
         <h2>{{ page.meta.summary_title ?? "Route summary" }}</h2>
         <dl>
-          <div><dt>Package</dt><dd>{{ page.meta.package ?? "Focused OfficeIMO package" }}</dd></div>
+          <div><dt>Package</dt><dd>{{ if page.meta.package_url }}<a href="{{ page.meta.package_url }}">{{ page.meta.package ?? "Focused OfficeIMO package" }}</a>{{ else }}{{ page.meta.package ?? "Focused OfficeIMO package" }}{{ end }}</dd></div>
           <div><dt>Runs on</dt><dd>{{ page.meta.runtime ?? ".NET and PowerShell" }}</dd></div>
           <div><dt>Microsoft Office</dt><dd>Not required</dd></div>
           <div><dt>License</dt><dd>MIT</dd></div>

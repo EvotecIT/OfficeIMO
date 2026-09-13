@@ -57,6 +57,12 @@ if ($conversionGuides -notmatch '<h1>Document Conversion Guides for \.NET</h1>')
 
 $provenanceGuide = Get-Content -LiteralPath $provenanceGuidePath -Raw
 if ($provenanceGuide -notmatch '<h1(?:\s[^>]*)?>Check and remove file provenance</h1>' -or
+    $provenanceGuide -notmatch '<body class="imo-body imo-body--docs imo-body--conversion">' -or
+    $provenanceGuide -notmatch '<link[^>]+href="/css/product\.css"' -or
+    $provenanceGuide -notmatch '<link[^>]+href="/css/docs\.css"' -or
+    $provenanceGuide -notmatch '<h2>Inspection summary</h2>' -or
+    $provenanceGuide -notmatch 'OfficeIMO\.Workflows \+ format packages' -or
+    $provenanceGuide -notmatch 'href="https://www\.nuget\.org/packages/OfficeIMO\.Workflows"' -or
     $provenanceGuide -notmatch 'Content Credentials' -or
     $provenanceGuide -notmatch 'does not remove visible watermarks' -or
     $provenanceGuide -notmatch 'href="/convert/\?workspace=provenance"' -or
