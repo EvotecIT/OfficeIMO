@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "IntelligenceX": {
+        "type": "Direct",
+        "requested": "[0.1.1, )",
+        "resolved": "0.1.1",
+        "contentHash": "r4K9tmwcyPa31hatRLI2FVWL2IpO8m4VG13Vfu/HbIast3TuV/4N8OZNiJDmo5KE1rFL4xt+tJLa584sHoc44g=="
+      },
+      "officeimo.ai": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Reader.Core": "[3.4.3, )"
+        }
+      },
+      "officeimo.reader.core": {
+        "type": "Project"
+      }
+    }
+  }
+}
