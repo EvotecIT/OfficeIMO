@@ -20,6 +20,7 @@ $managedAesNoticePath = Join-Path $licenseRoot 'OfficeIMO.Core-THIRD-PARTY-NOTIC
 $japaneseFontLicensePath = Join-Path $licenseRoot 'OFL-NotoCJK.txt'
 $convertPagePath = Join-Path $SiteRoot 'convert/index.html'
 $conversionGuidesPath = Join-Path $SiteRoot 'convert/guides/index.html'
+$provenanceGuidePath = Join-Path $SiteRoot 'provenance/index.html'
 $redirectManifestPath = Join-Path $SiteRoot '_powerforge/redirects.json'
 
 foreach ($path in @(
@@ -31,6 +32,7 @@ foreach ($path in @(
         $japaneseFontLicensePath,
         $convertPagePath,
         $conversionGuidesPath,
+        $provenanceGuidePath,
         $redirectManifestPath
     )) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -47,6 +49,13 @@ if ($convertPage -notmatch $converterFramePattern) {
 $conversionGuides = Get-Content -LiteralPath $conversionGuidesPath -Raw
 if ($conversionGuides -notmatch '<h1>Document Conversion Guides for \.NET</h1>') {
     throw "The /convert/guides/ route does not contain the conversion guide."
+}
+
+$provenanceGuide = Get-Content -LiteralPath $provenanceGuidePath -Raw
+if ($provenanceGuide -notmatch '<h1(?:\s[^>]*)?>Check and remove file provenance</h1>' -or
+    $provenanceGuide -notmatch 'Content Credentials' -or
+    $provenanceGuide -notmatch 'does not remove visible watermarks') {
+    throw 'The /provenance/ route does not explain the supported file-origin workflow and its limits.'
 }
 
 $redirectManifest = Get-Content -LiteralPath $redirectManifestPath -Raw | ConvertFrom-Json

@@ -3,10 +3,10 @@
 @using OfficeIMO.Workflows
 @implements IAsyncDisposable
 
-<section class="provenance-workbench" aria-label="Provenance workbench">
+<section class="provenance-workbench" aria-label="File origin data workbench">
     <div class="pdf-workbench__grid">
         <section class="ocx-input-panel">
-            <header class="provenance-heading"><p class="provenance-eyebrow">Source file</p><h2>@(_file is null ? "Choose an image or document" : "Original file")</h2><p>See its provenance, then decide what to keep.</p></header>
+            <header class="provenance-heading"><p class="provenance-eyebrow">Source file</p><h2>@(_file is null ? "Choose an image or document" : "Original file")</h2><p>Check the file for supported origin and Content Credentials data.</p></header>
             <fieldset disabled="@_busy" class="provenance-form">
                 <div class="provenance-source @(_file is null ? null : "provenance-source--selected")">
                     <label class="ocx-dropzone">
@@ -19,7 +19,7 @@
                     </label>
                     <div class="provenance-source-actions">
                         <button type="button" class="ocx-text-action" @onclick="LoadSampleAsync">Try a sample image</button>
-                        <button type="button" class="ocx-button ocx-button--secondary" disabled="@(_file is null)" @onclick="InspectAsync">Inspect provenance</button>
+                        <button type="button" class="ocx-button ocx-button--secondary" disabled="@(_file is null)" @onclick="InspectAsync">Check file origin</button>
                     </div>
                 </div>
                 <details class="provenance-options-disclosure" open="@(_report is not null)"><summary>Remove from the copy<span>Choose what to remove</span></summary>
@@ -32,10 +32,10 @@
                 </div>
                 </details>
             </fieldset>
-            <details class="provenance-help"><summary>What this tool can remove</summary><p>Cleanup removes supported provenance metadata. Visible marks, image pixels and other personal metadata are unchanged. Signed or ambiguous documents may be preserved or rejected.</p><p>Structural inspection does not verify authenticity or establish whether a file was created by AI. External references are not fetched.</p></details>
+            <details class="provenance-help"><summary>What this tool can remove</summary><p>File provenance means embedded origin or editing-history records. This tool can remove supported Content Credentials manifests, links to external credentials, and AI source declarations from a new copy.</p><p>Visible watermarks, image pixels, and other personal metadata are unchanged. The inspection does not verify authenticity or establish whether a file was created by AI. Signed or ambiguous records may be preserved or rejected.</p></details>
         </section>
-        <section class="ocx-output-panel" aria-label="Provenance result" aria-busy="@_busy">
-            <header class="provenance-heading"><p class="provenance-eyebrow">@(_removal is null ? "Inspection result" : "Ready to download")</p><h2>@(_removal is null ? "File provenance" : "Cleaned copy")</h2></header>
+        <section class="ocx-output-panel" aria-label="File origin result" aria-busy="@_busy">
+            <header class="provenance-heading"><p class="provenance-eyebrow">@(_removal is null ? "Inspection result" : "Ready to download")</p><h2>@ResultHeading</h2></header>
             <p class="provenance-status" role="status">@(_busy ? "Processing locally…" : _message)</p>
             @if (_report is not null) {
                 <div class="provenance-summary">
@@ -57,7 +57,7 @@
                     @if (_reportUrl is not null) { <a class="ocx-button ocx-button--secondary" href="@_reportUrl" download="provenance-report.json">Download report</a> }
                 </div>
             } else if (!_busy) {
-                <div class="provenance-empty"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="9" y="5" width="25" height="35" rx="4"/><path d="M15 14h13M15 20h9"/><circle cx="32" cy="32" r="9"/><path d="m38 39 5 5m-15-12 3 3 5-6"/></svg><h3>A clearer view of your file</h3><p>Inspect a file to see its supported provenance. Your findings, preview and downloads will appear here.</p><ol><li>Choose a file</li><li>Review its provenance</li><li>Save a separate copy</li></ol></div>
+                <div class="provenance-empty"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="9" y="5" width="25" height="35" rx="4"/><path d="M15 14h13M15 20h9"/><circle cx="32" cy="32" r="9"/><path d="m38 39 5 5m-15-12 3 3 5-6"/></svg><h3>See what the file says about its origin</h3><p>Results will list supported Content Credentials, external credential links, and AI source declarations. Preview and download options will appear here.</p><ol><li>Choose a file</li><li>Check its origin data</li><li>Save a separate copy</li></ol></div>
             }
             @if (_previewUrl is not null) {
                 <figure class="provenance-preview"><div><img src="@_previewUrl" alt="@($"Preview of {_file?.Name}")" /></div><figcaption><strong>@(_outputUrl is null ? "Original image" : "Cleaned image")</strong><span>Original colors preserved</span></figcaption></figure>

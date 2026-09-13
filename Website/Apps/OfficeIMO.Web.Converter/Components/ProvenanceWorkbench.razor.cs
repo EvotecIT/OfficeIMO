@@ -26,6 +26,14 @@ public partial class ProvenanceWorkbench {
     private bool _manifests = true, _references = true, _declarations = true;
     private int _revision = -1, _generation;
 
+    private string ResultHeading => _removal is not null
+        ? "Cleaned copy"
+        : _report is null
+            ? "File origin data"
+            : _report.Evidence.Count == 0
+                ? "No supported origin data found"
+                : "Origin data found";
+
     protected override void OnInitialized() => _interop = new(JS);
     protected override async Task OnParametersSetAsync() {
         if (_revision == Session.Revision) return;

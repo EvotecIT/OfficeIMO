@@ -1,6 +1,7 @@
 @namespace OfficeIMO.Web.Converter.Components
 @implements IAsyncDisposable
 
+<PageTitle>@ActiveContent.SeoTitle</PageTitle>
 <StandaloneSiteHeader />
 <main id="converter-main" class="ocx-workspace-shell @(IsFocused ? "is-focused" : null)" data-workspace-ready="true" data-workspace="@WorkspaceId" tabindex="-1" @onkeydown="HandleKeyDown">
     <header class="ocx-workspace-toolbar">
@@ -11,7 +12,7 @@
     <aside id="workspace-navigation" class="ocx-workspace-navigation @(IsMenuOpen ? "is-open" : null)" aria-label="Browser tools">
         <nav aria-label="Choose a browser tool">
             <h2>Inspect and clean</h2>
-            <a href="/convert/?workspace=provenance" target="_top" data-workspace="provenance" class="@(IsProvenanceWorkspace ? "is-active" : null)" aria-current="@(IsProvenanceWorkspace ? "page" : null)">Provenance</a>
+            <a href="/convert/?workspace=provenance" target="_top" data-workspace="provenance" class="@(IsProvenanceWorkspace ? "is-active" : null)" aria-current="@(IsProvenanceWorkspace ? "page" : null)">File origin data</a>
             <h2>Convert documents</h2>
             @foreach (ConversionRoute route in ConversionRouteCatalog.All) {
                 <a href="/convert/?route=@route.Id" target="_top" data-route="@route.Id" class="@(!IsPdfWorkspace && !IsProvenanceWorkspace && ActiveRoute.Id == route.Id ? "is-active" : null)"
@@ -29,8 +30,8 @@
     }
     <section class="ocx-workspace-content" aria-labelledby="workspace-title">
         <header class="ocx-workspace-heading">
-            <div><h1 id="workspace-title" tabindex="-1">@(IsProvenanceWorkspace ? "Inspect and remove provenance" : IsPdfWorkspace ? ActiveTool.Label : ActiveRoute.Title)</h1></div>
-            <nav aria-label="Workflow resources"><button type="button" class="ocx-text-action" aria-pressed="@IsFocused" @onclick="() => IsFocused = !IsFocused">@(IsFocused ? "Show source and settings" : "Focus result")</button>@if (!IsProvenanceWorkspace) { <a href="@GuideUrl" target="_top">Guide</a> }</nav>
+            <div class="ocx-workspace-heading__copy"><h1 id="workspace-title" tabindex="-1">@ActiveContent.Title</h1><p>@ActiveContent.Summary</p></div>
+            <nav aria-label="Workflow resources"><button type="button" class="ocx-workspace-heading__action" aria-pressed="@IsFocused" @onclick="() => IsFocused = !IsFocused">@(IsFocused ? "Show source and settings" : "Focus result")</button><a class="ocx-workspace-heading__action" href="@ActiveContent.GuideUrl" target="_top">Read guide</a></nav>
         </header>
         @if (Session.Originals.Count > 0 || Session.Current.Count > 0 || Session.LatestResult is not null) {
             <section class="ocx-session" aria-label="Files in this session">
@@ -49,6 +50,7 @@
         } else {
             <ConverterWorkspace RouteId="@ActiveRoute.Id" Revision="Session.Revision" />
         }
+        <BrowserToolGuide Content="@ActiveContent" />
     </section>
 </main>
 <StandaloneSiteFooter />
