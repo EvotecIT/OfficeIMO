@@ -137,10 +137,13 @@ internal static class BrowserToolContentCatalog {
         _ => $"{tool.Label} online in your browser | OfficeIMO"
     };
 
-    private static string InputFor(PdfToolDefinition tool) => tool.InputMode switch {
-        PdfToolInputMode.Pair => "Exactly two PDF files, up to 25 MB and 500 pages each.",
-        PdfToolInputMode.Multiple => "Two to ten PDF files, up to 25 MB and 500 pages each, and 75 MB combined.",
-        _ => "One PDF file up to 25 MB and 500 pages."
+    private static string InputFor(PdfToolDefinition tool) => tool.Id switch {
+        "compare" => $"Exactly two PDF files, up to 25 MB each; the browser compares up to {BrowserPdfToolService.MaxComparisonPages} common pages.",
+        _ => tool.InputMode switch {
+            PdfToolInputMode.Pair => "Exactly two PDF files, up to 25 MB and 500 pages each.",
+            PdfToolInputMode.Multiple => "Two to ten PDF files, up to 25 MB and 500 pages each, and 75 MB combined.",
+            _ => "One PDF file up to 25 MB and 500 pages."
+        }
     };
 
     private static IReadOnlyList<BrowserToolStep> StepsFor(PdfToolDefinition tool) => [
@@ -172,7 +175,7 @@ internal static class BrowserToolContentCatalog {
         "delete" => "Enter the pages to remove and confirm the new-copy operation.",
         "reorder" => "Enter every source page exactly once, in the output order you want.",
         "rotate" => "Enter the pages and choose a clockwise rotation.",
-        "optimize" => "Choose lossless compression, deduplication, or Fast Web View.",
+        "optimize" => "Choose Balanced, Maximum lossless compression, Fast Web View, or Conservative archival rewrite based on the rewrite policy you need.",
         "protect" => "Set a user password and a distinct owner password for the new PDF.",
         "unlock" => "Supply the owner password required to remove Standard security from the copy.",
         "redact" => "Enter a literal text value and confirm that it should be permanently removed from the copy.",

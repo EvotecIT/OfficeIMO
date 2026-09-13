@@ -67,13 +67,19 @@ public sealed class BrowserToolContentCatalogTests {
     public void CatalogExplainsEnforcedInputAndProfileLimits() {
         var textRoute = BrowserToolContentCatalog.For(ConversionRouteCatalog.Find("html-pdf"));
         var pdfRoute = BrowserToolContentCatalog.For(ConversionRouteCatalog.Find("pdf-docx"));
+        var compare = BrowserToolContentCatalog.For(PdfToolCatalog.Find("compare"));
         var reorder = BrowserToolContentCatalog.For(PdfToolCatalog.Find("reorder"));
         var optimize = BrowserToolContentCatalog.For(PdfToolCatalog.Find("optimize"));
 
         Assert.Contains("500,000 characters", textRoute.Input, StringComparison.Ordinal);
         Assert.Contains("500 pages", pdfRoute.Input, StringComparison.Ordinal);
+        Assert.Contains("25 common pages", compare.Input, StringComparison.Ordinal);
+        Assert.DoesNotContain("500 pages", compare.Input, StringComparison.Ordinal);
         Assert.Contains("rejects repeated or omitted pages", reorder.Expectation, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Balanced and archival", optimize.Output, StringComparison.Ordinal);
         Assert.Contains("larger file", optimize.Expectation, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Maximum lossless compression", optimize.Steps[1].Description, StringComparison.Ordinal);
+        Assert.Contains("Conservative archival rewrite", optimize.Steps[1].Description, StringComparison.Ordinal);
+        Assert.DoesNotContain("deduplication", optimize.Steps[1].Description, StringComparison.OrdinalIgnoreCase);
     }
 }
