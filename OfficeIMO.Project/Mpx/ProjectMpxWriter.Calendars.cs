@@ -41,8 +41,21 @@ internal sealed partial class ProjectMpxWriter {
             Handle(path + "/Name"); Handle(path + "/Uid");
             if (calendar.Uid != ++_nextCalendarUid) Diagnostic("PROJECT_MPX_CALENDAR_ID", "MPX identifies calendars by name; numeric calendar identities are assigned again when reopened.", path + "/Uid");
             Handle(path + "/IsBaseCalendar"); Handle(path + "/BaseCalendar");
+            if (!calendar.IsBaseCalendar.HasValue) Diagnostic("PROJECT_MPX_CALENDAR_KIND_DEFAULT",
+                resource
+                    ? "MPX resource calendar records restore an absent calendar kind as derived."
+                    : "MPX base calendar records restore an absent calendar kind as base.",
+                path + "/IsBaseCalendar");
             if (!resource && (calendar.BaseCalendar != null || calendar.IsBaseCalendar == false))
                 Diagnostic("PROJECT_MPX_CALENDAR_FLATTENED", "Calendar inheritance is flattened into a named base calendar with effective working times.", path);
+            bool missingBaseWeekday = !resource && Enumerable.Range(0, 7).Any(day =>
+                !calendar.WeekDays.Any(item => item.Day == (DayOfWeek)day && item.IsWorking.HasValue));
+            bool omittedResourceWeekday = resource && calendar.WeekDays.Any(item => item.Day.HasValue && !item.IsWorking.HasValue);
+            if (missingBaseWeekday || omittedResourceWeekday) Diagnostic("PROJECT_MPX_CALENDAR_WEEKDAY_DEFAULT",
+                missingBaseWeekday
+                    ? "MPX base calendar records materialize missing weekday declarations as explicit nonworking days."
+                    : "MPX resource calendar records omit weekday declarations without an explicit working state and restore inherited behavior.",
+                path + "/Day");
             var math = new ProjectCalendarMath(new[] { calendar }, 366000, _token);
             var header = new List<string?> { resource ? "55" : "20", name };
             var patterns = new List<string[]>();

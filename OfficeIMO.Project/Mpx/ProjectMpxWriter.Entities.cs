@@ -36,6 +36,10 @@ internal sealed partial class ProjectMpxWriter {
     }
     private void Tasks() {
         var allTasks = _document.AllTasks.ToArray();
+        var projectSummary = allTasks.FirstOrDefault(task => task.Uid == 0);
+        if (projectSummary != null && allTasks.Length != 0 && allTasks[0] != projectSummary)
+            Diagnostic("PROJECT_MPX_TASK_ORDER", "MPX requires the UID-zero project summary to precede ordinary tasks and moves it to the first root position.",
+                Path(projectSummary, "Task") + "/Position");
         var tasks = allTasks.Where(task => task.Uid == 0).Concat(allTasks.Where(task => task.Uid != 0)).ToArray();
         bool preserveRows = true; int previous = -1;
         foreach (var task in tasks) {
@@ -108,6 +112,8 @@ internal sealed partial class ProjectMpxWriter {
             var baseline = baselines[i]; if (baseline.Number != 0) continue;
             string path = parent + "/Baseline[" + i + "]"; Handle(path + "/Number");
             values[21] = Value(path + "/Work", baseline.Work); values[31] = Value(path + "/Cost", baseline.Cost);
+            if (Empty(baseline)) Diagnostic("PROJECT_MPX_BASELINE_EMPTY",
+                "MPX has no empty baseline record, so this baseline disappears when reopened.", path);
             if (!task) continue;
             values[41] = Value(path + "/Duration", baseline.Duration); values[56] = Value(path + "/Start", baseline.Start); values[57] = Value(path + "/Finish", baseline.Finish);
         }
@@ -135,9 +141,14 @@ internal sealed partial class ProjectMpxWriter {
         if (item.Uid != uid) Diagnostic("PROJECT_MPX_ASSIGNMENT_ID", "MPX has no assignment UID field; assignment identities are assigned again in task order.", path + "/Uid");
         ProjectBaseline? baseline = null; string baselinePath = "";
         for (int i = 0; i < item.Baselines.Count; i++) if (item.Baselines[i].Number == 0) { baseline = item.Baselines[i]; baselinePath = path + "/Baseline[" + i + "]"; Handle(baselinePath + "/Number"); }
+        if (baseline != null && Empty(baseline)) Diagnostic("PROJECT_MPX_BASELINE_EMPTY",
+            "MPX has no empty baseline record, so this baseline disappears when reopened.", baselinePath);
         Record("75", ProjectMpxValues.Text(_resourceRows[item.Resource]), Value(path + "/Units", item.Units), Value(path + "/Work", item.Work),
             baseline == null ? "" : Value(baselinePath + "/Work", baseline.Work), Value(path + "/ActualWork", item.ActualWork), Value(path + "/OvertimeWork", item.OvertimeWork),
             Value(path + "/Cost", item.Cost), baseline == null ? "" : Value(baselinePath + "/Cost", baseline.Cost), Value(path + "/ActualCost", item.ActualCost),
             Value(path + "/Start", item.Start), Value(path + "/Finish", item.Finish), "", ProjectMpxValues.Text(item.Resource.Uid));
     }
+    private static bool Empty(ProjectBaseline baseline) => baseline.Start == null && baseline.Finish == null && baseline.Duration == null
+        && baseline.Work == null && baseline.Cost == null && baseline.FixedCost == null && baseline.Bcws == null && baseline.Bcwp == null
+        && baseline.TimephasedData.Count == 0;
 }

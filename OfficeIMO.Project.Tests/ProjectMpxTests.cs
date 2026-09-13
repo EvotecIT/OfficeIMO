@@ -432,11 +432,66 @@ public sealed class ProjectMpxTests {
             "<Task><UID>8</UID><ID>8</ID><Name>Child</Name><OutlineLevel>2</OutlineLevel></Task>" +
             "<Task><UID>9</UID><ID>9</ID><Name>Other root</Name><OutlineLevel>1</OutlineLevel></Task>" +
             "<Task><UID>0</UID><Name>Summary</Name><Summary>1</Summary></Task></Tasks></Project>";
-        using var project = ProjectDocument.Parse(xml); using var output = new MemoryStream(); project.Save(output, Options());
+        using var project = ProjectDocument.Parse(xml);
+        Assert.Contains(project.AssessSave(Options(false)).Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_TASK_ORDER"
+            && diagnostic.RepresentsLoss && diagnostic.Location == "/Task[UID=0]/Position");
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray())); var summary = reopened.Tasks.GetByUid(0);
         Assert.Equal(0, summary.DisplayId); Assert.Equal(0, summary.SourceOutlineLevel);
         Assert.Null(reopened.Tasks.GetByUid(7).Parent); Assert.Equal(7, reopened.Tasks.GetByUid(8).Parent!.Uid);
         Assert.Null(reopened.Tasks.GetByUid(9).Parent);
+    }
+
+    [Fact]
+    public void MissingBaseCalendarKindAndWeekdaysRequireExplicitLossAcceptance() {
+        using var project = ProjectDocument.Create(); var calendar = project.Calendars.Add("Sparse"); project.Calendar = calendar;
+        calendar.IsBaseCalendar = null;
+        calendar.SetWorkingDay(DayOfWeek.Monday, ProjectWorkingTime.Hours(8, 12));
+        var report = project.AssessSave(Options(false));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_CALENDAR_KIND_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsBaseCalendar", StringComparison.Ordinal));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_CALENDAR_WEEKDAY_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/Day", StringComparison.Ordinal));
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.True(reopened.Calendar!.IsBaseCalendar); Assert.Equal(7, reopened.Calendar.WeekDays.Count);
+        Assert.False(reopened.Calendar.WeekDays.Single(day => day.Day == DayOfWeek.Tuesday).IsWorking);
+    }
+
+    [Fact]
+    public void MissingResourceCalendarKindRequiresExplicitLossAcceptance() {
+        using var project = ProjectDocument.Create(); var parent = project.Calendars.AddStandardWorkingWeek(); project.Calendar = parent;
+        var resource = project.Resources.AddWork("Engineer"); var calendar = project.Calendars.Add("Engineer", parent); resource.Calendar = calendar;
+        calendar.IsBaseCalendar = null;
+        var report = project.AssessSave(Options(false));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_CALENDAR_KIND_DEFAULT"
+            && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsBaseCalendar", StringComparison.Ordinal));
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.False(reopened.Resources.Single().Calendar!.IsBaseCalendar);
+    }
+
+    [Theory]
+    [InlineData("task")]
+    [InlineData("resource")]
+    [InlineData("assignment")]
+    public void EmptyDefaultBaselinesRequireExplicitLossAcceptance(string owner) {
+        using var project = ProjectDocument.Create(); var task = project.Tasks.Add("Task");
+        var resource = project.Resources.AddWork("Engineer"); var assignment = project.Assignments.Add(task, resource);
+        var baseline = (owner == "task" ? task.Baselines : owner == "resource" ? resource.Baselines : assignment.Baselines).Add();
+        baseline.Number = 0;
+        var diagnostic = Assert.Single(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_BASELINE_EMPTY");
+        Assert.True(diagnostic.RepresentsLoss); Assert.Contains("/Baseline[0]", diagnostic.Location, StringComparison.Ordinal);
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        int count = owner == "task" ? reopened.Tasks.Single().Baselines.Count
+            : owner == "resource" ? reopened.Resources.Single().Baselines.Count : reopened.Assignments.Single().Baselines.Count;
+        Assert.Equal(0, count);
     }
 
     [Fact]
