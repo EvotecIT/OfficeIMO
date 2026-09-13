@@ -82,4 +82,15 @@ public sealed class ProjectOutlineCodeTests {
         table.Values.Remove(table.Values[1]);
         Assert.Contains(project.Validate().Diagnostics, d => d.Code == "PROJECT_OUTLINE_SELECTION");
     }
+
+    [Fact]
+    public void OutlineMasksRequireAnExplicitLength() {
+        using var project = ProjectDocument.Load(ProjectResourceCapacityTests.Fixture("outline"));
+        var table = Assert.Single(project.OutlineCodes); var task = project.Tasks.GetByUid(1);
+        table.Masks[0].Length = null;
+        Assert.Contains(project.Validate().Diagnostics, diagnostic => diagnostic.Code == "PROJECT_OUTLINE_HIERARCHY");
+        Assert.True(project.AssessSave().HasErrors);
+        Assert.Throws<InvalidDataException>(() => project.GetOutlineCodeText(task, "188744096"));
+        Assert.Throws<InvalidDataException>(() => project.SetOutlineCodeValue(task, "188744096", table.Values[1]));
+    }
 }

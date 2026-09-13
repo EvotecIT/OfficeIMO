@@ -6,6 +6,56 @@ public sealed class ProjectMpxTests {
     private static ProjectDocument Read(string text) => ProjectDocument.Load(new MemoryStream(Encoding.ASCII.GetBytes(text)));
     private static ProjectSaveOptions Options(bool allow = true) => new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4, LossPolicy = allow ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block };
 
+    [Fact]
+    public void MissingCalendarNameReportsItsSynthesizedMpxValue() {
+        using var project = ProjectDocument.Create(); var calendar = project.Calendars.AddStandardWorkingWeek();
+        project.Calendar = calendar; calendar.Name = null;
+        var diagnostic = Assert.Single(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_CALENDAR_NAME_DEFAULT");
+        Assert.True(diagnostic.RepresentsLoss); Assert.EndsWith("/Name", diagnostic.Location);
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal("Calendar " + calendar.Uid, reopened.Calendar!.Name);
+    }
+
+    [Fact]
+    public void MissingCustomDurationFormatReportsItsMpxDefault() {
+        using var project = ProjectDocument.Create(); var task = project.Tasks.Add("Task");
+        var value = task.CustomFields.Add(); value.FieldId = "188743783"; value.Value = "PT1H0M0S";
+        var diagnostic = Assert.Single(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_CUSTOM_DURATION_DEFAULT");
+        Assert.True(diagnostic.RepresentsLoss); Assert.EndsWith("/DurationFormat", diagnostic.Location);
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(3, Assert.Single(reopened.Tasks[0].CustomFields).DurationFormat);
+    }
+
+    [Fact]
+    public void MissingDisplayIdsReportTheirAssignedMpxRows() {
+        using var project = ProjectDocument.Create(); var task = project.Tasks.Add("Task"); var resource = project.Resources.AddWork("Engineer");
+        Assert.Null(task.DisplayId); Assert.Null(resource.DisplayId);
+        var report = project.AssessSave(Options(false));
+        Assert.Contains(report.Diagnostics, item => item.Code == "PROJECT_MPX_TASK_ROWS" && item.Location.EndsWith("/DisplayId", StringComparison.Ordinal));
+        Assert.Contains(report.Diagnostics, item => item.Code == "PROJECT_MPX_RESOURCE_ROWS" && item.Location.EndsWith("/DisplayId", StringComparison.Ordinal));
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(1, reopened.Tasks[0].DisplayId); Assert.Equal(1, reopened.Resources[0].DisplayId);
+    }
+
+    [Fact]
+    public void MissingResourceAndOwnedCalendarNamesReportTheMpxFallback() {
+        using var project = ProjectDocument.Create(); var parent = project.Calendars.AddStandardWorkingWeek(); project.Calendar = parent;
+        var resource = project.Resources.AddWork("Engineer"); resource.DisplayId = 1;
+        var calendar = project.Calendars.Add("Engineer", parent); resource.Calendar = calendar;
+        resource.Name = null; calendar.Name = null;
+        var diagnostic = Assert.Single(project.AssessSave(Options(false)).Diagnostics,
+            item => item.Code == "PROJECT_MPX_RESOURCE_CALENDAR_NAME");
+        Assert.True(diagnostic.RepresentsLoss); Assert.EndsWith("/Name", diagnostic.Location);
+        using var output = new MemoryStream(); project.Save(output, Options());
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal("Resource", reopened.Resources[0].Calendar!.Name);
+    }
+
     [Theory]
     [InlineData("  padded  ")]
     [InlineData("\tpadded\t")]

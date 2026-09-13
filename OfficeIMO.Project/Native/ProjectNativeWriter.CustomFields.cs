@@ -36,6 +36,8 @@ internal sealed partial class ProjectNativeWriter {
                     case "Duration":
                         editor.Integer(uid, id, Exact(XmlConvert.ToTimeSpan(value.Value).Ticks / (decimal)(TimeSpan.TicksPerMinute / 10)));
                         if (field.DurationFormat != 0) {
+                            if (!value.DurationFormat.HasValue) Loss("PROJECT_NATIVE_CUSTOM_DURATION_DEFAULT",
+                                "Native output requires a custom duration format and normalizes an absent format to days.", path + "/DurationFormat");
                             int format = value.DurationFormat ?? 7;
                             int unit = format & ~32;
                             if (unit < 3 || unit > 12) throw new FormatException("Custom duration format must be a qualified working or elapsed unit.");

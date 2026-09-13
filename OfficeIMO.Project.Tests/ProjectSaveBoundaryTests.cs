@@ -84,6 +84,31 @@ public sealed class ProjectSaveBoundaryTests {
     }
 
     [Theory]
+    [InlineData("duration")]
+    [InlineData("work")]
+    [InlineData("baseline duration")]
+    [InlineData("baseline work")]
+    [InlineData("total slack")]
+    [InlineData("free slack")]
+    public void XmlAssessmentReportsOversizedScaledValuesBeforeSerialization(string field) {
+        using var document = ProjectDocument.Create(); var task = document.Tasks.Add("Task");
+        var baseline = task.Baselines.Add(); baseline.Number = 0;
+        string code;
+        switch (field) {
+            case "duration": task.Duration = ProjectDuration.WorkingMinutes(decimal.MaxValue); code = "PROJECT_XML_DURATION_RANGE"; break;
+            case "work": task.Work = new ProjectWork(decimal.MaxValue); code = "PROJECT_XML_WORK_RANGE"; break;
+            case "baseline duration": baseline.Duration = ProjectDuration.WorkingMinutes(decimal.MaxValue); code = "PROJECT_XML_DURATION_RANGE"; break;
+            case "baseline work": baseline.Work = new ProjectWork(decimal.MaxValue); code = "PROJECT_XML_WORK_RANGE"; break;
+            case "total slack": task.TotalSlackMinutes = decimal.MaxValue; code = "PROJECT_XML_TENTHS_RANGE"; break;
+            default: task.FreeSlackMinutes = decimal.MaxValue; code = "PROJECT_XML_TENTHS_RANGE"; break;
+        }
+        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
+        Assert.Contains(document.AssessSave(options).Diagnostics, diagnostic => diagnostic.Code == code);
+        using var output = new MemoryStream();
+        Assert.Throws<InvalidDataException>(() => document.Save(output, options)); Assert.Equal(0, output.Length);
+    }
+
+    [Theory]
     [InlineData("task")]
     [InlineData("resource")]
     [InlineData("assignment")]

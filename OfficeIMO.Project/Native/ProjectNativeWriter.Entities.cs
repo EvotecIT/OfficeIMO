@@ -172,6 +172,10 @@ internal sealed partial class ProjectNativeWriter {
                     "Native output cannot represent cross-project dependencies. Remove the link or save as Project XML.", path));
                 continue;
             }
+            if (!link.Type.HasValue) Loss("PROJECT_NATIVE_DEPENDENCY_DEFAULT",
+                "Native output normalizes an absent dependency type to Finish-to-Start.", path + "/Type");
+            if (!link.Lag.HasValue && !link.LagPercent.HasValue) Loss("PROJECT_NATIVE_DEPENDENCY_DEFAULT",
+                "Native output normalizes an absent dependency lag to zero working days.", path + "/Lag");
             editor.Add(uid); editor.Integer(uid, 0x0e400000, uid);
             Identity(editor, uid, 0x0e400015, NativeGuid(uid, 4));
             editor.Integer(uid, 0x0e400002, link.Predecessor?.Uid ?? link.SourcePredecessorUid); editor.Integer(uid, 0x0e400005, link.Successor.Uid);

@@ -75,7 +75,7 @@ public sealed partial class ProjectDocument {
         }
         if (format == ProjectFileFormat.Mpx4 && ProjectMpxWriter.CanRetain(this, options)) return ProjectMpxWriter.Plan(this, options, false, token).Report;
         var diagnostics = Validate(token).Diagnostics.ToList();
-        if (format == ProjectFileFormat.Xml) AddXmlMoneyRangeDiagnostics(diagnostics, token);
+        if (format == ProjectFileFormat.Xml) AddXmlRangeDiagnostics(diagnostics, token);
         if (format == ProjectFileFormat.Xml) {
             foreach (var task in AllTasks) {
                 token.ThrowIfCancellationRequested();
@@ -120,7 +120,7 @@ public sealed partial class ProjectDocument {
             "MPX comment records have no model mapping and are omitted during conversion.", "/", true));
         return new ProjectReport(Revision, diagnostics);
     }
-    private void AddXmlMoneyRangeDiagnostics(List<ProjectDiagnostic> diagnostics, CancellationToken token) {
+    private void AddXmlRangeDiagnostics(List<ProjectDiagnostic> diagnostics, CancellationToken token) {
         const decimal maximum = decimal.MaxValue / 100m;
         const decimal minimum = decimal.MinValue / 100m;
         void Check(decimal? value, string location) {
@@ -128,31 +128,67 @@ public sealed partial class ProjectDocument {
                 diagnostics.Add(new ProjectDiagnostic("PROJECT_COST_RANGE", ProjectDiagnosticSeverity.Error,
                     "The cost exceeds the range representable in Project's hundredths-based storage.", location));
         }
+        void CheckWork(ProjectWork? value, string location) {
+            if (!value.HasValue) return;
+            try { _ = ProjectXmlValue.MinutesToSpan(value.Value.Minutes); }
+            catch (OverflowException) {
+                diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_WORK_RANGE", ProjectDiagnosticSeverity.Error,
+                    "The work exceeds the duration range representable in Project XML.", location));
+            }
+        }
+        void CheckDuration(ProjectDuration? value, string location) {
+            if (!value.HasValue) return;
+            try { _ = ProjectXmlValue.Duration(value, this); }
+            catch (OverflowException) {
+                diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_DURATION_RANGE", ProjectDiagnosticSeverity.Error,
+                    "The duration exceeds the range representable in Project XML.", location));
+            }
+        }
+        void CheckTenths(decimal? value, string location) {
+            if (!value.HasValue) return;
+            try { _ = checked(value.Value * 10m); }
+            catch (OverflowException) {
+                diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_TENTHS_RANGE", ProjectDiagnosticSeverity.Error,
+                    "The value exceeds the tenths-based range representable in Project XML.", location));
+            }
+        }
         void Baselines(ProjectCollection<ProjectBaseline> baselines, string location) {
             for (int index = 0; index < baselines.Count; index++) {
                 token.ThrowIfCancellationRequested();
                 var baseline = baselines[index]; string path = location + "/Baseline[" + index + "]";
                 Check(baseline.Cost, path + "/Cost"); Check(baseline.FixedCost, path + "/FixedCost");
                 Check(baseline.Bcws, path + "/BCWS"); Check(baseline.Bcwp, path + "/BCWP");
+                CheckDuration(baseline.Duration, path + "/Duration"); CheckWork(baseline.Work, path + "/Work");
             }
         }
         foreach (var task in AllTasks) {
             token.ThrowIfCancellationRequested(); string path = "/Task[UID=" + task.Uid + "]";
             Check(task.Cost, path + "/Cost"); Check(task.ActualCost, path + "/ActualCost");
             Check(task.RemainingCost, path + "/RemainingCost"); Check(task.FixedCost, path + "/FixedCost");
+            CheckDuration(task.Duration, path + "/Duration"); CheckDuration(task.ActualDuration, path + "/ActualDuration");
+            CheckDuration(task.RemainingDuration, path + "/RemainingDuration");
+            CheckWork(task.Work, path + "/Work"); CheckWork(task.ActualWork, path + "/ActualWork");
+            CheckWork(task.RemainingWork, path + "/RemainingWork");
+            CheckTenths(task.TotalSlackMinutes, path + "/TotalSlack"); CheckTenths(task.FreeSlackMinutes, path + "/FreeSlack");
             Baselines(task.Baselines, path);
         }
         foreach (var resource in Resources) {
             token.ThrowIfCancellationRequested(); string path = "/Resource[UID=" + resource.Uid + "]";
             Check(resource.CostPerUse, path + "/CostPerUse"); Check(resource.Cost, path + "/Cost");
             Check(resource.ActualCost, path + "/ActualCost"); Check(resource.RemainingCost, path + "/RemainingCost");
+            CheckWork(resource.Work, path + "/Work"); CheckWork(resource.ActualWork, path + "/ActualWork");
+            CheckWork(resource.RemainingWork, path + "/RemainingWork");
             for (int index = 0; index < resource.Rates.Count; index++) Check(resource.Rates[index].CostPerUse, path + "/Rate[" + index + "]/CostPerUse");
             Baselines(resource.Baselines, path);
         }
         foreach (var assignment in Assignments) {
             token.ThrowIfCancellationRequested(); string path = "/Assignment[UID=" + assignment.Uid + "]";
             Check(assignment.Cost, path + "/Cost"); Check(assignment.ActualCost, path + "/ActualCost");
-            Check(assignment.RemainingCost, path + "/RemainingCost"); Baselines(assignment.Baselines, path);
+            Check(assignment.RemainingCost, path + "/RemainingCost");
+            CheckWork(assignment.Work, path + "/Work"); CheckWork(assignment.ActualWork, path + "/ActualWork");
+            CheckWork(assignment.RemainingWork, path + "/RemainingWork"); CheckWork(assignment.OvertimeWork, path + "/OvertimeWork");
+            CheckWork(assignment.ActualOvertimeWork, path + "/ActualOvertimeWork");
+            CheckTenths(assignment.DelayMinutes, path + "/Delay"); Baselines(assignment.Baselines, path);
         }
     }
     private static void AddRetainedOutputLimit(List<ProjectDiagnostic> diagnostics, byte[] bytes, ProjectSaveOptions options) {

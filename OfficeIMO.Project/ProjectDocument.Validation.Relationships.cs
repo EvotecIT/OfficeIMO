@@ -101,6 +101,10 @@ public sealed partial class ProjectDocument {
             string location = "/Task[UID=" + link.Successor.Uid + "]/PredecessorLink";
             CheckEnum(link.Type, location + "/Type", add);
             try {
+                if (link.Lag is ProjectDuration duration) {
+                    decimal minutes = checked(duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, this));
+                    if (!ProjectXmlValue.CanRepresentMinutes(minutes)) throw new OverflowException();
+                }
                 decimal? rawLag = ProjectXmlCodec.DependencyLag(link, this);
                 if (rawLag.HasValue && rawLag.Value != decimal.Truncate(rawLag.Value))
                     add("PROJECT_LAG_PRECISION", "MSPDI stores lag as integer tenths of a minute or integer percent; saving rounds midpoint values away from zero.", location + "/LinkLag", ProjectDiagnosticSeverity.Warning, true);

@@ -15,6 +15,8 @@ internal sealed partial class ProjectMpxWriter {
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var calendar in _document.Calendars.Where(c => !_resourceCalendarOwners.ContainsKey(c))) {
             string name = calendar.Name ?? "Calendar " + calendar.Uid;
+            if (calendar.Name == null) Diagnostic("PROJECT_MPX_CALENDAR_NAME_DEFAULT",
+                "MPX requires a calendar name and normalizes an absent name to '" + name + "'.", Path(calendar, "Calendar") + "/Name");
             if (name.Length == 0 || !names.Add(name)) throw new InvalidDataException("MPX base calendars need nonempty, unique names.");
             _calendarNames.Add(calendar, name);
             WriteCalendar(calendar, name, false);
@@ -24,7 +26,9 @@ internal sealed partial class ProjectMpxWriter {
         if (resource.Calendar == null) return;
         var calendar = resource.Calendar; Handle(path + "/Calendar");
         if (_resourceCalendarOwners.TryGetValue(calendar, out var owner) && owner == resource) {
-            if (calendar.Name != resource.Name) Diagnostic("PROJECT_MPX_RESOURCE_CALENDAR_NAME", "The resource calendar takes its name from its resource in MPX.", Path(calendar, "Calendar") + "/Name");
+            string representedName = resource.Name ?? "Resource";
+            if (!string.Equals(calendar.Name, representedName, StringComparison.Ordinal)) Diagnostic("PROJECT_MPX_RESOURCE_CALENDAR_NAME",
+                "MPX derives the resource calendar name from the resource and uses 'Resource' when the resource name is absent.", Path(calendar, "Calendar") + "/Name");
             WriteCalendar(calendar, _calendarNames[calendar.BaseCalendar!], true);
         } else {
             Record("55", _calendarNames[calendar], "2", "2", "2", "2", "2", "2", "2");

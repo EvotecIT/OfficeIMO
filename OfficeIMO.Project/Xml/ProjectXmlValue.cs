@@ -55,6 +55,10 @@ internal static class ProjectXmlValue {
     internal static ProjectWork ParseWork(string value) => new ProjectWork((decimal)XmlConvert.ToTimeSpan(value).Ticks / TimeSpan.TicksPerMinute);
     internal static ProjectUnits ParseUnits(string value) => ProjectUnits.Fraction(ParseNumber(value));
     internal static TimeSpan MinutesToSpan(decimal minutes) => TimeSpan.FromTicks(checked((long)decimal.Round(minutes * TimeSpan.TicksPerMinute, 0, MidpointRounding.AwayFromZero)));
+    internal static bool CanRepresentMinutes(decimal minutes) {
+        try { _ = MinutesToSpan(minutes); return true; }
+        catch (OverflowException) { return false; }
+    }
 
     internal static decimal MinutesPerUnit(ProjectDurationUnit unit, bool elapsed, ProjectDocument document) => ProjectTimeUnits.MinutesPerUnit(unit, elapsed, document.Settings);
     internal static string? Duration(ProjectDuration? duration, ProjectDocument document) => duration.HasValue

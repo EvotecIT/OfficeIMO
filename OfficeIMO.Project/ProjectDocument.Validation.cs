@@ -13,6 +13,8 @@ public sealed partial class ProjectDocument {
         cancellationToken.ThrowIfCancellationRequested();
         if (Settings.MinutesPerDay <= 0 || Settings.MinutesPerWeek <= 0 || Settings.DaysPerMonth <= 0)
             Add("PROJECT_WORKING_TIME", "Working-time conversion settings must be positive.", "/Project");
+        try { _ = ProjectTimeUnits.MinutesPerUnit(ProjectDurationUnit.Month, false, Settings); }
+        catch (OverflowException) { Add("PROJECT_WORKING_TIME", "Working-time conversion settings exceed the supported range.", "/Project"); }
         if (Settings.ScheduleFromStart == true && !Settings.StartDate.HasValue)
             Add("PROJECT_START_REQUIRED", "Set a project start date when scheduling from the start.", "/Project/StartDate");
         if (Settings.ScheduleFromStart == false && !Settings.FinishDate.HasValue)

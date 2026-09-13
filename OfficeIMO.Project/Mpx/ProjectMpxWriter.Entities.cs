@@ -15,6 +15,8 @@ internal sealed partial class ProjectMpxWriter {
             if (row > 9999) throw new InvalidDataException("MPX resource display IDs exceed 9999.");
             used.Add(row);
             _resourceRows.Add(resource, row); Handle(path + "/DisplayId"); Handle(path + "/Uid");
+            if (!resource.DisplayId.HasValue) Diagnostic("PROJECT_MPX_RESOURCE_ROWS",
+                "MPX requires a resource display ID and assigns the next available row.", path + "/DisplayId");
             if (resource.Type == ProjectResourceType.Work) Handle(path + "/Type");
             else if (!resource.Type.HasValue) Diagnostic("PROJECT_MPX_RESOURCE_DEFAULT", "MPX normalizes an absent resource type to work.", path + "/Type");
             var values = new Dictionary<int, string> { [40] = ProjectMpxValues.Text(row), [49] = ProjectMpxValues.Text(resource.Uid) };
@@ -51,7 +53,8 @@ internal sealed partial class ProjectMpxWriter {
                 [90] = ProjectMpxValues.Text(_taskRows[task]), [98] = ProjectMpxValues.Text(task.Uid), [3] = ProjectMpxValues.Text(level), [120] = ProjectMpxValues.Text(task.IsSummary)
             };
             Handle(path + "/Uid"); Handle(path + "/DisplayId"); Handle(path + "/Parent"); Handle(path + "/Position"); Handle(path + "/IsSummary");
-            if (task.DisplayId.HasValue && task.DisplayId != _taskRows[task]) Diagnostic("PROJECT_MPX_TASK_ROWS", "Display rows are renumbered to retain the current outline order; stable task UIDs and relationships are retained.", path + "/DisplayId");
+            if (!task.DisplayId.HasValue) Diagnostic("PROJECT_MPX_TASK_ROWS", "MPX requires a task display ID and assigns a row from the current outline order.", path + "/DisplayId");
+            else if (task.DisplayId != _taskRows[task]) Diagnostic("PROJECT_MPX_TASK_ROWS", "Display rows are renumbered to retain the current outline order; stable task UIDs and relationships are retained.", path + "/DisplayId");
             foreach (var field in ProjectMpxFields.Tasks.Where(f => f.Id != 90)) { values[field.Id] = field.Write(task); Handle(path + "/" + field.ModelKey); }
             if (task.Type == ProjectTaskType.FixedWork) Diagnostic("PROJECT_MPX_TASK_TYPE", "MPX Fixed distinguishes fixed duration from other task types; fixed work becomes fixed units.", path + "/Type");
             if (task.Priority.HasValue) {
@@ -99,7 +102,11 @@ internal sealed partial class ProjectMpxWriter {
             if (!used.Add(mapping.Id)) throw new InvalidDataException("MPX scalar custom fields require one value per entity and field.");
             values[mapping.Id] = mapping.Write(field, _values);
             string path = parent + "/Custom[" + i + "]"; Handle(path + "/FieldId"); Handle(path + "/Value");
-            if (mapping.Kind == "Duration") Handle(path + "/DurationFormat");
+            if (mapping.Kind == "Duration") {
+                if (field.Value != null && !field.DurationFormat.HasValue) Diagnostic("PROJECT_MPX_CUSTOM_DURATION_DEFAULT",
+                    "MPX requires a custom duration format and normalizes an absent format to minutes.", path + "/DurationFormat");
+                Handle(path + "/DurationFormat");
+            }
         }
     }
     private void Assignment(ProjectAssignment item, int uid) {

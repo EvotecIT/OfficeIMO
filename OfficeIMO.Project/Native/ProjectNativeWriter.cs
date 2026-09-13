@@ -212,12 +212,8 @@ internal sealed partial class ProjectNativeWriter {
         if ((decimal)encoded != value) throw new ArgumentException("Native floating-point precision would change this value.");
         return BitConverter.GetBytes(encoded);
     }
-    private decimal Minutes(ProjectDuration duration) => duration.Value * (duration.Unit switch {
-        ProjectDurationUnit.Minute => 1, ProjectDurationUnit.Hour => 60,
-        ProjectDurationUnit.Day => duration.IsElapsed ? 1440 : _document.Settings.MinutesPerDay ?? 480,
-        ProjectDurationUnit.Week => duration.IsElapsed ? 10080 : _document.Settings.MinutesPerWeek ?? 2400,
-        ProjectDurationUnit.Month => duration.IsElapsed ? 43200 : (_document.Settings.MinutesPerDay ?? 480) * (_document.Settings.DaysPerMonth ?? 20),
-        _ => throw new ArgumentOutOfRangeException(nameof(duration)) });
+    private decimal Minutes(ProjectDuration duration) => checked(duration.Value *
+        ProjectTimeUnits.MinutesPerUnit(duration.Unit, duration.IsElapsed, _document.Settings));
     private static int DurationFormat(ProjectDuration duration) => 3 + (int)duration.Unit * 2 + (duration.IsElapsed ? 1 : 0) + (duration.IsEstimated ? 32 : 0);
     private Guid EntityGuid(ProjectEntity entity, byte kind) {
         if (entity.Guid.HasValue) return entity.Guid.Value;

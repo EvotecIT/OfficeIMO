@@ -6,8 +6,7 @@ public sealed partial class ProjectDocument {
             token.ThrowIfCancellationRequested(); string path = "/Task[UID=" + task.Uid + "]";
             CheckEnum(task.FixedCostAccrual, path + "/FixedCostAccrual", add); CheckEnum(task.EarnedValueMethod, path + "/EarnedValueMethod", add);
             CheckDateRange(task.Stop, task.Resume, path + "/Progress", add);
-            if (task.LevelingDelay is ProjectDuration delay && (delay.Value < 0 ||
-                delay.Value * ProjectXmlValue.MinutesPerUnit(delay.Unit, delay.IsElapsed, this) * 10m % 1m != 0))
+            if (task.LevelingDelay is ProjectDuration delay && !IsValidLevelingDelay(delay))
                 add("PROJECT_LEVELING_DELAY", "Leveling delay must be nonnegative whole tenths of a minute.", path);
         }
         foreach (var resource in Resources) {
@@ -43,11 +42,23 @@ public sealed partial class ProjectDocument {
             token.ThrowIfCancellationRequested(); string path = "/Assignment[UID=" + assignment.Uid + "]";
             CheckEnum(assignment.CostRateTable, path + "/CostRateTable", add); CheckEnum(assignment.WorkContour, path + "/WorkContour", add);
             CheckDateRange(assignment.Stop, assignment.Resume, path + "/Progress", add);
-            if (assignment.DelayMinutes < 0 || ((assignment.DelayMinutes ?? 0m) * 10m) % 1m != 0)
+            if (assignment.DelayMinutes is decimal assignmentDelay && !IsValidTenths(assignmentDelay))
                 add("PROJECT_ASSIGNMENT_DELAY", "Assignment delay must be nonnegative whole tenths of a working minute.", path);
             if (assignment.HasFixedRateUnits == false && assignment.Resource?.Type == ProjectResourceType.Material &&
                 (assignment.MaterialRateScale < 1 || assignment.MaterialRateScale > 5 || !assignment.MaterialRateScale.HasValue))
                 add("PROJECT_MATERIAL_RATE_SCALE", "Variable material usage requires a minute, hour, day, week or month rate scale (1–5).", path);
         }
+    }
+    private bool IsValidLevelingDelay(ProjectDuration delay) {
+        if (delay.Value < 0) return false;
+        try {
+            decimal minutes = checked(delay.Value * ProjectXmlValue.MinutesPerUnit(delay.Unit, delay.IsElapsed, this));
+            return ProjectXmlValue.CanRepresentMinutes(minutes) && checked(minutes * 10m) % 1m == 0;
+        } catch (OverflowException) { return false; }
+    }
+    private static bool IsValidTenths(decimal value) {
+        if (value < 0) return false;
+        try { return checked(value * 10m) % 1m == 0; }
+        catch (OverflowException) { return false; }
     }
 }

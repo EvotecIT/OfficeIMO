@@ -138,7 +138,7 @@ internal sealed partial class ProjectTaskAllocation {
     private decimal VariableQuantity(ProjectAssignment assignment, decimal units, decimal minutes) {
         int scale = assignment.MaterialRateScale ?? throw new InvalidOperationException("Variable material consumption requires an explicit rate scale.");
         decimal perUnit = scale switch { 1 => 1m, 2 => 60m, 3 => _document.Settings.MinutesPerDay ?? 480,
-            4 => _document.Settings.MinutesPerWeek ?? 2400, 5 => (_document.Settings.MinutesPerDay ?? 480) * (_document.Settings.DaysPerMonth ?? 20),
+            4 => _document.Settings.MinutesPerWeek ?? 2400, 5 => ProjectTimeUnits.MinutesPerUnit(ProjectDurationUnit.Month, false, _document.Settings),
             _ => throw new NotSupportedException("Unsupported variable-material rate scale.") };
         return minutes / perUnit * units;
     }

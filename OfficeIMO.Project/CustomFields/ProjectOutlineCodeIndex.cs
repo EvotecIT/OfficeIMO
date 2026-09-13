@@ -16,8 +16,8 @@ internal sealed class ProjectOutlineCodeIndex {
         if (_masks.Length > 64) throw new InvalidDataException("Outline-code masks exceed 64 levels.");
         for (int i = 0; i < _masks.Length; i++) {
             var mask = _masks[i];
-            if (mask.Level != i + 1 || mask.Type < 0 || mask.Type > 3 || !mask.Type.HasValue || mask.Length < 0 || mask.Length > 4096)
-                throw new InvalidDataException("Outline-code masks require consecutive levels, a supported character type and nonnegative bounded lengths.");
+            if (mask.Level != i + 1 || mask.Type < 0 || mask.Type > 3 || !mask.Type.HasValue || !mask.Length.HasValue || mask.Length < 0 || mask.Length > 4096)
+                throw new InvalidDataException("Outline-code masks require consecutive levels, a supported character type and explicit nonnegative bounded lengths.");
         }
         foreach (var value in definition.Values) {
             token.ThrowIfCancellationRequested();

@@ -64,6 +64,72 @@ public sealed class ProjectValidationBoundaryTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OversizedDelayValuesBecomeValidationDiagnostics(bool taskDelay) {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
+        document.Settings.StartDate = Monday;
+        var task = document.Tasks.Add("Task"); task.Duration = ProjectDuration.WorkingDays(1);
+        var resource = document.Resources.AddWork("Engineer"); var assignment = document.Assignments.Add(task, resource);
+        if (taskDelay) task.LevelingDelay = ProjectDuration.WorkingMinutes(decimal.MaxValue);
+        else assignment.DelayMinutes = decimal.MaxValue;
+        string code = taskDelay ? "PROJECT_LEVELING_DELAY" : "PROJECT_ASSIGNMENT_DELAY";
+        Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Code == code);
+        Assert.Contains(document.AssessSave().Diagnostics, diagnostic => diagnostic.Code == code);
+        Assert.Contains(document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }).Report.Diagnostics,
+            diagnostic => diagnostic.Code == code);
+    }
+
+    [Theory]
+    [InlineData("leveling", false)]
+    [InlineData("leveling", true)]
+    [InlineData("lag", false)]
+    [InlineData("lag", true)]
+    [InlineData("negative lag", false)]
+    [InlineData("negative lag", true)]
+    public void XmlDurationsThatCrossTheTimeSpanBoundaryAreRejectedBeforeSave(string field, bool outside) {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
+        var predecessor = document.Tasks.Add("Predecessor"); predecessor.Duration = ProjectDuration.WorkingMinutes(1);
+        var successor = document.Tasks.Add("Successor"); successor.Duration = ProjectDuration.WorkingMinutes(1);
+        decimal value = decimal.Floor(long.MaxValue / (decimal)TimeSpan.TicksPerMinute);
+        if (outside) value += 1m;
+        if (field == "negative lag") value = -value;
+        if (field == "leveling") successor.LevelingDelay = ProjectDuration.WorkingMinutes(value);
+        else document.Dependencies.Add(predecessor, successor).Lag = ProjectDuration.WorkingMinutes(value);
+        string code = field == "leveling" ? "PROJECT_LEVELING_DELAY" : "PROJECT_LAG_RANGE";
+        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
+        Assert.Equal(outside, document.AssessSave(options).Diagnostics.Any(diagnostic => diagnostic.Code == code));
+        using var output = new MemoryStream();
+        if (outside) { Assert.Throws<InvalidDataException>(() => document.Save(output, options)); Assert.Equal(0, output.Length); }
+        else { document.Save(output, options); using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray())); Assert.False(reopened.Validate().HasErrors); }
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    public void OversizedMonthSettingsAreRejectedForEveryNativeGeneration(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        document.Settings.MinutesPerDay = int.MaxValue; document.Settings.DaysPerMonth = int.MaxValue;
+        Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "PROJECT_WORKING_TIME");
+        var options = new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow };
+        Assert.Contains(document.AssessSave(options).Diagnostics, diagnostic => diagnostic.Code == "PROJECT_WORKING_TIME");
+        using var output = new MemoryStream(); Assert.Throws<InvalidDataException>(() => document.Save(output, options)); Assert.Equal(0, output.Length);
+    }
+
+    [Fact]
+    public void OversizedMonthSettingsBlockVariableMaterialScheduling() {
+        using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
+        document.Settings.StartDate = Monday; document.Settings.MinutesPerDay = int.MaxValue; document.Settings.DaysPerMonth = int.MaxValue;
+        var task = document.Tasks.Add("Task"); task.Duration = ProjectDuration.WorkingDays(1);
+        var material = document.Resources.AddMaterial("Material"); material.MaterialLabel = "unit";
+        var assignment = document.Assignments.Add(task, material); assignment.HasFixedRateUnits = false; assignment.MaterialRateScale = 5;
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_WORKING_TIME");
+    }
+
+    [Theory]
     [InlineData("weekday", false, true)]
     [InlineData("exception", false, true)]
     [InlineData("workweek", false, true)]

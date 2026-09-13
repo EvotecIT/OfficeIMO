@@ -344,6 +344,41 @@ public sealed class ProjectNativeBoundaryClosureTests {
         Assert.Throws<InvalidDataException>(() => document.Save(new MemoryStream(), Native(format)));
     }
 
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    public void MissingNativeDependencyTypeAndLagReportTheirDefaults(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        var predecessor = document.Tasks.GetByUid(2); var successor = document.Tasks.Add("Successor");
+        var dependency = document.Dependencies.Add(predecessor, successor); dependency.Type = null; dependency.Lag = null;
+        var report = document.AssessSave(new ProjectSaveOptions { Format = format });
+        Assert.Equal(2, report.Diagnostics.Count(diagnostic => diagnostic.Code == "PROJECT_NATIVE_DEPENDENCY_DEFAULT"
+            && diagnostic.RepresentsLoss));
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        var normalized = Assert.Single(reopened.Dependencies);
+        Assert.Equal(ProjectDependencyType.FinishToStart, normalized.Type);
+        Assert.True(normalized.Lag.HasValue); Assert.Equal(0m, normalized.Lag.Value.Value);
+    }
+
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpp12)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    public void MissingNativeCustomDurationFormatReportsItsDefault(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create(); var task = document.Tasks.GetByUid(2);
+        var value = task.CustomFields.Add(); value.FieldId = "188743783"; value.Value = "PT1H0M0S";
+        var report = document.AssessSave(new ProjectSaveOptions { Format = format });
+        var diagnostic = Assert.Single(report.Diagnostics, item => item.Code == "PROJECT_NATIVE_CUSTOM_DURATION_DEFAULT");
+        Assert.True(diagnostic.RepresentsLoss); Assert.EndsWith("/DurationFormat", diagnostic.Location);
+        using var output = new MemoryStream(); document.Save(output, Native(format));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(7, reopened.Tasks.GetByUid(2).CustomFields.Single(item => item.FieldId == value.FieldId).DurationFormat);
+    }
+
     [Fact]
     public void UnmappedNativeVariableFieldsFailBeforeTheirDataOffsetsAreRead() {
         byte[] source = File.ReadAllBytes(ProjectNativeTests.Fixture("delivery.mpp"));
