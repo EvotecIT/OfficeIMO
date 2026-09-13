@@ -37,6 +37,9 @@ The local changes have these responsibilities:
   the active document's window in capture/bubble paths except for load events.
 - `ModifierExtensions` reads the explicit DOM modifier token list so the runtime's
   typed keyboard contract exposes Alt, Control, Meta and Shift consistently.
+- `Document.Import` clones retained provider tree nodes into the requested owner
+  document, keeping layout and form snapshots isolated from the live page resource
+  loader. Detached attribute-node ownership remains outside this retained-provider patch.
 
 `IMutationMicrotaskScheduler`, `IDomMutationListener` and `IDomSynchronization` are narrow integration
 hooks outside the retained source directory. Scheduling, script error handling,

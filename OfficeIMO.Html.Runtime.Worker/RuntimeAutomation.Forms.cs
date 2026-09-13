@@ -86,19 +86,47 @@ internal sealed partial class RuntimeAutomation {
         limits.MaxHtmlDepth = _options.MaxDepth;
         HtmlConversionInputGuard.ValidateDocument(live, limits, token);
 
-        IElement[] sourceElements = live.QuerySelectorAll("*").ToArray();
-        int formIndex = Array.IndexOf(sourceElements, form);
-        int submitterIndex = submitter == null ? -1 : Array.IndexOf(sourceElements, submitter);
-        if (formIndex < 0 || submitter != null && submitterIndex < 0) return null;
+        IHtmlDocument clone = (IHtmlDocument)live.Implementation.CreateHtmlDocument(string.Empty);
+        RuntimeDocumentUrls.Rewrite(clone, _document.Url);
+        var clonedForm = clone.Import(form, deep: true) as IHtmlFormElement
+            ?? throw new HtmlScriptRuntimeException("The DOM provider could not clone the form.");
+        clone.Body!.AppendChild(clonedForm);
 
-        IHtmlDocument clone = live.Clone(deep: true) as IHtmlDocument
-            ?? throw new HtmlScriptRuntimeException("The DOM provider could not clone the form document.");
-        IElement[] clonedElements = clone.QuerySelectorAll("*").ToArray();
+        IElement[] sourceElements = new[] { (IElement)form }.Concat(form.QuerySelectorAll("*")).ToArray();
+        IElement[] clonedElements = new[] { (IElement)clonedForm }.Concat(clonedForm.QuerySelectorAll("*")).ToArray();
         CopyFormState(sourceElements, clonedElements, token);
-        if (formIndex >= clonedElements.Length || clonedElements[formIndex] is not IHtmlFormElement clonedForm) return null;
+        int submitterIndex = submitter == null
+            ? -1
+            : Array.FindIndex(sourceElements, element => ReferenceEquals(element, submitter));
         IHtmlElement? clonedSubmitter = submitterIndex < 0 || submitterIndex >= clonedElements.Length
             ? null
             : clonedElements[submitterIndex] as IHtmlElement;
+
+        INode? originalFirstChild = clonedForm.FirstChild;
+        foreach (IHtmlElement control in live.QuerySelectorAll("button,fieldset,input,object,output,select,textarea").OfType<IHtmlElement>()) {
+            token.ThrowIfCancellationRequested();
+            if (!ReferenceEquals(HtmlFormControlSemantics.ResolveFormOwner(control), form)
+                || sourceElements.Any(element => ReferenceEquals(element, control))) continue;
+            bool deep = control is IHtmlSelectElement;
+            if (clone.Import(control, deep) is not IHtmlElement clonedControl) return null;
+            CopyFormState(
+                new[] { control }.Concat(control.QuerySelectorAll("*")).ToArray(),
+                new[] { clonedControl }.Concat(clonedControl.QuerySelectorAll("*")).ToArray(),
+                token);
+            if (RuntimeFocusController.Disabled(control)) clonedControl.SetAttribute("disabled", string.Empty);
+            clonedControl.RemoveAttribute("form");
+            INode insertion = clonedControl;
+            if (control.ParentElement is IHtmlDataListElement dataList
+                && clone.Import(dataList, deep: false) is IHtmlDataListElement clonedDataList) {
+                clonedDataList.AppendChild(clonedControl);
+                insertion = clonedDataList;
+            }
+            if ((control.CompareDocumentPosition(form) & DocumentPositions.Following) != 0)
+                clonedForm.InsertBefore(insertion, originalFirstChild);
+            else
+                clonedForm.AppendChild(insertion);
+            if (ReferenceEquals(control, submitter)) clonedSubmitter = clonedControl;
+        }
         if (submitter != null && clonedSubmitter == null) return null;
 
         string action = submitter?.HasAttribute("formaction") == true
@@ -110,9 +138,18 @@ internal sealed partial class RuntimeAutomation {
         if (resolvedAction.IsInvalid) return null;
         clonedForm.Action = resolvedAction.Href;
         clonedForm.Method = "get";
-        return clonedSubmitter == null
+        DocumentRequest? submission = clonedSubmitter == null
             ? validate ? clonedForm.GetSubmission(clonedForm) : clonedForm.GetSubmission()
             : clonedForm.GetSubmission(clonedSubmitter);
+        if (submission == null) return null;
+
+        // The provider owns successful-control serialization. OfficeIMO keeps
+        // navigation authority on the absolute action resolved in the live realm.
+        var target = new Url(resolvedAction.Href) {
+            Query = submission.Target.Query,
+            Fragment = submission.Target.Fragment
+        };
+        return DocumentRequest.Get(target, clonedSubmitter ?? clonedForm, _document.Url);
     }
 
     private static void CopyFormState(IReadOnlyList<IElement> source, IReadOnlyList<IElement> target, CancellationToken token) {

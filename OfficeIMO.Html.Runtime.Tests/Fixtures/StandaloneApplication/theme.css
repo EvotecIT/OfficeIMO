@@ -1,0 +1,4 @@
+body { color: #172033; background: #f7f9fc; }
+h1 { color: #185b7a; }
+button { width: 180px; height: 40px; background: #185b7a; color: white; border: 0; }
+#health[data-state="degraded"] { color: #8a4b08; }

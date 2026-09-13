@@ -229,8 +229,9 @@ internal sealed partial class RuntimeAutomation {
             try { RuntimeDocumentUrls.Base(_document); _history.NavigateFragment(anchor.Href); }
             catch (Jint.Runtime.JavaScriptException error) { return Failure(HtmlAutomationStatus.Unsupported,error.Message,1,Inspect(element)); }
         }
-        if (element is IHtmlButtonElement or IHtmlInputElement && type is "submit" or "reset" && HtmlFormControlSemantics.ResolveFormOwner(element) is IHtmlFormElement form)
-            return ApplyFormDefault(form, (IHtmlElement)element, type);
+        if ((type == "reset" || HtmlFormControlSemantics.IsSubmitter(element))
+            && HtmlFormControlSemantics.ResolveFormOwner(element) is IHtmlFormElement form)
+            return ApplyFormDefault(form, (IHtmlElement)element, type == "reset" ? "reset" : "submit");
         return Success(element);
     }
 

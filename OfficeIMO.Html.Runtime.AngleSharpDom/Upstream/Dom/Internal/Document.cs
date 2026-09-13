@@ -1042,7 +1042,7 @@ namespace AngleSharp.Dom
                 throw new DomException(DomError.NotSupported);
             }
 
-            return externalNode.Clone(deep);
+            return externalNode is Node node ? node.Clone(this, deep) : externalNode.Clone(deep);
         }
 
         /// <inheritdoc />

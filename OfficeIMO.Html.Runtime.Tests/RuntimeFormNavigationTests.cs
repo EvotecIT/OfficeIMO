@@ -12,6 +12,94 @@ public sealed class RuntimeFormNavigationTests {
         new Uri(Page, relative), html, "text/html; charset=utf-8");
 
     [Fact]
+    public async Task FormSnapshotIncludesExternalControlsWithoutReloadingPageResources() {
+        var result = new Uri(Page, "/result?outside=external&inside=value&mode=review");
+        const string html = """
+            <link rel='stylesheet' href='/form.css'>
+            <input name='outside' value='external' form='report'>
+            <form id='report' action='/result' method='get'>
+              <input name='inside' value='value'>
+              <button name='mode' value='review'>Review</button>
+            </form>
+            """;
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1,
+            DocumentUrl = Page,
+            Html = html,
+            ResourcePolicy = new() { MaxRequests = 2 },
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(new Uri(Page, "/form.css"), "button{width:140px;height:36px}", "text/css"),
+                HtmlRuntimeResource.FromText(result, "<h1>Review</h1>", "text/html; charset=utf-8")
+            }
+        });
+
+        await session.Locator(HtmlLocatorQuery.ByAccessibleName("Review")).ClickAsync();
+
+        Assert.Equal(result, (await session.CaptureAsync()).DocumentUrl);
+        Assert.Equal("Review", (await session.Locator("h1").InspectAsync()).Text);
+    }
+
+    [Fact]
+    public async Task FormSnapshotIncludesImageSubmitterCoordinates() {
+        var result = new Uri(Page, "/result?send.x=0&send.y=0");
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1,
+            DocumentUrl = Page,
+            Html = "<input id='send' type='image' name='send' alt='Send' form='report'><form id='report' action='/result' method='get'></form>",
+            Resources = new[] { HtmlRuntimeResource.FromText(result, "<h1>Image result</h1>", "text/html; charset=utf-8") }
+        });
+
+        await session.Locator("#send").ClickAsync();
+
+        Assert.Equal(result, (await session.CaptureAsync()).DocumentUrl);
+    }
+
+    [Fact]
+    public async Task FormSnapshotPreservesDatalistExclusion() {
+        var result = new Uri(Page, "/result?included=yes");
+        const string html = """
+            <form action='/result' method='get'>
+              <input name='included' value='yes'>
+              <datalist><input name='excluded' value='no'></datalist>
+              <button type='submit'>Submit</button>
+            </form>
+            """;
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1,
+            DocumentUrl = Page,
+            Html = html,
+            Resources = new[] { HtmlRuntimeResource.FromText(result, "<h1>Datalist result</h1>", "text/html; charset=utf-8") }
+        });
+
+        await session.Locator(HtmlLocatorQuery.ByAccessibleName("Submit")).ClickAsync();
+
+        Assert.Equal(result, (await session.CaptureAsync()).DocumentUrl);
+    }
+
+    [Fact]
+    public async Task FormSnapshotDoesNotDuplicateOrAcquireExternalFieldsetDescendants() {
+        var result = new Uri(Page, "/result?owned=yes");
+        const string html = """
+            <fieldset form='report'>
+              <input name='owned' value='yes' form='report'>
+              <input name='unowned' value='no'>
+            </fieldset>
+            <button type='submit' form='report'>Submit</button>
+            <form id='report' action='/result' method='get'></form>
+            """;
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1,
+            DocumentUrl = Page,
+            Html = html,
+            Resources = new[] { HtmlRuntimeResource.FromText(result, "<h1>Fieldset result</h1>", "text/html; charset=utf-8") }
+        });
+
+        await session.Locator(HtmlLocatorQuery.ByAccessibleName("Submit")).ClickAsync();
+
+        Assert.Equal(result, (await session.CaptureAsync()).DocumentUrl);
+    }
+
+    [Fact]
     public async Task AutomationResetAndGetSubmissionApplyFormDefaults() {
         const string html = """
             <form action='/result' method='get'>

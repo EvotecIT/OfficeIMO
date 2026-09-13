@@ -163,6 +163,9 @@ methods, downloads and additional browsing contexts report `Unsupported` after a
 already-dispatched page events. Script-triggered `.click()` uses the same activation
 and form/navigation owner with a recursion guard, but follows DOM programmatic-click
 semantics: it does not send the locator pointer sequence or apply layout actionability.
+GET submission serializes a detached snapshot of the form's owned controls, including
+controls associated through `form`; creating that snapshot does not reload unrelated
+scripts or stylesheets from the live page.
 
 Select controls support handler properties and inline handlers, ordinary property
 writes, `item`/`namedItem` lookup, and assignment to `value` or `selectedIndex`.
@@ -393,7 +396,10 @@ mutation delivery and independent captures converted to Markdown and searchable
 PDF. Navigation fixtures prove fresh realms, reload, cross-origin storage partitioning,
 structured history and viewport restoration, redirects, locator rebinding and
 cumulative limits. Form fixtures cover reset, GET submission, page cancellation and
-unload decisions. Layout/input fixtures cover computed CSS, live CSSOM rules,
+unload decisions. A first-party two-page application combines modules, fetch and a
+handled HTTP failure with storage, observers, live CSS imports, form navigation,
+unload, history restoration, layout-aware input and independent conversion.
+Layout/input fixtures cover computed CSS, live CSSOM rules,
 bounded external imports, dynamic style changes, geometry, scrolling, center-hit
 occlusion, primary pointer sequences, keyboard editing, focus traversal and
 keyboard-driven form navigation.

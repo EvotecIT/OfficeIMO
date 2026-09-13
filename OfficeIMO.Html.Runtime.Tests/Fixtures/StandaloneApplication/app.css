@@ -1,0 +1,9 @@
+@import url("./theme.css");
+
+body { margin: 0; font-family: Arial, sans-serif; }
+main { padding: 24px; }
+label, input, select, button { display: block; }
+input, select, button { box-sizing: border-box; }
+input, select { margin: 6px 0 16px; width: 220px; height: 34px; }
+#results { min-height: 90px; }
+.action { margin-top: 360px; }
