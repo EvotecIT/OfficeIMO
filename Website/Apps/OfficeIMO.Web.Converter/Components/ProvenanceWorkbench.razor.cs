@@ -42,7 +42,7 @@ public partial class ProvenanceWorkbench {
         await ClearResultAsync();
         if (_disposed || generation != _generation || _revision != Session.Revision) return;
         _report = null;
-        _file = Session.Current.FirstOrDefault(file => OfficeProvenanceBufferWorkflow.SupportedExtensions.Contains(file.Extension, StringComparer.OrdinalIgnoreCase));
+        _file = Session.Current.FirstOrDefault(file => OfficeProvenanceWorkflowCatalog.BrowserExtensions.Contains(file.Extension, StringComparer.OrdinalIgnoreCase));
         _message = _file is null ? "Choose a supported file to inspect." : "Working file ready for inspection.";
         _busy = false;
     }
@@ -54,7 +54,9 @@ public partial class ProvenanceWorkbench {
         try {
             var file = args.File;
             string extension = Path.GetExtension(file.Name).ToLowerInvariant();
-            if (!OfficeProvenanceBufferWorkflow.SupportedExtensions.Contains(extension)) throw new NotSupportedException("Choose JPEG, PNG, WebP, PDF, DOCX, XLSX, or PPTX.");
+            if (!OfficeProvenanceWorkflowCatalog.BrowserExtensions.Contains(extension)) {
+                throw new NotSupportedException("Choose " + BrowserFormatSummary + ".");
+            }
             await using var input = file.OpenReadStream(BrowserConversionService.MaxPackageBytes);
             using var memory = new MemoryStream(); await input.CopyToAsync(memory);
             if (!IsCurrent()) return;
@@ -163,6 +165,20 @@ public partial class ProvenanceWorkbench {
     private static string ContentType(string extension) => extension switch {
         ".jpg" or ".jpeg" => "image/jpeg", ".png" => "image/png", ".webp" => "image/webp", ".pdf" => "application/pdf", _ => "application/octet-stream"
     };
+
+    internal static string BrowserFormatSummary {
+        get {
+            string[] labels = OfficeProvenanceWorkflowCatalog.BrowserCapabilities
+                .Select(static capability => capability.BrowserLabel!)
+                .ToArray();
+            return labels.Length switch {
+                0 => "a supported OfficeIMO format",
+                1 => labels[0],
+                2 => labels[0] + " or " + labels[1],
+                _ => string.Join(", ", labels[..^1]) + " or " + labels[^1]
+            };
+        }
+    }
     public async ValueTask DisposeAsync() {
         _disposed = true; ++_generation;
         await ClearResultAsync();

@@ -167,8 +167,6 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     [Theory]
     [InlineData(false, "page.html")]
     [InlineData(true, "page.html")]
-    [InlineData(false, "asset.bin")]
-    [InlineData(true, "asset.bin")]
     public async Task HtmlOwnerInspectionHonorsUtf32Preambles(bool bigEndian, string fileName) {
         using var scope = new TempScope();
         string input = Path.Combine(scope.Path, fileName);

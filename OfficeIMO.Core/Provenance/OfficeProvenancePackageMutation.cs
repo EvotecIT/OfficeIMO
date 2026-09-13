@@ -25,7 +25,7 @@ internal static class OfficeProvenancePackageMutation {
     internal static OfficeProvenanceReport InspectFile(
         string filePath,
         OfficeProvenanceOptions? options,
-        Action<byte[], OfficeProvenanceOptions> validatePackage) {
+        Action<byte[], string, OfficeProvenanceOptions> validatePackage) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         if (validatePackage == null) throw new ArgumentNullException(nameof(validatePackage));
         options ??= new OfficeProvenanceOptions();
@@ -38,13 +38,13 @@ internal static class OfficeProvenancePackageMutation {
 
     /// <summary>Validates an in-memory package before inspecting its provenance.</summary>
     internal static OfficeProvenanceReport Inspect(byte[] data, string fileName, OfficeProvenanceOptions? options,
-        Action<byte[], OfficeProvenanceOptions> validatePackage) {
+        Action<byte[], string, OfficeProvenanceOptions> validatePackage) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
         if (data.LongLength > options.MaxAssetBytes) throw new InvalidDataException("The package exceeds the inspection byte limit.");
         options.CancellationToken.ThrowIfCancellationRequested();
-        validatePackage(data, options);
+        validatePackage(data, fileName, options);
         return OfficeProvenanceInspector.Inspect(data, fileName, options);
     }
 
@@ -54,7 +54,7 @@ internal static class OfficeProvenancePackageMutation {
         OfficeProvenanceRemovalOptions? options,
         Func<byte[], OfficeProvenanceRemovalOptions, OfficeProvenanceSignatureStripResult> stripSignatures,
         Func<byte[], OfficeProvenanceRemovalOptions, bool>? hasSignatures = null,
-        Action<byte[], OfficeProvenanceOptions>? validatePackage = null,
+        Action<byte[], string, OfficeProvenanceOptions>? validatePackage = null,
         bool removeOpcManifestReferences = true,
         bool validateOpcMetadata = true,
         Func<string, bool>? shouldReplacePackageMetadata = null,
@@ -87,7 +87,7 @@ internal static class OfficeProvenancePackageMutation {
         OfficeProvenanceRemovalOptions? options,
         Func<byte[], OfficeProvenanceRemovalOptions, OfficeProvenanceSignatureStripResult> stripSignatures,
         Func<byte[], OfficeProvenanceRemovalOptions, bool>? hasSignatures = null,
-        Action<byte[], OfficeProvenanceOptions>? validatePackage = null,
+        Action<byte[], string, OfficeProvenanceOptions>? validatePackage = null,
         bool removeOpcManifestReferences = true,
         bool validateOpcMetadata = true,
         Func<string, bool>? shouldReplacePackageMetadata = null,
@@ -100,7 +100,7 @@ internal static class OfficeProvenancePackageMutation {
         if (data.LongLength > options.Limits.MaxAssetBytes) {
             throw new InvalidDataException("The package exceeds the configured asset limit.");
         }
-        validatePackage?.Invoke(data, options.Limits);
+        validatePackage?.Invoke(data, fileName, options.Limits);
         if (options.SignatureMutationPolicy == OfficeSignatureMutationPolicy.PreserveSignatureMarkup) {
             return OfficeProvenanceRemover.RemoveZipPackage(
                 data,

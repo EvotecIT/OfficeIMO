@@ -127,9 +127,9 @@ officeimo provenance batch inspect .\one.docx .\two.pdf --max-items 20
 officeimo provenance batch remove .\one.docx .\two.pdf --output-directory .\cleaned
 ```
 
-The JSON envelopes use `officeimo.provenance.capabilities.v1`, `officeimo.provenance.result.v1`, or `officeimo.provenance.batch.v1` schema identifiers. Successful inspection can still report provenance evidence; findings are data and do not change the process exit code. Execution failures use the shared exit-code table below.
+The JSON envelopes use `officeimo.provenance.capabilities.v2`, `officeimo.provenance.result.v1`, or `officeimo.provenance.batch.v1` schema identifiers. The capabilities response reports the exact extensions, structural formats, owning package, and memory/browser qualification. Successful inspection can still report provenance evidence; findings are data and do not change the process exit code. Execution failures use the shared exit-code table below.
 
-Removal preserves the input format, keeps malformed carriers by default, and routes package-aware changes to the owning OfficeIMO library. A mutation that would invalidate an Office package signature is blocked unless `--remove-invalidated-signatures` is supplied. Use `--keep-c2pa`, `--keep-external-c2pa`, or `--keep-ai-source` to preserve a carrier class, and `--no-embedded` to skip supported embedded assets. Generic ZIP files can be inspected but are not rewritten without a known document owner.
+Removal preserves the input format, keeps malformed carriers by default, and routes package-aware changes to the owning OfficeIMO library. A mutation that would invalidate an Office package signature is blocked unless `--remove-invalidated-signatures` is supplied. Use `--keep-c2pa`, `--keep-external-c2pa`, or `--keep-ai-source` to preserve a carrier class, and `--no-embedded` to skip supported embedded assets. The CLI accepts only extensions registered to an OfficeIMO owner and rejects renamed package subtypes; generic ZIP files and unregistered formats are outside this workflow.
 
 Tabular conversion writes through an atomic sibling staging file and refuses to replace an
 existing destination unless `--force` is supplied. Workbook output is limited to `.xlsx`,
