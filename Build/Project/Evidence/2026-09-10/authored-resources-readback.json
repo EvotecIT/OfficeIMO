@@ -1,0 +1,69 @@
+﻿{
+    "producer":  "Microsoft Project",
+    "version":  "16.0",
+    "build":  "16.0.20326.20144",
+    "inputSha256":  "de51cecae9c74543c48f467bcbe071c274d8750d43bc386f1d828908f1e1b788",
+    "tasks":  [
+                  {
+                      "uid":  1,
+                      "id":  1,
+                      "name":  "Build",
+                      "outlineLevel":  1,
+                      "summary":  false,
+                      "durationMinutes":  60,
+                      "workMinutes":  0,
+                      "cost":  6,
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/05/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0
+                  }
+              ],
+    "resources":  [
+                      {
+                          "uid":  1,
+                          "name":  "Steel",
+                          "type":  1,
+                          "standardRate":  "2,00 zł",
+                          "workMinutes":  3,
+                          "cost":  6
+                      },
+                      {
+                          "uid":  2,
+                          "name":  "Travel",
+                          "type":  2,
+                          "standardRate":  "",
+                          "workMinutes":  "",
+                          "cost":  0
+                      }
+                  ],
+    "calendars":  [
+                      {
+                          "name":  "Standard",
+                          "exceptions":  [
+
+                                         ]
+                      }
+                  ],
+    "assignments":  [
+                        {
+                            "uid":  2097153,
+                            "taskUid":  1,
+                            "resourceUid":  1,
+                            "units":  3,
+                            "cost":  6,
+                            "workMinutes":  3
+                        },
+                        {
+                            "uid":  2097154,
+                            "taskUid":  1,
+                            "resourceUid":  2,
+                            "units":  "",
+                            "cost":  0,
+                            "workMinutes":  ""
+                        }
+                    ],
+    "reexportSha256":  "73d23f5706b4e266155884c3caff6847b041ef2fccc07b6348fb740baa56b619"
+}

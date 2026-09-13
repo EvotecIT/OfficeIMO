@@ -1,0 +1,598 @@
+[
+  {
+    "path": "Build/Project/New-ProjectAdvancedFixtures.ps1",
+    "sha256": "6f8da21c45681e996a35fafb773efe212268ee23693cc551471dfc484eaba242"
+  },
+  {
+    "path": "Build/Project/New-ProjectOutlineFixture.ps1",
+    "sha256": "3fc64c0d4dfe7b6ccdc46fc3934132df5011a1e98c0b554c1e7aacc43844a371"
+  },
+  {
+    "path": "Build/Project/README.md",
+    "sha256": "5dad0a5dec347c827e34b65b6b6a18c8cf38c02830f5b79a82c15b3e3f2553dd"
+  },
+  {
+    "path": "Build/Project/Set-ProjectCustomFieldFixture.ps1",
+    "sha256": "cb2a000f2961c3d4196753f7b424f19001818c2b3f06558d0426ebb4d115b22c"
+  },
+  {
+    "path": "Build/Project/Test-ProjectInteroperability.ps1",
+    "sha256": "0837366fec6e2dce85e164b316a5ef51fb437a5e33357aeb476177b55a40d5f3"
+  },
+  {
+    "path": "Build/Project/Test-ProjectReportInteroperability.ps1",
+    "sha256": "500fa67c87919dcc062ed6fc830d4c205623e2e71c6d6f9832ac1de44b5e5d47"
+  },
+  {
+    "path": "OfficeIMO.Core/OfficeInvariantDecimal.cs",
+    "sha256": "029230f4da5e623b2ed50fa62e81549f1f05b570f38a289370f3789e4f85ac12"
+  },
+  {
+    "path": "OfficeIMO.Project.ReportVerification/OfficeIMO.Project.ReportVerification.csproj",
+    "sha256": "d606753fbedc1aec38a40cfa7cf1463aebbacc01f04f4b1c88aaffe66b5b8eed"
+  },
+  {
+    "path": "OfficeIMO.Project.ReportVerification/Program.cs",
+    "sha256": "aeb58004a05252d4af1fed7145e03d126dee335fa026c5bb70e2cb846d511e3d"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/calendars.xml",
+    "sha256": "cd7b49ad563c434f0928569febdf636dfff3245a40039b29c3ab223bfd475bb9"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/context.json",
+    "sha256": "aa35f655047f065096dbb1b7cdf0ab20020f0f463a30abb24035806a8a4a7328"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/contours.xml",
+    "sha256": "e76b6628c8cbd19d994d5beee4903d21fcd21a8d5066bffc72cbd55da8214999"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/effort-before.xml",
+    "sha256": "416d80e349f92a20cc3aae59897710caf6fad8edc5eabaa08a774b5e236864d0"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/effort.xml",
+    "sha256": "c2d01383cab2714c4a5065080e41ddf084aa14b45bc163839b3439e268853d48"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/external-consumer.xml",
+    "sha256": "83bc1a1d24621dfa359eb8264ba49f383af2c1c3163531eac2c495371ac2a7d3"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/external-owner.xml",
+    "sha256": "695f8984dced1a2c1aef07f11ca8a93dd0725e9b54002eaae3cca7d24708734f"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/fields.xml",
+    "sha256": "0857d2cece59ce5e88c5bc548b01b8d3a66d4ac367fb784182e27d514a14583c"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/leveling.xml",
+    "sha256": "ba7e08da01a79f4a7593465513eb95c981488c619a05152196b142d6a3f72abf"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/manifest.json",
+    "sha256": "e2469d006b1f48b365b4e1ba01df07f1428691540b4b3484517c88390eff7a48"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/outline.xml",
+    "sha256": "9a2839b7e594e8f6b691b8d3f90b64be221ce5c6ea231fe5cf5c147d515ed31e"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/progress.xml",
+    "sha256": "e49453ca24085921af6cda59597753aae5bd68e07b821d9885109030cdd1a807"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/rates.xml",
+    "sha256": "c71b7ad1b070ad4c5babf5d1a2468df525fd3dbc9889c32ce726e89874cb5992"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/README.md",
+    "sha256": "f513fed7a66b71ddbaa32ccc8380ef936b3e271b2a2df29736cebe23ea9243a1"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/recurrence.xml",
+    "sha256": "15ea77630d39252883877cb6bbeabb0335b01d05cf256b72d4401e4eec57cf24"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/rollups.xml",
+    "sha256": "db954c240d3b7937492b74c4e68591de94158859ddeb946b061229fcc8b9d592"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/Fixtures/Project2024Advanced/split.xml",
+    "sha256": "430336eef43510fafa5e4c04f38bfa77989fde223ef62984864642b96d576337"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/ProjectAssignmentSchedulingTests.cs",
+    "sha256": "98d6c69b5ba0b07e8fe91138db9cba063eab042522b98da70b03753e651099ab"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/ProjectCustomFieldCalculationTests.cs",
+    "sha256": "f0d8fd6e1241a4054a009c18f43baffdc4896d20a03df9c341536fa828d3c88f"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/ProjectDataTests.cs",
+    "sha256": "8a12be3af1da1fb2d7c7f30bbd3a1a9c6dfe9523f55a269c1bcc6edf51afa28d"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/ProjectEarnedValueTests.cs",
+    "sha256": "42dd6cb2c6ab55d8514cd5a00fe3876dd912d15bd89e3c03a352a163237ceccc"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/ProjectExternalSchedulingTests.cs",
+    "sha256": "6c01d195d1809ff839ab5e3cd9606262f4c6c4c0a7a6c7628378534e62222f6d"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/ProjectIndicatorTests.cs",
+    "sha256": "6c9241cd3cfc85d4f5a70fa647c440579e22cd63fcf1f4d63f2f7d7e6a0c479f"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/ProjectLevelingTests.cs",
+    "sha256": "7498e278435fc4df97dc07ef763487f4e0e2d81c5a637cb0f8f35f7bb949b744"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/ProjectOutlineCodeTests.cs",
+    "sha256": "d6eabd157241581d2135022c951c552bf258d2526e1cbad07dd3769119705dde"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/ProjectRecurrenceTests.cs",
+    "sha256": "7625a225b1e86684cb13d1eae56cd6859a1165a25cfa630f858f795cacc16abd"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/ProjectResourceCapacityTests.cs",
+    "sha256": "d678ea2d92227d45df0c73b5f6f9bcc5a17cae2b93ed56b14cbd66998e92b7ab"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/ProjectResourcePoolTests.cs",
+    "sha256": "6a12ddbd9785adb5386fd5f6d8ffe42daa02b3e7acab5a55e71b5fe5149b513f"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/ProjectSchedulingTests.cs",
+    "sha256": "b9c42348b6679373bbe61eb23f8ffe1d64fbd775ad463da392b516b684cbb0a2"
+  },
+  {
+    "path": "OfficeIMO.Project.Tests/ProjectViewTests.cs",
+    "sha256": "b834c2b94ee2b415eedd9aad5e41edab7669a4e7caf361e7ba091e6f35df356c"
+  },
+  {
+    "path": "OfficeIMO.Project.Verification/AdvancedScheduleProof.cs",
+    "sha256": "4374ad99e043a59b4882990a6fae3ae3fe57f113eb060bb2f1114cba35725511"
+  },
+  {
+    "path": "OfficeIMO.Project.Verification/CustomFieldProof.cs",
+    "sha256": "aa13a8050a9e3919e72bf952e2c42ecb70c319c71e7a6364ba454d41469445a4"
+  },
+  {
+    "path": "OfficeIMO.Project.Verification/NativeEditProof.cs",
+    "sha256": "8b1774c209883c352ef8e15ee6115637c8133510a77b87ad9d2ac492395186fd"
+  },
+  {
+    "path": "OfficeIMO.Project.Verification/OutlineCodeProof.cs",
+    "sha256": "c9d6c718ea2a60864fd0b445e7111300584d4f6e9e00ff5a201f1fbcad74d8bb"
+  },
+  {
+    "path": "OfficeIMO.Project.Verification/Program.cs",
+    "sha256": "35ddedad3da6868833148812582d40585746913e4b6bc184187929483cd38740"
+  },
+  {
+    "path": "OfficeIMO.Project.Verification/SplitScheduleProof.cs",
+    "sha256": "9f3d8dc5b700e4525f29af648357faf0826a8c39d19503d4e8b247bf94914d5b"
+  },
+  {
+    "path": "OfficeIMO.Project/Analysis/ProjectEarnedValue.cs",
+    "sha256": "62933d10254478c131d2356e1b4d7ab2e638fdd79d03912bcc30adb35308596d"
+  },
+  {
+    "path": "OfficeIMO.Project/Analysis/ProjectResourceAllocation.cs",
+    "sha256": "cbf734aa6bd04da0def2e3668b6767664e4f8fdaa86794b6847bf3ba94e764db"
+  },
+  {
+    "path": "OfficeIMO.Project/Analysis/ProjectResourcePool.cs",
+    "sha256": "301edba186bc7e5cdd9eb44e5ca3c200736e7d164669c28a5c6e2a77fdb85297"
+  },
+  {
+    "path": "OfficeIMO.Project/Analysis/ProjectResourceTimeline.cs",
+    "sha256": "4e8dcd1f161080df1dc1ae3be824ff59a2f3ba9919c5ea697f22934da93a242e"
+  },
+  {
+    "path": "OfficeIMO.Project/CustomFields/ProjectCustomFieldCalculation.cs",
+    "sha256": "0ed66e09dd649242f80df68a3ef53b2a417834e24aad3cdf0341a4e0dc668d58"
+  },
+  {
+    "path": "OfficeIMO.Project/CustomFields/ProjectCustomFieldCalculator.Builtins.cs",
+    "sha256": "71b7441dfbdfbe2142904c2be8eb834b528baa4717ee0c7cace46bf15c11ecb1"
+  },
+  {
+    "path": "OfficeIMO.Project/CustomFields/ProjectCustomFieldCalculator.cs",
+    "sha256": "a9ac2c81a575264dab7599d9261987e718ebf2da6c99c2532109fb0e18533bc4"
+  },
+  {
+    "path": "OfficeIMO.Project/CustomFields/ProjectCustomFieldCalculator.Indicators.cs",
+    "sha256": "58183662ee2fa9c5a77b12d1c1cdf3ef2dff3c890e24f4b07aaac8489f488b1d"
+  },
+  {
+    "path": "OfficeIMO.Project/CustomFields/ProjectCustomFieldCalculator.Rollups.cs",
+    "sha256": "a27b31fafbb46275844e330b1aa4594e381884e86c38890f38d8ba0361428dab"
+  },
+  {
+    "path": "OfficeIMO.Project/CustomFields/ProjectCustomFieldLookup.cs",
+    "sha256": "7d33badb4c172d14d3d37adbf818c5d9e1e91ebaf77aedbce37f0ac62985d724"
+  },
+  {
+    "path": "OfficeIMO.Project/CustomFields/ProjectFormulaExpression.cs",
+    "sha256": "4b552a6a0156d92d55fcb18c21b5d476748ab0f8ef80eb3eb9c1e23ad0d491e6"
+  },
+  {
+    "path": "OfficeIMO.Project/CustomFields/ProjectFormulaExpression.Functions.cs",
+    "sha256": "b49ac1fd49dcec7645e9fa57ecaed08c84a9ed31a882e9d063df66fabc927ba4"
+  },
+  {
+    "path": "OfficeIMO.Project/CustomFields/ProjectFormulaValue.cs",
+    "sha256": "2b9002b2937f879ce67581c50e717ba55dc9bd5927573a003d30900bd3f7f879"
+  },
+  {
+    "path": "OfficeIMO.Project/CustomFields/ProjectIndicators.cs",
+    "sha256": "a8e48f8969d2f4421ab8ca2adb7380313737aac59259218f922b1abdc23df3ee"
+  },
+  {
+    "path": "OfficeIMO.Project/CustomFields/ProjectOutlineCodeIndex.cs",
+    "sha256": "dfdd855c262e0c627b69f0a3488c59302b2735db351dd23207620d8eb598b29c"
+  },
+  {
+    "path": "OfficeIMO.Project/Data/ProjectDataSchema.cs",
+    "sha256": "12d612b13a2d7a75a7cfaf46cfee5d45a5ba6ff839b206c04b792539c0373a94"
+  },
+  {
+    "path": "OfficeIMO.Project/Data/ProjectDataTable.cs",
+    "sha256": "6b0688c5505155c35515216dfd4bf56a854552c186f0af39fcb39d5d03019566"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectAssignment.cs",
+    "sha256": "8bce056ea716ecdf295504e51323d6baa24d40ec58e45d09783ff7f8d74be217"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectAssignment.Profile.cs",
+    "sha256": "1f96abdb6030277602a7236a3acf6c42ac919523b4c6cb05c769cd3aa01be9ea"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectCustomFieldDefinition.cs",
+    "sha256": "b849b7c1078c8f853fa0fb761118076b6ff1c3ce6751905390e28b304f07a9ba"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectCustomFieldIdentity.cs",
+    "sha256": "bbf8b7dc408fb9ace1b3ed3db530765a55e37b92e7f01cf8f80689ab2c2d3fd1"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectModelSnapshot.cs",
+    "sha256": "5b882d2ce5fe8cb4228a60f18565e2ebf521908dcc151e9d38bf13b0ccecdb6a"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectModelSnapshot.Fields.cs",
+    "sha256": "70a30b0c8de2df8798c4ab009c87f18a458bbfb9f2f8d0d4d8625ec643cd1476"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectModelSnapshot.OutlineCodes.cs",
+    "sha256": "2d0c0f4585acf73c581006ae1db41a441f15282846e65da379c6f0cf8a735301"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectModelSnapshot.ResourceCapacity.cs",
+    "sha256": "4c24b5c491d4f32c35b390f09e8dbe738b559eee2b7d0b043cd0bfade13631b7"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectOutlineCodeDefinition.cs",
+    "sha256": "9a06e8f1dd9dc28857806f9707584b679e09014888970ebc4926f93c1649ad32"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectOutlineCodeLookupValue.cs",
+    "sha256": "dd8ec035ec7b3ba56d236ec5aa8ef5c990f6356c475f29ad14fdef38d798e0ea"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectOutlineCodeMask.cs",
+    "sha256": "11f010d361337ef39e61158113e624193ef01e4c6afaca8d12a3e586de75d63a"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectResource.Capacity.cs",
+    "sha256": "99d08e4ecbb39790ad8483864355039fda8bd9f9011810e372d5a934993e0108"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectResource.cs",
+    "sha256": "262f4bad48ad366f6b7b6b090828a5a9bdb1d4acc9e70fa5530c0fa464f2f6be"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectSettings.cs",
+    "sha256": "e1539f6f6f9f8f8038cf3267246fd7f72c9c00701898c82566e28ba446c80f6c"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectTask.cs",
+    "sha256": "67ace33b1dc51615ea6be6810f9ae47a40147eb78960a5db48496caccf28c70a"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectTask.Profile.cs",
+    "sha256": "9001227e4903c088610a8ceefddba4b20c7e86285d15832cab3c9067b04cc348"
+  },
+  {
+    "path": "OfficeIMO.Project/Model/ProjectTimephasedValue.cs",
+    "sha256": "4e73ea149c5e629fa6ce7aafec797be84d48900690366c9fc78182daa5f49c67"
+  },
+  {
+    "path": "OfficeIMO.Project/Mpx/ProjectMpxFields.Custom.cs",
+    "sha256": "5d30e02c12cd92ed8cf0c7fba7697b074181f2c10a635a8ff3f176dac081f27e"
+  },
+  {
+    "path": "OfficeIMO.Project/Native/ProjectNativeCodec.CustomFields.cs",
+    "sha256": "3d6b3243f1b800c100ae049036a55a8c2cb0e68312aafcfed5a6e517cb5f75aa"
+  },
+  {
+    "path": "OfficeIMO.Project/Native/ProjectNativeWriter.CustomFields.cs",
+    "sha256": "882ef348651575b43415d6239b0ed5afe500eb53b6697d77430f3a40b38a8633"
+  },
+  {
+    "path": "OfficeIMO.Project/Native/ProjectNativeWriter.Definitions.cs",
+    "sha256": "d108a7c3e0bdbd4ae1db2387432127b83b080a4998d257cf774e2b344f6d80e0"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.AssignmentAnalysis.cs",
+    "sha256": "154a0bd163959d459850b13971f24116661db88fad00108d6b11c1fc24a8dcd9"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.AssignmentUpdates.cs",
+    "sha256": "08a062c769437bb710730bb200c737b91c6c3b58cf8d23481664f045e58aff79"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.Baselines.cs",
+    "sha256": "392b275bd14b56ecf95301aa14458105066a1cfd94c2c5591409e86ab49c2864"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.cs",
+    "sha256": "98ac445f3f350ca305b6dffa4e7150afe312e861b70a24dd6e591c9bedc39a27"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.CustomFieldLookups.cs",
+    "sha256": "15bcca6a61f9134216821a6fabdf26a611b58d67e7984e02bde9383539e5efe4"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.CustomFields.cs",
+    "sha256": "2d8fa82da4104052264ede5aa5977fcefd0ac38ce937ab1acf346f604c01506f"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.DataExport.cs",
+    "sha256": "9d8f73c0824e53ab2f26a2337ecbf87729b6e032dd03cee73814626c63635162"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.DataImport.cs",
+    "sha256": "35c6c90bc565bdab321a65524dab694a6976203782367c6264a417a9236e3f5d"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.EarnedValue.cs",
+    "sha256": "dc748231445fde9a6439311bf49ba89eb07022845069682c7203a93ca713c610"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.Indicators.cs",
+    "sha256": "e0ce94839c1d2423b2b4d6a0f7350c514f84f5e7d1ca15afe4de849697adc53a"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.Leveling.cs",
+    "sha256": "caec97b94742ff0d39013e28a673a97fcc57d7c78efc2d30b9fff0ec46d108db"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.OutlineCodes.cs",
+    "sha256": "c61cfd77bfe3453831f242ebfa62d2ad8a0f7d085a9e424ca65c3b9c5faab75f"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.Recurrence.cs",
+    "sha256": "28ef5a4bdd0e6484fb012b6a11aeb3e6068012fc774fdec8a2ce5b07ccc60f06"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.ResourceAllocation.cs",
+    "sha256": "88209c7657b39332f7e61ea41b7ab299c6f584821a2f76ec2c1d28cadce3140b"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.ResourcePool.cs",
+    "sha256": "f0fe03c181fbf342d5647d989ba6e9c52a59f6c77d89d12918d2be8e357998d7"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.Scheduling.cs",
+    "sha256": "8ee8ef53ba04886d6156dcd47aee4dfde0d2104c3e9c99ce7687cde62f13e771"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.Validation.Capacity.cs",
+    "sha256": "2b3ef56b226aafb8b492f77e3d9ef6ec5ac5a85003d99af3c011ad4d3af981cb"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.Validation.cs",
+    "sha256": "41132a454cbe6220cb7d12e1161b178d52a3acc8de7663fc0f9de5e09df5976f"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.Validation.OutlineCodes.cs",
+    "sha256": "77685ffffd69de04cd3a6f49da08bc05ee86f35c7615e71044ee69659a399998"
+  },
+  {
+    "path": "OfficeIMO.Project/ProjectDocument.Views.cs",
+    "sha256": "8696ef58589fe6c687fd6280e01d3a27e9fd637bf0921ee78404bf621819832a"
+  },
+  {
+    "path": "OfficeIMO.Project/README.md",
+    "sha256": "ee74ac55f3390a22bb54df77120ffe3b9b6bc6f54ca56b6bbc219b60bdd9f145"
+  },
+  {
+    "path": "OfficeIMO.Project/Reports/ProjectView.cs",
+    "sha256": "897a8b017e0dd96385c6e94f456cf7eef2121966a6abec4ef721f16a381dd178"
+  },
+  {
+    "path": "OfficeIMO.Project/Reports/ProjectView.Drawing.cs",
+    "sha256": "66b0cf2c4c65cd8c48d632b4e66c0790868cf6c70ee24ccc704801f105dc416c"
+  },
+  {
+    "path": "OfficeIMO.Project/Reports/ProjectView.Gantt.cs",
+    "sha256": "681b131a55ff38a1f76e29caa7905ab3c36a8a1d2286a71b183c7305f50c7436"
+  },
+  {
+    "path": "OfficeIMO.Project/Reports/ProjectView.Network.cs",
+    "sha256": "ec244df845387d2c4b0d7ee675ee6caae35f21e1a369be95f615db693ff9d730"
+  },
+  {
+    "path": "OfficeIMO.Project/Reports/ProjectViewBuilder.cs",
+    "sha256": "b4625e09922f1c40d6d0692e31ded9e71d43ce4da797a18d979c130305cd666c"
+  },
+  {
+    "path": "OfficeIMO.Project/Reports/ProjectViewOptions.cs",
+    "sha256": "7a6bfc1970be3d8bc7c1619502eee373221f99d59d25b1b45d9fbb7db75632ad"
+  },
+  {
+    "path": "OfficeIMO.Project/Scheduling/ProjectAssignmentSchedule.cs",
+    "sha256": "08e183c1ebc08445e6498ae538491aca42df7488311243b98e2b1df0b124be88"
+  },
+  {
+    "path": "OfficeIMO.Project/Scheduling/ProjectCalendarMath.cs",
+    "sha256": "640c1f33e18c0ba6a53d07a97a77e2f96c9da7369a932941cf2d73ae98a0879d"
+  },
+  {
+    "path": "OfficeIMO.Project/Scheduling/ProjectExternalProjects.cs",
+    "sha256": "e6b3f190c6d5e3de37e47c53e89b312e6a09c34a8c1905d0571f0ae8d311d7b0"
+  },
+  {
+    "path": "OfficeIMO.Project/Scheduling/ProjectLeveling.cs",
+    "sha256": "a51e7110d9344c09428fbbd26506530d21f774cb910f06702283355b6e425600"
+  },
+  {
+    "path": "OfficeIMO.Project/Scheduling/ProjectRecurrenceRule.cs",
+    "sha256": "746051292776a229a6fadeadd3edf7ffb9caf21944083b04b68f0b7cf7be9019"
+  },
+  {
+    "path": "OfficeIMO.Project/Scheduling/ProjectSchedule.cs",
+    "sha256": "b6e3902088cfc4ca3fe97d62724f1750fb7f31e4f81484dd5018ddee0b94131e"
+  },
+  {
+    "path": "OfficeIMO.Project/Scheduling/ProjectScheduler.cs",
+    "sha256": "bfbed225f498ca5fd8cf48aba2c46b3d57662bec61604a493b219f810fbc3f55"
+  },
+  {
+    "path": "OfficeIMO.Project/Scheduling/ProjectScheduler.Passes.cs",
+    "sha256": "e802b5a2a1ebdaf5c09924683d03bff51bd3ea5ec99d18f8fca26c7525d7140b"
+  },
+  {
+    "path": "OfficeIMO.Project/Scheduling/ProjectScheduler.Profile.cs",
+    "sha256": "6c3f45ae42d14066149194461e0881fc5c0d814e4838f68fd90c6862ba0844b3"
+  },
+  {
+    "path": "OfficeIMO.Project/Scheduling/ProjectTaskAllocation.Build.cs",
+    "sha256": "148eb2f97764965a3c98be9f7e0f909c107e21028253b3d571c987a274ec89b9"
+  },
+  {
+    "path": "OfficeIMO.Project/Scheduling/ProjectTaskAllocation.Contours.cs",
+    "sha256": "4c97ddfebc63f8a87da610600f530738a99d7651305859becb62616be739b5c3"
+  },
+  {
+    "path": "OfficeIMO.Project/Scheduling/ProjectTaskAllocation.Costs.cs",
+    "sha256": "65494408486c4b0bd80f32d77deaad25dabb61850742a2e04bac9c5a385533c7"
+  },
+  {
+    "path": "OfficeIMO.Project/Scheduling/ProjectTaskAllocation.cs",
+    "sha256": "fa8b18e548150f8cdeee7297219082ad80a5c0b2a109af7c7373ef19d0312629"
+  },
+  {
+    "path": "OfficeIMO.Project/Scheduling/ProjectTaskWorkSchedule.cs",
+    "sha256": "0cbfadd6b08b91230e1939d70dcca56728b9766d80ec1a5c9ef43a34fd5c73d0"
+  },
+  {
+    "path": "OfficeIMO.Project/SUPPORT.md",
+    "sha256": "20e4e224bc9b8883ea23eca5575bd4723c6496c20e64f13bdd4f3ea8833afd1b"
+  },
+  {
+    "path": "OfficeIMO.Project/Xml/Fields/ProjectXmlFields.Assignment.cs",
+    "sha256": "ba693cb500b0bc3eb3f76b6182c4a34ed71d7491ca7d0b5cdd78131989aa39a0"
+  },
+  {
+    "path": "OfficeIMO.Project/Xml/Fields/ProjectXmlFields.CustomFieldDefinition.cs",
+    "sha256": "96f7c0e2ccc81599bd2717850ba8d2120fa425250d1686df6c7c7f129dbc7b5b"
+  },
+  {
+    "path": "OfficeIMO.Project/Xml/Fields/ProjectXmlFields.OutlineCodes.cs",
+    "sha256": "a7d9e2f641183d4d5f20a3429e01d0103d3da76bf94699d52fd599dcdbab633e"
+  },
+  {
+    "path": "OfficeIMO.Project/Xml/Fields/ProjectXmlFields.Resource.cs",
+    "sha256": "8d3aadbcc956449d7becebef10fd92085b6d24f369e818c2a022aa852131b7a7"
+  },
+  {
+    "path": "OfficeIMO.Project/Xml/Fields/ProjectXmlFields.ResourceCapacity.cs",
+    "sha256": "f03d3d256805b62213ec3e5b9c1120da9c7876537d0d348437f4c3a631b38ee3"
+  },
+  {
+    "path": "OfficeIMO.Project/Xml/Fields/ProjectXmlFields.Settings.cs",
+    "sha256": "d542811e76927295ebe5be5696ab75fff26aa942038cd42e0cf821f9cc089712"
+  },
+  {
+    "path": "OfficeIMO.Project/Xml/Fields/ProjectXmlFields.Task.cs",
+    "sha256": "5f29a9623debec9e2014b8aabbf66f851eed8f7b2adbb06b8939ad7bba6c9358"
+  },
+  {
+    "path": "OfficeIMO.Project/Xml/ProjectXmlCodec.cs",
+    "sha256": "b922e249bce3117d91115e08da9dd0817d250047e8c5af4edf810dce6467c3ae"
+  },
+  {
+    "path": "OfficeIMO.Project/Xml/ProjectXmlCodec.OutlineCodes.cs",
+    "sha256": "087311bfd89f05136145f93b94c21ff6d61ce5390b78a23d270a740b4d9dce73"
+  },
+  {
+    "path": "OfficeIMO.Project/Xml/ProjectXmlCodec.Read.cs",
+    "sha256": "f40785e98d096b420d86ffab211925a34668ce1a6616d0effb4d47dac1f971b6"
+  },
+  {
+    "path": "OfficeIMO.Project/Xml/ProjectXmlCodec.ResourceCapacity.cs",
+    "sha256": "7b4cb652866d4ffd750a41f27ed13600a3327ef522b7db05447c0e3584801705"
+  },
+  {
+    "path": "OfficeIMO.Project/Xml/ProjectXmlCodec.Write.cs",
+    "sha256": "1dfe4485300e1fa72085705b22acc50225fd9bedfb1c677ce6f13b7ba88294c1"
+  },
+  {
+    "path": "OfficeIMO.Workflows.Tests/ProjectReportWorkflowTests.cs",
+    "sha256": "150254fe85e77b0f880c234842d8c92e918f8e58acc0ee6f3a0194ef706183a8"
+  },
+  {
+    "path": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
+    "sha256": "77e489ac0ae9cf2a8ecc4a24ed3ac716962eb290feee5e0cd1baf6f4f4bc5dca"
+  },
+  {
+    "path": "OfficeIMO.Workflows/packages.lock.json",
+    "sha256": "7bfec4731f5fb025d36396ceabb3c4717751bdf6df557ddc668667363d1324ac"
+  },
+  {
+    "path": "OfficeIMO.Workflows/Project/ProjectDataWorkflow.cs",
+    "sha256": "91bf48722c0cc11235e9370fc9299d0f488fc94871820a75fff608df9a56bef6"
+  },
+  {
+    "path": "OfficeIMO.Workflows/Project/ProjectReport.css",
+    "sha256": "ead9af24245e56bb3dcc99639597227a057b8eb7bb085376951fad7e45275977"
+  },
+  {
+    "path": "OfficeIMO.Workflows/Project/ProjectReportWorkflow.cs",
+    "sha256": "d0c3ac2f87ec46331382803988d3322422a93cdd3a070b852d8bb90a093bb947"
+  },
+  {
+    "path": "OfficeIMO.Workflows/Project/ProjectReportWorkflow.Excel.cs",
+    "sha256": "25729d2e2a2e7b6f95cb3d044e7b4b7dbe1dedbbeb600cb089a615439d5bfa16"
+  },
+  {
+    "path": "OfficeIMO.Workflows/Project/ProjectReportWorkflow.Html.cs",
+    "sha256": "66aadc551ebd53eb50186768e12a6e942cb91b481c64898dae3277156b21e043"
+  },
+  {
+    "path": "OfficeIMO.Workflows/Project/ProjectReportWorkflow.Office.cs",
+    "sha256": "b50cada56c43afba6103352619ac6d2e54857d647a50a209b2cd5748746b1da4"
+  },
+  {
+    "path": "OfficeIMO.Workflows/Project/ProjectReportWorkflow.PowerPoint.cs",
+    "sha256": "06725143169317915356bb8b799e4b3e35fc7cc288fa5ed6d1d9f259e9020f29"
+  },
+  {
+    "path": "OfficeIMO.Workflows/Project/ProjectReportWorkflow.Tables.cs",
+    "sha256": "5338c78917ceffb05d35b2d5f689ae19c493e5047ac63581cca17316f5bddda9"
+  },
+  {
+    "path": "OfficeIMO.Workflows/README.md",
+    "sha256": "4e3a4d3faa1b35b2e27b6495bfe8ab04cd6fdd676e5fc5d5e32941e94b82cf85"
+  }
+]

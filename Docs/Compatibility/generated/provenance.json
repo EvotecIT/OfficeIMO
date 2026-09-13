@@ -1,0 +1,215 @@
+{
+  "id":"OfficeIMO.Provenance",
+  "schemaVersion":1,
+  "capabilities":[
+    {
+      "id":"word-openxml",
+      "label":"Word Open XML",
+      "ownerPackage":"OfficeIMO.Word",
+      "canInspect":true,
+      "canAssess":true,
+      "canRemove":true,
+      "browserLabel":"DOCX",
+      "notes":"Package signatures block mutation unless removal is explicitly authorized.",
+      "formats":[
+        {"extension":".docm","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".docx","assetFormats":["ZipPackage"],"memoryOnlyAvailable":true,"browserAvailable":true},
+        {"extension":".dotm","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".dotx","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false}
+      ]
+    },
+    {
+      "id":"excel-package",
+      "label":"Excel workbook package",
+      "ownerPackage":"OfficeIMO.Excel",
+      "canInspect":true,
+      "canAssess":true,
+      "canRemove":true,
+      "browserLabel":"XLSX",
+      "notes":"SpreadsheetML and XLSB package identity are validated before mutation.",
+      "formats":[
+        {"extension":".xlam","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".xlsb","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".xlsm","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".xlsx","assetFormats":["ZipPackage"],"memoryOnlyAvailable":true,"browserAvailable":true},
+        {"extension":".xltm","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".xltx","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false}
+      ]
+    },
+    {
+      "id":"powerpoint-openxml",
+      "label":"PowerPoint Open XML",
+      "ownerPackage":"OfficeIMO.PowerPoint",
+      "canInspect":true,
+      "canAssess":true,
+      "canRemove":true,
+      "browserLabel":"PPTX",
+      "notes":"Package signatures block mutation unless removal is explicitly authorized.",
+      "formats":[
+        {"extension":".potm","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".potx","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".ppam","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".ppsm","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".ppsx","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".pptm","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".pptx","assetFormats":["ZipPackage"],"memoryOnlyAvailable":true,"browserAvailable":true}
+      ]
+    },
+    {
+      "id":"visio-openxml",
+      "label":"Visio Open XML",
+      "ownerPackage":"OfficeIMO.Visio",
+      "canInspect":true,
+      "canAssess":true,
+      "canRemove":true,
+      "browserLabel":null,
+      "notes":"Package signatures block mutation unless removal is explicitly authorized.",
+      "formats":[
+        {"extension":".vsdm","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".vsdx","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".vssm","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".vssx","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".vstm","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".vstx","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false}
+      ]
+    },
+    {
+      "id":"open-document",
+      "label":"OpenDocument",
+      "ownerPackage":"OfficeIMO.OpenDocument",
+      "canInspect":true,
+      "canAssess":true,
+      "canRemove":true,
+      "browserLabel":null,
+      "notes":"Encrypted OpenDocument packages cannot be rewritten.",
+      "formats":[
+        {"extension":".odg","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".odp","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".ods","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".odt","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".otg","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".otp","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".ots","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".ott","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false}
+      ]
+    },
+    {
+      "id":"epub",
+      "label":"EPUB",
+      "ownerPackage":"OfficeIMO.Epub",
+      "canInspect":true,
+      "canAssess":true,
+      "canRemove":true,
+      "browserLabel":null,
+      "notes":"Package structure is validated before inspection or mutation.",
+      "formats":[
+        {"extension":".epub","assetFormats":["ZipPackage"],"memoryOnlyAvailable":false,"browserAvailable":false}
+      ]
+    },
+    {
+      "id":"pdf",
+      "label":"PDF",
+      "ownerPackage":"OfficeIMO.Pdf",
+      "canInspect":true,
+      "canAssess":true,
+      "canRemove":true,
+      "browserLabel":"PDF",
+      "notes":"Removal is limited to provenance associations supported by the PDF owner.",
+      "formats":[
+        {"extension":".pdf","assetFormats":["Pdf"],"memoryOnlyAvailable":true,"browserAvailable":true}
+      ]
+    },
+    {
+      "id":"html",
+      "label":"HTML",
+      "ownerPackage":"OfficeIMO.Html",
+      "canInspect":true,
+      "canAssess":true,
+      "canRemove":true,
+      "browserLabel":null,
+      "notes":"External resources are not fetched during inspection.",
+      "formats":[
+        {"extension":".htm","assetFormats":["Html"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".html","assetFormats":["Html"],"memoryOnlyAvailable":false,"browserAvailable":false}
+      ]
+    },
+    {
+      "id":"markdown",
+      "label":"Markdown",
+      "ownerPackage":"OfficeIMO.Markdown",
+      "canInspect":true,
+      "canAssess":true,
+      "canRemove":true,
+      "browserLabel":null,
+      "notes":"Original BOM-aware UTF encoding is preserved by file mutation.",
+      "formats":[
+        {"extension":".markdown","assetFormats":["StructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".md","assetFormats":["StructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false}
+      ]
+    },
+    {
+      "id":"core-images",
+      "label":"Image provenance",
+      "ownerPackage":"OfficeIMO.Core",
+      "canInspect":true,
+      "canAssess":true,
+      "canRemove":true,
+      "browserLabel":"JPEG / PNG / WebP",
+      "notes":"File contents must match the registered image format; unrelated media containers are not inferred from signatures.",
+      "formats":[
+        {"extension":".gif","assetFormats":["Gif"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".jpeg","assetFormats":["Jpeg"],"memoryOnlyAvailable":true,"browserAvailable":true},
+        {"extension":".jpg","assetFormats":["Jpeg"],"memoryOnlyAvailable":true,"browserAvailable":true},
+        {"extension":".png","assetFormats":["Png"],"memoryOnlyAvailable":true,"browserAvailable":true},
+        {"extension":".svg","assetFormats":["Svg"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".tif","assetFormats":["Tiff"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".tiff","assetFormats":["Tiff"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".webp","assetFormats":["Webp"],"memoryOnlyAvailable":true,"browserAvailable":true}
+      ]
+    },
+    {
+      "id":"core-text",
+      "label":"Structured text",
+      "ownerPackage":"OfficeIMO.Core",
+      "canInspect":true,
+      "canAssess":true,
+      "canRemove":true,
+      "browserLabel":null,
+      "notes":"Only standards-defined structured or wrapped text carriers are changed.",
+      "formats":[
+        {"extension":".adoc","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".asciidoc","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".bat","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".c","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".cjs","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".cmd","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".cpp","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".cs","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".css","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".go","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".h","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".hpp","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".ini","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".java","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".js","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".json","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".lua","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".mjs","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".ps1","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".py","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".rb","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".rs","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".sh","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".sql","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".tex","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".toml","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".ts","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".txt","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".vb","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".xml","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".yaml","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false},
+        {"extension":".yml","assetFormats":["StructuredText","UnstructuredText"],"memoryOnlyAvailable":false,"browserAvailable":false}
+      ]
+    }
+  ]
+}

@@ -476,6 +476,15 @@
         ]
       },
       {
+        "Match": "/provenance/",
+        "Bundles": [
+          "global",
+          "product",
+          "docs",
+          "experience"
+        ]
+      },
+      {
         "Match": "/pdf/**",
         "Bundles": [
           "global",

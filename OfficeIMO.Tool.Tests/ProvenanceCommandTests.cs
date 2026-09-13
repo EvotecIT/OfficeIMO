@@ -13,11 +13,18 @@ public sealed class ProvenanceCommandTests {
 
         Assert.Equal((int)OfficeImoToolExitCode.Success, result.ExitCode);
         using JsonDocument json = JsonDocument.Parse(result.Output);
-        Assert.Equal("officeimo.provenance.capabilities.v1", json.RootElement.GetProperty("schema").GetString());
+        Assert.Equal("officeimo.provenance.capabilities.v2", json.RootElement.GetProperty("schema").GetString());
         JsonElement capabilities = json.RootElement.GetProperty("capabilities");
-        Assert.Contains(capabilities.EnumerateArray(), item =>
-            item.GetProperty("id").GetString() == "word-openxml" &&
-            item.GetProperty("ownerPackage").GetString() == "OfficeIMO.Word");
+        JsonElement word = Assert.Single(capabilities.EnumerateArray(), item =>
+            item.GetProperty("id").GetString() == "word-openxml");
+        Assert.Equal("OfficeIMO.Word", word.GetProperty("ownerPackage").GetString());
+        Assert.True(word.GetProperty("browserAvailable").GetBoolean());
+        Assert.Equal("DOCX", word.GetProperty("browserLabel").GetString());
+        JsonElement docx = Assert.Single(word.GetProperty("formats").EnumerateArray(), item =>
+            item.GetProperty("extension").GetString() == ".docx");
+        Assert.True(docx.GetProperty("memoryOnlyAvailable").GetBoolean());
+        Assert.True(docx.GetProperty("browserAvailable").GetBoolean());
+        Assert.Equal("ZipPackage", Assert.Single(docx.GetProperty("assetFormats").EnumerateArray()).GetString());
         Assert.Equal(string.Empty, result.Error);
     }
 

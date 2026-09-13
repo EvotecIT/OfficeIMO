@@ -1,4 +1,5 @@
 using OfficeIMO.Provenance;
+using OfficeIMO.Drawing;
 using OfficeIMO.Epub;
 using OfficeIMO.Excel;
 using OfficeIMO.OpenDocument;
@@ -7,6 +8,8 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.Visio;
 using OfficeIMO.Word;
 using System.Text;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Workflows.Tests;
 
@@ -18,7 +21,41 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         Assert.Equal("OfficeIMO.Core", OfficeProvenanceWorkflowCatalog.FindByPath("image.png")?.OwnerPackage);
         Assert.Equal("OfficeIMO.Excel", OfficeProvenanceWorkflowCatalog.FindByPath("workbook.xlsb")?.OwnerPackage);
         Assert.Null(OfficeProvenanceWorkflowCatalog.FindByPath("archive.zip"));
-        Assert.True(OfficeProvenanceWorkflowCatalog.All.Single(item => item.Id == "core-detected").CanRemove);
+        Assert.DoesNotContain(OfficeProvenanceWorkflowCatalog.All, item => item.Id == "core-detected");
+        Assert.All(
+            OfficeProvenanceWorkflowCatalog.All.Single(item => item.Id == "markdown").Formats,
+            format => Assert.Equal([OfficeProvenanceAssetFormat.StructuredText], format.AssetFormats));
+        Assert.All(OfficeProvenanceWorkflowCatalog.All, capability => {
+            Assert.StartsWith("OfficeIMO.", capability.OwnerPackage, StringComparison.Ordinal);
+            Assert.NotEmpty(capability.Formats);
+            Assert.DoesNotContain(capability.Formats, format => format.AssetFormats.Contains(OfficeProvenanceAssetFormat.Unknown));
+        });
+    }
+
+    [Fact]
+    public void CatalogDerivesModernOfficeExtensionsFromTheOwningFormatCatalogs() {
+        static string[] Modern(IEnumerable<OfficeFormatDescriptor> formats) => formats
+            .Where(format => format.Generation == OfficeFormatGeneration.Modern)
+            .Select(format => format.Extension)
+            .OrderBy(extension => extension, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(Modern(WordFormatCatalog.All), OfficeProvenanceWorkflowCatalog.All.Single(item => item.Id == "word-openxml").Extensions);
+        Assert.Equal(Modern(ExcelFormatCatalog.All), OfficeProvenanceWorkflowCatalog.All.Single(item => item.Id == "excel-package").Extensions);
+        Assert.Equal(Modern(PowerPointFormatCatalog.All), OfficeProvenanceWorkflowCatalog.All.Single(item => item.Id == "powerpoint-openxml").Extensions);
+    }
+
+    [Fact]
+    public void CatalogPublishesOneDeterministicOwnedFormatContract() {
+        string firstJson = OfficeProvenanceWorkflowCatalog.ToJson();
+        string secondJson = OfficeProvenanceWorkflowCatalog.ToJson();
+        using System.Text.Json.JsonDocument document = System.Text.Json.JsonDocument.Parse(firstJson);
+
+        Assert.Equal(firstJson, secondJson);
+        Assert.Equal(OfficeProvenanceWorkflowCatalog.Id, document.RootElement.GetProperty("id").GetString());
+        Assert.Equal(OfficeProvenanceWorkflowCatalog.SchemaVersion, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(OfficeProvenanceWorkflowCatalog.All.Count, document.RootElement.GetProperty("capabilities").GetArrayLength());
+        Assert.Contains("Only formats with a named OfficeIMO owner", OfficeProvenanceWorkflowCatalog.ToMarkdown(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -221,7 +258,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
-    public async Task GenericZipCanBeInspectedButNotMutatedWithoutAFormatOwner() {
+    public async Task GenericZipIsNotAdvertisedOrAcceptedWithoutAFormatOwner() {
         using var scope = new TempScope();
         string input = Path.Combine(scope.Path, "archive.zip");
         using (System.IO.Compression.ZipArchive archive = System.IO.Compression.ZipFile.Open(input, System.IO.Compression.ZipArchiveMode.Create)) {
@@ -240,10 +277,78 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 InputPath = input
             });
 
-        Assert.True(inspection.Succeeded, inspection.Summary);
-        Assert.Equal(OfficeProvenanceAssetFormat.ZipPackage, inspection.Inspection?.Format);
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, inspection.FailureKind);
         Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, removal.FailureKind);
         Assert.False(File.Exists(Path.Combine(scope.Path, "archive.provenance-cleaned.zip")));
+    }
+
+    [Fact]
+    public async Task WordPackageSubtypeMustMatchItsRegisteredExtension() {
+        using var scope = new TempScope();
+        string input = Path.Combine(scope.Path, "renamed.docx");
+        using (WordprocessingDocument package = WordprocessingDocument.Create(input, WordprocessingDocumentType.MacroEnabledDocument)) {
+            package.AddMainDocumentPart().Document = new DocumentFormat.OpenXml.Wordprocessing.Document(
+                new DocumentFormat.OpenXml.Wordprocessing.Body());
+        }
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Inspect,
+                InputPath = input
+            });
+
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, result.FailureKind);
+        Assert.Contains("does not match filename extension", result.Summary, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task OpenDocumentMediaTypeMustMatchItsRegisteredExtension() {
+        using var scope = new TempScope();
+        string input = Path.Combine(scope.Path, "renamed.odt");
+        OdsDocument spreadsheet = OdsDocument.Create();
+        spreadsheet.AddSheet("Data").Cell(0, 0).SetString("renamed");
+        spreadsheet.Save(input);
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Inspect,
+                InputPath = input
+            });
+
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, result.FailureKind);
+        Assert.Contains("does not match filename extension", result.Summary, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task VisioPackageSubtypeMustMatchItsRegisteredExtension() {
+        using var scope = new TempScope();
+        string source = Path.Combine(scope.Path, "drawing.vsdm");
+        string input = Path.Combine(scope.Path, "renamed.vsdx");
+        VisioDocument document = VisioDocument.Create(source, VisioPackageType.MacroEnabledDrawing);
+        document.AddPage("Page-1", 8.5, 11);
+        document.Save();
+        File.Copy(source, input);
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Inspect,
+                InputPath = input
+            });
+
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, result.FailureKind);
+        Assert.Contains("does not match filename extension", result.Summary, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EpubOwnerRejectsAnUnregisteredFilenameExtension() {
+        using var scope = new TempScope();
+        string input = Path.Combine(scope.Path, "renamed.zip");
+        CreateEpub(input);
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            EpubDocument.InspectProvenance(input));
+
+        Assert.Contains("EPUB format", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -549,7 +654,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
-    public async Task SignatureDetectedImageWithUnknownExtensionCanBeRemoved() {
+    public async Task SignatureDetectedImageWithUnknownExtensionIsNotAcceptedByTheWorkflow() {
         using var scope = new TempScope();
         string input = Path.Combine(scope.Path, "image.bin");
         string output = Path.Combine(scope.Path, "cleaned.bin");
@@ -563,10 +668,27 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 OutputPath = output
             });
 
-        Assert.True(result.Succeeded, result.Summary);
-        Assert.Equal(OfficeProvenanceAssetFormat.Png, result.Before?.Format);
-        Assert.Equal(OfficeProvenanceAssetFormat.Png, result.After?.Format);
-        Assert.True(File.Exists(output));
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, result.FailureKind);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task RegisteredExtensionDoesNotOverrideMismatchedStructuralContent() {
+        using var scope = new TempScope();
+        string input = Path.Combine(scope.Path, "image.jpg");
+        File.WriteAllBytes(input, Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Inspect,
+                InputPath = input
+            });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, result.FailureKind);
+        Assert.Contains("does not match the registered .jpg format", result.Summary, StringComparison.Ordinal);
     }
 
     [Fact]

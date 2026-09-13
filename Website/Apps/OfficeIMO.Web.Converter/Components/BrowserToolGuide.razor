@@ -1,0 +1,42 @@
+@namespace OfficeIMO.Web.Converter.Components
+
+<section class="ocx-tool-guide" aria-labelledby="tool-guide-title">
+    <header class="ocx-tool-guide__heading">
+        <div>
+            <p>About this tool</p>
+            <h2 id="tool-guide-title">What to expect</h2>
+        </div>
+        <a href="@Content.GuideUrl" target="_top">@Content.GuideLabel <span aria-hidden="true">→</span></a>
+    </header>
+    <div class="ocx-tool-guide__facts">
+        <article>
+            <span class="ocx-tool-guide__icon" aria-hidden="true">↗</span>
+            <div><h3>What it does</h3><p>@Content.Summary</p></div>
+        </article>
+        <article>
+            <span class="ocx-tool-guide__icon" aria-hidden="true">＋</span>
+            <div><h3>What you provide</h3><p>@Content.Input</p></div>
+        </article>
+        <article>
+            <span class="ocx-tool-guide__icon" aria-hidden="true">↓</span>
+            <div><h3>What you get</h3><p>@Content.Output</p></div>
+        </article>
+        <article>
+            <span class="ocx-tool-guide__icon ocx-tool-guide__icon--notice" aria-hidden="true">i</span>
+            <div><h3>Good to know</h3><p>@Content.Expectation</p></div>
+        </article>
+    </div>
+    <div class="ocx-tool-guide__steps">
+        <h3>How it works</h3>
+        <ol>
+            @foreach (BrowserToolStep step in Content.Steps) {
+                <li><div><strong>@step.Title</strong><span>@step.Description</span></div></li>
+            }
+        </ol>
+    </div>
+    <p class="ocx-tool-guide__privacy"><strong>Private by default.</strong> The file stays in this browser tab, and OfficeIMO creates a separate result instead of overwriting your original.</p>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public BrowserToolContent Content { get; set; } = BrowserToolContentCatalog.Provenance;
+}

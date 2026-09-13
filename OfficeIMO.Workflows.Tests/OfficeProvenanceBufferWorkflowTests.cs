@@ -1,4 +1,5 @@
 using OfficeIMO.Excel;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
 using OfficeIMO.Provenance;
@@ -7,6 +8,61 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed partial class OfficeProvenanceWorkflowTests {
+    [Fact]
+    public void BrowserQualifiedFormatMatrixUsesTheSharedCatalogAndRealOwnerArtifacts() {
+        using var scope = new TempScope();
+        var image = new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue);
+        byte[] jpeg = OfficeJpegCodec.Encode(image);
+        byte[] png = OfficePngWriter.Encode(image);
+        byte[] webp = OfficeWebpCodec.Encode(image);
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Qualified PDF")).ToBytes();
+
+        string wordPath = Path.Combine(scope.Path, "qualified.docx");
+        using (WordDocument document = WordDocument.Create(wordPath)) {
+            document.AddParagraph("Qualified Word document");
+            document.Save();
+        }
+        string excelPath = Path.Combine(scope.Path, "qualified.xlsx");
+        using (ExcelDocument document = ExcelDocument.Create(excelPath)) {
+            document.AddWorksheet("Data").Cell(1, 1, "Qualified workbook");
+            document.Save();
+        }
+        string powerPointPath = Path.Combine(scope.Path, "qualified.pptx");
+        using (PowerPointPresentation presentation = PowerPointPresentation.Create(powerPointPath)) {
+            presentation.AddSlide().AddTextBoxPoints("Qualified presentation", 20, 20, 300, 60);
+            presentation.Save();
+        }
+
+        var cases = new[] {
+            (Name: "qualified.jpeg", Data: jpeg, Format: OfficeProvenanceAssetFormat.Jpeg),
+            (Name: "qualified.jpg", Data: jpeg, Format: OfficeProvenanceAssetFormat.Jpeg),
+            (Name: "qualified.png", Data: png, Format: OfficeProvenanceAssetFormat.Png),
+            (Name: "qualified.webp", Data: webp, Format: OfficeProvenanceAssetFormat.Webp),
+            (Name: "qualified.pdf", Data: pdf, Format: OfficeProvenanceAssetFormat.Pdf),
+            (Name: "qualified.docx", Data: File.ReadAllBytes(wordPath), Format: OfficeProvenanceAssetFormat.ZipPackage),
+            (Name: "qualified.xlsx", Data: File.ReadAllBytes(excelPath), Format: OfficeProvenanceAssetFormat.ZipPackage),
+            (Name: "qualified.pptx", Data: File.ReadAllBytes(powerPointPath), Format: OfficeProvenanceAssetFormat.ZipPackage)
+        };
+        var keepAll = new OfficeProvenanceRemovalOptions {
+            RemoveC2paManifests = false,
+            RemoveExternalC2paReferences = false,
+            RemoveAiSourceMetadata = false
+        };
+
+        Assert.Equal(OfficeProvenanceWorkflowCatalog.BrowserExtensions, OfficeProvenanceBufferWorkflow.SupportedExtensions);
+        Assert.Equal(cases.Select(item => Path.GetExtension(item.Name)).OrderBy(item => item, StringComparer.Ordinal),
+            OfficeProvenanceWorkflowCatalog.BrowserExtensions);
+        foreach (var testCase in cases) {
+            OfficeProvenanceReport inspection = OfficeProvenanceBufferWorkflow.Inspect(testCase.Data, testCase.Name);
+            OfficeProvenanceRemovalResult removal = OfficeProvenanceBufferWorkflow.Remove(testCase.Data, testCase.Name, keepAll);
+
+            Assert.Equal(testCase.Format, inspection.Format);
+            Assert.Equal(testCase.Format, removal.After.Format);
+            Assert.False(removal.WasChanged);
+            Assert.Equal(testCase.Data, removal.ToArray());
+        }
+    }
+
     [Fact]
     public async Task UnchangedPdfChargesEachActualInspectionOnceInBothWorkflowHosts() {
         using var scope = new TempScope();

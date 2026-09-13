@@ -13,7 +13,7 @@ public sealed partial class EpubDocument {
         string fullPath = Path.GetFullPath(filePath);
         byte[] data;
         using (Stream stream = File.OpenRead(fullPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes, options.CancellationToken);
-        ValidatePackage(data, options);
+        ValidatePackage(data, fullPath, options);
         return OfficeProvenanceInspector.Inspect(data, fullPath, options);
     }
 
@@ -47,7 +47,10 @@ public sealed partial class EpubDocument {
             removeOpcManifestReferences: false,
             validateOpcMetadata: false);
 
-    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options) {
+    private static void ValidatePackage(byte[] data, string fileName, OfficeProvenanceOptions options) {
+        if (!string.Equals(Path.GetExtension(fileName), ".epub", StringComparison.OrdinalIgnoreCase)) {
+            throw new NotSupportedException("The filename extension is not the OfficeIMO-owned EPUB format.");
+        }
         OfficeProvenanceZip.ValidateMimetypeEntry(data, "application/epub+zip", options.MaxContainerEntries);
         using var input = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false);

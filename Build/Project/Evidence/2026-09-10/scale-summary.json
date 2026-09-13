@@ -1,0 +1,258 @@
+[
+  {
+    "suite": "project-xml-lifecycle",
+    "scenario": "CalendarChain10k",
+    "operation": "ReadEditSave",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "10000",
+      "Shape": "calendar-chain"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 1081.8699,
+    "meanMs": 1107.0090666666667,
+    "minMs": 1020.3349,
+    "maxMs": 1218.8224,
+    "p95Ms": 1205.12715,
+    "p99Ms": 1216.08335,
+    "stdDevMs": 101.60366720538852,
+    "stdErrMs": 58.66090461168422,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "InputBytes": 5063234,
+      "OutputBytes": 5063269,
+      "LoadSaveAllocatedBytes": 459842293.3333333,
+      "PeakWorkingSetBytes": 224608256
+    }
+  },
+  {
+    "suite": "project-xml-lifecycle",
+    "scenario": "CalendarMirrors10k",
+    "operation": "ReadEditSave",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "10000",
+      "Shape": "calendar-mirrors"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 1718.4102,
+    "meanMs": 1660.1754666666666,
+    "minMs": 1529.1595,
+    "maxMs": 1732.9567,
+    "p95Ms": 1731.50205,
+    "p99Ms": 1732.66577,
+    "stdDevMs": 113.69603250229682,
+    "stdErrMs": 65.6424349709935,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "InputBytes": 9676576,
+      "OutputBytes": 9676611,
+      "LoadSaveAllocatedBytes": 666529258.6666666,
+      "PeakWorkingSetBytes": 329168213.3333333
+    }
+  },
+  {
+    "suite": "project-xml-lifecycle",
+    "scenario": "Deep10k",
+    "operation": "ReadEditSave",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "10000",
+      "Shape": "deep"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 898.9127,
+    "meanMs": 908.0817000000001,
+    "minMs": 891.1981,
+    "maxMs": 934.1343,
+    "p95Ms": 930.6121400000001,
+    "p99Ms": 933.429868,
+    "stdDevMs": 22.889566146172417,
+    "stdErrMs": 13.21529717612639,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "InputBytes": 3745379,
+      "OutputBytes": 3745414,
+      "LoadSaveAllocatedBytes": 381911026.6666667,
+      "PeakWorkingSetBytes": 200019968
+    }
+  },
+  {
+    "suite": "project-xml-lifecycle",
+    "scenario": "Dense10k",
+    "operation": "ReadEditSave",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "10000",
+      "Shape": "dense"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 1836.909,
+    "meanMs": 1798.8736666666666,
+    "minMs": 1694.1904,
+    "maxMs": 1865.5216,
+    "p95Ms": 1862.6603400000001,
+    "p99Ms": 1864.949348,
+    "stdDevMs": 91.78022640903292,
+    "stdErrMs": 52.98933842353996,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "InputBytes": 7151197,
+      "OutputBytes": 7151232,
+      "LoadSaveAllocatedBytes": 635191330.6666666,
+      "PeakWorkingSetBytes": 292397056
+    }
+  },
+  {
+    "suite": "project-xml-lifecycle",
+    "scenario": "Flat100k",
+    "operation": "ReadEditSave",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "100000",
+      "Shape": "flat"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 6405.3878,
+    "meanMs": 6323.020799999999,
+    "minMs": 6031.2097,
+    "maxMs": 6532.4649,
+    "p95Ms": 6519.75719,
+    "p99Ms": 6529.923358,
+    "stdDevMs": 260.5809584342454,
+    "stdErrMs": 150.4464864977023,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "InputBytes": 37646490,
+      "OutputBytes": 37646525,
+      "LoadSaveAllocatedBytes": 3720973261.3333335,
+      "PeakWorkingSetBytes": 1359134720
+    }
+  },
+  {
+    "suite": "project-xml-lifecycle",
+    "scenario": "Flat10k",
+    "operation": "ReadEditSave",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "10000",
+      "Shape": "flat"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 896.4166,
+    "meanMs": 899.8278666666666,
+    "minMs": 891.3828,
+    "maxMs": 911.6842,
+    "p95Ms": 910.1574400000001,
+    "p99Ms": 911.3788480000001,
+    "stdDevMs": 10.571861978541618,
+    "stdErrMs": 6.103667359146573,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "InputBytes": 3716485,
+      "OutputBytes": 3716520,
+      "LoadSaveAllocatedBytes": 376909834.6666667,
+      "PeakWorkingSetBytes": 199320917.33333334
+    }
+  },
+  {
+    "suite": "project-xml-lifecycle",
+    "scenario": "Flat1k",
+    "operation": "ReadEditSave",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "1000",
+      "Shape": "flat"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 195.1108,
+    "meanMs": 198.0924,
+    "minMs": 188.1885,
+    "maxMs": 210.9779,
+    "p95Ms": 209.39119,
+    "p99Ms": 210.660558,
+    "stdDevMs": 11.683605693877212,
+    "stdErrMs": 6.7455328924654525,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "InputBytes": 368480,
+      "OutputBytes": 368515,
+      "LoadSaveAllocatedBytes": 36645272,
+      "PeakWorkingSetBytes": 75366400
+    }
+  },
+  {
+    "suite": "project-xml-lifecycle",
+    "scenario": "Timephased10k",
+    "operation": "ReadEditSave",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "10000",
+      "Shape": "timephased"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 3277.4515,
+    "meanMs": 3259.8173666666667,
+    "minMs": 3120.1839,
+    "maxMs": 3381.8167,
+    "p95Ms": 3371.3801799999997,
+    "p99Ms": 3379.7293959999997,
+    "stdDevMs": 131.7047930136687,
+    "stdErrMs": 76.03979770000558,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "InputBytes": 20605425,
+      "OutputBytes": 20605460,
+      "LoadSaveAllocatedBytes": 1260655738.6666667,
+      "PeakWorkingSetBytes": 676981418.6666666
+    }
+  }
+]

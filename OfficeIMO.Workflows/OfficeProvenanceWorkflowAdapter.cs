@@ -13,42 +13,6 @@ using System.Text;
 namespace OfficeIMO.Workflows;
 
 internal static class OfficeProvenanceWorkflowAdapter {
-    internal static ProvenanceOwner ResolveByPath(string? path) =>
-        Path.GetExtension(path ?? string.Empty).ToLowerInvariant() switch {
-            ".docx" or ".docm" or ".dotx" or ".dotm" => ProvenanceOwner.Word,
-            ".xlsx" or ".xlsb" or ".xlsm" or ".xltx" or ".xltm" or ".xlam" => ProvenanceOwner.Excel,
-            ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" or ".ppam" => ProvenanceOwner.PowerPoint,
-            ".vsdx" or ".vsdm" or ".vstx" or ".vstm" or ".vssx" or ".vssm" => ProvenanceOwner.Visio,
-            ".odt" or ".ods" or ".odp" or ".odg" or ".ott" or ".ots" or ".otp" or ".otg" => ProvenanceOwner.OpenDocument,
-            ".epub" => ProvenanceOwner.Epub,
-            ".pdf" => ProvenanceOwner.Pdf,
-            ".html" or ".htm" => ProvenanceOwner.Html,
-            ".md" or ".markdown" => ProvenanceOwner.Markdown,
-            _ => ProvenanceOwner.Core
-        };
-
-    internal static ProvenanceOwner Refine(ProvenanceOwner owner, OfficeProvenanceAssetFormat format) {
-        if (owner != ProvenanceOwner.Core) return owner;
-        return format switch {
-            OfficeProvenanceAssetFormat.Pdf => ProvenanceOwner.Pdf,
-            OfficeProvenanceAssetFormat.Html => ProvenanceOwner.Html,
-            _ => owner
-        };
-    }
-
-    internal static string GetPackage(ProvenanceOwner owner) => owner switch {
-        ProvenanceOwner.Word => "OfficeIMO.Word",
-        ProvenanceOwner.Excel => "OfficeIMO.Excel",
-        ProvenanceOwner.PowerPoint => "OfficeIMO.PowerPoint",
-        ProvenanceOwner.Visio => "OfficeIMO.Visio",
-        ProvenanceOwner.OpenDocument => "OfficeIMO.OpenDocument",
-        ProvenanceOwner.Epub => "OfficeIMO.Epub",
-        ProvenanceOwner.Pdf => "OfficeIMO.Pdf",
-        ProvenanceOwner.Html => "OfficeIMO.Html",
-        ProvenanceOwner.Markdown => "OfficeIMO.Markdown",
-        _ => "OfficeIMO.Core"
-    };
-
     internal static OfficeProvenanceReport Inspect(
         ProvenanceOwner owner,
         string path,

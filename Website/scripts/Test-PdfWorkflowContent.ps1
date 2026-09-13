@@ -129,5 +129,16 @@ $hubText = Get-Content -LiteralPath $hubPath -Raw
 if (-not $hubText.Contains('{{< pdf-workflows >}}', [StringComparison]::Ordinal)) {
     throw 'PDF workflow hub must render the catalog-backed workflow index.'
 }
+foreach ($requiredHubContract in @(
+    'layout: conversion',
+    'meta.primary_url: "/convert/?workspace=pdf"',
+    'meta.source_format:',
+    'meta.destination_format:',
+    'meta.limit:'
+)) {
+    if (-not $hubText.Contains($requiredHubContract, [StringComparison]::Ordinal)) {
+        throw "PDF workflow hub is missing its conversion-guide contract: $requiredHubContract"
+    }
+}
 
 Write-Host "PDF workflow content verified against $($operations.Count) browser tools and $($browserConversions.Count) browser conversions."

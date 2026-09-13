@@ -32,8 +32,11 @@ public partial class VisioDocument {
         OfficeProvenanceRemovalOptions? options = null) =>
         OfficeProvenancePackageMutation.Remove(packageBytes, fileName, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);
 
-    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options) {
+    private static void ValidatePackage(byte[] data, string fileName, OfficeProvenanceOptions options) {
         OfficeProvenanceZip.ValidateForOwningPackageMutation(data, options);
+        if (!VisioPackageFormat.TryFromPath(fileName, out VisioPackageType expectedType)) {
+            throw new NotSupportedException("The filename extension is not an OfficeIMO-owned Visio Open XML format.");
+        }
         using var stream = new MemoryStream(data, writable: false);
         using Package package = Package.Open(stream, FileMode.Open, FileAccess.Read);
         PackageRelationship[] relationships = package.GetRelationshipsByType(DocumentRelationship).ToArray();
@@ -41,8 +44,11 @@ public partial class VisioDocument {
             throw new InvalidDataException("The package is not a supported Visio document.");
         }
         Uri documentUri = PackUriHelper.ResolvePartUri(relationships[0].SourceUri, relationships[0].TargetUri);
-        if (!package.PartExists(documentUri) || !VisioPackageFormat.TryFromContentType(package.GetPart(documentUri).ContentType, out _)) {
+        if (!package.PartExists(documentUri) || !VisioPackageFormat.TryFromContentType(package.GetPart(documentUri).ContentType, out VisioPackageType actualType)) {
             throw new InvalidDataException("The package is not a supported Visio document.");
+        }
+        if (actualType != expectedType) {
+            throw new InvalidDataException($"The Visio package subtype '{actualType}' does not match filename extension '{Path.GetExtension(fileName)}'.");
         }
     }
 

@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Managed Microsoft Project XML and modern MPP/MPT authoring and editing, explicit task scheduling, and assessed source-preserving save with typed and fluent APIs.</Description>
+    <AssemblyName>OfficeIMO.Project</AssemblyName>
+    <PackageId>OfficeIMO.Project</PackageId>
+    <VersionPrefix>3.4.3</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <PackageTags>project;mspdi;xml;mpp;tasks;calendars;resources;fluent</PackageTags>
+    <IsPackable>true</IsPackable>
+    <IsPublishable>true</IsPublishable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OfficeIMO.Core/OfficeIMO.Core.csproj" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="SUPPORT.md" Pack="true" PackagePath="/" />
+    <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" Link="OfficeIMO.png" />
+    <InternalsVisibleTo Include="OfficeIMO.Project.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Project.Verification" />
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.Linq" />
+    <Using Include="System.IO" />
+    <Using Include="System.Threading" />
+    <Using Include="System.Threading.Tasks" />
+  </ItemGroup>
+</Project>

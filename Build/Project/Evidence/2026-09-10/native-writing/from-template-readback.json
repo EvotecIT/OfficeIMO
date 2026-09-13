@@ -1,0 +1,154 @@
+﻿{
+    "producer":  "Microsoft Project",
+    "version":  "16.0",
+    "applicationAlertsEnabled":  true,
+    "build":  "16.0.20326.20144",
+    "inputSha256":  "dc67ffcd8e78ef586281bdd21626268fb969df99435dc55f4248728c073d0c03",
+    "tasks":  [
+                  {
+                      "uid":  1,
+                      "id":  1,
+                      "name":  "Design",
+                      "outlineLevel":  1,
+                      "summary":  false,
+                      "durationMinutes":  480,
+                      "workMinutes":  0,
+                      "cost":  0,
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/05/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0
+                  },
+                  {
+                      "uid":  2,
+                      "id":  2,
+                      "name":  "Later task",
+                      "outlineLevel":  1,
+                      "summary":  false,
+                      "durationMinutes":  480,
+                      "workMinutes":  0,
+                      "cost":  0,
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/05/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0
+                  }
+              ],
+    "resources":  [
+                      {
+                          "uid":  1,
+                          "name":  "Engineer",
+                          "type":  0,
+                          "standardRate":  "0,00 $/hr",
+                          "workMinutes":  0,
+                          "cost":  0
+                      }
+                  ],
+    "calendars":  [
+                      {
+                          "name":  "Standard",
+                          "exceptions":  [
+
+                                         ]
+                      }
+                  ],
+    "assignments":  [
+                        {
+                            "uid":  2097153,
+                            "taskUid":  1,
+                            "resourceUid":  1,
+                            "units":  1,
+                            "cost":  0,
+                            "workMinutes":  480
+                        },
+                        {
+                            "uid":  2097154,
+                            "taskUid":  2,
+                            "resourceUid":  1,
+                            "units":  1,
+                            "cost":  0,
+                            "workMinutes":  480
+                        }
+                    ],
+    "nativeRoundTrip":  {
+                            "sha256":  "2666b31bbb03863f88b7722ec703c922b9e7621db18fb1ad9940213a4901ad47",
+                            "sameObservedSemantics":  true,
+                            "reopened":  {
+                                             "tasks":  [
+                                                           {
+                                                               "uid":  1,
+                                                               "id":  1,
+                                                               "name":  "Design",
+                                                               "outlineLevel":  1,
+                                                               "summary":  false,
+                                                               "durationMinutes":  480,
+                                                               "workMinutes":  0,
+                                                               "cost":  0,
+                                                               "start":  "10/05/2026 08:00:00",
+                                                               "finish":  "10/05/2026 17:00:00",
+                                                               "predecessors":  "",
+                                                               "notes":  "",
+                                                               "text1":  "",
+                                                               "baselineCost":  0
+                                                           },
+                                                           {
+                                                               "uid":  2,
+                                                               "id":  2,
+                                                               "name":  "Later task",
+                                                               "outlineLevel":  1,
+                                                               "summary":  false,
+                                                               "durationMinutes":  480,
+                                                               "workMinutes":  0,
+                                                               "cost":  0,
+                                                               "start":  "10/05/2026 08:00:00",
+                                                               "finish":  "10/05/2026 17:00:00",
+                                                               "predecessors":  "",
+                                                               "notes":  "",
+                                                               "text1":  "",
+                                                               "baselineCost":  0
+                                                           }
+                                                       ],
+                                             "resources":  [
+                                                               {
+                                                                   "uid":  1,
+                                                                   "name":  "Engineer",
+                                                                   "type":  0,
+                                                                   "standardRate":  "0,00 $/hr",
+                                                                   "workMinutes":  0,
+                                                                   "cost":  0
+                                                               }
+                                                           ],
+                                             "calendars":  [
+                                                               {
+                                                                   "name":  "Standard",
+                                                                   "exceptions":  [
+
+                                                                                  ]
+                                                               }
+                                                           ],
+                                             "assignments":  [
+                                                                 {
+                                                                     "uid":  2097153,
+                                                                     "taskUid":  1,
+                                                                     "resourceUid":  1,
+                                                                     "units":  1,
+                                                                     "cost":  0,
+                                                                     "workMinutes":  480
+                                                                 },
+                                                                 {
+                                                                     "uid":  2097154,
+                                                                     "taskUid":  2,
+                                                                     "resourceUid":  1,
+                                                                     "units":  1,
+                                                                     "cost":  0,
+                                                                     "workMinutes":  480
+                                                                 }
+                                                             ]
+                                         }
+                        },
+    "reexportSha256":  "7a9f8120847c55018dff55cffbf26a80e44cae96fc4f92088ab7955a5eea7bae"
+}

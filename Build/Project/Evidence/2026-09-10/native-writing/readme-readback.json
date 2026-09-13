@@ -1,0 +1,106 @@
+﻿{
+    "producer":  "Microsoft Project",
+    "version":  "16.0",
+    "applicationAlertsEnabled":  true,
+    "build":  "16.0.20326.20144",
+    "inputSha256":  "38de607434cab8eb620161028ecb53be142c3acf6f0cc72321221acde1a64996",
+    "tasks":  [
+                  {
+                      "uid":  1,
+                      "id":  1,
+                      "name":  "Design",
+                      "outlineLevel":  1,
+                      "summary":  false,
+                      "durationMinutes":  480,
+                      "workMinutes":  0,
+                      "cost":  0,
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/05/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0
+                  }
+              ],
+    "resources":  [
+                      {
+                          "uid":  1,
+                          "name":  "Engineer",
+                          "type":  0,
+                          "standardRate":  "0,00 $/hr",
+                          "workMinutes":  0,
+                          "cost":  0
+                      }
+                  ],
+    "calendars":  [
+                      {
+                          "name":  "Standard",
+                          "exceptions":  [
+
+                                         ]
+                      }
+                  ],
+    "assignments":  [
+                        {
+                            "uid":  2097153,
+                            "taskUid":  1,
+                            "resourceUid":  1,
+                            "units":  1,
+                            "cost":  0,
+                            "workMinutes":  480
+                        }
+                    ],
+    "nativeRoundTrip":  {
+                            "sha256":  "9070ce96e21c20bd3fdd639ec42f1600bfb04eb6aac06cc23b2cccced873db04",
+                            "sameObservedSemantics":  true,
+                            "reopened":  {
+                                             "tasks":  [
+                                                           {
+                                                               "uid":  1,
+                                                               "id":  1,
+                                                               "name":  "Design",
+                                                               "outlineLevel":  1,
+                                                               "summary":  false,
+                                                               "durationMinutes":  480,
+                                                               "workMinutes":  0,
+                                                               "cost":  0,
+                                                               "start":  "10/05/2026 08:00:00",
+                                                               "finish":  "10/05/2026 17:00:00",
+                                                               "predecessors":  "",
+                                                               "notes":  "",
+                                                               "text1":  "",
+                                                               "baselineCost":  0
+                                                           }
+                                                       ],
+                                             "resources":  [
+                                                               {
+                                                                   "uid":  1,
+                                                                   "name":  "Engineer",
+                                                                   "type":  0,
+                                                                   "standardRate":  "0,00 $/hr",
+                                                                   "workMinutes":  0,
+                                                                   "cost":  0
+                                                               }
+                                                           ],
+                                             "calendars":  [
+                                                               {
+                                                                   "name":  "Standard",
+                                                                   "exceptions":  [
+
+                                                                                  ]
+                                                               }
+                                                           ],
+                                             "assignments":  [
+                                                                 {
+                                                                     "uid":  2097153,
+                                                                     "taskUid":  1,
+                                                                     "resourceUid":  1,
+                                                                     "units":  1,
+                                                                     "cost":  0,
+                                                                     "workMinutes":  480
+                                                                 }
+                                                             ]
+                                         }
+                        },
+    "reexportSha256":  "329329ca92b318bd37ac540e5c5e70de75b4a5eb92b6bf8fdf96c45e4b6842d0"
+}

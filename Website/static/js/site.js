@@ -412,6 +412,8 @@
       if (['workspace', 'route', 'tool'].some(function (key) {
         return selection[key] != null && (typeof selection[key] !== 'string' || selection[key].length > 100);
       })) return;
+      if (selection.title != null && (typeof selection.title !== 'string' ||
+          selection.title.length > 160 || selection.title.trim().length === 0)) return;
       var target = new URL(window.location.href);
       ['workspace', 'route', 'tool'].forEach(function (key) {
         var value = selection[key];
@@ -422,6 +424,7 @@
       if (target.href !== window.location.href) {
         window.history[selection.replace === true ? 'replaceState' : 'pushState'](null, '', target);
       }
+      if (selection.title) document.title = selection.title;
     });
     window.addEventListener('popstate', function () {
       var selection = new URLSearchParams(window.location.search);

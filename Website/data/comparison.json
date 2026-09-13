@@ -46,7 +46,7 @@
     {
       "feature": "AOT and trimming reality",
       "values": [
-        "116 of 126 production projects have Windows and Linux NativeAOT evidence, including 113 fully rooted libraries and one build-time source generator; the invoice engine, PDF adapter and standards validator, document-AI engine, its IntelligenceX adapter and example, Chromium browser-PDF bridge, HTML/PDF workbench, OfficeIMO Studio, and WPF/WebView2 renderer use managed deployment",
+        "116 of 127 production projects have Windows and Linux NativeAOT evidence, including 113 fully rooted libraries and one build-time source generator; the invoice engine, PDF adapter and standards validator, document-AI engine, its IntelligenceX adapter and example, Chromium browser-PDF bridge, HTML/PDF workbench, OfficeIMO Studio, Project library, and WPF/WebView2 renderer use managed deployment",
         "Varies by vendor, package, and feature set",
         "Real publish profiles, linker settings, and the exact package mix you plan to ship"
       ]

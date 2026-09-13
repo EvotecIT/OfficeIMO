@@ -18,7 +18,7 @@ public static class ConversionRouteCatalog {
             route.Source == "Markdown" ? "MD" : route.Source,
             route.Target == "Markdown" ? "MD" : route.Target,
             GetTitle(route),
-            route.Description,
+            GetBrowserDescription(route),
             route.InputKind == OfficeConversionInputKind.File ? ConversionInputKind.File : ConversionInputKind.Text,
             string.Join(",", route.SourceExtensions),
             route.Api,
@@ -27,7 +27,20 @@ public static class ConversionRouteCatalog {
             route.SupportLevel.ToString(),
             GetSupportLabel(route.SupportLevel),
             route.SupportEvidence,
-            route.KnownLimitations);
+            GetBrowserKnownLimitations(route));
+
+    private static string GetBrowserDescription(OfficeConversionCapability route) => route.Id switch {
+        "pdf-docx" => "Import supported PDF content as editable Word objects with reconstruction diagnostics.",
+        "pdf-pptx" => "Reconstruct PDF pages as Editable content, Visual pages, Visual + editable tables, or Tables only, with diagnostics.",
+        "pdf-html" => "Project PDF content into positioned-review HTML with explicit diagnostics.",
+        _ => route.Description
+    };
+
+    private static string GetBrowserKnownLimitations(OfficeConversionCapability route) => route.Id switch {
+        "markdown-html" => "Raw HTML, extension-specific syntax, and browser-dependent styling are governed by the browser's safe rendering profile.",
+        "pdf-docx" => "This browser workflow uses editable reconstruction. Scans need OCR, and exact layout is not preserved; the separate .NET API also offers a visual-pages mode.",
+        _ => route.KnownLimitations
+    };
 
     private static string GetTitle(OfficeConversionCapability route) => route.Id switch {
         "docx-pdf" => "Word to PDF",

@@ -1,0 +1,77 @@
+{
+  "comparisons": 221,
+  "observations": [
+    {
+      "fixture": "working-weeks.mpp",
+      "field": "task 2/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "working-weeks.mpp",
+      "field": "task 2/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "working-weeks.mpp",
+      "field": "task 4/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "working-weeks.mpp",
+      "field": "task 4/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "working-weeks.mpp",
+      "field": "resource 0/Calendar",
+      "native": 2,
+      "xml": null,
+      "classification": "xml-omits-reserved-row-calendar"
+    },
+    {
+      "fixture": "working-weeks.mpp",
+      "field": "assignment 2/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "working-weeks.mpp",
+      "field": "assignment 2/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "working-weeks.mpp",
+      "field": "assignment 5/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "working-weeks.mpp",
+      "field": "assignment 5/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    }
+  ],
+  "failures": []
+}

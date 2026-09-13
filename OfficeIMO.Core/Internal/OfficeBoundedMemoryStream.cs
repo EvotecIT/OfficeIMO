@@ -4,6 +4,19 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Core.Internal {
+    /// <summary>Creates and identifies output-limit failures without conflating other invalid-data errors.</summary>
+    internal static class OfficeOutputLimit {
+        private const string Marker = "OfficeIMO.OutputLimit";
+
+        internal static InvalidDataException Create(string message) {
+            var exception = new InvalidDataException(message);
+            exception.Data[Marker] = true;
+            return exception;
+        }
+
+        internal static bool Is(Exception exception) => exception is InvalidDataException && exception.Data.Contains(Marker);
+    }
+
     /// <summary>Bounds artifact serialization before writes or explicit capacity changes grow the buffer.</summary>
     internal class OfficeBoundedMemoryStream : MemoryStream {
         private readonly long _maximumBytes;
@@ -52,7 +65,7 @@ namespace OfficeIMO.Core.Internal {
         }
 
         protected virtual Exception CreateLimitException(long maximumBytes) =>
-            new InvalidDataException($"The artifact exceeds the configured output limit of {maximumBytes} bytes.");
+            OfficeOutputLimit.Create($"The artifact exceeds the configured output limit of {maximumBytes} bytes.");
 
         private void EnsureWrite(int count) {
             if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));

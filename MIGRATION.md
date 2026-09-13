@@ -11,6 +11,17 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### Provenance format ownership
+
+`OfficeIMO.Workflows` now accepts provenance requests only for extensions registered to a named OfficeIMO format owner, and it verifies that the file contents match that structural format. This keeps path, byte, command-line, and browser claims aligned with formats OfficeIMO can genuinely reopen and preserve.
+
+| Previous code or behavior | Replacement |
+| --- | --- |
+| Pass an unknown extension and rely on signature detection to select an image, HTML, or PDF workflow owner | Use the registered extension for the actual format. If the application already owns an unregistered format context and only needs structural inspection, call `OfficeProvenanceInspector` directly. |
+| Inspect a generic `.zip` through the cross-format workflow | Use the package-specific owner for a supported document format. Generic containers are no longer advertised by the workflow. |
+| Pass package bytes under a different Office or OpenDocument subtype filename, such as DOCM content named `.docx` | Pass the filename extension that matches the package subtype. Package provenance APIs now reject mismatched subtype names before inspection or mutation. |
+| Read `officeimo.provenance.capabilities.v1` output from `officeimo provenance capabilities` | Accept `officeimo.provenance.capabilities.v2`, including exact structural format, memory-only, and browser qualification records for every extension. |
+
 ### Owned HTML documents and callbacks
 
 Public HTML APIs now use `OfficeIMO.Html.Dom.HtmlDocument`, `HtmlElement` and

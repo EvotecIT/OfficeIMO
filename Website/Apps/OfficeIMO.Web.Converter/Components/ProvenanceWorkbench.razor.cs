@@ -26,6 +26,14 @@ public partial class ProvenanceWorkbench {
     private bool _manifests = true, _references = true, _declarations = true;
     private int _revision = -1, _generation;
 
+    private string ResultHeading => _removal is not null
+        ? "Cleaned copy"
+        : _report is null
+            ? "File origin data"
+            : _report.Evidence.Count == 0
+                ? "No supported origin data found"
+                : "Origin data found";
+
     protected override void OnInitialized() => _interop = new(JS);
     protected override async Task OnParametersSetAsync() {
         if (_revision == Session.Revision) return;
@@ -34,7 +42,7 @@ public partial class ProvenanceWorkbench {
         await ClearResultAsync();
         if (_disposed || generation != _generation || _revision != Session.Revision) return;
         _report = null;
-        _file = Session.Current.FirstOrDefault(file => OfficeProvenanceBufferWorkflow.SupportedExtensions.Contains(file.Extension, StringComparer.OrdinalIgnoreCase));
+        _file = Session.Current.FirstOrDefault(file => OfficeProvenanceWorkflowCatalog.BrowserExtensions.Contains(file.Extension, StringComparer.OrdinalIgnoreCase));
         _message = _file is null ? "Choose a supported file to inspect." : "Working file ready for inspection.";
         _busy = false;
     }
@@ -46,7 +54,9 @@ public partial class ProvenanceWorkbench {
         try {
             var file = args.File;
             string extension = Path.GetExtension(file.Name).ToLowerInvariant();
-            if (!OfficeProvenanceBufferWorkflow.SupportedExtensions.Contains(extension)) throw new NotSupportedException("Choose JPEG, PNG, WebP, PDF, DOCX, XLSX, or PPTX.");
+            if (!OfficeProvenanceWorkflowCatalog.BrowserExtensions.Contains(extension)) {
+                throw new NotSupportedException("Choose " + BrowserFormatSummary + ".");
+            }
             await using var input = file.OpenReadStream(BrowserConversionService.MaxPackageBytes);
             using var memory = new MemoryStream(); await input.CopyToAsync(memory);
             if (!IsCurrent()) return;
@@ -106,7 +116,7 @@ public partial class ProvenanceWorkbench {
                 message = removal.WasChanged ? "A separate copy is ready. Review remaining findings before downloading." : "No selected carriers were removed. The copy retains the original data; review the findings and diagnostics.";
             } else {
                 report = OfficeProvenanceBufferWorkflow.Inspect(file.Bytes, file.Name, BrowserProvenancePolicy.Limits());
-                message = report.Evidence.Count == 0 ? "No supported provenance carriers were found. This is not proof of origin." : "Inspection complete. Choose what to remove from a copy.";
+                message = report.Evidence.Count == 0 ? "No supported provenance carriers were found. This is not proof of origin." : "Inspection complete. Choose which carrier categories to remove from a copy.";
             }
             if (!IsCurrent()) return;
             byte[] reportBytes = JsonSerializer.SerializeToUtf8Bytes(new {
@@ -155,6 +165,20 @@ public partial class ProvenanceWorkbench {
     private static string ContentType(string extension) => extension switch {
         ".jpg" or ".jpeg" => "image/jpeg", ".png" => "image/png", ".webp" => "image/webp", ".pdf" => "application/pdf", _ => "application/octet-stream"
     };
+
+    internal static string BrowserFormatSummary {
+        get {
+            string[] labels = OfficeProvenanceWorkflowCatalog.BrowserCapabilities
+                .Select(static capability => capability.BrowserLabel!)
+                .ToArray();
+            return labels.Length switch {
+                0 => "a supported OfficeIMO format",
+                1 => labels[0],
+                2 => labels[0] + " or " + labels[1],
+                _ => string.Join(", ", labels[..^1]) + " or " + labels[^1]
+            };
+        }
+    }
     public async ValueTask DisposeAsync() {
         _disposed = true; ++_generation;
         await ClearResultAsync();

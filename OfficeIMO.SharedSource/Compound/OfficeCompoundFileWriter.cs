@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Core.Internal {
     /// <summary>
@@ -29,18 +30,22 @@ namespace OfficeIMO.Core.Internal {
         }
 
         internal static void Write(Stream output, IReadOnlyList<OfficeCompoundStream> streams,
-            Guid? rootClassId = null) {
+            Guid? rootClassId = null, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (output == null) throw new ArgumentNullException(nameof(output));
             if (!output.CanWrite) throw new ArgumentException("The compound output must be writable.", nameof(output));
             if (streams == null) throw new ArgumentNullException(nameof(streams));
             if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
-            Write(output, OfficeCompoundWriterLayout.Create(streams), rootClassId);
+            Write(output, OfficeCompoundWriterLayout.Create(streams), rootClassId, cancellationToken);
         }
 
         /// <summary>Rewrites selected streams while retaining the source directory hierarchy and metadata.</summary>
         internal static byte[] Rewrite(OfficeCompoundFile source,
             IReadOnlyDictionary<string, byte[]> replacementStreams,
-            IReadOnlyCollection<string>? removedPaths = null) {
+            IReadOnlyCollection<string>? removedPaths = null, long maxOutputBytes = int.MaxValue,
+            System.Threading.CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (maxOutputBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (replacementStreams == null) throw new ArgumentNullException(nameof(replacementStreams));
             var removals = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -69,6 +74,7 @@ namespace OfficeIMO.Core.Internal {
             var streams = new List<OfficeCompoundStream>();
             var retainedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (OfficeCompoundFileEntry entry in source.Entries.Where(entry => entry.IsStream && !entry.IsFallback)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (IsRemoved(entry.Path, removals)) continue;
                 byte[] bytes = replacements.TryGetValue(entry.Path, out byte[]? replacement)
                     ? replacement
@@ -85,13 +91,16 @@ namespace OfficeIMO.Core.Internal {
                 throw new ArgumentException("At least one compound stream is required.", nameof(source));
             }
             OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams, source, removals);
+            if (GetSerializedLength(layout) > maxOutputBytes) throw OfficeOutputLimit.Create("Compound output exceeds the configured byte limit.");
+            cancellationToken.ThrowIfCancellationRequested();
             using (var output = CreateExactOutput(layout)) {
                 Write(
                     output,
                     layout,
                     source.RootEntry.ClassId == Guid.Empty
                         ? null
-                        : source.RootEntry.ClassId);
+                        : source.RootEntry.ClassId, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 return GetExactOutputBuffer(output);
             }
         }
@@ -109,15 +118,17 @@ namespace OfficeIMO.Core.Internal {
             return false;
         }
 
-        private static void Write(Stream output, OfficeCompoundWriterLayout directoryLayout, Guid? rootClassId) {
+        private static void Write(Stream output, OfficeCompoundWriterLayout directoryLayout, Guid? rootClassId, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             PaddedStream[] paddedStreams = directoryLayout.Streams
                 .Select(PadStream)
                 .OrderBy(stream => stream.Entry.Path, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
 
-            using MiniStreamLayout miniStreamLayout = MiniStreamLayout.Create(paddedStreams);
+            using MiniStreamLayout miniStreamLayout = MiniStreamLayout.Create(paddedStreams, cancellationToken);
             int regularStreamSectorCount = 0;
             foreach (PaddedStream stream in paddedStreams) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (stream.IsMiniStream) {
                     continue;
                 }
@@ -168,11 +179,12 @@ namespace OfficeIMO.Core.Internal {
                 miniFatSectorCount, firstDifatSector, difatSectorCount), 0, SectorSize);
             foreach (PaddedStream stream in paddedStreams) {
                 if (!stream.IsMiniStream) {
-                    WritePaddedStream(output, stream, SectorSize);
+                    WritePaddedStream(output, stream, SectorSize, cancellationToken);
                 }
             }
 
-            miniStreamLayout.WriteTo(output);
+            miniStreamLayout.WriteTo(output, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
 
             output.Write(directory, 0, directory.Length);
             if (miniStreamLayout.FatBytes.Length > 0) {
@@ -444,22 +456,27 @@ namespace OfficeIMO.Core.Internal {
             return new PaddedStream(entry, payload, length, sectorCount, isMiniStream);
         }
 
-        private static void WritePaddedStream(Stream output, PaddedStream stream, int unitSize) {
+        private static void WritePaddedStream(Stream output, PaddedStream stream, int unitSize, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (stream.Payload.TryGetBuffer(out byte[]? bytes, out int offset, out int count)) {
-                output.Write(bytes!, offset, count);
+                while (count > 0) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int chunk = Math.Min(count, 81920); output.Write(bytes!, offset, chunk); offset += chunk; count -= chunk;
+                }
             } else {
                 using Stream input = stream.Payload.OpenRead();
-                CopyExact(input, output, stream.OriginalLength);
+                CopyExact(input, output, stream.OriginalLength, cancellationToken);
                 if (input.ReadByte() >= 0) throw new InvalidDataException("A compound stream exceeds its declared length.");
             }
             long paddedLength = checked((long)stream.SectorCount * unitSize);
             WriteZeros(output, paddedLength - stream.OriginalLength);
         }
 
-        private static void CopyExact(Stream input, Stream output, long length) {
+        private static void CopyExact(Stream input, Stream output, long length, CancellationToken cancellationToken) {
             var buffer = new byte[81920];
             long remaining = length;
             while (remaining > 0) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int read = input.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
                 if (read == 0) throw new EndOfStreamException("A compound stream ended before its declared length.");
                 output.Write(buffer, 0, read);
@@ -517,7 +534,7 @@ namespace OfficeIMO.Core.Internal {
 
             internal int StreamLength { get; }
 
-            internal static MiniStreamLayout Create(IReadOnlyList<PaddedStream> streams) {
+            internal static MiniStreamLayout Create(IReadOnlyList<PaddedStream> streams, CancellationToken cancellationToken) {
                 var miniStreams = streams
                     .Where(stream => stream.IsMiniStream && stream.SectorCount > 0)
                     .ToArray();
@@ -534,7 +551,7 @@ namespace OfficeIMO.Core.Internal {
                         foreach (PaddedStream stream in miniStreams) {
                             stream.StartSector = unchecked((uint)miniSectorCount);
                             miniSectorCount = checked(miniSectorCount + stream.SectorCount);
-                            WritePaddedStream(miniStream, stream, MiniSectorSize);
+                            WritePaddedStream(miniStream, stream, MiniSectorSize, cancellationToken);
                         }
                         int streamByteLength = checked(((miniSectorCount * MiniSectorSize) + SectorSize - 1) /
                             SectorSize * SectorSize);
@@ -564,11 +581,11 @@ namespace OfficeIMO.Core.Internal {
                 }
             }
 
-            internal void WriteTo(Stream output) {
+            internal void WriteTo(Stream output, CancellationToken cancellationToken) {
                 if (StreamPath == null) return;
                 using (var input = new FileStream(StreamPath, FileMode.Open, FileAccess.Read,
                            FileShare.Read, 81920, FileOptions.SequentialScan)) {
-                    CopyExact(input, output, StreamByteLength);
+                    CopyExact(input, output, StreamByteLength, cancellationToken);
                 }
             }
 
