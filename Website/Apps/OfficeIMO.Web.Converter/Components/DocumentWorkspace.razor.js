@@ -14,11 +14,11 @@ export function connect(component) {
     window.addEventListener("message", selectionHandler);
     navigationHandler = event => {
         if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-        const link = event.target.closest?.('#workspace-navigation a[data-route], #workspace-navigation a[data-pdf-tool]');
+        const link = event.target.closest?.('#workspace-navigation a[data-route], #workspace-navigation a[data-pdf-tool], #workspace-navigation a[data-workspace]');
         if (!link) return;
         event.preventDefault();
         event.stopImmediatePropagation();
-        component.invokeMethodAsync('RestoreSelection', link.dataset.pdfTool ? 'pdf' : 'convert', link.dataset.route ?? null, link.dataset.pdfTool ?? null);
+        component.invokeMethodAsync('RestoreSelection', link.dataset.workspace || (link.dataset.pdfTool ? 'pdf' : 'convert'), link.dataset.route ?? null, link.dataset.pdfTool ?? null);
     };
     document.addEventListener('click', navigationHandler, true);
     menuKeyHandler = event => {

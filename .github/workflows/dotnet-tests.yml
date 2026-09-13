@@ -41,8 +41,7 @@ jobs:
     timeout-minutes: 20
     # Temporary: Avalonia.Headless 12.1.1/12.1.2 session teardown races on Windows.
     # Upstream fix: https://github.com/AvaloniaUI/Avalonia/pull/22222
-    # Restore enforcement after consuming the upstream lifetime fix; keep tests and TRX visible.
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
+    # The runner suppresses only that exact TRX signature on Windows and fails closed otherwise.
     strategy:
       fail-fast: false
       matrix:
@@ -53,7 +52,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Test Studio
-        run: dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --logger "trx;LogFileName=studio.trx" --results-directory TestResults/Studio
+        shell: pwsh
+        run: ./Build/Invoke-StudioContractTests.ps1 -Configuration ${{ env.BUILD_CONFIGURATION }}
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v6

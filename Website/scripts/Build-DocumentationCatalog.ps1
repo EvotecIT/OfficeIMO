@@ -123,8 +123,16 @@ $components = foreach ($projectFile in ($productionProjects | Sort-Object BaseNa
     }
 }
 
+$componentIndexesByName = @{}
+for ($componentIndex = 0; $componentIndex -lt $components.Count; $componentIndex++) {
+    $componentIndexesByName[[string] $components[$componentIndex]['name']] = $componentIndex
+}
 $categories = @($components | Group-Object { $_['category'] } | Sort-Object Name | ForEach-Object {
-    [ordered]@{ name = $_.Name; componentCount = $_.Count }
+    [ordered]@{
+        name = $_.Name
+        componentCount = $_.Count
+        componentIndexes = @($_.Group | ForEach-Object { $componentIndexesByName[[string] $_['name']] })
+    }
 })
 $powerShellApiAvailable = Test-Path -LiteralPath (Join-Path $SiteRoot 'data\apidocs\powershell\command-metadata.json') -PathType Leaf
 $powerShellCatalogPath = Join-Path $SiteRoot 'data\pswriteoffice_command_catalog.json'

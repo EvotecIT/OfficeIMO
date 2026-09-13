@@ -62,9 +62,8 @@
             {{ else if card.preview_kind == "onenote" }}
             <div class="imo-example__data-preview"><small>Notebook export</small><strong>{{ card.preview_title }}</strong><p>{{ card.preview_body }}</p><ul><li>{{ card.preview_item }}</li></ul></div>
             {{ else }}
-            <a href="{{ card.image }}" target="_blank" rel="noopener" aria-label="Open preview: {{ card.title | html.escape }}">
+            <a href="{{ card.image }}" data-pf-media data-pf-media-caption="{{ card.title | html.escape }}" aria-label="Open preview: {{ card.title | html.escape }}">
               <img src="{{ card.image }}" alt="{{ card.image_alt | html.escape }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async" />
-              <span class="imo-example__preview-action" aria-hidden="true">Open preview ↗</span>
             </a>
             {{ end }}
           </div>
