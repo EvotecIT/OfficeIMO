@@ -4,6 +4,60 @@
 
 The package does not add a second document or PDF engine. Desktop applications, command-line tools, and services can share this workflow contract while keeping their user-interface and hosting code thin.
 
+## Project reports and table exchange
+
+`ProjectReportWorkflow` exports a calculated Project view through the existing document owners:
+
+```csharp
+using OfficeIMO.Project;
+using OfficeIMO.Workflows;
+
+using var project = ProjectDocument.Load("delivery.xml");
+var schedule = project.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
+schedule.Report.ThrowIfErrors();
+var view = project.CreateView(schedule, new ProjectViewOptions {
+    Kind = ProjectViewKind.TaskUsage,
+    Timescale = ProjectViewTimescale.Week
+});
+File.WriteAllBytes("delivery.pdf", ProjectReportWorkflow.ToPdf(view));
+File.WriteAllText("delivery.html", ProjectReportWorkflow.ToHtml(view));
+using var workbook = ProjectReportWorkflow.CreateExcel(view);
+workbook.Save("delivery.xlsx");
+```
+
+`ToSvg` and `ToPng` return one result per page. Supply an `OfficeRenderingProfile` with the required fonts for explicit Unicode coverage. `CreateWord` and `CreatePowerPoint` include chart images followed by editable data tables. `CreateExcel` separates report values, usage, status/groups, baseline dates, and dependencies into editable worksheets. These exports do not reconstruct Microsoft Project's saved views or native styles.
+
+Project PNG exports default to 300 DPI, rendered from the drawing at the requested resolution. Choose a shared quality preset for screen images:
+
+```csharp
+using OfficeIMO.Drawing;
+
+var images = ProjectReportWorkflow.Images(view)
+    .WithQuality(OfficeImageExportQuality.Screen)
+    .As(OfficeImageExportFormat.Png)
+    .Export();
+```
+
+The presets are `Preview` (96 DPI), `Screen` (192 DPI), and `Print` (300 DPI). `ExportImages` returns encoded bytes, pixel dimensions, density, and diagnostics; its consumer overload streams results under shared batch limits. Supply `ProjectImageExportOptions` to select fonts, explicit density, pixel limits, or a rendering deadline. Oversized Project images fail by default; choose `RasterOverflowBehavior.ReduceScale` only when reduced detail is acceptable. Use SVG for zoomable vector text and geometry. Enlarging an existing PNG beyond its pixel dimensions still magnifies its pixels.
+
+For consistent typography, register both regular and bold TrueType faces in the rendering profile used for measurement and output. A regular face alone requires synthesized bold text; font substitution can change line wrapping. `ProjectOfficeReportOptions` selects chart images, data tables, and chart image quality for Word and PowerPoint. Set `IncludeCharts = false` for editable-table reports. A Table view always retains its primary editable content, including when only charts are selected.
+
+Word tables repeat their headers and flow across pages. PowerPoint uses measured row heights to keep complete rows on each slide. Excel retains numeric and date cells, freezes the header row, and prints narrow reports in portrait and wider usage tables in landscape, with a report title and page numbers. Tables wider than eight columns print at full scale across pages; usage sheets repeat UID and name columns on horizontal continuations. Native Office exports retain fixed page dimensions; portable drawing exports can trim unused page height through `ProjectViewOptions.FitPageHeightToContent`.
+
+`ProjectDataWorkflow` transports the Project owner's mapped tables:
+
+```csharp
+var projection = project.ExportTables(allowLossyProjection: true);
+foreach (string notice in projection.Notices)
+    Console.WriteLine(notice);
+using var transfer = ProjectDataWorkflow.CreateExcel(projection);
+transfer.Save("project-data.xlsx");
+foreach (var table in projection.Tables)
+    ProjectDataWorkflow.CreateCsv(table.Table).Save(table.Kind + ".csv");
+```
+
+Loss permission is explicit because tables omit dependencies, native presentation, and other semantics outside the selected exchange fields. `ReadExcel` requires a bounded worksheet rectangle; formula/error cells and numbers that cannot be represented exactly are rejected. `ReadCsv` uses the CSV owner's parsing and quoting rules. Wrap the resulting `ProjectDataTable` in a `ProjectMappedTable` with explicit field mappings before calling `ProjectDocument.ImportTables`. Table import creates a new project and validates identity, references, units, and conflict policy. See [Project support](../OfficeIMO.Project/SUPPORT.md#portable-reports-and-mapped-data-exchange) for the full boundary.
+
 ## Reference from source
 
 When working from an OfficeIMO source checkout, reference the workflow project directly:

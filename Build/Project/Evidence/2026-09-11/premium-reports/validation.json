@@ -1,0 +1,20 @@
+{
+  "Date": "2026-09-11",
+  "Generator": "OfficeIMO.Project.ReportVerification premium",
+  "Command": "dotnet run --project OfficeIMO.Project.ReportVerification -c Release -- <new-output-directory> <regular-font.ttf> premium <bold-font.ttf>",
+  "Fonts": {
+    "Bold": "E8F4E3BAF6CC35FED6FCCE3A540E8B39E8F6CDA1D22A28F2EC8F526FEF7A43F5",
+    "Regular": "B3658EADAE55E682B5F69EB64C439C1ECC8F196C0BB8D4756D145D13BC86476A"
+  },
+  "Validation": {
+    "Visual": "Network PNG at native pixels; SVG at 3x logical width; Word and PowerPoint chart pages; narrow and empty network",
+    "NativeOffice": "Word 16.0: 2 pages, 3 tables; PowerPoint 16.0: 4 slides",
+    "Word": "Image optional title regression passed on net8.0",
+    "Project": "324 passed on each of net8.0, net10.0, net472",
+    "Drawing": "283 typography, font, SVG and quality tests passed on each of net8.0, net10.0, net472",
+    "Limits": "Windows validation; representative views. Custom host shapers and arbitrary graph density are not exhaustively covered.",
+    "BrowserLog": "One browser-context error: Cannot use in operator to search for animation in undefined. Static report pages contain no scripts; source attribution unavailable.",
+    "IndependentReview": "No actionable findings; staged patch e3e35651e77ff5017a4696f9699ec78cac1147b3",
+    "Workflows": "14 Project report and image tests passed on each of net8.0, net10.0"
+  }
+}

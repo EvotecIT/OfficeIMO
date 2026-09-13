@@ -12,6 +12,7 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Generate compatible package README sections, website capability pages, MCP discovery, and support matrices from that model wherever one source can truthfully own the claim.
 - [ ] Expand cross-producer fixture corpora with producer/version provenance and stable package or semantic diff policies.
 - [ ] Add reproducible correctness, file-size, elapsed-time, peak-memory, allocation, cancellation, and deterministic-output evidence for representative workloads on every supported operating system.
+- [ ] Route Word, Excel, PowerPoint, HTML, OneNote, and Visio raster exports through the shared bounded encoder. Enforce `MaximumTotalEncodedBytes` while encoding and propagate cancellation through compression, including composed worksheet page layers; verify each public export path with output-limit and cancellation cases.
 - [ ] Add an opt-in Arrow C Data Interface stream bridge in `OfficeIMO.Data.Arrow` only with explicit unmanaged-lifetime ownership, bounded record-batch callbacks, cancellation, importer round trips, and native-consumer evidence. Keep the current managed `DbDataReader` batching API dependency-isolated and do not expose raw pointers without a fail-safe release contract.
 - [ ] Extend typed loss classification and strict acceptance evidence across the remaining native format-projection owners. Sweep resource, font, pagination, SVG, and format-bridge diagnostics; preserve the specific loss category across composed routes and reject loss before publication. Source reports that expose only aggregate HasLoss need a common typed diagnostic contract before downstream policies can distinguish omissions from approximations.
 - [ ] Establish an all-page conversion consistency gate over the existing Drawing scene and format owners. Cover DOCX, XLSX, PPTX, HTML, PDF, Visio, OneNote, email, EPUB, ODT, ODS, and ODP to SVG, PNG, JPEG, TIFF, and WebP with identical page selection, layout profile, font bytes, shaping provider, dimensions, DPI, background, and resource policy. Compare direct raster output with independently rendered SVG and PDF, then compare all three against source-producer or labelled semantic evidence so matching outputs cannot hide a shared import loss. Gate text and object coverage, crop/rotation, clipping, gradients, alpha, images, page counts, and diagnostics; allow encoder-specific visual tolerances only after geometry and content pass.
@@ -288,7 +289,110 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 - [ ] Deepen OneNote section import, editing, and export for ink, embedded files, rich positioning, page metadata, internal links, attachments, and independently produced `.one` fixtures. Keep unsupported binary records preserved or diagnosed instead of silently flattening them.
 - [ ] Deepen Visio-to-PDF rendering for masters and instances, grouped shapes, layers and visibility, themes, data graphics, connector routing, embedded objects, and page backgrounds using Visio-produced fixtures and page-level visual comparisons.
 
+## Microsoft Project document library
+
+Extend the [typed Project library](../OfficeIMO.Project/README.md) with broader producer/native profiles, explainable scenarios, comparison, and integrated delivery. The [operation matrix](../OfficeIMO.Project/SUPPORT.md) owns the implemented file, calculation, reporting, and data-exchange contracts and their independent application evidence.
+
+The milestones below are ordered product outcomes. Each remains open until its acceptance evidence exists. Implemented contracts move into the package README and operation-level support matrix; delivered history belongs in GitHub Releases. Execution and scope-change rules live in [the repository instructions](../AGENTS.md#project-implementation-discipline).
+
+### Scope and ownership
+
+| Capability | Owner and adopted boundary |
+| --- | --- |
+| Project semantics | `OfficeIMO.Project`: tasks, resources, assignments, calendars, dependencies, baselines, custom fields, presentation, scheduling, and diagnostics |
+| Public API | `ProjectDocument` and typed `ProjectTask`/resource/assignment objects; `AsFluent()` wraps the same operations and `End()` returns the document |
+| Format codecs | Version-specific MSPDI, MPP14, MPP12, MPP9, MPP8, MPT, and MPX implementation inside the Project owner; field/record mappings stay out of public objects |
+| Shared infrastructure | Reuse `OfficeIMO.Core` compound-file, OLE, drawing, security, and compatibility primitives; improve their owner when a missing primitive is reusable |
+| Dependencies | No new external runtime dependencies. Reuse existing dependencies only when needed and declared directly; optional output adapters must not enlarge the base package's dependency graph |
+| Calculation | Explicit, deterministic calculation in the Project owner; load/save preserve stored schedule values unless recalculation is requested |
+| Conversion | Thin adapters to existing PDF, Excel, CSV, Word, PowerPoint, HTML, and Reader owners; reuse common result, loss-policy, and capability contracts |
+| Runtime | Follow the repository's supported target frameworks; qualify Windows, Linux, macOS, trimming, NativeAOT, and browser execution by actual supported operations |
+| External services | Project Server, Planner, online synchronization, and tenant integrations are separate connector work; no network dependency in file operations |
+
+Read, create, field edit, structural edit, same-generation save, generation conversion, calculation, and rendering are separate support claims. Every claim identifies the producer version, tested features, preservation boundary, and fixture evidence. A preserved opaque record is not a semantically validated record.
+
+### Milestone sequence
+
+| ID | Outcome | Prerequisites |
+| --- | --- | --- |
+| P03 | Calendar and scheduling foundation | [P01/P02 model and XML contract](../OfficeIMO.Project/README.md) |
+| P04 | Modern MPP read and preservation | [P00 feasibility evidence](../OfficeIMO.Project/SUPPORT.md#native-format-feasibility), current XML model |
+| P05 | Modern MPP editing, new-file writing, and templates | P03, P04 |
+| P06 | Legacy MPP and MPX lifecycle and conversion | P05 |
+| P09 | Explainable analysis, scenarios, comparison, and merge | [Advanced calculation](../OfficeIMO.Project/SUPPORT.md#advanced-calculation-profile) and [portable reports](../OfficeIMO.Project/SUPPORT.md#portable-reports-and-mapped-data-exchange) |
+| P10 | Qualified package and integrated delivery | Current baseline, remaining P03-P06 profiles, P09, and all cross-cutting acceptance criteria |
+
+P02 is the first useful XML product, P05 the first native modern-MPP product, and P06 the legacy-format milestone. Each may ship independently with accurate coverage. P10 is the completion gate for this adopted baseline. No fixed completion date is promised before P00 establishes the writer and fixture risks.
+
+### P03 — Calendar and scheduling foundation
+
+- [ ] Extend the implemented calendar profile to recurring exceptions.
+- [ ] Expand interaction evidence beyond the supported FS/SS/FF/SF, forward/backward, constraint/deadline, summary, manual-task, and float fixtures; qualify remaining combinations before removing their diagnostics.
+- [ ] Decode remaining native scheduling inputs so opaque splits, contours, leveling, and external-task records can be rejected or calculated explicitly rather than treated as a supported-model projection.
+
+Acceptance: independently prepared schedule fixtures agree with Microsoft Project for the supported rule combinations. Include adjacent interactions, not just one test per setting; prove non-mutating calculation and rejection of stale results.
+
+### P04 — Modern MPP read and preservation
+
+- [ ] Decode compact native timephased records, rate tables, enterprise/custom lookup and formula metadata, and remaining fields outside the documented scalar reader profile.
+- [ ] Broaden producer/build and malformed-input fixtures beyond Project 2024, retaining explicit source-versus-export observations and whole-file preservation tests.
+- [ ] Extend the inert stream inventory to typed presentation, embedded-content, macro, and signature metadata. Qualify protection variants beyond the read-password/write-reservation rejection fixtures without executing content.
+- [ ] Add metadata-only/selective inspection where it measurably improves real workloads. Keep timephased series compact and bounded rather than eagerly expanding every interval into daily records.
+
+Acceptance: producer-specific read comparisons and unchanged-save tests pass for the declared operation matrix. Distinguish whole-file identity, stream-content preservation, and semantic fidelity. All unsupported records and protection states have actionable diagnostics.
+
+### P05 — Modern MPP editing, new-file writing, and templates
+
+- [ ] Extend the qualified native writer to notes, remaining baseline values, rate profiles, curves, lookup/formula metadata, and other modeled fields currently rejected or reported as omissions.
+- [ ] Decode and update opaque presentation, auxiliary references, and calculation caches so more structural/schedule edits can satisfy strict loss policy. Preserve current conservative diagnostics until independent readback proves those contracts.
+- [ ] Broaden native new-file, template, and XML conversion evidence to additional producer builds and richer documents; qualify application-wide `Global.mpt` separately from document templates.
+
+Acceptance: Microsoft Project opens edited and newly created files without repair; another application save and re-export retains expected semantics. Cover field edits, add/delete/reparent, assignments, calendars, custom fields, baselines, and unknown-content interactions individually. A one-field patch or successful no-op save cannot close this milestone.
+
+### P06 — Legacy MPP and MPX lifecycle and conversion
+
+- [ ] Broaden the qualified native profiles with additional producer builds, Project 98 external variable-storage layouts, and generation-specific timephased records.
+- [ ] Add legacy-application readback for MPP8/MPT8 and MPX; expand localized MPX field-value vocabularies and additional dialects through named fixtures.
+- [ ] Extend conversion fidelity as native notes, rates, formulas, lookups, and curves gain typed ownership. Preserve explicit pre-write loss reports until independent reopen evidence proves each target mapping.
+
+Acceptance: every claimed generation/operation has independent-producer and reopen evidence. Unsupported profiles remain visible in the matrix. Narrowing native legacy writing requires an explicit scope decision; it cannot disappear during implementation.
+
+### P09 — Explainable analysis, scenarios, comparison, and merge
+
+- [ ] Project fixed and variable material consumption onto changed task durations in mixed work/material schedules, with producer fixtures for actual consumption, stored curves, calendars, and backward scheduling.
+- [ ] Explain calculated task dates and changes using responsible constraints, dependencies, calendar intervals, and resource/leveling decisions. Explanations refer to the calculation revision and actual rule results.
+- [ ] Add isolated scenarios for calendars, resources, dependencies, and constraints, with schedule/cost/critical-path comparisons that leave the original project unchanged.
+- [ ] Add semantic project diff and three-way merge using stable identities. Expose task/calendar/resource/assignment/baseline/custom-field conflicts, deletion versus modification, and unresolved external references; never silently match duplicate task names.
+- [ ] Generate reusable analysis reports for schedule health, resource bottlenecks, baseline variance, and change impact from the same calculation and diff results.
+
+Acceptance: scenario isolation, explanation accuracy, repeatable diffs, and conflict-preserving merge pass realistic fixtures. Evaluate product improvements using named executable workflows and evidence, not feature counts or unmeasured superiority claims.
+
+### P10 — Qualified package and integrated delivery
+
+- [ ] Extend the Project 2024 corpus with sanitized realistic schedules, presentation, enterprise lookup/formula data, and external-project references; add independently produced fixtures and application oracles for the other declared producer generations.
+
+- [ ] Integrate `OfficeIMO.Reader.Project` and existing capability/conversion discovery with truthful operation/version/profile claims. Wire inspect/convert/report operations into the existing CLI/MCP surfaces without duplicating the engine.
+- [ ] Add Project opening, inspection, supported editing, conversion, and diagnostics to existing Studio/browser workflows where the host supports them. Clearly distinguish .NET engine support from host availability and qualify each UI interaction with runtime evidence.
+- [ ] Validate packed consumers on supported frameworks and operating systems, trimming/NativeAOT smoke consumers, and a browser smoke workflow where supported. Check the full dependency graph and package contents; use the shared build/release owner.
+- [ ] Extend the [Project workload evidence](../Build/Project/README.md) with reproducible correctness, deterministic-output, throughput, memory, output-size, and cancellation results for native and scheduling operations. Keep equivalent-work comparison dependencies in opt-in verification projects and retain failed or slower cases.
+- [ ] Complete package examples, operation-level matrices, generated discovery, security limits, and conversion diagnostics. Validate install examples against actually published versions when release is authorized; keep source, packed, published, and installed proof distinct.
+
+Acceptance: every adopted baseline milestone and operation claim has traceable evidence, no validated in-scope correctness issue remains, and package/host documentation matches delivered behavior. Source readiness does not itself authorize package publication or deployment.
+
+### Acceptance criteria applied throughout
+
+- [ ] Exercise path/stream APIs, cancellation, bounded allocations, malformed/truncated input, cyclic references, excessive XML/compound depth, integer overflow, external references, and file-write failure/atomicity from the first applicable milestone.
+- [ ] Maintain deterministic semantic fixtures and an operation-level capability source with producer/version provenance. Test supported contracts and real regressions; do not pin this plan's prose in product tests.
+- [ ] Validate source-preserving edits, native new-file creation, and conversion independently. Distinguish unsupported, preserved-but-uninterpreted, approximated, dropped, and validated content in reports.
+- [ ] Keep release claims bounded to passing profiles; share no source files, templates, or fixtures without known provenance. Preserve only useful evidence and remove superseded task-owned output.
+
+### Separate expansion candidates
+
+These are outside P10 and must not displace unfinished baseline milestones: Primavera XER/P6 XML, MPD/MDB archival import, pre-Project-98 formats, online/server connectors, and new standalone applications. Password-protected native read/write and signature creation remain separate qualification work unless a named profile is explicitly adopted. Detection and safe rejection of unsupported protection remain baseline requirements. New candidates enter this roadmap with a named owner, user outcome, dependencies, and acceptance evidence before implementation.
+
 ## Additional formats and product boundaries
+
+- [ ] Establish independent application/producer validation for each adopted legacy generation before claiming its read, edit, or write operation.
 
 Treat a format as a full OfficeIMO product only when a stable public model can support create, read, edit, deterministic write, reopen, preservation, and conversion without pretending to reconstruct a proprietary application. Reader-only products still require bounded parsing, structured diagnostics, provenance-aware fixtures, and an explicit structured-versus-salvage result. Conversion hosts and `OfficeIMO.Reader.*` adapters remain thin over the owning format package.
 

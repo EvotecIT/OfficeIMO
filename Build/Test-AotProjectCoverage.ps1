@@ -49,6 +49,11 @@ $nativeTools = @(
 )
 $managedOnly = @(
     [ordered]@{
+        name = 'OfficeIMO.Project'
+        classification = 'managed-cross-platform'
+        evidence = 'Project has managed cross-platform coverage and bounded Linux NativeAOT lifecycle smoke evidence; the complete library is not rooted in the coordinated NativeAOT qualification hosts.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Invoicing.Pdf'
         classification = 'managed-cross-platform'
         evidence = 'The optional typed invoice PDF adapter is qualified through managed .NET artifact tests; no dedicated NativeAOT qualification host is claimed.'

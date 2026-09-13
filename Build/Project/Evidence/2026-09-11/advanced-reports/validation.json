@@ -1,0 +1,38 @@
+{
+  "sourceBase": "7608d8ef57d24ea336b6090cf245d3f377590e86",
+  "reportReviewFingerprint": "860ae694cdf7ef0855365dafa9f10b7fb52d828b",
+  "projectTests": {
+    "UbuntuNet10": 320,
+    "WindowsNet472": 320,
+    "UbuntuNet8": 320,
+    "WindowsNet10": 320,
+    "WindowsNet8": 320
+  },
+  "workflowProjectTests": {
+    "UbuntuNet10": 10,
+    "WindowsNet10": 10,
+    "UbuntuNet8": 10,
+    "WindowsNet8": 10
+  },
+  "broaderWorkflowTests": {
+    "BaselineReproduction": "Same failure on unchanged sourceBase in detached checkout: expected Failed, actual Completed; fixture appends a signature-like PDF comment.",
+    "FailedPerRuntime": 1,
+    "PassedPerRuntime": 439,
+    "Failure": "PdfRedactionWorkflowTests.SignedPolicyIsExplicitAndNeverPublishes"
+  },
+  "packageConsumer": {
+    "Published": false,
+    "UbuntuNet8": "Passed",
+    "Scope": "Local unsigned PowerForge packages; scheduling, leveling, baseline, views, PDF/SVG/PNG/HTML with supplied Arial font, native Word/PowerPoint/Excel reopen, mapped Excel import",
+    "WindowsNet8": "Passed"
+  },
+  "visual": {
+    "Narrow": "390x844",
+    "NativeOffice": "16.0",
+    "Html": "Arial typography, contained horizontal diagram scroll, report-data link, empty selection",
+    "Small": "Word 3 pages, PowerPoint 7 slides, Excel 5 sheets",
+    "Review": "Two P2 findings reproduced and fixed: terminal milestone bounds and resource name filtering. One targeted independent confirmation completed.",
+    "Wide": "1440x900",
+    "Large": "Word 10 pages, PowerPoint 34 slides, Excel 8 printed pages"
+  }
+}

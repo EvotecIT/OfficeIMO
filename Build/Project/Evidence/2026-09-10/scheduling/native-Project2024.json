@@ -1,0 +1,549 @@
+{
+  "comparisons": 1638,
+  "observations": [
+    {
+      "fixture": "actuals.mpp",
+      "field": "task 2/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "actuals.mpp",
+      "field": "task 2/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "actuals.mpp",
+      "field": "task 4/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "actuals.mpp",
+      "field": "task 4/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "actuals.mpp",
+      "field": "resource 0/Calendar",
+      "native": 2,
+      "xml": null,
+      "classification": "xml-omits-reserved-row-calendar"
+    },
+    {
+      "fixture": "actuals.mpp",
+      "field": "resource 1/Cost",
+      "native": 5000,
+      "xml": 5025.75,
+      "classification": "xml-resource-total-agrees-with-native-assignment-sum"
+    },
+    {
+      "fixture": "actuals.mpp",
+      "field": "resource 1/ActualCost",
+      "native": 0,
+      "xml": 2025.75,
+      "classification": "xml-resource-total-agrees-with-native-assignment-sum"
+    },
+    {
+      "fixture": "actuals.mpp",
+      "field": "assignment 2/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "actuals.mpp",
+      "field": "assignment 2/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "actuals.mpp",
+      "field": "assignment 5/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "actuals.mpp",
+      "field": "assignment 5/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "calendars.mpp",
+      "field": "task 2/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "calendars.mpp",
+      "field": "task 2/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "calendars.mpp",
+      "field": "task 4/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "calendars.mpp",
+      "field": "task 4/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "calendars.mpp",
+      "field": "resource 0/Calendar",
+      "native": 2,
+      "xml": null,
+      "classification": "xml-omits-reserved-row-calendar"
+    },
+    {
+      "fixture": "calendars.mpp",
+      "field": "assignment 2/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "calendars.mpp",
+      "field": "assignment 2/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "calendars.mpp",
+      "field": "assignment 5/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "calendars.mpp",
+      "field": "assignment 5/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "custom-fields.mpp",
+      "field": "task 2/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "custom-fields.mpp",
+      "field": "task 2/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "custom-fields.mpp",
+      "field": "task 4/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "custom-fields.mpp",
+      "field": "task 4/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "custom-fields.mpp",
+      "field": "resource 0/Calendar",
+      "native": 2,
+      "xml": null,
+      "classification": "xml-omits-reserved-row-calendar"
+    },
+    {
+      "fixture": "custom-fields.mpp",
+      "field": "assignment 2/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "custom-fields.mpp",
+      "field": "assignment 2/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "custom-fields.mpp",
+      "field": "assignment 5/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "custom-fields.mpp",
+      "field": "assignment 5/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "delivery.mpp",
+      "field": "task 2/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "delivery.mpp",
+      "field": "task 2/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "delivery.mpp",
+      "field": "task 4/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "delivery.mpp",
+      "field": "task 4/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "delivery.mpp",
+      "field": "resource 0/Calendar",
+      "native": 2,
+      "xml": null,
+      "classification": "xml-omits-reserved-row-calendar"
+    },
+    {
+      "fixture": "delivery.mpp",
+      "field": "assignment 2/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "delivery.mpp",
+      "field": "assignment 2/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "delivery.mpp",
+      "field": "assignment 5/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "delivery.mpp",
+      "field": "assignment 5/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "empty.mpp",
+      "field": "resource 0/Calendar",
+      "native": 2,
+      "xml": null,
+      "classification": "xml-omits-reserved-row-calendar"
+    },
+    {
+      "fixture": "relationships.mpp",
+      "field": "task 2/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "relationships.mpp",
+      "field": "task 2/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "relationships.mpp",
+      "field": "task 4/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "relationships.mpp",
+      "field": "task 4/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "relationships.mpp",
+      "field": "resource 0/Calendar",
+      "native": 2,
+      "xml": null,
+      "classification": "xml-omits-reserved-row-calendar"
+    },
+    {
+      "fixture": "relationships.mpp",
+      "field": "assignment 2/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "relationships.mpp",
+      "field": "assignment 2/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "relationships.mpp",
+      "field": "assignment 5/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "relationships.mpp",
+      "field": "assignment 5/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "task 2/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "task 2/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "task 4/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "task 4/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "resource 0/Calendar",
+      "native": 2,
+      "xml": null,
+      "classification": "xml-omits-reserved-row-calendar"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "resource 2/Cost",
+      "native": 0,
+      "xml": 2,
+      "classification": "xml-resource-total-agrees-with-native-assignment-sum"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "resource 2/OvertimeRate",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-inapplicable-resource-field"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "resource 2/MaxUnits",
+      "native": {
+        "Value": 1
+      },
+      "xml": null,
+      "classification": "xml-omits-inapplicable-resource-field"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "resource 3/Work",
+      "native": {
+        "Minutes": 1.44
+      },
+      "xml": null,
+      "classification": "xml-omits-inapplicable-resource-field"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "resource 3/ActualWork",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-inapplicable-resource-field"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "resource 3/RemainingWork",
+      "native": {
+        "Minutes": 1.44
+      },
+      "xml": null,
+      "classification": "xml-omits-inapplicable-resource-field"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "resource 3/Cost",
+      "native": 0,
+      "xml": 300,
+      "classification": "xml-resource-total-agrees-with-native-assignment-sum"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "resource 3/StandardRate",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-inapplicable-resource-field"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "resource 3/OvertimeRate",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-inapplicable-resource-field"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "resource 3/CostPerUse",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-inapplicable-resource-field"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "resource 3/MaxUnits",
+      "native": {
+        "Value": 1
+      },
+      "xml": null,
+      "classification": "xml-omits-inapplicable-resource-field"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "assignment 2/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "assignment 2/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "assignment 5/Baseline[0]/Work",
+      "native": {
+        "Minutes": 0
+      },
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "assignment 5/Baseline[0]/Cost",
+      "native": 0,
+      "xml": null,
+      "classification": "xml-omits-explicit-zero"
+    },
+    {
+      "fixture": "resources.mpp",
+      "field": "assignment 7/Units",
+      "native": {
+        "Value": 0.0006
+      },
+      "xml": null,
+      "classification": "xml-omits-cost-resource-units"
+    }
+  ],
+  "failures": []
+}

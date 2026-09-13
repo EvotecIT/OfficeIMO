@@ -88,7 +88,7 @@ namespace OfficeIMO.Word {
                 Name = fileName,
                 Description = description
             };
-            if (_title != null) nvDrawingProps.Title = _title;
+            if (!string.IsNullOrEmpty(_title)) nvDrawingProps.Title = _title;
             if (_hidden != null) nvDrawingProps.Hidden = _hidden;
 
             var nvPicProps = new Pic.NonVisualPictureDrawingProperties();
@@ -241,7 +241,7 @@ namespace OfficeIMO.Word {
                 Id = docPropertiesId,
                 Name = imageName,
                 Description = description,
-                Title = _title,
+                Title = string.IsNullOrEmpty(_title) ? null : new StringValue(_title),
                 Hidden = _hidden
             });
             inline.Append(new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
@@ -302,7 +302,7 @@ namespace OfficeIMO.Word {
                 Id = docPropertiesId,
                 Name = imageName,
                 Description = description,
-                Title = _title,
+                Title = string.IsNullOrEmpty(_title) ? null : new StringValue(_title),
                 Hidden = _hidden
             };
             anchor1.Append(docProperties1);

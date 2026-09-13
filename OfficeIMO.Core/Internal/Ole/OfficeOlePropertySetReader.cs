@@ -2,17 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Core.Internal {
     /// <summary>
     /// Reads OLE property set streams such as SummaryInformation and DocumentSummaryInformation.
     /// </summary>
-    internal static class OfficeOlePropertySetReader {
+    internal static partial class OfficeOlePropertySetReader {
         private const uint PropertyDictionaryId = 0;
         private const uint CodePagePropertyId = 1;
 
-        internal static IReadOnlyList<OfficeOlePropertySection> ReadSections(byte[] bytes) {
+        internal static IReadOnlyList<OfficeOlePropertySection> ReadSections(byte[] bytes, CancellationToken cancellationToken = default) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            cancellationToken.ThrowIfCancellationRequested();
+            ValidateSections(bytes, cancellationToken);
             if (bytes.Length < 28) {
                 throw new InvalidDataException("The OLE property set stream is too short.");
             }
@@ -34,6 +37,7 @@ namespace OfficeIMO.Core.Internal {
 
             var sections = new List<OfficeOlePropertySection>(checked((int)sectionCount));
             for (int i = 0; i < sectionCount; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int entryOffset = sectionListOffset + i * 20;
                 var formatIdBytes = new byte[16];
                 Buffer.BlockCopy(bytes, entryOffset, formatIdBytes, 0,
@@ -49,7 +53,7 @@ namespace OfficeIMO.Core.Internal {
 
         private static OfficeOlePropertySection ReadSection(byte[] bytes,
             int sectionOffset, Guid formatId) {
-            if (sectionOffset < 0 || sectionOffset + 8 > bytes.Length) {
+            if (sectionOffset < 0 || sectionOffset > bytes.Length - 8) {
                 throw new InvalidDataException("The OLE property section is outside the stream.");
             }
 
@@ -75,7 +79,8 @@ namespace OfficeIMO.Core.Internal {
             if (offsets.TryGetValue(CodePagePropertyId, out int codePageOffset)) {
                 OfficeOlePropertyValue codePageValue = ReadPropertyValue(bytes, codePageOffset, codePage);
                 if (codePageValue.Value is short shortCodePage) {
-                    codePage = shortCodePage;
+                    // VT_I2 carries the unsigned Windows code-page identifier (for example UTF-8, 65001).
+                    codePage = unchecked((ushort)shortCodePage);
                 } else if (codePageValue.Value is int intCodePage) {
                     codePage = intCodePage;
                 }
@@ -128,14 +133,16 @@ namespace OfficeIMO.Core.Internal {
                 }
 
                 result[propertyId] = name;
-                cursor = AlignToInt32(cursor);
+                // MS-OLEPS 2.16: only UTF-16 dictionary names have DWORD padding.
+                // ANSI/UTF-8 dictionary entries are packed without inter-entry padding.
+                if (codePage == 1200) cursor = AlignToInt32(cursor);
             }
 
             return result;
         }
 
         private static OfficeOlePropertyValue ReadPropertyValue(byte[] bytes, int offset, int codePage) {
-            if (offset < 0 || offset + 4 > bytes.Length) {
+            if (offset < 0 || offset > bytes.Length - 4) {
                 throw new InvalidDataException("The OLE property value is outside the stream.");
             }
 
@@ -200,7 +207,7 @@ namespace OfficeIMO.Core.Internal {
             }
 
             int byteCount = checked((int)length);
-            if (offset + 4 + byteCount > bytes.Length) {
+            if (byteCount > bytes.Length - offset - 4) {
                 throw new InvalidDataException("The OLE binary blob value is truncated.");
             }
 
@@ -225,7 +232,7 @@ namespace OfficeIMO.Core.Internal {
             }
 
             int byteCount = checked((int)charCount * 2);
-            if (offset + 4 + byteCount > bytes.Length) {
+            if (byteCount > bytes.Length - offset - 4) {
                 throw new InvalidDataException("The OLE Unicode string value is truncated.");
             }
 
@@ -233,7 +240,7 @@ namespace OfficeIMO.Core.Internal {
         }
 
         private static string DecodeAnsiString(byte[] bytes, int offset, int length, int codePage) {
-            if (offset < 0 || length < 0 || offset + length > bytes.Length) {
+            if (offset < 0 || length < 0 || offset > bytes.Length || length > bytes.Length - offset) {
                 throw new InvalidDataException("The OLE ANSI string value is truncated.");
             }
 
@@ -246,44 +253,8 @@ namespace OfficeIMO.Core.Internal {
             }
         }
 
-        private static string DecodeWindows1252Fallback(byte[] bytes, int offset, int length) {
-            var chars = new char[length];
-            for (int i = 0; i < length; i++) {
-                byte value = bytes[offset + i];
-                chars[i] = value switch {
-                    0x80 => '\u20ac',
-                    0x82 => '\u201a',
-                    0x83 => '\u0192',
-                    0x84 => '\u201e',
-                    0x85 => '\u2026',
-                    0x86 => '\u2020',
-                    0x87 => '\u2021',
-                    0x88 => '\u02c6',
-                    0x89 => '\u2030',
-                    0x8a => '\u0160',
-                    0x8b => '\u2039',
-                    0x8c => '\u0152',
-                    0x8e => '\u017d',
-                    0x91 => '\u2018',
-                    0x92 => '\u2019',
-                    0x93 => '\u201c',
-                    0x94 => '\u201d',
-                    0x95 => '\u2022',
-                    0x96 => '\u2013',
-                    0x97 => '\u2014',
-                    0x98 => '\u02dc',
-                    0x99 => '\u2122',
-                    0x9a => '\u0161',
-                    0x9b => '\u203a',
-                    0x9c => '\u0153',
-                    0x9e => '\u017e',
-                    0x9f => '\u0178',
-                    _ => (char)value
-                };
-            }
-
-            return new string(chars);
-        }
+        private static string DecodeWindows1252Fallback(byte[] bytes, int offset, int length) =>
+            OfficeLegacySingleByteEncoding.Decode(bytes, offset, length, 1252);
 
         private static int AlignToInt32(int value) {
             int remainder = value % 4;
@@ -319,7 +290,7 @@ namespace OfficeIMO.Core.Internal {
         }
 
         private static void EnsureAvailable(byte[] bytes, int offset, int count) {
-            if (offset < 0 || count < 0 || offset + count > bytes.Length) {
+            if (offset < 0 || count < 0 || offset > bytes.Length || count > bytes.Length - offset) {
                 throw new InvalidDataException("Unexpected end of OLE property stream.");
             }
         }

@@ -1,0 +1,82 @@
+[
+  {
+    "kind": "Gantt",
+    "rows": 9,
+    "buckets": 12,
+    "pages": 2,
+    "pdfPages": 2,
+    "pngPages": 2
+  },
+  {
+    "kind": "TaskUsage",
+    "rows": 9,
+    "buckets": 12,
+    "pages": 2,
+    "pdfPages": 2,
+    "pngPages": 2
+  },
+  {
+    "kind": "ResourceUsage",
+    "rows": 2,
+    "buckets": 12,
+    "pages": 2,
+    "pdfPages": 2,
+    "pngPages": 2
+  },
+  {
+    "kind": "ResourceHistogram",
+    "rows": 2,
+    "buckets": 12,
+    "pages": 2,
+    "pdfPages": 2,
+    "pngPages": 2
+  },
+  {
+    "kind": "Network",
+    "rows": 9,
+    "buckets": 0,
+    "pages": 1,
+    "pdfPages": 1,
+    "pngPages": 1
+  },
+  {
+    "kind": "Timeline",
+    "rows": 9,
+    "buckets": 12,
+    "pages": 2,
+    "pdfPages": 2,
+    "pngPages": 2
+  },
+  {
+    "kind": "Table",
+    "rows": 9,
+    "buckets": 0,
+    "pages": 1,
+    "pdfPages": 1,
+    "pngPages": 1
+  },
+  {
+    "kind": "large-Gantt",
+    "rows": 75,
+    "buckets": 8,
+    "pages": 12,
+    "pdfPages": 12,
+    "pngPages": 12
+  },
+  {
+    "kind": "large-Network",
+    "rows": 75,
+    "buckets": 0,
+    "pages": 7,
+    "pdfPages": 7,
+    "pngPages": 7
+  },
+  {
+    "kind": "large-Table",
+    "rows": 75,
+    "buckets": 0,
+    "pages": 6,
+    "pdfPages": 6,
+    "pngPages": 6
+  }
+]

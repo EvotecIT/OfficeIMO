@@ -1,0 +1,107 @@
+﻿{
+    "producer":  "Microsoft Project",
+    "version":  "16.0",
+    "build":  "16.0.20326.20144",
+    "inputSha256":  "49db6142775e6c8eb7a0b7b5d4baedee385ff2d89527ae8ed7caef2c0d2b4b0f",
+    "tasks":  [
+                  {
+                      "uid":  1,
+                      "id":  1,
+                      "name":  "Delivery",
+                      "outlineLevel":  1,
+                      "summary":  true,
+                      "durationMinutes":  5280,
+                      "workMinutes":  2400,
+                      "cost":  5000,
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/19/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  5000
+                  },
+                  {
+                      "uid":  2,
+                      "id":  2,
+                      "name":  "Design",
+                      "outlineLevel":  2,
+                      "summary":  false,
+                      "durationMinutes":  1440,
+                      "workMinutes":  0,
+                      "cost":  0,
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/07/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0
+                  },
+                  {
+                      "uid":  3,
+                      "id":  3,
+                      "name":  "Build",
+                      "outlineLevel":  2,
+                      "summary":  false,
+                      "durationMinutes":  2400,
+                      "workMinutes":  2400,
+                      "cost":  5000,
+                      "start":  "10/08/2026 08:00:00",
+                      "finish":  "10/19/2026 17:00:00",
+                      "predecessors":  "2",
+                      "notes":  "Synthetic notes: café / Łódź / 日本語",
+                      "text1":  "Platform",
+                      "baselineCost":  5000
+                  },
+                  {
+                      "uid":  4,
+                      "id":  4,
+                      "name":  "Release",
+                      "outlineLevel":  2,
+                      "summary":  false,
+                      "durationMinutes":  0,
+                      "workMinutes":  0,
+                      "cost":  0,
+                      "start":  "10/19/2026 17:00:00",
+                      "finish":  "10/19/2026 17:00:00",
+                      "predecessors":  "3",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0
+                  }
+              ],
+    "resources":  [
+                      {
+                          "uid":  1,
+                          "name":  "Engineer",
+                          "type":  0,
+                          "standardRate":  "125,00 zł/hr",
+                          "workMinutes":  2400,
+                          "cost":  5000
+                      }
+                  ],
+    "calendars":  [
+                      {
+                          "name":  "Standard",
+                          "exceptions":  [
+
+                                         ]
+                      },
+                      {
+                          "name":  "Workshop",
+                          "exceptions":  [
+
+                                         ]
+                      }
+                  ],
+    "assignments":  [
+                        {
+                            "uid":  2097156,
+                            "taskUid":  3,
+                            "resourceUid":  1,
+                            "units":  1,
+                            "cost":  5000,
+                            "workMinutes":  2400
+                        }
+                    ],
+    "reexportSha256":  "acdce98fbd9624c2cf74edaa8a9feb41bf1b94837323368965547c2ea5cdc316"
+}

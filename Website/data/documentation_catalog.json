@@ -2,21 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 235,
-    "productionComponentCount": 126,
-    "testProjectCount": 46,
+    "projectCount": 240,
+    "productionComponentCount": 127,
+    "testProjectCount": 47,
     "benchmarkProjectCount": 33,
-    "validationProjectCount": 31,
+    "validationProjectCount": 34,
     "apiReferenceCount": 26,
-    "conceptualPageCount": 96,
-    "conceptualWordCount": 43344
+    "conceptualPageCount": 97,
+    "conceptualWordCount": 43827
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 28,
       "componentIndexes": [
-        80,
         81,
         82,
         83,
@@ -43,7 +42,8 @@
         104,
         105,
         106,
-        107
+        107,
+        108
       ]
     },
     {
@@ -65,8 +65,8 @@
         67,
         68,
         69,
-        114,
-        115
+        115,
+        116
       ]
     },
     {
@@ -84,9 +84,9 @@
         59,
         60,
         61,
-        79,
-        111,
-        125
+        80,
+        112,
+        126
       ]
     },
     {
@@ -116,14 +116,14 @@
         76,
         77,
         78,
-        116,
         117,
         118,
         119,
         120,
         121,
         122,
-        123
+        123,
+        124
       ]
     },
     {
@@ -151,9 +151,9 @@
         49,
         71,
         72,
-        108,
         109,
-        110
+        110,
+        111
       ]
     },
     {
@@ -167,7 +167,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 15,
+      "componentCount": 16,
       "componentIndexes": [
         1,
         2,
@@ -181,9 +181,10 @@
         57,
         58,
         70,
-        112,
+        79,
         113,
-        124
+        114,
+        125
       ]
     }
   ],
@@ -325,7 +326,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 564,
+      "sourceFileCount": 574,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1216,6 +1217,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf"
     },
     {
+      "name": "OfficeIMO.Project",
+      "packageId": "OfficeIMO.Project",
+      "category": "Specialized components",
+      "description": "Managed Microsoft Project XML and modern MPP/MPT authoring and editing, explicit task scheduling, and assessed source-preserving save with typed and fluent APIs.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Project/OfficeIMO.Project.csproj",
+      "sourceFileCount": 188,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Project"
+    },
+    {
       "name": "OfficeIMO.Provenance.C2pa",
       "packageId": "OfficeIMO.Provenance.C2pa",
       "category": "Foundations and integrations",
@@ -1807,7 +1821,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 71,
+      "sourceFileCount": 82,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,

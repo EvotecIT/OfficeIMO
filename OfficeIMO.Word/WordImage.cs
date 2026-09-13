@@ -195,10 +195,10 @@ namespace OfficeIMO.Word {
             }
             set {
                 _title = value;
-                GetWritableDocProperties()?.Title = value;
+                GetWritableDocProperties()?.Title = string.IsNullOrEmpty(value) ? null : new StringValue(value);
                 var drawingProperties = GetPicture()?.NonVisualPictureProperties?.NonVisualDrawingProperties;
                 if (drawingProperties != null) {
-                    drawingProperties.Title = value;
+                    drawingProperties.Title = string.IsNullOrEmpty(value) ? null : new StringValue(value);
                 }
             }
         }

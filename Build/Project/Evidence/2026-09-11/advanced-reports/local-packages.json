@@ -1,0 +1,112 @@
+[
+  {
+    "name": "OfficeIMO.Core.3.4.3.nupkg",
+    "sha256": "109282a212f7c7f841e39696eab86306518d17198c2130e9dddc6287e4f2db63",
+    "bytes": 4575828
+  },
+  {
+    "name": "OfficeIMO.CSV.3.4.2.nupkg",
+    "sha256": "d4ba5a75d4bd3d8d00808e54de33959d1979599236f3d6865190e4d9406dfb0c",
+    "bytes": 499510
+  },
+  {
+    "name": "OfficeIMO.Epub.3.4.2.nupkg",
+    "sha256": "2aec0c8f3a2844928c742e383f9c2bf31740f64e7923153709a2e4459798affb",
+    "bytes": 191664
+  },
+  {
+    "name": "OfficeIMO.Excel.3.4.2.nupkg",
+    "sha256": "80d9e27f2eb1a682fa54538377c07a6504bedaef2bf62d032c5700a9a2711231",
+    "bytes": 8562049
+  },
+  {
+    "name": "OfficeIMO.Excel.Pdf.3.4.2.nupkg",
+    "sha256": "1168ec4d731b291000623c1fbc5ade822fc77f1470d5e4e867a8a03c328ed4a6",
+    "bytes": 315630
+  },
+  {
+    "name": "OfficeIMO.Html.3.4.2.nupkg",
+    "sha256": "de205c72fe5d74f164e4d590532c935a9fda284fbd889f9a460ef43cacc7de88",
+    "bytes": 2563155
+  },
+  {
+    "name": "OfficeIMO.Html.Pdf.3.4.2.nupkg",
+    "sha256": "77671a0c7724453e86da0cc2c3c7571f22b0cc97b0f3a4524630eec64664f89d",
+    "bytes": 371011
+  },
+  {
+    "name": "OfficeIMO.Markdown.3.4.2.nupkg",
+    "sha256": "1b1539bd2832919ae9e8395f403ef6edc78f70a4fd6268a0c323282b52db1f8e",
+    "bytes": 2283346
+  },
+  {
+    "name": "OfficeIMO.Ocr.3.4.2.nupkg",
+    "sha256": "2f009db8183c1d5122319b5530881c6fb932bc63587ad2f37b965e80660bd785",
+    "bytes": 85695
+  },
+  {
+    "name": "OfficeIMO.OpenDocument.3.4.2.nupkg",
+    "sha256": "a9cd2b81b62e5b180aa777248f815a3f444de2a7aeff2ef84af368238b178e09",
+    "bytes": 677831
+  },
+  {
+    "name": "OfficeIMO.Pdf.3.4.2.nupkg",
+    "sha256": "c3df6a661cf100a908ed7c4d6ad99f98916cfd18c9797349b86f74dec7c60cf9",
+    "bytes": 8223881
+  },
+  {
+    "name": "OfficeIMO.Pdf.Ocr.3.4.2.nupkg",
+    "sha256": "0a8023b7ad335afed1df7b50c22778433bf52e118758dc12ddfa999ca52c802f",
+    "bytes": 183397
+  },
+  {
+    "name": "OfficeIMO.PowerPoint.3.4.2.nupkg",
+    "sha256": "c8b2ce6267b93b8afcc703d09b4540ef9c9b91a99e70f3abb7c29dba119728a6",
+    "bytes": 4151204
+  },
+  {
+    "name": "OfficeIMO.PowerPoint.Pdf.3.4.2.nupkg",
+    "sha256": "0cbd0306daa49b6929c92995862c298e91389b3880ca54fce604817349d49175",
+    "bytes": 300421
+  },
+  {
+    "name": "OfficeIMO.Project.3.4.3.nupkg",
+    "sha256": "114007f59d1d99d0a67d3d5d535abb143159d5d3013ffbbecbc4de9ea03d55b7",
+    "bytes": 1357910
+  },
+  {
+    "name": "OfficeIMO.Reader.Core.3.4.2.nupkg",
+    "sha256": "9c97c14c609cdbaa16e1138fb7cc8c1f4e03f125e8447c6cf13ac9fd30f9088f",
+    "bytes": 1346248
+  },
+  {
+    "name": "OfficeIMO.Reader.Image.3.4.2.nupkg",
+    "sha256": "aaf396882f130f032334e78a3e8119f509fde023bb63f69ea622a8f736ae9105",
+    "bytes": 37091
+  },
+  {
+    "name": "OfficeIMO.Reader.Ocr.3.4.2.nupkg",
+    "sha256": "abfbf81871b629aba73c38c08a74631d742b580a50b092b98870cbc9fccd964c",
+    "bytes": 123811
+  },
+  {
+    "name": "OfficeIMO.Visio.3.4.2.nupkg",
+    "sha256": "5165e8ea43ccfb48b8b4898f436b4429aef0ddaa13dd67ba8b703752e3a9f634",
+    "bytes": 2518719
+  },
+  {
+    "name": "OfficeIMO.Word.3.4.2.nupkg",
+    "sha256": "db7513734130c7191a1555ea2c76e847f33ee59fcb62c6c7bceea9e0d5d5bd2a",
+    "bytes": 5887654
+  },
+  {
+    "name": "OfficeIMO.Word.Pdf.3.4.2.nupkg",
+    "sha256": "d1fcd7fd1bde7230121a5128b6bbfdf12cb06fbfc47eb1e62331797cbd249041",
+    "bytes": 799264
+  },
+  {
+    "name": "OfficeIMO.Workflows.3.4.2.nupkg",
+    "sha256": "a0f1d365d771c012b04057cbc5366637c722aabc57e56f15959b4a4be861344c",
+    "bytes": 547821
+  }
+]

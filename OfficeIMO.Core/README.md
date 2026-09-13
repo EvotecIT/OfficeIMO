@@ -13,7 +13,13 @@ The assembly was previously named `OfficeIMO.Drawing`. Drawing became the origin
 dotnet add package OfficeIMO.Core
 ```
 
-## Prepare document scans
+## Image export density
+
+`OfficeImageExportOptions.UseQuality(...)` and fluent `WithQuality(...)` select shared density presets: `Preview` is 96 DPI, `Screen` is 192 DPI, and `Print` is 300 DPI. They retain the selected fonts, layout, format, and safety limits. Clear `TargetDpi` when setting `Scale` directly; fluent `WithScale(...)` clears it automatically. Each document adapter defines its logical units per inch.
+
+`OfficeDrawing.ExportImage(format, options)` exports a detached drawing through the same raster limits, density metadata, codecs, deadline, and diagnostic policy. Raster output is rendered at the requested density. SVG retains vector geometry and text; it cannot add detail to embedded raster images. Register regular and bold font faces for consistent measurement and output across machines.
+
+## Prepare scanned images
 
 `OfficeScanProcessor` in `OfficeIMO.Drawing` prepares a separately owned raster for OCR. It supports explicit quarter-turns, manual straightening, confidence-filtered deskew, local paper-brightness normalization, black and white levels, gamma, grayscale or bilevel output, and proportional downsampling:
 

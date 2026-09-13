@@ -1,0 +1,233 @@
+[
+  {
+    "file": "task-links-project2000-mpp9.mpp",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/task-links/task-links-project2000-mpp9.mpp",
+    "sha256": "15673f1358c4f869244e62226322f730dba9f6b097f2e50108f2afae9991b758",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "calendar-calendars-project2000-mpp9.mpp",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/calendar-calendars/calendar-calendars-project2000-mpp9.mpp",
+    "sha256": "5da6e7e1da369c61bb2cf5166af2d4b4222fc3c14cd9ada0ebf4a95644d33a30",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "assignment-assignments-project2000-mpp9.mpp",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/assignment-assignments/assignment-assignments-project2000-mpp9.mpp",
+    "sha256": "dcccc8a092a8d540239016cc0727447b0f3cae08c902ce66b0f7c748689f7987",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "assigned-resources-mpp8-project2003.mpp",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/assignment/assignment-deletion/assigned-resources-mpp8-project2003.mpp",
+    "sha256": "a541408789495770e36ed62e2d995ac80187581053183b09a0c420c8c11d4739",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "deleted-resource-assignments-mpp8-project98.mpp",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/assignment/assignment-deletion/deleted-resource-assignments-mpp8-project98.mpp",
+    "sha256": "d99e4eabb60ab08911697468d416cf0685ba60db7a3c60c431a585b692949a87",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "task-links-project2007-mpp12.mpp",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/task-links/task-links-project2007-mpp12.mpp",
+    "sha256": "d3da69be55a329a19af2440dee8fd99daa025150d6e8e97751703654891ed181",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "mpp9exceptions.mpp",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/mpp9exceptions.mpp",
+    "sha256": "30e14e38d9642e043c5a614ea63662650ed9c0402a4bd403794a4bef8624f632",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "mpp9calendar.mpp",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/mpp9calendar.mpp",
+    "sha256": "b019b590f7a7d594236bdfe55a35d9dc52762487a1f89453cc3daefd96df7690",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "task-dates-project98-mpp8.mpp",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/task-dates/task-dates-project98-mpp8.mpp",
+    "sha256": "f6effc2b9c473663270dd85de9c4fe48100b57e5436f83587b4e8d7f23f5a4f8",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "task-durations-project98-mpp8.mpp",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/task-durations/task-durations-project98-mpp8.mpp",
+    "sha256": "df93ad87c74cdb367cf49fe5957baadebd7d742387ec598d0b621f48123b7e13",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "task-links-project98-mpp8.mpp",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/task-links/task-links-project98-mpp8.mpp",
+    "sha256": "45746ec39de658809175a0c464169d8d897af3159e493a18d8f6e1ca476bf77a",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "task-numbers-project98-mpp8.mpp",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/task-numbers/task-numbers-project98-mpp8.mpp",
+    "sha256": "41d0ff03a0f325b6291be426d9aeba5fdffc1e59719b814ba9b4562b7354d352",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "mpp8recurring.mpp",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/mpp8recurring.mpp",
+    "sha256": "683da0aeec77c04a92a3131dfa0b90e5cdaf93445bc91bac7a29be12cd0f63de",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "mpp8priority.mpp",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/legacy/mpp8priority.mpp",
+    "sha256": "baa3e9621021ca77b618f4b470d9c26175bce2f7225df67613028f7bd93738a5",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "empty.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/empty.mpx",
+    "sha256": "90f36830dc8df5b00e8a5421b0c062fd6c38db03140a20ae9156fbe00951c3df",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "calendar-calendars-project98.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/calendar-calendars/calendar-calendars-project98.mpx",
+    "sha256": "a45519be99f1e230af9d9406d52fc053904f3ab05aab3e0149e09bdabb65bd6f",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "resource-misc-project98.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/resource-misc/resource-misc-project98.mpx",
+    "sha256": "c8a6048e5293fe0ea5e5c9f683cb386ccef763b819e1203678a97e8c46573c1d",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "task-costs-project98.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/task-costs/task-costs-project98.mpx",
+    "sha256": "ddc80a64d4cd9552fdc5fbbbad2b917e0f0a71ce04c592f9de7704c6a9ce9a73",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "task-durations-project98.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/task-durations/task-durations-project98.mpx",
+    "sha256": "2dc6209575eee47054b03d959d75c1ce517b6062935f697d046d48b167c1c6ab",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "task-finishes-project98.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/task-finishes/task-finishes-project98.mpx",
+    "sha256": "532c0363071d46368f8c84f7637a876f2aac7edfc4c188f65811ed67fc7de152",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "task-flags-project98.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/task-flags/task-flags-project98.mpx",
+    "sha256": "fcf0055b7dcd3a1e102be67a3fc2142ed2de24db63539e47976b05682c9ad50a",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "task-links-project98.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/task-links/task-links-project98.mpx",
+    "sha256": "30ed6a7a28919005f02f085a3cc0a9c9c5477527c845f801862dc08127767c65",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "task-numbers-project98.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/task-numbers/task-numbers-project98.mpx",
+    "sha256": "ea876f2bcafe7b2b61cbf82a7271c6be1cb2a3c145a0be959a2140963c7cdd6f",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "task-starts-project98.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/task-starts/task-starts-project98.mpx",
+    "sha256": "7cb53c71f3c363ec4d0eddf14d61e2eb712ce88e38e1e7e7595abb936aba508a",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "task-text-project98.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/generated/task-text/task-text-project98.mpx",
+    "sha256": "d2e44c69c9add1b837370da0302f8b72247f93faf258f2ddc2f56ce26890f007",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "calendarExceptions.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/legacy/calendarExceptions.mpx",
+    "sha256": "cbcc2236a86f2e501649b6e3e5ab35bb40f10daf4e8f023bc5bc4cb5a3acbbcb",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "caltest98.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/legacy/caltest98.mpx",
+    "sha256": "31f421982cf958f8cf1adb2c843026300d52a9939f737fe4d5200abff512685d",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "headertest.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/legacy/headertest.mpx",
+    "sha256": "f7f4b5f0c41b92297c76d3e89b0e92084a036aa3bf24ddd16c648512d74609c6",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "mpxpriority.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/legacy/mpxpriority.mpx",
+    "sha256": "2dab2649ee6266f4ca8e4fb2742afd3e9e7308b9b6061320c5e82b8957edec91",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "sample.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/legacy/sample.mpx",
+    "sha256": "a87a792fa8d7a6b0d54871bfcd3ec507538cff16124c6200546acbb45d59348e",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "sample1.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/legacy/sample1.mpx",
+    "sha256": "ed959b19a1eb16e4d333276ac5310dc09d106a3ef2e7f9f90a32702426d0a092",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "mpxrecurring.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/mpxrecurring.mpx",
+    "sha256": "f02a75a1382d92d1a282f4d37f2da568678be6243a172fe55fb88a279b7151ba",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  },
+  {
+    "file": "sample.de.mpx",
+    "source": "https://raw.githubusercontent.com/joniles/mpxj/ac7aa7b8f3bc90efc08c36757bc0c39b37b2c674/junit/data/sample.de.mpx",
+    "sha256": "163850b168a301fce46f56e16ea6255fde7ac6a9042325e05d956f05d2d90a24",
+    "repositoryLicense": "LGPL-2.1",
+    "usage": "External verification only; not redistributed in the OfficeIMO package or fixture corpus."
+  }
+]

@@ -1,0 +1,51 @@
+﻿{
+    "producer":  "Microsoft Project",
+    "version":  "16.0",
+    "build":  "16.0.20326.20144",
+    "locale":  "pl-PL",
+    "provenance":  "Synthetic schedules created by Build/Project/New-ProjectFixtures.ps1; no customer data or third-party fixture content.",
+    "redistribution":  "OfficeIMO-authored synthetic content; MIT repository license. Microsoft Project is the producer and is not redistributed.",
+    "formatFamily":  "MPP14 and Project XML SaveVersion 14",
+    "files":  [
+                  {
+                      "file":  "backward.mpp",
+                      "sha256":  "6e0405d7ce708603936c9ea874fb29c4d7369dd9b74bc82026016ef8910b38f2",
+                      "bytes":  243712
+                  },
+                  {
+                      "file":  "backward.xml",
+                      "sha256":  "72995d6c2aa71cdf9ecda3e8679f43d96cad82a3a5c0b5b7614ad79c6716353d",
+                      "bytes":  38341
+                  },
+                  {
+                      "file":  "constraints.mpp",
+                      "sha256":  "852e0405f60986f5fc493d42ee502c355eac63f9590cc8ec3f4f8bcc352f4d12",
+                      "bytes":  251904
+                  },
+                  {
+                      "file":  "constraints.xml",
+                      "sha256":  "5398e8596ef5047117b4733ccaf177abf411fd5d0768a764806e412dec27fe56",
+                      "bytes":  78602
+                  },
+                  {
+                      "file":  "rich-fields.mpp",
+                      "sha256":  "7788b39618ba0e9664719a8d810f6792a74334dc0bcf9e5adf474577910348a8",
+                      "bytes":  287232
+                  },
+                  {
+                      "file":  "rich-fields.xml",
+                      "sha256":  "eda292b95bd25f9ab024c491f0c880098f5a1a80253f2291955d5cadbc18a5ff",
+                      "bytes":  82993
+                  },
+                  {
+                      "file":  "work-cost.mpp",
+                      "sha256":  "2fdbfc735ed4253ddeedb300e556071a11c068c6d120fed36c4c26a36e0596d0",
+                      "bytes":  248320
+                  },
+                  {
+                      "file":  "work-cost.xml",
+                      "sha256":  "7f99f87d98e298ef340a4abd2fcd2c0f800bb301b6644bf3dbe2f9ab64922ab8",
+                      "bytes":  54430
+                  }
+              ]
+}

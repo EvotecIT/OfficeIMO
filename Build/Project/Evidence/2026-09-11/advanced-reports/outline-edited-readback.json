@@ -1,0 +1,110 @@
+﻿{
+    "producer":  "Microsoft Project",
+    "version":  "16.0",
+    "applicationAlertsEnabled":  false,
+    "build":  "16.0.20326.20132",
+    "inputSha256":  "5d1b87b0dd8873c63ecd50e918d62814cccbea5343bba6eb6f26de12b5e105bc",
+    "tasks":  [
+                  {
+                      "uid":  1,
+                      "id":  1,
+                      "name":  "Concept",
+                      "outlineLevel":  1,
+                      "summary":  false,
+                      "durationMinutes":  480,
+                      "workMinutes":  0,
+                      "cost":  0,
+                      "actualDurationMinutes":  0,
+                      "remainingDurationMinutes":  480,
+                      "critical":  true,
+                      "totalSlackMinutes":  0,
+                      "percentComplete":  0,
+                      "percentWorkComplete":  0,
+                      "constraintType":  0,
+                      "taskType":  0,
+                      "priority":  500,
+                      "wbs":  "1",
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/05/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0,
+                      "outlineCode1":  "Design.02",
+                      "number1":  0,
+                      "number2":  0,
+                      "number3":  0,
+                      "flag1":  false,
+                      "date1":  "NA"
+                  }
+              ],
+    "resources":  [
+
+                  ],
+    "calendars":  [
+                      {
+                          "name":  "Standard",
+                          "exceptions":  [
+
+                                         ]
+                      }
+                  ],
+    "assignments":  [
+
+                    ],
+    "nativeRoundTrip":  {
+                            "sha256":  "6e90342f3450ef9c8096730f20af7b2add6947f4a5c7cb0336af08cded5af606",
+                            "sameObservedSemantics":  true,
+                            "reopened":  {
+                                             "tasks":  [
+                                                           {
+                                                               "uid":  1,
+                                                               "id":  1,
+                                                               "name":  "Concept",
+                                                               "outlineLevel":  1,
+                                                               "summary":  false,
+                                                               "durationMinutes":  480,
+                                                               "workMinutes":  0,
+                                                               "cost":  0,
+                                                               "actualDurationMinutes":  0,
+                                                               "remainingDurationMinutes":  480,
+                                                               "critical":  true,
+                                                               "totalSlackMinutes":  0,
+                                                               "percentComplete":  0,
+                                                               "percentWorkComplete":  0,
+                                                               "constraintType":  0,
+                                                               "taskType":  0,
+                                                               "priority":  500,
+                                                               "wbs":  "1",
+                                                               "start":  "10/05/2026 08:00:00",
+                                                               "finish":  "10/05/2026 17:00:00",
+                                                               "predecessors":  "",
+                                                               "notes":  "",
+                                                               "text1":  "",
+                                                               "baselineCost":  0,
+                                                               "outlineCode1":  "Design.02",
+                                                               "number1":  0,
+                                                               "number2":  0,
+                                                               "number3":  0,
+                                                               "flag1":  false,
+                                                               "date1":  "NA"
+                                                           }
+                                                       ],
+                                             "resources":  [
+
+                                                           ],
+                                             "calendars":  [
+                                                               {
+                                                                   "name":  "Standard",
+                                                                   "exceptions":  [
+
+                                                                                  ]
+                                                               }
+                                                           ],
+                                             "assignments":  [
+
+                                                             ]
+                                         }
+                        },
+    "reexportSha256":  "8d5f8bb40049b8a6b329a9209206066d1d500428bb4f04ea329d0098fee93212"
+}
