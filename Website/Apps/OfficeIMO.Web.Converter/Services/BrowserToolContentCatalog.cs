@@ -80,11 +80,7 @@ internal static class BrowserToolContentCatalog {
             GuideFor(route),
             "Read the conversion guide",
             $"{route.Title} in your browser | OfficeIMO",
-            [
-                new(route.InputKind == ConversionInputKind.File ? "Choose your file" : $"Add your {route.Source} content", route.InputKind == ConversionInputKind.File ? "Drop a supported file into the workspace or choose one from your device." : "Paste content into the editor or start with the built-in sample."),
-                new("Review the settings", "Choose the available output profile or conversion mode before you run the tool."),
-                new("Convert and review", "Preview the result, read any diagnostics, then download the new file when it meets your needs.")
-            ]);
+            StepsFor(route));
     }
 
     internal static BrowserToolContent For(PdfToolDefinition tool) {
@@ -121,6 +117,16 @@ internal static class BrowserToolContentCatalog {
             ? $"One PDF file up to 25 MB and 500 pages ({route.Accept.Replace(",", ", ")})."
             : $"One {route.Source} file up to 25 MB ({route.Accept.Replace(",", ", ")})."
         : $"{route.Source} text pasted into the browser editor, up to 500,000 characters.";
+
+    private static IReadOnlyList<BrowserToolStep> StepsFor(ConversionRoute route) => [
+        new(route.InputKind == ConversionInputKind.File ? "Choose your file" : $"Add your {route.Source} content", route.InputKind == ConversionInputKind.File ? "Drop a supported file into the workspace or choose one from your device." : "Paste content into the editor or start with the built-in sample."),
+        route.Id == "pdf-pptx"
+            ? new("Choose the slide content mode", "Choose native, visual, hybrid, or tables-only output based on whether editability or appearance matters most.")
+            : string.Equals(route.Target, "PDF", StringComparison.OrdinalIgnoreCase)
+                ? new("Choose the PDF settings", "Select the output profile and optional first-page layout overlay before conversion.")
+                : new("Review what will change", "This route has no separate output settings. Check the expected result and known limits before you run it."),
+        new("Convert and review", "Preview the result, read any diagnostics, then download the new file when it meets your needs.")
+    ];
 
     private static string SeoTitleFor(PdfToolDefinition tool) => tool.Id switch {
         "extract" => "Extract PDF pages online | OfficeIMO",

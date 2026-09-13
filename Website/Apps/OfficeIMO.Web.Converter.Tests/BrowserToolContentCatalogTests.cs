@@ -19,6 +19,26 @@ public sealed class BrowserToolContentCatalogTests {
     }
 
     [Fact]
+    public void ConversionStepsMatchTheSettingsShownByTheWorkbench() {
+        foreach (var route in ConversionRouteCatalog.All) {
+            var settingsStep = BrowserToolContentCatalog.For(route).Steps[1];
+
+            if (route.Id == "pdf-pptx") {
+                Assert.Equal("Choose the slide content mode", settingsStep.Title);
+                Assert.Contains("native, visual, hybrid, or tables-only", settingsStep.Description, StringComparison.OrdinalIgnoreCase);
+            } else if (string.Equals(route.Target, "PDF", StringComparison.OrdinalIgnoreCase)) {
+                Assert.Equal("Choose the PDF settings", settingsStep.Title);
+                Assert.Contains("output profile", settingsStep.Description, StringComparison.OrdinalIgnoreCase);
+            } else {
+                Assert.Equal("Review what will change", settingsStep.Title);
+                Assert.Contains("no separate output settings", settingsStep.Description, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("output profile", settingsStep.Description, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("conversion mode", settingsStep.Description, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+    }
+
+    [Fact]
     public void EveryPdfToolHasPlainLanguageToolContent() {
         foreach (var tool in PdfToolCatalog.All) {
             var content = BrowserToolContentCatalog.For(tool);

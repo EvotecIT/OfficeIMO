@@ -14,6 +14,8 @@ $siteConfig = Get-Content -LiteralPath $siteConfigPath -Raw | ConvertFrom-Json
 $displayKeys = @(
     'eyebrow',
     'outcome',
+    'source_format',
+    'destination_format',
     'primary_label',
     'primary_url',
     'secondary_label',
@@ -26,9 +28,54 @@ $displayKeys = @(
     'related_label',
     'related_url'
 )
+$requiredConversionKeys = @(
+    'eyebrow',
+    'primary_label',
+    'primary_url',
+    'secondary_label',
+    'secondary_url',
+    'summary_title',
+    'package',
+    'runtime',
+    'limit',
+    'related_label',
+    'related_url'
+)
+$conversionFormatExemptions = @(
+    'content/conversions/guides.md'
+)
 $failures = [System.Collections.Generic.List[string]]::new()
 $publishedRootPath = if ($PublishedRoot) {
     (Resolve-Path -LiteralPath $PublishedRoot).Path
+}
+
+function Get-FrontMatterScalar {
+    param(
+        [Parameter(Mandatory)] [string] $FrontMatter,
+        [Parameter(Mandatory)] [string] $Name
+    )
+
+    $match = [regex]::Match(
+        $FrontMatter,
+        "(?m)^$([regex]::Escape($Name)):[ \t]*(?<value>[^\r\n]*)\r?$"
+    )
+    if (-not $match.Success) {
+        return $null
+    }
+
+    $value = $match.Groups['value'].Value.Trim()
+    $quotedValue = [regex]::Match($value, '^(?<quote>["''])(?<inner>.*)\k<quote>\s*(?:#.*)?$')
+    if ($quotedValue.Success) {
+        $value = $quotedValue.Groups['inner'].Value.Trim()
+    } else {
+        $value = [regex]::Replace($value, '\s+#.*$', '').Trim()
+    }
+
+    if ([string]::IsNullOrWhiteSpace($value) -or $value.StartsWith('#', [StringComparison]::Ordinal)) {
+        return $null
+    }
+
+    return $value
 }
 
 foreach ($contentFile in Get-ChildItem -LiteralPath $contentRoot -Recurse -File -Filter '*.md') {
@@ -73,6 +120,26 @@ foreach ($contentFile in Get-ChildItem -LiteralPath $contentRoot -Recurse -File 
     }
 
     $layoutContent = Get-Content -LiteralPath $layoutPath -Raw
+    if ($layout -eq 'conversion') {
+        $relativePath = [IO.Path]::GetRelativePath($siteRootPath, $contentFile.FullName) -replace '\\', '/'
+        if (-not (Get-FrontMatterScalar -FrontMatter $frontMatter -Name 'description')) {
+            $failures.Add("$relativePath uses the conversion layout but does not declare a description.")
+        }
+
+        foreach ($key in $requiredConversionKeys) {
+            if (-not (Get-FrontMatterScalar -FrontMatter $frontMatter -Name "meta.$key")) {
+                $failures.Add("$relativePath uses the conversion layout but does not declare meta.$key.")
+            }
+        }
+
+        $hasSourceFormat = [bool] (Get-FrontMatterScalar -FrontMatter $frontMatter -Name 'meta.source_format')
+        $hasDestinationFormat = [bool] (Get-FrontMatterScalar -FrontMatter $frontMatter -Name 'meta.destination_format')
+        if ($hasSourceFormat -ne $hasDestinationFormat -or
+            (-not $hasSourceFormat -and $relativePath -notin $conversionFormatExemptions)) {
+            $failures.Add("$relativePath must declare meta.source_format and meta.destination_format together.")
+        }
+    }
+
     foreach ($key in $displayKeys) {
         $metadataMatch = [regex]::Match($frontMatter, "(?m)^meta\.$key\s*:\s*(?<value>[^\r\n]+)\s*$")
         if ($metadataMatch.Success -and

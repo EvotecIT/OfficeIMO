@@ -4,6 +4,8 @@ description: "Inspect Content Credentials and file-origin records in images and 
 meta.seo_title: "Check file provenance and Content Credentials | OfficeIMO"
 layout: conversion
 meta.eyebrow: "Browser-local file inspection"
+meta.source_format: "JPEG, PNG, WebP, PDF, DOCX, XLSX, or PPTX"
+meta.destination_format: "Inspection report or cleaned copy"
 meta.package: "OfficeIMO.Workflows + format packages"
 meta.package_url: "https://www.nuget.org/packages/OfficeIMO.Workflows"
 meta.runtime: "Browser-local WebAssembly or .NET"

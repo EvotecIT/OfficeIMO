@@ -36,6 +36,19 @@
             <a class="imo-btn imo-btn-ghost" href="{{ page.meta.secondary_url ?? "/compatibility/" }}">{{ page.meta.secondary_label ?? "Check format support" }}</a>
           </div>
         </header>
+        <details class="imo-conversion-summary imo-conversion-summary--mobile">
+          <summary>{{ page.meta.summary_title ?? "Route summary" }}</summary>
+          <dl>
+            {{ if page.meta.source_format }}<div><dt>Input</dt><dd>{{ page.meta.source_format }}</dd></div>{{ end }}
+            {{ if page.meta.destination_format }}<div><dt>Output</dt><dd>{{ page.meta.destination_format }}</dd></div>{{ end }}
+            <div><dt>Package</dt><dd>{{ if page.meta.package_url }}<a href="{{ page.meta.package_url }}">{{ page.meta.package ?? "Focused OfficeIMO package" }}</a>{{ else }}{{ page.meta.package ?? "Focused OfficeIMO package" }}{{ end }}</dd></div>
+            <div><dt>Runs on</dt><dd>{{ page.meta.runtime ?? ".NET and PowerShell" }}</dd></div>
+            <div><dt>Microsoft Office</dt><dd>Not required</dd></div>
+            <div><dt>License</dt><dd>MIT</dd></div>
+          </dl>
+          {{ if page.meta.limit }}<p>{{ page.meta.limit }}</p>{{ end }}
+          <a href="{{ page.meta.related_url ?? "/convert/guides/" }}">{{ page.meta.related_label ?? "Browse all conversion routes" }}</a>
+        </details>
       <div class="imo-docs__content imo-intent-content imo-prose markdown-body">
         {{ if page.meta.howto && page.meta.howto.steps }}
         <section class="imo-howto" aria-labelledby="conversion-steps-title">
@@ -56,6 +69,8 @@
       <aside class="imo-docs__toc imo-conversion-summary">
         <h2>{{ page.meta.summary_title ?? "Route summary" }}</h2>
         <dl>
+          {{ if page.meta.source_format }}<div><dt>Input</dt><dd>{{ page.meta.source_format }}</dd></div>{{ end }}
+          {{ if page.meta.destination_format }}<div><dt>Output</dt><dd>{{ page.meta.destination_format }}</dd></div>{{ end }}
           <div><dt>Package</dt><dd>{{ if page.meta.package_url }}<a href="{{ page.meta.package_url }}">{{ page.meta.package ?? "Focused OfficeIMO package" }}</a>{{ else }}{{ page.meta.package ?? "Focused OfficeIMO package" }}{{ end }}</dd></div>
           <div><dt>Runs on</dt><dd>{{ page.meta.runtime ?? ".NET and PowerShell" }}</dd></div>
           <div><dt>Microsoft Office</dt><dd>Not required</dd></div>

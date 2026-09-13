@@ -29,6 +29,10 @@ OfficeIMO conversion is built for .NET applications that need more than a file-e
 | [PPT and PPTX](/convert/ppt-pptx/) | `OfficeIMO.PowerPoint` | Slides, shapes, text, media, notes, charts, and fallback decisions |
 | [Word to PDF](/convert/word-to-pdf/) | `OfficeIMO.Word.Pdf` | Publishing warnings, fonts, images, tables, sections, and output status |
 | [Excel to PDF](/convert/excel-to-pdf/) | `OfficeIMO.Excel.Pdf` | Worksheet selection, pagination, page setup, styles, and export warnings |
+| [PDF to Word](/convert/pdf-to-word/) | `OfficeIMO.Word.Pdf` | Editable reconstruction or rendered-page output with explicit loss diagnostics |
+| [PDF tables to Excel](/convert/pdf-tables-to-excel/) | `OfficeIMO.Excel.Pdf` | Detected table rows and cells, omitted page content, and import limits |
+| [PDF to PowerPoint](/convert/pdf-to-powerpoint/) | `OfficeIMO.PowerPoint.Pdf` | Editable, visual, hybrid, and tables-only projections with warnings |
+| [PDF to HTML](/convert/pdf-to-html/) | `OfficeIMO.Html.Pdf` | Semantic or positioned-review HTML with extraction and fidelity diagnostics |
 
 For HTML, Markdown, RTF, OpenDocument, Google Docs, Sheets, and Slides, use the focused adapter shown in the [package catalog](/downloads/). This keeps dependencies and deployment behavior explicit.
 

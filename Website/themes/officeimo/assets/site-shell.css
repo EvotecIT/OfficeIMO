@@ -135,12 +135,13 @@ body.imo-body { overflow-x: clip; }
 .imo-body--docs .imo-documentation-toolbar__search { color: var(--imo-text-muted); }
 .imo-docs__header h1, .imo-body--docs .api-content h1 { font-size: clamp(28px, 2.6vw, 38px); line-height: 1.15; letter-spacing: -.035em; margin: 0 0 16px; }
 .imo-docs__eyebrow { width: max-content; max-width: 100%; margin: 0 0 10px; color: var(--imo-primary); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-.imo-docs__outcome { margin: -4px 0 20px; color: var(--imo-text); font-size: 15px; font-weight: 700; line-height: 1.5; }
+.imo-docs__outcome { margin: 12px 0 20px; color: var(--imo-text); font-size: 15px; font-weight: 700; line-height: 1.5; }
 .imo-conversion-summary h2 { font-size: 14px; letter-spacing: 0; margin: 0 0 20px; }
 .imo-conversion-summary dl { display: grid; gap: 16px; margin: 0 0 20px; font-size: 13px; }
 .imo-conversion-summary dt { color: var(--imo-text-muted); font-size: 12px; margin-bottom: 4px; }
 .imo-conversion-summary dd { margin: 0; overflow-wrap: anywhere; }
 .imo-conversion-summary > p, .imo-conversion-summary > a { font-size: 13px; line-height: 1.6; }
+.imo-conversion-summary--mobile { display: none; }
 .imo-body--conversion .imo-intent-hero__lead { font-size: 17px; line-height: 1.65; }
 .imo-docs-home-hero { display: block; padding: 0 0 32px; margin: 0; background: none; }
 .imo-docs-home-hero h1 { max-width: 780px; font-size: clamp(32px, 3.2vw, 44px); line-height: 1.1; margin: 0 0 20px; }
@@ -188,6 +189,12 @@ body.imo-body { overflow-x: clip; }
   .imo-header__logo { flex-basis: 150px; }
   :root { --imo-content-gutter: 28px; --imo-reference-width: 220px; --imo-navigation-width: 240px; }
 }
+@media (max-width: 1180px) {
+  .imo-body--conversion .imo-conversion-summary--mobile { display: block; margin: 0 0 28px; padding: 0 18px 18px; border: 1px solid var(--imo-border); border-radius: 10px; background: var(--imo-surface); }
+  .imo-conversion-summary--mobile > summary { margin: 0 -18px; padding: 15px 18px; color: var(--imo-text); font-size: 14px; font-weight: 750; cursor: pointer; }
+  .imo-conversion-summary--mobile[open] > summary { margin-bottom: 16px; border-bottom: 1px solid var(--imo-border); }
+  .imo-conversion-summary--mobile dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 1023px) {
   .imo-header__inner { justify-content: flex-start; padding-inline: 16px; }
   .imo-header__logo { flex: 1; }
@@ -215,6 +222,7 @@ body.imo-body { overflow-x: clip; }
 }
 @media (max-width: 600px) {
   :root { --imo-content-gutter: 20px; }
+  .imo-conversion-summary--mobile dl { grid-template-columns: minmax(0, 1fr); }
   .imo-body--docs .imo-docs__main, .pf-api-docs .api-content { padding-top: 28px; }
   .imo-documentation-toolbar__search { font-size: 12px; }
   .imo-documentation-toolbar__search kbd { display: none; }

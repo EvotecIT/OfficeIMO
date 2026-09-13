@@ -58,15 +58,15 @@ if ($conversionGuides -notmatch '<h1>Document Conversion Guides for \.NET</h1>')
 $provenanceGuide = Get-Content -LiteralPath $provenanceGuidePath -Raw
 if ($provenanceGuide -notmatch '<h1(?:\s[^>]*)?>Check and remove file provenance</h1>' -or
     $provenanceGuide -notmatch '<body class="imo-body imo-body--docs imo-body--conversion">' -or
-    $provenanceGuide -notmatch '<link[^>]+href="/css/product\.css"' -or
-    $provenanceGuide -notmatch '<link[^>]+href="/css/docs\.css"' -or
+    $provenanceGuide -notmatch '<link[^>]+href=["'']?/css/product(?:\.[a-f0-9]+)?\.css["'']?(?:\s|/?>)' -or
+    $provenanceGuide -notmatch '<link[^>]+href=["'']?/css/docs(?:\.[a-f0-9]+)?\.css["'']?(?:\s|/?>)' -or
     $provenanceGuide -notmatch '<h2>Inspection summary</h2>' -or
     $provenanceGuide -notmatch 'OfficeIMO\.Workflows \+ format packages' -or
-    $provenanceGuide -notmatch 'href="https://www\.nuget\.org/packages/OfficeIMO\.Workflows"' -or
+    $provenanceGuide -notmatch 'href=["'']?https://www\.nuget\.org/packages/OfficeIMO\.Workflows["'']?(?:\s|/?>)' -or
     $provenanceGuide -notmatch 'Content Credentials' -or
     $provenanceGuide -notmatch 'does not remove visible watermarks' -or
     $provenanceGuide -notmatch 'href="/convert/\?workspace=provenance"' -or
-    $provenanceGuide -notmatch 'href="https://github\.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo\.provenance-support-matrix\.md"' -or
+    $provenanceGuide -notmatch 'href=["'']?https://github\.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo\.provenance-support-matrix\.md["'']?(?:\s|/?>)' -or
     $provenanceGuide -notmatch 'carrier categories') {
     throw 'The /provenance/ route does not explain the supported file-origin workflow and its limits.'
 }
@@ -119,9 +119,16 @@ if ($module -notmatch 'export function createObjectUrl') {
 
 $workspaceModule = Get-Content -LiteralPath $workspaceModulePath -Raw
 $siteScript = Get-Content -LiteralPath $siteScriptPath -Raw
+$titleValidation = [regex]::Match(
+    $siteScript,
+    'typeof\s+(?<selection>[A-Za-z_$][\w$]*)\.title\s*(?:!==|!=)\s*["'']string["'']'
+)
+$validatedSelection = if ($titleValidation.Success) {
+    [regex]::Escape($titleValidation.Groups['selection'].Value)
+}
 if ($workspaceModule -notmatch 'officeimo:workspace-selection[^\r\n]+title' -or
-    $siteScript -notmatch 'typeof selection\.title' -or
-    $siteScript -notmatch 'document\.title = selection\.title') {
+    -not $titleValidation.Success -or
+    $siteScript -notmatch "document\.title\s*=\s*$validatedSelection\.title") {
     throw 'The converter selection protocol does not propagate validated tool titles to the host page.'
 }
 
