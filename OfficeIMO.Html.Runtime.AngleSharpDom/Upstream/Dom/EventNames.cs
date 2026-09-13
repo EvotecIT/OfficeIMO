@@ -40,7 +40,7 @@
         /// <summary>
         /// The readystatechanged event.
         /// </summary>
-        public static readonly String ReadyStateChanged = "readystatechanged";
+        public static readonly String ReadyStateChanged = "readystatechange";
 
         /// <summary>
         /// The abort event.

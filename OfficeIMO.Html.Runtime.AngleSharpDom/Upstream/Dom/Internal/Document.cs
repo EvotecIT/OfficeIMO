@@ -1000,7 +1000,8 @@ namespace AngleSharp.Dom
         {
             if (IsLoading)
             {
-                FinishLoadingAsync().Wait();
+                _ = FinishLoadingAsync().ContinueWith(task => _context.TrackError(task.Exception!.GetBaseException()),
+                    CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
             }
         }
 
@@ -1277,8 +1278,7 @@ namespace AngleSharp.Dom
         /// </summary>
         internal async Task FinishLoadingAsync()
         {
-            var tasks = GetAttachedReferences<Task>().ToArray();
-            ReadyState = DocumentReadyState.Interactive;
+            await this.QueueTaskAsync(_ => ReadyState = DocumentReadyState.Interactive).ConfigureAwait(false);
 
             while (_loadingScripts.Count > 0)
             {
@@ -1286,21 +1286,29 @@ namespace AngleSharp.Dom
                 await _loadingScripts.Dequeue().RunAsync(CancellationToken.None).ConfigureAwait(false);
             }
 
-            this.FireSimpleEvent(EventNames.DomContentLoaded);
-            _view.FireSimpleEvent(EventNames.DomContentLoaded);
+            await this.QueueTaskAsync(_ => this.FireSimpleEvent(EventNames.DomContentLoaded, bubble: true)).ConfigureAwait(false);
 
-            await Task.WhenAll(tasks).ConfigureAwait(false);
-
-            ReadyState = DocumentReadyState.Complete;
-
-            Body?.FireSimpleEvent(EventNames.Load);
-            this.FireSimpleEvent(EventNames.Load);
-            _view.FireSimpleEvent(EventNames.Load);
-
-            if (IsInBrowsingContext && !_shown)
+            while (true)
             {
-                _shown = true;
-                this.Fire<PageTransitionEvent>(ev => ev.Init(EventNames.PageShow, false, false, false), _view);
+                var tasks = await this.QueueTaskAsync(_ =>
+                {
+                    var pending = GetAttachedReferences<Task>().Where(task => !task.IsCompleted).ToArray();
+                    if (pending.Length == 0)
+                    {
+                        // Check blockers and finish in one turn; another task
+                        // must not insert a load blocker between these steps.
+                        ReadyState = DocumentReadyState.Complete;
+                        _view.FireSimpleEvent(EventNames.Load);
+                        if (IsInBrowsingContext && !_shown)
+                        {
+                            _shown = true;
+                            this.Fire<PageTransitionEvent>(ev => ev.Init(EventNames.PageShow, false, false, false), _view);
+                        }
+                    }
+                    return pending;
+                }).ConfigureAwait(false);
+                if (tasks.Length == 0) break;
+                await Task.WhenAll(tasks).ConfigureAwait(false);
             }
 
             this.QueueTask(EmptyAppCache);

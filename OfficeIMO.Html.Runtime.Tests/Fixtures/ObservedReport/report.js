@@ -1,4 +1,7 @@
+await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, {once: true}));
 const data = await fetch('./items.json').then(response => response.json());
+if (document.readyState !== 'complete') await new Promise(resolve => window.addEventListener('load', resolve, {once: true}));
+window.reportReadyState = document.readyState;
 const items = document.querySelector('#items');
 const total = document.querySelector('#total');
 window.reportOrder = [];

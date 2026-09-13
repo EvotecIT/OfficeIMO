@@ -18,6 +18,7 @@ namespace AngleSharp.Io.Processors
         private readonly IResourceLoader _loader;
         private IResponse? _response;
         private IScriptingService? _engine;
+        private ScriptOptions? _options;
 
         #endregion
 
@@ -87,8 +88,8 @@ namespace AngleSharp.Io.Processors
 
                 if (!cancelled)
                 {
-                    var options = CreateOptions();
-                    var insert = _document.Source.Index;
+                    var options = _options ?? CreateOptions();
+                    var insert = _script.IsParserBlocking ? _document.Source.Index : -1;
 
                     try
                     {
@@ -100,7 +101,9 @@ namespace AngleSharp.Io.Processors
                         _context.TrackError(ex);
                     }
 
-                    _document.Source.Index = insert;
+                    // Async/deferred scripts must never rewind a parser that
+                    // progressed while their evaluation was being scheduled.
+                    if (insert >= 0) _document.Source.Index = insert;
                     await _document.QueueTaskAsync(FireAfterScriptExecuteEvent).ConfigureAwait(false);
                     await _document.QueueTaskAsync(FireLoadEvent).ConfigureAwait(false);
                     _response.Dispose();
@@ -113,6 +116,7 @@ namespace AngleSharp.Io.Processors
         {
             if (Engine != null)
             {
+                _options = CreateOptions();
                 _response = VirtualResponse.Create(res => res.Content(content).Address(_script.BaseUri));
             }
         }
@@ -121,12 +125,15 @@ namespace AngleSharp.Io.Processors
         {
             if (_loader != null && Engine != null)
             {
+                _options = CreateOptions();
+                _options.IsExternal = true;
                 Download = _loader.FetchWithCorsAsync(new CorsRequest(request)
                 {
                     Behavior = OriginBehavior.Taint,
                     Setting = _script.CrossOrigin.ToEnum(CorsSetting.None),
                     Integrity = _context.GetProvider<IIntegrityProvider>()
                 });
+                _options.PreparedSourceUrl = request.Target.Href;
                 return Download.Task;
             }
 
@@ -140,6 +147,7 @@ namespace AngleSharp.Io.Processors
         private ScriptOptions CreateOptions() => new(_document, _document.Loop!)
         {
             Element = _script,
+            PreparedType = ScriptLanguage,
             Encoding = TextEncoding.Resolve(_script.CharacterSet)
         };
 

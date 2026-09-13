@@ -260,9 +260,12 @@ namespace AngleSharp.Dom
         /// <returns>Awaitable task.</returns>
         public static async Task WaitForReadyAsync(this IDocument document)
         {
-            var scripts = document.GetScriptDownloads().ToArray();
-            await Task.WhenAll(scripts).ConfigureAwait(false);
-            var styles = document.GetStyleSheetDownloads().ToArray();
+            // A script waits for its own download in RunAsync. Waiting for every
+            // script here would make unrelated async scripts block the parser.
+            Task[] styles;
+            var syncRoot = document.Context.GetService<IDomSynchronization>()?.SyncRoot;
+            if (syncRoot is null) styles = document.GetStyleSheetDownloads().ToArray();
+            else lock (syncRoot) styles = document.GetStyleSheetDownloads().ToArray();
             await Task.WhenAll(styles).ConfigureAwait(false);
         }
 

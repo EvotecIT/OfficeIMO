@@ -10,6 +10,15 @@ namespace AngleSharp.Scripting
     /// </summary>
     public sealed class ScriptOptions
     {
+        /// <summary>Gets or sets the script type captured during preparation.</summary>
+        public string? PreparedType { get; set; }
+
+        /// <summary>Gets or sets the requested source URL captured during preparation.</summary>
+        public string? PreparedSourceUrl { get; set; }
+
+        /// <summary>Gets or sets whether preparation selected an external source.</summary>
+        public bool IsExternal { get; set; }
+
         /// <summary>
         /// Creates new script options for the given document.
         /// </summary>

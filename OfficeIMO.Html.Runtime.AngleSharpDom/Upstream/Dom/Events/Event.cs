@@ -349,6 +349,13 @@ namespace AngleSharp.Dom.Events
                         ShadowAdjustedTarget = null,
                     });
                 }
+                // Document events participate in the window's capture/bubble
+                // path. Load events retain their special non-propagating path.
+                if (Type != EventNames.Load && ((Node)target).GetRoot() is Document document &&
+                    ReferenceEquals(document.Context.Active, document))
+                {
+                    eventPath.Add(new EventPathItem { InvocationTarget = (EventTarget)document.DefaultView });
+                }
             }
 
             _currentPath = eventPath;
@@ -367,7 +374,7 @@ namespace AngleSharp.Dom.Events
                 DispatchAt(eventPath);
             }
 
-            _flags &= ~EventFlags.Dispatch;
+            _flags &= ~(EventFlags.Dispatch | EventFlags.StopPropagation | EventFlags.StopImmediatePropagation);
             _phase = EventPhase.None;
             _current = null!;
             return (_flags & EventFlags.Canceled) == EventFlags.Canceled;
@@ -383,12 +390,12 @@ namespace AngleSharp.Dom.Events
         {
             foreach (var item in path)
             {
-                CallListeners(item.InvocationTarget);
-
                 if ((_flags & EventFlags.StopPropagation) == EventFlags.StopPropagation)
                 {
                     break;
                 }
+
+                CallListeners(item.InvocationTarget);
             }
         }
 

@@ -43,6 +43,8 @@ namespace AngleSharp.Html.Dom
 
         public IDownload? CurrentDownload => _request?.Download;
 
+        internal Boolean IsParserBlocking { get; private set; }
+
         public String? Source
         {
             get => this.GetOwnAttribute(AttributeNames.Src);
@@ -113,7 +115,7 @@ namespace AngleSharp.Html.Dom
 
             if (!_parserInserted && Prepare(Owner))
             {
-                RunAsync(CancellationToken.None);
+                Owner.DelayLoad(RunAsync(CancellationToken.None));
             }
         }
 
@@ -156,6 +158,8 @@ namespace AngleSharp.Html.Dom
             }
 
             _started = true;
+            IsParserBlocking = _parserInserted && !Type.Isi("module") &&
+                (src is null || (!IsAsync && !IsDeferred));
 
             if (eventAttr is { Length: > 0 } && forAttr is { Length: >0 })
             {
@@ -188,6 +192,12 @@ namespace AngleSharp.Html.Dom
             else
             {
                 _request.Process(Text);
+                if (_parserInserted && Type.Isi("module"))
+                {
+                    if (IsAsync) document.DelayLoad(RunAsync(CancellationToken.None));
+                    else document.AddScript(this);
+                    return false;
+                }
                 return true;
             }
 
@@ -203,13 +213,18 @@ namespace AngleSharp.Html.Dom
             var executeDirectly = true;
 
             //Just add to the (end of) set of scripts
-            if (_parserInserted && (IsDeferred || IsAsync))
+            if (_parserInserted && !IsAsync && (IsDeferred || Type.Isi("module")))
             {
                 document.AddScript(this);
                 executeDirectly = false;
             }
 
             this.Process(_request, url);
+            if (_parserInserted && IsAsync)
+            {
+                document.DelayLoad(RunAsync(CancellationToken.None));
+                executeDirectly = false;
+            }
             return executeDirectly;
         }
 

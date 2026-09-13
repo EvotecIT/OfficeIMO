@@ -11,7 +11,24 @@ namespace OfficeIMO.Html.Runtime.Worker;
 // transport as fetch. Async completions return to the owning native event loop.
 internal sealed class RuntimeModuleLoader(IDocument document, RuntimeResourceLoader resources, Func<IEventLoop> loop, Func<Engine> getEngine, int maximum) : IAsyncModuleLoader {
     private readonly Dictionary<string, Task<Source>> _sources = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Jint.Runtime.Modules.Module> _records = new(StringComparer.Ordinal);
     internal RuntimeImportMap ImportMap { get; } = new();
+
+    // Capture on the engine loop, await outside it, then build the record on the
+    // loop. A prior dynamic import may still be fetching this same source.
+    internal Task<Source> GetSource(string identity) => _sources[identity];
+
+    internal Jint.Runtime.Modules.Module Prepare(Engine engine, string identity, Source source) =>
+        Record(engine, identity, source);
+
+    private Jint.Runtime.Modules.Module Record(Engine engine, string identity, Source source) {
+        if (!_records.TryGetValue(identity, out var record)) {
+            var resolved = new ResolvedSpecifier(new ModuleRequest(identity, []), source.Location, new Uri(source.Location), SpecifierType.RelativeOrAbsolute);
+            record = ModuleFactory.BuildSourceTextModule(engine, resolved, source.Text);
+            _records.Add(identity, record);
+        }
+        return record;
+    }
 
     internal string Register(string source, Uri baseUrl, string? externalIdentity) {
         ImportMap.Seal();
@@ -64,11 +81,10 @@ internal sealed class RuntimeModuleLoader(IDocument document, RuntimeResourceLoa
         loop().Enqueue(_ => Settle(pending, engine, resolved, completion), TaskPriority.Normal);
     }
 
-    private static void Settle(Task<Source> pending, Engine engine, ResolvedSpecifier resolved, ModuleLoadCompletion completion) {
+    private void Settle(Task<Source> pending, Engine engine, ResolvedSpecifier resolved, ModuleLoadCompletion completion) {
         try {
             Source source = pending.GetAwaiter().GetResult();
-            var location = resolved with { Key = source.Location, Uri = new Uri(source.Location) };
-            completion.SetModule(ModuleFactory.BuildSourceTextModule(engine, location, source.Text));
+            completion.SetModule(Record(engine, resolved.Key, source));
         } catch (Exception error) { completion.SetError(error); }
     }
 
@@ -82,5 +98,5 @@ internal sealed class RuntimeModuleLoader(IDocument document, RuntimeResourceLoa
             throw new HtmlScriptRuntimeException("The module response does not have a JavaScript MIME type.");
     }
 
-    private sealed record Source(string Text, string Location);
+    internal sealed record Source(string Text, string Location);
 }

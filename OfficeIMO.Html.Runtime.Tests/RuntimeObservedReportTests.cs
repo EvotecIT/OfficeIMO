@@ -23,6 +23,7 @@ public sealed class RuntimeObservedReportTests {
             }
         });
         await session.Locator("#total").WaitForTextAsync("Total: 42");
+        Assert.Equal("complete", (await session.EvaluateAsync("reportReadyState")).GetString());
         Assert.Equal("before,observer,after", (await session.EvaluateAsync("reportOrder.join(',')")).GetString());
         var before = await session.CaptureAsync();
         await session.Locator("#update").ClickAsync();

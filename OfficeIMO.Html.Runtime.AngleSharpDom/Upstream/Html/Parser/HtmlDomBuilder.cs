@@ -181,6 +181,7 @@ namespace AngleSharp.Html.Parser
             CancellationToken cancelToken = default)
         {
             var source = _document.Source;
+            var syncRoot = (_document as IDocument)?.Context.GetService<IDomSynchronization>()?.SyncRoot;
             SetOptions(options);
             middleware ??= static (ref StructHtmlToken token, TokenConsumer next) =>
             {
@@ -196,7 +197,9 @@ namespace AngleSharp.Html.Parser
                 }
                 cancelToken.ThrowIfCancellationRequested();
 
-                var @break = Worker(middleware);
+                Boolean @break;
+                if (syncRoot is null) @break = Worker(middleware);
+                else lock (syncRoot) @break = Worker(middleware);
                 if (@break) { break; }
 
                 if (_waiting is not null)

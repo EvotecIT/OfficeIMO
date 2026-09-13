@@ -249,9 +249,24 @@ failed source loads remain failures within that session.
 One inline import map can precede all module imports. Exact entries, trailing-slash
 prefixes and normalized URL scopes are supported; the longest matching scope or
 prefix wins, and null entries block resolution. Multiple maps and maps introduced
-after imports begin are rejected. Module script loading and evaluation settle
-before their document execution operation completes. Full browser lifecycle timing,
-module preload, integrity metadata and `import.meta.resolve` remain unqualified.
+after imports begin are rejected.
+
+Parser-inserted modules without `async` run after parsing, in document order with
+deferred classic scripts, while `readyState` is `interactive`. Async scripts load
+and run independently; they delay the window load event but not `DOMContentLoaded`.
+Module graph loading completes before execution starts. Top-level `await` does
+not hold the following deferred script or readiness events, so a module may await
+`DOMContentLoaded` or window `load`. Opening a session also waits for those root
+module evaluations to settle, within the request deadline. Explicit readiness
+waits still select the application state to capture.
+
+Script preparation retains its type, requested source identity and module base;
+later element or base changes do not redirect that execution. Parser token
+consumption and script callbacks share a synchronization monitor. Readiness events
+run on the event loop: `readystatechange`, a bubbling document `DOMContentLoaded`,
+and one window `load`. Dynamic ordered script loading, `currentScript`,
+`document.write`/parser reentrancy, complete stylesheet blocking rules, module
+preload, integrity metadata and `import.meta.resolve` need further qualification.
 
 Same-document application routing supports `history.pushState`, `replaceState`,
 `back`, `forward`, and nonzero `go` traversals. Route changes update the retained
@@ -291,7 +306,8 @@ mutation delivery and independent captures converted to Markdown and searchable
 PDF. These paths do not establish general framework compatibility or a complete
 web-application profile. An observer-driven module report additionally proves
 JSON loading, combined mutation/promise ordering, typed updates and captures that
-convert after session disposal. Full module lifecycle, cross-document navigation,
+convert after session disposal. The report module loads from the head and awaits
+document and window readiness before updating the completed body. Remaining script lifecycle, cross-document navigation,
 layout-driven interaction and general framework compatibility remain unqualified.
 
 Commands are serialized. `Timeout` includes time waiting for another command,

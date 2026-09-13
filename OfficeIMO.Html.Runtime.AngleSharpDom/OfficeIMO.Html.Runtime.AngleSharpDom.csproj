@@ -4,9 +4,9 @@
     <AssemblyName>AngleSharp</AssemblyName>
     <PackageId>OfficeIMO.Html.Runtime.AngleSharpDom</PackageId>
     <RootNamespace>AngleSharp</RootNamespace>
-    <Version>1.7.1-officeimo.1</Version>
+    <Version>1.7.1-officeimo.2</Version>
     <AssemblyVersion>1.7.1.0</AssemblyVersion>
-    <FileVersion>1.7.1.1</FileVersion>
+    <FileVersion>1.7.1.2</FileVersion>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
@@ -17,7 +17,7 @@
     <NoWarn>$(NoWarn);SYSLIB0014</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <AssemblyMetadata Include="OfficeIMO.ProviderPatch" Value="mutation-checkpoints-v1" />
+    <AssemblyMetadata Include="OfficeIMO.ProviderPatch" Value="mutation-checkpoints-v1;script-lifecycle-v1" />
     <None Update="AngleSharp.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

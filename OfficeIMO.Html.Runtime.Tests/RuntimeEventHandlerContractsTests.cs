@@ -8,6 +8,23 @@ public sealed class RuntimeEventHandlerContractsTests {
     private static HtmlProcessRuntimeProvider Runtime() => new(
         Path.Combine(AppContext.BaseDirectory, "RuntimeWorker", "OfficeIMO.Html.Runtime.Worker.dll"), AngleSharpDomServices.Instance);
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StoppingAtTheTargetDoesNotLeakToAncestorsOrTheNextDispatch(bool immediate) {
+        await using var session = await Runtime().OpenTrustedAsync(new() { Html = "<button>Go</button>" });
+        await session.ExecuteAsync("""
+            window.order=[];const target=document.querySelector('button');
+            target.addEventListener('probe',e=>{order.push('stop');e.METHOD()},{once:true});
+            target.addEventListener('probe',()=>order.push('target'));
+            document.body.addEventListener('probe',()=>order.push('body'));
+            window.addEventListener('probe',()=>order.push('window'));
+            const event=new Event('probe',{bubbles:true});target.dispatchEvent(event);
+            order.push('again');target.dispatchEvent(event);
+            """.Replace("METHOD", immediate ? "stopImmediatePropagation" : "stopPropagation"));
+        Assert.Equal(immediate ? "stop,again,target,body,window" : "stop,target,again,target,body,window", (await session.EvaluateAsync("order.join(',')")).GetString());
+    }
+
     [Fact]
     public async Task ActionPromiseJobsCompleteBeforeTheNextTypedWaitOrCapture() {
         await using var session = await Runtime().OpenTrustedAsync(new() {

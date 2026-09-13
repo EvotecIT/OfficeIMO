@@ -26,8 +26,17 @@ The local changes have these responsibilities:
   inherit the creating agent's mutation host while retaining an inert context;
   HTML document clones retain that host as well.
 - `DocumentPositions` names `Node` as the owner of document-position constants.
+- `HtmlScriptElement`, `ScriptRequestProcessor` and `ScriptOptions` separate
+  deferred execution from async load blockers and retain prepared script metadata.
+  Only parser-blocking scripts restore the parser insertion position.
+- `HtmlDomBuilder` uses an optional `IDomSynchronization` monitor to serialize
+  token consumption with the script host. `Document` queues readiness events and
+  snapshots of pending loads on the event loop; `DocumentExtensions` waits for
+  blocking styles without waiting for unrelated async scripts.
+- `EventNames` uses the standard `readystatechange` name, and `Event` includes
+  the active document's window in capture/bubble paths except for load events.
 
-`IMutationMicrotaskScheduler` and `IDomMutationListener` are narrow integration
+`IMutationMicrotaskScheduler`, `IDomMutationListener` and `IDomSynchronization` are narrow integration
 hooks outside the retained source directory. Scheduling, script error handling,
 resource authority and session lifetime belong to the worker. A future provider
 can replace this assembly at those boundaries; it must pass the runtime mutation,

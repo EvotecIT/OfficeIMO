@@ -39,13 +39,14 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             })
             .WithEventLoop(context => new RuntimeEventLoop(context, () => _engine, _errors))
             .With(new RuntimeDocumentUrls.MutationListener())
+            .With(new RuntimeDomSynchronization(() => _engine))
             .Without<AngleSharp.Css.IPseudoClassSelectorFactory>()
             .With((AngleSharp.Css.IPseudoClassSelectorFactory)_focus.CreateSelectors())
             .With(new RuntimeResourceRequester(_resources, _errors))
             .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true, IsNavigationDisabled = true })
             .WithOnly<IResourceLoader>(context => new RuntimeDocumentResourceLoader(context));
         var scripting = configuration.Services.OfType<JsScriptingService>().Single();
-        _scripting = new RuntimeScriptingService(scripting, () => _modules, options);
+        _scripting = new RuntimeScriptingService(scripting, () => _modules, options, _errors.Report);
         configuration = configuration.Without<IScriptingService>()
             .With(scripting).With(_scripting);
         var scriptObservers = configuration.Services.OfType<IAttributeObserver>().Where(observer => observer.GetType().Assembly == typeof(JsScriptingService).Assembly).ToArray();
@@ -66,6 +67,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             _engine = _context.GetService<JsScriptingService>()!.GetOrCreateJint(document);
             _errors.Attach(_engine);
             ((RuntimeEventLoop)_loop).InitializeMicrotasks(_engine);
+            _scripting.Initialize(_engine);
             var normalizeWindow = RuntimeWindowBindings.Install(_engine, document.DefaultView!);
             RuntimeEventBindings.Install(_engine, document.DefaultView!, _errors.Report, normalizeWindow);
             RuntimeUrlBindings.Install(_engine, document.DefaultView!);
@@ -83,6 +85,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         var session = new ScriptedDocumentSession(request);
         try {
             session._document = await session._context.OpenAsync(source => source.Address(request.DocumentUrl.AbsoluteUri).Content(request.Html), token).WaitUntilAvailable(token);
+            await session._scripting.WaitForModuleEvaluationsAsync(token);
             session._loop = session._context.GetService<IEventLoop>() ?? throw new HtmlScriptRuntimeException("The provider did not create an event loop.");
             foreach (string script in request.Scripts) await session.ExecuteAsync(script, token);
             await session.OnLoop(() => true, token);
@@ -153,6 +156,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     }
 
     public void Dispose() {
+        _scripting.Dispose();
         _fetch?.Dispose();
         _loop?.CancelAll();
         _resources.Dispose();
