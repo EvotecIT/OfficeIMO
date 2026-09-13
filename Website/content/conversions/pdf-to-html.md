@@ -1,6 +1,6 @@
 ---
 title: "Convert PDF content to reviewable HTML"
-description: "Choose semantic or positioned-review HTML, retain structured warnings, and distinguish review output from a pixel-perfect page clone."
+description: "Create positioned-review HTML in the browser, choose semantic or positioned profiles in .NET, and retain structured conversion warnings."
 meta.workflow_id: "pdf-html"
 meta.eyebrow: "PDF review import"
 meta.source_format: "PDF"

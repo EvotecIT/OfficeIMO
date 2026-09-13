@@ -25,7 +25,11 @@ public sealed class BrowserToolContentCatalogTests {
 
             if (route.Id == "pdf-pptx") {
                 Assert.Equal("Choose the slide content mode", settingsStep.Title);
-                Assert.Contains("native, visual, hybrid, or tables-only", settingsStep.Description, StringComparison.OrdinalIgnoreCase);
+                foreach (var profile in BrowserPowerPointImportProfileCatalog.All) {
+                    Assert.Contains(profile.Label, settingsStep.Description, StringComparison.Ordinal);
+                    Assert.Contains(profile.Label, route.Description, StringComparison.Ordinal);
+                }
+                Assert.DoesNotContain("native, visual, hybrid", settingsStep.Description, StringComparison.OrdinalIgnoreCase);
             } else if (string.Equals(route.Target, "PDF", StringComparison.OrdinalIgnoreCase)) {
                 Assert.Equal("Choose the PDF settings", settingsStep.Title);
                 Assert.Contains("output profile", settingsStep.Description, StringComparison.OrdinalIgnoreCase);
@@ -81,5 +85,32 @@ public sealed class BrowserToolContentCatalogTests {
         Assert.Contains("Maximum lossless compression", optimize.Steps[1].Description, StringComparison.Ordinal);
         Assert.Contains("Conservative archival rewrite", optimize.Steps[1].Description, StringComparison.Ordinal);
         Assert.DoesNotContain("deduplication", optimize.Steps[1].Description, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BrowserImportCopyMatchesTheProfilesExposedByTheWorkbench() {
+        var pdfToWord = BrowserToolContentCatalog.For(ConversionRouteCatalog.Find("pdf-docx"));
+        var pdfToHtml = BrowserToolContentCatalog.For(ConversionRouteCatalog.Find("pdf-html"));
+        var markdownToHtml = BrowserToolContentCatalog.For(ConversionRouteCatalog.Find("markdown-html"));
+        var markdownToWord = BrowserToolContentCatalog.For(ConversionRouteCatalog.Find("markdown-docx"));
+
+        Assert.Contains("editable-content reconstruction", pdfToWord.Expectation, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("does not expose the visual-pages mode", pdfToWord.Expectation, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("or use rendered page images", pdfToWord.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("rendered page images", ConversionRouteCatalog.Find("pdf-docx").Description, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("browser workflow uses editable reconstruction", ConversionRouteCatalog.Find("pdf-docx").KnownLimitations, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("separate .NET API", ConversionRouteCatalog.Find("pdf-docx").KnownLimitations, StringComparison.Ordinal);
+
+        Assert.Contains("positioned-review HTML", pdfToHtml.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("does not offer semantic-output selection", pdfToHtml.Expectation, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("semantic reading order or", pdfToHtml.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("positioned-review HTML", ConversionRouteCatalog.Find("pdf-html").Description, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("semantic or positioned-review", ConversionRouteCatalog.Find("pdf-html").Description, StringComparison.OrdinalIgnoreCase);
+
+        Assert.Contains("browser's safe profile", markdownToHtml.Expectation, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("selected safe profile", markdownToHtml.Expectation, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("browser's safe rendering profile", ConversionRouteCatalog.Find("markdown-html").KnownLimitations, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("selected safety", ConversionRouteCatalog.Find("markdown-html").KnownLimitations, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("conversion choices", markdownToWord.Summary, StringComparison.OrdinalIgnoreCase);
     }
 }

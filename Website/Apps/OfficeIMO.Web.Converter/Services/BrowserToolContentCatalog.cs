@@ -39,31 +39,31 @@ internal static class BrowserToolContentCatalog {
             "markdown-html" => (
                 "Turn Markdown into safe, reviewable HTML without uploading the text to a server.",
                 "An HTML file and rendered preview created from the supported Markdown profile.",
-                "Raw HTML and features outside the selected safe profile may be removed or simplified."),
+                "Raw HTML and features outside the browser's safe profile may be removed or simplified."),
             "html-markdown" => (
                 "Turn HTML into portable Markdown for editing, publishing, or version control.",
                 "A Markdown download and text preview, with diagnostics for content that cannot be represented cleanly.",
                 "Complex page layout, styling, scripts, forms, and browser behavior do not have direct Markdown equivalents."),
             "markdown-docx" => (
-                "Create an editable Word document from Markdown while keeping conversion choices visible.",
+                "Create an editable Word document from Markdown and review how supported structures were converted.",
                 "A DOCX download with editable headings, paragraphs, lists, tables, links, and other supported Markdown content.",
                 "Markdown does not carry every Word formatting or page-layout concept, so the result uses a deliberate document style rather than recreating a source Word file."),
             "pdf-docx" => (
-                "Create an editable Word document from supported PDF content, or use rendered page images when visual fidelity matters more than editability.",
-                "A DOCX download plus diagnostics describing native content, visual fallbacks, and reconstruction limits.",
-                "PDF stores final page positions, not the original Word structure. Columns, reading order, fonts, and complex graphics may be reconstructed or preserved as images."),
+                "Create an editable Word document from supported PDF text, tables, links, and images, with warnings when fixed page content cannot be reconstructed cleanly.",
+                "A DOCX download plus diagnostics describing reconstructed content, omissions, and other conversion limits.",
+                "The browser uses editable-content reconstruction and does not expose the visual-pages mode. PDF stores final page positions, not the original Word structure, so columns, reading order, fonts, and complex graphics may differ."),
             "pdf-xlsx" => (
                 "Find tables in a PDF and place the detected rows and columns into an editable Excel workbook.",
                 "An XLSX download containing detected tables, together with diagnostics about pages and table reconstruction.",
                 "This extracts detected tables rather than recreating the entire PDF page. Scanned pages need OCR, which is outside this browser workflow."),
             "pdf-pptx" => (
-                "Create a PowerPoint presentation from PDF pages using native, visual, hybrid, or tables-only content modes.",
+                "Create a PowerPoint presentation from PDF pages using Editable content, Visual pages, Visual + editable tables, or Tables only.",
                 "A PPTX download plus diagnostics explaining which slide content was reconstructed and which content used a visual fallback.",
                 "A PDF does not contain the original slide model, animations, or transitions. Choose the conversion mode based on whether editability or appearance matters most."),
             "pdf-html" => (
-                "Turn a PDF into reviewable HTML using semantic reading order or a positioned page view.",
+                "Turn a PDF into positioned-review HTML that keeps supported page geometry visible for inspection.",
                 "An HTML download and preview, with diagnostics about text, images, positioning, and unsupported PDF content.",
-                "Semantic HTML favors reading and reuse; positioned HTML favors page appearance. Neither recreates the original authoring file or runs OCR on image-only pages."),
+                "The browser uses the positioned-review profile and does not offer semantic-output selection. It does not recreate the original authoring file or run OCR on image-only pages."),
             "pdf-png" => (
                 "Render every PDF page as a PNG image for previews, sharing, or image-based workflows.",
                 "A PNG for a single-page PDF or a ZIP archive containing one detailed PNG per page, with page-level diagnostics.",
@@ -121,7 +121,7 @@ internal static class BrowserToolContentCatalog {
     private static IReadOnlyList<BrowserToolStep> StepsFor(ConversionRoute route) => [
         new(route.InputKind == ConversionInputKind.File ? "Choose your file" : $"Add your {route.Source} content", route.InputKind == ConversionInputKind.File ? "Drop a supported file into the workspace or choose one from your device." : "Paste content into the editor or start with the built-in sample."),
         route.Id == "pdf-pptx"
-            ? new("Choose the slide content mode", "Choose native, visual, hybrid, or tables-only output based on whether editability or appearance matters most.")
+            ? new("Choose the slide content mode", "Choose Editable content, Visual pages, Visual + editable tables, or Tables only based on whether editability or appearance matters most.")
             : string.Equals(route.Target, "PDF", StringComparison.OrdinalIgnoreCase)
                 ? new("Choose the PDF settings", "Select the output profile and optional first-page layout overlay before conversion.")
                 : new("Review what will change", "This route has no separate output settings. Check the expected result and known limits before you run it."),
