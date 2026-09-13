@@ -93,13 +93,6 @@ public sealed class RuntimeApplicationTests {
     }
 
     [Fact]
-    public async Task DocumentObservationRejectsTheUnqualifiedProviderMapping() {
-        await using var session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest());
-        await session.ExecuteAsync("window.error='';try{new MutationObserver(()=>{}).observe(document,{childList:true})}catch(e){error=e.name}");
-        Assert.Equal("NotSupportedError", (await session.EvaluateAsync("error")).GetString());
-    }
-
-    [Fact]
     public async Task ObserversDeliverArraysTargetsOldValuesAndStableCallbackIdentity() {
         await using var session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest { Html = "<div id='target' data-value='old'><span>Text</span></div>" });
         await session.ExecuteAsync("""

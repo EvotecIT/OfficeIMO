@@ -10,51 +10,40 @@ internal static class RuntimeDocumentUrls {
         internal string? Href;
         internal Url? Url;
         internal bool Invalidated;
-        private IElement? _root;
-        private MutationObserver? _observer;
-
-        internal void Observe(IDocument document) {
-            if (!ReferenceEquals(_root,document.DocumentElement)) {
-                _observer?.Disconnect();
-                _root=document.DocumentElement;
-                _observer=new MutationObserver((records,_)=>Invalidate(records));
-                if(_root!=null)_observer.Connect(_root,childList:true,subtree:true,attributes:true,attributeFilter:new[]{"href"});
-                Invalidated=true;
+        internal void Invalidate(IMutationRecord record) {
+            if(record.Type=="attributes" && record.AttributeName=="href" && string.IsNullOrEmpty(record.AttributeNamespace) && record.Target is IHtmlBaseElement changed && Element!=null) {
+                var order=changed.CompareDocumentPosition(Element);
+                if(ReferenceEquals(changed,Element) || (order & DocumentPositions.Disconnected)==0 && (order & DocumentPositions.Following)!=0)
+                    Invalidated=true;
             }
-            if(_observer!=null)Invalidate(_observer.Flush());
-        }
-
-        private void Invalidate(IEnumerable<IMutationRecord> records) {
-            foreach(var record in records) {
-                if(record.Type=="attributes" && record.Target is IHtmlBaseElement changed && Element!=null) {
-                    var order=changed.CompareDocumentPosition(Element);
-                    if(ReferenceEquals(changed,Element) || (order & DocumentPositions.Disconnected)==0 && (order & DocumentPositions.Following)!=0)
-                        Invalidated=true;
+            if(record.Type!="childList" || Element==null)return;
+            foreach(var nodes in new[]{record.Added,record.Removed}) {
+                if(nodes==null)continue;
+                foreach(var node in nodes) {
+                    for(INode? ancestor=Element;ancestor!=null;ancestor=ancestor.Parent)
+                        if(ReferenceEquals(node,ancestor))Invalidated=true;
+                    // A temporary earlier base can activate and disappear before
+                    // the next URL read. Its recorded insertion/removal position
+                    // distinguishes it from an unrelated later base.
+                    bool containsBase=node is IHtmlBaseElement candidate && candidate.HasAttribute("href")
+                        || node is IParentNode parent && parent.QuerySelectorAll("base[href]").Any(child=>child is IHtmlBaseElement);
+                    var previous=record.PreviousSibling ?? record.Target;
+                    var position=previous.CompareDocumentPosition(Element);
+                    if(containsBase && (position & DocumentPositions.Disconnected)==0 && (position & DocumentPositions.Following)!=0)Invalidated=true;
                 }
-                if(record.Type!="childList" || Element==null)continue;
-                foreach(var nodes in new[]{record.Added,record.Removed}) {
-                    if(nodes==null)continue;
-                    foreach(var node in nodes) {
-                        for(INode? ancestor=Element;ancestor!=null;ancestor=ancestor.Parent)
-                            if(ReferenceEquals(node,ancestor))Invalidated=true;
-                        // A temporary earlier base can activate and disappear before
-                        // the next URL read. Its recorded insertion/removal position
-                        // distinguishes it from an unrelated later base.
-                        bool containsBase=node is IHtmlBaseElement candidate && candidate.HasAttribute("href")
-                            || node is IParentNode parent && parent.QuerySelectorAll("base[href]").Any(child=>child is IHtmlBaseElement);
-                        var previous=record.PreviousSibling ?? record.Target;
-                        var position=previous.CompareDocumentPosition(Element);
-                        if(containsBase && (position & DocumentPositions.Disconnected)==0 && (position & DocumentPositions.Following)!=0)Invalidated=true;
-                    }
                 }
-            }
         }
     }
     private static readonly ConditionalWeakTable<IDocument, State> States = new();
 
+    internal sealed class MutationListener : IDomMutationListener {
+        public void OnMutation(IDocument document,IMutationRecord record) {
+            if(States.TryGetValue(document,out var state))state.Invalidate(record);
+        }
+    }
+
     internal static string Base(IDocument document) {
         var state = States.GetOrCreateValue(document);
-        state.Observe(document);
         var element = document.QuerySelectorAll("base[href]").OfType<IHtmlBaseElement>().FirstOrDefault();
         string? href = element?.GetAttribute("href");
         if (state.Invalidated || !ReferenceEquals(element,state.Element) || href != state.Href) {

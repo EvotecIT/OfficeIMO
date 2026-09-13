@@ -18,7 +18,10 @@
     <EmbeddedResource Include="RuntimeStructuredClone.js" LogicalName="OfficeIMO.RuntimeStructuredClone.js" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
     <ProjectReference Include="../OfficeIMO.Html/OfficeIMO.Html.csproj" />
-    <PackageReference Include="AngleSharp" Version="1.7.1" />
+    <ProjectReference Include="../OfficeIMO.Html.Runtime.AngleSharpDom/OfficeIMO.Html.Runtime.AngleSharpDom.csproj" />
+    <!-- This isolated worker uses the pinned source provider. Keep transitive
+         consumers' package graph without copying its original DOM assembly here. -->
+    <PackageReference Include="AngleSharp" Version="1.7.1" ExcludeAssets="all" />
     <PackageReference Include="AngleSharp.Css" Version="1.0.1" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime.AngleSharpJs/OfficeIMO.Html.Runtime.AngleSharpJs.csproj" />
     <PackageReference Include="Jint" Version="4.16.0" />

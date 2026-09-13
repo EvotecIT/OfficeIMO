@@ -38,6 +38,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
                 }
             })
             .WithEventLoop(context => new RuntimeEventLoop(context, () => _engine, _errors))
+            .With(new RuntimeDocumentUrls.MutationListener())
             .Without<AngleSharp.Css.IPseudoClassSelectorFactory>()
             .With((AngleSharp.Css.IPseudoClassSelectorFactory)_focus.CreateSelectors())
             .With(new RuntimeResourceRequester(_resources, _errors))
@@ -64,10 +65,11 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             var document = ((HtmlParseEvent)args).Document;
             _engine = _context.GetService<JsScriptingService>()!.GetOrCreateJint(document);
             _errors.Attach(_engine);
+            ((RuntimeEventLoop)_loop).InitializeMicrotasks(_engine);
             var normalizeWindow = RuntimeWindowBindings.Install(_engine, document.DefaultView!);
             RuntimeEventBindings.Install(_engine, document.DefaultView!, _errors.Report, normalizeWindow);
             RuntimeUrlBindings.Install(_engine, document.DefaultView!);
-            RuntimeObserverBindings.Install(_engine, document, _errors.Report);
+            RuntimeObserverBindings.Install(_engine, document, _errors.Report, ((RuntimeEventLoop)_loop).EnqueueMicrotask);
             RuntimeStorageBindings.Install(_engine, options.MaxStorageCharacters);
             _history = new RuntimeHistoryBindings(_engine, document, _loop, options);
             _automation = new RuntimeAutomation(document, options, _focus, _history);

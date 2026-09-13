@@ -56,10 +56,10 @@ public sealed class RuntimeTaskCheckpointTests {
                 Assert.Equal("entered", result);
                 await Assert.ThrowsAsync<TimeoutException>(() => session.CaptureAsync());
                 await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => session.CaptureAsync());
-            }, TimeSpan.FromSeconds(2));
+            });
     }
 
-    private static async Task ObserveNativeTasksAsync(string script, Func<IHtmlRuntimeSession, string, Task> verify, TimeSpan? timeout = null) {
+    private static async Task ObserveNativeTasksAsync(string script, Func<IHtmlRuntimeSession, string, Task> verify) {
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var observed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         await using var server = new RuntimeHttpFixture((_, _) => Task.FromResult(RuntimeHttpFixture.Reply.Text("ok")));
@@ -69,7 +69,9 @@ public sealed class RuntimeTaskCheckpointTests {
             return RuntimeHttpFixture.Reply.Text("ok");
         };
         await using var session = await Runtime().OpenTrustedAsync(new() {
-            DocumentUrl = server.Origin, ResourcePolicy = new() { AllowNetwork = true }, Timeout = timeout ?? TimeSpan.FromSeconds(10)
+            // The same timeout covers worker startup and the later command. Keep
+            // normal startup headroom when the full suite starts workers concurrently.
+            DocumentUrl = server.Origin, ResourcePolicy = new() { AllowNetwork = true }, Timeout = TimeSpan.FromSeconds(10)
         });
         await session.ExecuteAsync("fetch('/start').then(()=>{" + script + "\n})");
         // Release the real network boundary only after command completion. Observe the

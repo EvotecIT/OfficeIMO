@@ -3,8 +3,9 @@
 Execute a trusted local scripted document in a persistent, disposable session and
 capture independent OfficeIMO documents. The optional worker uses AngleSharp, AngleSharp.Css,
 retained AngleSharp.Js DOM bindings and Jint; ordinary HTML parsing and conversion
-do not depend on it. The bindings are built from a pinned source dependency with
-an engine-configuration hook; see [binding provenance](../OfficeIMO.Html.Runtime.AngleSharpJs/README.md).
+do not depend on it. The worker builds pinned source dependencies with mutation
+and engine-configuration hooks; see [DOM provider provenance](../OfficeIMO.Html.Runtime.AngleSharpDom/README.md)
+and [binding provenance](../OfficeIMO.Html.Runtime.AngleSharpJs/README.md).
 
 Build or publish `OfficeIMO.Html.Runtime.Worker` and deploy its complete output
 directory. Supply its DLL path and the inert DOM services to the process provider:
@@ -203,14 +204,22 @@ not polling the session. A rejection still unhandled at that boundary is retaine
 as a session failure; adding a handler in a later timer cannot erase it. Command
 deadlines and the session lifetime still bound a nonterminating promise job.
 
-`MutationObserver` supports element, text and fragment targets, subtree changes,
+`MutationObserver` supports Document, element, text and fragment targets, subtree changes,
 attribute filters, old values, `takeRecords()` and `disconnect()`. Callbacks receive
 a JavaScript records array and the observer instance. Inapplicable added/removed
-node lists are empty NodeLists. Document targets are explicitly unsupported because
-the retained provider redirects their observation to the document element.
-Mutation notifications still use a separate provider queue: they do not yet share
-browser ordering with promise jobs. Wait for an application condition that includes
-required observer work before capture.
+node lists are empty NodeLists. Document observation includes direct children and
+root replacement. Notifications join the promise-job queue when a mutation first
+requires delivery. Pending observers run in one compound notification in order
+of their first pending record; promises queued by a callback follow the remaining
+observers in that notification. Detached subtrees retain observation until their
+notification checkpoint, including nested detachments and overlapping registrations.
+Callback ordering follows the DOM Standard's pending set and target/ancestor
+registration traversal; engines using observer creation order can differ.
+Secondary HTML documents created by `createHTMLDocument` and their clones
+share the creating agent's mutation queue but remain inert for script loading.
+Wait for an application condition that includes required observer work before capture.
+These contracts cover the tested mutation producers; range operations, parser
+lifecycle and shadow-root/slot notification integration need further qualification.
 
 `localStorage` and `sessionStorage` provide independent, initially empty in-memory
 areas for each runtime session. Values survive commands and application remounts,
@@ -280,8 +289,10 @@ The test-only Preact 10.29.8 fixture proves UMD loading, mount/unmount, hook eff
 buffered fetch, state updates, controlled input and select events, storage restoration,
 mutation delivery and independent captures converted to Markdown and searchable
 PDF. These paths do not establish general framework compatibility or a complete
-web-application profile. Full module lifecycle, cross-document navigation, layout-driven interaction,
-combined mutation/promise ordering and general framework compatibility remain unqualified.
+web-application profile. An observer-driven module report additionally proves
+JSON loading, combined mutation/promise ordering, typed updates and captures that
+convert after session disposal. Full module lifecycle, cross-document navigation,
+layout-driven interaction and general framework compatibility remain unqualified.
 
 Commands are serialized. `Timeout` includes time waiting for another command,
 execution and result transfer. A queued cancellation or timeout leaves the active

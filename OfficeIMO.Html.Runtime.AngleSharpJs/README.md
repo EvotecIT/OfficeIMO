@@ -11,12 +11,14 @@ The original Git blob hashes and paths are recorded in `upstream.json`.
 The MIT license is retained in `AngleSharp.Js.LICENSE.txt` and copied to worker
 build and publish outputs.
 
-The source changes are limited to an engine-configuration callback:
+The source changes cover engine configuration and DOM constants:
 
 - `JsScriptingOptions.ConfigureEngine` accepts the window and Jint options; the
   option snapshot retains that callback.
 - `EngineInstance` invokes it after configuring the existing DOM wrapper and
   stack-depth limit, before constructing the interpreter.
+- `EngineExtensions` installs named numeric enum constants on existing DOM
+  constructors and their prototypes, including `Node.DOCUMENT_POSITION_*`.
 
 Module URL resolution, resource authority, import maps and asynchronous document
 execution belong to `OfficeIMO.Html.Runtime.Worker`. They are not embedded in
@@ -25,6 +27,6 @@ configuration callback, this project can be replaced by that dependency and the
 runtime integration adapted at its configuration boundary.
 
 When refreshing these sources, compare against the recorded upstream commit,
-preserve attribution, review the callback patch, and run the runtime integration
+preserve attribution, review the configuration and binding patches, and run the runtime integration
 and deployed-worker tests. A package-version label alone does not identify this
 modified assembly.

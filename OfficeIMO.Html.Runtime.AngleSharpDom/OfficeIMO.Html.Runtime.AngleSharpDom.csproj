@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <AssemblyName>AngleSharp</AssemblyName>
+    <PackageId>OfficeIMO.Html.Runtime.AngleSharpDom</PackageId>
+    <RootNamespace>AngleSharp</RootNamespace>
+    <Version>1.7.1-officeimo.1</Version>
+    <AssemblyVersion>1.7.1.0</AssemblyVersion>
+    <FileVersion>1.7.1.1</FileVersion>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <SignAssembly>true</SignAssembly>
+    <PublicSign>true</PublicSign>
+    <AssemblyOriginatorKeyFile>AngleSharp.PublicKey.bin</AssemblyOriginatorKeyFile>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);SYSLIB0014</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="OfficeIMO.ProviderPatch" Value="mutation-checkpoints-v1" />
+    <None Update="AngleSharp.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

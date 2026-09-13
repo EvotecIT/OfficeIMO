@@ -1,0 +1,3583 @@
+{
+  "Repository": "https://github.com/AngleSharp/AngleSharp",
+  "Commit": "fbfd8dbf5670ad77a986ebf128377693ecfa4e08",
+  "Version": "1.7.1",
+  "Files": [
+    {
+      "path": "LICENSE",
+      "sha": "eae958a8a227d1054019defa2bdecee308d1532d",
+      "size": 1085
+    },
+    {
+      "path": "src/AngleSharp/Attributes/Accessors.cs",
+      "sha": "84cfacbba8f5365395164d9d7db7c3c8b92fa52f",
+      "size": 1220
+    },
+    {
+      "path": "src/AngleSharp/Attributes/DomAccessorAttribute.cs",
+      "sha": "c00174958bbf4ee52d5c34e032e6d7d257991189",
+      "size": 932
+    },
+    {
+      "path": "src/AngleSharp/Attributes/DomConstructorAttribute.cs",
+      "sha": "16cb9b5805f31672b0bdf0fd99cbc03923754098",
+      "size": 332
+    },
+    {
+      "path": "src/AngleSharp/Attributes/DomDescriptionAttribute.cs",
+      "sha": "b399898489b8ba9e2a192ce57cd4a78a2df570a0",
+      "size": 1110
+    },
+    {
+      "path": "src/AngleSharp/Attributes/DomExposedAttribute.cs",
+      "sha": "ae7981e4f7e1da376049a9249cbdc392586fac4c",
+      "size": 831
+    },
+    {
+      "path": "src/AngleSharp/Attributes/DomHistoricalAttribute.cs",
+      "sha": "647af6eff648eb81daff2c2fb96d4cf6216b765d",
+      "size": 558
+    },
+    {
+      "path": "src/AngleSharp/Attributes/DomInitDictAttribute.cs",
+      "sha": "620d47fd2270b7618cc31304eaf95abbfab9771a",
+      "size": 1302
+    },
+    {
+      "path": "src/AngleSharp/Attributes/DomInstanceAttribute.cs",
+      "sha": "3ba188618635bd75283b3cf0a51a3fdaf6a6fb35",
+      "size": 633
+    },
+    {
+      "path": "src/AngleSharp/Attributes/DomLenientThisAttribute.cs",
+      "sha": "431981f7011bc54322ff3592cd6c2ee9eb103bdd",
+      "size": 478
+    },
+    {
+      "path": "src/AngleSharp/Attributes/DomLiteralsAttribute.cs",
+      "sha": "fadc6a44926b9eed35f5973361583be88b820712",
+      "size": 352
+    },
+    {
+      "path": "src/AngleSharp/Attributes/DomNameAttribute.cs",
+      "sha": "ee4dec3ecc24c2b0b2de17d0b3e05e59b2b9a96d",
+      "size": 1201
+    },
+    {
+      "path": "src/AngleSharp/Attributes/DomNoInterfaceObjectAttribute.cs",
+      "sha": "12c5aa58fc16068cffbc27b1617754ef59e1301c",
+      "size": 420
+    },
+    {
+      "path": "src/AngleSharp/Attributes/DomPutForwardsAttribute.cs",
+      "sha": "2d729592ed13e17710500b2b8927d06ded6fc22b",
+      "size": 975
+    },
+    {
+      "path": "src/AngleSharp/Browser/DefaultNavigationHandler.cs",
+      "sha": "9aa07e82887ba46e1ea3de513307e1d28c20154c",
+      "size": 1402
+    },
+    {
+      "path": "src/AngleSharp/Browser/Dom/CacheStatus.cs",
+      "sha": "1082ec863bbce8a1880cea78be6de1dfd637eb58",
+      "size": 1119
+    },
+    {
+      "path": "src/AngleSharp/Browser/Dom/Events/InteractivityEvent.cs",
+      "sha": "f228e652064f41b23c4cb57a617435dce881ac59",
+      "size": 1550
+    },
+    {
+      "path": "src/AngleSharp/Browser/Dom/Events/TrackEvent.cs",
+      "sha": "213ad83c8571c740e7879a96e8dc9cbd2c545816",
+      "size": 793
+    },
+    {
+      "path": "src/AngleSharp/Browser/Dom/IApplicationCache.cs",
+      "sha": "ce62ec09cfd927a2714c5d85d9cc94f09fe615b8",
+      "size": 2454
+    },
+    {
+      "path": "src/AngleSharp/Browser/Dom/IHistory.cs",
+      "sha": "d6c148075f473293c721e635575ca979f33a256b",
+      "size": 3539
+    },
+    {
+      "path": "src/AngleSharp/Browser/Dom/INavigator.cs",
+      "sha": "5ca3d6b1dba1fd8942c25d49295f4cf16fdcb40c",
+      "size": 339
+    },
+    {
+      "path": "src/AngleSharp/Browser/Dom/INavigatorContentUtilities.cs",
+      "sha": "a0ebc6c8e9940dd6c4a9eea8784095f41dabc1a5",
+      "size": 3105
+    },
+    {
+      "path": "src/AngleSharp/Browser/Dom/INavigatorId.cs",
+      "sha": "d2a60f65d4839e63cc4f09e34cf9d164c3c0d415",
+      "size": 901
+    },
+    {
+      "path": "src/AngleSharp/Browser/Dom/INavigatorOnline.cs",
+      "sha": "472f1812dbf222cdb3b6e3dc31111ae013b9e51b",
+      "size": 455
+    },
+    {
+      "path": "src/AngleSharp/Browser/Dom/INavigatorStorageUtilities.cs",
+      "sha": "3be530fc1c8fb81aa0719f4a94e9a078e2f608b4",
+      "size": 500
+    },
+    {
+      "path": "src/AngleSharp/Browser/EncodingMetaHandler.cs",
+      "sha": "2e48cb4d8fc494c0ac72ab6f169b787ddd20f65e",
+      "size": 1799
+    },
+    {
+      "path": "src/AngleSharp/Browser/EventLoopExtensions.cs",
+      "sha": "582a8fb24bb711cf5900750ce3a80f06666a99c9",
+      "size": 2321
+    },
+    {
+      "path": "src/AngleSharp/Browser/ICommand.cs",
+      "sha": "30380998ae68665e2067e2ebcb2eefac4eea2552",
+      "size": 2317
+    },
+    {
+      "path": "src/AngleSharp/Browser/ICommandProvider.cs",
+      "sha": "9b1c8a4e838c43debb92a90e3178460e328faff2",
+      "size": 455
+    },
+    {
+      "path": "src/AngleSharp/Browser/IEncodingProvider.cs",
+      "sha": "7ec62f8355d42479d9389ca8c45da30c4a1df35f",
+      "size": 549
+    },
+    {
+      "path": "src/AngleSharp/Browser/IEventLoop.cs",
+      "sha": "e9ec6540ec5029f89d0811f299e0db40202d70bf",
+      "size": 930
+    },
+    {
+      "path": "src/AngleSharp/Browser/IMetaHandler.cs",
+      "sha": "6f054822bd3ac6bfbf44045d7d1f8e37df202eb8",
+      "size": 436
+    },
+    {
+      "path": "src/AngleSharp/Browser/INavigationHandler.cs",
+      "sha": "d142a3ccb7ee736fa73f05d997b8125b9c0ce878",
+      "size": 1116
+    },
+    {
+      "path": "src/AngleSharp/Browser/IParser.cs",
+      "sha": "64e667db85d7f63431e86108664fa3754232c478",
+      "size": 600
+    },
+    {
+      "path": "src/AngleSharp/Browser/ISpellCheckService.cs",
+      "sha": "913ad1895b3cd032d38c6bf0c178166802d72934",
+      "size": 1258
+    },
+    {
+      "path": "src/AngleSharp/Browser/LocaleEncodingProvider.cs",
+      "sha": "3c3473c5f04bf05d42c661caeb27bbe5984f67f2",
+      "size": 2648
+    },
+    {
+      "path": "src/AngleSharp/Browser/RefreshMetaHandler.cs",
+      "sha": "a9cce155b928c605d2c1578105e8b50aa6eb2d56",
+      "size": 2154
+    },
+    {
+      "path": "src/AngleSharp/Browser/Sandboxes.cs",
+      "sha": "f8316eeddec4c606ab11e63cd004648c1f1e4042",
+      "size": 3094
+    },
+    {
+      "path": "src/AngleSharp/Browser/TaskPriority.cs",
+      "sha": "85a28888c976814c651366df7a9dfc8eee726fe2",
+      "size": 587
+    },
+    {
+      "path": "src/AngleSharp/BrowsingContext.cs",
+      "sha": "aed1ba3c2b6293c1cd1826cad44168351aa6f073",
+      "size": 12486
+    },
+    {
+      "path": "src/AngleSharp/BrowsingContextExtensions.cs",
+      "sha": "5c1694a68f371f4cef3ef25ac7c2edf54568e427",
+      "size": 22505
+    },
+    {
+      "path": "src/AngleSharp/Common/ArrayPoolBuffer.cs",
+      "sha": "adad66b000d92e2785f8346d9e5f9a63662ec20b",
+      "size": 3697
+    },
+    {
+      "path": "src/AngleSharp/Common/ArrayPoolExtensions.cs",
+      "sha": "f878fcba83d31d63f4264a311082ffed96796927",
+      "size": 1034
+    },
+    {
+      "path": "src/AngleSharp/Common/BaseTokenizer.cs",
+      "sha": "ad09f0a677d6f2a01244f9e66097a89fcb7701a7",
+      "size": 16382
+    },
+    {
+      "path": "src/AngleSharp/Common/BufferExtensions.cs",
+      "sha": "91a8fa7e0cafaee2b8a9e849f2ba0532eed37c53",
+      "size": 2851
+    },
+    {
+      "path": "src/AngleSharp/Common/IBindable.cs",
+      "sha": "a771a7ec06bfb9e402f4a83b4f8ed5a3e2a50a2f",
+      "size": 616
+    },
+    {
+      "path": "src/AngleSharp/Common/ICancellable.cs",
+      "sha": "ab68d57f0532899c94566b6ba3095dacb7bd8fa0",
+      "size": 872
+    },
+    {
+      "path": "src/AngleSharp/Common/IMutableCharBuffer.cs",
+      "sha": "dbe226ef1b9044fa02f76b8796a83d55ca9bf98c",
+      "size": 2251
+    },
+    {
+      "path": "src/AngleSharp/Common/Keywords.cs",
+      "sha": "ec2c87e300e0d0781b834be97cc4a61eb03b93d8",
+      "size": 2389
+    },
+    {
+      "path": "src/AngleSharp/Common/ObjectExtensions.cs",
+      "sha": "ff430d6a0991ec142e6e1d66402582d32cbe1d3c",
+      "size": 6824
+    },
+    {
+      "path": "src/AngleSharp/Common/OrdinalStringOrMemoryComparer.cs",
+      "sha": "270c0962387dfcc768c88795059027b4c8471ba2",
+      "size": 584
+    },
+    {
+      "path": "src/AngleSharp/Common/StringBuilderBuffer.cs",
+      "sha": "adb3a30f0bd1c75e67c4aa7f674c8e5de10d9593",
+      "size": 2679
+    },
+    {
+      "path": "src/AngleSharp/Common/StringOrMemory.cs",
+      "sha": "b661430ad38d6236042f0d231014dfc33d5695ae",
+      "size": 6133
+    },
+    {
+      "path": "src/AngleSharp/Common/StringOrMemoryExtensions.cs",
+      "sha": "1820a3ae9f7162453ffaa1ed299017fa00bcd1f7",
+      "size": 1402
+    },
+    {
+      "path": "src/AngleSharp/Configuration.cs",
+      "sha": "31c1cd1436ef616546318957661250a4a3197744",
+      "size": 3412
+    },
+    {
+      "path": "src/AngleSharp/ConfigurationExtensions.cs",
+      "sha": "f5b31bcc830baa216566f073d49c87ead6524f95",
+      "size": 11475
+    },
+    {
+      "path": "src/AngleSharp/Css/CombinatorSymbols.cs",
+      "sha": "44f4f04b56efdff69c5887155775d6256bf49091",
+      "size": 2305
+    },
+    {
+      "path": "src/AngleSharp/Css/CssStyleFormatter.cs",
+      "sha": "bcc3f44505615637a0ac70e2f20af807588a60bf",
+      "size": 3009
+    },
+    {
+      "path": "src/AngleSharp/Css/CssUtilities.cs",
+      "sha": "c439319691d2085e278263a09f1ad29d21ca46a0",
+      "size": 3977
+    },
+    {
+      "path": "src/AngleSharp/Css/DefaultAttributeSelectorFactory.cs",
+      "sha": "bebcfb25a398ad7504aa8786871db02e84639b43",
+      "size": 7195
+    },
+    {
+      "path": "src/AngleSharp/Css/DefaultPseudoClassSelectorFactory.cs",
+      "sha": "04f0b7f9931bb1186c49321073f55c28b2cdd881",
+      "size": 7169
+    },
+    {
+      "path": "src/AngleSharp/Css/DefaultPseudoElementSelectorFactory.cs",
+      "sha": "41edb0e44424ab9404b0b1f90680e45dc0f5e2c4",
+      "size": 3629
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/ICssMedium.cs",
+      "sha": "7c9e1a555feea914841beda2bc0144651b5bcce1",
+      "size": 962
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/IMediaFeature.cs",
+      "sha": "5c148209058e77865559cf618bf5da2a4f27a591",
+      "size": 855
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/IMediaList.cs",
+      "sha": "1e6a6a7de773d6168e9a70d66043332519d60647",
+      "size": 1719
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/IMultiSelector.cs",
+      "sha": "48772630e450ccf632723f3b35c4b1d21f353bcc",
+      "size": 653
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/INestedSelector.cs",
+      "sha": "b3e8d2269abd833e717302d49ec0798aa1b0b969",
+      "size": 357
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/ISelector.cs",
+      "sha": "2b8a851f49f3fda1c94ae42d686f4041beae4578",
+      "size": 1212
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/AllSelector.cs",
+      "sha": "112e76c23350e27664657d75bcd84e86c672d93c",
+      "size": 495
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/AttrAvailableSelector.cs",
+      "sha": "93e3fd85d84b6295e85fa3b0292eeed379ee45f4",
+      "size": 548
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/AttrContainsSelector.cs",
+      "sha": "3ee5e477e0a9c9f072ab75ef314133c988e68b6b",
+      "size": 1100
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/AttrEndsWithSelector.cs",
+      "sha": "7127b96d98867086be6ba58cd000655f19f9f83c",
+      "size": 1095
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/AttrInListSelector.cs",
+      "sha": "d5f0c3c1a867c32efb2243ceb06038d49d07a90d",
+      "size": 1105
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/AttrInTokenSelector.cs",
+      "sha": "fc75ea620cb1022537861c3cf76d10b9f22b974a",
+      "size": 1094
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/AttrMatchSelector.cs",
+      "sha": "c8afd75aa27715ebc479d602380068d4b55ff729",
+      "size": 898
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/AttrNotMatchSelector.cs",
+      "sha": "d7bac1ada9cdf34ef45d3ef1928cf950ed1bf314",
+      "size": 907
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/AttrStartsWithSelector.cs",
+      "sha": "5fb4e8df32e109237cb86b45c13fedb74a9ab9c7",
+      "size": 1101
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/BaseAttrSelector.cs",
+      "sha": "4f696362b661d2e9642338d2942e6da879072bef",
+      "size": 868
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/ChildSelector.cs",
+      "sha": "5b4e482b0d468e362c406f9c9c47eab53d1b8228",
+      "size": 2155
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/ClassSelector.cs",
+      "sha": "3af6b8dc249342083e54a3fbea7cc394f2ae6311",
+      "size": 812
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/ComplexSelector.cs",
+      "sha": "8d06e5bf876454e8e1c04bfdba25ba65d20a1357",
+      "size": 4131
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/CompoundSelector.cs",
+      "sha": "6bf0e375f38112fa53b76d2c2efb681269158459",
+      "size": 1311
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/FirstChildSelector.cs",
+      "sha": "417e77ace37f13a253228fbf5be305c905359e2f",
+      "size": 1899
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/FirstColumnSelector.cs",
+      "sha": "cd4bf15f6075083a0c899de159406e0b5b5806e8",
+      "size": 2011
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/FirstTypeSelector.cs",
+      "sha": "23de9d44e93b70d01f9bc53c9054f07bc7054fe3",
+      "size": 1753
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/IdSelector.cs",
+      "sha": "db65d7b0352644dda3ed71d6a6495484e2bb909d",
+      "size": 555
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/LastChildSelector.cs",
+      "sha": "40be781fdfc95c4baa8adcacf25bff009a809b69",
+      "size": 1876
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/LastColumnSelector.cs",
+      "sha": "262d71bb7060e3bbb428792e7f811288595ed377",
+      "size": 1990
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/LastTypeSelector.cs",
+      "sha": "52e2e1ce5316aab874c55f8b1c3a7e7e885e9774",
+      "size": 1733
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/ListSelector.cs",
+      "sha": "d70f3238493188d585d4ea7ec1abe75b6908446a",
+      "size": 1805
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/NamespaceSelector.cs",
+      "sha": "5be607cb7be73bf0f664416e005ab9da6c2b8119",
+      "size": 689
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/NestedSelector.cs",
+      "sha": "70371ad35b1a4d1feab013a7e67e8b3eb5582ed8",
+      "size": 545
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/PseudoClassSelector.cs",
+      "sha": "0eaa809ecfd4d9e10ee8279fb21d95aa8f8551b0",
+      "size": 1398
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/PseudoElementSelector.cs",
+      "sha": "6c433fb25ca82850dc76c380fe646de359c2e91f",
+      "size": 770
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/ScopePseudoClassSelector.cs",
+      "sha": "262a1f25c717c543158deb37611bcb17238158aa",
+      "size": 754
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/Selectors.cs",
+      "sha": "d5599fd0a479957fc7263a5de0147437956dc7bb",
+      "size": 1414
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/TextContainsMatcher.cs",
+      "sha": "6d19c848a793fb26eb1444b49a5b5ae76282ba6c",
+      "size": 3187
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/Internal/TypeSelector.cs",
+      "sha": "8ee834a4d8dc4b3328aa154a0690690f49625cb7",
+      "size": 708
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/SelectorExtensions.cs",
+      "sha": "d48f3b7f6b703d4d97e3593eb77c3f8fc9711bc4",
+      "size": 5248
+    },
+    {
+      "path": "src/AngleSharp/Css/Dom/StyleExtensions.cs",
+      "sha": "ec6c707de876e71b451b8c67fa95fdb64ca4af1f",
+      "size": 5408
+    },
+    {
+      "path": "src/AngleSharp/Css/IAttributeSelectorFactory.cs",
+      "sha": "2f0d60c578e6449e1a5a324173168575e98468cc",
+      "size": 851
+    },
+    {
+      "path": "src/AngleSharp/Css/IAttributeSelectorFactory2.cs",
+      "sha": "96a8b7b03f3f3a144c868a0e8c89bac5bed9d226",
+      "size": 439
+    },
+    {
+      "path": "src/AngleSharp/Css/IPseudoClassSelectorFactory.cs",
+      "sha": "6856e08985c52e908c5f182556985c22d986134d",
+      "size": 516
+    },
+    {
+      "path": "src/AngleSharp/Css/IPseudoElementSelectorFactory.cs",
+      "sha": "016e0501ab0e71c8660fc6e1ae3311c0d274e234",
+      "size": 527
+    },
+    {
+      "path": "src/AngleSharp/Css/ISelectorVisitor.cs",
+      "sha": "6bea3275485c8b537ee45f1e72650f38e141cc5f",
+      "size": 2742
+    },
+    {
+      "path": "src/AngleSharp/Css/IStylingService.cs",
+      "sha": "43bfa185223259772c5d58171b3101947020646d",
+      "size": 1263
+    },
+    {
+      "path": "src/AngleSharp/Css/Parser/CssCombinator.cs",
+      "sha": "b473f7776da942476108e0d444b7dc490d53aeb2",
+      "size": 12401
+    },
+    {
+      "path": "src/AngleSharp/Css/Parser/CssSelectorConstructor.cs",
+      "sha": "263dadf7538323c392e088d415e8cfd0ffe88e31",
+      "size": 39723
+    },
+    {
+      "path": "src/AngleSharp/Css/Parser/CssSelectorParser.cs",
+      "sha": "2858aebb5d41a337f837cff6074a8690ff414318",
+      "size": 3992
+    },
+    {
+      "path": "src/AngleSharp/Css/Parser/CssSelectorToken.cs",
+      "sha": "ff8dfb1528bfd074ab047d397f8f8059d846dd19",
+      "size": 707
+    },
+    {
+      "path": "src/AngleSharp/Css/Parser/CssStringSourceExtensions.cs",
+      "sha": "edf94e004dae0eaef7faeb02ab72fada090f5fc9",
+      "size": 2849
+    },
+    {
+      "path": "src/AngleSharp/Css/Parser/CssTokenType.cs",
+      "sha": "9d864aa9b3a3294cc70842cbf6b5c2c32c9af96e",
+      "size": 2283
+    },
+    {
+      "path": "src/AngleSharp/Css/Parser/CssTokenizer.cs",
+      "sha": "b155ff56b5c39d60c6f4f7424073a3f375a9fabd",
+      "size": 34113
+    },
+    {
+      "path": "src/AngleSharp/Css/Parser/ICssSelectorParser.cs",
+      "sha": "e992008e3c2ff6d5b537a338f603201686f636d4",
+      "size": 389
+    },
+    {
+      "path": "src/AngleSharp/Css/Priority.cs",
+      "sha": "921bb827f7b28fbdbf591cea90f9109e9480fe9b",
+      "size": 7923
+    },
+    {
+      "path": "src/AngleSharp/Css/PseudoClassNames.cs",
+      "sha": "0a819c1e0a7d9654c8485b3e865c67ea11e95446",
+      "size": 7842
+    },
+    {
+      "path": "src/AngleSharp/Css/PseudoElementNames.cs",
+      "sha": "91d54e7da2d32d748ac53763ac719f6487a3f0ca",
+      "size": 2176
+    },
+    {
+      "path": "src/AngleSharp/Css/StyleOptions.cs",
+      "sha": "e16ad1122c9906b08925eefcca61d9cd3ffe495e",
+      "size": 1254
+    },
+    {
+      "path": "src/AngleSharp/Dom/AdjacentPosition.cs",
+      "sha": "78a90ac70c7703ab565338e43559c1842537cf7a",
+      "size": 820
+    },
+    {
+      "path": "src/AngleSharp/Dom/AttrExtensions.cs",
+      "sha": "0c16cb51c0d9d2ec477b642bd2a7b5dd651fa0f8",
+      "size": 2027
+    },
+    {
+      "path": "src/AngleSharp/Dom/AttributeNames.cs",
+      "sha": "f06fdae3a5ff617ae4e9e56ca6fa0d32c89f684e",
+      "size": 23207
+    },
+    {
+      "path": "src/AngleSharp/Dom/CreateDocumentOptions.cs",
+      "sha": "209489a50899fae24371ad91a3b904435f12dec8",
+      "size": 2350
+    },
+    {
+      "path": "src/AngleSharp/Dom/DefaultDocumentFactory.cs",
+      "sha": "d967e22bb61d6d1619572a63744ba4d065364887",
+      "size": 5763
+    },
+    {
+      "path": "src/AngleSharp/Dom/DirectionMode.cs",
+      "sha": "2cd1757a287599f1abec555fe33592504fdd355b",
+      "size": 400
+    },
+    {
+      "path": "src/AngleSharp/Dom/DocumentExtensions.cs",
+      "sha": "d5b41fd85481131a2224e072d4717798c1865cae",
+      "size": 12504
+    },
+    {
+      "path": "src/AngleSharp/Dom/DocumentPositions.cs",
+      "sha": "3f1bb2f90525e1e27bd40dc18433fc85fc5d5cae",
+      "size": 1410
+    },
+    {
+      "path": "src/AngleSharp/Dom/DocumentReadyState.cs",
+      "sha": "4dfb9ee8d69a21313b2b9b11197c30fae85cfced",
+      "size": 627
+    },
+    {
+      "path": "src/AngleSharp/Dom/DomElementExtensions.cs",
+      "sha": "e1959e0765edb69f3897a85d8a408a40b2109f2c",
+      "size": 1916
+    },
+    {
+      "path": "src/AngleSharp/Dom/DomError.cs",
+      "sha": "5cff2d7760b12ae3b2ec3435d880a7aaa84e9d3c",
+      "size": 5979
+    },
+    {
+      "path": "src/AngleSharp/Dom/DomEventHandler.cs",
+      "sha": "892495558b6893d0bc7ba15b3d5196e0d53ee1de",
+      "size": 360
+    },
+    {
+      "path": "src/AngleSharp/Dom/DomException.cs",
+      "sha": "ab564b1ad9eb67ce4ac47219075c8d553ad9418a",
+      "size": 1170
+    },
+    {
+      "path": "src/AngleSharp/Dom/ElementExtensions.cs",
+      "sha": "23a561ad92149017632d30df0bd392406661a4eb",
+      "size": 66486
+    },
+    {
+      "path": "src/AngleSharp/Dom/EventNames.cs",
+      "sha": "1c91967f04c40051599739c342cef0b6ee0c2821",
+      "size": 11918
+    },
+    {
+      "path": "src/AngleSharp/Dom/EventTarget.cs",
+      "sha": "4ce7148f655d8da25de6bb6efce17bf37b8aa6a3",
+      "size": 5959
+    },
+    {
+      "path": "src/AngleSharp/Dom/EventTargetExtensions.cs",
+      "sha": "899b7ea0efea5885b29a03065299afa90e84d653",
+      "size": 4026
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/CustomEvent.cs",
+      "sha": "330ed774935847b27fa35413948a1b3091c8cd44",
+      "size": 2048
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/DefaultEventFactory.cs",
+      "sha": "12211560e411c7792007f0d1c91600cab5aa9fe8",
+      "size": 3316
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/ErrorEvent.cs",
+      "sha": "b1b7da11c58c54c30ab743a4f2ea4b69a04899a6",
+      "size": 1907
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/Event.cs",
+      "sha": "4769b4c5e72af05c86092154bc15d3d274f2edd4",
+      "size": 12832
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/EventPhase.cs",
+      "sha": "03f6ccea7ab1ff287bbb82ae87553cfecd197761",
+      "size": 1155
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/FocusEvent.cs",
+      "sha": "e07db2233e45edcf5c32f7bffd8269ba64ce4c18",
+      "size": 2402
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/HashChangedEvent.cs",
+      "sha": "c2363f6d09743f3791a85b33dc9f562a5535810c",
+      "size": 2644
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/IEventFactory.cs",
+      "sha": "a00432715ecbadb4ede53f1df4dfab5b2b99fe4d",
+      "size": 465
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/IGlobalEventHandlers.cs",
+      "sha": "9e9c2c86ddc6a84cdb3ccb79111e90e58f302140",
+      "size": 10225
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/IMessagePort.cs",
+      "sha": "e5f66c9900675b02806932e2da5ea65611eb6768",
+      "size": 1089
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/IWindowEventHandlers.cs",
+      "sha": "856dc67c2024c814a9196af2caed479735725394",
+      "size": 2392
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/MessageEvent.cs",
+      "sha": "e30a7ae9594b0fcaadaf1aa047094e0ebc8821a7",
+      "size": 3984
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/PageTransitionEvent.cs",
+      "sha": "ccbf133d71ea9428330865d9ed620c5a62e356c7",
+      "size": 2063
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/RequestEvent.cs",
+      "sha": "36f4358d89bc053d62e829a47f7bc214893e7e9b",
+      "size": 926
+    },
+    {
+      "path": "src/AngleSharp/Dom/Events/UiEvent.cs",
+      "sha": "3092e37920b5669c7f9610058077da5afcc85f12",
+      "size": 2364
+    },
+    {
+      "path": "src/AngleSharp/Dom/FilterResult.cs",
+      "sha": "54ff56a45720d60b0c0295a52378ee0c09f98a8e",
+      "size": 709
+    },
+    {
+      "path": "src/AngleSharp/Dom/FilterSettings.cs",
+      "sha": "3fbac0ed53a5d3f9e64a4dfea52558a51a71f50f",
+      "size": 2348
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/DomMatrix.cs",
+      "sha": "c269eac5d45d86f42c7e9af8871802c569e8e1cd",
+      "size": 17237
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/DomMatrix2DInit.cs",
+      "sha": "77970e1a553457d326d8b9d221e3429797906026",
+      "size": 1760
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/DomMatrixInit.cs",
+      "sha": "7a412b9eb0162e895afd9b09a113168dd0e24473",
+      "size": 1668
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/DomMatrixReadOnly.cs",
+      "sha": "70d799f63909709eab783d1fc73b5ab2378a4e6f",
+      "size": 17621
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/DomPoint.cs",
+      "sha": "5e32e1d13e0d81be4f0fa3aa7a118c7b292edd9b",
+      "size": 1541
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/DomPointInit.cs",
+      "sha": "69bc412f48fa0ee8335498b81933a3f47b7a27c5",
+      "size": 714
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/DomPointReadOnly.cs",
+      "sha": "c75ed5229bff3a8b23d869e4d04ce63ecab527b4",
+      "size": 1785
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/DomQuad.cs",
+      "sha": "28f8882ae60d7a02597b4dd45cbd4571cacac154",
+      "size": 2567
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/DomQuadInit.cs",
+      "sha": "a9ef3e6793b5789b7c40480c6300408e894edb27",
+      "size": 726
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/DomRect.cs",
+      "sha": "d1e9a3e7da97c23b89869fa38b63992102116b42",
+      "size": 1590
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/DomRectInit.cs",
+      "sha": "839386ad457d6578fcaabfe3e2ed7dabec4c604c",
+      "size": 722
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/DomRectList.cs",
+      "sha": "624418bdc6f3ea0e67ff36bf4da2ff5551f5c6e6",
+      "size": 1162
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/DomRectReadOnly.cs",
+      "sha": "1737908511f5acc0ba92c8743f0cdb0af918ee5f",
+      "size": 2146
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/GeometryMath.cs",
+      "sha": "d0d8189ff153fff8ea60fbec34e312e465887f47",
+      "size": 1046
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/IDomMatrix.cs",
+      "sha": "e06eab0bcb607d93fe74dc08cc5b7b04cd11c2a9",
+      "size": 4402
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/IDomMatrixReadOnly.cs",
+      "sha": "7c810c964497d9a7a7926cf95da4847d55b29544",
+      "size": 4601
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/IDomPoint.cs",
+      "sha": "e2676976da34932fb4e4e3727fc394be420ed970",
+      "size": 574
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/IDomPointReadOnly.cs",
+      "sha": "7cfeed3192a94d39a3a22a91311dc5cf93ca5492",
+      "size": 655
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/IDomQuad.cs",
+      "sha": "0ca8afc184cdac02abfb159ade4422c383dc4dd6",
+      "size": 598
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/IDomRect.cs",
+      "sha": "b2e3a2388d1d10dcd6d8f458eff5d87679350c19",
+      "size": 580
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/IDomRectList.cs",
+      "sha": "4338b1623226400920142a6995de727ffa7dd4cd",
+      "size": 416
+    },
+    {
+      "path": "src/AngleSharp/Dom/Geometry/IDomRectReadOnly.cs",
+      "sha": "63e70e33c44351b17c23f3a8f82f0441c812a34d",
+      "size": 860
+    },
+    {
+      "path": "src/AngleSharp/Dom/HorizontalAlignment.cs",
+      "sha": "9433c9474aeff99fd77ff380dfd61c2c305f0f42",
+      "size": 906
+    },
+    {
+      "path": "src/AngleSharp/Dom/IAttr.cs",
+      "sha": "d34db4524cbbab81384c5f1b1372cb6fa8ea8e3f",
+      "size": 1361
+    },
+    {
+      "path": "src/AngleSharp/Dom/IAttributeObserver.cs",
+      "sha": "d7be8d276e3acaca06c1194c66dbac4da0dd0566",
+      "size": 617
+    },
+    {
+      "path": "src/AngleSharp/Dom/ICharacterData.cs",
+      "sha": "7d38df1b883c9a1c85876636245afee509f0d977",
+      "size": 2769
+    },
+    {
+      "path": "src/AngleSharp/Dom/IChildNode.cs",
+      "sha": "f561be68ac8a514a1938d273e5a115a2482e32b6",
+      "size": 1147
+    },
+    {
+      "path": "src/AngleSharp/Dom/IComment.cs",
+      "sha": "8cbd258c7e0e50f000addb0653857e9a84af3ab0",
+      "size": 380
+    },
+    {
+      "path": "src/AngleSharp/Dom/IDocument.cs",
+      "sha": "3fff047fc04030ea2157814f2894999e72d353b6",
+      "size": 21288
+    },
+    {
+      "path": "src/AngleSharp/Dom/IDocumentFactory.cs",
+      "sha": "2e82eb67b92e22aceafdf964358c0f2106a65b24",
+      "size": 794
+    },
+    {
+      "path": "src/AngleSharp/Dom/IDocumentFragment.cs",
+      "sha": "fc07d28baa4a1070610d5253bb9e419eacd47067",
+      "size": 336
+    },
+    {
+      "path": "src/AngleSharp/Dom/IDocumentStyle.cs",
+      "sha": "ba54b4e39f7b1d2887f4c513aca7652662f9e1d5",
+      "size": 1739
+    },
+    {
+      "path": "src/AngleSharp/Dom/IDocumentType.cs",
+      "sha": "a9ca4d5e13389a0d400bcada6bb9e0d2395a4ff1",
+      "size": 805
+    },
+    {
+      "path": "src/AngleSharp/Dom/IDomException.cs",
+      "sha": "e8f5dabe8ee098e3558e51ed56284d061179a5e7",
+      "size": 402
+    },
+    {
+      "path": "src/AngleSharp/Dom/IElement.cs",
+      "sha": "ca2151940dcedb6cd2e2005a81d1258377508e68",
+      "size": 10904
+    },
+    {
+      "path": "src/AngleSharp/Dom/IElementFactory.cs",
+      "sha": "c4727c0d9ddd6395342126d5f0c58f5ca2d786da",
+      "size": 1034
+    },
+    {
+      "path": "src/AngleSharp/Dom/IEntityProvider.cs",
+      "sha": "ca1b1a1423266c9ab6b02c168a36089c127ddd69",
+      "size": 1105
+    },
+    {
+      "path": "src/AngleSharp/Dom/IEventTarget.cs",
+      "sha": "3f0c73b6a9746d55f389eb4fb31e810cfaea7cac",
+      "size": 2711
+    },
+    {
+      "path": "src/AngleSharp/Dom/IHtmlAllCollection.cs",
+      "sha": "9b460a8889d35c6d1abc4cd4109113fedfffc3f1",
+      "size": 384
+    },
+    {
+      "path": "src/AngleSharp/Dom/IHtmlCollection.cs",
+      "sha": "28ce9f79af8e4c74ba52eaf236ae623b5baa96e5",
+      "size": 1646
+    },
+    {
+      "path": "src/AngleSharp/Dom/IImplementation.cs",
+      "sha": "e2f990448610a7c6104b6981b5f7abeafbe0d37a",
+      "size": 1877
+    },
+    {
+      "path": "src/AngleSharp/Dom/ILinkImport.cs",
+      "sha": "88ae6ad59849f77230db9e4fe297ea4a4c476e3c",
+      "size": 475
+    },
+    {
+      "path": "src/AngleSharp/Dom/ILinkStyle.cs",
+      "sha": "e65510885360386831c90453896f295027f6a579",
+      "size": 479
+    },
+    {
+      "path": "src/AngleSharp/Dom/ILocation.cs",
+      "sha": "df784217be590114caac8921e47126e340601f07",
+      "size": 1309
+    },
+    {
+      "path": "src/AngleSharp/Dom/IMutationRecord.cs",
+      "sha": "8b152cd15869c0796034fcc77684c3974d49276b",
+      "size": 2450
+    },
+    {
+      "path": "src/AngleSharp/Dom/INamedNodeMap.cs",
+      "sha": "b4cc72e9eb8472a4a7742aee528e0b7adf1546aa",
+      "size": 3422
+    },
+    {
+      "path": "src/AngleSharp/Dom/INode.cs",
+      "sha": "ca3182eb5f3d7bb0f43301d65bb3ec43d0092ef1",
+      "size": 9028
+    },
+    {
+      "path": "src/AngleSharp/Dom/INodeIterator.cs",
+      "sha": "2612d1e3e758367fc2bcaa2010b06cc76e9d3733",
+      "size": 1975
+    },
+    {
+      "path": "src/AngleSharp/Dom/INodeList.cs",
+      "sha": "5eed35e1331397a2f630d171eab81eea452ee611",
+      "size": 830
+    },
+    {
+      "path": "src/AngleSharp/Dom/INonDocumentTypeChildNode.cs",
+      "sha": "acbfb9d1ec170bc8099bb31bc8ba35c8edc87585",
+      "size": 949
+    },
+    {
+      "path": "src/AngleSharp/Dom/INonElementParentNode.cs",
+      "sha": "d65a87683c2cbd7b4b3ba3515cc2b8f6c0adf730",
+      "size": 850
+    },
+    {
+      "path": "src/AngleSharp/Dom/IParentNode.cs",
+      "sha": "50e54b439fb51dfa911f32d6c2fd3d68c49b2d97",
+      "size": 2422
+    },
+    {
+      "path": "src/AngleSharp/Dom/IProcessingInstruction.cs",
+      "sha": "205bbab5cd9c47c7480d418315ac8283d1c3e3fe",
+      "size": 681
+    },
+    {
+      "path": "src/AngleSharp/Dom/IPseudoElement.cs",
+      "sha": "3522d0192f211d388b9bd7393145aa40ebaac6cf",
+      "size": 466
+    },
+    {
+      "path": "src/AngleSharp/Dom/IRange.cs",
+      "sha": "982bd2fd19b84880b4ad537c11f8e3b87613c577",
+      "size": 7414
+    },
+    {
+      "path": "src/AngleSharp/Dom/IReverseEntityProvider.cs",
+      "sha": "f39b06f272fac5bc38c0f3298b35351e229537f6",
+      "size": 479
+    },
+    {
+      "path": "src/AngleSharp/Dom/ISettableTokenList.cs",
+      "sha": "4c2e11df8a219d567f2ced049c6f5873881f01e3",
+      "size": 485
+    },
+    {
+      "path": "src/AngleSharp/Dom/IShadowRoot.cs",
+      "sha": "80b892beafd9f1d9d027609675bd45d4dc5cc21e",
+      "size": 1123
+    },
+    {
+      "path": "src/AngleSharp/Dom/ISourceReference.cs",
+      "sha": "183fa2881d12e0f2feeb3c720d5ab99b26ca6cc2",
+      "size": 362
+    },
+    {
+      "path": "src/AngleSharp/Dom/IStringList.cs",
+      "sha": "8022ca127b4d749758ff4d40dff7e13bc4338da2",
+      "size": 1269
+    },
+    {
+      "path": "src/AngleSharp/Dom/IStringMap.cs",
+      "sha": "e2d0f6738502994886a21e026f9f26f9362a89e6",
+      "size": 951
+    },
+    {
+      "path": "src/AngleSharp/Dom/IStyleSheet.cs",
+      "sha": "80dfec4fa4fa3a8d864eb33a4698ef1720f0fdfb",
+      "size": 2651
+    },
+    {
+      "path": "src/AngleSharp/Dom/IStyleSheetList.cs",
+      "sha": "ef2fff61d5efaf13b0071e5597fb11e965805d3e",
+      "size": 942
+    },
+    {
+      "path": "src/AngleSharp/Dom/IText.cs",
+      "sha": "aaa09a56c242d5378ea86f6a5fa21b2b6db88ea1",
+      "size": 1381
+    },
+    {
+      "path": "src/AngleSharp/Dom/ITokenList.cs",
+      "sha": "ad5fbfbc03c8cc5269fa670b148bf2e436dc04c3",
+      "size": 2142
+    },
+    {
+      "path": "src/AngleSharp/Dom/ITreeWalker.cs",
+      "sha": "ef8e2d5d4d11ada67f20deaab8d8dc2a2f7a3a9c",
+      "size": 4111
+    },
+    {
+      "path": "src/AngleSharp/Dom/IUrlUtilities.cs",
+      "sha": "d50bbb0b3bbe7264d71cbbe63d54c7c6f0847c34",
+      "size": 2281
+    },
+    {
+      "path": "src/AngleSharp/Dom/IWindow.cs",
+      "sha": "0742331122b8a13437397c58d318858d477883ec",
+      "size": 4741
+    },
+    {
+      "path": "src/AngleSharp/Dom/IWindowTimers.cs",
+      "sha": "c608cbd045deb0da76898b95bd6797669a336070",
+      "size": 1772
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/AnyElement.cs",
+      "sha": "6f64afb5ac8c63dd10739fd2b2c4e35e1884e768",
+      "size": 435
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/Attr.cs",
+      "sha": "9873945f46fb7994203ce7e2c6c6770280b43e2f",
+      "size": 7713
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/CharacterData.cs",
+      "sha": "b68befddb9936245fc969d705a1a1ad2ab0247c7",
+      "size": 5849
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/CollectionExtensions.cs",
+      "sha": "72af58ff78f5c19099e9084de7eb551ff261c713",
+      "size": 6666
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/Comment.cs",
+      "sha": "115dc248a5aac17efa08dec6bdd249ad933dc708",
+      "size": 726
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/ContentEditableMode.cs",
+      "sha": "5003b857f85fa43c80441279923f5d1a010a8f67",
+      "size": 485
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/DefaultAttributeObserver.cs",
+      "sha": "9aa8b18c8a0d9dabd48398fcb784d6c535953fcc",
+      "size": 5381
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/Document.cs",
+      "sha": "38bfbf8ef72dd63f1ce235274283f2a607b0c70a",
+      "size": 54240
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/DocumentFragment.cs",
+      "sha": "9c49eaeb6a36bd91001420fb0c0978ab2008e835",
+      "size": 3855
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/DocumentType.cs",
+      "sha": "5168c9c1cc924eaec186189a0c31cd19812132f0",
+      "size": 5360
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/DomImplementation.cs",
+      "sha": "1f7f0e31bd79799573a15631f10051df65575d17",
+      "size": 3375
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/Element.cs",
+      "sha": "80a8893a9ce5ba58c6a6ce8ab6b1e0c3f771edaf",
+      "size": 23212
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/ElementTreeEnumerator.cs",
+      "sha": "0bde092a64a1bb9ac90d0bcb496e0467f35c4da3",
+      "size": 3357
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/Entity.cs",
+      "sha": "218f44e97d6de632af334f93d4c925927c9ee152",
+      "size": 3287
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/EntityReference.cs",
+      "sha": "95e3a2b72086b644a16e21850379f97e98912e53",
+      "size": 1029
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/HtmlAllCollection.cs",
+      "sha": "3975aa8b7ec1b5b6e2f268bf428af3c71bd53c09",
+      "size": 1293
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/HtmlCollection.cs",
+      "sha": "6c66b5b3dd2b90cacd756485b789f9435fed3181",
+      "size": 1380
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/HtmlFormControlsCollection.cs",
+      "sha": "a727b71c9ecaf4efa6c7935aa094b00c009bfd02",
+      "size": 2175
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/IPreInsert.cs",
+      "sha": "0f693409e7f21a36fd0c77c52e9ba11a56e5a937",
+      "size": 133
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/IPreRemove.cs",
+      "sha": "036655b0feaf076ee8295cd3992039d2764ea53a",
+      "size": 133
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/Location.cs",
+      "sha": "88b2f3d0129c5a42dd0d04360fd24919fe4a7488",
+      "size": 6325
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/MutationHost.cs",
+      "sha": "cd0a44d0b2506112c86c713a36798705238c39a0",
+      "size": 1688
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/MutationRecord.cs",
+      "sha": "d3a435f7483ea0a618ed207b69a7f14677d587ed",
+      "size": 3560
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/NamedNodeMap.cs",
+      "sha": "22a9915c34b9c163bf37c59bb5141e8039efb857",
+      "size": 8909
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/Node.cs",
+      "sha": "e392434e73e03cbbb50be2c605f04815be36e2b2",
+      "size": 28870
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/NodeEnumerable.cs",
+      "sha": "02617d499024433baa899937fef9031db7469cf5",
+      "size": 2322
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/NodeFlags.cs",
+      "sha": "823aa487c65dd5eeddc04e26c39c9123de2773d5",
+      "size": 2806
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/NodeIterator.cs",
+      "sha": "03775a171119c39ba829f1f3ab09d2a20f42098e",
+      "size": 4082
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/NodeList.cs",
+      "sha": "db1d5e2a82f9deda1ac98985bc347e7b99a4d7a8",
+      "size": 5271
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/Notation.cs",
+      "sha": "43c6af6062d78d591c42a22f83d55c8ed61dcf54",
+      "size": 1413
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/OptionsCollection.cs",
+      "sha": "41cc9d78e8a35d43431b7b4cefd42a4dc93d3877",
+      "size": 4184
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/ProcessingInstruction.cs",
+      "sha": "5a4ffa183687cdd81b4e0e99742ba46097065506",
+      "size": 1314
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/QuirksMode.cs",
+      "sha": "d613ca79d5253feff844eda0f3a97ccb2813f6e6",
+      "size": 553
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/Range.cs",
+      "sha": "65450493f874a4df27db7cabc56dfb5939d26e1e",
+      "size": 32276
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/SettableTokenList.cs",
+      "sha": "749c433ea6c059f586570f1743a71f7a68868e73",
+      "size": 511
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/ShadowRoot.cs",
+      "sha": "2e77ef8b5dbe7ea2e8dd99d1dea1d74a7100223b",
+      "size": 4079
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/SimpleChoice.cs",
+      "sha": "af35b0b088b74e22534ec53c2120db0eb2ba99f0",
+      "size": 297
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/StringList.cs",
+      "sha": "ac84dcca7642787cfaaaa3d8930e0fe56fbcf977",
+      "size": 1081
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/StringMap.cs",
+      "sha": "c0075a41ad035f7eaf1af3fd71fdb8a439e8250a",
+      "size": 2520
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/StyleSheetList.cs",
+      "sha": "a069b39cdfe177885ac7b6c3db7d5da41c8616b2",
+      "size": 1900
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/TextNode.cs",
+      "sha": "bc06f7f45bd6a5de04338d92d3dc948fcc071f34",
+      "size": 4057
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/TokenList.cs",
+      "sha": "cfd78a7b61b081b2963a734a7f3326c179427e91",
+      "size": 3198
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/TreeWalker.cs",
+      "sha": "39235b3d0de90dd4d82ba0c4414fd3588964fc01",
+      "size": 8995
+    },
+    {
+      "path": "src/AngleSharp/Dom/Internal/Window.cs",
+      "sha": "2127d5a629a869b05db12e8d4e0c3908551737a0",
+      "size": 21749
+    },
+    {
+      "path": "src/AngleSharp/Dom/MutationCallback.cs",
+      "sha": "33b755f43779df8d36915b7395c366e4b1194a3a",
+      "size": 349
+    },
+    {
+      "path": "src/AngleSharp/Dom/MutationObserver.cs",
+      "sha": "c92653dfc08fd934974425cc8eb4086ff763c786",
+      "size": 9962
+    },
+    {
+      "path": "src/AngleSharp/Dom/NamespaceNames.cs",
+      "sha": "4d448c1dc388be5e8994dfb46083897b539e5bf4",
+      "size": 1716
+    },
+    {
+      "path": "src/AngleSharp/Dom/NodeExtensions.cs",
+      "sha": "4cf613de094d155cf3204687e33c70df27d1d55f",
+      "size": 26958
+    },
+    {
+      "path": "src/AngleSharp/Dom/NodeFilter.cs",
+      "sha": "aeb930bcca967c9bc1ed92f961023c9861ebd745",
+      "size": 313
+    },
+    {
+      "path": "src/AngleSharp/Dom/NodeType.cs",
+      "sha": "feb82f16090442d2c862a8835f50dac05a74febf",
+      "size": 2067
+    },
+    {
+      "path": "src/AngleSharp/Dom/ParentNodeExtensions.cs",
+      "sha": "9cd2e9141f681a05aa3493b8418a48482ab6f00c",
+      "size": 13379
+    },
+    {
+      "path": "src/AngleSharp/Dom/QueryExtensions.cs",
+      "sha": "b4625861c36ff1803017c417e17cad64a2e1b88a",
+      "size": 20854
+    },
+    {
+      "path": "src/AngleSharp/Dom/RangePosition.cs",
+      "sha": "486735a3e89a3d4bd41169c4e446116b5ea182ac",
+      "size": 625
+    },
+    {
+      "path": "src/AngleSharp/Dom/RangeType.cs",
+      "sha": "0de0602587625c72c74d6d27fb4270f6da537ad4",
+      "size": 876
+    },
+    {
+      "path": "src/AngleSharp/Dom/SelectorExtensions.cs",
+      "sha": "2d17c776c8f14f1db96de2c47a0a206ee82e3745",
+      "size": 15712
+    },
+    {
+      "path": "src/AngleSharp/Dom/ShadowRootMode.cs",
+      "sha": "76c9ac9db0cfa98af27807479326a1028ce07eeb",
+      "size": 537
+    },
+    {
+      "path": "src/AngleSharp/Dom/TagNames.cs",
+      "sha": "b8b4f7204ac293c0b20b901d803a38e38d543951",
+      "size": 26934
+    },
+    {
+      "path": "src/AngleSharp/Dom/Url.cs",
+      "sha": "9113b1f5dc19ce4b3edd0762a16946ec9bccf79e",
+      "size": 51117
+    },
+    {
+      "path": "src/AngleSharp/Dom/UrlSearchParams.cs",
+      "sha": "4615bca8da1750adca22a292f6dc2d44c76ec483",
+      "size": 6531
+    },
+    {
+      "path": "src/AngleSharp/Dom/VerticalAlignment.cs",
+      "sha": "e79306e089c21a756088641b80b567d070a0fe78",
+      "size": 1720
+    },
+    {
+      "path": "src/AngleSharp/Dom/Visibility.cs",
+      "sha": "0059959cb34d94de907cedc02c65d4286c18a460",
+      "size": 1369
+    },
+    {
+      "path": "src/AngleSharp/Dom/WordBreak.cs",
+      "sha": "dbd95e7f4f2c95bcd9d94401aa81277822f2f9fd",
+      "size": 812
+    },
+    {
+      "path": "src/AngleSharp/FormatExtensions.cs",
+      "sha": "d3fe4261ec7a5cdd77410d41ead6fdc50ad8cfd6",
+      "size": 5886
+    },
+    {
+      "path": "src/AngleSharp/Html/Construction/HtmlConstructionFactory.cs",
+      "sha": "3a2e0b367889e17471750a1d81c2e3cb6e631052",
+      "size": 3627
+    },
+    {
+      "path": "src/AngleSharp/Html/Construction/IConstructableAttr.cs",
+      "sha": "d45a9b86bbf467f6ce63245ec36d2d83b9c33755",
+      "size": 380
+    },
+    {
+      "path": "src/AngleSharp/Html/Construction/IConstructableDocument.cs",
+      "sha": "933560da0217d2f31d2569b770447d19ced2a9bb",
+      "size": 2472
+    },
+    {
+      "path": "src/AngleSharp/Html/Construction/IConstructableElement.cs",
+      "sha": "cef8960fabab1a8b60ff200b52e9df097df00c7d",
+      "size": 3445
+    },
+    {
+      "path": "src/AngleSharp/Html/Construction/IConstructableNamedNodeMap.cs",
+      "sha": "9806adb249eb45c1b5abf98a65a26ad71df12f94",
+      "size": 689
+    },
+    {
+      "path": "src/AngleSharp/Html/Construction/IConstructableNode.cs",
+      "sha": "41abe1008aadbbd575356f09d3e2746eba12eaf6",
+      "size": 2607
+    },
+    {
+      "path": "src/AngleSharp/Html/Construction/IConstructableNodeList.cs",
+      "sha": "d8c6e699a192d008ac6e8449da110c3fdaa44d11",
+      "size": 586
+    },
+    {
+      "path": "src/AngleSharp/Html/Construction/IDomConstructionElementFactory.cs",
+      "sha": "e7b7d2a2875f8d877f195e0f22228c8a285d008c",
+      "size": 4472
+    },
+    {
+      "path": "src/AngleSharp/Html/Construction/Markers.cs",
+      "sha": "19254d053ec7c73117d170d2b24f12460732a1b4",
+      "size": 1674
+    },
+    {
+      "path": "src/AngleSharp/Html/DefaultInputTypeFactory.cs",
+      "sha": "37e2d3b9a172a52d8072cb17f22d10b93b7396ae",
+      "size": 5199
+    },
+    {
+      "path": "src/AngleSharp/Html/DefaultLinkRelationFactory.cs",
+      "sha": "1d2067ae530236a5bc54699fe3334dfa0a979cb9",
+      "size": 3010
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/CompositionEvent.cs",
+      "sha": "027f0622432dc619571e9f6a33410681b91d5298",
+      "size": 2297
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/HtmlErrorEvent.cs",
+      "sha": "0fb08f22d3a71ba2ea69327c8fdf2cdc24fa237c",
+      "size": 1458
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/HtmlParseEvent.cs",
+      "sha": "e9dc7bb80549f189c6f6c76e8abe8a6f4ddbff69",
+      "size": 927
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/ITouchList.cs",
+      "sha": "95942d693813be4d2e16f1f62530b072d12c6803",
+      "size": 762
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/ITouchPoint.cs",
+      "sha": "0027b65d9026bbdd284f940dfc8f0dd4090cd0fe",
+      "size": 1576
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/InputEvent.cs",
+      "sha": "93fe83ec0c8bc73dc446a906e897d3df273b5ab9",
+      "size": 2011
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/KeyboardEvent.cs",
+      "sha": "d267d630a971f98638c7392eddb7da61d41f330b",
+      "size": 5434
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/KeyboardLocation.cs",
+      "sha": "18a26a0180f0e09d2adb35f9cc852282a55f7ae2",
+      "size": 841
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/ModifierExtensions.cs",
+      "sha": "017257d262603c916b07285e7b9e34e017339269",
+      "size": 824
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/MouseButton.cs",
+      "sha": "5ebe2f30dca0bcd2d297526422dc032128df2d30",
+      "size": 798
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/MouseButtons.cs",
+      "sha": "6e3db1ede1a3df472ce5d0c2d700b136830d06bd",
+      "size": 926
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/MouseEvent.cs",
+      "sha": "10961d407a694f85ab2921d599ab527f74027cdf",
+      "size": 7144
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/TouchEvent.cs",
+      "sha": "466954bd63b405d3db71355975609922cc7344e3",
+      "size": 5317
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/TrackEvent.cs",
+      "sha": "080baf52ce76b9e1a25fd8dfeecea570af98a5e5",
+      "size": 2026
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/WheelEvent.cs",
+      "sha": "21a9913aefa175b3774aa27c81b98964b7272776",
+      "size": 5447
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Events/WheelMode.cs",
+      "sha": "8b65a682d9beaf174b42c7189eb68f0810b71bcc",
+      "size": 679
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/FormExtensions.cs",
+      "sha": "bebe7bb0e6d6b1d8d7b923839057a733c855abbd",
+      "size": 6787
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlAnchorElement.cs",
+      "sha": "d3035295400f8379d99d00d0123e43ed8c7ccf5d",
+      "size": 2044
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlAreaElement.cs",
+      "sha": "3b3045777d8313d342571a9fcfb2688b216f03d2",
+      "size": 2443
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlAudioElement.cs",
+      "sha": "3a9b282e83f6d8011f0571616b67fa0f7c0ebcca",
+      "size": 256
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlBaseElement.cs",
+      "sha": "3e7577f3d50742899dbc193b3159353407b5fbb0",
+      "size": 583
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlBodyElement.cs",
+      "sha": "9c2febfe0019210a3d0c7af3c863306db8a269e5",
+      "size": 303
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlBreakRowElement.cs",
+      "sha": "42404bd8ae5203b336e9b22c51130e9e5a9cd9a3",
+      "size": 248
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlButtonElement.cs",
+      "sha": "562160e2452d53e0212038cd5e0ec6ff25303ba8",
+      "size": 3192
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlCanvasElement.cs",
+      "sha": "eb4c2062a14bd26167ae004927be9128e90c840a",
+      "size": 2339
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlCommandElement.cs",
+      "sha": "19894010b4ef9345303c9b1bdf50cbd74b277ee1",
+      "size": 1410
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlDataElement.cs",
+      "sha": "2cacb16cf53524471487ea51ebaa1c84e863fbe1",
+      "size": 424
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlDataListElement.cs",
+      "sha": "b4eecd8632c35c68cb7b2387e8cd1e95137bac63",
+      "size": 462
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlDetailsElement.cs",
+      "sha": "3464bfe9c116001189dbe63467a9e1744813181d",
+      "size": 434
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlDialogElement.cs",
+      "sha": "0abb9fb448f4639478260c93581fc64e6806a65b",
+      "size": 1407
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlDivElement.cs",
+      "sha": "b23c9ba72b85e66b7aaa65c4b725831c533d4b41",
+      "size": 245
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlDocument.cs",
+      "sha": "0e2a90d6fb023a6694f14264a426eb752fb9d456",
+      "size": 292
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlElement.cs",
+      "sha": "79310c8ba617386c097675a221ccfd799a0298df",
+      "size": 3982
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlEmbedElement.cs",
+      "sha": "6a8c82b054801546a62c2b1badd2842e1ede0973",
+      "size": 981
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlFieldSetElement.cs",
+      "sha": "b37f64da670695dd81c6d4beff9fb106c6a3e302",
+      "size": 1141
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlFormControlsCollection.cs",
+      "sha": "7afaed68b85ac4e5149481a36629cca9ab892a80",
+      "size": 323
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlFormElement.cs",
+      "sha": "5ecd82ac8fcea65861e0fa0592b2988bd15326ef",
+      "size": 5078
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlHeadElement.cs",
+      "sha": "d31c3ce2dc9f60e40961f10b0639b87a69af5e32",
+      "size": 248
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlHeadingElement.cs",
+      "sha": "d5769ac132b3c9ce3f52e2d266330e8f145a48d7",
+      "size": 260
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlHrElement.cs",
+      "sha": "a97fab42738cffcef04e55ce138a875aeedc1418",
+      "size": 242
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlHtmlElement.cs",
+      "sha": "6fadac40c206cc1907bc51ae8e004f2608223a6b",
+      "size": 439
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlImageElement.cs",
+      "sha": "0334e74742159a9c010c1777bb1c384c3f56c55b",
+      "size": 2693
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlInlineFrameElement.cs",
+      "sha": "48b4db744fd30c2a7f09e01fd69c7982d5b52231",
+      "size": 2538
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlInputElement.cs",
+      "sha": "ba9ed8fbc5d82d43f8ccfbc2fa4820e92eb45ba6",
+      "size": 12860
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlKeygenElement.cs",
+      "sha": "9dde54ab631cae9421ed0e959b7eeaec2da42aa5",
+      "size": 1720
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlLabelElement.cs",
+      "sha": "793dcb6383a693ffa9dacf5903223269a6b84fd4",
+      "size": 831
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlLegendElement.cs",
+      "sha": "793c622723f064c331eae71beafcb8a6506cef59",
+      "size": 416
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlLinkElement.cs",
+      "sha": "136047595f1870f5e5d4ebe19db26ac7bde7fe1c",
+      "size": 2574
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlListItemElement.cs",
+      "sha": "012bcb8f44ea111f0e45a4cc30aa5d4e5a0227b2",
+      "size": 428
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlMapElement.cs",
+      "sha": "862f698a176fbf69a23d3fa00b6be20e5e07bf15",
+      "size": 898
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlMarqueeElement.cs",
+      "sha": "41b5e18e32e425233edee103b6667badf113a9a4",
+      "size": 915
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlMediaElement.cs",
+      "sha": "1d72dc8e5ffd72d0c22294b23236b003733f7901",
+      "size": 4428
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlMenuElement.cs",
+      "sha": "8d53f17908ae2796a75fb0bc3fa7374fc0f140ec",
+      "size": 594
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlMenuItemElement.cs",
+      "sha": "a74bb870e84dce72450ebaaf6899ffea8b480904",
+      "size": 1692
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlMetaElement.cs",
+      "sha": "d47c6d6f05c413c42fbaf19da6eb6bd7ce8ec5c4",
+      "size": 1032
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlMeterElement.cs",
+      "sha": "a19045bee0f718c8cc7e02c8fd60636bb63ee832",
+      "size": 1190
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlModElement.cs",
+      "sha": "61972510a7de168e9e0488883d2c511f4b0bdef6",
+      "size": 726
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlObjectElement.cs",
+      "sha": "1714b0e0ff4a478b7a2656dfe353c4a072fa6db1",
+      "size": 2498
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlOptionElement.cs",
+      "sha": "1a1f06b99730c0aee8b8a5c3c2f5fb06329605b2",
+      "size": 1580
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlOptionsCollection.cs",
+      "sha": "b78ac4469808e852b2240f474375ceb1a7606cdd",
+      "size": 2151
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlOptionsGroupElement.cs",
+      "sha": "ab0af736b9bea75a5008e67f3060c6f896e9e61a",
+      "size": 605
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlOrderedListElement.cs",
+      "sha": "a8881f5e0e3baee9ff1c7c98503ea7039481803c",
+      "size": 744
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlOutputElement.cs",
+      "sha": "5f5cc7c337ea06c317e259ee57a3223a78ab0395",
+      "size": 1420
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlParagraphElement.cs",
+      "sha": "32156aaf31aa3110374bd088e61417c6522da49c",
+      "size": 255
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlParamElement.cs",
+      "sha": "ca8a043aa6c818c5caf0c762e7f385879b4560ec",
+      "size": 586
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlPictureElement.cs",
+      "sha": "532251528f1909e4dca98f67831648bb50688026",
+      "size": 254
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlPreElement.cs",
+      "sha": "6e8d0e074dfb051510592aabffef4a93451a1b1e",
+      "size": 245
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlProgressElement.cs",
+      "sha": "67bcbacfc5aedb9b87da8fc7da9b777d3f448eaf",
+      "size": 740
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlQuoteElement.cs",
+      "sha": "797db458b93646f3d4c640da21cbbf75f96b67d3",
+      "size": 426
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlScriptElement.cs",
+      "sha": "c3af931635a707792da4e4de1055ae3516c14661",
+      "size": 1673
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlSelectElement.cs",
+      "sha": "32a9753a167364c5d9fc77d1682e18a10034f898",
+      "size": 4224
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlSlotElement.cs",
+      "sha": "9f6543b2dde219d8f89620dbf4aee32611d72c04",
+      "size": 755
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlSourceElement.cs",
+      "sha": "9e35698e3f31485fc16035dbfe8f74d3b901230a",
+      "size": 1178
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlSpanElement.cs",
+      "sha": "b2c1706093757347768d5671e7f6112e89222adc",
+      "size": 248
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlStyleElement.cs",
+      "sha": "e47afed6baded8527449595317c45669ac19359f",
+      "size": 993
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlTableCaptionElement.cs",
+      "sha": "03a59e7f94e9fe8f25bb53b19c3950283c42f424",
+      "size": 267
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlTableCellElement.cs",
+      "sha": "2ae9f411229f316d34beb785c319897326fb4ed3",
+      "size": 1106
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlTableColumnElement.cs",
+      "sha": "4f3923279cd45c44cbd50f9bf908c7e13fa6ae9e",
+      "size": 465
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlTableDataCellElement.cs",
+      "sha": "e4816c227b67b7aee4e2f0d3347ca6a7ee1f8871",
+      "size": 273
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlTableElement.cs",
+      "sha": "c8f2394df69e1ccf1b859f6d75d08413da45ba8b",
+      "size": 4124
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlTableHeaderCellElement.cs",
+      "sha": "807e49b5c1acea7b323b69710760b1740180bbb7",
+      "size": 454
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlTableRowElement.cs",
+      "sha": "76e5e7291174fa908ea9b2d43f18deaff22405fe",
+      "size": 1991
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlTableSectionElement.cs",
+      "sha": "71ce6df8ec21f17c14031daffe5c06a25659bbf6",
+      "size": 1625
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlTemplateElement.cs",
+      "sha": "ecf68ed2a64457253c510f38e83bfe8a416758c7",
+      "size": 456
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlTextAreaElement.cs",
+      "sha": "ffc7dce0d2f6e4758d25f09717e9c39aad6e591c",
+      "size": 5827
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlTimeElement.cs",
+      "sha": "49c35057aa053afad6a5fb98b00397e4da236cf5",
+      "size": 412
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlTitleElement.cs",
+      "sha": "f435d0c71f43679019bb10cd485cb9265eb2151b",
+      "size": 422
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlTrackElement.cs",
+      "sha": "bd89d831c9f10712794d830259880090805f70a8",
+      "size": 1430
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlUnknownElement.cs",
+      "sha": "e92a58f01a511cb5bf07fa10b3b0214a02debcdf",
+      "size": 256
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlUnorderedListElement.cs",
+      "sha": "de57ff0e6449986b3f484c71c97f9ca00ff698f2",
+      "size": 255
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IHtmlVideoElement.cs",
+      "sha": "44b9f9d7e76957085fd575e3f36375e83f6386a5",
+      "size": 1114
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/ILabelabelElement.cs",
+      "sha": "5c58877251f7b5db36ab7dea02c912f626866dda",
+      "size": 441
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IValidation.cs",
+      "sha": "7f91ff602a42ffa808ce74d57e89d2ecec25fe44",
+      "size": 1385
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/IValidityState.cs",
+      "sha": "80afcc5bc0ff0c00040109bfe7b2ddff6ff8f7c4",
+      "size": 2654
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/ImageExtensions.cs",
+      "sha": "5dec84f085bc93c211e3017c4d8e2268450067d9",
+      "size": 1139
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/Alignment.cs",
+      "sha": "828ff6ba99d9b06ba9590f7d1bdbdaf60ae84d41",
+      "size": 913
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlAddressElement.cs",
+      "sha": "f37be33d9d5421d03bdd0cb59afffaad7ce09733",
+      "size": 379
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlAnchorElement.cs",
+      "sha": "596ec6c3a21955a6de23ed82e88f42c7bf1c275c",
+      "size": 1623
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlAppletElement.cs",
+      "sha": "cbad06934dc58d7b1c206e7564848506c048bcd9",
+      "size": 458
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlAreaElement.cs",
+      "sha": "c509be1794768e4262d1f5157e6e8df6260b9d43",
+      "size": 1606
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlAudioElement.cs",
+      "sha": "f66b15407d9bcb1ac9af1e96fffdc1896ed4dea6",
+      "size": 818
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlBaseElement.cs",
+      "sha": "da4bd3f86f6a30bce004d2698e31cca338264993",
+      "size": 1328
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlBaseFontElement.cs",
+      "sha": "ed8a0ef6e49cb420d2c23f11b9fbf68ff29b0435",
+      "size": 503
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlBgsoundElement.cs",
+      "sha": "4799ef2375cd288c38694ec798639a8de6ffea68",
+      "size": 467
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlBigElement.cs",
+      "sha": "c1ebb48843ed84780d714f91a84a4692d20edd05",
+      "size": 370
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlBodyElement.cs",
+      "sha": "4dc81381052850787dae6ecec01b27e35825ec83",
+      "size": 4148
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlBoldElement.cs",
+      "sha": "f3d5c751fd51e162ed0e634ab7910ba714433b9f",
+      "size": 371
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlBreakRowElement.cs",
+      "sha": "427a16b5aec52fdf3360501fea259ed1267da940",
+      "size": 428
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlButtonElement.cs",
+      "sha": "31ef1fbc8b5a7fc1fd0a9f75373ff16e064429fe",
+      "size": 5306
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlCanvasElement.cs",
+      "sha": "80d2b8d0718e92ce3a465b77f0c8090f586627f0",
+      "size": 6033
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlCodeElement.cs",
+      "sha": "ef10a95a43a6ae1d897ec3117ba3f0c5aaca4e89",
+      "size": 374
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlDataElement.cs",
+      "sha": "ac80e1ab844d100eedb79e803330e0dcee8c33e5",
+      "size": 647
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlDataListElement.cs",
+      "sha": "64176fed5948d1d53a5b3f3307842d7a4aa3294f",
+      "size": 713
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlDefinitionListElement.cs",
+      "sha": "89f1908cd1cdcd42442e2ff92a3bf7ec843f1044",
+      "size": 394
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlDetailsElement.cs",
+      "sha": "2635b6707ed897018a4619f943c04cde9bd07032",
+      "size": 685
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlDialogElement.cs",
+      "sha": "847183126c17e8343430db283ac07685b059c2bf",
+      "size": 1256
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlDirectoryElement.cs",
+      "sha": "0611ec940d3f6bbcaf360fa29007760e2a2a8c03",
+      "size": 490
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlDivElement.cs",
+      "sha": "9a955b7ad7c7328f2bcecb5d93d650e2ab59236a",
+      "size": 391
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlDocument.cs",
+      "sha": "0214be1493e545884c4a158e7fc9af05440b3abc",
+      "size": 3266
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlElement.cs",
+      "sha": "d6536ba93b9d6d26d6666d341df59979fa23d976",
+      "size": 21378
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlEmbedElement.cs",
+      "sha": "b103bae5e6969c23e9197ebdd575d76022bf9ede",
+      "size": 1987
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlEmphasizeElement.cs",
+      "sha": "17dfce2d36468ebc04cf8deea9c9005038bcf165",
+      "size": 380
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlFieldSetElement.cs",
+      "sha": "093e24a941db4792b2a0fb9c16bdd756fd31fb0e",
+      "size": 1006
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlFontElement.cs",
+      "sha": "77e0040e2d4c0f346c6c57d46907fb53b5079710",
+      "size": 479
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlFormControlElement.cs",
+      "sha": "de3ee9aa84ce55581b92ee3440c97cf639db2cad",
+      "size": 3381
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlFormControlElementWithState.cs",
+      "sha": "6244fb0cfd05430cec2a4e6266a6d207afefb48f",
+      "size": 1617
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlFormElement.cs",
+      "sha": "06a6fa106edcd8f762b97d17715d597dcefe993b",
+      "size": 13257
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlFrameElement.cs",
+      "sha": "5e26a566169d23eb1871d8017b07528458bdaf42",
+      "size": 784
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlFrameElementBase.cs",
+      "sha": "78ea35814f43704e167de211c65ec6ea79b418cc",
+      "size": 3306
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlFrameOwnerElement.cs",
+      "sha": "fded92d1b9b511a24db74c0aa8c3c9feb67d426c",
+      "size": 1529
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlFrameSetElement.cs",
+      "sha": "1d998932b718c12bf5dbede09c032ac9b60d8d40",
+      "size": 1005
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlHeadElement.cs",
+      "sha": "bce3e1d4474fa127764b0d724c15190c06ff9f30",
+      "size": 395
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlHeadingElement.cs",
+      "sha": "508216d08548188bdca16837e7e049801a845ea3",
+      "size": 463
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlHrElement.cs",
+      "sha": "f95d20c7d9166353c594864278e1f292e9a66e52",
+      "size": 405
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlHtmlElement.cs",
+      "sha": "f71723e05b120a8b4b55a0f63ff546ef1e5e97b6",
+      "size": 786
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlIFrameElement.cs",
+      "sha": "9f02799c3593e36848dfdf41be51492305249cf2",
+      "size": 2894
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlImageElement.cs",
+      "sha": "a56b6a6d1596e6b16732d48a0e0ead82657cab21",
+      "size": 3652
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlInputElement.cs",
+      "sha": "bbfd72ceeefa3cb44cd0a2027e6a987901a7edee",
+      "size": 10059
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlIsIndexElement.cs",
+      "sha": "7502e8633beca9fbf440c91020c940fdb16056fc",
+      "size": 659
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlItalicElement.cs",
+      "sha": "d4cbe66885c3477d7842b5e37f3b8a6cb15ff6fa",
+      "size": 372
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlKeygenElement.cs",
+      "sha": "5da5ba0c4c7fbb409a41f8e19bad15760296b348",
+      "size": 1903
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlLabelElement.cs",
+      "sha": "e11de34d8ba74ab043290099ea0c534ae89d0621",
+      "size": 1569
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlLegendElement.cs",
+      "sha": "c85b1452e7db2e0bbeb74e306523144c3f758674",
+      "size": 762
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlLinkElement.cs",
+      "sha": "4148697b5ad9df9b3950a5d4ea630754d092cc46",
+      "size": 6735
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlLinkElementExtensions.cs",
+      "sha": "14b9fe1cb9b3d39d9a642590bf1dd0763e28b1eb",
+      "size": 1741
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlListItemElement.cs",
+      "sha": "5c1ca74872d6ba31f34b7a5bc7b48f43d6fb42cf",
+      "size": 1011
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlMapElement.cs",
+      "sha": "2f056c39a1d481c46706578b7651a73572fe8784",
+      "size": 1908
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlMarqueeElement.cs",
+      "sha": "30f0068fec7e8c34115b5ea191708bff6d032c34",
+      "size": 1700
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlMediaElement.cs",
+      "sha": "46cdd54d5b89a2ef877908933ffbac53854aa07a",
+      "size": 7928
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlMenuElement.cs",
+      "sha": "7d73f5cf8b07ca9ad780e9e8b9a8b811455fbf7f",
+      "size": 1142
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlMenuItemElement.cs",
+      "sha": "31e7e4b59764400827b1b5efc0f7f474882c0acb",
+      "size": 3172
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlMetaElement.cs",
+      "sha": "899989613e44317a5f45f210f2caea3e6c6f31a8",
+      "size": 1817
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlMeterElement.cs",
+      "sha": "ba0d02dcd86aabfa6c9946261f451e11285d70f7",
+      "size": 2393
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlModElement.cs",
+      "sha": "ebd651c27d5d57f4964fb1b9cc3c1813b4348337",
+      "size": 1198
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlNoEmbedElement.cs",
+      "sha": "930ec95270425e03b58230bb356e78d24b417669",
+      "size": 412
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlNoFramesElement.cs",
+      "sha": "efe70803168bc59cea8466a8cdd9771cda75b47a",
+      "size": 416
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlNoNewlineElement.cs",
+      "sha": "e776482e04ae887c812f03cb35408f0eb32ca116",
+      "size": 384
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlNoScriptElement.cs",
+      "sha": "ac8c97bcb355902f845a711245f3509e4f25a1e7",
+      "size": 692
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlObjectElement.cs",
+      "sha": "51356d8ada106e151ba3f0a217b98345ce30c487",
+      "size": 2849
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlOptionElement.cs",
+      "sha": "6107dc576d0f1d194a738aa37beb3bfe032010f7",
+      "size": 2405
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlOptionsGroupElement.cs",
+      "sha": "ecaa5c171805bedeccc6fe3dcfe213a0487362bf",
+      "size": 954
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlOrderedListElement.cs",
+      "sha": "3a6557407172f34ee05b229eab356c816e9eb397",
+      "size": 1448
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlOutputElement.cs",
+      "sha": "efedad84aba1fa284848f52b75372f94ffef2681",
+      "size": 1907
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlParagraphElement.cs",
+      "sha": "a272026f4330dd027102bd6e16a995d67097262e",
+      "size": 821
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlParamElement.cs",
+      "sha": "19e98852fed0684efdc695a78218ef6053103215",
+      "size": 868
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlPictureElement.cs",
+      "sha": "c6a75aeb49081681624943b6afbe7bd7bd6f1daf",
+      "size": 389
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlPlaintextElement.cs",
+      "sha": "9e0e0daaba4952d72dc4afcc19aca09f4c0c2914",
+      "size": 403
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlPreElement.cs",
+      "sha": "4d37bc2552169f5e0ea9a80f0dcb77eacd80f1a0",
+      "size": 417
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlProgressElement.cs",
+      "sha": "5f8924419962ef80392986b4dd082cd7cf2e22dd",
+      "size": 1469
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlQuoteElement.cs",
+      "sha": "694927007b3c97e3d9b743e3d00136ed4df5433d",
+      "size": 860
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlRbElement.cs",
+      "sha": "2acb1368f362bd23e41d8d160dc97c69a828b788",
+      "size": 391
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlRpElement.cs",
+      "sha": "9faf819b1ac29c88523ffbff217ebde8d301e29b",
+      "size": 391
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlRtElement.cs",
+      "sha": "a84066d7d62867faf4d7a34b9fbdf08944f7cc29",
+      "size": 386
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlRtcElement.cs",
+      "sha": "95a7f189d12e4d19fc7fbd1555f8123096dfa49e",
+      "size": 395
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlRubyElement.cs",
+      "sha": "174e173c99e908cc3375999a076414c5adabf481",
+      "size": 348
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlScriptElement.cs",
+      "sha": "6fa9a789ce71a90813f99514bb1491b036089572",
+      "size": 6480
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlSelectElement.cs",
+      "sha": "0bae0567261b4b537d9067ef2d1354c89df4202a",
+      "size": 6203
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlSelectedContentElement.cs",
+      "sha": "a8bd6aa7f164ef9e2897880c2fe6da7929f2d493",
+      "size": 384
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlSemanticElement.cs",
+      "sha": "f00e2f8476117ed54f21f1da597bdbdc05293151",
+      "size": 411
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlSlotElement.cs",
+      "sha": "3c717a59dc9c3b7ebb75ec7ceb342df2a52a8a92",
+      "size": 1951
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlSmallElement.cs",
+      "sha": "ec4db86bd9118f25cb1ee49c1afb7cf4c2ea9fa1",
+      "size": 378
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlSourceElement.cs",
+      "sha": "b4094ac90ce3778eefe69390f76567c71072c47e",
+      "size": 1432
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlSpanElement.cs",
+      "sha": "44c9c4b208789c3deb1d702671fbbb7961be993c",
+      "size": 377
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlStrikeElement.cs",
+      "sha": "866d9e3ac6e02c766aeb351951d85be1a762f2a4",
+      "size": 382
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlStrongElement.cs",
+      "sha": "4b0e984a119dc8bdc2ac6b1b55496294dc8ded83",
+      "size": 382
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlStruckElement.cs",
+      "sha": "11aa22082ffadcf5817e2843796185b80150185a",
+      "size": 372
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlStyleElement.cs",
+      "sha": "0a7e1124e304ee2ad9c953c7d8d711486e3dd982",
+      "size": 3530
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTableCaptionElement.cs",
+      "sha": "d0e7de233189e7474d746bea6fd75087dbe15d8a",
+      "size": 881
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTableCellElement.cs",
+      "sha": "7ad234c91ddfce74ddeff79230c5af14fded515f",
+      "size": 4235
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTableColElement.cs",
+      "sha": "b008c3f0e5012832c235becc342ce42bbe574e28",
+      "size": 1886
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTableColgroupElement.cs",
+      "sha": "cd0e344ce941a25057674b88cb0d7401b0565aac",
+      "size": 1883
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTableDataCellElement.cs",
+      "sha": "5cfd673641697ab87a49cf8465e7740f31cff6aa",
+      "size": 421
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTableElement.cs",
+      "sha": "7992374a10bf1e1c28db3d68ed8f60eeb17f56d7",
+      "size": 8493
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTableHeaderCellElement.cs",
+      "sha": "9844428457abcf576efd9993947a2069a4f9ae1f",
+      "size": 427
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTableRowElement.cs",
+      "sha": "0f3eba103e6ea313c7f4ed38893307b0df4d4d8c",
+      "size": 2816
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTableSectionElement.cs",
+      "sha": "418ed318af2c94eb29cf0e6f51f9dbde9805d7e6",
+      "size": 2089
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTeletypeTextElement.cs",
+      "sha": "7ba3851909fa106b4a95b1feea43941771b38466",
+      "size": 386
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTemplateElement.cs",
+      "sha": "cb2c48c1d3fc987717de417e84e9fc63e691746a",
+      "size": 1884
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTextAreaElement.cs",
+      "sha": "9da67d351599fdc87db49acb8dc5736e0839c4f2",
+      "size": 2839
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTextFormControlElement.cs",
+      "sha": "2c33a3aef0d6d354920926b4c9b8762e9db0ecef",
+      "size": 9306
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTimeElement.cs",
+      "sha": "023b59455ebe11acf12f7e9dec324aeffc2332a3",
+      "size": 664
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTitleElement.cs",
+      "sha": "d435c853caf85ae910717680d296a4f84d128619",
+      "size": 790
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlTrackElement.cs",
+      "sha": "07c4ce5814c12e860743a5cf7f1d413a75bf58a7",
+      "size": 2361
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlUnderlineElement.cs",
+      "sha": "b96269d22c734cb4023dbbba2a84f95d246dcb04",
+      "size": 378
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlUnknownElement.cs",
+      "sha": "e0edc8bac327cbda22982401745acd561cb57eeb",
+      "size": 443
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlUnorderedListElement.cs",
+      "sha": "f1768aa2af5cc98417982b0966475c466390f6cc",
+      "size": 462
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlUrlBaseElement.cs",
+      "sha": "cb254ad57887767e5afefe19462f5b4e7f6e3d71",
+      "size": 5777
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlVideoElement.cs",
+      "sha": "daf878abe9a42e6e2d88a50cac033bc6f2a45d55",
+      "size": 1510
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlWbrElement.cs",
+      "sha": "170e5347d042ce00a0795ffb82e761c6c486481f",
+      "size": 543
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/HtmlXmpElement.cs",
+      "sha": "868b7b628fa2d7e5e882a1567cf1840f337ca30e",
+      "size": 387
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/Internal/ValidityState.cs",
+      "sha": "5f44184d8dce837fc8daf988c19c6204720e4e26",
+      "size": 4078
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/TableCellKind.cs",
+      "sha": "984d91920c7adbbaff0a34649f1a8d4784348893",
+      "size": 321
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/TableFrames.cs",
+      "sha": "f26dc2306751e987481c11420ebfa0f5c784aacb",
+      "size": 1047
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/TableRules.cs",
+      "sha": "800d39d105725975301a319eb2caacc01c0dd0cf",
+      "size": 747
+    },
+    {
+      "path": "src/AngleSharp/Html/Dom/TrackReadyState.cs",
+      "sha": "feb46ccdf54445b7db7461f5208cf13fab54c573",
+      "size": 744
+    },
+    {
+      "path": "src/AngleSharp/Html/EventFlags.cs",
+      "sha": "cbf6036de00ea46d72eae02dff414ac254cf6499",
+      "size": 878
+    },
+    {
+      "path": "src/AngleSharp/Html/FormControlState.cs",
+      "sha": "eaebd2f3d77b86b890228b99aa917f4996a22774",
+      "size": 1261
+    },
+    {
+      "path": "src/AngleSharp/Html/FormDataSet.cs",
+      "sha": "4991ebe1e191f256f96eb8c38d79efeca5308a49",
+      "size": 7653
+    },
+    {
+      "path": "src/AngleSharp/Html/FormMethodNames.cs",
+      "sha": "f2cea580aece5071194d7fec79b30f0c523650a2",
+      "size": 584
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/FileDataSetEntry.cs",
+      "sha": "f6c0769ac0af02854781883c422c880d9f766993",
+      "size": 1560
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/FormDataSetEntry.cs",
+      "sha": "3159479129ded2554dad5331a851c1c5263bf4fd",
+      "size": 1903
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/FormDataSetExtensions.cs",
+      "sha": "db04880b52e11be6e06b3936f08583995076d183",
+      "size": 1335
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/IFormDataSetVisitor.cs",
+      "sha": "bd7c168d2fe8b06767a2da458406157520b252ae",
+      "size": 950
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/IFormSubmitter.cs",
+      "sha": "4ae1adc835e5fbb555b774dbe10f5c65e4194af6",
+      "size": 438
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/Submitters/DefaultHtmlEncoder.cs",
+      "sha": "72ca1a8572b0651c042a5974b302b2b5ed935f19",
+      "size": 841
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/Submitters/IHtmlEncoder.cs",
+      "sha": "0c9b011cc98387fe4a0061f3f31c2a21a86fcfcd",
+      "size": 650
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/Submitters/Json/JsonArray.cs",
+      "sha": "a17d777c41d21017f428f4e97e0363d370bf029f",
+      "size": 1880
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/Submitters/Json/JsonElement.cs",
+      "sha": "c6c448a315baf1c9b902ef5f801dbe7164c69b5f",
+      "size": 303
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/Submitters/Json/JsonObject.cs",
+      "sha": "5b501a4879e5a6dc3bb21cc918437353f2e69158",
+      "size": 1179
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/Submitters/Json/JsonStep.cs",
+      "sha": "266d5e8ad71bcf09cc5be9d75315fb0a050eb893",
+      "size": 7347
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/Submitters/Json/JsonValue.cs",
+      "sha": "af745bc2119b633f9b58b26b7d282a7b3f9bcdee",
+      "size": 651
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/Submitters/JsonFormDataSetVisitor.cs",
+      "sha": "b9ec2a0e6ca8a4b7329c9559ebf67cb347a3b311",
+      "size": 2447
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/Submitters/MultipartFormDataSetVisitor.cs",
+      "sha": "cf2baf28a1b3c830c0fc9817aac7073a176ef354",
+      "size": 2784
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/Submitters/PlaintextFormDataSetVisitor.cs",
+      "sha": "efb385a201ad7cc3304638ef797723c3e4e2349e",
+      "size": 1289
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/Submitters/UrlEncodedFormDataSetVisitor.cs",
+      "sha": "340595e5057ff5684dbc7edaf5663658180bdb18",
+      "size": 2085
+    },
+    {
+      "path": "src/AngleSharp/Html/Forms/TextDataSetEntry.cs",
+      "sha": "19cd66de9771305a61afc1e8bfdc3c854cc37e29",
+      "size": 695
+    },
+    {
+      "path": "src/AngleSharp/Html/HtmlElementFactory.cs",
+      "sha": "403075d3f7d8f6eb7fb564eb0e6522adf2f7514e",
+      "size": 18181
+    },
+    {
+      "path": "src/AngleSharp/Html/HtmlEntityProvider.cs",
+      "sha": "4d5e4556ba3fd104b86b63f740184597552bc697",
+      "size": 152886
+    },
+    {
+      "path": "src/AngleSharp/Html/HtmlMarkupFormatter.cs",
+      "sha": "2e11ab9a5039d925aff2aa5b7c8dec630ce0880f",
+      "size": 7154
+    },
+    {
+      "path": "src/AngleSharp/Html/IInputTypeFactory.cs",
+      "sha": "75fead1795314e6302758cfb96df5eb5dbbb3120",
+      "size": 633
+    },
+    {
+      "path": "src/AngleSharp/Html/ILinkRelationFactory.cs",
+      "sha": "00ea99aa86b0b93ecc8d2968d1672f57c9265a67",
+      "size": 658
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypeNames.cs",
+      "sha": "9b4a437c8e81a43971e0fb28e3405a1e6a364d45",
+      "size": 3640
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/BaseInputType.cs",
+      "sha": "4217bedd3fb9408d436f2482edff227d3a8a759a",
+      "size": 15116
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/ButtonInputType.cs",
+      "sha": "7a193781c15eec975f52930259b2cb391a2b800a",
+      "size": 588
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/CheckedInputType.cs",
+      "sha": "113e4d78d22e05c214e4035d57427fe5270395ac",
+      "size": 1048
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/ColorInputType.cs",
+      "sha": "4a78308bd968ff11895c4ca2f7b3bf35fd9ae04e",
+      "size": 1058
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/DateInputType.cs",
+      "sha": "80d4c572c115c357707cfded05cf6142490b77c4",
+      "size": 3978
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/DateTimeInputType.cs",
+      "sha": "236ef39ce752a2a988f6895c228d2b4701d52f7d",
+      "size": 6685
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/DatetimeLocalInputType.cs",
+      "sha": "ad003dfdcd713f58adca45bc5bb54b4fa7ee45c5",
+      "size": 4266
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/EmailInputType.cs",
+      "sha": "96f80c3f8d44f2f33c8e34806dfc9903d3fe17ba",
+      "size": 1735
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/FileInputType.cs",
+      "sha": "114d5c125d4ef7b94fd3264e4fdbd739fa1bf67e",
+      "size": 955
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/ImageInputType.cs",
+      "sha": "c75eb13dab186f3f51c2027409b910a96e76a81a",
+      "size": 1610
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/MonthInputType.cs",
+      "sha": "0d624cff5d8e0b09f0869b890dbdd676669db0b3",
+      "size": 3640
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/NumberInputType.cs",
+      "sha": "6bcea637735881364ec5a6b3cef38d79aa50e980",
+      "size": 2642
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/PatternInputType.cs",
+      "sha": "9fd38847772a6e7008493529b8f210d82aea3337",
+      "size": 710
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/SubmitInputType.cs",
+      "sha": "3fec976a5f72bbb9877e3cfba9a28ad9e11c68f8",
+      "size": 526
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/TextInputType.cs",
+      "sha": "369bc9ee9f7c2d6e429d90d11190d569844470b1",
+      "size": 1100
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/TimeInputType.cs",
+      "sha": "f3850142c1d888ec449c6090de273b291802ecb8",
+      "size": 3114
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/UrlInputType.cs",
+      "sha": "9200f25e37a7a46783a3f3b1839a25eb585129f8",
+      "size": 1209
+    },
+    {
+      "path": "src/AngleSharp/Html/InputTypes/WeekInputType.cs",
+      "sha": "1cb3336de31ff0ef8894e06e0d4fd16e1e1827de",
+      "size": 4058
+    },
+    {
+      "path": "src/AngleSharp/Html/LinkRelNames.cs",
+      "sha": "48caf1cf3da6688517084b548dca1c4220166c82",
+      "size": 1847
+    },
+    {
+      "path": "src/AngleSharp/Html/LinkRels/BaseLinkRelation.cs",
+      "sha": "ffec87d51d307532f2c106f4dbab9ff0bd542fd2",
+      "size": 1492
+    },
+    {
+      "path": "src/AngleSharp/Html/LinkRels/ImportLinkRelation.cs",
+      "sha": "697e9d8e8fa84a08f856fa35c60a95882329437e",
+      "size": 2220
+    },
+    {
+      "path": "src/AngleSharp/Html/LinkRels/StyleSheetLinkRelation.cs",
+      "sha": "3abdb5a1a93cc97e6d4b9618facf610ea6f9891f",
+      "size": 880
+    },
+    {
+      "path": "src/AngleSharp/Html/MinifyMarkupFormatter.cs",
+      "sha": "514dd47074acf3024d6178115362b2c7cdd7baa7",
+      "size": 8152
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlAttributesLookup.cs",
+      "sha": "e835fc4f7f94a206856255ae790ad7eddebab989",
+      "size": 7191
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlDomBuilder.cs",
+      "sha": "d8fbad1f425f80bbff906d1abbb705cc841b66e1",
+      "size": 153241
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlDomBuilderExtensions.cs",
+      "sha": "532dd8685073f4f8dd03ac763b9bb30cb04f6c74",
+      "size": 7477
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlForeignExtensions.cs",
+      "sha": "4dcd12959dfc5731587176d330605b65d48cf191",
+      "size": 12295
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlParseError.cs",
+      "sha": "71638a05bab911e990474e743f2b48a8d52424fa",
+      "size": 18142
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlParseException.cs",
+      "sha": "91b2c997a79aa0fe032c871e3b59139f0e4742e9",
+      "size": 1132
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlParseMode.cs",
+      "sha": "51323ed9e6d560435a6fd22551ef394c0dd44f3e",
+      "size": 889
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlParser.cs",
+      "sha": "27d865550587419acef69da1a33988572a320069",
+      "size": 14932
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlParserExtensions.cs",
+      "sha": "0b88932071575ff5d3c8530b9f9df268b0e02d6c",
+      "size": 1620
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlParserOptions.cs",
+      "sha": "df2ae1f5aabafb1bbe5c838951fd62ffb5e8cef2",
+      "size": 4503
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlStreamSourceMode.cs",
+      "sha": "78924dad5f3c0a0731d7325927599cac1907dc44",
+      "size": 561
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlTagNameLookup.cs",
+      "sha": "ce8e5d9a8f92e72a682c4fcf0e4dbfcc7caeff9b",
+      "size": 30192
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlTokenType.cs",
+      "sha": "bf4e9f9825a3e9d01e51280d474d8a410763f55b",
+      "size": 838
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlTokenizer.cs",
+      "sha": "05c9bd756dcae505195b05eafd00b49fbfeaaa4b",
+      "size": 104077
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlTokenizerOptions.cs",
+      "sha": "290e31e64090229a7e78f002f85e913b776f9dc7",
+      "size": 4132
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/HtmlTreeMode.cs",
+      "sha": "f680a4f336a2a718ae340f3d65870350aca53ac2",
+      "size": 2561
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/IHtmlParser.cs",
+      "sha": "a45d9fb954bb75fe62bc2f562bfbdab262a765af",
+      "size": 3997
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/TokenizerExtensions.cs",
+      "sha": "96f3b0a606b4879fea1cf7a6c0e970162c794b16",
+      "size": 3635
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/Tokens/HtmlAttributeToken.cs",
+      "sha": "1fccde47cdbfebad192661e477e297f28b262991",
+      "size": 1153
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/Tokens/HtmlDoctypeToken.cs",
+      "sha": "c185f8835f573ea99b7b18dcf76828486b5b210f",
+      "size": 11797
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/Tokens/HtmlTagToken.cs",
+      "sha": "6708d8fb8951fb4b86fd4bc39ad45902f2462057",
+      "size": 4541
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/Tokens/HtmlToken.cs",
+      "sha": "95f3b9b4a7028ad18dcd77a179a817fc6b2b0ef7",
+      "size": 4920
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/Tokens/Struct/MemoryHtmlAttributeToken.cs",
+      "sha": "df542c3669931f1ccfe2632eb46b6583f5eedbf3",
+      "size": 1062
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/Tokens/Struct/StructAttributes.cs",
+      "sha": "d53b90431a308845096a2fbceb6f5453e9652090",
+      "size": 6115
+    },
+    {
+      "path": "src/AngleSharp/Html/Parser/Tokens/Struct/StructHtmlToken.cs",
+      "sha": "2a7c0bf5f47f5703210b09d9f3298bbe9129e8ab",
+      "size": 23169
+    },
+    {
+      "path": "src/AngleSharp/Html/PrettyMarkupFormatter.cs",
+      "sha": "5db1d530b1f9ec710c3ad2cf184b21dd49844200",
+      "size": 5000
+    },
+    {
+      "path": "src/AngleSharp/Html/SourceSet.cs",
+      "sha": "0fd341057bfeb3054ca155b1b93b4158d11173e0",
+      "size": 6373
+    },
+    {
+      "path": "src/AngleSharp/Html/ValidationErrors.cs",
+      "sha": "a4ab792c4032840fb7a74944b6268602a3e2c728",
+      "size": 1458
+    },
+    {
+      "path": "src/AngleSharp/IBrowsingContext.cs",
+      "sha": "e738aeea3963fb2ff87801e8219ffa7e2fabc6f3",
+      "size": 2898
+    },
+    {
+      "path": "src/AngleSharp/IConfiguration.cs",
+      "sha": "3104e95bf930193ac62983bf84d7c554785d205d",
+      "size": 433
+    },
+    {
+      "path": "src/AngleSharp/IMarkupFormattable.cs",
+      "sha": "e03990bab8742d6c384aa50d48ae2be952b62293",
+      "size": 509
+    },
+    {
+      "path": "src/AngleSharp/IMarkupFormatter.cs",
+      "sha": "8a109ab4a98075495b9b0364b8f40c7ab85fedac",
+      "size": 2432
+    },
+    {
+      "path": "src/AngleSharp/IStyleFormattable.cs",
+      "sha": "ae540f01ee90c45bc3a1b5cd1c3c83992982c339",
+      "size": 506
+    },
+    {
+      "path": "src/AngleSharp/IStyleFormatter.cs",
+      "sha": "b5711e06809209b7238b299f949f2e15d7c200be",
+      "size": 2907
+    },
+    {
+      "path": "src/AngleSharp/Io/BaseLoader.cs",
+      "sha": "2b8a9f193117ba0747c172126bf33b7a72529a6b",
+      "size": 7631
+    },
+    {
+      "path": "src/AngleSharp/Io/BaseRequester.cs",
+      "sha": "c1c7480b2e27703f6179bf8186e25c98f9e461d0",
+      "size": 2530
+    },
+    {
+      "path": "src/AngleSharp/Io/CorsRequest.cs",
+      "sha": "09b8ac8d813833609259f97114d64c84b23ccfd0",
+      "size": 1186
+    },
+    {
+      "path": "src/AngleSharp/Io/CorsSetting.cs",
+      "sha": "1e698539e50b2fd3b0392b943e433d9cd0116f34",
+      "size": 622
+    },
+    {
+      "path": "src/AngleSharp/Io/DefaultDocumentLoader.cs",
+      "sha": "67590a3439142899e89e2e6c9424156f78a8c4e5",
+      "size": 1400
+    },
+    {
+      "path": "src/AngleSharp/Io/DefaultHttpRequester.cs",
+      "sha": "d2855c3bb0e27e1e996e6265a52f1eeeb734b29f",
+      "size": 11796
+    },
+    {
+      "path": "src/AngleSharp/Io/DefaultResourceLoader.cs",
+      "sha": "a20e84e45b38faaa7429b6c2dcf9fee918affb06",
+      "size": 1683
+    },
+    {
+      "path": "src/AngleSharp/Io/DefaultResponse.cs",
+      "sha": "4e343a975dacfdc40d174f61e9c21b9b2f898bc1",
+      "size": 1661
+    },
+    {
+      "path": "src/AngleSharp/Io/DocumentRequest.cs",
+      "sha": "12304767f68c0ea0151880438dca724519fbea5b",
+      "size": 7776
+    },
+    {
+      "path": "src/AngleSharp/Io/Dom/IBlob.cs",
+      "sha": "e006067e95c6be6d0fe6cf133c9adf6d7738b5cd",
+      "size": 1538
+    },
+    {
+      "path": "src/AngleSharp/Io/Dom/IFile.cs",
+      "sha": "6229384ae84e320690fc5075fd82281293510c02",
+      "size": 591
+    },
+    {
+      "path": "src/AngleSharp/Io/Dom/IFileList.cs",
+      "sha": "d2a25eeaf10bd59da4db1e2a84c326adc1a9a69f",
+      "size": 1408
+    },
+    {
+      "path": "src/AngleSharp/Io/Dom/Internal/FileList.cs",
+      "sha": "cfbed17ab7d2898daaa90c17c6639c183f63bb81",
+      "size": 1142
+    },
+    {
+      "path": "src/AngleSharp/Io/Download.cs",
+      "sha": "ac0abb0769ce688e85d15cf2df5389d936083876",
+      "size": 1295
+    },
+    {
+      "path": "src/AngleSharp/Io/HeaderNames.cs",
+      "sha": "090af4a0f90ceced31a655b3645effa3f9b76f9b",
+      "size": 16827
+    },
+    {
+      "path": "src/AngleSharp/Io/HttpMethod.cs",
+      "sha": "26f18e7fbe5abf10a889c219334fbff4dc866451",
+      "size": 905
+    },
+    {
+      "path": "src/AngleSharp/Io/ICookieProvider.cs",
+      "sha": "be8dd0de502d437beede52c60655e050bd9963b8",
+      "size": 749
+    },
+    {
+      "path": "src/AngleSharp/Io/IDocumentLoader.cs",
+      "sha": "308d240999563d96d53f66f0f6f364f6c34ce46e",
+      "size": 533
+    },
+    {
+      "path": "src/AngleSharp/Io/IDownload.cs",
+      "sha": "87cb9378e5b78893a81a19140c70d33f45d63fae",
+      "size": 517
+    },
+    {
+      "path": "src/AngleSharp/Io/IIntegrityProvider.cs",
+      "sha": "15895e9648d4fe3eb99fedace42bc96005f421c3",
+      "size": 627
+    },
+    {
+      "path": "src/AngleSharp/Io/ILoadableElement.cs",
+      "sha": "4814f5ae0b353cd54b482f0b76f1ad076c8c08a7",
+      "size": 395
+    },
+    {
+      "path": "src/AngleSharp/Io/ILoader.cs",
+      "sha": "d17de2c96bd9aa5a936937e2e6be5a3d0dc87df0",
+      "size": 403
+    },
+    {
+      "path": "src/AngleSharp/Io/IRequester.cs",
+      "sha": "a57fe956d7359b3b33544fa43e199edc7a6b466b",
+      "size": 1384
+    },
+    {
+      "path": "src/AngleSharp/Io/IResourceLoader.cs",
+      "sha": "1d49e18f2d6394d6e1d2a0ba796476e4296529e3",
+      "size": 652
+    },
+    {
+      "path": "src/AngleSharp/Io/IResponse.cs",
+      "sha": "bbc472b87d51c23b647746440fb735f45d3f4567",
+      "size": 890
+    },
+    {
+      "path": "src/AngleSharp/Io/LoaderOptions.cs",
+      "sha": "979221a3316da7ffb9ac6f0911fcb85e3b8468ec",
+      "size": 709
+    },
+    {
+      "path": "src/AngleSharp/Io/MemoryCookieProvider.cs",
+      "sha": "d61a78a15ce3b8459589d7128608d5431d23d1a6",
+      "size": 3526
+    },
+    {
+      "path": "src/AngleSharp/Io/MimeType.cs",
+      "sha": "c79c8364956b0569e179d9ff86e45638e14bb439",
+      "size": 6666
+    },
+    {
+      "path": "src/AngleSharp/Io/MimeTypeNames.cs",
+      "sha": "cc8a1120bdee430179502be1a5cd9c7144cabe61",
+      "size": 25981
+    },
+    {
+      "path": "src/AngleSharp/Io/OriginBehavior.cs",
+      "sha": "6bb63a8ff1c2116637f55900c3428bc39224053f",
+      "size": 359
+    },
+    {
+      "path": "src/AngleSharp/Io/PortNumbers.cs",
+      "sha": "ad1c6cf57f365fb01ea0d3e48374132159740d3f",
+      "size": 1237
+    },
+    {
+      "path": "src/AngleSharp/Io/Processors/BaseRequestProcessor.cs",
+      "sha": "b02be7c2f8a3577dd73b1847f68721353c26ab09",
+      "size": 3771
+    },
+    {
+      "path": "src/AngleSharp/Io/Processors/DocumentRequestProcessor.cs",
+      "sha": "f2325e2a44857135398bf4a37925b6731037476d",
+      "size": 1360
+    },
+    {
+      "path": "src/AngleSharp/Io/Processors/FrameRequestProcessor.cs",
+      "sha": "62fa16a0aef5883a6e0e3da905c2e48cf294e7be",
+      "size": 1977
+    },
+    {
+      "path": "src/AngleSharp/Io/Processors/IRequestProcessor.cs",
+      "sha": "89f2415db820d5e7bd329386a9a4a74fbd8fd02c",
+      "size": 653
+    },
+    {
+      "path": "src/AngleSharp/Io/Processors/ImageRequestProcessor.cs",
+      "sha": "7e3cb483ba11414a25057d4a823dc14cce58b08b",
+      "size": 1171
+    },
+    {
+      "path": "src/AngleSharp/Io/Processors/MediaRequestProcessor.cs",
+      "sha": "b14a76750320da71a4a20e1fffa8ac725596e251",
+      "size": 1737
+    },
+    {
+      "path": "src/AngleSharp/Io/Processors/ObjectRequestProcessor.cs",
+      "sha": "9ff411857695d84cd55c7a29ddd9c05e21e86797",
+      "size": 989
+    },
+    {
+      "path": "src/AngleSharp/Io/Processors/ResourceRequestProcessor.cs",
+      "sha": "1fee1a426e05eb7c0ff80d65e9b47c8c2e6ca65f",
+      "size": 1764
+    },
+    {
+      "path": "src/AngleSharp/Io/Processors/ScriptRequestProcessor.cs",
+      "sha": "86a63039f8aaa032d0d77eaffdf77c780eab3ea5",
+      "size": 4852
+    },
+    {
+      "path": "src/AngleSharp/Io/Processors/StyleSheetRequestProcessor.cs",
+      "sha": "9e02b31ab3dead10edf4d6012bab70d9a03fccf5",
+      "size": 2411
+    },
+    {
+      "path": "src/AngleSharp/Io/ProtocolNames.cs",
+      "sha": "181ee84d23c51ec9c20fad22db3005dc42f4c097",
+      "size": 3500
+    },
+    {
+      "path": "src/AngleSharp/Io/Request.cs",
+      "sha": "a74692c1990d53094c60f53ace06e28e9c3e0f75",
+      "size": 1407
+    },
+    {
+      "path": "src/AngleSharp/Io/RequesterExtensions.cs",
+      "sha": "a9e5aa9aaad4e1bc2d20daffd61f8df0b5cd9eeb",
+      "size": 7229
+    },
+    {
+      "path": "src/AngleSharp/Io/ResourceRequest.cs",
+      "sha": "4c0402db83df133d46bdc2c742b181e34ffa9c5d",
+      "size": 2202
+    },
+    {
+      "path": "src/AngleSharp/Io/ResponseExtensions.cs",
+      "sha": "2f1742c6e9f712a317091e1bb33db394a76fc785",
+      "size": 1882
+    },
+    {
+      "path": "src/AngleSharp/Io/VirtualResponse.cs",
+      "sha": "6c71a261e1ad0715dada2b5fbea7d5f186a8aff6",
+      "size": 6478
+    },
+    {
+      "path": "src/AngleSharp/Mathml/Dom/Internal/MathAnnotationXmlElement.cs",
+      "sha": "b373e667203a987e587ff258950c8556f690970b",
+      "size": 419
+    },
+    {
+      "path": "src/AngleSharp/Mathml/Dom/Internal/MathElement.cs",
+      "sha": "0462966902d50670261459c931de8bad1d7756a4",
+      "size": 1072
+    },
+    {
+      "path": "src/AngleSharp/Mathml/Dom/Internal/MathIdentifierElement.cs",
+      "sha": "1f0f537a0828e23ab9c1f809bdf5ba11124cc014",
+      "size": 410
+    },
+    {
+      "path": "src/AngleSharp/Mathml/Dom/Internal/MathNumberElement.cs",
+      "sha": "b47f458e1cc558d940d71950f2060d2e7c40e99e",
+      "size": 402
+    },
+    {
+      "path": "src/AngleSharp/Mathml/Dom/Internal/MathOperatorElement.cs",
+      "sha": "33d0acf845ca6013e91702e52d103c72ab761fd4",
+      "size": 406
+    },
+    {
+      "path": "src/AngleSharp/Mathml/Dom/Internal/MathStringElement.cs",
+      "sha": "e014daca57d9e94565fff9d513bc096ccade350d",
+      "size": 406
+    },
+    {
+      "path": "src/AngleSharp/Mathml/Dom/Internal/MathTextElement.cs",
+      "sha": "e90f05010f1aecfbc9869594c4f88bab09f52024",
+      "size": 404
+    },
+    {
+      "path": "src/AngleSharp/Mathml/MathElementFactory.cs",
+      "sha": "8b13d4860239a7c8f32169c8c1c90d8a58ef83b2",
+      "size": 2044
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/IAudioTrack.cs",
+      "sha": "d03902998bda9b0041e8208cd6c48a61c93a61df",
+      "size": 981
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/IAudioTrackList.cs",
+      "sha": "d5f3bab1d17a9566427aac3fc62e7e232bdc0f87",
+      "size": 1622
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/ICanvasRenderingContext2D.cs",
+      "sha": "5cbae65daf9198b3c22e397da7d7e8713046741d",
+      "size": 1267
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/IMediaController.cs",
+      "sha": "6f67d0550f4757026daef5d0b235694df495f790",
+      "size": 5124
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/IMediaError.cs",
+      "sha": "5302375fc0bb9e45bc1d3ab8f56c359c17f68213",
+      "size": 396
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/IRenderingContext.cs",
+      "sha": "11a036ee452db29e9698b921c6bf760135b6f37b",
+      "size": 1064
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/IRenderingService.cs",
+      "sha": "1b9618c5eb99adf3064b668dc7191409290729b1",
+      "size": 949
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/ITextTrack.cs",
+      "sha": "7bbe4e8455ba0791bf8eda783dbb2d8bcd192bb1",
+      "size": 1868
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/ITextTrackCue.cs",
+      "sha": "77f78e463034edcb252bc4a3f28824d775e6af06",
+      "size": 3537
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/ITextTrackCueList.cs",
+      "sha": "f6c8335702d8332773c518d7a2cb2f976bcba206",
+      "size": 1012
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/ITextTrackList.cs",
+      "sha": "042b74cff970ba0e4f50fae5c0a2d34cf15f00d4",
+      "size": 1143
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/ITimeRanges.cs",
+      "sha": "6b2a2b4d6dd8449f6d8d737b2d734d5775b2722e",
+      "size": 1030
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/IVideoTrack.cs",
+      "sha": "cfcf7723fa87d39a4309523a85910d7ba8f96af6",
+      "size": 984
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/IVideoTrackList.cs",
+      "sha": "7708f543291c99ecdd4131b67d5fed6a0500cc42",
+      "size": 1787
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/MediaControllerPlaybackState.cs",
+      "sha": "70eb4e6fedd729236afa9691da7b857d5775211e",
+      "size": 689
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/MediaErrorCode.cs",
+      "sha": "85bfb0e8d55be27e6877bd61d7f2344a546677e7",
+      "size": 860
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/MediaNetworkState.cs",
+      "sha": "79220f91d58a9d933ebde19c26571cf0c795712f",
+      "size": 1048
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/MediaReadyState.cs",
+      "sha": "30aa1ff088236f3dc2727f9d5ffd303aed848003",
+      "size": 1188
+    },
+    {
+      "path": "src/AngleSharp/Media/Dom/TextTrackMode.cs",
+      "sha": "a1543b36513ee75582cb1669fb30c2d734c81f3e",
+      "size": 627
+    },
+    {
+      "path": "src/AngleSharp/Media/IAudioInfo.cs",
+      "sha": "2084d039052abb60aa53bc961532e3546fddc9b8",
+      "size": 177
+    },
+    {
+      "path": "src/AngleSharp/Media/IImageInfo.cs",
+      "sha": "cfd2e591d8e731453a0b6bf8db8c780a66f654fc",
+      "size": 433
+    },
+    {
+      "path": "src/AngleSharp/Media/IMediaInfo.cs",
+      "sha": "7fa5f8c853ea288f155d764272f9de8bd0796629",
+      "size": 366
+    },
+    {
+      "path": "src/AngleSharp/Media/IObjectInfo.cs",
+      "sha": "69d63d466f00034b163becbb54e06b9a9313895f",
+      "size": 444
+    },
+    {
+      "path": "src/AngleSharp/Media/IResourceInfo.cs",
+      "sha": "1b8d1beb4db615492af140f496863623889a2f9b",
+      "size": 313
+    },
+    {
+      "path": "src/AngleSharp/Media/IResourceService.cs",
+      "sha": "d9928d3897b5ef426285c5d2a8eb1cc7324f6b2f",
+      "size": 1093
+    },
+    {
+      "path": "src/AngleSharp/Media/IVideoInfo.cs",
+      "sha": "0148a9debb5ca0af9cbfe3d5253622e64baf0971",
+      "size": 429
+    },
+    {
+      "path": "src/AngleSharp/Scripting/IScriptingService.cs",
+      "sha": "ceef53d031a56e35c81881dba8abe7e12a212d9a",
+      "size": 1227
+    },
+    {
+      "path": "src/AngleSharp/Scripting/ScriptOptions.cs",
+      "sha": "626f5ef3e6cd7228423db43925d5fb2b38a1c3d6",
+      "size": 1447
+    },
+    {
+      "path": "src/AngleSharp/Svg/Dom/ISvgCircleElement.cs",
+      "sha": "3ef4513429c89ba3da09dc515b813d1894d09c98",
+      "size": 249
+    },
+    {
+      "path": "src/AngleSharp/Svg/Dom/ISvgDescriptionElement.cs",
+      "sha": "1e9f84d9ab4179b752f23cf57b87afa2246837df",
+      "size": 250
+    },
+    {
+      "path": "src/AngleSharp/Svg/Dom/ISvgElement.cs",
+      "sha": "7046751cc8975812ae532234f866232eccb43434",
+      "size": 388
+    },
+    {
+      "path": "src/AngleSharp/Svg/Dom/ISvgForeignObjectElement.cs",
+      "sha": "45756f000df9ab4ff427e7af75a65d4b0582894f",
+      "size": 270
+    },
+    {
+      "path": "src/AngleSharp/Svg/Dom/ISvgStyleElement.cs",
+      "sha": "530aaab8dde3094559dfbc77660fca1132457e38",
+      "size": 826
+    },
+    {
+      "path": "src/AngleSharp/Svg/Dom/ISvgSvgElement.cs",
+      "sha": "d7487ab667524e886b972bb30786b10e42afac8d",
+      "size": 240
+    },
+    {
+      "path": "src/AngleSharp/Svg/Dom/ISvgTitleElement.cs",
+      "sha": "3b4ab1f320217769857ea141f382b711849cb8e3",
+      "size": 246
+    },
+    {
+      "path": "src/AngleSharp/Svg/Dom/Internal/SvgCircleElement.cs",
+      "sha": "377d15b74879c4830f7b629499334406ba709347",
+      "size": 392
+    },
+    {
+      "path": "src/AngleSharp/Svg/Dom/Internal/SvgDescElement.cs",
+      "sha": "8c44dca1195b0acd02180be7850d2e220c778e6f",
+      "size": 447
+    },
+    {
+      "path": "src/AngleSharp/Svg/Dom/Internal/SvgElement.cs",
+      "sha": "942cf49ae060dbdd1b2783e4fcafc58035c4d561",
+      "size": 1071
+    },
+    {
+      "path": "src/AngleSharp/Svg/Dom/Internal/SvgForeignObjectElement.cs",
+      "sha": "0c96cfd1c291c27c7ec660670672d02422aa4c44",
+      "size": 486
+    },
+    {
+      "path": "src/AngleSharp/Svg/Dom/Internal/SvgStyleElement.cs",
+      "sha": "69412c52753da4d10facd82756f42cb622242712",
+      "size": 3334
+    },
+    {
+      "path": "src/AngleSharp/Svg/Dom/Internal/SvgSvgElement.cs",
+      "sha": "3f707c6f30e198aa61e9cad5efed68b76afc1135",
+      "size": 377
+    },
+    {
+      "path": "src/AngleSharp/Svg/Dom/Internal/SvgTitleElement.cs",
+      "sha": "fb8ad1a4c6fee30a9306ae1c1f1d851f55aa692a",
+      "size": 445
+    },
+    {
+      "path": "src/AngleSharp/Svg/SvgElementFactory.cs",
+      "sha": "6614a573a1846b1e48dd20eceed57145eded8e52",
+      "size": 2022
+    },
+    {
+      "path": "src/AngleSharp/Text/ByteOrderMark.cs",
+      "sha": "59fc15c402097662221270bb3b94ac90032a4f27",
+      "size": 2051
+    },
+    {
+      "path": "src/AngleSharp/Text/CharArrayTextSource.cs",
+      "sha": "a789d7e0fb16f4b8e91d9ebeb892b6a6d3c99069",
+      "size": 2778
+    },
+    {
+      "path": "src/AngleSharp/Text/CharExtensions.cs",
+      "sha": "4dc0a81780731de475ff5550c28630a3c8d0f2f8",
+      "size": 13233
+    },
+    {
+      "path": "src/AngleSharp/Text/ITextSource.cs",
+      "sha": "3b732961f872fa2c809a766384c02c92b5de669b",
+      "size": 3205
+    },
+    {
+      "path": "src/AngleSharp/Text/Punycode.cs",
+      "sha": "5ab5301d22931a0563135c8ee8260bc42befa230",
+      "size": 11322
+    },
+    {
+      "path": "src/AngleSharp/Text/ReadOnlyMemoryTextSource.cs",
+      "sha": "6d46b52e128d9f8feef66edb5e7ab5306e468cb9",
+      "size": 3012
+    },
+    {
+      "path": "src/AngleSharp/Text/StreamTextSourceMode.cs",
+      "sha": "18a199cf2c6a0ffb62712e03d22321f87539b605",
+      "size": 107
+    },
+    {
+      "path": "src/AngleSharp/Text/StreamingTextSource.cs",
+      "sha": "ba8fd222528c0467c9f6e224957cf1d5dfefecb6",
+      "size": 18321
+    },
+    {
+      "path": "src/AngleSharp/Text/StringBuilderPool.cs",
+      "sha": "f2710f167a3de3bca96ef25318341f58d6094f66",
+      "size": 5300
+    },
+    {
+      "path": "src/AngleSharp/Text/StringExtensions.cs",
+      "sha": "75e74671e7a021faaa0ea5c9f9a18ce3fd581f0e",
+      "size": 38712
+    },
+    {
+      "path": "src/AngleSharp/Text/StringSource.cs",
+      "sha": "2a182cb00851fd1ede9ce700062d150647353231",
+      "size": 2260
+    },
+    {
+      "path": "src/AngleSharp/Text/StringSourceExtensions.cs",
+      "sha": "c169a216b9a16540202491f026844f007e4e8dbb",
+      "size": 1453
+    },
+    {
+      "path": "src/AngleSharp/Text/StringTextSource.cs",
+      "sha": "a0f8df9925639c841742ca2aebfee4404abce291",
+      "size": 2482
+    },
+    {
+      "path": "src/AngleSharp/Text/Symbols.cs",
+      "sha": "e410e5f8d21c52f790e8f9fbe79cc79f2b6c780d",
+      "size": 6094
+    },
+    {
+      "path": "src/AngleSharp/Text/TextEncoding.cs",
+      "sha": "baeaee3f2d4583229e23027b91a42d483e20a667",
+      "size": 20399
+    },
+    {
+      "path": "src/AngleSharp/Text/TextPosition.cs",
+      "sha": "7d8263891b99c6b30ce9eb0454b7b52958cd07c2",
+      "size": 6661
+    },
+    {
+      "path": "src/AngleSharp/Text/TextRange.cs",
+      "sha": "34dfb584e79a16a5c15be43b6179d7e5016a597d",
+      "size": 4491
+    },
+    {
+      "path": "src/AngleSharp/Text/TextSource.cs",
+      "sha": "32cf8fe5081d2815bc67ed7431a5e7761a1399ba",
+      "size": 7339
+    },
+    {
+      "path": "src/AngleSharp/Text/TextView.cs",
+      "sha": "d993b99e309390302bb176e3e35cef50c2a5d71c",
+      "size": 1353
+    },
+    {
+      "path": "src/AngleSharp/Text/WritableTextSource.cs",
+      "sha": "08f2b2bceb49fadd09c6b03b2b8045befd194a94",
+      "size": 11628
+    },
+    {
+      "path": "src/AngleSharp/Text/XmlExtensions.cs",
+      "sha": "7a864af35d5c0931b403c424c5ec82c83fae6e6d",
+      "size": 6308
+    },
+    {
+      "path": "src/AngleSharp/Xhtml/XhtmlMarkupFormatter.cs",
+      "sha": "1aa35215b239829453ce21eeff7dec7354ccb269",
+      "size": 7411
+    }
+  ],
+  "SigningPublicKey": {
+    "Source": "AngleSharp 1.7.1 assembly public key",
+    "PublicKeyToken": "e83494dcdc6d31ea",
+    "File": "AngleSharp.PublicKey.bin",
+    "Sha256": "eccccae7f7cd5c91308b80589f92875bf47b10fec676edde8153978f3eb4b83c"
+  }
+}

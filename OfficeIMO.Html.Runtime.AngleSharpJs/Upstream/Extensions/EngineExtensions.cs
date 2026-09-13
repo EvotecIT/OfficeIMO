@@ -12,6 +12,7 @@ namespace AngleSharp.Js
     using Jint.Runtime.Interop;
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Reflection;
 
     static class EngineExtensions
@@ -188,6 +189,24 @@ namespace AngleSharp.Js
             foreach (var definition in definitions)
             {
                 ctx.FastSetProperty(definition.Key, CreateConstructorProperty(engine, definition.Value));
+            }
+
+            // Enums named after an existing DOM interface define that interface's
+            // constants, rather than a separate literal object. Publish them after
+            // constructors exist so the constructor itself cannot be overwritten.
+            foreach (var enumType in assembly.ExportedTypes.Where(type => type.GetTypeInfo().IsEnum))
+            {
+                var name = enumType.GetTypeInfo().GetCustomAttribute<DomNameAttribute>()?.OfficialName;
+                if (name == null || !(ctx.Get(name) is ObjectInstance constructor)) continue;
+                var prototype = constructor.Get("prototype") as ObjectInstance;
+                foreach (var field in enumType.GetTypeInfo().DeclaredFields.Where(field => field.IsLiteral))
+                {
+                    var member = field.GetCustomAttribute<DomNameAttribute>()?.OfficialName;
+                    if (member == null) continue;
+                    var value = JsNumber.Create(Convert.ToDouble(field.GetRawConstantValue()));
+                    constructor.FastSetProperty(member, new PropertyDescriptor(value, false, true, false));
+                    prototype?.FastSetProperty(member, new PropertyDescriptor(value, false, true, false));
+                }
             }
         }
 

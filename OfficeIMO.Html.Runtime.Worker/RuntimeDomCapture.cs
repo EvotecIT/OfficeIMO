@@ -2,6 +2,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Construction;
 using AngleSharp.Html.Dom;
 using OfficeIMO.Html.Dom;
+using System.Reflection;
 
 namespace OfficeIMO.Html.Runtime.Worker;
 
@@ -9,7 +10,8 @@ internal static class RuntimeDomCapture {
     internal static HtmlRuntimeWireDocument Capture(IDocument document, HtmlScriptRequest request, CancellationToken token) {
         var mode = ((IConstructableDocument)document).QuirksMode;
         var result = new HtmlRuntimeWireDocument {
-            ProviderId = "AngleSharp.Js/" + typeof(AngleSharp.Js.JsScriptingOptions).Assembly.GetName().Version + "; Jint/" + typeof(Jint.Engine).Assembly.GetName().Version,
+            ProviderId = "AngleSharp/" + typeof(IDocument).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion
+                + "; AngleSharp.Js/" + typeof(AngleSharp.Js.JsScriptingOptions).Assembly.GetName().Version + "; Jint/" + typeof(Jint.Engine).Assembly.GetName().Version,
             Mode = mode == QuirksMode.On ? HtmlDocumentMode.Quirks : mode == QuirksMode.Limited ? HtmlDocumentMode.LimitedQuirks : HtmlDocumentMode.Standards
         };
         var pending = new Queue<(INode Node, int Parent, int Depth, bool Template)>();

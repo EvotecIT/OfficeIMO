@@ -7,7 +7,7 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html.Runtime.Worker;
 
 internal static class RuntimeObserverBindings {
-    internal static void Install(Engine engine, IDocument document, Action<string> report) {
+    internal static void Install(Engine engine, IDocument document, Action<string> report, Action<Action> enqueue) {
         using var stream = typeof(RuntimeObserverBindings).Assembly.GetManifestResourceStream("OfficeIMO.RuntimeObserverBootstrap.js")!;
         using var reader = new StreamReader(stream);
         var factory = engine.Evaluate(reader.ReadToEnd());
@@ -51,7 +51,12 @@ internal static class RuntimeObserverBindings {
             });
             recordPrototype.FastSetProperty(name, new GetSetPropertyDescriptor(wrapped, descriptor.Set, descriptor.Enumerable, descriptor.Configurable));
         }
-        var exports = engine.Invoke(factory, new[] { create, take, observe, JsValue.FromObject(engine, report) }).AsObject();
+        var queue = new ClrFunction(engine,"queueMicrotask",(_,args)=>{
+            var callback=args[0];
+            enqueue(()=>engine.Invoke(callback));
+            return JsValue.Undefined;
+        });
+        var exports = engine.Invoke(factory, new[] { create, take, observe, JsValue.FromObject(engine, report), queue }).AsObject();
         foreach (var property in exports.GetOwnProperties())
             engine.Global.FastSetProperty(property.Key, new PropertyDescriptor(property.Value.Value, true, false, true));
     }

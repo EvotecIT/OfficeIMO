@@ -1,4 +1,4 @@
-(function (create, take, observe, report) {
+(function (create, take, observe, report, queue) {
     "use strict";
     const states = new WeakMap();
     function get(value) {
@@ -18,11 +18,6 @@
         observe(target, options) {
             const state = get(this);
             if (!(target instanceof Node)) throw new TypeError("The observation target must be a Node");
-            if (target.nodeType === 9) {
-                const error = new Error("Document observation is outside the qualified observer profile; observe an element or fragment.");
-                error.name = 'NotSupportedError';
-                throw error;
-            }
             options = options == null ? {} : Object(options);
             const value = { childList: !!options.childList, subtree: !!options.subtree };
             for (const name of ['attributes', 'characterData', 'attributeOldValue', 'characterDataOldValue']) {
@@ -49,18 +44,12 @@
         disconnect() {
             const state = get(this);
             state.native.disconnect();
-            // The retained observer keeps old targets after disconnect. A fresh
-            // native registration set preserves this public observer's identity.
-            state.native = create(state.callback);
         }
         takeRecords() { return take(get(this).native); }
     }
     function queueMicrotask(callback) {
         if(typeof callback!=="function") throw new TypeError("A microtask callback is required");
-        Promise.resolve().then(()=>{
-            try { callback(); }
-            catch(error) { report(String(error)); }
-        });
+        queue(callback);
     }
     return { MutationObserver, queueMicrotask };
 })
