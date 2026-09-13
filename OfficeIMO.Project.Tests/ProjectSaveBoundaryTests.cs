@@ -193,6 +193,22 @@ public sealed class ProjectSaveBoundaryTests {
     }
 
     [Fact]
+    public void WorkWeekWeekdayDateRangesAreRejectedBeforeXmlOutput() {
+        using var document = ProjectDocument.Create(); var calendar = document.Calendars.AddStandardWorkingWeek();
+        var week = calendar.WorkWeeks.Add(); week.FromDate = Monday.Date; week.ToDate = Monday.AddDays(4).Date;
+        var day = week.SetWorkingDay(DayOfWeek.Monday, new ProjectWorkingTime(TimeSpan.FromHours(8), TimeSpan.FromHours(17)));
+        day.FromDate = Monday.Date; day.ToDate = Monday.AddDays(1).Date;
+
+        var report = document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml });
+        Assert.Contains(report.Diagnostics, item => item.Code == "PROJECT_WORK_WEEK_DAY_PERIOD"
+            && item.Location.EndsWith("/WorkWeek[0]/WeekDay[0]/FromDate", StringComparison.Ordinal));
+        Assert.Contains(report.Diagnostics, item => item.Code == "PROJECT_WORK_WEEK_DAY_PERIOD"
+            && item.Location.EndsWith("/WorkWeek[0]/WeekDay[0]/ToDate", StringComparison.Ordinal));
+        using var output = new MemoryStream();
+        Assert.Throws<InvalidDataException>(() => document.Save(output)); Assert.Equal(0, output.Length);
+    }
+
+    [Fact]
     public void DerivedCalendarRequiresItsParentAfterEditingOrLoading() {
         using var document = ProjectDocument.Create(); var parent = document.Calendars.AddStandardWorkingWeek();
         var calendar = document.Calendars.Add("Resource calendar", parent); calendar.BaseCalendar = null;

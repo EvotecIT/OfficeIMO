@@ -6,6 +6,11 @@ internal static partial class ProjectXmlCodec {
     internal static bool RequiresRemainingDurationDefault(ProjectDocument document, ProjectTask task) =>
         document.Source?.Element(task) == null && task.Duration.HasValue && !task.RemainingDuration.HasValue &&
         !task.ActualDuration.HasValue && (task.PercentComplete ?? 0) == 0;
+    internal static int? WrittenTaskDisplayId(ProjectDocument document, ProjectTask task, ref int row) {
+        if (!document.StructureChanged && document.Source != null) return task.DisplayId;
+        int generated = task.Uid == 0 ? 0 : ++row;
+        return task.DisplayId.HasValue ? generated : (int?)null;
+    }
 
     private static XDocument WriteDocument(ProjectDocument document, CancellationToken token) {
         var xml = new XDocument(new XDeclaration("1.0", "utf-8", document.Source?.Xml.Declaration?.Standalone));
@@ -31,7 +36,7 @@ internal static partial class ProjectXmlCodec {
             levels.Add(task, level);
             void Field(string name, string? value) => ProjectXmlFields.Apply(document, task, node, name, value, TaskOrder);
             Field("UID", ProjectXmlValue.Integer(task.Uid));
-            Field("ID", ProjectXmlValue.Integer(document.StructureChanged || document.Source == null ? (task.Uid == 0 ? 0 : ++row) : task.DisplayId));
+            Field("ID", ProjectXmlValue.Integer(WrittenTaskDisplayId(document, task, ref row)));
             Field("OutlineLevel", ProjectXmlValue.Integer(document.StructureChanged || document.Source == null ? level : task.SourceOutlineLevel));
             Field("Summary", ProjectXmlValue.Boolean(task.IsSummary));
             Field("CalendarUID", ProjectXmlValue.Integer(task.Calendar?.Uid ?? task.SourceCalendarUid));

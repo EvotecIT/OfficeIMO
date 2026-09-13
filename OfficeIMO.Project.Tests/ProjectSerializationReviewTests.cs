@@ -1,6 +1,126 @@
 namespace OfficeIMO.Project.Tests;
 
 public sealed class ProjectSerializationReviewTests {
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpx4)]
+    [InlineData(ProjectFileFormat.Mpp14)]
+    public void XmlOutputNeverRetainsPreviouslySavedNonXmlBytes(ProjectFileFormat sourceFormat) {
+        using var document = sourceFormat == ProjectFileFormat.Mpp14
+            ? ProjectNativeAuthoringTests.Create()
+            : ProjectDocument.Create();
+        if (sourceFormat == ProjectFileFormat.Mpx4) {
+            var task = document.Tasks.Add("Task"); task.DisplayId = 1;
+        }
+        var allowSource = new ProjectSaveOptions { Format = sourceFormat, LossPolicy = OfficeConversionLossPolicy.Allow };
+        using var source = new MemoryStream(); document.Save(source, allowSource);
+        Assert.NotEmpty(source.ToArray());
+
+        var allowXml = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, LossPolicy = OfficeConversionLossPolicy.Allow };
+        string xml = document.ToXml(allowXml);
+        Assert.Equal("Project", System.Xml.Linq.XDocument.Parse(xml).Root!.Name.LocalName);
+
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-project-" + Guid.NewGuid().ToString("N") + ".xml");
+        try {
+            document.Save(path, allowXml);
+            Assert.Equal("Project", System.Xml.Linq.XDocument.Load(path).Root!.Name.LocalName);
+        } finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
+    public void RetainedMpxSourceKeepsRootConversionLosses() {
+        const string xml = "<Project xmlns=\"http://schemas.microsoft.com/project\" xmlns:x=\"urn:fixture\"><x:Opaque>value</x:Opaque></Project>";
+        using var document = ProjectDocument.Parse(xml);
+        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4, LossPolicy = OfficeConversionLossPolicy.Allow };
+        using var output = new MemoryStream(); document.Save(output, allow);
+
+        var strict = new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4 };
+        var diagnostic = Assert.Single(document.AssessSave(strict).Diagnostics,
+            item => item.Code == "PROJECT_MPX_XML_CONTENT_LOSS" && item.Location == "/");
+        Assert.True(diagnostic.RepresentsLoss);
+        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
+    }
+
+    [Fact]
+    public void RetainedNativeSourceKeepsRootGenerationLosses() {
+        using var seed = ProjectNativeAuthoringTests.Create(); using var source = new MemoryStream();
+        seed.Save(source, new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14 });
+        using var document = ProjectDocument.Load(new MemoryStream(source.ToArray()));
+        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp8, LossPolicy = OfficeConversionLossPolicy.Allow };
+        using var converted = new MemoryStream(); document.Save(converted, allow);
+
+        var strict = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp8 };
+        var diagnostic = Assert.Single(document.AssessSave(strict).Diagnostics,
+            item => item.Code == "PROJECT_NATIVE_GENERATION_LOSS" && item.Location == "/");
+        Assert.True(diagnostic.RepresentsLoss);
+        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
+    }
+
+    [Theory]
+    [InlineData("80,external-reference", "PROJECT_MPX_CONVERSION_LOSS", "/MPX/Record[7]")]
+    [InlineData("72,recurrence", "PROJECT_MPX_CONVERSION_LOSS", "/Task[UID=1]/Recurrence")]
+    [InlineData("0,comment", "PROJECT_MPX_COMMENT_LOSS", "/")]
+    public void RetainedNativeSourceKeepsMpxConversionLosses(string sourceRecord, string expectedCode, string expectedLocation) {
+        string mpx = "MPX,Fixture,4.0,ANSI\r\n10,$,1,2,\",\",.\r\n12,1,0,480,/,:,AM,PM,20,9\r\n"
+            + "30,Fixture,,,Standard\r\n61,90,1\r\n70,1,Task\r\n" + sourceRecord + "\r\n";
+        using var document = ProjectDocument.Load(new MemoryStream(Encoding.ASCII.GetBytes(mpx)));
+        document.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
+        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, LossPolicy = OfficeConversionLossPolicy.Allow };
+        using var converted = new MemoryStream(); document.Save(converted, allow);
+
+        var strict = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14 };
+        var diagnostic = Assert.Single(document.AssessSave(strict).Diagnostics,
+            item => item.Code == expectedCode && item.Location == expectedLocation);
+        Assert.True(diagnostic.RepresentsLoss);
+        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
+
+        document.Name = "Edited";
+        using var rewritten = new MemoryStream(); document.Save(rewritten, allow);
+        Assert.Contains(document.AssessSave(strict).Diagnostics,
+            item => item.Code == expectedCode && item.Location == expectedLocation && item.RepresentsLoss);
+    }
+
+    [Fact]
+    public void FreshXmlExplicitTaskDisplayRowsRequireLossAcceptance() {
+        using var document = ProjectDocument.Create(); var task = document.Tasks.Add("Task"); task.DisplayId = 99;
+        var strict = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
+        var diagnostic = Assert.Single(document.AssessSave(strict).Diagnostics,
+            item => item.Code == "PROJECT_XML_TASK_ROWS");
+        Assert.Equal("/Task[UID=" + task.Uid + "]/DisplayId", diagnostic.Location);
+        Assert.True(diagnostic.RepresentsLoss); Assert.Contains("becomes 1", diagnostic.Message);
+        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
+
+        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, LossPolicy = OfficeConversionLossPolicy.Allow };
+        using var output = new MemoryStream(); document.Save(output, allow);
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(1, reopened.Tasks.Single().DisplayId);
+    }
+
+    [Fact]
+    public void FreshXmlTasksWithoutDisplayRowsRemainAbsent() {
+        using var document = ProjectDocument.Create(); document.Tasks.Add("Task");
+        var strict = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
+        Assert.DoesNotContain(document.AssessSave(strict).Diagnostics, item => item.Code == "PROJECT_XML_TASK_ROWS");
+        using var output = new MemoryStream(); document.Save(output, strict);
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Null(reopened.Tasks.Single().DisplayId);
+    }
+
+    [Fact]
+    public void StructuralXmlEditsReportEveryChangedTaskDisplayRow() {
+        const string xml = "<Project xmlns=\"http://schemas.microsoft.com/project\"><Tasks>"
+            + "<Task><UID>1</UID><ID>10</ID><Name>First</Name></Task>"
+            + "<Task><UID>2</UID><ID>20</ID><Name>Second</Name></Task></Tasks></Project>";
+        using var document = ProjectDocument.Parse(xml); document.Tasks.GetByUid(2).MoveTo(null, 0);
+        var report = document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml });
+        Assert.Contains(report.Diagnostics, item => item.Code == "PROJECT_XML_TASK_ROWS" && item.Location == "/Task[UID=2]/DisplayId");
+        Assert.Contains(report.Diagnostics, item => item.Code == "PROJECT_XML_TASK_ROWS" && item.Location == "/Task[UID=1]/DisplayId");
+        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, LossPolicy = OfficeConversionLossPolicy.Allow };
+        using var output = new MemoryStream(); document.Save(output, allow);
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(new[] { 2, 1 }, reopened.Tasks.Select(item => item.Uid));
+        Assert.Equal(new int?[] { 1, 2 }, reopened.Tasks.Select(item => item.DisplayId));
+    }
+
     [Fact]
     public void NewXmlTaskRemainingDurationDefaultRequiresLossAcceptance() {
         using var document = ProjectDocument.Create();

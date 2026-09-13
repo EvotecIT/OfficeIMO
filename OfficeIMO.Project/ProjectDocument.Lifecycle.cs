@@ -174,11 +174,10 @@ public sealed partial class ProjectDocument {
             bytes = plan.Bytes!;
             if (ProjectMpxWriter.CanRetain(this, options)) mpx = MpxSource;
             else {
-                var snapshot = ProjectModelSnapshot.Capture(this, token);
                 mpx = new ProjectMpxSource { Bytes = bytes, ModelRevision = revision,
                     CodePage = (int?)options.MpxEncoding ?? MpxSource?.CodePage ?? 1252, Separator = options.MpxSeparator ?? MpxSource?.Separator ?? ',',
                     CurrencyPosition = MpxSource?.CurrencyPosition ?? "1", DateFormat = MpxSource?.DateFormat ?? "0", BarDateFormat = MpxSource?.BarDateFormat ?? "0", Comments = MpxSource?.Comments ?? Array.Empty<string[]>(),
-                    Unrepresented = RetainedModelLosses(plan.Report, snapshot)
+                    Unrepresented = RetainedLosses(assessment, plan.Report)
                 };
             }
         } else if (IsNativeFormat(format)) {
@@ -197,7 +196,7 @@ public sealed partial class ProjectDocument {
                 var snapshot = ProjectModelSnapshot.Capture(this, token);
                 native = new ProjectNativeSource(bytes, new ProjectNativeInfo(preparedHeader.TryGetValue(0x35400010, out var producer) ? producer.Unicode() : null, file)) {
                     Snapshot = snapshot, ModelRevision = revision,
-                    UnrepresentedValues = RetainedModelLosses(plan.Report, snapshot)
+                    UnrepresentedValues = RetainedLosses(assessment, plan.Report)
                 };
             }
         } else bytes = ProjectXmlCodec.Write(this, WithFormat(options, format, NativeSource != null || MpxSource != null ? false : (bool?)null), token);
@@ -205,11 +204,12 @@ public sealed partial class ProjectDocument {
         if (Revision != revision) throw new InvalidOperationException("The project changed while serialization was in progress.");
         return new ProjectSerialization(bytes, format, revision, native, mpx);
     }
-    private static IReadOnlyList<ProjectDiagnostic> RetainedModelLosses(ProjectReport report, Dictionary<string, object?> snapshot) =>
-        report.Diagnostics.Where(d => d.RepresentsLoss && d.Location != "/" &&
-            (snapshot.ContainsKey(d.Location) || snapshot.Keys.Any(k => k.StartsWith(d.Location + "/", StringComparison.Ordinal) || k.StartsWith(d.Location + "[", StringComparison.Ordinal)))).ToArray();
+    private static IReadOnlyList<ProjectDiagnostic> RetainedLosses(params ProjectReport[] reports) =>
+        reports.SelectMany(report => report.Diagnostics).Where(d => d.RepresentsLoss)
+            .GroupBy(d => new { d.Code, d.Severity, d.Message, d.Location, d.RepresentsLoss }).Select(group => group.First()).ToArray();
     private void AcceptSaved(ProjectSerialization prepared) {
-        LastSavedBytes = prepared.Bytes; _savedRevision = prepared.Revision; _associatedFormat = prepared.Format;
+        LastSavedBytes = prepared.Format == ProjectFileFormat.Xml ? prepared.Bytes : null;
+        _savedRevision = prepared.Revision; _associatedFormat = prepared.Format;
         if (prepared.Native != null) NativeSource = prepared.Native;
         if (prepared.Mpx != null) MpxSource = prepared.Mpx;
     }

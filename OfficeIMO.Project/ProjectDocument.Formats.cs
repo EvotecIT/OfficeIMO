@@ -172,8 +172,14 @@ public sealed partial class ProjectDocument {
                     "The text contains a character that XML 1.0 cannot represent.", field.Key));
             }
         }
+        int taskRow = 0;
         foreach (var task in AllTasks) {
             token.ThrowIfCancellationRequested(); string path = "/Task[UID=" + task.Uid + "]";
+            int? writtenDisplayId = ProjectXmlCodec.WrittenTaskDisplayId(this, task, ref taskRow);
+            if (writtenDisplayId != task.DisplayId)
+                diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_TASK_ROWS", ProjectDiagnosticSeverity.Warning,
+                    "Project XML assigns task display IDs from the current outline order; this value becomes " + writtenDisplayId + ".",
+                    path + "/DisplayId", true));
             if (ProjectXmlCodec.RequiresRemainingDurationDefault(this, task))
                 diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_REMAINING_DURATION_DEFAULT", ProjectDiagnosticSeverity.Warning,
                     "Project XML requires remaining duration for a newly authored unstarted task and normalizes it to the task duration.",

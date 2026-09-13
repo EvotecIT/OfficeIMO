@@ -28,17 +28,23 @@ public sealed partial class ProjectDocument {
                 CheckIntervals(exception.WorkingTimes, location + "/Exception", add, token);
                 CheckWorkingStatus(exception.IsWorking, exception.WorkingTimes.Count, location + "/Exception", add);
             }
-            foreach (var week in calendar.WorkWeeks) {
+            for (int weekIndex = 0; weekIndex < calendar.WorkWeeks.Count; weekIndex++) {
+                var week = calendar.WorkWeeks[weekIndex];
                 token.ThrowIfCancellationRequested();
                 if (!week.FromDate.HasValue || !week.ToDate.HasValue)
                     add("PROJECT_CALENDAR_PERIOD", "An incomplete work-week date range is retained in XML; calendar arithmetic and native output require both bounds.", location + "/WorkWeek", ProjectDiagnosticSeverity.Warning);
                 CheckDateRange(week.FromDate, week.ToDate, location + "/WorkWeek", add);
                 var weekdays = new HashSet<DayOfWeek>();
-                foreach (var day in week.WeekDays) {
+                for (int dayIndex = 0; dayIndex < week.WeekDays.Count; dayIndex++) {
+                    var day = week.WeekDays[dayIndex]; string dayLocation = location + "/WorkWeek[" + weekIndex + "]/WeekDay[" + dayIndex + "]";
                     if (!day.Day.HasValue || !Enum.IsDefined(typeof(DayOfWeek), day.Day.Value) || !weekdays.Add(day.Day.Value))
                         add("PROJECT_CALENDAR_DAY", "Work-week overrides require unique valid weekdays.", location + "/WorkWeek");
                     CheckIntervals(day.WorkingTimes, location + "/WorkWeek", add, token);
                     CheckWorkingStatus(day.IsWorking, day.WorkingTimes.Count, location + "/WorkWeek", add);
+                    if (day.FromDate.HasValue)
+                        add("PROJECT_WORK_WEEK_DAY_PERIOD", "A work-week weekday override cannot declare its own date range.", dayLocation + "/FromDate");
+                    if (day.ToDate.HasValue)
+                        add("PROJECT_WORK_WEEK_DAY_PERIOD", "A work-week weekday override cannot declare its own date range.", dayLocation + "/ToDate");
                 }
             }
             CheckCalendarOverlaps(calendar.WorkWeeks.Select(w => (w.FromDate, w.ToDate)), location + "/WorkWeek", add, token);

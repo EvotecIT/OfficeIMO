@@ -97,10 +97,11 @@ internal sealed partial class ProjectNativeWriter {
         ValidateIdentities();
         WriteTasks(); WriteResources(); WriteAssignments(); WriteCalendars(); WriteDependencies(); WriteDefinitions(); WriteProperties();
         foreach (var prior in _document.NativeSource?.UnrepresentedValues ?? Array.Empty<ProjectDiagnostic>()) {
-            bool present = _current.ContainsKey(prior.Location) || _keys.TryGetValue(Group(prior.Location), out var keys) &&
+            bool sourceLoss = prior.Code == "PROJECT_MPX_CONVERSION_LOSS" || prior.Code == "PROJECT_MPX_COMMENT_LOSS";
+            bool present = prior.Location == "/" || sourceLoss || _current.ContainsKey(prior.Location) || _keys.TryGetValue(Group(prior.Location), out var keys) &&
                 keys.Any(k => _current.ContainsKey(k) && (k.StartsWith(prior.Location + "/", StringComparison.Ordinal) || k.StartsWith(prior.Location + "[", StringComparison.Ordinal)));
             if (!present) Handle(prior.Location);
-            else if (!Changed(prior.Location) && !ChangedTree(prior.Location)) AddDiagnostic(prior);
+            else if (sourceLoss || !Changed(prior.Location) && !ChangedTree(prior.Location)) AddDiagnostic(prior);
         }
         foreach (string key in _changes) {
             _token.ThrowIfCancellationRequested();
