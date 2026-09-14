@@ -10,19 +10,20 @@ Delivery prioritizes usable components. AngleSharp and AngleSharp.Css are tempor
 
 ## Product boundaries
 
-There are three separately useful products, with different acceptance criteria:
+There are four separately useful products, with different acceptance criteria:
 
 | Product | User outcome | Completion boundary |
 | --- | --- | --- |
 | HTML document platform | Parse and edit documents, query content, analyze CSS, normalize HTML, extract structured data, and convert to editable document formats | Published DOM, syntax, query, serialization, semantic and resource contracts work without launching a browser |
 | Static web renderer | Render HTML and CSS to continuous previews, paged PDF, SVG and raster output | Declared static-web compatibility profile passes its frozen corpus without Chromium; script-dependent content is identified as unexecuted |
-| Browser runtime and automation | Load pages, execute scripts, interact, wait for specified states, inspect results, and capture output | Declared web API and interaction profile passes independent runtime tests and representative site workflows without an external browser |
+| Web runtime | Load pages, execute scripts, maintain browser state and produce live document revisions without an external browser | Declared language, web API, lifecycle, navigation, storage and isolation profiles pass their independent suites |
+| Programmatic automation | Inspect structured page state, find actionable elements, interact, wait, extract, trace and capture through code or optional agent tools | Provider-neutral context, page, locator, observation, action and event contracts pass deterministic workflows on every advertised runtime provider |
 
 A static page can be complex and still require no JavaScript. A simple-looking page can require scripts to create all its content. Classify inputs by required behavior and captured state, not their appearance or URL.
 
 Playwright is an automation layer over Chromium, Firefox and WebKit. Rendering replacement and automation replacement therefore have different owners and tests. A new engine also cannot prove how a website behaves in those other browsers; cross-browser testing remains a valid development dependency even after the runtime is independent. See [Playwright browser support](https://playwright.dev/docs/browsers).
 
-No stage promises all websites or an identical Playwright API. The browser stage is part of the long-term design, with its own executable scope rather than an indefinite promise hidden inside HTML-to-PDF.
+No stage promises all websites or an identical Playwright API. The browser stage is part of the long-term design, with its own executable scope rather than an indefinite promise hidden inside HTML-to-PDF. The default managed provider ultimately owns HTML, CSS, JavaScript and the selected web platform without third-party runtime packages or a browser binary; optional external providers remain explicit compatibility choices.
 
 ## Public adoption boundary
 
@@ -78,7 +79,8 @@ flowchart BT
     P --> PDF[OfficeIMO.Pdf]
     PDF --> OC
     T[HtmlTinkerX: extraction and automation workflows] --> H
-    R[Optional web runtime] --> H
+    R[Optional web runtime and programmatic automation] --> H
+    G[Optional agent, CLI and tool adapters] --> R
     T --> R
     B[OfficeIMO.Html.Pdf.Browser: existing external bridge] --> T
 ```
@@ -92,7 +94,8 @@ The target graph differs deliberately from the current packaged graph:
 | `OfficeIMO.Html` | Publishable renderer that currently references AngleSharp, AngleSharp.Css, Core and shared OfficeIMO primitives | Owned CSS, resources, semantics, layout and display list over Core and shared drawing primitives |
 | `OfficeIMO.Html.Pdf` | PDF output adapter over Html and OfficeIMO.Pdf | Same thin output direction, consuming an explicit render profile |
 | `OfficeIMO.Html.Pdf.Browser` | Optional HtmlTinkerX/browser bridge | Explicit external-browser provider outside the independent static profile |
-| Optional runtime | Trusted scripted sessions and automation through retained providers | Separately qualified runtime whose providers can be retired without changing the static graph |
+| Optional runtime | Trusted scripted sessions and automation through retained providers | Provider-neutral context, page, observation and action contracts over an owned HTML/CSS/JavaScript runtime |
+| Optional agent/tool adapters | Not yet a separately productized HTML-runtime surface | Thin model, CLI or MCP adapters over structured observations and actions, with no LLM dependency in the runtime |
 
 `OfficeIMO.Html.Core` is the existing lightweight leaf for owned source buffers, DOM, serialization and provider contracts; HTML/CSS syntax and selector ownership continue to move into it as their implementations mature. It must not depend on graphics, PDF, Office file formats, networking sessions, JavaScript or browser installers. This gives HtmlTinkerX and other parsing or extraction consumers a small dependency graph. Namespaces can distinguish `Dom`, `Css.Syntax` and `Selectors` without creating a package for every folder.
 
@@ -285,6 +288,50 @@ Any future untrusted-script profile must execute in an isolated worker with OS-e
 
 Removing a third-party JavaScript engine is a later language-runtime project covering parsing, evaluation, modules, promises, built-ins, memory management, internationalization and performance. Start with an interpreter only if the stage has its own funded scope and Test262 acceptance. A JIT is not required to begin; its absence also does not establish adequate performance for real applications. The static product must remain useful and independently releasable throughout.
 
+### Programmatic browser control and agent integration
+
+The browser-control product is an API over the runtime, not an AI agent embedded in the engine. `OfficeIMO.Html.Runtime` already supplies the first provider-neutral foundation: persistent sessions, navigation, evaluation, locators, structured actions and failures, layout-backed actionability, waits and independent captures. Extend those owners instead of creating a separate automation DOM.
+
+The complete public control model has six layers:
+
+| Layer | Contract |
+| --- | --- |
+| Runtime host | Starts the managed or explicitly selected provider, reports capabilities and versions, enforces process/resource policy and owns shutdown |
+| Browser context | Partitions origins, storage, cookies where qualified, permissions, credentials, downloads, resource caches and recording policy |
+| Page | Owns one live document, URL/history, viewport, lifecycle, navigation, script evaluation, capture and page-scoped events |
+| Locator and action | Re-resolves semantic/CSS/text/role queries against the current revision and performs bounded click, fill, select, focus, keyboard, pointer, scroll, drag and wait operations |
+| Observation | Returns a revision-bound, size-limited page state containing URL/title, visible and actionable semantic tree, accessible names/roles, values, selected text, geometry, scroll state, diagnostics and optional screenshot references |
+| Trace and result | Records navigation, resources, console/script failures, observations, actions, downloads, captures, timing, policy decisions and final structured output with redaction controls |
+
+Context and page types are future API responsibilities, not names promised by the current package. Keep one-page sessions valid while introducing multiple pages and isolated contexts. Locator queries remain durable descriptions; element references emitted in an observation are bound to its document revision and fail as stale rather than acting on a different element after navigation or mutation.
+
+Programmatic use is the primary contract. A .NET application can navigate, observe, query, interact, extract and capture with typed requests and results without a model. Declarative workflow and replay support build on the same commands and events. CLI, PowerShell, MCP and other hosts serialize those contracts without inventing their own locator, readiness, security or error semantics.
+
+An optional agent adapter adds a replaceable planning loop:
+
+```text
+goal + policy
+    -> bounded observation
+    -> planner proposes one typed action
+    -> runtime validates capability, authority and current revision
+    -> action executes and emits events
+    -> new observation or structured result
+```
+
+The planner may be an LLM, rules engine or application callback. It receives only the selected observation and tool schemas; it does not gain direct access to interpreter objects, arbitrary CLR APIs, credentials or unrestricted network functions. The runtime package has no dependency on a model SDK. Optional model adapters map provider responses into the same action union and preserve model, prompt, token, cost and decision provenance where the caller requests it.
+
+The structured tool surface should include navigation, page observation, locator inspection, click/fill/select/check/focus, keyboard/pointer/scroll, explicit waits, script evaluation when policy permits it, extraction, screenshot/render capture, downloads and final-result submission. Every tool declares required capabilities and returns stable status codes. Whole-page observation must support semantic-only, visual-only and combined modes so a caller can trade cost against fidelity without changing action semantics.
+
+The same automation contract supports three providers during migration:
+
+1. The OfficeIMO managed runtime, which becomes the dependency-free default after H6 and H9.
+2. An explicitly selected external-browser adapter for websites outside the managed compatibility profile.
+3. A consumer-supplied provider implementing the published host/page/action contracts.
+
+Provider switching is never silent. Capability inspection occurs before a workflow starts, every observation and trace records the provider, and unsupported behavior returns a typed result. Cross-provider tests exercise equivalent outcomes rather than assuming identical screenshots, timing or hidden browser behavior.
+
+A local programmatic library is the first product boundary. Hosted browser fleets, residential proxies, stealth behavior, CAPTCHA services, account/profile synchronization and recurring task infrastructure are separate deployment products. They can consume the runtime and automation contracts later but do not belong in the HTML/CSS/JavaScript engine or determine when it is independent.
+
 ## Independent parser and adoption strategy
 
 OfficeIMO can compete as a web-document and rendering platform before it replaces every provider. It cannot claim to be an independent parser/DOM alternative while the default parsing path still requires AngleSharp. Use four explicit adoption stages:
@@ -381,8 +428,9 @@ Deliver the next work in reviewable vertical slices:
 2. Productize `OfficeIMO.Html.Core` for a small non-Office consumer, including packed-package, public API, lifecycle and compatibility proof while the temporary parser is identified in diagnostics.
 3. Close H3-H4 CSS, layout, fragmentation and output gaps profile by profile against frozen browser, geometry, semantic and artifact references.
 4. Complete H5 as an integrated managed parser and serializer, switch the default only after conformance, bounds and performance gates pass, and retain the adapter only where real migration demand exists.
-5. Complete H6 by removing AngleSharp, AngleSharp.Css and other third-party runtime dependencies from the advertised static graph, with packed transitive-graph proof on every supported target.
-6. Expand trusted runtime and automation profiles independently when real application workflows require them; broader browser compatibility and an owned language engine retain their own gates.
+5. Productize the existing H7-H8 runtime and locator foundation as typed contexts, pages, observations, actions, events, traces and optional agent tools while retained providers remain effective.
+6. Complete H6 by removing AngleSharp, AngleSharp.Css and other third-party runtime dependencies from the advertised static graph, with packed transitive-graph proof on every supported target.
+7. Complete H9 by replacing the JavaScript and remaining runtime providers over the H6 engine. The resulting managed HTML/CSS/JavaScript runtime has no third-party runtime packages or browser binary; broader browser compatibility continues through explicit profiles.
 
 Preserve explicit bounds, provider identity and unsupported results throughout. Competitive claims attach to the completed profile or adoption stage, never to the repository as a whole.
 
