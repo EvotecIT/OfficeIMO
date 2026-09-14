@@ -40,6 +40,15 @@ internal readonly struct PdfImagePlacementImportAssessment {
 
     internal bool HasNonDefaultOpacity => Opacity < 1D;
 
+    internal int MappedTransparencyPercent {
+        get {
+            int percentage = (int)Math.Round((1D - Opacity) * 100D, MidpointRounding.AwayFromZero);
+            if (Opacity > 0D && percentage >= 100) return 99;
+            if (percentage < 0) return 0;
+            return percentage > 100 ? 100 : percentage;
+        }
+    }
+
     internal bool HasNonNormalBlendMode => BlendMode != OfficeBlendMode.Normal;
 }
 

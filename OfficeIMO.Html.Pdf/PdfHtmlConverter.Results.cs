@@ -482,19 +482,20 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static bool AreAllDocumentPagesSelected(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages) {
-        if (document.PageCount == 0 || pages.Count != document.PageCount) {
+        int sourcePageCount = document.SourcePageCount;
+        if (sourcePageCount == 0 || pages.Count != sourcePageCount) {
             return false;
         }
 
         var seen = new HashSet<int>();
         for (int i = 0; i < pages.Count; i++) {
             int pageNumber = pages[i].PageNumber;
-            if (pageNumber < 1 || pageNumber > document.PageCount || !seen.Add(pageNumber)) {
+            if (pageNumber < 1 || pageNumber > sourcePageCount || !seen.Add(pageNumber)) {
                 return false;
             }
         }
 
-        return seen.Count == document.PageCount;
+        return seen.Count == sourcePageCount;
     }
 
     private static bool HasScopedOpenAction(PdfCore.PdfDocumentOpenAction? openAction, IReadOnlyList<PdfCore.PdfLogicalPage> pages) {

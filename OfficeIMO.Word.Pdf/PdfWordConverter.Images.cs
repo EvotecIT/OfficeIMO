@@ -222,9 +222,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfImagePlacementImportAssessment assessment,
             PdfToWordOptions options) {
             if (assessment.HasNonDefaultOpacity) {
-                embeddedImage.Transparency = (int)Math.Round(
-                    (1D - assessment.Opacity) * 100D,
-                    MidpointRounding.AwayFromZero);
+                embeddedImage.Transparency = assessment.MappedTransparencyPercent;
                 AddWarning(
                     options,
                     "PdfImageOpacityMapped",

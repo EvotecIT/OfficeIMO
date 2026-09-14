@@ -362,9 +362,7 @@ public static partial class PowerPointPdfConverterExtensions {
                     bounds.Width,
                     bounds.Height);
                 if (assessment.HasNonDefaultOpacity) {
-                    picture.FillTransparency = (int)Math.Round(
-                        (1D - assessment.Opacity) * 100D,
-                        MidpointRounding.AwayFromZero);
+                    picture.FillTransparency = assessment.MappedTransparencyPercent;
                 }
                 AddEditableImagePlacementWarning(warnings, image, assessment);
                 imported++;

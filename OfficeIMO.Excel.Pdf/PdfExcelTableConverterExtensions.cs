@@ -331,32 +331,62 @@ namespace OfficeIMO.Excel.Pdf {
             string positive = affixPosition == PdfCore.PdfLogicalCurrencyAffixPosition.Prefix
                 ? literal + separator + numeric
                 : numeric + separator + literal;
-            if (parsedValue >= 0M) return positive;
-
             string normalized = sourceValue.Trim();
+            if (parsedValue >= 0M) {
+                string positiveSign = numericCulture.NumberFormat.PositiveSign;
+                return !string.IsNullOrEmpty(positiveSign) &&
+                       normalized.IndexOf(positiveSign, StringComparison.Ordinal) >= 0
+                    ? BuildSignedCurrencyPattern(
+                        normalized,
+                        positiveSign,
+                        currencyToken,
+                        affixPosition,
+                        literal,
+                        separator,
+                        numeric,
+                        positive)
+                    : positive;
+            }
+
             if (normalized.Length >= 3 && normalized[0] == '(' && normalized[normalized.Length - 1] == ')') {
                 return positive + ";\"(\"" + positive + "\")\"";
             }
 
             string negativeSign = numericCulture.NumberFormat.NegativeSign;
             if (string.IsNullOrEmpty(negativeSign)) negativeSign = "-";
-            string signLiteral = "\"" + negativeSign.Replace("\"", "\"\"") + "\"";
-            if (normalized.StartsWith(negativeSign, StringComparison.Ordinal)) {
-                return positive + ";" + signLiteral + positive;
-            }
-            if (normalized.EndsWith(negativeSign, StringComparison.Ordinal)) {
-                return positive + ";" + positive + signLiteral;
-            }
+            string negative = BuildSignedCurrencyPattern(
+                normalized,
+                negativeSign,
+                currencyToken,
+                affixPosition,
+                literal,
+                separator,
+                numeric,
+                positive);
+            return string.Equals(negative, positive, StringComparison.Ordinal)
+                ? positive
+                : positive + ";" + negative;
+        }
 
-            int signIndex = normalized.IndexOf(negativeSign, StringComparison.Ordinal);
-            int tokenIndex = normalized.IndexOf(currencyToken, StringComparison.Ordinal);
-            if (signIndex >= 0 && tokenIndex >= 0) {
-                string negative = affixPosition == PdfCore.PdfLogicalCurrencyAffixPosition.Prefix
-                    ? literal + separator + signLiteral + numeric
-                    : numeric + signLiteral + separator + literal;
-                return positive + ";" + negative;
+        private static string BuildSignedCurrencyPattern(
+            string normalized,
+            string sign,
+            string currencyToken,
+            PdfCore.PdfLogicalCurrencyAffixPosition affixPosition,
+            string literal,
+            string separator,
+            string numeric,
+            string unsignedPattern) {
+            string signLiteral = "\"" + sign.Replace("\"", "\"\"") + "\"";
+            if (normalized.StartsWith(sign, StringComparison.Ordinal)) return signLiteral + unsignedPattern;
+            if (normalized.EndsWith(sign, StringComparison.Ordinal)) return unsignedPattern + signLiteral;
+            if (normalized.IndexOf(sign, StringComparison.Ordinal) < 0 ||
+                normalized.IndexOf(currencyToken, StringComparison.Ordinal) < 0) {
+                return unsignedPattern;
             }
-            return positive;
+            return affixPosition == PdfCore.PdfLogicalCurrencyAffixPosition.Prefix
+                ? literal + separator + signLiteral + numeric
+                : numeric + signLiteral + separator + literal;
         }
 
         private static void AddEmptyWorkbookSheet(ExcelDocument workbook, PdfTablesToExcelOptions options) {

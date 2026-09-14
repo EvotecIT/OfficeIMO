@@ -318,7 +318,7 @@ public class PdfTableStreamExportContracts {
     public void ExcelCurrencyFormatsPreserveAffixPlacementAndSpacing() {
         byte[] source = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420D,
-                PageHeight = 260D,
+                PageHeight = 420D,
                 MarginLeft = 20D,
                 MarginRight = 20D,
                 MarginTop = 20D,
@@ -330,7 +330,10 @@ public class PdfTableStreamExportContracts {
                 new[] { "$2,345.7", "2,345.750 KWD" },
                 new[] { "$3,456.789", "3,456.125 KWD" },
                 new[] { "-$4,567.00", "(4,567.500 KWD)" },
-                new[] { "$5,678.00-", "5,678.500 KWD-" }
+                new[] { "$5,678.00-", "5,678.500 KWD-" },
+                new[] { "+$6,789.00", "+6,789.500 KWD" },
+                new[] { "$+7,890.00", "7,890.500+ KWD" },
+                new[] { "$8,901.00+", "8,901.500 KWD+" }
             })
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
@@ -384,10 +387,34 @@ public class PdfTableStreamExportContracts {
             Assert.Equal(
                 -5678.5M,
                 decimal.Parse(cells["B6"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                6789M,
+                decimal.Parse(cells["A7"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                6789.5M,
+                decimal.Parse(cells["B7"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                7890M,
+                decimal.Parse(cells["A8"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                7890.5M,
+                decimal.Parse(cells["B8"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                8901M,
+                decimal.Parse(cells["A9"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                8901.5M,
+                decimal.Parse(cells["B9"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
             Assert.Equal("\"$\"#,##0.00;\"-\"\"$\"#,##0.00", GetCellNumberFormat("A5"));
             Assert.Equal("#,##0.000 \"KWD\";\"(\"#,##0.000 \"KWD\"\")\"", GetCellNumberFormat("B5"));
             Assert.Equal("\"$\"#,##0.00;\"$\"#,##0.00\"-\"", GetCellNumberFormat("A6"));
             Assert.Equal("#,##0.000 \"KWD\";#,##0.000 \"KWD\"\"-\"", GetCellNumberFormat("B6"));
+            Assert.Equal("\"+\"\"$\"#,##0.00", GetCellNumberFormat("A7"));
+            Assert.Equal("\"+\"#,##0.000 \"KWD\"", GetCellNumberFormat("B7"));
+            Assert.Equal("\"$\"\"+\"#,##0.00", GetCellNumberFormat("A8"));
+            Assert.Equal("#,##0.000\"+\" \"KWD\"", GetCellNumberFormat("B8"));
+            Assert.Equal("\"$\"#,##0.00\"+\"", GetCellNumberFormat("A9"));
+            Assert.Equal("#,##0.000 \"KWD\"\"+\"", GetCellNumberFormat("B9"));
 
             string GetCellNumberFormat(string reference) {
                 S.Cell cell = cells[reference];

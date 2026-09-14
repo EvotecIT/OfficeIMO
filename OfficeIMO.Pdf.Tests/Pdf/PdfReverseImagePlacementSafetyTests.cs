@@ -622,6 +622,35 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void VeryLowNonzeroImageOpacityRemainsVisibleAcrossEditableOfficeAdapters() {
+        byte[] source = CreateDocument()
+            .Canvas(canvas => canvas.Effect(
+                OfficeIMO.Drawing.OfficeTransform.Identity,
+                0.001D,
+                effect => effect.Image(Png, 20D, 30D, 80D, 40D)))
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        Assert.Equal(0.001D, Assert.Single(Assert.Single(logical.Pages).Images).Placements[0].Opacity, 6);
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            Assert.Equal(99, Assert.Single(word.Value.Images).Transparency);
+            Assert.Contains(word.Report.Warnings, static warning =>
+                warning.Code == "PdfImageOpacityMapped" &&
+                warning.LossKind == OfficeConversionLossKind.None);
+        }
+
+        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        using (powerPoint.Value) {
+            Assert.Equal(99, Assert.Single(Assert.Single(powerPoint.Value.Slides).Pictures).FillTransparency);
+            Assert.Contains(powerPoint.Report.Warnings, static warning =>
+                warning.Code == "PdfImageOpacityMapped" &&
+                warning.LossKind == OfficeConversionLossKind.None);
+        }
+    }
+
+    [Fact]
     public void PowerPointDoesNotReportMappedEffectsWhenImagePayloadIsOmitted() {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
             "q /GS1 gs 80 0 0 40 20 30 cm /Im1 Do Q\n",

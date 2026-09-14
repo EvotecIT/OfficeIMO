@@ -1900,6 +1900,24 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtmlResult_PartialPageRangeDoesNotInheritDocumentWideCatalogActions() {
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult
+            .Load(CreateTwoPageCatalogActionPdf())
+            .ToHtmlResult(new PdfToHtmlOptions {
+                Profile = PdfHtmlProfile.Semantic,
+                PageRanges = new[] { PdfCore.PdfPageRange.From(1, 1) }
+            });
+
+        Assert.Equal(2, result.Summary.SourcePageCount);
+        Assert.Equal(new[] { 1 }, result.Summary.PageNumbers);
+        Assert.False(result.Summary.HasCatalogActions);
+        Assert.Equal(0, result.Summary.CatalogActionCount);
+        Assert.DoesNotContain(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted");
+        result.RequireNoLoss();
+    }
+
+    [Fact]
     public void Pdf_ToHtmlResult_ReportsSupplementalActionsStrippedFromRenderedLink() {
         PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult
             .Load(CreateLinkWithSupplementalActionsPdf())
@@ -2107,6 +2125,40 @@ public sealed class HtmlPdfTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 10 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateTwoPageCatalogActionPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Names [(Catalog) 7 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >> stream",
+            "",
+            "endstream endobj",
+            "5 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 6 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Length 0 >> stream",
+            "",
+            "endstream endobj",
+            "7 0 obj",
+            "<< /S /JavaScript /JS (app.alert('catalog')) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
             "%%EOF"
         }) + "\n";
 
