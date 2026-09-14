@@ -17,6 +17,9 @@ public partial class Html {
         Assert.Equal(first, second);
         Assert.DoesNotContain("\r", first, StringComparison.Ordinal);
         Assert.Contains("generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`", first, StringComparison.Ordinal);
+        Assert.Contains("Capability schema version: 2", first, StringComparison.Ordinal);
+        Assert.Contains("## Versioned compatibility profile manifests", first, StringComparison.Ordinal);
+        Assert.Contains("## Capability contracts by profile and processing stage", first, StringComparison.Ordinal);
         foreach (HtmlConversionProfileContract contract in HtmlConversionProfileContracts.All) {
             Assert.Contains("### " + contract.Name, first, StringComparison.Ordinal);
         }
@@ -33,6 +36,9 @@ public partial class Html {
         foreach (HtmlRenderCapability capability in HtmlRenderCapabilityCatalog.All) {
             Assert.Contains("`" + capability.Id + "`", first, StringComparison.Ordinal);
         }
+        foreach (HtmlCapabilityProfileManifest profile in HtmlRenderCapabilityCatalog.ProfileManifests) {
+            Assert.Contains("`" + profile.Id + "`", first, StringComparison.Ordinal);
+        }
 
         Assert.Equal(HtmlDiagnosticCatalog.All.Count, HtmlDiagnosticCatalog.Ordered.Select(definition => definition.Code).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.Equal(
@@ -44,22 +50,73 @@ public partial class Html {
     public void HtmlRenderCapabilityCatalog_IsCompleteDeterministicAndDiagnosticBacked() {
         IReadOnlyList<HtmlRenderCapability> capabilities = HtmlRenderCapabilityCatalog.All;
 
+        Assert.Equal(2, HtmlRenderCapabilityCatalog.SchemaVersion);
+        Assert.Equal(3, HtmlRenderCapabilityCatalog.ProfileManifests.Count);
+        Assert.Empty(HtmlRenderCapabilityCatalog.Validate());
+        Assert.Equal(0, (int)HtmlRenderCapabilityKind.Css);
+        Assert.Equal(1, (int)HtmlRenderCapabilityKind.Html);
+        Assert.Equal(2, (int)HtmlRenderCapabilityKind.PagedMedia);
+        Assert.Equal(3, (int)HtmlRenderCapabilityKind.Resource);
+        Assert.Equal(4, (int)HtmlRenderCapabilityKind.Output);
+        Assert.Equal(5, (int)HtmlRenderCapabilityKind.Encoding);
+        Assert.Equal(6, (int)HtmlRenderCapabilityKind.Dom);
+        Assert.True(HtmlRenderCapabilityCatalog.TryGetProfile(HtmlCapabilityProfileIds.StaticScreenV1, out HtmlCapabilityProfileManifest staticProfile));
+        Assert.Same(staticProfile, HtmlRenderCapabilityCatalog.GetProfile(HtmlCapabilityProfileIds.StaticScreenV1));
+        Assert.False(HtmlRenderCapabilityCatalog.TryGetProfile("missing-profile", out _));
         Assert.NotEmpty(capabilities);
         Assert.Equal(capabilities.Count, capabilities.Select(capability => capability.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.Equal(
             capabilities.Select(capability => capability.Area + "\0" + capability.Id),
             capabilities.Select(capability => capability.Area + "\0" + capability.Id).OrderBy(value => value, StringComparer.Ordinal));
-        Assert.DoesNotContain(capabilities, capability => capability.SupportLevel == HtmlRenderSupportLevel.Partial);
-        foreach (HtmlRenderSupportLevel level in new[] { HtmlRenderSupportLevel.Full, HtmlRenderSupportLevel.Fallback, HtmlRenderSupportLevel.Rejected, HtmlRenderSupportLevel.Ignored }) {
-            Assert.Contains(capabilities, capability => capability.SupportLevel == level);
-        }
+        Assert.Contains(capabilities.SelectMany(capability => capability.ProfileBindings), binding => binding.Coverage == HtmlCapabilityCoverage.Qualified && binding.Handling == HtmlCapabilityHandling.Native);
+        Assert.Contains(capabilities.SelectMany(capability => capability.ProfileBindings), binding => binding.Coverage == HtmlCapabilityCoverage.Partial && binding.Handling == HtmlCapabilityHandling.Fallback);
+        Assert.Contains(capabilities.SelectMany(capability => capability.ProfileBindings), binding => binding.Coverage == HtmlCapabilityCoverage.Qualified && binding.Handling == HtmlCapabilityHandling.Rejected);
+        Assert.Contains(capabilities.SelectMany(capability => capability.ProfileBindings), binding => binding.Coverage == HtmlCapabilityCoverage.Unsupported && binding.Handling == HtmlCapabilityHandling.Ignored);
         foreach (HtmlRenderCapability capability in capabilities) {
             Assert.NotEmpty(capability.Features);
+            Assert.NotEqual(HtmlCapabilityStage.None, capability.Stages);
+            Assert.NotEmpty(capability.ProfileBindings);
             Assert.Same(capability, HtmlRenderCapabilityCatalog.Get(capability.Id));
+            Assert.Equal(
+                capability.ProfileBindings.Select(binding => binding.ProfileId).OrderBy(value => value, StringComparer.Ordinal),
+                capability.ProfileBindings.Select(binding => binding.ProfileId));
+            foreach (HtmlCapabilityProfileBinding binding in capability.ProfileBindings) {
+                HtmlCapabilityProfileManifest profile = HtmlRenderCapabilityCatalog.GetProfile(binding.ProfileId);
+                Assert.Equal(profile.Promotion, binding.Promotion);
+                Assert.NotEmpty(binding.ProviderIds);
+                Assert.NotEmpty(binding.SpecificationIds);
+                Assert.NotEmpty(binding.EvidenceIds);
+                Assert.False(binding.Promotion == HtmlCapabilityPromotionState.StableDefault && binding.Coverage == HtmlCapabilityCoverage.Unqualified);
+            }
             foreach (string code in capability.DiagnosticCodes) {
                 Assert.True(HtmlDiagnosticCatalog.TryGet(code, out _), $"Capability '{capability.Id}' references uncataloged diagnostic '{code}'.");
             }
         }
+        HtmlCapabilityProfileBinding typography = HtmlRenderCapabilityCatalog.Get("text-flow")
+            .GetProfileBinding(HtmlCapabilityProfileIds.StaticScreenV1);
+        Assert.DoesNotContain(HtmlCapabilityProviderIds.CallerTextShaper, typography.ProviderIds);
+        Assert.Contains(HtmlCapabilityProviderIds.CallerTextShaper, typography.OptionalProviderIds);
+
+        HtmlCapabilityEvidencePin documentEvidence = HtmlRenderCapabilityCatalog.GetProfile(HtmlCapabilityProfileIds.WebDocumentV1)
+            .Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.DocumentV1);
+        Assert.Equal(4, documentEvidence.Required);
+        Assert.Equal(4, documentEvidence.Passed);
+        Assert.Equal(new[] {
+            "ForeignAttributesAndSourcePositionsSurviveEdits",
+            "HtmlConversionDocument_LoadDetectsMetaCharsetFromByteInput",
+            "RecoveredDoctypeSurvivesEditingAndSerialization",
+            "Snapshot_EditPreservesIdentityWithoutMutatingSourceOrLeakedHandles"
+        }, documentEvidence.CaseIds);
+
+        HtmlCapabilityEvidencePin screenEvidence = staticProfile.Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4ScreenV1);
+        HtmlCapabilityEvidencePin pagedEvidence = HtmlRenderCapabilityCatalog.GetProfile(HtmlCapabilityProfileIds.PagedPrintV1)
+            .Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4PagedV1);
+        Assert.Equal(
+            HtmlRenderingCorpus.All.Where(item => item.Mode == HtmlRenderMode.Continuous).Select(item => item.Id).OrderBy(value => value, StringComparer.Ordinal),
+            screenEvidence.CaseIds);
+        Assert.Equal(
+            HtmlRenderingCorpus.All.Where(item => item.Mode == HtmlRenderMode.Paged).Select(item => item.Id).OrderBy(value => value, StringComparer.Ordinal),
+            pagedEvidence.CaseIds);
     }
 
     [Fact]

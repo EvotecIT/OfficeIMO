@@ -74,10 +74,18 @@ public sealed class HtmlCommandTests {
 
         Assert.Equal(0, exitCode);
         using JsonDocument json = JsonDocument.Parse(output.ToArray());
-        Assert.Equal(JsonValueKind.Array, json.RootElement.ValueKind);
-        Assert.Contains(json.RootElement.EnumerateArray(), item =>
+        Assert.Equal(JsonValueKind.Object, json.RootElement.ValueKind);
+        Assert.Equal(2, json.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Contains(json.RootElement.GetProperty("profiles").EnumerateArray(), item =>
+            item.GetProperty("id").GetString() == HtmlCapabilityProfileIds.StaticScreenV1
+            && item.GetProperty("promotion").GetString() == "StableDefault");
+        Assert.Contains(json.RootElement.GetProperty("capabilities").EnumerateArray(), item =>
             item.GetProperty("id").GetString() == "css-length-math"
-            && item.GetProperty("supportLevel").GetString() == "Full");
+            && item.GetProperty("stages").EnumerateArray().Any(stage => stage.GetString() == "Layout")
+            && item.GetProperty("profileBindings").EnumerateArray().Any(binding =>
+                binding.GetProperty("profileId").GetString() == HtmlCapabilityProfileIds.StaticScreenV1
+                && binding.GetProperty("coverage").GetString() == "Qualified"
+                && binding.GetProperty("handling").GetString() == "Native"));
     }
 
     [Fact]
@@ -93,7 +101,10 @@ public sealed class HtmlCommandTests {
             error);
 
         Assert.Equal(0, exitCode);
-        Assert.Contains("css-length-math", Encoding.UTF8.GetString(output.ToArray()), StringComparison.Ordinal);
+        string text = Encoding.UTF8.GetString(output.ToArray());
+        Assert.Contains("schemaVersion\t2", text, StringComparison.Ordinal);
+        Assert.Contains("profile\tstatic-screen-v1\t1.0\tStableDefault", text, StringComparison.Ordinal);
+        Assert.Contains("capability\tcss-length-math\tCss\tCascadeAndCompute, Layout\tstatic-screen-v1\tQualified\tNative", text, StringComparison.Ordinal);
         Assert.Equal(string.Empty, error.ToString());
     }
 

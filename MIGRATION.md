@@ -74,6 +74,39 @@ seekable positions restored. The default web charset provider still registers
 `CodePagesEncodingProvider` globally; it is isolated in the provider package rather
 than removed. External stylesheet/data-URI decoding has separate provider arguments.
 
+### HTML capability inspection
+
+The renderer capability catalog now describes document, CSS, layout, resource,
+output, and interaction claims per versioned profile and processing stage. This
+separates qualification from observable handling and identifies temporary
+providers without exposing them through the document API.
+
+| Previous code | Replacement |
+| --- | --- |
+| `capability.SupportLevel == HtmlRenderSupportLevel.Full` | Select a profile binding and test `binding.Coverage == HtmlCapabilityCoverage.Qualified` plus the applicable `capability.Stages`. |
+| `capability.SupportLevel == HtmlRenderSupportLevel.Fallback` | Test `binding.Handling == HtmlCapabilityHandling.Fallback`; inspect `capability.Limitations` and `capability.DiagnosticCodes`. |
+| `capability.SupportLevel == HtmlRenderSupportLevel.Ignored` | Test `binding.Handling == HtmlCapabilityHandling.Ignored`. |
+| `capability.SupportLevel == HtmlRenderSupportLevel.Rejected` | Test `binding.Handling == HtmlCapabilityHandling.Rejected`. |
+| Treat `officeimo html capabilities --format json` as a top-level array with `supportLevel` on each entry | Read the schema-2 object: `schemaVersion`, `profiles`, and `capabilities`. Each capability exposes `stages` and `profileBindings`; each binding exposes coverage, handling, maturity, promotion, providers, specifications, and evidence. |
+
+`HtmlRenderSupportLevel` and `HtmlRenderCapability.SupportLevel` are removed.
+Use `HtmlRenderCapabilityCatalog.GetProfile(profileId)` for the versioned provider,
+specification, evidence, platform, and output manifest. Use
+`capability.GetProfileBinding(profileId)` for `Coverage`, `Handling`, `Maturity`,
+`Promotion`, and the provider/specification/evidence references that apply to that
+claim. `HtmlRenderCapabilityCatalog.SchemaVersion` is `2` for this shape.
+
+```csharp
+HtmlRenderCapability capability = HtmlRenderCapabilityCatalog.Get("layout-grid");
+HtmlCapabilityProfileBinding binding = capability.GetProfileBinding(
+    HtmlCapabilityProfileIds.StaticScreenV1);
+
+bool hasQualifiedNativeGrid =
+    binding.Coverage == HtmlCapabilityCoverage.Qualified &&
+    binding.Handling == HtmlCapabilityHandling.Native &&
+    capability.Stages.HasFlag(HtmlCapabilityStage.Layout);
+```
+
 ### PDF positioned-text rendering limit
 
 PDF page-image export and `PdfReadPage.ToDrawing()` now limit positioned-text

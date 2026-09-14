@@ -356,7 +356,21 @@ foreach (HtmlFeaturePreflightResult feature in excel.Features) {
 
 The generated [HTML support matrix](../Docs/officeimo.html-support-matrix.md) is checked against those executable contracts in the test suite. Run `Build/Export-HtmlSupportMatrix.ps1 -Check` to verify it or omit `-Check` to regenerate it.
 
-Applications can inspect the same contract through `HtmlRenderCapabilityCatalog.All`. The catalog lists each declared supported subset as `Full` and records unsupported boundaries separately as `Fallback`, `Ignored`, or `Rejected`, linked to stable diagnostic codes where content can change.
+Applications can inspect the same versioned contract through `HtmlRenderCapabilityCatalog.ProfileManifests` and `HtmlRenderCapabilityCatalog.All`. A profile manifest pins its admitted providers, specifications, evidence, platforms, outputs, version, and promotion state. Each capability reports the stages where the claim applies, its exact feature subset, and separate coverage, handling, maturity, required or optional provider, specification, evidence, limitation, and diagnostic fields.
+
+```csharp
+HtmlCapabilityProfileManifest profile = HtmlRenderCapabilityCatalog.GetProfile(
+    HtmlCapabilityProfileIds.StaticScreenV1);
+
+HtmlRenderCapability grid = HtmlRenderCapabilityCatalog.Get("layout-grid");
+HtmlCapabilityProfileBinding support = grid.GetProfileBinding(profile.Id);
+
+Console.WriteLine($"{profile.Id} {profile.Version}: {profile.Promotion}");
+Console.WriteLine($"{grid.Stages}: {support.Coverage}/{support.Handling}");
+Console.WriteLine(string.Join(", ", support.ProviderIds));
+```
+
+`Qualified` describes the listed subset and stages; it does not mean an entire HTML or CSS specification. `Fallback`, `Ignored`, and `Rejected` are handling outcomes and carry stable diagnostics when content is changed or refused. `HtmlRenderCapabilityCatalog.Validate()` checks manifest references, ordering, promotion consistency, diagnostic coverage, and release evidence for stable-default bindings.
 
 ## Resource sessions
 

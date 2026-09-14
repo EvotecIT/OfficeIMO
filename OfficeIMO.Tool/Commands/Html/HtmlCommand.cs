@@ -249,37 +249,132 @@ claim conformance without passing external validator evidence.
     }
 
     private static async Task WriteCapabilitiesAsync(Stream output, bool json, CancellationToken cancellationToken) {
+        IReadOnlyList<string> validationErrors = HtmlRenderCapabilityCatalog.Validate();
+        if (validationErrors.Count != 0) {
+            throw new InvalidOperationException("The HTML capability catalog is invalid: " + string.Join(" ", validationErrors));
+        }
+
         if (!json) {
-            foreach (HtmlRenderCapability capability in HtmlRenderCapabilityCatalog.All) {
+            await WriteUtf8Async(output, "schemaVersion\t" + HtmlRenderCapabilityCatalog.SchemaVersion + Environment.NewLine, cancellationToken).ConfigureAwait(false);
+            foreach (HtmlCapabilityProfileManifest profile in HtmlRenderCapabilityCatalog.ProfileManifests) {
                 await WriteUtf8Async(
                     output,
-                    capability.Id + "\t" + capability.SupportLevel + "\t" + string.Join(",", capability.Features) + Environment.NewLine,
+                    "profile\t" + profile.Id + "\t" + profile.Version + "\t" + profile.Promotion + Environment.NewLine,
                     cancellationToken).ConfigureAwait(false);
+            }
+            foreach (HtmlRenderCapability capability in HtmlRenderCapabilityCatalog.All) {
+                foreach (HtmlCapabilityProfileBinding binding in capability.ProfileBindings) {
+                    await WriteUtf8Async(
+                        output,
+                        "capability\t" + capability.Id + "\t" + capability.Kind + "\t" + capability.Stages + "\t"
+                            + binding.ProfileId + "\t" + binding.Coverage + "\t" + binding.Handling + "\t"
+                            + binding.Maturity + "\t" + binding.Promotion + "\t" + string.Join(",", binding.ProviderIds)
+                            + "\t" + string.Join(",", binding.OptionalProviderIds) + Environment.NewLine,
+                        cancellationToken).ConfigureAwait(false);
+                }
             }
             return;
         }
 
         using var buffer = new MemoryStream();
         using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = true })) {
-            writer.WriteStartArray();
+            writer.WriteStartObject();
+            writer.WriteNumber("schemaVersion", HtmlRenderCapabilityCatalog.SchemaVersion);
+            writer.WriteStartArray("profiles");
+            foreach (HtmlCapabilityProfileManifest profile in HtmlRenderCapabilityCatalog.ProfileManifests) {
+                writer.WriteStartObject();
+                writer.WriteString("id", profile.Id);
+                writer.WriteString("version", profile.Version);
+                writer.WriteString("title", profile.Title);
+                writer.WriteString("promotion", profile.Promotion.ToString());
+                WriteStringArray(writer, "platforms", profile.Platforms);
+                WriteStringArray(writer, "outputs", profile.Outputs);
+                writer.WriteStartArray("providers");
+                foreach (HtmlCapabilityProviderPin provider in profile.Providers) {
+                    writer.WriteStartObject();
+                    writer.WriteString("id", provider.Id);
+                    writer.WriteString("name", provider.Name);
+                    writer.WriteString("version", provider.Version);
+                    writer.WriteString("ownership", provider.Ownership.ToString());
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndArray();
+                writer.WriteStartArray("specifications");
+                foreach (HtmlCapabilitySpecificationPin specification in profile.Specifications) {
+                    writer.WriteStartObject();
+                    writer.WriteString("id", specification.Id);
+                    writer.WriteString("title", specification.Title);
+                    writer.WriteString("uri", specification.Uri);
+                    writer.WriteString("revision", specification.Revision);
+                    writer.WriteString("scope", specification.Scope);
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndArray();
+                writer.WriteStartArray("evidence");
+                foreach (HtmlCapabilityEvidencePin evidence in profile.Evidence) {
+                    writer.WriteStartObject();
+                    writer.WriteString("id", evidence.Id);
+                    writer.WriteString("source", evidence.Source);
+                    writer.WriteString("revision", evidence.Revision);
+                    writer.WriteString("role", evidence.Role.ToString());
+                    writer.WriteString("scope", evidence.Scope);
+                    WriteNullableNumber(writer, "required", evidence.Required);
+                    WriteNullableNumber(writer, "passed", evidence.Passed);
+                    WriteNullableNumber(writer, "failed", evidence.Failed);
+                    WriteNullableNumber(writer, "excluded", evidence.Excluded);
+                    WriteNullableNumber(writer, "untested", evidence.Untested);
+                    WriteStringArray(writer, "caseIds", evidence.CaseIds);
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndArray();
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+            writer.WriteStartArray("capabilities");
             foreach (HtmlRenderCapability capability in HtmlRenderCapabilityCatalog.All) {
                 writer.WriteStartObject();
                 writer.WriteString("id", capability.Id);
                 writer.WriteString("area", capability.Area);
                 writer.WriteString("kind", capability.Kind.ToString());
-                writer.WriteString("supportLevel", capability.SupportLevel.ToString());
+                WriteStringArray(writer, "stages", Enum.GetValues(typeof(HtmlCapabilityStage)).Cast<HtmlCapabilityStage>()
+                    .Where(stage => stage != HtmlCapabilityStage.None && capability.Stages.HasFlag(stage))
+                    .Select(stage => stage.ToString()));
                 writer.WriteString("behavior", capability.Behavior);
-                writer.WriteStartArray("features");
-                foreach (string feature in capability.Features) writer.WriteStringValue(feature);
-                writer.WriteEndArray();
-                writer.WriteStartArray("diagnosticCodes");
-                foreach (string code in capability.DiagnosticCodes) writer.WriteStringValue(code);
+                WriteStringArray(writer, "features", capability.Features);
+                WriteStringArray(writer, "limitations", capability.Limitations);
+                WriteStringArray(writer, "diagnosticCodes", capability.DiagnosticCodes);
+                writer.WriteStartArray("profileBindings");
+                foreach (HtmlCapabilityProfileBinding binding in capability.ProfileBindings) {
+                    writer.WriteStartObject();
+                    writer.WriteString("profileId", binding.ProfileId);
+                    writer.WriteString("coverage", binding.Coverage.ToString());
+                    writer.WriteString("handling", binding.Handling.ToString());
+                    writer.WriteString("maturity", binding.Maturity.ToString());
+                    writer.WriteString("promotion", binding.Promotion.ToString());
+                    WriteStringArray(writer, "providerIds", binding.ProviderIds);
+                    WriteStringArray(writer, "optionalProviderIds", binding.OptionalProviderIds);
+                    WriteStringArray(writer, "specificationIds", binding.SpecificationIds);
+                    WriteStringArray(writer, "evidenceIds", binding.EvidenceIds);
+                    writer.WriteEndObject();
+                }
                 writer.WriteEndArray();
                 writer.WriteEndObject();
             }
             writer.WriteEndArray();
+            writer.WriteEndObject();
         }
         await output.WriteAsync(buffer.ToArray().AsMemory(), cancellationToken).ConfigureAwait(false);
+    }
+
+    private static void WriteStringArray(Utf8JsonWriter writer, string propertyName, IEnumerable<string> values) {
+        writer.WriteStartArray(propertyName);
+        foreach (string value in values) writer.WriteStringValue(value);
+        writer.WriteEndArray();
+    }
+
+    private static void WriteNullableNumber(Utf8JsonWriter writer, string propertyName, int? value) {
+        if (value.HasValue) writer.WriteNumber(propertyName, value.Value);
+        else writer.WriteNull(propertyName);
     }
 
     private static async Task WriteUtf8Async(Stream output, string text, CancellationToken cancellationToken) {
