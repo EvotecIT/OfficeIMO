@@ -62,7 +62,8 @@ public static partial class PdfHtmlConverterExtensions {
             PdfCore.PdfLogicalPage page = pages[pageIndex];
             textBlockCount += page.TextBlocks.Count;
             tableCount += page.Tables.Count;
-            imageCount += page.Images.Count;
+            imageCount += page.Images.Count(image =>
+                PdfCore.PdfImagePlacementImportPolicy.HasVisiblePlacement(page, image));
             linkCount += page.Links.Count;
             formWidgetCount += page.FormWidgets.Count;
             unrepresentedVectorCount += page.UnrepresentedVectorPrimitiveCount;

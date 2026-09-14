@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 internal enum PdfImagePlacementImportDisposition {
     Import,
     SuppressInvisible,
+    SuppressOutsideVisibleArea,
     SuppressUnplaced,
     OmitClippedPixels,
     OmitSoftMask,
@@ -33,6 +34,7 @@ internal readonly struct PdfImagePlacementImportAssessment {
 
     internal bool IsSuppressed =>
         Disposition is PdfImagePlacementImportDisposition.SuppressInvisible or
+            PdfImagePlacementImportDisposition.SuppressOutsideVisibleArea or
             PdfImagePlacementImportDisposition.SuppressUnplaced;
 
     internal bool HasNonDefaultOpacity => Opacity < 1D;
@@ -46,6 +48,16 @@ internal readonly struct PdfImagePlacementImportAssessment {
 /// </summary>
 internal static class PdfImagePlacementImportPolicy {
     private const double GeometryTolerance = 0.001D;
+
+    internal static bool HasVisiblePlacement(PdfLogicalPage page, PdfLogicalImage image) {
+        Guard.NotNull(page, nameof(page));
+        Guard.NotNull(image, nameof(image));
+
+        for (int placementIndex = 0; placementIndex < image.Placements.Count; placementIndex++) {
+            if (!Analyze(page, image, image.Placements[placementIndex]).IsSuppressed) return true;
+        }
+        return false;
+    }
 
     internal static PdfImagePlacementImportAssessment Analyze(
         PdfLogicalPage page,
@@ -66,6 +78,12 @@ internal static class PdfImagePlacementImportPolicy {
         if (opacity <= 0D) {
             return new PdfImagePlacementImportAssessment(
                 PdfImagePlacementImportDisposition.SuppressInvisible,
+                opacity,
+                blendMode);
+        }
+        if (!HasVisibleIntersection(page, placement)) {
+            return new PdfImagePlacementImportAssessment(
+                PdfImagePlacementImportDisposition.SuppressOutsideVisibleArea,
                 opacity,
                 blendMode);
         }
@@ -136,6 +154,45 @@ internal static class PdfImagePlacementImportPolicy {
             visualClip.Right >= visual.Right - GeometryTolerance &&
             visualClip.Bottom >= visual.Bottom - GeometryTolerance;
     }
+
+    private static bool HasVisibleIntersection(PdfLogicalPage page, PdfImagePlacement placement) {
+        if (!IsFinite(placement.X) || !IsFinite(placement.Y) ||
+            !IsFinite(placement.Width) || !IsFinite(placement.Height) ||
+            placement.Width <= 0D || placement.Height <= 0D ||
+            !IsFinite(placement.X + placement.Width) || !IsFinite(placement.Y + placement.Height)) return false;
+
+        PdfSelectionQuad visual = page.MapUserSpaceRectangleToVisual(
+            placement.X,
+            placement.Y,
+            placement.X + placement.Width,
+            placement.Y + placement.Height);
+        (double pageWidth, double pageHeight) = page.GetVisualPageSize();
+        double left = Math.Max(0D, visual.Left);
+        double top = Math.Max(0D, visual.Top);
+        double right = Math.Min(pageWidth, visual.Right);
+        double bottom = Math.Min(pageHeight, visual.Bottom);
+        if (right <= left + GeometryTolerance || bottom <= top + GeometryTolerance) return false;
+
+        PdfImageClipInfo? clip = placement.Clip;
+        if (clip == null) return true;
+        if (!IsFinite(clip.X) || !IsFinite(clip.Y) ||
+            !IsFinite(clip.Width) || !IsFinite(clip.Height) ||
+            clip.Width <= 0D || clip.Height <= 0D ||
+            !IsFinite(clip.X + clip.Width) || !IsFinite(clip.Y + clip.Height)) return false;
+
+        PdfSelectionQuad visualClip = page.MapUserSpaceRectangleToVisual(
+            clip.X,
+            page.Height - (clip.Y + clip.Height),
+            clip.X + clip.Width,
+            page.Height - clip.Y);
+        left = Math.Max(left, visualClip.Left);
+        top = Math.Max(top, visualClip.Top);
+        right = Math.Min(right, visualClip.Right);
+        bottom = Math.Min(bottom, visualClip.Bottom);
+        return right > left + GeometryTolerance && bottom > top + GeometryTolerance;
+    }
+
+    private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     private static double NormalizeOpacity(double opacity) {
         if (double.IsNaN(opacity) || double.IsNegativeInfinity(opacity)) return 0D;

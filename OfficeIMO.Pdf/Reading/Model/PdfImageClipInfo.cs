@@ -16,16 +16,16 @@ public sealed class PdfImageClipInfo {
         Commands = Array.AsReadOnly(path.Commands.ToArray());
     }
 
-    /// <summary>Left edge of the clip bounds in the unrotated, top-left page canvas coordinate space.</summary>
+    /// <summary>Left edge in transformed PDF user-space coordinates; crop origin, page rotation, and UserUnit are not normalized.</summary>
     public double X { get; }
 
-    /// <summary>Top edge of the clip bounds in the unrotated, top-left page canvas coordinate space.</summary>
+    /// <summary>Top edge after flipping transformed PDF user space against the parser page-box height; crop origin, page rotation, and UserUnit are not normalized.</summary>
     public double Y { get; }
 
-    /// <summary>Clip bounds width in points.</summary>
+    /// <summary>Clip bounds width in transformed, unscaled PDF user-space units.</summary>
     public double Width { get; }
 
-    /// <summary>Clip bounds height in points.</summary>
+    /// <summary>Clip bounds height in transformed, unscaled PDF user-space units.</summary>
     public double Height { get; }
 
     /// <summary>True when the effective clip is represented by one rectangle.</summary>

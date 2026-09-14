@@ -184,12 +184,18 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfLogicalImage image,
             PdfCore.PdfImagePlacementImportAssessment assessment,
             PdfToWordOptions options) {
-            string code = assessment.Disposition == PdfCore.PdfImagePlacementImportDisposition.SuppressInvisible
-                ? "PdfInvisibleImagePlacementSuppressed"
-                : "PdfUnplacedImageResourceNotEmbedded";
-            string message = assessment.Disposition == PdfCore.PdfImagePlacementImportDisposition.SuppressInvisible
-                ? "A fully transparent PDF image placement was suppressed instead of exposing its raw image pixels."
-                : "An extracted image resource without a visible page placement was not embedded as raw pixels.";
+            string code = assessment.Disposition switch {
+                PdfCore.PdfImagePlacementImportDisposition.SuppressInvisible => "PdfInvisibleImagePlacementSuppressed",
+                PdfCore.PdfImagePlacementImportDisposition.SuppressOutsideVisibleArea => "PdfNonVisibleImagePlacementSuppressed",
+                _ => "PdfUnplacedImageResourceNotEmbedded"
+            };
+            string message = assessment.Disposition switch {
+                PdfCore.PdfImagePlacementImportDisposition.SuppressInvisible =>
+                    "A fully transparent PDF image placement was suppressed instead of exposing its raw image pixels.",
+                PdfCore.PdfImagePlacementImportDisposition.SuppressOutsideVisibleArea =>
+                    "A PDF image placement with no visible page intersection was suppressed instead of exposing its raw image pixels.",
+                _ => "An extracted image resource without a visible page placement was not embedded as raw pixels."
+            };
             AddWarning(
                 options,
                 code,

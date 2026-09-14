@@ -78,14 +78,34 @@ public static class PdfLogicalTableValueParser {
         out bool affixUsesSpacing,
         out int decimalPlaces) {
         string normalized = value?.Trim() ?? string.Empty;
+        bool hasOuterSign = TryRemoveOuterNumericSign(normalized, culture, out string unsignedValue, out string sign);
         if (!TryRemoveCurrencyToken(
-                normalized,
+                unsignedValue,
                 culture,
                 out string numericText,
                 out currencyToken,
                 out affixPosition,
-                out affixUsesSpacing) ||
-            !PdfLogicalTableAnalysis.TryParseNumericValue(numericText, culture, out result)) {
+                out affixUsesSpacing)) {
+            result = 0M;
+            currencyToken = string.Empty;
+            affixPosition = default;
+            affixUsesSpacing = false;
+            decimalPlaces = 0;
+            return false;
+        }
+        bool hasInnerSign = TryRemoveOuterNumericSign(numericText, culture, out string unsignedNumericText, out string innerSign);
+        if (hasOuterSign && hasInnerSign) {
+            result = 0M;
+            currencyToken = string.Empty;
+            affixPosition = default;
+            affixUsesSpacing = false;
+            decimalPlaces = 0;
+            return false;
+        }
+        if (hasInnerSign) sign = innerSign;
+        numericText = unsignedNumericText;
+        numericText = sign + numericText;
+        if (!PdfLogicalTableAnalysis.TryParseNumericValue(numericText, culture, out result)) {
             result = 0M;
             currencyToken = string.Empty;
             affixPosition = default;
@@ -95,6 +115,44 @@ public static class PdfLogicalTableValueParser {
         }
         decimalPlaces = (decimal.GetBits(result)[3] >> 16) & 0x7F;
         return true;
+    }
+
+    private static bool TryRemoveOuterNumericSign(
+        string value,
+        CultureInfo? culture,
+        out string unsignedValue,
+        out string sign) {
+        unsignedValue = value;
+        sign = string.Empty;
+        string negativeSign = culture?.NumberFormat.NegativeSign ?? CultureInfo.InvariantCulture.NumberFormat.NegativeSign;
+        string positiveSign = culture?.NumberFormat.PositiveSign ?? CultureInfo.InvariantCulture.NumberFormat.PositiveSign;
+
+        if (value.Length >= 3 && value[0] == '(' && value[value.Length - 1] == ')') {
+            unsignedValue = value.Substring(1, value.Length - 2).Trim();
+            sign = negativeSign;
+            return true;
+        }
+        if (negativeSign.Length > 0 && value.StartsWith(negativeSign, StringComparison.Ordinal)) {
+            unsignedValue = value.Substring(negativeSign.Length).TrimStart();
+            sign = negativeSign;
+            return true;
+        }
+        if (positiveSign.Length > 0 && value.StartsWith(positiveSign, StringComparison.Ordinal)) {
+            unsignedValue = value.Substring(positiveSign.Length).TrimStart();
+            sign = positiveSign;
+            return true;
+        }
+        if (negativeSign.Length > 0 && value.EndsWith(negativeSign, StringComparison.Ordinal)) {
+            unsignedValue = value.Substring(0, value.Length - negativeSign.Length).TrimEnd();
+            sign = negativeSign;
+            return true;
+        }
+        if (positiveSign.Length > 0 && value.EndsWith(positiveSign, StringComparison.Ordinal)) {
+            unsignedValue = value.Substring(0, value.Length - positiveSign.Length).TrimEnd();
+            sign = positiveSign;
+            return true;
+        }
+        return false;
     }
 
     /// <summary>Parses a clock time using invariant culture unless an explicit culture is supplied.</summary>

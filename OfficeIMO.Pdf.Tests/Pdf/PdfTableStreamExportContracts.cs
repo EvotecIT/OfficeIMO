@@ -328,7 +328,9 @@ public class PdfTableStreamExportContracts {
                 new[] { "Prefix", "Suffix" },
                 new[] { "$1,234", "1,234 KWD" },
                 new[] { "$2,345.7", "2,345.750 KWD" },
-                new[] { "$3,456.789", "3,456.125 KWD" }
+                new[] { "$3,456.789", "3,456.125 KWD" },
+                new[] { "-$4,567.00", "(4,567.500 KWD)" },
+                new[] { "$5,678.00-", "5,678.500 KWD-" }
             })
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
@@ -359,9 +361,28 @@ public class PdfTableStreamExportContracts {
                 .ToArray();
             Assert.Contains("\"$\"#,##0", numberFormats);
             Assert.Contains("\"$\"#,##0.0", numberFormats);
+            Assert.Contains("\"$\"#,##0.00", numberFormats);
             Assert.Contains("\"$\"#,##0.000", numberFormats);
             Assert.Contains("#,##0 \"KWD\"", numberFormats);
             Assert.Contains("#,##0.000 \"KWD\"", numberFormats);
+
+            WorkbookPart workbookPart = package.WorkbookPart!;
+            S.Sheet importedSheet = Assert.Single(workbookPart.Workbook.Sheets!.Elements<S.Sheet>());
+            WorksheetPart worksheetPart = (WorksheetPart)workbookPart.GetPartById(importedSheet.Id!.Value!);
+            Dictionary<string, S.Cell> cells = worksheetPart.Worksheet.Descendants<S.Cell>()
+                .ToDictionary(static cell => cell.CellReference!.Value!);
+            Assert.Equal(
+                -4567M,
+                decimal.Parse(cells["A5"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                -4567.5M,
+                decimal.Parse(cells["B5"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                -5678M,
+                decimal.Parse(cells["A6"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                -5678.5M,
+                decimal.Parse(cells["B6"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
         }
     }
 

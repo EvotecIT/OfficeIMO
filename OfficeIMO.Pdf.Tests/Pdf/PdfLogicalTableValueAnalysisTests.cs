@@ -338,6 +338,54 @@ public sealed class PdfLogicalTableValueAnalysisTests {
         Assert.Equal(expectedDecimalPlaces, decimalPlaces);
     }
 
+    [Theory]
+    [InlineData("-$1,234.00", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("($1,234.00)", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("-1,234.00 USD", -1234D, PdfLogicalCurrencyAffixPosition.Suffix, true)]
+    [InlineData("(1,234.00 USD)", -1234D, PdfLogicalCurrencyAffixPosition.Suffix, true)]
+    [InlineData("$-1,234.00", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("$1,234.00-", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("1,234.00-$", -1234D, PdfLogicalCurrencyAffixPosition.Suffix, false)]
+    [InlineData("1,234.00 USD-", -1234D, PdfLogicalCurrencyAffixPosition.Suffix, true)]
+    public void TryParseCurrency_RecognizesSignedAndAccountingAffixes(
+        string value,
+        double expected,
+        PdfLogicalCurrencyAffixPosition expectedPosition,
+        bool expectedSpacing) {
+        Assert.True(PdfLogicalTableValueParser.TryParseCurrency(
+            value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out decimal parsed,
+            out _,
+            out PdfLogicalCurrencyAffixPosition position,
+            out bool usesSpacing));
+
+        Assert.Equal((decimal)expected, parsed);
+        Assert.Equal(expectedPosition, position);
+        Assert.Equal(expectedSpacing, usesSpacing);
+    }
+
+    [Fact]
+    public void Analyze_KeepsSignedCurrencyColumnsTyped() {
+        IReadOnlyList<IReadOnlyList<string>> rows = new[] {
+            (IReadOnlyList<string>) new[] { "$1,234.00" },
+            new[] { "-$20.50" },
+            new[] { "($5.25)" },
+            new[] { "$6.75-" }
+        };
+
+        PdfLogicalTableValueProfile profile = Assert.Single(PdfLogicalTableValueAnalysis.Analyze(
+            new[] { "Amount" },
+            rows,
+            new PdfLogicalTableValueAnalysisOptions {
+                NumericCulture = System.Globalization.CultureInfo.InvariantCulture
+            }));
+
+        Assert.Equal(PdfLogicalTableValueKind.Currency, profile.Kind);
+        Assert.Equal("$", profile.CurrencyToken);
+        Assert.Equal(PdfLogicalCurrencyAffixPosition.Prefix, profile.CurrencyAffixPosition);
+    }
+
     [Fact]
     public void TryParseCurrency_RecognizesCurrentBmpCurrencySymbolsAcrossTargets() {
         Assert.True(PdfLogicalTableValueParser.TryParseCurrency(

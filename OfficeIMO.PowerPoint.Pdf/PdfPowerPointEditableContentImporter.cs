@@ -313,17 +313,15 @@ public static partial class PowerPointPdfConverterExtensions {
             cancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfLogicalImage image = page.Images[imageIndex];
             OfficeImageFormat format = ResolveImageFormat(image.SourceImage);
+            bool payloadSupported = image.SourceImage.IsImageFile &&
+                !image.SourceImage.IsImageMask &&
+                format != OfficeImageFormat.Unknown;
+            bool unsupportedPayloadCounted = false;
             if (image.Placements.Count == 0) {
                 AddEditableImagePlacementWarning(
                     warnings,
                     image,
                     PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement: null));
-                continue;
-            }
-            if (!image.SourceImage.IsImageFile ||
-                image.SourceImage.IsImageMask ||
-                format == OfficeImageFormat.Unknown) {
-                omitted++;
                 continue;
             }
             for (int placementIndex = 0; placementIndex < image.Placements.Count; placementIndex++) {
@@ -333,6 +331,13 @@ public static partial class PowerPointPdfConverterExtensions {
                     PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, sourcePlacement);
                 AddEditableImagePlacementWarning(warnings, image, assessment);
                 if (assessment.IsSuppressed) {
+                    continue;
+                }
+                if (!payloadSupported) {
+                    if (!unsupportedPayloadCounted) {
+                        omitted++;
+                        unsupportedPayloadCounted = true;
+                    }
                     continue;
                 }
                 if (!assessment.CanImport || !sourcePlacement.IsAxisAligned || imported >= limit) {
@@ -382,6 +387,16 @@ public static partial class PowerPointPdfConverterExtensions {
                     "PdfInvisibleImagePlacementSuppressed",
                     source,
                     "A fully transparent PDF image placement was suppressed instead of exposing its raw image pixels.",
+                    PdfCore.PdfConversionWarningSeverity.Information,
+                    OfficeConversionLossKind.None,
+                    details: details));
+                return;
+            case PdfCore.PdfImagePlacementImportDisposition.SuppressOutsideVisibleArea:
+                warnings.Add(new PdfCore.PdfConversionWarning(
+                    "OfficeIMO.PowerPoint.Pdf",
+                    "PdfNonVisibleImagePlacementSuppressed",
+                    source,
+                    "A PDF image placement with no visible page intersection was suppressed instead of exposing its raw image pixels.",
                     PdfCore.PdfConversionWarningSeverity.Information,
                     OfficeConversionLossKind.None,
                     details: details));

@@ -815,9 +815,17 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfLogicalPage page,
         PdfCore.PdfLogicalImage image,
         PdfToHtmlOptions options,
-        long retainedHtmlCharacters) => RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
+        long retainedHtmlCharacters) {
+        bool hasSafePlacement = TrySelectSafeImagePlacement(
+            page,
+            image,
+            options,
+            out PdfCore.PdfImagePlacementImportAssessment assessment,
+            out bool hasVisiblePlacement);
+        if (!hasVisiblePlacement) return string.Empty;
+
+        return RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
             options.EmittedImagePlaceholderCount++;
-            bool hasSafePlacement = TrySelectSafeImagePlacement(page, image, options, out PdfCore.PdfImagePlacementImportAssessment assessment);
             builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
             builder.Append(HtmlAttribute(image.ResourceName));
             builder.Append("\" data-page-number=\"");
@@ -849,13 +857,16 @@ public static partial class PdfHtmlConverterExtensions {
 
             builder.Append(")</figcaption></figure>");
         });
+    }
 
     private static bool TrySelectSafeImagePlacement(
         PdfCore.PdfLogicalPage page,
         PdfCore.PdfLogicalImage image,
         PdfToHtmlOptions options,
-        out PdfCore.PdfImagePlacementImportAssessment selected) {
+        out PdfCore.PdfImagePlacementImportAssessment selected,
+        out bool hasVisiblePlacement) {
         selected = PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement: null);
+        hasVisiblePlacement = false;
         if (image.Placements.Count == 0) {
             ReportHtmlImagePlacementAssessment(image, selected, options);
             return false;
@@ -866,6 +877,7 @@ public static partial class PdfHtmlConverterExtensions {
             PdfCore.PdfImagePlacementImportAssessment assessment =
                 PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, image.Placements[placementIndex]);
             ReportHtmlImagePlacementAssessment(image, assessment, options);
+            hasVisiblePlacement |= !assessment.IsSuppressed;
             if (!found && assessment.CanImport) {
                 selected = assessment;
                 found = true;
@@ -914,6 +926,11 @@ public static partial class PdfHtmlConverterExtensions {
             case PdfCore.PdfImagePlacementImportDisposition.SuppressInvisible:
                 AddWarning(options, "InvisibleImagePlacementSuppressed", source,
                     "A fully transparent PDF image placement was suppressed instead of exposing its raw image pixels.",
+                    PdfCore.PdfConversionWarningSeverity.Information, OfficeConversionLossKind.None, details);
+                return;
+            case PdfCore.PdfImagePlacementImportDisposition.SuppressOutsideVisibleArea:
+                AddWarning(options, "NonVisibleImagePlacementSuppressed", source,
+                    "A PDF image placement with no visible page intersection was suppressed instead of exposing its raw image pixels.",
                     PdfCore.PdfConversionWarningSeverity.Information, OfficeConversionLossKind.None, details);
                 return;
             case PdfCore.PdfImagePlacementImportDisposition.SuppressUnplaced:

@@ -206,7 +206,7 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfImagePlacementImportAssessment assessment =
             PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement);
         ReportHtmlImagePlacementAssessment(image, assessment, options);
-        if (assessment.Disposition == PdfCore.PdfImagePlacementImportDisposition.SuppressInvisible) return;
+        if (assessment.IsSuppressed) return;
 
         options.EmittedImagePlaceholderCount++;
         PositionedPageGeometry geometry = PositionedPageGeometry.From(page);

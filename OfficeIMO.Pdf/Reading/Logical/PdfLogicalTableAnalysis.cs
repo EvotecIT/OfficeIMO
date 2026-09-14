@@ -234,7 +234,8 @@ public static class PdfLogicalTableAnalysis {
             }
 
             vectorPrimitiveCount += page.VectorPrimitiveCount;
-            imageCount += page.Images.Count;
+            imageCount += page.Images.Count(image =>
+                PdfImagePlacementImportPolicy.HasVisiblePlacement(page, image));
             linkCount += page.Links.Count;
             formWidgetCount += page.FormWidgets.Count;
             annotationCount += page.Annotations.Count;

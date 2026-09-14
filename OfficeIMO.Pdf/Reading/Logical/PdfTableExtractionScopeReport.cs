@@ -54,7 +54,7 @@ public sealed class PdfTableExtractionScopeReport {
     /// </summary>
     public int VectorPrimitiveCount { get; }
 
-    /// <summary>Number of source images, which table-only adapters do not import.</summary>
+    /// <summary>Number of source images with at least one visible page placement, which table-only adapters do not import.</summary>
     public int ImageCount { get; }
 
     /// <summary>Number of source link annotations, which table-only adapters do not import.</summary>

@@ -26,7 +26,8 @@ namespace OfficeIMO.Word.Pdf {
             bool reconstructsEditableContent = source.Pages.Any(page =>
                 (importsText && page.TextBlocks.Count > 0) ||
                 (options.ImportTables && page.Tables.Count > 0) ||
-                ((options.ImportImages || options.IncludeImagePlaceholders) && page.Images.Count > 0)) ||
+                ((options.ImportImages || options.IncludeImagePlaceholders) &&
+                 page.Images.Any(image => PdfCore.PdfImagePlacementImportPolicy.HasVisiblePlacement(page, image)))) ||
                 (options.IncludeFormFieldPlaceholders && source.FormFields.Count > 0);
             if (reconstructsEditableContent) {
                 AddWarning(

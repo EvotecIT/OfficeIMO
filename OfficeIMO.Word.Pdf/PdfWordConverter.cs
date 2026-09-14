@@ -193,17 +193,21 @@ namespace OfficeIMO.Word.Pdf {
                         items.Add(ImportItem.ForImage(image, placement, placement.Y + placement.Height, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Image, i, placementIndex)));
                     }
                 }
-            } else if (page.Images.Count > 0) {
-                AddWarning(
-                    options,
-                    "PdfImageSkipped",
-                    "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image",
-                    "PDF image content was not imported because IncludeImagePlaceholders is false.",
-                    PdfCore.PdfConversionWarningSeverity.Warning,
-                    OfficeConversionLossKind.Omission,
-                    new Dictionary<string, string> {
-                        ["ImageCount"] = page.Images.Count.ToString(CultureInfo.InvariantCulture)
-                    });
+            } else {
+                int visibleImageCount = page.Images.Count(image =>
+                    PdfCore.PdfImagePlacementImportPolicy.HasVisiblePlacement(page, image));
+                if (visibleImageCount > 0) {
+                    AddWarning(
+                        options,
+                        "PdfImageSkipped",
+                        "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image",
+                        "PDF image content was not imported because IncludeImagePlaceholders is false.",
+                        PdfCore.PdfConversionWarningSeverity.Warning,
+                        OfficeConversionLossKind.Omission,
+                        new Dictionary<string, string> {
+                            ["ImageCount"] = visibleImageCount.ToString(CultureInfo.InvariantCulture)
+                        });
+                }
             }
 
             if (options.IncludeFormFieldPlaceholders) {
