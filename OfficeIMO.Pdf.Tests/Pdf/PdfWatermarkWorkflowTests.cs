@@ -193,6 +193,33 @@ public sealed class PdfWatermarkWorkflowTests {
     }
 
     [Fact]
+    public void ReadingWatermarksHonorsEncryptedDocumentCopyPermission() {
+        var settings = Options(true);
+        byte[] watermarked = PdfDocument.Load(Source()).Stamp.Watermark(settings).ToBytes();
+        var encryption = new PdfStandardEncryptionOptions("watermark-user") {
+            OwnerPassword = "watermark-owner",
+            AllowedPermissions = PdfStandardPermissions.None
+        };
+        byte[] encrypted = PdfSecurityEditor.Encrypt(watermarked, encryption).Pdf;
+
+        var exception = Assert.Throws<PdfPermissionDeniedException>(() =>
+            PdfDocument.Load(encrypted, new PdfLoadOptions { Password = "watermark-user" })
+                .Stamp.ReadWatermarks());
+        Assert.Equal(PdfStandardPermissions.CopyContents, exception.Permission);
+
+        var ignored = PdfDocument.Load(encrypted, new PdfLoadOptions {
+            Password = "watermark-user",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        }).Stamp.ReadWatermarks();
+        var ownerAuthorized = PdfDocument.Load(encrypted, new PdfLoadOptions {
+            Password = "watermark-owner"
+        }).Stamp.ReadWatermarks();
+
+        Assert.Equal(settings.Id, Assert.Single(ignored).Id);
+        Assert.Equal(settings.ImageBytes, Assert.Single(ownerAuthorized).ImageBytes);
+    }
+
+    [Fact]
     public void TextWatermarkCanBeRevisedToAnImageAndMovedBehindContent() {
         var settings = Options(false);
         settings.Text = "REPLACE ME";

@@ -10,6 +10,7 @@ public static partial class PdfHtmlConverterExtensions {
     private static void AppendPositionedNativeText(StringBuilder builder, PdfCore.PdfLogicalPage page,
         PositionedPageGeometry geometry, PdfToHtmlOptions options) {
         string Number(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+        IReadOnlyDictionary<PdfCore.PdfLogicalTextBlock, int> headingLevels = BuildPositionedHeadingLevels(page);
         builder.Append("<svg class=\"pdf-native-text\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ");
         builder.Append(Number(geometry.Width));
         builder.Append(' ');
@@ -17,8 +18,11 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append("\" style=\"position:absolute;inset:0;width:100%;height:100%;overflow:visible\">");
         var emitted = new HashSet<PdfCore.PdfTextSpan>();
         foreach (var block in page.TextBlocks) {
-            builder.Append(block.Kind == PdfCore.PdfLogicalElementKind.Heading
-                ? "<g role=\"heading\" aria-level=\"1\">" : "<g>");
+            if (headingLevels.TryGetValue(block, out int headingLevel)) {
+                builder.Append("<g role=\"heading\" aria-level=\"").Append(headingLevel).Append("\">");
+            } else {
+                builder.Append("<g>");
+            }
             foreach (var span in block.Spans) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 if (!emitted.Add(span) || !span.IsVisible || string.IsNullOrEmpty(span.Text)) continue;
@@ -49,6 +53,7 @@ public static partial class PdfHtmlConverterExtensions {
     private static void AppendPositionedAppearanceTextLayer(StringBuilder builder, PdfCore.PdfLogicalPage page,
         PositionedPageGeometry geometry, PdfToHtmlOptions options) {
         string Number(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+        IReadOnlyDictionary<PdfCore.PdfLogicalTextBlock, int> headingLevels = BuildPositionedHeadingLevels(page);
         builder.Append("<svg class=\"pdf-text-overlay\" fill=\"transparent\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ");
         builder.Append(Number(geometry.Width)).Append(' ').Append(Number(geometry.Height));
         builder.AppendLine("\" style=\"position:absolute;inset:0;width:100%;height:100%;overflow:visible\">");
@@ -57,8 +62,11 @@ public static partial class PdfHtmlConverterExtensions {
             PdfCore.PdfTextSpan? sourceSpan = block.Spans.FirstOrDefault(span => !string.IsNullOrEmpty(span.Text));
             if (sourceSpan is null || string.IsNullOrEmpty(block.Text)) continue;
             PositionedPoint point = geometry.TransformPoint(block.XStart, block.BaselineY);
-            builder.Append(block.Kind == PdfCore.PdfLogicalElementKind.Heading
-                ? "<text role=\"heading\" aria-level=\"1\"" : "<text");
+            if (headingLevels.TryGetValue(block, out int headingLevel)) {
+                builder.Append("<text role=\"heading\" aria-level=\"").Append(headingLevel).Append('"');
+            } else {
+                builder.Append("<text");
+            }
             builder.Append(" x=\"").Append(Number(point.Left)).Append("\" y=\"").Append(Number(point.Top));
             builder.Append("\" font-family=\"Arial, sans-serif\" font-size=\"").Append(Number(block.FontSize));
             builder.Append("\" font-weight=\"").Append(sourceSpan.IsBold ? "700" : "400");
@@ -73,5 +81,14 @@ public static partial class PdfHtmlConverterExtensions {
             builder.AppendLine("</text>");
         }
         builder.AppendLine("</svg>");
+    }
+
+    private static IReadOnlyDictionary<PdfCore.PdfLogicalTextBlock, int> BuildPositionedHeadingLevels(
+        PdfCore.PdfLogicalPage page) {
+        var levels = new Dictionary<PdfCore.PdfLogicalTextBlock, int>();
+        foreach (PdfCore.PdfLogicalHeading heading in page.Headings) {
+            levels[heading.Line] = System.Math.Min(System.Math.Max(heading.Level, 1), 6);
+        }
+        return levels;
     }
 }

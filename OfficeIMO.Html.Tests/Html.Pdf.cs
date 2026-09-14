@@ -1323,6 +1323,34 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtml_PositionedReviewProfile_PreservesDetectedHeadingLevelsInBothTextLayers() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .H1("Primary heading")
+            .H2("Secondary heading")
+            .Paragraph(paragraph => paragraph.Text("Body text establishes the normal font tier."))
+            .ToBytes();
+        PdfToHtmlOptions options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+
+        string nativeHtml = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(options);
+        string appearanceHtml = PdfCore.PdfDocument.Load(pdf).ToHtml(options);
+
+        Assert.Contains("class=\"pdf-native-text\"", nativeHtml, StringComparison.Ordinal);
+        Assert.Contains("role=\"heading\" aria-level=\"1\"", nativeHtml, StringComparison.Ordinal);
+        Assert.Contains("role=\"heading\" aria-level=\"2\"", nativeHtml, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-page-appearance\"", appearanceHtml, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-text-overlay\"", appearanceHtml, StringComparison.Ordinal);
+        Assert.Contains("role=\"heading\" aria-level=\"1\"", appearanceHtml, StringComparison.Ordinal);
+        Assert.Contains("role=\"heading\" aria-level=\"2\"", appearanceHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Pdf_ToHtml_PositionedReviewProfile_PreservesMatchingTextOutsideDetectedTableBounds() {
         var pdfOptions = new PdfCore.PdfOptions {
             PageWidth = 460,

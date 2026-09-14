@@ -29,6 +29,7 @@ internal static partial class PdfStamper {
 
     internal static IReadOnlyList<PdfWatermarkOptions> ReadWatermarks(byte[] pdf, PdfLoadOptions? readOptions) {
         var document = PdfReadDocument.Open(pdf, readOptions);
+        document.DemandContentExtraction("watermark settings");
         var objects = document.Objects;
         int maximumDecodedStreamBytes = document.ReadOptions.Limits.MaxDecodedStreamBytes;
         var found = new Dictionary<string, (PdfWatermarkOptions Settings, List<int> Pages)>(StringComparer.Ordinal);

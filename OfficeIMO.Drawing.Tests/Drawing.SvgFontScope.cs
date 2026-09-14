@@ -60,6 +60,20 @@ public sealed class DrawingSvgFontScopeTests {
     }
 
     [Fact]
+    public void InlineSvgQuotesAnUnmatchedFamilyThatCannotBeAnUnquotedCssIdentifier() {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add("Shared Font", ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30,
+            new OfficeFontInfo("\"3 of 9 Barcode\", \"Shared Font\"", 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(
+            drawing, 1, OfficeSvgSizeUnit.Point, null, "page-1-"));
+
+        Assert.Equal("\"3 of 9 Barcode\", \"page-1-Shared Font\"",
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
+    }
+
+    [Fact]
     public void ScopedSvgRemovesXmlIllegalTextCharactersBeforeReparsing() {
         var drawing = new OfficeDrawing(100, 40);
         drawing.Fonts.Add("Shared Font", ManagedTextShapingTestAssets.CreateFont('A'));
