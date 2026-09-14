@@ -16,6 +16,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AngleSharp" Version="1.7.1" />
+    <PackageReference Include="AngleSharp.Css" Version="1.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="..\..\OfficeIMO.Pdf.Benchmarks.Comparisons\EvidenceOutputReservation.cs"
              Link="EvidenceOutputReservation.cs" />
     <Compile Include="..\..\OfficeIMO.Pdf.Benchmarks.Comparisons\ProcessTreeMemorySampler.cs"
