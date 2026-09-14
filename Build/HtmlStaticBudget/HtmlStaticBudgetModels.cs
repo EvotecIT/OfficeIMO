@@ -50,6 +50,13 @@ internal sealed record HtmlStaticBudgetCancellation(
     double ElapsedMilliseconds,
     string Detail);
 
+internal sealed record HtmlPdfProcessTreeMemoryEvidence(
+    long PeakWorkingSetBytes,
+    int SampleCount,
+    int MinimumObservedProcessCount,
+    int MaximumObservedProcessCount,
+    string Sampler);
+
 internal sealed record HtmlStaticBudgetCeiling(
     string OsFamily,
     double ColdProcessElapsedMilliseconds,

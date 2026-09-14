@@ -91,10 +91,9 @@ the reference-engine comparison:
 
 ```powershell
 $output = Join-Path $env:TEMP ("OfficeIMO-H4-budget-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))
-dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj `
+dotnet run --project Build/HtmlStaticBudget/OfficeIMO.Html.StaticBudget.csproj `
     -c Release `
-    -f net10.0 `
-    -- html-static-budget `
+    -- `
     --iterations 3 `
     --require-clean-source `
     --output $output
