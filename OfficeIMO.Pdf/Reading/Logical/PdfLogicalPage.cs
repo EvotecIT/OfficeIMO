@@ -450,7 +450,7 @@ public sealed partial class PdfLogicalPage {
             linkAnnotations.AsReadOnly(),
             formWidgets.AsReadOnly(),
             pageActions.AsReadOnly(),
-            document.OptionalContent != null && page.HasOptionalContentUsage(cancellationToken),
+            page.HasOptionalContentUsage(cancellationToken),
             pageAnalysis);
     }
 

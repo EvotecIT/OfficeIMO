@@ -89,4 +89,55 @@ public sealed class PdfHtmlPageSelectionTests {
         Assert.Contains(secondPageWord.Report.Warnings, static warning =>
             warning.Code == "PdfOptionalContentGroupsFlattened");
     }
+
+    [Fact]
+    public void ReverseConversions_ReportPageOptionalContentWithoutCatalogMetadata() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(
+            BuildOptionalContentUsageWithoutCatalogMetadataPdf());
+
+        PdfHtmlConversionResult html = logical.ToHtmlResult();
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using OfficeIMO.Word.WordDocument wordDocument = word.Value;
+        PdfTableExtractionScopeReport tableScope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+
+        Assert.Equal(0, logical.OptionalContentGroupCount);
+        Assert.True(Assert.Single(logical.Pages).HasOptionalContentUsage);
+        Assert.Equal(1, tableScope.PagesWithOptionalContent);
+        Assert.Contains(html.Report.Warnings, static warning =>
+            warning.Code == "PdfOptionalContentGroupsFlattened");
+        Assert.Contains(word.Report.Warnings, static warning =>
+            warning.Code == "PdfOptionalContentGroupsFlattened");
+    }
+
+    private static byte[] BuildOptionalContentUsageWithoutCatalogMetadataPdf() {
+        const string content = "/OC /UncataloguedLayer BDC BT /F1 12 Tf 20 100 Td (Layered text) Tj ET EMC";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 6 0 R >> /Properties << /UncataloguedLayer 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + content.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            content,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /OCG /Name (Uncatalogued layer) >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+        return Encoding.ASCII.GetBytes(pdf);
+    }
 }

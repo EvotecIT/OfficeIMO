@@ -2005,6 +2005,7 @@ public sealed class HtmlPdfTests {
     }
 
     private static byte[] CreateOptionalContentPdf() {
+        const string content = "/OC /InvoiceLayer BDC EMC";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj",
@@ -2014,12 +2015,12 @@ public sealed class HtmlPdfTests {
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "endobj",
             "3 0 obj",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Properties << /InvoiceLayer 5 0 R >> >> /Contents 4 0 R >>",
             "endobj",
             "4 0 obj",
-            "<< /Length 0 >>",
+            "<< /Length " + content.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
             "stream",
-            "",
+            content,
             "endstream",
             "endobj",
             "5 0 obj",
