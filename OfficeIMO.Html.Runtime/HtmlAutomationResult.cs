@@ -17,7 +17,9 @@ public enum HtmlAutomationStatus {
     /// <summary>The value or option selection is invalid.</summary>
     InvalidValue,
     /// <summary>Page event handlers cancelled or redirected the requested change.</summary>
-    Rejected
+    Rejected,
+    /// <summary>The observed target belongs to an earlier page revision and must be observed again.</summary>
+    Stale
 }
 
 /// <summary>An immutable element rectangle in CSS pixels relative to the current layout viewport.</summary>
@@ -42,11 +44,11 @@ public sealed class HtmlRuntimeElementState {
     public string AccessibleName { get; init; } = string.Empty;
     /// <summary>Normalized descendant text.</summary>
     public string Text { get; init; } = string.Empty;
-    /// <summary>Current input, textarea or select value; null for other elements.</summary>
+    /// <summary>Current non-password input, textarea or select value; null for password and other elements.</summary>
     public string? Value { get; init; }
-    /// <summary>Current UTF-16 selection start for an editable text control; null for other elements.</summary>
+    /// <summary>Current UTF-16 selection start for a non-password editable text control; null otherwise.</summary>
     public int? SelectionStart { get; init; }
-    /// <summary>Current UTF-16 selection end for an editable text control; null for other elements.</summary>
+    /// <summary>Current UTF-16 selection end for a non-password editable text control; null otherwise.</summary>
     public int? SelectionEnd { get; init; }
     /// <summary>Current selected option values in document order.</summary>
     public IReadOnlyList<string> SelectedValues { get; init; } = Array.Empty<string>();
@@ -92,6 +94,12 @@ public sealed class HtmlAutomationResult {
     public string? Message { get; init; }
     /// <summary>Element state when a single target was inspected or acted on.</summary>
     public HtmlRuntimeElementState? Element { get; init; }
+    /// <summary>The page revision after the operation completed.</summary>
+    public long PageRevision { get; init; }
+    /// <summary>Returns an independent copy associated with the supplied page revision.</summary>
+    public HtmlAutomationResult WithPageRevision(long revision) => new() {
+        Status = Status, MatchCount = MatchCount, Message = Message, Element = Element, PageRevision = revision
+    };
     /// <summary>Throws an action exception for a non-success result without terminating the session.</summary>
     public HtmlAutomationResult EnsureSuccess() {
         if (Status != HtmlAutomationStatus.Success) throw new HtmlAutomationException(this);

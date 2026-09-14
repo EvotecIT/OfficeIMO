@@ -6,7 +6,7 @@ using OfficeIMO.Html.Dom;
 
 namespace OfficeIMO.Html.Runtime;
 
-internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimeSession {
+internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimePage {
     private readonly Process _process;
     private readonly HtmlScriptRequest _options;
     private readonly IHtmlDomServices _services;
@@ -16,15 +16,23 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimeSession {
     private readonly CancellationTokenRegistration _lifetimeStop;
     private readonly Task _stderr;
     private readonly object _disposeSync = new();
+    private readonly HtmlRuntimeTraceCollector _trace;
+    private readonly Action? _disposedCallback;
     private Task? _disposeTask;
     private Exception? _terminationError;
     private long _commandId;
     private int _terminal;
     private int _disposed;
 
-    internal HtmlProcessRuntimeSession(string workerPath, string dotnetExecutable, IHtmlDomServices services, HtmlScriptRequest options) {
+    internal HtmlProcessRuntimeSession(string workerPath, string dotnetExecutable, IHtmlDomServices services, HtmlScriptRequest options,
+        string contextId, string pageId, HtmlRuntimeProviderDescriptor provider, HtmlRuntimeTraceOptions traceOptions, Action? disposedCallback) {
         _options = options;
         _services = services;
+        ContextId = contextId;
+        Id = pageId;
+        Provider = provider;
+        _trace = new HtmlRuntimeTraceCollector(traceOptions);
+        _disposedCallback = disposedCallback;
         var start = new ProcessStartInfo(dotnetExecutable) { UseShellExecute = false, CreateNoWindow = true,
             RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, StandardErrorEncoding = Encoding.UTF8 };
         start.ArgumentList.Add(workerPath);
@@ -36,7 +44,13 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimeSession {
         _stderr = DrainErrorsAsync();
     }
 
-    internal Task OpenAsync(CancellationToken token) => SendAsync(new HtmlRuntimeCommand { Kind = "open", Request = _options }, token);
+    public string Id { get; }
+    public string ContextId { get; }
+    public HtmlRuntimeProviderDescriptor Provider { get; }
+
+    internal Task OpenAsync(CancellationToken token) => SendAsync(new HtmlRuntimeCommand {
+        Kind = "open", Request = _options, ContextId = ContextId, PageId = Id
+    }, token);
 
     public Task NavigateAsync(Uri url, bool replaceHistoryEntry = false, CancellationToken cancellationToken = default) {
         EnsureWebApplicationProfile();
@@ -56,6 +70,16 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimeSession {
         return SendAsync(new HtmlRuntimeCommand { Kind = "automation", Automation = snapshot },
             (response, _) => response.Automation ?? throw new HtmlScriptRuntimeException("The worker returned no automation result."), cancellationToken);
     }
+
+    public Task<HtmlPageObservation> ObserveAsync(HtmlPageObservationRequest? request = null, CancellationToken cancellationToken = default) {
+        HtmlPageObservationRequest snapshot = (request ?? new HtmlPageObservationRequest()).Snapshot(_options.MaxOutputCharacters);
+        if (snapshot.IncludeScreenshotReference && !Provider.Supports(HtmlRuntimeCapabilityIds.ScreenshotObservation))
+            throw new NotSupportedException("This runtime provider does not expose screenshot observation artifacts.");
+        return SendAsync(new HtmlRuntimeCommand { Kind = "observe", Observation = snapshot, ContextId = ContextId, PageId = Id },
+            (response, _) => response.Observation ?? throw new HtmlScriptRuntimeException("The worker returned no page observation."), cancellationToken);
+    }
+
+    public HtmlRuntimeTrace GetTrace() => _trace.Snapshot(Provider.Id, ContextId, Id);
 
     public Task ExecuteAsync(string script, CancellationToken cancellationToken = default) => SendAsync(Command("execute", script), cancellationToken);
 
@@ -94,6 +118,8 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimeSession {
     private Task<HtmlRuntimeResponse> SendAsync(HtmlRuntimeCommand command, CancellationToken token) => SendAsync(command, (response, _) => response, token);
 
     private async Task<T> SendAsync<T>(HtmlRuntimeCommand command, Func<HtmlRuntimeResponse, CancellationToken, T> convert, CancellationToken token) {
+        DateTimeOffset started = DateTimeOffset.UtcNow;
+        var stopwatch = Stopwatch.StartNew();
         CheckAvailable();
         using var timeout = new CancellationTokenSource(_options.Timeout);
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(token, timeout.Token, _stopped.Token, _lifetime.Token);
@@ -114,14 +140,31 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimeSession {
             }
             T result = convert(response, operation.Token);
             operation.Token.ThrowIfCancellationRequested();
+            _trace.Add(EventKind(command.Kind), command.Kind, "success", started, stopwatch.Elapsed, ContextId, Id,
+                response.PageRevision, TraceDetail(command));
             return result;
-        } catch (Exception) {
+        } catch (Exception error) {
+            _trace.Add(HtmlRuntimeEventKind.Failure, command.Kind, error.GetType().Name, started, stopwatch.Elapsed,
+                ContextId, Id, null, error.Message);
             Stop();
             await WaitForTerminationAsync().ConfigureAwait(false);
             ThrowCancellation(token, timeout);
             throw;
         } finally { _commands.Release(); }
     }
+
+    private HtmlRuntimeEventKind EventKind(string kind) => kind switch {
+        "open" => HtmlRuntimeEventKind.Page,
+        "navigate" or "reload" => HtmlRuntimeEventKind.Navigation,
+        "execute" or "evaluate" => HtmlRuntimeEventKind.Script,
+        "wait" => HtmlRuntimeEventKind.Wait,
+        "observe" => HtmlRuntimeEventKind.Observation,
+        "automation" => HtmlRuntimeEventKind.Action,
+        "capture" => HtmlRuntimeEventKind.Capture,
+        _ => HtmlRuntimeEventKind.Page
+    };
+
+    private string? TraceDetail(HtmlRuntimeCommand command) => command.Kind == "navigate" && _trace.IncludeUrls ? command.Script : null;
 
     private void CheckAvailable() {
         if (Volatile.Read(ref _disposed) != 0) throw new ObjectDisposedException(nameof(IHtmlRuntimeSession));
@@ -179,6 +222,7 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimeSession {
             _stopped.Dispose();
             _process.Dispose();
             _commands.Release();
+            _disposedCallback?.Invoke();
         }
     }
 }

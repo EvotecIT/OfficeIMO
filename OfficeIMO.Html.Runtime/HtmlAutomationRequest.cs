@@ -75,8 +75,10 @@ public enum HtmlLocatorWaitState {
 
 /// <summary>Provider-neutral automation request. The session validates and snapshots it before queueing.</summary>
 public sealed class HtmlAutomationRequest {
-    /// <summary>The query to resolve.</summary>
-    public HtmlLocatorQuery Query { get; init; } = null!;
+    /// <summary>The query to resolve. Supply either this value or <see cref="Reference"/>.</summary>
+    public HtmlLocatorQuery? Query { get; init; }
+    /// <summary>A revision-bound target returned by <see cref="IHtmlRuntimePage.ObserveAsync"/>.</summary>
+    public HtmlObservedElementReference? Reference { get; init; }
     /// <summary>The requested operation.</summary>
     public HtmlAutomationAction Action { get; init; }
     /// <summary>Text for Fill, the key for Press, or a Value/Text wait.</summary>
@@ -96,8 +98,16 @@ public sealed class HtmlAutomationRequest {
     /// <summary>Retry missing or temporarily unavailable targets until the command deadline. Ambiguous or unsupported requests fail immediately.</summary>
     public bool WaitForReady { get; init; } = true;
 
-    internal HtmlAutomationRequest Snapshot(int maximumCharacters) {
-        ArgumentNullException.ThrowIfNull(Query);
+    /// <summary>Validates and returns a detached request within a provider's input-character budget.</summary>
+    public HtmlAutomationRequest Snapshot(int maximumCharacters) {
+        if (maximumCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maximumCharacters));
+        if ((Query == null) == (Reference == null))
+            throw new ArgumentException("Supply exactly one automation target: Query or Reference.");
+        if (Reference != null) {
+            if (string.IsNullOrWhiteSpace(Reference.PageId) || Reference.Revision <= 0 || Reference.ElementIndex < 0
+                || string.IsNullOrWhiteSpace(Reference.ElementName))
+                throw new ArgumentException("The observed element reference is invalid.", nameof(Reference));
+        }
         if (!Enum.IsDefined(Action) || !Enum.IsDefined(WaitState)) throw new ArgumentException("Unknown automation operation or condition.");
         const HtmlKeyboardModifiers allModifiers = HtmlKeyboardModifiers.Alt | HtmlKeyboardModifiers.Control
             | HtmlKeyboardModifiers.Meta | HtmlKeyboardModifiers.Shift;
@@ -119,8 +129,11 @@ public sealed class HtmlAutomationRequest {
             characters += item.Length + 1L;
         }
         for (var query = Query; query != null; query = query.Scope) characters += query.Value.Length;
+        characters += Reference?.PageId.Length ?? 0;
+        characters += Reference?.ElementName.Length ?? 0;
+        characters += Reference?.ElementId.Length ?? 0;
         if (characters > maximumCharacters) throw new ArgumentException("The automation request exceeds MaxInputCharacters.");
-        return new() { Query = Query, Action = Action, Value = Value, Values = Array.AsReadOnly(values), Checked = Checked,
+        return new() { Query = Query, Reference = Reference, Action = Action, Value = Value, Values = Array.AsReadOnly(values), Checked = Checked,
             Modifiers = Modifiers, SelectionStart = SelectionStart, SelectionEnd = SelectionEnd,
             WaitState = WaitState, WaitForReady = WaitForReady };
     }

@@ -83,6 +83,17 @@ visible in each reference's `missingMarkers` field without failing OfficeIMO's
 qualification. Raw artifacts are review evidence and remain in the caller-selected
 output directory.
 
+Run the provider-neutral runtime conformance suite against the comparison-only
+Chromium/Playwright adapter:
+
+```sh
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons -c Release -f net10.0 -- html-runtime-conformance
+```
+
+The adapter stays outside the normal solution and package graph. It proves that
+the public host/context/page contract can serve an external browser without
+exposing Playwright handles through common OfficeIMO APIs.
+
 Generate a reviewable HTML-to-PDF evidence bundle before interpreting benchmark timings. This command renders the same deterministic HTML two or more times with OfficeIMO, PeachPDF, iText pdfHTML, and Chromium through HtmlTinkerX. It writes the source HTML, every PDF, first-page PNG previews, and `html-pdf-evidence.json`. The report records exact-byte, semantic, and visual repeatability; page and content checks; tagged-PDF structure; output size; cancellation capability; managed allocation volume; and sampled peak process-tree working set.
 
 Every conversion iteration runs in a fresh worker. The coordinator validates and renders previews only after the worker exits, so its own PDF inspection and rasterization memory is excluded. The report records the sampler identity, sample count, observed process-count range, and peak working set for each worker tree. When Poppler's `pdftoppm` is on `PATH`, the runner also creates independent external previews. Use `--require-external-rasterizer` for a visual gate that must fail when Poppler is unavailable.

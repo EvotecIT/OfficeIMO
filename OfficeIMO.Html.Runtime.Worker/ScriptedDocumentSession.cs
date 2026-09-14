@@ -30,15 +30,19 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private RuntimeModuleLoader _modules = null!;
     private readonly RuntimeScriptingService _scripting;
     private RuntimeHistoryBindings _history = null!;
+    private readonly Func<long> _currentRevision;
+    private readonly Action _markRevision;
 
     private ScriptedDocumentSession(HtmlScriptRequest options, RuntimeResourceBudget budget, RuntimeBrowsingStorage storage,
-        RuntimeBrowsingHistory history, Action<RuntimeNavigation>? navigate) {
+        RuntimeBrowsingHistory history, Action<RuntimeNavigation>? navigate, Func<long> currentRevision, Action markRevision) {
         _options = options;
         _errors = new RuntimeScriptErrors(options.MaxPendingPromiseRejections);
         _resources = new RuntimeResourceLoader(options, budget);
         _integrity = new RuntimeSubresourceIntegrity(options.MaxModuleIntegrityMetadataCharacters);
         _moduleSources = new RuntimeModuleSourceCache(_resources, options.MaxModuleCount,
             options.MaxModuleIntegrityMetadataCharacters, _integrity);
+        _currentRevision = currentRevision;
+        _markRevision = markRevision;
         var linkRelations = new DefaultLinkRelationFactory();
         linkRelations.Register("modulepreload", link => new RuntimeModulePreloadLinkRelation(link, _moduleSources, () => _modules?.ImportMap, _errors.Report));
         var configuration = Configuration.Default.WithCss().WithJs(new JsScriptingOptions {
@@ -50,7 +54,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
                 }
             })
             .WithEventLoop(context => new RuntimeEventLoop(context, () => _engine, _errors))
-            .With(new RuntimeDocumentUrls.MutationListener())
+            .With(new RuntimeDocumentUrls.MutationListener(markRevision))
             .With(new RuntimeDomSynchronization(() => _engine))
             .With(new RuntimeScriptBlockingStyleSheetEvaluator(options))
             .WithOnly<IIntegrityProvider>(_integrity)
@@ -98,8 +102,9 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     }
 
     internal static async Task<ScriptedDocumentSession> OpenAsync(HtmlScriptRequest request, RuntimeResourceBudget budget,
-        RuntimeBrowsingStorage storage, RuntimeBrowsingHistory history, Action<RuntimeNavigation>? navigate, CancellationToken token, HtmlRuntimeResource? source = null) {
-        var session = new ScriptedDocumentSession(request, budget, storage, history, navigate);
+        RuntimeBrowsingStorage storage, RuntimeBrowsingHistory history, Action<RuntimeNavigation>? navigate,
+        Func<long> currentRevision, Action markRevision, CancellationToken token, HtmlRuntimeResource? source = null) {
+        var session = new ScriptedDocumentSession(request, budget, storage, history, navigate, currentRevision, markRevision);
         try {
             string html = source == null ? request.Html : RuntimeHtmlNavigationSource.Decode(source, request.MaxInputCharacters);
             session._document = await session._context.OpenAsync(response => {
@@ -130,7 +135,11 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         return true;
     }, token);
 
-    internal Task<HtmlAutomationResult> AutomateAsync(HtmlAutomationRequest request, CancellationToken token) => OnLoop(() => _automation.Run(request, token), token);
+    internal Task<HtmlAutomationResult> AutomateAsync(HtmlAutomationRequest request, string pageId, long revision, CancellationToken token) =>
+        OnLoop(() => _automation.Run(request, pageId, revision, token), token);
+
+    internal Task<HtmlPageObservation> ObserveAsync(HtmlPageObservationRequest request, string contextId, string pageId, CancellationToken token) =>
+        OnLoop(() => _automation.Observe(request, contextId, pageId, _currentRevision(), token), token);
 
     internal Task<string> EvaluateAsync(string expression, CancellationToken token) => OnLoop(() => {
         var value = _engine.Evaluate("JSON.stringify((" + expression + "\n))", RuntimeDocumentUrls.Base(_document));

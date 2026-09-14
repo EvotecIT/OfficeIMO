@@ -23,7 +23,8 @@ public sealed class HtmlRuntimeResourcePolicy {
     /// <summary>Maximum redirects in one load. Every target is checked before requesting it.</summary>
     public int MaxRedirects { get; set; } = 5;
 
-    internal HtmlRuntimeResourcePolicy Snapshot() {
+    /// <summary>Validates and returns a detached policy suitable for a runtime provider to retain.</summary>
+    public HtmlRuntimeResourcePolicy Snapshot() {
         if (Timeout <= TimeSpan.Zero || Timeout > TimeSpan.FromMinutes(5) || MaxConcurrentRequests <= 0 || MaxRequests <= 0 ||
             MaxResourceBytes <= 0 || MaxResourceBytes > int.MaxValue || MaxTotalBytes <= 0 || MaxRedirects < 0 || MaxRequestBytes <= 0 || MaxRequestBytes > int.MaxValue || MaxTotalRequestBytes <= 0)
             throw new ArgumentException("Resource limits must be positive and within supported ranges.");
@@ -39,7 +40,8 @@ public sealed class HtmlRuntimeResourcePolicy {
             MaxTotalBytes = MaxTotalBytes, MaxRedirects = MaxRedirects, MaxRequestBytes = MaxRequestBytes, MaxTotalRequestBytes = MaxTotalRequestBytes };
     }
 
-    internal static Uri ValidateUrl(Uri url) {
+    /// <summary>Validates a runtime URL and returns it unchanged.</summary>
+    public static Uri ValidateUrl(Uri url) {
         ArgumentNullException.ThrowIfNull(url);
         if (!url.IsAbsoluteUri || (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps) ||
             url.UserInfo.Length != 0 || url.AbsoluteUri.Length > 8192)

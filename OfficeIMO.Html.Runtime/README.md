@@ -7,7 +7,8 @@ do not depend on it. The worker builds pinned source dependencies with mutation
 and engine-configuration hooks; see [DOM provider provenance](../OfficeIMO.Html.Runtime.AngleSharpDom/README.md)
 and [binding provenance](../OfficeIMO.Html.Runtime.AngleSharpJs/README.md).
 
-Build or publish `OfficeIMO.Html.Runtime.Worker` and deploy its complete output
+Build or publish `OfficeIMO.Html.Runtime.Worker` and deploy its complete output,
+including `OfficeIMO.Html.Runtime.Worker.manifest.json`,
 directory. Supply its DLL path and the inert DOM services to the process provider:
 
 ```csharp
@@ -41,6 +42,88 @@ await session.WaitForAsync("window.reportReady === true", cancellationToken);
 var title = await session.EvaluateAsync("document.title", cancellationToken);
 var after = await session.CaptureAsync(cancellationToken: cancellationToken);
 ```
+
+Use the host/context/page API when a consumer may switch providers or drive a
+page programmatically. Capabilities and limits are available before a context
+starts. The process provider currently allows one page per isolated context;
+the existing `OpenTrustedAsync` session API remains available as a shorter path.
+
+```csharp
+IHtmlRuntimeHost host = runtime;
+if (!host.Descriptor.Supports(HtmlRuntimeCapabilityIds.SemanticObservation)) {
+    throw new NotSupportedException("The selected runtime cannot observe pages.");
+}
+
+await using IHtmlRuntimeContext context = await host.CreateContextAsync(
+    new HtmlRuntimeContextOptions { Id = "invoice-review" },
+    cancellationToken);
+await using IHtmlRuntimePage page = await context.OpenPageAsync(new HtmlScriptRequest {
+    Profile = HtmlRuntimeProfile.WebApplicationV1,
+    DocumentUrl = new Uri("https://reports.example/review"),
+    Html = reviewHtml
+}, cancellationToken);
+
+HtmlPageObservation observation = await page.ObserveAsync(new HtmlPageObservationRequest {
+    Mode = HtmlPageObservationMode.Combined,
+    ActionableOnly = true,
+    MaxElements = 256
+}, cancellationToken);
+
+HtmlObservedElement approve = observation.Elements.Single(element =>
+    element.Role == "button" && element.AccessibleName == "Approve");
+HtmlAutomationResult action = await page.AutomateAsync(new HtmlAutomationRequest {
+    Reference = approve.Reference,
+    Action = HtmlAutomationAction.Click,
+    WaitForReady = false
+}, cancellationToken);
+action.EnsureSuccess();
+```
+
+An observation contains a page revision. Its element references are accepted
+only while that revision remains current; DOM changes, input actions, script
+execution, evaluation, scrolling, route changes, reload, and navigation require
+a new observation. A stale reference returns `HtmlAutomationStatus.Stale` and
+does not act on whichever element now occupies the same document position.
+Semantic observations expose bounded roles, names, text and control state.
+Visual observations expose the qualified layout geometry, visibility, viewport
+and scroll state. Combined observations include both. The process provider does
+not advertise screenshot observation, so requesting a screenshot reference is
+rejected before a worker command is sent.
+
+The optional tool layer publishes four JSON-schema definitions without taking a
+dependency on a model SDK: observe, act, navigate and capture. Deterministic .NET
+code can dispatch the same calls directly. `HtmlAutomationRunner` accepts a
+caller-supplied async planner and bounds its steps and calls per step:
+
+```csharp
+var runner = new HtmlAutomationRunner();
+HtmlAutomationRunResult run = await runner.RunAsync(page, (turn, _) => {
+    if (turn.Observation.Elements.Any(element => element.Text == "Approved")) {
+        return Task.FromResult(HtmlAutomationPlannerDecision.Complete("approved"));
+    }
+
+    HtmlObservedElement button = turn.Observation.Elements.Single(element =>
+        element.Role == "button" && element.AccessibleName == "Approve");
+    return Task.FromResult(HtmlAutomationPlannerDecision.Execute(
+        HtmlAutomationToolCall.Act("approve", new HtmlAutomationRequest {
+            Reference = button.Reference,
+            Action = HtmlAutomationAction.Click,
+            WaitForReady = false
+        })));
+}, new HtmlAutomationRunOptions { MaxSteps = 4 }, cancellationToken);
+```
+
+Prompts, credentials, model selection, approval policy and model-client retries
+belong to the application that supplies the planner. `GetTrace()` returns bounded
+provider-neutral operation evidence. URLs are omitted by default; callers can
+enable them and provide a final redaction callback through
+`HtmlRuntimeTraceOptions`.
+
+`HtmlRuntimeJson.Serialize` exports provider descriptors, observations, action
+results, traces, tool results and planner results without reflection, including
+under NativeAOT. Captures embedded in tool results are represented by inert HTML,
+their resolved URLs and retained resource responses. The conformance package
+provides `HtmlRuntimeConformanceJson.Serialize` for its reports.
 
 `ScriptedDocumentV1` is the default single-document contract. Select
 `WebApplicationV1` when the workflow needs cross-document navigation, reload,

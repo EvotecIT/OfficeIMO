@@ -36,8 +36,9 @@ internal static class RuntimeDocumentUrls {
     }
     private static readonly ConditionalWeakTable<IDocument, State> States = new();
 
-    internal sealed class MutationListener : IDomMutationListener {
+    internal sealed class MutationListener(Action? changed = null) : IDomMutationListener {
         public void OnMutation(IDocument document,IMutationRecord record) {
+            changed?.Invoke();
             if(States.TryGetValue(document,out var state))state.Invalidate(record);
         }
     }

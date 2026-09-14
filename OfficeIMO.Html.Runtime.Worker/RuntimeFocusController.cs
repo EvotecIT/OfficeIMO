@@ -73,6 +73,12 @@ internal sealed class RuntimeFocusController {
         IHtmlSelectElement select => select.Value ?? string.Empty,
         _ => null
     };
+    internal static string? ObservableValue(IElement element) =>
+        element is IHtmlInputElement input && string.Equals(input.Type, "password", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : Value(element);
+    internal static bool ExposesTextSelection(IElement element) =>
+        element is not IHtmlInputElement input || !string.Equals(input.Type, "password", StringComparison.OrdinalIgnoreCase);
     internal static bool HiddenByMarkup(IElement element) {
         for (IElement? current = element; current != null; current = current.ParentElement)
             if (current.HasAttribute("hidden") || current.HasAttribute("inert")) return true;

@@ -16,14 +16,18 @@ try {
                 if (command.Kind != "open" || command.Request == null) throw new HtmlScriptRuntimeException("The first command must open a document.");
                 options = command.Request.Snapshot();
                 using var deadline = new CancellationTokenSource(options!.Timeout);
-                session = await ScriptedBrowsingSession.OpenAsync(options, deadline.Token);
+                session = await ScriptedBrowsingSession.OpenAsync(options,
+                    command.PageId ?? throw new HtmlScriptRuntimeException("The page id is missing."), deadline.Token);
             } else {
-                if (command.Kind != "automation" && (command.Script == null || command.Script.Length > options!.MaxInputCharacters)) throw new HtmlScriptRuntimeException("The command script is missing or exceeds its budget.");
+                if (command.Kind is not ("automation" or "observe") && (command.Script == null || command.Script.Length > options!.MaxInputCharacters)) throw new HtmlScriptRuntimeException("The command script is missing or exceeds its budget.");
                 using var deadline = new CancellationTokenSource(options!.Timeout);
                 switch (command.Kind) {
                     case "navigate": await session.NavigateAsync(command.Script!, command.ReplaceHistoryEntry, deadline.Token); break;
                     case "reload": await session.ReloadAsync(deadline.Token); break;
                     case "automation": response.Automation = await session.AutomateAsync((command.Automation ?? throw new HtmlScriptRuntimeException("The automation request is missing.")).Snapshot(options!.MaxInputCharacters), deadline.Token); break;
+                    case "observe": response.Observation = await session.ObserveAsync(
+                        (command.Observation ?? throw new HtmlScriptRuntimeException("The observation request is missing.")).Snapshot(options!.MaxOutputCharacters),
+                        command.ContextId ?? string.Empty, command.PageId ?? string.Empty, deadline.Token); break;
                     case "execute": await session.ExecuteAsync(command.Script!, deadline.Token); break;
                     case "evaluate": response.ValueJson = await session.EvaluateAsync(command.Script!, deadline.Token); break;
                     case "wait": await session.WaitAsync(command.Script!, false, deadline.Token); break;
@@ -31,6 +35,7 @@ try {
                     default: throw new HtmlScriptRuntimeException("Unknown runtime command.");
                 }
             }
+            response.PageRevision = session.CurrentRevision;
             await HtmlRuntimeProtocol.WriteAsync(output, response, options!.MaxOutputCharacters, CancellationToken.None);
         } catch (OperationCanceledException) {
             response = new HtmlRuntimeResponse { Id = command.Id, Error = "The runtime command exceeded its deadline.", ErrorKind = "timeout" };

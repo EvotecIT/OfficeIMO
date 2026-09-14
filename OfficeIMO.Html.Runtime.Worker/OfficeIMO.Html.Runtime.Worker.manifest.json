@@ -1,0 +1,18 @@
+{
+  "protocolVersion": 1,
+  "providerId": "officeimo.trusted-process",
+  "profiles": [ "ScriptedDocumentV1", "WebApplicationV1" ],
+  "capabilities": [
+    "page.persistent",
+    "context.isolated",
+    "page.navigation",
+    "script.evaluate",
+    "observation.semantic",
+    "observation.visual-geometry",
+    "observation.revision-bound-references",
+    "automation.structured-actions",
+    "trace.operations"
+  ],
+  "maximumContexts": 2147483647,
+  "maximumPagesPerContext": 1
+}

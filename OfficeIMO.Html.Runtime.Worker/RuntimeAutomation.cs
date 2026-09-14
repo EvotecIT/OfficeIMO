@@ -25,13 +25,20 @@ internal sealed partial class RuntimeAutomation {
 
     internal RuntimeViewport Viewport => _viewport;
 
-    internal HtmlAutomationResult Run(HtmlAutomationRequest request, CancellationToken token) {
+    internal HtmlAutomationResult Run(HtmlAutomationRequest request, string pageId, long revision, CancellationToken token) {
         if (!_viewport.Enabled && (request.Action is HtmlAutomationAction.Hover or HtmlAutomationAction.Press or HtmlAutomationAction.SetSelection or HtmlAutomationAction.ScrollIntoView
             || request.Action == HtmlAutomationAction.Wait && request.WaitState is HtmlLocatorWaitState.Visible or HtmlLocatorWaitState.Hidden or HtmlLocatorWaitState.InViewport))
             return Failure(HtmlAutomationStatus.Unsupported, "Layout and input operations require WebApplicationV1.");
         IReadOnlyList<IElement> matches;
-        try { matches = _locators.Resolve(request.Query, token); }
+        try {
+            if (request.Reference != null) {
+                IElement? referenced = _locators.Resolve(request.Reference, pageId, revision, token);
+                matches = referenced == null ? Array.Empty<IElement>() : new[] { referenced };
+            } else matches = _locators.Resolve(request.Query!, token);
+        }
         catch (DomException error) { return Failure(HtmlAutomationStatus.InvalidLocator, error.Message); }
+        if (request.Reference != null && matches.Count == 0)
+            return Failure(HtmlAutomationStatus.Stale, "The observed element reference is stale. Observe the page again.");
         if (request.Action == HtmlAutomationAction.Count) return new() { MatchCount = matches.Count };
         if (request.Action == HtmlAutomationAction.Wait
             && request.WaitState is (HtmlLocatorWaitState.Detached or HtmlLocatorWaitState.Hidden)
@@ -55,7 +62,7 @@ internal sealed partial class RuntimeAutomation {
                 HtmlLocatorWaitState.Visible => inspected.IsVisible == true,
                 HtmlLocatorWaitState.Hidden => inspected.IsVisible == false,
                 HtmlLocatorWaitState.InViewport => inspected.IsInViewport == true,
-                HtmlLocatorWaitState.Value => inspected.Value != null && inspected.Value == request.Value,
+                HtmlLocatorWaitState.Value => RuntimeFocusController.Value(element) is string value && value == request.Value,
                 HtmlLocatorWaitState.Text => inspected.Text == RuntimeLocatorResolver.Normalize(request.Value),
                 HtmlLocatorWaitState.Checked => inspected.IsChecked != null && inspected.IsChecked == request.Checked,
                 _ => false
@@ -102,8 +109,9 @@ internal sealed partial class RuntimeAutomation {
     private HtmlRuntimeElementState Inspect(IElement element, RuntimeElementLayout layout) => new() {
         ElementName = element.LocalName, Id = element.Id ?? string.Empty,
         AccessibleName = RuntimeLocatorResolver.AccessibleName(element),
-        Text = RuntimeLocatorResolver.Normalize(element.TextContent), Value = RuntimeFocusController.Value(element),
-        SelectionStart = SelectionStart(element), SelectionEnd = SelectionEnd(element),
+        Text = RuntimeLocatorResolver.Normalize(element.TextContent), Value = RuntimeFocusController.ObservableValue(element),
+        SelectionStart = RuntimeFocusController.ExposesTextSelection(element) ? SelectionStart(element) : null,
+        SelectionEnd = RuntimeFocusController.ExposesTextSelection(element) ? SelectionEnd(element) : null,
         SelectedValues = element is IHtmlSelectElement select ? Array.AsReadOnly(select.Options.Where(option => option.IsSelected).Select(option => option.Value).ToArray()) : Array.Empty<string>(),
         IsChecked = element is IHtmlInputElement check && check.Type is "checkbox" or "radio" ? check.IsChecked : null,
         IsIndeterminate = element is IHtmlInputElement mixed && mixed.Type == "checkbox" && mixed.IsIndeterminate,

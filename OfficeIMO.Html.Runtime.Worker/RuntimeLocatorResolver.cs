@@ -5,7 +5,12 @@ namespace OfficeIMO.Html.Runtime.Worker;
 internal sealed class RuntimeLocatorResolver(IDocument document, HtmlScriptRequest options) {
     internal IReadOnlyList<IElement> Resolve(HtmlLocatorQuery query, CancellationToken token) {
         // Bound the tree before provider selector evaluation, including nonmatching nodes.
-        var ordered = new List<IElement>();
+        var ordered = Enumerate(token).Select(item => item.Element).ToArray();
+        return ResolveQuery(query, ordered, new HtmlAccessibilitySemantics.HtmlAccessibleNameContext(), token);
+    }
+
+    internal IReadOnlyList<RuntimeDocumentElement> Enumerate(CancellationToken token) {
+        var ordered = new List<RuntimeDocumentElement>();
         var pending = new Stack<(INode Node, int Depth)>();
         pending.Push((document, 0));
         int nodes = 0;
@@ -14,11 +19,29 @@ internal sealed class RuntimeLocatorResolver(IDocument document, HtmlScriptReque
             var current = pending.Pop();
             if (++nodes > options.MaxNodes || current.Depth > options.MaxDepth)
                 throw new HtmlScriptRuntimeException("The automation document exceeds its node or depth budget.");
-            if (current.Node is IElement element) ordered.Add(element);
+            if (current.Node is IElement element) {
+                int? parentIndex = null;
+                for (INode? parent = element.Parent; parent != null; parent = parent.Parent) {
+                    if (parent is not IElement parentElement) continue;
+                    for (int index = ordered.Count - 1; index >= 0; index--)
+                        if (ReferenceEquals(ordered[index].Element, parentElement)) { parentIndex = index; break; }
+                    break;
+                }
+                ordered.Add(new RuntimeDocumentElement(element, current.Depth, parentIndex));
+            }
             for (int i = current.Node.ChildNodes.Length - 1; i >= 0; i--)
                 pending.Push((current.Node.ChildNodes[i], current.Depth + (current.Node.ChildNodes[i] is IElement ? 1 : 0)));
         }
-        return ResolveQuery(query, ordered, new HtmlAccessibilitySemantics.HtmlAccessibleNameContext(), token);
+        return ordered;
+    }
+
+    internal IElement? Resolve(HtmlObservedElementReference reference, string pageId, long revision, CancellationToken token) {
+        if (!string.Equals(reference.PageId, pageId, StringComparison.Ordinal) || reference.Revision != revision) return null;
+        IReadOnlyList<RuntimeDocumentElement> ordered = Enumerate(token);
+        if (reference.ElementIndex >= ordered.Count) return null;
+        IElement element = ordered[reference.ElementIndex].Element;
+        return string.Equals(element.LocalName, reference.ElementName, StringComparison.Ordinal)
+            && string.Equals(element.Id ?? string.Empty, reference.ElementId, StringComparison.Ordinal) ? element : null;
     }
 
     private IReadOnlyList<IElement> ResolveQuery(HtmlLocatorQuery query, IReadOnlyList<IElement> ordered, HtmlAccessibilitySemantics.HtmlAccessibleNameContext names, CancellationToken token) {
@@ -49,3 +72,6 @@ internal sealed class RuntimeLocatorResolver(IDocument document, HtmlScriptReque
         includeTextFallback: element.LocalName is "button" or "a" or "summary" or "option" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6"
             || element.HasAttribute("role"), context ?? new HtmlAccessibilitySemantics.HtmlAccessibleNameContext());
 }
+
+
+internal readonly record struct RuntimeDocumentElement(IElement Element, int Depth, int? ParentElementIndex);

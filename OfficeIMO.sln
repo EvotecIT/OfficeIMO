@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.32014.148
@@ -511,6 +511,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Html.Runtime.AngleSharpJs", "OfficeIMO.Html.Runtime.AngleSharpJs\OfficeIMO.Html.Runtime.AngleSharpJs.csproj", "{69628F59-6D8D-4CFA-9D7A-3AADD098B79D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Html.Runtime.AngleSharpDom", "OfficeIMO.Html.Runtime.AngleSharpDom\OfficeIMO.Html.Runtime.AngleSharpDom.csproj", "{9F5D521A-1F39-4683-81E2-348B0CA3EDC4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Html.Runtime.Conformance", "OfficeIMO.Html.Runtime.Conformance\OfficeIMO.Html.Runtime.Conformance.csproj", "{E308BCF1-3706-4095-858A-A7B769F5998C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Html.Runtime.AotSmoke", "OfficeIMO.Html.Runtime.AotSmoke\OfficeIMO.Html.Runtime.AotSmoke.csproj", "{8407E2BD-164F-48AD-BBF0-C604D94A111B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -2862,6 +2866,30 @@ Global
 		{9F5D521A-1F39-4683-81E2-348B0CA3EDC4}.Release|x64.Build.0 = Release|Any CPU
 		{9F5D521A-1F39-4683-81E2-348B0CA3EDC4}.Release|x86.ActiveCfg = Release|Any CPU
 		{9F5D521A-1F39-4683-81E2-348B0CA3EDC4}.Release|x86.Build.0 = Release|Any CPU
+		{E308BCF1-3706-4095-858A-A7B769F5998C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E308BCF1-3706-4095-858A-A7B769F5998C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E308BCF1-3706-4095-858A-A7B769F5998C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E308BCF1-3706-4095-858A-A7B769F5998C}.Debug|x64.Build.0 = Debug|Any CPU
+		{E308BCF1-3706-4095-858A-A7B769F5998C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E308BCF1-3706-4095-858A-A7B769F5998C}.Debug|x86.Build.0 = Debug|Any CPU
+		{E308BCF1-3706-4095-858A-A7B769F5998C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E308BCF1-3706-4095-858A-A7B769F5998C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E308BCF1-3706-4095-858A-A7B769F5998C}.Release|x64.ActiveCfg = Release|Any CPU
+		{E308BCF1-3706-4095-858A-A7B769F5998C}.Release|x64.Build.0 = Release|Any CPU
+		{E308BCF1-3706-4095-858A-A7B769F5998C}.Release|x86.ActiveCfg = Release|Any CPU
+		{E308BCF1-3706-4095-858A-A7B769F5998C}.Release|x86.Build.0 = Release|Any CPU
+		{8407E2BD-164F-48AD-BBF0-C604D94A111B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8407E2BD-164F-48AD-BBF0-C604D94A111B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8407E2BD-164F-48AD-BBF0-C604D94A111B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8407E2BD-164F-48AD-BBF0-C604D94A111B}.Debug|x64.Build.0 = Debug|Any CPU
+		{8407E2BD-164F-48AD-BBF0-C604D94A111B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8407E2BD-164F-48AD-BBF0-C604D94A111B}.Debug|x86.Build.0 = Debug|Any CPU
+		{8407E2BD-164F-48AD-BBF0-C604D94A111B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8407E2BD-164F-48AD-BBF0-C604D94A111B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8407E2BD-164F-48AD-BBF0-C604D94A111B}.Release|x64.ActiveCfg = Release|Any CPU
+		{8407E2BD-164F-48AD-BBF0-C604D94A111B}.Release|x64.Build.0 = Release|Any CPU
+		{8407E2BD-164F-48AD-BBF0-C604D94A111B}.Release|x86.ActiveCfg = Release|Any CPU
+		{8407E2BD-164F-48AD-BBF0-C604D94A111B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

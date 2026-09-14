@@ -40,6 +40,8 @@
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.Runtime\OfficeIMO.Html.Runtime.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.Runtime.Conformance\OfficeIMO.Html.Runtime.Conformance.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex\OfficeIMO.Latex.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex.Pdf\OfficeIMO.Latex.Pdf.csproj" />

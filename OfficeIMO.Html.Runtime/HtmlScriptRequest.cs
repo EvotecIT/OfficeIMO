@@ -57,7 +57,8 @@ public sealed class HtmlScriptRequest {
     /// <summary>Layout viewport height in CSS pixels for WebApplicationV1 inspection and actionability.</summary>
     public double ViewportHeight { get; set; } = 720D;
 
-    internal HtmlScriptRequest Snapshot() {
+    /// <summary>Validates and returns a detached request suitable for a runtime provider to retain.</summary>
+    public HtmlScriptRequest Snapshot() {
         if (Html == null || Scripts == null || ReadyExpression == null) throw new ArgumentException("HTML, scripts and readiness are required.");
         if (!Enum.IsDefined(Profile)) throw new ArgumentOutOfRangeException(nameof(Profile));
         if (Timeout <= TimeSpan.Zero || Timeout > TimeSpan.FromMinutes(5)) throw new ArgumentOutOfRangeException(nameof(Timeout));

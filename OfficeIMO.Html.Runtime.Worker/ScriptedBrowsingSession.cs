@@ -11,6 +11,7 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
     private readonly SemaphoreSlim _access = new(1, 1);
     private readonly object _sync = new();
     private readonly CancellationTokenSource _lifetime = new();
+    private readonly string _pageId;
     private ScriptedDocumentSession? _document;
     private RuntimeNavigation? _pending;
     private Task? _pump;
@@ -19,15 +20,17 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
     private int _generation;
     private int _navigations;
     private int _disposed;
+    private long _revision;
 
-    private ScriptedBrowsingSession(HtmlScriptRequest options) {
+    private ScriptedBrowsingSession(HtmlScriptRequest options, string pageId) {
         _options = options;
+        _pageId = pageId;
         _budget = new(options);
         _storage = new(options.MaxStorageCharacters);
     }
 
-    internal static async Task<ScriptedBrowsingSession> OpenAsync(HtmlScriptRequest options, CancellationToken token) {
-        var session = new ScriptedBrowsingSession(options);
+    internal static async Task<ScriptedBrowsingSession> OpenAsync(HtmlScriptRequest options, string pageId, CancellationToken token) {
+        var session = new ScriptedBrowsingSession(options, pageId);
         await session._access.WaitAsync(token);
         try {
             session._document = await session.OpenDocumentAsync(options, token);
@@ -39,11 +42,16 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
 
     private Task<ScriptedDocumentSession> OpenDocumentAsync(HtmlScriptRequest request, CancellationToken token, HtmlRuntimeResource? source = null) {
         int generation = ++_generation;
+        MarkRevision();
         _history.Generation = generation;
         _documentSources[generation] = source ?? HtmlRuntimeResource.FromText(request.DocumentUrl, request.Html, "text/html; charset=utf-8");
         return ScriptedDocumentSession.OpenAsync(request, _budget, _storage, _history,
-            request.Profile == HtmlRuntimeProfile.WebApplicationV1 ? navigation => RequestNavigation(generation, navigation) : null, token, source);
+            request.Profile == HtmlRuntimeProfile.WebApplicationV1 ? navigation => RequestNavigation(generation, navigation) : null,
+            () => CurrentRevision, MarkRevision, token, source);
     }
+
+    internal long CurrentRevision => Interlocked.Read(ref _revision);
+    private void MarkRevision() => Interlocked.Increment(ref _revision);
 
     private void RequestNavigation(int generation, RuntimeNavigation navigation) {
         HtmlRuntimeResourcePolicy.ValidateUrl(navigation.Url);
@@ -149,21 +157,25 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
 
     internal async Task ExecuteAsync(string script, CancellationToken token) {
         await OnDocumentAsync(async document => { await document.ExecuteAsync(script, token); return true; }, token);
+        MarkRevision();
         await SettleAsync(token);
     }
 
     internal async Task NavigateAsync(string url, bool replace, CancellationToken token) {
         await OnDocumentAsync(async document => { await document.NavigateAsync(url, replace, token); return true; }, token);
+        MarkRevision();
         await SettleAsync(token);
     }
 
     internal async Task ReloadAsync(CancellationToken token) {
         await OnDocumentAsync(async document => { await document.ReloadAsync(token); return true; }, token);
+        MarkRevision();
         await SettleAsync(token);
     }
 
     internal async Task<string> EvaluateAsync(string expression, CancellationToken token) {
         var result = await OnDocumentAsync(document => document.EvaluateAsync(expression, token), token);
+        MarkRevision();
         await SettleAsync(token);
         return result.Value;
     }
@@ -171,12 +183,24 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
     internal async Task<HtmlAutomationResult> AutomateAsync(HtmlAutomationRequest request, CancellationToken token) {
         bool observation = request.Action is HtmlAutomationAction.Inspect or HtmlAutomationAction.Count or HtmlAutomationAction.Wait;
         while (true) {
-            var result = await OnDocumentAsync(document => document.AutomateAsync(request, token), token);
+            var result = await OnDocumentAsync(document => document.AutomateAsync(request, _pageId, CurrentRevision, token), token);
+            if (!observation) MarkRevision();
             await SettleAsync(token);
             if (observation && result.Generation != Volatile.Read(ref _generation)) continue;
-            if (!request.WaitForReady || result.Value.Status is not (HtmlAutomationStatus.NotFound or HtmlAutomationStatus.NotReady)) return result.Value;
+            HtmlAutomationResult value = result.Value.WithPageRevision(CurrentRevision);
+            if (!request.WaitForReady || request.Reference != null || value.Status is not (HtmlAutomationStatus.NotFound or HtmlAutomationStatus.NotReady)) return value;
             await Task.Delay(_options.PollInterval, token);
         }
+    }
+
+    internal async Task<HtmlPageObservation> ObserveAsync(HtmlPageObservationRequest request, string contextId, string pageId, CancellationToken token) {
+        if (!string.Equals(pageId, _pageId, StringComparison.Ordinal))
+            throw new HtmlScriptRuntimeException("The observation page id does not match this worker page.");
+        var result = await OnDocumentAsync(document => document.ObserveAsync(request, contextId, pageId, token), token);
+        await SettleAsync(token);
+        if (result.Generation != Volatile.Read(ref _generation))
+            return await ObserveAsync(request, contextId, pageId, token);
+        return result.Value;
     }
 
     internal async Task<HtmlRuntimeWireDocument?> WaitAsync(string expression, bool capture, CancellationToken token) {

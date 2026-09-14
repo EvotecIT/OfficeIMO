@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace OfficeIMO.Html.Runtime;
 
@@ -10,7 +11,7 @@ internal static class HtmlRuntimeProtocol {
     private static readonly UTF8Encoding Utf8 = new(false, true);
 
     internal static async Task WriteAsync<T>(Stream stream, T message, int maximumCharacters, CancellationToken token) {
-        string json = JsonSerializer.Serialize(message);
+        string json = JsonSerializer.Serialize(message, TypeInfo<T>());
         if (json.Length > maximumCharacters) throw new HtmlScriptRuntimeException("The runtime message exceeds its character budget.");
         byte[] bytes = Utf8.GetBytes(json);
         byte[] header = new byte[4];
@@ -32,8 +33,12 @@ internal static class HtmlRuntimeProtocol {
         await stream.ReadExactlyAsync(bytes, token).ConfigureAwait(false);
         string json = Utf8.GetString(bytes);
         if (json.Length > maximumCharacters) throw new HtmlScriptRuntimeException("The runtime frame exceeds its character budget.");
-        return JsonSerializer.Deserialize<T>(json) ?? throw new HtmlScriptRuntimeException("An empty runtime message is invalid.");
+        return JsonSerializer.Deserialize(json, TypeInfo<T>()) ?? throw new HtmlScriptRuntimeException("An empty runtime message is invalid.");
     }
+
+    private static JsonTypeInfo<T> TypeInfo<T>() =>
+        (JsonTypeInfo<T>)(HtmlRuntimeProtocolJsonContext.Default.GetTypeInfo(typeof(T))
+            ?? throw new HtmlScriptRuntimeException("The runtime protocol type is not registered."));
 }
 
 internal sealed class HtmlRuntimeCommand {
@@ -42,6 +47,9 @@ internal sealed class HtmlRuntimeCommand {
     public HtmlScriptRequest? Request { get; set; }
     public string? Script { get; set; }
     public HtmlAutomationRequest? Automation { get; set; }
+    public HtmlPageObservationRequest? Observation { get; set; }
+    public string? ContextId { get; set; }
+    public string? PageId { get; set; }
     public bool ReplaceHistoryEntry { get; set; }
 }
 
@@ -52,4 +60,6 @@ internal sealed class HtmlRuntimeResponse {
     public string? ValueJson { get; set; }
     public HtmlRuntimeWireDocument? Document { get; set; }
     public HtmlAutomationResult? Automation { get; set; }
+    public HtmlPageObservation? Observation { get; set; }
+    public long PageRevision { get; set; }
 }
