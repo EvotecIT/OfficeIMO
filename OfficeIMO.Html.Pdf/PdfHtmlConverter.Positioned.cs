@@ -59,6 +59,8 @@ public static partial class PdfHtmlConverterExtensions {
                 builder.Append(Points(Math.Max(0D, point.Top)));
                 builder.Append(";width:");
                 builder.Append(Points(Math.Max(1D, geometry.ScaleLength(block.XEnd - block.XStart))));
+                builder.Append(";font-size:");
+                builder.Append(Points(Math.Max(1D, geometry.ScaleLength(block.FontSize > 0D ? block.FontSize : 10D))));
                 builder.Append(";\">");
                 AppendHtmlText(builder, block.Text);
                 builder.AppendLine("</div>");

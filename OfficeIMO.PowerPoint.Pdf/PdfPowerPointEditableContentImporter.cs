@@ -525,7 +525,11 @@ public static partial class PowerPointPdfConverterExtensions {
             textBox.FillTransparency = 100;
             textBox.OutlineColor = "FFFFFF";
             textBox.OutlineTransparency = 100;
-            ApplyEditableTextRuns(textBox, block, placement.Scale, cancellationToken);
+            ApplyEditableTextRuns(
+                textBox,
+                block,
+                GetEditableTypographyScale(page, placement.Scale),
+                cancellationToken);
             double sourceRotation = block.Spans.Count > 0 ? block.Spans[0].RotationDegrees : 0D;
             double visualRotation = -(page.RotationDegrees + sourceRotation);
             if (Math.Abs(visualRotation) > 0.01D) {
@@ -633,7 +637,7 @@ public static partial class PowerPointPdfConverterExtensions {
                     table,
                     page,
                     extraction.Table,
-                    placement.Scale,
+                    GetEditableTypographyScale(page, placement.Scale),
                     cancellationToken);
                 entries.Add(new PdfPowerPointTableImportEntry(
                     pageIndex,

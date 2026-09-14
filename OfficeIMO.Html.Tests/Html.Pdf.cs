@@ -1900,6 +1900,38 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtmlResult_ReportsSupplementalActionsStrippedFromRenderedLink() {
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult
+            .Load(CreateLinkWithSupplementalActionsPdf())
+            .ToHtmlResult(new PdfToHtmlOptions {
+                Profile = PdfHtmlProfile.PositionedReview,
+                IncludeLinkAnnotations = true
+            });
+
+        Assert.Contains("href=\"https://example.com/preserved\"", result.Value, StringComparison.Ordinal);
+        Assert.Equal(3, result.Summary.SelectedAnnotationActionCount);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted");
+        Assert.StartsWith("2 scoped PDF", warning.Message, StringComparison.Ordinal);
+        Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.DoesNotContain("app.alert", result.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("tool.exe", result.Value, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Pdf_ToPositionedHtml_ScalesFallbackTextByPageUserUnit() {
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult
+            .Load(CreateInvisibleTextUserUnitPdf())
+            .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+
+        Assert.Contains("style=\"width:320pt;height:320pt;\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-text\" style=\"left:40pt;top:120pt;width:", result.Value, StringComparison.Ordinal);
+        Assert.Contains(";font-size:20pt;\">OCR text</div>", result.Value, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdf_BaselineArtifacts_ExposeStableRoundTripShape() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.Pdf." + Guid.NewGuid().ToString("N"));
         string pdfPath = Path.Combine(directory, "practical-html.pdf");
@@ -2074,6 +2106,71 @@ public sealed class HtmlPdfTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 10 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateLinkWithSupplementalActionsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /Annots [5 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Preserved link) /A << /S /URI /URI (https://example.com/preserved) /Next 6 0 R >> /AA << /E 7 0 R >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /S /JavaScript /JS (app.alert('chained')) >>",
+            "endobj",
+            "7 0 obj",
+            "<< /S /Launch /F (tool.exe) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateInvisibleTextUserUnitPdf() {
+        const string content = "BT /F1 10 Tf 3 Tr 20 100 Td (OCR text) Tj ET\n";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] /UserUnit 2 /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            content.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
             "%%EOF"
         }) + "\n";
 

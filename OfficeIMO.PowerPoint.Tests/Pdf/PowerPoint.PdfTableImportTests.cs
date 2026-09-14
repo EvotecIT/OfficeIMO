@@ -835,6 +835,52 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
+    public void PdfEditableContent_PreservesTypographyAcrossUserUnitScaling() {
+        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Paragraph(paragraph => paragraph.Text("Standalone marker"))
+            .Table(new[] {
+                new[] { "Code", "Qty" },
+                new[] { "A-100", "2" }
+            }, style: new PdfCore.PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 150, 80 },
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+
+        PdfPowerPointConversionResult baseline = LoadTables(source).ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult scaled = LoadTables(WithUserUnit(source, 2D)).ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+
+        using (baseline.Value)
+        using (scaled.Value) {
+            OfficeIMO.PowerPoint.PowerPointSlide baselineSlide = Assert.Single(baseline.Value.Slides);
+            OfficeIMO.PowerPoint.PowerPointSlide scaledSlide = Assert.Single(scaled.Value.Slides);
+            int? baselineTableFontSize = Assert.Single(baselineSlide.Tables).GetCell(0, 0).FontSize;
+            int? scaledTableFontSize = Assert.Single(scaledSlide.Tables).GetCell(0, 0).FontSize;
+            double? baselineTextFontSize = Assert.Single(
+                baselineSlide.TextBoxes,
+                static textBox => textBox.Text == "Standalone marker").Paragraphs[0].Runs[0].FontSizePoints;
+            double? scaledTextFontSize = Assert.Single(
+                scaledSlide.TextBoxes,
+                static textBox => textBox.Text == "Standalone marker").Paragraphs[0].Runs[0].FontSizePoints;
+
+            Assert.Equal(baselineTableFontSize, scaledTableFontSize);
+            Assert.Equal(baselineTextFontSize, scaledTextFontSize);
+        }
+    }
+
+    [Fact]
     public void PdfTables_SaveTablesAsPowerPoint_AppliesRowCapsAndKeepsPresentationValidWhenEmpty() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,
@@ -1065,6 +1111,15 @@ public class PowerPointPdfTableImportTests {
             ? PdfCore.PdfDocumentReadResult.Load(pdf, layout)
             : PdfCore.PdfDocumentReadResult.LoadPageRanges(pdf, layout, ranges);
     }
+
+    private static byte[] WithUserUnit(byte[] source, double userUnit) =>
+        PdfCore.PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfCore.PdfIndirectObject page = Assert.Single(objects.Values, static item =>
+                item.Value is PdfCore.PdfDictionary dictionary &&
+                string.Equals(dictionary.Get<PdfCore.PdfName>("Type")?.Name, "Page", StringComparison.Ordinal));
+            Assert.IsType<PdfCore.PdfDictionary>(page.Value).Items["UserUnit"] = new PdfCore.PdfNumber(userUnit);
+            return security.InfoObjectNumber;
+        });
 
     private static A.Table GetSingleTable(PresentationDocument package) {
         return Assert.Single(package.PresentationPart!.SlideParts.SelectMany(part => part.Slide.Descendants<A.Table>()));

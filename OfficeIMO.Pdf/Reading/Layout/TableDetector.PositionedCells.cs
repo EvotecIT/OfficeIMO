@@ -124,21 +124,37 @@ internal static partial class TableDetector {
             columns.Add(new StructuredTableColumn { From = columnLeft, To = columnRight });
             columnLeft = columnRight;
         }
-        double headerBottom = anchors[0].Row.Y + rowPitch / 2D;
-        double headerTop = anchors[0].Row.Y + rowPitch;
-        List<TextLayoutEngine.TextLine> headerLines = SelectWrappedCellLines(
-            lines,
-            headerBottom,
-            headerTop,
-            left,
-            right,
-            consumeWork,
-            cancellationCheck);
-        if (headerLines.Count == 0) return;
+        string[] firstAnchorCells = anchors[0].Row.Cells
+            .Select(static cell => ContentStructureExtractor.NormalizeShattered(cell.Text).Trim())
+            .ToArray();
+        bool firstAnchorIsHeader = anchors.Count >= 3 &&
+            LooksLikeHeaderRow(firstAnchorCells) &&
+            (HasEmphasizedText(anchors[0].Line) || !firstAnchorCells.Any(IsTabularValue));
+        double headerBottom;
+        List<TextLayoutEngine.TextLine> headerLines;
+        int firstBodyAnchorIndex;
+        if (firstAnchorIsHeader) {
+            headerBottom = (anchors[0].Row.Y + anchors[1].Row.Y) / 2D;
+            headerLines = new List<TextLayoutEngine.TextLine> { anchors[0].Line };
+            firstBodyAnchorIndex = 1;
+        } else {
+            headerBottom = anchors[0].Row.Y + rowPitch / 2D;
+            double headerTop = anchors[0].Row.Y + rowPitch;
+            headerLines = SelectWrappedCellLines(
+                lines,
+                headerBottom,
+                headerTop,
+                left,
+                right,
+                consumeWork,
+                cancellationCheck);
+            if (headerLines.Count == 0) return;
+            firstBodyAnchorIndex = 0;
+        }
         (string[] Header, TextLayoutEngine.TextLine HeaderSource) = MergeWrappedCellLines(
             headerLines,
             splits,
-            anchors[0].Row.Y + rowPitch);
+            firstAnchorIsHeader ? anchors[0].Row.Y : anchors[0].Row.Y + rowPitch);
         if (!LooksLikeHeaderRow(Header)) return;
 
         var table = new StructuredTable {
@@ -151,7 +167,7 @@ internal static partial class TableDetector {
         var sourceLines = new List<TextLayoutEngine.TextLine> { HeaderSource };
         var sourceRuns = new List<PdfTextSpan>(HeaderSource.Spans);
 
-        for (int anchorIndex = 0; anchorIndex < anchors.Count; anchorIndex++) {
+        for (int anchorIndex = firstBodyAnchorIndex; anchorIndex < anchors.Count; anchorIndex++) {
             cancellationCheck?.Invoke();
             double upper = anchorIndex == 0
                 ? headerBottom

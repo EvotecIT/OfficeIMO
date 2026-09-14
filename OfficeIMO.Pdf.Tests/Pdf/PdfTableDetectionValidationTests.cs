@@ -208,6 +208,46 @@ public sealed class PdfTableDetectionValidationTests {
     }
 
     [Fact]
+    public void PositionedRecovery_AcceptsCompleteHeaderAsFirstWrappedTableAnchor() {
+        TextLayoutEngine.TextLine[] lines = {
+            CreateLine(552D,
+                ("Product", 50D, 48D, "Helvetica-Bold"),
+                ("Details", 210D, 44D, "Helvetica-Bold"),
+                ("Qty", 330D, 24D, "Helvetica-Bold"),
+                ("Unit price", 370D, 56D, "Helvetica-Bold"),
+                ("Net amount", 440D, 58D, "Helvetica-Bold")),
+            CreateLine(526D, ("Managed", 50D, 52D, "Helvetica")),
+            CreateLine(512D,
+                ("Service A", 50D, 58D, "Helvetica"),
+                ("Monthly", 210D, 48D, "Helvetica"),
+                ("2", 330D, 8D, "Helvetica"),
+                ("25.00 PLN", 370D, 58D, "Helvetica"),
+                ("50.00 PLN", 440D, 58D, "Helvetica")),
+            CreateLine(498D, ("support", 50D, 46D, "Helvetica")),
+            CreateLine(486D, ("Priority", 50D, 46D, "Helvetica")),
+            CreateLine(472D,
+                ("Service B", 50D, 58D, "Helvetica"),
+                ("Annual", 210D, 42D, "Helvetica"),
+                ("1", 330D, 8D, "Helvetica"),
+                ("75.00 PLN", 370D, 58D, "Helvetica"),
+                ("75.00 PLN", 440D, 58D, "Helvetica")),
+            CreateLine(458D, ("response", 50D, 52D, "Helvetica"))
+        };
+
+        StructuredTable table = Assert.Single(
+            TableDetector.DetectPositionedCellTables(lines),
+            static candidate => candidate.Kind == "wrapped-positioned-cells-bounded");
+
+        Assert.Equal(5, table.Columns.Count);
+        Assert.Equal(3, table.Rows.Count);
+        Assert.Equal(new[] { "Product", "Details", "Qty", "Unit price", "Net amount" }, table.Rows[0]);
+        Assert.Equal("Managed Service A support", table.Rows[1][0]);
+        Assert.Equal("Priority Service B response", table.Rows[2][0]);
+        Assert.Equal("50.00 PLN", table.Rows[1][4]);
+        Assert.Equal("75.00 PLN", table.Rows[2][4]);
+    }
+
+    [Fact]
     public void PositionedRecovery_ObservesCancellationDuringWrappedCandidateScan() {
         TextLayoutEngine.TextLine[] lines = Enumerable.Range(0, 20)
             .Select(index => CreateLine(700D - index * 10D, ("Narrative " + index, 50D, 80D, "Helvetica")))

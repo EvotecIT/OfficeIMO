@@ -184,13 +184,14 @@ public static partial class PdfHtmlConverterExtensions {
         ActionDiagnosticSummary actionSummary = BuildActionDiagnosticSummary(document, pages);
         int omittedDocumentActionCount = actionSummary.CatalogActionCount +
             actionSummary.SelectedPageActionCount +
+            CountOmittedAnnotationActions(pages, options.IncludeLinkAnnotations) +
             (actionSummary.HasOpenAction ? 1 : 0);
         if (omittedDocumentActionCount > 0) {
             AddWarning(
                 options,
                 "PdfDocumentActionsOmitted",
                 omittedDocumentActionCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
-                " scoped PDF open, catalog, or page actions were stripped from HTML output.",
+                " scoped PDF open, catalog, page, or annotation actions were stripped from HTML output.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
                 OfficeConversionLossKind.Omission);
         }
@@ -385,6 +386,80 @@ public static partial class PdfHtmlConverterExtensions {
             selectedAnnotationActionCount++;
             summary.Add(annotation.ChainedActions[i].ActionType);
         }
+    }
+
+    private static int CountOmittedAnnotationActions(
+        IReadOnlyList<PdfCore.PdfLogicalPage> pages,
+        bool includeLinkAnnotations) {
+        int omittedCount = 0;
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            PdfCore.PdfLogicalPage page = pages[pageIndex];
+            var representedLinks = new HashSet<int>();
+            for (int annotationIndex = 0; annotationIndex < page.Annotations.Count; annotationIndex++) {
+                PdfCore.PdfAnnotation annotation = page.Annotations[annotationIndex];
+                omittedCount += annotation.AdditionalActions.Count;
+                omittedCount += annotation.ChainedActions.Count;
+                if (!annotation.HasAction) {
+                    continue;
+                }
+
+                if (!includeLinkAnnotations ||
+                    !TryMatchRepresentedPrimaryLinkAction(page, annotation, representedLinks)) {
+                    omittedCount++;
+                }
+            }
+        }
+
+        return omittedCount;
+    }
+
+    private static bool TryMatchRepresentedPrimaryLinkAction(
+        PdfCore.PdfLogicalPage page,
+        PdfCore.PdfAnnotation annotation,
+        HashSet<int> representedLinks) {
+        if (!string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        for (int linkIndex = 0; linkIndex < page.Links.Count; linkIndex++) {
+            if (representedLinks.Contains(linkIndex)) {
+                continue;
+            }
+
+            PdfCore.PdfLogicalLinkAnnotation link = page.Links[linkIndex];
+            if (!HasSameRectangle(annotation, link) || !IsPrimaryLinkActionRepresented(annotation, link)) {
+                continue;
+            }
+
+            representedLinks.Add(linkIndex);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsPrimaryLinkActionRepresented(
+        PdfCore.PdfAnnotation annotation,
+        PdfCore.PdfLogicalLinkAnnotation link) {
+        if (string.Equals(annotation.ActionType, "URI", StringComparison.OrdinalIgnoreCase)) {
+            return link.Uri is not null && IsSafeLinkUri(link.Uri);
+        }
+
+        if (string.Equals(annotation.ActionType, "GoTo", StringComparison.OrdinalIgnoreCase)) {
+            return !string.IsNullOrWhiteSpace(link.DestinationName) || link.DestinationPageNumber.HasValue;
+        }
+
+        return false;
+    }
+
+    private static bool HasSameRectangle(
+        PdfCore.PdfAnnotation annotation,
+        PdfCore.PdfLogicalLinkAnnotation link) {
+        const double tolerance = 0.001D;
+        return Math.Abs(annotation.X1 - link.X1) <= tolerance &&
+            Math.Abs(annotation.Y1 - link.Y1) <= tolerance &&
+            Math.Abs(annotation.X2 - link.X2) <= tolerance &&
+            Math.Abs(annotation.Y2 - link.Y2) <= tolerance;
     }
 
     private static int CountAnnotationActions(IReadOnlyList<PdfCore.PdfLogicalPage> pages) {

@@ -1882,7 +1882,10 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(1, result.Summary.RenderedUnsafeUriLinkCount);
         Assert.Equal(0, result.Summary.RenderedInternalDestinationLinkCount);
         Assert.Equal(0, result.Summary.SkippedLinkCount);
-        Assert.False(result.Report.HasWarnings);
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.True(result.HasLoss);
     }
 
     [Fact]

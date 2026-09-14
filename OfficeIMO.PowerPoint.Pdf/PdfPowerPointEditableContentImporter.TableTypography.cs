@@ -8,6 +8,9 @@ public static partial class PowerPointPdfConverterExtensions {
     private static double ScaleEditableFontSize(double fontSize, double scale) =>
         Math.Min(4000D, Math.Max(1D, fontSize * scale));
 
+    private static double GetEditableTypographyScale(PdfCore.PdfLogicalPage page, double placementScale) =>
+        placementScale * page.UserUnit.GetValueOrDefault(1D);
+
     private static void ApplyEditableTableTypography(
         PptCore.PowerPointTable table,
         PdfCore.PdfLogicalPage page,
