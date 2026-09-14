@@ -361,7 +361,8 @@ public class PdfTableStreamExportContracts {
                 .ToArray();
             Assert.Contains("\"$\"#,##0", numberFormats);
             Assert.Contains("\"$\"#,##0.0", numberFormats);
-            Assert.Contains("\"$\"#,##0.00", numberFormats);
+            Assert.Contains("\"$\"#,##0.00;\"-\"\"$\"#,##0.00", numberFormats);
+            Assert.Contains("\"$\"#,##0.00;\"$\"#,##0.00\"-\"", numberFormats);
             Assert.Contains("\"$\"#,##0.000", numberFormats);
             Assert.Contains("#,##0 \"KWD\"", numberFormats);
             Assert.Contains("#,##0.000 \"KWD\"", numberFormats);
@@ -383,6 +384,22 @@ public class PdfTableStreamExportContracts {
             Assert.Equal(
                 -5678.5M,
                 decimal.Parse(cells["B6"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal("\"$\"#,##0.00;\"-\"\"$\"#,##0.00", GetCellNumberFormat("A5"));
+            Assert.Equal("#,##0.000 \"KWD\";\"(\"#,##0.000 \"KWD\"\")\"", GetCellNumberFormat("B5"));
+            Assert.Equal("\"$\"#,##0.00;\"$\"#,##0.00\"-\"", GetCellNumberFormat("A6"));
+            Assert.Equal("#,##0.000 \"KWD\";#,##0.000 \"KWD\"\"-\"", GetCellNumberFormat("B6"));
+
+            string GetCellNumberFormat(string reference) {
+                S.Cell cell = cells[reference];
+                S.CellFormat cellFormat = package.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.CellFormats!
+                    .Elements<S.CellFormat>()
+                    .ElementAt((int)cell.StyleIndex!.Value);
+                uint numberFormatId = cellFormat.NumberFormatId!.Value;
+                return package.WorkbookPart.WorkbookStylesPart.Stylesheet.NumberingFormats!
+                    .Elements<S.NumberingFormat>()
+                    .Single(format => format.NumberFormatId!.Value == numberFormatId)
+                    .FormatCode!.Value!;
+            }
         }
     }
 

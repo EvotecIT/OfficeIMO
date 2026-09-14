@@ -58,7 +58,7 @@ public static partial class PdfHtmlConverterExtensions {
         // images and paths. Never rebuild those semantics from logical blocks.
         var drawing = sourcePage.ToDrawing(token);
         if (ContainsUnaccountedDrawingImagePayload(drawing, page)) {
-            return ReportUnsafeImageAppearanceFallback(options);
+            return ReportUnaccountedImageAppearanceFallback(options);
         }
         long remaining = options.MaximumOutputCharacters.HasValue
             ? options.MaximumOutputCharacters.Value - (long)builder.Length
@@ -134,6 +134,14 @@ public static partial class PdfHtmlConverterExtensions {
         AddWarning(options, "PageAppearanceUnsafeImageFallback",
             "The page appearance SVG was not emitted because it could expose image pixels hidden by PDF clipping, transparency, or paint effects. Positioned HTML fallback was used instead.",
             PdfCore.PdfConversionWarningSeverity.Information);
+        return false;
+    }
+
+    private static bool ReportUnaccountedImageAppearanceFallback(PdfToHtmlOptions options) {
+        AddWarning(options, "PageAppearanceUnaccountedImageOmitted",
+            "The page appearance SVG was not emitted because it contains image payloads that cannot be correlated with safely importable logical images. Positioned HTML fallback omitted those images.",
+            PdfCore.PdfConversionWarningSeverity.Warning,
+            OfficeConversionLossKind.Omission);
         return false;
     }
 

@@ -750,8 +750,8 @@ public class PowerPointPdfTableImportTests {
             formWidgetCount: 0,
             annotationCount: 0,
             pageActionCount: 0,
-            optionalContentGroupCount: 0,
-            pagesWithOptionalContent: 0,
+            optionalContentGroupCount: 1,
+            pagesWithOptionalContent: 1,
             interactiveMediaAnnotationCount: 0,
             analysisTruncated: false);
         var failedScope = new PdfCore.PdfTableExtractionScopeReport(
@@ -779,6 +779,11 @@ public class PowerPointPdfTableImportTests {
             failedScope);
 
         Assert.False(report.HasOmittedPageContent);
+        PdfCore.PdfConversionWarning groupWarning = Assert.Single(
+            report.Warnings,
+            static warning => warning.Code == "PdfGroupsNotEditable");
+        Assert.Equal(PdfCore.PdfConversionWarningSeverity.Information, groupWarning.Severity);
+        Assert.Equal("VisualOnly", groupWarning.Details["Disposition"]);
         PdfCore.PdfConversionWarning imageWarning = Assert.Single(
             report.Warnings,
             static warning => warning.Code == "PdfImagesNotEditable");

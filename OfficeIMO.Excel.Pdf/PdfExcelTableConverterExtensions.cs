@@ -293,7 +293,7 @@ namespace OfficeIMO.Excel.Pdf {
                         if (!PdfCore.PdfLogicalTableValueParser.TryParseCurrency(
                                 sourceValue,
                                 numericCulture,
-                                out _,
+                                out decimal parsedValue,
                                 out _,
                                 out _,
                                 out _,
@@ -305,7 +305,10 @@ namespace OfficeIMO.Excel.Pdf {
                                 currencyTokens[columnIndex]!,
                                 currencyAffixPositions[columnIndex]!.Value,
                                 currencyAffixUsesSpacing[columnIndex]!.Value,
-                                decimalPlaces));
+                                decimalPlaces,
+                                parsedValue,
+                                sourceValue,
+                                numericCulture));
                     }
                 }
             }
@@ -315,16 +318,45 @@ namespace OfficeIMO.Excel.Pdf {
             string currencyToken,
             PdfCore.PdfLogicalCurrencyAffixPosition affixPosition,
             bool affixUsesSpacing,
-            int decimalPlaces) {
+            int decimalPlaces,
+            decimal parsedValue,
+            string sourceValue,
+            CultureInfo numericCulture) {
             string escapedToken = currencyToken.Replace("\"", "\"\"");
             string literal = "\"" + escapedToken + "\"";
             string separator = affixUsesSpacing ? " " : string.Empty;
             string numeric = decimalPlaces <= 0
                 ? "#,##0"
                 : "#,##0." + new string('0', Math.Min(decimalPlaces, 28));
-            return affixPosition == PdfCore.PdfLogicalCurrencyAffixPosition.Prefix
+            string positive = affixPosition == PdfCore.PdfLogicalCurrencyAffixPosition.Prefix
                 ? literal + separator + numeric
                 : numeric + separator + literal;
+            if (parsedValue >= 0M) return positive;
+
+            string normalized = sourceValue.Trim();
+            if (normalized.Length >= 3 && normalized[0] == '(' && normalized[normalized.Length - 1] == ')') {
+                return positive + ";\"(\"" + positive + "\")\"";
+            }
+
+            string negativeSign = numericCulture.NumberFormat.NegativeSign;
+            if (string.IsNullOrEmpty(negativeSign)) negativeSign = "-";
+            string signLiteral = "\"" + negativeSign.Replace("\"", "\"\"") + "\"";
+            if (normalized.StartsWith(negativeSign, StringComparison.Ordinal)) {
+                return positive + ";" + signLiteral + positive;
+            }
+            if (normalized.EndsWith(negativeSign, StringComparison.Ordinal)) {
+                return positive + ";" + positive + signLiteral;
+            }
+
+            int signIndex = normalized.IndexOf(negativeSign, StringComparison.Ordinal);
+            int tokenIndex = normalized.IndexOf(currencyToken, StringComparison.Ordinal);
+            if (signIndex >= 0 && tokenIndex >= 0) {
+                string negative = affixPosition == PdfCore.PdfLogicalCurrencyAffixPosition.Prefix
+                    ? literal + separator + signLiteral + numeric
+                    : numeric + signLiteral + separator + literal;
+                return positive + ";" + negative;
+            }
+            return positive;
         }
 
         private static void AddEmptyWorkbookSheet(ExcelDocument workbook, PdfTablesToExcelOptions options) {

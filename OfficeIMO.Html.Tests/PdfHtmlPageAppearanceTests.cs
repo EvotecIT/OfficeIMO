@@ -159,8 +159,10 @@ public sealed class PdfHtmlPageAppearanceTests {
         Assert.DoesNotContain("pdf-page-appearance", result.Value, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/", result.Value, StringComparison.Ordinal);
         Assert.Contains(result.Report.Warnings, static warning =>
-            warning.Code == "PageAppearanceUnsafeImageFallback" &&
-            warning.LossKind == OfficeConversionLossKind.None);
+            warning.Code == "PageAppearanceUnaccountedImageOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
     }
 
     [Fact]
