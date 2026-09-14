@@ -351,6 +351,74 @@ Use standards fixtures as the primary contract and differential testing as a dia
 
 Provider retirement is a packaging change only after the public contract is stable. Keep `OfficeIMO.Html.AngleSharp` as an optional migration, comparison or fallback adapter if users need it, version it separately where practical, and require explicit provider selection. Do not silently fall back to it when the managed parser rejects or limits input; return a typed unsupported or failure result so users can make the policy decision.
 
+## Compatibility profiles and specification governance
+
+The engine does not target “twenty years of browsers” as one compatibility mode. Modern HTML parsing rules already define interoperable recovery for much old and malformed markup; remaining historical behavior is admitted by observed content classes and explicit profiles. Do not emulate a browser release, engine brand or collection of undocumented quirks unless a separately funded compatibility provider owns that exact outcome.
+
+Every released profile pins a standards-and-evidence manifest. Living standards and test suites continue to change, so a bare link to their latest page is insufficient for reproducible support claims. The manifest records the specification URL and immutable revision or published snapshot, selected sections/features, upstream test repository commit, included and excluded test paths, OfficeIMO fixture revision, required providers, platforms and output profiles.
+
+Use five compatibility bands:
+
+| Band | Scope | Admission rule |
+| --- | --- | --- |
+| Standards-required parsing and recovery | Tokenization, tree construction, quirks/document mode, DOM basics, URL and encoding behavior required to interpret ordinary HTML | Required by the selected document profile and gated by pinned conformance fixtures |
+| Stable deployed web | Interoperable HTML, CSS, DOM, JavaScript and web APIs needed by representative current documents and applications | Add only with standards references, multi-engine evidence where useful and an adopted consumer workflow |
+| Legacy content | Obsolete elements/attributes, presentational hints, common historical encodings, malformed tables and document patterns still found in archived or enterprise content | Preserve or map through the current HTML processing model and a provenance-tracked, legally usable legacy corpus; diagnose unsupported behavior |
+| Optional modern capability | Newer, specialized or expensive CSS and web APIs such as advanced containment, web components, canvas, media or workers | Separate opt-in profile until specifications, implementation and workload evidence are stable |
+| Proprietary or platform behavior | Vendor-prefixed features, browser extensions, plugins, ActiveX, browser chrome, operating-system integration and undocumented quirks | Explicitly unsupported by the managed profile or supplied by an optional compatibility provider |
+
+The first manifest family separates the following claims; final public identifiers should follow the existing profile naming conventions:
+
+| Profile contract | Includes | Does not imply |
+| --- | --- | --- |
+| Web document v1 | Decoding, HTML parsing/recovery, owned DOM, selected selectors, mutation and serialization | CSS rendering, networking or script execution |
+| Static screen v1 | Web document plus declared CSS cascade, screen layout, painting, resources and screen output profiles | Print pagination, live JavaScript or browser automation |
+| Paged print v1 | Web document plus print cascade, paged layout, fragmentation and qualified paged outputs | Screen appearance or editable target reconstruction |
+| Scripted document v1 | One trusted document, selected JavaScript, DOM bindings, events, tasks and deterministic capture | Navigation, credentials or general web-application compatibility |
+| Web application v1 | Selected navigation, URL/origin, modules, fetch, storage, history, forms, observers, lifecycle and layout invalidation | Every browser API, hostile-script safety or cross-browser equivalence |
+| Programmatic automation v1 | Versioned observation, locator, action, wait, trace and capture contracts over a declared runtime profile | Autonomous planning or a bundled model provider |
+
+Support is recorded per processing stage. Recognizing or preserving syntax is different from computing it, and computing a value is different from laying it out or making it interactive. Each capability declares the applicable outcomes from this set:
+
+1. Source and decoding: bytes are decoded under a named encoding policy and source evidence is retained.
+2. Parse and preserve: syntax is recognized, recovered and serializable without implying behavior.
+3. DOM and query: owned nodes, namespaces, mutations and selectors have the declared semantics.
+4. Cascade and compute: applicable CSS declarations produce declared computed values.
+5. Layout: boxes, intrinsic sizes, lines, fragmentation and geometry follow the selected profile.
+6. Paint and output: the display list and each named encoder preserve the declared visual or semantic result.
+7. Runtime and interaction: script, events, navigation, APIs and automation produce the declared state transitions.
+
+Evolve the existing `HtmlRenderCapabilityCatalog` into the package-wide executable source of truth instead of creating another registry. A capability record needs a stable ID, owning profile/version, specification references and pinned revisions, applicable processing stages, exact supported subset, support outcome, implementation provider, test-manifest evidence, platform/output scope, limits, fallbacks and diagnostics. Generate the package support matrix, runtime capability inspection and website documentation from that owner.
+
+Do not overload one support label with several meanings. Track coverage (`Qualified`, `Partial`, `Unsupported`, `Unqualified`), handling (`Native`, `Preserved`, `Fallback`, `Ignored`, `Rejected`) and maturity (`Required`, `Optional`, `Experimental`) independently. Provider ownership is another field: provider-backed behavior can be qualified while still remaining scheduled for managed replacement.
+
+The initial standards families are:
+
+| Family | Versioning authority | Qualification source |
+| --- | --- | --- |
+| HTML parsing and elements | Pinned revision of the [WHATWG HTML Living Standard](https://html.spec.whatwg.org/) | html5lib parser fixtures, selected WPT, owned recovery/streaming/bounds cases and independent DOM comparison |
+| DOM and events | Pinned [WHATWG DOM](https://dom.spec.whatwg.org/) revision plus explicitly selected HTML-defined interfaces | Selected WPT, mutation/event ordering fixtures and owned snapshot/edit invariants |
+| URL, origin and encoding | Pinned WHATWG [URL](https://url.spec.whatwg.org/) and [Encoding](https://encoding.spec.whatwg.org/) revisions with declared Unicode/IDNA data | Upstream fixture data, redirect/origin/resource-policy cases and byte-level decoding evidence |
+| CSS | A chosen [W3C CSS Snapshot](https://www.w3.org/TR/css/all/) as an index, with every implemented module and section pinned separately | Selected WPT/reftests, computed-value assertions, geometry fixtures and output comparisons |
+| JavaScript language | One pinned ECMA-262 edition or revision; ECMA-402 is separate | Pinned [Test262](https://github.com/tc39/test262) manifest, resource limits, host-integration cases and explicit exclusions |
+| Web APIs | One specification and selected interface/algorithm set per API | Selected WPT plus integrated application, lifecycle, security and cancellation cases |
+| Text and fonts | Pinned Unicode algorithms/data and declared OpenType/font behavior | Unicode conformance data, redistributable font corpus, glyph/cluster/geometry checks and cross-platform output |
+
+CSS snapshots organize many independently versioned modules and do not establish browser adoption by themselves. A profile therefore names exact modules and sections rather than claiming “CSS3” or all of a snapshot. JavaScript conformance similarly reports the pinned Test262 totals by required, passed, failed, excluded and untested feature; a passing selected subset is not advertised as the entire language.
+
+Use this oracle order when evidence disagrees:
+
+1. The pinned normative specification and applicable errata.
+2. A pinned conformance test whose assumptions match the OfficeIMO profile.
+3. A minimized independently authored fixture compared across current browser engines.
+4. A documented compatibility decision for deployed content, with its scope and diagnostic.
+
+No single browser screenshot, provider result or passing test suite defines the whole contract. Browser references remain essential evidence for deployed layout and application behavior, while standards determine whether matching one browser would preserve or reproduce a bug.
+
+Legacy qualification starts with common content, not old engine emulation: HTML4 and XHTML-shaped markup delivered as HTML, obsolete presentational elements and attributes, standards/limited-quirks/quirks document modes, common legacy encodings, malformed tables, early CSS box/table patterns and inline event handlers required by selected runtime profiles. Actual XML/XHTML parsing, namespaces, well-formedness and MIME-type behavior require a separate qualified profile. Maintain a separate corpus with provenance, usage rights and expected preservation, semantic, layout and diagnostic outcomes. Frames, plugins, ActiveX, VBScript, browser toolbars, IE document modes and proprietary DOM/CSS behavior remain unsupported until an explicit provider/profile decision admits them.
+
+Standards upgrades are deliberate releases. Refresh upstream revisions in a dedicated change, review changed tests and algorithms, classify new failures, update the capability manifest and preserve the preceding profile for users who require reproducibility. Additive capability may extend a profile version; changed observable behavior or removed fallback requires a new profile or documented breaking release according to the public compatibility policy.
+
 ## Dependency retirement
 
 ### Replaceable provider contracts
@@ -424,13 +492,14 @@ Strengthen style, layout, conversion and runtime components through OfficeIMO-ow
 
 Deliver the next work in reviewable vertical slices:
 
-1. Make the render request, named profiles, page-set behavior and shared result contract executable without changing layout algorithms merely to rename them.
-2. Productize `OfficeIMO.Html.Core` for a small non-Office consumer, including packed-package, public API, lifecycle and compatibility proof while the temporary parser is identified in diagnostics.
-3. Close H3-H4 CSS, layout, fragmentation and output gaps profile by profile against frozen browser, geometry, semantic and artifact references.
-4. Complete H5 as an integrated managed parser and serializer, switch the default only after conformance, bounds and performance gates pass, and retain the adapter only where real migration demand exists.
-5. Productize the existing H7-H8 runtime and locator foundation as typed contexts, pages, observations, actions, events, traces and optional agent tools while retained providers remain effective.
-6. Complete H6 by removing AngleSharp, AngleSharp.Css and other third-party runtime dependencies from the advertised static graph, with packed transitive-graph proof on every supported target.
-7. Complete H9 by replacing the JavaScript and remaining runtime providers over the H6 engine. The resulting managed HTML/CSS/JavaScript runtime has no third-party runtime packages or browser binary; broader browser compatibility continues through explicit profiles.
+1. Audit the existing capability catalog against real implementation paths and freeze the first versioned standards-and-evidence manifests. Reclassify broad claims before using them to choose implementation work.
+2. Make the render request, named profiles, page-set behavior and shared result contract executable without changing layout algorithms merely to rename them.
+3. Productize `OfficeIMO.Html.Core` for a small non-Office consumer, including packed-package, public API, lifecycle and compatibility proof while the temporary parser is identified in diagnostics.
+4. Close H3-H4 CSS, layout, fragmentation and output gaps profile by profile against frozen browser, geometry, semantic and artifact references.
+5. Complete H5 as an integrated managed parser and serializer, switch the default only after conformance, bounds and performance gates pass, and retain the adapter only where real migration demand exists.
+6. Productize the existing H7-H8 runtime and locator foundation as typed contexts, pages, observations, actions, events, traces and optional agent tools while retained providers remain effective.
+7. Complete H6 by removing AngleSharp, AngleSharp.Css and other third-party runtime dependencies from the advertised static graph, with packed transitive-graph proof on every supported target.
+8. Complete H9 by replacing the JavaScript and remaining runtime providers over the H6 engine. The resulting managed HTML/CSS/JavaScript runtime has no third-party runtime packages or browser binary; broader browser compatibility continues through explicit profiles.
 
 Preserve explicit bounds, provider identity and unsupported results throughout. Competitive claims attach to the completed profile or adoption stage, never to the repository as a whole.
 
