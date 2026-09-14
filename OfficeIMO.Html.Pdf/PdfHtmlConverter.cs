@@ -832,6 +832,7 @@ public static partial class PdfHtmlConverterExtensions {
             builder.Append(image.PageNumber.ToString(CultureInfo.InvariantCulture));
             builder.Append("\">");
             if (hasSafePlacement && TryBuildEmbeddedImageDataUri(image, options, builder.MaxCapacity - builder.Length, out string? source)) {
+                ReportHtmlImagePlacementAssessment(image, assessment, options, imageEmbedded: true);
                 builder.Append("<img src=\"");
                 builder.Append(HtmlAttribute(source!));
                 builder.Append("\" alt=\"");
@@ -915,7 +916,8 @@ public static partial class PdfHtmlConverterExtensions {
     private static void ReportHtmlImagePlacementAssessment(
         PdfCore.PdfLogicalImage image,
         PdfCore.PdfImagePlacementImportAssessment assessment,
-        PdfToHtmlOptions options) {
+        PdfToHtmlOptions options,
+        bool imageEmbedded = false) {
         string source = "Page " + image.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image";
         var details = new Dictionary<string, string> {
             ["ResourceName"] = image.ResourceName,
@@ -965,6 +967,7 @@ public static partial class PdfHtmlConverterExtensions {
                 return;
         }
 
+        if (!imageEmbedded) return;
         if (assessment.HasNonDefaultOpacity) {
             AddWarning(options, "ImageOpacityMapped", source,
                 "PDF image opacity was mapped to CSS opacity.",

@@ -4,7 +4,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     internal static partial class PdfWordConverter {
-        private static void AddImage(
+        private static bool AddImage(
             WordDocument document,
             PdfCore.PdfLogicalPage page,
             PdfCore.PdfLogicalImage image,
@@ -17,19 +17,21 @@ namespace OfficeIMO.Word.Pdf {
                 if (assessment.Disposition == PdfCore.PdfImagePlacementImportDisposition.SuppressUnplaced &&
                     options.IncludeImagePlaceholders) {
                     AddImagePlaceholder(document, image, "no-visible-placement", options);
+                    return true;
                 }
-                return;
+                return false;
             }
             if (!assessment.CanImport) {
                 ReportUnsafeImagePlacement(image, assessment, options);
                 if (options.IncludeImagePlaceholders) {
                     AddImagePlaceholder(document, image, "unsafe-placement-effects", options);
+                    return true;
                 }
-                return;
+                return false;
             }
 
             if (options.ImportImages && TryAddEmbeddedImage(document, page, image, placement, assessment, options)) {
-                return;
+                return true;
             }
 
             if (options.IncludeImagePlaceholders) {
@@ -51,7 +53,9 @@ namespace OfficeIMO.Word.Pdf {
                     image,
                     options.ImportImages ? "unsupported-image-payload" : "image-import-disabled",
                     options);
+                return true;
             }
+            return false;
         }
 
         private static bool TryAddEmbeddedImage(
@@ -93,12 +97,15 @@ namespace OfficeIMO.Word.Pdf {
                         placement.Y,
                         placement.X + placement.Width,
                         placement.Y + placement.Height);
+                    WordImageTextWrapping wrapping = HasOverlappingTextPaintedAfter(page, placement)
+                        ? WordImageTextWrapping.BehindText
+                        : WordImageTextWrapping.InFrontOfText;
                     embeddedImage = imageParagraph.InsertImage(
                         stream,
                         fileName,
                         width,
                         height,
-                        WordImageTextWrapping.InFrontOfText,
+                        wrapping,
                         description);
                     embeddedImage.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                     embeddedImage.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
@@ -142,6 +149,55 @@ namespace OfficeIMO.Word.Pdf {
                         ["IsImageFile"] = skippedImage.SourceImage.IsImageFile ? "true" : "false"
                     });
             }
+        }
+
+        private static bool HasOverlappingTextPaintedAfter(
+            PdfCore.PdfLogicalPage page,
+            PdfCore.PdfImagePlacement placement) {
+            double imageLeft = placement.X;
+            double imageRight = placement.X + placement.Width;
+            double imageBottom = placement.Y;
+            double imageTop = placement.Y + placement.Height;
+            for (int blockIndex = 0; blockIndex < page.TextBlocks.Count; blockIndex++) {
+                IReadOnlyList<PdfCore.PdfTextSpan> spans = page.TextBlocks[blockIndex].Spans;
+                for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
+                    PdfCore.PdfTextSpan span = spans[spanIndex];
+                    if (!span.IsVisible || span.PaintOrder <= placement.PaintOrder || string.IsNullOrEmpty(span.Text)) {
+                        continue;
+                    }
+
+                    double radians = span.RotationDegrees * Math.PI / 180D;
+                    double advance = span.Advance;
+                    if (advance == 0D) {
+                        advance = Math.Max(1D, span.FontSize * 0.55D * span.Text.Length);
+                    }
+                    double directionX = Math.Cos(radians);
+                    double directionY = Math.Sin(radians);
+                    double normalX = -directionY;
+                    double normalY = directionX;
+                    double endX = span.X + advance * directionX;
+                    double endY = span.Y + advance * directionY;
+                    double ascent = Math.Max(1D, span.FontSize * 0.8D);
+                    double descent = Math.Max(0.25D, span.FontSize * 0.2D);
+                    double startTopX = span.X + normalX * ascent;
+                    double startTopY = span.Y + normalY * ascent;
+                    double startBottomX = span.X - normalX * descent;
+                    double startBottomY = span.Y - normalY * descent;
+                    double endTopX = endX + normalX * ascent;
+                    double endTopY = endY + normalY * ascent;
+                    double endBottomX = endX - normalX * descent;
+                    double endBottomY = endY - normalY * descent;
+                    double textLeft = Math.Min(Math.Min(startTopX, startBottomX), Math.Min(endTopX, endBottomX));
+                    double textRight = Math.Max(Math.Max(startTopX, startBottomX), Math.Max(endTopX, endBottomX));
+                    double textBottom = Math.Min(Math.Min(startTopY, startBottomY), Math.Min(endTopY, endBottomY));
+                    double textTop = Math.Max(Math.Max(startTopY, startBottomY), Math.Max(endTopY, endBottomY));
+                    if (textRight > imageLeft && textLeft < imageRight &&
+                        textTop > imageBottom && textBottom < imageTop) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         private static void ApplyImagePlacementEffects(

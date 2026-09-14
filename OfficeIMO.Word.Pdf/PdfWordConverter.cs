@@ -81,6 +81,7 @@ namespace OfficeIMO.Word.Pdf {
                 for (int itemIndex = 0; itemIndex < items.Count; itemIndex++) {
                     options.CancellationToken.ThrowIfCancellationRequested();
                     ImportItem item = items[itemIndex];
+                    bool itemEmitted = true;
                     switch (item.Kind) {
                         case ImportItemKind.Heading:
                             AddHeading(target, item.Heading!, item.Link, item.LinkText, options, navigation);
@@ -98,7 +99,7 @@ namespace OfficeIMO.Word.Pdf {
                             AddTable(target, item.TableExtraction!, options);
                             break;
                         case ImportItemKind.Image:
-                            AddImage(target, page, item.Image!, item.ImagePlacement, options);
+                            itemEmitted = AddImage(target, page, item.Image!, item.ImagePlacement, options);
                             break;
                         case ImportItemKind.FormWidget:
                             AddFormWidgetPlaceholder(target, item.FormWidget!, options);
@@ -108,7 +109,7 @@ namespace OfficeIMO.Word.Pdf {
                             break;
                     }
 
-                    emittedContent = true;
+                    emittedContent |= itemEmitted;
                 }
             }
 

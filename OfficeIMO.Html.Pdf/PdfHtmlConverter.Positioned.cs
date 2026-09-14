@@ -229,6 +229,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(Points(Math.Max(1D, box.Height)));
         builder.Append(";\">");
         if (assessment.CanImport && TryBuildEmbeddedImageDataUri(image, options, builder.MaxCapacity - builder.Length, out string? source)) {
+            ReportHtmlImagePlacementAssessment(image, assessment, options, imageEmbedded: true);
             builder.Append("<img src=\"");
             builder.Append(HtmlAttribute(source!));
             builder.Append("\" alt=\"");

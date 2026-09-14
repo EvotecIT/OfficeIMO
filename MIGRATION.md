@@ -1678,7 +1678,7 @@ OfficeIMO 3.0 renamed its table-only PDF routes so they did not imply full-page 
 
 The PowerPoint names broaden again in 3.1 because the default route changes from table-only recovery to one visual slide per PDF page. Apply the 3.0-to-3.1 mappings after completing this section.
 
-For table-only recovery, `HasLoss` means a detected table was truncated by an import limit. `HasOmittedPageContent` means the source also contains non-table text, vectors, images, links, forms, annotations, or actions that the adapter does not import. Use `SourceScope` for the counts behind that decision. Choose Word or RTF semantic conversion, or a rendered-page route, when the goal is a broader page representation.
+For table-only recovery, `HasLoss` now covers both detected-table truncation and visible source-page content outside the imported tables. `RequireNoLoss()` therefore also throws when non-table text, vectors, visible images, links, forms, annotations, or actions would be omitted. Previously these adapters exposed that condition only through `HasOmittedPageContent`. Use `HasOmittedPageContent` and `SourceScope` when the application needs to distinguish omission from row truncation. Choose Word or RTF semantic conversion, or a rendered-page route, when the goal is a broader page representation.
 
 ### Word, Excel, and EPUB changes
 

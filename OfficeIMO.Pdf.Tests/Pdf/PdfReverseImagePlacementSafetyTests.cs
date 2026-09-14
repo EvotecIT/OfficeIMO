@@ -71,6 +71,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         });
         using (word.Value) {
             Assert.False(word.HasLoss);
+            Assert.Contains(word.Value.Paragraphs, static paragraph =>
+                paragraph.Text == "No supported PDF content detected.");
             Assert.DoesNotContain(word.Report.Warnings, static warning =>
                 warning.Code is "PdfImageSkipped" or "PdfEditableLayoutReconstructed");
         }
@@ -89,6 +91,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         using (word.Value) {
             Assert.Empty(word.Value.Images);
             Assert.False(word.HasLoss);
+            Assert.Contains(word.Value.Paragraphs, static paragraph =>
+                paragraph.Text == "No supported PDF content detected.");
             Assert.Contains(word.Report.Warnings, static warning =>
                 warning.Code == "PdfNonVisibleImagePlacementSuppressed" &&
                 warning.LossKind == OfficeConversionLossKind.None);
@@ -293,6 +297,50 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void FloatingImagePaintedBeforeOverlappingTextStaysBehindTheText() {
+        byte[] source = CreateDocument()
+            .Canvas(canvas => canvas
+                .Image(Png, 20D, 30D, 120D, 80D)
+                .Text("Foreground invoice text", 30D, 50D, 100D, 24D, fontSize: 14D))
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        PdfImagePlacement placement = Assert.Single(Assert.Single(page.Images).Placements);
+        PdfTextSpan[] textSpans = page.TextBlocks.SelectMany(static block => block.Spans).ToArray();
+        Assert.NotEmpty(textSpans);
+        Assert.All(textSpans, text => Assert.True(placement.PaintOrder < text.PaintOrder));
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            Assert.Equal(
+                OfficeIMO.Word.WordImageTextWrapping.BehindText,
+                Assert.Single(word.Value.Images).WrapText);
+        }
+    }
+
+    [Fact]
+    public void FloatingImagePaintedAfterOverlappingTextStaysInFrontOfTheText() {
+        byte[] source = CreateDocument()
+            .Canvas(canvas => canvas
+                .Text("Background invoice text", 30D, 50D, 100D, 24D, fontSize: 14D)
+                .Image(Png, 20D, 30D, 120D, 80D))
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        PdfImagePlacement placement = Assert.Single(Assert.Single(page.Images).Placements);
+        PdfTextSpan[] textSpans = page.TextBlocks.SelectMany(static block => block.Spans).ToArray();
+        Assert.NotEmpty(textSpans);
+        Assert.All(textSpans, text => Assert.True(text.PaintOrder < placement.PaintOrder));
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            Assert.Equal(
+                OfficeIMO.Word.WordImageTextWrapping.InFrontOfText,
+                Assert.Single(word.Value.Images).WrapText);
+        }
+    }
+
+    [Fact]
     public void NonDefaultImageOpacityIsMappedAcrossEditableAdapters() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas.Effect(
@@ -315,6 +363,18 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.Contains(html.Report.Warnings, static warning =>
             warning.Code == "ImageOpacityMapped" &&
             warning.LossKind == OfficeConversionLossKind.None);
+
+        PdfToHtmlOptions semanticPlaceholderOptions = PdfToHtmlOptions.CreateSemanticProfile();
+        semanticPlaceholderOptions.ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly;
+        PdfHtmlConversionResult semanticPlaceholder = logical.ToHtmlResult(semanticPlaceholderOptions);
+        Assert.DoesNotContain(semanticPlaceholder.Report.Warnings, static warning =>
+            warning.Code is "ImageOpacityMapped" or "ImageBlendModeApproximated");
+
+        PdfToHtmlOptions positionedPlaceholderOptions = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        positionedPlaceholderOptions.ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly;
+        PdfHtmlConversionResult positionedPlaceholder = logical.ToHtmlResult(positionedPlaceholderOptions);
+        Assert.DoesNotContain(positionedPlaceholder.Report.Warnings, static warning =>
+            warning.Code is "ImageOpacityMapped" or "ImageBlendModeApproximated");
 
         PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
             PdfToPowerPointOptions.CreateEditableContent());
