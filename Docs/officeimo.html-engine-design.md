@@ -419,6 +419,28 @@ Legacy qualification starts with common content, not old engine emulation: HTML4
 
 Standards upgrades are deliberate releases. Refresh upstream revisions in a dedicated change, review changed tests and algorithms, classify new failures, update the capability manifest and preserve the preceding profile for users who require reproducibility. Additive capability may extend a profile version; changed observable behavior or removed fallback requires a new profile or documented breaking release according to the public compatibility policy.
 
+## Incremental delivery and promotion
+
+The complete managed browser is not the unit of delivery. A release unit is one useful vertical capability slice through the owned contracts: for example contextual fragment parsing, a selector family, one CSS module through computed values and layout, a fragmentation rule across every output, a navigation lifecycle, or one automation action. Provider-backed implementation is acceptable at any stage when the provider is isolated, reported and replaceable. This lets OfficeIMO improve current document, rendering and automation workflows while managed replacements mature independently.
+
+Use a promotion ladder for each capability and profile combination:
+
+| State | User availability | Admission rule |
+| --- | --- | --- |
+| Incubating | Integration builds and internal differential runs | Owned contract and diagnostics exist; behavior may change and is not advertised as supported |
+| Experimental opt-in | Explicit preview profile, option or provider selection | Bounded implementation, representative fixtures, known limitations and no effect on stable defaults |
+| Qualified opt-in | Released but caller-selected profile or capability | Pinned manifest, declared platforms/outputs, regression and resource gates, package/docs evidence and typed unsupported behavior pass |
+| Stable default | Selected by the normal supported profile | Existing stable-profile regressions pass, migration impact is resolved, cross-platform evidence is complete where applicable and the former provider remains explicitly selectable when a compatibility need exists |
+| Retired or superseded | Versioned compatibility path where justified | Replacement and migration policy are published; removal follows the normal breaking-release contract |
+
+Promotion changes the catalog record and generated documentation; it does not require redesigning the public document, render, runtime or automation contracts. Never use an environment-dependent silent fallback to make an experimental implementation appear stable. The caller either selects the provider/profile or receives the provider and fallback decision in the result.
+
+Every slice must protect both the established behavior and its new claim. Run the existing stable-profile corpus first, then the slice's normative and regression fixtures, relevant provider-differential checks, supported output/platform checks, resource and cancellation budgets, packed-consumer checks and generated capability-matrix verification. Visual work compares semantic and geometry invariants alongside pixels so harmless raster differences do not block delivery and structural regressions do not hide inside a pixel threshold.
+
+Breaking cleanup remains allowed, but batch it around durable owned contracts and record user action in `MIGRATION.md`. Once a named profile is published as stable, ordinary additions must preserve its qualified behavior. Observable standards changes, removed fallbacks and incompatible default changes use a new profile version or a documented breaking release rather than quietly changing an old manifest.
+
+The long-running engine branch is an integration and full-stack qualification line, not a release gate. Keep it current with the default branch and use it to prove interactions among dependent slices. When a slice reaches its admission gate, replay it on the current default branch as a focused, reviewable change and merge it through the normal OfficeIMO path. Bring the merged result back into the integration line. Do not wait for H6 or H9, and do not merge the accumulated integration branch wholesale unless its remaining diff is itself cohesive and qualified.
+
 ## Dependency retirement
 
 ### Replaceable provider contracts
