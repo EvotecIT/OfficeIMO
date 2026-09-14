@@ -291,7 +291,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     [Theory]
     [InlineData("/TR << /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [0] /N 1 >>")]
     [InlineData("/op true /OPM 1")]
-    [InlineData("/AIS true")]
+    [InlineData("/AIS true /ca 0.5")]
     public void ImagePaintEffectsNeverExposeUntransformedRawPixelsAcrossEditableAdapters(string graphicsStateEntries) {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImageWithGraphicsStatePdf(graphicsStateEntries));
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
@@ -339,7 +339,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     public void PartialImagePaintEffectResetPreservesOtherActiveEffects() {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
             "q /GS1 gs /GS2 gs 80 0 0 40 20 30 cm /Im1 Do Q\n",
-            "/op true /AIS true",
+            "/op true /AIS true /ca 0.5",
             secondGraphicsStateEntries: "/op false"));
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
 
@@ -356,6 +356,56 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfWordConversionResult word = logical.ToWordDocumentResult();
         using (word.Value) {
             Assert.Single(word.Value.Images);
+        }
+    }
+
+    [Fact]
+    public void AlphaIsShapeWithoutActiveTransparencyDoesNotCreateFalseImageLoss() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImageWithGraphicsStatePdf("/AIS true"));
+        PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
+
+        Assert.False(placement.HasUnsupportedImagePaintEffect);
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            Assert.Single(word.Value.Images);
+            Assert.DoesNotContain(word.Report.Warnings, static warning =>
+                warning.Code == "PdfImagePaintEffectNotSafelyEditable");
+        }
+    }
+
+    [Theory]
+    [InlineData("/op true", "/op null")]
+    [InlineData("/TR << /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [0] /N 1 >>", "/TR2 null")]
+    [InlineData("/AIS true /ca 0.5", "/AIS null")]
+    public void NullGraphicsStateEntriesPreserveInheritedImagePaintEffects(
+        string initialGraphicsState,
+        string nullGraphicsState) {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
+            "q /GS1 gs /GS2 gs 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            initialGraphicsState,
+            secondGraphicsStateEntries: nullGraphicsState));
+        PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
+
+        Assert.True(placement.HasUnsupportedImagePaintEffect);
+        AssertRawImageOmittedAcrossEditableAdapters(
+            logical,
+            "PdfImagePaintEffectNotSafelyEditable",
+            "ImagePaintEffectNotSafelyEditable");
+    }
+
+    [Fact]
+    public void NestedFormCanExplicitlyResetInheritedImagePaintEffect() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateNestedFormImageWithGraphicsStatePdf(
+            outerGraphicsStateEntries: "/op true",
+            innerGraphicsStateEntries: "/op false"));
+        PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
+
+        Assert.False(placement.HasUnsupportedImagePaintEffect);
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            Assert.Single(word.Value.Images);
+            Assert.DoesNotContain(word.Report.Warnings, static warning =>
+                warning.Code == "PdfImagePaintEffectNotSafelyEditable");
         }
     }
 
@@ -586,6 +636,32 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         CreateRawImagePdf(
             "q /GS1 gs 80 0 0 40 20 30 cm /Im1 Do Q\n",
             graphicsStateEntries);
+
+    private static byte[] CreateNestedFormImageWithGraphicsStatePdf(
+        string outerGraphicsStateEntries,
+        string innerGraphicsStateEntries) {
+        byte[] pageContent = System.Text.Encoding.ASCII.GetBytes("q /GS1 gs /Fm1 Do Q\n");
+        byte[] formContent = System.Text.Encoding.ASCII.GetBytes("q /GS2 gs 80 0 0 40 20 30 cm /Im1 Do Q\n");
+        byte[] imageBytes = { 255, 0, 0 };
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] /Resources << /XObject << /Fm1 5 0 R >> /ExtGState << /GS1 7 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + pageContent.Length + " >>\nstream\n");
+        output.Write(pageContent, 0, pageContent.Length);
+        WriteAscii(output, "endstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 160 160] /Resources << /XObject << /Im1 6 0 R >> /ExtGState << /GS2 8 0 R >> >> /Length " + formContent.Length + " >>\nstream\n");
+        output.Write(formContent, 0, formContent.Length);
+        WriteAscii(output, "endstream\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\n");
+        output.Write(imageBytes, 0, imageBytes.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "7 0 obj\n<< /Type /ExtGState " + outerGraphicsStateEntries + " >>\nendobj\n");
+        WriteAscii(output, "8 0 obj\n<< /Type /ExtGState " + innerGraphicsStateEntries + " >>\nendobj\n");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 9 >>\n%%EOF\n");
+        return output.ToArray();
+    }
 
     private static byte[] CreateRawImagePdf(
         string content,

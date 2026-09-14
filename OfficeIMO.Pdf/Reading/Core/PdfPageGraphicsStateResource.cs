@@ -124,7 +124,7 @@ internal readonly struct PdfPageImagePaintEffectOverrides {
     internal bool HasEnabledEffect =>
         BlackGenerationEnabled == true || UndercolorRemovalEnabled == true ||
         TransferEnabled == true || HalftoneEnabled == true ||
-        OverprintEnabled == true || AlphaIsShapeEnabled == true;
+        OverprintEnabled == true;
 }
 
 internal readonly struct PdfPageImagePaintEffectState {
@@ -163,9 +163,11 @@ internal readonly struct PdfPageImagePaintEffectState {
 
     internal bool AlphaIsShapeEnabled { get; }
 
-    internal bool HasEffect => HasPersistentUnsupportedEffect || BlackGenerationEnabled ||
+    internal bool HasEffect(double? fillOpacity, bool hasSoftMask) =>
+        HasPersistentUnsupportedEffect || BlackGenerationEnabled ||
         UndercolorRemovalEnabled || TransferEnabled || HalftoneEnabled ||
-        OverprintEnabled || AlphaIsShapeEnabled;
+        OverprintEnabled ||
+        AlphaIsShapeEnabled && (hasSoftMask || fillOpacity.GetValueOrDefault(1D) != 1D);
 
     internal static PdfPageImagePaintEffectState FromUnknown(bool hasUnsupportedEffect) =>
         new PdfPageImagePaintEffectState(hasUnsupportedEffect, false, false, false, false, false, false, false);

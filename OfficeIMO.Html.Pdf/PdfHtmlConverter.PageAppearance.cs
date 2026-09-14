@@ -18,22 +18,29 @@ public static partial class PdfHtmlConverterExtensions {
         if (options.VisualSource is null ||
             page.FormWidgets.Count > 0 ||
             page.Analysis.RestrictLogicalProjectionToReadingOrder ||
-            page.TextBlocks.Any(block => block.Spans.Count == 0) ||
-            (page.Images.Count > 0 &&
-                (!options.IncludeImagePlaceholders ||
-                 options.ImageExportMode != PdfHtmlImageExportMode.EmbeddedDataUri ||
-                 (options.MaxEmbeddedImageBytes.HasValue && page.Images.Any(image =>
-                     image.SourceImage.Bytes.LongLength > options.MaxEmbeddedImageBytes.Value))))) return false;
+            page.TextBlocks.Any(block => block.Spans.Count == 0)) return false;
 
         var token = options.CancellationToken;
         token.ThrowIfCancellationRequested();
-        if (page.Images.Any(image => image.Placements.Any(placement =>
-                !PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement).CanImport))) {
+        if (page.Images.Any(image => image.Placements.Any(placement => {
+                PdfCore.PdfImagePlacementImportAssessment assessment =
+                    PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement);
+                return !assessment.CanImport && !assessment.IsSuppressed;
+            }))) {
             return ReportUnsafeImageAppearanceFallback(options);
         }
+        bool hasImportableImages = page.Images.Any(image => image.Placements.Any(placement =>
+            PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement).CanImport));
+        if (hasImportableImages &&
+            (!options.IncludeImagePlaceholders ||
+             options.ImageExportMode != PdfHtmlImageExportMode.EmbeddedDataUri)) return false;
         long pixelBudget = 100_000;
         foreach (var image in page.Images) {
+            if (!image.Placements.Any(placement =>
+                    PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement).CanImport)) continue;
             PdfCore.PdfExtractedImage sourceImage = image.SourceImage;
+            if (options.MaxEmbeddedImageBytes.HasValue &&
+                sourceImage.Bytes.LongLength > options.MaxEmbeddedImageBytes.Value) return false;
             if (!sourceImage.Interpolate) {
                 long declaredPixels = (long)sourceImage.Width * sourceImage.Height;
                 if (declaredPixels <= 0L || declaredPixels > pixelBudget) {

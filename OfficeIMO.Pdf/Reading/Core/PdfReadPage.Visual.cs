@@ -1972,12 +1972,16 @@ public sealed partial class PdfReadPage {
         string key,
         string? legacyKey,
         bool allowIdentity) {
-        PdfObject? value;
-        if (!state.Items.TryGetValue(key, out value)) {
-            if (legacyKey == null || !state.Items.TryGetValue(legacyKey, out value)) return null;
+        PdfObject? resolved = null;
+        if (state.Items.TryGetValue(key, out PdfObject? value)) {
+            resolved = ResolveEffectObject(value);
         }
-        PdfObject? resolved = ResolveEffectObject(value);
-        if (resolved is PdfNull || resolved is PdfName { Name: "Default" }) return false;
+        if ((resolved is null or PdfNull) && legacyKey != null &&
+            state.Items.TryGetValue(legacyKey, out value)) {
+            resolved = ResolveEffectObject(value);
+        }
+        if (resolved is null or PdfNull) return null;
+        if (resolved is PdfName { Name: "Default" }) return false;
         if (allowIdentity && resolved is PdfName { Name: "Identity" }) return false;
         return true;
     }
@@ -1987,7 +1991,7 @@ public sealed partial class PdfReadPage {
         PdfObject? resolved = ResolveEffectObject(value);
         return resolved switch {
             PdfBoolean boolean => boolean.Value,
-            PdfNull => false,
+            PdfNull => null,
             _ => true
         };
     }
@@ -1997,7 +2001,7 @@ public sealed partial class PdfReadPage {
         PdfObject? resolved = ResolveEffectObject(value);
         return resolved switch {
             PdfNumber number => number.Value != 0D,
-            PdfNull => false,
+            PdfNull => null,
             _ => true
         };
     }
