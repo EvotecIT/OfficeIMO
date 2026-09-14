@@ -269,6 +269,23 @@ public class PdfImageEditorTests {
         Assert.Contains("paint effect", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData("/AIS false")]
+    [InlineData("/OPM 0")]
+    [InlineData("/op false")]
+    public void MoveAcceptsBenignEffectiveImagePaintState(string graphicsState) {
+        PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
+            "/GS1 gs q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            additionalResources: "/ExtGState << /GS1 << " + graphicsState + " >> >>"));
+
+        PdfImageEditResult result = document.Images.Move(
+            Assert.Single(document.Images.Placements()),
+            10D,
+            0D);
+
+        Assert.Single(result.Document.Images.Placements());
+    }
+
     [Fact]
     public void SoftMaskNoneClearsAnActiveGraphicsStateMaskForLaterImageEditing() {
         byte[] source = BuildRawImagePdf(

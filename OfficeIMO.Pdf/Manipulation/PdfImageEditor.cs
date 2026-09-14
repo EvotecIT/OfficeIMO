@@ -206,7 +206,7 @@ internal static partial class PdfImageEditor {
         if (placement.HasUnsupportedBlendMode) {
             throw new NotSupportedException("Replacing or moving an image placement with an unsupported blend mode is not supported because that blend state cannot be preserved by image stamping.");
         }
-        if (placement.HasUnsupportedPaintState) {
+        if (placement.HasUnsupportedImagePaintEffect) {
             throw new NotSupportedException("Replacing or moving an image placement with an unsupported graphics-state paint effect is not supported because that paint state cannot be preserved by image stamping.");
         }
         if (placement.HasSoftMask) {

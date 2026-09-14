@@ -459,6 +459,21 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void WordRotatesInlineImageWhenPageRotationSwapsVisualDimensions() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
+            "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            pageEntries: "/Rotate 90"));
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            OfficeIMO.Word.WordImage image = Assert.Single(word.Value.Images);
+            Assert.Equal(90, image.Rotation);
+            Assert.Equal(40D * 96D / 72D, image.Width!.Value, 6);
+            Assert.Equal(80D * 96D / 72D, image.Height!.Value, 6);
+        }
+    }
+
+    [Fact]
     public void FloatingImagePaintedBeforeOverlappingTextStaysBehindTheText() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas

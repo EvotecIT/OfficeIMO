@@ -232,7 +232,8 @@ namespace OfficeIMO.Excel.Pdf {
                     currencyTokens,
                     currencyAffixPositions,
                     currencyAffixUsesSpacing,
-                    options.NumericCulture);
+                    options.NumericCulture,
+                    options.CancellationToken);
 
                 if (options.AutoFitColumns) {
                     sheet.AutoFitColumns();
@@ -272,8 +273,10 @@ namespace OfficeIMO.Excel.Pdf {
             IReadOnlyList<string?> currencyTokens,
             IReadOnlyList<PdfCore.PdfLogicalCurrencyAffixPosition?> currencyAffixPositions,
             IReadOnlyList<bool?> currencyAffixUsesSpacing,
-            CultureInfo numericCulture) {
+            CultureInfo numericCulture,
+            CancellationToken cancellationToken) {
             for (int columnIndex = 0; columnIndex < columnKinds.Count; columnIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (columnKinds[columnIndex] == PdfExcelTableColumnKind.Percentage) {
                     sheet.ColumnStyleByHeader(table.Columns[columnIndex].ColumnName).Percent(decimals: 2);
                 } else if (columnKinds[columnIndex] == PdfExcelTableColumnKind.Time) {
@@ -283,6 +286,7 @@ namespace OfficeIMO.Excel.Pdf {
                            currencyAffixPositions[columnIndex].HasValue &&
                            currencyAffixUsesSpacing[columnIndex].HasValue) {
                     for (int rowIndex = 0; rowIndex < sourceRows.Count; rowIndex++) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         string sourceValue = columnIndex < sourceRows[rowIndex].Count
                             ? sourceRows[rowIndex][columnIndex]
                             : string.Empty;

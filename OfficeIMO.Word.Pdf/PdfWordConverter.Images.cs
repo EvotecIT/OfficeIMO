@@ -118,6 +118,9 @@ namespace OfficeIMO.Word.Pdf {
                     embeddedImage.VerticalPositionOffset = PdfPointsToEmu(visual.Top);
                 } else {
                     embeddedImage = imageParagraph.InsertImage(stream, fileName, width, height, description: description);
+                    if (placement != null && page.RotationDegrees != 0) {
+                        embeddedImage.Rotation = page.RotationDegrees;
+                    }
                 }
                 ApplyImagePlacementEffects(embeddedImage, image, assessment, options);
                 AddWarning(

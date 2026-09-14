@@ -127,7 +127,14 @@ internal static partial class TableDetector {
         string[] firstAnchorCells = anchors[0].Row.Cells
             .Select(static cell => ContentStructureExtractor.NormalizeShattered(cell.Text).Trim())
             .ToArray();
+        bool hasWrappedBodyEvidence = lines.Any(line =>
+            line.Y < anchors[0].Row.Y &&
+            line.Y > anchors[anchors.Count - 1].Row.Y - rowPitch / 2D &&
+            line.XEnd >= left &&
+            line.XStart <= right &&
+            !anchors.Any(anchor => ReferenceEquals(anchor.Line, line)));
         bool firstAnchorIsHeader = anchors.Count >= 3 &&
+            hasWrappedBodyEvidence &&
             LooksLikeHeaderRow(firstAnchorCells) &&
             (HasEmphasizedText(anchors[0].Line) || !firstAnchorCells.Any(IsTabularValue));
         double headerBottom;
