@@ -810,7 +810,7 @@ public sealed partial class PdfReadPage {
                 null);
 
         var patternDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
-        AddVisualPrimitive(patternDrawing, localPaintBounds, new PdfTextClippingBudget());
+        AddVisualPrimitive(patternDrawing, localPaintBounds, new PdfTextClippingBudget(), allowRedundantPageClipRemoval: false);
         if (patternDrawing.Elements.Count == 0) return Type3PatternImageMaskDrawingResult.Unsupported;
 
         var maskDrawing = new OfficeDrawing(fitted.Width, fitted.Height);

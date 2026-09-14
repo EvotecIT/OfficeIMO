@@ -211,7 +211,9 @@ namespace OfficeIMO.Excel.Pdf {
                 PdfCore.PdfLogicalTableContinuationGroup group = tables[i];
                 PdfCore.PdfLogicalTableExtraction extraction = group.Primary;
                 string requestedTableName = BuildTableName(options.TableNamePrefix, extraction, i);
-                (DataTable dataTable, IReadOnlyList<PdfExcelTableColumnKind> columnKinds) = ToDataTable(
+                (DataTable dataTable, IReadOnlyList<PdfExcelTableColumnKind> columnKinds, IReadOnlyList<string?> currencyTokens,
+                    IReadOnlyList<PdfCore.PdfLogicalCurrencyAffixPosition?> currencyAffixPositions,
+                    IReadOnlyList<bool?> currencyAffixUsesSpacing) = ToDataTable(
                     requestedTableName,
                     group.Columns,
                     group.Rows,
@@ -222,7 +224,15 @@ namespace OfficeIMO.Excel.Pdf {
                     tableName: requestedTableName,
                     style: options.TableStyle,
                     includeAutoFilter: options.IncludeAutoFilter);
-                ApplyTypedColumnFormats(sheet, dataTable, columnKinds);
+                ApplyTypedColumnFormats(
+                    sheet,
+                    dataTable,
+                    group.Rows,
+                    columnKinds,
+                    currencyTokens,
+                    currencyAffixPositions,
+                    currencyAffixUsesSpacing,
+                    options.NumericCulture);
 
                 if (options.AutoFitColumns) {
                     sheet.AutoFitColumns();
@@ -245,7 +255,10 @@ namespace OfficeIMO.Excel.Pdf {
                     group.Segments.Count,
                     group.SuppressedRepeatedHeaderRows,
                     group.AdditionalHeaderRowCount,
-                    columnKinds));
+                    columnKinds,
+                    currencyTokens,
+                    currencyAffixPositions,
+                    currencyAffixUsesSpacing));
             }
 
             return results.AsReadOnly();
@@ -254,14 +267,60 @@ namespace OfficeIMO.Excel.Pdf {
         private static void ApplyTypedColumnFormats(
             ExcelSheet sheet,
             DataTable table,
-            IReadOnlyList<PdfExcelTableColumnKind> columnKinds) {
+            IReadOnlyList<IReadOnlyList<string>> sourceRows,
+            IReadOnlyList<PdfExcelTableColumnKind> columnKinds,
+            IReadOnlyList<string?> currencyTokens,
+            IReadOnlyList<PdfCore.PdfLogicalCurrencyAffixPosition?> currencyAffixPositions,
+            IReadOnlyList<bool?> currencyAffixUsesSpacing,
+            CultureInfo numericCulture) {
             for (int columnIndex = 0; columnIndex < columnKinds.Count; columnIndex++) {
                 if (columnKinds[columnIndex] == PdfExcelTableColumnKind.Percentage) {
                     sheet.ColumnStyleByHeader(table.Columns[columnIndex].ColumnName).Percent(decimals: 2);
                 } else if (columnKinds[columnIndex] == PdfExcelTableColumnKind.Time) {
                     sheet.ColumnStyleByHeader(table.Columns[columnIndex].ColumnName).Time();
+                } else if (columnKinds[columnIndex] == PdfExcelTableColumnKind.Currency &&
+                           !string.IsNullOrWhiteSpace(currencyTokens[columnIndex]) &&
+                           currencyAffixPositions[columnIndex].HasValue &&
+                           currencyAffixUsesSpacing[columnIndex].HasValue) {
+                    for (int rowIndex = 0; rowIndex < sourceRows.Count; rowIndex++) {
+                        string sourceValue = columnIndex < sourceRows[rowIndex].Count
+                            ? sourceRows[rowIndex][columnIndex]
+                            : string.Empty;
+                        if (!PdfCore.PdfLogicalTableValueParser.TryParseCurrency(
+                                sourceValue,
+                                numericCulture,
+                                out _,
+                                out _,
+                                out _,
+                                out _,
+                                out int decimalPlaces)) {
+                            continue;
+                        }
+                        sheet.CellAt(rowIndex + 2, columnIndex + 1).SetNumberFormat(
+                            BuildCurrencyNumberFormat(
+                                currencyTokens[columnIndex]!,
+                                currencyAffixPositions[columnIndex]!.Value,
+                                currencyAffixUsesSpacing[columnIndex]!.Value,
+                                decimalPlaces));
+                    }
                 }
             }
+        }
+
+        private static string BuildCurrencyNumberFormat(
+            string currencyToken,
+            PdfCore.PdfLogicalCurrencyAffixPosition affixPosition,
+            bool affixUsesSpacing,
+            int decimalPlaces) {
+            string escapedToken = currencyToken.Replace("\"", "\"\"");
+            string literal = "\"" + escapedToken + "\"";
+            string separator = affixUsesSpacing ? " " : string.Empty;
+            string numeric = decimalPlaces <= 0
+                ? "#,##0"
+                : "#,##0." + new string('0', Math.Min(decimalPlaces, 28));
+            return affixPosition == PdfCore.PdfLogicalCurrencyAffixPosition.Prefix
+                ? literal + separator + numeric
+                : numeric + separator + literal;
         }
 
         private static void AddEmptyWorkbookSheet(ExcelDocument workbook, PdfTablesToExcelOptions options) {
@@ -269,7 +328,12 @@ namespace OfficeIMO.Excel.Pdf {
             sheet.CellValue(1, 1, "No PDF tables detected.");
         }
 
-        private static (DataTable Table, IReadOnlyList<PdfExcelTableColumnKind> ColumnKinds) ToDataTable(
+        private static (
+            DataTable Table,
+            IReadOnlyList<PdfExcelTableColumnKind> ColumnKinds,
+            IReadOnlyList<string?> CurrencyTokens,
+            IReadOnlyList<PdfCore.PdfLogicalCurrencyAffixPosition?> CurrencyAffixPositions,
+            IReadOnlyList<bool?> CurrencyAffixUsesSpacing) ToDataTable(
             string tableName,
             IReadOnlyList<string> columns,
             IReadOnlyList<IReadOnlyList<string>> rows,
@@ -278,7 +342,9 @@ namespace OfficeIMO.Excel.Pdf {
                 Locale = CultureInfo.InvariantCulture
             };
 
-            PdfExcelTableColumnKind[] columnKinds = DetectColumnKinds(columns, rows, options);
+            (PdfExcelTableColumnKind[] columnKinds, string?[] currencyTokens,
+                PdfCore.PdfLogicalCurrencyAffixPosition?[] currencyAffixPositions,
+                bool?[] currencyAffixUsesSpacing) = DetectColumnKinds(columns, rows, options);
             var usedColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < columns.Count; i++) {
                 options.CancellationToken.ThrowIfCancellationRequested();
@@ -302,10 +368,19 @@ namespace OfficeIMO.Excel.Pdf {
                 table.EndLoadData();
             }
 
-            return (table, Array.AsReadOnly(columnKinds));
+            return (
+                table,
+                Array.AsReadOnly(columnKinds),
+                Array.AsReadOnly(currencyTokens),
+                Array.AsReadOnly(currencyAffixPositions),
+                Array.AsReadOnly(currencyAffixUsesSpacing));
         }
 
-        private static PdfExcelTableColumnKind[] DetectColumnKinds(
+        private static (
+            PdfExcelTableColumnKind[] Kinds,
+            string?[] CurrencyTokens,
+            PdfCore.PdfLogicalCurrencyAffixPosition?[] CurrencyAffixPositions,
+            bool?[] CurrencyAffixUsesSpacing) DetectColumnKinds(
             IReadOnlyList<string> columns,
             IReadOnlyList<IReadOnlyList<string>> rows,
             PdfTablesToExcelOptions options) {
@@ -318,24 +393,38 @@ namespace OfficeIMO.Excel.Pdf {
                         DateTimeCulture = options.DateTimeCulture
                     });
             var kinds = new PdfExcelTableColumnKind[profiles.Count];
+            var currencyTokens = new string?[profiles.Count];
+            var currencyAffixPositions = new PdfCore.PdfLogicalCurrencyAffixPosition?[profiles.Count];
+            var currencyAffixUsesSpacing = new bool?[profiles.Count];
             for (int columnIndex = 0; columnIndex < profiles.Count; columnIndex++) {
                 kinds[columnIndex] = profiles[columnIndex].Kind switch {
                     PdfCore.PdfLogicalTableValueKind.Boolean when options.ConvertBooleanColumns => PdfExcelTableColumnKind.Boolean,
                     PdfCore.PdfLogicalTableValueKind.Percentage when options.ConvertPercentageColumns => PdfExcelTableColumnKind.Percentage,
                     PdfCore.PdfLogicalTableValueKind.Time when options.ConvertDateTimeColumns => PdfExcelTableColumnKind.Time,
                     PdfCore.PdfLogicalTableValueKind.Number when options.ConvertNumericColumns => PdfExcelTableColumnKind.Number,
+                    PdfCore.PdfLogicalTableValueKind.Currency when options.ConvertNumericColumns => PdfExcelTableColumnKind.Currency,
                     PdfCore.PdfLogicalTableValueKind.DateTime when options.ConvertDateTimeColumns => PdfExcelTableColumnKind.DateTime,
                     _ => PdfExcelTableColumnKind.Text
                 };
+                currencyTokens[columnIndex] = kinds[columnIndex] == PdfExcelTableColumnKind.Currency
+                    ? profiles[columnIndex].CurrencyToken
+                    : null;
+                currencyAffixPositions[columnIndex] = kinds[columnIndex] == PdfExcelTableColumnKind.Currency
+                    ? profiles[columnIndex].CurrencyAffixPosition
+                    : null;
+                currencyAffixUsesSpacing[columnIndex] = kinds[columnIndex] == PdfExcelTableColumnKind.Currency
+                    ? profiles[columnIndex].CurrencyAffixUsesSpacing
+                    : null;
             }
 
-            return kinds;
+            return (kinds, currencyTokens, currencyAffixPositions, currencyAffixUsesSpacing);
         }
 
         private static void AddTypedColumn(DataTable table, string columnName, PdfExcelTableColumnKind kind) {
             switch (kind) {
                 case PdfExcelTableColumnKind.Number:
                 case PdfExcelTableColumnKind.Percentage:
+                case PdfExcelTableColumnKind.Currency:
                     table.Columns.Add(columnName, typeof(decimal));
                     break;
                 case PdfExcelTableColumnKind.Boolean:
@@ -361,6 +450,7 @@ namespace OfficeIMO.Excel.Pdf {
             if (string.IsNullOrWhiteSpace(value)) return DBNull.Value;
             return kind switch {
                 PdfExcelTableColumnKind.Number when PdfCore.PdfLogicalTableAnalysis.TryParseNumericValue(value, options.NumericCulture, out decimal number) => number,
+                PdfExcelTableColumnKind.Currency when PdfCore.PdfLogicalTableValueParser.TryParseCurrency(value, options.NumericCulture, out decimal currency, out _) => currency,
                 PdfExcelTableColumnKind.Percentage when PdfCore.PdfLogicalTableValueParser.TryParsePercentage(value, options.NumericCulture, out decimal percentage) => percentage,
                 PdfExcelTableColumnKind.Boolean when PdfCore.PdfLogicalTableValueParser.TryParseBoolean(value, out bool boolean) => boolean,
                 PdfExcelTableColumnKind.Time when PdfCore.PdfLogicalTableValueParser.TryParseTime(value, options.DateTimeCulture, out TimeSpan time) => time,

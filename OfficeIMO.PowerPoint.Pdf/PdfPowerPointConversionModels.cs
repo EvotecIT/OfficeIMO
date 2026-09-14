@@ -280,6 +280,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         _hasOmittedPageContent ||
         TableEntries.Any(static entry => entry.Truncated) ||
         EditablePages.Any(static page => page.HasOmittedContent) ||
+        Warnings.Any(static warning => warning.LossKind != OfficeConversionLossKind.None) ||
         VisualPages.Any(static page =>
             !page.Succeeded ||
             page.CapabilityDiagnostics.Any(static diagnostic =>
@@ -293,6 +294,8 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
                 "PdfVisualPageSlidesNotEditable",
                 "Slide content",
                 "Each PDF page is retained as one page-sized image. Text, shapes, charts, and tables are not editable PowerPoint objects in this mode.",
+                OfficeIMO.Pdf.PdfConversionWarningSeverity.Information,
+                OfficeConversionLossKind.Approximation,
                 details: new Dictionary<string, string> {
                     ["Disposition"] = "VisualOnly",
                     ["construct"] = "Visual page slides"

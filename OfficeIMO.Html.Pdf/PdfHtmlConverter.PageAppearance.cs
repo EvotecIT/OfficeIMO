@@ -69,7 +69,12 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(PageAppearanceSuffix);
         foreach (var diagnostic in sourcePage.GetRenderCapabilityDiagnostics(token)) {
             AddWarning(options, diagnostic.Code, "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + ": " + diagnostic.Message,
-                PdfCore.PdfConversionWarningSeverity.Warning);
+                diagnostic.SupportLevel == PdfCore.PdfRenderSupportLevel.Unsupported
+                    ? PdfCore.PdfConversionWarningSeverity.Warning
+                    : PdfCore.PdfConversionWarningSeverity.Information,
+                diagnostic.SupportLevel == PdfCore.PdfRenderSupportLevel.Unsupported
+                    ? OfficeConversionLossKind.Omission
+                    : OfficeConversionLossKind.Approximation);
         }
         if (drawing.Fonts.Faces.Count == 0 && page.TextBlocks.Count > 0) {
             AddWarning(options, "PageAppearanceBrowserFonts",

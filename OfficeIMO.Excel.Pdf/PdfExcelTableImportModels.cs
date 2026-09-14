@@ -12,7 +12,9 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>Date or date-time cells.</summary>
         DateTime,
         /// <summary>Time-of-day cells without an invented calendar date.</summary>
-        Time
+        Time,
+        /// <summary>Decimal cells parsed from values with one consistent currency affix.</summary>
+        Currency
     }
 
     /// <summary>
@@ -35,7 +37,10 @@ public sealed class PdfExcelTableImportEntry {
             int sourceTableCount,
             int suppressedRepeatedHeaderRows,
             int additionalHeaderRowCount,
-            IReadOnlyList<PdfExcelTableColumnKind> columnKinds) {
+            IReadOnlyList<PdfExcelTableColumnKind> columnKinds,
+            IReadOnlyList<string?> currencyTokens,
+            IReadOnlyList<OfficeIMO.Pdf.PdfLogicalCurrencyAffixPosition?> currencyAffixPositions,
+            IReadOnlyList<bool?> currencyAffixUsesSpacing) {
             PageIndex = pageIndex;
             PageNumber = pageNumber;
             TableIndex = tableIndex;
@@ -52,6 +57,9 @@ public sealed class PdfExcelTableImportEntry {
             SuppressedRepeatedHeaderRows = suppressedRepeatedHeaderRows;
             AdditionalHeaderRowCount = additionalHeaderRowCount;
             ColumnKinds = Array.AsReadOnly(columnKinds.ToArray());
+            CurrencyTokens = Array.AsReadOnly(currencyTokens.ToArray());
+            CurrencyAffixPositions = Array.AsReadOnly(currencyAffixPositions.ToArray());
+            CurrencyAffixUsesSpacing = Array.AsReadOnly(currencyAffixUsesSpacing.ToArray());
         }
 
         /// <summary>Zero-based page index within the selected logical page collection.</summary>
@@ -101,6 +109,15 @@ public sealed class PdfExcelTableImportEntry {
 
         /// <summary>Typed value kinds selected for the imported columns.</summary>
         public IReadOnlyList<PdfExcelTableColumnKind> ColumnKinds { get; }
+
+        /// <summary>Detected currency affix for each column, or null when the column is not currency-typed.</summary>
+        public IReadOnlyList<string?> CurrencyTokens { get; }
+
+        /// <summary>Detected currency-affix position for each column, or null when the column is not currency-typed.</summary>
+        public IReadOnlyList<OfficeIMO.Pdf.PdfLogicalCurrencyAffixPosition?> CurrencyAffixPositions { get; }
+
+        /// <summary>Whether each currency column used whitespace between its affix and number, or null for non-currency columns.</summary>
+        public IReadOnlyList<bool?> CurrencyAffixUsesSpacing { get; }
     }
 
     /// <summary>Reports the detected tables imported from a logical PDF into an Excel workbook.</summary>
@@ -121,12 +138,15 @@ public sealed class PdfExcelTableImportEntry {
         /// <summary>Gets whether the source contained page content outside the imported tables.</summary>
         public bool HasOmittedPageContent => SourceScope.HasOmittedPageContent;
 
-        /// <summary>Gets whether any detected source table was truncated by the configured row limit.</summary>
-        public bool HasLoss => Entries.Any(static entry => entry.Truncated);
+        /// <summary>Gets whether page content was omitted or any detected source table was truncated.</summary>
+        public bool HasLoss => HasOmittedPageContent || Entries.Any(static entry => entry.Truncated);
 
-        /// <summary>Throws when at least one detected source table was truncated.</summary>
+        /// <summary>Throws when page content was omitted or at least one detected source table was truncated.</summary>
         public void RequireNoLoss() {
-            if (HasLoss) throw new InvalidOperationException("PDF table import to Excel truncated one or more detected source tables.");
+            if (HasLoss) throw new InvalidOperationException(
+                HasOmittedPageContent
+                    ? "PDF table import to Excel omitted source-page content outside the imported tables."
+                    : "PDF table import to Excel truncated one or more detected source tables.");
         }
     }
 

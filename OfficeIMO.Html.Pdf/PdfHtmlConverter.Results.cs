@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Html.Pdf;
@@ -40,7 +41,124 @@ public static partial class PdfHtmlConverterExtensions {
                 $"Generated HTML exceeded the configured {options.MaximumOutputCharacters.Value:N0}-character output limit while it was being rendered.",
                 exception);
         }
+        ReportProfileFidelity(document, pages, options);
         return new PdfHtmlConversionResult(html, BuildExportSummary(document, pages, options, document.SourcePageCount), options.Report);
+    }
+
+    private static void ReportProfileFidelity(
+        PdfCore.PdfDocumentReadResult document,
+        IReadOnlyList<PdfCore.PdfLogicalPage> pages,
+        PdfToHtmlOptions options) {
+        int textBlockCount = 0;
+        int tableCount = 0;
+        int imageCount = 0;
+        int linkCount = 0;
+        int skippedLinkCount = 0;
+        int formWidgetCount = 0;
+        int unrepresentedVectorCount = 0;
+        int annotationCount = 0;
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            PdfCore.PdfLogicalPage page = pages[pageIndex];
+            textBlockCount += page.TextBlocks.Count;
+            tableCount += page.Tables.Count;
+            imageCount += page.Images.Count;
+            linkCount += page.Links.Count;
+            formWidgetCount += page.FormWidgets.Count;
+            unrepresentedVectorCount += page.UnrepresentedVectorPrimitiveCount;
+            annotationCount += page.Annotations.Count(static annotation =>
+                !string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(annotation.Subtype, "Widget", StringComparison.OrdinalIgnoreCase));
+            if (options.IncludeLinkAnnotations) {
+                skippedLinkCount += page.Links.Count(static link => !HasHtmlLinkTarget(link));
+            }
+        }
+
+        if (options.Profile == PdfHtmlProfile.Semantic &&
+            textBlockCount + tableCount + imageCount + unrepresentedVectorCount > 0) {
+            AddWarning(
+                options,
+                "PdfSemanticLayoutReflowed",
+                "Semantic HTML reconstructs readable document structure; fixed PDF coordinates, pagination, and authoring layout are not preserved.",
+                PdfCore.PdfConversionWarningSeverity.Information,
+                OfficeConversionLossKind.Approximation);
+        }
+
+        if (options.Profile == PdfHtmlProfile.Semantic && unrepresentedVectorCount > 0) {
+            AddWarning(
+                options,
+                "PdfVectorAppearanceOmitted",
+                unrepresentedVectorCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " vector primitives were not represented by HTML content or detected table structure.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
+        if (!options.IncludeImagePlaceholders && imageCount > 0) {
+            AddWarning(
+                options,
+                "PdfImagesOmitted",
+                imageCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " PDF images were omitted because image output is disabled.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        } else if (options.IncludeImagePlaceholders &&
+                   options.ImageExportMode == PdfHtmlImageExportMode.PlaceholderOnly &&
+                   imageCount > 0) {
+            AddWarning(
+                options,
+                "PdfImagePixelsOmitted",
+                imageCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " PDF images were represented by readable placeholders without their source pixels.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
+        skippedLinkCount += options.IncludeLinkAnnotations ? 0 : linkCount;
+        if (skippedLinkCount > 0) {
+            AddWarning(
+                options,
+                "PdfLinkAnnotationsOmitted",
+                skippedLinkCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " PDF link annotations were omitted because link output is disabled or the target is unsupported.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
+        if (!options.IncludeFormWidgets && formWidgetCount > 0) {
+            AddWarning(
+                options,
+                "PdfFormWidgetsOmitted",
+                formWidgetCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " PDF form widgets were omitted because form output is disabled.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
+        if (annotationCount > 0) {
+            AddWarning(
+                options,
+                "PdfAnnotationsOmitted",
+                annotationCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " non-link PDF annotations are not represented by the HTML profiles.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
+        int outlineCount = CountOutlines(document.Outlines);
+        int renderedOutlineCount = options.IncludeOutlines
+            ? CountRenderedOutlines(document, pages)
+            : 0;
+        int omittedOutlineCount = Math.Max(0, outlineCount - renderedOutlineCount);
+        if (omittedOutlineCount > 0) {
+            AddWarning(
+                options,
+                "PdfOutlinesOmitted",
+                omittedOutlineCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " PDF outline entries were omitted because outline output is disabled or their destination is outside the selected pages.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
     }
 
     private static bool IsOutputBuilderCapacityException(Exception exception) =>

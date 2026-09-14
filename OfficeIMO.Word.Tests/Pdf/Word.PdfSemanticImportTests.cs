@@ -219,7 +219,7 @@ public partial class Word {
         Assert.Contains(body.Descendants<Text>(), text => text.Text == "Second Page");
         Assert.DoesNotContain(body.Descendants<Text>(), text => text.Text.Contains("[PDF image: page 1", StringComparison.Ordinal));
         Assert.Contains(body.Descendants<Text>(), text => text.Text.Contains("[PDF form Tx: Approval = Ready]", StringComparison.Ordinal));
-        Assert.Contains(body.Descendants<Break>(), item => item.Type?.Value == BreakValues.Page);
+        Assert.Equal(2, body.Descendants<SectionProperties>().Count());
 
         Paragraph heading = Assert.Single(body.Elements<Paragraph>(), paragraph => ReadParagraphText(paragraph) == "PDF Semantic Import");
         Assert.Equal("Heading1", heading.ParagraphProperties?.ParagraphStyleId?.Val?.Value);
@@ -574,6 +574,10 @@ public partial class Word {
         byte[] documentBytes = importedDocument.ToBytes();
 
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.Contains(conversion.Report.Warnings, warning =>
+            warning.Code == "PdfImagePlaceholder" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.True(conversion.Report.HasLoss);
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Empty(package.MainDocumentPart!.ImageParts);
@@ -620,7 +624,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void PdfSemanticImport_DctImageStreamsWithSoftMask_AreEmbeddedWithTransparencyWarning() {
+    public void PdfSemanticImport_DctImageStreamsWithUnresolvedSoftMask_AreNotEmbedded() {
         byte[] pdf = BuildDeviceRgbJpegSoftMaskImagePdf();
         var options = new PdfToWordOptions();
 
@@ -628,20 +632,20 @@ public partial class Word {
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
         Assert.Contains(conversion.Report.Warnings, warning =>
             warning.Code == "PdfImageTransparencyMaskNotResolved" &&
+            warning.LossKind == OfficeConversionLossKind.Omission &&
             warning.Details.TryGetValue("MaskKind", out string? maskKind) &&
             maskKind == "soft-mask");
-        InvalidOperationException loss = Assert.Throws<InvalidOperationException>(() => conversion.RequireNoLoss());
-        Assert.Contains("PdfImageTransparencyMaskNotResolved", loss.Message, StringComparison.Ordinal);
+        Assert.Throws<InvalidOperationException>(() => conversion.RequireNoLoss());
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
-        Assert.Single(package.MainDocumentPart!.ImageParts);
-        Assert.NotEmpty(GetPdfSemanticBody(package).Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
-        Assert.DoesNotContain(GetPdfSemanticBody(package).Descendants<Text>(), text => text.Text.Contains("[PDF image: page 1", StringComparison.Ordinal));
+        Assert.Empty(package.MainDocumentPart!.ImageParts);
+        Assert.Empty(GetPdfSemanticBody(package).Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
+        Assert.Contains(GetPdfSemanticBody(package).Descendants<Text>(), text => text.Text.Contains("[PDF image: page 1", StringComparison.Ordinal));
     }
 
     [Fact]

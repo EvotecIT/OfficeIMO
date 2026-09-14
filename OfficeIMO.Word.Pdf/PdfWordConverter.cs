@@ -55,7 +55,13 @@ namespace OfficeIMO.Word.Pdf {
                 List<ImportItem> items = BuildImportItems(page, options, navigation);
                 bool hasNavigationAnchor = navigation.HasAnchorsForPage(page.PageNumber);
                 if (pageIndex > 0 && options.PreservePageBreaks && (items.Count > 0 || options.IncludeEmptyPages || hasNavigationAnchor)) {
-                    target.AddPageBreak();
+                    if (options.PreserveSourcePageSize) {
+                        ConfigureEditablePageSection(target.AddSection(WordSectionBreakType.NextPage), page, options);
+                    } else {
+                        target.AddPageBreak();
+                    }
+                } else if (pageIndex == 0 && options.PreserveSourcePageSize) {
+                    ConfigureEditablePageSection(target.Sections[0], page, options);
                 }
 
                 if (AddNavigationBookmarks(target, page, navigation)) {
@@ -86,13 +92,13 @@ namespace OfficeIMO.Word.Pdf {
                             AddTextBlock(target, item.TextBlock!, item.Link, item.LinkText, options, navigation);
                             break;
                         case ImportItemKind.ListItem:
-                            AddListItem(target, item.ListItem!, ref bulletList, ref numberedList);
+                            AddListItem(target, item.ListItem!, ref bulletList, ref numberedList, options);
                             break;
                         case ImportItemKind.Table:
                             AddTable(target, item.TableExtraction!, options);
                             break;
                         case ImportItemKind.Image:
-                            AddImage(target, item.Image!, item.ImagePlacement, options);
+                            AddImage(target, page, item.Image!, item.ImagePlacement, options);
                             break;
                         case ImportItemKind.FormWidget:
                             AddFormWidgetPlaceholder(target, item.FormWidget!, options);
@@ -194,6 +200,7 @@ namespace OfficeIMO.Word.Pdf {
                     "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image",
                     "PDF image content was not imported because IncludeImagePlaceholders is false.",
                     PdfCore.PdfConversionWarningSeverity.Warning,
+                    OfficeConversionLossKind.Omission,
                     new Dictionary<string, string> {
                         ["ImageCount"] = page.Images.Count.ToString(CultureInfo.InvariantCulture)
                     });
@@ -209,6 +216,7 @@ namespace OfficeIMO.Word.Pdf {
                         "Page " + widget.PageNumber.ToString(CultureInfo.InvariantCulture) + "/FormWidget",
                         "PDF form widget content is represented as editable Word placeholder text; interactive form reconstruction is not part of the semantic import contract.",
                         PdfCore.PdfConversionWarningSeverity.Warning,
+                        OfficeConversionLossKind.Omission,
                         new Dictionary<string, string> {
                             ["FieldName"] = widget.FieldName ?? string.Empty,
                             ["FieldType"] = widget.FieldType ?? string.Empty
@@ -221,6 +229,7 @@ namespace OfficeIMO.Word.Pdf {
                     "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/FormWidget",
                     "PDF form widgets were not imported because IncludeFormFieldPlaceholders is false.",
                     PdfCore.PdfConversionWarningSeverity.Warning,
+                    OfficeConversionLossKind.Omission,
                     new Dictionary<string, string> {
                         ["FormWidgetCount"] = page.FormWidgets.Count.ToString(CultureInfo.InvariantCulture)
                     });
@@ -247,6 +256,7 @@ namespace OfficeIMO.Word.Pdf {
                         "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/LinkAnnotation",
                         "PDF URI link annotations were not imported because ImportUriLinks is false.",
                         PdfCore.PdfConversionWarningSeverity.Information,
+                        OfficeConversionLossKind.Omission,
                         new Dictionary<string, string> {
                             ["LinkCount"] = uriLinkCount.ToString(CultureInfo.InvariantCulture)
                         });
@@ -259,6 +269,7 @@ namespace OfficeIMO.Word.Pdf {
                         "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/LinkAnnotation",
                         "PDF internal link annotations were not imported because ImportInternalLinks is false.",
                         PdfCore.PdfConversionWarningSeverity.Information,
+                        OfficeConversionLossKind.Omission,
                         new Dictionary<string, string> {
                             ["LinkCount"] = internalLinkCount.ToString(CultureInfo.InvariantCulture)
                         });
@@ -397,6 +408,7 @@ namespace OfficeIMO.Word.Pdf {
                 "Page " + link.PageNumber.ToString(CultureInfo.InvariantCulture) + "/LinkAnnotation",
                 "PDF URI link annotation was kept inert because it is not an absolute URI with an allowed Word hyperlink scheme.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission,
                 new Dictionary<string, string> {
                     ["Uri"] = link.Uri ?? string.Empty
                 });
@@ -409,6 +421,7 @@ namespace OfficeIMO.Word.Pdf {
                 "Page " + link.PageNumber.ToString(CultureInfo.InvariantCulture) + "/LinkAnnotation",
                 "PDF internal link annotation could not be resolved to an imported Word bookmark.",
                 PdfCore.PdfConversionWarningSeverity.Information,
+                OfficeConversionLossKind.Omission,
                 new Dictionary<string, string> {
                     ["DestinationName"] = link.DestinationName ?? string.Empty,
                     ["DestinationPageNumber"] = link.DestinationPageNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty
@@ -451,7 +464,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfToWordOptions options,
             ImportNavigationMap navigation) {
             WordParagraph paragraph = link == null
-                ? AddStyledParagraph(document, new[] { heading.Line })
+                ? AddStyledParagraph(document, new[] { heading.Line }, options)
                 : AddHyperlinkParagraph(document, link, string.IsNullOrWhiteSpace(linkText) ? heading.Text : linkText!, options, navigation);
             paragraph.SetStyle(MapHeadingStyle(heading.Level));
             paragraph.KeepWithNext = true;
@@ -468,7 +481,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfToWordOptions options,
             ImportNavigationMap navigation) {
             if (link == null) {
-                AddStyledParagraph(document, paragraph.Lines);
+                AddStyledParagraph(document, paragraph.Lines, options);
                 return;
             }
 
@@ -483,7 +496,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfToWordOptions options,
             ImportNavigationMap navigation) {
             if (link == null) {
-                AddStyledParagraph(document, new[] { block });
+                AddStyledParagraph(document, new[] { block }, options);
                 return;
             }
 
@@ -492,7 +505,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private static WordParagraph AddStyledParagraph(
             WordDocument document,
-            IReadOnlyList<PdfCore.PdfLogicalTextBlock> lines) {
+            IReadOnlyList<PdfCore.PdfLogicalTextBlock> lines,
+            PdfToWordOptions options) {
             WordParagraph paragraph = document.AddParagraph();
             for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
                 if (lineIndex > 0) {
@@ -502,6 +516,8 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfLogicalTextBlock line = lines[lineIndex];
                 AppendStyledRuns(paragraph, line.Runs, line.Text);
             }
+
+            ApplySourceParagraphSpacing(paragraph, options);
 
             return paragraph;
         }
@@ -545,10 +561,13 @@ namespace OfficeIMO.Word.Pdf {
             PdfToWordOptions options,
             ImportNavigationMap navigation) {
             if (!TryResolveWordLinkTarget(link, options, navigation, out WordLinkTarget target)) {
-                return document.AddParagraph(text);
+                WordParagraph fallback = document.AddParagraph(text);
+                ApplySourceParagraphSpacing(fallback, options);
+                return fallback;
             }
 
             WordParagraph paragraph = document.AddParagraph();
+            ApplySourceParagraphSpacing(paragraph, options);
             if (target.IsUri) {
                 paragraph.AddHyperLink(text, target.Uri!, addStyle: true, tooltip: "Imported PDF link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture));
                 AddWarning(
@@ -597,13 +616,28 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddListItem(WordDocument document, PdfCore.PdfLogicalListItem item, ref WordList? bulletList, ref WordList? numberedList) {
+        private static void AddListItem(
+            WordDocument document,
+            PdfCore.PdfLogicalListItem item,
+            ref WordList? bulletList,
+            ref WordList? numberedList,
+            PdfToWordOptions options) {
             bool bullet = IsBulletMarker(item.Marker);
             WordList list = bullet
                 ? bulletList ??= document.AddListBulleted()
                 : numberedList ??= document.AddListNumbered();
             WordParagraph paragraph = list.AddItem((string?)null, Math.Max(0, item.Level - 1));
             AppendStyledRuns(paragraph, item.Runs, item.Text);
+            ApplySourceParagraphSpacing(paragraph, options);
+        }
+
+        private static void ApplySourceParagraphSpacing(WordParagraph paragraph, PdfToWordOptions options) {
+            if (!options.PreserveCompactSourceSpacing) {
+                return;
+            }
+
+            paragraph.LineSpacingBeforePoints = 0D;
+            paragraph.LineSpacingAfterPoints = 0D;
         }
 
         private static bool IsBulletMarker(string marker) {
@@ -628,6 +662,7 @@ namespace OfficeIMO.Word.Pdf {
                     "Page " + extraction.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Table " + (extraction.TableIndex + 1).ToString(CultureInfo.InvariantCulture),
                     "PDF table rows were truncated by MaxTableRows.",
                     PdfCore.PdfConversionWarningSeverity.Warning,
+                    OfficeConversionLossKind.Omission,
                     new Dictionary<string, string> {
                         ["ImportedRowCount"] = data.Rows.Count.ToString(CultureInfo.InvariantCulture),
                         ["TotalRowCount"] = data.TotalRowCount.ToString(CultureInfo.InvariantCulture)
@@ -641,7 +676,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             WordTable table = document.AddTable(rowCount, columnCount, options.TableStyle);
-            PopulateTable(table, data, headerRowIncluded, options);
+            PopulateTable(table, extraction.Table, data, headerRowIncluded, options);
         }
 
         private static bool HasHeaderRow(PdfCore.PdfLogicalTableData data) {
@@ -652,6 +687,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void PopulateTable(
             WordTable table,
+            PdfCore.PdfLogicalTable sourceTable,
             PdfCore.PdfLogicalTableData data,
             bool headerRowIncluded,
             PdfToWordOptions options) {
@@ -659,395 +695,71 @@ namespace OfficeIMO.Word.Pdf {
             int rowOffset = headerRowIncluded ? 1 : 0;
 
             if (headerRowIncluded) {
-                WriteRow(rows[0], data.Columns, data, alignNumericColumns: false);
+                WriteRow(rows[0], data.Columns, data, alignNumericColumns: false, options);
                 if (options.RepeatHeaderRows) {
                     rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
                 }
             }
 
             for (int rowIndex = 0; rowIndex < data.Rows.Count; rowIndex++) {
-                WriteRow(rows[rowIndex + rowOffset], data.Rows[rowIndex], data, options.AlignNumericColumns);
+                WriteRow(rows[rowIndex + rowOffset], data.Rows[rowIndex], data, options.AlignNumericColumns, options);
             }
 
             if (options.FitTablesToPageWidth) {
-                table.WidthType = WordTableWidthUnit.Pct;
-                table.Width = 5000;
-                table.DistributeColumnsEvenly();
+                int[] columnWeights = BuildColumnWeights(sourceTable.Columns);
+                if (columnWeights.Length == data.Columns.Count) {
+                    table.SetColumnWidthsPercentage(columnWeights);
+                } else {
+                    table.WidthType = WordTableWidthUnit.Pct;
+                    table.Width = 5000;
+                    table.DistributeColumnsEvenly();
+                }
             }
         }
+
+        private static int[] BuildColumnWeights(IReadOnlyList<PdfCore.PdfLogicalTableColumn> columns) {
+            double[] widths = columns
+                .Select(static column => Math.Abs(column.To - column.From))
+                .ToArray();
+            double total = widths.Where(IsFinitePositive).Sum();
+            if (!IsFinitePositive(total)) {
+                return Enumerable.Repeat(1, columns.Count).ToArray();
+            }
+
+            return widths
+                .Select(width => IsFinitePositive(width)
+                    ? Math.Max(1, (int)Math.Round(width / total * 10_000D))
+                    : 1)
+                .ToArray();
+        }
+
+        private static bool IsFinitePositive(double value) =>
+            value > 0D && !double.IsNaN(value) && !double.IsInfinity(value);
 
         private static void WriteRow(
             WordTableRow row,
             IReadOnlyList<string> values,
             PdfCore.PdfLogicalTableData data,
-            bool alignNumericColumns) {
+            bool alignNumericColumns,
+            PdfToWordOptions options) {
             List<WordTableCell> cells = row.Cells;
             for (int columnIndex = 0; columnIndex < cells.Count; columnIndex++) {
                 string value = columnIndex < values.Count ? values[columnIndex] : string.Empty;
                 WordParagraph paragraph = cells[columnIndex].AddParagraph(value ?? string.Empty, removeExistingParagraphs: true);
+                ApplySourceParagraphSpacing(paragraph, options);
                 if (alignNumericColumns && data.IsNumericColumn(columnIndex)) {
                     paragraph.ParagraphAlignment = WordParagraphAlignment.Right;
                 }
             }
         }
 
-        private static void AddImage(
-            WordDocument document,
-            PdfCore.PdfLogicalImage image,
-            PdfCore.PdfImagePlacement? placement,
-            PdfToWordOptions options) {
-            if (options.ImportImages && TryAddEmbeddedImage(document, image, placement, options)) {
-                return;
-            }
-
-            if (options.IncludeImagePlaceholders) {
-                AddImagePlaceholder(document, image, options.ImportImages ? "unsupported-image-payload" : "image-import-disabled");
-            }
-        }
-
-        private static bool TryAddEmbeddedImage(
-            WordDocument document,
-            PdfCore.PdfLogicalImage image,
-            PdfCore.PdfImagePlacement? placement,
-            PdfToWordOptions options) {
-            PdfCore.PdfExtractedImage source = image.SourceImage;
-            if (!source.IsImageFile || source.Bytes.Length == 0) {
-                AddImageSkippedWarning(image, "PDF image stream is not exposed as a complete image file payload.");
-                return false;
-            }
-
-            string extension = ResolveImageExtension(source);
-            if (string.IsNullOrWhiteSpace(extension)) {
-                AddImageSkippedWarning(image, "PDF image file extension could not be resolved for Word embedding.");
-                return false;
-            }
-
-            string fileName = BuildImageFileName(image, extension);
-            double? width = null;
-            double? height = null;
-            if (options.PreserveImagePlacementSize && placement != null && placement.Width > 0 && placement.Height > 0) {
-                width = PdfPointsToWordPixels(placement.Width);
-                height = PdfPointsToWordPixels(placement.Height);
-            }
-
-            try {
-                using var stream = new MemoryStream(source.Bytes);
-                document.AddParagraph().AddImage(stream, fileName, width, height, description: "Imported PDF image " + image.ResourceName + " from page " + image.PageNumber.ToString(CultureInfo.InvariantCulture));
-                AddWarning(
-                    options,
-                    "PdfImageEmbedded",
-                    "Page " + image.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image",
-                    "PDF image content was embedded as a native Word image.",
-                    PdfCore.PdfConversionWarningSeverity.Information,
-                    new Dictionary<string, string> {
-                        ["ResourceName"] = image.ResourceName,
-                        ["Width"] = image.Width.ToString(CultureInfo.InvariantCulture),
-                        ["Height"] = image.Height.ToString(CultureInfo.InvariantCulture),
-                        ["MimeType"] = image.MimeType ?? string.Empty,
-                        ["PlacementWidth"] = placement?.Width.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-                        ["PlacementHeight"] = placement?.Height.ToString(CultureInfo.InvariantCulture) ?? string.Empty
-                    });
-                if (source.HasUnresolvedTransparencyMask) {
-                    AddWarning(
-                        options,
-                        "PdfImageTransparencyMaskNotResolved",
-                        "Page " + image.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image",
-                        "PDF image content was embedded as a native Word image, but its PDF transparency mask is not represented by the embedded image payload.",
-                        PdfCore.PdfConversionWarningSeverity.Warning,
-                        new Dictionary<string, string> {
-                            ["ResourceName"] = image.ResourceName,
-                            ["MaskKind"] = source.TransparencyMaskKind ?? string.Empty,
-                            ["MimeType"] = image.MimeType ?? string.Empty
-                        });
-                }
-                return true;
-            } catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException || ex is NotSupportedException) {
-                AddImageSkippedWarning(image, "Word image embedding rejected the extracted PDF image payload: " + ex.Message);
-                return false;
-            }
-
-            void AddImageSkippedWarning(PdfCore.PdfLogicalImage skippedImage, string message) {
-                AddWarning(
-                    options,
-                    "PdfImageEmbeddingSkipped",
-                    "Page " + skippedImage.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image",
-                    message,
-                    PdfCore.PdfConversionWarningSeverity.Warning,
-                    new Dictionary<string, string> {
-                        ["ResourceName"] = skippedImage.ResourceName,
-                        ["MimeType"] = skippedImage.MimeType ?? string.Empty,
-                        ["IsImageFile"] = skippedImage.SourceImage.IsImageFile ? "true" : "false"
-                    });
-            }
-        }
-
-        private static void AddImagePlaceholder(WordDocument document, PdfCore.PdfLogicalImage image, string reason) {
-            string text = "[PDF image: page "
-                + image.PageNumber.ToString(CultureInfo.InvariantCulture)
-                + ", resource "
-                + image.ResourceName
-                + ", "
-                + image.Width.ToString(CultureInfo.InvariantCulture)
-                + "x"
-                + image.Height.ToString(CultureInfo.InvariantCulture)
-                + (image.MimeType == null ? string.Empty : ", " + image.MimeType)
-                + ", "
-                + reason
-                + "]";
-            document.AddParagraph(text).SetItalic();
-        }
-
-        private static string ResolveImageExtension(PdfCore.PdfExtractedImage image) {
-            if (!string.IsNullOrWhiteSpace(image.FileExtension)) {
-                return image.FileExtension!.TrimStart('.');
-            }
-
-            switch (image.MimeType?.ToLowerInvariant()) {
-                case "image/jpeg":
-                    return "jpg";
-                case "image/png":
-                    return "png";
-                case "image/gif":
-                    return "gif";
-                case "image/bmp":
-                    return "bmp";
-                case "image/tiff":
-                    return "tif";
-                default:
-                    return string.Empty;
-            }
-        }
-
-        private static string BuildImageFileName(PdfCore.PdfLogicalImage image, string extension) {
-            string resourceName = string.IsNullOrWhiteSpace(image.ResourceName) ? "image" : image.ResourceName;
-            var safe = new char[resourceName.Length];
-            for (int i = 0; i < resourceName.Length; i++) {
-                char ch = resourceName[i];
-                safe[i] = char.IsLetterOrDigit(ch) || ch == '-' || ch == '_' ? ch : '_';
-            }
-
-            return "pdf-page-"
-                + image.PageNumber.ToString(CultureInfo.InvariantCulture)
-                + "-"
-                + new string(safe)
-                + "."
-                + extension;
-        }
-
-        private static double PdfPointsToWordPixels(double points) => points * 96D / 72D;
-
         private static void AddFormWidgetPlaceholder(WordDocument document, PdfCore.PdfLogicalFormWidget widget, PdfToWordOptions options) {
             string name = string.IsNullOrWhiteSpace(widget.FieldName) ? "(unnamed)" : widget.FieldName!;
             string type = string.IsNullOrWhiteSpace(widget.FieldType) ? "field" : widget.FieldType!;
             string value = string.IsNullOrWhiteSpace(widget.Value) ? string.Empty : " = " + widget.Value;
-            document.AddParagraph("[PDF form " + type + ": " + name + value + "]").SetItalic();
+            WordParagraph paragraph = document.AddParagraph("[PDF form " + type + ": " + name + value + "]").SetItalic();
+            ApplySourceParagraphSpacing(paragraph, options);
         }
 
-        private static void ReportNonReconstructedLinks(PdfCore.PdfDocumentReadResult source, PdfToWordOptions options, ImportNavigationMap navigation) {
-            int linkCount = source.Links.Count(link => !TryResolveWordLinkTarget(link, options, navigation, out _));
-            if (linkCount == 0) {
-                return;
-            }
-
-            AddWarning(
-                options,
-                "PdfLinkAnnotationNotReconstructed",
-                "LinkAnnotation",
-                "PDF link annotations that are remote, named viewer actions, unsafe, or unresolved are reported as diagnostics.",
-                PdfCore.PdfConversionWarningSeverity.Information,
-                new Dictionary<string, string> {
-                    ["LinkCount"] = linkCount.ToString(CultureInfo.InvariantCulture)
-                });
-        }
-
-        private static void ReportDocumentReconstructionBoundaries(PdfCore.PdfDocumentReadResult source, PdfToWordOptions options) {
-            if (source.Outlines.Count > 0) {
-                AddWarning(
-                    options,
-                    "PdfOutlineHierarchyNotReconstructed",
-                    "Document/Outlines",
-                    "PDF outline hierarchy is retained as diagnostic source metadata; semantic Word import reconstructs supported destinations and links, not the viewer outline tree.",
-                    PdfCore.PdfConversionWarningSeverity.Warning,
-                    new Dictionary<string, string> { ["OutlineCount"] = source.Outlines.Count.ToString(CultureInfo.InvariantCulture) });
-            }
-            if (source.TaggedContent != null) {
-                AddWarning(
-                    options,
-                    "PdfTaggedStructureNotReconstructed",
-                    "Document/StructTreeRoot",
-                    "Readable PDF tagged-structure evidence informed the logical source model but was not copied as a Word accessibility structure tree.",
-                    PdfCore.PdfConversionWarningSeverity.Warning,
-                    new Dictionary<string, string> {
-                        ["StructureElementCount"] = source.TaggedContent.StructureElementCount.ToString(CultureInfo.InvariantCulture),
-                        ["MarkedContentReferenceCount"] = source.TaggedContent.MarkedContentReferenceCount.ToString(CultureInfo.InvariantCulture)
-                    });
-            }
-            if (source.OptionalContentGroupCount > 0) {
-                AddWarning(
-                    options,
-                    "PdfOptionalContentGroupsFlattened",
-                    "Document/OCProperties",
-                    "PDF optional-content groups were flattened into the visible logical reconstruction; Word layer controls were not created.",
-                    PdfCore.PdfConversionWarningSeverity.Warning,
-                    new Dictionary<string, string> { ["GroupCount"] = source.OptionalContentGroupCount.ToString(CultureInfo.InvariantCulture) });
-            }
-            if (source.CatalogActions.Count > 0 || source.OpenAction != null) {
-                AddWarning(
-                    options,
-                    "PdfCatalogActionsNotReconstructed",
-                    "Document/CatalogActions",
-                    "PDF document open and catalog actions were not copied into the editable Word document.",
-                    PdfCore.PdfConversionWarningSeverity.Warning,
-                    new Dictionary<string, string> {
-                        ["CatalogActionCount"] = source.CatalogActions.Count.ToString(CultureInfo.InvariantCulture),
-                        ["HasOpenAction"] = (source.OpenAction != null).ToString(CultureInfo.InvariantCulture)
-                    });
-            }
-        }
-
-        private static void ReportPageReconstructionBoundaries(PdfCore.PdfLogicalPage page, PdfToWordOptions options) {
-            if (page.VectorPrimitiveCount > 0) {
-                bool representedByImportedTableSemantics = options.ImportTables &&
-                    page.Tables.Count > 0 &&
-                    page.UnrepresentedVectorPrimitiveCount == 0;
-                AddWarning(
-                    options,
-                    "PdfVectorGraphicsReconstructedSemantically",
-                    "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Vectors",
-                    "PDF vector primitives are not projected as editable Word shapes; only primitives proven to be represented table borders are treated as reconstructed semantics.",
-                    representedByImportedTableSemantics
-                        ? PdfCore.PdfConversionWarningSeverity.Information
-                        : PdfCore.PdfConversionWarningSeverity.Warning,
-                    new Dictionary<string, string> {
-                        ["VectorPrimitiveCount"] = page.VectorPrimitiveCount.ToString(CultureInfo.InvariantCulture),
-                        ["UnrepresentedVectorPrimitiveCount"] = page.UnrepresentedVectorPrimitiveCount.ToString(CultureInfo.InvariantCulture)
-                    });
-            }
-
-            int annotationCount = page.Annotations.Count(static annotation =>
-                !string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(annotation.Subtype, "Widget", StringComparison.OrdinalIgnoreCase));
-            if (annotationCount > 0) {
-                AddWarning(
-                    options,
-                    "PdfAnnotationsNotReconstructed",
-                    "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Annotations",
-                    "Non-link PDF annotations are retained in source diagnostics but are not reconstructed as editable Word comments or drawing objects.",
-                    PdfCore.PdfConversionWarningSeverity.Warning,
-                    new Dictionary<string, string> { ["AnnotationCount"] = annotationCount.ToString(CultureInfo.InvariantCulture) });
-            }
-            if (page.PageActions.Count > 0) {
-                AddWarning(
-                    options,
-                    "PdfPageActionsNotReconstructed",
-                    "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Actions",
-                    "PDF page actions and chained actions are not copied into the editable Word document.",
-                    PdfCore.PdfConversionWarningSeverity.Warning,
-                    new Dictionary<string, string> { ["PageActionCount"] = page.PageActions.Count.ToString(CultureInfo.InvariantCulture) });
-            }
-        }
-
-        private static void CopyMetadata(PdfCore.PdfMetadata source, WordDocument target) {
-            target.BuiltinDocumentProperties.Title = source.Title;
-            target.BuiltinDocumentProperties.Creator = source.Author;
-            target.BuiltinDocumentProperties.Subject = source.Subject;
-            target.BuiltinDocumentProperties.Keywords = source.Keywords;
-        }
-
-        private static double GetImageSortY(PdfCore.PdfLogicalImage image) {
-            if (image.PlacedY.HasValue || image.PlacedHeight.HasValue) {
-                return image.PlacedY.GetValueOrDefault() + image.PlacedHeight.GetValueOrDefault();
-            }
-
-            return 0D;
-        }
-
-        private static void AddWarning(
-            PdfToWordOptions options,
-            string code,
-            string source,
-            string message,
-            PdfCore.PdfConversionWarningSeverity severity,
-            IReadOnlyDictionary<string, string>? details = null) {
-            options.Report.Add(new PdfCore.PdfConversionWarning(
-                ConverterName,
-                code,
-                source,
-                message,
-                severity,
-                details: details));
-        }
-
-        private sealed class ImportItem {
-            private ImportItem(ImportItemKind kind, double y, int sequence, int? readingOrderIndex) {
-                Kind = kind;
-                Y = y;
-                Sequence = sequence;
-                ReadingOrderIndex = readingOrderIndex;
-            }
-
-            public ImportItemKind Kind { get; }
-
-            public double Y { get; }
-
-            public int Sequence { get; }
-
-            public int? ReadingOrderIndex { get; }
-
-            public PdfCore.PdfLogicalHeading? Heading { get; private set; }
-
-            public PdfCore.PdfLogicalParagraph? Paragraph { get; private set; }
-
-            public PdfCore.PdfLogicalTextBlock? TextBlock { get; private set; }
-
-            public PdfCore.PdfLogicalListItem? ListItem { get; private set; }
-
-            public PdfCore.PdfLogicalTableExtraction? TableExtraction { get; private set; }
-
-            public PdfCore.PdfLogicalImage? Image { get; private set; }
-
-            public PdfCore.PdfImagePlacement? ImagePlacement { get; private set; }
-
-            public PdfCore.PdfLogicalFormWidget? FormWidget { get; private set; }
-
-            public PdfCore.PdfLogicalLinkAnnotation? Link { get; private set; }
-
-            public string? LinkText { get; private set; }
-
-            public static ImportItem ForHeading(PdfCore.PdfLogicalHeading heading, double y, int sequence, int? readingOrderIndex, PdfCore.PdfLogicalLinkAnnotation? link = null, string? linkText = null) =>
-                new ImportItem(ImportItemKind.Heading, y, sequence, readingOrderIndex) { Heading = heading, Link = link, LinkText = linkText };
-
-            public static ImportItem ForParagraph(PdfCore.PdfLogicalParagraph paragraph, double y, int sequence, int? readingOrderIndex, PdfCore.PdfLogicalLinkAnnotation? link = null, string? linkText = null) =>
-                new ImportItem(ImportItemKind.Paragraph, y, sequence, readingOrderIndex) { Paragraph = paragraph, Link = link, LinkText = linkText };
-
-            public static ImportItem ForTextBlock(PdfCore.PdfLogicalTextBlock block, double y, int sequence, int? readingOrderIndex, PdfCore.PdfLogicalLinkAnnotation? link = null, string? linkText = null) =>
-                new ImportItem(ImportItemKind.TextBlock, y, sequence, readingOrderIndex) { TextBlock = block, Link = link, LinkText = linkText };
-
-            public static ImportItem ForListItem(PdfCore.PdfLogicalListItem listItem, double y, int sequence, int? readingOrderIndex) =>
-                new ImportItem(ImportItemKind.ListItem, y, sequence, readingOrderIndex) { ListItem = listItem };
-
-            public static ImportItem ForTable(PdfCore.PdfLogicalTableExtraction table, double y, int sequence, int? readingOrderIndex) =>
-                new ImportItem(ImportItemKind.Table, y, sequence, readingOrderIndex) { TableExtraction = table };
-
-            public static ImportItem ForImage(PdfCore.PdfLogicalImage image, PdfCore.PdfImagePlacement? placement, double y, int sequence, int? readingOrderIndex) =>
-                new ImportItem(ImportItemKind.Image, y, sequence, readingOrderIndex) { Image = image, ImagePlacement = placement };
-
-            public static ImportItem ForFormWidget(PdfCore.PdfLogicalFormWidget widget, double y, int sequence, int? readingOrderIndex) =>
-                new ImportItem(ImportItemKind.FormWidget, y, sequence, readingOrderIndex) { FormWidget = widget };
-
-            public static ImportItem ForLink(PdfCore.PdfLogicalLinkAnnotation link, double y, int sequence, int? readingOrderIndex, string? linkText) =>
-                new ImportItem(ImportItemKind.Link, y, sequence, readingOrderIndex) { Link = link, LinkText = linkText };
-        }
-
-        private enum ImportItemKind {
-            Heading,
-            Paragraph,
-            TextBlock,
-            ListItem,
-            Table,
-            Image,
-            FormWidget,
-            Link
-        }
     }
 }

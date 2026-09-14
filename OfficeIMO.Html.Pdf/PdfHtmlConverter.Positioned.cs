@@ -70,9 +70,22 @@ public static partial class PdfHtmlConverterExtensions {
                 }
             }
 
-            if (page.VectorPrimitiveCount > 0) AddWarning(options, "VectorAppearanceNotExported",
-                "Positioned HTML does not reproduce PDF vector artwork, including some logos, backgrounds, and borders. Compare the output with the source PDF.",
-                PdfCore.PdfConversionWarningSeverity.Warning);
+            if (page.VectorPrimitiveCount > 0) {
+                bool hasOmittedVectors = page.UnrepresentedVectorPrimitiveCount > 0;
+                AddWarning(
+                    options,
+                    "VectorAppearanceNotExported",
+                    hasOmittedVectors
+                        ? page.UnrepresentedVectorPrimitiveCount.ToString(CultureInfo.InvariantCulture) +
+                          " vector primitives were not represented by positioned HTML content or detected table structure."
+                        : "PDF vector primitives were reconstructed through detected table structure rather than their exact source appearance.",
+                    hasOmittedVectors
+                        ? PdfCore.PdfConversionWarningSeverity.Warning
+                        : PdfCore.PdfConversionWarningSeverity.Information,
+                    hasOmittedVectors
+                        ? OfficeConversionLossKind.Omission
+                        : OfficeConversionLossKind.Approximation);
+            }
 
             if (options.IncludeImagePlaceholders) {
                 AppendPositionedImagePlaceholders(builder, page, options);
@@ -147,11 +160,11 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(Points(Math.Max(1D, box.Width)));
         builder.Append(";height:");
         builder.Append(Points(Math.Max(1D, box.Height)));
-        builder.Append("\"");
+        builder.Append("\" aria-label=\"");
+        builder.Append(HtmlAttribute(label));
+        builder.Append('"');
         AppendLinkTargetAttributes(builder, link);
-        builder.Append('>');
-        AppendHtmlText(builder, label);
-        builder.AppendLine("</a>");
+        builder.AppendLine("></a>");
     }
 
     private static void AppendPositionedImagePlaceholders(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfToHtmlOptions options) {
@@ -183,13 +196,18 @@ public static partial class PdfHtmlConverterExtensions {
             PdfCore.PdfConversionWarningSeverity.Warning);
         builder.AppendLine("<div class=\"pdf-image-placeholder\" style=\"position:absolute;left:0;bottom:0;\">");
         for (int i = 0; i < unplaced.Count; i++) {
-            builder.Append(RenderImageFigure(unplaced[i], options, builder.Length));
+            builder.Append(RenderImageFigure(page, unplaced[i], options, builder.Length));
         }
 
         builder.AppendLine("</div>");
     }
 
     private static void AppendPositionedImagePlaceholder(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfCore.PdfLogicalImage image, PdfCore.PdfImagePlacement placement, int placementIndex, PdfToHtmlOptions options) {
+        PdfCore.PdfImagePlacementImportAssessment assessment =
+            PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement);
+        ReportHtmlImagePlacementAssessment(image, assessment, options);
+        if (assessment.Disposition == PdfCore.PdfImagePlacementImportDisposition.SuppressInvisible) return;
+
         options.EmittedImagePlaceholderCount++;
         PositionedPageGeometry geometry = PositionedPageGeometry.From(page);
         PositionedBox box = geometry.TransformBox(placement.X, placement.Y, Math.Max(1D, placement.Width), Math.Max(1D, placement.Height));
@@ -210,12 +228,23 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(";height:");
         builder.Append(Points(Math.Max(1D, box.Height)));
         builder.Append(";\">");
-        if (TryBuildEmbeddedImageDataUri(image, options, builder.MaxCapacity - builder.Length, out string? source)) {
+        if (assessment.CanImport && TryBuildEmbeddedImageDataUri(image, options, builder.MaxCapacity - builder.Length, out string? source)) {
             builder.Append("<img src=\"");
             builder.Append(HtmlAttribute(source!));
             builder.Append("\" alt=\"");
             builder.Append(HtmlAttribute("Image: " + image.ResourceName));
-            builder.Append("\" style=\"width:100%;height:100%;object-fit:contain;display:block;\">");
+            builder.Append("\" style=\"width:100%;height:100%;object-fit:contain;display:block;");
+            if (assessment.HasNonDefaultOpacity) {
+                builder.Append("opacity:");
+                builder.Append(assessment.Opacity.ToString("0.######", CultureInfo.InvariantCulture));
+                builder.Append(';');
+            }
+            if (assessment.HasNonNormalBlendMode) {
+                builder.Append("mix-blend-mode:");
+                builder.Append(ToCssBlendMode(assessment.BlendMode));
+                builder.Append(';');
+            }
+            builder.Append("\">");
         } else {
             builder.Append("<figcaption>Image: ");
             AppendHtmlText(builder, image.ResourceName);

@@ -204,6 +204,9 @@ internal static partial class PdfImageEditor {
             throw new NotSupportedException("Replacing or moving an image placement with a non-normal blend mode is not supported because the blend state cannot be preserved by image stamping.");
         }
         if (placement.HasUnsupportedBlendMode) {
+            throw new NotSupportedException("Replacing or moving an image placement with an unsupported blend mode is not supported because that blend state cannot be preserved by image stamping.");
+        }
+        if (placement.HasUnsupportedPaintState) {
             throw new NotSupportedException("Replacing or moving an image placement with an unsupported graphics-state paint effect is not supported because that paint state cannot be preserved by image stamping.");
         }
         if (placement.HasSoftMask) {
@@ -298,6 +301,7 @@ internal static partial class PdfImageEditor {
             renderingIntent: placement.RenderingIntent,
             blendMode: placement.BlendMode,
             hasUnsupportedBlendMode: placement.HasUnsupportedBlendMode,
+            hasUnsupportedPaintState: placement.HasUnsupportedPaintState,
             hasSoftMask: placement.HasSoftMask,
             hasAuthoredRenderingIntent: placement.HasAuthoredRenderingIntent,
             contentOrderKey: placement.ContentOrderKey);

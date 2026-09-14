@@ -1832,7 +1832,9 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(0, positioned.Summary.RenderedUnsafeUriLinkCount);
         Assert.Equal(0, semantic.Summary.SkippedLinkCount);
         Assert.Equal(0, positioned.Summary.SkippedLinkCount);
-        Assert.False(semantic.Report.HasWarnings);
+        Assert.Contains(semantic.Report.Warnings, warning =>
+            warning.Code == "PdfSemanticLayoutReflowed" &&
+            warning.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Contains(positioned.Report.Warnings, warning => warning.Code == "PositionedFontSubstitution");
 
         var summary = new {
@@ -1901,7 +1903,8 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Contains("data-destination-bottom=\"20\"", result.Value, StringComparison.Ordinal);
         Assert.Contains("data-destination-right=\"90\"", result.Value, StringComparison.Ordinal);
         Assert.Contains("data-destination-top=\"144\"", result.Value, StringComparison.Ordinal);
-        Assert.Contains(">Jump to page two</a>", result.Value, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"Jump to page two\"", result.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain(">Jump to page two</a>", result.Value, StringComparison.Ordinal);
         Assert.Equal(1, result.Summary.LinkCount);
         Assert.Equal(1, result.Summary.RenderedLinkCount);
         Assert.Equal(0, result.Summary.RenderedSafeUriLinkCount);
@@ -1954,6 +1957,14 @@ public sealed class PdfConversionScenarioManifestTests {
             Assert.Single(semanticWordPackage.MainDocumentPart!.ImageParts);
             Body body = semanticWordPackage.MainDocumentPart.Document.Body!;
             Assert.NotEmpty(body.Descendants<Table>());
+            DocumentFormat.OpenXml.Wordprocessing.Drawing imageDrawing = Assert.Single(
+                body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
+            Assert.NotNull(imageDrawing.Anchor);
+            Assert.Null(imageDrawing.Inline);
+            Assert.Equal(DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalRelativePositionValues.Page,
+                imageDrawing.Anchor!.HorizontalPosition?.RelativeFrom?.Value);
+            Assert.Equal(DocumentFormat.OpenXml.Drawing.Wordprocessing.VerticalRelativePositionValues.Page,
+                imageDrawing.Anchor.VerticalPosition?.RelativeFrom?.Value);
             Hyperlink internalLink = Assert.Single(body.Descendants<Hyperlink>(), link => !string.IsNullOrWhiteSpace(link.Anchor?.Value));
             string anchor = Assert.IsType<string>(internalLink.Anchor?.Value);
             Assert.StartsWith("OfficeIMO_Pdf_Dest_Details", anchor, StringComparison.Ordinal);

@@ -82,7 +82,7 @@ public static partial class PowerPointPdfConverterExtensions {
             EditableImportCount shapeImport = drawing == null
                 ? new EditableImportCount(
                     0,
-                    Math.Max(0, page.VectorPrimitiveCount - page.UnrepresentedVectorPrimitiveCount),
+                    0,
                     false)
                 : ImportEditableShapes(drawing, slide, placement, tableBounds, remainingObjects, cancellationToken);
             remainingObjects -= shapeImport.Imported;
@@ -91,6 +91,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 slide,
                 placement,
                 remainingObjects,
+                warnings,
                 cancellationToken);
             remainingObjects -= imageImport.Imported;
             EditableImportCount textImport = ImportEditableTextBlocks(
@@ -114,7 +115,9 @@ public static partial class PowerPointPdfConverterExtensions {
                 remainingObjects,
                 cancellationToken);
 
-            int omittedVectors = checked(shapeImport.Omitted + page.UnrepresentedVectorPrimitiveCount);
+            int omittedVectors = Math.Max(
+                shapeImport.Omitted,
+                Math.Max(0, page.UnrepresentedVectorPrimitiveCount - shapeImport.Imported));
             editablePages.Add(new PdfPowerPointEditablePageEntry(
                 page.PageNumber,
                 slideIndex,
@@ -301,6 +304,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PptCore.PowerPointSlide slide,
         EditablePagePlacement placement,
         int limit,
+        ICollection<PdfCore.PdfConversionWarning> warnings,
         CancellationToken cancellationToken) {
         int imported = 0;
         int omitted = 0;
@@ -309,18 +313,29 @@ public static partial class PowerPointPdfConverterExtensions {
             cancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfLogicalImage image = page.Images[imageIndex];
             OfficeImageFormat format = ResolveImageFormat(image.SourceImage);
+            if (image.Placements.Count == 0) {
+                AddEditableImagePlacementWarning(
+                    warnings,
+                    image,
+                    PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement: null));
+                continue;
+            }
             if (!image.SourceImage.IsImageFile ||
                 image.SourceImage.IsImageMask ||
-                image.SourceImage.HasUnresolvedTransparencyMask ||
-                format == OfficeImageFormat.Unknown ||
-                image.Placements.Count == 0) {
+                format == OfficeImageFormat.Unknown) {
                 omitted++;
                 continue;
             }
             for (int placementIndex = 0; placementIndex < image.Placements.Count; placementIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 PdfCore.PdfImagePlacement sourcePlacement = image.Placements[placementIndex];
-                if (!sourcePlacement.IsAxisAligned || imported >= limit) {
+                PdfCore.PdfImagePlacementImportAssessment assessment =
+                    PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, sourcePlacement);
+                AddEditableImagePlacementWarning(warnings, image, assessment);
+                if (assessment.IsSuppressed) {
+                    continue;
+                }
+                if (!assessment.CanImport || !sourcePlacement.IsAxisAligned || imported >= limit) {
                     omitted++;
                     limitReached |= imported >= limit;
                     continue;
@@ -332,11 +347,109 @@ public static partial class PowerPointPdfConverterExtensions {
                     sourcePlacement.Y + sourcePlacement.Height);
                 EditableBounds bounds = placement.Map(visual.Left, visual.Top, visual.Width, visual.Height);
                 using var stream = new MemoryStream(image.SourceImage.Bytes, writable: false);
-                slide.AddPicturePoints(stream, format, bounds.Left, bounds.Top, bounds.Width, bounds.Height);
+                PptCore.PowerPointPicture picture = slide.AddPicturePoints(
+                    stream,
+                    format,
+                    bounds.Left,
+                    bounds.Top,
+                    bounds.Width,
+                    bounds.Height);
+                if (assessment.HasNonDefaultOpacity) {
+                    picture.FillTransparency = (int)Math.Round(
+                        (1D - assessment.Opacity) * 100D,
+                        MidpointRounding.AwayFromZero);
+                }
                 imported++;
             }
         }
         return new EditableImportCount(imported, omitted, limitReached);
+    }
+
+    private static void AddEditableImagePlacementWarning(
+        ICollection<PdfCore.PdfConversionWarning> warnings,
+        PdfCore.PdfLogicalImage image,
+        PdfCore.PdfImagePlacementImportAssessment assessment) {
+        string source = "Page " + image.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image";
+        var details = new Dictionary<string, string> {
+            ["ResourceName"] = image.ResourceName,
+            ["Opacity"] = assessment.Opacity.ToString("R", CultureInfo.InvariantCulture),
+            ["BlendMode"] = assessment.BlendMode.ToString()
+        };
+        switch (assessment.Disposition) {
+            case PdfCore.PdfImagePlacementImportDisposition.SuppressInvisible:
+                warnings.Add(new PdfCore.PdfConversionWarning(
+                    "OfficeIMO.PowerPoint.Pdf",
+                    "PdfInvisibleImagePlacementSuppressed",
+                    source,
+                    "A fully transparent PDF image placement was suppressed instead of exposing its raw image pixels.",
+                    PdfCore.PdfConversionWarningSeverity.Information,
+                    OfficeConversionLossKind.None,
+                    details: details));
+                return;
+            case PdfCore.PdfImagePlacementImportDisposition.SuppressUnplaced:
+                warnings.Add(new PdfCore.PdfConversionWarning(
+                    "OfficeIMO.PowerPoint.Pdf",
+                    "PdfUnplacedImageResourceNotEmbedded",
+                    source,
+                    "An extracted image resource without a visible page placement was not embedded as raw pixels.",
+                    PdfCore.PdfConversionWarningSeverity.Information,
+                    OfficeConversionLossKind.None,
+                    details: details));
+                return;
+            case PdfCore.PdfImagePlacementImportDisposition.OmitClippedPixels:
+                AddEditableImageOmissionWarning(warnings, image, "PdfImageClipNotSafelyEditable",
+                    "The raw PDF image was not embedded because its clip hides source pixels that an editable PowerPoint picture could reveal.", details);
+                return;
+            case PdfCore.PdfImagePlacementImportDisposition.OmitSoftMask:
+                AddEditableImageOmissionWarning(warnings, image, "PdfImagePlacementSoftMaskNotSafelyEditable",
+                    "The raw PDF image was not embedded because its placement soft mask cannot be reproduced safely as an editable PowerPoint picture.", details);
+                return;
+            case PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedBlendMode:
+                AddEditableImageOmissionWarning(warnings, image, "PdfImageUnsupportedBlendModeNotSafelyEditable",
+                    "The raw PDF image was not embedded because its unsupported blend mode cannot be reproduced safely as an editable PowerPoint picture.", details);
+                return;
+            case PdfCore.PdfImagePlacementImportDisposition.OmitUnresolvedTransparencyMask:
+                AddEditableImageOmissionWarning(warnings, image, "PdfImageTransparencyMaskNotResolved",
+                    "The raw PDF image was not embedded because its unresolved transparency mask could hide pixels that an editable PowerPoint picture would reveal.", details);
+                return;
+        }
+
+        if (assessment.HasNonDefaultOpacity) {
+            warnings.Add(new PdfCore.PdfConversionWarning(
+                "OfficeIMO.PowerPoint.Pdf",
+                "PdfImageOpacityMapped",
+                source,
+                "PDF image opacity was mapped to native PowerPoint picture transparency.",
+                PdfCore.PdfConversionWarningSeverity.Information,
+                OfficeConversionLossKind.None,
+                details: details));
+        }
+        if (assessment.HasNonNormalBlendMode) {
+            warnings.Add(new PdfCore.PdfConversionWarning(
+                "OfficeIMO.PowerPoint.Pdf",
+                "PdfImageBlendModeApproximated",
+                source,
+                "PowerPoint does not reproduce the PDF image blend mode; the safely visible image pixels were embedded with normal compositing.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Approximation,
+                details: details));
+        }
+    }
+
+    private static void AddEditableImageOmissionWarning(
+        ICollection<PdfCore.PdfConversionWarning> warnings,
+        PdfCore.PdfLogicalImage image,
+        string code,
+        string message,
+        IReadOnlyDictionary<string, string> details) {
+        warnings.Add(new PdfCore.PdfConversionWarning(
+            "OfficeIMO.PowerPoint.Pdf",
+            code,
+            "Page " + image.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image",
+            message,
+            PdfCore.PdfConversionWarningSeverity.Warning,
+            OfficeConversionLossKind.Omission,
+            details: details));
     }
 
     private static EditableImportCount ImportEditableTextBlocks(
@@ -490,6 +603,12 @@ public static partial class PowerPointPdfConverterExtensions {
                     PowerPointUnits.FromPoints(Math.Max(1D, bounds.Width)),
                     PowerPointUnits.FromPoints(Math.Max(1D, bounds.Height)));
                 PopulateTable(table, extraction.Table, data, segment, headerRowIncluded, options, cancellationToken);
+                ApplyEditableTableTypography(
+                    table,
+                    page,
+                    extraction.Table,
+                    placement.Scale,
+                    cancellationToken);
                 entries.Add(new PdfPowerPointTableImportEntry(
                     pageIndex,
                     extraction.PageNumber,
@@ -648,6 +767,8 @@ public static partial class PowerPointPdfConverterExtensions {
                 "PdfEditableObjectLimitReached",
                 source,
                 "The per-page editable object limit was reached; remaining objects were omitted.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission,
                 details: new Dictionary<string, string> {
                     ["pageNumber"] = pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     ["construct"] = "Editable objects",
@@ -668,6 +789,8 @@ public static partial class PowerPointPdfConverterExtensions {
             count.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " " + construct.ToLowerInvariant() +
                 " could not be reconstructed safely as editable PowerPoint objects.",
+            PdfCore.PdfConversionWarningSeverity.Warning,
+            OfficeConversionLossKind.Omission,
             details: new Dictionary<string, string> {
                 ["pageNumber"] = pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["construct"] = construct,
@@ -692,6 +815,9 @@ public static partial class PowerPointPdfConverterExtensions {
                 diagnostic.SupportLevel == PdfCore.PdfRenderSupportLevel.Unsupported
                     ? PdfCore.PdfConversionWarningSeverity.Warning
                     : PdfCore.PdfConversionWarningSeverity.Information,
+                diagnostic.SupportLevel == PdfCore.PdfRenderSupportLevel.Unsupported
+                    ? OfficeConversionLossKind.Omission
+                    : OfficeConversionLossKind.Approximation,
                 details: new Dictionary<string, string> {
                     ["pageNumber"] = pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     ["construct"] = diagnostic.Capability.Feature,
@@ -712,6 +838,7 @@ public static partial class PowerPointPdfConverterExtensions {
             "Document",
             "Text blocks, detected tables, safe vector primitives, and supported images were reconstructed as separate PowerPoint objects. Original grouping, charts, and authoring intent cannot be recovered reliably from arbitrary PDFs.",
             PdfCore.PdfConversionWarningSeverity.Information,
+            OfficeConversionLossKind.Approximation,
             details: new Dictionary<string, string> {
                 ["construct"] = "Editable content",
                 ["Disposition"] = "Reconstructed"
@@ -738,6 +865,8 @@ public static partial class PowerPointPdfConverterExtensions {
             code,
             "Document",
             "PDF " + description + " are not reconstructed in editable-content mode.",
+            PdfCore.PdfConversionWarningSeverity.Warning,
+            OfficeConversionLossKind.Omission,
             details: new Dictionary<string, string> {
                 ["construct"] = construct,
                 ["Count"] = count.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -754,9 +883,6 @@ public static partial class PowerPointPdfConverterExtensions {
         opacity.HasValue
             ? Math.Min(100, Math.Max(0, (int)Math.Round((1D - opacity.Value) * 100D)))
             : 0;
-
-    private static double ScaleEditableFontSize(double fontSize, double scale) =>
-        Math.Min(4000D, Math.Max(1D, fontSize * scale));
 
     private static double NormalizeRotation(double value) {
         double normalized = value % 360D;

@@ -155,6 +155,78 @@ public sealed class PdfTableDetectionValidationTests {
     }
 
     [Fact]
+    public void PositionedRecovery_MergesWrappedHeadersAndBodyLinesAroundAlignedNumericAnchors() {
+        TextLayoutEngine.TextLine[] lines = {
+            CreateLine(552D,
+                ("Net", 440D, 24D, "Helvetica-Bold"),
+                ("Unrelated", 600D, 54D, "Helvetica")),
+            CreateLine(552D,
+                ("Product", 50D, 48D, "Helvetica-Bold"),
+                ("Details", 210D, 44D, "Helvetica-Bold"),
+                ("Qty", 330D, 24D, "Helvetica-Bold"),
+                ("Unit price", 370D, 56D, "Helvetica-Bold")),
+            CreateLine(544D, ("amount", 440D, 42D, "Helvetica-Bold")),
+            CreateLine(526D, ("Managed", 50D, 52D, "Helvetica")),
+            CreateLine(512D,
+                ("Service A", 50D, 58D, "Helvetica"),
+                ("Monthly", 210D, 48D, "Helvetica"),
+                ("2", 330D, 8D, "Helvetica"),
+                ("25.00 PLN", 370D, 58D, "Helvetica"),
+                ("50.00 PLN", 440D, 58D, "Helvetica")),
+            CreateLine(498D, ("support", 50D, 46D, "Helvetica")),
+            CreateLine(486D, ("Priority", 50D, 46D, "Helvetica")),
+            CreateLine(472D,
+                ("Service B", 50D, 58D, "Helvetica"),
+                ("Annual", 210D, 42D, "Helvetica"),
+                ("1", 330D, 8D, "Helvetica"),
+                ("75.00 PLN", 370D, 58D, "Helvetica"),
+                ("75.00 PLN", 440D, 58D, "Helvetica")),
+            CreateLine(458D, ("response", 50D, 52D, "Helvetica")),
+            CreateLine(438D, ("Archive", 50D, 46D, "Helvetica")),
+            CreateLine(432D, ("Weekly", 210D, 42D, "Helvetica")),
+            CreateLine(428D,
+                ("1", 330D, 8D, "Helvetica"),
+                ("10.00 PLN", 370D, 58D, "Helvetica"),
+                ("10.00 PLN", 440D, 58D, "Helvetica")),
+            CreateLine(416D, ("retention", 50D, 48D, "Helvetica"))
+        };
+
+        StructuredTable table = Assert.Single(
+            TableDetector.DetectPositionedCellTables(lines),
+            static candidate => candidate.Kind == "wrapped-positioned-cells-bounded");
+
+        Assert.Equal(5, table.Columns.Count);
+        Assert.Equal(4, table.Rows.Count);
+        Assert.Equal("Net amount", table.Rows[0][4]);
+        Assert.DoesNotContain("Unrelated", table.Rows.SelectMany(static row => row));
+        Assert.Equal("Managed Service A support", table.Rows[1][0]);
+        Assert.Equal("Priority Service B response", table.Rows[2][0]);
+        Assert.Equal("Archive retention", table.Rows[3][0]);
+        Assert.Equal("Weekly", table.Rows[3][1]);
+        Assert.Equal("10.00 PLN", table.Rows[3][4]);
+        Assert.Equal("50.00 PLN", table.Rows[1][4]);
+    }
+
+    [Fact]
+    public void PositionedRecovery_ObservesCancellationDuringWrappedCandidateScan() {
+        TextLayoutEngine.TextLine[] lines = Enumerable.Range(0, 20)
+            .Select(index => CreateLine(700D - index * 10D, ("Narrative " + index, 50D, 80D, "Helvetica")))
+            .ToArray();
+        using var cancellation = new CancellationTokenSource();
+        int polls = 0;
+
+        Assert.Throws<OperationCanceledException>(() => TableDetector.DetectPositionedCellTables(
+            lines,
+            consumeWork: null,
+            cancellationCheck: () => {
+                if (++polls == 25) cancellation.Cancel();
+                cancellation.Token.ThrowIfCancellationRequested();
+            }));
+
+        Assert.Equal(25, polls);
+    }
+
+    [Fact]
     public void LeaderTables_RecognizeSupplementaryPlaneDecimalDigits() {
         var lines = new List<TextLayoutEngine.TextLine> {
             CreateLine(520D, ("Section", 50D, 50D, "Helvetica"), (".....", 140D, 50D, "Helvetica"), ("𝟙𝟚", 240D, 24D, "Helvetica")),

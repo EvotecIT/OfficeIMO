@@ -63,6 +63,99 @@ public sealed class PdfPageClipPathBuilderTests {
         AssertClipPathsEqual(clip, direct);
     }
 
+    [Fact]
+    public void GenericRectanglePath_UsesCompactRectangleRepresentation() {
+        OfficePathCommand[] commands = {
+            OfficePathCommand.MoveTo(new OfficePoint(10D, 20D)),
+            OfficePathCommand.LineTo(new OfficePoint(70D, 20D)),
+            OfficePathCommand.LineTo(new OfficePoint(70D, 20D)),
+            OfficePathCommand.LineTo(new OfficePoint(70D, 80D)),
+            OfficePathCommand.LineTo(new OfficePoint(10D, 80D)),
+            OfficePathCommand.LineTo(new OfficePoint(10D, 20D)),
+            OfficePathCommand.Close()
+        };
+
+        Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath clip));
+        Assert.True(clip.IsRectangle);
+        Assert.Equal(10D, clip.X);
+        Assert.Equal(20D, clip.Y);
+        Assert.Equal(60D, clip.Width);
+        Assert.Equal(60D, clip.Height);
+        Assert.Empty(clip.Commands);
+    }
+
+    [Fact]
+    public void GenericNonRectanglePath_PreservesPathRepresentation() {
+        OfficePathCommand[] commands = {
+            OfficePathCommand.MoveTo(new OfficePoint(10D, 20D)),
+            OfficePathCommand.LineTo(new OfficePoint(70D, 20D)),
+            OfficePathCommand.LineTo(new OfficePoint(60D, 80D)),
+            OfficePathCommand.LineTo(new OfficePoint(10D, 80D)),
+            OfficePathCommand.Close()
+        };
+
+        Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath clip));
+        Assert.False(clip.IsRectangle);
+        Assert.Equal(commands.Length, clip.Commands.Count);
+    }
+
+    [Fact]
+    public void GenericOrthogonalPathWithInteriorDetour_PreservesPathRepresentation() {
+        OfficePathCommand[] commands = {
+            OfficePathCommand.MoveTo(new OfficePoint(10D, 20D)),
+            OfficePathCommand.LineTo(new OfficePoint(70D, 20D)),
+            OfficePathCommand.LineTo(new OfficePoint(70D, 80D)),
+            OfficePathCommand.LineTo(new OfficePoint(10D, 80D)),
+            OfficePathCommand.LineTo(new OfficePoint(10D, 50D)),
+            OfficePathCommand.LineTo(new OfficePoint(40D, 50D)),
+            OfficePathCommand.LineTo(new OfficePoint(10D, 50D)),
+            OfficePathCommand.Close()
+        };
+
+        Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath clip));
+        Assert.False(clip.IsRectangle);
+        Assert.Equal(commands.Length, clip.Commands.Count);
+    }
+
+    [Fact]
+    public void TinyPerimeterPathThatBacktracksEntireRectangle_PreservesPathRepresentation() {
+        OfficePathCommand[] commands = {
+            OfficePathCommand.MoveTo(new OfficePoint(0D, 0D)),
+            OfficePathCommand.LineTo(new OfficePoint(0.000001D, 0D)),
+            OfficePathCommand.LineTo(new OfficePoint(0.000001D, 0.000001D)),
+            OfficePathCommand.LineTo(new OfficePoint(0D, 0.000001D)),
+            OfficePathCommand.LineTo(new OfficePoint(0D, 0D)),
+            OfficePathCommand.LineTo(new OfficePoint(0D, 0.000001D)),
+            OfficePathCommand.LineTo(new OfficePoint(0.000001D, 0.000001D)),
+            OfficePathCommand.LineTo(new OfficePoint(0.000001D, 0D)),
+            OfficePathCommand.LineTo(new OfficePoint(0D, 0D)),
+            OfficePathCommand.Close()
+        };
+
+        Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath clip));
+        Assert.False(clip.IsRectangle);
+        Assert.Equal(commands.Length, clip.Commands.Count);
+    }
+
+    [Fact]
+    public void FarFromOriginGenericRectangle_UsesCompactRectangleRepresentation() {
+        const double offset = 1_000_000_000_000D;
+        OfficePathCommand[] commands = {
+            OfficePathCommand.MoveTo(new OfficePoint(offset + 10D, offset + 20D)),
+            OfficePathCommand.LineTo(new OfficePoint(offset + 70D, offset + 20D)),
+            OfficePathCommand.LineTo(new OfficePoint(offset + 70D, offset + 80D)),
+            OfficePathCommand.LineTo(new OfficePoint(offset + 10D, offset + 80D)),
+            OfficePathCommand.Close()
+        };
+
+        Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath clip));
+        Assert.True(clip.IsRectangle);
+        Assert.Equal(offset + 10D, clip.X);
+        Assert.Equal(offset + 20D, clip.Y);
+        Assert.Equal(60D, clip.Width);
+        Assert.Equal(60D, clip.Height);
+    }
+
     private static void AssertClipPathsEqual(PdfPageClipPath expected, PdfPageClipPath actual) {
         Assert.Equal(expected.IsRectangle, actual.IsRectangle);
         Assert.Equal(expected.FillRule, actual.FillRule);

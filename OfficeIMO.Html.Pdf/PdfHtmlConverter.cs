@@ -707,7 +707,7 @@ public static partial class PdfHtmlConverterExtensions {
             for (int i = 0; i < page.Images.Count; i++) {
                 PdfCore.PdfLogicalImage image = page.Images[i];
                 int placementIndex = image.Placements.Count == 0 ? -1 : 0;
-                AddHtmlItem(items, new HtmlItem(null, 0D, sequence++, RenderImageFigure(image, options, retainedHtmlCharacters), GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Image, i, placementIndex)), options, ref retainedHtmlCharacters);
+                AddHtmlItem(items, new HtmlItem(null, 0D, sequence++, RenderImageFigure(page, image, options, retainedHtmlCharacters), GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Image, i, placementIndex)), options, ref retainedHtmlCharacters);
             }
         }
 
@@ -812,16 +812,18 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static string RenderImageFigure(
+        PdfCore.PdfLogicalPage page,
         PdfCore.PdfLogicalImage image,
         PdfToHtmlOptions options,
         long retainedHtmlCharacters) => RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
             options.EmittedImagePlaceholderCount++;
+            bool hasSafePlacement = TrySelectSafeImagePlacement(page, image, options, out PdfCore.PdfImagePlacementImportAssessment assessment);
             builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
             builder.Append(HtmlAttribute(image.ResourceName));
             builder.Append("\" data-page-number=\"");
             builder.Append(image.PageNumber.ToString(CultureInfo.InvariantCulture));
             builder.Append("\">");
-            if (TryBuildEmbeddedImageDataUri(image, options, builder.MaxCapacity - builder.Length, out string? source)) {
+            if (hasSafePlacement && TryBuildEmbeddedImageDataUri(image, options, builder.MaxCapacity - builder.Length, out string? source)) {
                 builder.Append("<img src=\"");
                 builder.Append(HtmlAttribute(source!));
                 builder.Append("\" alt=\"");
@@ -830,6 +832,7 @@ public static partial class PdfHtmlConverterExtensions {
                 builder.Append(image.Width.ToString(CultureInfo.InvariantCulture));
                 builder.Append("\" height=\"");
                 builder.Append(image.Height.ToString(CultureInfo.InvariantCulture));
+                AppendHtmlImageEffectStyle(builder, assessment);
                 builder.Append("\">");
             }
 
@@ -847,6 +850,111 @@ public static partial class PdfHtmlConverterExtensions {
             builder.Append(")</figcaption></figure>");
         });
 
+    private static bool TrySelectSafeImagePlacement(
+        PdfCore.PdfLogicalPage page,
+        PdfCore.PdfLogicalImage image,
+        PdfToHtmlOptions options,
+        out PdfCore.PdfImagePlacementImportAssessment selected) {
+        selected = PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement: null);
+        if (image.Placements.Count == 0) {
+            ReportHtmlImagePlacementAssessment(image, selected, options);
+            return false;
+        }
+
+        bool found = false;
+        for (int placementIndex = 0; placementIndex < image.Placements.Count; placementIndex++) {
+            PdfCore.PdfImagePlacementImportAssessment assessment =
+                PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, image.Placements[placementIndex]);
+            ReportHtmlImagePlacementAssessment(image, assessment, options);
+            if (!found && assessment.CanImport) {
+                selected = assessment;
+                found = true;
+            }
+        }
+        return found;
+    }
+
+    private static void AppendHtmlImageEffectStyle(
+        StringBuilder builder,
+        PdfCore.PdfImagePlacementImportAssessment assessment) {
+        if (!assessment.HasNonDefaultOpacity && !assessment.HasNonNormalBlendMode) return;
+        builder.Append(" style=\"");
+        if (assessment.HasNonDefaultOpacity) {
+            builder.Append("opacity:");
+            builder.Append(assessment.Opacity.ToString("0.######", CultureInfo.InvariantCulture));
+            builder.Append(';');
+        }
+        if (assessment.HasNonNormalBlendMode) {
+            builder.Append("mix-blend-mode:");
+            builder.Append(ToCssBlendMode(assessment.BlendMode));
+            builder.Append(';');
+        }
+        builder.Append('"');
+    }
+
+    private static string ToCssBlendMode(OfficeIMO.Drawing.OfficeBlendMode blendMode) => blendMode switch {
+        OfficeIMO.Drawing.OfficeBlendMode.ColorDodge => "color-dodge",
+        OfficeIMO.Drawing.OfficeBlendMode.ColorBurn => "color-burn",
+        OfficeIMO.Drawing.OfficeBlendMode.HardLight => "hard-light",
+        OfficeIMO.Drawing.OfficeBlendMode.SoftLight => "soft-light",
+        _ => blendMode.ToString().ToLowerInvariant()
+    };
+
+    private static void ReportHtmlImagePlacementAssessment(
+        PdfCore.PdfLogicalImage image,
+        PdfCore.PdfImagePlacementImportAssessment assessment,
+        PdfToHtmlOptions options) {
+        string source = "Page " + image.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image";
+        var details = new Dictionary<string, string> {
+            ["ResourceName"] = image.ResourceName,
+            ["Opacity"] = assessment.Opacity.ToString("R", CultureInfo.InvariantCulture),
+            ["BlendMode"] = assessment.BlendMode.ToString()
+        };
+        switch (assessment.Disposition) {
+            case PdfCore.PdfImagePlacementImportDisposition.SuppressInvisible:
+                AddWarning(options, "InvisibleImagePlacementSuppressed", source,
+                    "A fully transparent PDF image placement was suppressed instead of exposing its raw image pixels.",
+                    PdfCore.PdfConversionWarningSeverity.Information, OfficeConversionLossKind.None, details);
+                return;
+            case PdfCore.PdfImagePlacementImportDisposition.SuppressUnplaced:
+                AddWarning(options, "UnplacedImageResourceNotEmbedded", source,
+                    "An extracted image resource without a visible page placement was not embedded as raw pixels.",
+                    PdfCore.PdfConversionWarningSeverity.Information, OfficeConversionLossKind.None, details);
+                return;
+            case PdfCore.PdfImagePlacementImportDisposition.OmitClippedPixels:
+                AddWarning(options, "ImageClipNotSafelyEditable", source,
+                    "The raw PDF image was not embedded because its clip hides source pixels that HTML could reveal.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission, details);
+                return;
+            case PdfCore.PdfImagePlacementImportDisposition.OmitSoftMask:
+                AddWarning(options, "ImagePlacementSoftMaskNotSafelyEditable", source,
+                    "The raw PDF image was not embedded because its placement soft mask cannot be reproduced safely in editable HTML.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission, details);
+                return;
+            case PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedBlendMode:
+                AddWarning(options, "ImageUnsupportedBlendModeNotSafelyEditable", source,
+                    "The raw PDF image was not embedded because its unsupported blend mode cannot be reproduced safely in editable HTML.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission, details);
+                return;
+            case PdfCore.PdfImagePlacementImportDisposition.OmitUnresolvedTransparencyMask:
+                AddWarning(options, "ImageTransparencyMaskNotResolved", source,
+                    "The raw PDF image was not embedded because its unresolved transparency mask could hide pixels that HTML would reveal.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission, details);
+                return;
+        }
+
+        if (assessment.HasNonDefaultOpacity) {
+            AddWarning(options, "ImageOpacityMapped", source,
+                "PDF image opacity was mapped to CSS opacity.",
+                PdfCore.PdfConversionWarningSeverity.Information, OfficeConversionLossKind.None, details);
+        }
+        if (assessment.HasNonNormalBlendMode) {
+            AddWarning(options, "ImageBlendModeApproximated", source,
+                "The PDF image blend mode was mapped to CSS mix-blend-mode; browser compositing can differ from PDF compositing.",
+                PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Approximation, details);
+        }
+    }
+
     private static bool TryBuildEmbeddedImageDataUri(
         PdfCore.PdfLogicalImage image,
         PdfToHtmlOptions options,
@@ -863,7 +971,8 @@ public static partial class PdfHtmlConverterExtensions {
                 options,
                 "ImageDataUnavailable",
                 "An extracted PDF image was represented as a placeholder because it is not available as a complete image file.",
-                PdfCore.PdfConversionWarningSeverity.Warning);
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
             return false;
         }
 
@@ -872,7 +981,8 @@ public static partial class PdfHtmlConverterExtensions {
                 options,
                 "ImageDataTooLarge",
                 "An extracted PDF image was represented as a placeholder because it exceeds MaxEmbeddedImageBytes.",
-                PdfCore.PdfConversionWarningSeverity.Warning);
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
             return false;
         }
 
@@ -884,7 +994,8 @@ public static partial class PdfHtmlConverterExtensions {
                     options,
                     "ImageDataTooLarge",
                     "An extracted PDF image was represented as a placeholder because its data URI exceeds MaximumOutputCharacters.",
-                    PdfCore.PdfConversionWarningSeverity.Warning);
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    OfficeConversionLossKind.Omission);
                 return false;
             }
         }
@@ -1275,13 +1386,30 @@ public static partial class PdfHtmlConverterExtensions {
         PdfToHtmlOptions options,
         string code,
         string message,
-        PdfCore.PdfConversionWarningSeverity severity) {
+        PdfCore.PdfConversionWarningSeverity severity,
+        OfficeConversionLossKind? lossKind = null) =>
+        AddWarning(options, code, "PDF to HTML", message, severity, lossKind, details: null);
+
+    private static void AddWarning(
+        PdfToHtmlOptions options,
+        string code,
+        string source,
+        string message,
+        PdfCore.PdfConversionWarningSeverity severity,
+        OfficeConversionLossKind? lossKind,
+        IReadOnlyDictionary<string, string>? details) {
         options.Report.Add(new PdfCore.PdfConversionWarning(
             "OfficeIMO.Html.Pdf",
             code,
-            "PDF to HTML",
+            source,
             message,
-            severity));
+            severity,
+            lossKind ?? (severity == PdfCore.PdfConversionWarningSeverity.Error
+                ? OfficeConversionLossKind.Failure
+                : severity == PdfCore.PdfConversionWarningSeverity.Information
+                    ? OfficeConversionLossKind.None
+                    : OfficeConversionLossKind.Approximation),
+            details: details));
     }
 
     private sealed class HtmlItem {
