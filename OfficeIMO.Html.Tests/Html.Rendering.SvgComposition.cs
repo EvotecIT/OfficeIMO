@@ -8,6 +8,23 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlSvgOpenPath_ClosesForFillButKeepsTheAuthoredOpenStroke() {
+        const string source = "<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'>"
+            + "<path d='M5 5 L35 5 L5 35' fill='red' stroke='blue' stroke-width='2'/>"
+            + "</svg>";
+        byte[] sourceBytes = Encoding.UTF8.GetBytes(source);
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(sourceBytes, out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing!, 1D, OfficeColor.White);
+        Assert.Equal(OfficeColor.Red, image.GetPixel(10, 10));
+
+        OfficeColor implicitClosingEdge = image.GetPixel(5, 20);
+        Assert.True(implicitClosingEdge.B <= implicitClosingEdge.R);
+    }
+
+    [Fact]
     public void HtmlSvgNestedSymbolRetainsTheVisibleHeightThroughPdfEffectForms() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20'>" +
             "<defs><symbol id='paint' viewBox='0 0 100 100'><rect width='100' height='100' fill='red'/></symbol>" +

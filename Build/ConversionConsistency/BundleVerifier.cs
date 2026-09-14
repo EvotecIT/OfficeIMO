@@ -10,7 +10,7 @@ namespace OfficeIMO.ConversionConsistency;
 internal static class BundleVerifier {
     internal static async Task<GateReport> VerifyAsync(string output, string rasterizer, CancellationToken cancellationToken) {
         EvidenceBundle bundle = GateJson.Read<EvidenceBundle>(Path.Combine(output, "bundle.json"));
-        if (bundle.SchemaVersion != 1 || bundle.Cases.Count == 0) throw new InvalidDataException("Unsupported or empty bundle.");
+        if (bundle.SchemaVersion != 2 || bundle.Cases.Count == 0) throw new InvalidDataException("Unsupported or empty bundle.");
         string version = await ArtifactPaths.RunAsync(rasterizer, new[] { "-v" }, cancellationToken: cancellationToken);
         await using var renderer = new HtmlBrowserPdfRenderer(new HtmlBrowserPdfRendererOptions(
             maximumBrowserInstances: 1, maximumQueuedCaptures: 4, networkPolicy: HtmlBrowserNetworkPolicy.Offline,
@@ -26,6 +26,20 @@ internal static class BundleVerifier {
                 errors.Add("Unaccepted diagnostic: " + diagnostic);
             string pdf = CheckedArtifact(output, item.PdfPath, item.PdfSha256);
             using var parsed = PdfPigDocument.Open(pdf);
+            if (item.Contract.CaptureBrowserReference != (item.BrowserReference != null))
+                errors.Add("Source-browser reference presence differs from the source contract.");
+            string? browserPdf = item.BrowserReference == null
+                ? null
+                : CheckedArtifact(output, item.BrowserReference.PdfPath, item.BrowserReference.PdfSha256);
+            using var browserParsed = browserPdf == null ? null : PdfPigDocument.Open(browserPdf);
+            if (item.BrowserReference != null) {
+                if (browserParsed!.NumberOfPages != item.BrowserReference.PageCount ||
+                    browserParsed.NumberOfPages != item.Contract.Pages.Count)
+                    errors.Add("Source-browser reference page count differs from the bundle or page contract.");
+                if (string.IsNullOrWhiteSpace(browserVersion)) browserVersion = item.BrowserReference.BrowserVersion;
+                else if (!string.Equals(browserVersion, item.BrowserReference.BrowserVersion, StringComparison.Ordinal))
+                    errors.Add("Source-browser references were captured with different browser versions.");
+            }
             if (parsed.NumberOfPages != item.Contract.Pages.Count)
                 errors.Add($"PDF page count: expected {item.Contract.Pages.Count}, got {parsed.NumberOfPages}.");
             foreach (OfficeImageExportFormat format in Enum.GetValues<OfficeImageExportFormat>()) {
@@ -57,7 +71,38 @@ internal static class BundleVerifier {
                 await RasterizeAsync(rasterizer, pdf, pageNumber, bundle.Dpi, pdfPng, cancellationToken);
                 OfficeRasterImage pdfRaster = Decode(File.ReadAllBytes(pdfPng), "Png");
                 if (item.Contract.ComparePdfPixels) CheckRegions("PDF", pdfRaster, expected, pageErrors);
-                OfficeRasterImage? direct = null;
+                ImageArtifact? directArtifact = item.Images.SingleOrDefault(image => image.Page == pageNumber && image.Format == "Png");
+                OfficeRasterImage? direct = directArtifact == null
+                    ? null
+                    : Decode(File.ReadAllBytes(CheckedArtifact(output, directArtifact.Path, directArtifact.Sha256)), "Png");
+                if (direct == null) pageErrors.Add("Missing direct PNG reference.");
+                if (browserPdf != null && browserParsed != null && pageNumber <= browserParsed.NumberOfPages) {
+                    var browserPage = browserParsed.GetPage(pageNumber);
+                    PageExpectation browserExpected = expected with {
+                        TextPositions = expected.BrowserTextPositions,
+                        Regions = expected.BrowserRegions
+                    };
+                    CheckText("Browser PDF", browserPage.Text, browserExpected, pageErrors);
+                    CheckTextPositions("Browser PDF", browserPage, browserExpected, bundle.Dpi, pageErrors);
+                    if (Math.Abs((double)browserPage.Width * bundle.Dpi / 72D - expected.Width) > 1 ||
+                        Math.Abs((double)browserPage.Height * bundle.Dpi / 72D - expected.Height) > 1)
+                        pageErrors.Add("Source-browser PDF physical dimensions differ from the page contract.");
+                    string browserPng = ArtifactPaths.Resolve(output, prefix + "-browser.png");
+                    await RasterizeAsync(rasterizer, browserPdf, pageNumber, bundle.Dpi, browserPng, cancellationToken);
+                    OfficeRasterImage browserRaster = Decode(File.ReadAllBytes(browserPng), "Png");
+                    CheckRegions("Browser PDF", browserRaster, browserExpected, pageErrors);
+                    if (direct != null) {
+                        PixelTolerance tolerance = item.Contract.BrowserVisualTolerance;
+                        VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(direct,
+                            browserRaster, tolerance.Channel,
+                            (int)(expected.Width * (double)expected.Height * tolerance.DifferentRatio), tolerance.MeanAbsoluteError);
+                        string diff = prefix + "-browser-vs-png-diff.png";
+                        File.WriteAllBytes(ArtifactPaths.Resolve(output, diff), comparison.DiffPng);
+                        comparisons.Add(new ComparisonReport("browser-vs-png", comparison.Passed, comparison.DifferentPixels,
+                            comparison.TotalPixels, double.IsFinite(comparison.MeanAbsoluteError) ? comparison.MeanAbsoluteError : null, diff));
+                        if (!comparison.Passed) pageErrors.Add("browser-vs-png exceeds the visual tolerance.");
+                    }
+                }
                 foreach (ImageArtifact artifact in item.Images.Where(image => image.Page == pageNumber).OrderBy(image => image.Format == "Png" ? 0 : 1)) {
                     string path = CheckedArtifact(output, artifact.Path, artifact.Sha256);
                     OfficeRasterImage raster;
@@ -86,9 +131,8 @@ internal static class BundleVerifier {
                         raster = Decode(File.ReadAllBytes(svgPng), "Png");
                     } else raster = Decode(File.ReadAllBytes(path), artifact.Format);
                     CheckRegions(artifact.Format, raster, expected, pageErrors);
-                    if (artifact.Format == "Png") direct = raster;
                     if (artifact.Format == "Png" && !item.Contract.ComparePdfPixels) continue;
-                    if (direct == null) { pageErrors.Add("Missing direct PNG reference."); continue; }
+                    if (direct == null) continue;
                     string route = artifact.Format == "Png" ? "png-vs-pdf" : artifact.Format.ToLowerInvariant() + "-vs-png";
                     var tolerance = item.Contract.VisualTolerance;
                     VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(direct,
@@ -109,7 +153,7 @@ internal static class BundleVerifier {
                     item.PdfRoute, item.Contract.ComparePdfPixels, false, item.Contract.Limitations));
             }
         }
-        return new GateReport(1, bundle.Commit, bundle.FontSha256, version, browserVersion, reports.All(item => item.Passed), reports);
+        return new GateReport(2, bundle.Commit, bundle.FontSha256, version, browserVersion, reports.All(item => item.Passed), reports);
     }
 
     private static string CheckedArtifact(string output, string relative, string hash) {

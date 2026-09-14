@@ -468,22 +468,25 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeShape shape = drawingShape.Shape;
         IReadOnlyList<OfficeFlattenedPathContour> contours = OfficePathFlattener.Flatten(shape.PathCommands, 0D, 0D, 1D);
         if (fillRadialGradient != null || fillGradient != null || fill.HasValue) {
-            List<IReadOnlyList<OfficePoint>> closedContours = new List<IReadOnlyList<OfficePoint>>();
+            List<IReadOnlyList<OfficePoint>> fillContours = new List<IReadOnlyList<OfficePoint>>();
             for (int i = 0; i < contours.Count; i++) {
-                if (contours[i].Closed && contours[i].Points.Count >= 3) {
-                    closedContours.Add(TransformShapePoints(drawingShape, contours[i].Points, scale));
+                // SVG fill processing closes every open subpath implicitly. Keep
+                // stroke processing below tied to the authored Closed flag so an
+                // open path does not acquire a synthetic closing stroke.
+                if (contours[i].Points.Count >= 3) {
+                    fillContours.Add(TransformShapePoints(drawingShape, contours[i].Points, scale));
                 }
             }
 
-            if (closedContours.Count > 0) {
+            if (fillContours.Count > 0) {
                 if (fillGradient != null) {
                     fillGradient = TransformShapeFillGradient(drawingShape, scale,
-                        closedContours, fillGradient);
+                        fillContours, fillGradient);
                 }
                 if (fillRadialGradient != null || fillGradient != null) {
-                    FillGradientPathContours(canvas, closedContours, fillGradient, fillRadialGradient, shape.FillRule);
+                    FillGradientPathContours(canvas, fillContours, fillGradient, fillRadialGradient, shape.FillRule);
                 } else {
-                    FillPathContours(canvas, closedContours, fill!.Value, shape.FillRule);
+                    FillPathContours(canvas, fillContours, fill!.Value, shape.FillRule);
                 }
             }
         }
@@ -803,18 +806,21 @@ public static partial class OfficeDrawingRasterRenderer {
     private static void RenderPath(OfficeRasterCanvas canvas, OfficeShape shape, double x, double y, double scale, OfficeColor? fill, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor? stroke, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth) {
         IReadOnlyList<OfficeFlattenedPathContour> contours = OfficePathFlattener.Flatten(shape.PathCommands, x, y, scale);
         if (fillRadialGradient != null || fillGradient != null || fill.HasValue) {
-            List<IReadOnlyList<OfficePoint>> closedContours = new List<IReadOnlyList<OfficePoint>>();
+            List<IReadOnlyList<OfficePoint>> fillContours = new List<IReadOnlyList<OfficePoint>>();
             for (int i = 0; i < contours.Count; i++) {
-                if (contours[i].Closed && contours[i].Points.Count >= 3) {
-                    closedContours.Add(contours[i].Points);
+                // SVG fill processing closes every open subpath implicitly. Keep
+                // stroke processing below tied to the authored Closed flag so an
+                // open path does not acquire a synthetic closing stroke.
+                if (contours[i].Points.Count >= 3) {
+                    fillContours.Add(contours[i].Points);
                 }
             }
 
-            if (closedContours.Count > 0) {
+            if (fillContours.Count > 0) {
                 if (fillRadialGradient != null || fillGradient != null) {
-                    FillGradientPathContours(canvas, closedContours, fillGradient, fillRadialGradient, shape.FillRule);
+                    FillGradientPathContours(canvas, fillContours, fillGradient, fillRadialGradient, shape.FillRule);
                 } else {
-                    FillPathContours(canvas, closedContours, fill!.Value, shape.FillRule);
+                    FillPathContours(canvas, fillContours, fill!.Value, shape.FillRule);
                 }
             }
         }

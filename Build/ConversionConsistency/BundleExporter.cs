@@ -1,13 +1,14 @@
+using HtmlTinkerX;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 
 namespace OfficeIMO.ConversionConsistency;
 
-internal static class BundleExporter {
+internal static partial class BundleExporter {
     internal static async Task ExportAsync(string repository, string suitePath, string output, string? caseId, CancellationToken cancellationToken) {
         ConsistencySuite suite = GateJson.Read<ConsistencySuite>(suitePath);
-        if (suite.SchemaVersion != 1 || suite.Dpi < 36 || suite.Dpi > 600 || suite.Cases.Count == 0)
+        if (suite.SchemaVersion != 2 || suite.Dpi < 36 || suite.Dpi > 600 || suite.Cases.Count == 0)
             throw new InvalidDataException("Unsupported or empty consistency suite.");
         if (Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any())
             throw new IOException("The output directory must be empty to prevent stale evidence: " + output);
@@ -20,6 +21,12 @@ internal static class BundleExporter {
         var provenance = await ArtifactPaths.ProvenanceAsync(repository);
         Directory.CreateDirectory(output);
         var cases = new List<CaseBundle>();
+        HtmlBrowserPdfRenderer? browser = selected.Any(item => item.CaptureBrowserReference)
+            ? new HtmlBrowserPdfRenderer(new HtmlBrowserPdfRendererOptions(
+                maximumBrowserInstances: 1, maximumQueuedCaptures: 4, networkPolicy: HtmlBrowserNetworkPolicy.Offline,
+                setupTimeout: TimeSpan.FromSeconds(45)))
+            : null;
+        try {
         foreach (ConsistencyCase contract in selected) {
             cancellationToken.ThrowIfCancellationRequested();
             if (contract.Id.Length == 0 || contract.Id.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '-'))
@@ -48,11 +55,19 @@ internal static class BundleExporter {
                         diagnosticDetails.Add(diagnostic.Code + ": " + diagnostic.Message + " [" + diagnostic.Source + "]");
                 }
             }
+            BrowserReferenceArtifact? browserReference = contract.CaptureBrowserReference
+                ? await CaptureBrowserReferenceAsync(browser ?? throw new InvalidOperationException("Browser renderer was not initialized."),
+                    contract, source, suite, fontBytes, output, cancellationToken)
+                : null;
             cases.Add(new CaseBundle(contract, ArtifactPaths.HashFile(source), pdfPath, ArtifactPaths.Hash(exported.Pdf), exported.PdfRoute, images, diagnostics.Distinct().ToList()) {
-                DiagnosticDetails = diagnosticDetails.OrderBy(value => value, StringComparer.Ordinal).ToList()
+                DiagnosticDetails = diagnosticDetails.OrderBy(value => value, StringComparer.Ordinal).ToList(),
+                BrowserReference = browserReference
             });
         }
-        GateJson.Write(Path.Combine(output, "bundle.json"), new EvidenceBundle(1, provenance.Commit, provenance.DiffHash,
+        } finally {
+            if (browser != null) await browser.DisposeAsync();
+        }
+        GateJson.Write(Path.Combine(output, "bundle.json"), new EvidenceBundle(2, provenance.Commit, provenance.DiffHash,
             ArtifactPaths.Hash(fontBytes), suite.FontFamily, suite.Dpi, nameof(OfficeManagedTextShapingProvider), "#ffffff", cases, provenance.Untracked));
     }
 }

@@ -1,0 +1,18 @@
+<style>
+  body{font:13px/1.4 Arial,sans-serif;color:#25324a}article{max-width:760px;margin:auto}
+  header{border-bottom:3px solid #5b4bdb}.filters{display:flex;gap:10px;align-items:end;background:#f5f6fb;padding:12px}
+  label{display:flex;flex-direction:column;gap:3px}.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+  .kpi{padding:12px;border-radius:6px;background:linear-gradient(135deg,#eef0ff,#fff);border:1px solid #d9dcf8}
+  .kpi strong{display:block;font-size:20px;color:#4939c7}table{width:100%;border-collapse:collapse}th,td{padding:7px;border-bottom:1px solid #ddd;text-align:left}
+  .good{color:#167044;font-weight:bold}
+</style>
+<article>
+  <header><h1>Quarterly Report</h1><p>Revenue increased by 18 percent in Q2 2026.</p></header>
+  <form class='filters'><label>Region<select id='report-region'><option selected>All regions</option><option>Europe</option></select></label>
+    <label>Owner<input id='report-owner' value='Operations'></label><button id='apply-filter'>Apply filters</button></form>
+  <div class='kpis'><section class='kpi'><h2>Revenue</h2><strong>42000</strong><small>+18% quarter over quarter</small></section>
+    <section class='kpi'><h2>Margin</h2><strong>18%</strong><progress id='margin-progress' value='18' max='25'></progress></section>
+    <section class='kpi'><h2>Pipeline</h2><strong>64 deals</strong><meter id='pipeline-meter' min='0' max='100' value='76'></meter></section></div>
+  <h2>Regional performance</h2><table><thead><tr><th>Region</th><th>Revenue</th><th>Target</th><th>Status</th></tr></thead>
+  <tbody><tr><td>Europe</td><td>21,300</td><td>20,000</td><td class='good'>On plan</td></tr><tr><td>Americas</td><td>14,200</td><td>15,000</td><td>Watch</td></tr><tr><td>Asia Pacific</td><td>6,500</td><td>6,000</td><td class='good'>On plan</td></tr></tbody></table>
+</article>

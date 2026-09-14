@@ -53,10 +53,13 @@ public sealed class OfficeConicGradient {
         var ordered = new List<double>(boundaries);
         double centerX = CenterX * width;
         double centerY = CenterY * height;
-        const double overlap = 0.000001D;
         double cornerRadius = Math.Max(
             Math.Max(Distance(centerX, centerY, 0D, 0D), Distance(centerX, centerY, width, 0D)),
             Math.Max(Distance(centerX, centerY, 0D, height), Distance(centerX, centerY, width, height)));
+        double segmentAngle = (Math.PI * 2D) / qualitySegments;
+        double overlap = Math.Min(
+            segmentAngle * 0.49D,
+            Math.Atan2(1.25D, Math.Max(1D, cornerRadius)));
         double radius = cornerRadius / Math.Cos((Math.PI / qualitySegments) + overlap) * 1.000001D;
         var content = new OfficeDrawing(width, height);
         for (int index = 1; index < ordered.Count; index++) {
@@ -69,8 +72,11 @@ public sealed class OfficeConicGradient {
             double firstY = centerY + (Math.Sin(startRadians) * radius);
             double secondX = centerX + (Math.Cos(endRadians) * radius);
             double secondY = centerY + (Math.Sin(endRadians) * radius);
+            double middleRadians = ToRadians(StartAngle + (((start + end) / 2D) * 360D)) - (Math.PI / 2D);
+            double apexX = centerX - (Math.Cos(middleRadians) * 1.25D);
+            double apexY = centerY - (Math.Sin(middleRadians) * 1.25D);
             List<OfficePoint> clippedWedge = ClipTriangleToRectangle(
-                new OfficePoint(centerX, centerY),
+                new OfficePoint(apexX, apexY),
                 new OfficePoint(firstX, firstY),
                 new OfficePoint(secondX, secondY),
                 width,

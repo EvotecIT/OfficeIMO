@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace OfficeIMO.ConversionConsistency;
 
 internal sealed record ConsistencySuite {
-    public int SchemaVersion { get; init; } = 1;
+    public int SchemaVersion { get; init; } = 2;
     public required string FontPath { get; init; }
     public string FontFamily { get; init; } = "Consistency Sans";
     public int Dpi { get; init; } = 96;
@@ -23,6 +23,8 @@ internal sealed record ConsistencyCase {
     public required List<PageExpectation> Pages { get; init; }
     public List<string> AllowedDiagnostics { get; init; } = new();
     public PixelTolerance VisualTolerance { get; init; } = new();
+    public bool CaptureBrowserReference { get; init; }
+    public PixelTolerance BrowserVisualTolerance { get; init; } = new();
 }
 
 internal sealed record PageExpectation {
@@ -32,7 +34,9 @@ internal sealed record PageExpectation {
     public int? PdfHeight { get; init; }
     public required List<string> Text { get; init; }
     public List<RegionExpectation> Regions { get; init; } = new();
+    public List<RegionExpectation> BrowserRegions { get; init; } = new();
     public List<TextPositionExpectation> TextPositions { get; init; } = new();
+    public List<TextPositionExpectation> BrowserTextPositions { get; init; } = new();
     public List<TextPositionExpectation> SvgTextPositions { get; init; } = new();
 }
 
@@ -63,7 +67,9 @@ internal sealed record SourceFileHash(string Path, string Sha256);
 internal sealed record CaseBundle(ConsistencyCase Contract, string SourceSha256, string PdfPath,
     string PdfSha256, string PdfRoute, List<ImageArtifact> Images, List<string> Diagnostics) {
     public List<string> DiagnosticDetails { get; init; } = new();
+    public BrowserReferenceArtifact? BrowserReference { get; init; }
 }
+internal sealed record BrowserReferenceArtifact(string PdfPath, string PdfSha256, string BrowserVersion, int PageCount);
 internal sealed record ImageArtifact(int Page, string Format, string Path, string Sha256, int Width, int Height);
 internal sealed record GateReport(int SchemaVersion, string Commit, string FontSha256,
     string ExternalRasterizer, string BrowserVersion, bool Passed, List<CaseReport> Cases);

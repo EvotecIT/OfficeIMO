@@ -1,8 +1,8 @@
 # Conversion consistency checks
 
-This tool compares the native PDF and image exports of authored documents. It checks every expected page, required text, physical dimensions, diagnostics, selected text baselines and color regions. PNG, SVG, JPEG, TIFF and WebP are included. Poppler renders saved PDFs independently; Chromium renders SVG before its pixels are compared with the direct PNG export.
+This tool compares the managed PDF and image exports of authored documents. It checks every expected page, required text, physical dimensions, diagnostics, selected text baselines and color regions. PNG, SVG, JPEG, TIFF and WebP are included. Poppler renders saved PDFs independently; Chromium renders SVG and selected source HTML before their pixels are compared with the direct PNG export.
 
-The source corpus covers HTML, PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, OneNote, email and EPUB documents, and Visio diagrams. PowerPoint cases include scaled, nested, rotated, and mirrored text groups. A separate report suite checks a two-page action register with 40 distinct action IDs, typed numeric cells, an inline chart, and subscript/superscript text.
+The source corpus covers HTML, PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, OneNote, email and EPUB documents, and Visio diagrams. PowerPoint cases include scaled, nested, rotated, and mirrored text groups. A separate report suite checks a two-page action register with 40 distinct action IDs, typed numeric cells, an inline chart, and subscript/superscript text. The file-backed [H4 representative-page corpus](../../OfficeIMO.TestAssets/Documents/Html/Qualification/H4/v1/) supplies a separate held-out lane through `HtmlRenderingCorpus_ProvesSharedSceneImageAndSearchablePdf`; those documents are not used to tune this browser comparison.
 
 ## Run locally
 
@@ -28,11 +28,13 @@ Output directories must be empty when preparing or exporting. Choose a new direc
 
 ## Read the evidence
 
-Each case contains its PDF, all image pages, the independent PDF/SVG rasterizations, and pixel-difference images. `bundle.json` records source and output hashes, the source commit and tracked diff hash, untracked source-file hashes, font hash, rendering profile, native route, expected pages, and declared limitations. Task output under `.artifacts` is excluded from source provenance. `consistency-result.json` records comparisons and failures, plus the external renderer versions.
+Each case contains its PDF, all image pages, the independent PDF/SVG rasterizations, and pixel-difference images. A schema-2 HTML case may also contain an immutable `browser-reference.pdf`. Export captures that reference offline from the source HTML, injects the same hashed font bytes used by the managed rendering profile, and records its hash, page count, and browser version. Verification consumes the saved reference instead of reopening the HTML, so later source or browser drift cannot change an existing bundle silently.
+
+`bundle.json` records source and output hashes, the source commit and tracked diff hash, untracked source-file hashes, font hash, rendering profile, managed route, expected pages, browser-specific geometry contracts, and declared limitations. Task output under `.artifacts` is excluded from source provenance. `consistency-result.json` records comparisons and failures, plus the external renderer versions.
 
 Expected labels and geometry come from the authored source contract. Adding a case requires specifying the pages and content that should survive conversion. This prevents an empty image or a shared pagination mistake from passing simply because two export routes agree.
 
-The default pixel allowance is 2% with a mean channel error of 3. The dense report fixtures allow 3%; tight worksheet crops allow 4% and a mean error of 4.5. Those cases also assert text positions separately, because small-font rasterization differs between the managed renderer and Chromium. Changing a tolerance requires inspecting the output and retaining independent content and geometry checks.
+The default managed-output pixel allowance is 2% with a mean channel error of 3. Dense report fixtures allow 3%; tight worksheet crops allow 4% and a mean error of 4.5. The pinned source-HTML browser lane allows 6% changed pixels and a mean channel error of 7. Its current cases also declare browser-specific text baselines and color regions because browser line-box and table metrics differ from the managed renderer. Changing a tolerance requires inspecting the output and retaining independent content, geometry, page-size, and region checks.
 
 ## Coverage limits
 

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "fontPath": "OfficeIMO.Drawing.Tests/TestAssets/OpenSans-Regular.woff2",
   "fontFamily": "Arial",
   "dpi": 96,
@@ -8,7 +8,13 @@
       "id": "text-geometry",
       "format": "html",
       "source": "Build/ConversionConsistency/Fixtures/text-geometry.html",
-      "evidence": "Authored labels, baseline positions within 0.25px, and a color region validate content and placement. At 96 dpi this dense 20px text fixture allows 3 percent changed pixels for Chromium font hinting; mean channel error remains capped at 3. Saved PDF and Chromium SVG text baselines are checked independently.",
+      "captureBrowserReference": true,
+      "browserVisualTolerance": {
+        "channel": 32,
+        "differentRatio": 0.06,
+        "meanAbsoluteError": 7
+      },
+      "evidence": "Authored labels, baseline positions within 0.25px, and a color region validate content and placement. Managed PDF and image routes allow 3 percent changed pixels with mean channel error capped at 3. The pinned source-HTML Chromium reference has separate measured baselines and regions and allows 6 percent changed pixels with mean channel error capped at 7.",
       "visualTolerance": {
         "channel": 32,
         "differentRatio": 0.03,
@@ -40,6 +46,24 @@
               "baseline": 192
             }
           ],
+          "browserTextPositions": [
+            {
+              "text": "PAGE-ONE",
+              "x": 16,
+              "baseline": 39
+            },
+            {
+              "text": "Water",
+              "x": 16,
+              "baseline": 93.656,
+              "tolerance": 0.3
+            },
+            {
+              "text": "SVG LABEL",
+              "x": 16,
+              "baseline": 205
+            }
+          ],
           "regions": [
             {
               "id": "green-marker",
@@ -51,6 +75,18 @@
               "minimumPixels": 600,
               "maximumPixels": 900
             }
+          ],
+          "browserRegions": [
+            {
+              "id": "green-marker",
+              "x": 16,
+              "y": 262,
+              "width": 32,
+              "height": 24,
+              "color": "#087f5b",
+              "minimumPixels": 700,
+              "maximumPixels": 800
+            }
           ]
         }
       ]
@@ -59,7 +95,9 @@
       "id": "delivery-register",
       "format": "html",
       "source": "OfficeIMO.Examples/Converters/Html/Content/Reports/delivery-register.html",
-      "evidence": "Two authored register pages with 40 action IDs, a completion chart, typed effort cells and sub/superscripts. Source CSS fixes the section inset at 24px, table rows at 21px, and first-row baselines at 199px and 119px. Header, first/last row and footer baselines are checked independently in PDF and SVG. Dense 11px table text allows 3 percent differing pixels for rasterizer hinting, with mean channel error capped at 3.",
+      "captureBrowserReference": true,
+      "browserVisualTolerance": { "channel": 32, "differentRatio": 0.06, "meanAbsoluteError": 7 },
+      "evidence": "Two authored register pages with 40 action IDs, a completion chart, typed effort cells and sub/superscripts. Managed and pinned Chromium baselines, page geometry, chart and table regions are checked independently. Managed output routes allow 3 percent changed pixels with mean channel error capped at 3; the source-HTML browser comparison allows 6 percent and 7 respectively for the declared line-box and table-metric differences.",
       "visualTolerance": { "channel": 32, "differentRatio": 0.03, "meanAbsoluteError": 3 },
       "pages": [
         {
@@ -95,9 +133,19 @@
             { "text": "ACT-020", "x": 28, "baseline": 598 },
             { "text": "REGISTER PAGE 1", "x": 24, "baseline": 627 }
           ],
+          "browserTextPositions": [
+            { "text": "Service delivery review", "x": 24, "baseline": 48 },
+            { "text": "ACT-001", "x": 28, "baseline": 203 },
+            { "text": "ACT-020", "x": 28, "baseline": 602 },
+            { "text": "REGISTER PAGE 1", "x": 24, "baseline": 632 }
+          ],
           "regions": [
             { "id": "completion", "x": 24, "y": 126, "width": 280, "height": 12, "color": "#087f5b", "minimumPixels": 3000 },
             { "id": "table-header", "x": 24, "y": 164, "width": 744, "height": 21, "color": "#17324d", "minimumPixels": 13000 }
+          ],
+          "browserRegions": [
+            { "id": "completion", "x": 24, "y": 126, "width": 280, "height": 12, "color": "#087f5b", "minimumPixels": 3000 },
+            { "id": "table-header", "x": 24, "y": 164, "width": 744, "height": 21, "color": "#17324d", "minimumPixels": 11500 }
           ]
         },
         {
@@ -132,6 +180,12 @@
             { "text": "ACT-021", "x": 28, "baseline": 119 },
             { "text": "ACT-040", "x": 28, "baseline": 518 },
             { "text": "REGISTER PAGE 2", "x": 24, "baseline": 547 }
+          ],
+          "browserTextPositions": [
+            { "text": "Action register continued", "x": 24, "baseline": 43 },
+            { "text": "ACT-021", "x": 28, "baseline": 119 },
+            { "text": "ACT-040", "x": 28, "baseline": 518 },
+            { "text": "REGISTER PAGE 2", "x": 24, "baseline": 548 }
           ]
         }
       ]
