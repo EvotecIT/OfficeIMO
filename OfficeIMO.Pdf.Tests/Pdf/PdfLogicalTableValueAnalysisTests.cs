@@ -284,6 +284,26 @@ public sealed class PdfLogicalTableValueAnalysisTests {
         Assert.Equal("zł", localizedToken);
     }
 
+    [Theory]
+    [InlineData("XCG 100.00", PdfLogicalCurrencyAffixPosition.Prefix)]
+    [InlineData("100.00 XCG", PdfLogicalCurrencyAffixPosition.Suffix)]
+    public void TryParseCurrency_RecognizesTheCurrentCaribbeanGuilderCode(
+        string value,
+        PdfLogicalCurrencyAffixPosition expectedPosition) {
+        Assert.True(PdfLogicalTableValueParser.TryParseCurrency(
+            value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out decimal parsed,
+            out string token,
+            out PdfLogicalCurrencyAffixPosition position,
+            out bool usesSpacing));
+
+        Assert.Equal(100M, parsed);
+        Assert.Equal("XCG", token);
+        Assert.Equal(expectedPosition, position);
+        Assert.True(usesSpacing);
+    }
+
     [Fact]
     public void Analyze_KeepsMixedCurrencyAffixPlacementAsText() {
         IReadOnlyList<IReadOnlyList<string>> rows = new[] {

@@ -148,6 +148,21 @@ public sealed class PdfHtmlPageAppearanceTests {
         Assert.Equal(1, CountOccurrences(html.Body!.TextContent, "Searchable OCR text"));
     }
 
+    [Fact]
+    public void Type3ImagePayloadMissingFromLogicalImagesForcesSafePositionedFallback() {
+        byte[] source = BuildType3ImagePdf();
+        Assert.Empty(Assert.Single(PdfDocumentReadResult.Load(source).Pages).Images);
+
+        PdfHtmlConversionResult result = PdfDocument.Load(source)
+            .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+
+        Assert.DoesNotContain("pdf-page-appearance", result.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain("data:image/", result.Value, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PageAppearanceUnsafeImageFallback" &&
+            warning.LossKind == OfficeConversionLossKind.None);
+    }
+
     [Theory]
     [InlineData(false, PdfHtmlImageExportMode.EmbeddedDataUri)]
     [InlineData(true, PdfHtmlImageExportMode.PlaceholderOnly)]
@@ -239,6 +254,29 @@ public sealed class PdfHtmlPageAppearanceTests {
         WriteAscii(pdf, $"5 0 obj << /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter {filter}{interpolation} /Length {image.Length} >> stream\n");
         pdf.Write(image, 0, image.Length);
         WriteAscii(pdf, "\nendstream endobj\ntrailer << /Root 1 0 R /Size 6 >>\n%%EOF\n");
+        return pdf.ToArray();
+    }
+
+    private static byte[] BuildType3ImagePdf() {
+        byte[] pageContent = Encoding.ASCII.GetBytes("BT /FType3 18 Tf 20 100 Td (A) Tj ET");
+        byte[] glyphContent = Encoding.ASCII.GetBytes(
+            "500 0 d0 q 250 0 0 700 0 0 cm /Im1 Do Q");
+        byte[] image = { 255, 0, 0 };
+        using var pdf = new MemoryStream();
+        WriteAscii(pdf, "%PDF-1.7\n");
+        WriteAscii(pdf, "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n");
+        WriteAscii(pdf, "2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj\n");
+        WriteAscii(pdf, "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Resources << /Font << /FType3 5 0 R >> >> /Contents 4 0 R >> endobj\n");
+        WriteAscii(pdf, $"4 0 obj << /Length {pageContent.Length} >> stream\n");
+        pdf.Write(pageContent, 0, pageContent.Length);
+        WriteAscii(pdf, "\nendstream endobj\n");
+        WriteAscii(pdf, "5 0 obj << /Type /Font /Subtype /Type3 /Name /FType3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >> endobj\n");
+        WriteAscii(pdf, $"6 0 obj << /Length {glyphContent.Length} >> stream\n");
+        pdf.Write(glyphContent, 0, glyphContent.Length);
+        WriteAscii(pdf, "\nendstream endobj\n");
+        WriteAscii(pdf, $"7 0 obj << /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Interpolate true /Length {image.Length} >> stream\n");
+        pdf.Write(image, 0, image.Length);
+        WriteAscii(pdf, "\nendstream endobj\ntrailer << /Root 1 0 R /Size 8 >>\n%%EOF\n");
         return pdf.ToArray();
     }
 

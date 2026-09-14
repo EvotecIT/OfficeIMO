@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
@@ -48,6 +50,9 @@ public static partial class PdfHtmlConverterExtensions {
         // The shared PDF projection owns clipping, paint order, embedded fonts,
         // images and paths. Never rebuild those semantics from logical blocks.
         var drawing = sourcePage.ToDrawing(token);
+        if (ContainsUnaccountedDrawingImagePayload(drawing, page)) {
+            return ReportUnsafeImageAppearanceFallback(options);
+        }
         long remaining = options.MaximumOutputCharacters.HasValue
             ? options.MaximumOutputCharacters.Value - (long)builder.Length
             : int.MaxValue;
@@ -123,5 +128,61 @@ public static partial class PdfHtmlConverterExtensions {
             "The page appearance SVG was not emitted because it could expose image pixels hidden by PDF clipping, transparency, or paint effects. Positioned HTML fallback was used instead.",
             PdfCore.PdfConversionWarningSeverity.Information);
         return false;
+    }
+
+    private static bool ContainsUnaccountedDrawingImagePayload(
+        OfficeDrawing drawing,
+        PdfCore.PdfLogicalPage page) {
+        var safePayloadCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (PdfCore.PdfLogicalImage image in page.Images) {
+            string key = GetImagePayloadKey(image.SourceImage.Bytes);
+            foreach (PdfCore.PdfImagePlacement placement in image.Placements) {
+                if (!PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement).CanImport) continue;
+                safePayloadCounts[key] = safePayloadCounts.TryGetValue(key, out int count) ? count + 1 : 1;
+            }
+        }
+
+        return ContainsUnaccountedDrawingImagePayload(drawing, safePayloadCounts);
+    }
+
+    private static bool ContainsUnaccountedDrawingImagePayload(
+        OfficeDrawing drawing,
+        IDictionary<string, int> safePayloadCounts) {
+        foreach (OfficeDrawingElement element in drawing.Elements) {
+            switch (element) {
+                case OfficeDrawingImage image:
+                    if (!ConsumeSafeImagePayload(image.EncodedBytes, safePayloadCounts)) return true;
+                    break;
+                case OfficeDrawingImagePattern imagePattern:
+                    if (!ConsumeSafeImagePayload(imagePattern.EncodedBytes, safePayloadCounts)) return true;
+                    break;
+                case OfficeDrawingGroup group:
+                    if (ContainsUnaccountedDrawingImagePayload(group.InnerDrawing, safePayloadCounts)) return true;
+                    break;
+                case OfficeDrawingEffectGroup effectGroup:
+                    if (ContainsUnaccountedDrawingImagePayload(effectGroup.InnerDrawing, safePayloadCounts) ||
+                        effectGroup.SoftMask != null &&
+                        ContainsUnaccountedDrawingImagePayload(effectGroup.SoftMask.InnerDrawing, safePayloadCounts)) return true;
+                    break;
+                case OfficeDrawingTilingPattern tilingPattern:
+                    if (ContainsUnaccountedDrawingImagePayload(tilingPattern.InnerTile, safePayloadCounts)) return true;
+                    break;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ConsumeSafeImagePayload(byte[] bytes, IDictionary<string, int> safePayloadCounts) {
+        string key = GetImagePayloadKey(bytes);
+        if (!safePayloadCounts.TryGetValue(key, out int count) || count <= 0) return false;
+        safePayloadCounts[key] = count - 1;
+        return true;
+    }
+
+    private static string GetImagePayloadKey(byte[] bytes) {
+        using SHA256 sha256 = SHA256.Create();
+        return bytes.Length.ToString(CultureInfo.InvariantCulture) + ":" +
+            Convert.ToBase64String(sha256.ComputeHash(bytes));
     }
 }

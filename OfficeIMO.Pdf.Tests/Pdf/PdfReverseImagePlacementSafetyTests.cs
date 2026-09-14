@@ -348,6 +348,30 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void OverprintModeWithoutActiveOverprintDoesNotCreateFalseImageLoss() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImageWithGraphicsStatePdf("/OPM 1"));
+        PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
+
+        Assert.False(placement.HasUnsupportedImagePaintEffect);
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            Assert.Single(word.Value.Images);
+        }
+    }
+
+    [Fact]
+    public void RetainedOverprintModeBecomesLossBearingWhenOverprintIsEnabledLater() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
+            "q /GS1 gs /GS2 gs 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            "/OPM 1",
+            secondGraphicsStateEntries: "/op true"));
+        PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
+
+        Assert.True(placement.HasUnsupportedImagePaintEffect);
+        AssertRawImageOmittedAcrossEditableAdapters(logical, "PdfImagePaintEffectNotSafelyEditable", "ImagePaintEffectNotSafelyEditable");
+    }
+
+    [Fact]
     public void FloatingPositionAndNaturalImageSizeCanBeSelectedIndependently() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas.Image(Png, 20D, 30D, 80D, 40D))
