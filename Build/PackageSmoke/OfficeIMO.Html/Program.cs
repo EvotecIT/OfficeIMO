@@ -106,5 +106,24 @@ var foundationPdf = PdfReadDocument.Open(conversion.ToPdfBytes());
 if (!foundationPdf.ExtractText().Contains("Packed edit"))
     throw new InvalidOperationException("Packed owned document PDF text was lost.");
 
+HtmlRenderRequest imageRequest = HtmlRenderRequest.Create(
+    HtmlRenderIntentProfile.ScreenFullPage,
+    HtmlRenderEncoder.Png,
+    new HtmlRenderOptions { ViewportWidth = 480D });
+HtmlRenderResult retained = HtmlRenderEngine.Execute(conversion, imageRequest);
+if (retained.Surfaces.Count != 1 || retained.ExportImage().Bytes.Length < 8 ||
+    retained.Request.ProfileId != "screen-full-page-v1" ||
+    !retained.DeclaredProviderIds.Contains(HtmlCapabilityProviderIds.OfficeIMOHtml))
+    throw new InvalidOperationException("Packed explicit HTML render request contract failed.");
+
+HtmlPdfRenderRequestResult explicitPdf = conversion.RenderToPdfResult(HtmlRenderRequest.Create(
+    HtmlRenderIntentProfile.ScreenMediaPaged,
+    HtmlRenderEncoder.Pdf,
+    new HtmlToPdfOptions()));
+byte[] explicitPdfBytes = explicitPdf.ToBytes();
+if (explicitPdf.RenderResult.Request.CssMedia != HtmlCssMediaContext.Screen ||
+    explicitPdfBytes.Length < 4 || System.Text.Encoding.ASCII.GetString(explicitPdfBytes, 0, 4) != "%PDF")
+    throw new InvalidOperationException("Packed explicit HTML-to-PDF request contract failed.");
+
 Console.WriteLine("OfficeIMO HTML packed API smoke passed on " +
     System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription + ".");

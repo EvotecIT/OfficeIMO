@@ -1,6 +1,6 @@
 # OfficeIMO HTML support matrix
 
-This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`. Entries describe tested behavior and bounded fallbacks; a parsed CSS property is not treated as rendered support unless the renderer contract says so.
+This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderProfileContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`. Entries describe tested behavior and bounded fallbacks; a parsed CSS property is not treated as rendered support unless the renderer contract says so.
 
 Capability schema version: 2
 
@@ -102,6 +102,19 @@ The shared projector accepts only bounded single-surface, single-semantic-sectio
 | `paged-print-v1` | 1.0 | StableDefault | Linux, macOS, Windows | page set, paged raster, paged SVG, searchable PDF |
 | `static-screen-v1` | 1.0 | StableDefault | Linux, macOS, Windows | display list, geometry, raster, SVG |
 | `web-document-v1` | 1.0 | QualifiedOptIn | browser WebAssembly where separately qualified, Linux, macOS, Windows | owned document, owned snapshot, serialized HTML |
+
+## Render intent profiles
+
+CSS media, layout surface, pagination, page-set behavior, and encoder are explicit independent request axes. Qualification applies to the exact named combination below.
+
+| Render profile | CSS media | Surface | Pagination | Default page set | Encoders | Coverage | Promotion | Capability manifests | Evidence | Behavior | Limitations |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `continuous-vector-v1` | Screen | Continuous | None | Selected | DisplayList, Svg, Geometry, HitTest | Qualified | QualifiedOptIn | `static-screen-v1` | `officeimo-html-h4-screen-v1` | Retains one content-height vector display list for SVG, geometry, hit testing, or downstream preview consumers. | Raster and PDF encoders require a screen or paged profile with an explicit output surface policy. |
+| `print-paged-v1` | Print | Paged | FragmentedReflow | Separate | DisplayList, Png, Jpeg, Tiff, Webp, Svg, Geometry, HitTest, Pdf | Qualified | StableDefault | `paged-print-v1` | `officeimo-html-h4-paged-v1` | Applies print CSS, resolves page rules, and reflows and fragments content into ordered page sheets. | The renderer implements the declared bounded paged-media subset rather than every browser print feature. |
+| `screen-full-page-v1` | Screen | Continuous | None | Selected | DisplayList, Png, Jpeg, Tiff, Webp, Svg, Geometry, HitTest | Qualified | StableDefault | `static-screen-v1` | `officeimo-html-h4-screen-v1` | Applies screen CSS at a fixed width and grows one retained surface to the document content height. | Dynamic runtime state must be captured before rendering; browser pixel references remain a roadmap item. |
+| `screen-media-paged-v1` | Screen | Paged | FragmentedReflow | Separate | DisplayList, Png, Jpeg, Tiff, Webp, Svg, Geometry, HitTest, Pdf | Unqualified | ExperimentalOptIn | `static-screen-v1`, `paged-print-v1` | `officeimo-html-tests` | Applies screen CSS while reflowing and fragmenting content into page sheets. | The axis combination has focused regression coverage but does not yet have a frozen browser-reference qualification set. |
+| `screen-snapshot-paged-v1` | Screen | Paged | FixedCanvasSlicing | Separate | DisplayList, Png, Jpeg, Tiff, Webp, Svg, Geometry, HitTest, Pdf | Unqualified | ExperimentalOptIn | `static-screen-v1`, `paged-print-v1` | `officeimo-html-tests` | Completes one continuous screen layout and projects intersecting display-list nodes into fixed-size clipped page canvases. | Fixed slicing can split elements and does not yet have a frozen browser-reference qualification set; element-aware placement is unsupported. |
+| `screen-viewport-v1` | Screen | Viewport | None | Selected | DisplayList, Png, Jpeg, Tiff, Webp, Svg, Geometry, HitTest | Unqualified | ExperimentalOptIn | `static-screen-v1` | `officeimo-html-tests` | Applies screen CSS at an exact viewport and clips the retained scene to the requested width and height. | The bounded viewport contract has focused regression coverage but does not yet have a frozen browser-reference qualification set. |
 
 ### Provider pins
 

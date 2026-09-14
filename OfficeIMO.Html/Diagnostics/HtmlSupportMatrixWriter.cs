@@ -8,14 +8,16 @@ public static class HtmlSupportMatrixWriter {
     /// <summary>Generates deterministic Markdown describing the current executable compatibility contracts.</summary>
     public static string ToMarkdown() {
         IReadOnlyList<string> validationErrors = HtmlRenderCapabilityCatalog.Validate();
-        if (validationErrors.Count != 0) {
-            throw new InvalidOperationException("The HTML capability catalog is invalid: " + string.Join(" ", validationErrors));
+        IReadOnlyList<string> renderProfileErrors = HtmlRenderProfileContracts.Validate();
+        if (validationErrors.Count != 0 || renderProfileErrors.Count != 0) {
+            throw new InvalidOperationException("The HTML capability catalog is invalid: "
+                + string.Join(" ", validationErrors.Concat(renderProfileErrors)));
         }
 
         var builder = new StringBuilder();
         builder.AppendLine("# OfficeIMO HTML support matrix");
         builder.AppendLine();
-        builder.AppendLine("This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`. Entries describe tested behavior and bounded fallbacks; a parsed CSS property is not treated as rendered support unless the renderer contract says so.");
+        builder.AppendLine("This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderProfileContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`. Entries describe tested behavior and bounded fallbacks; a parsed CSS property is not treated as rendered support unless the renderer contract says so.");
         builder.AppendLine();
         builder.Append("Capability schema version: ").Append(HtmlRenderCapabilityCatalog.SchemaVersion).AppendLine();
         builder.AppendLine();
@@ -83,6 +85,28 @@ public static class HtmlSupportMatrixWriter {
                 .Append(profile.Promotion).Append(" | ")
                 .Append(EscapeCell(string.Join(", ", profile.Platforms))).Append(" | ")
                 .Append(EscapeCell(string.Join(", ", profile.Outputs))).AppendLine(" |");
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("## Render intent profiles");
+        builder.AppendLine();
+        builder.AppendLine("CSS media, layout surface, pagination, page-set behavior, and encoder are explicit independent request axes. Qualification applies to the exact named combination below.");
+        builder.AppendLine();
+        builder.AppendLine("| Render profile | CSS media | Surface | Pagination | Default page set | Encoders | Coverage | Promotion | Capability manifests | Evidence | Behavior | Limitations |");
+        builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+        foreach (HtmlRenderProfileContract contract in HtmlRenderProfileContracts.All) {
+            builder.Append("| `").Append(EscapeCode(contract.Id)).Append("` | ")
+                .Append(contract.CssMedia).Append(" | ")
+                .Append(contract.Surface).Append(" | ")
+                .Append(contract.Pagination).Append(" | ")
+                .Append(contract.DefaultPageSet.Mode).Append(" | ")
+                .Append(EscapeCell(string.Join(", ", contract.Encoders))).Append(" | ")
+                .Append(contract.Coverage).Append(" | ")
+                .Append(contract.Promotion).Append(" | ")
+                .Append(EscapeCell(FormatIds(contract.CapabilityProfileIds))).Append(" | ")
+                .Append(EscapeCell(FormatIds(contract.EvidenceIds))).Append(" | ")
+                .Append(EscapeCell(contract.Behavior)).Append(" | ")
+                .Append(EscapeCell(contract.Limitations)).AppendLine(" |");
         }
 
         builder.AppendLine();

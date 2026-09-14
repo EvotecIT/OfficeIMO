@@ -12,7 +12,7 @@ internal static class HtmlCssPageSettingsResolver {
         if (options.Mode != HtmlRenderMode.Paged || !options.HonorCssPageRules) return pageRules;
         var layers = new CascadeLayerRegistry();
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
-            if (!IsCssStyleElement(styleElement) || !IsApplicablePrintMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) continue;
+            if (!IsCssStyleElement(styleElement) || !IsApplicablePageMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) continue;
             ApplyRawPageRules(styleElement.TextContent, options, diagnostics, pageRules, layers);
         }
         pageRules.ApplyGenericGeometry(options);
@@ -99,10 +99,10 @@ internal static class HtmlCssPageSettingsResolver {
         return HtmlResourcePipeline.IsCssStyleElement(element);
     }
 
-    private static bool IsApplicablePrintMedia(string mediaText, HtmlRenderOptions options) =>
+    private static bool IsApplicablePageMedia(string mediaText, HtmlRenderOptions options) =>
         HtmlComputedStyleEngine.IsApplicableMedia(
             mediaText,
-            HtmlCssMediaContext.Print,
+            options.MediaContext,
             options.PageWidth,
             options.PageHeight,
             options.MediaFeatures);
@@ -166,7 +166,7 @@ internal static class HtmlCssPageSettingsResolver {
             if (closeBrace < 0 || closeBrace >= end) return;
             string prelude = css.Substring(nameEnd, boundary - nameEnd).Trim();
             if (string.Equals(name, "media", StringComparison.OrdinalIgnoreCase)) {
-                if (IsApplicablePrintMedia(prelude, options)) {
+                if (IsApplicablePageMedia(prelude, options)) {
                     ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, layerPath, layerOrder);
                 }
             } else if (string.Equals(name, "supports", StringComparison.OrdinalIgnoreCase)) {

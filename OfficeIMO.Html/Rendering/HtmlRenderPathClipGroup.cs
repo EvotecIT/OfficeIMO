@@ -66,4 +66,8 @@ public sealed class HtmlRenderPathClipGroup : HtmlRenderVisual {
             paintOrder,
             Source,
             LayoutY);
+
+    internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder) =>
+        new HtmlRenderPathClipGroup(
+            ClipX + offsetX, ClipY + offsetY, ClipPath, visuals, paintOrder, Source, LayoutY);
 }

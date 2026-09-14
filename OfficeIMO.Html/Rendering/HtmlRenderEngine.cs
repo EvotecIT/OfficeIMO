@@ -23,25 +23,26 @@ public static class HtmlRenderEngine {
     internal static HtmlRenderDocument Render(
         HtmlConversionDocument document,
         HtmlRenderOptions? options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken) =>
+        Execute(
+            document,
+            HtmlRenderRequest.FromLegacy(options, HtmlRenderEncoder.DisplayList, HtmlRenderPageSet.All()),
+            cancellationToken).Document;
+
+    /// <summary>
+    /// Resolves an explicit render request into a backend-neutral display list. The intended output
+    /// adapter cannot change the request's CSS, layout, pagination, or page-set axes.
+    /// </summary>
+    public static HtmlRenderResult Execute(
+        HtmlConversionDocument document,
+        HtmlRenderRequest request,
+        CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
+        if (request == null) throw new ArgumentNullException(nameof(request));
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
-        resolved.BaseUri ??= document.BaseUri;
-        ApplyDocumentPolicies(document, resolved);
-        resolved.Validate();
-        return ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
-            HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
-            operationCancellationToken.ThrowIfCancellationRequested();
-            IHtmlDocument renderDocument = document.CreateDocumentForRendering();
-            HtmlRenderInputGuard.ValidateFormState(document.SourceHtml.Length, renderDocument, resolved, operationCancellationToken);
-            return RenderDocument(
-                renderDocument,
-                resolved,
-                initialDiagnostics: null,
-                document.Limits,
-                operationCancellationToken);
-        });
+        HtmlRenderOptions resolved = PrepareOptions(document, request);
+        return ExecuteWithDeadline(resolved, cancellationToken,
+            operationCancellationToken => ExecuteCore(document, request, resolved, operationCancellationToken));
     }
 
     /// <summary>
@@ -192,25 +193,65 @@ public static class HtmlRenderEngine {
     /// <summary>
     /// Renders a parsed HTML source while asynchronously resolving policy-approved external resources through the configured resolver.
     /// </summary>
-    public static async Task<HtmlRenderDocument> RenderAsync(HtmlConversionDocument document, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
+    public static async Task<HtmlRenderDocument> RenderAsync(HtmlConversionDocument document, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>
+        (await ExecuteAsync(
+            document,
+            HtmlRenderRequest.FromLegacy(options, HtmlRenderEncoder.DisplayList, HtmlRenderPageSet.All()),
+            cancellationToken).ConfigureAwait(false)).Document;
+
+    /// <summary>
+    /// Asynchronously resolves resources and prepares an explicit render request as one retained
+    /// backend-neutral result.
+    /// </summary>
+    public static async Task<HtmlRenderResult> ExecuteAsync(
+        HtmlConversionDocument document,
+        HtmlRenderRequest request,
+        CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
+        if (request == null) throw new ArgumentNullException(nameof(request));
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
+        HtmlRenderOptions resolved = PrepareOptions(document, request);
+        return await ExecuteWithDeadlineAsync(resolved, cancellationToken,
+            operationCancellationToken => ExecuteCoreAsync(document, request, resolved, operationCancellationToken))
+            .ConfigureAwait(false);
+    }
+
+    internal static HtmlRenderOptions PrepareOptions(HtmlConversionDocument document, HtmlRenderRequest request) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (request == null) throw new ArgumentNullException(nameof(request));
+        HtmlRenderOptions resolved = request.ResolveOptions();
         resolved.BaseUri ??= document.BaseUri;
         ApplyDocumentPolicies(document, resolved);
         resolved.Validate();
-        return await ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
-            HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
-            operationCancellationToken.ThrowIfCancellationRequested();
-            IHtmlDocument renderDocument = document.CreateDocumentForRendering();
-            HtmlRenderInputGuard.ValidateFormState(document.SourceHtml.Length, renderDocument, resolved, operationCancellationToken);
-            return await RenderDocumentAsync(
-                renderDocument,
-                resolved,
-                initialDiagnostics: null,
-                document.Limits,
-                operationCancellationToken).ConfigureAwait(false);
-        }).ConfigureAwait(false);
+        return resolved;
+    }
+
+    internal static HtmlRenderResult ExecuteCore(
+        HtmlConversionDocument document,
+        HtmlRenderRequest request,
+        HtmlRenderOptions resolved,
+        CancellationToken cancellationToken) {
+        HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
+        cancellationToken.ThrowIfCancellationRequested();
+        IHtmlDocument renderDocument = document.CreateDocumentForRendering();
+        HtmlRenderInputGuard.ValidateFormState(document.SourceHtml.Length, renderDocument, resolved, cancellationToken);
+        HtmlRenderDocument rendered = RenderDocument(
+            renderDocument, resolved, initialDiagnostics: null, document.Limits, cancellationToken);
+        return HtmlRenderRequestProcessor.Complete(request, rendered, resolved, cancellationToken);
+    }
+
+    internal static async Task<HtmlRenderResult> ExecuteCoreAsync(
+        HtmlConversionDocument document,
+        HtmlRenderRequest request,
+        HtmlRenderOptions resolved,
+        CancellationToken cancellationToken) {
+        HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
+        cancellationToken.ThrowIfCancellationRequested();
+        IHtmlDocument renderDocument = document.CreateDocumentForRendering();
+        HtmlRenderInputGuard.ValidateFormState(document.SourceHtml.Length, renderDocument, resolved, cancellationToken);
+        HtmlRenderDocument rendered = await RenderDocumentAsync(
+            renderDocument, resolved, initialDiagnostics: null, document.Limits, cancellationToken).ConfigureAwait(false);
+        return HtmlRenderRequestProcessor.Complete(request, rendered, resolved, cancellationToken);
     }
 
     internal static Task<HtmlRenderDocument> RenderAsync(string html, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>

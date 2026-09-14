@@ -122,4 +122,18 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
         translated.SemanticTableOriginY = SemanticTableOriginY;
         return translated;
     }
+
+    internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder) {
+        var projected = new HtmlRenderLayoutRegion(SourceKey, RegionKind, SourceText, Position, FloatSide, ZIndex,
+            BackgroundLayerCount, BoxShadowLayerCount, BackgroundColor,
+            X + offsetX, Y + offsetY, Width, Height, visuals, paintOrder, Source, LayoutY);
+        projected.SurfaceNumber = SurfaceNumber;
+        projected.SemanticSectionNumber = SemanticSectionNumber;
+        projected.SemanticSectionOriginX = SemanticSectionOriginX + offsetX;
+        projected.SemanticSectionOriginY = SemanticSectionOriginY + offsetY;
+        projected.SemanticTableNumber = SemanticTableNumber;
+        projected.SemanticTableOriginX = SemanticTableOriginX + offsetX;
+        projected.SemanticTableOriginY = SemanticTableOriginY + offsetY;
+        return projected;
+    }
 }

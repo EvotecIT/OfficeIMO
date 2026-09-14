@@ -104,6 +104,11 @@ public sealed class HtmlRenderClipGroup : HtmlRenderVisual {
             Source,
             LayoutY);
 
+    internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder) =>
+        new HtmlRenderClipGroup(
+            ClipX + offsetX, ClipY + offsetY, ClipWidth, ClipHeight,
+            ClipHorizontal, ClipVertical, visuals, paintOrder, Source, LayoutY);
+
     private static ClipGroupState CreateState(
         double clipX,
         double clipY,

@@ -129,6 +129,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum page count accepted from one paged render operation.</summary>
     public int MaxPageCount { get; set; } = 1000;
 
+    /// <summary>Maximum visual nodes materialized while slicing or composing retained surfaces.</summary>
+    public int MaxProjectedVisuals { get; set; } = 1_000_000;
+
     /// <summary>Maximum element nesting depth processed by the layout engine.</summary>
     public int MaxLayoutDepth { get; set; } = 256;
 
@@ -190,8 +193,12 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum normalized UTF-16 characters retained in one CSS running-string value.</summary>
     public int MaxRunningStringCharacters { get; set; } = 4_096;
 
-    /// <summary>Gets the CSS media context selected by the current render mode.</summary>
-    public HtmlCssMediaContext MediaContext => Mode == HtmlRenderMode.Paged ? HtmlCssMediaContext.Print : HtmlCssMediaContext.Screen;
+    /// <summary>
+    /// Gets the CSS media context selected by an explicit render request, or by the legacy
+    /// continuous/screen and paged/print mapping when no request is active.
+    /// </summary>
+    public HtmlCssMediaContext MediaContext => CssMediaContextOverride ??
+        (Mode == HtmlRenderMode.Paged ? HtmlCssMediaContext.Print : HtmlCssMediaContext.Screen);
 
     /// <summary>Gets the paged surface width in CSS pixels.</summary>
     public double PageWidth => PageSize.WidthInches * CssPixelsPerInch;
@@ -235,6 +242,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxSurfaceWidth = MaxSurfaceWidth;
         target.MaxSurfaceHeight = MaxSurfaceHeight;
         target.MaxPageCount = MaxPageCount;
+        target.MaxProjectedVisuals = MaxProjectedVisuals;
         target.MaxLayoutDepth = MaxLayoutDepth;
         target.MaxInputCharacters = MaxInputCharacters;
         target.MaxHtmlNodes = MaxHtmlNodes;
@@ -256,6 +264,8 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxRunningStringCharacters = MaxRunningStringCharacters;
         target.ResponsiveImageCandidateLimit = ResponsiveImageCandidateLimit;
         target.EnableEditableLayoutRegions = EnableEditableLayoutRegions;
+        target.CssMediaContextOverride = CssMediaContextOverride;
+        target.ClipContinuousSurfaceToViewport = ClipContinuousSurfaceToViewport;
         return target;
     }
 
@@ -263,6 +273,14 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         ResourceUrlPolicy ?? UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
 
     internal int? ResponsiveImageCandidateLimit { get; set; }
+
+    // Render requests decouple CSS media from continuous or paged geometry. Legacy callers
+    // leave this unset and retain the historical continuous/screen and paged/print mapping.
+    internal HtmlCssMediaContext? CssMediaContextOverride { get; set; }
+
+    // A viewport is a bounded continuous layout surface. Legacy ViewportHeight remains a
+    // minimum height so existing full-page output does not become clipped.
+    internal bool ClipContinuousSurfaceToViewport { get; set; }
 
     // Only the shared projector may opt the renderer into interpreting its private DOM marker.
     internal bool EnableEditableLayoutRegions { get; set; }
@@ -272,6 +290,11 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         if (FidelityPolicy != HtmlRenderFidelityPolicy.AllowDiagnosedLoss
             && FidelityPolicy != HtmlRenderFidelityPolicy.RequireNoLoss) {
             throw new ArgumentOutOfRangeException(nameof(FidelityPolicy));
+        }
+        if (CssMediaContextOverride.HasValue
+            && CssMediaContextOverride.Value != HtmlCssMediaContext.Screen
+            && CssMediaContextOverride.Value != HtmlCssMediaContext.Print) {
+            throw new ArgumentOutOfRangeException(nameof(MediaContext));
         }
         ValidatePositive(ViewportWidth, nameof(ViewportWidth));
         if (ViewportHeight.HasValue) {
@@ -295,6 +318,10 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         if (MaxPageCount <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxPageCount), "Maximum page count must be positive.");
+        }
+
+        if (MaxProjectedVisuals <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxProjectedVisuals), "Maximum projected visual count must be positive.");
         }
 
         if (MaxLayoutDepth <= 0) {

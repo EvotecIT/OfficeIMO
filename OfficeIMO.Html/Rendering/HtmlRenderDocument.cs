@@ -11,6 +11,7 @@ public sealed class HtmlRenderDocument {
     private readonly OfficeFontFaceCollection _fonts;
     private readonly ReadOnlyCollection<HtmlRenderHeading> _headings;
     private readonly HtmlDiagnosticReport _diagnosticReport;
+    private readonly IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? _bookmarks;
 
     internal HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts = null, HtmlRenderMetadata? metadata = null, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks = null) {
         Mode = mode;
@@ -35,6 +36,7 @@ public sealed class HtmlRenderDocument {
             }
         }
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
+        _bookmarks = bookmarks;
         Metadata = metadata ?? new HtmlRenderMetadata(null, null);
         _headings = BuildHeadings(_pages, bookmarks).AsReadOnly();
     }
@@ -74,6 +76,9 @@ public sealed class HtmlRenderDocument {
     /// <summary>Concatenated logical searchable text retained by the shared render model.</summary>
     public string Text => string.Join("\n", _pages.SelectMany(page => EnumerateLogicalText(page.Scene)));
 
+    internal HtmlRenderDocument Project(IEnumerable<HtmlRenderPage> pages, HtmlRenderMode mode) =>
+        new(mode, pages, _diagnosticReport, _fonts, Metadata, _bookmarks);
+
     private static IEnumerable<string> EnumerateLogicalText(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in OrderForLogicalText(visuals)) {
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
@@ -81,7 +86,7 @@ public sealed class HtmlRenderDocument {
             }
             if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
                 if (!ContainsArtifactVisual(logicalTextGroup.Visuals)) {
-                    yield return logicalTextGroup.Text;
+                    if (logicalTextGroup.Text.Length > 0) yield return logicalTextGroup.Text;
                 } else {
                     string visibleText = string.Concat(EnumerateLogicalText(logicalTextGroup.Visuals));
                     if (visibleText.Length > 0) yield return visibleText;

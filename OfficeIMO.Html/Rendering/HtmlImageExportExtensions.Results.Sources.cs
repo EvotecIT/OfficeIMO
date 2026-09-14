@@ -5,11 +5,15 @@ namespace OfficeIMO.Html;
 public static partial class HtmlImageExportExtensions {
     /// <summary>Renders one selected surface to the requested image format with dimensions and diagnostics.</summary>
     public static OfficeImageExportResult ExportImage(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0) {
-        HtmlRenderOptions resolved = Normalize(options, pageIndex);
+        HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
+            options, MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
+        HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         return HtmlRenderEngine.ExecuteWithDeadline(resolved, CancellationToken.None, operationCancellationToken => {
-            HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, resolved, operationCancellationToken);
-            if (pageIndex >= rendered.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex), "The selected HTML render page does not exist.");
-            return RenderPage(rendered.Pages[pageIndex], format, resolved, rendered.DiagnosticReport, operationCancellationToken);
+            HtmlRenderResult rendered = HtmlRenderEngine.ExecuteCore(document, request, resolved, operationCancellationToken);
+            OfficeImageExportResult? image = null;
+            HtmlRenderResultImageExtensions.ExportImagesCore(
+                rendered, format, resolved, result => image = result, operationCancellationToken);
+            return image ?? throw new InvalidOperationException("The selected render surface did not produce an image.");
         });
     }
 
@@ -29,31 +33,29 @@ public static partial class HtmlImageExportExtensions {
         CancellationToken cancellationToken = default) {
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlRenderOptions resolved = Normalize(options, 0);
+        HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
+            options, MapEncoder(format), HtmlRenderPageSet.All());
+        HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
-            HtmlRenderDocument rendered = HtmlRenderEngine.Render(
-                document,
-                resolved,
-                operationCancellationToken);
-            OfficeImageExportBatchProcessor.ForEachOrdered(
-                rendered.Pages,
-                resolved.MaximumDegreeOfParallelism,
-                (page, _, token) => RenderPage(page, format, resolved, rendered.DiagnosticReport, token),
-                consumer,
-                operationCancellationToken,
-                resolved);
+            HtmlRenderResult rendered = HtmlRenderEngine.ExecuteCore(document, request, resolved, operationCancellationToken);
+            HtmlRenderResultImageExtensions.ExportImagesCore(
+                rendered, format, resolved, consumer, operationCancellationToken);
             return true;
         });
     }
 
     /// <summary>Asynchronously renders one selected surface to the requested image format.</summary>
     public static async Task<OfficeImageExportResult> ExportImageAsync(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) {
-        HtmlRenderOptions resolved = Normalize(options, pageIndex);
+        HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
+            options, MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
+        HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
-            HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, operationCancellationToken).ConfigureAwait(false);
-            operationCancellationToken.ThrowIfCancellationRequested();
-            if (pageIndex >= rendered.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex), "The selected HTML render page does not exist.");
-            return RenderPage(rendered.Pages[pageIndex], format, resolved, rendered.DiagnosticReport, operationCancellationToken);
+            HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteCoreAsync(
+                document, request, resolved, operationCancellationToken).ConfigureAwait(false);
+            OfficeImageExportResult? image = null;
+            HtmlRenderResultImageExtensions.ExportImagesCore(
+                rendered, format, resolved, result => image = result, operationCancellationToken);
+            return image ?? throw new InvalidOperationException("The selected render surface did not produce an image.");
         }).ConfigureAwait(false);
     }
 
@@ -79,27 +81,26 @@ public static partial class HtmlImageExportExtensions {
         HtmlRenderOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
-        HtmlRenderOptions resolved = Normalize(options, 0);
-        HtmlRenderDocument? rendered = null;
+        HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
+            options, MapEncoder(format), HtmlRenderPageSet.All());
+        HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
+        HtmlRenderResult? rendered = null;
         await OfficeImageExportBatchProcessor.RunAsyncWithPreflight(
             resolved,
             async operationCancellationToken => {
-                rendered = await HtmlRenderEngine.RenderAsync(
-                    document,
-                    resolved,
-                    operationCancellationToken).ConfigureAwait(false);
+                rendered = await HtmlRenderEngine.ExecuteCoreAsync(document, request, resolved, operationCancellationToken).ConfigureAwait(false);
                 operationCancellationToken.ThrowIfCancellationRequested();
-                return rendered.Pages.Count;
+                return rendered.Document.Pages.Count;
             },
             async (accept, operationCancellationToken) => {
-                HtmlRenderDocument completed = rendered!;
-                foreach (HtmlRenderPage page in completed.Pages) {
+                HtmlRenderResult completed = rendered!;
+                foreach (HtmlRenderPage page in completed.Document.Pages) {
                     operationCancellationToken.ThrowIfCancellationRequested();
                     OfficeImageExportResult result = RenderPage(
                         page,
                         format,
                         resolved,
-                        completed.DiagnosticReport,
+                        completed.Document.DiagnosticReport,
                         operationCancellationToken);
                     await accept(result, operationCancellationToken).ConfigureAwait(false);
                 }
@@ -107,5 +108,48 @@ public static partial class HtmlImageExportExtensions {
             consumer,
             cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>Executes an explicit request and encodes every retained image surface.</summary>
+    public static IReadOnlyList<OfficeImageExportResult> RenderImages(
+        this HtmlConversionDocument document,
+        HtmlRenderRequest request,
+        CancellationToken cancellationToken = default) {
+        HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
+        return HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
+            HtmlRenderResult rendered = HtmlRenderEngine.ExecuteCore(document, request, resolved, operationCancellationToken);
+            var images = new List<OfficeImageExportResult>(rendered.Document.Pages.Count);
+            HtmlRenderResultImageExtensions.ExportImagesCore(
+                rendered, MapEncoderFormat(request.Encoder), resolved, images.Add, operationCancellationToken);
+            return (IReadOnlyList<OfficeImageExportResult>)images.AsReadOnly();
+        });
+    }
+
+    /// <summary>Executes an explicit request asynchronously and encodes every retained image surface.</summary>
+    public static async Task<IReadOnlyList<OfficeImageExportResult>> RenderImagesAsync(
+        this HtmlConversionDocument document,
+        HtmlRenderRequest request,
+        CancellationToken cancellationToken = default) {
+        HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
+        return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
+            HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteCoreAsync(
+                document, request, resolved, operationCancellationToken).ConfigureAwait(false);
+            var images = new List<OfficeImageExportResult>(rendered.Document.Pages.Count);
+            HtmlRenderResultImageExtensions.ExportImagesCore(
+                rendered, MapEncoderFormat(request.Encoder), resolved, images.Add, operationCancellationToken);
+            return (IReadOnlyList<OfficeImageExportResult>)images.AsReadOnly();
+        }).ConfigureAwait(false);
+    }
+
+    private static HtmlRenderEncoder MapEncoder(OfficeImageExportFormat format) => format switch {
+        OfficeImageExportFormat.Png => HtmlRenderEncoder.Png,
+        OfficeImageExportFormat.Jpeg => HtmlRenderEncoder.Jpeg,
+        OfficeImageExportFormat.Tiff => HtmlRenderEncoder.Tiff,
+        OfficeImageExportFormat.Webp => HtmlRenderEncoder.Webp,
+        OfficeImageExportFormat.Svg => HtmlRenderEncoder.Svg,
+        _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported HTML image export format.")
+    };
+
+    private static OfficeImageExportFormat MapEncoderFormat(HtmlRenderEncoder encoder) =>
+        HtmlRenderResultImageExtensions.ResolveImageFormat(encoder);
 
 }

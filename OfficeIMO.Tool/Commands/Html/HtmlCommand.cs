@@ -250,8 +250,10 @@ claim conformance without passing external validator evidence.
 
     private static async Task WriteCapabilitiesAsync(Stream output, bool json, CancellationToken cancellationToken) {
         IReadOnlyList<string> validationErrors = HtmlRenderCapabilityCatalog.Validate();
-        if (validationErrors.Count != 0) {
-            throw new InvalidOperationException("The HTML capability catalog is invalid: " + string.Join(" ", validationErrors));
+        IReadOnlyList<string> renderProfileErrors = HtmlRenderProfileContracts.Validate();
+        if (validationErrors.Count != 0 || renderProfileErrors.Count != 0) {
+            throw new InvalidOperationException("The HTML capability catalog is invalid: "
+                + string.Join(" ", validationErrors.Concat(renderProfileErrors)));
         }
 
         if (!json) {
@@ -260,6 +262,14 @@ claim conformance without passing external validator evidence.
                 await WriteUtf8Async(
                     output,
                     "profile\t" + profile.Id + "\t" + profile.Version + "\t" + profile.Promotion + Environment.NewLine,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            foreach (HtmlRenderProfileContract profile in HtmlRenderProfileContracts.All) {
+                await WriteUtf8Async(
+                    output,
+                    "renderProfile\t" + profile.Id + "\t" + profile.CssMedia + "\t" + profile.Surface + "\t"
+                        + profile.Pagination + "\t" + profile.DefaultPageSet.Mode + "\t" + profile.Coverage + "\t"
+                        + profile.Promotion + "\t" + string.Join(",", profile.Encoders) + Environment.NewLine,
                     cancellationToken).ConfigureAwait(false);
             }
             foreach (HtmlRenderCapability capability in HtmlRenderCapabilityCatalog.All) {
@@ -327,6 +337,28 @@ claim conformance without passing external validator evidence.
                     writer.WriteEndObject();
                 }
                 writer.WriteEndArray();
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+            writer.WriteStartArray("renderProfiles");
+            foreach (HtmlRenderProfileContract profile in HtmlRenderProfileContracts.All) {
+                writer.WriteStartObject();
+                writer.WriteString("id", profile.Id);
+                writer.WriteString("name", profile.Name);
+                WriteStringArray(writer, "documentStates", Enum.GetValues(typeof(HtmlRenderDocumentState))
+                    .Cast<HtmlRenderDocumentState>().Select(value => value.ToString()));
+                writer.WriteString("cssMedia", profile.CssMedia.ToString());
+                writer.WriteString("surface", profile.Surface.ToString());
+                writer.WriteString("pagination", profile.Pagination.ToString());
+                writer.WriteString("defaultPageSet", profile.DefaultPageSet.Mode.ToString());
+                writer.WriteString("coverage", profile.Coverage.ToString());
+                writer.WriteString("promotion", profile.Promotion.ToString());
+                WriteStringArray(writer, "encoders", profile.Encoders.Select(value => value.ToString()));
+                WriteStringArray(writer, "pageSets", profile.PageSets.Select(value => value.ToString()));
+                WriteStringArray(writer, "capabilityProfileIds", profile.CapabilityProfileIds);
+                WriteStringArray(writer, "evidenceIds", profile.EvidenceIds);
+                writer.WriteString("behavior", profile.Behavior);
+                writer.WriteString("limitations", profile.Limitations);
                 writer.WriteEndObject();
             }
             writer.WriteEndArray();

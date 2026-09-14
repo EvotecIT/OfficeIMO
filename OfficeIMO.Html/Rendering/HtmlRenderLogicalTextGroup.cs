@@ -35,4 +35,8 @@ public sealed class HtmlRenderLogicalTextGroup : HtmlRenderVisual {
 
     internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderLogicalTextGroup(Text, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)), paintOrder, Source, LayoutY);
+
+    internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder, bool ownsLogicalText) =>
+        new HtmlRenderLogicalTextGroup(ownsLogicalText ? Text : string.Empty,
+            X + offsetX, Y + offsetY, Width, Height, visuals, paintOrder, Source, LayoutY);
 }

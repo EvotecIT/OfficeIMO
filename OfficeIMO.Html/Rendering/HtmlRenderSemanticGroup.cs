@@ -129,6 +129,10 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
     internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: true), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey);
 
+    internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder) =>
+        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, visuals,
+            paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey);
+
     private static ReadOnlyCollection<HtmlRenderVisual> OrderVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         if (visuals == null) throw new ArgumentNullException(nameof(visuals));
         var materialized = new List<HtmlRenderVisual>(visuals);

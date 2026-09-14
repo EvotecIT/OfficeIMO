@@ -190,6 +190,12 @@ Rendering intent is a public input, not an output-format side effect. A caller s
 
 Named profiles provide useful defaults while leaving these axes visible. The first qualified set should cover:
 
+The public request exposes independent media, surface, and pagination overrides.
+A request that differs from its named profile remains executable when the
+combination is coherent, but it reports unqualified coverage and does not inherit
+the profile's declared provider evidence. Viewport and continuous surfaces require
+no pagination; paged surfaces require fragmented reflow or fixed-canvas slicing.
+
 | Profile | CSS and layout behavior | Typical result | Reference and acceptance evidence |
 | --- | --- | --- | --- |
 | Screen viewport | `screen` media at an exact viewport, clipped to its bounds | One raster/SVG surface, preview or hit-test map | Browser viewport screenshot plus geometry, text and overflow checks |
@@ -202,6 +208,13 @@ Named profiles provide useful defaults while leaving these axes visible. The fir
 These profiles serve different contracts. Print paged may change navigation, hide controls and apply `@page`; screen media paged preserves screen cascade but still reflows content across pages; screen snapshot paged preserves one screen layout and then places or slices it. No API or command should call all three simply “HTML to PDF.”
 
 Multi-surface output is explicit. A raster or SVG request declares separate pages, a stitched canvas, a selected page or an archive plus manifest. The report records surface dimensions, order, clipping, scale, background, pagination mode and any rasterized fallback. Output encoders consume the same qualified display list and cannot rerun layout with private defaults.
+
+Fixed-canvas slicing selects requested page indices before materializing projected
+scenes. Projection is cancellable, removes nonintersecting nodes, assigns logical
+text and navigation evidence to one retained slice, and is bounded by page, visual,
+and surface limits. Stitched results retain a placement record for every source
+page or slice. Parsing, resources, layout, projection, and encoding consume one
+operation deadline.
 
 ### Text, sizing and fragmentation
 
@@ -512,16 +525,20 @@ The owned document boundary is the stable consumer surface. Continue widening re
 
 Strengthen style, layout, conversion and runtime components through OfficeIMO-owned contracts while the temporary providers remain behind them. Move CSS or parser replacement ahead when measured recovery or capability failures obstruct a required workflow. Advance managed typography in the shared graphics owner. Treat static rendering, the selected application profile and dependency retirement as separately qualified outcomes.
 
-Deliver the next work in reviewable vertical slices:
+The owned render request, six named profiles, explicit page selection and retained
+result now form the common static output boundary. Existing continuous image calls
+map to screen-full-page, paged image calls and existing PDF calls map to print-paged,
+and output adapters cannot privately change CSS media or pagination.
+
+Deliver the remaining work in reviewable vertical slices:
 
 1. Audit the existing capability catalog against real implementation paths and freeze the first versioned standards-and-evidence manifests. Reclassify broad claims before using them to choose implementation work.
-2. Make the render request, named profiles, page-set behavior and shared result contract executable without changing layout algorithms merely to rename them.
-3. Productize `OfficeIMO.Html.Core` for a small non-Office consumer, including packed-package, public API, lifecycle and compatibility proof while the temporary parser is identified in diagnostics.
-4. Close H3-H4 CSS, layout, fragmentation and output gaps profile by profile against frozen browser, geometry, semantic and artifact references.
-5. Complete H5 as an integrated managed parser and serializer, switch the default only after conformance, bounds and performance gates pass, and retain the adapter only where real migration demand exists.
-6. Productize the existing H7-H8 runtime and locator foundation as typed contexts, pages, observations, actions, events, traces and optional agent tools while retained providers remain effective.
-7. Complete H6 by removing AngleSharp, AngleSharp.Css and other third-party runtime dependencies from the advertised static graph, with packed transitive-graph proof on every supported target.
-8. Complete H9 by replacing the JavaScript and remaining runtime providers over the H6 engine. The resulting managed HTML/CSS/JavaScript runtime has no third-party runtime packages or browser binary; broader browser compatibility continues through explicit profiles.
+2. Productize `OfficeIMO.Html.Core` for a small non-Office consumer, including packed-package, public API, lifecycle and compatibility proof while the temporary parser is identified in diagnostics.
+3. Close H3-H4 CSS, layout, fragmentation and output gaps profile by profile against frozen browser, geometry, semantic and artifact references.
+4. Complete H5 as an integrated managed parser and serializer, switch the default only after conformance, bounds and performance gates pass, and retain the adapter only where real migration demand exists.
+5. Productize the existing H7-H8 runtime and locator foundation as typed contexts, pages, observations, actions, events, traces and optional agent tools while retained providers remain effective.
+6. Complete H6 by removing AngleSharp, AngleSharp.Css and other third-party runtime dependencies from the advertised static graph, with packed transitive-graph proof on every supported target.
+7. Complete H9 by replacing the JavaScript and remaining runtime providers over the H6 engine. The resulting managed HTML/CSS/JavaScript runtime has no third-party runtime packages or browser binary; broader browser compatibility continues through explicit profiles.
 
 Preserve explicit bounds, provider identity and unsupported results throughout. Competitive claims attach to the completed profile or adoption stage, never to the repository as a whole.
 

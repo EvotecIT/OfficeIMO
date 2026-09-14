@@ -16,9 +16,10 @@ public partial class Html {
 
         Assert.Equal(first, second);
         Assert.DoesNotContain("\r", first, StringComparison.Ordinal);
-        Assert.Contains("generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`", first, StringComparison.Ordinal);
+        Assert.Contains("generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderProfileContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`", first, StringComparison.Ordinal);
         Assert.Contains("Capability schema version: 2", first, StringComparison.Ordinal);
         Assert.Contains("## Versioned compatibility profile manifests", first, StringComparison.Ordinal);
+        Assert.Contains("## Render intent profiles", first, StringComparison.Ordinal);
         Assert.Contains("## Capability contracts by profile and processing stage", first, StringComparison.Ordinal);
         foreach (HtmlConversionProfileContract contract in HtmlConversionProfileContracts.All) {
             Assert.Contains("### " + contract.Name, first, StringComparison.Ordinal);
@@ -39,6 +40,9 @@ public partial class Html {
         foreach (HtmlCapabilityProfileManifest profile in HtmlRenderCapabilityCatalog.ProfileManifests) {
             Assert.Contains("`" + profile.Id + "`", first, StringComparison.Ordinal);
         }
+        foreach (HtmlRenderProfileContract profile in HtmlRenderProfileContracts.All) {
+            Assert.Contains("`" + profile.Id + "`", first, StringComparison.Ordinal);
+        }
 
         Assert.Equal(HtmlDiagnosticCatalog.All.Count, HtmlDiagnosticCatalog.Ordered.Select(definition => definition.Code).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.Equal(
@@ -53,6 +57,7 @@ public partial class Html {
         Assert.Equal(2, HtmlRenderCapabilityCatalog.SchemaVersion);
         Assert.Equal(3, HtmlRenderCapabilityCatalog.ProfileManifests.Count);
         Assert.Empty(HtmlRenderCapabilityCatalog.Validate());
+        Assert.Empty(HtmlRenderProfileContracts.Validate());
         Assert.Equal(0, (int)HtmlRenderCapabilityKind.Css);
         Assert.Equal(1, (int)HtmlRenderCapabilityKind.Html);
         Assert.Equal(2, (int)HtmlRenderCapabilityKind.PagedMedia);

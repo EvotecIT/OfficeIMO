@@ -428,7 +428,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double height = y + _options.Margins.Bottom;
-        if (_options.ViewportHeight.HasValue) height = Math.Max(height, _options.ViewportHeight.Value);
+        if (_options.ClipContinuousSurfaceToViewport) {
+            height = _options.ViewportHeight ?? throw new InvalidOperationException("A bounded viewport requires an explicit height.");
+        } else if (_options.ViewportHeight.HasValue) {
+            height = Math.Max(height, _options.ViewportHeight.Value);
+        }
         height = Math.Max(1D, height);
         ValidateSurface(width, height);
 

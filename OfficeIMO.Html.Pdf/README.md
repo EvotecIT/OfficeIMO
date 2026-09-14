@@ -35,6 +35,56 @@ byte[] pdf = source.ToPdfBytes();
 source.SaveAsPdf("quarterly-update.pdf");
 ```
 
+`ToPdfBytes()` preserves the established print-paged behavior. Use an explicit
+render request when the PDF should follow another layout contract:
+
+```csharp
+using OfficeIMO.Drawing;
+
+var options = new HtmlToPdfOptions {
+    ViewportWidth = 816,
+    PageSize = OfficePageSizes.A4,
+    Margins = HtmlRenderMargins.All(24)
+};
+
+HtmlPdfRenderRequestResult print = source.RenderToPdfResult(
+    HtmlRenderRequest.Create(
+        HtmlRenderIntentProfile.PrintPaged,
+        HtmlRenderEncoder.Pdf,
+        options));
+
+HtmlPdfRenderRequestResult screenReflow = source.RenderToPdfResult(
+    HtmlRenderRequest.Create(
+        HtmlRenderIntentProfile.ScreenMediaPaged,
+        HtmlRenderEncoder.Pdf,
+        options));
+
+HtmlPdfRenderRequestResult screenSnapshot = source.RenderToPdfResult(
+    HtmlRenderRequest.Create(
+        HtmlRenderIntentProfile.ScreenSnapshotPaged,
+        HtmlRenderEncoder.Pdf,
+        options));
+
+byte[] pdf = screenSnapshot.ToBytes();
+double firstSliceOffset = screenSnapshot.RenderResult.Surfaces[0].SourceOffsetY;
+```
+
+The same request may override CSS media, layout surface, or pagination through
+`WithCssMedia(...)`, `WithLayoutSurface(...)`, and `WithPagination(...)`.
+Use `WithLayout(...)` or `WithAxes(...)` when coupled geometry axes must change
+atomically. Such a custom combination is reported as unqualified unless its effective axes
+still exactly match the named profile.
+
+Print paged applies print CSS and normal fragmentation. Screen-media paged keeps
+screen CSS while reflowing into page sheets. Screen-snapshot paged preserves one
+continuous screen composition and then slices it into fixed canvases. The latter
+can split elements at page boundaries. The explicit result retains page order,
+dimensions, source offsets, clipping, requested scale and background, provider
+identity, and HTML loss diagnostics alongside the combined PDF conversion report.
+For stitched output, `SourcePlacements` preserves every contributing source page
+or slice and its output offset. Layout, projection, and PDF encoding share one
+operation deadline.
+
 A prepared HTML report can be exported directly to a file:
 
 ```csharp

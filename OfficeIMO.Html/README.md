@@ -150,6 +150,49 @@ IReadOnlyList<OfficeImageExportResult> webpPages = source
     .Save("status-pages");
 ```
 
+Use a named render request when CSS media, viewport behavior, pagination, page
+selection, and output format must be independently reviewable. The request takes an
+immutable options snapshot. The retained result records the exact profile, surfaces,
+source offsets, clipping, requested scale and background, declared providers, and
+loss diagnostics before an encoder consumes it.
+
+```csharp
+var request = HtmlRenderRequest.Create(
+        HtmlRenderIntentProfile.ScreenSnapshotPaged,
+        HtmlRenderEncoder.Png,
+        new HtmlRenderOptions {
+            ViewportWidth = 816,
+            PageSize = OfficePageSizes.A4,
+            Scale = 1.5
+        },
+        HtmlRenderDocumentState.EditedSnapshot)
+    .WithPageSet(HtmlRenderPageSet.Pages(firstPageIndex: 0, pageCount: 2));
+
+HtmlRenderResult retained = HtmlRenderEngine.Execute(source, request);
+IReadOnlyList<OfficeImageExportResult> pages = retained.ExportImages();
+```
+
+Named profiles are immutable defaults. Use `WithCssMedia(...)`,
+`WithLayoutSurface(...)`, and `WithPagination(...)` to form a coherent custom
+combination; use `WithLayout(...)` or `WithAxes(...)` when two coupled geometry
+axes must change atomically. `MatchesNamedProfile` becomes false and `Coverage` becomes
+`Unqualified` when those effective axes no longer match the named profile.
+The encoder and page-set admission rules still apply.
+
+The built-in profiles are `ScreenViewport`, `ScreenFullPage`, `PrintPaged`,
+`ScreenMediaPaged`, `ScreenSnapshotPaged`, and `ContinuousVector`.
+`ScreenMediaPaged` applies screen CSS and performs paged reflow.
+`ScreenSnapshotPaged` completes one continuous screen layout and slices it into
+fixed page canvases, so it may split elements. `PrintPaged` applies print CSS and
+normal fragmentation. Separate pages, one selected page, a range, and stitched
+output are available now. `SourcePlacements` records every source page or slice
+and its output offset in a stitched surface. Projection is cancellable and bounded
+by `MaxProjectedVisuals`, `MaxPageCount`, `MaxSurfaceWidth`, and
+`MaxSurfaceHeight`. Archive-plus-manifest and element-aware placement are
+declared boundaries and fail explicitly. Inspect `HtmlRenderProfileContracts.All`
+or `officeimo html capabilities --format json` for current qualification and encoder
+availability.
+
 Set `FidelityPolicy` when diagnosed fallback is not acceptable. The renderer collects the complete report, then rejects any warning, error, approximation, omission, or failure instead of returning a silently simplified scene.
 
 ```csharp
@@ -161,7 +204,7 @@ var strict = new HtmlRenderOptions {
 OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, strict);
 ```
 
-The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All` or the generated support matrix for the exact declared subset.
+The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All`, `HtmlRenderProfileContracts.All`, or the generated support matrix for the exact declared subset.
 
 The PDF adapter uses the shared scene's resolved superscript/subscript scale and vertical offset,
 including nested scripts. Logical replacement text owns its painted content once, so independent

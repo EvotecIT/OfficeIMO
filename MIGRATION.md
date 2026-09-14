@@ -87,7 +87,7 @@ providers without exposing them through the document API.
 | `capability.SupportLevel == HtmlRenderSupportLevel.Fallback` | Test `binding.Handling == HtmlCapabilityHandling.Fallback`; inspect `capability.Limitations` and `capability.DiagnosticCodes`. |
 | `capability.SupportLevel == HtmlRenderSupportLevel.Ignored` | Test `binding.Handling == HtmlCapabilityHandling.Ignored`. |
 | `capability.SupportLevel == HtmlRenderSupportLevel.Rejected` | Test `binding.Handling == HtmlCapabilityHandling.Rejected`. |
-| Treat `officeimo html capabilities --format json` as a top-level array with `supportLevel` on each entry | Read the schema-2 object: `schemaVersion`, `profiles`, and `capabilities`. Each capability exposes `stages` and `profileBindings`; each binding exposes coverage, handling, maturity, promotion, providers, specifications, and evidence. |
+| Treat `officeimo html capabilities --format json` as a top-level array with `supportLevel` on each entry | Read the schema-2 object: `schemaVersion`, `profiles`, `renderProfiles`, and `capabilities`. Each render profile exposes its CSS media, surface, pagination, page sets, encoders, qualification and evidence. Each capability exposes `stages` and `profileBindings`; each binding exposes coverage, handling, maturity, promotion, providers, specifications, and evidence. |
 
 `HtmlRenderSupportLevel` and `HtmlRenderCapability.SupportLevel` are removed.
 Use `HtmlRenderCapabilityCatalog.GetProfile(profileId)` for the versioned provider,
@@ -106,6 +106,34 @@ bool hasQualifiedNativeGrid =
     binding.Handling == HtmlCapabilityHandling.Native &&
     capability.Stages.HasFlag(HtmlCapabilityStage.Layout);
 ```
+
+### Explicit HTML rendering intent
+
+Existing image APIs still map `HtmlRenderOptions.Mode == Continuous` to the
+screen-full-page profile and `Mode == Paged` to the print-paged profile. Existing
+HTML-to-PDF APIs remain print-paged. Replace mode or output-format inference with an
+`HtmlRenderRequest` when the application needs viewport clipping, screen CSS in a
+paged layout, a frozen screen composition sliced into pages, explicit page
+selection, or a retained cross-encoder result.
+
+| Previous code or ambiguous intent | Explicit replacement |
+| --- | --- |
+| `source.ExportImages(format, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged })` | Create `HtmlRenderRequest` with `PrintPaged` and the matching encoder, then call `source.RenderImages(request)`. |
+| Use PDF output and expect screen CSS | Create a `ScreenMediaPaged` request with the `Pdf` encoder, then call `source.RenderToPdfResult(request)`. |
+| Paginate a completed screen composition without reflow | Create a `ScreenSnapshotPaged` request with the `Pdf` encoder. |
+| Infer which page was encoded from an output filename | Select `HtmlRenderPageSet.Page(...)`, `Pages(...)`, or `Stitched()` and inspect `HtmlRenderResult.Surfaces`. |
+
+Named profiles provide defaults rather than hiding the axes. Use
+`WithCssMedia(...)`, `WithLayoutSurface(...)`, or `WithPagination(...)` for
+coherent custom combinations. Use `WithLayout(...)` or `WithAxes(...)` when
+surface and pagination must change atomically. Check `MatchesNamedProfile` and `Coverage`
+before relying on qualification evidence. A custom combination reports
+`Unqualified`. Stitched consumers should enumerate
+`HtmlRenderSurfaceResult.SourcePlacements` instead of treating the first source
+page as the complete provenance record.
+
+Archive-plus-manifest packaging and element-aware placement are not implemented;
+selecting either boundary throws instead of silently changing layout behavior.
 
 ### PDF positioned-text rendering limit
 

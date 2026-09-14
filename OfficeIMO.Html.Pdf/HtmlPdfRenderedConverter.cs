@@ -15,21 +15,99 @@ internal static partial class HtmlPdfRenderedConverter {
     private static readonly ConditionalWeakTable<byte[], CachedPdfImageResources> PdfImageResources = new();
 
     internal static HtmlPdfRenderResult Convert(HtmlConversionDocument document, HtmlToPdfOptions options, CancellationToken cancellationToken = default) {
-        HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, renderOptions, cancellationToken);
-        return CreatePdf(rendered, options, cancellationToken);
+        HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
+            options, HtmlRenderEncoder.Pdf, HtmlRenderPageSet.All(), forcePrintPaged: true);
+        return Convert(document, request, options, cancellationToken);
     }
 
     internal static async Task<HtmlPdfRenderResult> ConvertAsync(HtmlConversionDocument document, HtmlToPdfOptions options, CancellationToken cancellationToken) {
-        HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
-        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, renderOptions, cancellationToken).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        return CreatePdf(rendered, options, cancellationToken);
+        HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
+            options, HtmlRenderEncoder.Pdf, HtmlRenderPageSet.All(), forcePrintPaged: true);
+        return await ConvertAsync(document, request, options, cancellationToken).ConfigureAwait(false);
+    }
+
+    internal static byte[] ConvertToBytes(
+        HtmlConversionDocument document,
+        HtmlToPdfOptions options,
+        CancellationToken cancellationToken = default) {
+        HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
+            options, HtmlRenderEncoder.Pdf, HtmlRenderPageSet.All(), forcePrintPaged: true);
+        return ConvertToBytes(document, request, options, cancellationToken);
+    }
+
+    internal static async Task<byte[]> ConvertToBytesAsync(
+        HtmlConversionDocument document,
+        HtmlToPdfOptions options,
+        CancellationToken cancellationToken) {
+        HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
+            options, HtmlRenderEncoder.Pdf, HtmlRenderPageSet.All(), forcePrintPaged: true);
+        return await ConvertToBytesAsync(document, request, options, cancellationToken).ConfigureAwait(false);
+    }
+
+    internal static HtmlPdfRenderResult Convert(
+        HtmlConversionDocument document,
+        HtmlRenderRequest request,
+        HtmlToPdfOptions options,
+        CancellationToken cancellationToken = default) {
+        PreparedPdfRequest prepared = PrepareRequest(request, options);
+        HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, prepared.Request);
+        return HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken,
+            operationCancellationToken => ConvertCore(
+                document, prepared, resolved, operationCancellationToken));
+    }
+
+    internal static async Task<HtmlPdfRenderResult> ConvertAsync(
+        HtmlConversionDocument document,
+        HtmlRenderRequest request,
+        HtmlToPdfOptions options,
+        CancellationToken cancellationToken) {
+        PreparedPdfRequest prepared = PrepareRequest(request, options);
+        HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, prepared.Request);
+        return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken,
+            operationCancellationToken => ConvertCoreAsync(
+                document, prepared, resolved, operationCancellationToken)).ConfigureAwait(false);
+    }
+
+    internal static byte[] ConvertToBytes(
+        HtmlConversionDocument document,
+        HtmlRenderRequest request,
+        HtmlToPdfOptions options,
+        CancellationToken cancellationToken = default) {
+        PreparedPdfRequest prepared = PrepareRequest(request, options);
+        HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, prepared.Request);
+        return HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken =>
+            ConvertCore(document, prepared, resolved, operationCancellationToken)
+                .Document.ToBytes(operationCancellationToken));
+    }
+
+    internal static async Task<byte[]> ConvertToBytesAsync(
+        HtmlConversionDocument document,
+        HtmlRenderRequest request,
+        HtmlToPdfOptions options,
+        CancellationToken cancellationToken) {
+        PreparedPdfRequest prepared = PrepareRequest(request, options);
+        HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, prepared.Request);
+        return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
+            HtmlPdfRenderResult rendered = await ConvertCoreAsync(
+                document, prepared, resolved, operationCancellationToken).ConfigureAwait(false);
+            return rendered.Document.ToBytes(operationCancellationToken);
+        }).ConfigureAwait(false);
     }
 
     internal static HtmlRenderOptions ResolveRenderOptions(HtmlToPdfOptions options) {
-        HtmlRenderOptions renderOptions = options.ClonePdf();
-        renderOptions.Mode = HtmlRenderMode.Paged;
+        HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
+            options, HtmlRenderEncoder.Pdf, HtmlRenderPageSet.All(), forcePrintPaged: true);
+        return PrepareRequest(request, options).Request.ResolveOptions();
+    }
+
+    private static PreparedPdfRequest PrepareRequest(HtmlRenderRequest request, HtmlToPdfOptions options) {
+        if (request == null) throw new ArgumentNullException(nameof(request));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        if (request.Encoder != HtmlRenderEncoder.Pdf) {
+            throw new ArgumentException("HTML-to-PDF conversion requires the Pdf render encoder.", nameof(request));
+        }
+        HtmlToPdfOptions renderOptions = new HtmlToPdfOptions(request.Options);
+        CopyAdapterOptions(options, renderOptions);
         PdfCore.PdfOptions measurementOptions = options.PdfOptions.Clone();
         measurementOptions.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
         if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
@@ -67,7 +145,50 @@ internal static partial class HtmlPdfRenderedConverter {
                     : null;
             };
         }
-        return renderOptions;
+        return new PreparedPdfRequest(request.WithOptions(renderOptions), renderOptions);
+    }
+
+    private static HtmlPdfRenderResult ConvertCore(
+        HtmlConversionDocument document,
+        PreparedPdfRequest prepared,
+        HtmlRenderOptions resolved,
+        CancellationToken cancellationToken) {
+        HtmlRenderResult rendered = HtmlRenderEngine.ExecuteCore(
+            document, prepared.Request, resolved, cancellationToken);
+        return CreatePdf(rendered.Document, prepared.Options, cancellationToken).WithRenderResult(rendered);
+    }
+
+    private static async Task<HtmlPdfRenderResult> ConvertCoreAsync(
+        HtmlConversionDocument document,
+        PreparedPdfRequest prepared,
+        HtmlRenderOptions resolved,
+        CancellationToken cancellationToken) {
+        HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteCoreAsync(
+            document, prepared.Request, resolved, cancellationToken).ConfigureAwait(false);
+        return CreatePdf(rendered.Document, prepared.Options, cancellationToken).WithRenderResult(rendered);
+    }
+
+    private static void CopyAdapterOptions(HtmlToPdfOptions source, HtmlToPdfOptions target) {
+        target.TextFallbacks = source.TextFallbacks;
+        target.TextShapingMode = source.TextShapingMode;
+        target.FontFamily = source.FontFamily;
+        target.InteractiveFormControls = source.InteractiveFormControls;
+        target.MaxOutlinedTextCharactersPerRun = source.MaxOutlinedTextCharactersPerRun;
+        target.MaxOutlinedTextPathCommands = source.MaxOutlinedTextPathCommands;
+        target.PdfOptions = source.PdfOptions.Clone();
+        target.TextShapingProvider = source.TextShapingProvider;
+        target.ResourcePolicy = source.ResourcePolicy.Clone();
+        target.EmbeddedPackageResourceResolver = source.EmbeddedPackageResourceResolver;
+        target.EmbeddedPackageHostResourceUrlPolicy = source.EmbeddedPackageHostResourceUrlPolicy?.Clone();
+    }
+
+    private readonly struct PreparedPdfRequest {
+        internal PreparedPdfRequest(HtmlRenderRequest request, HtmlToPdfOptions options) {
+            Request = request;
+            Options = options;
+        }
+        internal HtmlRenderRequest Request { get; }
+        internal HtmlToPdfOptions Options { get; }
     }
 
     private static void ApplyResourceAccessPolicy(HtmlUrlPolicy policy, bool allowDataUrls, bool allowFileUrls) {
@@ -352,6 +473,10 @@ internal static partial class HtmlPdfRenderedConverter {
                 cancellationToken.ThrowIfCancellationRequested();
                 AddVisual(target, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned: true);
             }
+        }
+        if (group.Text.Length == 0) {
+            canvas.Artifact(AddChildren);
+            return;
         }
         if (logicalTextOwned) AddChildren(canvas);
         else canvas.ActualText(
