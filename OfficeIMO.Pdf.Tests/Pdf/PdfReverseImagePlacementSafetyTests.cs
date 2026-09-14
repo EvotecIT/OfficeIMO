@@ -391,6 +391,24 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void PreservedEditableGeometryUsesThePageUserUnitScale() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
+            "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            pageEntries: "/UserUnit 2"));
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            OfficeIMO.Word.WordImage image = Assert.Single(word.Value.Images);
+            Assert.Equal(80D * 2D * 96D / 72D, image.Width!.Value, 6);
+            Assert.Equal(40D * 2D * 96D / 72D, image.Height!.Value, 6);
+        }
+
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        Assert.Contains("style=\"width:320pt;height:320pt;\"", html.Value, StringComparison.Ordinal);
+        Assert.Contains("width:160pt;height:80pt;", html.Value, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FloatingImagePaintedBeforeOverlappingTextStaysBehindTheText() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas
@@ -497,6 +515,39 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
     }
 
+    [Fact]
+    public void Jpeg2000WithUnappliedDecodeNeverExposesRawPixelsAcrossEditableAdapters() {
+        byte[] jpx = File.ReadAllBytes(Path.Combine(
+            AppContext.BaseDirectory,
+            "Pdf",
+            "Fixtures",
+            "Interoperability",
+            "Scans",
+            "red-rgb.jp2"));
+        byte[] source = CreateRawImagePdf(
+            "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            imageBytes: jpx,
+            imageDefinition: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /JPXDecode /Decode [1 0 1 0 1 0]");
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        PdfLogicalImage image = Assert.Single(Assert.Single(logical.Pages).Images);
+        Assert.True(image.SourceImage.IsImageFile);
+        Assert.True(image.SourceImage.HasExplicitDecode);
+        Assert.Equal("image/jp2", image.SourceImage.MimeType);
+
+        AssertRawImageOmittedAcrossEditableAdapters(
+            logical,
+            "PdfImageDecodeNotSafelyEditable",
+            "ImageDecodeNotSafelyEditable");
+
+        PdfHtmlConversionResult positioned = PdfDocument.Load(source)
+            .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        Assert.DoesNotContain("data:image/", positioned.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain("pdf-page-appearance", positioned.Value, StringComparison.Ordinal);
+        Assert.Contains(positioned.Report.Warnings, static warning =>
+            warning.Code == "PageAppearanceUnsafeImageFallback" &&
+            warning.LossKind == OfficeConversionLossKind.None);
+    }
+
     private static PdfDocument CreateDocument() => PdfDocument.Create(new PdfOptions {
         PageWidth = 160D,
         PageHeight = 160D,
@@ -541,9 +592,11 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         string? graphicsStateEntries = null,
         string? pageEntries = null,
         bool imageMask = false,
-        string? secondGraphicsStateEntries = null) {
+        string? secondGraphicsStateEntries = null,
+        byte[]? imageBytes = null,
+        string? imageDefinition = null) {
         byte[] contentBytes = System.Text.Encoding.ASCII.GetBytes(content);
-        byte[] imageBytes = imageMask ? new byte[] { 0x80 } : new byte[] { 255, 0, 0 };
+        byte[] resolvedImageBytes = imageBytes ?? (imageMask ? new byte[] { 0x80 } : new byte[] { 255, 0, 0 });
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.7\n");
         WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
@@ -557,11 +610,11 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length + " >>\nstream\n");
         output.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(output, "endstream\nendobj\n");
-        string imageDefinition = imageMask
+        string resolvedImageDefinition = imageDefinition ?? (imageMask
             ? "/ImageMask true /BitsPerComponent 1"
-            : "/ColorSpace /DeviceRGB /BitsPerComponent 8";
-        WriteAscii(output, "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 " + imageDefinition + " /Length " + imageBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
-        output.Write(imageBytes, 0, imageBytes.Length);
+            : "/ColorSpace /DeviceRGB /BitsPerComponent 8");
+        WriteAscii(output, "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 " + resolvedImageDefinition + " /Length " + resolvedImageBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(resolvedImageBytes, 0, resolvedImageBytes.Length);
         WriteAscii(output, "\nendstream\nendobj\n");
         if (graphicsStateEntries != null) {
             WriteAscii(output, "6 0 obj\n<< /Type /ExtGState " + graphicsStateEntries + " >>\nendobj\n");

@@ -58,7 +58,7 @@ public static partial class PdfHtmlConverterExtensions {
                 builder.Append(";top:");
                 builder.Append(Points(Math.Max(0D, point.Top)));
                 builder.Append(";width:");
-                builder.Append(Points(Math.Max(1D, block.XEnd - block.XStart)));
+                builder.Append(Points(Math.Max(1D, geometry.ScaleLength(block.XEnd - block.XStart))));
                 builder.Append(";\">");
                 AppendHtmlText(builder, block.Text);
                 builder.AppendLine("</div>");
@@ -287,12 +287,13 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private sealed class PositionedPageGeometry {
-        private PositionedPageGeometry(double pageWidth, double pageHeight, int rotationDegrees) {
-            PageWidth = pageWidth;
-            PageHeight = pageHeight;
+        private PositionedPageGeometry(double pageWidth, double pageHeight, int rotationDegrees, double userUnit) {
+            Scale = userUnit > 0D && !double.IsNaN(userUnit) && !double.IsInfinity(userUnit) ? userUnit : 1D;
+            PageWidth = pageWidth * Scale;
+            PageHeight = pageHeight * Scale;
             RotationDegrees = rotationDegrees;
-            Width = rotationDegrees == 90 || rotationDegrees == 270 ? pageHeight : pageWidth;
-            Height = rotationDegrees == 90 || rotationDegrees == 270 ? pageWidth : pageHeight;
+            Width = rotationDegrees == 90 || rotationDegrees == 270 ? PageHeight : PageWidth;
+            Height = rotationDegrees == 90 || rotationDegrees == 270 ? PageWidth : PageHeight;
         }
 
         public double PageWidth { get; }
@@ -300,6 +301,8 @@ public static partial class PdfHtmlConverterExtensions {
         public double PageHeight { get; }
 
         public int RotationDegrees { get; }
+
+        public double Scale { get; }
 
         public double Width { get; }
 
@@ -311,10 +314,12 @@ public static partial class PdfHtmlConverterExtensions {
                 rotation += 360;
             }
 
-            return new PositionedPageGeometry(page.Width, page.Height, rotation);
+            return new PositionedPageGeometry(page.Width, page.Height, rotation, page.UserUnit.GetValueOrDefault(1D));
         }
 
         public PositionedPoint TransformPoint(double x, double y) {
+            x *= Scale;
+            y *= Scale;
             switch (RotationDegrees) {
                 case 90:
                     return new PositionedPoint(PageHeight - y, x);
@@ -328,6 +333,10 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         public PositionedBox TransformBox(double left, double bottom, double width, double height) {
+            left *= Scale;
+            bottom *= Scale;
+            width *= Scale;
+            height *= Scale;
             switch (RotationDegrees) {
                 case 90:
                     return new PositionedBox(PageHeight - bottom - height, left, height, width);
@@ -339,6 +348,8 @@ public static partial class PdfHtmlConverterExtensions {
                     return new PositionedBox(left, PageHeight - bottom - height, width, height);
             }
         }
+
+        public double ScaleLength(double value) => value * Scale;
     }
 
     private struct PositionedPoint {

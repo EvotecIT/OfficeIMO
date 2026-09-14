@@ -81,8 +81,13 @@ namespace OfficeIMO.Word.Pdf {
             double? width = null;
             double? height = null;
             if (options.PreserveImagePlacementSize && placement != null && placement.Width > 0 && placement.Height > 0) {
-                width = PdfPointsToWordPixels(placement.Width);
-                height = PdfPointsToWordPixels(placement.Height);
+                PdfCore.PdfSelectionQuad visualBounds = page.MapUserSpaceRectangleToVisual(
+                    placement.X,
+                    placement.Y,
+                    placement.X + placement.Width,
+                    placement.Y + placement.Height);
+                width = PdfPointsToWordPixels(visualBounds.Right - visualBounds.Left);
+                height = PdfPointsToWordPixels(visualBounds.Bottom - visualBounds.Top);
             }
 
             try {
@@ -279,6 +284,9 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedPaintEffect => (
                     "PdfImagePaintEffectNotSafelyEditable",
                     "The raw PDF image was not embedded because its PDF paint effect cannot be reproduced safely as an editable Word picture."),
+                PdfCore.PdfImagePlacementImportDisposition.OmitUnappliedDecode => (
+                    "PdfImageDecodeNotSafelyEditable",
+                    "The raw PDF image was not embedded because its PDF decode mapping is not represented by the extracted JPEG 2000 payload."),
                 _ => (
                     "PdfImageTransparencyMaskNotResolved",
                     "The raw PDF image was not embedded because its unresolved transparency mask could hide source pixels that an editable Word picture would reveal.")

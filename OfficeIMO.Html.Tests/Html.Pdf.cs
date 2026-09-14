@@ -1512,6 +1512,38 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtmlResult_ReportsIncludedFormWidgetsAsStaticApproximations() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .TextField("Approval", width: 120, value: "Ready")
+            .ToBytes();
+
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf)
+            .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+
+        Assert.Contains("class=\"pdf-form-widget\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfFormWidgetsFlattened" &&
+            warning.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_ReportsOptionalContentAsFlattened() {
+        byte[] pdf = CreateOptionalContentPdf();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
+        Assert.Equal(1, logical.OptionalContentGroupCount);
+
+        PdfHtmlConversionResult result = logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfOptionalContentGroupsFlattened" &&
+            warning.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+    }
+
+    [Fact]
     public void Pdf_ToHtmlResult_SnapshotsConversionReportWhenOptionsAreReused() {
         byte[] imagePdf = CreateImageSamplePdf();
         byte[] textPdf = CreateLogicalSamplePdf();
@@ -1934,6 +1966,35 @@ public sealed class HtmlPdfTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateOptionalContentPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [5 0 R] /D << /ON [5 0 R] /Order [5 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /OCG /Name (Invoice details) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
             "%%EOF"
         }) + "\n";
 

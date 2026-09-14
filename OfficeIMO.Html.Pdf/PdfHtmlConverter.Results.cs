@@ -126,14 +126,24 @@ public static partial class PdfHtmlConverterExtensions {
                 OfficeConversionLossKind.Omission);
         }
 
-        if (!options.IncludeFormWidgets && formWidgetCount > 0) {
-            AddWarning(
-                options,
-                "PdfFormWidgetsOmitted",
-                formWidgetCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
-                " PDF form widgets were omitted because form output is disabled.",
-                PdfCore.PdfConversionWarningSeverity.Warning,
-                OfficeConversionLossKind.Omission);
+        if (formWidgetCount > 0) {
+            if (options.IncludeFormWidgets) {
+                AddWarning(
+                    options,
+                    "PdfFormWidgetsFlattened",
+                    formWidgetCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                    " PDF form widgets were represented as static text; field editing and interactive behavior were not preserved.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    OfficeConversionLossKind.Approximation);
+            } else {
+                AddWarning(
+                    options,
+                    "PdfFormWidgetsOmitted",
+                    formWidgetCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                    " PDF form widgets were omitted because form output is disabled.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    OfficeConversionLossKind.Omission);
+            }
         }
 
         if (annotationCount > 0) {
@@ -144,6 +154,16 @@ public static partial class PdfHtmlConverterExtensions {
                 " non-link PDF annotations are not represented by the HTML profiles.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
                 OfficeConversionLossKind.Omission);
+        }
+
+        if (document.OptionalContentGroupCount > 0) {
+            AddWarning(
+                options,
+                "PdfOptionalContentGroupsFlattened",
+                document.OptionalContentGroupCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " PDF optional-content groups were flattened to the current visible projection; layer controls and alternate visibility states were not preserved.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Approximation);
         }
 
         int outlineCount = CountOutlines(document.Outlines);

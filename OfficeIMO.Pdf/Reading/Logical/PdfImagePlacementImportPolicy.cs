@@ -11,6 +11,7 @@ internal enum PdfImagePlacementImportDisposition {
     OmitSoftMask,
     OmitUnsupportedBlendMode,
     OmitUnsupportedPaintEffect,
+    OmitUnappliedDecode,
     OmitUnresolvedTransparencyMask
 }
 
@@ -90,6 +91,13 @@ internal static class PdfImagePlacementImportPolicy {
         if (image.SourceImage.HasUnresolvedTransparencyMask) {
             return new PdfImagePlacementImportAssessment(
                 PdfImagePlacementImportDisposition.OmitUnresolvedTransparencyMask,
+                opacity,
+                blendMode);
+        }
+        if (image.SourceImage.HasExplicitDecode &&
+            string.Equals(image.SourceImage.MimeType, "image/jp2", StringComparison.OrdinalIgnoreCase)) {
+            return new PdfImagePlacementImportAssessment(
+                PdfImagePlacementImportDisposition.OmitUnappliedDecode,
                 opacity,
                 blendMode);
         }

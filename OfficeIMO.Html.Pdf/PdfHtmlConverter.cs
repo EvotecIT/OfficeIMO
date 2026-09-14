@@ -960,6 +960,11 @@ public static partial class PdfHtmlConverterExtensions {
                     "The raw PDF image was not embedded because its PDF paint effect cannot be reproduced safely in editable HTML.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission, details);
                 return;
+            case PdfCore.PdfImagePlacementImportDisposition.OmitUnappliedDecode:
+                AddWarning(options, "ImageDecodeNotSafelyEditable", source,
+                    "The raw PDF image was not embedded because its PDF decode mapping is not represented by the extracted JPEG 2000 payload.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission, details);
+                return;
             case PdfCore.PdfImagePlacementImportDisposition.OmitUnresolvedTransparencyMask:
                 AddWarning(options, "ImageTransparencyMaskNotResolved", source,
                     "The raw PDF image was not embedded because its unresolved transparency mask could hide pixels that HTML would reveal.",
