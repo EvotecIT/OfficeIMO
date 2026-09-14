@@ -115,9 +115,10 @@ HtmlAutomationRunResult run = await runner.RunAsync(page, (turn, _) => {
 
 Prompts, credentials, model selection, approval policy and model-client retries
 belong to the application that supplies the planner. The optional
-`OfficeIMO.Html.Runtime.MicrosoftExtensionsAI` package adapts any caller-owned
-`Microsoft.Extensions.AI.IChatClient` to this callback without adding a model SDK
-to the runtime core.
+`OfficeIMO.AI.Html` package adapts an `OfficeIMO.AI.IOfficeAiExecutor` to this
+callback without adding a model SDK to the runtime core. Use
+`OfficeIMO.AI.IntelligenceX` for ChatGPT, Copilot, local models and
+OpenAI-compatible endpoints.
 
 `GetTrace()` returns bounded provider-neutral operation evidence for lifecycle,
 navigation, scripts, waits, observations, actions, resources, redirects, console

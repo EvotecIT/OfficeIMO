@@ -4,6 +4,14 @@
 
 Use [OfficeIMO.AI.IntelligenceX](../OfficeIMO.AI.IntelligenceX/README.md) for ChatGPT, native Copilot, or an OpenAI-compatible endpoint. The [headless example](../Examples/OfficeIMO.AI.Example/README.md) loads PDFs, text, and images and writes JSON, CSV, and Excel review artifacts.
 
+The same `IOfficeAiExecutor` can produce bounded structured tool decisions through
+`OfficeAiToolPlanner`. Tool declarations and provider responses remain inert JSON;
+the planner verifies the response envelope, declared tool identity, uniqueness, size,
+item count, and nesting. The owning application validates each argument object against
+the selected tool contract before execution. HTML automation uses this contract through
+[OfficeIMO.AI.Html](../OfficeIMO.AI.Html/README.md), whose runtime dispatcher performs
+that final typed argument validation.
+
 ## Add to a .NET 10 application
 
 To build from a source checkout, create an application beside the `OfficeIMO` directory and reference the engine project:
@@ -113,6 +121,6 @@ For `Parse`, `CreateProposedReadResult` produces Reader's canonical transport mo
 
 ## Executor contract
 
-Implement `IOfficeAiExecutor` to use another model client. Supply an immutable profile, report whether the actual route is local and whether it accepts images/enforces schemas, measure transport prompt text in `MeasureRequestCharacters`, and return one bounded response from `ExecuteAsync`. A truncated generation must set `IsComplete = false`. Leave unavailable usage counters null. The provider boundary must not give document content access to tools, files, or arbitrary network actions.
+Implement `IOfficeAiExecutor` to use another model client. Supply an immutable profile, report whether the actual route is local and whether it accepts images/enforces schemas, measure transport prompt text in `MeasureRequestCharacters`, and return one bounded response from `ExecuteAsync`. A truncated generation must set `IsComplete = false`. Leave unavailable usage counters null. The executor returns inert JSON and must never execute proposed tools, access files, or grant arbitrary network actions.
 
 Profile capability declarations require independent qualification. The engine applies the same local response checks to schema-enforced and prompted-JSON output; the latter reports its weaker generation guarantee. See the [architecture and support matrix](../Docs/officeimo.document-assistant-design.md) for current coverage and limits.

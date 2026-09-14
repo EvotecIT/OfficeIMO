@@ -83,7 +83,7 @@
         { "id": "chromium.playwright-comparison", "requiredCases": 3, "passedCases": 3, "failedCases": 0, "requiredAssertions": 21, "passedAssertions": 21, "failedAssertions": 0, "untestedAssertions": 0 }
       ],
       "consumers": [
-        { "id": "microsoft-extensions-ai", "contract": "Microsoft.Extensions.AI.IChatClient", "packageVersion": "10.10.0", "requiredWorkflows": 1 }
+        { "id": "officeimo-ai-html", "contract": "OfficeIMO.AI.IOfficeAiExecutor", "packageVersion": "3.4.3", "requiredWorkflows": 1 }
       ],
       "exclusions": [ "model selection", "prompt ownership", "credentials", "approval policy", "model-client retries", "unbounded autonomous execution", "provider-native page or element handles" ],
       "untested": [ "model quality", "provider-specific tool-call formatting", "multi-agent orchestration", "credentialed application workflows" ]

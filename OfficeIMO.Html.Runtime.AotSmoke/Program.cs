@@ -1,9 +1,8 @@
-using System.Runtime.CompilerServices;
-using Microsoft.Extensions.AI;
+using global::OfficeIMO.AI;
+using global::OfficeIMO.AI.Html;
 using OfficeIMO.Html.Dom;
 using OfficeIMO.Html.Runtime;
 using OfficeIMO.Html.Runtime.Conformance;
-using OfficeIMO.Html.Runtime.MicrosoftExtensionsAI;
 
 if (args.Length != 1 || !File.Exists(args[0]))
     throw new ArgumentException("Pass the deployed OfficeIMO.Html.Runtime.Worker.dll path.");
@@ -13,12 +12,9 @@ if (!host.Descriptor.Supports(HtmlRuntimeCapabilityIds.RevisionBoundReferences))
     throw new InvalidOperationException("The NativeAOT client lost runtime capabilities.");
 if (HtmlAutomationToolCatalog.GetDefinitions().Count != 4)
     throw new InvalidOperationException("The NativeAOT client lost automation tool schemas.");
-using var chatClient = new UnusedChatClient();
-var chatPlanner = new HtmlAutomationChatPlanner(chatClient, _ => new HtmlAutomationChatRequest {
-    Messages = new[] { new ChatMessage(ChatRole.User, "NativeAOT smoke") }
-});
-if (chatPlanner.Tools.Count != 4)
-    throw new InvalidOperationException("The NativeAOT client lost Microsoft.Extensions.AI tool declarations.");
+var aiPlanner = new HtmlAutomationAiPlanner(new UnusedAiExecutor(), _ => "NativeAOT smoke");
+if (aiPlanner.Tools.Count != 4)
+    throw new InvalidOperationException("The NativeAOT client lost OfficeIMO AI tool declarations.");
 
 await using IHtmlRuntimeContext context = await host.CreateContextAsync(new HtmlRuntimeContextOptions { Id = "native-aot" });
 await using IHtmlRuntimePage page = await context.OpenPageAsync(new HtmlScriptRequest {
@@ -40,7 +36,7 @@ var toolResult = new HtmlAutomationToolResult { CallId = "aot", ToolName = HtmlA
 var runResult = new HtmlAutomationRunResult { IsComplete = true, Steps = 1, FinalObservation = observation, ToolResults = new[] { toolResult } };
 HtmlRuntimeQualificationManifest automationManifest = HtmlRuntimeQualificationCatalog.Get("programmatic-automation-v1");
 HtmlRuntimeConsumerQualificationResult consumerEvidence = HtmlRuntimeQualificationCatalog.EvaluateConsumer(
-    automationManifest, "microsoft-extensions-ai", passedWorkflows: 1, failedWorkflows: 0);
+    automationManifest, "officeimo-ai-html", passedWorkflows: 1, failedWorkflows: 0);
 var qualificationReport = new HtmlRuntimeConformanceReport {
     Provider = host.Descriptor,
     Cases = automationManifest.Cases.Select(item => new HtmlRuntimeConformanceCaseResult {
@@ -79,14 +75,15 @@ file sealed class UnusedDomServices : IHtmlDomServices {
     public bool Matches(HtmlElement element, string selector) => throw new NotSupportedException();
 }
 
-file sealed class UnusedChatClient : IChatClient {
-    public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null,
+file sealed class UnusedAiExecutor : IOfficeAiExecutor {
+    public OfficeAiExecutionProfile Profile { get; } = new() {
+        Id = "native-aot",
+        Provider = "test",
+        Model = "test",
+        IsLocal = true,
+        EnforcesJsonSchema = true
+    };
+
+    public Task<OfficeAiExecutionResponse> ExecuteAsync(OfficeAiExecutionRequest request,
         CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> messages,
-        ChatOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
-        await Task.CompletedTask;
-        yield break;
-    }
-    public object? GetService(Type serviceType, object? serviceKey = null) => null;
-    public void Dispose() { }
 }

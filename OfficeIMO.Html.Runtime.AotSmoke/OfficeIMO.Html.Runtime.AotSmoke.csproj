@@ -16,6 +16,6 @@
     <ProjectReference Include="../OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime.Conformance/OfficeIMO.Html.Runtime.Conformance.csproj" />
-    <ProjectReference Include="../OfficeIMO.Html.Runtime.MicrosoftExtensionsAI/OfficeIMO.Html.Runtime.MicrosoftExtensionsAI.csproj" />
+    <ProjectReference Include="../OfficeIMO.AI.Html/OfficeIMO.AI.Html.csproj" />
   </ItemGroup>
 </Project>

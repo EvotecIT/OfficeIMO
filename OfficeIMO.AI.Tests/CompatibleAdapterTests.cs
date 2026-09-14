@@ -86,6 +86,32 @@ public sealed class CompatibleAdapterTests {
     }
 
     [Fact]
+    public async Task StructuredToolPlanningUsesTheSameIntelligenceXExecutor() {
+        const string response = """
+            {"isComplete":false,"message":null,"calls":[{"id":"run-1","name":"run","arguments":{"value":"ready"}}]}
+            """;
+        using var server = new Server(context => Reply(context, response));
+        using var executor = await IntelligenceXOfficeAiExecutor.ConnectAsync(Profile(), new() {
+            Transport = OfficeAiIntelligenceXTransport.CompatibleHttp, Endpoint = server.Endpoint
+        });
+        using JsonDocument schema = JsonDocument.Parse("""{"type":"object","required":["value"],"properties":{"value":{"type":"string"}}}""");
+
+        OfficeAiToolPlanningDecision decision = await new OfficeAiToolPlanner(executor).PlanAsync(new OfficeAiToolPlanningRequest {
+            RequestId = "ix-tool-planning",
+            Instructions = "Choose the next declared operation.",
+            InputJson = "{\"state\":\"pending\"}",
+            Tools = new[] { new OfficeAiToolDefinition("run", "Run the selected operation.", schema.RootElement) }
+        });
+
+        OfficeAiToolCall call = Assert.Single(decision.Calls);
+        Assert.Equal("run", call.Name);
+        Assert.Equal("ready", call.Arguments.GetProperty("value").GetString());
+        string body = Assert.Single(server.Requests).Body;
+        Assert.Contains("officeimo-request", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("document-request", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task LocalEndpointDoesNotFollowRedirects() {
         using var server = new Server(context => {
             if (context.Request.Url!.AbsolutePath == "/v1/chat/completions") {

@@ -146,11 +146,11 @@ Provider qualification is available from `EvaluateProvider` on
 `HtmlRuntimeQualificationCatalog` in `OfficeIMO.Html.Runtime.Conformance`.
 Profiles that declare consuming adapters require actual workflow outcomes through
 `EvaluateConsumer`; the combined `Evaluate` result fails when any declared
-consumer evidence is absent or failed. The
-optional `OfficeIMO.Html.Runtime.MicrosoftExtensionsAI` package adapts a
-caller-owned `Microsoft.Extensions.AI.IChatClient`; the core runtime and tool
-schemas remain model-SDK neutral. Applications continue to own prompts,
-credentials, model choice, approvals and retries.
+consumer evidence is absent or failed. The optional `OfficeIMO.AI.Html` package
+adapts a caller-owned `OfficeIMO.AI.IOfficeAiExecutor`; the core runtime and tool
+schemas remain model-SDK neutral. Use `OfficeIMO.AI.IntelligenceX` for supported
+hosted or local model routes. Applications continue to own prompts, credentials,
+model choice, approvals and retries.
 
 ### Explicit HTML rendering intent
 

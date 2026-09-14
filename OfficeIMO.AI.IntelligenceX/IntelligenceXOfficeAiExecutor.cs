@@ -6,7 +6,7 @@ using IntelligenceX.Treatment;
 
 namespace OfficeIMO.AI.IntelligenceX;
 
-/// <summary>Thin adapter to IX Treatment. Each request starts fresh and supplies only inline evidence.</summary>
+/// <summary>Thin adapter to IX Treatment. Each request starts fresh and supplies only inline input.</summary>
 public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposable {
     private readonly IntelligenceXClient? _client;
     private readonly ITreatmentProvider _provider;
@@ -139,14 +139,14 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
 
     private TreatmentRequest BuildTreatment(OfficeAiExecutionRequest request, bool copyImages) {
             var inputs = new List<TreatmentInputArtifact> {
-                new() { Id = "document-request", MediaType = "application/json", Text = request.InputJson }
+                new() { Id = "officeimo-request", MediaType = "application/json", Text = request.InputJson }
             };
             foreach (OfficeAiImage image in request.Images) inputs.Add(new TreatmentInputArtifact {
                 Id = image.Id, Role = "source-image", MediaType = image.MediaType, ImageBytes = copyImages ? image.CopyBytes() : null
             });
             return new TreatmentRequest {
                 Id = request.RequestId, Instructions = request.Instructions,
-                Prompt = "Perform the operation specified in document-request using only its supplied evidence and attached images.",
+                Prompt = "Perform the requested operation using only officeimo-request and its attached images.",
                 Model = Profile.Model, NewThread = true, AllowNetwork = false, InlineLocalInputFiles = false,
                 Ephemeral = true,
                 MaxInlineImageBytes = Profile.MaxImageBytes, Inputs = inputs.AsReadOnly(), EnforceOutputSchema = Profile.EnforcesJsonSchema,

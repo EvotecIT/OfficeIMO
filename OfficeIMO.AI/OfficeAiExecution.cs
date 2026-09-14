@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 
 namespace OfficeIMO.AI;
 
-/// <summary>Caller-supplied model boundary. Implementations must not grant source content tool or filesystem authority.</summary>
+/// <summary>Caller-supplied model boundary. Implementations return inert data and never execute tools or grant filesystem authority.</summary>
 public interface IOfficeAiExecutor {
     /// <summary>Immutable profile describing this executor's actual configured route.</summary>
     OfficeAiExecutionProfile Profile { get; }
@@ -72,7 +72,7 @@ public sealed class OfficeAiImage {
     public byte[] CopyBytes() => (byte[])_bytes.Clone();
 }
 
-/// <summary>Immutable single-batch request with no executable path or tool definitions.</summary>
+/// <summary>Immutable single-batch request with no executable callbacks or provider-owned tool authority.</summary>
 public sealed record OfficeAiExecutionRequest(
     string RequestId, string Instructions, string InputJson, string OutputSchema,
     IReadOnlyList<OfficeAiImage> Images, int MaxResponseCharacters);

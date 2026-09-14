@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
     <VersionPrefix>3.4.3</VersionPrefix>
-    <PackageId>OfficeIMO.Html.Runtime.MicrosoftExtensionsAI</PackageId>
+    <PackageId>OfficeIMO.AI.Html</PackageId>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <Description>Optional Microsoft.Extensions.AI planner adapter for OfficeIMO HTML runtime automation.</Description>
+    <Description>OfficeIMO AI planner integration for bounded HTML runtime automation.</Description>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -16,7 +16,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.0" />
+    <ProjectReference Include="../OfficeIMO.AI/OfficeIMO.AI.csproj" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
