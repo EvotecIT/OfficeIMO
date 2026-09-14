@@ -128,7 +128,8 @@ namespace OfficeIMO.Word.Pdf {
                         ["MarkedContentReferenceCount"] = source.TaggedContent.MarkedContentReferenceCount.ToString(CultureInfo.InvariantCulture)
                     });
             }
-            if (source.OptionalContentGroupCount > 0) {
+            int optionalContentPageCount = source.Pages.Count(static page => page.HasOptionalContentUsage);
+            if (optionalContentPageCount > 0) {
                 AddWarning(
                     options,
                     "PdfOptionalContentGroupsFlattened",
@@ -136,7 +137,10 @@ namespace OfficeIMO.Word.Pdf {
                     "PDF optional-content groups were flattened into the visible logical reconstruction; Word layer controls were not created.",
                     PdfCore.PdfConversionWarningSeverity.Warning,
                     OfficeConversionLossKind.Omission,
-                    new Dictionary<string, string> { ["GroupCount"] = source.OptionalContentGroupCount.ToString(CultureInfo.InvariantCulture) });
+                    new Dictionary<string, string> {
+                        ["GroupCount"] = source.OptionalContentGroupCount.ToString(CultureInfo.InvariantCulture),
+                        ["PageCount"] = optionalContentPageCount.ToString(CultureInfo.InvariantCulture)
+                    });
             }
             if (source.CatalogActions.Count > 0 || source.OpenAction != null) {
                 AddWarning(

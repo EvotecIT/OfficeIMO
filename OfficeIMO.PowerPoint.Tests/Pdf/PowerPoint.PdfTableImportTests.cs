@@ -339,7 +339,15 @@ public class PowerPointPdfTableImportTests {
 
     [Fact]
     public void PdfDocument_ToPowerPointPresentation_EditableContinuationTablesStayInsideSlide() {
-        byte[] pdf = PdfCore.PdfDocument.Create()
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 3600D,
+                PageHeight = 1800D,
+                MarginLeft = 36D,
+                MarginRight = 36D,
+                MarginTop = 36D,
+                MarginBottom = 36D,
+                DefaultFontSize = 10D
+            })
             .Table(new[] {
                 new[] { "Metric", "Value" },
                 new[] { "One", "1" },
@@ -358,12 +366,15 @@ public class PowerPointPdfTableImportTests {
             Assert.True(result.Value.Slides.Count > 1);
             double slideWidth = result.Value.SlideSize.WidthPoints;
             double slideHeight = result.Value.SlideSize.HeightPoints;
+            int primaryFontSize = Assert.Single(result.Value.Slides[0].Tables).GetCell(0, 0).FontSize ?? 0;
+            Assert.InRange(primaryFontSize, 1, 3);
             foreach (OfficeIMO.PowerPoint.PowerPointSlide slide in result.Value.Slides.Skip(1)) {
                 OfficeIMO.PowerPoint.PowerPointTable table = Assert.Single(slide.Tables);
                 Assert.InRange(table.LeftPoints, 0D, slideWidth);
                 Assert.InRange(table.TopPoints, 0D, slideHeight);
                 Assert.True(table.LeftPoints + table.WidthPoints <= slideWidth + 0.01D);
                 Assert.True(table.TopPoints + table.HeightPoints <= slideHeight + 0.01D);
+                Assert.InRange(table.GetCell(0, 0).FontSize ?? 0, 10, 18);
             }
         }
     }
@@ -740,6 +751,7 @@ public class PowerPointPdfTableImportTests {
             annotationCount: 0,
             pageActionCount: 0,
             optionalContentGroupCount: 0,
+            pagesWithOptionalContent: 0,
             interactiveMediaAnnotationCount: 0,
             analysisTruncated: false);
         var failedScope = new PdfCore.PdfTableExtractionScopeReport(
@@ -754,6 +766,7 @@ public class PowerPointPdfTableImportTests {
             annotationCount: 0,
             pageActionCount: 0,
             optionalContentGroupCount: 0,
+            pagesWithOptionalContent: 0,
             interactiveMediaAnnotationCount: 0,
             analysisTruncated: false);
         var report = new PdfPowerPointConversionReport(

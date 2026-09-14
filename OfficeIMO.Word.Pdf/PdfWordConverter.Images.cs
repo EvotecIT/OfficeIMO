@@ -103,6 +103,8 @@ namespace OfficeIMO.Word.Pdf {
                 string description = "Imported PDF image " + image.ResourceName + " from page " + image.PageNumber.ToString(CultureInfo.InvariantCulture);
                 WordImage embeddedImage;
                 if (options.PreserveImagePlacementPosition && placement != null && placement.IsAxisAligned && page.RotationDegrees == 0) {
+                    imageParagraph.LineSpacingRule = WordLineSpacingRule.Exact;
+                    imageParagraph.LineSpacing = 1;
                     PdfCore.PdfSelectionQuad visual = page.MapUserSpaceRectangleToVisual(
                         placement.X,
                         placement.Y,

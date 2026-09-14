@@ -156,12 +156,13 @@ public static partial class PdfHtmlConverterExtensions {
                 OfficeConversionLossKind.Omission);
         }
 
-        if (document.OptionalContentGroupCount > 0) {
+        int optionalContentPageCount = pages.Count(static page => page.HasOptionalContentUsage);
+        if (optionalContentPageCount > 0) {
             AddWarning(
                 options,
                 "PdfOptionalContentGroupsFlattened",
-                document.OptionalContentGroupCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
-                " PDF optional-content groups were flattened to the current visible projection; layer controls and alternate visibility states were not preserved.",
+                optionalContentPageCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " selected PDF pages use optional content that was flattened to the current visible projection; layer controls and alternate visibility states were not preserved.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
                 OfficeConversionLossKind.Approximation);
         }

@@ -171,7 +171,7 @@ public static class PdfLogicalTableAnalysis {
 
     /// <summary>
     /// Describes table extraction scope for a selected collection of logical pages.
-    /// Document-level optional-content groups are not attributed to individual pages.
+    /// Page-level optional-content usage is reported even when document-level group metadata is unavailable.
     /// </summary>
     /// <param name="pages">Logical pages to inspect.</param>
     /// <returns>Page-scoped table counts plus visible and interactive content outside detected tables.</returns>
@@ -181,7 +181,7 @@ public static class PdfLogicalTableAnalysis {
 
     /// <summary>
     /// Describes table extraction scope for selected logical pages while bounding attacker-controlled text/table comparisons.
-    /// Document-level optional-content groups are not attributed to individual pages.
+    /// Page-level optional-content usage is reported even when document-level group metadata is unavailable.
     /// </summary>
     public static PdfTableExtractionScopeReport AnalyzeExtractionScope(
         IReadOnlyList<PdfLogicalPage> pages,
@@ -207,6 +207,7 @@ public static class PdfLogicalTableAnalysis {
         int formWidgetCount = 0;
         int annotationCount = 0;
         int pageActionCount = 0;
+        int pagesWithOptionalContent = 0;
         int interactiveMediaAnnotationCount = 0;
         int remainingComparisons = Math.Min(maximumComparisons, DefaultMaximumScopeAnalysisComparisons);
         bool analysisTruncated = false;
@@ -240,6 +241,7 @@ public static class PdfLogicalTableAnalysis {
             formWidgetCount += page.FormWidgets.Count;
             annotationCount += page.Annotations.Count;
             pageActionCount += page.PageActions.Count;
+            if (page.HasOptionalContentUsage) pagesWithOptionalContent++;
             interactiveMediaAnnotationCount += page.Annotations.Count(static annotation =>
                 IsInteractiveMediaAnnotationSubtype(annotation.Subtype));
         }
@@ -256,6 +258,7 @@ public static class PdfLogicalTableAnalysis {
             annotationCount,
             pageActionCount,
             optionalContentGroupCount,
+            pagesWithOptionalContent,
             interactiveMediaAnnotationCount,
             analysisTruncated);
     }

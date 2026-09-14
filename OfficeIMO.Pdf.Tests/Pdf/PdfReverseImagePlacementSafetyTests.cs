@@ -463,6 +463,9 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             Assert.Equal(OfficeIMO.Word.WordImageTextWrapping.InFrontOfText, image.WrapText);
             Assert.Equal(8D, image.Width);
             Assert.Equal(4D, image.Height);
+            OfficeIMO.Word.WordParagraph anchor = Assert.Single(word.Value.Paragraphs);
+            Assert.Equal(OfficeIMO.Word.WordLineSpacingRule.Exact, anchor.LineSpacingRule);
+            Assert.Equal(1, anchor.LineSpacing);
         }
     }
 

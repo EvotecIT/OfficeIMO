@@ -638,6 +638,7 @@ public static partial class PowerPointPdfConverterExtensions {
                     page,
                     extraction.Table,
                     GetEditableTypographyScale(page, placement.Scale),
+                    isContinuation: !primary,
                     cancellationToken);
                 entries.Add(new PdfPowerPointTableImportEntry(
                     pageIndex,
@@ -876,7 +877,7 @@ public static partial class PowerPointPdfConverterExtensions {
         AddEditableDocumentOmission(warnings, "PdfNavigationNotReconstructed", "Navigation", scope.LinkCount + scope.PageActionCount, "links and page actions");
         AddEditableDocumentOmission(warnings, "PdfFormsNotReconstructed", "Forms", scope.FormWidgetCount, "forms and interactive controls");
         AddEditableDocumentOmission(warnings, "PdfAnnotationsNotReconstructed", "Annotations", scope.AnnotationCount, "annotations");
-        AddEditableDocumentOmission(warnings, "PdfGroupsNotReconstructed", "Groups", scope.OptionalContentGroupCount, "optional-content groups");
+        AddEditableDocumentOmission(warnings, "PdfGroupsNotReconstructed", "Groups", scope.PagesWithOptionalContent, "pages using optional content");
         AddEditableDocumentOmission(warnings, "PdfAnimationsNotReconstructed", "Animations", scope.InteractiveMediaAnnotationCount, "interactive media and animations");
         if (scope.AnalysisTruncated) {
             AddEditableDocumentOmission(warnings, "PdfProjectionAnalysisTruncated", "Document", 1, "bounded source-content analysis");

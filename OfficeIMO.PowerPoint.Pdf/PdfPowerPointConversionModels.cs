@@ -224,7 +224,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         if (failedVisualScope == null) throw new ArgumentNullException(nameof(failedVisualScope));
         bool hasFailedVisualPages = VisualPages.Any(static page => !page.Succeeded);
         _hasOmittedPageContent = hasFailedVisualPages &&
-            (failedVisualScope.HasOmittedPageContent || SourceScope.OptionalContentGroupCount > 0);
+            (failedVisualScope.HasOmittedPageContent || SourceScope.PagesWithOptionalContent > 0);
         var warnings = new List<OfficeIMO.Pdf.PdfConversionWarning>(CreateProjectionWarnings(
             SourceScope,
             failedVisualScope,
@@ -362,9 +362,9 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         AddProjectionWarning(warnings, "PdfAnnotationsNotEditable", "Annotations", scope.AnnotationCount,
             failedVisualScope?.AnnotationCount ?? scope.AnnotationCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
             description: "annotations");
-        AddProjectionWarning(warnings, "PdfGroupsNotEditable", "Groups", scope.OptionalContentGroupCount,
+        AddProjectionWarning(warnings, "PdfGroupsNotEditable", "Groups", scope.PagesWithOptionalContent,
             failedCount: 0, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: false,
-            description: "optional-content groups");
+            description: "pages using optional content");
         AddProjectionWarning(warnings, "PdfAnimationsNotEditable", "Animations", scope.InteractiveMediaAnnotationCount,
             failedVisualScope?.InteractiveMediaAnnotationCount ?? scope.InteractiveMediaAnnotationCount,
             hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,

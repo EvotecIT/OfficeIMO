@@ -16,6 +16,7 @@ public sealed class PdfTableExtractionScopeReport {
         int annotationCount,
         int pageActionCount,
         int optionalContentGroupCount,
+        int pagesWithOptionalContent,
         int interactiveMediaAnnotationCount,
         bool analysisTruncated) {
         SourcePageCount = sourcePageCount;
@@ -29,6 +30,7 @@ public sealed class PdfTableExtractionScopeReport {
         AnnotationCount = annotationCount;
         PageActionCount = pageActionCount;
         OptionalContentGroupCount = optionalContentGroupCount;
+        PagesWithOptionalContent = pagesWithOptionalContent;
         InteractiveMediaAnnotationCount = interactiveMediaAnnotationCount;
         AnalysisTruncated = analysisTruncated;
     }
@@ -75,6 +77,9 @@ public sealed class PdfTableExtractionScopeReport {
     /// <summary>Number of optional-content groups, which table-only adapters do not preserve as editable groups or layers.</summary>
     public int OptionalContentGroupCount { get; }
 
+    /// <summary>Number of inspected source pages that actually use optional content.</summary>
+    public int PagesWithOptionalContent { get; }
+
     /// <summary>Number of movie, sound, screen, rich-media, or 3D annotations, which table-only adapters do not import as animations or media.</summary>
     public int InteractiveMediaAnnotationCount { get; }
 
@@ -97,6 +102,6 @@ public sealed class PdfTableExtractionScopeReport {
         FormWidgetCount > 0 ||
         AnnotationCount > 0 ||
         PageActionCount > 0 ||
-        OptionalContentGroupCount > 0 ||
+        PagesWithOptionalContent > 0 ||
         InteractiveMediaAnnotationCount > 0;
 }

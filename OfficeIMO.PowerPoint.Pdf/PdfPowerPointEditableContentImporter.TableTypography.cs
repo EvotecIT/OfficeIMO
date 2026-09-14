@@ -16,10 +16,11 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfLogicalPage page,
         PdfCore.PdfLogicalTable sourceTable,
         double scale,
+        bool isContinuation,
         CancellationToken cancellationToken) {
-        int fontSize = (int)Math.Round(Math.Min(
-            18D,
-            ScaleEditableFontSize(GetMedianTableFontSize(page, sourceTable), scale)));
+        double scaledFontSize = ScaleEditableFontSize(GetMedianTableFontSize(page, sourceTable), scale);
+        if (isContinuation) scaledFontSize = Math.Max(10D, scaledFontSize);
+        int fontSize = (int)Math.Round(Math.Min(18D, scaledFontSize));
         fontSize = Math.Max(1, fontSize);
         for (int rowIndex = 0; rowIndex < table.Rows; rowIndex++) {
             for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) {
