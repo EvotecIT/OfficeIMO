@@ -52,6 +52,22 @@ public sealed class PdfEmbeddedFontFallbackCandidate {
         Style = style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic);
     }
 
+    internal PdfEmbeddedFontFallbackCandidate(
+        PdfEmbeddedFontFamily fontFamily,
+        OfficeFontUnicodeRangeSet? unicodeRanges = null,
+        OfficeFontStyle style = OfficeFontStyle.Regular,
+        string? plannerFamilyName = null) {
+        Guard.NotNull(fontFamily, nameof(fontFamily));
+
+        FontName = fontFamily.FamilyName;
+        PlannerFamilyName = string.IsNullOrWhiteSpace(plannerFamilyName)
+            ? FontName
+            : plannerFamilyName!.Trim();
+        _fontFamily = fontFamily.CreateCoverageStableFallbackSnapshot();
+        UnicodeRanges = unicodeRanges ?? OfficeFontUnicodeRangeSet.All;
+        Style = style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic);
+    }
+
     /// <summary>Display name used in fallback segments and diagnostics.</summary>
     public string FontName { get; }
 

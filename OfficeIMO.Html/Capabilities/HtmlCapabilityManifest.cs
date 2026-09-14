@@ -47,6 +47,7 @@ public sealed class HtmlCapabilitySpecificationPin {
 /// <summary>Identifies a versioned evidence source selected by a compatibility profile.</summary>
 public sealed class HtmlCapabilityEvidencePin {
     private readonly IReadOnlyList<string> _caseIds;
+    private readonly IReadOnlyList<HtmlCapabilityEvidenceSelection> _selections;
 
     /// <summary>Creates an evidence pin.</summary>
     public HtmlCapabilityEvidencePin(
@@ -60,7 +61,8 @@ public sealed class HtmlCapabilityEvidencePin {
         int? failed = null,
         int? excluded = null,
         int? untested = null,
-        IEnumerable<string>? caseIds = null) {
+        IEnumerable<string>? caseIds = null,
+        IEnumerable<HtmlCapabilityEvidenceSelection>? selections = null) {
         Id = HtmlCapabilityContractValue.Required(id, nameof(id));
         Source = HtmlCapabilityContractValue.Required(source, nameof(source));
         Revision = HtmlCapabilityContractValue.Required(revision, nameof(revision));
@@ -73,6 +75,10 @@ public sealed class HtmlCapabilityEvidencePin {
         Excluded = NonNegative(excluded, nameof(excluded));
         Untested = NonNegative(untested, nameof(untested));
         _caseIds = HtmlCapabilityContractValue.Normalize(caseIds ?? Array.Empty<string>(), nameof(caseIds));
+        _selections = HtmlCapabilityContractValue.Unique(
+            selections ?? Array.Empty<HtmlCapabilityEvidenceSelection>(),
+            item => item.CapabilityId,
+            nameof(selections));
         if (Required.HasValue && Passed.HasValue && Failed.HasValue && Passed.Value + Failed.Value > Required.Value) {
             throw new ArgumentException("Passed and failed evidence counts cannot exceed the required count.");
         }
@@ -100,6 +106,8 @@ public sealed class HtmlCapabilityEvidencePin {
     public int? Untested { get; }
     /// <summary>Stable identifiers for the selected required cases, when the evidence is count-based.</summary>
     public IReadOnlyList<string> CaseIds => _caseIds;
+    /// <summary>Exact per-capability case selections and feature exclusions.</summary>
+    public IReadOnlyList<HtmlCapabilityEvidenceSelection> Selections => _selections;
 
     private static int? NonNegative(int? value, string parameterName) {
         if (value < 0) throw new ArgumentOutOfRangeException(parameterName);

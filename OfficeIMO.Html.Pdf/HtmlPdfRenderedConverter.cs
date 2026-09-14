@@ -277,7 +277,8 @@ internal static partial class HtmlPdfRenderedConverter {
                 activeTextFallbacks,
                 reservedFontSlots,
                 options.ResourcePolicy.AllowSystemFontEmbedding,
-                preserveConfiguredFontSlots: options.FontFamily != null);
+                preserveConfiguredFontSlots: options.FontFamily != null,
+                requiredText: CollectRenderedTextForFontFallbackSelection(rendered));
         }
         pdf.UseTextShaping(options.TextShapingMode, options.TextShapingProvider);
         var headingDocumentOrder = rendered.Headings
@@ -331,7 +332,13 @@ internal static partial class HtmlPdfRenderedConverter {
     private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, RegisteredWebFonts webFonts, PdfCore.PdfConversionReport conversionReport, bool interactiveFormControls, CancellationToken cancellationToken) {
         foreach (HtmlRenderVisual visual in page.Scene.OrderBy(item => item.PaintOrder)) {
             cancellationToken.ThrowIfCancellationRequested();
-            AddVisual(canvas, visual, webFonts, conversionReport, page.Width, page.Height, interactiveFormControls, cancellationToken);
+            if (visual.X + visual.Width > page.Width + 0.001D
+                || visual.Y + visual.Height > page.Height + 0.001D) {
+                canvas.Clip(0D, 0D, page.Width * PointsPerCssPixel, page.Height * PointsPerCssPixel, clipped =>
+                    AddVisual(clipped, visual, webFonts, conversionReport, page.Width, page.Height, interactiveFormControls, cancellationToken));
+            } else {
+                AddVisual(canvas, visual, webFonts, conversionReport, page.Width, page.Height, interactiveFormControls, cancellationToken);
+            }
         }
     }
 

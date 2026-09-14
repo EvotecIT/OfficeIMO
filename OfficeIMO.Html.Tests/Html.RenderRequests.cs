@@ -82,6 +82,90 @@ public sealed class HtmlRenderRequestTests {
     }
 
     [Fact]
+    public void ScreenFullPageAppliesBodyMarginPaddingAndWidthToTheRootFormattingBox() {
+        const string html = "<body style='margin:8px;padding:12px;width:180px'><div style='height:10px;background:#336699'>Root box</div></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 320D,
+            ViewportHeight = 120D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderResult result = HtmlRenderEngine.Execute(
+            HtmlConversionDocument.Parse(html),
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.DisplayList, options));
+
+        HtmlRenderText text = Assert.Single(result.Document.Pages[0].Visuals.OfType<HtmlRenderText>());
+        Assert.Equal(20D, text.X, 3);
+        Assert.Equal(20D, text.Y, 3);
+        HtmlRenderShape box = Assert.Single(result.Document.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => string.Equals(shape.Source, "div", StringComparison.Ordinal));
+        Assert.Equal(20D, box.X, 3);
+        Assert.Equal(180D, box.Width, 3);
+    }
+
+    [Fact]
+    public void ScreenFullPageGrowsToHorizontalScrollContentWhileViewportRemainsBounded() {
+        const string html = "<style>html,body{margin:0}</style><div style='width:500px;height:20px;background:#336699'>Wide</div>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 320D,
+            ViewportHeight = 120D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+
+        HtmlRenderResult fullPage = HtmlRenderEngine.Execute(source,
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.DisplayList, options));
+        HtmlRenderResult viewport = HtmlRenderEngine.Execute(source,
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenViewport, HtmlRenderEncoder.DisplayList, options));
+
+        Assert.Equal(500D, fullPage.Document.Pages[0].Width, 3);
+        Assert.Equal(320D, viewport.Document.Pages[0].Width, 3);
+        Assert.True(viewport.Surfaces[0].IsClipped);
+    }
+
+    [Fact]
+    public void ScreenFullPageUsesDeclaredTableWidthAsItsBorderBoxAndIncludesBodyMargin() {
+        const string html = "<body style='margin:8px'><table style='width:760px;border:2px solid #fff;background:#eee'><tr><td>Legacy</td></tr></table></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 640D,
+            ViewportHeight = 120D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderResult result = HtmlRenderEngine.Execute(
+            HtmlConversionDocument.Parse(html),
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.DisplayList, options));
+
+        Assert.Equal(768D, result.Document.Pages[0].Width, 3);
+        HtmlRenderShape[] table = result.Document.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(shape => string.Equals(shape.Source, "table", StringComparison.Ordinal))
+            .ToArray();
+        Assert.NotEmpty(table);
+        Assert.All(table, shape => {
+            Assert.Equal(8D, shape.X, 3);
+            Assert.Equal(760D, shape.Width, 3);
+        });
+    }
+
+    [Fact]
+    public void PrintPagedClipsHorizontalBodyOverflowToThePageCanvas() {
+        const string html = "<style>html,body{margin:0}</style><div style='width:500px;height:20px;background:#336699'>Wide PDF</div>";
+        var options = new HtmlToPdfOptions {
+            PageSize = new OfficePageSize(3D, 2D),
+            Margins = HtmlRenderMargins.All(0D),
+            HonorCssPageRules = false
+        };
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).RenderToPdfBytes(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options));
+
+        OfficeIMO.Pdf.PdfDocumentInfo info = OfficeIMO.Pdf.PdfInspector.Inspect(pdf);
+        Assert.Equal(1, info.PageCount);
+        Assert.Equal(216D, info.Pages[0].Width, 2);
+        Assert.Equal(144D, info.Pages[0].Height, 2);
+    }
+
+    [Fact]
     public void CssMediaIsIndependentFromPagedReflow() {
         const string html = "<style>.target{color:#0000ff}@media screen{.target{color:#ff0000}}@media print{.target{color:#008000}}</style><p class='target'>Media</p>";
         var options = new HtmlRenderOptions {

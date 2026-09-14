@@ -27,6 +27,14 @@ if (args.Length > 0 && string.Equals(args[0], "html-corpus-evidence", StringComp
     return await HtmlCorpusEvidenceRunner.RunAsync(args);
 }
 
+if (args.Length > 0 && string.Equals(args[0], "html-static-budget", StringComparison.OrdinalIgnoreCase)) {
+    return await HtmlStaticBudgetRunner.RunAsync(args);
+}
+
+if (args.Length > 0 && string.Equals(args[0], "html-static-budget-worker", StringComparison.OrdinalIgnoreCase)) {
+    return await HtmlStaticBudgetWorker.RunAsync(args);
+}
+
 if (args.Length > 0 && string.Equals(args[0], "html-runtime-conformance", StringComparison.OrdinalIgnoreCase)) {
     return await HtmlRuntimeConformanceRunner.RunAsync();
 }

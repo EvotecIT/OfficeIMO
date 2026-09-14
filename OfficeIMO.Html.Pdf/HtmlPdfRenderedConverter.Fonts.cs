@@ -316,6 +316,27 @@ internal static partial class HtmlPdfRenderedConverter {
     private static bool RequiresUnicodeFont(string text) =>
         PdfCore.PdfTextDiagnostics.RequiresEmbeddedUnicodeFont(text);
 
+    internal static string CollectRenderedTextForFontFallbackSelection(HtmlRenderDocument rendered) {
+        var text = new System.Text.StringBuilder();
+        foreach (HtmlRenderVisual visual in EnumerateVisuals(rendered.Pages.SelectMany(page => page.Visuals))) {
+            if (visual is HtmlRenderText renderedText) text.Append(renderedText.Text);
+            if (visual is HtmlRenderDrawing drawing) AppendDrawingText(drawing.Drawing.Elements, text);
+        }
+        return text.ToString();
+    }
+
+    private static void AppendDrawingText(IEnumerable<OfficeDrawingElement> elements, System.Text.StringBuilder text) {
+        foreach (OfficeDrawingElement element in elements) {
+            if (element is OfficeDrawingText drawingText) {
+                text.Append(drawingText.Text);
+            } else if (element is OfficeDrawingEffectGroup effectGroup) {
+                AppendDrawingText(effectGroup.Drawing.Elements, text);
+            } else if (element is OfficeDrawingTilingPattern tilingPattern) {
+                AppendDrawingText(tilingPattern.Tile.Elements, text);
+            }
+        }
+    }
+
     private static bool RegisterNamedFamily(
         PdfCore.PdfDocument pdf,
         string family,

@@ -31,7 +31,7 @@ public static class HtmlRenderProfileContracts {
             HtmlRenderPaginationPolicy.None, HtmlRenderPageSet.Page(0), HtmlCapabilityCoverage.Qualified,
             HtmlCapabilityPromotionState.StableDefault, ScreenEncoders, SingleSurfacePageSets,
             new[] { HtmlCapabilityEvidenceIds.H4ScreenV1 },
-            "Applies screen CSS at a fixed width and grows one retained surface to the document content height.",
+            "Applies screen CSS at the requested viewport width and grows one retained surface to the document scroll width and content height.",
             "Dynamic runtime state must be captured before rendering; browser pixel references remain a roadmap item."),
         Contract(HtmlRenderIntentProfile.PrintPaged, "print-paged-v1", "Print paged v1",
             new[] { HtmlCapabilityProfileIds.PagedPrintV1 }, HtmlCssMediaContext.Print, HtmlRenderLayoutSurface.Paged,

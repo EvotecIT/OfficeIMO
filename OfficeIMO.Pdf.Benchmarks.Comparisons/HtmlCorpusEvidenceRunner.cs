@@ -42,10 +42,12 @@ internal static partial class HtmlCorpusEvidenceRunner {
         using EvidenceOutputReservation outputReservation = EvidenceOutputReservation.Acquire(outputDirectory);
         string repositoryRoot = FindRepositoryRoot();
         string? caseFilter = ReadOption(args, "--case");
-        HtmlRenderingCorpusCase[] cases = HtmlRenderingCorpus.All
-            .Where(item => caseFilter == null || string.Equals(item.Id, caseFilter, StringComparison.OrdinalIgnoreCase))
+        string corpusVersion = ReadOption(args, "--corpus") ?? "v1";
+        HtmlCorpusEvidenceInputSet corpus = LoadCorpus(corpusVersion);
+        HtmlCorpusEvidenceInput[] cases = corpus.Cases
+            .Where(item => caseFilter == null || string.Equals(item.Scenario.Id, caseFilter, StringComparison.OrdinalIgnoreCase))
             .ToArray();
-        if (cases.Length == 0) throw new ArgumentException("Unknown H4 corpus case: " + caseFilter + ".");
+        if (cases.Length == 0) throw new ArgumentException("Unknown " + corpus.CorpusId + " case: " + caseFilter + ".");
 
         ExternalPdfRasterizer rasterizer = await ExternalPdfRasterizer.FindAsync().ConfigureAwait(false)
             ?? throw new InvalidOperationException(
@@ -57,12 +59,12 @@ internal static partial class HtmlCorpusEvidenceRunner {
 
         var failures = new List<string>();
         var evidence = new List<HtmlCorpusCaseEvidence>(cases.Length);
-        foreach (HtmlRenderingCorpusCase scenario in cases) {
-            Console.WriteLine("H4_CORPUS_CASE=" + scenario.Id);
+        foreach (HtmlCorpusEvidenceInput input in cases) {
+            Console.WriteLine("H4_CORPUS_CASE=" + input.Scenario.Id);
             HtmlCorpusCaseEvidence result = await RunCaseAsync(
-                scenario, browser, rasterizer, outputDirectory).ConfigureAwait(false);
+                input, browser, rasterizer, outputDirectory).ConfigureAwait(false);
             evidence.Add(result);
-            failures.AddRange(result.Failures.Select(failure => scenario.Id + ": " + failure));
+            failures.AddRange(result.Failures.Select(failure => input.Scenario.Id + ": " + failure));
         }
 
         var report = new HtmlCorpusEvidenceReport(
@@ -78,8 +80,9 @@ internal static partial class HtmlCorpusEvidenceRunner {
                 chromiumVersion,
                 rasterizer.Identity),
             Source: new HtmlCorpusEvidenceSource(
-                "officeimo-html-h4-v1",
-                HtmlRenderingCorpus.RelativeRoot,
+                corpus.CorpusId,
+                corpus.RelativeRoot,
+                corpus.ManifestSha256,
                 ReadGit(repositoryRoot, "rev-parse", "HEAD"),
                 IsGitDirty(repositoryRoot),
                 cases.Length),
@@ -96,10 +99,11 @@ internal static partial class HtmlCorpusEvidenceRunner {
     }
 
     private static async Task<HtmlCorpusCaseEvidence> RunCaseAsync(
-        HtmlRenderingCorpusCase scenario,
+        HtmlCorpusEvidenceInput input,
         HtmlBrowserSession browser,
         ExternalPdfRasterizer rasterizer,
         string outputDirectory) {
+        HtmlRenderingCorpusCase scenario = input.Scenario;
         string caseDirectory = Path.Combine(outputDirectory, scenario.Id);
         Directory.CreateDirectory(caseDirectory);
         string sourcePath = Path.Combine(caseDirectory, "source.html");
@@ -155,10 +159,10 @@ internal static partial class HtmlCorpusEvidenceRunner {
 
         return new HtmlCorpusCaseEvidence(
             scenario.Id,
-            scenario.SourceRelativePath,
+            input.SourceRelativePath,
             sourceBytes.LongLength,
             Sha256(sourceBytes),
-            HtmlMarketScenarioCatalog.Get(scenario.Id).Capabilities,
+            input.Capabilities,
             scenario.TextMarkers,
             officeImo,
             peachPdf,
@@ -178,18 +182,33 @@ internal static partial class HtmlCorpusEvidenceRunner {
 
         long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
         var stopwatch = Stopwatch.StartNew();
+        long operationAllocatedBefore = allocatedBefore;
+        var operationStopwatch = Stopwatch.StartNew();
         HtmlPdfRenderRequestResult printResult = source.RenderToPdfResult(printRequest);
         byte[] printPdf = printResult.ToBytes();
+        operationStopwatch.Stop();
+        var printMetrics = new HtmlCorpusOperationMetrics(
+            operationStopwatch.Elapsed.TotalMilliseconds,
+            GC.GetTotalAllocatedBytes(precise: true) - operationAllocatedBefore,
+            printPdf.LongLength);
 
         HtmlRenderOptions screenOptions = scenario.CreateOptions();
         screenOptions.Mode = HtmlRenderMode.Continuous;
         screenOptions.ViewportWidth = BrowserViewportWidth;
         screenOptions.ViewportHeight = BrowserViewportHeight;
+        screenOptions.Margins = HtmlRenderMargins.All(0D);
         screenOptions.Scale = 1D;
         HtmlRenderRequest screenRequest = HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, screenOptions);
+        operationAllocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
+        operationStopwatch.Restart();
         HtmlRenderResult screenResult = HtmlRenderEngine.Execute(source, screenRequest);
         byte[] screenPng = RenderScenePagePng(screenResult.Document.Pages[0]);
+        operationStopwatch.Stop();
+        var screenMetrics = new HtmlCorpusOperationMetrics(
+            operationStopwatch.Elapsed.TotalMilliseconds,
+            GC.GetTotalAllocatedBytes(precise: true) - operationAllocatedBefore,
+            screenPng.LongLength);
 
         HtmlToPdfOptions screenToPdfOptions = new(screenOptions) {
             PageSize = new OfficePageSize(
@@ -200,7 +219,14 @@ internal static partial class HtmlCorpusEvidenceRunner {
         };
         HtmlRenderRequest screenToPdfRequest = HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf, screenToPdfOptions);
+        operationAllocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
+        operationStopwatch.Restart();
         byte[] screenToPdf = source.RenderToPdfBytes(screenToPdfRequest);
+        operationStopwatch.Stop();
+        var screenToPdfMetrics = new HtmlCorpusOperationMetrics(
+            operationStopwatch.Elapsed.TotalMilliseconds,
+            GC.GetTotalAllocatedBytes(precise: true) - operationAllocatedBefore,
+            screenToPdf.LongLength);
         stopwatch.Stop();
         long allocated = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
 
@@ -226,6 +252,9 @@ internal static partial class HtmlCorpusEvidenceRunner {
             printText,
             screenText,
             ObserveGeometry(screenResult.Document),
+            printMetrics,
+            screenMetrics,
+            screenToPdfMetrics,
             stopwatch.Elapsed.TotalMilliseconds,
             allocated,
             printRequest.ProfileId,
@@ -457,7 +486,8 @@ internal static partial class HtmlCorpusEvidenceRunner {
             string argument = args[index];
             if (string.Equals(argument, "--help", StringComparison.OrdinalIgnoreCase)) continue;
             if (string.Equals(argument, "--output", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(argument, "--case", StringComparison.OrdinalIgnoreCase)) {
+                || string.Equals(argument, "--case", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(argument, "--corpus", StringComparison.OrdinalIgnoreCase)) {
                 if (++index >= args.Length || args[index].StartsWith("--", StringComparison.Ordinal)) {
                     throw new ArgumentException(argument + " requires a value.");
                 }
@@ -501,9 +531,52 @@ internal static partial class HtmlCorpusEvidenceRunner {
         !string.IsNullOrWhiteSpace(ReadGit(repositoryRoot, "status", "--porcelain", "--untracked-files=normal"));
 
     private static void WriteHelp() {
-        Console.WriteLine("html-corpus-evidence [--case <id>] [--output <new-directory>]");
+        Console.WriteLine("html-corpus-evidence [--corpus <v1|v2>] [--case <id>] [--output <new-directory>]");
         Console.WriteLine("Captures every H4 source through OfficeIMO print, screen and screen-to-PDF; PeachPDF print; and Chromium screen and print. It writes all-page PDF rasters, OfficeIMO scene PNG/SVG files, text, geometry and pixel comparisons.");
     }
+
+    private static HtmlCorpusEvidenceInputSet LoadCorpus(string version) {
+        if (string.Equals(version, "v1", StringComparison.OrdinalIgnoreCase)) {
+            return new HtmlCorpusEvidenceInputSet(
+                "officeimo-html-h4-v1",
+                HtmlRenderingCorpus.RelativeRoot,
+                null,
+                HtmlRenderingCorpus.All.Select(scenario => new HtmlCorpusEvidenceInput(
+                    scenario,
+                    scenario.SourceRelativePath,
+                    HtmlMarketScenarioCatalog.Get(scenario.Id).Capabilities)).ToArray());
+        }
+        if (string.Equals(version, "v2", StringComparison.OrdinalIgnoreCase)) {
+            HtmlRenderingHeldOutCorpus corpus = HtmlRenderingHeldOutCorpus.Load();
+            return new HtmlCorpusEvidenceInputSet(
+                corpus.Manifest.CorpusId,
+                HtmlRenderingHeldOutCorpus.RelativeRoot,
+                corpus.ManifestSha256,
+                corpus.Cases.Select(item => new HtmlCorpusEvidenceInput(
+                    new HtmlRenderingCorpusCase(
+                        item.Id,
+                        HtmlRenderMode.Paged,
+                        item.Html,
+                        item.Manifest.TextMarkers,
+                        expectedPageCount: item.Manifest.ExpectedPrintPageCount,
+                        minimumVisualCount: 1,
+                        minimumHeadingCount: 0),
+                    item.SourceRelativePath,
+                    item.Manifest.Capabilities)).ToArray());
+        }
+        throw new ArgumentException("Unknown H4 corpus version: " + version + ". Use v1 or v2.");
+    }
+
+    private sealed record HtmlCorpusEvidenceInput(
+        HtmlRenderingCorpusCase Scenario,
+        string SourceRelativePath,
+        IReadOnlyList<string> Capabilities);
+
+    private sealed record HtmlCorpusEvidenceInputSet(
+        string CorpusId,
+        string RelativeRoot,
+        string? ManifestSha256,
+        IReadOnlyList<HtmlCorpusEvidenceInput> Cases);
 
     private const string BrowserObservationScript = """
         () => {

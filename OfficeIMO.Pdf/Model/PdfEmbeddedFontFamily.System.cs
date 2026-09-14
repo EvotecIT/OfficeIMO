@@ -9,6 +9,9 @@ public sealed partial class PdfEmbeddedFontFamily {
     private static readonly System.Collections.Generic.Dictionary<string, System.Lazy<SystemFontFamilyCacheEntry>> SystemFontFamilyCache =
         new(System.StringComparer.Ordinal);
     private static readonly object SystemFontFamilyCacheLock = new();
+    private static readonly System.Lazy<SystemFontMetadataIndex> SystemFontIndex = new(
+        BuildSystemFontMetadataIndex,
+        System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>
     /// Loads an installed TrueType font family from common operating-system font folders.
@@ -57,12 +60,39 @@ public sealed partial class PdfEmbeddedFontFamily {
     }
 
     private static SystemFontFamilyCacheEntry ResolveSystemFontFamily(string requestedFamily, string exposedFamily) {
+        string normalizedFamily = NormalizeFamilyKey(requestedFamily);
+        System.Collections.Generic.IReadOnlyList<string> candidateFiles = SystemFontIndex.Value.Find(normalizedFamily);
         bool found = TryFromSystemFontFiles(
             requestedFamily,
-            EnumerateSystemTrueTypeFontFiles(),
+            candidateFiles,
             out PdfEmbeddedFontFamily? fontFamily,
             exposedFamily);
         return new SystemFontFamilyCacheEntry(found ? fontFamily : null);
+    }
+
+    private static SystemFontMetadataIndex BuildSystemFontMetadataIndex() {
+        var filesByFamily = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>>(System.StringComparer.Ordinal);
+        var fallbackFiles = new System.Collections.Generic.List<string>();
+        int inspectedFiles = 0;
+        foreach (string path in EnumerateSystemTrueTypeFontFiles()) {
+            if (inspectedFiles++ >= MaxSystemFontFilesToInspect) break;
+            fallbackFiles.Add(path);
+            if (!TryReadSystemFontNameMetadata(path,
+                    out System.Collections.Generic.List<TrueTypeNameMetadata>? metadataFaces,
+                    out _) || metadataFaces == null) continue;
+            foreach (TrueTypeNameMetadata metadata in metadataFaces) {
+                foreach (string? name in metadata.GetFamilyNames().Concat(metadata.GetFaceNames())) {
+                    if (string.IsNullOrWhiteSpace(name)) continue;
+                    string key = NormalizeFamilyKey(name!);
+                    if (!filesByFamily.TryGetValue(key, out System.Collections.Generic.List<string>? files)) {
+                        files = new System.Collections.Generic.List<string>();
+                        filesByFamily.Add(key, files);
+                    }
+                    if (!files.Contains(path, System.StringComparer.OrdinalIgnoreCase)) files.Add(path);
+                }
+            }
+        }
+        return new SystemFontMetadataIndex(filesByFamily, fallbackFiles);
     }
 
     internal static bool TryFromSystemFontFiles(
@@ -663,6 +693,27 @@ public sealed partial class PdfEmbeddedFontFamily {
         }
 
         public PdfEmbeddedFontFamily? FontFamily { get; }
+    }
+
+    private sealed class SystemFontMetadataIndex {
+        private readonly System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.List<string>> _filesByFamily;
+        private readonly System.Collections.Generic.IReadOnlyList<string> _allFiles;
+
+        internal SystemFontMetadataIndex(
+            System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.List<string>> filesByFamily,
+            System.Collections.Generic.IReadOnlyList<string> allFiles) {
+            _filesByFamily = filesByFamily;
+            _allFiles = allFiles;
+        }
+
+        internal System.Collections.Generic.IReadOnlyList<string> Find(string normalizedFamily) {
+            if (_filesByFamily.TryGetValue(normalizedFamily, out System.Collections.Generic.List<string>? files)) return files;
+            string[] prefixes = BuildAcceptedFileNamePrefixes(normalizedFamily);
+            return _allFiles.Where(path => {
+                string fileName = NormalizeFamilyKey(System.IO.Path.GetFileNameWithoutExtension(path));
+                return prefixes.Any(prefix => fileName.StartsWith(prefix, System.StringComparison.Ordinal));
+            }).ToArray();
+        }
     }
 
     private sealed class TrueTypeNameMetadata {

@@ -61,12 +61,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         foreach (GridItem item in gridItems) {
             if (placed.Contains(item)) continue;
-            if (item.RequestedRow.HasValue) {
-                item.Row = item.RequestedRow.Value;
-                item.Column = FindGridColumn(occupied, item.Row, item.RowSpan, item.ColumnSpan, columnCount);
-            } else if (item.RequestedColumn.HasValue) {
-                item.Column = item.RequestedColumn.Value;
-                item.Row = FindGridRow(occupied, item.Column, item.RowSpan, item.ColumnSpan);
+            if (!columnFlow && item.RequestedColumn.HasValue) {
+                int requestedColumn = item.RequestedColumn.Value;
+                if (requestedColumn < cursorColumn) cursorRow++;
+                cursorColumn = requestedColumn;
+                while (!CanPlaceGridArea(occupied, cursorRow, requestedColumn, item.RowSpan, item.ColumnSpan)) cursorRow++;
+                item.Row = cursorRow;
+                item.Column = requestedColumn;
+                cursorColumn = GridPlacementEnd(requestedColumn, item.ColumnSpan);
+                if (cursorColumn >= columnCount) {
+                    cursorRow++;
+                    cursorColumn = 0;
+                }
+            } else if (columnFlow && item.RequestedRow.HasValue) {
+                int requestedRow = item.RequestedRow.Value;
+                if (requestedRow < cursorRow) cursorColumn++;
+                cursorRow = requestedRow;
+                while (!CanPlaceGridArea(occupied, requestedRow, cursorColumn, item.RowSpan, item.ColumnSpan)) cursorColumn++;
+                item.Row = requestedRow;
+                item.Column = cursorColumn;
+                cursorRow = GridPlacementEnd(requestedRow, item.RowSpan);
+                int columnFlowRowCount = Math.Max(explicitRowCount, item.RowSpan);
+                if (cursorRow >= columnFlowRowCount) {
+                    cursorColumn++;
+                    cursorRow = 0;
+                }
             } else {
                 int searchRow = dense ? 0 : cursorRow;
                 int searchColumn = dense ? 0 : cursorColumn;

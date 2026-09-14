@@ -219,7 +219,14 @@ internal sealed class HtmlRenderingCorpusCase {
     internal IReadOnlyList<string> ForbiddenDiagnosticCodes { get; }
     internal IReadOnlyList<string> RequiredVisualSources { get; }
     internal bool RequireNoLoss { get; }
-    internal double ExpectedSurfaceWidth => Mode == HtmlRenderMode.Paged ? 8.27D * HtmlRenderOptions.CssPixelsPerInch : 640D;
+    internal double ExpectedSurfaceWidth => Mode == HtmlRenderMode.Paged
+        ? 8.27D * HtmlRenderOptions.CssPixelsPerInch
+        : Id switch {
+            "application-form" => 680D,
+            "browser-local-workbench" => 680D,
+            "chart-report" => 652D,
+            _ => 640D
+        };
 
     internal HtmlRenderOptions CreateOptions() => new HtmlRenderOptions {
         Mode = Mode,

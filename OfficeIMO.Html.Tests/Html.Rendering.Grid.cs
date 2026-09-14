@@ -253,6 +253,68 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_RowFlowKeepsDefiniteColumnItemsInDocumentOrder() {
+        const string html = """
+            <div style="display:grid;width:320px;grid-template-columns:80px 110px 110px;grid-template-rows:60px 60px;gap:10px">
+              <div style="display:grid;grid-column:1 / 4;grid-row:1 / 3;grid-template-columns:subgrid;grid-template-rows:subgrid">
+                <span id="owner" style="grid-row:1 / 3;background:#111111">Owner</span>
+                <span id="status" style="background:#222222">Status</span>
+                <span id="evidence" style="background:#333333">Evidence</span>
+                <span id="summary" style="grid-column:2 / 4;background:#444444">Summary</span>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 340D);
+        HtmlRenderShape owner = FindGridShape(rendered, "span#owner");
+        HtmlRenderShape status = FindGridShape(rendered, "span#status");
+        HtmlRenderShape evidence = FindGridShape(rendered, "span#evidence");
+        HtmlRenderShape summary = FindGridShape(rendered, "span#summary");
+
+        Assert.Equal(0D, owner.X, 3);
+        Assert.Equal(90D, status.X, 3);
+        Assert.Equal(210D, evidence.X, 3);
+        Assert.Equal(90D, summary.X, 3);
+        Assert.Equal(status.Y, evidence.Y, 3);
+        Assert.True(summary.Y > status.Y);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGrid_RowAndColumnSubgridPreservesAuthoredOperationsBoardPlacement() {
+        const string html = """
+            <style>
+            *{box-sizing:border-box}.board{display:grid;grid-template-columns:130px 1fr 1fr;grid-template-rows:auto 72px 72px;gap:10px;width:672px}
+            .team{display:grid;grid-column:1/4;grid-template-columns:subgrid;grid-template-rows:subgrid;grid-row:2/4}
+            .team>*{padding:12px;border:1px solid #b7c7dc}.label{grid-row:1/3;background:#183b66}.metric{background:#edf5ff}.wide{grid-column:2/4}
+            </style>
+            <section class="board"><strong>Team</strong><strong>Status</strong><strong>Evidence</strong><div class="team">
+              <div id="owner" class="label">Document platform</div>
+              <div id="status" class="metric">Ready</div>
+              <div id="evidence" class="metric">42 verified artifacts</div>
+              <div id="summary" class="metric wide">Reference</div>
+            </div></section>
+            """;
+
+        var parsed = HtmlDocumentParser.ParseDocument(html);
+        HtmlComputedStyle ownerStyle = HtmlComputedStyleEngine.Compute(parsed)[parsed.QuerySelector("#owner")!];
+        Assert.Equal("1 / 3", ownerStyle.GetValue("grid-row"));
+        Assert.True(ownerStyle.IsSpecifiedValue("grid-row"));
+        HtmlRenderDocument rendered = RenderGrid(html, 672D);
+        HtmlRenderShape owner = FindGridShape(rendered, "div#owner");
+        HtmlRenderShape status = FindGridShape(rendered, "div#status");
+        HtmlRenderShape evidence = FindGridShape(rendered, "div#evidence");
+        HtmlRenderShape summary = FindGridShape(rendered, "div#summary");
+
+        Assert.Equal(0D, owner.X, 3);
+        Assert.Equal(140D, status.X, 3);
+        Assert.True(evidence.X > status.X);
+        Assert.Equal(status.Y, evidence.Y, 3);
+        Assert.Equal(140D, summary.X, 3);
+        Assert.True(summary.Y > status.Y);
+    }
+
+    [Fact]
     public void HtmlGrid_ColumnSubgridFitsInheritedTracksInsideItsEdgeInsets() {
         const string html = """
             <div style="display:grid;width:210px;grid-template-columns:60px 140px;column-gap:10px">

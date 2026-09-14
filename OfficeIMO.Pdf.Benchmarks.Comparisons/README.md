@@ -65,10 +65,11 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
     -c Release `
     -f net10.0 `
     -- html-corpus-evidence `
+    --corpus v2 `
     --output $output
 ```
 
-The command renders every H4/v1 source as an OfficeIMO screen PNG, print PDF,
+The command renders every selected H4 source as an OfficeIMO screen PNG, print PDF,
 screen-to-PDF artifact, and per-page scene PNG/SVG; a PeachPDF print PDF; and a
 Chromium screen PNG and print PDF. It records text-marker preservation, normalized
 text overlap, selected-element geometry, page counts, pixel differences, versions,
@@ -81,7 +82,32 @@ comparison oracle. Reference engines may omit text that OfficeIMO intentionally
 preserves, including form values, image alternatives, and SVG labels; those remain
 visible in each reference's `missingMarkers` field without failing OfficeIMO's
 qualification. Raw artifacts are review evidence and remain in the caller-selected
-output directory.
+output directory. H4/v2 is the independently authored held-out selection. Pass
+`--corpus v1` to retain the established regression corpus or `--case <id>` for a
+focused run.
+
+Measure and enforce the H4/v2 OfficeIMO static-rendering budgets separately from
+the reference-engine comparison:
+
+```powershell
+$output = Join-Path $env:TEMP ("OfficeIMO-H4-budget-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj `
+    -c Release `
+    -f net10.0 `
+    -- html-static-budget `
+    --iterations 3 `
+    --require-clean-source `
+    --output $output
+```
+
+The command uses isolated cold and warmed worker processes. Each measured iteration
+renders all eight held-out cases through screen PNG/SVG, print PDF/PNG/SVG, and
+screen-to-page PDF/PNG/SVG. The report records elapsed time, managed allocations,
+process-tree peak working set, output bytes, deterministic fingerprints, source and
+corpus hashes, and asynchronous cancellation latency. Ceilings are absolute,
+platform-specific regression limits in the frozen `budgets.json`; they are not a
+general throughput claim. Use `--measure-only` when calibrating a new platform or
+runtime, then review the raw report before changing a ceiling.
 
 Run the provider-neutral runtime conformance suite against the comparison-only
 Chromium/Playwright adapter:

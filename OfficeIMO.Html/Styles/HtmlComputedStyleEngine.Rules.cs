@@ -745,7 +745,7 @@ public static partial class HtmlComputedStyleEngine {
             int separator = declaration.IndexOf(':');
             if (separator <= 0) continue;
             string propertyName = declaration.Substring(0, separator).Trim();
-            if (!string.Equals(propertyName, "string-set", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!ShouldRetainRawDeclaration(propertyName, declaration.Substring(separator + 1))) continue;
             string value = declaration.Substring(separator + 1).Trim();
             value = StripTrailingImportant(value, out bool important);
             if (value.Length > 0 && IsSupportedDeclarationValue(propertyName, value)) {
@@ -763,6 +763,16 @@ public static partial class HtmlComputedStyleEngine {
             if (!parsedRule) budget.RecordRule(declarations.Count);
             rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations));
         }
+    }
+
+    private static bool ShouldRetainRawDeclaration(string propertyName, string rawValue) {
+        if (string.Equals(propertyName, "string-set", StringComparison.OrdinalIgnoreCase)) return true;
+        if (!string.Equals(propertyName, "grid-template-columns", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(propertyName, "grid-template-rows", StringComparison.OrdinalIgnoreCase)) return false;
+        string value = StripTrailingImportant(rawValue.Trim(), out _);
+        return value.Equals("subgrid", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("subgrid ", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("subgrid[", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void RecordParsedRule(

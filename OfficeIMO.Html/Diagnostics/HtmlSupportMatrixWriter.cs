@@ -162,6 +162,32 @@ public static class HtmlSupportMatrixWriter {
         }
 
         builder.AppendLine();
+        builder.AppendLine("### Selected evidence by capability");
+        builder.AppendLine();
+        builder.AppendLine("Only the exact cases and feature forms below qualify the named capability. Excluded corpus cases and out-of-scope forms remain outside this evidence claim.");
+        builder.AppendLine();
+        builder.AppendLine("| Profile | Evidence | Capability | Required | Passed | Failed | Excluded | Untested | Required cases | Excluded cases | Selected scope | Out of scope |");
+        builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+        foreach (HtmlCapabilityProfileManifest profile in HtmlRenderCapabilityCatalog.ProfileManifests) {
+            foreach (HtmlCapabilityEvidencePin evidence in profile.Evidence) {
+                foreach (HtmlCapabilityEvidenceSelection selection in evidence.Selections.OrderBy(item => item.CapabilityId, StringComparer.Ordinal)) {
+                    builder.Append("| `").Append(EscapeCode(profile.Id)).Append("` | `")
+                        .Append(EscapeCode(evidence.Id)).Append("` | `")
+                        .Append(EscapeCode(selection.CapabilityId)).Append("` | ")
+                        .Append(selection.RequiredCaseIds.Count).Append(" | ")
+                        .Append(selection.Passed).Append(" | ")
+                        .Append(selection.Failed).Append(" | ")
+                        .Append(selection.ExcludedCaseIds.Count).Append(" | ")
+                        .Append(selection.Untested).Append(" | ")
+                        .Append(EscapeCell(FormatIds(selection.RequiredCaseIds))).Append(" | ")
+                        .Append(EscapeCell(FormatIds(selection.ExcludedCaseIds))).Append(" | ")
+                        .Append(EscapeCell(selection.Scope)).Append(" | ")
+                        .Append(EscapeCell(string.Join(", ", selection.OutOfScope))).AppendLine(" |");
+                }
+            }
+        }
+
+        builder.AppendLine();
         builder.AppendLine("## Capability contracts by profile and processing stage");
         builder.AppendLine();
         builder.AppendLine("`Coverage` reports qualification of the exact listed subset. `Handling` reports what the engine does. `Maturity` and `Promotion` control release exposure. Provider-backed behavior can therefore remain stable while its managed replacement is still incubating.");

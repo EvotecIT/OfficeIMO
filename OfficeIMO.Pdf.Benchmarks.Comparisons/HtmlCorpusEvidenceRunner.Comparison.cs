@@ -162,16 +162,47 @@ internal static partial class HtmlCorpusEvidenceRunner {
     private static IReadOnlyList<HtmlCorpusElementGeometry> ObserveGeometry(HtmlRenderDocument document) {
         var observations = new List<HtmlCorpusElementGeometry>();
         var counts = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (HtmlRenderVisual visual in document.Pages.SelectMany(page => Flatten(page.Scene))) {
-            string source = visual.Source ?? string.Empty;
-            if (!IsObservedElement(source)) continue;
+        foreach (HtmlRenderPage page in document.Pages) {
+            foreach (HtmlRenderVisual visual in page.Scene) {
+                ObserveGeometry(visual, new HashSet<string>(StringComparer.Ordinal), observations, counts);
+            }
+        }
+        return observations;
+    }
+
+    private static void ObserveGeometry(
+        HtmlRenderVisual visual,
+        ISet<string> ancestorSources,
+        ICollection<HtmlCorpusElementGeometry> observations,
+        IDictionary<string, int> counts) {
+        string source = visual.Source ?? string.Empty;
+        bool observed = IsObservedElement(source);
+        bool suppressNestedDuplicate = observed && ancestorSources.Contains(source);
+        if (observed && !suppressNestedDuplicate) {
             counts.TryGetValue(source, out int index);
             counts[source] = index + 1;
             observations.Add(new HtmlCorpusElementGeometry(
                 source + ":" + index.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 source, index, visual.X, visual.Y, visual.Width, visual.Height));
         }
-        return observations;
+
+        bool addedSource = observed && ancestorSources.Add(source);
+        IReadOnlyList<HtmlRenderVisual>? children = visual switch {
+            HtmlRenderClipGroup clip => clip.Visuals,
+            HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
+            HtmlRenderEffectGroup effect => effect.Visuals,
+            HtmlRenderSemanticGroup semantic => semantic.Visuals,
+            HtmlRenderLayoutRegion region => region.Visuals,
+            HtmlRenderLogicalTextGroup logical => logical.Visuals,
+            HtmlRenderFormField field => field.Visuals,
+            _ => null
+        };
+        if (children != null) {
+            foreach (HtmlRenderVisual child in children) {
+                ObserveGeometry(child, ancestorSources, observations, counts);
+            }
+        }
+        if (addedSource) ancestorSources.Remove(source);
     }
 
     private static IEnumerable<HtmlRenderVisual> Flatten(IEnumerable<HtmlRenderVisual> visuals) {

@@ -719,7 +719,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!style.BorderBox) width += style.HorizontalInsets;
         if (style.MaxWidth.HasValue) width = Math.Min(width, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         if (style.MinWidth.HasValue) width = Math.Max(width, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
-        return Math.Max(1D, Math.Min(width, availableWidth));
+        return Math.Max(1D, width);
     }
 
     private static double ResolveBoxHeight(double contentHeight, double boxWidth, HtmlRenderBoxStyle style) {

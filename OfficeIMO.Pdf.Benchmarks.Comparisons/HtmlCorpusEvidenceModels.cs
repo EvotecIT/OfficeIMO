@@ -21,6 +21,7 @@ internal sealed record HtmlCorpusEvidenceEnvironment(
 internal sealed record HtmlCorpusEvidenceSource(
     string CorpusId,
     string RelativeRoot,
+    string? ManifestSha256,
     string? Commit,
     bool WorktreeDirty,
     int CaseCount);
@@ -46,11 +47,19 @@ internal sealed record HtmlCorpusStaticEvidence(
     HtmlCorpusTextEvidence PrintText,
     HtmlCorpusTextEvidence ScreenText,
     IReadOnlyList<HtmlCorpusElementGeometry> ScreenElements,
+    HtmlCorpusOperationMetrics PrintMetrics,
+    HtmlCorpusOperationMetrics ScreenMetrics,
+    HtmlCorpusOperationMetrics ScreenToPdfMetrics,
     double ElapsedMilliseconds,
     long ManagedAllocatedBytes,
     string ProfilePrint,
     string ProfileScreen,
     string ProfileScreenToPdf);
+
+internal sealed record HtmlCorpusOperationMetrics(
+    double ElapsedMilliseconds,
+    long ManagedAllocatedBytes,
+    long OutputBytes);
 
 internal sealed record HtmlCorpusPdfEvidence(
     HtmlCorpusOutputEvidence Pdf,

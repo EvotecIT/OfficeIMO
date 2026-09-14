@@ -260,9 +260,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
 
-        IReadOnlyList<HtmlRenderFlowBlock> blocks = rootStyle.Display == "none"
-            ? Array.Empty<HtmlRenderFlowBlock>()
-            : BuildChildBlocks(root, contentWidth, rootStyle, 0);
+        IReadOnlyList<HtmlRenderFlowBlock> blocks = BuildRootBlocks(root, contentWidth, rootStyle);
         blocks = AddDocumentTopDestination(blocks, contentWidth);
         if (_options.Mode == HtmlRenderMode.Paged && blocks.Count > 0 && blocks[0].PageName != null) {
             HtmlCssPageGeometry namedGeometry = _pageRules.ResolveGeometry(1, blocks[0].PageName, _options);
@@ -273,9 +271,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 rootStyle = _styleResolver.Resolve(root, contentWidth);
                 _layoutStyles[root] = rootStyle.Clone();
                 _surfaceRootStyle = rootStyle;
-                blocks = rootStyle.Display == "none"
-                    ? Array.Empty<HtmlRenderFlowBlock>()
-                    : BuildChildBlocks(root, contentWidth, rootStyle, 0);
+                blocks = BuildRootBlocks(root, contentWidth, rootStyle);
                 blocks = AddDocumentTopDestination(blocks, contentWidth);
             }
         }
@@ -284,6 +280,41 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : RenderContinuous(blocks);
         CheckCancellation();
         return rendered;
+    }
+
+    private IReadOnlyList<HtmlRenderFlowBlock> BuildRootBlocks(
+        IElement root,
+        double contentWidth,
+        HtmlRenderBoxStyle rootStyle) {
+        if (rootStyle.Display == "none") return Array.Empty<HtmlRenderFlowBlock>();
+        if (_options.Mode == HtmlRenderMode.Paged || !HasAuthoredRootBoxGeometry(root, rootStyle)) {
+            return BuildChildBlocks(root, contentWidth, rootStyle, 0);
+        }
+        return new[] { LayoutElement(root, contentWidth, rootStyle, rootStyle, 0) };
+    }
+
+    private bool HasAuthoredRootBoxGeometry(IElement root, HtmlRenderBoxStyle style) {
+        bool effectiveGeometry = style.ExplicitWidth.HasValue
+        || style.ExplicitHeight.HasValue
+        || style.MinWidth.HasValue
+        || style.MaxWidth.HasValue
+        || style.MinHeight.HasValue
+        || style.MaxHeight.HasValue
+        || Math.Abs(style.MarginLeft) > 0.0001D
+        || Math.Abs(style.MarginTop) > 0.0001D
+        || Math.Abs(style.MarginRight) > 0.0001D
+        || Math.Abs(style.MarginBottom) > 0.0001D
+        || style.HorizontalInsets > 0.0001D
+        || style.VerticalInsets > 0.0001D;
+        if (!effectiveGeometry) return false;
+
+        return new[] {
+            "width", "height", "min-width", "max-width", "min-height", "max-height",
+            "margin", "margin-left", "margin-top", "margin-right", "margin-bottom",
+            "padding", "padding-left", "padding-top", "padding-right", "padding-bottom",
+            "border", "border-width", "border-left-width", "border-top-width",
+            "border-right-width", "border-bottom-width"
+        }.Any(property => _styleResolver.IsPropertySpecified(root, property));
     }
 
     private IReadOnlyList<HtmlRenderFlowBlock> AddDocumentTopDestination(
@@ -427,6 +458,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             y += block.Height;
         }
 
+        if (!_options.ClipContinuousSurfaceToViewport) {
+            double maximumRight = placements.Count == 0
+                ? width
+                : placements.Max(placement => placement.X + MaximumScrollRight(placement.Block.Visuals));
+            width = Math.Max(width, maximumRight);
+        }
+
         double height = y + _options.Margins.Bottom;
         if (_options.ClipContinuousSurfaceToViewport) {
             height = _options.ViewportHeight ?? throw new InvalidOperationException("A bounded viewport requires an explicit height.");
@@ -450,6 +488,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ApplyViewportOverflow(visuals, width, height);
         var page = new HtmlRenderPage(1, width, height, visuals, fonts: _fonts);
         return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics, _fonts, _metadata, _bookmarkDefinitions);
+    }
+
+    private static double MaximumScrollRight(IEnumerable<HtmlRenderVisual> visuals) {
+        double maximum = 0D;
+        foreach (HtmlRenderVisual visual in visuals) {
+            bool paintOnlyBounds = visual is HtmlRenderPathClipGroup || visual is HtmlRenderEffectGroup;
+            double right = paintOnlyBounds ? 0D : visual.X + visual.Width;
+            IEnumerable<HtmlRenderVisual>? children = visual switch {
+                HtmlRenderClipGroup clip when !clip.ClipHorizontal => clip.Visuals,
+                HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
+                HtmlRenderEffectGroup effect => effect.Visuals,
+                HtmlRenderSemanticGroup semantic => semantic.Visuals,
+                HtmlRenderLogicalTextGroup logical => logical.Visuals,
+                HtmlRenderLayoutRegion region => region.Visuals,
+                HtmlRenderFormField form => form.Visuals,
+                _ => null
+            };
+            if (children != null) right = Math.Max(right, MaximumScrollRight(children));
+            maximum = Math.Max(maximum, right);
+        }
+        return maximum;
     }
 
     private HtmlRenderDocument RenderPaged(IReadOnlyList<HtmlRenderFlowBlock> blocks) {

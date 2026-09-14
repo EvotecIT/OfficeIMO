@@ -43,6 +43,25 @@ public static partial class HtmlRenderCapabilityCatalog {
                 if (evidence.Role == HtmlCapabilityEvidenceRole.Qualification && !IsPassingQualification(evidence)) {
                     errors.Add($"Profile '{profile.Id}' qualification evidence '{evidence.Id}' is not fully passing.");
                 }
+                foreach (HtmlCapabilityEvidenceSelection selection in evidence.Selections) {
+                    if (!ById.TryGetValue(selection.CapabilityId, out HtmlRenderCapability? selectedCapability)) {
+                        errors.Add($"Profile '{profile.Id}' evidence '{evidence.Id}' selects unknown capability '{selection.CapabilityId}'.");
+                        continue;
+                    }
+                    HtmlCapabilityProfileBinding? selectedBinding = selectedCapability.ProfileBindings.FirstOrDefault(
+                        binding => string.Equals(binding.ProfileId, profile.Id, StringComparison.OrdinalIgnoreCase));
+                    if (selectedBinding == null || !selectedBinding.EvidenceIds.Contains(evidence.Id, StringComparer.OrdinalIgnoreCase)) {
+                        errors.Add($"Capability '{selection.CapabilityId}' does not bind selected evidence '{evidence.Id}' for profile '{profile.Id}'.");
+                    }
+                    string[] accountedCases = selection.RequiredCaseIds.Concat(selection.ExcludedCaseIds)
+                        .OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToArray();
+                    if (!accountedCases.SequenceEqual(evidence.CaseIds, StringComparer.OrdinalIgnoreCase)) {
+                        errors.Add($"Profile '{profile.Id}' evidence '{evidence.Id}' selection '{selection.CapabilityId}' does not account for every corpus case exactly once.");
+                    }
+                    if (selection.OutOfScope.Count == 0) {
+                        errors.Add($"Profile '{profile.Id}' evidence '{evidence.Id}' selection '{selection.CapabilityId}' does not declare feature exclusions.");
+                    }
+                }
             }
         }
 

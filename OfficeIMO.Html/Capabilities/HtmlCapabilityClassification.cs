@@ -95,6 +95,59 @@ public enum HtmlCapabilityEvidenceRole {
     DifferentialReference
 }
 
+/// <summary>Maps one evidence source to the exact cases selected for a capability.</summary>
+public sealed class HtmlCapabilityEvidenceSelection {
+    private readonly IReadOnlyList<string> _requiredCaseIds;
+    private readonly IReadOnlyList<string> _excludedCaseIds;
+    private readonly IReadOnlyList<string> _outOfScope;
+
+    /// <summary>Creates an exact per-capability evidence selection.</summary>
+    public HtmlCapabilityEvidenceSelection(
+        string capabilityId,
+        string scope,
+        IEnumerable<string> requiredCaseIds,
+        IEnumerable<string> excludedCaseIds,
+        int passed,
+        int failed,
+        int untested,
+        IEnumerable<string>? outOfScope = null) {
+        CapabilityId = HtmlCapabilityContractValue.Required(capabilityId, nameof(capabilityId));
+        Scope = HtmlCapabilityContractValue.Required(scope, nameof(scope));
+        _requiredCaseIds = HtmlCapabilityContractValue.Normalize(requiredCaseIds, nameof(requiredCaseIds));
+        _excludedCaseIds = HtmlCapabilityContractValue.Normalize(excludedCaseIds, nameof(excludedCaseIds));
+        _outOfScope = HtmlCapabilityContractValue.Normalize(outOfScope ?? Array.Empty<string>(), nameof(outOfScope));
+        if (passed < 0) throw new ArgumentOutOfRangeException(nameof(passed));
+        if (failed < 0) throw new ArgumentOutOfRangeException(nameof(failed));
+        if (untested < 0) throw new ArgumentOutOfRangeException(nameof(untested));
+        if (passed + failed + untested != _requiredCaseIds.Count) {
+            throw new ArgumentException("Passed, failed, and untested counts must equal the required case count.");
+        }
+        if (_requiredCaseIds.Intersect(_excludedCaseIds, StringComparer.OrdinalIgnoreCase).Any()) {
+            throw new ArgumentException("Required and excluded evidence cases cannot overlap.");
+        }
+        Passed = passed;
+        Failed = failed;
+        Untested = untested;
+    }
+
+    /// <summary>Stable capability identifier supported by this selection.</summary>
+    public string CapabilityId { get; }
+    /// <summary>Exact feature forms exercised by the selected cases.</summary>
+    public string Scope { get; }
+    /// <summary>Required selected case identifiers.</summary>
+    public IReadOnlyList<string> RequiredCaseIds => _requiredCaseIds;
+    /// <summary>Corpus cases deliberately excluded from this capability selection.</summary>
+    public IReadOnlyList<string> ExcludedCaseIds => _excludedCaseIds;
+    /// <summary>Number of selected cases that passed.</summary>
+    public int Passed { get; }
+    /// <summary>Number of selected cases that failed.</summary>
+    public int Failed { get; }
+    /// <summary>Number of selected cases that have not run.</summary>
+    public int Untested { get; }
+    /// <summary>Feature forms that this selection deliberately does not qualify.</summary>
+    public IReadOnlyList<string> OutOfScope => _outOfScope;
+}
+
 /// <summary>Stable identifiers for the first versioned HTML compatibility profiles.</summary>
 public static class HtmlCapabilityProfileIds {
     /// <summary>Owned web-document parsing, DOM, query, edit, and serialization profile.</summary>
@@ -195,6 +248,10 @@ public static class HtmlCapabilityEvidenceIds {
     public const string H4ScreenV1 = "officeimo-html-h4-screen-v1";
     /// <summary>The six paged-mode cases in the frozen H4/v1 rendering corpus.</summary>
     public const string H4PagedV1 = "officeimo-html-h4-paged-v1";
+    /// <summary>The held-out H4/v2 screen evidence with per-capability selections.</summary>
+    public const string H4ScreenV2 = "officeimo-html-h4-screen-v2";
+    /// <summary>The held-out H4/v2 paged evidence with per-capability selections.</summary>
+    public const string H4PagedV2 = "officeimo-html-h4-paged-v2";
     /// <summary>The pinned html5lib parser test source.</summary>
     public const string Html5Lib = "html5lib-tests";
     /// <summary>The pinned Web Platform Tests source.</summary>

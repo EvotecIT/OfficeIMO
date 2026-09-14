@@ -67,6 +67,17 @@ public sealed partial class PdfEmbeddedFontFamily {
 
     internal PdfEmbeddedFontFamily Clone() => this;
 
+    internal PdfEmbeddedFontFamily CreateCoverageStableFallbackSnapshot() =>
+        new PdfEmbeddedFontFamily(FamilyName, _regular, shareRegularAcrossStyles: true);
+
+    private PdfEmbeddedFontFamily(string familyName, byte[] regular, bool shareRegularAcrossStyles) {
+        FamilyName = familyName;
+        _regular = regular;
+        _bold = shareRegularAcrossStyles ? regular : null;
+        _italic = shareRegularAcrossStyles ? regular : null;
+        _boldItalic = shareRegularAcrossStyles ? regular : null;
+    }
+
     /// <summary>Creates a reusable TrueType font family from font files on disk.</summary>
     public static PdfEmbeddedFontFamily FromFiles(
         string familyName,

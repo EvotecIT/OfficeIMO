@@ -54,7 +54,7 @@ public partial class Html {
     public void HtmlRenderCapabilityCatalog_IsCompleteDeterministicAndDiagnosticBacked() {
         IReadOnlyList<HtmlRenderCapability> capabilities = HtmlRenderCapabilityCatalog.All;
 
-        Assert.Equal(2, HtmlRenderCapabilityCatalog.SchemaVersion);
+        Assert.Equal(3, HtmlRenderCapabilityCatalog.SchemaVersion);
         Assert.Equal(3, HtmlRenderCapabilityCatalog.ProfileManifests.Count);
         Assert.Empty(HtmlRenderCapabilityCatalog.Validate());
         Assert.Empty(HtmlRenderProfileContracts.Validate());
@@ -122,6 +122,28 @@ public partial class Html {
         Assert.Equal(
             HtmlRenderingCorpus.All.Where(item => item.Mode == HtmlRenderMode.Paged).Select(item => item.Id).OrderBy(value => value, StringComparer.Ordinal),
             pagedEvidence.CaseIds);
+
+        HtmlRenderingHeldOutCorpus heldOut = HtmlRenderingHeldOutCorpus.Load();
+        HtmlCapabilityEvidencePin heldOutScreen = staticProfile.Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4ScreenV2);
+        HtmlCapabilityEvidencePin heldOutPaged = HtmlRenderCapabilityCatalog.GetProfile(HtmlCapabilityProfileIds.PagedPrintV1)
+            .Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4PagedV2);
+        Assert.Equal(heldOut.ManifestSha256, heldOutScreen.Revision);
+        Assert.Equal(heldOut.ManifestSha256, heldOutPaged.Revision);
+        Assert.Equal(8, heldOutScreen.Required);
+        Assert.Equal(8, heldOutScreen.Passed);
+        Assert.Equal(11, heldOutScreen.Selections.Count);
+        Assert.Equal(14, heldOutPaged.Selections.Count);
+        Assert.All(heldOutScreen.Selections.Concat(heldOutPaged.Selections), selection => {
+            Assert.Equal(heldOut.Cases.Count, selection.RequiredCaseIds.Count + selection.ExcludedCaseIds.Count);
+            Assert.Equal(selection.RequiredCaseIds.Count, selection.Passed);
+            Assert.Equal(0, selection.Failed);
+            Assert.Equal(0, selection.Untested);
+            Assert.NotEmpty(selection.OutOfScope);
+        });
+        Assert.Contains(HtmlCapabilityEvidenceIds.H4ScreenV2,
+            HtmlRenderCapabilityCatalog.Get("layout-grid").GetProfileBinding(HtmlCapabilityProfileIds.StaticScreenV1).EvidenceIds);
+        Assert.DoesNotContain(HtmlCapabilityEvidenceIds.WebPlatformTests,
+            HtmlRenderCapabilityCatalog.Get("layout-grid").GetProfileBinding(HtmlCapabilityProfileIds.StaticScreenV1).EvidenceIds);
     }
 
     [Fact]

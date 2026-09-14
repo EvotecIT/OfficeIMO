@@ -6,7 +6,7 @@ namespace OfficeIMO.Html;
 /// </summary>
 public static partial class HtmlRenderCapabilityCatalog {
     /// <summary>Current machine-readable capability schema version.</summary>
-    public const int SchemaVersion = 2;
+    public const int SchemaVersion = 3;
 
     private static readonly IReadOnlyList<HtmlRenderCapability> Capabilities = new[] {
         Qualified("html-source-decoding", "HTML source", HtmlRenderCapabilityKind.Encoding,
@@ -366,17 +366,17 @@ public static partial class HtmlRenderCapabilityCatalog {
                 PromotionFor(profileId),
                 scope.ProviderIds,
                 scope.SpecificationIds,
-                scope.GetEvidenceIds(profileId),
+                scope.GetEvidenceIds(profileId, id),
                 scope.OptionalProviderIds)).ToArray();
         return new HtmlRenderCapability(id, area, kind, scope.Stages, bindings, featureArray, behavior, limitations, diagnostics);
     }
 
     private static CapabilityScope DocumentScope(HtmlCapabilityStage stages, params string[] specifications) =>
-        Scope(stages,
+        ScopeByProfile(stages,
             new[] { HtmlCapabilityProfileIds.WebDocumentV1, HtmlCapabilityProfileIds.StaticScreenV1, HtmlCapabilityProfileIds.PagedPrintV1 },
             new[] { HtmlCapabilityProviderIds.OfficeIMOHtmlCore, HtmlCapabilityProviderIds.AngleSharpHtml },
             specifications,
-            DocumentEvidenceIds());
+            DocumentEvidenceIds);
 
     private static CapabilityScope CssScope(HtmlCapabilityStage stages, params string[] specifications) =>
         ScopeByProfile(stages,
@@ -435,31 +435,58 @@ public static partial class HtmlRenderCapabilityCatalog {
         IEnumerable<string> specifications,
         IEnumerable<string> evidence,
         IEnumerable<string>? optionalProviders = null) =>
-        new CapabilityScope(stages, profiles, providers, specifications, _ => evidence, optionalProviders);
+        new CapabilityScope(stages, profiles, providers, specifications, (_, _) => evidence, optionalProviders);
 
     private static CapabilityScope ScopeByProfile(
         HtmlCapabilityStage stages,
         IEnumerable<string> profiles,
         IEnumerable<string> providers,
         IEnumerable<string> specifications,
-        Func<string, IEnumerable<string>> evidence,
+        Func<string, string, IEnumerable<string>> evidence,
         IEnumerable<string>? optionalProviders = null) =>
         new CapabilityScope(stages, profiles, providers, specifications, evidence, optionalProviders);
 
     private static string[] StaticAndPagedProfiles() =>
         new[] { HtmlCapabilityProfileIds.StaticScreenV1, HtmlCapabilityProfileIds.PagedPrintV1 };
 
-    private static string[] DocumentEvidenceIds() =>
-        new[] { HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests, HtmlCapabilityEvidenceIds.DocumentV1, HtmlCapabilityEvidenceIds.Html5Lib, HtmlCapabilityEvidenceIds.WebPlatformTests };
+    private static string[] DocumentEvidenceIds(string profileId, string capabilityId) {
+        if (string.Equals(profileId, HtmlCapabilityProfileIds.WebDocumentV1, StringComparison.OrdinalIgnoreCase)) {
+            return new[] { HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests, HtmlCapabilityEvidenceIds.DocumentV1 };
+        }
+        HtmlCapabilityEvidenceSelection[] selections;
+        string selectedEvidence;
+        if (string.Equals(profileId, HtmlCapabilityProfileIds.PagedPrintV1, StringComparison.OrdinalIgnoreCase)) {
+            selections = CreateH4V2PagedSelections();
+            selectedEvidence = HtmlCapabilityEvidenceIds.H4PagedV2;
+        } else {
+            selections = CreateH4V2ScreenSelections();
+            selectedEvidence = HtmlCapabilityEvidenceIds.H4ScreenV2;
+        }
+        return selections.Any(selection => string.Equals(selection.CapabilityId, capabilityId, StringComparison.OrdinalIgnoreCase))
+            ? new[] { HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests, HtmlCapabilityEvidenceIds.DocumentV1, selectedEvidence }
+            : new[] { HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests, HtmlCapabilityEvidenceIds.DocumentV1 };
+    }
 
-    private static string[] StaticEvidenceIds(string profileId) =>
-        new[] {
+    private static string[] StaticEvidenceIds(string profileId, string capabilityId) {
+        HtmlCapabilityEvidenceSelection[] selections;
+        string selectedEvidence;
+        if (string.Equals(profileId, HtmlCapabilityProfileIds.PagedPrintV1, StringComparison.OrdinalIgnoreCase)) {
+            selections = CreateH4V2PagedSelections();
+            selectedEvidence = HtmlCapabilityEvidenceIds.H4PagedV2;
+        } else {
+            selections = CreateH4V2ScreenSelections();
+            selectedEvidence = HtmlCapabilityEvidenceIds.H4ScreenV2;
+        }
+        if (selections.Any(selection => string.Equals(selection.CapabilityId, capabilityId, StringComparison.OrdinalIgnoreCase))) {
+            return new[] { HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests, selectedEvidence };
+        }
+        return new[] {
             HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests,
             string.Equals(profileId, HtmlCapabilityProfileIds.PagedPrintV1, StringComparison.OrdinalIgnoreCase)
                 ? HtmlCapabilityEvidenceIds.H4PagedV1
-                : HtmlCapabilityEvidenceIds.H4ScreenV1,
-            HtmlCapabilityEvidenceIds.WebPlatformTests
+                : HtmlCapabilityEvidenceIds.H4ScreenV1
         };
+    }
 
     private static string[] WithCssSnapshot(IEnumerable<string> specifications) =>
         new[] { HtmlCapabilitySpecificationIds.CssSnapshot }.Concat(specifications).ToArray();
@@ -475,7 +502,7 @@ public static partial class HtmlRenderCapabilityCatalog {
             IEnumerable<string> profileIds,
             IEnumerable<string> providerIds,
             IEnumerable<string> specificationIds,
-            Func<string, IEnumerable<string>> evidenceIds,
+            Func<string, string, IEnumerable<string>> evidenceIds,
             IEnumerable<string>? optionalProviderIds) {
             if (stages == HtmlCapabilityStage.None) throw new ArgumentOutOfRangeException(nameof(stages));
             Stages = stages;
@@ -483,10 +510,7 @@ public static partial class HtmlRenderCapabilityCatalog {
             ProviderIds = HtmlCapabilityContractValue.Normalize(providerIds, nameof(providerIds));
             OptionalProviderIds = HtmlCapabilityContractValue.Normalize(optionalProviderIds ?? Array.Empty<string>(), nameof(optionalProviderIds));
             SpecificationIds = HtmlCapabilityContractValue.Normalize(specificationIds, nameof(specificationIds));
-            EvidenceIdsByProfile = ProfileIds.ToDictionary(
-                profileId => profileId,
-                profileId => HtmlCapabilityContractValue.Normalize(evidenceIds(profileId), nameof(evidenceIds)),
-                StringComparer.OrdinalIgnoreCase);
+            _evidenceIds = evidenceIds ?? throw new ArgumentNullException(nameof(evidenceIds));
         }
 
         internal HtmlCapabilityStage Stages { get; }
@@ -494,8 +518,9 @@ public static partial class HtmlRenderCapabilityCatalog {
         internal IReadOnlyList<string> ProviderIds { get; }
         internal IReadOnlyList<string> OptionalProviderIds { get; }
         internal IReadOnlyList<string> SpecificationIds { get; }
-        internal IReadOnlyDictionary<string, IReadOnlyList<string>> EvidenceIdsByProfile { get; }
+        private readonly Func<string, string, IEnumerable<string>> _evidenceIds;
 
-        internal IReadOnlyList<string> GetEvidenceIds(string profileId) => EvidenceIdsByProfile[profileId];
+        internal IReadOnlyList<string> GetEvidenceIds(string profileId, string capabilityId) =>
+            HtmlCapabilityContractValue.Normalize(_evidenceIds(profileId, capabilityId), nameof(_evidenceIds));
     }
 }

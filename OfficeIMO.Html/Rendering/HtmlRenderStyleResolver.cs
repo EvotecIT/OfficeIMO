@@ -1246,14 +1246,24 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.GridAutoFlow = NormalizeCssValue(computed.GetValue("grid-auto-flow"), "row");
         style.JustifyItems = NormalizeCssValue(computed.GetValue("justify-items"), "normal");
         style.JustifySelf = NormalizeCssValue(computed.GetValue("justify-self"), "auto");
-        ApplyGridPair(computed.GetValue("grid-column"), ref style.GridColumnStart, ref style.GridColumnEnd);
-        ApplyGridPair(computed.GetValue("grid-row"), ref style.GridRowStart, ref style.GridRowEnd);
-        style.GridArea = NormalizeCssValue(computed.GetValue("grid-area"), "auto");
-        ApplyGridArea(computed.GetValue("grid-area"), style);
-        OverrideGridValue(computed.GetValue("grid-column-start"), ref style.GridColumnStart);
-        OverrideGridValue(computed.GetValue("grid-column-end"), ref style.GridColumnEnd);
-        OverrideGridValue(computed.GetValue("grid-row-start"), ref style.GridRowStart);
-        OverrideGridValue(computed.GetValue("grid-row-end"), ref style.GridRowEnd);
+        if (computed.IsSpecifiedValue("grid-column")) {
+            ApplyGridPair(computed.GetValue("grid-column"), ref style.GridColumnStart, ref style.GridColumnEnd);
+        }
+        if (computed.IsSpecifiedValue("grid-row")) {
+            ApplyGridPair(computed.GetValue("grid-row"), ref style.GridRowStart, ref style.GridRowEnd);
+        }
+        string gridArea = computed.GetValue("grid-area");
+        bool synthesizedAxisArea = computed.IsSpecifiedValue("grid-area")
+            && ((computed.IsSpecifiedValue("grid-row")
+                    && string.Equals(gridArea, computed.GetValue("grid-row"), StringComparison.OrdinalIgnoreCase))
+                || (computed.IsSpecifiedValue("grid-column")
+                    && string.Equals(gridArea, computed.GetValue("grid-column"), StringComparison.OrdinalIgnoreCase)));
+        style.GridArea = synthesizedAxisArea ? "auto" : NormalizeCssValue(gridArea, "auto");
+        if (computed.IsSpecifiedValue("grid-area") && !synthesizedAxisArea) ApplyGridArea(gridArea, style);
+        if (computed.IsSpecifiedValue("grid-column-start")) OverrideGridValue(computed.GetValue("grid-column-start"), ref style.GridColumnStart);
+        if (computed.IsSpecifiedValue("grid-column-end")) OverrideGridValue(computed.GetValue("grid-column-end"), ref style.GridColumnEnd);
+        if (computed.IsSpecifiedValue("grid-row-start")) OverrideGridValue(computed.GetValue("grid-row-start"), ref style.GridRowStart);
+        if (computed.IsSpecifiedValue("grid-row-end")) OverrideGridValue(computed.GetValue("grid-row-end"), ref style.GridRowEnd);
         ApplyPlacePair(computed.GetValue("place-items"), ref style.AlignItems, ref style.JustifyItems);
         ApplyPlacePair(computed.GetValue("place-self"), ref style.AlignSelf, ref style.JustifySelf);
         ApplyPlacePair(computed.GetValue("place-content"), ref style.AlignContent, ref style.JustifyContent);
@@ -1336,13 +1346,22 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private void ApplyGap(HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
-        IReadOnlyList<string> gap = HtmlRenderCssValues.SplitWhitespace(computed.GetValue("gap"));
+        bool gapWasSpecified = computed.IsSpecifiedValue("gap");
+        IReadOnlyList<string> gap = gapWasSpecified
+            ? HtmlRenderCssValues.SplitWhitespace(computed.GetValue("gap"))
+            : Array.Empty<string>();
         string row = gap.Count > 0 ? gap[0] : string.Empty;
         string column = gap.Count > 1 ? gap[1] : row;
-        if (!string.IsNullOrWhiteSpace(computed.GetValue("row-gap"))) row = computed.GetValue("row-gap");
-        if (!string.IsNullOrWhiteSpace(computed.GetValue("column-gap"))) column = computed.GetValue("column-gap");
-        style.ColumnGapWasSpecified = !string.IsNullOrWhiteSpace(column) && !string.Equals(column.Trim(), "normal", StringComparison.OrdinalIgnoreCase);
-        style.RowGapWasSpecified = !string.IsNullOrWhiteSpace(row) && !string.Equals(row.Trim(), "normal", StringComparison.OrdinalIgnoreCase);
+        bool rowGapWasSpecified = computed.IsSpecifiedValue("row-gap");
+        bool columnGapWasSpecified = computed.IsSpecifiedValue("column-gap");
+        if (rowGapWasSpecified) row = computed.GetValue("row-gap");
+        if (columnGapWasSpecified) column = computed.GetValue("column-gap");
+        style.ColumnGapWasSpecified = (gapWasSpecified || columnGapWasSpecified)
+            && !string.IsNullOrWhiteSpace(column)
+            && !string.Equals(column.Trim(), "normal", StringComparison.OrdinalIgnoreCase);
+        style.RowGapWasSpecified = (gapWasSpecified || rowGapWasSpecified)
+            && !string.IsNullOrWhiteSpace(row)
+            && !string.Equals(row.Trim(), "normal", StringComparison.OrdinalIgnoreCase);
         style.RowGap = ResolveGap(row, reference, fontSize, out bool rowUnsupported);
         style.ColumnGap = ResolveGap(column, reference, fontSize, out bool columnUnsupported);
         if (rowUnsupported) style.UnsupportedRowGap = row.Trim();
