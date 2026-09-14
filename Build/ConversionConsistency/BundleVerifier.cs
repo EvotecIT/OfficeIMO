@@ -15,7 +15,8 @@ internal static class BundleVerifier {
         await using var renderer = new HtmlBrowserPdfRenderer(new HtmlBrowserPdfRendererOptions(
             maximumBrowserInstances: 1, maximumQueuedCaptures: 4, networkPolicy: HtmlBrowserNetworkPolicy.Offline,
             setupTimeout: TimeSpan.FromSeconds(45)));
-        string browserVersion = "";
+        string referenceBrowserVersion = "";
+        string svgRendererBrowserVersion = "";
         var reports = new List<CaseReport>();
         foreach (CaseBundle item in bundle.Cases) {
             try {
@@ -36,8 +37,8 @@ internal static class BundleVerifier {
                 if (browserParsed!.NumberOfPages != item.BrowserReference.PageCount ||
                     browserParsed.NumberOfPages != item.Contract.Pages.Count)
                     errors.Add("Source-browser reference page count differs from the bundle or page contract.");
-                if (string.IsNullOrWhiteSpace(browserVersion)) browserVersion = item.BrowserReference.BrowserVersion;
-                else if (!string.Equals(browserVersion, item.BrowserReference.BrowserVersion, StringComparison.Ordinal))
+                if (string.IsNullOrWhiteSpace(referenceBrowserVersion)) referenceBrowserVersion = item.BrowserReference.BrowserVersion;
+                else if (!string.Equals(referenceBrowserVersion, item.BrowserReference.BrowserVersion, StringComparison.Ordinal))
                     errors.Add("Source-browser references were captured with different browser versions.");
             }
             if (parsed.NumberOfPages != item.Contract.Pages.Count)
@@ -117,7 +118,12 @@ internal static class BundleVerifier {
                         var capture = await renderer.CaptureAsync(new HtmlBrowserPdfRequest(HtmlBrowserPdfSource.FromHtml(html),
                             new HtmlBrowserPdfOptions(width: width, height: height, marginTop: "0", marginRight: "0", marginBottom: "0", marginLeft: "0", printBackground: true),
                             readiness: new HtmlBrowserPdfReadiness(loadState: HtmlBrowserLoadState.Load, stable: true, stableMilliseconds: 250, timeout: 15000)), cancellationToken);
-                        browserVersion = capture.Diagnostics.BrowserVersion;
+                        string currentSvgBrowserVersion = capture.Diagnostics.BrowserVersion;
+                        if (string.IsNullOrWhiteSpace(svgRendererBrowserVersion)) {
+                            svgRendererBrowserVersion = currentSvgBrowserVersion;
+                        } else if (!string.Equals(svgRendererBrowserVersion, currentSvgBrowserVersion, StringComparison.Ordinal)) {
+                            pageErrors.Add("Independent SVG pages were rendered with different browser versions.");
+                        }
                         if (capture.Diagnostics.BlockedRequestCount > 0 || capture.Diagnostics.Warnings.Count > 0)
                             pageErrors.Add("Independent SVG renderer reported blocked resources or warnings.");
                         string svgPdf = ArtifactPaths.Resolve(output, prefix + "-svg.pdf");
@@ -153,7 +159,8 @@ internal static class BundleVerifier {
                     item.PdfRoute, item.Contract.ComparePdfPixels, false, item.Contract.Limitations));
             }
         }
-        return new GateReport(2, bundle.Commit, bundle.FontSha256, version, browserVersion, reports.All(item => item.Passed), reports);
+        return new GateReport(2, bundle.Commit, bundle.FontSha256, version,
+            referenceBrowserVersion, svgRendererBrowserVersion, reports.All(item => item.Passed), reports);
     }
 
     private static string CheckedArtifact(string output, string relative, string hash) {

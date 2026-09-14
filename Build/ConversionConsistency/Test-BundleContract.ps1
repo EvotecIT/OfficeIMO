@@ -36,7 +36,8 @@ foreach ($failure in @('missing-label', 'missing-image', 'changed-image', 'dupli
     if ($report.passed -or $report.cases[0].passed) { throw "$failure was incorrectly accepted." }
 }
 
-$browserCase = $bundle.cases | Where-Object { $null -ne $_.browserReference } | Select-Object -First 1
+$browserCases = @($bundle.cases | Where-Object { $null -ne $_.browserReference })
+$browserCase = $browserCases | Select-Object -First 1
 if ($null -ne $browserCase) {
     foreach ($failure in @('missing-browser-reference', 'changed-browser-reference')) {
         $target = Join-Path $OutputPath $failure
@@ -56,13 +57,33 @@ if ($null -ne $browserCase) {
         $report = Get-Content -LiteralPath (Join-Path $target 'consistency-result.json') -Raw | ConvertFrom-Json -Depth 100
         if ($report.passed -or $report.cases[0].passed) { throw "$failure was incorrectly accepted." }
     }
+
+    $target = Join-Path $OutputPath 'reference-version-independence'
+    New-Item -ItemType Directory -Path $target | Out-Null
+    $candidate = $bundle | ConvertTo-Json -Depth 100 | ConvertFrom-Json -Depth 100
+    $candidate.cases = @($candidate.cases | Where-Object { $null -ne $_.browserReference } | Select-Object -First 2)
+    $archivedVersion = 'archived-browser-version'
+    foreach ($entry in $candidate.cases) {
+        Copy-Item -LiteralPath (Join-Path $BundlePath $entry.contract.id) -Destination $target -Recurse
+        $entry.browserReference.browserVersion = $archivedVersion
+    }
+    $candidate | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath (Join-Path $target 'bundle.json') -Encoding utf8
+    & dotnet $ToolPath verify --output $target *> (Join-Path $target 'verification.log')
+    if ($LASTEXITCODE -ne 0) { throw 'Archived browser identity incorrectly depended on the current SVG renderer.' }
+    $report = Get-Content -LiteralPath (Join-Path $target 'consistency-result.json') -Raw | ConvertFrom-Json -Depth 100
+    if (-not $report.passed -or $report.referenceBrowserVersion -ne $archivedVersion) {
+        throw 'Verification did not preserve the archived source-reference browser identity.'
+    }
+    if ([string]::IsNullOrWhiteSpace($report.svgRendererBrowserVersion)) {
+        throw 'Verification did not report the current SVG renderer browser identity.'
+    }
 }
 
 & dotnet $ToolPath verify --output $BundlePath --unknown-option value *> (Join-Path $OutputPath 'unknown-option.log')
 if ($LASTEXITCODE -ne 2) { throw 'An unknown CLI option was not rejected.' }
 & dotnet $ToolPath verify --output $BundlePath --output $BundlePath *> (Join-Path $OutputPath 'duplicate-option.log')
 if ($LASTEXITCODE -ne 2) { throw 'A duplicate CLI option was not rejected.' }
-Write-Host 'PASS: missing content, missing/corrupt images, duplicate pages, browser-reference tampering, and invalid CLI options are rejected.'
+Write-Host 'PASS: missing content, missing/corrupt images, duplicate pages, browser-reference tampering, archived browser identity, and invalid CLI options are enforced.'
 # Expected native failures above have been validated; do not leak their exit code
 # into callers such as the GitHub Actions PowerShell wrapper.
 $global:LASTEXITCODE = 0
