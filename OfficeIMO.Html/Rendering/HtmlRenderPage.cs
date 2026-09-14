@@ -220,7 +220,7 @@ public sealed class HtmlRenderPage {
         double surfaceWidth,
         double surfaceHeight,
         OfficeFontFaceCollection fonts) {
-        OfficeShape shape = visual.Shape.Clone();
+        OfficeShape shape = visual.InnerShape.Clone();
         if (visual.X >= 0D &&
             visual.Y >= 0D &&
             visual.X + shape.Width <= surfaceWidth &&

@@ -79,6 +79,13 @@ public sealed class HtmlRenderDocument {
     internal HtmlRenderDocument Project(IEnumerable<HtmlRenderPage> pages, HtmlRenderMode mode) =>
         new(mode, pages, _diagnosticReport, _fonts, Metadata, _bookmarks);
 
+    internal HtmlRenderDocument WithAdditionalDiagnostics(IEnumerable<HtmlDiagnostic> diagnostics) {
+        if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
+        HtmlDiagnosticReport report = _diagnosticReport.Clone();
+        report.AddRange(diagnostics);
+        return new HtmlRenderDocument(Mode, _pages, report, _fonts, Metadata, _bookmarks);
+    }
+
     private static IEnumerable<string> EnumerateLogicalText(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in OrderForLogicalText(visuals)) {
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {

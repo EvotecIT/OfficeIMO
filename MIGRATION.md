@@ -122,6 +122,8 @@ selection, or a retained cross-encoder result.
 | Use PDF output and expect screen CSS | Create a `ScreenMediaPaged` request with the `Pdf` encoder, then call `source.RenderToPdfResult(request)`. |
 | Paginate a completed screen composition without reflow | Create a `ScreenSnapshotPaged` request with the `Pdf` encoder. |
 | Infer which page was encoded from an output filename | Select `HtmlRenderPageSet.Page(...)`, `Pages(...)`, or `Stitched()` and inspect `HtmlRenderResult.Surfaces`. |
+| Build preview, coordinate, and click-target logic from separate layout calls | Use `HtmlRenderResult.OutputSurfaces`; each `HtmlRenderSurface` creates a Drawing preview, maps output points to source placements, and performs bounded clip-aware hit testing over the retained scene. |
+| Treat archive packaging as a page-selection mode | Select pages with `HtmlRenderPageSet`, choose the `Png` or `Svg` encoder, then call `HtmlRenderResult.ExportArchive()`. Packaging no longer changes layout or selection semantics. |
 
 Named profiles provide defaults rather than hiding the axes. Use
 `WithCssMedia(...)`, `WithLayoutSurface(...)`, or `WithPagination(...)` for
@@ -132,8 +134,16 @@ before relying on qualification evidence. A custom combination reports
 `HtmlRenderSurfaceResult.SourcePlacements` instead of treating the first source
 page as the complete provenance record.
 
-Archive-plus-manifest packaging and element-aware placement are not implemented;
-selecting either boundary throws instead of silently changing layout behavior.
+PNG/SVG archive packaging is an output operation over a completed retained result.
+The archive manifest preserves request axes, qualification, surface geometry,
+source placements, provider identity, retained diagnostics and their provenance,
+per-page encoder diagnostics, and encoded entry hashes. `HasLoss` now includes
+scale reduction and other page-encoding fallback instead of describing only HTML
+layout. MHTML rendering also retains MIME diagnostics in the result, manifest, and
+CLI diagnostic stream. Use `WithAdditionalDiagnostics(...)` when another owning
+container must attach equivalent input-boundary evidence.
+Element-aware placement remains unsupported and throws instead of silently
+changing layout behavior.
 
 ### PDF positioned-text rendering limit
 

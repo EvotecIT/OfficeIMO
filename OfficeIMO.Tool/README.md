@@ -63,6 +63,10 @@ officeimo workflow assemble cover.png report.docx appendices .\attachments.zip -
 # Inspect print-sheet placement without requiring a platform printer driver
 officeimo workflow print-plan complete.pdf --paper A4 --pages-per-sheet 2 --scale fit
 
+# Render retained HTML pages to a deterministic PNG or SVG archive and manifest
+officeimo html render dashboard.html --profile screen-full-page --encoder png --output dashboard.render.zip
+officeimo html render report.mhtml --profile print-paged --encoder svg --pages 2-4 --output report-pages.zip
+
 # Inspect or assess provenance with versioned JSON output
 officeimo provenance inspect report.docx
 officeimo provenance assess page.html
@@ -94,13 +98,19 @@ All `convert` destinations are protected from accidental replacement. Pass `--fo
 - `officeimo workflow` exports PDF pages, assembles mixed document sources, and creates deterministic print-sheet plans.
 - `officeimo pdf redact` plans, applies, verifies, and batch-runs source-bound PDF redaction recipes with privacy-safe JSON evidence. `batch --request` accepts the strict `officeimo.pdf.redaction.batch-request.v1` file-set contract, preserves deterministic relative-path ordering, and supports atomic-all or continue-per-item publication. Framework-dependent tool builds load optional provider assemblies only from explicit `--ocr-provider-assembly` paths and select one with `--ocr-provider`; NativeAOT hosts must register a statically linked provider through `OcrEngineCatalog`. The default tool still includes no OCR runtime or model. Use `--ocr-language`, `--ocr-min-confidence`, and repeated `--ocr-option key=value` values for non-secret configuration. Passwords are accepted only through named environment variables, and provider credentials should remain behind environment or secret-store references. Output, evidence, and manifests can never replace the PDF, recipe, decisions, or batch-request input, even with `--force`; zero-area verification of re-encrypted output accepts `--expected-output-sha256` from prior apply evidence. Signing a derivative remains an API-host responsibility because the CLI does not construct external signers.
 - `officeimo provenance` discovers format owners and runs bounded inspect, assess, selective-remove, and batch workflows with versioned JSON or readable text output.
-- `officeimo html` converts HTML or MHTML to PDF and reports renderer capabilities.
+- `officeimo html` converts HTML or MHTML to PDF, renders selected PNG/SVG surfaces into a deterministic archive and manifest, and reports renderer capabilities.
 - `officeimo reader` extracts individual documents or folders as Markdown or JSON and reports supported formats.
 - `officeimo markup` parses, validates, emits, previews, and exports OfficeIMO Markup.
 - `officeimo agent` returns bounded JSON for inspection, search, selected fetch, conversion, and capability discovery.
 - `officeimo mcp serve --stdio` exposes the compact agent operations to MCP clients.
 
 Run `officeimo help` or append `<area> --help` for the complete command contract.
+
+HTML render manifests retain MHTML input diagnostics, source-to-target diagnostic
+provenance, and per-page scale, font, and codec fallback. These diagnostics are
+also written to standard error. `--force` can replace only the chosen destination;
+an output path that resolves to the HTML, MHTML, stylesheet, or font input is
+rejected, including through a symbolic link.
 
 Workflow output is protected from accidental replacement. Pass `--force` to replace an
 existing image folder or assembled PDF. Assembly preserves caller source order, expands

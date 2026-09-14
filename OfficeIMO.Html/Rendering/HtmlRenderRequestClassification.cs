@@ -81,7 +81,5 @@ public enum HtmlRenderPageSetMode {
     /// <summary>Keep a bounded range of pages as separate ordered surfaces.</summary>
     Range,
     /// <summary>Place all selected pages vertically on one continuous surface.</summary>
-    Stitched,
-    /// <summary>Package separate encoded pages together with a manifest.</summary>
-    ArchiveWithManifest
+    Stitched
 }

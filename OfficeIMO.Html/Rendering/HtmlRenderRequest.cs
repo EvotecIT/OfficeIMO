@@ -166,9 +166,6 @@ public sealed class HtmlRenderRequest {
         if (!contract.PageSets.Contains(PageSet.Mode)) {
             throw new NotSupportedException($"Render profile '{contract.Id}' does not admit page-set mode '{PageSet.Mode}'.");
         }
-        if (PageSet.Mode == HtmlRenderPageSetMode.ArchiveWithManifest) {
-            throw new NotSupportedException("Archive-plus-manifest output is declared but is not implemented by the current encoder set.");
-        }
         if (Pagination == HtmlRenderPaginationPolicy.ElementAwarePlacement) {
             throw new NotSupportedException("Element-aware placement is not implemented by the current render profiles.");
         }

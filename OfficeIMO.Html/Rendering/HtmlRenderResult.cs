@@ -33,6 +33,10 @@ public sealed class HtmlRenderSourcePlacement {
     public double OutputOffsetY { get; }
     /// <summary>Whether the source contribution was clipped.</summary>
     public bool IsClipped { get; }
+    /// <summary>Source rectangle contributing to the output surface.</summary>
+    public HtmlRenderRectangle SourceBounds => new HtmlRenderRectangle(SourceOffsetX, SourceOffsetY, Width, Height);
+    /// <summary>Rectangle occupied by the contribution in the output surface.</summary>
+    public HtmlRenderRectangle OutputBounds => new HtmlRenderRectangle(OutputOffsetX, OutputOffsetY, Width, Height);
 }
 
 /// <summary>One output surface retained by a resolved HTML render request.</summary>
@@ -72,6 +76,31 @@ public sealed class HtmlRenderSurfaceResult {
     public bool IsClipped { get; }
     /// <summary>Every source page or slice contributing to this output surface.</summary>
     public IReadOnlyList<HtmlRenderSourcePlacement> SourcePlacements => _sourcePlacements;
+    /// <summary>Complete output-surface rectangle.</summary>
+    public HtmlRenderRectangle Bounds => new HtmlRenderRectangle(0D, 0D, Width, Height);
+
+    /// <summary>Maps an output point to the contributing source page or canvas slice.</summary>
+    public bool TryMapToSource(HtmlRenderPoint outputPoint, out HtmlRenderSourcePoint? sourcePoint) {
+        for (int index = _sourcePlacements.Count - 1; index >= 0; index--) {
+            HtmlRenderSourcePlacement placement = _sourcePlacements[index];
+            if (!placement.OutputBounds.Contains(outputPoint)) continue;
+            sourcePoint = new HtmlRenderSourcePoint(
+                OutputIndex,
+                placement.SourcePageNumber,
+                outputPoint,
+                new HtmlRenderPoint(
+                    placement.SourceOffsetX + outputPoint.X - placement.OutputOffsetX,
+                    placement.SourceOffsetY + outputPoint.Y - placement.OutputOffsetY),
+                placement.IsClipped);
+            return true;
+        }
+        sourcePoint = null;
+        return false;
+    }
+
+    /// <summary>Maps finite output coordinates to the contributing source page or canvas slice.</summary>
+    public bool TryMapToSource(double outputX, double outputY, out HtmlRenderSourcePoint? sourcePoint) =>
+        TryMapToSource(new HtmlRenderPoint(outputX, outputY), out sourcePoint);
 }
 
 /// <summary>
@@ -80,6 +109,7 @@ public sealed class HtmlRenderSurfaceResult {
 /// </summary>
 public sealed class HtmlRenderResult {
     private readonly ReadOnlyCollection<HtmlRenderSurfaceResult> _surfaces;
+    private readonly ReadOnlyCollection<HtmlRenderSurface> _outputSurfaces;
     private readonly ReadOnlyCollection<string> _declaredProviderIds;
     private readonly ReadOnlyCollection<HtmlDiagnostic> _lossDiagnostics;
 
@@ -91,6 +121,9 @@ public sealed class HtmlRenderResult {
         if (_surfaces.Count != document.Pages.Count) {
             throw new ArgumentException("Every retained page requires one surface descriptor.", nameof(surfaces));
         }
+        _outputSurfaces = document.Pages
+            .Select((page, index) => new HtmlRenderSurface(this, page, _surfaces[index]))
+            .ToList().AsReadOnly();
         HtmlRenderProfileContract profile = HtmlRenderProfileContracts.Get(request.Profile);
         _declaredProviderIds = (request.MatchesNamedProfile ? profile.CapabilityProfileIds : Array.Empty<string>())
             .SelectMany(profileId => HtmlRenderCapabilityCatalog.GetProfile(profileId).Providers)
@@ -109,6 +142,8 @@ public sealed class HtmlRenderResult {
     public HtmlRenderDocument Document { get; }
     /// <summary>Ordered surface geometry and source mapping.</summary>
     public IReadOnlyList<HtmlRenderSurfaceResult> Surfaces => _surfaces;
+    /// <summary>Ordered executable surface views for preview, drawing, geometry, and hit-test consumers.</summary>
+    public IReadOnlyList<HtmlRenderSurface> OutputSurfaces => _outputSurfaces;
     /// <summary>Requested output scale before any bounded raster scale reduction.</summary>
     public double RequestedScale => Request.Options.Scale;
     /// <summary>Requested output background used by image adapters.</summary>
@@ -123,6 +158,23 @@ public sealed class HtmlRenderResult {
     public bool HasLoss => Document.HasLoss;
     /// <summary>Diagnostics that report an approximation, omission, or failure.</summary>
     public IReadOnlyList<HtmlDiagnostic> LossDiagnostics => _lossDiagnostics;
+
+    /// <summary>Gets one executable output surface by zero-based index.</summary>
+    public HtmlRenderSurface GetSurface(int outputIndex) {
+        if (outputIndex < 0 || outputIndex >= _outputSurfaces.Count) {
+            throw new ArgumentOutOfRangeException(nameof(outputIndex));
+        }
+        return _outputSurfaces[outputIndex];
+    }
+
+    /// <summary>
+    /// Returns an equivalent retained result carrying additional diagnostics from an owning
+    /// container, adapter, or input boundary. The current result remains unchanged.
+    /// </summary>
+    public HtmlRenderResult WithAdditionalDiagnostics(IEnumerable<HtmlDiagnostic> diagnostics) {
+        if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
+        return new HtmlRenderResult(Request, Document.WithAdditionalDiagnostics(diagnostics), _surfaces);
+    }
 
     /// <summary>Throws with the complete report when the retained result is not lossless.</summary>
     public HtmlRenderResult RequireNoLoss() {

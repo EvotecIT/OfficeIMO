@@ -170,6 +170,19 @@ var request = HtmlRenderRequest.Create(
 
 HtmlRenderResult retained = HtmlRenderEngine.Execute(source, request);
 IReadOnlyList<OfficeImageExportResult> pages = retained.ExportImages();
+
+HtmlRenderSurface firstSurface = retained.GetSurface(0);
+OfficeDrawing preview = firstSurface.CreateDrawing();
+HtmlRenderHitTestReport hits = firstSurface.HitTest(120, 80, new HtmlRenderHitTestOptions {
+    InteractiveOnly = true,
+    MaximumResults = 8
+});
+firstSurface.TryMapToSource(120, 80, out HtmlRenderSourcePoint? sourcePoint);
+
+HtmlRenderArchiveResult archive = retained.ExportArchive(new HtmlRenderArchiveOptions {
+    MaximumArchiveBytes = 128 * 1024 * 1024
+});
+File.WriteAllBytes("screen-pages.zip", archive.Bytes);
 ```
 
 Named profiles are immutable defaults. Use `WithCssMedia(...)`,
@@ -188,8 +201,27 @@ normal fragmentation. Separate pages, one selected page, a range, and stitched
 output are available now. `SourcePlacements` records every source page or slice
 and its output offset in a stitched surface. Projection is cancellable and bounded
 by `MaxProjectedVisuals`, `MaxPageCount`, `MaxSurfaceWidth`, and
-`MaxSurfaceHeight`. Archive-plus-manifest and element-aware placement are
-declared boundaries and fail explicitly. Inspect `HtmlRenderProfileContracts.All`
+`MaxSurfaceHeight`.
+
+`HtmlRenderResult.OutputSurfaces` exposes immutable executable surface views for
+preview drawings, output-to-source coordinate mapping, and bounded topmost-first
+hit testing. Hit testing applies retained transforms and rectangle, rounded, and
+path clips, and reports whether each result used transformed bounds or clip-aware
+transformed bounds. It does not claim exact glyph, stroke, or arbitrary shape
+paint containment.
+
+`ExportArchive()` packages the already selected, ranged, separate, or stitched
+PNG/SVG surfaces. The deterministic ZIP contains ordered `pages/page-NNNN.*`
+entries plus `manifest.json`; the manifest records request axes and range values, qualification,
+dimensions, encoded hashes, clipping, source placements, requested scale and
+background, provider IDs, retained HTML diagnostics with source-to-target
+provenance, and per-page scale, font, and codec diagnostics. Page encoding loss
+participates in both the page and manifest `HasLoss` values. Container adapters
+can attach their own evidence without mutating the retained result through
+`WithAdditionalDiagnostics(...)`. Image byte limits continue
+to come from `HtmlRenderOptions`, while `HtmlRenderArchiveOptions` independently
+bounds the final ZIP and manifest. Element-aware placement remains an explicit
+unsupported boundary. Inspect `HtmlRenderProfileContracts.All`
 or `officeimo html capabilities --format json` for current qualification and encoder
 availability.
 

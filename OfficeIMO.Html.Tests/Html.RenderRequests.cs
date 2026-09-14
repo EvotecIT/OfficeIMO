@@ -349,12 +349,9 @@ public sealed class HtmlRenderRequestTests {
     }
 
     [Fact]
-    public void ProfileRejectsUndeclaredEncoderAndArchivePackaging() {
+    public void ProfileRejectsUndeclaredEncoder() {
         Assert.Throws<NotSupportedException>(() => HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.ContinuousVector, HtmlRenderEncoder.Pdf));
-        Assert.Throws<NotSupportedException>(() => HtmlRenderRequest.Create(
-                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png)
-            .WithPageSet(HtmlRenderPageSet.Archive()));
     }
 
     private static int CountOccurrences(string value, string marker) {

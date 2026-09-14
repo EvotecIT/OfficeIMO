@@ -207,7 +207,7 @@ no pagination; paged surfaces require fragmented reflow or fixed-canvas slicing.
 
 These profiles serve different contracts. Print paged may change navigation, hide controls and apply `@page`; screen media paged preserves screen cascade but still reflows content across pages; screen snapshot paged preserves one screen layout and then places or slices it. No API or command should call all three simply “HTML to PDF.”
 
-Multi-surface output is explicit. A raster or SVG request declares separate pages, a stitched canvas, a selected page or an archive plus manifest. The report records surface dimensions, order, clipping, scale, background, pagination mode and any rasterized fallback. Output encoders consume the same qualified display list and cannot rerun layout with private defaults.
+Multi-surface output is explicit. A raster or SVG request declares separate pages, a stitched canvas, one selected page or a bounded range. Archive-plus-manifest packaging is a separate output operation over that resolved page set, so storage does not alter layout or selection semantics. The report records surface dimensions, order, clipping, scale, background, pagination mode, provider identity and any fallback. Output encoders consume the same qualified display list and cannot rerun layout with private defaults.
 
 Fixed-canvas slicing selects requested page indices before materializing projected
 scenes. Projection is cancellable, removes nonintersecting nodes, assigns logical
@@ -528,7 +528,14 @@ Strengthen style, layout, conversion and runtime components through OfficeIMO-ow
 The owned render request, six named profiles, explicit page selection and retained
 result now form the common static output boundary. Existing continuous image calls
 map to screen-full-page, paged image calls and existing PDF calls map to print-paged,
-and output adapters cannot privately change CSS media or pagination.
+and output adapters cannot privately change CSS media or pagination. Executable
+surface views now provide Drawing previews, source-coordinate mapping and bounded
+clip-aware hit testing. PNG/SVG page archives package those same resolved surfaces
+with deterministic names, hashes, source placements, provider identity and
+diagnostics. The manifest separates retained HTML diagnostics from per-page encoder
+diagnostics, includes source-to-target provenance, and treats bounded scale, font,
+or codec fallback as archive loss. Container adapters such as MHTML attach their
+input-boundary diagnostics to the retained result before packaging.
 
 Deliver the remaining work in reviewable vertical slices:
 

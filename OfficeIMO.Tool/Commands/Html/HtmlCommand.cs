@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using OfficeIMO.Drawing;
+using OfficeIMO.Email;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Mhtml;
@@ -20,6 +21,16 @@ Usage:
                          [--font-bold-italic <file.ttf>]
                          [--max-input-bytes <bytes>] [--max-pages <count>]
                          [--pdf-ua-language <tag>] [--force]
+  officeimo html render <input.html|input.mhtml|-> [--input-format html|mhtml] [--output <archive.zip|->]
+                        [--profile screen-viewport|screen-full-page|print-paged|screen-media-paged|screen-snapshot-paged|continuous-vector]
+                        [--encoder png|svg] [--pages all|<page>|<first-last>|stitched]
+                        [--viewport-width <css-px>] [--viewport-height <css-px>] [--scale <factor>]
+                        [--stylesheet <file.css>] [--base-uri <absolute-uri>]
+                        [--font-family <name> --font-regular <file.ttf>]
+                        [--font-bold <file.ttf>] [--font-italic <file.ttf>]
+                        [--font-bold-italic <file.ttf>] [--max-input-bytes <bytes>]
+                        [--max-pages <count>] [--max-archive-bytes <bytes>]
+                        [--max-manifest-bytes <bytes>] [--force]
   officeimo html capabilities [--format text|json]
 
 Local and remote resource reads are disabled by default. Data URIs and bounded MHTML
@@ -43,13 +54,16 @@ claim conformance without passing external validator evidence.
                 await WriteCapabilitiesAsync(standardOutput, parsed.JsonCapabilities, cancellationToken).ConfigureAwait(false);
                 return (int)OfficeImoToolExitCode.Success;
             }
+            if (parsed.Command == HtmlCommandKind.Render) {
+                return await RenderAsync(parsed, standardInput, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
+            }
             return await ConvertAsync(parsed, standardInput, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
         } catch (HtmlUsageException exception) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
             await standardError.WriteLineAsync(Usage).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.Usage;
         } catch (OperationCanceledException) {
-            await standardError.WriteLineAsync("Conversion cancelled.").ConfigureAwait(false);
+            await standardError.WriteLineAsync("HTML operation cancelled.").ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.Cancelled;
         } catch (FileNotFoundException exception) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
@@ -58,7 +72,7 @@ claim conformance without passing external validator evidence.
             await standardError.WriteLineAsync("I/O failed: " + exception.Message).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.UnsupportedInput;
         } catch (Exception exception) {
-            await standardError.WriteLineAsync("Conversion failed: " + exception.GetType().Name + ": " + exception.Message).ConfigureAwait(false);
+            await standardError.WriteLineAsync("HTML operation failed: " + exception.GetType().Name + ": " + exception.Message).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.OperationFailed;
         }
     }
@@ -151,8 +165,138 @@ claim conformance without passing external validator evidence.
             : (int)OfficeImoToolExitCode.Success;
     }
 
+    private static async Task<int> RenderAsync(
+        HtmlArguments arguments,
+        Stream standardInput,
+        Stream standardOutput,
+        TextWriter standardError,
+        CancellationToken cancellationToken) {
+        byte[] input = await ReadInputAsync(arguments.InputPath!, standardInput, arguments.MaxInputBytes, cancellationToken).ConfigureAwait(false);
+        HtmlRenderRequest template = HtmlRenderRequest.Create(arguments.RenderProfile, arguments.RenderEncoder);
+        HtmlRenderOptions options = template.Options;
+        options.MaxPageCount = arguments.MaxPages;
+        options.Scale = arguments.Scale;
+        if (arguments.ViewportWidth.HasValue) options.ViewportWidth = arguments.ViewportWidth.Value;
+        if (arguments.ViewportHeight.HasValue) options.ViewportHeight = arguments.ViewportHeight.Value;
+        if (arguments.BaseUri != null) options.BaseUri = new Uri(arguments.BaseUri, UriKind.Absolute);
+        foreach (string stylesheetPath in arguments.StylesheetPaths) {
+            byte[] stylesheet = await ReadFileBoundedAsync(stylesheetPath, HtmlArguments.MaxStylesheetBytes, cancellationToken).ConfigureAwait(false);
+            options.AdditionalStylesheets.Add(Encoding.UTF8.GetString(stylesheet));
+        }
+        if (arguments.RegularFontPath != null) {
+            byte[] regular = await ReadFileBoundedAsync(arguments.RegularFontPath, HtmlArguments.MaxFontBytes, cancellationToken).ConfigureAwait(false);
+            byte[]? bold = await ReadOptionalFontAsync(arguments.BoldFontPath, cancellationToken).ConfigureAwait(false);
+            byte[]? italic = await ReadOptionalFontAsync(arguments.ItalicFontPath, cancellationToken).ConfigureAwait(false);
+            byte[]? boldItalic = await ReadOptionalFontAsync(arguments.BoldItalicFontPath, cancellationToken).ConfigureAwait(false);
+            ConfigureRenderFontFamily(options, arguments.FontFamilyName!, regular, bold, italic, boldItalic);
+        }
+
+        HtmlConversionDocument htmlDocument;
+        IReadOnlyList<HtmlDiagnostic> inputDiagnostics = Array.Empty<HtmlDiagnostic>();
+        using var inputStream = new MemoryStream(input, writable: false);
+        if (arguments.ResolveInputFormat() == HtmlInputFormat.Mhtml) {
+            MhtmlDocument mhtml = await MhtmlDocument.LoadAsync(inputStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+            mhtml.ConfigureRenderOptions(options);
+            htmlDocument = mhtml.HtmlDocument;
+            inputDiagnostics = mhtml.MimeDiagnostics.Select(MapMhtmlDiagnostic).ToArray();
+        } else {
+            var documentOptions = new HtmlConversionDocumentOptions {
+                BaseUri = options.BaseUri,
+                Limits = new HtmlConversionLimits {
+                    MaxInputCharacters = (int)Math.Min(arguments.MaxInputBytes, int.MaxValue)
+                }
+            };
+            htmlDocument = await HtmlConversionDocument.LoadAsync(
+                inputStream,
+                documentOptions,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        HtmlRenderRequest request = template
+            .WithOptions(options)
+            .WithPageSet(arguments.RenderPageSet);
+        HtmlRenderResult retained = await HtmlRenderEngine.ExecuteAsync(htmlDocument, request, cancellationToken).ConfigureAwait(false);
+        if (inputDiagnostics.Count > 0) retained = retained.WithAdditionalDiagnostics(inputDiagnostics);
+        HtmlRenderArchiveResult archive = retained.ExportArchive(new HtmlRenderArchiveOptions {
+            MaximumArchiveBytes = arguments.MaximumArchiveBytes,
+            MaximumManifestBytes = arguments.MaximumManifestBytes
+        }, cancellationToken);
+        try {
+            await SaveBytesAsync(archive.Bytes, arguments.OutputPath!, standardOutput, arguments.Force, cancellationToken).ConfigureAwait(false);
+        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+            await standardError.WriteLineAsync("Output failed: " + exception.Message).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.OutputFailed;
+        }
+        foreach (HtmlDiagnostic diagnostic in retained.Diagnostics) {
+            await standardError.WriteLineAsync(
+                diagnostic.Severity + " " + diagnostic.Code + " [" + diagnostic.Component + "]: " + diagnostic.Message).ConfigureAwait(false);
+        }
+        foreach (OfficeImageExportDiagnostic diagnostic in archive.Manifest.Pages.SelectMany(page => page.EncodingDiagnostics)) {
+            await standardError.WriteLineAsync(
+                diagnostic.Severity + " " + diagnostic.Code + " [OfficeIMO.Html.Image]: " + diagnostic.Message).ConfigureAwait(false);
+        }
+        return retained.Diagnostics.Any(diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error)
+               || archive.Manifest.Pages.SelectMany(page => page.EncodingDiagnostics)
+                   .Any(diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error)
+            ? (int)OfficeImoToolExitCode.OutputFailed
+            : (int)OfficeImoToolExitCode.Success;
+    }
+
+    private static HtmlDiagnostic MapMhtmlDiagnostic(EmailDiagnostic diagnostic) {
+        var details = new List<string> {
+            "disposition=" + diagnostic.Disposition,
+            "dataLossRisk=" + diagnostic.DataLossRisk,
+            "retryable=" + diagnostic.IsRetryable.ToString().ToLowerInvariant()
+        };
+        if (!string.IsNullOrWhiteSpace(diagnostic.Operation)) details.Add("operation=" + diagnostic.Operation);
+        if (diagnostic.ByteOffset.HasValue) details.Add("byteOffset=" + diagnostic.ByteOffset.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (!string.IsNullOrWhiteSpace(diagnostic.LimitName)) details.Add("limit=" + diagnostic.LimitName);
+        if (diagnostic.ActualValue.HasValue) details.Add("actual=" + diagnostic.ActualValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (diagnostic.MaximumValue.HasValue) details.Add("maximum=" + diagnostic.MaximumValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (!string.IsNullOrWhiteSpace(diagnostic.SuggestedAction)) details.Add("suggestedAction=" + diagnostic.SuggestedAction);
+
+        HtmlDiagnosticSeverity severity = diagnostic.Severity == EmailDiagnosticSeverity.Error
+            ? HtmlDiagnosticSeverity.Error
+            : diagnostic.Severity == EmailDiagnosticSeverity.Warning
+                ? HtmlDiagnosticSeverity.Warning
+                : HtmlDiagnosticSeverity.Info;
+        OfficeConversionLossKind lossKind = severity == HtmlDiagnosticSeverity.Error
+            ? OfficeConversionLossKind.Failure
+            : diagnostic.DataLossRisk == EmailDataLossRisk.Confirmed
+                ? OfficeConversionLossKind.Omission
+                : severity == HtmlDiagnosticSeverity.Warning || diagnostic.DataLossRisk != EmailDataLossRisk.None
+                    ? OfficeConversionLossKind.Approximation
+                    : OfficeConversionLossKind.None;
+        return new HtmlDiagnostic(
+            "OfficeIMO.Mhtml",
+            diagnostic.Code,
+            diagnostic.Message,
+            severity,
+            diagnostic.Location ?? "mhtml:document",
+            string.Join("; ", details),
+            lossKind,
+            sourceLocation: null,
+            targetAddress: "html:input");
+    }
+
     internal static void ConfigureFontFamily(
         HtmlToPdfOptions options,
+        string familyName,
+        byte[] regular,
+        byte[]? bold,
+        byte[]? italic,
+        byte[]? boldItalic) {
+        ConfigureRenderFontFamily(options, familyName, regular, bold, italic, boldItalic);
+        options.FontFamily = new PdfEmbeddedFontFamily(
+            familyName,
+            regular,
+            bold,
+            italic,
+            boldItalic);
+    }
+
+    private static void ConfigureRenderFontFamily(
+        HtmlRenderOptions options,
         string familyName,
         byte[] regular,
         byte[]? bold,
@@ -168,12 +312,6 @@ claim conformance without passing external validator evidence.
                 boldItalic,
                 OfficeFontStyle.Bold | OfficeFontStyle.Italic);
         }
-        options.FontFamily = new PdfEmbeddedFontFamily(
-            familyName,
-            regular,
-            bold,
-            italic,
-            boldItalic);
     }
 
     private static async Task SaveAsync(
@@ -205,6 +343,32 @@ claim conformance without passing external validator evidence.
             } else {
                 await conversion.SaveAsync(temporaryPath, cancellationToken).ConfigureAwait(false);
             }
+            File.Move(temporaryPath, fullPath, force);
+        } finally {
+            if (File.Exists(temporaryPath)) File.Delete(temporaryPath);
+        }
+    }
+
+    private static async Task SaveBytesAsync(
+        byte[] bytes,
+        string outputPath,
+        Stream standardOutput,
+        bool force,
+        CancellationToken cancellationToken) {
+        if (outputPath == "-") {
+            await standardOutput.WriteAsync(bytes.AsMemory(), cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        string fullPath = Path.GetFullPath(outputPath);
+        if (File.Exists(fullPath) && !force) {
+            throw new IOException("Output file '" + fullPath + "' already exists. Use --force to replace it.");
+        }
+        string? directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
+        string temporaryPath = fullPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try {
+            await File.WriteAllBytesAsync(temporaryPath, bytes, cancellationToken).ConfigureAwait(false);
             File.Move(temporaryPath, fullPath, force);
         } finally {
             if (File.Exists(temporaryPath)) File.Delete(temporaryPath);

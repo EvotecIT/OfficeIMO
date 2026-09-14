@@ -1,3 +1,4 @@
+using OfficeIMO;
 using OfficeIMO.Html.Dom;
 using OfficeIMO.Html.Providers;
 using OfficeIMO.Markdown.Html;
@@ -111,10 +112,29 @@ HtmlRenderRequest imageRequest = HtmlRenderRequest.Create(
     HtmlRenderEncoder.Png,
     new HtmlRenderOptions { ViewportWidth = 480D });
 HtmlRenderResult retained = HtmlRenderEngine.Execute(conversion, imageRequest);
-if (retained.Surfaces.Count != 1 || retained.ExportImage().Bytes.Length < 8 ||
+retained = retained.WithAdditionalDiagnostics(new[] {
+    new HtmlDiagnostic("PackageSmoke", "RetainedBoundary", "Packed retained-result evidence",
+        HtmlDiagnosticSeverity.Info, "package-smoke.html")
+});
+HtmlRenderSurface retainedSurface = retained.GetSurface(0);
+if (retained.Surfaces.Count != 1 || retained.OutputSurfaces.Count != 1 ||
+    retained.ExportImage().Bytes.Length < 8 || retainedSurface.CreateDrawing().Width <= 0D ||
+    !retainedSurface.TryMapToSource(1D, 1D, out HtmlRenderSourcePoint? mappedSource) ||
+    mappedSource == null || mappedSource.SourcePageNumber != 1 ||
     retained.Request.ProfileId != "screen-full-page-v1" ||
     !retained.DeclaredProviderIds.Contains(HtmlCapabilityProviderIds.OfficeIMOHtml))
     throw new InvalidOperationException("Packed explicit HTML render request contract failed.");
+HtmlRenderArchiveResult renderArchive = retained.ExportArchive(new HtmlRenderArchiveOptions {
+    MaximumArchiveBytes = 16 * 1024 * 1024
+});
+if (renderArchive.EncodedLength < 1 || renderArchive.Manifest.Pages.Count != 1 ||
+    renderArchive.Manifest.PageSet != HtmlRenderPageSetMode.Selected ||
+    renderArchive.Manifest.FirstPageIndex != 0 || renderArchive.Manifest.PageCount != 1 ||
+    !renderArchive.Manifest.Diagnostics.Any(diagnostic => diagnostic.Code == "RetainedBoundary") ||
+    renderArchive.Manifest.Pages[0].HasLoss != renderArchive.Manifest.Pages[0].EncodingDiagnostics.Any(
+        diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None) ||
+    string.IsNullOrWhiteSpace(renderArchive.Manifest.Pages[0].Sha256))
+    throw new InvalidOperationException("Packed HTML render archive contract failed.");
 
 HtmlPdfRenderRequestResult explicitPdf = conversion.RenderToPdfResult(HtmlRenderRequest.Create(
     HtmlRenderIntentProfile.ScreenMediaPaged,

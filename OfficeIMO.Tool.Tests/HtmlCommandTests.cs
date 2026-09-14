@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.IO.Compression;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
@@ -12,6 +13,96 @@ using Xunit;
 namespace OfficeIMO.Tool.Tests;
 
 public sealed class HtmlCommandTests {
+    [Fact]
+    public async Task HtmlTool_RendersStandardInputToDeterministicSvgArchive() {
+        const string html = "<html><body><h1>Archive</h1><p>Retained pages</p></body></html>";
+        await using var input = new MemoryStream(Encoding.UTF8.GetBytes(html));
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        int exitCode = await HtmlCommand.RunAsync(
+            new[] {
+                "render", "-", "--input-format", "html", "--output", "-",
+                "--profile", "screen-full-page", "--encoder", "svg", "--pages", "all",
+                "--viewport-width", "320", "--scale", "1.25"
+            },
+            input,
+            output,
+            error);
+
+        Assert.True(exitCode == 0, error.ToString());
+        using var archive = new ZipArchive(new MemoryStream(output.ToArray()), ZipArchiveMode.Read);
+        Assert.Equal(new[] { "pages/page-0001.svg", "manifest.json" },
+            archive.Entries.Select(entry => entry.FullName).ToArray());
+        using Stream manifestStream = archive.GetEntry("manifest.json")!.Open();
+        using JsonDocument manifest = await JsonDocument.ParseAsync(manifestStream);
+        Assert.Equal("screen-full-page-v1",
+            manifest.RootElement.GetProperty("request").GetProperty("profileId").GetString());
+        Assert.Equal("Svg", manifest.RootElement.GetProperty("request").GetProperty("encoder").GetString());
+        Assert.Equal(1.25D, manifest.RootElement.GetProperty("request").GetProperty("requestedScale").GetDouble());
+    }
+
+    [Fact]
+    public async Task HtmlTool_RendersMhtmlWithEmbeddedResourcesToPageArchive() {
+        var mhtml = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='cid:style'></head><body><p>Bundled</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes("p{color:#336699}"), "text/css",
+                    contentId: "style", fileName: "style.css")
+            });
+        await using var input = new MemoryStream(mhtml.ToBytes());
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        int exitCode = await HtmlCommand.RunAsync(
+            new[] {
+                "render", "-", "--input-format", "mhtml", "--output", "-",
+                "--profile", "screen-viewport", "--encoder", "svg"
+            },
+            input,
+            output,
+            error);
+
+        Assert.True(exitCode == 0, error.ToString());
+        using var archive = new ZipArchive(new MemoryStream(output.ToArray()), ZipArchiveMode.Read);
+        using var svgReader = new StreamReader(archive.GetEntry("pages/page-0001.svg")!.Open(), Encoding.UTF8);
+        string svg = await svgReader.ReadToEndAsync();
+        Assert.Contains("Bundled", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("StylesheetResourceUnavailable", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HtmlTool_RetainsMhtmlDiagnosticsInStderrAndArchiveManifest() {
+        var mhtml = new MhtmlDocument(
+            "<html><body><p>Duplicate resource evidence</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes("first"), "text/plain",
+                    contentId: "duplicate", fileName: "first.txt"),
+                new MhtmlResource(Encoding.UTF8.GetBytes("second"), "text/plain",
+                    contentId: "duplicate", fileName: "second.txt")
+            });
+        await using var input = new MemoryStream(mhtml.ToBytes());
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        int exitCode = await HtmlCommand.RunAsync(
+            new[] { "render", "-", "--input-format", "mhtml", "--output", "-", "--encoder", "svg" },
+            input,
+            output,
+            error);
+
+        Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+        Assert.Contains(MhtmlDiagnosticCodes.DuplicateContentId, error.ToString(), StringComparison.Ordinal);
+        using var archive = new ZipArchive(new MemoryStream(output.ToArray()), ZipArchiveMode.Read);
+        using Stream manifestStream = archive.GetEntry("manifest.json")!.Open();
+        using JsonDocument manifest = await JsonDocument.ParseAsync(manifestStream);
+        JsonElement diagnostic = Assert.Single(manifest.RootElement.GetProperty("diagnostics").EnumerateArray(),
+            item => item.GetProperty("code").GetString() == MhtmlDiagnosticCodes.DuplicateContentId);
+        Assert.Equal("OfficeIMO.Mhtml", diagnostic.GetProperty("component").GetString());
+        Assert.Equal("html:input", diagnostic.GetProperty("provenance").GetProperty("targetAddress").GetString());
+        Assert.True(manifest.RootElement.GetProperty("hasLoss").GetBoolean());
+    }
+
     [Fact]
     public async Task HtmlTool_ConvertsStandardInputToPdfStandardOutput() {
         await using var input = new MemoryStream(Encoding.UTF8.GetBytes(
@@ -204,6 +295,8 @@ public sealed class HtmlCommandTests {
     [Theory]
     [InlineData("convert", "input.html", "--format", "json")]
     [InlineData("capabilities", "--input-format", "html")]
+    [InlineData("render", "input.html", "--pdf-ua-language", "en-US")]
+    [InlineData("convert", "input.html", "--encoder", "svg")]
     public async Task HtmlTool_RejectsOptionsOwnedByAnotherSubcommand(params string[] arguments) {
         await using var input = new MemoryStream();
         await using var output = new MemoryStream();
@@ -241,6 +334,39 @@ public sealed class HtmlCommandTests {
             Assert.Equal(source, await File.ReadAllTextAsync(inputPath));
         } finally {
             if (File.Exists(outputPath)) File.Delete(outputPath);
+            if (File.Exists(inputPath)) File.Delete(inputPath);
+            Directory.Delete(directory);
+        }
+    }
+
+    [Fact]
+    public async Task HtmlTool_RejectsOutputSymlinkThatTargetsAStylesheetEvenWithForce() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-html-tool-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string inputPath = Path.Combine(directory, "source.html");
+        string stylesheetPath = Path.Combine(directory, "source.css");
+        string outputPath = Path.Combine(directory, "alias.zip");
+        const string stylesheet = "body{color:#336699}";
+        await File.WriteAllTextAsync(inputPath, "<html><body><p>Keep the stylesheet</p></body></html>");
+        await File.WriteAllTextAsync(stylesheetPath, stylesheet);
+        File.CreateSymbolicLink(outputPath, stylesheetPath);
+        await using var input = new MemoryStream();
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        try {
+            int exitCode = await HtmlCommand.RunAsync(
+                new[] { "render", inputPath, "--stylesheet", stylesheetPath, "--output", outputPath, "--force" },
+                input,
+                output,
+                error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Usage, exitCode);
+            Assert.Contains("stylesheet and font", error.ToString(), StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(stylesheet, await File.ReadAllTextAsync(stylesheetPath));
+        } finally {
+            if (File.Exists(outputPath)) File.Delete(outputPath);
+            if (File.Exists(stylesheetPath)) File.Delete(stylesheetPath);
             if (File.Exists(inputPath)) File.Delete(inputPath);
             Directory.Delete(directory);
         }

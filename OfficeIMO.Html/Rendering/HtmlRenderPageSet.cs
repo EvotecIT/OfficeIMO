@@ -36,13 +36,10 @@ public sealed class HtmlRenderPageSet {
     /// <summary>Places every rendered page vertically on one continuous surface.</summary>
     public static HtmlRenderPageSet Stitched() => new(HtmlRenderPageSetMode.Stitched, 0, null);
 
-    /// <summary>Selects archive-plus-manifest packaging for separate encoded pages.</summary>
-    public static HtmlRenderPageSet Archive() => new(HtmlRenderPageSetMode.ArchiveWithManifest, 0, null);
-
     internal IReadOnlyList<HtmlRenderPage> Select(IReadOnlyList<HtmlRenderPage> pages) {
         if (pages == null) throw new ArgumentNullException(nameof(pages));
         if (pages.Count == 0) throw new ArgumentException("At least one rendered page is required.", nameof(pages));
-        if (Mode == HtmlRenderPageSetMode.Separate || Mode == HtmlRenderPageSetMode.Stitched || Mode == HtmlRenderPageSetMode.ArchiveWithManifest) {
+        if (Mode == HtmlRenderPageSetMode.Separate || Mode == HtmlRenderPageSetMode.Stitched) {
             return pages;
         }
         if (FirstPageIndex >= pages.Count) {
@@ -54,7 +51,7 @@ public sealed class HtmlRenderPageSet {
 
     internal IReadOnlyList<int> SelectIndices(int pageCount) {
         if (pageCount <= 0) throw new ArgumentOutOfRangeException(nameof(pageCount));
-        if (Mode == HtmlRenderPageSetMode.Separate || Mode == HtmlRenderPageSetMode.Stitched || Mode == HtmlRenderPageSetMode.ArchiveWithManifest) {
+        if (Mode == HtmlRenderPageSetMode.Separate || Mode == HtmlRenderPageSetMode.Stitched) {
             return Enumerable.Range(0, pageCount).ToList().AsReadOnly();
         }
         if (FirstPageIndex >= pageCount) {
