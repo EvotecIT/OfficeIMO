@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Named pages brochure</title><style>
+@page cover{size:A5 landscape;margin:12mm;background:#173a63}@page chapter{size:A5;margin:18mm;@top-left{content:string(section)}@bottom-right{content:counter(page)}}
+*{box-sizing:border-box}body{margin:0;font:11pt/1.45 Arial,sans-serif;color:#1f2937}.cover{page:cover;break-after:page;color:white;min-height:110mm;display:flex;flex-direction:column;justify-content:center}
+.chapter{page:chapter;break-before:page}.chapter h2{string-set:section content();color:#173a63}.facts{display:grid;grid-template-columns:1fr 1fr;gap:5mm}.fact{padding:5mm;background:#edf4fb;border-left:3px solid #2d6aa3}
+</style></head><body><section class="cover"><p>OFFICEIMO FIELD GUIDE</p><h1>Static rendering without a browser process</h1><p>Named page cover · NP-001</p></section>
+<section class="chapter"><h2>Architecture</h2><p>The document engine owns parsing, cascade, layout, retained scenes and output adapters.</p><div class="facts"><div class="fact"><strong>Screen</strong><br>Continuous review surface</div><div class="fact"><strong>Print</strong><br>Paged reflow surface</div></div></section>
+<section class="chapter"><h2>Operations</h2><p>Profiles declare media, geometry, pagination and encoder independently.</p><p>Final marker: NP-003.</p></section></body></html>

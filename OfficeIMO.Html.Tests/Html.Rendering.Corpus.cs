@@ -11,6 +11,26 @@ public sealed partial class HtmlRenderingTests {
         .Select(item => new object[] { item.Id });
 
     [Fact]
+    public void HeldOutRenderingCorpus_LoadsOnlyFrozenInputsAndDeclaredContracts() {
+        HtmlRenderingHeldOutCorpus corpus = HtmlRenderingHeldOutCorpus.Load();
+
+        Assert.Equal("officeimo-html-h4-held-out-v2", corpus.Manifest.CorpusId);
+        Assert.Equal(8, corpus.Cases.Count);
+        Assert.Equal(
+            new[] { "screen-full-page-v1", "print-paged-v1", "screen-snapshot-paged-v1" },
+            corpus.Manifest.RenderIntents);
+        Assert.Equal(new[] { "pdf", "svg", "raster" }, corpus.Manifest.OutputFamilies);
+        Assert.Equal(64, corpus.ManifestSha256.Length);
+        Assert.All(corpus.Cases, item => {
+            Assert.NotEmpty(item.Html);
+            Assert.All(item.Manifest.TextMarkers, marker => Assert.Contains(marker, item.Html, StringComparison.Ordinal));
+        });
+        Assert.Contains(
+            corpus.Cases.Single(item => item.Id == "legacy-portal").Html,
+            value => value == '—');
+    }
+
+    [Fact]
     public void StaticRendererAppliesBrowserHeadingAndEmphasisDefaultsWhenFontSizeIsImplicit() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<h1>Default heading</h1><p>Body <strong>strong text</strong></p>",

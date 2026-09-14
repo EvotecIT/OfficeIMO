@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Professional print catalog</title><style>
+@page{size:180mm 240mm;margin:15mm;bleed:3mm;marks:crop cross;@top-left{content:"AUTUMN CATALOG"}@bottom-center{content:"Page " counter(page)}}
+*{box-sizing:border-box}body{margin:0;font:10pt/1.4 Arial,sans-serif;color:#182235}.cover{height:190mm;break-after:page;background:linear-gradient(135deg,#173a63,#4b86c6);color:white;padding:20mm;display:flex;flex-direction:column;justify-content:flex-end}
+.cover h1{font-size:32pt;margin:0}.products{display:grid;grid-template-columns:1fr 1fr;gap:8mm}.product{break-inside:avoid;border:1px solid #bdc9d8;padding:6mm}.swatch{height:28mm;background:linear-gradient(120deg,#e8eef5,#8db3dd)}
+.price{font-size:16pt;color:#215c95}.legal{margin-top:10mm;border-top:1px solid #999;padding-top:4mm;font-size:8pt}
+</style></head><body><section class="cover"><p>DOCUMENT SYSTEMS · 2026</p><h1>Autumn production catalog</h1><p>Print marker PP-COVER</p></section><section><h2>Production collection</h2><div class="products">
+<article class="product"><div class="swatch"></div><h3>Atlas renderer</h3><p>Deterministic PDF, SVG and raster artifacts.</p><p class="price">€249</p></article><article class="product"><div class="swatch"></div><h3>Ledger toolkit</h3><p>Searchable statements with repeatable page furniture.</p><p class="price">€179</p></article>
+</div><p class="legal">Bleed and printer marks are output metadata decisions. Final marker: PP-240.</p></section></body></html>
