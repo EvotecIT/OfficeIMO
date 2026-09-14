@@ -102,7 +102,13 @@ internal static partial class PdfStamper {
             }
 
             (double sourceWidth, double sourceHeight, Matrix2D normalization) = sourcePage.GetImportGeometry();
-            byte[] formContent = BuildImportedPageContent(sourceObjects, sourcePageDictionary, sourceWidth, sourceHeight, normalization);
+            byte[] formContent = BuildImportedPageContent(
+                sourceObjects,
+                sourcePageDictionary,
+                sourceWidth,
+                sourceHeight,
+                normalization,
+                source.ReadOptions.Limits.MaxObjectNestingDepth);
             var formDictionary = new PdfDictionary();
             formDictionary.Items["Type"] = new PdfName("XObject");
             formDictionary.Items["Subtype"] = new PdfName("Form");
@@ -212,13 +218,14 @@ internal static partial class PdfStamper {
         PdfDictionary page,
         double width,
         double height,
-        Matrix2D normalization) {
+        Matrix2D normalization,
+        int maximumObjectNestingDepth) {
         var builder = new StringBuilder();
         var content = new ContentStreamBuilder(builder);
         content.SaveState()
             .Rectangle(0D, 0D, width, height).ClipPath().EndPath()
             .TransformMatrix(normalization.A, normalization.B, normalization.C, normalization.D, normalization.E, normalization.F);
-        foreach (PdfStream stream in GetPageContentStreams(sourceObjects, page)) {
+        foreach (PdfStream stream in GetPageContentStreams(sourceObjects, page, maximumObjectNestingDepth)) {
             byte[] decoded = StreamDecoder.Decode(stream.Dictionary, stream.Data, sourceObjects);
             builder.Append(PdfEncoding.Latin1GetString(decoded)).Append('\n');
         }
@@ -342,18 +349,50 @@ internal static partial class PdfStamper {
         return new Dictionary<string, PdfObject>(StringComparer.Ordinal) { ["Contents"] = contents, ["Resources"] = resources };
     }
 
-    private static List<PdfStream> GetPageContentStreams(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page) {
+    private static List<PdfStream> GetPageContentStreams(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary page,
+        int maximumObjectNestingDepth) {
         var streams = new List<PdfStream>();
         if (!page.Items.TryGetValue("Contents", out PdfObject? contents)) return streams;
-        AppendStream(contents);
+        var activeReferences = new HashSet<(int ObjectNumber, int Generation)>();
+        var activeArrays = new List<PdfArray>();
+        AppendStream(contents, 0);
         return streams;
 
-        void AppendStream(PdfObject value) {
-            PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
-            if (resolved is PdfStream stream) {
+        void AppendStream(PdfObject value, int depth) {
+            if (depth > maximumObjectNestingDepth) {
+                throw PdfReadLimitException.Create(
+                    PdfReadLimitKind.ObjectNestingDepth,
+                    maximumObjectNestingDepth,
+                    depth);
+            }
+            if (value is PdfReference reference) {
+                var key = (reference.ObjectNumber, reference.Generation);
+                if (!activeReferences.Add(key)) {
+                    throw new InvalidDataException("Page contents contains a cyclic indirect reference.");
+                }
+                try {
+                    if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) {
+                        AppendStream(indirect.Value, depth + 1);
+                    }
+                } finally {
+                    activeReferences.Remove(key);
+                }
+                return;
+            }
+            if (value is PdfStream stream) {
                 streams.Add(stream);
-            } else if (resolved is PdfArray array) {
-                foreach (PdfObject item in array.Items) AppendStream(item);
+            } else if (value is PdfArray array) {
+                if (activeArrays.Any(active => ReferenceEquals(active, array))) {
+                    throw new InvalidDataException("Page contents contains a cyclic array.");
+                }
+                activeArrays.Add(array);
+                try {
+                    foreach (PdfObject item in array.Items) AppendStream(item, depth + 1);
+                } finally {
+                    activeArrays.RemoveAt(activeArrays.Count - 1);
+                }
             }
         }
     }

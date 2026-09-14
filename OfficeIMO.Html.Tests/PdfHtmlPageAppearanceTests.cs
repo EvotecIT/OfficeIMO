@@ -83,6 +83,19 @@ public sealed class PdfHtmlPageAppearanceTests {
     }
 
     [Fact]
+    public void NearestNeighborImagePreflightUsesDecodedRasterPixelBudget() {
+        var raster = new OfficeRasterImage(400, 300, OfficeColor.White);
+        byte[] jpeg = OfficeJpegCodec.Encode(raster);
+        var pdf = PdfDocument.Load(BuildImagePdf(jpeg, "/DCTDecode", interpolate: false));
+
+        var result = pdf.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+
+        Assert.DoesNotContain("pdf-page-appearance", result.Value);
+        Assert.Contains("data:image/jpeg;base64,", result.Value);
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "PageAppearanceImageFallback");
+    }
+
+    [Fact]
     public async Task OpenedPdfKeepsArtworkAndSelectableTextAcrossOutputEntrypoints() {
         var pdf = PdfDocument.Load(Source());
         var options = PdfToHtmlOptions.CreatePositionedReviewProfile();

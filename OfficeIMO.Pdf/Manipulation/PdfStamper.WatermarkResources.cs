@@ -8,12 +8,13 @@ internal static partial class PdfStamper {
     private static void PruneUnusedWatermarkResources(Dictionary<int, PdfIndirectObject> objects, int[] pages,
         Dictionary<int, Dictionary<string, PdfObject>> overrides, PdfLoadOptions? readOptions) {
         if (!objects.Values.Any(item => ResourceDictionary(item.Value)?.Get<PdfStringObj>("OfficeIMOWatermarkResource") is not null)) return;
+        var limits = PdfLoadOptions.Resolve(readOptions).Limits;
         var sequences = new List<PdfStream[]>();
         foreach (int pageNumber in pages) {
             var page = CloneDictionary((PdfDictionary)objects[pageNumber].Value);
             if (overrides.TryGetValue(pageNumber, out var changes))
                 foreach (var change in changes) page.Items[change.Key] = change.Value;
-            sequences.Add(GetPageContentStreams(objects, page).ToArray());
+            sequences.Add(GetPageContentStreams(objects, page, limits.MaxObjectNestingDepth).ToArray());
         }
         foreach (var item in objects.Values) {
             if (item.Value is PdfStream stream &&
@@ -21,7 +22,6 @@ internal static partial class PdfStamper {
                 sequences.Add(new[] { stream });
         }
         var used = new HashSet<string>(StringComparer.Ordinal);
-        var limits = PdfLoadOptions.Resolve(readOptions).Limits;
         var decodedStreamBudget = new PdfDecodedStreamBudget(limits);
         try {
             foreach (var sequence in sequences) {

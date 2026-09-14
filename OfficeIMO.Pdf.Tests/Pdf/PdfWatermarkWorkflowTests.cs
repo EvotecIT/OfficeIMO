@@ -256,6 +256,44 @@ public sealed class PdfWatermarkWorkflowTests {
     }
 
     [Fact]
+    public void ReadingWatermarksRejectsCyclicContentsArrays() {
+        const string content = "BT (SAFE) Tj ET";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
+            "2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj",
+            "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R >> endobj",
+            "4 0 obj [5 0 R 4 0 R] endobj",
+            $"5 0 obj << /Length {content.Length} >> stream", content, "endstream endobj",
+            "trailer << /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+
+        var exception = Assert.Throws<InvalidDataException>(() =>
+            PdfDocument.Load(source).Stamp.ReadWatermarks());
+
+        Assert.Contains("cyclic", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ReadingWatermarksHonorsContentsArrayNestingLimit() {
+        const string content = "BT (SAFE) Tj ET";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
+            "2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj",
+            "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R >> endobj",
+            "4 0 obj [5 0 R] endobj", "5 0 obj [6 0 R] endobj",
+            $"6 0 obj << /Length {content.Length} >> stream", content, "endstream endobj",
+            "trailer << /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
+
+        var exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(source).Stamp.ReadWatermarks(new PdfLoadOptions {
+                Limits = new PdfReadLimits { MaxObjectNestingDepth = 2 }
+            }));
+
+        Assert.Equal(PdfReadLimitKind.ObjectNestingDepth, exception.Kind);
+    }
+
+    [Fact]
     public void TextWatermarkCanBeRevisedToAnImageAndMovedBehindContent() {
         var settings = Options(false);
         settings.Text = "REPLACE ME";

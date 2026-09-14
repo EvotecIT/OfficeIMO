@@ -29,12 +29,15 @@ public static partial class PdfHtmlConverterExtensions {
         foreach (var image in page.Images) {
             PdfCore.PdfExtractedImage sourceImage = image.SourceImage;
             if (!sourceImage.Interpolate) {
-                pixelBudget -= (long)sourceImage.Width * sourceImage.Height;
-                if (pixelBudget < 0) return ReportImageAppearanceFallback(options);
+                long declaredPixels = (long)sourceImage.Width * sourceImage.Height;
+                if (declaredPixels <= 0L || declaredPixels > pixelBudget) {
+                    return ReportImageAppearanceFallback(options);
+                }
             }
-            if (!CanRenderPageAppearanceImage(sourceImage, token)) {
+            if (!CanRenderPageAppearanceImage(sourceImage, pixelBudget, token, out long decodedPixels)) {
                 return ReportImageAppearanceFallback(options);
             }
+            if (!sourceImage.Interpolate) pixelBudget -= decodedPixels;
         }
         var source = options.VisualSource.GetReadDocument(options.VisualSource.ReadOptions, token);
         var sourcePage = source.Pages[page.PageNumber - 1];
@@ -78,17 +81,25 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static bool CanRenderPageAppearanceImage(
         PdfCore.PdfExtractedImage image,
-        System.Threading.CancellationToken cancellationToken) {
+        long maximumDecodedPixels,
+        System.Threading.CancellationToken cancellationToken,
+        out long decodedPixels) {
+        decodedPixels = 0L;
         byte[] imageBytes = image.Bytes;
         if (image.Interpolate && OfficeSvgImageRenderer.TryResolveEmbeddableContentType(
                 image.MimeType, imageBytes, image.FileExtension, out _)) {
             return true;
         }
-        return OfficeRasterImageDecoder.TryDecode(
+        if (maximumDecodedPixels <= 0L || !OfficeRasterImageDecoder.TryDecode(
             imageBytes,
-            new OfficeRasterDecodeOptions { CancellationToken = cancellationToken },
-            out _,
-            out _);
+            new OfficeRasterDecodeOptions {
+                MaximumDecodedPixels = maximumDecodedPixels,
+                CancellationToken = cancellationToken
+            },
+            out OfficeRasterImage? raster,
+            out _) || raster is null) return false;
+        decodedPixels = (long)raster.Width * raster.Height;
+        return decodedPixels > 0L && decodedPixels <= maximumDecodedPixels;
     }
 
     private static bool ReportImageAppearanceFallback(PdfToHtmlOptions options) {

@@ -35,7 +35,10 @@ internal static partial class PdfStamper {
         var found = new Dictionary<string, (PdfWatermarkOptions Settings, List<int> Pages)>(StringComparer.Ordinal);
         for (int index = 0; index < document.Pages.Count; index++) {
             var page = (PdfDictionary)objects[document.Pages[index].ObjectNumber].Value;
-            foreach (var stream in GetPageContentStreams(objects, page)) {
+            foreach (var stream in GetPageContentStreams(
+                         objects,
+                         page,
+                         document.ReadOptions.Limits.MaxObjectNestingDepth)) {
                 string? id = stream.Dictionary.Get<PdfStringObj>("OfficeIMOWatermarkId")?.Value;
                 if (id is null) continue;
                 if (!stream.Dictionary.Items.TryGetValue("OfficeIMOWatermarkSettings", out var settingsObject)
