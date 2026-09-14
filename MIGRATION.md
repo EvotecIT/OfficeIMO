@@ -152,6 +152,18 @@ schemas remain model-SDK neutral. Use `OfficeIMO.AI.IntelligenceX` for supported
 hosted or local model routes. Applications continue to own prompts, credentials,
 model choice, approvals and retries.
 
+Replace the previous Microsoft adapter directly:
+
+| Previous API | OfficeIMO-owned replacement |
+| --- | --- |
+| `OfficeIMO.Html.Runtime.MicrosoftExtensionsAI` | `OfficeIMO.AI.Html` |
+| `Microsoft.Extensions.AI.IChatClient` | `OfficeIMO.AI.IOfficeAiExecutor` |
+| `HtmlAutomationChatPlanner` | `HtmlAutomationAiPlanner` |
+| `HtmlAutomationChatRequestFactory` | `HtmlAutomationAiInstructionFactory` |
+
+The replacement remains available on .NET 8 and .NET 10. Use the existing
+`OfficeIMO.AI.IntelligenceX` executor or supply another `IOfficeAiExecutor`.
+
 ### Explicit HTML rendering intent
 
 Existing image APIs still map `HtmlRenderOptions.Mode == Continuous` to the

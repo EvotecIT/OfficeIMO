@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <VersionPrefix>3.4.3</VersionPrefix>
     <PackageId>OfficeIMO.AI</PackageId>
-    <Description>Provider-neutral document AI operations with bounded evidence, source citations and validated extraction.</Description>
+    <Description>Provider-neutral OfficeIMO AI operations with bounded document evidence and structured tool planning.</Description>
     <Authors>Przemyslaw Klys</Authors>
     <Company>Evotec</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

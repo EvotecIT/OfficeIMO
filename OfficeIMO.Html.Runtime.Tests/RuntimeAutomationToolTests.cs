@@ -45,6 +45,27 @@ public sealed class RuntimeAutomationToolTests {
         Assert.Equal(HtmlAutomationStatus.Stale, second.Automation!.Status);
     }
 
+    [Theory]
+    [InlineData("{\"css\":\"button\",\"action\":\"Inspect\",\"action\":\"Click\"}")]
+    [InlineData("{\"css\":\"button\",\"action\":\"Click\",\"unexpected\":true}")]
+    [InlineData("{\"css\":\"button\"}")]
+    public async Task DispatcherRejectsAmbiguousOrIncompleteArgumentsBeforePageBehavior(string argumentsJson) {
+        await using IHtmlRuntimeContext context = await Runtime().CreateContextAsync();
+        await using IHtmlRuntimePage page = await context.OpenPageAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1,
+            Html = "<button>Increment</button><output>0</output>",
+            Scripts = new[] { "document.querySelector('button').onclick=()=>document.querySelector('output').textContent='1'" }
+        });
+        using JsonDocument arguments = JsonDocument.Parse(argumentsJson);
+        var call = new HtmlAutomationToolCall("untrusted", HtmlAutomationToolNames.Act, arguments.RootElement);
+
+        HtmlAutomationToolResult result = await new HtmlAutomationToolDispatcher().ExecuteAsync(page, call);
+
+        Assert.False(result.IsSuccess);
+        Assert.NotNull(result.Error);
+        Assert.Equal("0", (await page.EvaluateAsync("document.querySelector('output').textContent")).GetString());
+    }
+
     [Fact]
     public async Task ActionToolPreservesKeyboardModifiers() {
         await using IHtmlRuntimeContext context = await Runtime().CreateContextAsync();

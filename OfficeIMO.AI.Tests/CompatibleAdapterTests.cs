@@ -94,7 +94,7 @@ public sealed class CompatibleAdapterTests {
         using var executor = await IntelligenceXOfficeAiExecutor.ConnectAsync(Profile(), new() {
             Transport = OfficeAiIntelligenceXTransport.CompatibleHttp, Endpoint = server.Endpoint
         });
-        using JsonDocument schema = JsonDocument.Parse("""{"type":"object","required":["value"],"properties":{"value":{"type":"string"}}}""");
+        using JsonDocument schema = JsonDocument.Parse("""{"type":"object","additionalProperties":false,"required":["value"],"properties":{"value":{"type":"string"}}}""");
 
         OfficeAiToolPlanningDecision decision = await new OfficeAiToolPlanner(executor).PlanAsync(new OfficeAiToolPlanningRequest {
             RequestId = "ix-tool-planning",
@@ -109,6 +109,9 @@ public sealed class CompatibleAdapterTests {
         string body = Assert.Single(server.Requests).Body;
         Assert.Contains("officeimo-request", body, StringComparison.Ordinal);
         Assert.DoesNotContain("document-request", body, StringComparison.Ordinal);
+        using JsonDocument sent = JsonDocument.Parse(body);
+        JsonElement strictSchema = sent.RootElement.GetProperty("response_format").GetProperty("json_schema").GetProperty("schema");
+        AssertOpenAiStrictSubset(strictSchema, isRoot: true);
     }
 
     [Fact]
@@ -186,6 +189,29 @@ public sealed class CompatibleAdapterTests {
         });
         context.Response.ContentType = "application/json"; context.Response.ContentLength64 = bytes.Length;
         await context.Response.OutputStream.WriteAsync(bytes); context.Response.Close();
+    }
+
+    private static void AssertOpenAiStrictSubset(JsonElement schema, bool isRoot) {
+        Assert.Equal(JsonValueKind.Object, schema.ValueKind);
+        Assert.False(schema.TryGetProperty("oneOf", out _));
+        if (isRoot) Assert.False(schema.TryGetProperty("anyOf", out _));
+        if (schema.TryGetProperty("anyOf", out JsonElement choices)) {
+            Assert.NotEmpty(choices.EnumerateArray());
+            foreach (JsonElement choice in choices.EnumerateArray()) AssertOpenAiStrictSubset(choice, isRoot: false);
+            return;
+        }
+        if (schema.TryGetProperty("type", out JsonElement type)
+            && (type.ValueKind == JsonValueKind.String ? type.GetString() == "object" : type.EnumerateArray().Any(item => item.GetString() == "object"))) {
+            JsonElement properties = schema.GetProperty("properties");
+            Assert.False(schema.GetProperty("additionalProperties").GetBoolean());
+            string[] names = properties.EnumerateObject().Select(item => item.Name).ToArray();
+            string[] required = schema.GetProperty("required").EnumerateArray().Select(item => item.GetString()!).ToArray();
+            Assert.Equal(names, required);
+            foreach (JsonProperty property in properties.EnumerateObject()) AssertOpenAiStrictSubset(property.Value, isRoot: false);
+        } else if (schema.TryGetProperty("type", out type)
+            && (type.ValueKind == JsonValueKind.String ? type.GetString() == "array" : type.EnumerateArray().Any(item => item.GetString() == "array"))) {
+            AssertOpenAiStrictSubset(schema.GetProperty("items"), isRoot: false);
+        }
     }
 
     private sealed class Server : IDisposable {

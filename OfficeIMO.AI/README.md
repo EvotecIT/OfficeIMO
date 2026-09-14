@@ -1,23 +1,30 @@
 # OfficeIMO.AI
 
-`OfficeIMO.AI` provides read-only document questions, explanations, summaries, field extraction, and proposed document structure for .NET 10. It accepts an immutable Reader snapshot and a caller-supplied `IOfficeAiExecutor`. The package depends on `OfficeIMO.Reader.Core`; format readers, rendering, OCR, and model clients are selected by the host.
+`OfficeIMO.AI` provides read-only document questions, explanations, summaries, field extraction, and proposed document structure for .NET 8 and .NET 10. It accepts an immutable Reader snapshot and a caller-supplied `IOfficeAiExecutor`. The package depends on `OfficeIMO.Reader.Core`; format readers, rendering, OCR, and model clients are selected by the host.
 
 Use [OfficeIMO.AI.IntelligenceX](../OfficeIMO.AI.IntelligenceX/README.md) for ChatGPT, native Copilot, or an OpenAI-compatible endpoint. The [headless example](../Examples/OfficeIMO.AI.Example/README.md) loads PDFs, text, and images and writes JSON, CSV, and Excel review artifacts.
 
 The same `IOfficeAiExecutor` can produce bounded structured tool decisions through
 `OfficeAiToolPlanner`. Tool declarations and provider responses remain inert JSON;
 the planner verifies the response envelope, declared tool identity, uniqueness, size,
-item count, and nesting. The owning application validates each argument object against
-the selected tool contract before execution. HTML automation uses this contract through
-[OfficeIMO.AI.Html](../OfficeIMO.AI.Html/README.md), whose runtime dispatcher performs
-that final typed argument validation.
+item count, nesting, and every argument against the selected tool schema before returning
+a call. HTML automation uses this contract through
+[OfficeIMO.AI.Html](../OfficeIMO.AI.Html/README.md), whose runtime dispatcher also performs
+typed argument validation before page behavior.
 
-## Add to a .NET 10 application
+Tool definitions use a closed, dependency-free JSON Schema subset: `type`, `properties`,
+`required`, `additionalProperties: false`, `items`, `enum`, `const`, `anyOf`, scalar and
+array bounds, and absolute `uri` format. Unsupported keywords are rejected when the tool
+is declared. Provider schemas make optional properties required and nullable for strict
+structured-output APIs; the planner removes those synthetic nulls and validates the
+original application contract locally.
+
+## Add to a .NET 8 or .NET 10 application
 
 To build from a source checkout, create an application beside the `OfficeIMO` directory and reference the engine project:
 
 ```shell
-dotnet new console --framework net10.0 --name DocumentAssistant
+dotnet new console --framework net10.0 --name DocumentAssistant # use net8.0 when required
 dotnet add DocumentAssistant/DocumentAssistant.csproj reference OfficeIMO/OfficeIMO.AI/OfficeIMO.AI.csproj
 dotnet build DocumentAssistant/DocumentAssistant.csproj
 ```

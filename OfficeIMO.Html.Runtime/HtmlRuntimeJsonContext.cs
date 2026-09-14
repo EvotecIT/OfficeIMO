@@ -10,7 +10,8 @@ internal sealed partial class HtmlRuntimeProtocolJsonContext : JsonSerializerCon
 [JsonSourceGenerationOptions(
     GenerationMode = JsonSourceGenerationMode.Default,
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    UseStringEnumConverter = true)]
+    UseStringEnumConverter = true,
+    UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow)]
 [JsonSerializable(typeof(HtmlPageObservationRequest))]
 [JsonSerializable(typeof(HtmlAutomationToolArguments))]
 [JsonSerializable(typeof(HtmlNavigationToolArguments))]

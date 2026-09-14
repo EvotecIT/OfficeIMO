@@ -14,14 +14,11 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime.Conformance/OfficeIMO.Html.Runtime.Conformance.csproj" />
-    <ProjectReference Include="../OfficeIMO.AI/OfficeIMO.AI.csproj" Condition="'$(TargetFramework)' == 'net10.0'" />
-    <ProjectReference Include="../OfficeIMO.AI.Html/OfficeIMO.AI.Html.csproj" Condition="'$(TargetFramework)' == 'net10.0'" />
+    <ProjectReference Include="../OfficeIMO.AI/OfficeIMO.AI.csproj" />
+    <ProjectReference Include="../OfficeIMO.AI.Html/OfficeIMO.AI.Html.csproj" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime.Worker/OfficeIMO.Html.Runtime.Worker.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj" />
     <ProjectReference Include="../OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' != 'net10.0'">
-    <Compile Remove="RuntimeOfficeAiTests.cs" />
   </ItemGroup>
   <Target Name="CopyRuntimeWorker" AfterTargets="Build">
     <ItemGroup><RuntimeWorkerFile Include="../OfficeIMO.Html.Runtime.Worker/bin/$(Configuration)/$(TargetFramework)/**/*" /></ItemGroup>

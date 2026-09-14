@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <VersionPrefix>3.4.3</VersionPrefix>
     <PackageId>OfficeIMO.AI.IntelligenceX</PackageId>
-    <Description>IntelligenceX execution adapter for provider-neutral OfficeIMO document AI operations.</Description>
+    <Description>IntelligenceX execution adapter for provider-neutral OfficeIMO AI operations.</Description>
     <Authors>Przemyslaw Klys</Authors>
     <Company>Evotec</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

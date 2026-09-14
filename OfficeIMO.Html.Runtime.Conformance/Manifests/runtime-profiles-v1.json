@@ -65,7 +65,7 @@
       "version": 1,
       "runtimeProfiles": [ "WebApplicationV1" ],
       "specifications": [
-        { "id": "json-schema", "revision": "2020-12", "uri": "https://json-schema.org/draft/2020-12", "scope": "Published SDK-neutral tool argument declarations." },
+        { "id": "json-schema", "revision": "2020-12 selected subset", "uri": "https://json-schema.org/draft/2020-12", "scope": "Closed SDK-neutral tool argument declarations validated by the dependency-free OfficeIMO subset." },
         { "id": "wai-aria", "revision": "WAI-ARIA 1.2 selected semantics", "uri": "https://www.w3.org/TR/wai-aria-1.2/", "scope": "Selected role and accessible-name projection used by bounded observations; no complete accessibility-tree claim." },
         { "id": "html-runtime-tools", "revision": "OfficeIMO v1", "uri": "https://github.com/EvotecIT/OfficeIMO", "scope": "Observe, act, navigate and capture calls through a caller-owned bounded planner." }
       ],

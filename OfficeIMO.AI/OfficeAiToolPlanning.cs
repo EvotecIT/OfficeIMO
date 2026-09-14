@@ -13,6 +13,7 @@ public sealed class OfficeAiToolDefinition {
         if (name.Length > 128 || name.Any(char.IsControl)) throw new ArgumentException("Tool names must contain at most 128 non-control characters.", nameof(name));
         if (description.Length > 4096 || description.Any(char.IsControl)) throw new ArgumentException("Tool descriptions must contain at most 4096 non-control characters.", nameof(description));
         if (inputSchema.ValueKind != JsonValueKind.Object) throw new ArgumentException("A tool input schema must be a JSON object.", nameof(inputSchema));
+        OfficeAiToolSchema.ValidateDefinition(inputSchema);
         Name = name;
         Description = description;
         InputSchema = inputSchema.Clone();
@@ -24,7 +25,7 @@ public sealed class OfficeAiToolDefinition {
     /// <summary>Human-readable tool purpose.</summary>
     public string Description { get; }
 
-    /// <summary>JSON Schema for the tool argument object.</summary>
+    /// <summary>Closed JSON Schema from the dependency-free OfficeIMO tool-schema subset.</summary>
     public JsonElement InputSchema { get; }
 }
 
@@ -111,7 +112,7 @@ public sealed class OfficeAiToolPlanner {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
         Snapshot snapshot = Validate(request);
-        string outputSchema = CreateOutputSchema(snapshot.Tools, snapshot.MaxToolCalls);
+        string outputSchema = CreateOutputSchema(snapshot.Tools);
         var execution = new OfficeAiExecutionRequest(snapshot.RequestId, snapshot.Instructions, snapshot.InputJson,
             outputSchema, Array.Empty<OfficeAiImage>(), snapshot.MaxResponseCharacters);
         int measured = _executor.MeasureRequestCharacters(execution);
@@ -179,14 +180,15 @@ public sealed class OfficeAiToolPlanner {
             string id = RequiredString(item, "id", 256);
             string name = RequiredString(item, "name", 128);
             if (!ids.Add(id)) throw new InvalidOperationException("Tool call identifiers must be unique within a decision.");
-            if (!tools.ContainsKey(name)) throw new InvalidOperationException($"The AI executor returned an undeclared tool call '{name}'.");
+            if (!tools.TryGetValue(name, out OfficeAiToolDefinition? tool)) throw new InvalidOperationException($"The AI executor returned an undeclared tool call '{name}'.");
             if (!item.TryGetProperty("arguments", out JsonElement arguments) || arguments.ValueKind != JsonValueKind.Object)
                 throw new InvalidOperationException("Every tool call requires an arguments object.");
             if (Encoding.UTF8.GetByteCount(arguments.GetRawText()) > snapshot.MaxArgumentBytes)
                 throw new InvalidOperationException("A tool argument object exceeds the configured byte limit.");
             if (CountItems(arguments, snapshot.MaxArgumentItems) > snapshot.MaxArgumentItems)
                 throw new InvalidOperationException("A tool argument object exceeds the configured item limit.");
-            calls.Add(new OfficeAiToolCall(id, name, arguments));
+            JsonElement normalizedArguments = OfficeAiToolSchema.NormalizeAndValidate(arguments, tool.InputSchema);
+            calls.Add(new OfficeAiToolCall(id, name, normalizedArguments));
         }
         return new OfficeAiToolPlanningDecision(completed.GetBoolean(), message,
             new ReadOnlyCollection<OfficeAiToolCall>(calls));
@@ -230,27 +232,26 @@ public sealed class OfficeAiToolPlanner {
         return count;
     }
 
-    private static string CreateOutputSchema(IReadOnlyList<OfficeAiToolDefinition> tools, int maxCalls) {
+    private static string CreateOutputSchema(IReadOnlyList<OfficeAiToolDefinition> tools) {
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream)) {
             writer.WriteStartObject();
-            writer.WriteString("$schema", "https://json-schema.org/draft/2020-12/schema");
             writer.WriteString("type", "object");
             writer.WriteBoolean("additionalProperties", false);
-            writer.WritePropertyName("required"); writer.WriteStartArray(); writer.WriteStringValue("isComplete"); writer.WriteStringValue("calls"); writer.WriteEndArray();
+            writer.WritePropertyName("required"); writer.WriteStartArray(); writer.WriteStringValue("isComplete"); writer.WriteStringValue("message"); writer.WriteStringValue("calls"); writer.WriteEndArray();
             writer.WritePropertyName("properties"); writer.WriteStartObject();
             writer.WritePropertyName("isComplete"); writer.WriteStartObject(); writer.WriteString("type", "boolean"); writer.WriteEndObject();
             writer.WritePropertyName("message"); writer.WriteStartObject(); writer.WritePropertyName("type"); writer.WriteStartArray(); writer.WriteStringValue("string"); writer.WriteStringValue("null"); writer.WriteEndArray(); writer.WriteEndObject();
             writer.WritePropertyName("calls"); writer.WriteStartObject();
-            writer.WriteString("type", "array"); writer.WriteNumber("maxItems", maxCalls);
-            writer.WritePropertyName("items"); writer.WriteStartObject(); writer.WritePropertyName("oneOf"); writer.WriteStartArray();
+            writer.WriteString("type", "array");
+            writer.WritePropertyName("items"); writer.WriteStartObject(); writer.WritePropertyName("anyOf"); writer.WriteStartArray();
             foreach (OfficeAiToolDefinition tool in tools) {
                 writer.WriteStartObject(); writer.WriteString("type", "object"); writer.WriteBoolean("additionalProperties", false);
                 writer.WritePropertyName("required"); writer.WriteStartArray(); writer.WriteStringValue("id"); writer.WriteStringValue("name"); writer.WriteStringValue("arguments"); writer.WriteEndArray();
                 writer.WritePropertyName("properties"); writer.WriteStartObject();
-                writer.WritePropertyName("id"); writer.WriteStartObject(); writer.WriteString("type", "string"); writer.WriteNumber("minLength", 1); writer.WriteNumber("maxLength", 256); writer.WriteEndObject();
+                writer.WritePropertyName("id"); writer.WriteStartObject(); writer.WriteString("type", "string"); writer.WriteEndObject();
                 writer.WritePropertyName("name"); writer.WriteStartObject(); writer.WriteString("const", tool.Name); writer.WriteEndObject();
-                writer.WritePropertyName("arguments"); tool.InputSchema.WriteTo(writer);
+                writer.WritePropertyName("arguments"); OfficeAiToolSchema.WriteStrict(writer, tool.InputSchema, nullable: false);
                 writer.WriteEndObject(); writer.WriteEndObject();
             }
             writer.WriteEndArray(); writer.WriteEndObject(); writer.WriteEndObject();

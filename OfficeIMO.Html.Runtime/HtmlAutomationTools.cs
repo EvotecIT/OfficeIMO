@@ -140,9 +140,24 @@ public sealed class HtmlAutomationToolDispatcher {
         return Success(call);
     }
 
-    private static T Deserialize<T>(HtmlAutomationToolCall call) where T : class =>
-        call.Arguments.Deserialize(HtmlAutomationToolJson.TypeInfo<T>())
-        ?? throw new ArgumentException("The tool arguments are invalid.", nameof(call));
+    private static T Deserialize<T>(HtmlAutomationToolCall call) where T : class {
+        RejectDuplicateProperties(call.Arguments, "$arguments");
+        return call.Arguments.Deserialize(HtmlAutomationToolJson.TypeInfo<T>())
+            ?? throw new ArgumentException("The tool arguments are invalid.", nameof(call));
+    }
+
+    private static void RejectDuplicateProperties(JsonElement value, string path) {
+        if (value.ValueKind == JsonValueKind.Object) {
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (JsonProperty property in value.EnumerateObject()) {
+                if (!names.Add(property.Name)) throw new ArgumentException($"Duplicate tool argument '{path}.{property.Name}'.");
+                RejectDuplicateProperties(property.Value, path + "." + property.Name);
+            }
+        } else if (value.ValueKind == JsonValueKind.Array) {
+            int index = 0;
+            foreach (JsonElement item in value.EnumerateArray()) RejectDuplicateProperties(item, $"{path}[{index++}]");
+        }
+    }
 
     private static HtmlAutomationToolResult Success(HtmlAutomationToolCall call, HtmlPageObservation? observation = null,
         HtmlAutomationResult? automation = null, HtmlScriptCapture? capture = null) => new() {
@@ -158,6 +173,7 @@ internal static class HtmlAutomationToolJson {
 }
 
 internal sealed class HtmlNavigationToolArguments {
+    [JsonRequired]
     public Uri? Url { get; set; }
     public bool ReplaceHistoryEntry { get; set; }
 }
@@ -169,6 +185,7 @@ internal sealed class HtmlCaptureToolArguments {
 internal sealed class HtmlAutomationToolArguments {
     public HtmlObservedElementReference? Reference { get; set; }
     public string? Css { get; set; }
+    [JsonRequired]
     public HtmlAutomationAction Action { get; set; }
     public string? Value { get; set; }
     public IReadOnlyList<string> Values { get; set; } = Array.Empty<string>();
