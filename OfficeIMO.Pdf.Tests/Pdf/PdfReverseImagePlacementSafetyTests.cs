@@ -288,6 +288,32 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
     }
 
+    [Fact]
+    public void NullBlendModeDoesNotCreateFalseImageLoss() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImageWithGraphicsStatePdf("/BM null"));
+        PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
+
+        Assert.False(placement.HasUnsupportedBlendMode);
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            Assert.Single(word.Value.Images);
+            Assert.DoesNotContain(word.Report.Warnings, static warning =>
+                warning.Code == "PdfImageUnsupportedBlendModeNotSafelyEditable");
+        }
+    }
+
+    [Fact]
+    public void NullBlendModePreservesAnInheritedNonNormalBlendMode() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
+            "q /GS1 gs /GS2 gs 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            "/BM /Multiply",
+            secondGraphicsStateEntries: "/BM null"));
+        PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
+
+        Assert.Equal(OfficeIMO.Drawing.OfficeBlendMode.Multiply, placement.BlendMode);
+        Assert.False(placement.HasUnsupportedBlendMode);
+    }
+
     [Theory]
     [InlineData("/TR << /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [0] /N 1 >>")]
     [InlineData("/op true /OPM 1")]
@@ -459,6 +485,35 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void PreservedWordPageSizeScalesEditableTypographyByThePageUserUnit() {
+        const string marker = "Scaled user unit text";
+        byte[] source = WithUserUnit(
+            CreateDocument()
+                .Paragraph(paragraph => paragraph.FontSize(10D).Text(marker))
+                .ToBytes(),
+            2D);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            OfficeIMO.Word.WordParagraph paragraph = Assert.Single(
+                word.Value.Paragraphs,
+                candidate => candidate.Text.Contains(marker, StringComparison.Ordinal));
+            Assert.Equal(20D, paragraph.FontSizePoints);
+        }
+
+        PdfWordConversionResult unscaled = logical.ToWordDocumentResult(new PdfToWordOptions {
+            PreserveSourcePageSize = false
+        });
+        using (unscaled.Value) {
+            OfficeIMO.Word.WordParagraph paragraph = Assert.Single(
+                unscaled.Value.Paragraphs,
+                candidate => candidate.Text.Contains(marker, StringComparison.Ordinal));
+            Assert.Equal(10D, paragraph.FontSizePoints);
+        }
+    }
+
+    [Fact]
     public void WordRotatesInlineImageWhenPageRotationSwapsVisualDimensions() {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
             "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
@@ -468,8 +523,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         using (word.Value) {
             OfficeIMO.Word.WordImage image = Assert.Single(word.Value.Images);
             Assert.Equal(90, image.Rotation);
-            Assert.Equal(40D * 96D / 72D, image.Width!.Value, 6);
-            Assert.Equal(80D * 96D / 72D, image.Height!.Value, 6);
+            Assert.Equal(80D * 96D / 72D, image.Width!.Value, 6);
+            Assert.Equal(40D * 96D / 72D, image.Height!.Value, 6);
         }
     }
 
@@ -651,6 +706,15 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         CreateRawImagePdf(
             "q /GS1 gs 80 0 0 40 20 30 cm /Im1 Do Q\n",
             graphicsStateEntries);
+
+    private static byte[] WithUserUnit(byte[] source, double userUnit) =>
+        PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfIndirectObject page = Assert.Single(objects.Values, static item =>
+                item.Value is PdfDictionary dictionary &&
+                string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal));
+            Assert.IsType<PdfDictionary>(page.Value).Items["UserUnit"] = new PdfNumber(userUnit);
+            return security.InfoObjectNumber;
+        });
 
     private static byte[] CreateNestedFormImageWithGraphicsStatePdf(
         string outerGraphicsStateEntries,

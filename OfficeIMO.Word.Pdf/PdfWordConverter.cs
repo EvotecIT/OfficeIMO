@@ -51,6 +51,7 @@ namespace OfficeIMO.Word.Pdf {
             for (int pageIndex = 0; pageIndex < source.Pages.Count; pageIndex++) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 PdfCore.PdfLogicalPage page = source.Pages[pageIndex];
+                double typographyScale = GetEditableTypographyScale(page, options);
                 ReportPageReconstructionBoundaries(page, options);
                 List<ImportItem> items = BuildImportItems(page, options, navigation);
                 bool hasNavigationAnchor = navigation.HasAnchorsForPage(page.PageNumber);
@@ -84,16 +85,16 @@ namespace OfficeIMO.Word.Pdf {
                     bool itemEmitted = true;
                     switch (item.Kind) {
                         case ImportItemKind.Heading:
-                            AddHeading(target, item.Heading!, item.Link, item.LinkText, options, navigation);
+                            AddHeading(target, item.Heading!, item.Link, item.LinkText, options, navigation, typographyScale);
                             break;
                         case ImportItemKind.Paragraph:
-                            AddParagraph(target, item.Paragraph!, item.Link, item.LinkText, options, navigation);
+                            AddParagraph(target, item.Paragraph!, item.Link, item.LinkText, options, navigation, typographyScale);
                             break;
                         case ImportItemKind.TextBlock:
-                            AddTextBlock(target, item.TextBlock!, item.Link, item.LinkText, options, navigation);
+                            AddTextBlock(target, item.TextBlock!, item.Link, item.LinkText, options, navigation, typographyScale);
                             break;
                         case ImportItemKind.ListItem:
-                            AddListItem(target, item.ListItem!, ref bulletList, ref numberedList, options);
+                            AddListItem(target, item.ListItem!, ref bulletList, ref numberedList, options, typographyScale);
                             break;
                         case ImportItemKind.Table:
                             AddTable(target, item.TableExtraction!, options);
@@ -467,14 +468,21 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfLogicalLinkAnnotation? link,
             string? linkText,
             PdfToWordOptions options,
-            ImportNavigationMap navigation) {
+            ImportNavigationMap navigation,
+            double typographyScale) {
             WordParagraph paragraph = link == null
-                ? AddStyledParagraph(document, new[] { heading.Line }, options)
-                : AddHyperlinkParagraph(document, link, string.IsNullOrWhiteSpace(linkText) ? heading.Text : linkText!, options, navigation);
+                ? AddStyledParagraph(document, new[] { heading.Line }, options, typographyScale)
+                : AddHyperlinkParagraph(
+                    document,
+                    link,
+                    string.IsNullOrWhiteSpace(linkText) ? heading.Text : linkText!,
+                    options,
+                    navigation,
+                    heading.FontSize > 0D ? heading.FontSize * typographyScale : null);
             paragraph.SetStyle(MapHeadingStyle(heading.Level));
             paragraph.KeepWithNext = true;
             if (heading.FontSize > 0) {
-                paragraph.SetFontSize((int)Math.Round(heading.FontSize, MidpointRounding.AwayFromZero));
+                paragraph.FontSizePoints = Math.Max(0.5D, heading.FontSize * typographyScale);
             }
         }
 
@@ -484,13 +492,20 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfLogicalLinkAnnotation? link,
             string? linkText,
             PdfToWordOptions options,
-            ImportNavigationMap navigation) {
+            ImportNavigationMap navigation,
+            double typographyScale) {
             if (link == null) {
-                AddStyledParagraph(document, paragraph.Lines, options);
+                AddStyledParagraph(document, paragraph.Lines, options, typographyScale);
                 return;
             }
 
-            AddHyperlinkParagraph(document, link, string.IsNullOrWhiteSpace(linkText) ? paragraph.Text : linkText!, options, navigation);
+            AddHyperlinkParagraph(
+                document,
+                link,
+                string.IsNullOrWhiteSpace(linkText) ? paragraph.Text : linkText!,
+                options,
+                navigation,
+                GetFirstPositiveFontSize(paragraph.Lines) * typographyScale);
         }
 
         private static void AddTextBlock(
@@ -499,19 +514,27 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfLogicalLinkAnnotation? link,
             string? linkText,
             PdfToWordOptions options,
-            ImportNavigationMap navigation) {
+            ImportNavigationMap navigation,
+            double typographyScale) {
             if (link == null) {
-                AddStyledParagraph(document, new[] { block }, options);
+                AddStyledParagraph(document, new[] { block }, options, typographyScale);
                 return;
             }
 
-            AddHyperlinkParagraph(document, link, string.IsNullOrWhiteSpace(linkText) ? block.Text : linkText!, options, navigation);
+            AddHyperlinkParagraph(
+                document,
+                link,
+                string.IsNullOrWhiteSpace(linkText) ? block.Text : linkText!,
+                options,
+                navigation,
+                GetFirstPositiveFontSize(new[] { block }) * typographyScale);
         }
 
         private static WordParagraph AddStyledParagraph(
             WordDocument document,
             IReadOnlyList<PdfCore.PdfLogicalTextBlock> lines,
-            PdfToWordOptions options) {
+            PdfToWordOptions options,
+            double typographyScale) {
             WordParagraph paragraph = document.AddParagraph();
             for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
                 if (lineIndex > 0) {
@@ -519,7 +542,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 PdfCore.PdfLogicalTextBlock line = lines[lineIndex];
-                AppendStyledRuns(paragraph, line.Runs, line.Text);
+                AppendStyledRuns(paragraph, line.Runs, line.Text, typographyScale);
             }
 
             ApplySourceParagraphSpacing(paragraph, options);
@@ -530,7 +553,8 @@ namespace OfficeIMO.Word.Pdf {
         private static void AppendStyledRuns(
             WordParagraph paragraph,
             IReadOnlyList<PdfCore.PdfLogicalTextRun> runs,
-            string fallbackText) {
+            string fallbackText,
+            double typographyScale) {
             if (runs.Count == 0) {
                 paragraph.AddText(fallbackText);
                 return;
@@ -542,7 +566,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (source.IsBold) run.SetBold();
                 if (source.IsItalic) run.SetItalic();
                 if (source.FontSize > 0D) {
-                    run.SetFontSize(Math.Max(1, (int)Math.Round(source.FontSize, MidpointRounding.AwayFromZero)));
+                    run.FontSizePoints = Math.Max(0.5D, source.FontSize * typographyScale);
                 }
                 if (source.Color.HasValue && source.Color.Value.A > 0) {
                     run.SetColorHex(source.Color.Value.ToRgbHex());
@@ -564,7 +588,8 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfLogicalLinkAnnotation link,
             string text,
             PdfToWordOptions options,
-            ImportNavigationMap navigation) {
+            ImportNavigationMap navigation,
+            double? fontSizePoints = null) {
             if (!TryResolveWordLinkTarget(link, options, navigation, out WordLinkTarget target)) {
                 WordParagraph fallback = document.AddParagraph(text);
                 ApplySourceParagraphSpacing(fallback, options);
@@ -573,8 +598,10 @@ namespace OfficeIMO.Word.Pdf {
 
             WordParagraph paragraph = document.AddParagraph();
             ApplySourceParagraphSpacing(paragraph, options);
+            WordParagraph hyperlink;
             if (target.IsUri) {
-                paragraph.AddHyperLink(text, target.Uri!, addStyle: true, tooltip: "Imported PDF link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture));
+                hyperlink = paragraph.AddHyperLink(text, target.Uri!, addStyle: true, tooltip: "Imported PDF link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture));
+                if (fontSizePoints > 0D) hyperlink.FontSizePoints = Math.Max(0.5D, fontSizePoints.Value);
                 AddWarning(
                     options,
                     "PdfUriLinkReconstructed",
@@ -588,7 +615,8 @@ namespace OfficeIMO.Word.Pdf {
                 return paragraph;
             }
 
-            paragraph.AddHyperLink(text, target.Anchor!, addStyle: true, tooltip: "Imported PDF internal link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture));
+            hyperlink = paragraph.AddHyperLink(text, target.Anchor!, addStyle: true, tooltip: "Imported PDF internal link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture));
+            if (fontSizePoints > 0D) hyperlink.FontSizePoints = Math.Max(0.5D, fontSizePoints.Value);
             AddWarning(
                 options,
                 "PdfInternalLinkReconstructed",
@@ -602,6 +630,17 @@ namespace OfficeIMO.Word.Pdf {
                     ["DestinationPageNumber"] = link.DestinationPageNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty
                 });
             return paragraph;
+        }
+
+        private static double? GetFirstPositiveFontSize(IReadOnlyList<PdfCore.PdfLogicalTextBlock> lines) {
+            for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                IReadOnlyList<PdfCore.PdfLogicalTextRun> runs = lines[lineIndex].Runs;
+                for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
+                    if (runs[runIndex].FontSize > 0D) return runs[runIndex].FontSize;
+                }
+            }
+
+            return null;
         }
 
         private static WordParagraphStyles MapHeadingStyle(int level) {
@@ -626,13 +665,14 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfLogicalListItem item,
             ref WordList? bulletList,
             ref WordList? numberedList,
-            PdfToWordOptions options) {
+            PdfToWordOptions options,
+            double typographyScale) {
             bool bullet = IsBulletMarker(item.Marker);
             WordList list = bullet
                 ? bulletList ??= document.AddListBulleted()
                 : numberedList ??= document.AddListNumbered();
             WordParagraph paragraph = list.AddItem((string?)null, Math.Max(0, item.Level - 1));
-            AppendStyledRuns(paragraph, item.Runs, item.Text);
+            AppendStyledRuns(paragraph, item.Runs, item.Text, typographyScale);
             ApplySourceParagraphSpacing(paragraph, options);
         }
 

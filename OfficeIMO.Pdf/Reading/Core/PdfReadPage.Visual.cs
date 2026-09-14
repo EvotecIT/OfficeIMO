@@ -1861,7 +1861,9 @@ public sealed partial class PdfReadPage {
             bool hasInvalidRenderingIntent = !TryReadSupportedExtGStateRenderingIntent(
                 state,
                 out OfficeIccRenderingIntent? renderingIntent);
-            bool hasUnsupportedBlendMode = state.Items.ContainsKey("BM") && !blendMode.HasValue;
+            bool hasUnsupportedBlendMode = state.Items.TryGetValue("BM", out PdfObject? blendModeObject) &&
+                ResolveEffectObject(blendModeObject) is not PdfNull &&
+                !blendMode.HasValue;
             bool hasUnsupportedType = state.Items.TryGetValue("Type", out PdfObject? typeObject) &&
                 ResolveEffectObject(typeObject) is not PdfNull and not PdfName { Name: "ExtGState" };
             bool hasUnsupportedEntries = state.Items.Keys.Any(static key => key is not (

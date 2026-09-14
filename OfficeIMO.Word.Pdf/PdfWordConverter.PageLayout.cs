@@ -55,5 +55,19 @@ namespace OfficeIMO.Word.Pdf {
                 ? (height, width)
                 : (width, height);
         }
+
+        private static double GetEditableTypographyScale(
+            PdfCore.PdfLogicalPage page,
+            PdfToWordOptions options) {
+            if (!options.PreserveSourcePageSize) return 1D;
+
+            (double pageWidth, double pageHeight) = GetVisualPageSize(page);
+            if (pageWidth <= 0D || pageHeight <= 0D || pageWidth > 1584D || pageHeight > 1584D) {
+                return 1D;
+            }
+
+            double scale = page.UserUnit.GetValueOrDefault(1D);
+            return scale > 0D && !double.IsNaN(scale) && !double.IsInfinity(scale) ? scale : 1D;
+        }
     }
 }

@@ -81,13 +81,19 @@ namespace OfficeIMO.Word.Pdf {
             double? width = null;
             double? height = null;
             if (options.PreserveImagePlacementSize && placement != null && placement.Width > 0 && placement.Height > 0) {
-                PdfCore.PdfSelectionQuad visualBounds = page.MapUserSpaceRectangleToVisual(
-                    placement.X,
-                    placement.Y,
-                    placement.X + placement.Width,
-                    placement.Y + placement.Height);
-                width = PdfPointsToWordPixels(visualBounds.Right - visualBounds.Left);
-                height = PdfPointsToWordPixels(visualBounds.Bottom - visualBounds.Top);
+                if (page.RotationDegrees != 0) {
+                    double userUnit = page.UserUnit.GetValueOrDefault(1D);
+                    width = PdfPointsToWordPixels(placement.Width * userUnit);
+                    height = PdfPointsToWordPixels(placement.Height * userUnit);
+                } else {
+                    PdfCore.PdfSelectionQuad visualBounds = page.MapUserSpaceRectangleToVisual(
+                        placement.X,
+                        placement.Y,
+                        placement.X + placement.Width,
+                        placement.Y + placement.Height);
+                    width = PdfPointsToWordPixels(visualBounds.Right - visualBounds.Left);
+                    height = PdfPointsToWordPixels(visualBounds.Bottom - visualBounds.Top);
+                }
             }
 
             try {
