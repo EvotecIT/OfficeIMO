@@ -50,6 +50,42 @@ public sealed class PdfWatermarkWorkflowTests {
         Assert.True(outputForms.Items.Count >= xObjects.Items.Count);
     }
 
+    [Fact]
+    public void RevisionStopsOptionalResourcePruningAtAggregateDecodeLimit() {
+        var settings = Options(false);
+        byte[] first = PdfDocument.Load(Source()).Stamp.Watermark(settings).ToBytes();
+        var (objects, trailer) = PdfSyntax.ParseObjects(first, null);
+        var read = PdfReadDocument.Open(first);
+        int nextNumber = objects.Keys.Max() + 1;
+        for (int index = 0; index < 3; index++) {
+            var form = new PdfDictionary();
+            form.Items["Type"] = new PdfName("XObject");
+            form.Items["Subtype"] = new PdfName("Form");
+            form.Items["Filter"] = new PdfName("FlateDecode");
+            objects[nextNumber] = new PdfIndirectObject(nextNumber, 0, new PdfStream(
+                form, Deflate(System.Text.Encoding.ASCII.GetBytes(new string(' ', 256)))));
+            nextNumber++;
+        }
+        byte[] source = PdfPageExtractor.ExtractPages(
+            objects,
+            read.UncheckedMetadata,
+            read.Pages.Select(item => item.ObjectNumber).ToArray(),
+            catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailer));
+
+        settings.Text = "UPDATED";
+        byte[] revised = PdfDocument.Load(source).Stamp.Watermark(settings, new PdfLoadOptions {
+            Limits = new PdfReadLimits {
+                MaxDecodedStreamBytes = 512,
+                MaxTotalDecodedStreamBytes = 512
+            }
+        }).ToBytes();
+
+        Assert.Contains("UPDATED", PdfDocument.Load(revised).Read().Text);
+        var (revisedObjects, _) = PdfSyntax.ParseObjects(revised, null);
+        Assert.True(revisedObjects.Values.Count(item =>
+            ResourceDictionary(item.Value)?.Get<PdfStringObj>("OfficeIMOWatermarkResource") is not null) > 2);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("Do")]
@@ -361,6 +397,21 @@ public sealed class PdfWatermarkWorkflowTests {
         bytes[offset + 1] = (byte)(value >> 8);
         bytes[offset + 2] = (byte)(value >> 16);
         bytes[offset + 3] = (byte)(value >> 24);
+    }
+
+    private static PdfDictionary? ResourceDictionary(PdfObject? value) => value switch {
+        PdfStream stream => stream.Dictionary,
+        PdfDictionary dictionary => dictionary,
+        _ => null
+    };
+
+    private static byte[] Deflate(byte[] bytes) {
+        using var output = new MemoryStream();
+        using (var stream = new System.IO.Compression.DeflateStream(
+                   output, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true)) {
+            stream.Write(bytes, 0, bytes.Length);
+        }
+        return output.ToArray();
     }
 
     private static byte[] Render(byte[] source, int page) {

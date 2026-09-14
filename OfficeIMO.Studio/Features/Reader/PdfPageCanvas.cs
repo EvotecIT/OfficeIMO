@@ -388,10 +388,11 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             PdfEditorSelectionMode.Forms => matches.FirstOrDefault(static region => region.Kind == PdfInteractionKind.FormWidget),
             PdfEditorSelectionMode.Annotations => matches.FirstOrDefault(static region =>
                 region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue),
-            PdfEditorSelectionMode.PageContent => matches.FirstOrDefault(static region =>
-                (region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue) ||
-                (region.Kind == PdfInteractionKind.Image && region.ImagePlacement is not null) ||
-                region.Kind == PdfInteractionKind.Text),
+            PdfEditorSelectionMode.PageContent => matches.FirstOrDefault(static region => region.WatermarkId is not null)
+                ?? matches.FirstOrDefault(static region =>
+                    (region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue) ||
+                    (region.Kind == PdfInteractionKind.Image && region.ImagePlacement is not null) ||
+                    region.Kind == PdfInteractionKind.Text),
             _ => null
         };
         if (selected is null) {

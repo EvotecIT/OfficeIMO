@@ -22,6 +22,7 @@ internal static partial class PdfStamper {
         }
         var used = new HashSet<string>(StringComparer.Ordinal);
         var limits = PdfLoadOptions.Resolve(readOptions).Limits;
+        var decodedStreamBudget = new PdfDecodedStreamBudget(limits);
         try {
             foreach (var sequence in sequences) {
                 // Page streams share operand state, including a name in one stream followed
@@ -31,8 +32,8 @@ internal static partial class PdfStamper {
                     if (stream.DecodingFailed) return;
                     int remaining = limits.MaxPageContentBytes - content.Length - 1;
                     if (remaining <= 0) return;
-                    byte[] decoded = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects,
-                        Math.Min(limits.MaxDecodedStreamBytes, remaining));
+                    byte[] decoded = decodedStreamBudget.DecodeRequired(
+                        stream, objects, Math.Min(limits.MaxDecodedStreamBytes, remaining));
                     if (content.Length > 0) content.Append('\n');
                     content.Append(PdfEncoding.Latin1GetString(decoded));
                 }

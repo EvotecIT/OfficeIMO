@@ -18,10 +18,11 @@ public sealed class WatermarkSelectionTests {
         using var files = new TextEditingReviewTests.Files();
         var settings = new PdfWatermarkOptions {
             Text = "CHOOSE THIS", X = 80, Y = 180, Width = 200, Height = 70, FontSize = 24, RotationDegrees = 0,
-            ImageBytes = image ? Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=") : null
+            ImageBytes = image ? Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=") : null,
+            BehindContent = true
         };
         var document = PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800)
-            .Content(content => content.Text("Ordinary document text"))))
+            .Canvas(canvas => canvas.Text("FOREGROUND CONTENT", 80, 180, 200, 70, fontSize: 24))))
             .Stamp.Watermark(settings)
             .Stamp.Watermark(new PdfWatermarkOptions { Text = "OTHER MARK", X = 80, Y = 320, Width = 200, Height = 70, FontSize = 24, RotationDegrees = 0 });
         document.Save(files.Source);
@@ -44,9 +45,17 @@ public sealed class WatermarkSelectionTests {
                 var canvas = window.GetVisualDescendants().OfType<PdfPageCanvas>().First(control =>
                     control.Scene?.PageNumber == 1 && control.SelectionMode == PdfEditorSelectionMode.PageContent);
                 var region = canvas.Scene!.Interactions!.Regions.First(item => item.WatermarkId == settings.Id);
+                var foreground = canvas.Scene.Interactions.Regions.First(item =>
+                    item.WatermarkId is null && item.Kind == PdfInteractionKind.Text &&
+                    item.Quad.Left < region.Quad.Right && item.Quad.Right > region.Quad.Left &&
+                    item.Quad.Top < region.Quad.Bottom && item.Quad.Bottom > region.Quad.Top);
+                double hitLeft = Math.Max(region.Quad.Left, foreground.Quad.Left);
+                double hitRight = Math.Min(region.Quad.Right, foreground.Quad.Right);
+                double hitTop = Math.Max(region.Quad.Top, foreground.Quad.Top);
+                double hitBottom = Math.Min(region.Quad.Bottom, foreground.Quad.Bottom);
                 var point = canvas.TranslatePoint(new Point(
-                    (region.Quad.Left + region.Quad.Right) / 2 * canvas.Bounds.Width / canvas.Scene.Drawing.Width,
-                    (region.Quad.Top + region.Quad.Bottom) / 2 * canvas.Bounds.Height / canvas.Scene.Drawing.Height), window)!.Value;
+                    (hitLeft + hitRight) / 2 * canvas.Bounds.Width / canvas.Scene.Drawing.Width,
+                    (hitTop + hitBottom) / 2 * canvas.Bounds.Height / canvas.Scene.Drawing.Height), window)!.Value;
                 window.MouseDown(point, MouseButton.Left);
                 window.MouseUp(point, MouseButton.Left);
                 await TextEditingReviewTests.WaitUntilAsync(() => window.OwnedWindows.OfType<WatermarkDialog>().Any());
