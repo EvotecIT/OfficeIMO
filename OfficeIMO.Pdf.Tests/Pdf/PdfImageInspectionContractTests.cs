@@ -134,6 +134,30 @@ public sealed class PdfImageInspectionContractTests {
         Assert.Equal(OfficeBlendMode.Screen, placement.EffectiveBlendMode);
     }
 
+    [Fact]
+    public void ImageInspection_TreatsDirectAndIndirectNullDecodeEntriesAsAbsent() {
+        byte[] directNull = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>",
+            StreamObject("q 10 0 0 10 10 10 cm /Im1 Do Q"),
+            StreamObject("abc", "/Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB /Decode null /DecodeParms null"));
+        byte[] indirectNull = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>",
+            StreamObject("q 10 0 0 10 10 10 cm /Im1 Do Q"),
+            StreamObject("abc", "/Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB /Decode 6 0 R /DP 7 0 R"),
+            "null",
+            "null");
+
+        foreach (byte[] pdf in new[] { directNull, indirectNull }) {
+            PdfExtractedImage image = Assert.Single(PdfDocument.Load(pdf).Reader.Images());
+            Assert.False(image.HasExplicitDecode);
+            Assert.False(image.HasDecodeParameters);
+        }
+    }
+
     private static string StreamObject(string content, string additionalDictionary = "") {
         int length = Encoding.ASCII.GetByteCount(content);
         string suffix = string.IsNullOrWhiteSpace(additionalDictionary) ? string.Empty : " " + additionalDictionary;

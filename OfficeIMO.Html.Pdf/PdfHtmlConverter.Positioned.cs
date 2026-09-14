@@ -90,7 +90,7 @@ public static partial class PdfHtmlConverterExtensions {
             }
 
             if (options.IncludeImagePlaceholders) {
-                AppendPositionedImagePlaceholders(builder, page, options);
+                AppendPositionedImagePlaceholders(builder, page, page.Images, options);
             }
         }
 
@@ -169,16 +169,22 @@ public static partial class PdfHtmlConverterExtensions {
         builder.AppendLine("></a>");
     }
 
-    private static void AppendPositionedImagePlaceholders(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfToHtmlOptions options) {
-        if (page.Images.Count == 0) {
+    internal static void AppendPositionedImagePlaceholders(
+        StringBuilder builder,
+        PdfCore.PdfLogicalPage page,
+        IReadOnlyList<PdfCore.PdfLogicalImage> images,
+        PdfToHtmlOptions options) {
+        if (images.Count == 0) {
             return;
         }
 
-        var unplaced = new List<PdfCore.PdfLogicalImage>();
-        for (int imageIndex = 0; imageIndex < page.Images.Count; imageIndex++) {
-            PdfCore.PdfLogicalImage image = page.Images[imageIndex];
+        for (int imageIndex = 0; imageIndex < images.Count; imageIndex++) {
+            PdfCore.PdfLogicalImage image = images[imageIndex];
             if (!image.HasPlacements) {
-                unplaced.Add(image);
+                ReportHtmlImagePlacementAssessment(
+                    image,
+                    PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement: null),
+                    options);
                 continue;
             }
 
@@ -186,22 +192,6 @@ public static partial class PdfHtmlConverterExtensions {
                 AppendPositionedImagePlaceholder(builder, page, image, image.Placements[placementIndex], placementIndex, options);
             }
         }
-
-        if (unplaced.Count == 0) {
-            return;
-        }
-
-        AddWarning(
-            options,
-            "ImagePlaceholder",
-            "Some images are represented as page-scoped placeholders because no placement invocation was detected.",
-            PdfCore.PdfConversionWarningSeverity.Warning);
-        builder.AppendLine("<div class=\"pdf-image-placeholder\" style=\"position:absolute;left:0;bottom:0;\">");
-        for (int i = 0; i < unplaced.Count; i++) {
-            builder.Append(RenderImageFigure(page, unplaced[i], options, builder.Length));
-        }
-
-        builder.AppendLine("</div>");
     }
 
     private static void AppendPositionedImagePlaceholder(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfCore.PdfLogicalImage image, PdfCore.PdfImagePlacement placement, int placementIndex, PdfToHtmlOptions options) {

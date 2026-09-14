@@ -78,6 +78,30 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
     }
 
+    [Fact]
+    public void UnplacedImageResourcesAreLossFreeInPositionedHtml() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im1 Do Q\n"));
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        PdfLogicalImage placedImage = Assert.Single(page.Images);
+        var unplacedImage = new PdfLogicalImage(placedImage.SourceImage);
+        var builder = new StringBuilder();
+        PdfToHtmlOptions options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+
+        PdfHtmlConverterExtensions.AppendPositionedImagePlaceholders(
+            builder,
+            page,
+            new[] { unplacedImage },
+            options);
+
+        Assert.DoesNotContain("pdf-image-placeholder", builder.ToString(), StringComparison.Ordinal);
+        Assert.Equal(0, options.EmittedImagePlaceholderCount);
+        Assert.False(options.Report.HasLoss);
+        Assert.Contains(options.Report.Warnings, static warning =>
+            warning.Code == "UnplacedImageResourceNotEmbedded" &&
+            warning.LossKind == OfficeConversionLossKind.None);
+    }
+
     [Theory]
     [InlineData("q 40 0 0 20 200 30 cm /Im1 Do Q\n")]
     [InlineData("q 0 0 10 10 re W n 40 0 0 20 80 80 cm /Im1 Do Q\n")]
@@ -698,6 +722,39 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.Contains(positioned.Report.Warnings, static warning =>
             warning.Code == "PageAppearanceUnsafeImageFallback" &&
             warning.LossKind == OfficeConversionLossKind.None);
+    }
+
+    [Fact]
+    public void Jpeg2000NullDecodeDoesNotTriggerUnappliedDecodeLoss() {
+        byte[] jpx = File.ReadAllBytes(Path.Combine(
+            AppContext.BaseDirectory,
+            "Pdf",
+            "Fixtures",
+            "Interoperability",
+            "Scans",
+            "red-rgb.jp2"));
+        byte[] source = CreateRawImagePdf(
+            "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            imageBytes: jpx,
+            imageDefinition: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /JPXDecode /Decode null");
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        PdfLogicalImage image = Assert.Single(Assert.Single(logical.Pages).Images);
+        Assert.False(image.SourceImage.HasExplicitDecode);
+
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        Assert.Contains("data:image/jp2;base64,", html.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain(html.Report.Warnings, static warning => warning.Code == "ImageDecodeNotSafelyEditable");
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            Assert.DoesNotContain(word.Report.Warnings, static warning => warning.Code == "PdfImageDecodeNotSafelyEditable");
+        }
+
+        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        using (powerPoint.Value) {
+            Assert.DoesNotContain(powerPoint.Report.Warnings, static warning => warning.Code == "PdfImageDecodeNotSafelyEditable");
+        }
     }
 
     private static PdfDocument CreateDocument() => PdfDocument.Create(new PdfOptions {

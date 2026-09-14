@@ -551,6 +551,28 @@ public partial class Word {
     }
 
     [Fact]
+    public void PdfSemanticImport_ReconstructedLinkReportsSupplementalActionsAsLoss() {
+        PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(BuildLinkWithSupplementalActionsPdf());
+        PdfCore.PdfAnnotation annotation = Assert.Single(
+            Assert.Single(logical.Pages).Annotations,
+            static item => string.Equals(item.Subtype, "Link", StringComparison.OrdinalIgnoreCase));
+        int expectedActionCount = annotation.AdditionalActions.Count + annotation.ChainedActions.Count;
+        Assert.Equal(2, expectedActionCount);
+
+        PdfWordConversionResult conversion = logical.ToWordDocumentResult(new PdfToWordOptions());
+        using OfficeWordDocument importedDocument = conversion.Value;
+
+        Assert.Contains(conversion.Report.Warnings, static warning => warning.Code == "PdfUriLinkReconstructed");
+        PdfCore.PdfConversionWarning warning = Assert.Single(
+            conversion.Report.Warnings,
+            static item => item.Code == "PdfLinkActionsNotReconstructed");
+        Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
+        Assert.Equal(expectedActionCount.ToString(System.Globalization.CultureInfo.InvariantCulture), warning.Details["ActionCount"]);
+        Assert.True(conversion.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => conversion.RequireNoLoss());
+    }
+
+    [Fact]
     public void PdfSemanticImport_DisabledImageImport_UsesEditablePlaceholder() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 320,
@@ -858,6 +880,38 @@ public partial class Word {
 
     private static byte[] BuildRawDeviceRgbImagePdf() {
         return BuildDeviceRgbImagePdf("abc", string.Empty);
+    }
+
+    private static byte[] BuildLinkWithSupplementalActionsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /Annots [5 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >> stream",
+            "",
+            "endstream endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Preserved link) /A << /S /URI /URI (https://example.com/preserved) /Next 6 0 R >> /AA << /E 7 0 R >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /S /JavaScript /JS (app.alert('chained')) >>",
+            "endobj",
+            "7 0 obj",
+            "<< /S /Launch /F (tool.exe) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        }) + "\n";
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
     private static byte[] BuildRawDeviceCmykImagePdf() {

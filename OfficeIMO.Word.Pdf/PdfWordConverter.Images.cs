@@ -146,7 +146,7 @@ namespace OfficeIMO.Word.Pdf {
                         ["PlacementHeight"] = placement?.Height.ToString(CultureInfo.InvariantCulture) ?? string.Empty
                     });
                 return true;
-            } catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException || ex is NotSupportedException) {
+            } catch (Exception ex) when (ex is ArgumentException || ex is InvalidDataException || ex is InvalidOperationException || ex is NotSupportedException) {
                 AddImageSkippedWarning(image, "Word image embedding rejected the extracted PDF image payload: " + ex.Message);
                 return false;
             }

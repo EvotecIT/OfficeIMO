@@ -7,18 +7,34 @@ namespace OfficeIMO.Word.Pdf {
     internal static partial class PdfWordConverter {
         private static void ReportNonReconstructedLinks(PdfCore.PdfDocumentReadResult source, PdfToWordOptions options, ImportNavigationMap navigation) {
             int linkCount = source.Links.Count(link => !TryResolveWordLinkTarget(link, options, navigation, out _));
-            if (linkCount == 0) return;
+            if (linkCount > 0) {
+                AddWarning(
+                    options,
+                    "PdfLinkAnnotationNotReconstructed",
+                    "LinkAnnotation",
+                    "PDF link annotations that are remote, named viewer actions, unsafe, or unresolved are reported as diagnostics.",
+                    PdfCore.PdfConversionWarningSeverity.Information,
+                    OfficeConversionLossKind.Omission,
+                    new Dictionary<string, string> {
+                        ["LinkCount"] = linkCount.ToString(CultureInfo.InvariantCulture)
+                    });
+            }
 
-            AddWarning(
-                options,
-                "PdfLinkAnnotationNotReconstructed",
-                "LinkAnnotation",
-                "PDF link annotations that are remote, named viewer actions, unsafe, or unresolved are reported as diagnostics.",
-                PdfCore.PdfConversionWarningSeverity.Information,
-                OfficeConversionLossKind.Omission,
-                new Dictionary<string, string> {
-                    ["LinkCount"] = linkCount.ToString(CultureInfo.InvariantCulture)
-                });
+            int supplementalActionCount = source.Pages.Sum(static page => page.Annotations
+                .Where(static annotation => string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase))
+                .Sum(static annotation => annotation.AdditionalActions.Count + annotation.ChainedActions.Count));
+            if (supplementalActionCount > 0) {
+                AddWarning(
+                    options,
+                    "PdfLinkActionsNotReconstructed",
+                    "LinkAnnotation/Actions",
+                    "Additional and chained actions attached to PDF links were not copied into the editable Word document, including when the primary hyperlink was reconstructed.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    OfficeConversionLossKind.Omission,
+                    new Dictionary<string, string> {
+                        ["ActionCount"] = supplementalActionCount.ToString(CultureInfo.InvariantCulture)
+                    });
+            }
         }
 
         private static void ReportDocumentReconstructionBoundaries(PdfCore.PdfDocumentReadResult source, PdfToWordOptions options) {
