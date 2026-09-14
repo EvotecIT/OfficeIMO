@@ -13,9 +13,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj" />
-    <ProjectReference Include="../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
-    <ProjectReference Include="../OfficeIMO.Html.Runtime.Conformance/OfficeIMO.Html.Runtime.Conformance.csproj" />
-    <ProjectReference Include="../OfficeIMO.AI.Html/OfficeIMO.AI.Html.csproj" />
+    <ProjectReference Include="../OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj" GlobalPropertiesToRemove="PublishAot" />
+    <ProjectReference Include="../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" GlobalPropertiesToRemove="PublishAot" />
+    <ProjectReference Include="../OfficeIMO.Html.Runtime.Conformance/OfficeIMO.Html.Runtime.Conformance.csproj" GlobalPropertiesToRemove="PublishAot" />
+    <ProjectReference Include="../OfficeIMO.AI.Html/OfficeIMO.AI.Html.csproj" GlobalPropertiesToRemove="PublishAot" />
   </ItemGroup>
 </Project>
