@@ -404,7 +404,7 @@
     "js-yaml": "4.3.2"
   },
   "devDependencies": {
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.5.0",
     "@types/vscode": "1.136.0",
     "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.28.2",
