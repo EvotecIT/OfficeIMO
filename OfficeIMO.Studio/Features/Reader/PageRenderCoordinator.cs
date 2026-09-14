@@ -14,6 +14,7 @@ internal sealed class PageRenderCoordinator : IDisposable {
     private long _cacheBytes;
     private long _accessSequence;
     private volatile bool _disposed;
+    private bool _cacheEnabled = true;
 
     internal PageRenderCoordinator(
         Func<int, double, CancellationToken, Task<PdfRenderedPage>> renderPage,
@@ -76,6 +77,14 @@ internal sealed class PageRenderCoordinator : IDisposable {
         }
     }
 
+    /// <summary>Inactive tabs still allow explicit rendering but do not retain presentation caches.</summary>
+    internal void SetCacheEnabled(bool enabled) {
+        lock (_sync) {
+            _cacheEnabled = enabled;
+            if (!enabled) { _cache.Clear(); _cacheBytes = 0; }
+        }
+    }
+
     public void Dispose() {
         if (_disposed) return;
         _disposed = true;
@@ -105,7 +114,7 @@ internal sealed class PageRenderCoordinator : IDisposable {
         if (page.ByteLength > _maximumBytes) return;
 
         lock (_sync) {
-            if (_disposed) return;
+            if (_disposed || !_cacheEnabled) return;
 
             if (_cache.TryGetValue(key, out CacheEntry? existing)) {
                 _cacheBytes -= existing.Page.ByteLength;

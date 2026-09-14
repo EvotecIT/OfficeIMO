@@ -16,6 +16,7 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task ApplyCertificateSignatureAsync(CancellationToken cancellationToken) {
+        using var notifications = BeginNotificationScope();
         if (_workspace is null || SelectedSigningCertificate is null || IsWorkspaceBusy || _reviewingSigning) return;
         var workspace = _workspace; long revision = workspace.Revision;
         if (!IsReviewedCopyCurrent(workspace, revision)) return;

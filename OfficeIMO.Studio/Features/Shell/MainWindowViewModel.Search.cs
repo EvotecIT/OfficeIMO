@@ -73,6 +73,7 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand(CanExecute = nameof(CanSearchDocument))]
     private async Task SearchAsync(CancellationToken cancellationToken) {
+        using var notifications = BeginNotificationScope();
         if (IsWorkspaceBusy) return;
         ClearSearchResults();
         PdfDocumentSession? session = _session;

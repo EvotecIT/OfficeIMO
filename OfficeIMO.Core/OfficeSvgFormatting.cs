@@ -33,11 +33,30 @@ public static partial class OfficeSvgFormatting {
             return string.Empty;
         }
 
-        return value!
-            .Replace("&", "&amp;")
-            .Replace("<", "&lt;")
-            .Replace(">", "&gt;")
-            .Replace("\"", "&quot;");
+        var escaped = new StringBuilder(value!.Length);
+        for (int index = 0; index < value.Length; index++) {
+            char character = value[index];
+            switch (character) {
+                case '&': escaped.Append("&amp;"); break;
+                case '<': escaped.Append("&lt;"); break;
+                case '>': escaped.Append("&gt;"); break;
+                case '"': escaped.Append("&quot;"); break;
+                case '\t':
+                case '\n':
+                case '\r':
+                    escaped.Append(character);
+                    break;
+                default:
+                    if (character >= 0x20 && character <= 0xd7ff || character >= 0xe000 && character <= 0xfffd) {
+                        escaped.Append(character);
+                    } else if (char.IsHighSurrogate(character) && index + 1 < value.Length &&
+                               char.IsLowSurrogate(value[index + 1])) {
+                        escaped.Append(character).Append(value[++index]);
+                    }
+                    break;
+            }
+        }
+        return escaped.ToString();
     }
 
     /// <summary>

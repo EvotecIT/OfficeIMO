@@ -8,15 +8,18 @@
              x:DataType="shell:MainWindowViewModel">
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                 Background="{DynamicResource StudioPanelBrush}">
-    <Grid Margin="28,24,28,30" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="22"
+    <Grid Margin="32,28,32,32" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="24"
           MaxWidth="1160" HorizontalAlignment="Stretch">
       <StackPanel Grid.Row="0" Spacing="16">
-        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.Home}" Classes="pageTitle" />
+        <StackPanel Spacing="6">
+          <TextBlock Text="{loc:Loc Home.Welcome}" Classes="pageTitle" />
+          <TextBlock Text="{loc:Loc Home.WelcomeDescription}" Classes="muted" />
+        </StackPanel>
         <shell:StudioSessionView DataContext="{Binding Session}" />
       </StackPanel>
 
       <Border Grid.Row="1" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
-              CornerRadius="8" Padding="24" Background="{DynamicResource StudioPanelMutedBrush}">
+              CornerRadius="12" Padding="28" Background="{DynamicResource StudioPanelRaisedBrush}">
         <StackPanel HorizontalAlignment="Center" Spacing="10">
           <PathIcon Data="{StaticResource IconOpen}" Width="34" Height="34"
                     Foreground="{DynamicResource StudioMutedTextBrush}" />
@@ -33,11 +36,11 @@
       </Border>
 
       <StackPanel Grid.Row="2" Spacing="10">
-        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.QuickTasks}" FontSize="15" FontWeight="SemiBold" />
+        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.QuickTasks}" Classes="sectionTitle" />
         <infra:AdaptiveCardPanel MinimumCardWidth="140" ColumnSpacing="12" RowSpacing="12">
           <Button Classes="cardAction" Command="{Binding Commands[Assemble]}" AutomationProperties.Name="{loc:Loc Home.Merge}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
-              <PathIcon Data="{StaticResource IconMerge}" Width="22" Height="22" Foreground="{DynamicResource StudioSuccessBrush}" />
+              <PathIcon Data="{StaticResource IconMerge}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}" />
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.Merge}" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
@@ -62,13 +65,13 @@
           </Button>
           <Button Classes="cardAction" Command="{Binding Commands[Optimize]}" AutomationProperties.Name="{loc:Loc Home.Compress}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
-              <PathIcon Data="{StaticResource IconCompress}" Width="22" Height="22" Foreground="{DynamicResource StudioErrorBrush}" />
+              <PathIcon Data="{StaticResource IconCompress}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}" />
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.Compress}" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
           <Button Classes="cardAction" Command="{Binding Commands[Protect]}" AutomationProperties.Name="{loc:Loc Home.Protect}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
-              <PathIcon Data="{StaticResource IconProtect}" Width="22" Height="22" Foreground="{DynamicResource StudioWarningBrush}" />
+              <PathIcon Data="{StaticResource IconProtect}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}" />
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.Protect}" FontWeight="SemiBold" />
               <TextBlock Text="{Binding Commands[Protect].UnavailableReason}" IsVisible="{Binding Commands[Protect].HasUnavailableReason}" TextWrapping="Wrap" TextAlignment="Center" FontSize="11" />
             </StackPanel>

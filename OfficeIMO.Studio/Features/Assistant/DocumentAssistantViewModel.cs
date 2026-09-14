@@ -32,6 +32,8 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
         Action<int> navigate, IStudioLocalizer localizer,
         Func<OfficeAiExecutionProfile, OfficeAiIntelligenceXOptions, CancellationToken, Task<IOfficeAiExecutor>>? connect = null) {
         Connections = connections; _capture = capture; _navigate = navigate; _localizer = localizer;
+        _showConnections = !connections.CanUse;
+        Messages.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasConversation));
         _connect = connect ?? (async (profile, options, token) => await IntelligenceXOfficeAiExecutor.ConnectAsync(profile, options, token));
         connections.Changed += OnConnectionChanged;
         connections.PropertyChanged += OnConnectionPropertyChanged;
@@ -43,6 +45,13 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
     internal Func<string, Task>? CopyAnswer { get; set; }
     internal Func<string, Func<bool>, CancellationToken, Task<bool>>? ExportAnswer { get; set; }
     public ObservableCollection<AssistantMessage> Messages { get; } = [];
+    public bool HasConversation => Messages.Count > 0;
+
+    [RelayCommand]
+    private void UsePrompt(string? prompt) {
+        if (!IsBusy && prompt is "Summary" or "Actions" or "KeyFacts")
+            Question = _localizer.Get("Assistant.Prompt." + prompt);
+    }
     [ObservableProperty] private string _question = string.Empty;
     [ObservableProperty] private string _status = string.Empty;
     [ObservableProperty] private bool _isBusy;

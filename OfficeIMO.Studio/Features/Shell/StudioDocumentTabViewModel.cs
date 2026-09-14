@@ -20,6 +20,8 @@ public sealed partial class StudioDocumentTabViewModel : ObservableObject, IDisp
 
     internal MainWindowViewModel Document { get; }
 
+    public override string ToString() => Title;
+
     [ObservableProperty]
     private string _title;
 

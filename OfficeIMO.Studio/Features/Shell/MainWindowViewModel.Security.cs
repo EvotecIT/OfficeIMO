@@ -161,6 +161,7 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task ValidateSignaturesAsync(CancellationToken cancellationToken) {
+        using var notifications = BeginNotificationScope();
         if (_workspace is null) return;
         PdfSignatureValidationReport? report = null;
         bool succeeded = await RunStandaloneAsync(

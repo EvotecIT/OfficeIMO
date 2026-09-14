@@ -38,6 +38,35 @@ internal sealed class PdfDecodedStreamBudget {
         return DecodeCore(stream, objects, maximumRequestedBytes, requireSupportedFilters: true, cancellationToken);
     }
 
+    internal byte[] DecodeRetainedRequired(
+        PdfStream stream,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumRequestedBytes,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        long remaining = _maximumTotal - _used;
+        if (remaining <= 0L) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.TotalDecodedStreamBytes, _maximumTotal, _used + 1L);
+        }
+        int maximumOutput = (int)Math.Min(_maximumPerStream,
+            Math.Min(maximumRequestedBytes, Math.Min(remaining, int.MaxValue)));
+        byte[] decoded;
+        try {
+            decoded = Filters.StreamDecoder.DecodeRequired(
+                stream.Dictionary, stream.Data, objects, maximumOutput, cancellationToken);
+        } catch (PdfReadLimitException exception) when (
+            exception.Kind == PdfReadLimitKind.DecodedStreamBytes &&
+            remaining < Math.Min(_maximumPerStream, (long)maximumRequestedBytes)) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.TotalDecodedStreamBytes, _maximumTotal, _maximumTotal + 1L);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        _used = checked(_used + decoded.LongLength);
+        if (_used > _maximumTotal) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.TotalDecodedStreamBytes, _maximumTotal, _used);
+        }
+        return decoded;
+    }
+
     private byte[] DecodeCore(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,

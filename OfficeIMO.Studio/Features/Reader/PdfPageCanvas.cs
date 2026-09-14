@@ -388,10 +388,11 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             PdfEditorSelectionMode.Forms => matches.FirstOrDefault(static region => region.Kind == PdfInteractionKind.FormWidget),
             PdfEditorSelectionMode.Annotations => matches.FirstOrDefault(static region =>
                 region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue),
-            PdfEditorSelectionMode.PageContent => matches.FirstOrDefault(static region =>
-                (region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue) ||
-                (region.Kind == PdfInteractionKind.Image && region.ImagePlacement is not null) ||
-                region.Kind == PdfInteractionKind.Text),
+            PdfEditorSelectionMode.PageContent => matches.FirstOrDefault(static region => region.WatermarkId is not null)
+                ?? matches.FirstOrDefault(static region =>
+                    (region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue) ||
+                    (region.Kind == PdfInteractionKind.Image && region.ImagePlacement is not null) ||
+                    region.Kind == PdfInteractionKind.Text),
             _ => null
         };
         if (selected is null) {
@@ -399,6 +400,10 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             return false;
         }
 
+        if (selected.WatermarkId is not null) {
+            ObjectSelected?.Invoke(CreateSelection(scene.PageNumber, selected));
+            return true;
+        }
         if (selected.Kind == PdfInteractionKind.Text) {
             IReadOnlyList<PdfPageInteractionRegion> word = scene.Interactions.SelectWord(point.X, point.Y, tolerance: 2D);
             if (word.Count > 0) {
@@ -450,7 +455,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         ObjectNumber: region.ObjectNumber,
         Subtype: region.Subtype,
         ImagePlacement: region.ImagePlacement,
-        FieldName: region.FieldName);
+        FieldName: region.FieldName,
+        WatermarkId: region.WatermarkId);
 
     private async Task CopySelectionAsync() {
         IClipboard? clipboard = TopLevel.GetTopLevel(this)?.Clipboard;

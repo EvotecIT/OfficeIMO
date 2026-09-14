@@ -18,6 +18,9 @@ internal static partial class StudioProcessProbe {
     [STAThread]
     public static async Task<int> Main(string[] args) {
         if (args is ["--studio-visual-probe", var visualRoot]) return StudioVisualProbe.Run(visualRoot);
+        if (args is ["--studio-experience-probe", var experienceRoot, var scenario, var width, var height, var culture, var theme]
+            && int.TryParse(width, out int windowWidth) && int.TryParse(height, out int windowHeight))
+            return StudioExperienceProbe.Run(experienceRoot, scenario, windowWidth, windowHeight, culture, theme);
         if (args is not ["--studio-process-probe", var mode, var root] ||
             mode is not ("write" or "private-write" or "restore" or "recover-missing" or "private-verify" or "storage-full" or "storage-detach")) return 2;
         root = Path.GetFullPath(root);

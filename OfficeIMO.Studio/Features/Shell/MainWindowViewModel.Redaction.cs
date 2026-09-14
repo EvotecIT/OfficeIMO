@@ -34,6 +34,7 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task SaveVerifiedRedactionCopyAsync(CancellationToken cancellationToken) {
+        using var notifications = BeginNotificationScope();
         if (_workspace is not { } workspace || LastRedactionSummary is not { } summary) return;
         string? destination = null;
         bool succeeded = await RunStandaloneAsync(async token => {
@@ -50,6 +51,7 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task ExportRedactionEvidenceAsync(CancellationToken cancellationToken) {
+        using var notifications = BeginNotificationScope();
         if (_workspace is not { } workspace || LastRedactionSummary is not { } summary || LastRedactionCopyPath is not { } copy) return;
         await RunStandaloneAsync(async token => {
             string? destination = await _pickSaveRedactionReport(token).ConfigureAwait(true);
@@ -64,6 +66,7 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task SearchRedactionsAsync(CancellationToken cancellationToken) {
+        using var notifications = BeginNotificationScope();
         if (_workspace is null || !CanRedact || string.IsNullOrWhiteSpace(RedactionSearchText)) return;
         PdfWorkspace workspace = _workspace;
         long revision = workspace.Revision;
@@ -133,6 +136,7 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task ReviewRedactionsAsync(CancellationToken cancellationToken) {
+        using var notifications = BeginNotificationScope();
         if (_workspace is not { } workspace || !CanReviewRedactions) return;
         long generation = _redactionPlanGeneration;
         long revision = workspace.Revision;

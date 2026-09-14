@@ -14,6 +14,7 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task SplitAsync(CancellationToken cancellationToken) {
+        using var notifications = BeginNotificationScope();
         if (_workspace is null || !CanExtractPages || IsWorkspaceBusy || _reviewingPageSplit) return;
         var workspace = _workspace;
         long revision = workspace.Revision;
