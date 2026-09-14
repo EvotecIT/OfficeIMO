@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "generatedUtc": "2026-09-14T23:27:07.2993129+00:00",
+  "environment": {
+    "osFamily": "Linux",
+    "osDescription": "Ubuntu 24.04.3 LTS",
+    "osArchitecture": "X64",
+    "processArchitecture": "X64",
+    "frameworkDescription": ".NET 10.0.12",
+    "machineName": "EVOMAGIC",
+    "processorCount": 32
+  },
+  "source": {
+    "commit": "3808783dccaaeda9d0af34511e90c5e8af4e959c",
+    "worktreeClean": true,
+    "corpusId": "officeimo-html-h4-held-out-v2",
+    "manifestSha256": "60af2aab907af324bd1820a247a92b2b26f3e8445f235e06d50b10ac244375c7",
+    "caseCount": 8,
+    "outputsPerIteration": 76
+  },
+  "cold": {
+    "mode": "cold",
+    "processElapsedMilliseconds": 7502.0869,
+    "peakWorkingSetBytes": 267431936,
+    "memorySampleCount": 586,
+    "iterations": [
+      {
+        "number": 1,
+        "elapsedMilliseconds": 7399.9968,
+        "managedAllocatedBytes": 842072096,
+        "outputBytes": 2013013,
+        "caseCount": 8,
+        "outputCount": 76,
+        "fingerprintSha256": "019d028600805707ae9648898088a2bbff5c5e0ed452f9d48c001eb0a20c5488"
+      }
+    ],
+    "deterministic": true
+  },
+  "warm": {
+    "mode": "warm",
+    "processElapsedMilliseconds": 14220.9024,
+    "peakWorkingSetBytes": 294420480,
+    "memorySampleCount": 1132,
+    "iterations": [
+      {
+        "number": 1,
+        "elapsedMilliseconds": 2568.6974,
+        "managedAllocatedBytes": 770047200,
+        "outputBytes": 2013013,
+        "caseCount": 8,
+        "outputCount": 76,
+        "fingerprintSha256": "019d028600805707ae9648898088a2bbff5c5e0ed452f9d48c001eb0a20c5488"
+      },
+      {
+        "number": 2,
+        "elapsedMilliseconds": 2346.8172,
+        "managedAllocatedBytes": 771512640,
+        "outputBytes": 2013013,
+        "caseCount": 8,
+        "outputCount": 76,
+        "fingerprintSha256": "019d028600805707ae9648898088a2bbff5c5e0ed452f9d48c001eb0a20c5488"
+      },
+      {
+        "number": 3,
+        "elapsedMilliseconds": 2222.1994,
+        "managedAllocatedBytes": 771477952,
+        "outputBytes": 2013013,
+        "caseCount": 8,
+        "outputCount": 76,
+        "fingerprintSha256": "019d028600805707ae9648898088a2bbff5c5e0ed452f9d48c001eb0a20c5488"
+      }
+    ],
+    "deterministic": true
+  },
+  "cancellation": {
+    "status": "Passed",
+    "elapsedMilliseconds": 4.4888,
+    "detail": "Cancellation propagated through the asynchronous resource boundary."
+  },
+  "failures": []
+}
