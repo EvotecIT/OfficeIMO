@@ -17,7 +17,7 @@ public partial class Html {
         Assert.Equal(first, second);
         Assert.DoesNotContain("\r", first, StringComparison.Ordinal);
         Assert.Contains("generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderProfileContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`", first, StringComparison.Ordinal);
-        Assert.Contains("Capability schema version: 2", first, StringComparison.Ordinal);
+        Assert.Contains("Capability schema version: 3", first, StringComparison.Ordinal);
         Assert.Contains("## Versioned compatibility profile manifests", first, StringComparison.Ordinal);
         Assert.Contains("## Render intent profiles", first, StringComparison.Ordinal);
         Assert.Contains("## Capability contracts by profile and processing stage", first, StringComparison.Ordinal);

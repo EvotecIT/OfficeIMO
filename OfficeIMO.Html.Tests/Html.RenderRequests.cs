@@ -408,6 +408,10 @@ public sealed class HtmlRenderRequestTests {
     [InlineData(false)]
     [InlineData(true)]
     public async Task DirectPdfByteEntryPointsKeepSerializationInsideTheRenderDeadline(bool useExplicitAsyncRequest) {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse("<p>Serialization deadline</p>");
+        // Keep this contract focused on serialization. The first process-wide system-font
+        // discovery is part of rendering and may legitimately consume the short deadline.
+        _ = source.ToPdfBytes();
         var timeout = TimeSpan.FromMilliseconds(100D);
         var provider = new SlowFirstEncryptionProvider(TimeSpan.FromMilliseconds(300D));
         var options = new HtmlToPdfOptions { RenderTimeout = timeout };
@@ -416,8 +420,6 @@ public sealed class HtmlRenderRequestTests {
             Algorithm = OfficeIMO.Pdf.PdfStandardEncryptionAlgorithm.Aes128,
             AesCryptographyProvider = provider
         });
-        HtmlConversionDocument source = HtmlConversionDocument.Parse("<p>Serialization deadline</p>");
-
         OfficeImageExportTimeoutException exception;
         if (useExplicitAsyncRequest) {
             HtmlRenderRequest request = HtmlRenderRequest.Create(
