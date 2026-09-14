@@ -173,6 +173,26 @@ public sealed class PdfWatermarkWorkflowTests {
     }
 
     [Fact]
+    public void ReadingImageWatermarksHonorsAggregateDecodedStreamLimit() {
+        byte[] image = CreateSolidBmp(64, 64);
+        var first = Options(false);
+        first.ImageBytes = image;
+        var second = Options(false);
+        second.ImageBytes = image;
+        byte[] watermarked = PdfDocument.Load(Source()).Stamp.Watermark(first).Stamp.Watermark(second).ToBytes();
+
+        var exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Load(watermarked).Stamp.ReadWatermarks(
+            new PdfLoadOptions {
+                Limits = new PdfReadLimits {
+                    MaxDecodedStreamBytes = image.Length + 1024,
+                    MaxTotalDecodedStreamBytes = image.Length + 1024
+                }
+            }));
+
+        Assert.Equal(PdfReadLimitKind.TotalDecodedStreamBytes, exception.Kind);
+    }
+
+    [Fact]
     public void TextWatermarkCanBeRevisedToAnImageAndMovedBehindContent() {
         var settings = Options(false);
         settings.Text = "REPLACE ME";

@@ -59,6 +59,19 @@ public sealed class DrawingSvgFontScopeTests {
             svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
     }
 
+    [Fact]
+    public void ScopedSvgRemovesXmlIllegalTextCharactersBeforeReparsing() {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add("Shared Font", ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A\0\u0001B\ud800C\ufffeD\ud83d\ude00", 2, 2, 90, 30,
+            new OfficeFontInfo("Shared Font", 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(
+            drawing, 1, OfficeSvgSizeUnit.Point, null, "page-1-"));
+
+        Assert.Equal("ABCD\ud83d\ude00", svg.Descendants().Single(x => x.Name.LocalName == "text").Value);
+    }
+
     private static OfficeDrawing CreateDrawing(char letter) {
         var drawing = new OfficeDrawing(100, 40);
         drawing.Fonts.Add("Shared Font", ManagedTextShapingTestAssets.CreateFont(letter));

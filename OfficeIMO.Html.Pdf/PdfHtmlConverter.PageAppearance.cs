@@ -8,6 +8,9 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Html.Pdf;
 
 public static partial class PdfHtmlConverterExtensions {
+    private const string PageAppearancePrefix = "<img class=\"pdf-page-appearance\" aria-hidden=\"true\" alt=\"\" draggable=\"false\" decoding=\"sync\" src=\"data:image/svg+xml;base64,";
+    private const string PageAppearanceSuffix = "\" style=\"position:absolute;inset:0;width:100%;height:100%;user-select:none;pointer-events:none\" />\n";
+
     private static bool TryAppendPageAppearance(StringBuilder builder, PdfCore.PdfLogicalPage page,
         int renderIndex, PdfToHtmlOptions options) {
         if (options.VisualSource is null ||
@@ -42,11 +45,14 @@ public static partial class PdfHtmlConverterExtensions {
             ? options.MaximumOutputCharacters.Value - (long)builder.Length
             : int.MaxValue;
         if (remaining <= 0) throw new InvalidOperationException("Generated HTML exceeded its output limit.");
+        long base64Capacity = remaining - PageAppearancePrefix.Length - PageAppearanceSuffix.Length;
+        long maximumSvgBytes = base64Capacity >= 4L ? base64Capacity / 4L * 3L : 0L;
+        if (maximumSvgBytes <= 0L) throw new InvalidOperationException("Generated HTML exceeded its output limit.");
         byte[] svg;
         try {
             svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, 1D, OfficeSvgSizeUnit.Point,
                 imageCodec: null, resourceIdPrefix: "pdf-page-" + renderIndex.ToString(CultureInfo.InvariantCulture) + "-",
-                maximumUtf8Bytes: remaining * 3L, cancellationToken: token);
+                maximumUtf8Bytes: maximumSvgBytes, cancellationToken: token);
         } catch (OfficeSvgImageVectorizationLimitException) {
             token.ThrowIfCancellationRequested();
             return ReportImageAppearanceFallback(options);
@@ -55,9 +61,9 @@ public static partial class PdfHtmlConverterExtensions {
         // Keep the visual SVG in an image document. Inline SVG text participates in
         // browser find, selection, and copy even when aria-hidden, which would expose
         // the same content a second time beside the logical text overlay.
-        builder.Append("<img class=\"pdf-page-appearance\" aria-hidden=\"true\" alt=\"\" draggable=\"false\" decoding=\"sync\" src=\"data:image/svg+xml;base64,");
+        builder.Append(PageAppearancePrefix);
         builder.Append(Convert.ToBase64String(svg));
-        builder.AppendLine("\" style=\"position:absolute;inset:0;width:100%;height:100%;user-select:none;pointer-events:none\" />");
+        builder.Append(PageAppearanceSuffix);
         foreach (var diagnostic in sourcePage.GetRenderCapabilityDiagnostics(token)) {
             AddWarning(options, diagnostic.Code, "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + ": " + diagnostic.Message,
                 PdfCore.PdfConversionWarningSeverity.Warning);

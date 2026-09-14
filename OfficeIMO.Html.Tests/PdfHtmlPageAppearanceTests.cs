@@ -186,8 +186,15 @@ public sealed class PdfHtmlPageAppearanceTests {
         string complete = pdf.ToHtml(options);
         options.MaximumOutputCharacters = complete.Length;
         Assert.Equal(complete, pdf.ToHtml(options));
-        options.MaximumOutputCharacters = complete.Length - 100;
-        Assert.Throws<InvalidOperationException>(() => pdf.ToHtmlResult(options));
+        const string prefix = "<img class=\"pdf-page-appearance\" aria-hidden=\"true\" alt=\"\" draggable=\"false\" decoding=\"sync\" src=\"data:image/svg+xml;base64,";
+        const string suffix = "\" style=\"position:absolute;inset:0;width:100%;height:100%;user-select:none;pointer-events:none\" />\n";
+        int appearanceStart = complete.IndexOf(prefix, StringComparison.Ordinal);
+        int appearanceEnd = complete.IndexOf(suffix, appearanceStart, StringComparison.Ordinal);
+        options.MaximumOutputCharacters = appearanceEnd + suffix.Length - 4;
+        var exception = Assert.Throws<OfficeImageExportBatchLimitException>(() => pdf.ToHtmlResult(options));
+        long remaining = options.MaximumOutputCharacters.Value - appearanceStart;
+        Assert.InRange(exception.Maximum, 1L,
+            (remaining - prefix.Length - suffix.Length) / 4L * 3L);
     }
 
     private static byte[] Source(bool twoPages = false) {
