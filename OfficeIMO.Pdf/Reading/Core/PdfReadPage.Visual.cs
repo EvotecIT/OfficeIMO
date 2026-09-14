@@ -1879,7 +1879,7 @@ public sealed partial class PdfReadPage {
             PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state, resources) : null;
             bool unsupportedSoftMask = softMaskEnabled == true && softMask == null;
             bool unsupportedTextRestampEffect = hasInvalidRenderingIntent || hasInvalidFont || HasUnsupportedTextRestampEffect(state);
-            bool unsupportedImagePaintEffect = HasUnsupportedImagePaintEffect(state);
+            PdfPageImagePaintEffectOverrides imagePaintEffectOverrides = ReadImagePaintEffectOverrides(state);
             result[entry.Key] = new PdfPageGraphicsStateResource(
                 fillOpacity,
                 strokeOpacity,
@@ -1898,7 +1898,7 @@ public sealed partial class PdfReadPage {
                 strokeDashPattern: strokeDashPattern,
                 fontResource: fontResource,
                 fontSize: fontSize,
-                hasUnsupportedImagePaintEffect: unsupportedImagePaintEffect);
+                imagePaintEffectOverrides: imagePaintEffectOverrides);
         }
 
         return result;
@@ -1956,21 +1956,50 @@ public sealed partial class PdfReadPage {
         return false;
     }
 
-    private bool HasUnsupportedImagePaintEffect(PdfDictionary state) {
-        // These entries can change image samples at paint time. Path flatness, smoothness,
-        // stroke adjustment, and text knockout do not change a decoded image payload.
-        string[] colorTransformKeys = { "BG", "BG2", "UCR", "UCR2", "TR", "TR2", "HT" };
-        for (int index = 0; index < colorTransformKeys.Length; index++) {
-            if (state.Items.TryGetValue(colorTransformKeys[index], out PdfObject? value) &&
-                ResolveEffectObject(value) is not PdfNull) return true;
-        }
+    private PdfPageImagePaintEffectOverrides ReadImagePaintEffectOverrides(PdfDictionary state) {
+        return new PdfPageImagePaintEffectOverrides(
+            ReadUnsupportedNamedResetEffect(state, "BG2", "BG", allowIdentity: false),
+            ReadUnsupportedNamedResetEffect(state, "UCR2", "UCR", allowIdentity: false),
+            ReadUnsupportedNamedResetEffect(state, "TR2", "TR", allowIdentity: true),
+            ReadUnsupportedNamedResetEffect(state, "HT", legacyKey: null, allowIdentity: false),
+            ReadUnsupportedBooleanEffect(state, "op"),
+            ReadUnsupportedZeroNumberEffect(state, "OPM"),
+            ReadUnsupportedBooleanEffect(state, "AIS"));
+    }
 
-        if (state.Items.TryGetValue("op", out PdfObject? overprint) &&
-            ResolveEffectObject(overprint) is not PdfBoolean { Value: false } and not PdfNull) return true;
-        if (state.Items.TryGetValue("OPM", out PdfObject? overprintMode) &&
-            ResolveEffectObject(overprintMode) is not PdfNumber { Value: 0D } and not PdfNull) return true;
-        return state.Items.TryGetValue("AIS", out PdfObject? alphaIsShape) &&
-            ResolveEffectObject(alphaIsShape) is not PdfBoolean { Value: false } and not PdfNull;
+    private bool? ReadUnsupportedNamedResetEffect(
+        PdfDictionary state,
+        string key,
+        string? legacyKey,
+        bool allowIdentity) {
+        PdfObject? value;
+        if (!state.Items.TryGetValue(key, out value)) {
+            if (legacyKey == null || !state.Items.TryGetValue(legacyKey, out value)) return null;
+        }
+        PdfObject? resolved = ResolveEffectObject(value);
+        if (resolved is PdfNull || resolved is PdfName { Name: "Default" }) return false;
+        if (allowIdentity && resolved is PdfName { Name: "Identity" }) return false;
+        return true;
+    }
+
+    private bool? ReadUnsupportedBooleanEffect(PdfDictionary state, string key) {
+        if (!state.Items.TryGetValue(key, out PdfObject? value)) return null;
+        PdfObject? resolved = ResolveEffectObject(value);
+        return resolved switch {
+            PdfBoolean boolean => boolean.Value,
+            PdfNull => false,
+            _ => true
+        };
+    }
+
+    private bool? ReadUnsupportedZeroNumberEffect(PdfDictionary state, string key) {
+        if (!state.Items.TryGetValue(key, out PdfObject? value)) return null;
+        PdfObject? resolved = ResolveEffectObject(value);
+        return resolved switch {
+            PdfNumber number => number.Value != 0D,
+            PdfNull => false,
+            _ => true
+        };
     }
 
     private bool TryReadSupportedExtGStateRenderingIntent(

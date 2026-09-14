@@ -160,6 +160,20 @@ public static partial class PdfHtmlConverterExtensions {
                 PdfCore.PdfConversionWarningSeverity.Warning,
                 OfficeConversionLossKind.Omission);
         }
+
+        ActionDiagnosticSummary actionSummary = BuildActionDiagnosticSummary(document, pages);
+        int omittedDocumentActionCount = actionSummary.CatalogActionCount +
+            actionSummary.SelectedPageActionCount +
+            (actionSummary.HasOpenAction ? 1 : 0);
+        if (omittedDocumentActionCount > 0) {
+            AddWarning(
+                options,
+                "PdfDocumentActionsOmitted",
+                omittedDocumentActionCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " scoped PDF open, catalog, or page actions were stripped from HTML output.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
     }
 
     private static bool IsOutputBuilderCapacityException(Exception exception) =>

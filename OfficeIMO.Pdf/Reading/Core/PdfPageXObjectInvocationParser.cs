@@ -2301,7 +2301,8 @@ internal static class PdfPageXObjectInvocationParser {
             bool hasUnsupportedBlendMode,
             bool hasUnsupportedPaintState,
             bool hasUnsupportedImagePaintEffect,
-            bool hasSoftMask) {
+            bool hasSoftMask,
+            PdfPageImagePaintEffectState? imagePaintEffectState = null) {
             Transform = transform;
             ClipPath = clipPath;
             FillColor = fillColor;
@@ -2319,7 +2320,9 @@ internal static class PdfPageXObjectInvocationParser {
             AuthoredBlendMode = authoredBlendMode;
             HasUnsupportedBlendMode = hasUnsupportedBlendMode;
             HasUnsupportedPaintState = hasUnsupportedPaintState;
-            HasUnsupportedImagePaintEffect = hasUnsupportedImagePaintEffect;
+            ImagePaintEffectState = imagePaintEffectState ??
+                PdfPageImagePaintEffectState.FromUnknown(hasUnsupportedImagePaintEffect);
+            HasUnsupportedImagePaintEffect = ImagePaintEffectState.HasEffect;
             HasSoftMask = hasSoftMask;
         }
 
@@ -2358,6 +2361,8 @@ internal static class PdfPageXObjectInvocationParser {
         public bool HasUnsupportedPaintState { get; }
 
         public bool HasUnsupportedImagePaintEffect { get; }
+
+        private PdfPageImagePaintEffectState ImagePaintEffectState { get; }
 
         public bool HasSoftMask { get; }
 
@@ -2404,36 +2409,37 @@ internal static class PdfPageXObjectInvocationParser {
                 hasUnsupportedImagePaintEffect,
                 hasSoftMask);
 
-        public GraphicsState WithTransform(Matrix2D transform) => new GraphicsState(transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask);
+        public GraphicsState WithTransform(Matrix2D transform) => new GraphicsState(transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask, ImagePaintEffectState);
 
-        public GraphicsState WithClipPath(PdfPageClipPath clipPath) => new GraphicsState(Transform, clipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask);
+        public GraphicsState WithClipPath(PdfPageClipPath clipPath) => new GraphicsState(Transform, clipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask, ImagePaintEffectState);
 
-        public GraphicsState WithFillColor(OfficeColor color) => new GraphicsState(Transform, ClipPath, color, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask);
+        public GraphicsState WithFillColor(OfficeColor color) => new GraphicsState(Transform, ClipPath, color, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask, ImagePaintEffectState);
 
-        public GraphicsState WithFillColor(OfficeColor color, PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, color, colorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask);
+        public GraphicsState WithFillColor(OfficeColor color, PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, color, colorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask, ImagePaintEffectState);
 
-        public GraphicsState WithFillColorSpace(PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, FillColor, colorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask);
+        public GraphicsState WithFillColorSpace(PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, FillColor, colorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask, ImagePaintEffectState);
 
-        public GraphicsState WithStrokeColor(OfficeColor color) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, color, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask);
+        public GraphicsState WithStrokeColor(OfficeColor color) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, color, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask, ImagePaintEffectState);
 
-        public GraphicsState WithStrokeColor(OfficeColor color, PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, color, colorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask);
+        public GraphicsState WithStrokeColor(OfficeColor color, PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, color, colorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask, ImagePaintEffectState);
 
-        public GraphicsState WithStrokeColorSpace(PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, colorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask);
+        public GraphicsState WithStrokeColorSpace(PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, colorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask, ImagePaintEffectState);
 
-        public GraphicsState WithStrokeWidth(double strokeWidth) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, strokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask);
+        public GraphicsState WithStrokeWidth(double strokeWidth) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, strokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask, ImagePaintEffectState);
 
-        public GraphicsState WithStrokeDashStyle(OfficeStrokeDashStyle? strokeDashStyle) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, strokeDashStyle, null, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask);
+        public GraphicsState WithStrokeDashStyle(OfficeStrokeDashStyle? strokeDashStyle) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, strokeDashStyle, null, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask, ImagePaintEffectState);
 
-        public GraphicsState WithStrokeDash(OfficeStrokeDashStyle? strokeDashStyle, PdfStrokeDashPattern strokeDashPattern) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, strokeDashStyle, strokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask);
+        public GraphicsState WithStrokeDash(OfficeStrokeDashStyle? strokeDashStyle, PdfStrokeDashPattern strokeDashPattern) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, strokeDashStyle, strokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask, ImagePaintEffectState);
 
-        public GraphicsState WithStrokeDashPattern(PdfStrokeDashPattern strokeDashPattern) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, strokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask);
+        public GraphicsState WithStrokeDashPattern(PdfStrokeDashPattern strokeDashPattern) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, strokeDashPattern, StrokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask, ImagePaintEffectState);
 
-        public GraphicsState WithStrokeLineCap(OfficeStrokeLineCap? strokeLineCap) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, strokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask);
+        public GraphicsState WithStrokeLineCap(OfficeStrokeLineCap? strokeLineCap) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, strokeLineCap, StrokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask, ImagePaintEffectState);
 
-        public GraphicsState WithStrokeLineJoin(OfficeStrokeLineJoin? strokeLineJoin) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, strokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask);
+        public GraphicsState WithStrokeLineJoin(OfficeStrokeLineJoin? strokeLineJoin) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, strokeLineJoin, BlendMode, AuthoredBlendMode, HasUnsupportedBlendMode, HasUnsupportedPaintState, HasUnsupportedImagePaintEffect, HasSoftMask, ImagePaintEffectState);
 
-        public GraphicsState WithGraphicsStateResource(PdfPageGraphicsStateResource resource) =>
-            new GraphicsState(
+        public GraphicsState WithGraphicsStateResource(PdfPageGraphicsStateResource resource) {
+            PdfPageImagePaintEffectState imagePaintEffectState = ImagePaintEffectState.Apply(resource);
+            return new GraphicsState(
                 Transform,
                 ClipPath,
                 FillColor,
@@ -2455,8 +2461,10 @@ internal static class PdfPageXObjectInvocationParser {
                     ? resource.HasUnsupportedBlendMode
                     : HasUnsupportedBlendMode,
                 HasUnsupportedPaintState || resource.HasUnsupportedTextRestampEffect,
-                HasUnsupportedImagePaintEffect || resource.HasUnsupportedImagePaintEffect,
-                resource.SoftMaskEnabled ?? HasSoftMask);
+                imagePaintEffectState.HasEffect,
+                resource.SoftMaskEnabled ?? HasSoftMask,
+                imagePaintEffectState);
+        }
     }
 
     private readonly struct GraphicsEffectState {

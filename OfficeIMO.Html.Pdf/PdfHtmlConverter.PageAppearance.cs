@@ -25,6 +25,10 @@ public static partial class PdfHtmlConverterExtensions {
 
         var token = options.CancellationToken;
         token.ThrowIfCancellationRequested();
+        if (page.Images.Any(image => image.Placements.Any(placement =>
+                !PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement).CanImport))) {
+            return ReportUnsafeImageAppearanceFallback(options);
+        }
         long pixelBudget = 100_000;
         foreach (var image in page.Images) {
             PdfCore.PdfExtractedImage sourceImage = image.SourceImage;
@@ -111,6 +115,13 @@ public static partial class PdfHtmlConverterExtensions {
         AddWarning(options, "PageAppearanceImageFallback",
             "The page uses positioned images and text to avoid excessive SVG image expansion. Compare its appearance with the source PDF.",
             PdfCore.PdfConversionWarningSeverity.Warning);
+        return false;
+    }
+
+    private static bool ReportUnsafeImageAppearanceFallback(PdfToHtmlOptions options) {
+        AddWarning(options, "PageAppearanceUnsafeImageFallback",
+            "The page appearance SVG was not emitted because it could expose image pixels hidden by PDF clipping, transparency, or paint effects. Positioned HTML fallback was used instead.",
+            PdfCore.PdfConversionWarningSeverity.Information);
         return false;
     }
 }

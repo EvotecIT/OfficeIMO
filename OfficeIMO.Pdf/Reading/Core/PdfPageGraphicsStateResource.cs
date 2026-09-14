@@ -21,7 +21,8 @@ internal readonly struct PdfPageGraphicsStateResource {
         PdfStrokeDashPattern? strokeDashPattern = null,
         string? fontResource = null,
         double? fontSize = null,
-        bool hasUnsupportedImagePaintEffect = false) {
+        bool hasUnsupportedImagePaintEffect = false,
+        PdfPageImagePaintEffectOverrides imagePaintEffectOverrides = default) {
         FillOpacity = fillOpacity;
         StrokeOpacity = strokeOpacity;
         StrokeWidth = strokeWidth;
@@ -39,7 +40,9 @@ internal readonly struct PdfPageGraphicsStateResource {
         HasUnsupportedTextRestampEffect = hasUnsupportedTextRestampEffect;
         FontResource = fontResource;
         FontSize = fontSize;
-        HasUnsupportedImagePaintEffect = hasUnsupportedImagePaintEffect;
+        HasPersistentUnsupportedImagePaintEffect = hasUnsupportedImagePaintEffect;
+        ImagePaintEffectOverrides = imagePaintEffectOverrides;
+        HasUnsupportedImagePaintEffect = hasUnsupportedImagePaintEffect || imagePaintEffectOverrides.HasEnabledEffect;
     }
 
     public double? FillOpacity { get; }
@@ -77,7 +80,104 @@ internal readonly struct PdfPageGraphicsStateResource {
 
     public bool HasUnsupportedImagePaintEffect { get; }
 
+    internal bool HasPersistentUnsupportedImagePaintEffect { get; }
+
+    internal PdfPageImagePaintEffectOverrides ImagePaintEffectOverrides { get; }
+
     public string? FontResource { get; }
 
     public double? FontSize { get; }
+}
+
+internal readonly struct PdfPageImagePaintEffectOverrides {
+    internal PdfPageImagePaintEffectOverrides(
+        bool? blackGenerationEnabled,
+        bool? undercolorRemovalEnabled,
+        bool? transferEnabled,
+        bool? halftoneEnabled,
+        bool? overprintEnabled,
+        bool? overprintModeEnabled,
+        bool? alphaIsShapeEnabled) {
+        BlackGenerationEnabled = blackGenerationEnabled;
+        UndercolorRemovalEnabled = undercolorRemovalEnabled;
+        TransferEnabled = transferEnabled;
+        HalftoneEnabled = halftoneEnabled;
+        OverprintEnabled = overprintEnabled;
+        OverprintModeEnabled = overprintModeEnabled;
+        AlphaIsShapeEnabled = alphaIsShapeEnabled;
+    }
+
+    internal bool? BlackGenerationEnabled { get; }
+
+    internal bool? UndercolorRemovalEnabled { get; }
+
+    internal bool? TransferEnabled { get; }
+
+    internal bool? HalftoneEnabled { get; }
+
+    internal bool? OverprintEnabled { get; }
+
+    internal bool? OverprintModeEnabled { get; }
+
+    internal bool? AlphaIsShapeEnabled { get; }
+
+    internal bool HasEnabledEffect =>
+        BlackGenerationEnabled == true || UndercolorRemovalEnabled == true ||
+        TransferEnabled == true || HalftoneEnabled == true ||
+        OverprintEnabled == true || OverprintModeEnabled == true || AlphaIsShapeEnabled == true;
+}
+
+internal readonly struct PdfPageImagePaintEffectState {
+    private PdfPageImagePaintEffectState(
+        bool hasPersistentUnsupportedEffect,
+        bool blackGenerationEnabled,
+        bool undercolorRemovalEnabled,
+        bool transferEnabled,
+        bool halftoneEnabled,
+        bool overprintEnabled,
+        bool overprintModeEnabled,
+        bool alphaIsShapeEnabled) {
+        HasPersistentUnsupportedEffect = hasPersistentUnsupportedEffect;
+        BlackGenerationEnabled = blackGenerationEnabled;
+        UndercolorRemovalEnabled = undercolorRemovalEnabled;
+        TransferEnabled = transferEnabled;
+        HalftoneEnabled = halftoneEnabled;
+        OverprintEnabled = overprintEnabled;
+        OverprintModeEnabled = overprintModeEnabled;
+        AlphaIsShapeEnabled = alphaIsShapeEnabled;
+    }
+
+    internal bool HasPersistentUnsupportedEffect { get; }
+
+    internal bool BlackGenerationEnabled { get; }
+
+    internal bool UndercolorRemovalEnabled { get; }
+
+    internal bool TransferEnabled { get; }
+
+    internal bool HalftoneEnabled { get; }
+
+    internal bool OverprintEnabled { get; }
+
+    internal bool OverprintModeEnabled { get; }
+
+    internal bool AlphaIsShapeEnabled { get; }
+
+    internal bool HasEffect => HasPersistentUnsupportedEffect || BlackGenerationEnabled ||
+        UndercolorRemovalEnabled || TransferEnabled || HalftoneEnabled ||
+        OverprintEnabled || OverprintModeEnabled || AlphaIsShapeEnabled;
+
+    internal static PdfPageImagePaintEffectState FromUnknown(bool hasUnsupportedEffect) =>
+        new PdfPageImagePaintEffectState(hasUnsupportedEffect, false, false, false, false, false, false, false);
+
+    internal PdfPageImagePaintEffectState Apply(PdfPageGraphicsStateResource resource) =>
+        new PdfPageImagePaintEffectState(
+            HasPersistentUnsupportedEffect || resource.HasPersistentUnsupportedImagePaintEffect,
+            resource.ImagePaintEffectOverrides.BlackGenerationEnabled ?? BlackGenerationEnabled,
+            resource.ImagePaintEffectOverrides.UndercolorRemovalEnabled ?? UndercolorRemovalEnabled,
+            resource.ImagePaintEffectOverrides.TransferEnabled ?? TransferEnabled,
+            resource.ImagePaintEffectOverrides.HalftoneEnabled ?? HalftoneEnabled,
+            resource.ImagePaintEffectOverrides.OverprintEnabled ?? OverprintEnabled,
+            resource.ImagePaintEffectOverrides.OverprintModeEnabled ?? OverprintModeEnabled,
+            resource.ImagePaintEffectOverrides.AlphaIsShapeEnabled ?? AlphaIsShapeEnabled);
 }

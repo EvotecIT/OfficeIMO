@@ -329,7 +329,9 @@ public static partial class PowerPointPdfConverterExtensions {
                 PdfCore.PdfImagePlacement sourcePlacement = image.Placements[placementIndex];
                 PdfCore.PdfImagePlacementImportAssessment assessment =
                     PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, sourcePlacement);
-                AddEditableImagePlacementWarning(warnings, image, assessment);
+                if (!assessment.CanImport) {
+                    AddEditableImagePlacementWarning(warnings, image, assessment);
+                }
                 if (assessment.IsSuppressed) {
                     continue;
                 }
@@ -364,6 +366,7 @@ public static partial class PowerPointPdfConverterExtensions {
                         (1D - assessment.Opacity) * 100D,
                         MidpointRounding.AwayFromZero);
                 }
+                AddEditableImagePlacementWarning(warnings, image, assessment);
                 imported++;
             }
         }

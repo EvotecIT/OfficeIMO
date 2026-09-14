@@ -1857,6 +1857,11 @@ public sealed class HtmlPdfTests {
         Assert.Equal(1, result.Summary.SelectedPageActionCount);
         Assert.Equal(3, result.Summary.AnnotationActionCount);
         Assert.Equal(3, result.Summary.SelectedAnnotationActionCount);
+        Assert.True(result.HasLoss);
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
         Assert.DoesNotContain("app.alert", result.Value, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("tool.exe", result.Value, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("https://example.com/submit", result.Value, StringComparison.OrdinalIgnoreCase);
