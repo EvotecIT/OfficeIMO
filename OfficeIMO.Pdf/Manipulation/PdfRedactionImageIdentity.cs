@@ -19,6 +19,7 @@ internal static class PdfRedactionImageIdentity {
             .Append(':').Append((int)placement.EffectiveBlendMode)
             .Append(':').Append(placement.HasUnsupportedBlendMode ? '1' : '0')
             .Append(':').Append(placement.HasUnsupportedPaintState ? '1' : '0')
+            .Append(':').Append(placement.HasUnsupportedImagePaintEffect ? '1' : '0')
             .Append(':').Append(placement.HasSoftMask ? '1' : '0')
             .Append(':').Append((int)placement.RenderingIntent)
             .Append(':').Append(placement.HasAuthoredRenderingIntent ? '1' : '0')

@@ -11,6 +11,22 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### PDF-to-Word editable layout defaults
+
+Editable PDF-to-Word conversion now preserves each source page's physical size, removes Word style spacing that would inflate explicitly positioned PDF text, and keeps axis-aligned images at their source page positions. These defaults improve dense business documents but can change pagination and image flow in applications that relied on the earlier Word defaults.
+
+To retain the earlier flowing layout, disable the three behaviors explicitly:
+
+```csharp
+var options = new PdfToWordOptions {
+    PreserveSourcePageSize = false,
+    PreserveCompactSourceSpacing = false,
+    PreserveImagePlacementPosition = false
+};
+```
+
+`PreserveImagePlacementSize` remains independent. Set it to `false` to use an image's natural pixel dimensions even when `PreserveImagePlacementPosition` keeps the image floating at its recovered page position.
+
 ### Provenance format ownership
 
 `OfficeIMO.Workflows` now accepts provenance requests only for extensions registered to a named OfficeIMO format owner, and it verifies that the file contents match that structural format. This keeps path, byte, command-line, and browser claims aligned with formats OfficeIMO can genuinely reopen and preserve.

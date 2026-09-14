@@ -9,6 +9,7 @@ internal enum PdfImagePlacementImportDisposition {
     OmitClippedPixels,
     OmitSoftMask,
     OmitUnsupportedBlendMode,
+    OmitUnsupportedPaintEffect,
     OmitUnresolvedTransparencyMask
 }
 
@@ -86,6 +87,12 @@ internal static class PdfImagePlacementImportPolicy {
                 opacity,
                 blendMode);
         }
+        if (placement.HasUnsupportedImagePaintEffect) {
+            return new PdfImagePlacementImportAssessment(
+                PdfImagePlacementImportDisposition.OmitUnsupportedPaintEffect,
+                opacity,
+                blendMode);
+        }
         if (!IsFullyVisibleRectangle(page, placement)) {
             return new PdfImagePlacementImportAssessment(
                 PdfImagePlacementImportDisposition.OmitClippedPixels,
@@ -119,12 +126,15 @@ internal static class PdfImagePlacementImportPolicy {
         if (clip == null) return true;
         if (!clip.IsExact || !clip.IsRectangle || clip.Width <= 0D || clip.Height <= 0D) return false;
 
-        double clipRight = clip.X + clip.Width;
-        double clipBottom = clip.Y + clip.Height;
-        return clip.X <= visual.Left + GeometryTolerance &&
-            clip.Y <= visual.Top + GeometryTolerance &&
-            clipRight >= visual.Right - GeometryTolerance &&
-            clipBottom >= visual.Bottom - GeometryTolerance;
+        PdfSelectionQuad visualClip = page.MapUserSpaceRectangleToVisual(
+            clip.X,
+            page.Height - (clip.Y + clip.Height),
+            clip.X + clip.Width,
+            page.Height - clip.Y);
+        return visualClip.Left <= visual.Left + GeometryTolerance &&
+            visualClip.Top <= visual.Top + GeometryTolerance &&
+            visualClip.Right >= visual.Right - GeometryTolerance &&
+            visualClip.Bottom >= visual.Bottom - GeometryTolerance;
     }
 
     private static double NormalizeOpacity(double opacity) {

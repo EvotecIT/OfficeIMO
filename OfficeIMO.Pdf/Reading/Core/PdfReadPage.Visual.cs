@@ -1879,6 +1879,7 @@ public sealed partial class PdfReadPage {
             PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state, resources) : null;
             bool unsupportedSoftMask = softMaskEnabled == true && softMask == null;
             bool unsupportedTextRestampEffect = hasInvalidRenderingIntent || hasInvalidFont || HasUnsupportedTextRestampEffect(state);
+            bool unsupportedImagePaintEffect = HasUnsupportedImagePaintEffect(state);
             result[entry.Key] = new PdfPageGraphicsStateResource(
                 fillOpacity,
                 strokeOpacity,
@@ -1896,7 +1897,8 @@ public sealed partial class PdfReadPage {
                 hasUnsupportedTextRestampEffect: unsupportedTextRestampEffect,
                 strokeDashPattern: strokeDashPattern,
                 fontResource: fontResource,
-                fontSize: fontSize);
+                fontSize: fontSize,
+                hasUnsupportedImagePaintEffect: unsupportedImagePaintEffect);
         }
 
         return result;
@@ -1952,6 +1954,23 @@ public sealed partial class PdfReadPage {
         string[] keys = { "op", "OPM", "BG", "BG2", "UCR", "UCR2", "TR", "TR2", "HT", "FL", "SM", "SA", "AIS", "TK" };
         for (int index = 0; index < keys.Length; index++) if (state.Items.ContainsKey(keys[index])) return true;
         return false;
+    }
+
+    private bool HasUnsupportedImagePaintEffect(PdfDictionary state) {
+        // These entries can change image samples at paint time. Path flatness, smoothness,
+        // stroke adjustment, and text knockout do not change a decoded image payload.
+        string[] colorTransformKeys = { "BG", "BG2", "UCR", "UCR2", "TR", "TR2", "HT" };
+        for (int index = 0; index < colorTransformKeys.Length; index++) {
+            if (state.Items.TryGetValue(colorTransformKeys[index], out PdfObject? value) &&
+                ResolveEffectObject(value) is not PdfNull) return true;
+        }
+
+        if (state.Items.TryGetValue("op", out PdfObject? overprint) &&
+            ResolveEffectObject(overprint) is not PdfBoolean { Value: false } and not PdfNull) return true;
+        if (state.Items.TryGetValue("OPM", out PdfObject? overprintMode) &&
+            ResolveEffectObject(overprintMode) is not PdfNumber { Value: 0D } and not PdfNull) return true;
+        return state.Items.TryGetValue("AIS", out PdfObject? alphaIsShape) &&
+            ResolveEffectObject(alphaIsShape) is not PdfBoolean { Value: false } and not PdfNull;
     }
 
     private bool TryReadSupportedExtGStateRenderingIntent(

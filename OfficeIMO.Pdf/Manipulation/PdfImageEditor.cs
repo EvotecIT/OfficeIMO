@@ -302,6 +302,7 @@ internal static partial class PdfImageEditor {
             blendMode: placement.BlendMode,
             hasUnsupportedBlendMode: placement.HasUnsupportedBlendMode,
             hasUnsupportedPaintState: placement.HasUnsupportedPaintState,
+            hasUnsupportedImagePaintEffect: placement.HasUnsupportedImagePaintEffect,
             hasSoftMask: placement.HasSoftMask,
             hasAuthoredRenderingIntent: placement.HasAuthoredRenderingIntent,
             contentOrderKey: placement.ContentOrderKey);

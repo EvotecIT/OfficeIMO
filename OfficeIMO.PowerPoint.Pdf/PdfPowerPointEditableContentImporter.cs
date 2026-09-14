@@ -408,6 +408,10 @@ public static partial class PowerPointPdfConverterExtensions {
                 AddEditableImageOmissionWarning(warnings, image, "PdfImageUnsupportedBlendModeNotSafelyEditable",
                     "The raw PDF image was not embedded because its unsupported blend mode cannot be reproduced safely as an editable PowerPoint picture.", details);
                 return;
+            case PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedPaintEffect:
+                AddEditableImageOmissionWarning(warnings, image, "PdfImagePaintEffectNotSafelyEditable",
+                    "The raw PDF image was not embedded because its PDF paint effect cannot be reproduced safely as an editable PowerPoint picture.", details);
+                return;
             case PdfCore.PdfImagePlacementImportDisposition.OmitUnresolvedTransparencyMask:
                 AddEditableImageOmissionWarning(warnings, image, "PdfImageTransparencyMaskNotResolved",
                     "The raw PDF image was not embedded because its unresolved transparency mask could hide pixels that an editable PowerPoint picture would reveal.", details);

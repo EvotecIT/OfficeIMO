@@ -96,8 +96,8 @@ namespace OfficeIMO.Word.Pdf {
                     embeddedImage = imageParagraph.InsertImage(
                         stream,
                         fileName,
-                        PdfPointsToWordPixels(visual.Width),
-                        PdfPointsToWordPixels(visual.Height),
+                        width,
+                        height,
                         WordImageTextWrapping.InFrontOfText,
                         description);
                     embeddedImage.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
@@ -214,6 +214,9 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedBlendMode => (
                     "PdfImageUnsupportedBlendModeNotSafelyEditable",
                     "The raw PDF image was not embedded because its unsupported PDF blend mode cannot be reproduced safely as an editable Word picture."),
+                PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedPaintEffect => (
+                    "PdfImagePaintEffectNotSafelyEditable",
+                    "The raw PDF image was not embedded because its PDF paint effect cannot be reproduced safely as an editable Word picture."),
                 _ => (
                     "PdfImageTransparencyMaskNotResolved",
                     "The raw PDF image was not embedded because its unresolved transparency mask could hide source pixels that an editable Word picture would reveal.")

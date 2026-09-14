@@ -16,10 +16,10 @@ public sealed class PdfImageClipInfo {
         Commands = Array.AsReadOnly(path.Commands.ToArray());
     }
 
-    /// <summary>Left edge of the clip bounds in the placement coordinate space.</summary>
+    /// <summary>Left edge of the clip bounds in the unrotated, top-left page canvas coordinate space.</summary>
     public double X { get; }
 
-    /// <summary>Top edge of the clip bounds in the placement coordinate space.</summary>
+    /// <summary>Top edge of the clip bounds in the unrotated, top-left page canvas coordinate space.</summary>
     public double Y { get; }
 
     /// <summary>Clip bounds width in points.</summary>

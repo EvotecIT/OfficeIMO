@@ -20,7 +20,8 @@ internal readonly struct PdfPageGraphicsStateResource {
         bool hasUnsupportedTextRestampEffect = false,
         PdfStrokeDashPattern? strokeDashPattern = null,
         string? fontResource = null,
-        double? fontSize = null) {
+        double? fontSize = null,
+        bool hasUnsupportedImagePaintEffect = false) {
         FillOpacity = fillOpacity;
         StrokeOpacity = strokeOpacity;
         StrokeWidth = strokeWidth;
@@ -38,6 +39,7 @@ internal readonly struct PdfPageGraphicsStateResource {
         HasUnsupportedTextRestampEffect = hasUnsupportedTextRestampEffect;
         FontResource = fontResource;
         FontSize = fontSize;
+        HasUnsupportedImagePaintEffect = hasUnsupportedImagePaintEffect;
     }
 
     public double? FillOpacity { get; }
@@ -72,6 +74,8 @@ internal readonly struct PdfPageGraphicsStateResource {
     public bool HasUnsupportedEntries { get; }
 
     public bool HasUnsupportedTextRestampEffect { get; }
+
+    public bool HasUnsupportedImagePaintEffect { get; }
 
     public string? FontResource { get; }
 

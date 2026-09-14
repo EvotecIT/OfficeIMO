@@ -87,6 +87,29 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void RotatedPageClipsAreComparedInTheSameVisualCoordinateSpaceAsImages() {
+        const string content = "q 0 0 150 60 re W n 40 0 0 80 20 20 cm /Im1 Do Q\n";
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(content, pageEntries: "/Rotate 90"));
+        PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
+        Assert.NotNull(placement.Clip);
+
+        AssertRawImageOmittedAcrossEditableAdapters(logical, "PdfImageClipNotSafelyEditable", "ImageClipNotSafelyEditable");
+    }
+
+    [Fact]
+    public void RotatedPageClipThatContainsTheWholeImageRemainsEditable() {
+        const string content = "q 0 0 80 120 re W n 40 0 0 80 20 20 cm /Im1 Do Q\n";
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(content, pageEntries: "/Rotate 90"));
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            Assert.Single(word.Value.Images);
+            Assert.DoesNotContain(word.Report.Warnings, static warning =>
+                warning.Code == "PdfImageClipNotSafelyEditable");
+        }
+    }
+
+    [Fact]
     public void UnsupportedImageBlendModesNeverEmbedRawPixelsAcrossEditableAdapters() {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImageWithGraphicsStatePdf("/BM /DefinitelyUnsupported"));
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
@@ -124,11 +147,44 @@ public sealed class PdfReverseImagePlacementSafetyTests {
 
         Assert.False(placement.HasUnsupportedBlendMode);
         Assert.True(placement.HasUnsupportedPaintState);
+        Assert.False(placement.HasUnsupportedImagePaintEffect);
         PdfWordConversionResult word = logical.ToWordDocumentResult();
         using (word.Value) {
             Assert.Single(word.Value.Images);
             Assert.DoesNotContain(word.Report.Warnings, static warning =>
                 warning.Code == "PdfImageUnsupportedBlendModeNotSafelyEditable");
+        }
+    }
+
+    [Theory]
+    [InlineData("/TR << /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [0] /N 1 >>")]
+    [InlineData("/op true /OPM 1")]
+    [InlineData("/AIS true")]
+    public void ImagePaintEffectsNeverExposeUntransformedRawPixelsAcrossEditableAdapters(string graphicsStateEntries) {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImageWithGraphicsStatePdf(graphicsStateEntries));
+        PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
+
+        Assert.True(placement.HasUnsupportedPaintState);
+        Assert.True(placement.HasUnsupportedImagePaintEffect);
+        AssertRawImageOmittedAcrossEditableAdapters(logical, "PdfImagePaintEffectNotSafelyEditable", "ImagePaintEffectNotSafelyEditable");
+    }
+
+    [Fact]
+    public void FloatingPositionAndNaturalImageSizeCanBeSelectedIndependently() {
+        byte[] source = CreateDocument()
+            .Canvas(canvas => canvas.Image(Png, 20D, 30D, 80D, 40D))
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult(new PdfToWordOptions {
+            PreserveImagePlacementPosition = true,
+            PreserveImagePlacementSize = false
+        });
+        using (word.Value) {
+            OfficeIMO.Word.WordImage image = Assert.Single(word.Value.Images);
+            Assert.Equal(OfficeIMO.Word.WordImageTextWrapping.InFrontOfText, image.WrapText);
+            Assert.Equal(8D, image.Width);
+            Assert.Equal(4D, image.Height);
         }
     }
 
@@ -175,23 +231,58 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         MarginBottom = 0D
     });
 
-    private static byte[] CreateImageWithGraphicsStatePdf(string graphicsStateEntries) {
-        const string content = "q /GS1 gs 80 0 0 40 20 30 cm /Im1 Do Q\n";
+    private static void AssertRawImageOmittedAcrossEditableAdapters(
+        PdfDocumentReadResult logical,
+        string officeWarningCode,
+        string htmlWarningCode) {
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            Assert.Empty(word.Value.Images);
+            Assert.Contains(word.Report.Warnings, warning =>
+                warning.Code == officeWarningCode && warning.LossKind == OfficeConversionLossKind.Omission);
+        }
+
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
+        Assert.Contains(html.Report.Warnings, warning =>
+            warning.Code == htmlWarningCode && warning.LossKind == OfficeConversionLossKind.Omission);
+
+        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        using (powerPoint.Value) {
+            Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Pictures));
+            Assert.Contains(powerPoint.Report.Warnings, warning =>
+                warning.Code == officeWarningCode && warning.LossKind == OfficeConversionLossKind.Omission);
+        }
+    }
+
+    private static byte[] CreateImageWithGraphicsStatePdf(string graphicsStateEntries) =>
+        CreateRawImagePdf(
+            "q /GS1 gs 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            graphicsStateEntries);
+
+    private static byte[] CreateRawImagePdf(
+        string content,
+        string? graphicsStateEntries = null,
+        string? pageEntries = null) {
         byte[] contentBytes = System.Text.Encoding.ASCII.GetBytes(content);
         byte[] imageBytes = { 255, 0, 0 };
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.7\n");
         WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
         WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
-        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] /Resources << /XObject << /Im1 5 0 R >> /ExtGState << /GS1 6 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        string graphicsResources = graphicsStateEntries == null ? string.Empty : " /ExtGState << /GS1 6 0 R >>";
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] " + pageEntries + " /Resources << /XObject << /Im1 5 0 R >>" + graphicsResources + " >> /Contents 4 0 R >>\nendobj\n");
         WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length + " >>\nstream\n");
         output.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(output, "endstream\nendobj\n");
         WriteAscii(output, "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\n");
         output.Write(imageBytes, 0, imageBytes.Length);
         WriteAscii(output, "\nendstream\nendobj\n");
-        WriteAscii(output, "6 0 obj\n<< /Type /ExtGState " + graphicsStateEntries + " >>\nendobj\n");
-        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 7 >>\n%%EOF\n");
+        if (graphicsStateEntries != null) {
+            WriteAscii(output, "6 0 obj\n<< /Type /ExtGState " + graphicsStateEntries + " >>\nendobj\n");
+        }
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size " + (graphicsStateEntries == null ? "6" : "7") + " >>\n%%EOF\n");
         return output.ToArray();
     }
 
