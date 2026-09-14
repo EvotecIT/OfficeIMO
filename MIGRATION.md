@@ -113,6 +113,21 @@ bool hasQualifiedNativeGrid =
     capability.Stages.HasFlag(HtmlCapabilityStage.Layout);
 ```
 
+### HTML runtime worker deployment
+
+`HtmlProcessRuntimeProvider` now validates the deployed worker before advertising
+its profiles and capabilities. Deploy the complete output of
+`OfficeIMO.Html.Runtime.Worker`, including
+`OfficeIMO.Html.Runtime.Worker.manifest.json`, and keep the worker and
+`OfficeIMO.Html.Runtime` assembly versions aligned. A copied worker DLL without
+its manifest, or a worker built for another runtime version or protocol, is
+rejected when the provider is created.
+
+| Previous deployment | Replacement |
+| --- | --- |
+| Copy only `OfficeIMO.Html.Runtime.Worker.dll` and selected dependencies | Deploy the complete worker build or publish directory, including `OfficeIMO.Html.Runtime.Worker.manifest.json`. |
+| Combine an older worker with a newer `OfficeIMO.Html.Runtime` client | Build and deploy matching versions of the runtime and worker together. |
+
 ### Explicit HTML rendering intent
 
 Existing image APIs still map `HtmlRenderOptions.Mode == Continuous` to the
