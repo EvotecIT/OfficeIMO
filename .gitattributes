@@ -28,6 +28,7 @@ Website/data/pdf_corpus_report.json -text -diff
 # Preserve exact fixture bytes across Windows, Linux, and macOS checkouts.
 OfficeIMO.TestAssets/Documents/Html/Qualification/H0/v1/** text eol=lf -diff
 OfficeIMO.TestAssets/Documents/Html/Qualification/H0/v1/**/*.otf -text -diff
+OfficeIMO.TestAssets/Documents/Html/Qualification/H4/** text eol=lf -diff
 
 ###############################################################################
 # Set default behavior for command prompt diff.
