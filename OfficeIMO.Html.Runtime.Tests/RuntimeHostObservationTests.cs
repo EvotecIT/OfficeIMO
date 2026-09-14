@@ -165,7 +165,7 @@ public sealed class RuntimeHostObservationTests {
     public async Task TraceIsBoundedAndRedactsOptionalUrlDetails() {
         var options = new HtmlRuntimeContextOptions {
             Trace = new HtmlRuntimeTraceOptions {
-                MaxEvents = 2,
+                MaxEvents = 8,
                 IncludeUrls = true,
                 Redactor = value => value.Replace("secret", "redacted", StringComparison.Ordinal)
             }
@@ -177,13 +177,14 @@ public sealed class RuntimeHostObservationTests {
             Html = "<p>Ready</p>"
         });
         await page.NavigateAsync(new Uri("https://runtime.officeimo.test/start#secret"));
-        await page.ObserveAsync();
+        for (int i = 0; i < 10; i++) await page.ObserveAsync();
 
         HtmlRuntimeTrace trace = page.GetTrace();
         Assert.True(trace.IsTruncated);
-        Assert.Equal(2, trace.Events.Count);
-        Assert.Equal(new[] { 1L, 2L }, trace.Events.Select(item => item.Sequence));
+        Assert.Equal(8, trace.Events.Count);
+        Assert.Equal(Enumerable.Range(1, 8).Select(value => (long)value), trace.Events.Select(item => item.Sequence));
         Assert.DoesNotContain(trace.Events, item => item.Detail?.Contains("secret", StringComparison.Ordinal) == true);
         Assert.Contains(trace.Events, item => item.Detail?.Contains("redacted", StringComparison.Ordinal) == true);
+        Assert.DoesNotContain(trace.Events, item => item.Url?.AbsoluteUri.Contains("secret", StringComparison.Ordinal) == true);
     }
 }

@@ -12,6 +12,7 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
     private readonly object _sync = new();
     private readonly CancellationTokenSource _lifetime = new();
     private readonly string _pageId;
+    private readonly RuntimeDiagnostics _diagnostics;
     private ScriptedDocumentSession? _document;
     private RuntimeNavigation? _pending;
     private Task? _pump;
@@ -22,21 +23,28 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
     private int _disposed;
     private long _revision;
 
-    private ScriptedBrowsingSession(HtmlScriptRequest options, string pageId) {
+    private ScriptedBrowsingSession(HtmlScriptRequest options, string pageId, RuntimeDiagnostics diagnostics) {
         _options = options;
         _pageId = pageId;
+        _diagnostics = diagnostics;
         _budget = new(options);
         _storage = new(options.MaxStorageCharacters);
     }
 
-    internal static async Task<ScriptedBrowsingSession> OpenAsync(HtmlScriptRequest options, string pageId, CancellationToken token) {
-        var session = new ScriptedBrowsingSession(options, pageId);
+    internal static async Task<ScriptedBrowsingSession> OpenAsync(HtmlScriptRequest options, string pageId, RuntimeDiagnostics diagnostics, CancellationToken token) {
+        DateTimeOffset started = DateTimeOffset.UtcNow;
+        var session = new ScriptedBrowsingSession(options, pageId, diagnostics);
         await session._access.WaitAsync(token);
         try {
             session._document = await session.OpenDocumentAsync(options, token);
         } catch { session._access.Release(); await session.DisposeAsync(); throw; }
         session._access.Release();
-        try { await session.SettleAsync(token); return session; }
+        try {
+            await session.SettleAsync(token);
+            diagnostics.Record(HtmlRuntimeEventKind.Lifecycle, "document-opened", "success", started,
+                revision: session.CurrentRevision, url: options.DocumentUrl);
+            return session;
+        }
         catch { await session.DisposeAsync(); throw; }
     }
 
@@ -45,7 +53,7 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
         MarkRevision();
         _history.Generation = generation;
         _documentSources[generation] = source ?? HtmlRuntimeResource.FromText(request.DocumentUrl, request.Html, "text/html; charset=utf-8");
-        return ScriptedDocumentSession.OpenAsync(request, _budget, _storage, _history,
+        return ScriptedDocumentSession.OpenAsync(request, _budget, _storage, _history, _diagnostics,
             request.Profile == HtmlRuntimeProfile.WebApplicationV1 ? navigation => RequestNavigation(generation, navigation) : null,
             () => CurrentRevision, MarkRevision, token, source);
     }
@@ -96,16 +104,22 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
     private bool HasPendingNavigation() { lock (_sync) return _pending != null; }
 
     private async Task ReplaceDocumentAsync(RuntimeNavigation navigation, CancellationToken token) {
+        DateTimeOffset started = DateTimeOffset.UtcNow;
+        _diagnostics.Record(HtmlRuntimeEventKind.Lifecycle, navigation.Reload ? "reload-started" : "navigation-started", "started", started,
+            revision: CurrentRevision, url: navigation.Url);
         if (++_navigations > _options.MaxNavigations) throw new HtmlScriptRuntimeException("The navigation count budget was exceeded.");
         HtmlRuntimeResource? response;
         bool replayRetainedSource = TryGetRetainedSource(navigation, out response);
         if (!replayRetainedSource) {
-            using var loader = new RuntimeResourceLoader(_options, _budget);
+            using var loader = new RuntimeResourceLoader(_options, _budget, _diagnostics);
             response = await loader.LoadAsync(navigation.Url, token);
             if (response.StatusCode is 204 or 205) return;
             if (response.StatusCode == 304) throw new HtmlScriptRuntimeException("A 304 navigation response requires an HTTP cache, which this profile does not provide.");
-            if (response.Headers.TryGetValue("Content-Disposition", out var disposition) && disposition.TrimStart().StartsWith("attachment", StringComparison.OrdinalIgnoreCase))
+            if (response.Headers.TryGetValue("Content-Disposition", out var disposition) && disposition.TrimStart().StartsWith("attachment", StringComparison.OrdinalIgnoreCase)) {
+                _diagnostics.Record(HtmlRuntimeEventKind.Download, "navigation-download", "blocked", started,
+                    url: response.FinalUrl, statusCode: response.StatusCode, byteCount: response.Length, decision: "unsupported");
                 throw new HtmlScriptRuntimeException("Navigation downloads are outside this document profile.");
+            }
             if (!response.ContentType.Split(';', 2)[0].Trim().Equals("text/html", StringComparison.OrdinalIgnoreCase))
                 throw new HtmlScriptRuntimeException("Navigation requires an HTML response.");
         }
@@ -121,6 +135,8 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
         request.Scripts = Array.Empty<string>();
         _document = await OpenDocumentAsync(request, token, response);
         if (navigation.EntryIndex >= 0) await _document.RestoreTraversalAsync(dispatchPopState: !navigation.Reload, token);
+        _diagnostics.Record(HtmlRuntimeEventKind.Lifecycle, navigation.Reload ? "reload-completed" : "navigation-completed", "success", started,
+            revision: CurrentRevision, url: request.DocumentUrl);
     }
 
     private bool TryGetRetainedSource(RuntimeNavigation navigation, out HtmlRuntimeResource? source) {

@@ -11,9 +11,10 @@ internal sealed partial class RuntimeAutomation {
     private readonly RuntimeHistoryBindings _history;
     private readonly RuntimeLocatorResolver _locators;
     private readonly RuntimeViewport _viewport;
+    private readonly RuntimeDiagnostics _diagnostics;
 
     internal RuntimeAutomation(IDocument document, HtmlScriptRequest options, RuntimeFocusController focus,
-        RuntimeHistoryBindings history, RuntimeViewport viewport, Jint.Engine engine) {
+        RuntimeHistoryBindings history, RuntimeViewport viewport, Jint.Engine engine, RuntimeDiagnostics diagnostics) {
         _document = document;
         _engine = engine;
         _options = options;
@@ -21,6 +22,7 @@ internal sealed partial class RuntimeAutomation {
         _history = history;
         _locators = new RuntimeLocatorResolver(document, options);
         _viewport = viewport;
+        _diagnostics = diagnostics;
     }
 
     internal RuntimeViewport Viewport => _viewport;
@@ -232,8 +234,11 @@ internal sealed partial class RuntimeAutomation {
         string type = HtmlFormControlSemantics.GetEffectiveType(element.LocalName, element.GetAttribute("type"));
         if (anchor != null && anchor.HasAttribute("href")) {
             string target = anchor.GetAttribute("target") ?? _document.QuerySelector("base[target]")?.GetAttribute("target") ?? "";
-            if (anchor.HasAttribute("download") || target.Length > 0 && target.ToLowerInvariant() is not ("_self" or "_top" or "_parent"))
+            if (anchor.HasAttribute("download") || target.Length > 0 && target.ToLowerInvariant() is not ("_self" or "_top" or "_parent")) {
+                _diagnostics.Record(HtmlRuntimeEventKind.Download, "anchor-download", "blocked", DateTimeOffset.UtcNow,
+                    url: new Uri(anchor.Href), decision: "unsupported");
                 return Failure(HtmlAutomationStatus.Unsupported,"Downloads and additional browsing contexts are outside this interaction profile.",1,Inspect(element));
+            }
             try { RuntimeDocumentUrls.Base(_document); _history.NavigateFragment(anchor.Href); }
             catch (Jint.Runtime.JavaScriptException error) { return Failure(HtmlAutomationStatus.Unsupported,error.Message,1,Inspect(element)); }
         }

@@ -19,7 +19,9 @@ internal sealed class ChromiumConformanceRuntimeHost(IHtmlParserProvider parser)
         new[] { HtmlRuntimeCapabilityIds.PersistentPage, HtmlRuntimeCapabilityIds.IsolatedContext,
             HtmlRuntimeCapabilityIds.Navigation, HtmlRuntimeCapabilityIds.ScriptEvaluation,
             HtmlRuntimeCapabilityIds.SemanticObservation, HtmlRuntimeCapabilityIds.VisualObservation,
-            HtmlRuntimeCapabilityIds.RevisionBoundReferences, HtmlRuntimeCapabilityIds.StructuredActions },
+            HtmlRuntimeCapabilityIds.RevisionBoundReferences, HtmlRuntimeCapabilityIds.StructuredActions,
+            HtmlRuntimeCapabilityIds.OperationTrace, HtmlRuntimeCapabilityIds.StructuredTraceEvents,
+            HtmlRuntimeCapabilityIds.DeterministicArtifactManifest },
         int.MaxValue, 1);
 
     public Task<IHtmlRuntimeContext> CreateContextAsync(HtmlRuntimeContextOptions? options = null, CancellationToken cancellationToken = default) {
@@ -58,7 +60,7 @@ internal sealed class ChromiumConformanceContext(
         if (snapshot.ResourcePolicy.AllowNetwork)
             throw new NotSupportedException("The Chromium conformance adapter accepts supplied offline resources only.");
         HtmlBrowserSession session = await HtmlBrowser.OpenSessionAsync("about:blank", cancellationToken: cancellationToken).ConfigureAwait(false);
-        var page = new ChromiumConformancePage(session, parser, Provider, Id, snapshot);
+        var page = new ChromiumConformancePage(session, parser, Provider, Id, snapshot, options.Trace);
         _page = page;
         try { await page.InitializeAsync(cancellationToken).ConfigureAwait(false); return page; }
         catch { await page.DisposeAsync(); _page = null; throw; }
@@ -77,17 +79,19 @@ internal sealed class ChromiumConformancePage : IHtmlRuntimePage {
     private readonly IHtmlParserProvider _parser;
     private readonly HtmlScriptRequest _options;
     private readonly Dictionary<string, HtmlRuntimeResource> _resources;
+    private readonly ChromiumTraceCollector _trace;
     private long _navigationRevision;
     private int _disposed;
 
     internal ChromiumConformancePage(HtmlBrowserSession session, IHtmlParserProvider parser,
-        HtmlRuntimeProviderDescriptor provider, string contextId, HtmlScriptRequest options) {
+        HtmlRuntimeProviderDescriptor provider, string contextId, HtmlScriptRequest options, HtmlRuntimeTraceOptions trace) {
         _session = session;
         _parser = parser;
         Provider = provider;
         ContextId = contextId;
         Id = Guid.NewGuid().ToString("N");
         _options = options;
+        _trace = new ChromiumTraceCollector(trace, provider.Id, contextId, Id);
         _resources = options.Resources.ToDictionary(resource => Key(resource.Url), StringComparer.Ordinal);
         _resources[Key(options.DocumentUrl)] = HtmlRuntimeResource.FromText(options.DocumentUrl, options.Html, "text/html; charset=utf-8");
     }
@@ -97,6 +101,10 @@ internal sealed class ChromiumConformancePage : IHtmlRuntimePage {
     public HtmlRuntimeProviderDescriptor Provider { get; }
 
     internal async Task InitializeAsync(CancellationToken token) {
+        _session.Page.Console += (_, message) => _trace.Record(HtmlRuntimeEventKind.Console, message.Type, "reported",
+            detail: _trace.IncludeConsoleMessages ? message.Text : null);
+        _session.Page.Download += (_, download) => _trace.Record(HtmlRuntimeEventKind.Download, "browser-download", "started",
+            url: Uri.TryCreate(download.Url, UriKind.Absolute, out Uri? url) ? url : null, decision: "browser-managed");
         await _session.Page.SetViewportSizeAsync((int)_options.ViewportWidth, (int)_options.ViewportHeight).WaitAsync(token).ConfigureAwait(false);
         await _session.Page.AddInitScriptAsync("""
             (() => {
@@ -112,13 +120,24 @@ internal sealed class ChromiumConformancePage : IHtmlRuntimePage {
     }
 
     private Task RouteAsync(IRoute route) {
-        if (_resources.TryGetValue(Key(new Uri(route.Request.Url)), out HtmlRuntimeResource? resource))
+        var url = new Uri(route.Request.Url);
+        if (_resources.TryGetValue(Key(url), out HtmlRuntimeResource? resource)) {
+            _trace.Record(HtmlRuntimeEventKind.Policy, "resource-source", "allowed", url: url, method: route.Request.Method, decision: "supplied");
+            _trace.Record(HtmlRuntimeEventKind.Resource, "resource-load", "success", url: url, method: route.Request.Method,
+                statusCode: resource.StatusCode, byteCount: resource.Length, redirectCount: resource.RedirectCount, decision: "allowed");
+            if (resource.StatusCode is 301 or 302 or 303 or 307 or 308
+                && resource.Headers.TryGetValue("Location", out string? location))
+                _trace.Record(HtmlRuntimeEventKind.Redirect, "resource-redirect", "followed", url: new Uri(url, location),
+                    method: route.Request.Method, statusCode: resource.StatusCode, redirectCount: 1);
             return route.FulfillAsync(new RouteFulfillOptions {
                 BodyBytes = resource.Content,
                 ContentType = resource.ContentType,
                 Status = resource.StatusCode,
                 Headers = resource.Headers
             });
+        }
+        _trace.Record(HtmlRuntimeEventKind.Policy, "resource-source", "blocked", url: url, method: route.Request.Method, decision: "not-supplied");
+        _trace.Record(HtmlRuntimeEventKind.Resource, "resource-load", "failure", url: url, method: route.Request.Method, decision: "blocked");
         return route.AbortAsync("blockedbyclient");
     }
 
@@ -126,36 +145,91 @@ internal sealed class ChromiumConformancePage : IHtmlRuntimePage {
         NavigateCoreAsync(HtmlRuntimeResourcePolicy.ValidateUrl(url), replaceHistoryEntry, cancellationToken);
 
     private async Task NavigateCoreAsync(Uri url, bool replaceHistoryEntry, CancellationToken token) {
-        if (replaceHistoryEntry) {
-            Task loaded = _session.Page.WaitForURLAsync(url.AbsoluteUri, new PageWaitForURLOptions { WaitUntil = WaitUntilState.Load });
-            await _session.Page.EvaluateAsync("url => window.location.replace(url)", url.AbsoluteUri).WaitAsync(token).ConfigureAwait(false);
-            await loaded.WaitAsync(token).ConfigureAwait(false);
-        } else {
-            await _session.Page.GotoAsync(url.AbsoluteUri, new PageGotoOptions { WaitUntil = WaitUntilState.Load }).WaitAsync(token).ConfigureAwait(false);
+        DateTimeOffset started = DateTimeOffset.UtcNow;
+        _trace.Record(HtmlRuntimeEventKind.Lifecycle, replaceHistoryEntry ? "navigation-replace-started" : "navigation-started", "started", url: url);
+        try {
+            if (replaceHistoryEntry) {
+                Task loaded = _session.Page.WaitForURLAsync(url.AbsoluteUri, new PageWaitForURLOptions { WaitUntil = WaitUntilState.Load });
+                await _session.Page.EvaluateAsync("url => window.location.replace(url)", url.AbsoluteUri).WaitAsync(token).ConfigureAwait(false);
+                await loaded.WaitAsync(token).ConfigureAwait(false);
+            } else {
+                await _session.Page.GotoAsync(url.AbsoluteUri, new PageGotoOptions { WaitUntil = WaitUntilState.Load }).WaitAsync(token).ConfigureAwait(false);
+            }
+            Interlocked.Increment(ref _navigationRevision);
+            long revision = await CurrentRevisionAsync(token).ConfigureAwait(false);
+            TimeSpan elapsed = DateTimeOffset.UtcNow - started;
+            _trace.Record(HtmlRuntimeEventKind.Lifecycle, "navigation-completed", "success", started, elapsed, revision: revision, url: url);
+            _trace.Record(HtmlRuntimeEventKind.Navigation, replaceHistoryEntry ? "navigate-replace" : "navigate", "success",
+                started, elapsed, revision: revision, url: url);
+        } catch (Exception error) when (error is not OperationCanceledException) {
+            TimeSpan elapsed = DateTimeOffset.UtcNow - started;
+            _trace.Record(HtmlRuntimeEventKind.Lifecycle, "navigation-completed", "failure", started, elapsed, url: url);
+            _trace.Record(HtmlRuntimeEventKind.Navigation, replaceHistoryEntry ? "navigate-replace" : "navigate", "failure",
+                started, elapsed, detail: _trace.IncludeFailureMessages ? error.Message : null, url: url);
+            throw;
         }
-        Interlocked.Increment(ref _navigationRevision);
     }
 
     public async Task ReloadAsync(CancellationToken cancellationToken = default) {
-        await _session.Page.ReloadAsync(new PageReloadOptions { WaitUntil = WaitUntilState.Load }).WaitAsync(cancellationToken).ConfigureAwait(false);
-        Interlocked.Increment(ref _navigationRevision);
+        DateTimeOffset started = DateTimeOffset.UtcNow;
+        try {
+            await _session.Page.ReloadAsync(new PageReloadOptions { WaitUntil = WaitUntilState.Load }).WaitAsync(cancellationToken).ConfigureAwait(false);
+            Interlocked.Increment(ref _navigationRevision);
+            _trace.Record(HtmlRuntimeEventKind.Navigation, "reload", "success", started, DateTimeOffset.UtcNow - started,
+                revision: await CurrentRevisionAsync(cancellationToken).ConfigureAwait(false));
+        } catch (Exception error) when (error is not OperationCanceledException) {
+            _trace.Record(HtmlRuntimeEventKind.Navigation, "reload", "failure", started, DateTimeOffset.UtcNow - started,
+                detail: _trace.IncludeFailureMessages ? error.Message : null);
+            throw;
+        }
     }
 
     public async Task ExecuteAsync(string script, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(script);
         if (script.Length > _options.MaxInputCharacters) throw new ArgumentException("The script exceeds MaxInputCharacters.", nameof(script));
-        await _session.Page.EvaluateAsync(script).WaitAsync(cancellationToken).ConfigureAwait(false);
-        await BumpAsync(cancellationToken).ConfigureAwait(false);
+        DateTimeOffset started = DateTimeOffset.UtcNow;
+        try {
+            await _session.Page.EvaluateAsync(script).WaitAsync(cancellationToken).ConfigureAwait(false);
+            await BumpAsync(cancellationToken).ConfigureAwait(false);
+            _trace.Record(HtmlRuntimeEventKind.Script, "execute", "success", started, DateTimeOffset.UtcNow - started,
+                revision: await CurrentRevisionAsync(cancellationToken));
+        } catch (Exception error) when (error is not OperationCanceledException) {
+            _trace.Record(HtmlRuntimeEventKind.Failure, "execute", error.GetType().Name, started, DateTimeOffset.UtcNow - started,
+                detail: _trace.IncludeFailureMessages ? error.Message : null);
+            throw;
+        }
     }
 
     public async Task<JsonElement> EvaluateAsync(string expression, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(expression);
-        JsonElement value = await _session.Page.EvaluateAsync<JsonElement>("value => eval(value)", expression).WaitAsync(cancellationToken).ConfigureAwait(false);
-        await BumpAsync(cancellationToken).ConfigureAwait(false);
-        return value;
+        DateTimeOffset started = DateTimeOffset.UtcNow;
+        try {
+            JsonElement value = await _session.Page.EvaluateAsync<JsonElement>("value => eval(value)", expression).WaitAsync(cancellationToken).ConfigureAwait(false);
+            await BumpAsync(cancellationToken).ConfigureAwait(false);
+            _trace.Record(HtmlRuntimeEventKind.Script, "evaluate", "success", started, DateTimeOffset.UtcNow - started,
+                revision: await CurrentRevisionAsync(cancellationToken).ConfigureAwait(false));
+            return value;
+        } catch (Exception error) when (error is not OperationCanceledException) {
+            _trace.Record(HtmlRuntimeEventKind.Script, "evaluate", "failure", started, DateTimeOffset.UtcNow - started,
+                detail: _trace.IncludeFailureMessages ? error.Message : null);
+            throw;
+        }
     }
 
     public async Task WaitForAsync(string expression, CancellationToken cancellationToken = default) {
+        DateTimeOffset started = DateTimeOffset.UtcNow;
+        try {
+            await WaitForCoreAsync(expression, cancellationToken).ConfigureAwait(false);
+            _trace.Record(HtmlRuntimeEventKind.Wait, "wait-expression", "success", started, DateTimeOffset.UtcNow - started,
+                revision: await CurrentRevisionAsync(cancellationToken).ConfigureAwait(false));
+        } catch (Exception error) when (error is not OperationCanceledException) {
+            _trace.Record(HtmlRuntimeEventKind.Wait, "wait-expression", "failure", started, DateTimeOffset.UtcNow - started,
+                detail: _trace.IncludeFailureMessages ? error.Message : null);
+            throw;
+        }
+    }
+
+    private async Task WaitForCoreAsync(string expression, CancellationToken cancellationToken) {
         DateTimeOffset deadline = DateTimeOffset.UtcNow + _options.Timeout;
         while (!await _session.Page.EvaluateAsync<bool>("value => Boolean(eval(value))", expression).WaitAsync(cancellationToken).ConfigureAwait(false)) {
             if (DateTimeOffset.UtcNow >= deadline) throw new TimeoutException("The runtime command exceeded its deadline.");
@@ -164,17 +238,45 @@ internal sealed class ChromiumConformancePage : IHtmlRuntimePage {
     }
 
     public async Task<HtmlScriptCapture> CaptureAsync(string? readyExpression = null, CancellationToken cancellationToken = default) {
-        await WaitForAsync(readyExpression ?? _options.ReadyExpression, cancellationToken).ConfigureAwait(false);
-        string html = await _session.Page.ContentAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
-        HtmlDocument document = _parser.Parse(html, new HtmlParseOptions {
-            MaxInputCharacters = _options.MaxOutputCharacters,
-            MaxNodes = _options.MaxNodes,
-            MaxDepth = _options.MaxDepth
-        }, cancellationToken);
-        return new HtmlScriptCapture(document, Provider.Id + "/" + Provider.Version, new Uri(_session.Page.Url), _options.Resources);
+        DateTimeOffset started = DateTimeOffset.UtcNow;
+        try {
+            await WaitForAsync(readyExpression ?? _options.ReadyExpression, cancellationToken).ConfigureAwait(false);
+            string html = await _session.Page.ContentAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
+            HtmlDocument document = _parser.Parse(html, new HtmlParseOptions {
+                MaxInputCharacters = _options.MaxOutputCharacters,
+                MaxNodes = _options.MaxNodes,
+                MaxDepth = _options.MaxDepth
+            }, cancellationToken);
+            var capture = new HtmlScriptCapture(document, Provider.Id + "/" + Provider.Version, new Uri(_session.Page.Url), _options.Resources);
+            long revision = await CurrentRevisionAsync(cancellationToken).ConfigureAwait(false);
+            _trace.Record(HtmlRuntimeEventKind.Capture, "capture", "success", started, DateTimeOffset.UtcNow - started,
+                revision: revision, byteCount: capture.ArtifactManifest.ByteCount, artifactId: capture.ArtifactManifest.Id);
+            _trace.Record(HtmlRuntimeEventKind.Artifact, "capture-manifest", "generated", revision: revision,
+                byteCount: capture.ArtifactManifest.ByteCount, artifactId: capture.ArtifactManifest.Id);
+            return capture;
+        } catch (Exception error) when (error is not OperationCanceledException) {
+            _trace.Record(HtmlRuntimeEventKind.Capture, "capture", "failure", started, DateTimeOffset.UtcNow - started,
+                detail: _trace.IncludeFailureMessages ? error.Message : null);
+            throw;
+        }
     }
 
     public async Task<HtmlAutomationResult> AutomateAsync(HtmlAutomationRequest request, CancellationToken cancellationToken = default) {
+        DateTimeOffset started = DateTimeOffset.UtcNow;
+        try {
+            HtmlAutomationResult result = await AutomateCoreAsync(request, cancellationToken).ConfigureAwait(false);
+            _trace.Record(HtmlRuntimeEventKind.Action, "automate", result.Status.ToString().ToLowerInvariant(), started,
+                DateTimeOffset.UtcNow - started, revision: result.PageRevision,
+                detail: result.Status == HtmlAutomationStatus.Success || !_trace.IncludeFailureMessages ? null : result.Message);
+            return result;
+        } catch (Exception error) when (error is not OperationCanceledException) {
+            _trace.Record(HtmlRuntimeEventKind.Action, "automate", "failure", started, DateTimeOffset.UtcNow - started,
+                detail: _trace.IncludeFailureMessages ? error.Message : null);
+            throw;
+        }
+    }
+
+    private async Task<HtmlAutomationResult> AutomateCoreAsync(HtmlAutomationRequest request, CancellationToken cancellationToken) {
         HtmlAutomationRequest input = (request ?? throw new ArgumentNullException(nameof(request))).Snapshot(_options.MaxInputCharacters);
         long revision = await CurrentRevisionAsync(cancellationToken).ConfigureAwait(false);
         ILocator locator;
@@ -221,6 +323,20 @@ internal sealed class ChromiumConformancePage : IHtmlRuntimePage {
     }
 
     public async Task<HtmlPageObservation> ObserveAsync(HtmlPageObservationRequest? request = null, CancellationToken cancellationToken = default) {
+        DateTimeOffset started = DateTimeOffset.UtcNow;
+        try {
+            HtmlPageObservation observation = await ObserveCoreAsync(request, cancellationToken).ConfigureAwait(false);
+            _trace.Record(HtmlRuntimeEventKind.Observation, "observe", "success", started, DateTimeOffset.UtcNow - started,
+                revision: observation.Revision);
+            return observation;
+        } catch (Exception error) when (error is not OperationCanceledException) {
+            _trace.Record(HtmlRuntimeEventKind.Observation, "observe", "failure", started, DateTimeOffset.UtcNow - started,
+                detail: _trace.IncludeFailureMessages ? error.Message : null);
+            throw;
+        }
+    }
+
+    private async Task<HtmlPageObservation> ObserveCoreAsync(HtmlPageObservationRequest? request, CancellationToken cancellationToken) {
         HtmlPageObservationRequest input = (request ?? new()).Snapshot(_options.MaxOutputCharacters);
         if (input.IncludeScreenshotReference) throw new NotSupportedException("The comparison adapter does not retain screenshot artifacts.");
         long revision = await CurrentRevisionAsync(cancellationToken).ConfigureAwait(false);
@@ -236,7 +352,7 @@ internal sealed class ChromiumConformancePage : IHtmlRuntimePage {
         return observed.ToPublic(Provider.Id, ContextId, Id, revision, input.Mode);
     }
 
-    public HtmlRuntimeTrace GetTrace() => new() { ProviderId = Provider.Id, ContextId = ContextId, PageId = Id };
+    public HtmlRuntimeTrace GetTrace() => _trace.Snapshot();
 
     private async Task<HtmlRuntimeElementState> InspectAsync(ILocator locator, CancellationToken token) {
         BrowserElement state = await locator.EvaluateAsync<BrowserElement>(InspectScript).WaitAsync(token).ConfigureAwait(false);
@@ -363,5 +479,48 @@ internal sealed class ChromiumConformancePage : IHtmlRuntimePage {
         public string ElementName { get; set; }=""; public string Id { get; set; }=""; public string AccessibleName { get; set; }=""; public string Text { get; set; }=""; public string? Value { get; set; }
         public int? SelectionStart { get; set; } public int? SelectionEnd { get; set; } public string[] SelectedValues { get; set; }=Array.Empty<string>(); public bool? IsChecked { get; set; } public bool IsIndeterminate { get; set; } public bool IsDisabled { get; set; } public bool IsReadOnly { get; set; } public bool IsEditable { get; set; } public bool IsHiddenByMarkup { get; set; } public bool IsFocused { get; set; } public bool IsConnected { get; set; } public bool? IsVisible { get; set; } public bool? IsInViewport { get; set; } public bool? AcceptsPointerEvents { get; set; } public bool? ReceivesPointerAtCenter { get; set; } public HtmlRuntimeRect? BoundingBox { get; set; } public double ScrollX { get; set; } public double ScrollY { get; set; }
         public HtmlRuntimeElementState ToState()=>new(){ElementName=ElementName,Id=Id,AccessibleName=AccessibleName,Text=Text,Value=Value,SelectionStart=SelectionStart,SelectionEnd=SelectionEnd,SelectedValues=SelectedValues,IsChecked=IsChecked,IsIndeterminate=IsIndeterminate,IsDisabled=IsDisabled,IsReadOnly=IsReadOnly,IsEditable=IsEditable,IsHiddenByMarkup=IsHiddenByMarkup,IsFocused=IsFocused,IsConnected=IsConnected,IsVisible=IsVisible,IsInViewport=IsInViewport,AcceptsPointerEvents=AcceptsPointerEvents,ReceivesPointerAtCenter=ReceivesPointerAtCenter,BoundingBox=BoundingBox,ScrollX=ScrollX,ScrollY=ScrollY};
+    }
+}
+
+internal sealed class ChromiumTraceCollector {
+    private readonly HtmlRuntimeTraceOptions _options;
+    private readonly string _providerId;
+    private readonly string _contextId;
+    private readonly string _pageId;
+    private readonly List<HtmlRuntimeEvent> _events = new();
+    private readonly object _sync = new();
+    private long _sequence;
+    private bool _truncated;
+
+    internal ChromiumTraceCollector(HtmlRuntimeTraceOptions options, string providerId, string contextId, string pageId) {
+        _options = options.Snapshot(); _providerId = providerId; _contextId = contextId; _pageId = pageId;
+    }
+    internal bool IncludeConsoleMessages => _options.IncludeConsoleMessages;
+    internal bool IncludeFailureMessages => _options.IncludeFailureMessages;
+
+    internal void Record(HtmlRuntimeEventKind kind, string operation, string status, DateTimeOffset? started = null,
+        TimeSpan elapsed = default, long? revision = null, string? detail = null, Uri? url = null, string? method = null,
+        int? statusCode = null, long? byteCount = null, int? redirectCount = null, string? decision = null, string? artifactId = null) {
+        if (!_options.Enabled) return;
+        detail = detail == null ? null : Redact(detail);
+        Uri? recordedUrl = null;
+        if (_options.IncludeUrls && url != null && Uri.TryCreate(Redact(url.AbsoluteUri), UriKind.Absolute, out Uri? safe)) recordedUrl = safe;
+        lock (_sync) {
+            if (_events.Count >= _options.MaxEvents) { _truncated = true; return; }
+            _events.Add(new HtmlRuntimeEvent { Sequence = ++_sequence, Kind = kind, Operation = operation, Status = status,
+                StartedUtc = started ?? DateTimeOffset.UtcNow, ElapsedMilliseconds = elapsed.TotalMilliseconds,
+                ContextId = _contextId, PageId = _pageId, PageRevision = revision, Detail = detail, Url = recordedUrl,
+                Method = method, StatusCode = statusCode, ByteCount = byteCount, RedirectCount = redirectCount,
+                Decision = decision, ArtifactId = artifactId });
+        }
+    }
+
+    internal HtmlRuntimeTrace Snapshot() { lock (_sync) return new HtmlRuntimeTrace { ProviderId = _providerId,
+        ContextId = _contextId, PageId = _pageId, IsTruncated = _truncated, Events = Array.AsReadOnly(_events.ToArray()) }; }
+
+    private string? Redact(string value) {
+        string? redacted = _options.Redactor == null ? value : _options.Redactor(value);
+        if (redacted == null) return null;
+        return redacted.Length <= _options.MaxDetailCharacters ? redacted : redacted[.._options.MaxDetailCharacters];
     }
 }

@@ -11,7 +11,9 @@
     "observation.visual-geometry",
     "observation.revision-bound-references",
     "automation.structured-actions",
-    "trace.operations"
+    "trace.operations",
+    "trace.structured-events",
+    "artifact.deterministic-manifest"
   ],
   "maximumContexts": 2147483647,
   "maximumPagesPerContext": 1

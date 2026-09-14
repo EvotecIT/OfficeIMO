@@ -18,6 +18,20 @@ public enum HtmlRuntimeEventKind {
     Action,
     /// <summary>Document capture.</summary>
     Capture,
+    /// <summary>Resource request or response.</summary>
+    Resource,
+    /// <summary>Resource redirect.</summary>
+    Redirect,
+    /// <summary>Page console output.</summary>
+    Console,
+    /// <summary>Runtime or resource policy decision.</summary>
+    Policy,
+    /// <summary>Navigation or document lifecycle event.</summary>
+    Lifecycle,
+    /// <summary>Download request or decision.</summary>
+    Download,
+    /// <summary>Generated artifact evidence.</summary>
+    Artifact,
     /// <summary>Failed runtime operation.</summary>
     Failure,
     /// <summary>Runtime shutdown.</summary>
@@ -30,15 +44,28 @@ public sealed class HtmlRuntimeTraceOptions {
     public bool Enabled { get; set; } = true;
     /// <summary>Maximum retained events.</summary>
     public int MaxEvents { get; set; } = 4096;
-    /// <summary>Allows navigation URLs in trace details.</summary>
+    /// <summary>Allows event URLs in traces after final redaction.</summary>
     public bool IncludeUrls { get; set; }
-    /// <summary>Optional final redaction callback for event details.</summary>
+    /// <summary>Allows bounded page console messages in trace details.</summary>
+    public bool IncludeConsoleMessages { get; set; }
+    /// <summary>Allows bounded script and provider failure messages in trace details.</summary>
+    public bool IncludeFailureMessages { get; set; }
+    /// <summary>Maximum characters retained in one event detail after redaction.</summary>
+    public int MaxDetailCharacters { get; set; } = 2048;
+    /// <summary>Optional final redaction callback for event details and explicitly included URLs.</summary>
     public Func<string, string>? Redactor { get; set; }
 
     /// <summary>Validates and returns a detached trace configuration.</summary>
     public HtmlRuntimeTraceOptions Snapshot() {
         if (MaxEvents <= 0 || MaxEvents > 100_000) throw new ArgumentOutOfRangeException(nameof(MaxEvents));
-        return new HtmlRuntimeTraceOptions { Enabled = Enabled, MaxEvents = MaxEvents, IncludeUrls = IncludeUrls, Redactor = Redactor };
+        if (MaxDetailCharacters <= 0 || MaxDetailCharacters > 64 * 1024) throw new ArgumentOutOfRangeException(nameof(MaxDetailCharacters));
+        return new HtmlRuntimeTraceOptions {
+            Enabled = Enabled, MaxEvents = MaxEvents, IncludeUrls = IncludeUrls,
+            IncludeConsoleMessages = IncludeConsoleMessages,
+            IncludeFailureMessages = IncludeFailureMessages,
+            MaxDetailCharacters = MaxDetailCharacters,
+            Redactor = Redactor
+        };
     }
 }
 
@@ -64,6 +91,20 @@ public sealed class HtmlRuntimeEvent {
     public long? PageRevision { get; init; }
     /// <summary>Bounded redacted detail.</summary>
     public string? Detail { get; init; }
+    /// <summary>Request URL when URL recording was explicitly enabled.</summary>
+    public Uri? Url { get; init; }
+    /// <summary>HTTP method, when applicable. Header and body values are never recorded.</summary>
+    public string? Method { get; init; }
+    /// <summary>HTTP response status, when applicable.</summary>
+    public int? StatusCode { get; init; }
+    /// <summary>Response or artifact byte count, when known.</summary>
+    public long? ByteCount { get; init; }
+    /// <summary>Redirect count, when applicable.</summary>
+    public int? RedirectCount { get; init; }
+    /// <summary>Stable policy outcome such as allowed, blocked or unsupported.</summary>
+    public string? Decision { get; init; }
+    /// <summary>Content-addressed artifact identity, when an operation produced one.</summary>
+    public string? ArtifactId { get; init; }
 }
 
 /// <summary>An immutable trace snapshot.</summary>
@@ -89,9 +130,19 @@ internal sealed class HtmlRuntimeTraceCollector {
 
     internal HtmlRuntimeTraceCollector(HtmlRuntimeTraceOptions options) => _options = options.Snapshot();
     internal bool IncludeUrls => _options.IncludeUrls;
+    internal HtmlRuntimeWireTraceOptions WireOptions => new() {
+        Enabled = _options.Enabled,
+        MaxEvents = _options.MaxEvents,
+        IncludeUrls = _options.IncludeUrls,
+        IncludeConsoleMessages = _options.IncludeConsoleMessages,
+        IncludeFailureMessages = _options.IncludeFailureMessages,
+        MaxDetailCharacters = _options.MaxDetailCharacters
+    };
 
     internal void Add(HtmlRuntimeEventKind kind, string operation, string status, DateTimeOffset started, TimeSpan elapsed,
-        string contextId, string pageId, long? revision = null, string? detail = null) {
+        string contextId, string pageId, long? revision = null, string? detail = null,
+        Uri? url = null, string? method = null, int? statusCode = null, long? byteCount = null,
+        int? redirectCount = null, string? decision = null, string? artifactId = null) {
         if (!_options.Enabled) return;
         detail = Redact(detail);
         lock (_sync) {
@@ -106,9 +157,27 @@ internal sealed class HtmlRuntimeTraceCollector {
                 ContextId = contextId,
                 PageId = pageId,
                 PageRevision = revision,
-                Detail = detail
+                Detail = detail,
+                Url = _options.IncludeUrls ? RedactUrl(url) : null,
+                Method = method,
+                StatusCode = statusCode,
+                ByteCount = byteCount,
+                RedirectCount = redirectCount,
+                Decision = decision,
+                ArtifactId = artifactId
             });
         }
+    }
+
+    internal void Add(HtmlRuntimeWireEvent item, string contextId, string pageId) {
+        string? detail = item.Kind switch {
+            HtmlRuntimeEventKind.Console when !_options.IncludeConsoleMessages => null,
+            HtmlRuntimeEventKind.Failure when !_options.IncludeFailureMessages => null,
+            _ => item.Detail
+        };
+        Add(item.Kind, item.Operation, item.Status, item.StartedUtc, TimeSpan.FromMilliseconds(item.ElapsedMilliseconds),
+            contextId, pageId, item.PageRevision, detail, item.Url, item.Method, item.StatusCode, item.ByteCount,
+            item.RedirectCount, item.Decision, item.ArtifactId);
     }
 
     internal HtmlRuntimeTrace Snapshot(string providerId, string contextId, string pageId) {
@@ -123,7 +192,14 @@ internal sealed class HtmlRuntimeTraceCollector {
 
     private string? Redact(string? value) {
         if (value == null) return null;
-        string redacted = _options.Redactor?.Invoke(value) ?? value;
-        return redacted.Length <= 2048 ? redacted : redacted[..2048];
+        string? redacted = _options.Redactor == null ? value : _options.Redactor(value);
+        if (redacted == null) return null;
+        return redacted.Length <= _options.MaxDetailCharacters ? redacted : redacted[.._options.MaxDetailCharacters];
+    }
+
+    private Uri? RedactUrl(Uri? value) {
+        if (value == null) return null;
+        string? redacted = Redact(value.AbsoluteUri);
+        return Uri.TryCreate(redacted, UriKind.Absolute, out Uri? result) ? result : null;
     }
 }

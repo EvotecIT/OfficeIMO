@@ -129,6 +129,7 @@ public sealed partial class HtmlScriptCapture {
         DocumentUrl = HtmlRuntimeResourcePolicy.ValidateUrl(documentUrl ?? new Uri("https://officeimo.invalid/"));
         BaseUri = ResolveBaseUri(document,DocumentUrl,baseUri);
         Resources = Array.AsReadOnly((resources ?? Array.Empty<HtmlRuntimeResource>()).ToArray());
+        ArtifactManifest = HtmlRuntimeArtifactManifest.Create(this);
     }
     /// <summary>Frozen owned document, including structural DOM mutations and template contents.</summary>
     public HtmlDocument Document { get; }
@@ -140,6 +141,8 @@ public sealed partial class HtmlScriptCapture {
     public Uri BaseUri { get; }
     /// <summary>Immutable resource responses loaded before capture, for offline inspection or render resolution.</summary>
     public IReadOnlyList<HtmlRuntimeResource> Resources { get; }
+    /// <summary>Deterministic content manifest for the frozen document and retained resources.</summary>
+    public HtmlRuntimeArtifactManifest ArtifactManifest { get; }
 }
 
 /// <summary>Script execution, worker protocol or capture failed. No partial document is returned.</summary>

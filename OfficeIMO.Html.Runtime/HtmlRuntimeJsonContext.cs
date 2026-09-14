@@ -25,6 +25,7 @@ internal sealed partial class HtmlAutomationToolJsonContext : JsonSerializerCont
 [JsonSerializable(typeof(HtmlPageObservation))]
 [JsonSerializable(typeof(HtmlAutomationResult))]
 [JsonSerializable(typeof(HtmlRuntimeTrace))]
+[JsonSerializable(typeof(HtmlRuntimeArtifactManifest))]
 [JsonSerializable(typeof(HtmlAutomationToolResultPayload))]
 [JsonSerializable(typeof(HtmlAutomationRunResultPayload))]
 internal sealed partial class HtmlRuntimePublicJsonContext : JsonSerializerContext;

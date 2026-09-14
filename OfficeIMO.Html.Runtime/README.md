@@ -114,16 +114,32 @@ HtmlAutomationRunResult run = await runner.RunAsync(page, (turn, _) => {
 ```
 
 Prompts, credentials, model selection, approval policy and model-client retries
-belong to the application that supplies the planner. `GetTrace()` returns bounded
-provider-neutral operation evidence. URLs are omitted by default; callers can
-enable them and provide a final redaction callback through
-`HtmlRuntimeTraceOptions`.
+belong to the application that supplies the planner. The optional
+`OfficeIMO.Html.Runtime.MicrosoftExtensionsAI` package adapts any caller-owned
+`Microsoft.Extensions.AI.IChatClient` to this callback without adding a model SDK
+to the runtime core.
 
-`HtmlRuntimeJson.Serialize` exports provider descriptors, observations, action
-results, traces, tool results and planner results without reflection, including
-under NativeAOT. Captures embedded in tool results are represented by inert HTML,
-their resolved URLs and retained resource responses. The conformance package
-provides `HtmlRuntimeConformanceJson.Serialize` for its reports.
+`GetTrace()` returns bounded provider-neutral operation evidence for lifecycle,
+navigation, scripts, waits, observations, actions, resources, redirects, console
+messages, policy decisions, downloads, captures, artifacts and failures.
+URLs, console text and failure text are omitted by default. Enable only the fields
+needed by the host and supply a final `Redactor` through `HtmlRuntimeTraceOptions`.
+Header values, request bodies, response bodies and credentials are never trace
+fields. `MaxEvents` and `MaxDetailCharacters` bound retained evidence, and
+`IsTruncated` reports an exhausted event budget.
+
+Every capture includes a deterministic schema-1 `ArtifactManifest`. Its
+`document.html` digest covers the exact UTF-8 bytes of the `documentHtml`
+projection emitted by `HtmlRuntimeJson.Serialize(capture)`. The content-addressed
+ID covers that captured HTML and the ordered retained resource
+content while entry names deliberately omit resource URLs. Repeated capture of
+the same content produces the same ID. `HtmlRuntimeJson.Serialize` exports
+provider descriptors, observations, action results, traces, artifact manifests,
+tool results and planner results without reflection, including under NativeAOT.
+Captures embedded in tool results are represented by inert HTML, their resolved
+URLs and retained resource responses. The conformance package provides
+NativeAOT-safe serialization for reports, qualification manifests and evaluated
+qualification results.
 
 `ScriptedDocumentV1` is the default single-document contract. Select
 `WebApplicationV1` when the workflow needs cross-document navigation, reload,

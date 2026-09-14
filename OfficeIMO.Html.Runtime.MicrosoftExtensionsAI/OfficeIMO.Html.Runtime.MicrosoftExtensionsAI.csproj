@@ -2,13 +2,13 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <VersionPrefix>3.4.3</VersionPrefix>
-    <PackageId>OfficeIMO.Html.Runtime.Conformance</PackageId>
+    <PackageId>OfficeIMO.Html.Runtime.MicrosoftExtensionsAI</PackageId>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <Description>Reusable provider conformance scenarios for OfficeIMO HTML runtime hosts.</Description>
+    <Description>Optional Microsoft.Extensions.AI planner adapter for OfficeIMO HTML runtime automation.</Description>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -16,9 +16,8 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.0" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
     <None Include="README.md" Pack="true" PackagePath="/" />
-    <EmbeddedResource Include="Manifests/runtime-profiles-v1.json" LogicalName="OfficeIMO.Html.Runtime.Conformance.Manifests.runtime-profiles-v1.json" />
-    <None Include="Manifests/runtime-profiles-v1.json" Pack="true" PackagePath="manifests/" />
   </ItemGroup>
 </Project>

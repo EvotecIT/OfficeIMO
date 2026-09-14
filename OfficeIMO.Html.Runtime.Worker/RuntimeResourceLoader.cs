@@ -13,15 +13,17 @@ internal sealed class RuntimeResourceLoader : IDisposable {
     private readonly SemaphoreSlim _concurrency;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly HttpClient _client;
+    private readonly RuntimeDiagnostics _diagnostics;
     private object _sync => _budget.Sync;
 
-    internal RuntimeResourceLoader(HtmlScriptRequest options, RuntimeResourceBudget? budget = null) {
+    internal RuntimeResourceLoader(HtmlScriptRequest options, RuntimeResourceBudget? budget, RuntimeDiagnostics diagnostics) {
         _budget = budget ?? new RuntimeResourceBudget(options);
         _policy = options.ResourcePolicy;
         _supplied = options.Resources.ToDictionary(resource => HtmlRuntimeResourcePolicy.Key(resource.Url), StringComparer.Ordinal);
         _documentOrigin = HtmlRuntimeResourcePolicy.Origin(options.DocumentUrl);
         _origins = _budget.Origins;
         _concurrency = _budget.Concurrency;
+        _diagnostics = diagnostics;
         _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false, UseProxy = false,
             AutomaticDecompression = DecompressionMethods.None, MaxResponseHeadersLength = 32 }) { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
     }
@@ -31,6 +33,9 @@ internal sealed class RuntimeResourceLoader : IDisposable {
     internal Task<HtmlRuntimeResource> FetchAsync(Uri url, RuntimeFetchRequest request, CancellationToken token) => LoadAsync(url, request, request.Validate(_policy), token);
 
     private async Task<HtmlRuntimeResource> LoadAsync(Uri requestedUrl, RuntimeFetchRequest? fetch, byte[]? body, CancellationToken token) {
+        DateTimeOffset started = DateTimeOffset.UtcNow;
+        Uri originalUrl = requestedUrl;
+        string originalMethod = fetch?.Method ?? "GET";
         _budget.BeginOperation();
         using var deadline = new CancellationTokenSource(_policy.Timeout);
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(token, deadline.Token, _lifetime.Token);
@@ -63,6 +68,8 @@ internal sealed class RuntimeResourceLoader : IDisposable {
                     if (fetch != null) throw new HtmlScriptRuntimeException("Fetch requires explicit redirect responses in supplied resources.");
                     if ((long)redirects + response.RedirectCount > _policy.MaxRedirects) throw new HtmlScriptRuntimeException("Resource redirect budget exceeded.");
                     redirects += response.RedirectCount;
+                    _diagnostics.Record(HtmlRuntimeEventKind.Redirect, "resource-redirect", "followed", started,
+                        url: response.FinalUrl, method: method, statusCode: response.StatusCode, redirectCount: redirects);
                 }
                 if (response.StatusCode is 301 or 302 or 303 or 307 or 308) {
                     if (fetch?.Redirect == "error") throw new HtmlScriptRuntimeException("Fetch redirect mode forbids redirects.");
@@ -70,6 +77,8 @@ internal sealed class RuntimeResourceLoader : IDisposable {
                 if (response.StatusCode is 301 or 302 or 303 or 307 or 308 && response.Headers.TryGetValue("Location", out string? location)) {
                     if (++redirects > _policy.MaxRedirects) throw new HtmlScriptRuntimeException("Resource redirect budget exceeded.");
                     Uri next = new Uri(currentUrl, location);
+                    _diagnostics.Record(HtmlRuntimeEventKind.Redirect, "resource-redirect", "followed", started,
+                        url: next, method: method, statusCode: response.StatusCode, redirectCount: redirects);
                     // Redirects inherit the current fragment unless Location supplies
                     // one explicitly (including an empty '#'). Never send it over HTTP.
                     if (location.Contains('#')) responseFragment = next.Fragment;
@@ -91,10 +100,20 @@ internal sealed class RuntimeResourceLoader : IDisposable {
                 var result = new HtmlRuntimeResource(requestedUrl, response.Buffer, response.ContentType, response.StatusCode, finalUrl, redirects, response.Headers, response.StatusText);
                 // A POST response at an image/script URL must not replace its retained GET asset.
                 if (fetch == null || fetch.Method == "GET") { lock (_sync) _loaded[HtmlRuntimeResourcePolicy.Key(requestedUrl)] = result; }
+                _diagnostics.Record(HtmlRuntimeEventKind.Resource, fetch == null ? "resource-load" : "fetch", "success", started,
+                    DateTimeOffset.UtcNow - started, url: originalUrl, method: originalMethod, statusCode: result.StatusCode,
+                    byteCount: result.Length, redirectCount: result.RedirectCount, decision: "allowed");
                 return result;
             }
         } catch (OperationCanceledException) when (deadline.IsCancellationRequested && !token.IsCancellationRequested && !_lifetime.IsCancellationRequested) {
+            _diagnostics.Record(HtmlRuntimeEventKind.Resource, fetch == null ? "resource-load" : "fetch", "timeout", started,
+                DateTimeOffset.UtcNow - started, url: originalUrl, method: originalMethod, decision: "blocked");
             throw new HtmlScriptRuntimeException("The resource load exceeded its deadline.");
+        } catch (Exception error) {
+            _diagnostics.Record(HtmlRuntimeEventKind.Resource, fetch == null ? "resource-load" : "fetch", "failure", started,
+                DateTimeOffset.UtcNow - started, detail: _diagnostics.IncludeFailureMessages ? error.Message : null,
+                url: originalUrl, method: originalMethod, decision: "blocked");
+            throw;
         } finally {
             if (admitted) _concurrency.Release();
             _budget.EndOperation();
@@ -114,6 +133,8 @@ internal sealed class RuntimeResourceLoader : IDisposable {
         CheckOrigin(url);
         if (Interlocked.Increment(ref _budget.Requests) > _policy.MaxRequests) throw new HtmlScriptRuntimeException("Resource request budget exceeded.");
         if (_supplied.TryGetValue(HtmlRuntimeResourcePolicy.Key(url), out var supplied) && method is "GET" or "HEAD") {
+            _diagnostics.Record(HtmlRuntimeEventKind.Policy, "resource-source", "allowed", DateTimeOffset.UtcNow,
+                url: url, method: method, decision: "supplied");
             CheckOrigin(supplied.FinalUrl);
             if (supplied.RedirectCount > _policy.MaxRedirects) throw new HtmlScriptRuntimeException("Resource redirect budget exceeded.");
             if (Interlocked.Add(ref _budget.Requests, supplied.RedirectCount) > _policy.MaxRequests) throw new HtmlScriptRuntimeException("Resource request budget exceeded.");
@@ -121,7 +142,13 @@ internal sealed class RuntimeResourceLoader : IDisposable {
             var suppliedHeaders = new Dictionary<string, string>(supplied.Headers, StringComparer.OrdinalIgnoreCase) { ["Content-Type"] = supplied.ContentType };
             return new HtmlRuntimeResource(url, method == "HEAD" ? Array.Empty<byte>() : supplied.Buffer, supplied.ContentType, supplied.StatusCode, new Uri(HtmlRuntimeResourcePolicy.Key(supplied.FinalUrl)), supplied.RedirectCount, suppliedHeaders, supplied.StatusText);
         }
-        if (!_policy.AllowNetwork) throw new HtmlScriptRuntimeException("The resource was not supplied and network loading is disabled.");
+        if (!_policy.AllowNetwork) {
+            _diagnostics.Record(HtmlRuntimeEventKind.Policy, "network-access", "blocked", DateTimeOffset.UtcNow,
+                url: url, method: method, decision: "network-disabled");
+            throw new HtmlScriptRuntimeException("The resource was not supplied and network loading is disabled.");
+        }
+        _diagnostics.Record(HtmlRuntimeEventKind.Policy, "network-access", "allowed", DateTimeOffset.UtcNow,
+            url: url, method: method, decision: "network-enabled");
         if (body != null) {
             lock (_sync) {
                 if (body.LongLength > _policy.MaxTotalRequestBytes - _budget.SentBytes) throw new HtmlScriptRuntimeException("Total fetch request body byte budget exceeded.");
@@ -156,7 +183,11 @@ internal sealed class RuntimeResourceLoader : IDisposable {
     }
 
     private void CheckOrigin(Uri url) {
-        if (!_origins.Contains(HtmlRuntimeResourcePolicy.Origin(url))) throw new HtmlScriptRuntimeException("The resource origin is not allowed.");
+        if (!_origins.Contains(HtmlRuntimeResourcePolicy.Origin(url))) {
+            _diagnostics.Record(HtmlRuntimeEventKind.Policy, "origin", "blocked", DateTimeOffset.UtcNow,
+                url: url, decision: "origin-not-allowed");
+            throw new HtmlScriptRuntimeException("The resource origin is not allowed.");
+        }
     }
     private void ReserveBytes(long count) {
         lock (_sync) {

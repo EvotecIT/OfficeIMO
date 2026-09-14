@@ -22,6 +22,10 @@ public static class HtmlRuntimeCapabilityIds {
     public const string StructuredActions = "automation.structured-actions";
     /// <summary>The page records bounded provider-neutral operation traces.</summary>
     public const string OperationTrace = "trace.operations";
+    /// <summary>The trace includes bounded structured resource, console, policy, lifecycle and download events.</summary>
+    public const string StructuredTraceEvents = "trace.structured-events";
+    /// <summary>Captured artifacts expose deterministic content manifests.</summary>
+    public const string DeterministicArtifactManifest = "artifact.deterministic-manifest";
     /// <summary>A context can own multiple concurrent pages.</summary>
     public const string MultiplePages = "context.multiple-pages";
 }
@@ -77,7 +81,9 @@ public sealed class HtmlRuntimeProviderDescriptor {
         HtmlRuntimeCapabilityIds.VisualObservation,
         HtmlRuntimeCapabilityIds.RevisionBoundReferences,
         HtmlRuntimeCapabilityIds.StructuredActions,
-        HtmlRuntimeCapabilityIds.OperationTrace
+        HtmlRuntimeCapabilityIds.OperationTrace,
+        HtmlRuntimeCapabilityIds.StructuredTraceEvents,
+        HtmlRuntimeCapabilityIds.DeterministicArtifactManifest
     });
 
     internal static HtmlRuntimeProviderDescriptor ProcessWorker { get; } = CreateProcessWorker(

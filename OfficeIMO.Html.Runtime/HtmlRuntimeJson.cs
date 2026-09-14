@@ -12,6 +12,8 @@ public static class HtmlRuntimeJson {
     public static string Serialize(HtmlAutomationResult value) => Serialize(value, HtmlRuntimePublicJsonContext.Default.HtmlAutomationResult);
     /// <summary>Serializes an immutable operation trace with camel-case properties and string enums.</summary>
     public static string Serialize(HtmlRuntimeTrace value) => Serialize(value, HtmlRuntimePublicJsonContext.Default.HtmlRuntimeTrace);
+    /// <summary>Serializes a deterministic runtime artifact manifest.</summary>
+    public static string Serialize(HtmlRuntimeArtifactManifest value) => Serialize(value, HtmlRuntimePublicJsonContext.Default.HtmlRuntimeArtifactManifest);
     /// <summary>Serializes an inert capture as HTML, resolved URLs, and retained resource responses.</summary>
     public static string Serialize(HtmlScriptCapture value) => Serialize(Project(value), HtmlRuntimePublicJsonContext.Default.HtmlScriptCapturePayload);
     /// <summary>Serializes a tool result, including an inert HTML projection when it contains a capture.</summary>
@@ -46,20 +48,21 @@ public static class HtmlRuntimeJson {
     private static HtmlScriptCapturePayload Project(HtmlScriptCapture value) {
         ArgumentNullException.ThrowIfNull(value);
         return new HtmlScriptCapturePayload {
-                DocumentHtml = value.Document.DocumentElement?.OuterHtml ?? string.Empty,
-                ProviderId = value.ProviderId,
-                DocumentUrl = value.DocumentUrl,
-                BaseUri = value.BaseUri,
-                Resources = value.Resources.Select(resource => new HtmlRuntimeResourcePayload {
-                    Url = resource.Url,
-                    FinalUrl = resource.FinalUrl,
-                    RedirectCount = resource.RedirectCount,
-                    Content = resource.Content,
-                    ContentType = resource.ContentType,
-                    StatusCode = resource.StatusCode,
-                    Headers = resource.Headers,
-                    StatusText = resource.StatusText
-                }).ToArray()
+            DocumentHtml = HtmlRuntimeArtifactManifest.DocumentHtml(value),
+            ProviderId = value.ProviderId,
+            DocumentUrl = value.DocumentUrl,
+            BaseUri = value.BaseUri,
+            Resources = value.Resources.Select(resource => new HtmlRuntimeResourcePayload {
+                Url = resource.Url,
+                FinalUrl = resource.FinalUrl,
+                RedirectCount = resource.RedirectCount,
+                Content = resource.Content,
+                ContentType = resource.ContentType,
+                StatusCode = resource.StatusCode,
+                Headers = resource.Headers,
+                StatusText = resource.StatusText
+            }).ToArray(),
+            ArtifactManifest = value.ArtifactManifest
         };
     }
 }
@@ -88,6 +91,7 @@ internal sealed class HtmlScriptCapturePayload {
     public Uri DocumentUrl { get; set; } = new("https://officeimo.invalid/");
     public Uri BaseUri { get; set; } = new("https://officeimo.invalid/");
     public IReadOnlyList<HtmlRuntimeResourcePayload> Resources { get; set; } = Array.Empty<HtmlRuntimeResourcePayload>();
+    public HtmlRuntimeArtifactManifest ArtifactManifest { get; set; } = null!;
 }
 
 internal sealed class HtmlRuntimeResourcePayload {

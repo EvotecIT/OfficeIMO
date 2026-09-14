@@ -32,12 +32,14 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private RuntimeHistoryBindings _history = null!;
     private readonly Func<long> _currentRevision;
     private readonly Action _markRevision;
+    private readonly RuntimeDiagnostics _diagnostics;
 
     private ScriptedDocumentSession(HtmlScriptRequest options, RuntimeResourceBudget budget, RuntimeBrowsingStorage storage,
-        RuntimeBrowsingHistory history, Action<RuntimeNavigation>? navigate, Func<long> currentRevision, Action markRevision) {
+        RuntimeBrowsingHistory history, RuntimeDiagnostics diagnostics, Action<RuntimeNavigation>? navigate, Func<long> currentRevision, Action markRevision) {
         _options = options;
-        _errors = new RuntimeScriptErrors(options.MaxPendingPromiseRejections);
-        _resources = new RuntimeResourceLoader(options, budget);
+        _diagnostics = diagnostics;
+        _errors = new RuntimeScriptErrors(options.MaxPendingPromiseRejections, diagnostics);
+        _resources = new RuntimeResourceLoader(options, budget, diagnostics);
         _integrity = new RuntimeSubresourceIntegrity(options.MaxModuleIntegrityMetadataCharacters);
         _moduleSources = new RuntimeModuleSourceCache(_resources, options.MaxModuleCount,
             options.MaxModuleIntegrityMetadataCharacters, _integrity);
@@ -90,11 +92,12 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             var normalizeWindow = RuntimeWindowBindings.Install(_engine, document.DefaultView!);
             RuntimeEventBindings.Install(_engine, document.DefaultView!, _errors.Report, normalizeWindow);
             RuntimeUrlBindings.Install(_engine, document.DefaultView!);
+            RuntimeConsoleBindings.Install(_engine, diagnostics);
             RuntimeObserverBindings.Install(_engine, document, _errors.Report, ((RuntimeEventLoop)_loop).EnqueueMicrotask);
             RuntimeStorageBindings.Install(_engine, options.MaxStorageCharacters, storage, HtmlRuntimeResourcePolicy.Origin(options.DocumentUrl));
             var viewport = new RuntimeViewport((IHtmlDocument)document, options, () => _activeCommandToken, _resources.Capture);
             _history = new RuntimeHistoryBindings(_engine, document, _loop, options, viewport, history, navigate);
-            _automation = new RuntimeAutomation(document, options, _focus, _history, viewport, _engine);
+            _automation = new RuntimeAutomation(document, options, _focus, _history, viewport, _engine, diagnostics);
             RuntimeInteractionBindings.Install(_engine, document, _focus, _automation);
             RuntimeSelectBindings.Install(_engine);
             _fetch = new RuntimeFetchBindings(_engine, document, _loop, _resources, options, _errors);
@@ -102,9 +105,9 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     }
 
     internal static async Task<ScriptedDocumentSession> OpenAsync(HtmlScriptRequest request, RuntimeResourceBudget budget,
-        RuntimeBrowsingStorage storage, RuntimeBrowsingHistory history, Action<RuntimeNavigation>? navigate,
+        RuntimeBrowsingStorage storage, RuntimeBrowsingHistory history, RuntimeDiagnostics diagnostics, Action<RuntimeNavigation>? navigate,
         Func<long> currentRevision, Action markRevision, CancellationToken token, HtmlRuntimeResource? source = null) {
-        var session = new ScriptedDocumentSession(request, budget, storage, history, navigate, currentRevision, markRevision);
+        var session = new ScriptedDocumentSession(request, budget, storage, history, diagnostics, navigate, currentRevision, markRevision);
         try {
             string html = source == null ? request.Html : RuntimeHtmlNavigationSource.Decode(source, request.MaxInputCharacters);
             session._document = await session._context.OpenAsync(response => {

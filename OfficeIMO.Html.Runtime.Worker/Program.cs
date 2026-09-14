@@ -6,6 +6,7 @@ using Stream input = Console.OpenStandardInput();
 using Stream output = Console.OpenStandardOutput();
 ScriptedBrowsingSession? session = null;
 HtmlScriptRequest? options = null;
+RuntimeDiagnostics? diagnostics = null;
 try {
     while (true) {
         HtmlRuntimeCommand? command = await HtmlRuntimeProtocol.ReadAsync<HtmlRuntimeCommand>(input, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
@@ -15,9 +16,10 @@ try {
             if (session == null) {
                 if (command.Kind != "open" || command.Request == null) throw new HtmlScriptRuntimeException("The first command must open a document.");
                 options = command.Request.Snapshot();
+                diagnostics = new RuntimeDiagnostics(command.Trace);
                 using var deadline = new CancellationTokenSource(options!.Timeout);
                 session = await ScriptedBrowsingSession.OpenAsync(options,
-                    command.PageId ?? throw new HtmlScriptRuntimeException("The page id is missing."), deadline.Token);
+                    command.PageId ?? throw new HtmlScriptRuntimeException("The page id is missing."), diagnostics, deadline.Token);
             } else {
                 if (command.Kind is not ("automation" or "observe") && (command.Script == null || command.Script.Length > options!.MaxInputCharacters)) throw new HtmlScriptRuntimeException("The command script is missing or exceeds its budget.");
                 using var deadline = new CancellationTokenSource(options!.Timeout);
@@ -36,13 +38,16 @@ try {
                 }
             }
             response.PageRevision = session.CurrentRevision;
+            response.Events = diagnostics?.Drain() ?? new();
             await HtmlRuntimeProtocol.WriteAsync(output, response, options!.MaxOutputCharacters, CancellationToken.None);
         } catch (OperationCanceledException) {
             response = new HtmlRuntimeResponse { Id = command.Id, Error = "The runtime command exceeded its deadline.", ErrorKind = "timeout" };
+            response.Events = diagnostics?.Drain() ?? new();
             await HtmlRuntimeProtocol.WriteAsync(output, response, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
             break;
         } catch (Exception error) {
             response = new HtmlRuntimeResponse { Id = command.Id, Error = error.Message };
+            response.Events = diagnostics?.Drain() ?? new();
             await HtmlRuntimeProtocol.WriteAsync(output, response, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
             break;
         }

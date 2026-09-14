@@ -128,6 +128,30 @@ rejected when the provider is created.
 | Copy only `OfficeIMO.Html.Runtime.Worker.dll` and selected dependencies | Deploy the complete worker build or publish directory, including `OfficeIMO.Html.Runtime.Worker.manifest.json`. |
 | Combine an older worker with a newer `OfficeIMO.Html.Runtime` client | Build and deploy matching versions of the runtime and worker together. |
 
+### HTML runtime evidence and model adapters
+
+Runtime traces now include structured resource, redirect, console, policy,
+lifecycle, download and artifact events. URLs, console messages and failure
+messages remain disabled unless explicitly enabled. Code that persists traces
+with a closed enum or rejects unknown JSON members must accept the new event kinds
+and fields. Apply `HtmlRuntimeTraceOptions.Redactor` before enabling optional text
+or URLs.
+
+Every `HtmlScriptCapture` now exposes a deterministic schema-1
+`ArtifactManifest`. Serialized captures therefore contain an additional
+`artifactManifest` member. Readers should consume it when artifact identity and
+entry hashes are useful and tolerate it otherwise.
+
+Provider qualification is available from `EvaluateProvider` on
+`HtmlRuntimeQualificationCatalog` in `OfficeIMO.Html.Runtime.Conformance`.
+Profiles that declare consuming adapters require actual workflow outcomes through
+`EvaluateConsumer`; the combined `Evaluate` result fails when any declared
+consumer evidence is absent or failed. The
+optional `OfficeIMO.Html.Runtime.MicrosoftExtensionsAI` package adapts a
+caller-owned `Microsoft.Extensions.AI.IChatClient`; the core runtime and tool
+schemas remain model-SDK neutral. Applications continue to own prompts,
+credentials, model choice, approvals and retries.
+
 ### Explicit HTML rendering intent
 
 Existing image APIs still map `HtmlRenderOptions.Mode == Continuous` to the

@@ -49,7 +49,7 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimePage {
     public HtmlRuntimeProviderDescriptor Provider { get; }
 
     internal Task OpenAsync(CancellationToken token) => SendAsync(new HtmlRuntimeCommand {
-        Kind = "open", Request = _options, ContextId = ContextId, PageId = Id
+        Kind = "open", Request = _options, ContextId = ContextId, PageId = Id, Trace = _trace.WireOptions
     }, token);
 
     public Task NavigateAsync(Uri url, bool replaceHistoryEntry = false, CancellationToken cancellationToken = default) {
@@ -134,6 +134,7 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimePage {
             HtmlRuntimeResponse response = await HtmlRuntimeProtocol.ReadAsync<HtmlRuntimeResponse>(_process.StandardOutput.BaseStream, _options.MaxOutputCharacters, operation.Token).ConfigureAwait(false)
                 ?? throw new HtmlScriptRuntimeException("The runtime worker exited before replying.");
             if (response.Id != command.Id) throw new HtmlScriptRuntimeException("The runtime response does not match its command.");
+            foreach (HtmlRuntimeWireEvent item in response.Events ?? new()) _trace.Add(item, ContextId, Id);
             if (response.Error != null) {
                 if (response.ErrorKind == "timeout") throw new TimeoutException(response.Error);
                 throw new HtmlScriptRuntimeException(response.Error);
@@ -141,11 +142,16 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimePage {
             T result = convert(response, operation.Token);
             operation.Token.ThrowIfCancellationRequested();
             _trace.Add(EventKind(command.Kind), command.Kind, "success", started, stopwatch.Elapsed, ContextId, Id,
-                response.PageRevision, TraceDetail(command));
+                response.PageRevision, TraceDetail(command), artifactId: result is HtmlScriptCapture capture ? capture.ArtifactManifest.Id : null);
+            if (result is HtmlScriptCapture artifact) {
+                _trace.Add(HtmlRuntimeEventKind.Artifact, "capture-manifest", "generated", started, stopwatch.Elapsed,
+                    ContextId, Id, response.PageRevision, byteCount: artifact.ArtifactManifest.ByteCount,
+                    artifactId: artifact.ArtifactManifest.Id);
+            }
             return result;
         } catch (Exception error) {
             _trace.Add(HtmlRuntimeEventKind.Failure, command.Kind, error.GetType().Name, started, stopwatch.Elapsed,
-                ContextId, Id, null, error.Message);
+                ContextId, Id, null, _trace.WireOptions.IncludeFailureMessages ? error.Message : null);
             Stop();
             await WaitForTerminationAsync().ConfigureAwait(false);
             ThrowCancellation(token, timeout);

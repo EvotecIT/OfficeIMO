@@ -9,8 +9,12 @@ internal sealed class RuntimeScriptErrors {
     private readonly Dictionary<object, JsValue> _rejections = new(ReferenceEqualityComparer.Instance);
     private readonly int _maximum;
     private string? _firstError;
+    private readonly RuntimeDiagnostics _diagnostics;
 
-    internal RuntimeScriptErrors(int maximum) => _maximum = maximum;
+    internal RuntimeScriptErrors(int maximum, RuntimeDiagnostics diagnostics) {
+        _maximum = maximum;
+        _diagnostics = diagnostics;
+    }
 
     internal void Attach(Engine engine) => engine.Advanced.PromiseRejectionTracker += (_, args) => {
         if (args.Operation == PromiseRejectionOperation.Handle) _rejections.Remove(args.Promise);
@@ -18,7 +22,11 @@ internal sealed class RuntimeScriptErrors {
         else _rejections[args.Promise] = args.Value ?? JsValue.Undefined;
     };
 
-    internal void Report(string message) => Interlocked.CompareExchange(ref _firstError, message, null);
+    internal void Report(string message) {
+        _diagnostics.Record(HtmlRuntimeEventKind.Failure, "script-failure", "reported", DateTimeOffset.UtcNow,
+            detail: _diagnostics.IncludeFailureMessages ? message : null);
+        Interlocked.CompareExchange(ref _firstError, message, null);
+    }
 
     internal void ThrowIfFailed(bool includeRejections = true) {
         if (_firstError is string error) throw new HtmlScriptRuntimeException(error);

@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "officeimo-html-runtime-conformance-v1",
+  "profiles": [
+    {
+      "id": "scripted-document-v1",
+      "version": 1,
+      "runtimeProfiles": [ "ScriptedDocumentV1" ],
+      "specifications": [
+        { "id": "ecma-262", "revision": "15th edition, June 2024", "uri": "https://262.ecma-international.org/15.0/", "scope": "Selected language features exercised by owned fixtures through Jint; no general ECMAScript conformance claim." },
+        { "id": "html", "revision": "living-standard selection 2026-09-14", "uri": "https://html.spec.whatwg.org/", "scope": "Document parsing integration, classic and module scripts, timers, events, forms, storage and inert capture selected by named OfficeIMO cases." },
+        { "id": "fetch", "revision": "living-standard selection 2026-09-14", "uri": "https://fetch.spec.whatwg.org/", "scope": "Bounded supplied-resource and opt-in network fetch, redirects, CORS checks and credential omission." },
+        { "id": "url", "revision": "living-standard selection 2026-09-14", "uri": "https://url.spec.whatwg.org/", "scope": "Absolute URL resolution and origin checks used by the selected cases." }
+      ],
+      "upstreamSuites": [
+        { "id": "test262", "revision": "not-selected-v1", "selected": 0, "required": 0, "passed": 0, "failed": 0, "excluded": 0, "untested": 1, "note": "An upstream Test262 selection is intentionally not claimed for the retained interpreter." },
+        { "id": "web-platform-tests", "revision": "not-selected-v1", "selected": 0, "required": 0, "passed": 0, "failed": 0, "excluded": 0, "untested": 1, "note": "Owned black-box cases establish this bounded profile; WPT promotion remains later work." }
+      ],
+      "cases": [
+        { "id": "scripted-resource-capture", "requiredAssertions": 4 },
+        { "id": "blocked-resource-script-failure", "requiredAssertions": 7 }
+      ],
+      "providers": [
+        { "id": "officeimo.trusted-process", "requiredCases": 2, "passedCases": 2, "failedCases": 0, "requiredAssertions": 11, "passedAssertions": 11, "failedAssertions": 0, "untestedAssertions": 0 }
+      ],
+      "consumers": [],
+      "exclusions": [ "cross-document navigation", "additional browsing contexts", "downloads", "credentialed requests and cookies", "workers and service workers", "canvas, media and WebGL", "untrusted-content sandboxing" ],
+      "untested": [ "upstream Test262 selection", "upstream WPT selection", "shadow DOM and custom elements", "IME and clipboard" ]
+    },
+    {
+      "id": "web-application-v1",
+      "version": 1,
+      "runtimeProfiles": [ "WebApplicationV1" ],
+      "specifications": [
+        { "id": "ecma-262", "revision": "15th edition, June 2024", "uri": "https://262.ecma-international.org/15.0/", "scope": "Selected language features exercised by owned application fixtures through Jint or the comparison provider." },
+        { "id": "html", "revision": "living-standard selection 2026-09-14", "uri": "https://html.spec.whatwg.org/", "scope": "Selected document, navigation, history, form, event, timer, storage and lifecycle behavior." },
+        { "id": "dom", "revision": "living-standard selection 2026-09-14", "uri": "https://dom.spec.whatwg.org/", "scope": "Selected mutation, event dispatch, querying and revision-bound reference behavior." },
+        { "id": "fetch", "revision": "living-standard selection 2026-09-14", "uri": "https://fetch.spec.whatwg.org/", "scope": "Bounded fetch, redirect, CORS and credential-omission behavior." },
+        { "id": "cssom-view", "revision": "working-draft selection 2026-09-14", "uri": "https://drafts.csswg.org/cssom-view/", "scope": "Selected viewport geometry, visibility, scrolling and center hit-test behavior." },
+        { "id": "ui-events", "revision": "working-draft selection 2026-09-14", "uri": "https://w3c.github.io/uievents/", "scope": "Selected primary-pointer, keyboard modifier and input event behavior." }
+      ],
+      "upstreamSuites": [
+        { "id": "test262", "revision": "not-selected-v1", "selected": 0, "required": 0, "passed": 0, "failed": 0, "excluded": 0, "untested": 1, "note": "No full language-conformance claim is made for the retained interpreter." },
+        { "id": "web-platform-tests", "revision": "not-selected-v1", "selected": 0, "required": 0, "passed": 0, "failed": 0, "excluded": 0, "untested": 1, "note": "Named OfficeIMO cases are the executable v1 gate; pinned WPT subsets remain later work." }
+      ],
+      "cases": [
+        { "id": "scripted-resource-capture", "requiredAssertions": 4 },
+        { "id": "observation-action-wait-extraction-capture", "requiredAssertions": 13 },
+        { "id": "navigation", "requiredAssertions": 5 },
+        { "id": "stale-reference-recovery", "requiredAssertions": 3 },
+        { "id": "programmatic-rules-workflow", "requiredAssertions": 5 },
+        { "id": "provider-observability", "requiredAssertions": 8 },
+        { "id": "blocked-resource-script-failure", "requiredAssertions": 7 }
+      ],
+      "providers": [
+        { "id": "officeimo.trusted-process", "requiredCases": 7, "passedCases": 7, "failedCases": 0, "requiredAssertions": 45, "passedAssertions": 45, "failedAssertions": 0, "untestedAssertions": 0 },
+        { "id": "chromium.playwright-comparison", "requiredCases": 7, "passedCases": 7, "failedCases": 0, "requiredAssertions": 45, "passedAssertions": 45, "failedAssertions": 0, "untestedAssertions": 0 }
+      ],
+      "consumers": [],
+      "exclusions": [ "additional browsing contexts", "download persistence", "credentialed requests and cookies", "workers and service workers", "shadow DOM and custom elements", "canvas, media and WebGL", "untrusted-content sandboxing" ],
+      "untested": [ "upstream Test262 selection", "upstream WPT selection", "IME and clipboard", "non-center pointer targeting", "complete accessibility-tree equivalence" ]
+    },
+    {
+      "id": "programmatic-automation-v1",
+      "version": 1,
+      "runtimeProfiles": [ "WebApplicationV1" ],
+      "specifications": [
+        { "id": "json-schema", "revision": "2020-12", "uri": "https://json-schema.org/draft/2020-12", "scope": "Published SDK-neutral tool argument declarations." },
+        { "id": "wai-aria", "revision": "WAI-ARIA 1.2 selected semantics", "uri": "https://www.w3.org/TR/wai-aria-1.2/", "scope": "Selected role and accessible-name projection used by bounded observations; no complete accessibility-tree claim." },
+        { "id": "html-runtime-tools", "revision": "OfficeIMO v1", "uri": "https://github.com/EvotecIT/OfficeIMO", "scope": "Observe, act, navigate and capture calls through a caller-owned bounded planner." }
+      ],
+      "upstreamSuites": [
+        { "id": "test262", "revision": "not-applicable-v1", "selected": 0, "required": 0, "passed": 0, "failed": 0, "excluded": 1, "untested": 0, "note": "Language conformance belongs to the selected runtime provider rather than the automation tool contract." },
+        { "id": "web-platform-tests", "revision": "not-selected-v1", "selected": 0, "required": 0, "passed": 0, "failed": 0, "excluded": 0, "untested": 1, "note": "The v1 automation contract uses owned provider-neutral workflows." }
+      ],
+      "cases": [
+        { "id": "observation-action-wait-extraction-capture", "requiredAssertions": 13 },
+        { "id": "stale-reference-recovery", "requiredAssertions": 3 },
+        { "id": "programmatic-rules-workflow", "requiredAssertions": 5 }
+      ],
+      "providers": [
+        { "id": "officeimo.trusted-process", "requiredCases": 3, "passedCases": 3, "failedCases": 0, "requiredAssertions": 21, "passedAssertions": 21, "failedAssertions": 0, "untestedAssertions": 0 },
+        { "id": "chromium.playwright-comparison", "requiredCases": 3, "passedCases": 3, "failedCases": 0, "requiredAssertions": 21, "passedAssertions": 21, "failedAssertions": 0, "untestedAssertions": 0 }
+      ],
+      "consumers": [
+        { "id": "microsoft-extensions-ai", "contract": "Microsoft.Extensions.AI.IChatClient", "packageVersion": "10.10.0", "requiredWorkflows": 1 }
+      ],
+      "exclusions": [ "model selection", "prompt ownership", "credentials", "approval policy", "model-client retries", "unbounded autonomous execution", "provider-native page or element handles" ],
+      "untested": [ "model quality", "provider-specific tool-call formatting", "multi-agent orchestration", "credentialed application workflows" ]
+    }
+  ]
+}

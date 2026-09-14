@@ -51,6 +51,7 @@ internal sealed class HtmlRuntimeCommand {
     public string? ContextId { get; set; }
     public string? PageId { get; set; }
     public bool ReplaceHistoryEntry { get; set; }
+    public HtmlRuntimeWireTraceOptions? Trace { get; set; }
 }
 
 internal sealed class HtmlRuntimeResponse {
@@ -62,4 +63,31 @@ internal sealed class HtmlRuntimeResponse {
     public HtmlAutomationResult? Automation { get; set; }
     public HtmlPageObservation? Observation { get; set; }
     public long PageRevision { get; set; }
+    public List<HtmlRuntimeWireEvent> Events { get; set; } = new();
+}
+
+internal sealed class HtmlRuntimeWireTraceOptions {
+    public bool Enabled { get; set; }
+    public int MaxEvents { get; set; }
+    public bool IncludeUrls { get; set; }
+    public bool IncludeConsoleMessages { get; set; }
+    public bool IncludeFailureMessages { get; set; }
+    public int MaxDetailCharacters { get; set; }
+}
+
+internal sealed class HtmlRuntimeWireEvent {
+    public HtmlRuntimeEventKind Kind { get; set; }
+    public string Operation { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTimeOffset StartedUtc { get; set; }
+    public double ElapsedMilliseconds { get; set; }
+    public long? PageRevision { get; set; }
+    public string? Detail { get; set; }
+    public Uri? Url { get; set; }
+    public string? Method { get; set; }
+    public int? StatusCode { get; set; }
+    public long? ByteCount { get; set; }
+    public int? RedirectCount { get; set; }
+    public string? Decision { get; set; }
+    public string? ArtifactId { get; set; }
 }
