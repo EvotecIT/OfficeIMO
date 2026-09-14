@@ -67,4 +67,3 @@ internal sealed class HtmlStaticBudgetConfiguration {
     public int WarmIterations { get; set; }
     public List<HtmlStaticBudgetCeiling> Platforms { get; set; } = new();
 }
-

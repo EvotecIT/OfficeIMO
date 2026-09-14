@@ -5,7 +5,7 @@ public sealed partial class PdfOptions {
     /// Default installed multilingual family candidates used by document converters for CJK,
     /// Arabic, and other non-Latin generated PDF text.
     /// </summary>
-    public const string DefaultDocumentMultilingualFontFamilyFallback = "Arial Unicode MS, Microsoft YaHei, Yu Gothic, PingFang SC, Noto Sans CJK SC, Noto Sans CJK JP, Nirmala UI, DejaVu Sans, Noto Sans Arabic, Noto Naskh Arabic, Arabic Typesetting, Traditional Arabic, Microsoft Uighur, Meiryo, Hiragino Sans GB, Microsoft JhengHei, Noto Sans CJK TC, Malgun Gothic, Apple SD Gothic Neo, Noto Sans CJK KR, MS Gothic, SimSun, Noto Sans JP, Noto Sans SC, Noto Sans TC, Noto Sans KR";
+    public const string DefaultDocumentMultilingualFontFamilyFallback = "Arial Unicode MS, Microsoft YaHei, Yu Gothic, PingFang SC, Noto Sans CJK SC, Noto Sans CJK JP, Nirmala UI, DejaVu Sans, Droid Sans Fallback, WenQuanYi Zen Hei, IPAGothic, IPA Gothic, Noto Sans Arabic, Noto Naskh Arabic, Arabic Typesetting, Traditional Arabic, Microsoft Uighur, Meiryo, Hiragino Sans GB, Microsoft JhengHei, Noto Sans CJK TC, Malgun Gothic, Apple SD Gothic Neo, Noto Sans CJK KR, MS Gothic, SimSun, Noto Sans JP, Noto Sans SC, Noto Sans TC, Noto Sans KR";
 
     /// <summary>
     /// Default installed symbol and emoji family candidates used by document converters for generated PDF text fallback runs.
