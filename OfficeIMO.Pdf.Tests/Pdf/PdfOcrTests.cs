@@ -605,6 +605,10 @@ public class PdfOcrTests {
 
         string html = result.Document.ToHtml();
         Assert.Equal(1, html.Split(new[] { "Alpha" }, StringSplitOptions.None).Length - 1);
+        string positioned = result.Document.ToHtml(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        Assert.Contains("Native anchor", positioned, StringComparison.Ordinal);
+        Assert.Equal(1, positioned.Split(new[] { "Alpha" }, StringSplitOptions.None).Length - 1);
+        Assert.Contains("Beta", positioned, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1139,6 +1143,9 @@ public class PdfOcrTests {
         Assert.Equal(88D, word[word.Length - 1].Quad.Right - word[0].Quad.Left, 2);
         Assert.Empty(PdfPageInteractionMap.Create(searchable, 1).TextRegions);
         Assert.True(PdfVisualComparer.Compare(source, searchable).IsMatch);
+        string positioned = PdfDocument.Load(searchable).Read().ToHtml(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        Assert.Contains("Searchable", positioned, StringComparison.Ordinal);
+        Assert.Contains("document", positioned, StringComparison.Ordinal);
         Assert.Equal("fixture", result.Ocr.Pages[0].Provider);
     }
 

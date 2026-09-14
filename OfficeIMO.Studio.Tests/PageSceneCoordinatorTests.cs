@@ -4,6 +4,25 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class PageSceneCoordinatorTests {
+    [Fact]
+    public async Task InactiveCacheDoesNotRetainLateSceneAndCanResume() {
+        var completion = new TaskCompletionSource<PdfPageScene>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var coordinator = new PageSceneCoordinator((_, _) => { entered.TrySetResult(); return completion.Task; });
+        Task<PdfPageScene> pending = coordinator.GetPageAsync(1, CancellationToken.None);
+        await entered.Task;
+        coordinator.SetCacheEnabled(false);
+        completion.SetResult(TestPdfPageScenes.Create(1));
+        await pending;
+        Assert.Equal(0, coordinator.CachedByteCount);
+        Assert.Equal(0, coordinator.CachedEntryCount);
+        coordinator.SetCacheEnabled(true);
+        await coordinator.GetPageAsync(1, CancellationToken.None);
+        Assert.Equal(1, coordinator.CachedEntryCount);
+        coordinator.SetCacheEnabled(false);
+        Assert.Equal(0, coordinator.CachedElementCount);
+    }
+
     private static readonly byte[] TinyPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 

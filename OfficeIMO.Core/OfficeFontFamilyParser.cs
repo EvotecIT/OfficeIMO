@@ -17,12 +17,28 @@ internal static class OfficeFontFamilyParser {
         }
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        int maximumSourceCharacters = checked(maximumCandidates * (maximumFamilyNameLength + 1));
+        int maximumSourceCharacters = checked(maximumCandidates * (maximumFamilyNameLength * 2 + 3));
         int scanEnd = Math.Min(familyNames!.Length, maximumSourceCharacters);
         int segmentStart = 0;
         while (segmentStart < scanEnd && families.Count < maximumCandidates) {
             int segmentEnd = segmentStart;
-            while (segmentEnd < scanEnd && familyNames[segmentEnd] != ',') segmentEnd++;
+            char quote = '\0';
+            bool escaped = false;
+            while (segmentEnd < scanEnd) {
+                char current = familyNames[segmentEnd];
+                if (escaped) {
+                    escaped = false;
+                } else if (current == '\\') {
+                    escaped = true;
+                } else if (quote != '\0') {
+                    if (current == quote) quote = '\0';
+                } else if (current == '\'' || current == '"') {
+                    quote = current;
+                } else if (current == ',') {
+                    break;
+                }
+                segmentEnd++;
+            }
             string family = CleanSegment(familyNames, segmentStart, segmentEnd, maximumFamilyNameLength);
             if (family.Length > 0 && seen.Add(family)) families.Add(family);
             segmentStart = segmentEnd + 1;
@@ -41,8 +57,25 @@ internal static class OfficeFontFamilyParser {
             TrimBounds(value, ref start, ref end);
         }
 
-        int length = Math.Min(end - start, maximumLength);
-        return length > 0 ? value.Substring(start, length) : string.Empty;
+        int length = end - start;
+        if (length <= 0) return string.Empty;
+        int slash = value.IndexOf('\\', start, length);
+        if (slash < 0) return value.Substring(start, Math.Min(length, maximumLength));
+
+        var cleaned = new char[Math.Min(length, maximumLength)];
+        int written = 0;
+        for (int index = start; index < end && written < cleaned.Length; index++) {
+            char current = value[index];
+            if (current == '\\' && index + 1 < end) {
+                char escaped = value[index + 1];
+                if (escaped == ',' || escaped == '\\' || escaped == '\'' || escaped == '"') {
+                    current = escaped;
+                    index++;
+                }
+            }
+            cleaned[written++] = current;
+        }
+        return new string(cleaned, 0, written);
     }
 
     private static void TrimBounds(string value, ref int start, ref int end) {

@@ -244,6 +244,15 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         ReturnToAssistant = false;
         if (_isExtractingText) _cancellation?.Cancel();
         ExtractedText = string.Empty;
+        if (!IsBusy) {
+            PublishedPath = string.Empty;
+            HasRecovery = false;
+            ErrorMessage = null;
+            Summary = T("Summary.Empty", "No OCR output yet");
+            Status = string.IsNullOrWhiteSpace(value)
+                ? T("Status.Ready", "Choose a scanned PDF to make its text searchable.")
+                : _localizer.Get("Ocr.Status.SourceSelected");
+        }
         Scan.Invalidate(clearSource: true);
         string? suggestion = TryCreateOutputPath(value);
         if (suggestion is null) {
@@ -361,15 +370,12 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
                 return;
             }
             PublishedPath = result.Workflow?.OutputPath ?? output;
-            string pageLabel = result.ModifiedPages.Count == 1
-                ? T("Result.OnePage", "1 page")
-                : _localizer.FormatOrDefault("Ocr.Result.Pages", "{0:N0} pages", result.ModifiedPages.Count);
             Status = result.AddedWordCount > 0
                 ? T("Status.Completed", "Searchable PDF created")
                 : T("Status.NoWords", "PDF created; no searchable words were added");
             Summary = string.IsNullOrWhiteSpace(result.Provider)
-                ? _localizer.FormatOrDefault("Ocr.Result.Summary", "Added {0:N0} searchable words across {1}.", result.AddedWordCount, pageLabel)
-                : _localizer.FormatOrDefault("Ocr.Result.SummaryWithProvider", "Added {0:N0} searchable words across {1} with {2}.", result.AddedWordCount, pageLabel, result.Provider);
+                ? _localizer.Format("Ocr.Result.Summary", result.AddedWordCount, result.ModifiedPages.Count)
+                : _localizer.Format("Ocr.Result.SummaryWithProvider", result.AddedWordCount, result.ModifiedPages.Count, result.Provider);
             job?.Complete(OfficeIMO.Workflows.OfficeWorkflowStatus.Completed, PublishedPath, Summary, result.Workflow?.Recovery);
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) {
             Status = T("Status.Cancelled", "OCR cancelled");

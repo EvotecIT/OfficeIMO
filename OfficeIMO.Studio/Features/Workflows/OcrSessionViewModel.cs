@@ -44,6 +44,11 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
         Status = T("Ready", "Add PDFs or images. Each file is reviewed before its output is saved.");
     }
     public ObservableCollection<OcrSessionItem> Items { get; } = [];
+    public bool HasItems => Items.Count > 0;
+    public string SetupHint => !HasItems ? string.Empty
+        : string.IsNullOrWhiteSpace(OutputFolder) ? T("Setup.Folder", "Choose an output folder to enable recognition.")
+        : !Languages.Any(item => item.IsSelected) ? T("Setup.Language", "Select at least one recognition language.")
+        : string.Empty;
     public IReadOnlyList<OcrLanguageChoice> Languages { get; }
     [ObservableProperty] private OcrSessionItem? _selectedItem;
     [ObservableProperty] private string _outputFolder = string.Empty;
@@ -66,11 +71,13 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
     public bool HasPdfReview => PdfReview is not null;
     public bool HasImageReview => ImageReview is not null;
     public bool HasSelectedOutput => SelectedItem?.HasOutput == true;
+    public bool CanRemoveSelected => !_disposed && !IsBusy && SelectedItem is not null;
     public bool CanChooseConflictPolicy => string.IsNullOrWhiteSpace(OutputFolder) || _storage?.UsesProviderPublication(OutputFolder) != true;
     partial void OnSelectedItemChanged(OcrSessionItem? oldValue, OcrSessionItem? newValue) {
         if (oldValue is not null) oldValue.PropertyChanged -= SelectedItemChanged;
         if (newValue is not null) newValue.PropertyChanged += SelectedItemChanged;
         OnPropertyChanged(nameof(HasSelectedOutput));
+        RemoveSelectedCommand.NotifyCanExecuteChanged();
     }
     private void SelectedItemChanged(object? sender, PropertyChangedEventArgs args) => OnPropertyChanged(nameof(HasSelectedOutput));
     public bool CanRun => !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(OutputFolder) &&
@@ -105,7 +112,7 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
         } catch (Exception error) { Status = error.Message; }
         NotifyCommands();
     }
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanRemoveSelected))]
     private void RemoveSelected() {
         if (IsBusy || SelectedItem is null) return;
         Items.Remove(SelectedItem); SelectedItem = Items.FirstOrDefault(); NotifyCommands();
@@ -210,8 +217,10 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
     private static async Task<IOcrEngine> CreateEngineAsync(TesseractOcrLanguage languages, bool provision, CancellationToken token) =>
         (await TesseractOcr.CreateSessionAsync(new() { Languages = languages, ProvisionMissingLanguageData = provision }, token).ConfigureAwait(false)).Engine;
     private void NotifyCommands() {
+        OnPropertyChanged(nameof(HasItems)); OnPropertyChanged(nameof(SetupHint));
         OnPropertyChanged(nameof(CanRun)); OnPropertyChanged(nameof(CanRetry));
         RunCommand.NotifyCanExecuteChanged(); RetryCommand.NotifyCanExecuteChanged();
+        RemoveSelectedCommand.NotifyCanExecuteChanged();
     }
     private string T(string suffix, string fallback) => _localizer.GetOrDefault("OcrSession." + suffix, fallback);
     public void Dispose() {

@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ai="using:OfficeIMO.Studio.Features.Assistant" xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+        x:Class="OfficeIMO.Studio.Features.Assistant.ConnectionsWindow" x:DataType="ai:StudioAiConnections"
+        Title="{loc:Loc Connections.Title}" Width="860" Height="760" MinWidth="640" MinHeight="540"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioWindowBrush}">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border Padding="24,20" Background="{DynamicResource StudioPanelBrush}" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1">
+      <StackPanel Spacing="6">
+        <TextBlock Text="{loc:Loc Connections.Title}" Classes="sectionTitle" />
+        <TextBlock Text="{loc:Loc Connections.Privacy}" Classes="muted" />
+      </StackPanel>
+    </Border>
+    <ai:ConnectionsView Grid.Row="1" Margin="24" />
+    <Border Grid.Row="2" Padding="24,16" Background="{DynamicResource StudioPanelBrush}" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0">
+      <WrapPanel HorizontalAlignment="Right">
+        <Button Classes="ghost" Content="{loc:Loc Connections.Close}" Click="CloseClick" Margin="0,0,8,0" />
+        <Button Classes="primary" Content="{loc:Loc Connections.UseConnection}" IsEnabled="{Binding CanUse}" Click="UseConnectionClick" />
+      </WrapPanel>
+    </Border>
+  </Grid>
+</Window>

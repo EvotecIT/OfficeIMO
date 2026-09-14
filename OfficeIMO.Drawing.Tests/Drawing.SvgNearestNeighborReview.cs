@@ -103,7 +103,7 @@ public partial class DrawingTests {
             interpolate: false);
         drawing.AddClippedDrawing(nested, 0D, 1D, OfficeClipPath.Rectangle(2D, 1D));
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => OfficeDrawingSvgExporter.ToSvg(
+        InvalidOperationException exception = Assert.ThrowsAny<InvalidOperationException>(() => OfficeDrawingSvgExporter.ToSvg(
             drawing,
             1D,
             OfficeSvgSizeUnit.Pixel,

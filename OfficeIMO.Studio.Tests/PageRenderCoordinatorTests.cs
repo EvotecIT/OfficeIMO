@@ -4,6 +4,25 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class PageRenderCoordinatorTests {
     [Fact]
+    public async Task InactiveCacheDoesNotRetainLateRenderAndCanResume() {
+        var completion = new TaskCompletionSource<PdfRenderedPage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var coordinator = new PageRenderCoordinator((_, _, _) => { entered.TrySetResult(); return completion.Task; });
+        Task<PdfRenderedPage> pending = coordinator.GetPageAsync(1, 1D, CancellationToken.None);
+        await entered.Task;
+        coordinator.SetCacheEnabled(false);
+        completion.SetResult(CreatePage(1, 1D, 32));
+        await pending;
+        Assert.Equal(0, coordinator.CachedByteCount);
+        Assert.Equal(0, coordinator.CachedEntryCount);
+        coordinator.SetCacheEnabled(true);
+        await coordinator.GetPageAsync(1, 1D, CancellationToken.None);
+        Assert.Equal(1, coordinator.CachedEntryCount);
+        coordinator.SetCacheEnabled(false);
+        Assert.Equal(0, coordinator.CachedByteCount);
+    }
+
+    [Fact]
     public async Task ReusesCachedPageForEquivalentScaleBucket() {
         int renderCount = 0;
         using var coordinator = new PageRenderCoordinator(

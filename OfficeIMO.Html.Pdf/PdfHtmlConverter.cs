@@ -16,7 +16,7 @@ public static partial class PdfHtmlConverterExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         return ReadForHtml(document, options, cancellationToken)
-            .ToHtml(CreateRenderOptionsAfterPreselection(options), cancellationToken);
+            .ToHtml(CreateRenderOptionsAfterPreselection(options, document), cancellationToken);
     }
 
     /// <summary>Renders an opened PDF, saves the HTML as UTF-8 without a byte-order mark, and returns conversion diagnostics.</summary>
@@ -24,7 +24,7 @@ public static partial class PdfHtmlConverterExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         return ReadForHtml(document, options, cancellationToken)
-            .SaveAsHtml(path, CreateRenderOptionsAfterPreselection(options), cancellationToken);
+            .SaveAsHtml(path, CreateRenderOptionsAfterPreselection(options, document), cancellationToken);
     }
 
     /// <summary>Renders an opened PDF, writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
@@ -32,7 +32,7 @@ public static partial class PdfHtmlConverterExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         return ReadForHtml(document, options, cancellationToken)
-            .SaveAsHtml(stream, CreateRenderOptionsAfterPreselection(options), cancellationToken);
+            .SaveAsHtml(stream, CreateRenderOptionsAfterPreselection(options, document), cancellationToken);
     }
 
     /// <summary>Renders an opened PDF, asynchronously saves the HTML, and returns conversion diagnostics.</summary>
@@ -47,7 +47,7 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfDocumentReadResult logical = ReadForHtml(document, options, cancellationToken);
         return await logical.SaveAsHtmlAsync(
             path,
-            CreateRenderOptionsAfterPreselection(options),
+            CreateRenderOptionsAfterPreselection(options, document),
             cancellationToken).ConfigureAwait(false);
 
     }
@@ -64,7 +64,7 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfDocumentReadResult logical = ReadForHtml(document, options, cancellationToken);
         return await logical.SaveAsHtmlAsync(
             stream,
-            CreateRenderOptionsAfterPreselection(options),
+            CreateRenderOptionsAfterPreselection(options, document),
             cancellationToken).ConfigureAwait(false);
 
     }
@@ -157,9 +157,9 @@ public static partial class PdfHtmlConverterExtensions {
         }, cancellationToken);
     }
 
-    private static PdfToHtmlOptions? CreateRenderOptionsAfterPreselection(PdfToHtmlOptions? options) {
-        if (options?.PageRanges is null || options.PageRanges.Count == 0) return options;
-        PdfToHtmlOptions renderOptions = options.CloneForConversion();
+    private static PdfToHtmlOptions CreateRenderOptionsAfterPreselection(PdfToHtmlOptions? options, PdfCore.PdfDocument document) {
+        PdfToHtmlOptions renderOptions = (options ?? new PdfToHtmlOptions()).CloneForConversion();
+        renderOptions.VisualSource = document;
         renderOptions.PageRanges = null;
         return renderOptions;
     }
@@ -815,6 +815,7 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfLogicalImage image,
         PdfToHtmlOptions options,
         long retainedHtmlCharacters) => RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
+            options.EmittedImagePlaceholderCount++;
             builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
             builder.Append(HtmlAttribute(image.ResourceName));
             builder.Append("\" data-page-number=\"");

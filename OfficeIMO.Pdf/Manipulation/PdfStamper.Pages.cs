@@ -63,6 +63,7 @@ internal static partial class PdfStamper {
         var reservedFormResourceNames = new HashSet<string>(StringComparer.Ordinal);
         var reservedGraphicsStateResourceNames = new HashSet<string>(StringComparer.Ordinal);
         var isolatedOverlayPages = new HashSet<int>();
+        var watermarkSettingsObjects = new Dictionary<string, int>(StringComparer.Ordinal);
         PdfFileVersion outputVersion = PdfPageExtractor.GetSourceFileVersion(targetPdf);
 
         for (int requestIndex = 0; requestIndex < requests.Count; requestIndex++) {
@@ -101,7 +102,13 @@ internal static partial class PdfStamper {
             }
 
             (double sourceWidth, double sourceHeight, Matrix2D normalization) = sourcePage.GetImportGeometry();
-            byte[] formContent = BuildImportedPageContent(sourceObjects, sourcePageDictionary, sourceWidth, sourceHeight, normalization);
+            byte[] formContent = BuildImportedPageContent(
+                sourceObjects,
+                sourcePageDictionary,
+                sourceWidth,
+                sourceHeight,
+                normalization,
+                source.ReadOptions.Limits.MaxObjectNestingDepth);
             var formDictionary = new PdfDictionary();
             formDictionary.Items["Type"] = new PdfName("XObject");
             formDictionary.Items["Subtype"] = new PdfName("Form");
@@ -110,6 +117,8 @@ internal static partial class PdfStamper {
             formDictionary.Items["Resources"] = sourceResources == null
                 ? new PdfDictionary()
                 : CloneImportedObject(sourceResources, importedObjectNumbers);
+            if (options.ContentIdentifier is { } formIdentifier)
+                formDictionary.Items["OfficeIMOWatermarkResource"] = new PdfStringObj(formIdentifier);
             if (sourceGroup != null) formDictionary.Items["Group"] = CloneImportedObject(sourceGroup, importedObjectNumbers);
             int formObjectNumber = nextObjectNumber++;
             targetObjects[formObjectNumber] = new PdfIndirectObject(formObjectNumber, 0, new PdfStream(formDictionary, formContent));
@@ -120,6 +129,8 @@ internal static partial class PdfStamper {
                 graphicsState.Items["Type"] = new PdfName("ExtGState");
                 graphicsState.Items["ca"] = new PdfNumber(options.Opacity);
                 graphicsState.Items["CA"] = new PdfNumber(options.Opacity);
+                if (options.ContentIdentifier is { } stateIdentifier)
+                    graphicsState.Items["OfficeIMOWatermarkResource"] = new PdfStringObj(stateIdentifier);
                 if (options.BlendMode != OfficeBlendMode.Normal) graphicsState.Items["BM"] = new PdfName(options.BlendMode.ToString());
                 graphicsStateObjectNumber = nextObjectNumber++;
                 targetObjects[graphicsStateObjectNumber] = new PdfIndirectObject(graphicsStateObjectNumber, 0, graphicsState);
@@ -142,6 +153,19 @@ internal static partial class PdfStamper {
                 (double targetWidth, double targetHeight, Matrix2D targetUserToVisual) = targetPage.GetImportGeometry();
                 Matrix2D targetVisualToUser = Invert(targetUserToVisual);
                 PdfStream stamp = BuildImportedPageStampStream(formResourceName, graphicsStateResourceName, sourceWidth, sourceHeight, targetWidth, targetHeight, targetVisualToUser, options);
+                if (options.ContentIdentifier is { } identifier) {
+                    stamp.Dictionary.Items["OfficeIMOWatermarkId"] = new PdfStringObj(identifier);
+                    stamp.Dictionary.Items["OfficeIMOWatermarkBehind"] = new PdfBoolean(options.BehindContent);
+                    if (options.WatermarkSettings is { } settings) {
+                        if (!watermarkSettingsObjects.TryGetValue(identifier, out int settingsNumber)) {
+                            settingsNumber = nextObjectNumber++;
+                            var settingsDictionary = BuildWatermarkSettings(settings, targetObjects, ref nextObjectNumber);
+                            targetObjects[settingsNumber] = new PdfIndirectObject(settingsNumber, 0, settingsDictionary);
+                            watermarkSettingsObjects.Add(identifier, settingsNumber);
+                        }
+                        stamp.Dictionary.Items["OfficeIMOWatermarkSettings"] = new PdfReference(settingsNumber, 0);
+                    }
+                }
                 int stampObjectNumber = nextObjectNumber++;
                 targetObjects[stampObjectNumber] = new PdfIndirectObject(stampObjectNumber, 0, stamp);
                 Dictionary<string, PdfObject>? existingOverride = overrides.TryGetValue(targetPage.ObjectNumber, out Dictionary<string, PdfObject>? currentOverride)
@@ -166,6 +190,9 @@ internal static partial class PdfStamper {
             if (sourceVersion > outputVersion) outputVersion = sourceVersion;
         }
 
+        RemoveWatermarksOutsideTargets(targetObjects, pageObjectNumbers, overrides, requests);
+        if (requests.Any(request => request.Options.ContentIdentifier is not null))
+            PruneUnusedWatermarkResources(targetObjects, pageObjectNumbers, overrides, targetReadOptions);
         return PdfPageExtractor.ExtractPages(
             targetObjects,
             target.UncheckedMetadata,
@@ -191,13 +218,14 @@ internal static partial class PdfStamper {
         PdfDictionary page,
         double width,
         double height,
-        Matrix2D normalization) {
+        Matrix2D normalization,
+        int maximumObjectNestingDepth) {
         var builder = new StringBuilder();
         var content = new ContentStreamBuilder(builder);
         content.SaveState()
             .Rectangle(0D, 0D, width, height).ClipPath().EndPath()
             .TransformMatrix(normalization.A, normalization.B, normalization.C, normalization.D, normalization.E, normalization.F);
-        foreach (PdfStream stream in GetPageContentStreams(sourceObjects, page)) {
+        foreach (PdfStream stream in GetPageContentStreams(sourceObjects, page, maximumObjectNestingDepth)) {
             byte[] decoded = StreamDecoder.Decode(stream.Dictionary, stream.Data, sourceObjects);
             builder.Append(PdfEncoding.Latin1GetString(decoded)).Append('\n');
         }
@@ -291,8 +319,21 @@ internal static partial class PdfStamper {
         PdfObject? existingContents = existingOverride != null && existingOverride.TryGetValue("Contents", out PdfObject? overriddenContents)
             ? overriddenContents
             : page.Items.TryGetValue("Contents", out PdfObject? pageContents) ? pageContents : null;
-        if (isolateExistingContents && existingContents != null) existingContents = IsolateContents(objects, existingContents, ref nextObjectNumber);
+        if (isolateExistingContents && existingContents != null) {
+            var entries = new PdfArray();
+            AppendContentEntries(objects, entries, existingContents);
+            var isolationStamp = (PdfStream)objects[stampObjectNumber].Value;
+            string? isolationId = isolationStamp.Dictionary.Get<PdfStringObj>("OfficeIMOWatermarkId")?.Value;
+            bool alreadyIsolated = isolationId is not null && entries.Items.Any(item =>
+                IsWatermark(objects, item, isolationId, out var stream)
+                && stream!.Dictionary.Get<PdfBoolean>("OfficeIMOWatermarkBehind")?.Value == false);
+            if (!alreadyIsolated) existingContents = IsolateContents(objects, existingContents, ref nextObjectNumber);
+        }
         PdfArray contents = BuildContentsArray(objects, existingContents, stampObjectNumber, behindContent);
+        if (objects[stampObjectNumber].Value is PdfStream replacement
+            && replacement.Dictionary.Get<PdfStringObj>("OfficeIMOWatermarkId") is { } identifier) {
+            contents = ReplaceWatermarkContent(objects, contents, stampObjectNumber, identifier.Value, behindContent);
+        }
         PdfObject? existingResources = existingOverride != null && existingOverride.TryGetValue("Resources", out PdfObject? overriddenResources)
             ? overriddenResources
             : GetInheritedPageValue(objects, page, "Resources");
@@ -308,18 +349,50 @@ internal static partial class PdfStamper {
         return new Dictionary<string, PdfObject>(StringComparer.Ordinal) { ["Contents"] = contents, ["Resources"] = resources };
     }
 
-    private static List<PdfStream> GetPageContentStreams(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page) {
+    private static List<PdfStream> GetPageContentStreams(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary page,
+        int maximumObjectNestingDepth) {
         var streams = new List<PdfStream>();
         if (!page.Items.TryGetValue("Contents", out PdfObject? contents)) return streams;
-        AppendStream(contents);
+        var activeReferences = new HashSet<(int ObjectNumber, int Generation)>();
+        var activeArrays = new List<PdfArray>();
+        AppendStream(contents, 0);
         return streams;
 
-        void AppendStream(PdfObject value) {
-            PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
-            if (resolved is PdfStream stream) {
+        void AppendStream(PdfObject value, int depth) {
+            if (depth > maximumObjectNestingDepth) {
+                throw PdfReadLimitException.Create(
+                    PdfReadLimitKind.ObjectNestingDepth,
+                    maximumObjectNestingDepth,
+                    depth);
+            }
+            if (value is PdfReference reference) {
+                var key = (reference.ObjectNumber, reference.Generation);
+                if (!activeReferences.Add(key)) {
+                    throw new InvalidDataException("Page contents contains a cyclic indirect reference.");
+                }
+                try {
+                    if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) {
+                        AppendStream(indirect.Value, depth + 1);
+                    }
+                } finally {
+                    activeReferences.Remove(key);
+                }
+                return;
+            }
+            if (value is PdfStream stream) {
                 streams.Add(stream);
-            } else if (resolved is PdfArray array) {
-                foreach (PdfObject item in array.Items) AppendStream(item);
+            } else if (value is PdfArray array) {
+                if (activeArrays.Any(active => ReferenceEquals(active, array))) {
+                    throw new InvalidDataException("Page contents contains a cyclic array.");
+                }
+                activeArrays.Add(array);
+                try {
+                    foreach (PdfObject item in array.Items) AppendStream(item, depth + 1);
+                } finally {
+                    activeArrays.RemoveAt(activeArrays.Count - 1);
+                }
             }
         }
     }

@@ -157,8 +157,13 @@ internal sealed class SvgNearestNeighborRectangleBudget {
 
     internal void Consume(int count) {
         if (count < 0 || count > _maximum - _count) {
-            throw new InvalidOperationException("SVG nearest-neighbor image export exceeds the supported vectorization limit.");
+            throw new OfficeSvgImageVectorizationLimitException();
         }
         _count += count;
     }
+}
+
+internal sealed class OfficeSvgImageVectorizationLimitException : InvalidOperationException {
+    internal OfficeSvgImageVectorizationLimitException()
+        : base("SVG nearest-neighbor image export exceeds the supported vectorization limit.") { }
 }

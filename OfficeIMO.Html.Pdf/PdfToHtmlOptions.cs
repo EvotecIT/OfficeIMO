@@ -142,9 +142,12 @@ public sealed class PdfToHtmlOptions {
     public string NewLine { get => DocumentOutput.NewLine; set => DocumentOutput.NewLine = value; }
 
     internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
+    internal PdfCore.PdfDocument? VisualSource { get; set; }
+    internal int EmittedImagePlaceholderCount { get; set; }
 
     internal PdfToHtmlOptions CloneForConversion() => new() {
         CancellationToken = CancellationToken,
+        VisualSource = VisualSource,
         Profile = Profile,
         ReadOptions = ReadOptions,
         DocumentOutput = DocumentOutput.Clone(),

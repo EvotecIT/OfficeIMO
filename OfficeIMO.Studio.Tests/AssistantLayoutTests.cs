@@ -14,7 +14,7 @@ public sealed class AssistantLayoutTests {
     [InlineData(960, 620, false)]
     [InlineData(960, 620, true)]
     [InlineData(1600, 900, false)]
-    public async Task ConnectionSetupKeepsQuestionAndCancellationAreaReachable(int width, int height, bool light) {
+    public async Task InitialSetupOffersConnectionBeforeQuestionEntry(int width, int height, bool light) {
         using var app = TestAppBuilder.StartSession();
         await app.Dispatch(() => {
             var services = TestAppBuilder.CreateTestServices();
@@ -35,10 +35,11 @@ public sealed class AssistantLayoutTests {
                     frame.Save(Path.Combine(output, $"assistant-{width}x{height}-{(light ? "light" : "dark")}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
                 }
                 var view = Assert.Single(window.GetVisualDescendants().OfType<AssistantView>());
-                var ask = Assert.Single(view.GetVisualDescendants().OfType<Button>(), button =>
-                    ReferenceEquals(button.Command, window.ViewModel.Assistant.AskCommand));
                 var question = Assert.Single(view.GetVisualDescendants().OfType<TextBox>(), box => box.AcceptsReturn);
-                foreach (Control control in new Control[] { ask, question }) {
+                Assert.False(question.IsEffectivelyVisible);
+                var setup = Assert.Single(view.GetVisualDescendants().OfType<Button>(), button =>
+                    Equals(button.Content, services.Localizer.Get("Connections.ChooseProvider")));
+                foreach (Control control in new Control[] { setup }) {
                     Point position = control.TranslatePoint(default, window)!.Value;
                     Assert.True(position.X >= 0 && position.X + control.Bounds.Width <= width + 1);
                     Assert.True(position.Y >= 0 && position.Y + control.Bounds.Height <= height + 1, $"{control.GetType().Name}: position {position}, bounds {control.Bounds}, window {window.Bounds}");
@@ -46,6 +47,9 @@ public sealed class AssistantLayoutTests {
                 }
                 Assert.Equal(width >= 1500 ? SplitViewDisplayMode.Inline : SplitViewDisplayMode.Overlay,
                     window.FindControl<SplitView>("AssistantHost")!.DisplayMode);
+                window.ViewModel.ToggleAssistantCommand.Execute(null);
+                window.UpdateLayout();
+                Assert.False(view.IsEffectivelyVisible);
             } finally { window.Close(); }
             return true;
         }, CancellationToken.None);

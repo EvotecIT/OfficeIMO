@@ -185,7 +185,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Contains(logical.GetLinksByUri("https://example.com/logical-proof"), link => link.Contents == "Logical PDF sample");
         Assert.Contains(logical.Images, image => image.Width > 0D && image.Height > 0D);
         Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\"", html, StringComparison.Ordinal);
-        Assert.Contains("class=\"pdf-text pdf-heading\"", html, StringComparison.Ordinal);
+        Assert.Contains("role=\"heading\" aria-level=\"1\"", html, StringComparison.Ordinal);
         Assert.Contains("Logical Heading", html, StringComparison.Ordinal);
         Assert.Contains("class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
         Assert.Contains("class=\"pdf-outline\"", html, StringComparison.Ordinal);
@@ -1833,7 +1833,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(0, semantic.Summary.SkippedLinkCount);
         Assert.Equal(0, positioned.Summary.SkippedLinkCount);
         Assert.False(semantic.Report.HasWarnings);
-        Assert.False(positioned.Report.HasWarnings);
+        Assert.Contains(positioned.Report.Warnings, warning => warning.Code == "PositionedFontSubstitution");
 
         var summary = new {
             scenario = "html-pdf-roundtrip-profile-contract",

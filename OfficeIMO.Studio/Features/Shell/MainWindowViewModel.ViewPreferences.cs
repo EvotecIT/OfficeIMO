@@ -66,6 +66,13 @@ public sealed partial class MainWindowViewModel {
         SaveDocumentViewState();
     }
 
+    private void ShowDocumentProperties() {
+        bool navigation = !_documentViewState.Panes.TryGetValue(DocumentMode, out var preference) || preference.Navigation;
+        UpdatePanePreferences(_documentViewState.NavigationWidth, _documentViewState.InspectorWidth,
+            new StudioPanePreference(navigation, true));
+        OnPropertyChanged(nameof(DocumentViewState));
+    }
+
     internal void SaveDocumentViewState() {
         if (!HasDocument || DocumentPath is not { } path) return;
         CaptureDocumentViewState();

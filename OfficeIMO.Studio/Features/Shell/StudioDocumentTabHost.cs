@@ -43,10 +43,15 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
 
     internal bool HasDirtyDocuments => Tabs.Any(tab => tab.Document.IsDirty);
 
-    partial void OnSelectedTabChanged(StudioDocumentTabViewModel? value) =>
-        _activateDocument(value?.Document ?? _emptyDocument);
+    partial void OnSelectedTabChanged(StudioDocumentTabViewModel? value) {
+        ActiveDocument.SetPresentationActive(true);
+        _activateDocument(ActiveDocument);
+    }
 
-    partial void OnSelectedTabChanging(StudioDocumentTabViewModel? value) => ActiveDocument.DeactivateAssistant();
+    partial void OnSelectedTabChanging(StudioDocumentTabViewModel? value) {
+        ActiveDocument.DeactivateAssistant();
+        ActiveDocument.SetPresentationActive(false);
+    }
 
     [RelayCommand]
     private Task OpenNewTabAsync() => ActiveDocument.OpenCommand.ExecuteAsync(null);

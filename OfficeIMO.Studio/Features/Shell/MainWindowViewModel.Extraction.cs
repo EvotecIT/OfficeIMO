@@ -12,6 +12,7 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task ExtractSelectedAsync(CancellationToken cancellationToken) {
+        using var notifications = BeginNotificationScope();
         int[] pages = GetSelectedPages();
         if (_workspace is null || !CanExtractPages || pages.Length == 0 || IsWorkspaceBusy || _reviewingPageExtraction) return;
         var workspace = _workspace;

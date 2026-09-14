@@ -4,7 +4,7 @@ OfficeIMO Studio is the cross-platform desktop surface for OfficeIMO's document 
 
 ## Current workspace
 
-- Open several PDFs in document tabs and use single-page, continuous, two-page, or grid reading modes.
+- Open several PDFs in document tabs and use single-page, continuous, two-page, or grid reading modes. Inactive tabs release page images and rendering caches while retaining document edits and undo history; page data is recreated when you return.
 - Opening a file through a symlink or hard link reuses its existing tab and pending edits. Conversion, document-health output, assembly, page export, Save As, extraction, splitting, and protected/decrypted copies check live tab ownership before publishing their final destination. Numbered-copy mode skips owned paths; replacement reports a failure instead of replacing an open document. Assembly adds each physical source once, and comparison rejects an alias of the current document.
 - Local-file saves check that the source still has the physical identity and contents Studio opened. If another application changes, replaces, or removes it, Studio keeps the pending edits and refuses to overwrite the external version; use **Save As** to choose a different file. The shared commit path also checks the displaced source during atomic replacement. Saving a source opened through a symlink updates its target and preserves the link.
 - Open and compare PDFs through desktop storage-provider streams, including sources without local paths. Available provider bookmarks are retained with recent and restart references. PDF input and serialized provider output are limited to 512 MiB. A provider save checks the opened contents before writing and verifies the result after closing the write stream, but cannot guarantee atomic replacement or rollback. Studio explains this before saving and keeps edits and enabled recovery snapshots when publication fails.
@@ -46,16 +46,18 @@ OfficeIMO Studio is the cross-platform desktop surface for OfficeIMO's document 
 
 ## Document assistant
 
-Open **Assistant** to ask read-only questions about the current PDF. Choose **Connections and model**, connect, and select an available model. The assistant uses the current workspace bytes, including applied unsaved edits. Apply form drafts before asking; PDFs that prohibit content extraction are unavailable to the assistant.
+Open **Assistant** to ask read-only questions about the current PDF. Choose **Connections and model** to open guided setup, choose a provider, connect, and select an available model. Choose **Use this connection** to return to the document. Starter prompts help you summarize, find action items, or review key facts; you can edit the question before sending it. The assistant uses the current workspace bytes, including applied unsaved edits. Apply form drafts before asking; PDFs that prohibit content extraction are unavailable to the assistant.
 
 | Connection | Setup |
 | --- | --- |
 | ChatGPT | Sign in with your ChatGPT account, or explicitly choose **Use existing Codex login**. The native IX Codex transport needs no agent CLI. |
 | OpenAI-compatible API | Enter an HTTPS API base URL and your API key, then refresh the model list. |
 | GitHub Copilot | Supply a Copilot-authorized GitHub token, or enter your registered GitHub app client ID and use browser device sign-in. |
-| Local model | Enter a loopback OpenAI-compatible endpoint, such as `http://localhost:11434/v1/`, and select a model. The adapter disables hosted fallback, redirects and proxy use for this route. |
+| LM Studio | Load a text model in LM Studio, start its local server, then connect. The preset uses `http://localhost:1234/v1/`. |
+| Ollama | Start Ollama and download a text model, then connect. The preset uses `http://localhost:11434/v1/`. |
+| Other local server | Set a loopback OpenAI-compatible endpoint under **Advanced connection options** and select a model. All local presets disable hosted fallback, redirects, and proxy use. |
 
-Hosted connections require the document-text consent checkbox before each connection's questions are enabled. Model discovery and sign-in do not send document evidence. Supplied API keys and GitHub tokens remain in memory for the Studio session. Native login credentials use separate Studio-owned IX stores; the existing Codex login is read only when explicitly selected and its authentication file is not overwritten. An optional account ID selects a particular saved account. Connection settings and model selection remain session-local.
+Hosted connections require the document-text consent checkbox before each connection's questions are enabled. Model discovery and sign-in do not send document evidence. Supplied API keys and GitHub tokens remain in memory for the Studio session. Native login credentials use separate Studio-owned IX stores; the existing Codex login is read only when explicitly selected and its authentication file is not overwritten. When several accounts are saved, select the account to use. **Use this connection** saves the provider, model, base URL, and any GitHub application ID in Studio preferences. A new session restores those choices and requires a connection check; it does not restore API keys or document consent.
 
 Choose the whole document or the current page, then **Prepare evidence**. Current-page mode extracts only the selected page and keeps its original page number for citations; the input-byte limit still applies to the full PDF. Preparation runs locally and reports the number of pages, text items, characters and pages without extractable text. Studio reuses that immutable snapshot for repeated questions until the source or page scope changes. Hiding the assistant releases the prepared evidence. Switching tabs also closes the inactive assistant; reopen it to prepare evidence for that tab again.
 
