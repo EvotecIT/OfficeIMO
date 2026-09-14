@@ -129,6 +129,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal double LetterSpacing;
     internal double WordSpacing;
     internal double? ExplicitWidth;
+    internal bool ExplicitWidthUsesPercentage;
     internal double? ExplicitHeight;
     internal double? MinWidth;
     internal double? MaxWidth;
@@ -202,6 +203,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal HtmlPageBreakTarget BreakBefore;
     internal HtmlPageBreakTarget BreakAfter;
     internal bool AvoidBreakInside;
+    internal bool AvoidBreakBefore;
+    internal bool AvoidBreakAfter;
     internal int Orphans = 2;
     internal int Widows = 2;
     internal string? PageName;

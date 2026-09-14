@@ -82,62 +82,51 @@ internal sealed partial class HtmlRenderLayoutEngine {
             minimum = Math.Max(minimum, authored);
             preferred = Math.Max(preferred, authored);
         }
-        foreach (IElement image in cell.QuerySelectorAll("img, svg").Where(candidate => BelongsToTableCell(candidate, cell))) {
-            if (!TryResolveVisibleTableDescendantStyle(
-                    image,
-                    cell,
-                    style,
-                    containingWidth,
-                    depth,
-                    out HtmlRenderBoxStyle imageStyle)) {
-                continue;
-            }
-
-            double imageWidth = ResolveReplacedImageBoxWidth(image, imageStyle) + imageStyle.MarginLeft + imageStyle.MarginRight + insets;
-            minimum = Math.Max(minimum, imageWidth);
-            preferred = Math.Max(preferred, imageWidth);
-        }
+        ResolveTableDescendantIntrinsicWidths(cell, style, containingWidth, depth, insets, ref minimum, ref preferred);
     }
 
-    private bool TryResolveVisibleTableDescendantStyle(
-        IElement element,
-        IElement cell,
-        HtmlRenderBoxStyle cellStyle,
+    private void ResolveTableDescendantIntrinsicWidths(
+        IElement parent,
+        HtmlRenderBoxStyle parentStyle,
         double containingWidth,
         int depth,
-        out HtmlRenderBoxStyle elementStyle) {
-        var ancestors = new Stack<IElement>();
-        for (IElement? current = element.ParentElement;
-             current != null && !ReferenceEquals(current, cell);
-             current = current.ParentElement) {
+        double cellInsets,
+        ref double minimum,
+        ref double preferred) {
+        foreach (IElement element in parent.Children) {
             CheckCancellation();
-            EnsureDepth(depth + ancestors.Count + 2, element);
-            ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(current));
-            ancestors.Push(current);
-        }
+            EnsureDepth(depth + 1, element);
+            ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(element));
+            HtmlRenderBoxStyle elementStyle = _styleResolver.Resolve(element, containingWidth, parentStyle);
+            if (string.Equals(elementStyle.Display, "none", StringComparison.OrdinalIgnoreCase)) continue;
+            if (ShouldExtractOutOfFlow(elementStyle)) continue;
 
-        HtmlRenderBoxStyle parentStyle = cellStyle;
-        while (ancestors.Count > 0) {
-            CheckCancellation();
-            IElement ancestor = ancestors.Pop();
-            parentStyle = _styleResolver.Resolve(ancestor, containingWidth, parentStyle);
-            if (string.Equals(parentStyle.Display, "none", StringComparison.OrdinalIgnoreCase)) {
-                elementStyle = parentStyle;
-                return false;
+            double descendantWidth = 0D;
+            if (string.Equals(element.TagName, "img", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(element.TagName, "svg", StringComparison.OrdinalIgnoreCase)) {
+                if (elementStyle.ExplicitWidthUsesPercentage) continue;
+                descendantWidth = ResolveReplacedImageBoxWidth(element, elementStyle);
+            } else if (elementStyle.ExplicitWidth.HasValue && !elementStyle.ExplicitWidthUsesPercentage) {
+                descendantWidth = elementStyle.ExplicitWidth.Value
+                    + (elementStyle.BorderBox ? 0D : elementStyle.HorizontalInsets);
+            }
+            if (descendantWidth > 0D) {
+                descendantWidth += elementStyle.MarginLeft + elementStyle.MarginRight + cellInsets;
+                minimum = Math.Max(minimum, descendantWidth);
+                preferred = Math.Max(preferred, descendantWidth);
+            }
+
+            if (!IsTableCell(element)) {
+                ResolveTableDescendantIntrinsicWidths(
+                    element,
+                    elementStyle,
+                    containingWidth,
+                    depth + 1,
+                    cellInsets,
+                    ref minimum,
+                    ref preferred);
             }
         }
-
-        CheckCancellation();
-        EnsureDepth(depth + 1, element);
-        ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(element));
-        elementStyle = _styleResolver.Resolve(element, containingWidth, parentStyle);
-        return !string.Equals(elementStyle.Display, "none", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool BelongsToTableCell(IElement element, IElement cell) {
-        IElement? current = element.ParentElement;
-        while (current != null && !IsTableCell(current)) current = current.ParentElement;
-        return ReferenceEquals(current, cell);
     }
 
     private static IReadOnlyList<double> AllocateFixedColumnWidths(IReadOnlyList<double> requested, double totalWidth) {

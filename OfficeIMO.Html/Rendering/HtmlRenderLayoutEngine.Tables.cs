@@ -31,6 +31,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         var rowGroupStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
         var rowStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
+        var headerRowSet = new HashSet<IElement>();
+        var footerRowSet = new HashSet<IElement>();
         var headerRows = new List<IElement>();
         var bodyRows = new List<IElement>();
         var footerRows = new List<IElement>();
@@ -54,10 +56,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // their operation-owned instances for later positioning and paint.
             _layoutStyles[row] = rowStyle;
             if (rowStyle.Display == "none") continue;
-            if (IsHeaderRow(row, table)) {
+            if (IsHeaderRow(rowGroup, table, rowGroupStyles)) {
                 headerRows.Add(row);
-            } else if (IsFooterRow(row, table)) {
+                headerRowSet.Add(row);
+            } else if (IsFooterRow(rowGroup, table, rowGroupStyles)) {
                 footerRows.Add(row);
+                footerRowSet.Add(row);
             } else {
                 bodyRows.Add(row);
             }
@@ -159,8 +163,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 rowGroupStyle,
                 cellLayouts,
                 Math.Max(1D, rowHeight),
-                IsHeaderRow(row, table),
-                IsFooterRow(row, table)));
+                headerRowSet.Contains(row),
+                footerRowSet.Contains(row)));
             DecrementOccupancy(occupiedColumns);
         }
 
@@ -175,6 +179,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var trailingVisuals = new List<HtmlRenderVisual>();
         var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         var continuationBreakProgress = new List<HtmlInlineBreakProgress>();
+        var forcedBreaks = new List<HtmlRenderForcedBreak>();
         double continuationHeight = 0D;
         double trailingStart = 0D;
         double trailingHeight = 0D;
@@ -253,7 +258,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlRenderStyleResolver.DescribeSource(cell.Element),
                     cell.Span,
                     cell.RowSpan,
-                    headerCell ? ResolveTableHeaderScope(cell.Element) : null));
+                    headerCell ? ResolveTableHeaderScope(cell.Element) : null,
+                    structureElementKey: GetTableStructureElementKey(cell.Element)));
             }
 
             visuals.Add(new HtmlRenderSemanticGroup(
@@ -264,15 +270,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 row.Height,
                 rowVisuals,
                 visuals.Count,
-                HtmlRenderStyleResolver.DescribeSource(row.Element)));
+                HtmlRenderStyleResolver.DescribeSource(row.Element),
+                structureElementKey: GetTableStructureElementKey(row.Element)));
 
-            if (!row.IsHeader && !row.IsFooter && row.Cells.Count == 1 && row.Cells[0].RowSpan == 1) {
-                TableCellLayout cell = row.Cells[0];
-                double textY = rowY + cell.Style.BorderTopWidth + cell.Style.PaddingTop;
-                double finalSafeOffset = cell.Inline.Height - cell.Style.LineHeight + 0.0001D;
-                foreach (double offset in cell.Inline.BreakOffsets) {
-                    if (offset <= finalSafeOffset) breakOffsets.Add(textY + offset);
-                }
+            bool rowIndependent = !row.IsHeader
+                && !row.IsFooter
+                && canBreakAfterRows[rowIndex]
+                && (rowIndex == 0 || canBreakAfterRows[rowIndex - 1]);
+            if (rowIndependent
+                && !row.Style.AvoidBreakInside
+                && row.GroupStyle?.AvoidBreakInside != true) {
+                AddTableRowInternalBreakOffsets(breakOffsets, row, rowY);
             }
 
             if (collectingLeadingHeaders && row.IsHeader) {
@@ -294,6 +302,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             rowY += row.Height + verticalSpacing;
+            HtmlPageBreakTarget forcedTarget = row.Style.BreakAfter;
+            if (forcedTarget == HtmlPageBreakTarget.None && rowIndex + 1 < rowLayouts.Count) {
+                forcedTarget = rowLayouts[rowIndex + 1].Style.BreakBefore;
+            }
+            if (forcedTarget != HtmlPageBreakTarget.None && canBreakAfterRows[rowIndex]) {
+                forcedBreaks.Add(new HtmlRenderForcedBreak(rowY, forcedTarget));
+            }
             bool headerHasBodyAfter = row.IsHeader && hasBodyAfter[rowIndex];
             if (!headerHasBodyAfter && canBreakAfterRows[rowIndex]) {
                 breakOffsets.Add(rowY);
@@ -326,7 +341,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 Math.Max(0.01D, topCaptionHeight + tableHeight + bottomCaptionHeight),
                 visuals,
                 0,
-                source)
+                source,
+                structureElementKey: GetTableStructureElementKey(table))
         };
         semanticVisuals.AddRange(navigationDestinations);
         IReadOnlyList<HtmlRenderVisual> semanticContinuationVisuals = continuationVisuals.Count == 0
@@ -340,7 +356,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     Math.Max(0.01D, continuationHeight),
                     continuationVisuals,
                     0,
-                    source)
+                    source,
+                    structureElementKey: GetTableStructureElementKey(table))
             };
         IReadOnlyList<HtmlRenderVisual> semanticTrailingVisuals = trailingVisuals.Count == 0
             ? Array.Empty<HtmlRenderVisual>()
@@ -353,7 +370,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     Math.Max(0.01D, trailingHeight),
                     trailingVisuals,
                     0,
-                    source)
+                    source,
+                    structureElementKey: GetTableStructureElementKey(table))
             };
         double trailingSourceEnd = caption != null && caption.Side == "bottom"
             ? tableY + tableHeight
@@ -361,11 +379,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IEnumerable<HtmlRenderTrailingGroup> trailingGroups = trailingVisuals.Count > 0 && trailingHeight > 0D
             ? new[] { new HtmlRenderTrailingGroup(0D, trailingStart, trailingSourceEnd, trailingHeight, semanticTrailingVisuals) }
             : Array.Empty<HtmlRenderTrailingGroup>();
+        HtmlPageBreakTarget effectiveBreakBefore = style.BreakBefore;
+        if (effectiveBreakBefore == HtmlPageBreakTarget.None && rowLayouts.Count > 0) {
+            effectiveBreakBefore = rowLayouts[0].Style.BreakBefore;
+        }
         return new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
             semanticVisuals,
-            style.BreakBefore,
+            effectiveBreakBefore,
             style.BreakAfter,
             true,
             source,
@@ -377,7 +399,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             pageName: style.PageName,
             runningStringAssignments: runningStringAssignments,
             inlineBreakProgress: continuationBreakProgress,
-            supportsInlineContinuationReflow: continuationBreakProgress.Count > 0);
+            supportsInlineContinuationReflow: continuationBreakProgress.Count > 0,
+            forcedBreaks: forcedBreaks);
     }
 
     private static IElement? FindOwningTableRow(IElement table, IElement? target) {
@@ -515,30 +538,61 @@ internal sealed partial class HtmlRenderLayoutEngine {
             result[rowIndex] = occupiedThrough <= rowIndex;
         }
 
+        for (int rowIndex = 0; rowIndex + 1 < rows.Count; rowIndex++) {
+            TableRowLayout current = rows[rowIndex];
+            TableRowLayout next = rows[rowIndex + 1];
+            if (current.Style.AvoidBreakAfter || next.Style.AvoidBreakBefore) result[rowIndex] = false;
+            if (current.GroupElement != null
+                && ReferenceEquals(current.GroupElement, next.GroupElement)
+                && current.GroupStyle?.AvoidBreakInside == true) {
+                result[rowIndex] = false;
+            }
+        }
+
         return result;
+    }
+
+    private static void AddTableRowInternalBreakOffsets(ICollection<double> breakOffsets, TableRowLayout row, double rowY) {
+        var candidates = new SortedSet<double>();
+        foreach (TableCellLayout cell in row.Cells) {
+            double contentTop = cell.Style.BorderTopWidth + cell.Style.PaddingTop;
+            double finalSafeOffset = cell.Inline.Height - cell.Style.LineHeight + 0.0001D;
+            foreach (double offset in cell.Inline.BreakOffsets) {
+                if (offset <= finalSafeOffset) candidates.Add(contentTop + offset);
+            }
+        }
+
+        foreach (double candidate in candidates) {
+            bool safeForEveryCell = true;
+            foreach (TableCellLayout cell in row.Cells) {
+                double contentTop = cell.Style.BorderTopWidth + cell.Style.PaddingTop;
+                double relative = candidate - contentTop;
+                if (relative >= cell.Inline.Height - 0.0001D) continue;
+                if (!cell.Inline.BreakOffsets.Any(offset => Math.Abs(offset - relative) <= 0.0001D)) {
+                    safeForEveryCell = false;
+                    break;
+                }
+            }
+            if (safeForEveryCell && candidate > 0.0001D && candidate < row.Height - 0.0001D) {
+                breakOffsets.Add(rowY + candidate);
+            }
+        }
     }
 
     private static bool IsTableCell(IElement element) => string.Equals(element.TagName, "td", StringComparison.OrdinalIgnoreCase) || string.Equals(element.TagName, "th", StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsHeaderRow(IElement row, IElement table) {
-        IElement? current = row.ParentElement;
-        while (current != null && !ReferenceEquals(current, table)) {
-            if (string.Equals(current.TagName, "thead", StringComparison.OrdinalIgnoreCase)) return true;
-            current = current.ParentElement;
-        }
+    private static bool IsHeaderRow(IElement rowGroup, IElement table, IReadOnlyDictionary<IElement, HtmlRenderBoxStyle> groupStyles) =>
+        !ReferenceEquals(rowGroup, table)
+        && groupStyles.TryGetValue(rowGroup, out HtmlRenderBoxStyle? style)
+        && string.Equals(style.Display, "table-header-group", StringComparison.OrdinalIgnoreCase);
 
-        return false;
-    }
+    private static bool IsFooterRow(IElement rowGroup, IElement table, IReadOnlyDictionary<IElement, HtmlRenderBoxStyle> groupStyles) =>
+        !ReferenceEquals(rowGroup, table)
+        && groupStyles.TryGetValue(rowGroup, out HtmlRenderBoxStyle? style)
+        && string.Equals(style.Display, "table-footer-group", StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsFooterRow(IElement row, IElement table) {
-        IElement? current = row.ParentElement;
-        while (current != null && !ReferenceEquals(current, table)) {
-            if (string.Equals(current.TagName, "tfoot", StringComparison.OrdinalIgnoreCase)) return true;
-            current = current.ParentElement;
-        }
-
-        return false;
-    }
+    private string GetTableStructureElementKey(IElement element) =>
+        "html-element:" + GetSemanticNodeId(element).ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     private static int ReadSpan(string? value, int maximum) {
         if (!HtmlIntegerSemantics.TryParsePositiveInteger(value, out int span)) span = 1;

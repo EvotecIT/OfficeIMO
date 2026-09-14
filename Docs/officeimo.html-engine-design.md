@@ -537,6 +537,8 @@ diagnostics, includes source-to-target provenance, and treats bounded scale, fon
 or codec fallback as archive loss. Container adapters such as MHTML attach their
 input-boundary diagnostics to the retained result before packaging.
 
+The table formatting context now carries fixed-width visible descendant contributions into auto track sizing while leaving percentage descendants dependent on the resolved cell width. It classifies header and footer repetition from computed table-group display, removes page boundaries crossed by rowspans or row and group avoidance, admits authored row breaks, and finds common line boundaries for oversized multi-cell rows. Table, row, and cell structure keys survive slicing and repetition, so retained scenes and tagged PDF represent one logical structure across page fragments. An oversized atomic or avoided row uses the shared forced-fragment diagnostic rather than stalling pagination.
+
 Deliver the remaining work in reviewable vertical slices:
 
 1. Audit the existing capability catalog against real implementation paths and freeze the first versioned standards-and-evidence manifests. Reclassify broad claims before using them to choose implementation work.

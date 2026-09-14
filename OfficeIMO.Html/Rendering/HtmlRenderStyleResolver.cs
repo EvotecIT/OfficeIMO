@@ -644,6 +644,14 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (tag == "math" && string.Equals(element.GetAttribute("display"), "block", StringComparison.OrdinalIgnoreCase)) return "block";
         if (tag == "li") return "list-item";
         if (tag == "table") return "table";
+        if (tag == "caption") return "table-caption";
+        if (tag == "colgroup") return "table-column-group";
+        if (tag == "col") return "table-column";
+        if (tag == "thead") return "table-header-group";
+        if (tag == "tbody") return "table-row-group";
+        if (tag == "tfoot") return "table-footer-group";
+        if (tag == "tr") return "table-row";
+        if (tag == "td" || tag == "th") return "table-cell";
         return IsDefaultBlockTag(tag) ? "block" : "inline";
     }
 
@@ -812,7 +820,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         HtmlRenderBoxStyle? parent,
         HtmlRenderBoxStyle style,
         bool includeAttributes) {
-        style.ExplicitWidth = ReadLength(computed.GetValue("width"), includeAttributes ? element.GetAttribute("width") : null, reference, fontSize);
+        string cssWidth = computed.GetValue("width");
+        string? attributeWidth = includeAttributes ? element.GetAttribute("width") : null;
+        style.ExplicitWidth = ReadLength(cssWidth, attributeWidth, reference, fontSize);
+        style.ExplicitWidthUsesPercentage = (cssWidth?.IndexOf('%') ?? -1) >= 0
+            || (attributeWidth?.IndexOf('%') ?? -1) >= 0;
         double? parentContentHeight = ResolveDefiniteContentHeight(parent);
         style.ExplicitHeight = ReadVerticalLength(computed.GetValue("height"), includeAttributes ? element.GetAttribute("height") : null, reference, parentContentHeight, fontSize);
         style.MinWidth = ReadLength(computed.GetValue("min-width"), null, reference, fontSize);
@@ -1067,11 +1079,17 @@ internal sealed partial class HtmlRenderStyleResolver {
         string inside = FirstNonEmpty(computed.GetValue("break-inside"), computed.GetValue("page-break-inside"));
         style.BreakBefore = ResolvePageBreakTarget(before);
         style.BreakAfter = ResolvePageBreakTarget(after);
+        style.AvoidBreakBefore = IsAvoidPageBreak(before);
+        style.AvoidBreakAfter = IsAvoidPageBreak(after);
         style.AvoidBreakInside = string.Equals(inside, "avoid", StringComparison.OrdinalIgnoreCase) || string.Equals(inside, "avoid-page", StringComparison.OrdinalIgnoreCase);
         style.Orphans = ReadPositiveInteger(computed.GetValue("orphans"), style.Orphans);
         style.Widows = ReadPositiveInteger(computed.GetValue("widows"), style.Widows);
         style.PageName = ResolvePageName(computed.GetValue("page"));
     }
+
+    private static bool IsAvoidPageBreak(string value) =>
+        string.Equals(value, "avoid", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(value, "avoid-page", StringComparison.OrdinalIgnoreCase);
 
     private static void ApplyPositioning(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
         string position = computed.GetValue("position");

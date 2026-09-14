@@ -43,6 +43,12 @@ internal AngleSharp/CSS implementation.
 | In-place `HtmlActiveMediaFilter.Filter(nativeDocument, media)` returning a Boolean | Assign the returned owned snapshot from `HtmlActiveMediaFilter.Filter(document, media)`; the input is unchanged. |
 | Catch native selector exceptions | Invalid selectors use `ArgumentException` on the owned selector API. |
 
+### HTML table display and pagination
+
+Computed display values for table structure now use their CSS table roles: `caption` is `table-caption`, `colgroup` is `table-column-group`, `col` is `table-column`, `thead` is `table-header-group`, `tbody` is `table-row-group`, `tfoot` is `table-footer-group`, `tr` is `table-row`, and `td`/`th` are `table-cell`. Code that compared these elements with the older generic `block` value must use the corresponding table display value.
+
+Paged table repetition follows the computed row-group display. An authored `display: table-row-group` on `thead` or `tfoot` disables repetition, while `display: table-header-group` or `table-footer-group` can enable it on another row group. Row and row-group break avoidance, row forced breaks, and rowspan boundaries now affect pagination. Oversized multi-cell rows split only at a line boundary shared safely by every active cell; an oversized avoided row still makes bounded progress and emits `HtmlRenderForcedFragment`.
+
 `HtmlConversionDocument.FromDocument(tree)` replaces native-DOM conversion inputs.
 Conversion capture retains the attached tree and template contents; detached nodes
 are omitted even when the input is frozen. Keep the original owned document when
