@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>The Managed Document Handbook</title>
+  <style>
+    @page handbook { size: 8.27in 11.69in; margin: 58px 54px 64px; @top-center { content: element(book-header); } }
+    @page appendix { size: 8.27in 11.69in; margin: 48px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #25314a; font: 14px/1.48 Arial, sans-serif; }
+    .running { position: running(book-header); color: #315b8a; border-bottom: 1px solid #9cb5cf; padding-bottom: 5px; }
+    .chapter { page: handbook; break-before: page; }
+    .chapter:first-of-type { break-before: auto; }
+    h1, h2 { color: #17365d; margin: 0 0 14px; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 20px; }
+    .lead { font-size: 17px; color: #50647d; }
+    .columns { column-count: 2; column-gap: 30px; column-rule: 1px solid #d7e0ea; }
+    .columns p { margin: 0 0 12px; }
+    .note { float: footnote; font-size: 10px; line-height: 1.25; color: #4d5d73; }
+    blockquote { margin: 18px 0; padding: 12px 16px; border-left: 5px solid #3a79b8; background: #eef5fb; }
+    .appendix { page: appendix; break-before: page; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #9fb0c3; padding: 8px; text-align: left; }
+    th { background: #dbe8f5; }
+    code { background: #eef1f4; padding: 1px 4px; }
+  </style>
+</head>
+<body>
+  <header class="running">The Managed Document Handbook · qualification extract</header>
+  <main>
+    <article class="chapter">
+      <h1>The Managed Document Handbook</h1>
+      <p class="lead">A practical long-form sample for searchable, paged HTML output.</p>
+      <div class="columns">
+        <h2>Chapter 1 · Stable inputs</h2>
+        <p>Document systems become predictable when source identity, resources, layout intent and output intent are recorded before rendering begins.</p>
+        <p>A static screen snapshot and a print layout can share content while producing different geometry. The caller chooses that contract explicitly.</p>
+        <blockquote>Keep the source immutable while one render request is in flight.</blockquote>
+        <p>References remain useful only when the exact HTML, fonts, media context and page settings travel with the evidence.</p>
+        <p>Long-form content also tests column flow, paragraph spacing, headings and reading order without relying on a browser process.</p>
+      </div>
+    </article>
+    <article class="chapter">
+      <h2>Chapter 2 · Fragmentation</h2>
+      <p class="lead">Pages preserve logical text while placing visual fragments independently.</p>
+      <div class="columns">
+        <p>Headings should remain with the content they introduce. Tables may repeat their headers, while rows marked to avoid breaks move as a unit when space permits.</p>
+        <p>Named pages select geometry for a complete page context. Running content belongs to the page decoration layer rather than the body flow.</p>
+        <p>Footnote calls remain in reading order<span class="note">Handbook note: footnote text is retained as searchable content and placed in the page footnote area.</span> even when the note itself moves to the page boundary.</p>
+        <p>The renderer reports unsupported requests instead of silently presenting a lower-fidelity result as complete.</p>
+      </div>
+    </article>
+    <section class="appendix">
+      <h2>Appendix · Output contracts</h2>
+      <table>
+        <thead><tr><th>Intent</th><th>Media</th><th>Surface</th><th>Typical artifact</th></tr></thead>
+        <tbody>
+          <tr><td>Screen rendering</td><td><code>screen</code></td><td>continuous or viewport</td><td>PNG or SVG</td></tr>
+          <tr><td>Browser-style print</td><td><code>print</code></td><td>fragmented pages</td><td>searchable PDF</td></tr>
+          <tr><td>Screen-to-page</td><td><code>screen</code></td><td>fixed canvas slices</td><td>screen CSS in PDF</td></tr>
+        </tbody>
+      </table>
+      <p>Appendix marker: three explicit rendering intents.</p>
+    </section>
+  </main>
+</body>
+</html>

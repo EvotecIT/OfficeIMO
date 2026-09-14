@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Capacity and Quality Review</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { width: 640px; margin: 0; padding: 28px; color: #203049; font: 14px/1.35 Arial, sans-serif; }
+    h1 { margin: 0; color: #173e68; }
+    .period { margin: 4px 0 20px; color: #68788b; }
+    .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .kpi { padding: 13px; border: 1px solid #cbd7e3; border-radius: 8px; background: #f6f9fc; }
+    .kpi strong { display: block; font-size: 22px; color: #176b62; }
+    .chart { margin-top: 18px; padding: 15px; border: 1px solid #cbd7e3; border-radius: 8px; }
+    .legend { display: flex; gap: 18px; margin: 10px 0 0; }
+    .legend span::before { content: ''; display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; background: #2f80c1; }
+    .legend span:last-child::before { background: #ef8c38; }
+    table { width: 100%; margin-top: 18px; border-collapse: collapse; }
+    th, td { padding: 8px; border-bottom: 1px solid #d9e1e9; text-align: left; }
+    th { color: #405570; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Capacity and Quality Review</h1>
+    <p class="period">Static chart packet · September 2026</p>
+    <section class="kpis">
+      <div class="kpi"><strong>18,420</strong>documents rendered</div>
+      <div class="kpi"><strong>99.82%</strong>successful output</div>
+      <div class="kpi"><strong>1.7 s</strong>median completion</div>
+    </section>
+    <section class="chart" aria-labelledby="throughput-title">
+      <h2 id="throughput-title">Weekly throughput</h2>
+      <svg viewBox="0 0 540 220" role="img" aria-label="Weekly throughput and review queue chart">
+        <defs>
+          <linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f80c1" stop-opacity="0.65"/><stop offset="1" stop-color="#2f80c1" stop-opacity="0.08"/></linearGradient>
+          <filter id="soft"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#173e68" flood-opacity="0.25"/></filter>
+          <clipPath id="plot"><rect x="42" y="12" width="480" height="168" rx="5"/></clipPath>
+        </defs>
+        <g stroke="#d9e1e9" stroke-width="1"><path d="M42 40H522M42 88H522M42 136H522M42 180H522"/></g>
+        <g clip-path="url(#plot)">
+          <path d="M42 164 L122 142 L202 119 L282 126 L362 76 L442 62 L522 34 L522 180 L42 180 Z" fill="url(#area)"/>
+          <path d="M42 164 L122 142 L202 119 L282 126 L362 76 L442 62 L522 34" fill="none" stroke="#2f80c1" stroke-width="5" filter="url(#soft)"/>
+          <path d="M42 92 L122 104 L202 98 L282 88 L362 110 L442 116 L522 123" fill="none" stroke="#ef8c38" stroke-width="4" stroke-dasharray="8 5"/>
+        </g>
+        <g fill="#50647c" font-size="11"><text x="42" y="202">Mon</text><text x="122" y="202">Tue</text><text x="202" y="202">Wed</text><text x="282" y="202">Thu</text><text x="362" y="202">Fri</text><text x="442" y="202">Sat</text><text x="502" y="202">Sun</text></g>
+      </svg>
+      <div class="legend"><span>Completed documents</span><span>Review queue</span></div>
+    </section>
+    <table><thead><tr><th>Lane</th><th>Target</th><th>Observed</th><th>Status</th></tr></thead><tbody><tr><td>Print PDF</td><td>99.5%</td><td>99.82%</td><td>On target</td></tr><tr><td>Screen capture</td><td>99.0%</td><td>99.61%</td><td>On target</td></tr></tbody></table>
+  </main>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Equipment Access Request</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { width: 640px; margin: 0; padding: 30px; color: #243047; font: 14px/1.4 Arial, sans-serif; background: #f4f7fb; }
+    main { background: white; border: 1px solid #c8d3df; border-radius: 10px; padding: 24px; }
+    h1 { margin: 0 0 4px; color: #174a7c; }
+    .intro { margin: 0 0 20px; color: #5d6d7e; }
+    fieldset { margin: 0 0 18px; border: 1px solid #aebdca; border-radius: 7px; padding: 15px; }
+    legend { padding: 0 7px; color: #174a7c; font-weight: 700; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px 16px; }
+    label { display: block; font-weight: 600; }
+    input, select, textarea { display: block; width: 100%; margin-top: 5px; padding: 8px; border: 1px solid #8497aa; border-radius: 4px; background: #fff; }
+    textarea { height: 62px; }
+    .choice { display: flex; gap: 18px; margin-top: 8px; }
+    .choice label { font-weight: 400; }
+    .choice input { display: inline-block; width: auto; margin: 0 5px 0 0; }
+    button { padding: 10px 18px; border: 0; border-radius: 5px; color: white; background: #246ca8; font-weight: 700; }
+    .policy { margin-left: 12px; color: #53657a; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Equipment Access Request</h1>
+    <p class="intro">Complete the fields below. Generated PDFs keep supported controls interactive.</p>
+    <form action="https://example.test/access-requests" method="post">
+      <fieldset>
+        <legend>Requester</legend>
+        <div class="grid">
+          <label>Full name<input id="requester-name" name="requesterName" value="Ada Lovelace"></label>
+          <label>Department<select id="department" name="department"><option>Engineering</option><option selected>Document systems</option></select></label>
+          <label>Email<input id="requester-email" name="email" type="email" value="ada@example.test"></label>
+          <label>Required date<input id="required-date" name="requiredDate" type="text" value="2026-10-05"></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Access details</legend>
+        <label>Business reason<textarea id="reason" name="reason">Validate deterministic HTML, SVG and searchable PDF output.</textarea></label>
+        <div class="choice" role="group" aria-label="Access duration">
+          <label><input type="radio" name="duration" value="temporary" checked>Temporary</label>
+          <label><input type="radio" name="duration" value="permanent">Permanent</label>
+          <label><input type="checkbox" id="manager-approved" name="managerApproved" checked>Manager approved</label>
+        </div>
+      </fieldset>
+      <button id="submit-request" type="submit">Submit request</button>
+      <a class="policy" href="https://example.test/access-policy">Read the access policy</a>
+    </form>
+  </main>
+</body>
+</html>

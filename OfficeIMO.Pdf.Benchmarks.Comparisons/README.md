@@ -56,6 +56,33 @@ Deep deterministic-content validation remains outside measured operations. The m
 
 ## Run
 
+Qualify the file-backed H4 corpus across the three HTML output intents before
+interpreting individual screenshots or PDF files:
+
+```powershell
+$output = Join-Path $env:TEMP ("OfficeIMO-H4-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj `
+    -c Release `
+    -f net10.0 `
+    -- html-corpus-evidence `
+    --output $output
+```
+
+The command renders every H4/v1 source as an OfficeIMO screen PNG, print PDF,
+screen-to-PDF artifact, and per-page scene PNG/SVG; a PeachPDF print PDF; and a
+Chromium screen PNG and print PDF. It records text-marker preservation, normalized
+text overlap, selected-element geometry, page counts, pixel differences, versions,
+hashes, timings, allocations, diagnostics, and individual provider failures in
+`html-corpus-evidence.json`. Pass `--case <id>` for a focused run.
+
+Poppler's `pdftoppm` and `pdftotext` must be on `PATH`. External PDF page images,
+page counts, and text are observed through Poppler so OfficeIMO.Pdf is not its own
+comparison oracle. Reference engines may omit text that OfficeIMO intentionally
+preserves, including form values, image alternatives, and SVG labels; those remain
+visible in each reference's `missingMarkers` field without failing OfficeIMO's
+qualification. Raw artifacts are review evidence and remain in the caller-selected
+output directory.
+
 Generate a reviewable HTML-to-PDF evidence bundle before interpreting benchmark timings. This command renders the same deterministic HTML two or more times with OfficeIMO, PeachPDF, iText pdfHTML, and Chromium through HtmlTinkerX. It writes the source HTML, every PDF, first-page PNG previews, and `html-pdf-evidence.json`. The report records exact-byte, semantic, and visual repeatability; page and content checks; tagged-PDF structure; output size; cancellation capability; managed allocation volume; and sampled peak process-tree working set.
 
 Every conversion iteration runs in a fresh worker. The coordinator validates and renders previews only after the worker exits, so its own PDF inspection and rasterization memory is excluded. The report records the sampler identity, sample count, observed process-count range, and peak working set for each worker tree. When Poppler's `pdftoppm` is on `PATH`, the runner also creates independent external previews. Use `--require-external-rasterizer` for a visual gate that must fail when Poppler is unavailable.

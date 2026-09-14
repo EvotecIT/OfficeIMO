@@ -191,9 +191,9 @@ public static class HtmlCapabilityEvidenceIds {
     public const string OfficeIMOHtmlTests = "officeimo-html-tests";
     /// <summary>The selected H1-H2/v1 owned web-document qualification cases.</summary>
     public const string DocumentV1 = "officeimo-html-document-v1";
-    /// <summary>The six continuous-mode cases in the frozen H4/v1 rendering corpus.</summary>
+    /// <summary>The nine continuous-mode cases in the frozen H4/v1 rendering corpus.</summary>
     public const string H4ScreenV1 = "officeimo-html-h4-screen-v1";
-    /// <summary>The five paged-mode cases in the frozen H4/v1 rendering corpus.</summary>
+    /// <summary>The six paged-mode cases in the frozen H4/v1 rendering corpus.</summary>
     public const string H4PagedV1 = "officeimo-html-h4-paged-v1";
     /// <summary>The pinned html5lib parser test source.</summary>
     public const string Html5Lib = "html5lib-tests";

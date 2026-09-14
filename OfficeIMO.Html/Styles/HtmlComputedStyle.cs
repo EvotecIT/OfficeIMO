@@ -68,6 +68,14 @@ public sealed class HtmlComputedStyle {
     internal bool IsInheritedValue(string propertyName) =>
         !string.IsNullOrWhiteSpace(propertyName) && _inheritedProperties.Contains(propertyName.Trim());
 
+    internal bool IsImplicitlyInheritedValue(string propertyName) {
+        if (string.IsNullOrWhiteSpace(propertyName)) return false;
+        string name = propertyName.Trim();
+        return _inheritedProperties.Contains(name)
+            && _cascadePriorities.TryGetValue(name, out HtmlCssCascadePriority priority)
+            && priority.IsImplicitInheritance;
+    }
+
     internal bool IsResetValue(string propertyName) =>
         !string.IsNullOrWhiteSpace(propertyName) && _resetProperties.Contains(propertyName.Trim());
 
@@ -131,6 +139,9 @@ internal readonly struct HtmlCssCascadePriority {
     internal int Elements { get; }
     internal int RuleOrder { get; }
     internal int DeclarationOrder { get; }
+    internal bool IsImplicitInheritance =>
+        Inherited && !Important && !Inline && LayerOrder == null
+        && Ids < 0 && Classes < 0 && Elements < 0 && RuleOrder < 0 && DeclarationOrder < 0;
 
     internal bool OutranksOrEquals(HtmlCssCascadePriority existing) {
         if (existing.Inherited != Inherited) return !Inherited;

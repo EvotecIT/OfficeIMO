@@ -103,7 +103,43 @@ internal static class HtmlRenderingCorpus {
             minimumVisualCount: 2,
             minimumHeadingCount: 2,
             forbiddenDiagnosticCodes: new[] { "HtmlRenderGridLayoutPending", "HtmlRenderClipPathValueUnsupported", "HtmlRenderPositioningModeUnsupported" },
-            requireNoLoss: true)
+            requireNoLoss: true),
+        new HtmlRenderingCorpusCase(
+            "book-extract",
+            HtmlRenderMode.Paged,
+            LoadHtml("book-extract"),
+            new[] { "The Managed Document Handbook", "Chapter 2 · Fragmentation", "Handbook note", "Appendix marker: three explicit rendering intents" },
+            expectedPageCount: 3,
+            minimumVisualCount: 4,
+            minimumHeadingCount: 4,
+            forbiddenDiagnosticCodes: new[] { "HtmlRenderColumnsLayoutPending", "HtmlRenderFootnoteLayoutPending", "HtmlRenderNamedPageUnsupported" }),
+        new HtmlRenderingCorpusCase(
+            "application-form",
+            HtmlRenderMode.Continuous,
+            LoadHtml("application-form"),
+            new[] { "Equipment Access Request", "Ada Lovelace", "Document systems", "Submit request", "Read the access policy" },
+            linkUri: "https://example.test/access-policy",
+            minimumVisualCount: 35,
+            minimumHeadingCount: 1,
+            forbiddenDiagnosticCodes: new[] { "GridLayoutPending" },
+            requiredVisualSources: new[] { "input#requester-name", "select#department", "textarea#reason", "button#submit-request" }),
+        new HtmlRenderingCorpusCase(
+            "chart-report",
+            HtmlRenderMode.Continuous,
+            LoadHtml("chart-report"),
+            new[] { "Capacity and Quality Review", "18,420", "Weekly throughput", "Completed documents", "On target" },
+            minimumVisualCount: 38,
+            minimumHeadingCount: 2,
+            forbiddenDiagnosticCodes: new[] { "GridLayoutPending", "SvgContentUnsupported", "SvgRasterFallback" }),
+        new HtmlRenderingCorpusCase(
+            "browser-local-workbench",
+            HtmlRenderMode.Continuous,
+            LoadHtml("browser-local-workbench"),
+            new[] { "Document Workbench", "Local conversion", "Browser-local", "Screen-to-PDF", "policy-bundle.zip" },
+            minimumVisualCount: 38,
+            minimumHeadingCount: 2,
+            forbiddenDiagnosticCodes: new[] { "GridLayoutPending", "FlexLayoutPending", "PositionedLayoutPending" },
+            requiredVisualSources: new[] { "button", "a" })
     };
 
     internal static string ResolveSourcePath(string repository, string id) =>

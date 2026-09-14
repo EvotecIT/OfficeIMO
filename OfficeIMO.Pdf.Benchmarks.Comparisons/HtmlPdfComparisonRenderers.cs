@@ -58,20 +58,12 @@ internal static class HtmlPdfComparisonRenderers {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(session);
         return HtmlBrowser.GetPagePdfAsync(session.Page,
-#if HTMLTINKERX_SOURCE
             new HtmlBrowserPdfOptions(
                 printBackground: true,
                 format: PdfPageFormat.A4,
                 preferCssPageSize: true,
                 tagged: true),
             cancellationToken: cancellationToken
-#else
-            printBackground: true,
-            format: PdfPageFormat.A4,
-            preferCssPageSize: true,
-            tagged: true,
-            cancellationToken: cancellationToken
-#endif
         );
     }
 }

@@ -11,6 +11,25 @@ public sealed partial class HtmlRenderingTests {
         .Select(item => new object[] { item.Id });
 
     [Fact]
+    public void StaticRendererAppliesBrowserHeadingAndEmphasisDefaultsWhenFontSizeIsImplicit() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<h1>Default heading</h1><p>Body <strong>strong text</strong></p>",
+            new HtmlRenderOptions { ViewportWidth = 640D });
+        HtmlRenderText[] text = rendered.Pages
+            .SelectMany(page => EnumerateCorpusVisuals(page.Scene))
+            .OfType<HtmlRenderText>()
+            .ToArray();
+
+        HtmlRenderText heading = Assert.Single(text, item => item.Text == "Default heading");
+        HtmlRenderText body = Assert.Single(text, item => item.Text.Contains("Body", StringComparison.Ordinal));
+        HtmlRenderText strong = Assert.Single(text, item => item.Text.Contains("strong text", StringComparison.Ordinal));
+
+        Assert.Equal(body.Font.Size * 2D, heading.Font.Size, 3);
+        Assert.True((heading.Font.Style & OfficeFontStyle.Bold) != 0);
+        Assert.True((strong.Font.Style & OfficeFontStyle.Bold) != 0);
+    }
+
+    [Fact]
     public void HtmlRenderingCorpus_CoversEveryPublishedMarketScenario() {
         Assert.Equal(
             HtmlMarketScenarioCatalog.All.Select(item => item.Id),

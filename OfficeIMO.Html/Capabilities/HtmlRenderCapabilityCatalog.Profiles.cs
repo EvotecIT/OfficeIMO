@@ -75,11 +75,11 @@ public static partial class HtmlRenderCapabilityCatalog {
     };
 
     private static readonly HtmlCapabilityEvidencePin[] StaticScreenEvidence = DocumentEvidence.Concat(new[] {
-        Evidence(HtmlCapabilityEvidenceIds.H4ScreenV1, "OfficeIMO H4 continuous-mode HTML rendering corpus", "H4/v1", HtmlCapabilityEvidenceRole.Qualification, "continuous-mode semantic, geometry, raster, SVG, provider, and environment evidence", required: 6, passed: 6, failed: 0, excluded: 0, untested: 0, caseIds: new[] { "dashboard-print", "email-render", "invoice", "multilingual-bidi", "product-catalog", "quarterly-report" })
+        Evidence(HtmlCapabilityEvidenceIds.H4ScreenV1, "OfficeIMO H4 continuous-mode HTML rendering corpus", "H4/v1", HtmlCapabilityEvidenceRole.Qualification, "continuous-mode semantic, geometry, raster, SVG, provider, and environment evidence", required: 9, passed: 9, failed: 0, excluded: 0, untested: 0, caseIds: new[] { "application-form", "browser-local-workbench", "chart-report", "dashboard-print", "email-render", "invoice", "multilingual-bidi", "product-catalog", "quarterly-report" })
     }).ToArray();
 
     private static readonly HtmlCapabilityEvidencePin[] PagedEvidence = DocumentEvidence.Concat(new[] {
-        Evidence(HtmlCapabilityEvidenceIds.H4PagedV1, "OfficeIMO H4 paged-mode HTML rendering corpus", "H4/v1", HtmlCapabilityEvidenceRole.Qualification, "paged-mode semantic, geometry, raster, SVG, searchable-PDF, provider, and environment evidence", required: 5, passed: 5, failed: 0, excluded: 0, untested: 0, caseIds: new[] { "account-statement", "business-letter", "certificate", "legal-contract", "static-standards-showcase" })
+        Evidence(HtmlCapabilityEvidenceIds.H4PagedV1, "OfficeIMO H4 paged-mode HTML rendering corpus", "H4/v1", HtmlCapabilityEvidenceRole.Qualification, "paged-mode semantic, geometry, raster, SVG, searchable-PDF, provider, and environment evidence", required: 6, passed: 6, failed: 0, excluded: 0, untested: 0, caseIds: new[] { "account-statement", "book-extract", "business-letter", "certificate", "legal-contract", "static-standards-showcase" })
     }).ToArray();
 
     private static readonly IReadOnlyList<HtmlCapabilityProfileManifest> Profiles = new[] {

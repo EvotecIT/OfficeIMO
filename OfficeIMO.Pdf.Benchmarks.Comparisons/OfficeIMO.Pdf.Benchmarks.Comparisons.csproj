@@ -21,12 +21,12 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
-    <PackageReference Include="HtmlTinkerX" Version="2.0.7" Condition="'$(HtmlTinkerXProjectPath)' == ''" />
+    <PackageReference Include="HtmlTinkerX" Version="3.0.1" Condition="'$(HtmlTinkerXProjectPath)' == ''" />
     <PackageReference Include="itext" Version="9.7.0" />
     <PackageReference Include="itext.pdfhtml" Version="6.3.3" />
     <PackageReference Include="PdfPig" Version="0.1.15" />
     <PackageReference Include="PDFsharp-MigraDoc" Version="6.2.4" />
-    <PackageReference Include="PeachPDF" Version="0.9.12" />
+    <PackageReference Include="PeachPDF" Version="0.9.18" />
     <PackageReference Include="QuestPDF" Version="2026.7.2" />
   </ItemGroup>
 
@@ -67,6 +67,14 @@
   <ItemGroup>
     <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-Regular.ttf"
           Link="Fonts\Carlito-Regular.ttf"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.TestAssets\HtmlRenderingCorpus.cs"
+             Link="HtmlEvidence\HtmlRenderingCorpus.cs" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\H4\v1\**\*"
+          Link="Documents\Html\Qualification\H4\v1\%(RecursiveDir)%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
