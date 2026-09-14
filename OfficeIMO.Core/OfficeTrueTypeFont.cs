@@ -1276,11 +1276,14 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private static IEnumerable<string> CandidatePaths() {
+        // Prefer a conventional embeddable TrueType face on macOS. The variable SF system
+        // faces are useful for measurement but cannot satisfy every PDF font-program route.
+        yield return "/System/Library/Fonts/Supplemental/Arial.ttf";
+        yield return "/Library/Fonts/Arial.ttf";
         yield return "/System/Library/Fonts/SFNS.ttf";
         yield return "/System/Library/Fonts/SFCompact.ttf";
         yield return "/System/Library/Fonts/HelveticaNeue.ttc";
         yield return "/System/Library/Fonts/Geneva.ttf";
-        yield return "/Library/Fonts/Arial.ttf";
         yield return "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
         yield return "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf";
         var windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
