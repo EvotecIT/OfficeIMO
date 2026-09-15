@@ -10,6 +10,40 @@ public sealed class InvoiceIdentifier {
     public string? SchemeId { get; set; }
 }
 
+/// <summary>Semantic role of a party tax-registration scheme.</summary>
+public enum InvoiceTaxRegistrationKind {
+    /// <summary>An arbitrary scheme whose literal identifier must be preserved.</summary>
+    Other,
+    /// <summary>A VAT registration.</summary>
+    Vat,
+    /// <summary>A non-VAT fiscal registration.</summary>
+    Fiscal
+}
+
+/// <summary>A party tax registration with its explicit scheme and semantic role.</summary>
+public sealed class InvoiceTaxRegistration {
+    /// <summary>Canonical scheme used for VAT registrations in the semantic model and UBL.</summary>
+    public const string VatScheme = "VAT";
+    /// <summary>Canonical scheme used for non-VAT fiscal registrations in the semantic model and UBL.</summary>
+    public const string TaxScheme = "TAX";
+    /// <summary>Creates a registration, interpreting VAT and TAX as the canonical semantic aliases.</summary>
+    public InvoiceTaxRegistration(string identifier, string schemeId) : this(identifier, schemeId,
+        schemeId == VatScheme ? InvoiceTaxRegistrationKind.Vat :
+        schemeId == TaxScheme ? InvoiceTaxRegistrationKind.Fiscal : InvoiceTaxRegistrationKind.Other) { }
+    /// <summary>Creates a registration with an explicit semantic role, allowing a literal VAT or TAX scheme to remain arbitrary.</summary>
+    public InvoiceTaxRegistration(string identifier, string schemeId, InvoiceTaxRegistrationKind kind) {
+        Identifier = identifier;
+        SchemeId = schemeId;
+        Kind = kind;
+    }
+    /// <summary>Registration identifier.</summary>
+    public string Identifier { get; set; }
+    /// <summary>Registration scheme. VAT and TAX are canonical aliases; other values retain their source meaning.</summary>
+    public string SchemeId { get; set; }
+    /// <summary>Semantic role used when a target syntax has reserved VAT or fiscal aliases.</summary>
+    public InvoiceTaxRegistrationKind Kind { get; set; }
+}
+
 /// <summary>Postal address (BG-5/BG-8/BG-12/BG-15).</summary>
 public sealed class InvoiceAddress {
     /// <summary>First address line.</summary>
@@ -50,10 +84,8 @@ public sealed class InvoiceParty {
     public IList<InvoiceIdentifier> Identifiers { get; } = new List<InvoiceIdentifier>();
     /// <summary>Legal registration identifier.</summary>
     public InvoiceIdentifier? LegalRegistration { get; set; }
-    /// <summary>VAT registration identifier including its country prefix.</summary>
-    public string? VatIdentifier { get; set; }
-    /// <summary>Other tax registration identifier.</summary>
-    public string? TaxRegistration { get; set; }
+    /// <summary>Tax registrations, preserving every occurrence and arbitrary source scheme.</summary>
+    public IList<InvoiceTaxRegistration> TaxRegistrations { get; } = new List<InvoiceTaxRegistration>();
     /// <summary>Electronic address with an explicit address scheme.</summary>
     public InvoiceIdentifier? ElectronicAddress { get; set; }
     /// <summary>Postal address.</summary>

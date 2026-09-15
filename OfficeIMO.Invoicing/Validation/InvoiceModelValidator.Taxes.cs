@@ -4,10 +4,12 @@ public static partial class InvoiceModelValidator {
     private sealed partial class ModelChecks {
         internal void TaxRequirements(Invoice invoice, InvoiceCalculation calculation) {
             // Check the emitted breakdown: imported reasons may exist only on DeclaredTaxes.
-            bool sellerVat = !string.IsNullOrWhiteSpace(invoice.Seller?.VatIdentifier);
-            bool representativeVat = !string.IsNullOrWhiteSpace(invoice.TaxRepresentative?.VatIdentifier);
-            bool sellerTax = sellerVat || representativeVat || !string.IsNullOrWhiteSpace(invoice.Seller?.TaxRegistration);
-            bool buyerVat = !string.IsNullOrWhiteSpace(invoice.Buyer?.VatIdentifier);
+            bool sellerVat = HasTaxRegistration(invoice.Seller, InvoiceTaxRegistration.VatScheme);
+            bool representativeVat = HasTaxRegistration(invoice.TaxRepresentative, InvoiceTaxRegistration.VatScheme);
+            bool sellerTax = sellerVat || representativeVat || invoice.Seller.TaxRegistrations.Any(registration =>
+                registration != null && registration.Kind != InvoiceTaxRegistrationKind.Vat && !string.IsNullOrWhiteSpace(registration.SchemeId) &&
+                !string.IsNullOrWhiteSpace(registration.Identifier));
+            bool buyerVat = HasTaxRegistration(invoice.Buyer, InvoiceTaxRegistration.VatScheme);
             foreach (InvoiceCalculatedTax tax in calculation.Taxes) {
                 string path = "Taxes[" + tax.CategoryCode + "]";
                 bool exempt = new[] { "E", "AE", "G", "K", "O" }.Contains(tax.CategoryCode);
@@ -25,14 +27,14 @@ public static partial class InvoiceModelValidator {
                         Error("INV-VAT-MIX", "Outside-scope VAT cannot be combined with other VAT categories.", path);
                 } else if (tax.CategoryCode == "G" || tax.CategoryCode == "K") {
                     if (!sellerVat && !representativeVat)
-                        Error("INV-VAT-IDENTIFIER", "This VAT category requires a seller or tax representative VAT identifier.", "Seller.VatIdentifier");
+                        Error("INV-VAT-IDENTIFIER", "This VAT category requires a seller or tax representative VAT identifier.", "Seller.TaxRegistrations");
                 } else if (!sellerTax) {
                     Error("INV-VAT-IDENTIFIER", "Supply a seller VAT/tax registration or tax representative VAT identifier.", "Seller");
                 }
                 if (tax.CategoryCode == "AE" && !buyerVat && string.IsNullOrWhiteSpace(invoice.Buyer?.LegalRegistration?.Value))
                     Error("INV-VAT-IDENTIFIER", "Reverse charge requires a buyer VAT or legal registration identifier.", "Buyer");
                 if (tax.CategoryCode == "K") {
-                    if (!buyerVat) Error("INV-VAT-IDENTIFIER", "Intra-community supply requires a buyer VAT identifier.", "Buyer.VatIdentifier");
+                    if (!buyerVat) Error("INV-VAT-IDENTIFIER", "Intra-community supply requires a buyer VAT identifier.", "Buyer.TaxRegistrations");
                     if (invoice.Delivery?.Date == null && invoice.Period?.Start == null && invoice.Period?.End == null)
                         Error("INV-VAT-DELIVERY", "Intra-community supply requires a delivery date or invoicing period.", "Delivery.Date");
                     if (string.IsNullOrWhiteSpace(invoice.Delivery?.Address?.CountryCode))

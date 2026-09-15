@@ -6,7 +6,17 @@ namespace OfficeIMO.Invoicing;
 /// <summary>Checks semantic completeness, arithmetic and source-declared amounts before XML emission.</summary>
 public static partial class InvoiceModelValidator {
     /// <summary>Validates the model; use pinned external rules separately for authoritative profile compliance.</summary>
-    public static InvoiceModelValidationResult Validate(Invoice invoice) {
+    public static InvoiceModelValidationResult Validate(Invoice invoice) => Validate(invoice, null);
+
+    internal static InvoiceModelValidationResult ValidateForTarget(Invoice invoice, InvoiceXmlOptions options) {
+        InvoiceProfile? aggregateProfile = options.Release == InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2 &&
+            options.Profile is (InvoiceProfile.Minimum or InvoiceProfile.BasicWithoutLines) && invoice.Lines.Count == 0
+                ? options.Profile
+                : null;
+        return Validate(invoice, aggregateProfile);
+    }
+
+    private static InvoiceModelValidationResult Validate(Invoice invoice, InvoiceProfile? aggregateProfile) {
         if (invoice == null) throw new ArgumentNullException(nameof(invoice));
         var diagnostics = new InvoiceDiagnosticBuffer();
         var check = new ModelChecks(diagnostics);
@@ -25,16 +35,17 @@ public static partial class InvoiceModelValidator {
         check.Code(invoice.TypeCode, "TypeCode", "^[0-9]{3}\\z");
         check.Code(invoice.Currency, "Currency", "^[A-Z]{3}\\z");
         check.Party(invoice.Seller, "Seller");
-        if (invoice.Seller != null && string.IsNullOrWhiteSpace(invoice.Seller.VatIdentifier) &&
+        if (invoice.Seller != null && !HasTaxRegistration(invoice.Seller, InvoiceTaxRegistration.VatScheme) &&
             string.IsNullOrWhiteSpace(invoice.Seller.LegalRegistration?.Value) &&
             !invoice.Seller.Identifiers.Any(id => !string.IsNullOrWhiteSpace(id?.Value)))
             check.Error("INV-SELLER-ID", "Supply a seller business identifier, legal registration identifier or VAT identifier.", "Seller");
-        check.Party(invoice.Buyer, "Buyer");
+        check.Party(invoice.Buyer, "Buyer", aggregateProfile != InvoiceProfile.Minimum);
         if (invoice.Payee != null) { check.Required(invoice.Payee.Name, "Payee.Name"); check.PartyIdentifiers(invoice.Payee, "Payee"); }
         if (invoice.ObjectIdentifier != null) check.Identifier(invoice.ObjectIdentifier, "ObjectIdentifier", false);
         if (invoice.TaxRepresentative != null) {
             check.Party(invoice.TaxRepresentative, "TaxRepresentative");
-            check.Required(invoice.TaxRepresentative.VatIdentifier, "TaxRepresentative.VatIdentifier");
+            if (!HasTaxRegistration(invoice.TaxRepresentative, InvoiceTaxRegistration.VatScheme))
+                check.Error("INV-REQUIRED", "A VAT tax registration is required.", "TaxRepresentative.TaxRegistrations");
         }
         check.Period(invoice.Period, "Period");
         check.OptionalDate(invoice.DueDate, "DueDate");
@@ -56,7 +67,7 @@ public static partial class InvoiceModelValidator {
             if (invoice.TaxCurrency == invoice.Currency) check.Error("INV-TAX-CURRENCY", "Accounting currency must differ from invoice currency.", "TaxCurrency");
         }
         if (invoice.TaxAmountInAccountingCurrency.HasValue) check.Money(invoice.TaxAmountInAccountingCurrency.Value, "TaxAmountInAccountingCurrency");
-        if (invoice.Lines.Count == 0) check.Error("INV-LINES", "At least one invoice line is required.", "Lines");
+        if (invoice.Lines.Count == 0 && !aggregateProfile.HasValue) check.Error("INV-LINES", "At least one invoice line is required.", "Lines");
         if (invoice.Lines.Count > 10000) check.Error("INV-LIMIT", "At most 10,000 invoice lines are supported.", "Lines");
         var identifiers = new HashSet<string>(StringComparer.Ordinal);
         for (int index = 0; index < invoice.Lines.Count; index++) {
@@ -128,13 +139,19 @@ public static partial class InvoiceModelValidator {
             if (document.ExternalUri != null && (!Uri.TryCreate(document.ExternalUri, UriKind.Absolute, out Uri? uri) || !uri.IsWellFormedOriginalString()))
                 check.Error("INV-ATTACHMENT-URI", "Supporting document locations must be well-formed absolute URIs.", "SupportingDocuments.ExternalUri");
         }
-        check.Payment(invoice.Payment);
+        for (int index = 0; index < invoice.Payments.Count; index++) check.Payment(invoice.Payments[index], "Payments[" + index + "]");
         InvoiceCalculation? calculation = null;
         try {
-            calculation = InvoiceCalculator.Calculate(invoice);
-            if (invoice.DeclaredTaxes.Count == 0 && modelItems + calculation.Taxes.Count > InvoiceModelLimits.MaximumCollectionItems)
-                check.Error("INV-MODEL-LIMIT", "Invoice model and calculated VAT breakdowns exceed 50,000 collection items.", "Invoice");
-            check.DeclaredAmounts(invoice, calculation);
+            if (aggregateProfile.HasValue) {
+                if (!check.AggregateAmounts(invoice, aggregateProfile.Value))
+                    return new InvoiceModelValidationResult(diagnostics.ToList(), null);
+                calculation = InvoiceCalculator.FromDeclaredAggregate(invoice);
+            } else {
+                calculation = InvoiceCalculator.Calculate(invoice);
+                if (invoice.DeclaredTaxes.Count == 0 && modelItems + calculation.Taxes.Count > InvoiceModelLimits.MaximumCollectionItems)
+                    check.Error("INV-MODEL-LIMIT", "Invoice model and calculated VAT breakdowns exceed 50,000 collection items.", "Invoice");
+                check.DeclaredAmounts(invoice, calculation);
+            }
             check.TaxRequirements(invoice, calculation);
         } catch (Exception exception) when (exception is ArgumentException || exception is OverflowException) {
             check.Error("INV-CALCULATION", exception.Message, "Invoice");
@@ -170,14 +187,22 @@ public static partial class InvoiceModelValidator {
             if (address == null) Error("INV-REQUIRED", "Postal address is required.", path);
             else Code(address.CountryCode, path + ".CountryCode", "^[A-Z]{2}\\z");
         }
-        internal void Party(InvoiceParty? party, string path) {
+        internal void Party(InvoiceParty? party, string path, bool requireAddressCountry = true) {
             if (party == null) { Error("INV-REQUIRED", "Party is required.", path); return; }
-            Required(party.Name, path + ".Name"); Address(party.Address, path + ".Address");
+            Required(party.Name, path + ".Name");
+            if (requireAddressCountry) Address(party.Address, path + ".Address");
             PartyIdentifiers(party, path);
         }
         internal void PartyIdentifiers(InvoiceParty party, string path) {
-            if (party.VatIdentifier != null) Required(party.VatIdentifier, path + ".VatIdentifier");
-            if (party.TaxRegistration != null) Required(party.TaxRegistration, path + ".TaxRegistration");
+            foreach (InvoiceTaxRegistration registration in party.TaxRegistrations) {
+                if (registration == null) { Error("INV-NULL", "Tax registration is null.", path + ".TaxRegistrations"); continue; }
+                Required(registration.Identifier, path + ".TaxRegistrations.Identifier");
+                Required(registration.SchemeId, path + ".TaxRegistrations.SchemeId");
+                if (!Enum.IsDefined(typeof(InvoiceTaxRegistrationKind), registration.Kind) ||
+                    registration.Kind == InvoiceTaxRegistrationKind.Vat && registration.SchemeId != InvoiceTaxRegistration.VatScheme ||
+                    registration.Kind == InvoiceTaxRegistrationKind.Fiscal && registration.SchemeId != InvoiceTaxRegistration.TaxScheme)
+                    Error("INV-TAX-SCHEME-KIND", "The tax-registration semantic role does not match its canonical scheme.", path + ".TaxRegistrations.Kind");
+            }
             foreach (InvoiceIdentifier identifier in party.Identifiers) Identifier(identifier, path + ".Identifiers", false);
             if (party.LegalRegistration != null) Identifier(party.LegalRegistration, path + ".LegalRegistration", false);
             if (party.ElectronicAddress != null) Identifier(party.ElectronicAddress, path + ".ElectronicAddress", true);
@@ -217,19 +242,17 @@ public static partial class InvoiceModelValidator {
             }
             if (documentLevel) Tax(item.Tax, path + ".Tax");
         }
-        internal void Payment(InvoicePayment? payment) {
-            if (payment == null) return;
-            Code(payment.MeansCode, "Payment.MeansCode", "^[0-9]{1,3}\\z");
+        internal void Payment(InvoicePayment? payment, string path) {
+            if (payment == null) { Error("INV-NULL", "Payment instruction is null.", path); return; }
+            Code(payment.MeansCode, path + ".MeansCode", "^[0-9]{1,3}\\z");
             if ((payment.MeansCode == "30" || payment.MeansCode == "58") &&
-                !payment.Accounts.Any(account => !string.IsNullOrWhiteSpace(account?.Identifier)))
-                Error("INV-PAYMENT-ACCOUNT", "Credit transfer requires a payment account identifier.", "Payment.Accounts");
-            foreach (InvoiceBankAccount account in payment.Accounts) {
-                if (account == null) Error("INV-NULL", "Bank account is null.", "Payment.Accounts");
-                else Required(account.Identifier, "Payment.Accounts.Identifier");
-            }
+                string.IsNullOrWhiteSpace(payment.Account?.Identifier))
+                Error("INV-PAYMENT-ACCOUNT", "Credit transfer requires a payment account identifier.", path + ".Account");
+            if (payment.Account != null) Required(payment.Account.Identifier, path + ".Account.Identifier");
             if (payment.CardNumber != null && !Regex.IsMatch(payment.CardNumber, "^[0-9]{4,6}\\z", RegexOptions.CultureInvariant))
-                Error("INV-CARD", "Supply only the last four to six card digits.", "Payment.CardNumber");
-            if (payment.CardHolder != null && payment.CardNumber == null) Error("INV-CARD", "Card holder requires masked card digits.", "Payment.CardHolder");
+                Error("INV-CARD", "Supply only the last four to six card digits.", path + ".CardNumber");
+            if (payment.CardHolder != null && payment.CardNumber == null) Error("INV-CARD", "Card holder requires masked card digits.", path + ".CardHolder");
+            if (payment.CardNetworkId != null && payment.CardNumber == null) Error("INV-CARD", "Card network requires masked card digits.", path + ".CardNetworkId");
         }
     }
 }

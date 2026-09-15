@@ -17,6 +17,22 @@ public sealed class InvoiceCalculation {
         PayableAmount = InvoiceArithmetic.Sum(new[] { TaxInclusiveTotal, -prepaid, rounding });
     }
 
+    internal InvoiceCalculation(IReadOnlyList<InvoiceCalculatedLine> lines, IReadOnlyList<InvoiceCalculatedTax> taxes,
+        decimal lineNetTotal, decimal allowanceTotal, decimal chargeTotal, decimal taxExclusiveTotal,
+        decimal taxTotal, decimal taxInclusiveTotal, decimal prepaidAmount, decimal roundingAmount, decimal payableAmount) {
+        Lines = lines;
+        Taxes = taxes;
+        LineNetTotal = lineNetTotal;
+        AllowanceTotal = allowanceTotal;
+        ChargeTotal = chargeTotal;
+        TaxExclusiveTotal = taxExclusiveTotal;
+        TaxTotal = taxTotal;
+        TaxInclusiveTotal = taxInclusiveTotal;
+        PrepaidAmount = prepaidAmount;
+        RoundingAmount = roundingAmount;
+        PayableAmount = payableAmount;
+    }
+
     /// <summary>Calculated lines in source order.</summary>
     public IReadOnlyList<InvoiceCalculatedLine> Lines { get; }
     /// <summary>VAT breakdowns in stable category/rate order.</summary>

@@ -55,7 +55,7 @@ public static partial class InvoiceParser {
                 Name = c.Text(c.Child(c.Child(delivery, Cac + "DeliveryParty"), Cac + "PartyName"), Cbc + "Name"),
                 LocationIdentifier = c.Identifier(c.Child(location, Cbc + "ID")), Address = address == null ? null : UblAddress(c, address) };
         }
-        invoice.Payment = UblPayment(c, root, creditor);
+        foreach (InvoicePayment payment in UblPayments(c, root, creditor)) c.AddTo(invoice.Payments, payment);
         invoice.PaymentTerms = c.Text(c.Child(root, Cac + "PaymentTerms"), Cbc + "Note");
         foreach (XElement adjustment in c.Children(root, Cac + "AllowanceCharge")) c.AddTo(invoice.AllowancesAndCharges, UblAdjustment(c, adjustment, invoice.Currency, true));
         foreach (XElement line in c.Children(root, Cac + (credit ? "CreditNoteLine" : "InvoiceLine"))) {

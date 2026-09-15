@@ -24,15 +24,22 @@ function Get-PinnedArtifact([string] $Url, [string] $Hash, [string] $Name) {
 }
 $bundle = Get-PinnedArtifact (Get-Constant $bundleSource 'XRechnungDownloadUrl') (Get-Constant $bundleSource 'XRechnungSha256') 'xrechnung.zip'
 $peppol = Get-PinnedArtifact (Get-Constant $bundleSource 'PeppolDownloadUrl') (Get-Constant $bundleSource 'PeppolSha256') 'peppol.sch'
+$facturX = Get-PinnedArtifact (Get-Constant $bundleSource 'FacturXDownloadUrl') (Get-Constant $bundleSource 'FacturXSha256') 'factur-x.zip'
 $saxon = Get-PinnedArtifact (Get-Constant $runnerSource 'DownloadUrl') (Get-Constant $runnerSource 'ArchiveSha256') 'saxon.zip'
+$corpusManifest = Get-Content (Join-Path $repository 'OfficeIMO.Invoicing.Validation.Tests/Fixtures/invoice-corpus.json') -Raw | ConvertFrom-Json
+$producerArchive = Get-PinnedArtifact $corpusManifest.facturX.archiveUrl $corpusManifest.facturX.archiveSha256 'factur-x-producer.zip'
+$producerPath = Join-Path $OutputPath 'factur-x-producer'
+if (!(Test-Path -LiteralPath $producerPath)) { Expand-Archive -LiteralPath $producerArchive -DestinationPath $producerPath }
 $saxonPath = Join-Path $OutputPath 'saxon'
 if (!(Test-Path -LiteralPath $saxonPath)) { Expand-Archive -LiteralPath $saxon -DestinationPath $saxonPath }
 $variables = @{
     OFFICEIMO_INVOICE_STANDARDS_TESTS = '1'
     OFFICEIMO_INVOICE_RULE_BUNDLE = $bundle
     OFFICEIMO_INVOICE_PEPPOL_RULES = $peppol
+    OFFICEIMO_INVOICE_FACTURX_RULE_BUNDLE = $facturX
     OFFICEIMO_INVOICE_SAXON_JAR = (Join-Path $saxonPath 'saxon-he-12.10.jar')
     OFFICEIMO_INVOICE_JAVA = $JavaExecutable
+    OFFICEIMO_INVOICE_FACTURX_PRODUCER_CORPUS = (Join-Path $producerPath $corpusManifest.facturX.fixtureRoot)
     OFFICEIMO_INVOICE_EVIDENCE = (Join-Path $OutputPath 'evidence')
 }
 $previous = @{}

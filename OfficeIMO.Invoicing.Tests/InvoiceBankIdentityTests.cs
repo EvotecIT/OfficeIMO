@@ -9,12 +9,12 @@ public class InvoiceBankIdentityTests {
     [MemberData(nameof(RegisteredIbans))]
     public void RegisteredCountryExamplesRetainIbanIdentityAcrossSyntaxes(string identifier) {
         Invoice invoice = InvoiceFixture.Create();
-        invoice.Payment!.Accounts[0].Identifier = identifier;
-        invoice.Payment.Accounts[0].IsIban = true;
+        invoice.Payments[0].Account!.Identifier = identifier;
+        invoice.Payments[0].Account!.IsIban = true;
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Ubl, InvoiceSyntax.Cii }) {
-            InvoiceReadResult result = InvoiceParser.Read(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax)));
+            InvoiceReadResult result = InvoiceParser.Read(InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax)));
             Assert.True(result.HasCompleteMapping);
-            InvoiceBankAccount account = Assert.Single(result.Invoice.Payment!.Accounts);
+            InvoiceBankAccount account = Assert.IsType<InvoiceBankAccount>(result.Invoice.Payments[0].Account);
             Assert.True(account.IsIban);
             Assert.Equal(identifier, account.Identifier);
         }
@@ -30,27 +30,27 @@ public class InvoiceBankIdentityTests {
     public void ChecksumCannotOverrideCountryFormatOrAccountKind(string country, string bban) {
         string identifier = WithChecksum(country, bban);
         Invoice invoice = InvoiceFixture.Create();
-        invoice.Payment!.Accounts[0].Identifier = identifier;
-        invoice.Payment.Accounts[0].IsIban = false;
-        byte[] source = InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl));
+        invoice.Payments[0].Account!.Identifier = identifier;
+        invoice.Payments[0].Account!.IsIban = false;
+        byte[] source = InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl));
         InvoiceReadResult read = InvoiceParser.Read(source);
         Assert.True(read.HasCompleteMapping);
-        Assert.False(Assert.Single(read.Invoice.Payment!.Accounts).IsIban);
-        InvoiceConversionResult cii = InvoiceConverter.Convert(source, new InvoiceXmlOptions());
+        Assert.False(read.Invoice.Payments[0].Account!.IsIban);
+        InvoiceConversionResult cii = InvoiceConverter.Convert(source, InvoiceTestContracts.En16931());
         Assert.True(cii.Succeeded);
-        Assert.False(Assert.Single(InvoiceParser.Read(cii.Xml!).Invoice.Payment!.Accounts).IsIban);
+        Assert.False(InvoiceParser.Read(cii.Xml!).Invoice.Payments[0].Account!.IsIban);
         Assert.Contains("<ram:ProprietaryID>" + identifier + "</ram:ProprietaryID>", Encoding.UTF8.GetString(cii.Xml!));
 
-        invoice.Payment.Accounts[0].IsIban = true;
-        Assert.Contains("Payment.Accounts[0]", Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice)).Message);
-        invoice.Payment.Accounts[0].IsIban = false;
-        invoice.Payment.MeansCode = "49";
-        invoice.Payment.DebitedAccount = identifier;
-        source = InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl));
-        cii = InvoiceConverter.Convert(source, new InvoiceXmlOptions());
+        invoice.Payments[0].Account!.IsIban = true;
+        Assert.Contains("Payments[0].Account", Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931())).Message);
+        invoice.Payments[0].Account!.IsIban = false;
+        invoice.Payments[0].MeansCode = "49";
+        invoice.Payments[0].DebitedAccount = identifier;
+        source = InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl));
+        cii = InvoiceConverter.Convert(source, InvoiceTestContracts.En16931());
         Assert.False(cii.Succeeded);
         Assert.Null(cii.Xml);
-        Assert.Contains(cii.Diagnostics, diagnostic => diagnostic.Location == "Payment.DebitedAccount");
+        Assert.Contains(cii.Diagnostics, diagnostic => diagnostic.Location == "Payments[0].DebitedAccount");
     }
 
     [Theory]
@@ -58,10 +58,10 @@ public class InvoiceBankIdentityTests {
     [InlineData("DE89\t370400440532013000")]
     public void AsciiCaseAndSpacingRemainSupported(string identifier) {
         Invoice invoice = InvoiceFixture.Create();
-        invoice.Payment!.Accounts[0].Identifier = identifier;
-        Assert.NotEmpty(InvoiceSerializer.Write(invoice));
-        Assert.True(Assert.Single(InvoiceParser.Read(InvoiceSerializer.Write(invoice,
-            new InvoiceXmlOptions(InvoiceSyntax.Ubl))).Invoice.Payment!.Accounts).IsIban);
+        invoice.Payments[0].Account!.Identifier = identifier;
+        Assert.NotEmpty(InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931()));
+        Assert.True(InvoiceParser.Read(InvoiceSerializer.Write(invoice,
+            InvoiceTestContracts.En16931(InvoiceSyntax.Ubl))).Invoice.Payments[0].Account!.IsIban);
     }
 
     [Theory]
@@ -74,8 +74,8 @@ public class InvoiceBankIdentityTests {
     [InlineData("GB71ſABC60161331926819")]
     public void NonAsciiCharactersAndInvalidCheckDigitsAreNotIbans(string identifier) {
         Invoice invoice = InvoiceFixture.Create();
-        invoice.Payment!.Accounts[0].Identifier = identifier;
-        Assert.Contains("Payment.Accounts[0]", Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice)).Message);
+        invoice.Payments[0].Account!.Identifier = identifier;
+        Assert.Contains("Payments[0].Account", Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931())).Message);
     }
 
     private static string WithChecksum(string country, string bban) {

@@ -41,7 +41,7 @@ public class InvoiceCalculationTests {
         Assert.False(validation.IsValid);
         Assert.Contains(validation.Diagnostics, d => d.Code == "INV-DECLARED-AMOUNT" && d.Location == "DeclaredTotals.PayableAmount");
         Assert.Equal(0m, invoice.DeclaredTotals.PayableAmount);
-        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice));
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931()));
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class InvoiceCalculationTests {
         });
         Assert.True(InvoiceModelValidator.Validate(invoice).IsValid);
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl }) {
-            var parsed = InvoiceParser.Read(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax, InvoiceProfile.En16931)));
+            var parsed = InvoiceParser.Read(InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax)));
             Assert.Equal(formula + 0.01m, parsed.Invoice.Lines[0].DeclaredNetAmount);
             Assert.Equal(initial.TaxTotal + 0.01m, parsed.Invoice.DeclaredTaxes[0].TaxAmount);
         }
@@ -82,7 +82,7 @@ public class InvoiceCalculationTests {
         Invoice invoice = Example();
         invoice.Lines[0].DeclaredNetAmount = InvoiceCalculator.Calculate(invoice).Lines[0].NetAmount + 0.03m;
         Assert.False(InvoiceModelValidator.Validate(invoice).IsValid);
-        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice));
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931()));
     }
 
     [Theory]
@@ -100,13 +100,13 @@ public class InvoiceCalculationTests {
             TaxableAmount = 1m, TaxAmount = 0m
         });
         InvoiceCalculator.UpdateDeclaredAmounts(invoice);
-        InvoiceDeclaredTax actual = Assert.Single(invoice.DeclaredTaxes.Where(tax => tax.Category.Code == "E"));
+        InvoiceDeclaredTax actual = Assert.Single(invoice.DeclaredTaxes, tax => tax.Category.Code == "E");
         Assert.Equal("Updated exemption", actual.Category.ExemptionReason);
         Assert.Null(actual.Category.ExemptionReasonCode);
         Assert.True(InvoiceModelValidator.Validate(invoice).IsValid);
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl }) {
-            Invoice parsed = InvoiceParser.Read(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax, InvoiceProfile.En16931))).Invoice;
-            Assert.Equal("Updated exemption", Assert.Single(parsed.DeclaredTaxes.Where(tax => tax.Category.Code == "E")).Category.ExemptionReason);
+            Invoice parsed = InvoiceParser.Read(InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax))).Invoice;
+            Assert.Equal("Updated exemption", Assert.Single(parsed.DeclaredTaxes, tax => tax.Category.Code == "E").Category.ExemptionReason);
         }
     }
 
@@ -121,6 +121,29 @@ public class InvoiceCalculationTests {
         InvoiceDeclaredTax actual = Assert.Single(invoice.DeclaredTaxes);
         Assert.Equal("Imported exemption", actual.Category.ExemptionReason);
         Assert.Equal("VATEX-EU-132", actual.Category.ExemptionReasonCode);
+    }
+
+    [Theory]
+    [InlineData(InvoiceProfile.Minimum)]
+    [InlineData(InvoiceProfile.BasicWithoutLines)]
+    public void AggregateOnlyInvoicesRetainDeclaredValuesAcrossPublicCalculationApis(InvoiceProfile profile) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.RoundingAmount = 0m;
+        invoice.PrepaidAmount = 0m;
+        InvoiceCalculator.UpdateDeclaredAmounts(invoice);
+        InvoiceXmlOptions options = InvoiceTestContracts.FacturX(profile, InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
+        Invoice aggregate = InvoiceParser.Read(InvoiceSerializer.Write(invoice, options)).Invoice;
+        byte[] before = InvoiceSerializer.Write(aggregate, options);
+
+        InvoiceCalculation calculated = InvoiceCalculator.Calculate(aggregate);
+        InvoiceCalculation updated = InvoiceCalculator.UpdateDeclaredAmounts(aggregate);
+
+        Assert.Empty(calculated.Lines);
+        Assert.Equal(100m, calculated.TaxExclusiveTotal);
+        Assert.Equal(19m, calculated.TaxTotal);
+        Assert.Equal(119m, calculated.PayableAmount);
+        Assert.Equal(calculated.PayableAmount, updated.PayableAmount);
+        Assert.Equal(before, InvoiceSerializer.Write(aggregate, options));
     }
 
     internal static Invoice Example() => InvoiceFixture.Create();

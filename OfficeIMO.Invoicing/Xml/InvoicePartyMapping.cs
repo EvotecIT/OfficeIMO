@@ -9,13 +9,12 @@ internal static class InvoicePartyMapping {
             if (discardUnsupported) discard();
         }
         if (party.LegalInformation != null) Reject("LegalInformation", () => party.LegalInformation = null);
-        if (party.TaxRegistration != null) Reject("TaxRegistration", () => party.TaxRegistration = null);
         if (role == "Buyer") return;
         if (party.TradingName != null) Reject("TradingName", () => party.TradingName = null);
         if (party.Contact != null) Reject("Contact", () => party.Contact = null);
         if (party.ElectronicAddress != null) Reject("ElectronicAddress", () => party.ElectronicAddress = null);
         if (role == "Payee") {
-            if (party.VatIdentifier != null) Reject("VatIdentifier", () => party.VatIdentifier = null);
+            if (party.TaxRegistrations.Count != 0) Reject("TaxRegistrations", () => party.TaxRegistrations.Clear());
             InvoiceAddress? address = party.Address;
             if (address != null && (!string.IsNullOrEmpty(address.CountryCode) || address.Line1 != null || address.Line2 != null || address.Line3 != null || address.City != null || address.PostCode != null || address.Subdivision != null))
                 Reject("Address", () => party.Address = new InvoiceAddress());

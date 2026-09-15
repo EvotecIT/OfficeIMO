@@ -17,13 +17,10 @@ public sealed class InvoiceReadResult {
     /// <summary>Returns the original bytes unchanged, regardless of subsequent model edits.</summary>
     public byte[] GetOriginalBytes() => (byte[])_source.Clone();
     /// <summary>Writes the edited model. By default, any unmapped source data blocks rewriting.</summary>
-    public byte[] Write(InvoiceXmlOptions? options = null, bool allowUnmappedDataLoss = false) {
+    public byte[] Write(InvoiceXmlOptions options, bool allowUnmappedDataLoss = false) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
         if (!HasCompleteMapping && !allowUnmappedDataLoss)
             throw new InvalidDataException("Rewriting would discard unmapped source data. Inspect UnmappedData and explicitly accept that loss before writing.");
-        if (options == null) {
-            if (!Declaration.Profile.HasValue) throw new InvalidDataException("An explicit supported output guideline is required for this source.");
-            options = new InvoiceXmlOptions(Declaration.Syntax, Declaration.Profile.Value);
-        }
         return InvoiceSerializer.Write(Invoice, options);
     }
 }
@@ -55,7 +52,7 @@ public static class InvoiceConverter {
         diagnostics.AddRange(source.UnmappedData);
         diagnostics.AddRange(InvoiceSerializer.InspectTarget(source.Invoice, target));
         if (source.Declaration.Profile != target.Profile)
-            diagnostics.Add(new InvoiceDiagnostic("INV-PROFILE-CHANGE", "The output guideline differs from the source. Run the target's pinned validation rules before use.", "Guideline", InvoiceDiagnosticSeverity.Information));
+            diagnostics.Add(new InvoiceDiagnostic("INV-PROFILE-CHANGE", "The output guideline differs from the source. Validate against the explicitly selected target release.", "Guideline", InvoiceDiagnosticSeverity.Information));
         byte[]? output = null;
         if (!diagnostics.HasErrors) {
             try { output = InvoiceSerializer.Write(source.Invoice, target); }

@@ -8,10 +8,10 @@ internal static class InvoiceFixture {
             ExemptionReason = new[] { "E", "AE", "G", "K", "O" }.Contains(code) ? "Exemption applies" : null
         };
         if (code == "O") {
-            invoice.Seller.VatIdentifier = null;
+            invoice.Seller.TaxRegistrations.Clear();
             invoice.Seller.LegalRegistration = new InvoiceIdentifier("HRB 12345");
         }
-        if (code == "AE" || code == "K") invoice.Buyer.VatIdentifier = "DE987654321";
+        if (code == "AE" || code == "K") invoice.Buyer.TaxRegistrations.Add(new InvoiceTaxRegistration("DE987654321", InvoiceTaxRegistration.VatScheme));
         if (code == "K") invoice.Delivery = new InvoiceDelivery {
             Date = invoice.IssueDate, Address = new InvoiceAddress { CountryCode = "FR" }
         };
@@ -22,14 +22,15 @@ internal static class InvoiceFixture {
         var invoice = new Invoice {
             Number = "INV-2026-001", IssueDate = new DateTime(2026, 9, 10), DueDate = new DateTime(2026, 10, 10),
             Currency = "EUR", BuyerReference = "04011000-12345-03", BusinessProcessId = "urn:fdc:peppol.eu:2017:poacc:billing:01:1.0",
-            Seller = new InvoiceParty { Name = "Example Seller GmbH", VatIdentifier = "DE123456789", ElectronicAddress = new InvoiceIdentifier("seller@example.test", "EM"),
+            Seller = new InvoiceParty { Name = "Example Seller GmbH", ElectronicAddress = new InvoiceIdentifier("seller@example.test", "EM"),
                 Address = new InvoiceAddress { Line1 = "Seller street 1", City = "Berlin", PostCode = "10115", CountryCode = "DE" },
                 Contact = new InvoiceContact { Name = "Accounts", Telephone = "+49 30 123456", Email = "seller@example.test" } },
             Buyer = new InvoiceParty { Name = "Example Buyer GmbH", ElectronicAddress = new InvoiceIdentifier("buyer@example.test", "EM"),
-                Address = new InvoiceAddress { Line1 = "Buyer street 2", City = "Berlin", PostCode = "10115", CountryCode = "DE" } },
-            Payment = new InvoicePayment { MeansCode = "58", Reference = "INV-2026-001" }
+                Address = new InvoiceAddress { Line1 = "Buyer street 2", City = "Berlin", PostCode = "10115", CountryCode = "DE" } }
         };
-        invoice.Payment.Accounts.Add(new InvoiceBankAccount { Identifier = "DE79000000001234567890" });
+        invoice.Seller.TaxRegistrations.Add(new InvoiceTaxRegistration("DE123456789", InvoiceTaxRegistration.VatScheme));
+        invoice.Payments.Add(new InvoicePayment { MeansCode = "58", Reference = "INV-2026-001",
+            Account = new InvoiceBankAccount { Identifier = "DE79000000001234567890" } });
         invoice.Lines.Add(new InvoiceLine { Id = "1", Name = "Consulting", Quantity = 1m, UnitPrice = 100m, Tax = new InvoiceTaxCategory { Code = "S", Rate = 19m } });
         return invoice;
     }
@@ -41,12 +42,13 @@ internal static class InvoiceFixture {
         invoice.Seller.LegalInformation = "Registered in Berlin";
         invoice.Seller.LegalRegistration = new InvoiceIdentifier("HRB 12345");
         invoice.Seller.Identifiers.Add(new InvoiceIdentifier("seller-1"));
-        invoice.Seller.TaxRegistration = "12/345/67890";
-        invoice.Buyer.VatIdentifier = "DE987654321";
+        invoice.Seller.TaxRegistrations.Add(new InvoiceTaxRegistration("12/345/67890", InvoiceTaxRegistration.TaxScheme));
+        invoice.Buyer.TaxRegistrations.Add(new InvoiceTaxRegistration("DE987654321", InvoiceTaxRegistration.VatScheme));
         invoice.Buyer.Contact = new InvoiceContact { Name = "Purchasing", Email = "purchasing@example.test" };
         invoice.Payee = new InvoiceParty { Name = "Example Payee", LegalRegistration = new InvoiceIdentifier("payee-register") };
         invoice.Payee.Identifiers.Add(new InvoiceIdentifier("payee-1"));
-        invoice.TaxRepresentative = new InvoiceParty { Name = "Example Representative", VatIdentifier = "DE999999999", Address = new InvoiceAddress { CountryCode = "DE", City = "Berlin" } };
+        invoice.TaxRepresentative = new InvoiceParty { Name = "Example Representative", Address = new InvoiceAddress { CountryCode = "DE", City = "Berlin" } };
+        invoice.TaxRepresentative.TaxRegistrations.Add(new InvoiceTaxRegistration("DE999999999", InvoiceTaxRegistration.VatScheme));
         invoice.Delivery = new InvoiceDelivery { Name = "Warehouse", Date = invoice.IssueDate, LocationIdentifier = new InvoiceIdentifier("location-1"),
             Address = new InvoiceAddress { CountryCode = "DE", Line1 = "Warehouse street 3", City = "Berlin", PostCode = "10115" } };
         invoice.Period = new InvoicePeriod { Start = invoice.IssueDate.AddDays(-10), End = invoice.IssueDate };
