@@ -157,6 +157,11 @@ public static partial class OfficeSvgDrawingReader {
             throw new InvalidDataException("The SVG uses a namespaced or case-mismatched root viewport attribute outside XML SVG geometry.");
         }
         XNamespace svgNamespace = root.Name.Namespace;
+        if (root.DescendantsAndSelf()
+                .Where(element => IsNativeSvgElement(element, svgNamespace))
+                .Any(HasUnsupportedSvgViewportSyntax)) {
+            throw new InvalidDataException("The SVG uses viewport syntax outside the bounded case-sensitive SVG grammar.");
+        }
         if (root.DescendantsAndSelf().Where(element => IsNativeSvgElement(element, svgNamespace)).Any(element =>
                 element.Attributes().Any(attribute =>
                     attribute.Name.NamespaceName.Length == 0 &&
@@ -251,6 +256,17 @@ public static partial class OfficeSvgDrawingReader {
         };
         return expected != null &&
             (attribute.Name.NamespaceName.Length != 0 || !attribute.Name.LocalName.Equals(expected, StringComparison.Ordinal));
+    }
+
+    private static bool HasUnsupportedSvgViewportSyntax(XElement element) {
+        string name = element.Name.LocalName;
+        bool acceptsViewBox = name is "svg" or "symbol" or "marker" or "pattern" or "view";
+        bool acceptsPreserveAspectRatio = acceptsViewBox || name.Equals("image", StringComparison.Ordinal);
+        XAttribute? viewBox = acceptsViewBox ? element.Attribute("viewBox") : null;
+        if (viewBox != null && ContainsNonSvgCssWhitespace(viewBox.Value)) return true;
+        XAttribute? preserveAspectRatio = acceptsPreserveAspectRatio ? element.Attribute("preserveAspectRatio") : null;
+        return preserveAspectRatio != null &&
+            !TryParsePreserveAspectRatio(preserveAspectRatio.Value, out _, out _);
     }
 
     private static bool ContainsUnsupportedSvgCssMathFunction(string value) {

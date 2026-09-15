@@ -1564,7 +1564,7 @@ public static partial class OfficeSvgDrawingReader {
         int index = 0;
         while (index < value!.Length) {
             int separatorStart = index;
-            while (index < value.Length && (char.IsWhiteSpace(value[index]) || value[index] == ',')) {
+            while (index < value.Length && (IsSvgNumberListWhitespace(value[index]) || value[index] == ',')) {
                 index++;
                 if (index - separatorStart > 128) {
                     limitExceeded = true;
@@ -1577,7 +1577,7 @@ public static partial class OfficeSvgDrawingReader {
                 return false;
             }
             int start = index;
-            while (index < value.Length && !char.IsWhiteSpace(value[index]) && value[index] != ',') {
+            while (index < value.Length && !IsSvgNumberListWhitespace(value[index]) && value[index] != ',') {
                 index++;
                 if (index - start > 128) {
                     limitExceeded = true;
@@ -1594,6 +1594,9 @@ public static partial class OfficeSvgDrawingReader {
         }
         return result.Count > 0;
     }
+
+    private static bool IsSvgNumberListWhitespace(char character) =>
+        character is ' ' or '\t' or '\r' or '\n';
 
     private struct SvgPaintContext {
         internal OfficeColor Color;

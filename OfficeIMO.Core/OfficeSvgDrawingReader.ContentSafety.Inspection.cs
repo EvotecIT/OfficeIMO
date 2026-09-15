@@ -81,6 +81,9 @@ public static partial class OfficeSvgDrawingReader {
             "SVG visual comparisons were reduced to " + maximumComparisons.ToString(CultureInfo.InvariantCulture) +
             " by the cumulative rendered-pixel and document-transformation work budgets.");
 
+        const string unsupportedImageEvidence =
+            "An embedded or external SVG image is outside the bounded native paint projection and can change browser paint behind or over this text, so cleanup is report-only.";
+        bool unsupportedImagePaint = HasUnsupportedSvgImagePaint(document.Root);
         int comparisons = 0;
         bool comparisonLimitReached = false;
         foreach (SvgContentSafetyCandidate candidate in candidates) {
@@ -92,8 +95,6 @@ public static partial class OfficeSvgDrawingReader {
                 hasDynamicRendering,
                 hasConditionalRendering,
                 out string contextEvidence);
-            bool followingUnsupportedImagePaint = HasFollowingUnsupportedSvgImagePaint(candidate, document.Root);
-
             if (TryClassifySvgNonPrimary(
                     candidate,
                     out SvgContentSafetyConcealment nonPrimary,
@@ -105,12 +106,20 @@ public static partial class OfficeSvgDrawingReader {
                             nonPrimary.Evidence + " " + contextEvidence,
                             nonPrimary.Risk);
                     }
+                    if (unsupportedImagePaint) {
+                        nonPrimary = new SvgContentSafetyConcealment(
+                            nonPrimary.Kind,
+                            nonPrimary.Evidence + " " + unsupportedImageEvidence,
+                            nonPrimary.Risk);
+                    }
                     AddSvgContentSafetyFinding(
                         builder,
                         targets,
                         candidate,
                         nonPrimary,
-                        contextDependent ? OfficeContentCleanupCapability.ReportOnly : nonPrimaryCleanup);
+                        contextDependent || unsupportedImagePaint
+                            ? OfficeContentCleanupCapability.ReportOnly
+                            : nonPrimaryCleanup);
                 }
                 continue;
             }
@@ -181,20 +190,28 @@ public static partial class OfficeSvgDrawingReader {
                         " The same flowing SVG text owner contains another text node, so deleting this payload could change visible glyph advances and cleanup is report-only.",
                         concealment.Value.Risk);
                 }
+                if (unsupportedImagePaint) {
+                    concealment = new SvgContentSafetyConcealment(
+                        concealment.Value.Kind,
+                        concealment.Value.Evidence + " " + unsupportedImageEvidence,
+                        concealment.Value.Risk);
+                }
                 AddSvgContentSafetyFinding(
                     builder,
                     targets,
                     candidate,
                     concealment.Value,
-                    contextDependent || offCanvasBounds || layoutCoupled || visualConcealment &&
+                    contextDependent || unsupportedImagePaint || offCanvasBounds || layoutCoupled || visualConcealment &&
                         (baselineUnsupported > 0 || hostBackdropDependent ||
                          !HasSufficientSvgVisualResolution(candidate, document, maximumRasterPixels))
                         ? OfficeContentCleanupCapability.ReportOnly
                         : OfficeContentCleanupCapability.RemoveText);
-            } else if (contextDependent || followingUnsupportedImagePaint) {
-                string reportOnlyEvidence = contextDependent
-                    ? contextEvidence
-                    : "A following external SVG image is outside the bounded native paint projection and can occlude this text in a browser, so cleanup is report-only.";
+            } else if (contextDependent || unsupportedImagePaint) {
+                string reportOnlyEvidence = contextDependent && unsupportedImagePaint
+                    ? contextEvidence + " " + unsupportedImageEvidence
+                    : contextDependent
+                        ? contextEvidence
+                        : unsupportedImageEvidence;
                 if (options.IncludeNonPrimaryContent) {
                     AddSvgContentSafetyFinding(
                         builder,
@@ -344,21 +361,16 @@ public static partial class OfficeSvgDrawingReader {
         return owner.DescendantNodes().OfType<XText>().Count(text => !IsIgnorableSvgTextNode(text.Value)) > 1;
     }
 
-    private static bool HasFollowingUnsupportedSvgImagePaint(
-        SvgContentSafetyCandidate candidate,
-        XElement root) {
-        XElement? owner = candidate.SourceText.Parent;
-        if (owner == null) return false;
+    private static bool HasUnsupportedSvgImagePaint(XElement root) {
         XNamespace svgNamespace = root.Name.Namespace;
         return root.DescendantsAndSelf().Any(element => {
             if (!IsNativeSvgElement(element, svgNamespace) ||
-                !element.Name.LocalName.Equals("image", StringComparison.Ordinal) ||
-                XNode.DocumentOrderComparer.Compare(element, owner) <= 0) return false;
+                !element.Name.LocalName.Equals("image", StringComparison.Ordinal)) return false;
             XAttribute[] hrefs = element.Attributes()
                 .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal))
                 .ToArray();
             return hrefs.Length != 1 ||
-                !hrefs[0].Value.Trim().StartsWith("data:", StringComparison.OrdinalIgnoreCase);
+                !TryDecodeEmbeddedRasterImage(hrefs[0].Value, out _, out _, out _);
         });
     }
 

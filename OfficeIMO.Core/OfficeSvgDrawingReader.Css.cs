@@ -213,14 +213,20 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool IsSupportedSvgStylesheetElement(XElement style) {
         string? media = style.Attribute("media")?.Value;
-        if (!string.IsNullOrWhiteSpace(media) && !media!.Trim().Equals("all", StringComparison.OrdinalIgnoreCase)) {
-            return false;
+        if (media != null) {
+            if (ContainsNonSvgCssWhitespace(media)) return false;
+            string normalizedMedia = TrimSvgCssWhitespace(media);
+            if (normalizedMedia.Length > 0 &&
+                !normalizedMedia.Equals("all", StringComparison.OrdinalIgnoreCase)) return false;
         }
         string? type = style.Attribute("type")?.Value;
-        if (!string.IsNullOrWhiteSpace(type) && !type!.Trim().Equals("text/css", StringComparison.OrdinalIgnoreCase)) {
-            return false;
+        if (type != null) {
+            if (ContainsNonSvgCssWhitespace(type)) return false;
+            string normalizedType = TrimSvgCssWhitespace(type);
+            if (normalizedType.Length > 0 &&
+                !normalizedType.Equals("text/css", StringComparison.OrdinalIgnoreCase)) return false;
         }
-        return string.IsNullOrWhiteSpace(style.Attribute("title")?.Value);
+        return string.IsNullOrEmpty(style.Attribute("title")?.Value);
     }
 
     private static bool ParseSvgCssRules(
@@ -406,6 +412,7 @@ public static partial class OfficeSvgDrawingReader {
         ref long remainingVariableSubstitutionCharacters,
         ref int unsupported,
         out string? computedValue) {
+        bool usesVariables = authoredValue.IndexOf("var(", StringComparison.OrdinalIgnoreCase) >= 0;
         string value;
         bool variablesResolved = TryResolveSvgCssVariables(
             authoredValue,
@@ -430,6 +437,10 @@ public static partial class OfficeSvgDrawingReader {
                     paintServers,
                     ref validationUnsupported)) {
                 unsupported += validationUnsupported;
+                if (usesVariables) {
+                    computedValue = null;
+                    return false;
+                }
                 value = "unset";
             }
         }
