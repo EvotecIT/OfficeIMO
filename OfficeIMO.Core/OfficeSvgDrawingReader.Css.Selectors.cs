@@ -161,6 +161,7 @@ public static partial class OfficeSvgDrawingReader {
         out IReadOnlyList<SvgSelectorPart> parts) {
         specificity = default;
         parts = Array.Empty<SvgSelectorPart>();
+        if (selector.Length > MaximumSvgCssSelectorLength) return false;
         if (selector.IndexOf('+') >= 0 || selector.IndexOf('~') >= 0 || selector.IndexOf(':') >= 0 ||
             selector.IndexOf('|') >= 0 || selector.IndexOf('\\') >= 0 ||
             selector.IndexOf('(') >= 0 || selector.IndexOf(')') >= 0 ||

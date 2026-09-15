@@ -45,7 +45,7 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool HasLocalSvgElementReference(XElement element) {
         XAttribute[] hrefAttributes = element.Attributes()
-            .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase))
+            .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal))
             .Take(2)
             .ToArray();
         if (hrefAttributes.Length > 1) return true;

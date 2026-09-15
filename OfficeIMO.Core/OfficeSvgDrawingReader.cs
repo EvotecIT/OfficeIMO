@@ -857,6 +857,10 @@ public static partial class OfficeSvgDrawingReader {
         ref int unsupported) {
         string? value = ReadPresentationProperty(element, "transform");
         if (string.IsNullOrWhiteSpace(value)) return inherited;
+        if (value!.Any(character => char.IsWhiteSpace(character) && !IsSvgCssWhitespace(character))) {
+            unsupported++;
+            return inherited;
+        }
         if (!OfficeSvgTransformParser.TryParse(value, out OfficeTransform parsed)) {
             unsupported++;
             return inherited;

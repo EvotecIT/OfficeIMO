@@ -151,7 +151,7 @@ public static partial class OfficeSvgDrawingReader {
                     ? SvgGradientKind.Linear
                     : SvgGradientKind.Radial;
                 SvgGradientDefinition? inherited = null;
-                XAttribute? href = element.Attributes().FirstOrDefault(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase));
+                XAttribute? href = element.Attributes().FirstOrDefault(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal));
                 if (href != null) {
                     if (!TryReadLocalReference(href.Value, requireUrl: false, out string inheritedId)
                         || !_definitions.TryGetUnique(inheritedId, out XElement? inheritedElement)

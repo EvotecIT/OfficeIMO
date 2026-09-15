@@ -11,6 +11,7 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeSvgDrawingReader {
     private const long MaximumSvgContentSafetyDocumentWorkBytes = 64L * 1024L * 1024L;
+    private const long MaximumSvgContentSafetyRasterPixels = 4_000_000L;
 
     private static OfficeContentSafetyReport InspectSvgContentSafetyDocument(
         SvgContentSafetyDocument document,
@@ -50,7 +51,9 @@ public static partial class OfficeSvgDrawingReader {
         int maximumComparisons = Math.Min(pixelFundedComparisons, workFundedComparisons);
         long maximumRasterPixels = maximumComparisons == 0
             ? 0L
-            : Math.Max(1L, document.MaximumVisualPixels / (maximumComparisons + 1L));
+            : Math.Min(
+                MaximumSvgContentSafetyRasterPixels,
+                Math.Max(1L, document.MaximumVisualPixels / (maximumComparisons + 1L)));
         OfficeRasterImage? baseline = null;
         int baselineUnsupported = 0;
         bool baselineRendered = maximumComparisons > 0 && TryRenderSvgContentSafety(
@@ -107,6 +110,7 @@ public static partial class OfficeSvgDrawingReader {
             SvgContentSafetyConcealment? concealment = ClassifySvgStructuralConcealment(candidate, document, options);
             bool visualConcealment = false;
             bool hostBackdropDependent = false;
+            bool estimatedFontBounds = false;
             if (!concealment.HasValue && baselineRendered) {
                 if (comparisons < maximumComparisons) {
                     comparisons++;
@@ -141,6 +145,17 @@ public static partial class OfficeSvgDrawingReader {
                 }
             }
 
+            if (concealment.HasValue &&
+                concealment.Value.Kind == OfficeContentConcealmentKind.OffCanvas &&
+                candidate.UsesEstimatedFontMetrics) {
+                SvgContentSafetyConcealment estimated = concealment.Value;
+                concealment = new SvgContentSafetyConcealment(
+                    estimated.Kind,
+                    estimated.Evidence + " The requested font metrics were unavailable, so browser fallback glyph bounds can differ and cleanup is report-only.",
+                    estimated.Risk);
+                estimatedFontBounds = true;
+            }
+
             if (concealment.HasValue) {
                 if (contextDependent) {
                     concealment = new SvgContentSafetyConcealment(
@@ -153,7 +168,7 @@ public static partial class OfficeSvgDrawingReader {
                     targets,
                     candidate,
                     concealment.Value,
-                    contextDependent || visualConcealment &&
+                    contextDependent || estimatedFontBounds || visualConcealment &&
                         (baselineUnsupported > 0 || hostBackdropDependent ||
                          !HasSufficientSvgVisualResolution(candidate, document, maximumRasterPixels))
                         ? OfficeContentCleanupCapability.ReportOnly
@@ -573,7 +588,12 @@ public static partial class OfficeSvgDrawingReader {
             if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase) || !normalized.EndsWith(")", StringComparison.Ordinal)) continue;
             string reference = normalized.Substring(4, normalized.Length - 5).Trim().Trim('\'', '"');
             if (!reference.StartsWith("#", StringComparison.Ordinal) || reference.Length == 1) continue;
-            string id = reference.Substring(1);
+            string id;
+            try {
+                id = Uri.UnescapeDataString(reference.Substring(1));
+            } catch (UriFormatException) {
+                continue;
+            }
             XElement? clip = document.Root.DescendantsAndSelf().FirstOrDefault(candidate =>
                 IsNativeSvgElement(candidate, document.Root.Name.Namespace) &&
                 candidate.Name.LocalName.Equals("clipPath", StringComparison.Ordinal) &&
@@ -741,8 +761,7 @@ public static partial class OfficeSvgDrawingReader {
         out int unsupported) {
         image = null;
         if (!TryRead(svgBytes, readerOptions, out OfficeDrawing? drawing, out unsupported) || drawing == null) return false;
-        const long visualPixelLimit = 4_000_000L;
-        long maximumPixels = (long)Math.Max(1D, Math.Min(visualPixelLimit, maximumRasterPixels));
+        long maximumPixels = (long)Math.Max(1D, Math.Min(MaximumSvgContentSafetyRasterPixels, maximumRasterPixels));
         double sourcePixels = drawing.Width * drawing.Height;
         double scale = sourcePixels > maximumPixels ? Math.Sqrt(maximumPixels / sourcePixels) : 1D;
         if ((long)Math.Ceiling(drawing.Width * scale) * (long)Math.Ceiling(drawing.Height * scale) > maximumPixels) {

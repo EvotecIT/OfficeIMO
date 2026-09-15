@@ -10,6 +10,7 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeSvgDrawingReader {
     private const int MaximumSvgCssRules = 4096;
     private const int MaximumSvgCssDeclarations = 32768;
+    private const int MaximumSvgCssSelectorLength = 1024;
     private const long MaximumSvgCssMatchWork = 2_000_000L;
     private const long MaximumSvgComputedCssCharacters = 16L * 1024L * 1024L;
 

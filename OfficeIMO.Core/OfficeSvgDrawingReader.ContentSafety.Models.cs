@@ -94,8 +94,10 @@ public static partial class OfficeSvgDrawingReader {
         internal double Right => _right;
         internal double Bottom => _bottom;
         internal double MaximumEffectiveFontSize { get; private set; }
+        internal bool UsesEstimatedFontMetrics { get; private set; }
 
         internal void Include(SvgTextRun run) {
+            if (run.FontProgram == null) UsesEstimatedFontMetrics = true;
             double y = run.Baseline - run.FontSize;
             double height = run.FontSize * 1.25D;
             double strokeExtent = 0D;

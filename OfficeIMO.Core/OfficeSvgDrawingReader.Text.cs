@@ -185,7 +185,7 @@ public static partial class OfficeSvgDrawingReader {
         }
         try {
             var substitute = new XElement(tref.Name,
-                tref.Attributes().Where(attribute => !attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase)),
+                tref.Attributes().Where(attribute => !attribute.Name.LocalName.Equals("href", StringComparison.Ordinal)),
                 new XText(target.Value));
             AddTextElementRuns(
                 substitute, style, paintServers, references, fonts, transform, preserve, true, viewX, viewY,
@@ -310,6 +310,7 @@ public static partial class OfficeSvgDrawingReader {
             if (!double.IsNaN(measured) && !double.IsInfinity(measured) && measured > 0D) {
                 return measured;
             }
+            program = null;
         }
         return EstimateSvgTextWidth(text, fontSize);
     }

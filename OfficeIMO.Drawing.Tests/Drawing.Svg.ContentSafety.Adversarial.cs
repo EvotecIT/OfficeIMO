@@ -623,6 +623,88 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void CaseMismatchedHrefCannotAuthorizeCleanup() {
+        byte[] svg = Svg(
+            "<defs><rect id='cover' width='220' height='120' fill='white'/></defs>" +
+            "<text x='10' y='35'>browser-visible text</text><use HREF='#cover'/>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.DoesNotContain(report.Findings, item =>
+            item.TextPreview == "browser-visible text" &&
+            item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);
+    }
+
+    [Fact]
+    public void PercentEncodedClipFragmentResolvesBeforeStructuralInspection() {
+        byte[] svg = Svg(
+            "<defs><clipPath id='foo-bar'/></defs>" +
+            "<text clip-path='url(#foo%2Dbar)' x='10' y='35'>encoded clip payload</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "encoded clip payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.ClippedContent, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.RemoveText, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void EstimatedFallbackFontBoundsCannotAuthorizeOffCanvasCleanup() {
+        byte[] svg = Svg(
+            "<text font-family='DefinitelyMissingOfficeImoFont' font-size='16' text-anchor='end' x='250' y='35'>WWW</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "WWW" && item.Kind == OfficeContentConcealmentKind.OffCanvas);
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("font metrics were unavailable", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NonCssWhitespaceInTransformCannotAuthorizeCleanup() {
+        byte[] svg = Svg("<text transform='translate(-20&#xA0;0)' x='225' y='35'>invalid transform payload</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "invalid transform payload" && item.Kind == OfficeContentConcealmentKind.OffCanvas);
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("non-CSS whitespace", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OversizedCompoundSelectorFailsClosed() {
+        string selector = string.Concat(Enumerable.Repeat(".a", 600));
+        byte[] svg = Svg($"<style>{selector}{{display:none}}</style><text class='a' x='10' y='35'>bounded selector work</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void EffectiveRasterCapControlsVisualCleanupResolution() {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='4000' height='2000' viewBox='0 0 4000 2000'>" +
+            "<text font-size='4.1' x='10' y='35'>MMMM</text>" +
+            "<rect width='4000' height='2000' fill='white'/></svg>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions {
+            MaximumContentSafetyVisualComparisons = 1,
+            MaximumContentSafetyVisualPixels = 32_000_000
+        };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "MMMM");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("raster resolution", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FallbackPaintCannotAuthorizeCleanup() {
         byte[] svg = Svg("<text fill='url(#missing) red' x='10' y='35'>fallback paint visible</text>");
         var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };

@@ -121,8 +121,8 @@ public static partial class OfficeSvgDrawingReader {
                      IsNativeSvgElement(element, svgNamespace) &&
                      (element.Name.LocalName.Equals("use", StringComparison.Ordinal) ||
                       element.Name.LocalName.Equals("tref", StringComparison.Ordinal)))) {
-            foreach (XAttribute href in use.Attributes().Where(attribute =>
-                         attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase) &&
+             foreach (XAttribute href in use.Attributes().Where(attribute =>
+                          attribute.Name.LocalName.Equals("href", StringComparison.Ordinal) &&
                          (attribute.Name.NamespaceName.Length == 0 ||
                           attribute.Name.NamespaceName.Equals("http://www.w3.org/1999/xlink", StringComparison.Ordinal)))) {
                 string value = href.Value.Trim();
@@ -176,6 +176,12 @@ public static partial class OfficeSvgDrawingReader {
         out string evidence) {
         foreach (XElement current in element.AncestorsAndSelf()) {
             string name = current.Name.LocalName.ToLowerInvariant();
+            string? transform = ReadPresentationProperty(current, "transform");
+            if (!string.IsNullOrWhiteSpace(transform) &&
+                transform!.Any(character => char.IsWhiteSpace(character) && !IsSvgCssWhitespace(character))) {
+                evidence = "SVG transform syntax contains non-CSS whitespace outside the browser grammar and is therefore report-only.";
+                return true;
+            }
             XAttribute? fontSize = current.Attribute("font-size");
             if (fontSize != null && !IsSvgCssWideKeyword(fontSize.Value) &&
                 fontSize.Value.IndexOf("var(", StringComparison.OrdinalIgnoreCase) < 0 &&
