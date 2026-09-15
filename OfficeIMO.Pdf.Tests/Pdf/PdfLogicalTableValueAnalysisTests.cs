@@ -245,6 +245,32 @@ public sealed class PdfLogicalTableValueAnalysisTests {
         Assert.Equal(1M, fullWidth);
     }
 
+    [Theory]
+    [InlineData("$5%")]
+    [InlineData("€10%")]
+    [InlineData("USD 12%")]
+    [InlineData("12 PLN%")]
+    public void TryParsePercentage_RejectsCurrencyAffixes(string source) {
+        Assert.False(PdfLogicalTableValueParser.TryParsePercentage(
+            source,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out _));
+    }
+
+    [Fact]
+    public void Analyze_KeepsCurrencyAffixedPercentValuesAsText() {
+        IReadOnlyList<IReadOnlyList<string>> rows = new[] {
+            (IReadOnlyList<string>) new[] { "$5%" },
+            new[] { "€10%" }
+        };
+
+        PdfLogicalTableValueProfile profile = Assert.Single(
+            PdfLogicalTableValueAnalysis.Analyze(new[] { "Rate" }, rows));
+
+        Assert.Equal(PdfLogicalTableValueKind.Text, profile.Kind);
+        Assert.Equal(1D, profile.Confidence);
+    }
+
     [Fact]
     public void Analyze_PreservesConsistentCurrencyAffixesAsTypedEvidence() {
         IReadOnlyList<IReadOnlyList<string>> rows = new[] {

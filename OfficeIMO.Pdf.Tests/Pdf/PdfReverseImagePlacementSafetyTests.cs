@@ -808,18 +808,28 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
     }
 
-    [Fact]
-    public void WordRotatesInlineImageWhenPageRotationSwapsVisualDimensions() {
+    [Theory]
+    [InlineData(90)]
+    [InlineData(180)]
+    [InlineData(270)]
+    public void WordRotatesInlineImageWhenPageRotationSwapsVisualDimensions(int pageRotation) {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
             "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
-            pageEntries: "/Rotate 90"));
+            pageEntries: "/Rotate " + pageRotation.ToString(System.Globalization.CultureInfo.InvariantCulture)));
 
         PdfWordConversionResult word = logical.ToWordDocumentResult();
         using (word.Value) {
             OfficeIMO.Word.WordImage image = Assert.Single(word.Value.Images);
-            Assert.Equal(90, image.Rotation);
+            Assert.Equal(pageRotation, image.Rotation);
             Assert.Equal(80D * 96D / 72D, image.Width!.Value, 6);
             Assert.Equal(40D * 96D / 72D, image.Height!.Value, 6);
+
+            using var stream = new MemoryStream(word.Value.ToBytes());
+            using DocumentFormat.OpenXml.Packaging.WordprocessingDocument package =
+                DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(stream, false);
+            DocumentFormat.OpenXml.Drawing.Transform2D transform = Assert.Single(
+                package.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Transform2D>());
+            Assert.Equal(pageRotation * 60000, transform.Rotation!.Value);
         }
     }
 

@@ -23,8 +23,10 @@ public static class PdfLogicalTableValueParser {
             result = 0M;
             return false;
         }
-        if (PdfLogicalTableAnalysis.TryParseNumericValue(
-                normalized.Substring(0, normalized.Length - 1),
+        string numericText = normalized.Substring(0, normalized.Length - 1).TrimEnd();
+        if (!ContainsResidualCurrencyToken(numericText, culture) &&
+            PdfLogicalTableAnalysis.TryParseNumericValue(
+                numericText,
                 culture,
                 out decimal number)) {
             result = number / 100M;

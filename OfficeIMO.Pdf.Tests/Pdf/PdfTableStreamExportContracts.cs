@@ -445,6 +445,62 @@ public class PdfTableStreamExportContracts {
     }
 
     [Fact]
+    public void ExcelKeepsCurrencyAffixedPercentValuesAsText() {
+        byte[] source = PdfDocument.Create(new PdfOptions {
+                PageWidth = 300D,
+                PageHeight = 240D,
+                MarginLeft = 20D,
+                MarginRight = 20D,
+                MarginTop = 20D,
+                MarginBottom = 20D
+            })
+            .Table(new[] {
+                new[] { "Rate", "Description" },
+                new[] { "$5%", "First" },
+                new[] { "€10%", "Second" }
+            })
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+
+        PdfExcelTableImportResult result = logical.ImportTablesToExcelDocumentResult(new PdfTablesToExcelOptions {
+            NumericCulture = System.Globalization.CultureInfo.InvariantCulture
+        });
+        using (result.Value) {
+            PdfExcelTableImportEntry entry = Assert.Single(result.Report.Entries);
+            Assert.Equal(
+                new[] { PdfExcelTableColumnKind.Text, PdfExcelTableColumnKind.Text },
+                entry.ColumnKinds);
+
+            using SpreadsheetDocument package = SpreadsheetDocument.Open(
+                new MemoryStream(result.Value.ToBytes()),
+                false);
+            WorkbookPart workbookPart = package.WorkbookPart!;
+            S.Sheet sheet = Assert.Single(workbookPart.Workbook.Sheets!.Elements<S.Sheet>());
+            WorksheetPart worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!.Value!);
+            Dictionary<string, S.Cell> cells = worksheetPart.Worksheet.Descendants<S.Cell>()
+                .ToDictionary(static cell => cell.CellReference!.Value!);
+
+            Assert.Equal("$5%", ReadText(cells["A2"]));
+            Assert.Equal("€10%", ReadText(cells["A3"]));
+
+            string ReadText(S.Cell cell) {
+                if (cell.DataType?.Value == S.CellValues.SharedString) {
+                    int index = int.Parse(cell.CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture);
+                    return workbookPart.SharedStringTablePart!.SharedStringTable!
+                        .Elements<S.SharedStringItem>()
+                        .ElementAt(index)
+                        .InnerText;
+                }
+                if (cell.DataType?.Value == S.CellValues.InlineString) {
+                    return cell.InlineString?.InnerText ?? string.Empty;
+                }
+                Assert.Equal(S.CellValues.String, cell.DataType!.Value);
+                return cell.CellValue!.Text;
+            }
+        }
+    }
+
+    [Fact]
     public async Task TableConversionAsyncWrites_HonorPreCanceledTokens() {
         PdfDocumentReadResult logical = CreateLogicalDocument();
         using var destination = new MemoryStream();
