@@ -247,6 +247,10 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 - [ ] Reduce AsciiDoc's lossless collection and semantic graph overhead beyond the current validated large baseline of 29.34 MiB allocated and 19.50 MiB retained for a 558 KiB source. Preserve exact spans, parent navigation, semantic editing, bounded nesting, table and list-continuation behavior, and byte-identical writing, and add Linux/macOS evidence.
 - [ ] Deepen RTF semantic parsing and writing beyond the current Broad and Preserved contracts for complex and nested tables, fields and form-field data, embedded pictures and objects, advanced destination groups, Unicode and code-page interactions, lists and overrides, and producer-specific controls. Extend the independent Word, WordPad, and Outlook corpus with editable semantic round trips and deterministic preservation diagnostics rather than treating syntax preservation or adapter reopening as full semantic coverage.
 
+## Electronic invoices
+
+- [ ] Run the equivalent XML read, XML write, pinned-rules validation, and PDF-generation workloads on Windows and macOS target hosts. Retain elapsed and managed-allocation evidence for every operation, confirm or adjust the configured platform ceilings from those measurements, and keep the canonical XML and XML/PDF agreement gates identical to the qualified Linux run.
+
 ## Google Workspace
 
 - [ ] Extend the shared declared- and unknown-length transport evidence to Linux/macOS, then measure Drive resumable upload/download and checkpoint persistence separately from network latency. Reduce the remaining Windows unknown-length elapsed cost while preserving response limits, cancellation, retry, safety policy, diagnostics, mutation ambiguity, cleared pooled storage, and exact payload bytes, and set absolute budgets for each transport contract.
