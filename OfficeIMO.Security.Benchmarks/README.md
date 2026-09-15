@@ -27,8 +27,9 @@ The isolated evidence command records per-operation elapsed time and managed
 allocation plus retained managed heap, sampled managed peak, absolute process
 peak working set, CMS/content sizes, runtime, OS, commit, and dirty-tree state.
 The checked-in budget covers both verification engines with OfficeIMO-produced
-and platform-produced 1 KiB detached CMS. The evidence workflow enforces the
-same contract on Windows, Linux, and macOS and uploads each JSON report.
+and platform-produced CMS signatures over 1 KiB detached content. The evidence
+workflow enforces the same contract on Windows, Linux, and macOS and uploads
+each JSON report.
 
 The project stays outside `OfficeIMO.sln`. BenchmarkDotNet and the platform
 PKCS package remain benchmark-only dependencies and do not enter OfficeIMO
