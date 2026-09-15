@@ -459,19 +459,21 @@ public static partial class OfficeSvgDrawingReader {
                     OfficeContentConcealmentKind.TransparentText,
                     "Computed SVG opacity and text paint leave no visible fill or stroke contribution.");
             }
+            double rootViewportScale = ResolveSvgContentSafetyRootViewportScale(document);
             double size = candidate.HasBounds && candidate.MaximumEffectiveFontSize > 0D
                 ? candidate.MaximumEffectiveFontSize
                 : style.FontSize;
+            size *= rootViewportScale;
             bool tiny = size <= options.MaximumTinyFontSizePoints;
             if (!candidate.HasBounds && !tiny &&
                 TryFindSvgTinyFont(candidate.ComputedElement, options, out double authoredSize)) {
-                size = authoredSize;
-                tiny = true;
+                size = authoredSize * rootViewportScale;
+                tiny = size <= options.MaximumTinyFontSizePoints;
             }
             if (tiny) {
                 return new SvgContentSafetyConcealment(
                     OfficeContentConcealmentKind.TinyText,
-                    "Computed SVG font size is " + size.ToString("0.###", CultureInfo.InvariantCulture) + " user units.");
+                    "Computed SVG font size is " + size.ToString("0.###", CultureInfo.InvariantCulture) + " effective viewport units.");
             }
         }
         if (candidate.HasBounds) {
@@ -482,12 +484,13 @@ public static partial class OfficeSvgDrawingReader {
                     OfficeContentConcealmentKind.ZeroDimension,
                     "Resolved SVG text geometry has zero or near-zero painted bounds.");
             }
-            if (candidate.MaximumEffectiveFontSize > 0D &&
-                candidate.MaximumEffectiveFontSize <= options.MaximumTinyFontSizePoints) {
+            double effectiveViewportFontSize = candidate.MaximumEffectiveFontSize * ResolveSvgContentSafetyRootViewportScale(document);
+            if (effectiveViewportFontSize > 0D &&
+                effectiveViewportFontSize <= options.MaximumTinyFontSizePoints) {
                 return new SvgContentSafetyConcealment(
                     OfficeContentConcealmentKind.TinyText,
-                    "Resolved SVG transforms reduce the effective font size to " +
-                    candidate.MaximumEffectiveFontSize.ToString("0.###", CultureInfo.InvariantCulture) + " user units.");
+                    "Resolved SVG transforms and viewport scaling reduce the effective font size to " +
+                    effectiveViewportFontSize.ToString("0.###", CultureInfo.InvariantCulture) + " viewport units.");
             }
             if (CanUseSvgStructuralOffCanvasBounds(candidate.ComputedElement) &&
                 (candidate.Right <= 0D || candidate.Bottom <= 0D ||
@@ -498,6 +501,26 @@ public static partial class OfficeSvgDrawingReader {
             }
         }
         return null;
+    }
+
+    private static double ResolveSvgContentSafetyRootViewportScale(SvgContentSafetyDocument document) {
+        if (!TryParsePreserveAspectRatio(
+                document.Root.Attribute("preserveAspectRatio")?.Value,
+                out SvgAspectAlignment alignment,
+                out bool slice)) {
+            alignment = SvgAspectAlignment.XMidYMid;
+            slice = false;
+        }
+        OfficeTransform transform = ResolveViewportTransform(
+            document.ViewWidth,
+            document.ViewHeight,
+            document.ViewportWidth,
+            document.ViewportHeight,
+            alignment,
+            slice);
+        double horizontalScale = Math.Sqrt(transform.M11 * transform.M11 + transform.M12 * transform.M12);
+        double verticalScale = Math.Sqrt(transform.M21 * transform.M21 + transform.M22 * transform.M22);
+        return Math.Max(horizontalScale, verticalScale);
     }
 
     private static bool CanUseSvgStructuralOffCanvasBounds(XElement element) {
@@ -516,7 +539,7 @@ public static partial class OfficeSvgDrawingReader {
         "alignment-baseline" or "direction" or "font-kerning" or "font-stretch" or "font-variant" or
         "glyph-orientation-horizontal" or "glyph-orientation-vertical" or "kerning" or "letter-spacing" or
         "lengthAdjust" or "textLength" or "text-rendering" or "unicode-bidi" or "white-space" or
-        "word-spacing" => true,
+        "transform-box" or "transform-origin" or "word-spacing" => true,
         _ => false
     };
 

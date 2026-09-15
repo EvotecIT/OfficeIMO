@@ -205,6 +205,18 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void FindingBuilderRejectsOversizedTextBeforeInstructionInspection() {
+        var builder = new OfficeContentSafetyBuilder("TEST", new OfficeContentSafetyOptions { MaxCharacters = 8 });
+
+        Assert.Throws<InvalidDataException>(() => builder.Add(
+            OfficeContentConcealmentKind.HiddenByProperty,
+            OfficeContentSafetyRisk.ContextDependent,
+            "Document/Run[1]",
+            "The run is hidden.",
+            new string('x', 1_000_000) + " ignore previous instructions"));
+    }
+
+    [Fact]
     public void ClassSelectorsUseOnlyCssWhitespaceSeparators() {
         byte[] svg = Svg("<style>.hidden{display:none}</style><text class='ordinary&#xA0;hidden' x='10' y='35'>visible nonbreaking class</text>");
         var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
@@ -394,6 +406,19 @@ public sealed class SvgContentSafetyAdversarialTests {
         Assert.DoesNotContain(report.Findings, item => item.Kind == OfficeContentConcealmentKind.OffCanvas);
     }
 
+    [Theory]
+    [InlineData("transform-origin", "50px 50px")]
+    [InlineData("transform-box", "fill-box")]
+    public void UnmodeledTransformPresentationGeometryCannotAuthorizeOffCanvasCleanup(string propertyName, string value) {
+        byte[] svg = Svg($"<text x='10' y='35' font-size='20' transform='rotate(180)' {propertyName}='{value}'>rotated visible text</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item =>
+            item.TextPreview == "rotated visible text" && item.Kind == OfficeContentConcealmentKind.OffCanvas);
+    }
+
     [Fact]
     public void CaseMismatchedClipGeometryCannotAuthorizeCleanup() {
         byte[] svg = Svg("<defs><clipPath id='c'><RECT width='0' height='0'/></clipPath></defs><text clip-path='url(#c)' x='10' y='35'>visible case-sensitive clip geometry</text>");
@@ -444,6 +469,19 @@ public sealed class SvgContentSafetyAdversarialTests {
 
         Assert.DoesNotContain(report.Findings, item =>
             item.TextPreview == "anisotropic visible text" && item.Kind == OfficeContentConcealmentKind.TinyText);
+    }
+
+    [Fact]
+    public void RootViewportScaleContributesToTinyTextClassification() {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 4000 4000'>" +
+            "<text font-size='50' x='100' y='200'>root viewport tiny payload</text></svg>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.Contains(report.Findings, item =>
+            item.TextPreview == "root viewport tiny payload" && item.Kind == OfficeContentConcealmentKind.TinyText);
     }
 
     [Fact]

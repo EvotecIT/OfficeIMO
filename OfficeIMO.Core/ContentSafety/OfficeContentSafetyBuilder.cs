@@ -38,8 +38,11 @@ public sealed class OfficeContentSafetyBuilder {
         string? text,
         OfficeContentCleanupCapability cleanupCapability = OfficeContentCleanupCapability.ReportOnly,
         bool inspectTextIntegrityEvidence = true) {
+        text = ValidateFindingArguments(location, evidence, text);
+        EnsureCanCharge(text.Length);
+        EnsureFindingCapacity();
         IReadOnlyList<string> instructionSignals = _options.DetectInstructionLikeText
-            ? OfficeContentInstructionDetector.Detect(text ?? string.Empty)
+            ? OfficeContentInstructionDetector.Detect(text)
             : Array.Empty<string>();
         return AddCore(
             kind,
@@ -82,9 +85,7 @@ public sealed class OfficeContentSafetyBuilder {
         IReadOnlyList<string> instructionSignals,
         OfficeContentCleanupCapability cleanupCapability,
         bool inspectTextIntegrityEvidence) {
-        if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A logical location is required.", nameof(location));
-        if (string.IsNullOrWhiteSpace(evidence)) throw new ArgumentException("Exact concealment evidence is required.", nameof(evidence));
-        text ??= string.Empty;
+        text = ValidateFindingArguments(location, evidence, text);
         Charge(text.Length);
         EnsureFindingCapacity();
 
@@ -214,10 +215,20 @@ public sealed class OfficeContentSafetyBuilder {
         return resolved.AsReadOnly();
     }
 
-    private void Charge(int characters) {
+    private static string ValidateFindingArguments(string location, string evidence, string? text) {
+        if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A logical location is required.", nameof(location));
+        if (string.IsNullOrWhiteSpace(evidence)) throw new ArgumentException("Exact concealment evidence is required.", nameof(evidence));
+        return text ?? string.Empty;
+    }
+
+    private void EnsureCanCharge(int characters) {
         if (characters < 0 || _characters > _options.MaxCharacters - characters) {
             throw new InvalidDataException("The asset exceeds the configured decoded-character limit.");
         }
+    }
+
+    private void Charge(int characters) {
+        EnsureCanCharge(characters);
         _characters += characters;
     }
 
