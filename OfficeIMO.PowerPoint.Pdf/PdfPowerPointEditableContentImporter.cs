@@ -368,6 +368,8 @@ public static partial class PowerPointPdfConverterExtensions {
                 if (pageRotation > 0.01D) {
                     picture.Rotation = pageRotation;
                 }
+                picture.HorizontalFlip = sourcePlacement.A < 0D;
+                picture.VerticalFlip = sourcePlacement.D < 0D;
                 if (assessment.HasNonDefaultOpacity) {
                     picture.FillTransparency = assessment.MappedTransparencyPercent;
                 }

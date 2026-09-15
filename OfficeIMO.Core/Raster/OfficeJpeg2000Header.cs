@@ -158,7 +158,7 @@ internal static class OfficeJpeg2000Header {
                 if ((bitsPerComponent != 255 && (bitsPerComponent & 0x7F) > 37) ||
                     bytes[start + 11] != 7 || // Compression type is always JPEG 2000.
                     bytes[start + 12] > 1 || // Unknown-colourspace flag.
-                    bytes[start + 13] > 1) return false; // Intellectual-property flag.
+                    bytes[start + 13] != 0) return false; // Intellectual-property metadata is outside this opaque subset.
                 if (!TryBoundDimensions(Read32(bytes, start + 4), Read32(bytes, start), out width, out height)) return false;
             } else if (type == 0x636F6C72) { // colr: baseline enumerated Gray or sRGB only
                 if (colorComponents != 0 || boxEnd - start != 7 ||

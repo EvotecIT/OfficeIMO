@@ -629,6 +629,23 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void WordRejectsSourcePageDimensionsThatRoundToZeroTwips() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawTextPdf(
+            "BT /F1 0.01 Tf 0 50 Td (Tiny page) Tj ET\n",
+            mediaBox: "[0 0 0.024 100]"));
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            OfficeIMO.Word.WordSection section = Assert.Single(word.Value.Sections);
+            Assert.True(section.PageSettings.Width > 0);
+            Assert.True(section.PageSettings.Height > 0);
+            Assert.Contains(word.Report.Warnings, static warning =>
+                warning.Code == "PdfSourcePageSizeNotApplied" &&
+                warning.LossKind == OfficeConversionLossKind.Approximation);
+        }
+    }
+
+    [Fact]
     public void WordDoesNotUsePageRelativeImageAnchorsWhenSourcePageSizingIsDisabled() {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
             "q 80 0 0 40 20 30 cm /Im1 Do Q\n"));
@@ -773,7 +790,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     [InlineData("q -80 0 0 40 100 30 cm /Im1 Do Q\n", true, false)]
     [InlineData("q 80 0 0 -40 20 70 cm /Im1 Do Q\n", false, true)]
     [InlineData("q -80 0 0 -40 100 70 cm /Im1 Do Q\n", true, true)]
-    public void WordPreservesAxisAlignedImageReflections(
+    public void EditableOfficeAdaptersPreserveAxisAlignedImageReflections(
         string content,
         bool expectedHorizontalFlip,
         bool expectedVerticalFlip) {
@@ -786,6 +803,17 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             OfficeIMO.Word.WordImage image = Assert.Single(reopened.Images);
             Assert.Equal(expectedHorizontalFlip, image.HorizontalFlip);
             Assert.Equal(expectedVerticalFlip, image.VerticalFlip);
+        }
+
+        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        using (powerPoint.Value) {
+            using var serialized = new MemoryStream(powerPoint.Value.ToBytes());
+            using OfficeIMO.PowerPoint.PowerPointPresentation reopened =
+                OfficeIMO.PowerPoint.PowerPointPresentation.Load(serialized);
+            OfficeIMO.PowerPoint.PowerPointPicture picture = Assert.Single(Assert.Single(reopened.Slides).Pictures);
+            Assert.Equal(expectedHorizontalFlip, picture.HorizontalFlip);
+            Assert.Equal(expectedVerticalFlip, picture.VerticalFlip);
         }
     }
 

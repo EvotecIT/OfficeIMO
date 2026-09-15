@@ -9,7 +9,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfLogicalPage page,
             PdfToWordOptions options) {
             (double pageWidth, double pageHeight) = GetVisualPageSize(page);
-            if (!CanApplyEditablePageSize(pageWidth, pageHeight)) {
+            if (!TryGetEditablePageSizeTwips(pageWidth, pageHeight, out uint pageWidthTwips, out uint pageHeightTwips)) {
                 AddWarning(
                     options,
                     "PdfSourcePageSizeNotApplied",
@@ -37,8 +37,8 @@ namespace OfficeIMO.Word.Pdf {
             section.PageSettings.Orientation = pageWidth > pageHeight
                 ? OfficePageOrientation.Landscape
                 : OfficePageOrientation.Portrait;
-            section.PageSettings.Width = checked((uint)Math.Round(pageWidth * 20D));
-            section.PageSettings.Height = checked((uint)Math.Round(pageHeight * 20D));
+            section.PageSettings.Width = pageWidthTwips;
+            section.PageSettings.Height = pageHeightTwips;
             uint marginTwips = checked((uint)Math.Round(margin * 20D));
             section.Margins.Left = marginTwips;
             section.Margins.Right = marginTwips;
@@ -66,7 +66,21 @@ namespace OfficeIMO.Word.Pdf {
             return scale > 0D && !double.IsNaN(scale) && !double.IsInfinity(scale) ? scale : 1D;
         }
 
-        private static bool CanApplyEditablePageSize(double pageWidth, double pageHeight) =>
-            pageWidth > 0D && pageHeight > 0D && pageWidth <= 1584D && pageHeight <= 1584D;
+        private static bool TryGetEditablePageSizeTwips(
+            double pageWidth,
+            double pageHeight,
+            out uint pageWidthTwips,
+            out uint pageHeightTwips) {
+            pageWidthTwips = pageHeightTwips = 0;
+            if (double.IsNaN(pageWidth) || double.IsInfinity(pageWidth) ||
+                double.IsNaN(pageHeight) || double.IsInfinity(pageHeight) ||
+                pageWidth <= 0D || pageHeight <= 0D || pageWidth > 1584D || pageHeight > 1584D) {
+                return false;
+            }
+
+            pageWidthTwips = checked((uint)Math.Round(pageWidth * 20D));
+            pageHeightTwips = checked((uint)Math.Round(pageHeight * 20D));
+            return pageWidthTwips > 0 && pageHeightTwips > 0;
+        }
     }
 }

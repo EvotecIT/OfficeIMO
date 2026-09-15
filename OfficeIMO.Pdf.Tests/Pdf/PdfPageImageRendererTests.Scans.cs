@@ -172,7 +172,8 @@ public partial class PdfPageImageRendererTests {
     [InlineData(10, 38)] // Component precision is limited to 38 bits (encoded as precision minus one).
     [InlineData(11, 6)] // Compression type must be JPEG 2000 (7).
     [InlineData(12, 2)] // Unknown-colourspace flag is boolean.
-    [InlineData(13, 2)] // Intellectual-property flag is boolean.
+    [InlineData(13, 1)] // Intellectual-property metadata is outside the accepted opaque subset.
+    [InlineData(13, 2)] // Intellectual-property flag must still be Boolean.
     [InlineData(10, 255)] // Variable component depths require a matching bpcc box.
     public void ImageValidationRejectsJp2WithInvalidImageHeaderField(int fieldOffset, int invalidValue) {
         byte[] payload = ReadScanJpx("rgb");

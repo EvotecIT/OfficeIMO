@@ -1900,7 +1900,7 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
-    public void Pdf_ToHtmlResult_PartialPageRangeDoesNotInheritDocumentWideCatalogActions() {
+    public void Pdf_ToHtmlResult_PartialPageRangeReportsOmittedDocumentWideCatalogActions() {
         PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult
             .Load(CreateTwoPageCatalogActionPdf())
             .ToHtmlResult(new PdfToHtmlOptions {
@@ -1910,11 +1910,13 @@ public sealed class HtmlPdfTests {
 
         Assert.Equal(2, result.Summary.SourcePageCount);
         Assert.Equal(new[] { 1 }, result.Summary.PageNumbers);
-        Assert.False(result.Summary.HasCatalogActions);
-        Assert.Equal(0, result.Summary.CatalogActionCount);
-        Assert.DoesNotContain(result.Report.Warnings, static warning =>
-            warning.Code == "PdfDocumentActionsOmitted");
-        result.RequireNoLoss();
+        Assert.True(result.Summary.HasCatalogActions);
+        Assert.Equal(1, result.Summary.CatalogActionCount);
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
     }
 
     [Fact]
