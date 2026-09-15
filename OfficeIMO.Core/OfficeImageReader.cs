@@ -191,7 +191,7 @@ public static partial class OfficeImageReader {
                 return HasCompleteIconPayload(data, cancellationToken);
             case OfficeImageFormat.Jpeg2000:
                 cancellationToken.ThrowIfCancellationRequested();
-                return OfficeJpeg2000Header.TryGetOpaqueDimensions(data, out _, out _, out _);
+                return OfficeJpeg2000Header.TryValidateOpaquePayload(data, out _, out _, out _);
             default:
                 cancellationToken.ThrowIfCancellationRequested();
                 return true;

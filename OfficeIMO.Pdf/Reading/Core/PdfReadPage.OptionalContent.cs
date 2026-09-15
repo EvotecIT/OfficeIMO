@@ -152,6 +152,29 @@ public sealed partial class PdfReadPage {
                 return;
             }
 
+            if (operation.Name == "gs") {
+                PdfDictionary? graphicsStates = ResolveDictionary(
+                    resources.Items.TryGetValue("ExtGState", out PdfObject? graphicsStatesObject)
+                        ? graphicsStatesObject
+                        : null);
+                PdfDictionary? graphicsState = ResolveDictionary(
+                    graphicsStates?.Items.TryGetValue(name, out PdfObject? graphicsStateObject) == true
+                        ? graphicsStateObject
+                        : null);
+                PdfDictionary? softMask = ResolveDictionary(
+                    graphicsState?.Items.TryGetValue("SMask", out PdfObject? softMaskObject) == true
+                        ? softMaskObject
+                        : null);
+                if (PdfObjectLookup.ResolveChain(
+                        _objects,
+                        softMask?.Items.TryGetValue("G", out PdfObject? groupObject) == true
+                            ? groupObject
+                            : null) is PdfStream group) {
+                    found = StreamUsesOptionalContent(group, resources, activeStreams, budget, depth + 1);
+                }
+                return;
+            }
+
             if (operation.Name is "scn" or "SCN") {
                 PdfDictionary? patterns = ResolveDictionary(
                     resources.Items.TryGetValue("Pattern", out PdfObject? patternsObject) ? patternsObject : null);

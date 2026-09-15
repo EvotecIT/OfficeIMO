@@ -899,6 +899,47 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
+    public void PdfEditableContent_PreservesTableTypographyAboveEighteenPoints() {
+        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 24
+            })
+            .Table(new[] {
+                new[] { "Metric", "Value" },
+                new[] { "Large", "24 pt" }
+            }, style: new PdfCore.PdfTableStyle {
+                FontSize = 24,
+                HeaderFontSize = 24,
+                ColumnWidthPoints = new List<double?> { 150, 100 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        PdfPowerPointConversionResult result = LoadTables(source).ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        byte[] serialized;
+        int tableFontSize;
+        using (result.Value) {
+            OfficeIMO.PowerPoint.PowerPointSlide slide = Assert.Single(result.Value.Slides);
+            tableFontSize = Assert.Single(slide.Tables).GetCell(0, 0).FontSize ?? 0;
+            Assert.True(tableFontSize > 18);
+            serialized = result.Value.ToBytes();
+        }
+
+        using OfficeIMO.PowerPoint.PowerPointPresentation reopened =
+            OfficeIMO.PowerPoint.PowerPointPresentation.Load(new MemoryStream(serialized));
+        OfficeIMO.PowerPoint.PowerPointSlide reopenedSlide = Assert.Single(reopened.Slides);
+        int reopenedTableFontSize = Assert.Single(reopenedSlide.Tables).GetCell(0, 0).FontSize ?? 0;
+        Assert.True(reopenedTableFontSize > 18);
+        Assert.Equal(tableFontSize, reopenedTableFontSize);
+    }
+
+    [Fact]
     public void PdfTables_SaveTablesAsPowerPoint_AppliesRowCapsAndKeepsPresentationValidWhenEmpty() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,

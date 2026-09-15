@@ -20,7 +20,7 @@ public static partial class PowerPointPdfConverterExtensions {
         CancellationToken cancellationToken) {
         double scaledFontSize = ScaleEditableFontSize(GetMedianTableFontSize(page, sourceTable), scale);
         if (isContinuation) scaledFontSize = Math.Max(10D, scaledFontSize);
-        int fontSize = (int)Math.Round(Math.Min(18D, scaledFontSize));
+        int fontSize = (int)Math.Round(scaledFontSize);
         fontSize = Math.Max(1, fontSize);
         for (int rowIndex = 0; rowIndex < table.Rows; rowIndex++) {
             for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) {

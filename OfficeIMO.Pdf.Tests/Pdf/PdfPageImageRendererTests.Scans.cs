@@ -126,6 +126,22 @@ public partial class PdfPageImageRendererTests {
         Assert.False(OfficeJpeg2000Header.TryGetOpaqueComponents(ReadScanJpx("rgba"), out _));
     }
 
+    [Fact]
+    public void ImageValidationRejectsJpeg2000CodestreamTruncatedAfterItsSizeHeader() {
+        byte[] payload = ReadScanJpx("rgb");
+        int marker = Enumerable.Range(0, payload.Length - 3).Single(index =>
+            payload[index] == 255 && payload[index + 1] == 79 && payload[index + 2] == 255 && payload[index + 3] == 81);
+        byte[] rawCodestream = payload.Skip(marker).ToArray();
+        int sizeSegmentLength = (rawCodestream[4] << 8) | rawCodestream[5];
+        byte[] truncated = rawCodestream.Take(4 + sizeSegmentLength).ToArray();
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(truncated, "scan.j2k", out OfficeImageInfo identified));
+        Assert.Equal(OfficeImageFormat.Jpeg2000, identified.Format);
+        Assert.False(OfficeImageReader.TryValidateContent(truncated, "scan.j2k", out _));
+        Assert.True(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2k", out OfficeImageInfo validated));
+        Assert.Equal(OfficeImageFormat.Jpeg2000, validated.Format);
+    }
+
     private static byte[] ReadScanJpx(string mode) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory,
         "Pdf", "Fixtures", "Interoperability", "Scans", "red-" + mode + ".jp2"));
 

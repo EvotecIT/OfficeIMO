@@ -111,6 +111,32 @@ public sealed class PdfHtmlPageSelectionTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReverseConversions_ReportOptionalContentInsideAppliedSoftMaskGroups(bool useGroupDictionaryEntry) {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(
+            BuildSoftMaskOptionalContentPdf(useGroupDictionaryEntry));
+
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        PdfTableExtractionScopeReport tableScope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+        PdfHtmlConversionResult html = logical.ToHtmlResult();
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using OfficeIMO.Word.WordDocument wordDocument = word.Value;
+        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPoint.Value;
+
+        Assert.True(page.HasOptionalContentUsage);
+        Assert.Equal(1, tableScope.PagesWithOptionalContent);
+        Assert.Contains(html.Report.Warnings, static warning =>
+            warning.Code == "PdfOptionalContentGroupsFlattened");
+        Assert.Contains(word.Report.Warnings, static warning =>
+            warning.Code == "PdfOptionalContentGroupsFlattened");
+        Assert.Contains(powerPoint.Report.Warnings, static warning =>
+            warning.Code == "PdfGroupsNotReconstructed");
+    }
+
+    [Theory]
     [InlineData(false, true)]
     [InlineData(true, true)]
     [InlineData(true, false)]
@@ -194,6 +220,48 @@ public sealed class PdfHtmlPageSelectionTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildSoftMaskOptionalContentPdf(bool useGroupDictionaryEntry) {
+        const string pageContent = "/Mask gs 0 0 120 90 re f";
+        string maskContent = useGroupDictionaryEntry
+            ? "0 0 120 90 re f"
+            : "/OC /Layer BDC 0 0 120 90 re f EMC";
+        string optionalContentEntry = useGroupDictionaryEntry ? " /OC 7 0 R" : string.Empty;
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /ExtGState << /Mask 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + pageContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            pageContent,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /ExtGState /SMask << /S /Alpha /G 6 0 R >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 120 90] /Group << /Type /Group /S /Transparency >> /Resources << /Properties << /Layer 7 0 R >> >>" + optionalContentEntry + " /Length " + maskContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            maskContent,
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /OCG /Name (Mask layer) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
             "%%EOF"
         });
         return Encoding.ASCII.GetBytes(pdf);

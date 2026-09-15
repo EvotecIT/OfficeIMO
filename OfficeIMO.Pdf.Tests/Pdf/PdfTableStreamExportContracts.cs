@@ -307,7 +307,7 @@ public class PdfTableStreamExportContracts {
                     .SelectMany(static slidePart => slidePart.Slide.Descendants<A.Table>()));
             Assert.All(
                 importedTable.Descendants<A.RunProperties>(),
-                static run => Assert.InRange(run.FontSize?.Value ?? 0, 100, 1800));
+                static run => Assert.InRange(run.FontSize?.Value ?? 0, 100, 400000));
             Assert.All(
                 importedTable.Descendants<A.BodyProperties>(),
                 static body => Assert.NotNull(body.GetFirstChild<A.NormalAutoFit>()));

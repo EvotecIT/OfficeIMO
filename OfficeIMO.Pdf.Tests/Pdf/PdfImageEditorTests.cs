@@ -283,6 +283,28 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
+    public void MoveRejectsUnsafeJpeg2000DecodeArray() {
+        byte[] jpx = File.ReadAllBytes(Path.Combine(
+            AppContext.BaseDirectory,
+            "Pdf",
+            "Fixtures",
+            "Interoperability",
+            "Scans",
+            "red-rgb.jp2"));
+        PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            imageBytes: jpx,
+            imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /JPXDecode /Decode [1 0 1 0 1 0]"));
+        PdfExtractedImage image = Assert.Single(document.Reader.Images());
+        Assert.True(image.HasUnsafePassThroughDecode);
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Move(Assert.Single(document.Images.Placements()), 10D, 0D));
+
+        Assert.Contains("Decode", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MoveRejectsSourceInterpolationThatRestampingCannotPreserve() {
         PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
