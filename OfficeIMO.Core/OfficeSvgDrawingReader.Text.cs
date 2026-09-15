@@ -29,7 +29,7 @@ public static partial class OfficeSvgDrawingReader {
         var runs = new List<SvgTextRun>();
         var textPaths = new List<SvgTextPathLayout>();
         var cursor = new SvgTextCursor { Chunk = -1 };
-        bool preserve = string.Equals(element.Attribute(XNamespace.Xml + "space")?.Value, "preserve", StringComparison.OrdinalIgnoreCase);
+        bool preserve = ResolveAncestorSvgTextSpace(element, ref unsupported);
         AddTextElementRuns(element, style, paintServers, references, drawing.Fonts, transform, preserve, false, viewX, viewY,
             drawing.Width, drawing.Height, runs, textPaths, observer: null, 0D, 0D, null, 0, ref cursor, ref unsupported);
         if (runs.Count == 0) return;
@@ -417,6 +417,18 @@ public static partial class OfficeSvgDrawingReader {
             cursor.PendingSpace = false;
         }
         return builder.ToString();
+    }
+
+    private static bool ResolveAncestorSvgTextSpace(XElement element, ref int unsupported) {
+        bool preserve = false;
+        foreach (XElement ancestor in element.Ancestors().Reverse()) {
+            string? space = ancestor.Attribute(XNamespace.Xml + "space")?.Value;
+            if (string.IsNullOrWhiteSpace(space)) continue;
+            if (space!.Equals("preserve", StringComparison.OrdinalIgnoreCase)) preserve = true;
+            else if (space.Equals("default", StringComparison.OrdinalIgnoreCase)) preserve = false;
+            else unsupported++;
+        }
+        return preserve;
     }
 
     private static void ReportTextRunLimit(ref SvgTextCursor cursor, ref int unsupported) {

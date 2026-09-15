@@ -413,7 +413,7 @@ public static partial class OfficeSvgDrawingReader {
                 var runs = new List<SvgTextRun>();
                 var paths = new List<SvgTextPathLayout>();
                 var cursor = new SvgTextCursor { Chunk = -1 };
-                bool preserve = string.Equals(child.Attribute(XNamespace.Xml + "space")?.Value, "preserve", StringComparison.OrdinalIgnoreCase);
+                bool preserve = ResolveAncestorSvgTextSpace(child, ref unsupported);
                 AddTextElementRuns(
                     child,
                     style,
@@ -514,8 +514,9 @@ public static partial class OfficeSvgDrawingReader {
                     effectiveViewportFontSize.ToString("0.###", CultureInfo.InvariantCulture) + " viewport units.");
             }
             if (CanUseSvgStructuralOffCanvasBounds(candidate.ComputedElement) &&
-                (candidate.Right <= 0D || candidate.Bottom <= 0D ||
-                candidate.Left >= document.ViewWidth || candidate.Top >= document.ViewHeight)) {
+                (candidate.Right <= document.ViewX || candidate.Bottom <= document.ViewY ||
+                candidate.Left >= document.ViewX + document.ViewWidth ||
+                candidate.Top >= document.ViewY + document.ViewHeight)) {
                 return new SvgContentSafetyConcealment(
                     OfficeContentConcealmentKind.OffCanvas,
                     "Resolved SVG text bounds fall completely outside the ordinary view box.");
@@ -828,10 +829,10 @@ public static partial class OfficeSvgDrawingReader {
         if (!candidate.HasBounds) return false;
         double scaleX = background.Width / document.ViewWidth;
         double scaleY = background.Height / document.ViewHeight;
-        int left = Math.Max(0, (int)Math.Floor(candidate.Left * scaleX));
-        int top = Math.Max(0, (int)Math.Floor(candidate.Top * scaleY));
-        int right = Math.Min(background.Width, (int)Math.Ceiling(candidate.Right * scaleX));
-        int bottom = Math.Min(background.Height, (int)Math.Ceiling(candidate.Bottom * scaleY));
+        int left = Math.Max(0, (int)Math.Floor((candidate.Left - document.ViewX) * scaleX));
+        int top = Math.Max(0, (int)Math.Floor((candidate.Top - document.ViewY) * scaleY));
+        int right = Math.Min(background.Width, (int)Math.Ceiling((candidate.Right - document.ViewX) * scaleX));
+        int bottom = Math.Min(background.Height, (int)Math.Ceiling((candidate.Bottom - document.ViewY) * scaleY));
         if (left >= right || top >= bottom) return false;
         for (int y = top; y < bottom; y++) {
             for (int x = left; x < right; x++) {
@@ -856,10 +857,10 @@ public static partial class OfficeSvgDrawingReader {
         OfficeColor authored = OfficeColor.FromRgba(paint.Value.R, paint.Value.G, paint.Value.B, alpha);
         double scaleX = background.Width / document.ViewWidth;
         double scaleY = background.Height / document.ViewHeight;
-        int left = Math.Max(0, (int)Math.Floor(candidate.Left * scaleX));
-        int top = Math.Max(0, (int)Math.Floor(candidate.Top * scaleY));
-        int right = Math.Min(background.Width, (int)Math.Ceiling(candidate.Right * scaleX));
-        int bottom = Math.Min(background.Height, (int)Math.Ceiling(candidate.Bottom * scaleY));
+        int left = Math.Max(0, (int)Math.Floor((candidate.Left - document.ViewX) * scaleX));
+        int top = Math.Max(0, (int)Math.Floor((candidate.Top - document.ViewY) * scaleY));
+        int right = Math.Min(background.Width, (int)Math.Ceiling((candidate.Right - document.ViewX) * scaleX));
+        int bottom = Math.Min(background.Height, (int)Math.Ceiling((candidate.Bottom - document.ViewY) * scaleY));
         if (left >= right || top >= bottom) return false;
         bool sampled = false;
         int stepX = Math.Max(1, (right - left) / 32);

@@ -237,6 +237,12 @@ public static partial class OfficeSvgDrawingReader {
                 evidence = "SVG filter output can alter the painted text geometry and is therefore report-only.";
                 return true;
             }
+            string? mask = ReadPresentationProperty(current, "mask");
+            if (!string.IsNullOrWhiteSpace(mask) &&
+                !TrimSvgCssWhitespace(mask!).Equals("none", StringComparison.OrdinalIgnoreCase)) {
+                evidence = "SVG mask compositing can alter or suppress painted text outside the bounded native projection and is therefore report-only.";
+                return true;
+            }
             if (name == "svg" && current.Parent != null) {
                 string? overflow = ReadPresentationProperty(current, "overflow")?.Trim();
                 if (!string.IsNullOrWhiteSpace(overflow) &&

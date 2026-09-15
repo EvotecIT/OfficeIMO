@@ -178,6 +178,14 @@ public static partial class OfficeSvgDrawingReader {
                     attribute.Name.NamespaceName.Length == 0 &&
                     attribute.Name.LocalName.Equals(attribute.Name.LocalName.ToLowerInvariant(), StringComparison.Ordinal) &&
                     IsSvgPresentationPropertyName(attribute.Name.LocalName) &&
+                    ContainsNonSvgCssWhitespace(attribute.Value)))) {
+            throw new InvalidDataException("The SVG uses non-CSS whitespace in a presentation attribute outside the bounded native CSS subset.");
+        }
+        if (root.DescendantsAndSelf().Where(element => IsNativeSvgElement(element, svgNamespace)).Any(element =>
+                element.Attributes().Any(attribute =>
+                    attribute.Name.NamespaceName.Length == 0 &&
+                    attribute.Name.LocalName.Equals(attribute.Name.LocalName.ToLowerInvariant(), StringComparison.Ordinal) &&
+                    IsSvgPresentationPropertyName(attribute.Name.LocalName) &&
                     ContainsUnsupportedSvgCssMathFunction(attribute.Value)))) {
             throw new InvalidDataException("The SVG uses CSS math functions outside the bounded native presentation-attribute subset.");
         }

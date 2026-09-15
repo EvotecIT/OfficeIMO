@@ -1,6 +1,7 @@
 using System.Text;
 using OfficeIMO.ContentSafety;
 using OfficeIMO.Drawing;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -664,17 +665,13 @@ public sealed class SvgContentSafetyAdversarialTests {
         Assert.Contains("font metrics were unavailable", finding.Evidence, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void NonCssWhitespaceInTransformCannotAuthorizeCleanup() {
-        byte[] svg = Svg("<text transform='translate(-20&#xA0;0)' x='225' y='35'>invalid transform payload</text>");
-        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+    [Theory]
+    [InlineData("transform='translate(-20&#xA0;0)' x='225'")]
+    [InlineData("display='&#xA0;none' x='10'")]
+    public void NonCssWhitespaceInPresentationAttributesFailsClosed(string attributes) {
+        byte[] svg = Svg("<text " + attributes + " y='35'>invalid presentation payload</text>");
 
-        OfficeContentSafetyFinding finding = Assert.Single(
-            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
-            item => item.TextPreview == "invalid transform payload" && item.Kind == OfficeContentConcealmentKind.OffCanvas);
-
-        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
-        Assert.Contains("non-CSS whitespace", finding.Evidence, StringComparison.Ordinal);
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
     }
 
     [Fact]
@@ -884,6 +881,50 @@ public sealed class SvgContentSafetyAdversarialTests {
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
 
         Assert.Contains(report.Diagnostics, item => item.Contains("full configured element budget", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void NonzeroViewBoxOriginKeepsVisibleTextOnCanvas() {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='100' viewBox='100 0 200 100'>" +
+            "<text font-family='OfficeIMO Shaping Test' font-size='20' x='250' y='35'>A</text></svg>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+        readerOptions.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, ManagedTextShapingTestAssets.CreateFont('A'));
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item =>
+            item.TextPreview == "A" && item.Kind == OfficeContentConcealmentKind.OffCanvas);
+    }
+
+    [Fact]
+    public void UnsupportedMaskKeepsAffectedTextReportOnly() {
+        byte[] svg = Svg(
+            "<defs><mask id='empty'/></defs>" +
+            "<text mask='url(#empty)' x='10' y='35'>masked payload</text>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "masked payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("mask compositing", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AncestorXmlSpacePreserveContributesToTextBounds() {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' xml:space='preserve' width='220' height='120' viewBox='0 0 220 120'>" +
+            "<text font-family='OfficeIMO Shaping Test' font-size='20' x='-50' y='35'>      A</text></svg>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+        readerOptions.Fonts.Add(
+            ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont(' ', 'A'));
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item =>
+            item.TextPreview == "      A" && item.Kind == OfficeContentConcealmentKind.OffCanvas);
     }
 
     [Fact]
