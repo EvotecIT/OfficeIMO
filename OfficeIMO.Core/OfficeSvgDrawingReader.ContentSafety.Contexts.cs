@@ -160,6 +160,15 @@ public static partial class OfficeSvgDrawingReader {
         });
     }
 
+    private static bool HasSvgConditionalRendering(XElement root) {
+        XNamespace svgNamespace = root.Name.Namespace;
+        return root.DescendantsAndSelf().Any(element =>
+            IsNativeSvgElement(element, svgNamespace) &&
+            element.Attributes().Any(attribute =>
+                attribute.Name.NamespaceName.Length == 0 &&
+                attribute.Name.LocalName is "systemLanguage" or "requiredFeatures" or "requiredExtensions"));
+    }
+
     private static bool IsSvgExecutableUrl(string value) {
         string normalized = new string(value.Where(character => character is not '\t' and not '\n' and not '\r').ToArray());
         int start = 0;
@@ -173,6 +182,7 @@ public static partial class OfficeSvgDrawingReader {
         XElement element,
         ISet<string> reusableTextIds,
         bool hasDynamicRendering,
+        bool hasConditionalRendering,
         out string evidence) {
         XElement logicalOwner = element.AncestorsAndSelf().LastOrDefault(ancestor =>
             ancestor.Name.LocalName.Equals("text", StringComparison.Ordinal)) ?? element;
@@ -206,10 +216,13 @@ public static partial class OfficeSvgDrawingReader {
                 evidence = "SVG filter output can alter the painted text geometry and is therefore report-only.";
                 return true;
             }
-            if (name == "svg" && current.Parent != null &&
-                string.Equals(ReadPresentationProperty(current, "overflow")?.Trim(), "visible", StringComparison.OrdinalIgnoreCase)) {
-                evidence = "Text inside a nested SVG viewport with visible overflow depends on browser viewport painting and is therefore report-only.";
-                return true;
+            if (name == "svg" && current.Parent != null) {
+                string? overflow = ReadPresentationProperty(current, "overflow")?.Trim();
+                if (!string.IsNullOrWhiteSpace(overflow) &&
+                    !overflow!.Equals("hidden", StringComparison.OrdinalIgnoreCase)) {
+                    evidence = "Text inside a nested SVG viewport with non-hidden or inherited overflow depends on browser viewport painting and is therefore report-only.";
+                    return true;
+                }
             }
             if (name == "switch") {
                 evidence = "SVG switch-branch text depends on renderer language and feature context and is therefore report-only.";
@@ -233,6 +246,10 @@ public static partial class OfficeSvgDrawingReader {
                 return true;
             }
         }
+        if (hasConditionalRendering) {
+            evidence = "SVG conditional-processing attributes elsewhere in the document can change browser paint and are therefore report-only for static inspection.";
+            return true;
+        }
         if (hasDynamicRendering) {
             evidence = "SVG script or animation can change text visibility over time and is therefore report-only for static inspection.";
             return true;
@@ -243,7 +260,6 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool HasSharedSvgTextPositioning(XElement logicalOwner) {
         if (!logicalOwner.Name.LocalName.Equals("text", StringComparison.Ordinal)) return false;
-        if (logicalOwner.DescendantNodes().OfType<XText>().Count(text => !IsIgnorableSvgTextNode(text.Value)) < 2) return false;
         return logicalOwner.DescendantsAndSelf().Any(element =>
             new[] { "x", "y", "dx", "dy", "rotate" }.Any(name => {
                 string? value = element.Attribute(name)?.Value;

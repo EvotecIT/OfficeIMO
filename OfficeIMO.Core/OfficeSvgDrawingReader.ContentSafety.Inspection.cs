@@ -36,6 +36,7 @@ public static partial class OfficeSvgDrawingReader {
         CollectSvgContentSafetyTextRuns(computedRoot, document, readerOptions, observer, ref unsupported);
         ISet<string> reusableTextIds = CollectSvgReusableTextReferencedIds(document.Root);
         bool hasDynamicRendering = HasSvgDynamicRendering(document.Root);
+        bool hasConditionalRendering = HasSvgConditionalRendering(document.Root);
 
         int requestedComparisons = document.MaximumVisualComparisons;
         int pixelFundedComparisons = (int)Math.Min(
@@ -84,6 +85,7 @@ public static partial class OfficeSvgDrawingReader {
                 candidate.ComputedElement,
                 reusableTextIds,
                 hasDynamicRendering,
+                hasConditionalRendering,
                 out string contextEvidence);
 
             if (TryClassifySvgNonPrimary(

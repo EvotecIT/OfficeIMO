@@ -167,7 +167,7 @@ public sealed class SvgContentSafetyAdversarialTests {
             item => item.TextPreview == "visible overflow text");
 
         Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
-        Assert.Contains("visible overflow", finding.Evidence, StringComparison.Ordinal);
+        Assert.Contains("overflow", finding.Evidence, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -748,6 +748,46 @@ public sealed class SvgContentSafetyAdversarialTests {
         byte[] svg = Svg("<style>text{display:n/**/one}</style><text x='10' y='35'>visible split token</text>");
 
         Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void PositionedUnicodeEditsWithinOneTextNodeAreReportOnly() {
+        byte[] svg = Svg("<text x='1000 20' y='35'>&#xA0;A</text>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.Kind == OfficeContentConcealmentKind.NonPrintingUnicode);
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void InheritedNestedViewportOverflowMakesCleanupReportOnly() {
+        byte[] svg = Svg(
+            "<g overflow='visible'><svg width='50' height='50' overflow='inherit'>" +
+            "<text opacity='0' x='100' y='35'>inherited overflow payload</text></svg></g>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "inherited overflow payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("inherited overflow", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConditionalPaintOutsideTextMakesVisualCleanupReportOnly() {
+        byte[] svg = Svg(
+            "<rect width='220' height='120' fill='white'/>" +
+            "<text x='10' y='35' fill='black'>conditional paint text</text>" +
+            "<rect systemLanguage='zz-ZZ' width='220' height='60' fill='white'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "conditional paint text");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("conditional-processing attributes elsewhere", finding.Evidence, StringComparison.Ordinal);
     }
 
     [Fact]
