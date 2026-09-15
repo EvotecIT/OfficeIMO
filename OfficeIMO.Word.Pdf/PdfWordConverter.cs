@@ -797,9 +797,13 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static int[] BuildColumnWeights(IReadOnlyList<PdfCore.PdfLogicalTableColumn> columns) {
+        internal static int[] BuildColumnWeights(IReadOnlyList<PdfCore.PdfLogicalTableColumn> columns) {
+            bool horizontalProgression = PdfCore.PdfTableColumnGeometry.HasHorizontalProgression(
+                columns,
+                static column => column.VisualBounds,
+                fallback: true);
             double[] widths = columns
-                .Select(static column => Math.Abs(column.To - column.From))
+                .Select(column => PdfCore.PdfTableColumnGeometry.GetProgressionLength(column, horizontalProgression))
                 .ToArray();
             double total = widths.Where(IsFinitePositive).Sum();
             if (!IsFinitePositive(total)) {

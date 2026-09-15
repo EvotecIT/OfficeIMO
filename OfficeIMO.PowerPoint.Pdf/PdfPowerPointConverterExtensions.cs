@@ -820,10 +820,14 @@ public static partial class PowerPointPdfConverterExtensions {
             return false;
         }
 
+        bool horizontalProgression = PdfCore.PdfTableColumnGeometry.HasHorizontalProgression(
+            sourceTable.Columns,
+            static column => column.VisualBounds,
+            fallback: true);
         var values = new double[segment.ColumnCount];
         for (int columnIndex = 0; columnIndex < segment.ColumnCount; columnIndex++) {
             PdfCore.PdfLogicalTableColumn sourceColumn = sourceTable.Columns[segment.ColumnStartIndex + columnIndex];
-            double width = sourceColumn.To - sourceColumn.From;
+            double width = PdfCore.PdfTableColumnGeometry.GetProgressionLength(sourceColumn, horizontalProgression);
             if (double.IsNaN(width) || double.IsInfinity(width) || width <= 0) {
                 return false;
             }

@@ -1903,6 +1903,26 @@ public sealed class PdfConversionScenarioManifestTests {
     }
 
     [Fact]
+    public void PdfToHtmlResult_ReportsCatalogActionsWhenOnlySomePagesAreSelected() {
+        byte[] pdf = CreateCatalogAdditionalActionMultiPagePdf();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
+        var options = new PdfToHtmlOptions {
+            PageRanges = new[] { PdfCore.PdfPageRange.From(1, 1) }
+        };
+
+        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, options);
+
+        Assert.Equal(new[] { 1 }, result.Summary.PageNumbers);
+        Assert.True(result.Summary.HasCatalogActions);
+        Assert.Equal(1, result.Summary.CatalogActionCount);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted");
+        Assert.StartsWith("1 scoped ", warning.Message, StringComparison.Ordinal);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+    }
+
+    [Fact]
     public void PdfToHtmlResult_ReportsFilteredParentOutlineTargetAsLossWhileKeepingItsChild() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions { CreateOutlineFromHeadings = true })
             .H1("Parent outline")
@@ -2628,6 +2648,32 @@ public sealed class PdfConversionScenarioManifestTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 10 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateCatalogAdditionalActionMultiPagePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AA << /WC 5 0 R >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] >>",
+            "endobj",
+            "5 0 obj",
+            "<< /S /JavaScript /JS (app.alert('close')) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
             "%%EOF"
         }) + "\n";
 

@@ -339,7 +339,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static ActionDiagnosticSummary BuildActionDiagnosticSummary(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages) {
-        int catalogActionCount = AreAllDocumentPagesSelected(document, pages) ? document.CatalogActionCount : 0;
+        int catalogActionCount = document.CatalogActionCount;
         int selectedPageActionCount = 0;
         int selectedAnnotationActionCount = 0;
         int pageActionCount = document.PageActionCount;
