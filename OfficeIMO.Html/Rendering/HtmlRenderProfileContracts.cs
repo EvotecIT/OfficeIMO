@@ -51,7 +51,7 @@ public static class HtmlRenderProfileContracts {
             new[] { HtmlCapabilityProfileIds.StaticScreenV1, HtmlCapabilityProfileIds.PagedPrintV1 }, HtmlCssMediaContext.Screen, HtmlRenderLayoutSurface.Paged,
             HtmlRenderPaginationPolicy.FixedCanvasSlicing, HtmlRenderPageSet.All(), HtmlCapabilityCoverage.Qualified,
             HtmlCapabilityPromotionState.QualifiedOptIn, PagedEncoders, MultiSurfacePageSets,
-            new[] { HtmlCapabilityEvidenceIds.H4PagedAdvancedHeldOut },
+            new[] { HtmlCapabilityEvidenceIds.H4ScreenAdvancedHeldOut },
             "Completes one continuous screen layout and projects intersecting display-list nodes into fixed-size clipped page canvases.",
             "Fixed slicing can split elements, clip horizontal overflow to the page canvas, and pad the final page; element-aware placement is unsupported."),
         Contract(HtmlRenderIntentProfile.ContinuousVector, "continuous-vector-v1", "Continuous vector v1",
