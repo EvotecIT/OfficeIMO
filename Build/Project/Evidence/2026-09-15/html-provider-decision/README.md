@@ -12,6 +12,10 @@ This evidence separates the current HTML parser, CSS syntax/cascade, and scripte
 
 The parser decision is based on behavior and cost rather than package count alone. The native parser is fast on the representative workload. Most of the current parse-path increase comes from retaining and projecting both the provider and OfficeIMO-owned graphs. Replacing the parser would not by itself remove AngleSharp.Css or the separately compiled runtime DOM fork.
 
+The subsequent [owned property grammar and cascade trace evidence](../html-css-property-cascade/README.md)
+qualifies the first selected property slice, moves inline declarations through the owned syntax
+tree, and retains AngleSharp.Css for qualified rules and selector matching.
+
 ## Reproduction
 
 Build and run the process-isolated provider lanes:
