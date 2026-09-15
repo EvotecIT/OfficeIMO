@@ -69,14 +69,18 @@ internal static class OfficeJpeg2000Header {
                 out width,
                 out height)) return true;
         if (!IsJp2Container(bytes)) return false;
+        int offset = 12;
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!TryReadBox(bytes, ref offset, bytes.Length, out uint fileType, out int fileTypeStart, out int fileTypeEnd) ||
+            fileType != 0x66747970 ||
+            !TryValidateFileTypeBox(bytes, fileTypeStart, fileTypeEnd, cancellationToken)) return false;
         bool header = false, codestream = false;
         int expected = 0, expectedWidth = 0, expectedHeight = 0;
-        int offset = 12;
         while (offset < bytes.Length) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!TryReadBox(bytes, ref offset, bytes.Length, out uint type, out int start, out int end)) return false;
             if (type == 0x6A703268) { // jp2h
-                if (header || !TryReadHeader(
+                if (header || codestream || !TryReadHeader(
                         bytes,
                         start,
                         end,
@@ -86,7 +90,7 @@ internal static class OfficeJpeg2000Header {
                         out expectedHeight)) return false;
                 header = true;
             } else if (type == 0x6A703263) { // jp2c
-                if (codestream || !TryReadCodestream(
+                if (!header || codestream || !TryReadCodestream(
                         bytes,
                         start,
                         end,
@@ -96,12 +100,27 @@ internal static class OfficeJpeg2000Header {
                         out width,
                         out height)) return false;
                 codestream = true;
-            } else if (type != 0x66747970 && type != 0x66726565 && type != 0x786D6C20 && type != 0x75756964) {
+            } else if (type != 0x66726565 && type != 0x786D6C20 && type != 0x75756964) {
                 // Extended JPX composition/channel metadata is outside this opaque subset.
                 return false;
             }
         }
         return header && codestream && expected == components && expectedWidth == width && expectedHeight == height;
+    }
+
+    private static bool TryValidateFileTypeBox(
+        byte[] bytes,
+        int start,
+        int end,
+        CancellationToken cancellationToken) {
+        int contentLength = end - start;
+        if (contentLength < 12 || contentLength % 4 != 0 || Read32(bytes, start) != 0x6A703220) return false;
+        bool declaresJp2Compatibility = false;
+        for (int offset = start + 8; offset < end; offset += 4) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (Read32(bytes, offset) == 0x6A703220) declaresJp2Compatibility = true;
+        }
+        return declaresJp2Compatibility;
     }
 
     private static bool TryReadHeader(

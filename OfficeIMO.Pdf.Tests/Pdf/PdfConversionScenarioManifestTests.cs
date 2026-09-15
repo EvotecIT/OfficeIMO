@@ -1889,6 +1889,20 @@ public sealed class PdfConversionScenarioManifestTests {
     }
 
     [Fact]
+    public void PdfToHtmlResult_CountsOpenActionDictionaryOnceInOmissionWarning() {
+        byte[] pdf = CreateOpenActionDictionaryPdf();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
+
+        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, new PdfToHtmlOptions());
+
+        Assert.True(result.Summary.HasOpenAction);
+        Assert.Equal(1, result.Summary.CatalogActionCount);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted");
+        Assert.StartsWith("1 scoped ", warning.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfToHtmlResult_PreservesDirectDestinationLinksAsReviewMetadata() {
         byte[] pdf = CreateDirectDestinationLinkPdf();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
@@ -2249,6 +2263,29 @@ public sealed class PdfConversionScenarioManifestTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateOpenActionDictionaryPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction 4 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /S /GoTo /D [3 0 R /Fit] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 5 >>",
             "%%EOF"
         }) + "\n";
 

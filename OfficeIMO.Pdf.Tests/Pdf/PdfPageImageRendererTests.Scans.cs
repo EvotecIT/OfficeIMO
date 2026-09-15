@@ -149,6 +149,37 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal("image/jp2", container.MimeType);
     }
 
+    [Fact]
+    public void ImageValidationRejectsJp2WithoutMandatoryFileTypeBox() {
+        byte[] payload = ReadScanJpx("rgb");
+        int fileTypeLength = ReadUInt32BigEndian(payload, 12);
+        byte[] missingFileType = payload.Take(12).Concat(payload.Skip(12 + fileTypeLength)).ToArray();
+
+        Assert.False(OfficeImageReader.TryValidateContent(missingFileType, "scan.jp2", out _));
+    }
+
+    [Theory]
+    [InlineData(20)] // Brand must declare the baseline JP2 format.
+    [InlineData(28)] // Compatibility list must include the baseline JP2 format.
+    public void ImageValidationRejectsJp2WithMalformedFileTypeBox(int fieldOffset) {
+        byte[] payload = ReadScanJpx("rgb");
+        payload[fieldOffset] = (byte)'x';
+
+        Assert.False(OfficeImageReader.TryValidateContent(payload, "scan.jp2", out _));
+    }
+
+    [Fact]
+    public void ImageValidationRejectsJp2WithFileTypeBoxAfterHeader() {
+        byte[] payload = ReadScanJpx("rgb");
+        int fileTypeLength = ReadUInt32BigEndian(payload, 12);
+        byte[] reordered = payload.Take(12)
+            .Concat(payload.Skip(12 + fileTypeLength))
+            .Concat(payload.Skip(12).Take(fileTypeLength))
+            .ToArray();
+
+        Assert.False(OfficeImageReader.TryValidateContent(reordered, "scan.jp2", out _));
+    }
+
     [Theory]
     [InlineData(4, 0xFF)] // Isot selects a tile outside the one-tile SIZ grid.
     [InlineData(10, 1)] // TPsot must start at zero.
@@ -180,6 +211,9 @@ public partial class PdfPageImageRendererTests {
     private static int FindMarker(byte[] bytes, params byte[] marker) =>
         Enumerable.Range(0, bytes.Length - marker.Length + 1).First(index =>
             marker.Select((value, markerIndex) => bytes[index + markerIndex] == value).All(static match => match));
+
+    private static int ReadUInt32BigEndian(byte[] bytes, int offset) =>
+        (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
 
     private static byte[] ReadScanJpx(string mode) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory,
         "Pdf", "Fixtures", "Interoperability", "Scans", "red-" + mode + ".jp2"));

@@ -424,7 +424,16 @@ public sealed class PdfLogicalTableValueAnalysisTests {
     [InlineData("123 ABCD")]
     [InlineData("usd 123")]
     [InlineData("ABC text")]
+    [InlineData("USD $5")]
+    [InlineData("$$5")]
+    [InlineData("$5 USD")]
+    [InlineData("USD 5 USD")]
+    [InlineData("$5$0")]
     public void TryParseCurrency_RejectsUnitsAndUnstructuredText(string value) {
-        Assert.False(PdfLogicalTableValueParser.TryParseCurrency(value, null, out _, out _));
+        Assert.False(PdfLogicalTableValueParser.TryParseCurrency(
+            value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out _,
+            out _));
     }
 }

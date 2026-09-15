@@ -184,7 +184,8 @@ public static partial class PdfHtmlConverterExtensions {
 
         ActionDiagnosticSummary actionSummary = BuildActionDiagnosticSummary(document, pages);
         var selectedPageNumbers = new HashSet<int>(pages.Select(static page => page.PageNumber));
-        int omittedDocumentActionCount = actionSummary.CatalogActionCount +
+        int omittedDocumentActionCount = actionSummary.CatalogActionCount -
+            actionSummary.DuplicatedOpenActionCatalogCount +
             actionSummary.SelectedPageActionCount +
             CountOmittedAnnotationActions(pages, selectedPageNumbers, options.IncludeLinkAnnotations) +
             (actionSummary.HasOpenAction ? 1 : 0);
@@ -343,9 +344,16 @@ public static partial class PdfHtmlConverterExtensions {
         int selectedAnnotationActionCount = 0;
         int pageActionCount = document.PageActionCount;
         int annotationActionCount = CountAnnotationActions(document.Pages);
+        int duplicatedOpenActionCatalogCount = 0;
+        if (catalogActionCount > 0 && HasScopedOpenAction(document.OpenAction, pages)) {
+            duplicatedOpenActionCatalogCount = document.CatalogActions.Count(static action =>
+                string.Equals(action.Source, "OpenAction", StringComparison.Ordinal) &&
+                !action.IsChainedAction);
+        }
         var summary = new ActionDiagnosticSummary {
             HasOpenAction = HasScopedOpenAction(document.OpenAction, pages),
             CatalogActionCount = catalogActionCount,
+            DuplicatedOpenActionCatalogCount = duplicatedOpenActionCatalogCount,
             PageActionCount = pageActionCount,
             AnnotationActionCount = annotationActionCount
         };
@@ -559,6 +567,8 @@ public static partial class PdfHtmlConverterExtensions {
         public int ImportDataActionCount { get; private set; }
 
         public int CatalogActionCount { get; set; }
+
+        public int DuplicatedOpenActionCatalogCount { get; set; }
 
         public int PageActionCount { get; set; }
 

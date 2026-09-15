@@ -104,6 +104,14 @@ public static class PdfLogicalTableValueParser {
         }
         if (hasInnerSign) sign = innerSign;
         numericText = unsignedNumericText;
+        if (ContainsResidualCurrencyToken(numericText, culture)) {
+            result = 0M;
+            currencyToken = string.Empty;
+            affixPosition = default;
+            affixUsesSpacing = false;
+            decimalPlaces = 0;
+            return false;
+        }
         numericText = sign + numericText;
         if (!PdfLogicalTableAnalysis.TryParseNumericValue(numericText, culture, out result)) {
             result = 0M;
@@ -387,6 +395,15 @@ public static class PdfLogicalTableValueParser {
         currencyToken = token.Trim();
         affixPosition = position;
         return numericText.Length > 0 && currencyToken.Length > 0;
+    }
+
+    private static bool ContainsResidualCurrencyToken(string value, CultureInfo? culture) {
+        if (TryRemoveCurrencyToken(value, culture, out _, out _, out _, out _)) return true;
+        for (int index = 0; index < value.Length;) {
+            if (IsCurrencySymbolAt(value, index)) return true;
+            index += char.IsSurrogatePair(value, index) ? 2 : 1;
+        }
+        return false;
     }
 
     private static bool IsIsoCurrencyCode(string value) =>
