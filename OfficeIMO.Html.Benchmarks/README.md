@@ -106,8 +106,10 @@ provider assembly identity, and platform information:
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Html.Benchmarks -- --provider-evidence --repeat 5 --json .benchmark-artifacts/html/provider-evidence.json
 ```
 
-The 100-row HTML scenarios all validate the same 420-element recovered tree. The
-100-rule CSS scenarios validate the provider stylesheet and the owned 305-element
+The 100-row HTML scenarios all validate the same 420-element recovered tree and
+must produce one exact provider-neutral structural fingerprint across every repeat
+and all four HTML lanes. The 100-rule CSS scenarios validate the provider stylesheet
+and the owned 305-element
 cascade separately. Retained-heap values use eight simultaneously retained results
 inside a fresh child process and are diagnostic observations rather than hard budgets.
 Run the same command on each platform and compare medians only for equivalent source,

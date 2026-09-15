@@ -1,10 +1,16 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using AngleSharp.Css.Parser;
 using OfficeIMO.Html.Dom;
+using NativeDocumentType = AngleSharp.Dom.IDocumentType;
+using NativeElement = AngleSharp.Dom.IElement;
+using NativeNode = AngleSharp.Dom.INode;
 using NativeHtmlDocument = AngleSharp.Html.Dom.IHtmlDocument;
+using NativeTemplateElement = AngleSharp.Html.Dom.IHtmlTemplateElement;
 
 namespace OfficeIMO.Html.Benchmarks;
 
@@ -58,6 +64,7 @@ internal static class HtmlProviderEvidenceRunner {
                         $"{measurement.ResultItems,6:N0} items");
                 }
             }
+            ValidateEquivalentHtmlLanes(measurements);
 
             HtmlProviderEvidenceSummary[] summaries = scenarios.Select(scenario => {
                 HtmlProviderEvidenceMeasurement[] values = measurements.Where(value => value.Scenario == scenario).ToArray();
@@ -93,7 +100,7 @@ internal static class HtmlProviderEvidenceRunner {
         ProviderEvidenceOperation operation = ProviderEvidenceOperation.Create(scenario);
         for (int index = 0; index < 3; index++) {
             object warm = operation.Execute();
-            operation.Validate(warm);
+            _ = operation.Validate(warm);
             GC.KeepAlive(warm);
         }
 
@@ -103,7 +110,7 @@ internal static class HtmlProviderEvidenceRunner {
         object timed = operation.Execute();
         stopwatch.Stop();
         long allocated = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
-        int resultItems = operation.Validate(timed);
+        ProviderEvidenceValidation validation = operation.Validate(timed);
         GC.KeepAlive(timed);
 
         timed = null!;
@@ -112,7 +119,7 @@ internal static class HtmlProviderEvidenceRunner {
         object[] retained = new object[RetainedBatchSize];
         for (int index = 0; index < retained.Length; index++) {
             retained[index] = operation.Execute();
-            operation.Validate(retained[index]);
+            _ = operation.Validate(retained[index]);
         }
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
         long retainedPerResult = Math.Max(0, GC.GetTotalMemory(forceFullCollection: false) - heapBefore) / retained.Length;
@@ -122,7 +129,7 @@ internal static class HtmlProviderEvidenceRunner {
         GC.KeepAlive(retained);
 
         return new HtmlProviderEvidenceMeasurement(
-            scenario, 1, operation.InputCharacters, resultItems,
+            scenario, 1, operation.InputCharacters, validation.ResultItems, validation.FingerprintSha256,
             stopwatch.Elapsed.TotalMilliseconds, allocated, retainedPerResult, processPeak);
     }
 
@@ -187,6 +194,8 @@ internal static class HtmlProviderEvidenceRunner {
         new[] {
             typeof(AngleSharp.Html.Parser.HtmlParser).Assembly,
             typeof(CssParser).Assembly,
+            typeof(OfficeIMO.Html.Providers.AngleSharpHtmlParser).Assembly,
+            typeof(System.Text.CodePagesEncodingProvider).Assembly,
             typeof(HtmlDocumentEngine).Assembly,
             typeof(HtmlDocument).Assembly
         }
@@ -215,11 +224,29 @@ internal static class HtmlProviderEvidenceRunner {
         return info;
     }
 
+    private static void ValidateEquivalentHtmlLanes(IReadOnlyList<HtmlProviderEvidenceMeasurement> measurements) {
+        string[] htmlScenarios = Scenarios.Take(4).ToArray();
+        HtmlProviderEvidenceMeasurement[] html = measurements
+            .Where(measurement => htmlScenarios.Contains(measurement.Scenario, StringComparer.Ordinal))
+            .ToArray();
+        if (html.Length == 0) return;
+        HtmlProviderEvidenceMeasurement expected = html[0];
+        foreach (HtmlProviderEvidenceMeasurement measurement in html) {
+            if (measurement.ResultItems != expected.ResultItems
+                || !string.Equals(measurement.ResultFingerprintSha256, expected.ResultFingerprintSha256, StringComparison.Ordinal)) {
+                throw new InvalidOperationException(
+                    $"HTML provider evidence is not structurally equivalent: {measurement.Scenario} iteration {measurement.Iteration} " +
+                    $"returned {measurement.ResultItems} items and fingerprint {measurement.ResultFingerprintSha256}; " +
+                    $"expected {expected.ResultItems} and {expected.ResultFingerprintSha256}.");
+            }
+        }
+    }
+
     private sealed class ProviderEvidenceOperation {
         private readonly Func<object> _execute;
-        private readonly Func<object, int> _validate;
+        private readonly Func<object, ProviderEvidenceValidation> _validate;
 
-        private ProviderEvidenceOperation(int inputCharacters, Func<object> execute, Func<object, int> validate) {
+        private ProviderEvidenceOperation(int inputCharacters, Func<object> execute, Func<object, ProviderEvidenceValidation> validate) {
             InputCharacters = inputCharacters;
             _execute = execute;
             _validate = validate;
@@ -227,7 +254,7 @@ internal static class HtmlProviderEvidenceRunner {
 
         internal int InputCharacters { get; }
         internal object Execute() => _execute();
-        internal int Validate(object result) => _validate(result);
+        internal ProviderEvidenceValidation Validate(object result) => _validate(result);
 
         internal static ProviderEvidenceOperation Create(string scenario) {
             string html = HtmlBenchmarkCorpus.BuildReport(100);
@@ -263,7 +290,7 @@ internal static class HtmlProviderEvidenceRunner {
                 result => {
                     int count = ((AngleSharp.Css.Dom.ICssStyleSheet)result).Rules.Length;
                     if (count < 3) throw new InvalidOperationException("The CSS provider evidence lost top-level rules.");
-                    return count;
+                    return new ProviderEvidenceValidation(count, "not-applicable");
                 });
         }
 
@@ -275,7 +302,7 @@ internal static class HtmlProviderEvidenceRunner {
                 result => {
                     int count = ((IReadOnlyDictionary<HtmlElement, HtmlComputedStyle>)result).Count;
                     if (count < 200) throw new InvalidOperationException("The owned CSS cascade lost styled-card elements.");
-                    return count;
+                    return new ProviderEvidenceValidation(count, "not-applicable");
                 });
         }
 
@@ -285,24 +312,102 @@ internal static class HtmlProviderEvidenceRunner {
             return conversion;
         }
 
-        private static int ValidateNative(NativeHtmlDocument document) {
+        private static ProviderEvidenceValidation ValidateNative(NativeHtmlDocument document) {
             int count = document.QuerySelectorAll("*").Length;
-            if (count < 300 || document.QuerySelector("h1")?.TextContent != "Benchmark Report")
+            if (count != 420 || document.QuerySelector("h1")?.TextContent != "Benchmark Report")
                 throw new InvalidOperationException("The native provider evidence lost report structure.");
-            return count;
+            return new ProviderEvidenceValidation(count, FingerprintNative(document));
         }
 
-        private static int ValidateOwned(HtmlDocument document) {
+        private static ProviderEvidenceValidation ValidateOwned(HtmlDocument document) {
             int count = document.QuerySelectorAll("*").Count;
-            if (count < 300 || document.QuerySelector("h1")?.TextContent != "Benchmark Report")
+            if (count != 420 || document.QuerySelector("h1")?.TextContent != "Benchmark Report")
                 throw new InvalidOperationException("The owned provider evidence lost report structure.");
-            return count;
+            return new ProviderEvidenceValidation(count, FingerprintOwned(document));
         }
 
-        private static int ValidateConversion(HtmlConversionDocument document, bool requireOwned) {
+        private static ProviderEvidenceValidation ValidateConversion(HtmlConversionDocument document, bool requireOwned) {
             if (document.SourceHtml.Length == 0) throw new InvalidOperationException("The conversion provider evidence lost its source.");
-            if (!requireOwned) return document.SourceHtml.Length;
-            return ValidateOwned(document.Document);
+            return requireOwned
+                ? ValidateOwned(document.Document)
+                : document.ProjectSourceDocument(ValidateNative);
         }
     }
+
+    private static string FingerprintNative(NativeNode root) {
+        var value = new StringBuilder(64 * 1024);
+        AppendNative(root, value);
+        return Hash(value);
+    }
+
+    private static void AppendNative(NativeNode node, StringBuilder value) {
+        if (node is NativeElement element) {
+            value.Append("E|").Append(element.NamespaceUri).Append('|').Append(element.Prefix).Append('|').Append(element.LocalName);
+            foreach (AngleSharp.Dom.IAttr attribute in element.Attributes) {
+                value.Append("|A|").Append(attribute.NamespaceUri).Append('|').Append(attribute.Prefix).Append('|')
+                    .Append(attribute.LocalName).Append('|').Append(attribute.Value);
+            }
+        } else if (node is NativeDocumentType type) {
+            value.Append("D|").Append(type.Name).Append('|').Append(type.PublicIdentifier).Append('|').Append(type.SystemIdentifier);
+        } else if (node.NodeType == AngleSharp.Dom.NodeType.Document) {
+            value.Append("R");
+        } else if (node.NodeType == AngleSharp.Dom.NodeType.DocumentFragment) {
+            value.Append("F");
+        } else if (node.NodeType == AngleSharp.Dom.NodeType.Text) {
+            value.Append("T|").Append(node.TextContent);
+        } else if (node.NodeType == AngleSharp.Dom.NodeType.Comment) {
+            value.Append("C|").Append(node.TextContent);
+        } else {
+            value.Append("N|").Append(node.NodeName).Append('|').Append(node.TextContent);
+        }
+        value.Append('[');
+        foreach (NativeNode child in node.ChildNodes) AppendNative(child, value);
+        if (node is NativeTemplateElement template) {
+            value.Append("Q[");
+            foreach (NativeNode child in template.Content.ChildNodes) AppendNative(child, value);
+            value.Append(']');
+        }
+        value.Append(']');
+    }
+
+    private static string FingerprintOwned(HtmlNode root) {
+        var value = new StringBuilder(64 * 1024);
+        AppendOwned(root, value);
+        return Hash(value);
+    }
+
+    private static void AppendOwned(HtmlNode node, StringBuilder value) {
+        if (node is HtmlElement element) {
+            value.Append("E|").Append(element.NamespaceUri).Append('|').Append(element.Prefix).Append('|').Append(element.LocalName);
+            foreach (HtmlAttribute attribute in element.Attributes) {
+                value.Append("|A|").Append(attribute.NamespaceUri).Append('|').Append(attribute.Prefix).Append('|')
+                    .Append(attribute.LocalName).Append('|').Append(attribute.Value);
+            }
+        } else if (node is HtmlDocumentType type) {
+            value.Append("D|").Append(type.Name).Append('|').Append(type.PublicIdentifier).Append('|').Append(type.SystemIdentifier);
+        } else if (node.Kind == HtmlNodeKind.Document) {
+            value.Append("R");
+        } else if (node.Kind == HtmlNodeKind.DocumentFragment) {
+            value.Append("F");
+        } else if (node.Kind == HtmlNodeKind.Text) {
+            value.Append("T|").Append(node.TextContent);
+        } else if (node.Kind == HtmlNodeKind.Comment) {
+            value.Append("C|").Append(node.TextContent);
+        } else {
+            value.Append("N|").Append(node.TextContent);
+        }
+        value.Append('[');
+        foreach (HtmlNode child in node.ChildNodes) AppendOwned(child, value);
+        if (node is HtmlElement template && template.TemplateContent != null) {
+            value.Append("Q[");
+            foreach (HtmlNode child in template.TemplateContent.ChildNodes) AppendOwned(child, value);
+            value.Append(']');
+        }
+        value.Append(']');
+    }
+
+    private static string Hash(StringBuilder value) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value.ToString()))).ToLowerInvariant();
+
+    private readonly record struct ProviderEvidenceValidation(int ResultItems, string FingerprintSha256);
 }

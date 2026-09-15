@@ -21,7 +21,7 @@ dotnet build OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Relea
 dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net10.0 --no-build -- --provider-evidence --repeat 3 --json provider.json
 ```
 
-Every scenario runs in a fresh child process after three warm operations. Reports record elapsed time, total allocation, retained managed heap per result from a retained batch of eight, absolute process peak, result validation, assembly versions, runtime, operating system, architecture, commit, and tracked-source state.
+Every scenario runs in a fresh child process after three warm operations. Reports record elapsed time, total allocation, retained managed heap per result from a retained batch of eight, absolute process peak, result validation, assembly versions, runtime, operating system, architecture, commit, and tracked-source state. The four HTML lanes must return the same exact 420-element structural fingerprint; the command fails instead of publishing incomparable results.
 
 The HTML lanes use the same generated 100-row report. The CSS syntax lane parses the generated stylesheet only; the OfficeIMO cascade lane parses the styled document once and then computes styles for 305 elements. Their elapsed times must not be divided into a parser performance ratio because the cascade lane performs substantially more work.
 

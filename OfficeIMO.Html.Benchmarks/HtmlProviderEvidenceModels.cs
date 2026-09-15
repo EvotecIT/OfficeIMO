@@ -5,6 +5,7 @@ internal sealed record HtmlProviderEvidenceMeasurement(
     int Iteration,
     int InputCharacters,
     int ResultItems,
+    string ResultFingerprintSha256,
     double ElapsedMilliseconds,
     long AllocatedBytes,
     long RetainedManagedHeapBytesPerResult,
