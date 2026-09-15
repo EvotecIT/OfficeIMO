@@ -10,8 +10,9 @@ internal static class PdfMutationPlanner {
         PdfMutationOperation operation,
         PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null,
-        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
-        PdfMutationPlan plan = Plan(pdf, operation, options, fieldNames, executionPreference);
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
+        PdfSignatureProfile? signatureProfile = null) {
+        PdfMutationPlan plan = Plan(pdf, operation, options, fieldNames, executionPreference, signatureProfile);
         if (!plan.CanExecute) {
             throw new PdfMutationBlockedException(plan);
         }
@@ -125,8 +126,9 @@ internal static class PdfMutationPlanner {
         byte[] pdf,
         PdfMutationOperation operation,
         PdfLoadOptions? options = null,
-        IEnumerable<string>? fieldNames = null) =>
-        Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireAppendOnly);
+        IEnumerable<string>? fieldNames = null,
+        PdfSignatureProfile? signatureProfile = null) =>
+        Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireAppendOnly, signatureProfile);
 
     /// <summary>Plans a mutation for a PDF byte array.</summary>
     public static PdfMutationPlan Plan(
@@ -134,10 +136,11 @@ internal static class PdfMutationPlanner {
         PdfMutationOperation operation,
         PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null,
-        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
+        PdfSignatureProfile? signatureProfile = null) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options);
-        return Plan(preflight, pdf, operation, fieldNames, executionPreference, options);
+        return Plan(preflight, pdf, operation, fieldNames, executionPreference, options, signatureProfile);
     }
 
     /// <summary>Plans a mutation for a readable PDF stream.</summary>
@@ -200,7 +203,8 @@ internal static class PdfMutationPlanner {
             fieldNames,
             executionPreference,
             finalizationReservationValidated: operation != PdfMutationOperation.FinalizeExternalSignature,
-            metadataPreservationValidated: !RequiresMetadataPreservationValidation(operation));
+            metadataPreservationValidated: !RequiresMetadataPreservationValidation(operation),
+            signatureProfile: null);
     }
 
     /// <summary>Plans a mutation from a shared preflight while retaining source bytes for reservation validation.</summary>
@@ -210,14 +214,15 @@ internal static class PdfMutationPlanner {
         PdfMutationOperation operation,
         IEnumerable<string>? fieldNames = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
-        PdfLoadOptions? options = null) {
+        PdfLoadOptions? options = null,
+        PdfSignatureProfile? signatureProfile = null) {
         Guard.NotNull(preflight, nameof(preflight));
         Guard.NotNull(pdf, nameof(pdf));
         bool finalizationReservationValidated = operation != PdfMutationOperation.FinalizeExternalSignature ||
             PdfIncrementalUpdater.HasFinalizableExternalSignatureReservation(pdf, preflight.Probe.Security);
         bool metadataPreservationValidated = !RequiresMetadataPreservationValidation(operation) ||
             PdfIncrementalUpdater.CanPreserveXmpMetadataAppendOnly(pdf, options);
-        return PlanCore(preflight, operation, fieldNames, executionPreference, finalizationReservationValidated, metadataPreservationValidated);
+        return PlanCore(preflight, operation, fieldNames, executionPreference, finalizationReservationValidated, metadataPreservationValidated, signatureProfile);
     }
 
     private static PdfMutationPlan PlanCore(
@@ -226,7 +231,8 @@ internal static class PdfMutationPlanner {
         IEnumerable<string>? fieldNames,
         PdfMutationExecutionPreference executionPreference,
         bool finalizationReservationValidated,
-        bool metadataPreservationValidated) {
+        bool metadataPreservationValidated,
+        PdfSignatureProfile? signatureProfile) {
         ValidateOperation(operation);
         ValidateExecutionPreference(executionPreference);
 
@@ -241,6 +247,10 @@ internal static class PdfMutationPlanner {
         bool unsignedSignatureFieldRewrite = operation == PdfMutationOperation.ModifyAcroForm && CanFullRewriteUnsignedSignatureFields(security);
         bool normalizedObjectGraphRewrite = (operation == PdfMutationOperation.MergeDocuments || operation == PdfMutationOperation.Optimize) && CanNormalizeObjectGraphSource(preflight, operation);
         bool authorizedEncryptedRewrite = security.HasEncryption && CanUseAuthenticatedEncryptedRewrite(preflight, operation);
+        bool certificationRequiresFirstSignature =
+            operation == PdfMutationOperation.PrepareExternalSignature &&
+            signatureProfile == PdfSignatureProfile.Certification &&
+            HasExistingSignedRevision(security);
         bool fullRewriteAvailable =
             fullRewriteImplemented &&
             fullRewriteCapability &&
@@ -251,6 +261,7 @@ internal static class PdfMutationPlanner {
             CanAppend(appendOnly, operation, finalizationReservationValidated) &&
             PdfPermissionAuthorization.CanMutate(security, preflight.PermissionPolicy, operation) &&
             metadataPreservationValidated &&
+            !certificationRequiresFirstSignature &&
             !BlocksActiveContentPreservingMutation(preflight, operation);
 
         bool incompleteObjectGraph = preflight.RewriteBlockers.Any(static blocker => blocker.Kind == PdfRewriteBlockerKind.IncompleteObjectGraph);
@@ -278,7 +289,7 @@ internal static class PdfMutationPlanner {
         IReadOnlyList<PdfMutationPermissionCheck> permissions = GetPermissionChecks(operation, mode);
         IReadOnlyList<PdfMutationProof> proofs = GetRequiredProofs(operation, mode, security);
         IReadOnlyList<string> blockers = mode == PdfMutationExecutionMode.Blocked
-            ? GetBlockerCodes(preflight, appendOnly, operation, fullRewriteImplemented, appendOnlyImplemented, security)
+            ? GetBlockerCodes(preflight, appendOnly, operation, fullRewriteImplemented, appendOnlyImplemented, security, certificationRequiresFirstSignature)
             : Array.Empty<string>();
         if (incompleteObjectGraph) {
             var sourceBlockers = blockers.ToList();
@@ -621,7 +632,8 @@ internal static class PdfMutationPlanner {
         PdfMutationOperation operation,
         bool fullRewriteImplemented,
         bool appendOnlyImplemented,
-        PdfDocumentSecurityInfo security) {
+        PdfDocumentSecurityInfo security,
+        bool certificationRequiresFirstSignature) {
         var blockers = new List<string>();
         if (!preflight.CanRead) {
             for (int i = 0; i < preflight.ReadBlockers.Count; i++) {
@@ -675,6 +687,10 @@ internal static class PdfMutationPlanner {
         if (!appendOnlyImplemented) {
             Add(blockers, "AppendOnly.NotImplemented." + operation);
         } else {
+            if (certificationRequiresFirstSignature) {
+                Add(blockers, "AppendOnly.CertificationRequiresFirstSignature");
+            }
+
             if (operation == PdfMutationOperation.PrepareExternalSignature && security.HasEncryption) {
                 Add(blockers, "AppendOnly.EncryptedRawSignatureObject");
             }
@@ -699,6 +715,11 @@ internal static class PdfMutationPlanner {
 
         return blockers.AsReadOnly();
     }
+
+    private static bool HasExistingSignedRevision(PdfDocumentSecurityInfo security) =>
+        security.SignatureValueCount > 0 ||
+        security.HasByteRange ||
+        security.HasDocMDPPermissions;
 
     private static IReadOnlyList<string> GetWarnings(
         PdfDocumentPreflight preflight,
