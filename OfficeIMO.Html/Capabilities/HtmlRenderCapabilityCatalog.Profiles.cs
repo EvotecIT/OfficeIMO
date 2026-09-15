@@ -10,7 +10,7 @@ public static partial class HtmlRenderCapabilityCatalog {
     private const string MathMlRevision = "f69212ad1f21bbfb7cde24264608c23b96b0e1b7";
     private const string WptRevision = "d63987ce254c38880525061eb87949f3f56716a8";
     private const string Html5LibRevision = "224991ec10db04f056a89eed8b0bd8695fd2950e";
-    private const string H4AdvancedHeldOutAcceptanceRevision = "ef96c8807e9077bda10a5eb96c5fd65873c5cf13ac109e143613cb0ee0aa2d1e";
+    private const string H4AdvancedHeldOutAcceptanceRevision = "b347bb8e73ee67bd7130a460de8ee5bd4d3e336ff15cdc9f2756e02a3632a8ed";
 
     private static string[] H4AdvancedHeldOutCaseIds() => new[] {
         "columns-footnotes-brief", "legacy-portal", "named-pages-brochure", "nested-fragmentation-report",
