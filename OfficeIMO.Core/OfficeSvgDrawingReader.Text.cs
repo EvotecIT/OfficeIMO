@@ -98,8 +98,8 @@ public static partial class OfficeSvgDrawingReader {
         bool preserve = inheritedPreserve;
         string? space = element.Attribute(XNamespace.Xml + "space")?.Value;
         if (!string.IsNullOrWhiteSpace(space)) {
-            if (space!.Equals("preserve", StringComparison.OrdinalIgnoreCase)) preserve = true;
-            else if (space.Equals("default", StringComparison.OrdinalIgnoreCase)) preserve = false;
+            if (space!.Equals("preserve", StringComparison.Ordinal)) preserve = true;
+            else if (space.Equals("default", StringComparison.Ordinal)) preserve = false;
             else unsupported++;
         }
         double ownBaselineShift = ResolveOwnBaselineShift(
@@ -424,8 +424,8 @@ public static partial class OfficeSvgDrawingReader {
         foreach (XElement ancestor in element.Ancestors().Reverse()) {
             string? space = ancestor.Attribute(XNamespace.Xml + "space")?.Value;
             if (string.IsNullOrWhiteSpace(space)) continue;
-            if (space!.Equals("preserve", StringComparison.OrdinalIgnoreCase)) preserve = true;
-            else if (space.Equals("default", StringComparison.OrdinalIgnoreCase)) preserve = false;
+            if (space!.Equals("preserve", StringComparison.Ordinal)) preserve = true;
+            else if (space.Equals("default", StringComparison.Ordinal)) preserve = false;
             else unsupported++;
         }
         return preserve;

@@ -595,7 +595,8 @@ public static partial class OfficeSvgDrawingReader {
                 return false;
             }
             string replacement;
-            if (!customProperties.TryGetValue(name, out replacement!)) {
+            bool hasCustomPropertyValue = customProperties.TryGetValue(name, out replacement!);
+            if (!hasCustomPropertyValue) {
                 if (parts.Count < 2) return false;
                 replacement = string.Join(",", parts.Skip(1)).Trim();
             }
@@ -606,8 +607,21 @@ public static partial class OfficeSvgDrawingReader {
                     ref remainingSubstitutionCharacters,
                     out replacement,
                     out bool nestedLimitExceeded)) {
-                limitExceeded = nestedLimitExceeded;
-                return false;
+                if (nestedLimitExceeded || !hasCustomPropertyValue || parts.Count < 2) {
+                    limitExceeded = nestedLimitExceeded;
+                    return false;
+                }
+                replacement = string.Join(",", parts.Skip(1)).Trim();
+                if (!TryResolveSvgCssVariables(
+                        replacement,
+                        customProperties,
+                        depth + 1,
+                        ref remainingSubstitutionCharacters,
+                        out replacement,
+                        out nestedLimitExceeded)) {
+                    limitExceeded = nestedLimitExceeded;
+                    return false;
+                }
             }
             long expandedLength = (long)resolved.Length - (close - start + 1L) + replacement.Length;
             if (expandedLength > MaximumSvgComputedCssCharacters) {
