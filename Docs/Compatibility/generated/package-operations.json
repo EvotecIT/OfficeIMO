@@ -409,6 +409,76 @@
       "limitation":"Email owns MIME serialization; an explicit IOfficeSecurityProvider owns CMS and certificate policy."
     },
     {
+      "id":"native:email-native:create",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"Email.Native",
+      "targetFormatId":"",
+      "capabilityId":"email-native",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load / Save",
+      "evidence":"OfficeIMO.Email.Tests typed read, edit, write, and fixture round-trip contracts::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".dat",".eml",".mime",".msg",".oft",".tnef"],
+      "limitation":""
+    },
+    {
+      "id":"native:email-native:read",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"Email.Native",
+      "targetFormatId":"",
+      "capabilityId":"email-native",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load / Save",
+      "evidence":"OfficeIMO.Email.Tests typed read, edit, write, and fixture round-trip contracts::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".dat",".eml",".mime",".msg",".oft",".tnef"],
+      "limitation":""
+    },
+    {
+      "id":"native:email-native:edit",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"Email.Native",
+      "targetFormatId":"",
+      "capabilityId":"email-native",
+      "operation":"Edit",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load / Save",
+      "evidence":"OfficeIMO.Email.Tests typed read, edit, write, and fixture round-trip contracts::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".dat",".eml",".mime",".msg",".oft",".tnef"],
+      "limitation":""
+    },
+    {
+      "id":"native:email-native:preserve",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"Email.Native",
+      "targetFormatId":"",
+      "capabilityId":"email-native",
+      "operation":"Preserve",
+      "state":"Partial",
+      "publicApi":"EmailDocument.Load / Save",
+      "evidence":"OfficeIMO.Email.Tests typed read, edit, write, and fixture round-trip contracts::Preserve",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".dat",".eml",".mime",".msg",".oft",".tnef"],
+      "limitation":"Format-specific unsupported properties can remain opaque or require a documented conversion boundary."
+    },
+    {
+      "id":"native:email-native:inspect",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"Email.Native",
+      "targetFormatId":"",
+      "capabilityId":"email-native",
+      "operation":"Inspect",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load / Save",
+      "evidence":"OfficeIMO.Email.Tests typed read, edit, write, and fixture round-trip contracts::Inspect",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".dat",".eml",".mime",".msg",".oft",".tnef"],
+      "limitation":""
+    },
+    {
       "id":"protection:smime-envelope-msg-tnef:email:create",
       "packageId":"OfficeIMO.Email",
       "formatId":"MSG/TNEF S/MIME",
@@ -419,7 +489,7 @@
       "publicApi":"EmailSmime.Decrypt",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::smime-envelope-msg-tnef::create",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".dat",".msg"],
+      "extensions":[".dat",".msg",".tnef"],
       "limitation":"Protected MSG/TNEF content can be inspected and decrypted after parsing; outbound encryption creates RFC 5322/MIME bytes, not MSG or TNEF containers."
     },
     {
@@ -433,7 +503,7 @@
       "publicApi":"EmailSmime.Verify",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::smime-signature-msg-tnef::create",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".dat",".msg"],
+      "extensions":[".dat",".msg",".tnef"],
       "limitation":"Protected MSG/TNEF content can be inspected and verified after parsing; outbound signing creates RFC 5322/MIME bytes, not MSG or TNEF containers."
     },
     {
@@ -447,7 +517,7 @@
       "publicApi":"EmailSmime.Decrypt",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::smime-envelope-msg-tnef::open",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".dat",".msg"],
+      "extensions":[".dat",".msg",".tnef"],
       "limitation":"Protected MSG/TNEF content can be inspected and decrypted after parsing; outbound encryption creates RFC 5322/MIME bytes, not MSG or TNEF containers."
     },
     {
@@ -461,7 +531,7 @@
       "publicApi":"EmailSmime.Verify",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::smime-signature-msg-tnef::open",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".dat",".msg"],
+      "extensions":[".dat",".msg",".tnef"],
       "limitation":"Protected MSG/TNEF content can be inspected and verified after parsing; outbound signing creates RFC 5322/MIME bytes, not MSG or TNEF containers."
     },
     {
@@ -475,7 +545,7 @@
       "publicApi":"EmailSmime.Decrypt",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::smime-envelope-msg-tnef::mutate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".dat",".msg"],
+      "extensions":[".dat",".msg",".tnef"],
       "limitation":"Protected MSG/TNEF content can be inspected and decrypted after parsing; outbound encryption creates RFC 5322/MIME bytes, not MSG or TNEF containers."
     },
     {
@@ -489,7 +559,7 @@
       "publicApi":"EmailSmime.Verify",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::smime-signature-msg-tnef::mutate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".dat",".msg"],
+      "extensions":[".dat",".msg",".tnef"],
       "limitation":"Protected MSG/TNEF content can be inspected and verified after parsing; outbound signing creates RFC 5322/MIME bytes, not MSG or TNEF containers."
     },
     {
@@ -503,7 +573,7 @@
       "publicApi":"EmailSmime.Decrypt",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::smime-envelope-msg-tnef::inspect",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".dat",".msg"],
+      "extensions":[".dat",".msg",".tnef"],
       "limitation":"Protected MSG/TNEF content can be inspected and decrypted after parsing; outbound encryption creates RFC 5322/MIME bytes, not MSG or TNEF containers."
     },
     {
@@ -517,7 +587,7 @@
       "publicApi":"EmailSmime.Verify",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::smime-signature-msg-tnef::inspect",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".dat",".msg"],
+      "extensions":[".dat",".msg",".tnef"],
       "limitation":"Protected MSG/TNEF content can be inspected and verified after parsing; outbound signing creates RFC 5322/MIME bytes, not MSG or TNEF containers."
     },
     {
@@ -531,7 +601,7 @@
       "publicApi":"EmailSmime.Decrypt",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::smime-envelope-msg-tnef::validate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".dat",".msg"],
+      "extensions":[".dat",".msg",".tnef"],
       "limitation":"Protected MSG/TNEF content can be inspected and decrypted after parsing; outbound encryption creates RFC 5322/MIME bytes, not MSG or TNEF containers."
     },
     {
@@ -545,7 +615,7 @@
       "publicApi":"EmailSmime.Verify",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::smime-signature-msg-tnef::validate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".dat",".msg"],
+      "extensions":[".dat",".msg",".tnef"],
       "limitation":"Protected MSG/TNEF content can be inspected and verified after parsing; outbound signing creates RFC 5322/MIME bytes, not MSG or TNEF containers."
     },
     {
@@ -559,7 +629,7 @@
       "publicApi":"EmailSmime.Decrypt",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::smime-envelope-msg-tnef::remove",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".dat",".msg"],
+      "extensions":[".dat",".msg",".tnef"],
       "limitation":"Protected MSG/TNEF content can be inspected and decrypted after parsing; outbound encryption creates RFC 5322/MIME bytes, not MSG or TNEF containers."
     },
     {
@@ -573,7 +643,7 @@
       "publicApi":"EmailSmime.Verify",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::smime-signature-msg-tnef::remove",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".dat",".msg"],
+      "extensions":[".dat",".msg",".tnef"],
       "limitation":"Protected MSG/TNEF content can be inspected and verified after parsing; outbound signing creates RFC 5322/MIME bytes, not MSG or TNEF containers."
     },
     {
@@ -941,6 +1011,62 @@
       "limitation":"Package structure is validated before inspection or mutation."
     },
     {
+      "id":"native:epub-native:create",
+      "packageId":"OfficeIMO.Epub",
+      "formatId":"Epub.Native",
+      "targetFormatId":"",
+      "capabilityId":"epub-native",
+      "operation":"Create",
+      "state":"Unsupported",
+      "publicApi":"EpubReader / EpubPackage",
+      "evidence":"OfficeIMO.Epub.Tests package extraction, metadata, and navigation inspection contracts::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".epub"],
+      "limitation":"The current package is an extraction and inspection surface; EPUB authoring is not implemented."
+    },
+    {
+      "id":"native:epub-native:read",
+      "packageId":"OfficeIMO.Epub",
+      "formatId":"Epub.Native",
+      "targetFormatId":"",
+      "capabilityId":"epub-native",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"EpubReader / EpubPackage",
+      "evidence":"OfficeIMO.Epub.Tests package extraction, metadata, and navigation inspection contracts::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".epub"],
+      "limitation":""
+    },
+    {
+      "id":"native:epub-native:edit",
+      "packageId":"OfficeIMO.Epub",
+      "formatId":"Epub.Native",
+      "targetFormatId":"",
+      "capabilityId":"epub-native",
+      "operation":"Edit",
+      "state":"Unsupported",
+      "publicApi":"EpubReader / EpubPackage",
+      "evidence":"OfficeIMO.Epub.Tests package extraction, metadata, and navigation inspection contracts::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".epub"],
+      "limitation":"The current package is an extraction and inspection surface; EPUB authoring is not implemented."
+    },
+    {
+      "id":"native:epub-native:inspect",
+      "packageId":"OfficeIMO.Epub",
+      "formatId":"Epub.Native",
+      "targetFormatId":"",
+      "capabilityId":"epub-native",
+      "operation":"Inspect",
+      "state":"Supported",
+      "publicApi":"EpubReader / EpubPackage",
+      "evidence":"OfficeIMO.Epub.Tests package extraction, metadata, and navigation inspection contracts::Inspect",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".epub"],
+      "limitation":""
+    },
+    {
       "id":"conversion:epub-jpeg",
       "packageId":"OfficeIMO.Epub.Image",
       "formatId":"EPUB",
@@ -1021,7 +1147,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::create",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".xlsb",".xlsm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -1035,7 +1161,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::open",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".xlsb",".xlsm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -1049,7 +1175,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::mutate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".xlsb",".xlsm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -1063,7 +1189,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::inspect",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".xlsb",".xlsm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -1077,7 +1203,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::validate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".xlsb",".xlsm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -1091,7 +1217,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::remove",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".xlsb",".xlsm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -1105,7 +1231,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::create",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".xlsx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -1119,7 +1245,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::open",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".xlsx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -1133,7 +1259,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::mutate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".xlsx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -1147,7 +1273,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::inspect",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".xlsx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -1161,7 +1287,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::validate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".xlsx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -1175,7 +1301,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::remove",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".xlsx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -1189,7 +1315,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::create",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".xlsx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -1203,7 +1329,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::open",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".xlsx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -1217,7 +1343,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::mutate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".xlsx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -1231,7 +1357,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::inspect",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".xlsx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -1245,7 +1371,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::validate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".xlsx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -1259,7 +1385,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::remove",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".xlsx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -1975,6 +2101,90 @@
       "sourceCatalog":"OfficeIMO.Provenance",
       "extensions":[".xlam",".xlsb",".xlsm",".xlsx",".xltm",".xltx"],
       "limitation":"SpreadsheetML and XLSB package identity are validated before mutation."
+    },
+    {
+      "id":"native:excel-openxml:create",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"excel-openxml",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"ExcelDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Excel.Tests create, load, edit, save, and preservation contracts::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
+      "limitation":""
+    },
+    {
+      "id":"native:excel-openxml:read",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"excel-openxml",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"ExcelDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Excel.Tests create, load, edit, save, and preservation contracts::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
+      "limitation":""
+    },
+    {
+      "id":"native:excel-openxml:edit",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"excel-openxml",
+      "operation":"Edit",
+      "state":"Supported",
+      "publicApi":"ExcelDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Excel.Tests create, load, edit, save, and preservation contracts::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
+      "limitation":""
+    },
+    {
+      "id":"native:excel-openxml:preserve",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"excel-openxml",
+      "operation":"Preserve",
+      "state":"Supported",
+      "publicApi":"ExcelDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Excel.Tests create, load, edit, save, and preservation contracts::Preserve",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
+      "limitation":""
+    },
+    {
+      "id":"native:excel-openxml:inspect",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"excel-openxml",
+      "operation":"Inspect",
+      "state":"Supported",
+      "publicApi":"ExcelDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Excel.Tests create, load, edit, save, and preservation contracts::Inspect",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
+      "limitation":""
+    },
+    {
+      "id":"native:excel-openxml:validate",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"excel-openxml",
+      "operation":"Validate",
+      "state":"Supported",
+      "publicApi":"ExcelDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Excel.Tests create, load, edit, save, and preservation contracts::Validate",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
+      "limitation":""
     },
     {
       "id":"legacy:OfficeIMO.Excel.LegacyXls:Excel.Security.Encryption:new-legacy-write",
@@ -5813,6 +6023,76 @@
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
+      "id":"native:html-native:create",
+      "packageId":"OfficeIMO.Html",
+      "formatId":"Html.Native",
+      "targetFormatId":"",
+      "capabilityId":"html-native",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"HtmlConversionDocument.Parse / ToHtml",
+      "evidence":"OfficeIMO.Html.Tests source parsing, editing, serialization, and rendering contracts::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".htm",".html"],
+      "limitation":""
+    },
+    {
+      "id":"native:html-native:read",
+      "packageId":"OfficeIMO.Html",
+      "formatId":"Html.Native",
+      "targetFormatId":"",
+      "capabilityId":"html-native",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"HtmlConversionDocument.Parse / ToHtml",
+      "evidence":"OfficeIMO.Html.Tests source parsing, editing, serialization, and rendering contracts::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".htm",".html"],
+      "limitation":""
+    },
+    {
+      "id":"native:html-native:edit",
+      "packageId":"OfficeIMO.Html",
+      "formatId":"Html.Native",
+      "targetFormatId":"",
+      "capabilityId":"html-native",
+      "operation":"Edit",
+      "state":"Supported",
+      "publicApi":"HtmlConversionDocument.Parse / ToHtml",
+      "evidence":"OfficeIMO.Html.Tests source parsing, editing, serialization, and rendering contracts::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".htm",".html"],
+      "limitation":""
+    },
+    {
+      "id":"native:html-native:preserve",
+      "packageId":"OfficeIMO.Html",
+      "formatId":"Html.Native",
+      "targetFormatId":"",
+      "capabilityId":"html-native",
+      "operation":"Preserve",
+      "state":"Partial",
+      "publicApi":"HtmlConversionDocument.Parse / ToHtml",
+      "evidence":"OfficeIMO.Html.Tests source parsing, editing, serialization, and rendering contracts::Preserve",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".htm",".html"],
+      "limitation":"Unedited source can be retained; semantic edits serialize normalized HTML rather than promising byte identity."
+    },
+    {
+      "id":"native:html-native:inspect",
+      "packageId":"OfficeIMO.Html",
+      "formatId":"Html.Native",
+      "targetFormatId":"",
+      "capabilityId":"html-native",
+      "operation":"Inspect",
+      "state":"Supported",
+      "publicApi":"HtmlConversionDocument.Parse / ToHtml",
+      "evidence":"OfficeIMO.Html.Tests source parsing, editing, serialization, and rendering contracts::Inspect",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".htm",".html"],
+      "limitation":""
+    },
+    {
       "id":"conversion:html-pdf",
       "packageId":"OfficeIMO.Html.Pdf",
       "formatId":"HTML",
@@ -5951,6 +6231,62 @@
       "sourceCatalog":"OfficeIMO.Provenance",
       "extensions":[".markdown",".md"],
       "limitation":"Original BOM-aware UTF encoding is preserved by file mutation."
+    },
+    {
+      "id":"native:markdown-native:create",
+      "packageId":"OfficeIMO.Markdown",
+      "formatId":"Markdown.Native",
+      "targetFormatId":"",
+      "capabilityId":"markdown-native",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"MarkdownDoc.Create / Load / Save / ToMarkdown",
+      "evidence":"OfficeIMO.Markdown.Tests typed-model parse, edit, and render contracts::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".markdown",".md"],
+      "limitation":""
+    },
+    {
+      "id":"native:markdown-native:read",
+      "packageId":"OfficeIMO.Markdown",
+      "formatId":"Markdown.Native",
+      "targetFormatId":"",
+      "capabilityId":"markdown-native",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"MarkdownDoc.Create / Load / Save / ToMarkdown",
+      "evidence":"OfficeIMO.Markdown.Tests typed-model parse, edit, and render contracts::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".markdown",".md"],
+      "limitation":""
+    },
+    {
+      "id":"native:markdown-native:edit",
+      "packageId":"OfficeIMO.Markdown",
+      "formatId":"Markdown.Native",
+      "targetFormatId":"",
+      "capabilityId":"markdown-native",
+      "operation":"Edit",
+      "state":"Supported",
+      "publicApi":"MarkdownDoc.Create / Load / Save / ToMarkdown",
+      "evidence":"OfficeIMO.Markdown.Tests typed-model parse, edit, and render contracts::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".markdown",".md"],
+      "limitation":""
+    },
+    {
+      "id":"native:markdown-native:preserve",
+      "packageId":"OfficeIMO.Markdown",
+      "formatId":"Markdown.Native",
+      "targetFormatId":"",
+      "capabilityId":"markdown-native",
+      "operation":"Preserve",
+      "state":"Partial",
+      "publicApi":"MarkdownDoc.Create / Load / Save / ToMarkdown",
+      "evidence":"OfficeIMO.Markdown.Tests typed-model parse, edit, and render contracts::Preserve",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".markdown",".md"],
+      "limitation":"Semantic edits serialize normalized Markdown; byte-identical source preservation is not promised."
     },
     {
       "id":"conversion:html-markdown",
@@ -6203,6 +6539,76 @@
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".one"],
       "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+    },
+    {
+      "id":"native:onenote-native:create",
+      "packageId":"OfficeIMO.OneNote",
+      "formatId":"OneNote.Native",
+      "targetFormatId":"",
+      "capabilityId":"onenote-native",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"OneNoteSectionReader / OneNoteSectionWriter / OneNotePackageReader / OneNotePackageWriter",
+      "evidence":"OfficeIMO.OneNote.Tests section, notebook, table-of-contents, and package round-trip contracts::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".one",".onepkg",".onetoc2"],
+      "limitation":""
+    },
+    {
+      "id":"native:onenote-native:read",
+      "packageId":"OfficeIMO.OneNote",
+      "formatId":"OneNote.Native",
+      "targetFormatId":"",
+      "capabilityId":"onenote-native",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"OneNoteSectionReader / OneNoteSectionWriter / OneNotePackageReader / OneNotePackageWriter",
+      "evidence":"OfficeIMO.OneNote.Tests section, notebook, table-of-contents, and package round-trip contracts::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".one",".onepkg",".onetoc2"],
+      "limitation":""
+    },
+    {
+      "id":"native:onenote-native:edit",
+      "packageId":"OfficeIMO.OneNote",
+      "formatId":"OneNote.Native",
+      "targetFormatId":"",
+      "capabilityId":"onenote-native",
+      "operation":"Edit",
+      "state":"Supported",
+      "publicApi":"OneNoteSectionReader / OneNoteSectionWriter / OneNotePackageReader / OneNotePackageWriter",
+      "evidence":"OfficeIMO.OneNote.Tests section, notebook, table-of-contents, and package round-trip contracts::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".one",".onepkg",".onetoc2"],
+      "limitation":""
+    },
+    {
+      "id":"native:onenote-native:preserve",
+      "packageId":"OfficeIMO.OneNote",
+      "formatId":"OneNote.Native",
+      "targetFormatId":"",
+      "capabilityId":"onenote-native",
+      "operation":"Preserve",
+      "state":"Supported",
+      "publicApi":"OneNoteSectionReader / OneNoteSectionWriter / OneNotePackageReader / OneNotePackageWriter",
+      "evidence":"OfficeIMO.OneNote.Tests section, notebook, table-of-contents, and package round-trip contracts::Preserve",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".one",".onepkg",".onetoc2"],
+      "limitation":""
+    },
+    {
+      "id":"native:onenote-native:inspect",
+      "packageId":"OfficeIMO.OneNote",
+      "formatId":"OneNote.Native",
+      "targetFormatId":"",
+      "capabilityId":"onenote-native",
+      "operation":"Inspect",
+      "state":"Supported",
+      "publicApi":"OneNoteSectionReader / OneNoteSectionWriter / OneNotePackageReader / OneNotePackageWriter",
+      "evidence":"OfficeIMO.OneNote.Tests section, notebook, table-of-contents, and package round-trip contracts::Inspect",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".one",".onepkg",".onetoc2"],
+      "limitation":""
     },
     {
       "id":"conversion:html-onenote",
@@ -6469,6 +6875,90 @@
       "sourceCatalog":"OfficeIMO.Provenance",
       "extensions":[".odg",".odp",".ods",".odt",".otg",".otp",".ots",".ott"],
       "limitation":"Encrypted OpenDocument packages cannot be rewritten."
+    },
+    {
+      "id":"native:opendocument-native:create",
+      "packageId":"OfficeIMO.OpenDocument",
+      "formatId":"OpenDocument.Native",
+      "targetFormatId":"",
+      "capabilityId":"opendocument-native",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"OdfDocument.Create / Load / Save / Validate",
+      "evidence":"OfficeIMO.OpenDocument.Tests producer-corpus create, load, edit, save, and validation contracts::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".odp",".ods",".odt"],
+      "limitation":""
+    },
+    {
+      "id":"native:opendocument-native:read",
+      "packageId":"OfficeIMO.OpenDocument",
+      "formatId":"OpenDocument.Native",
+      "targetFormatId":"",
+      "capabilityId":"opendocument-native",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"OdfDocument.Create / Load / Save / Validate",
+      "evidence":"OfficeIMO.OpenDocument.Tests producer-corpus create, load, edit, save, and validation contracts::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".odp",".ods",".odt"],
+      "limitation":""
+    },
+    {
+      "id":"native:opendocument-native:edit",
+      "packageId":"OfficeIMO.OpenDocument",
+      "formatId":"OpenDocument.Native",
+      "targetFormatId":"",
+      "capabilityId":"opendocument-native",
+      "operation":"Edit",
+      "state":"Supported",
+      "publicApi":"OdfDocument.Create / Load / Save / Validate",
+      "evidence":"OfficeIMO.OpenDocument.Tests producer-corpus create, load, edit, save, and validation contracts::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".odp",".ods",".odt"],
+      "limitation":""
+    },
+    {
+      "id":"native:opendocument-native:preserve",
+      "packageId":"OfficeIMO.OpenDocument",
+      "formatId":"OpenDocument.Native",
+      "targetFormatId":"",
+      "capabilityId":"opendocument-native",
+      "operation":"Preserve",
+      "state":"Supported",
+      "publicApi":"OdfDocument.Create / Load / Save / Validate",
+      "evidence":"OfficeIMO.OpenDocument.Tests producer-corpus create, load, edit, save, and validation contracts::Preserve",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".odp",".ods",".odt"],
+      "limitation":""
+    },
+    {
+      "id":"native:opendocument-native:inspect",
+      "packageId":"OfficeIMO.OpenDocument",
+      "formatId":"OpenDocument.Native",
+      "targetFormatId":"",
+      "capabilityId":"opendocument-native",
+      "operation":"Inspect",
+      "state":"Supported",
+      "publicApi":"OdfDocument.Create / Load / Save / Validate",
+      "evidence":"OfficeIMO.OpenDocument.Tests producer-corpus create, load, edit, save, and validation contracts::Inspect",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".odp",".ods",".odt"],
+      "limitation":""
+    },
+    {
+      "id":"native:opendocument-native:validate",
+      "packageId":"OfficeIMO.OpenDocument",
+      "formatId":"OpenDocument.Native",
+      "targetFormatId":"",
+      "capabilityId":"opendocument-native",
+      "operation":"Validate",
+      "state":"Supported",
+      "publicApi":"OdfDocument.Create / Load / Save / Validate",
+      "evidence":"OfficeIMO.OpenDocument.Tests producer-corpus create, load, edit, save, and validation contracts::Validate",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".odp",".ods",".odt"],
+      "limitation":""
     },
     {
       "id":"conversion:odp-pdf",
@@ -6751,6 +7241,90 @@
       "limitation":"Image output is intentionally flattened; Type 3 glyph programs, advanced color profiles, patterns, masks, transparency groups, optional content, and scanned-text OCR remain incomplete."
     },
     {
+      "id":"native:pdf-native:create",
+      "packageId":"OfficeIMO.Pdf",
+      "formatId":"Pdf.Native",
+      "targetFormatId":"",
+      "capabilityId":"pdf-native",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"PdfDocument.Create / Load / Save / Inspect",
+      "evidence":"OfficeIMO.Pdf.Tests authoritative interoperability read, render, diagnostics, and mutation contracts::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".pdf"],
+      "limitation":""
+    },
+    {
+      "id":"native:pdf-native:read",
+      "packageId":"OfficeIMO.Pdf",
+      "formatId":"Pdf.Native",
+      "targetFormatId":"",
+      "capabilityId":"pdf-native",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"PdfDocument.Create / Load / Save / Inspect",
+      "evidence":"OfficeIMO.Pdf.Tests authoritative interoperability read, render, diagnostics, and mutation contracts::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".pdf"],
+      "limitation":""
+    },
+    {
+      "id":"native:pdf-native:edit",
+      "packageId":"OfficeIMO.Pdf",
+      "formatId":"Pdf.Native",
+      "targetFormatId":"",
+      "capabilityId":"pdf-native",
+      "operation":"Edit",
+      "state":"Supported",
+      "publicApi":"PdfDocument.Create / Load / Save / Inspect",
+      "evidence":"OfficeIMO.Pdf.Tests authoritative interoperability read, render, diagnostics, and mutation contracts::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".pdf"],
+      "limitation":""
+    },
+    {
+      "id":"native:pdf-native:preserve",
+      "packageId":"OfficeIMO.Pdf",
+      "formatId":"Pdf.Native",
+      "targetFormatId":"",
+      "capabilityId":"pdf-native",
+      "operation":"Preserve",
+      "state":"Partial",
+      "publicApi":"PdfDocument.Create / Load / Save / Inspect",
+      "evidence":"OfficeIMO.Pdf.Tests authoritative interoperability read, render, diagnostics, and mutation contracts::Preserve",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".pdf"],
+      "limitation":"Mutation and preservation depend on the parsed feature set and declared incremental or rewrite policy."
+    },
+    {
+      "id":"native:pdf-native:inspect",
+      "packageId":"OfficeIMO.Pdf",
+      "formatId":"Pdf.Native",
+      "targetFormatId":"",
+      "capabilityId":"pdf-native",
+      "operation":"Inspect",
+      "state":"Supported",
+      "publicApi":"PdfDocument.Create / Load / Save / Inspect",
+      "evidence":"OfficeIMO.Pdf.Tests authoritative interoperability read, render, diagnostics, and mutation contracts::Inspect",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".pdf"],
+      "limitation":""
+    },
+    {
+      "id":"native:pdf-native:validate",
+      "packageId":"OfficeIMO.Pdf",
+      "formatId":"Pdf.Native",
+      "targetFormatId":"",
+      "capabilityId":"pdf-native",
+      "operation":"Validate",
+      "state":"Supported",
+      "publicApi":"PdfDocument.Create / Load / Save / Inspect",
+      "evidence":"OfficeIMO.Pdf.Tests authoritative interoperability read, render, diagnostics, and mutation contracts::Validate",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".pdf"],
+      "limitation":""
+    },
+    {
       "id":"protection:vba-signature:powerpoint:create",
       "packageId":"OfficeIMO.PowerPoint",
       "formatId":"DOCM/XLSM/XLSB/PPTM families",
@@ -6761,7 +7335,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::create",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".pptm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -6775,7 +7349,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::open",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".pptm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -6789,7 +7363,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::mutate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".pptm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -6803,7 +7377,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::inspect",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".pptm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -6817,7 +7391,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::validate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".pptm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -6831,7 +7405,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::remove",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".pptm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -6845,7 +7419,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::create",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".pptx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -6859,7 +7433,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::open",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".pptx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -6873,7 +7447,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::mutate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".pptx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -6887,7 +7461,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::inspect",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".pptx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -6901,7 +7475,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::validate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".pptx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -6915,7 +7489,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::remove",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".pptx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -6929,7 +7503,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::create",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".pptx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -6943,7 +7517,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::open",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".pptx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -6957,7 +7531,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::mutate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".pptx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -6971,7 +7545,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::inspect",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".pptx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -6985,7 +7559,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::validate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".pptx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -6999,7 +7573,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::remove",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".pptx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -7981,6 +8555,90 @@
       "sourceCatalog":"OfficeIMO.Provenance",
       "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
       "limitation":"Package signatures block mutation unless removal is explicitly authorized."
+    },
+    {
+      "id":"native:powerpoint-openxml:create",
+      "packageId":"OfficeIMO.PowerPoint",
+      "formatId":"PowerPoint.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"powerpoint-openxml",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"PowerPointPresentation.Create / Load / Save",
+      "evidence":"OfficeIMO.PowerPoint.Tests create, load, edit, save, and preservation contracts::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
+      "limitation":""
+    },
+    {
+      "id":"native:powerpoint-openxml:read",
+      "packageId":"OfficeIMO.PowerPoint",
+      "formatId":"PowerPoint.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"powerpoint-openxml",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"PowerPointPresentation.Create / Load / Save",
+      "evidence":"OfficeIMO.PowerPoint.Tests create, load, edit, save, and preservation contracts::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
+      "limitation":""
+    },
+    {
+      "id":"native:powerpoint-openxml:edit",
+      "packageId":"OfficeIMO.PowerPoint",
+      "formatId":"PowerPoint.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"powerpoint-openxml",
+      "operation":"Edit",
+      "state":"Supported",
+      "publicApi":"PowerPointPresentation.Create / Load / Save",
+      "evidence":"OfficeIMO.PowerPoint.Tests create, load, edit, save, and preservation contracts::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
+      "limitation":""
+    },
+    {
+      "id":"native:powerpoint-openxml:preserve",
+      "packageId":"OfficeIMO.PowerPoint",
+      "formatId":"PowerPoint.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"powerpoint-openxml",
+      "operation":"Preserve",
+      "state":"Supported",
+      "publicApi":"PowerPointPresentation.Create / Load / Save",
+      "evidence":"OfficeIMO.PowerPoint.Tests create, load, edit, save, and preservation contracts::Preserve",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
+      "limitation":""
+    },
+    {
+      "id":"native:powerpoint-openxml:inspect",
+      "packageId":"OfficeIMO.PowerPoint",
+      "formatId":"PowerPoint.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"powerpoint-openxml",
+      "operation":"Inspect",
+      "state":"Supported",
+      "publicApi":"PowerPointPresentation.Create / Load / Save",
+      "evidence":"OfficeIMO.PowerPoint.Tests create, load, edit, save, and preservation contracts::Inspect",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
+      "limitation":""
+    },
+    {
+      "id":"native:powerpoint-openxml:validate",
+      "packageId":"OfficeIMO.PowerPoint",
+      "formatId":"PowerPoint.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"powerpoint-openxml",
+      "operation":"Validate",
+      "state":"Supported",
+      "publicApi":"PowerPointPresentation.Create / Load / Save",
+      "evidence":"OfficeIMO.PowerPoint.Tests create, load, edit, save, and preservation contracts::Validate",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
+      "limitation":""
     },
     {
       "id":"legacy:OfficeIMO.PowerPoint.LegacyPpt:PowerPoint.Ppt.AccessibilityMetadata:new-legacy-write",
@@ -12169,6 +12827,76 @@
       "limitation":"RTF protection flags restrict editing but do not encrypt content."
     },
     {
+      "id":"native:rtf-native:create",
+      "packageId":"OfficeIMO.Rtf",
+      "formatId":"Rtf.Native",
+      "targetFormatId":"",
+      "capabilityId":"rtf-native",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"RtfDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Rtf.Tests producer-corpus parsing, editing, preservation, and deterministic-write contracts::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".rtf"],
+      "limitation":""
+    },
+    {
+      "id":"native:rtf-native:read",
+      "packageId":"OfficeIMO.Rtf",
+      "formatId":"Rtf.Native",
+      "targetFormatId":"",
+      "capabilityId":"rtf-native",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"RtfDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Rtf.Tests producer-corpus parsing, editing, preservation, and deterministic-write contracts::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".rtf"],
+      "limitation":""
+    },
+    {
+      "id":"native:rtf-native:edit",
+      "packageId":"OfficeIMO.Rtf",
+      "formatId":"Rtf.Native",
+      "targetFormatId":"",
+      "capabilityId":"rtf-native",
+      "operation":"Edit",
+      "state":"Supported",
+      "publicApi":"RtfDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Rtf.Tests producer-corpus parsing, editing, preservation, and deterministic-write contracts::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".rtf"],
+      "limitation":""
+    },
+    {
+      "id":"native:rtf-native:preserve",
+      "packageId":"OfficeIMO.Rtf",
+      "formatId":"Rtf.Native",
+      "targetFormatId":"",
+      "capabilityId":"rtf-native",
+      "operation":"Preserve",
+      "state":"Supported",
+      "publicApi":"RtfDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Rtf.Tests producer-corpus parsing, editing, preservation, and deterministic-write contracts::Preserve",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".rtf"],
+      "limitation":""
+    },
+    {
+      "id":"native:rtf-native:inspect",
+      "packageId":"OfficeIMO.Rtf",
+      "formatId":"Rtf.Native",
+      "targetFormatId":"",
+      "capabilityId":"rtf-native",
+      "operation":"Inspect",
+      "state":"Supported",
+      "publicApi":"RtfDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Rtf.Tests producer-corpus parsing, editing, preservation, and deterministic-write contracts::Inspect",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".rtf"],
+      "limitation":""
+    },
+    {
       "id":"conversion:markdown-rtf",
       "packageId":"OfficeIMO.Rtf.Markdown",
       "formatId":"Markdown",
@@ -12235,7 +12963,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::create",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".vsdm",".vsdx",".vssm",".vssx",".vstm",".vstx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -12249,7 +12977,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::open",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".vsdm",".vsdx",".vssm",".vssx",".vstm",".vstx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -12263,7 +12991,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::mutate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".vsdm",".vsdx",".vssm",".vssx",".vstm",".vstx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -12277,7 +13005,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::inspect",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".vsdm",".vsdx",".vssm",".vssx",".vstm",".vstx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -12291,7 +13019,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::validate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".vsdm",".vsdx",".vssm",".vssx",".vstm",".vstx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -12305,7 +13033,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::remove",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".vsdm",".vsdx",".vssm",".vssx",".vstm",".vstx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -12421,6 +13149,90 @@
       "limitation":"Package signatures block mutation unless removal is explicitly authorized."
     },
     {
+      "id":"native:visio-openxml:create",
+      "packageId":"OfficeIMO.Visio",
+      "formatId":"Visio.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"visio-openxml",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"VisioDocument.Create / Load / Save; VisioValidator",
+      "evidence":"OfficeIMO.Visio.Tests create, load, edit, save, inspect, and validation contracts::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".vsdm",".vsdx",".vssm",".vssx",".vstm",".vstx"],
+      "limitation":""
+    },
+    {
+      "id":"native:visio-openxml:read",
+      "packageId":"OfficeIMO.Visio",
+      "formatId":"Visio.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"visio-openxml",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"VisioDocument.Create / Load / Save; VisioValidator",
+      "evidence":"OfficeIMO.Visio.Tests create, load, edit, save, inspect, and validation contracts::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".vsdm",".vsdx",".vssm",".vssx",".vstm",".vstx"],
+      "limitation":""
+    },
+    {
+      "id":"native:visio-openxml:edit",
+      "packageId":"OfficeIMO.Visio",
+      "formatId":"Visio.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"visio-openxml",
+      "operation":"Edit",
+      "state":"Supported",
+      "publicApi":"VisioDocument.Create / Load / Save; VisioValidator",
+      "evidence":"OfficeIMO.Visio.Tests create, load, edit, save, inspect, and validation contracts::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".vsdm",".vsdx",".vssm",".vssx",".vstm",".vstx"],
+      "limitation":""
+    },
+    {
+      "id":"native:visio-openxml:preserve",
+      "packageId":"OfficeIMO.Visio",
+      "formatId":"Visio.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"visio-openxml",
+      "operation":"Preserve",
+      "state":"Supported",
+      "publicApi":"VisioDocument.Create / Load / Save; VisioValidator",
+      "evidence":"OfficeIMO.Visio.Tests create, load, edit, save, inspect, and validation contracts::Preserve",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".vsdm",".vsdx",".vssm",".vssx",".vstm",".vstx"],
+      "limitation":""
+    },
+    {
+      "id":"native:visio-openxml:inspect",
+      "packageId":"OfficeIMO.Visio",
+      "formatId":"Visio.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"visio-openxml",
+      "operation":"Inspect",
+      "state":"Supported",
+      "publicApi":"VisioDocument.Create / Load / Save; VisioValidator",
+      "evidence":"OfficeIMO.Visio.Tests create, load, edit, save, inspect, and validation contracts::Inspect",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".vsdm",".vsdx",".vssm",".vssx",".vstm",".vstx"],
+      "limitation":""
+    },
+    {
+      "id":"native:visio-openxml:validate",
+      "packageId":"OfficeIMO.Visio",
+      "formatId":"Visio.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"visio-openxml",
+      "operation":"Validate",
+      "state":"Supported",
+      "publicApi":"VisioDocument.Create / Load / Save; VisioValidator",
+      "evidence":"OfficeIMO.Visio.Tests create, load, edit, save, inspect, and validation contracts::Validate",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".vsdm",".vsdx",".vssm",".vssx",".vstm",".vstx"],
+      "limitation":""
+    },
+    {
       "id":"conversion:visio-pdf",
       "packageId":"OfficeIMO.Visio.Pdf",
       "formatId":"Visio",
@@ -12529,7 +13341,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::create",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".docm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -12543,7 +13355,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::open",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".docm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -12557,7 +13369,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::mutate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".docm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -12571,7 +13383,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::inspect",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".docm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -12585,7 +13397,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::validate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".docm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -12599,7 +13411,7 @@
       "publicApi":"InspectVbaSignatures / SignVbaProject",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::vba-signature::remove",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docm",".pptm",".xlsb",".xlsm"],
+      "extensions":[".docm"],
       "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
     },
     {
@@ -12683,7 +13495,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::create",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".docx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -12697,7 +13509,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::open",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".docx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -12711,7 +13523,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::mutate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".docx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -12725,7 +13537,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::inspect",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".docx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -12739,7 +13551,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::validate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".docx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -12753,7 +13565,7 @@
       "publicApi":"format load/save password APIs",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::ooxml-password::remove",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".xlsx"],
+      "extensions":[".docx"],
       "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
     },
     {
@@ -12767,7 +13579,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::create",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".docx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -12781,7 +13593,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::open",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".docx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -12795,7 +13607,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::mutate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".docx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -12809,7 +13621,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::inspect",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".docx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -12823,7 +13635,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::validate",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".docx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -12837,7 +13649,7 @@
       "publicApi":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "evidence":"OfficeProtectionCapabilityCatalog.Current::opc-package-signature::remove",
       "sourceCatalog":"OfficeIMO.ProtectedContent",
-      "extensions":[".docx",".pptx",".vsdx",".xlsx"],
+      "extensions":[".docx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
     },
     {
@@ -15653,6 +16465,90 @@
       "sourceCatalog":"OfficeIMO.Word.LegacyDoc",
       "extensions":[".doc"],
       "limitation":"Common and tested paragraph properties map natively; unsupported properties are preflight-blocked."
+    },
+    {
+      "id":"native:word-openxml:create",
+      "packageId":"OfficeIMO.Word",
+      "formatId":"Word.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"word-openxml",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"WordDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Word.Tests create, load, edit, save, and preservation contracts::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".docm",".docx",".dotm",".dotx"],
+      "limitation":""
+    },
+    {
+      "id":"native:word-openxml:read",
+      "packageId":"OfficeIMO.Word",
+      "formatId":"Word.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"word-openxml",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"WordDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Word.Tests create, load, edit, save, and preservation contracts::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".docm",".docx",".dotm",".dotx"],
+      "limitation":""
+    },
+    {
+      "id":"native:word-openxml:edit",
+      "packageId":"OfficeIMO.Word",
+      "formatId":"Word.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"word-openxml",
+      "operation":"Edit",
+      "state":"Supported",
+      "publicApi":"WordDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Word.Tests create, load, edit, save, and preservation contracts::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".docm",".docx",".dotm",".dotx"],
+      "limitation":""
+    },
+    {
+      "id":"native:word-openxml:preserve",
+      "packageId":"OfficeIMO.Word",
+      "formatId":"Word.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"word-openxml",
+      "operation":"Preserve",
+      "state":"Supported",
+      "publicApi":"WordDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Word.Tests create, load, edit, save, and preservation contracts::Preserve",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".docm",".docx",".dotm",".dotx"],
+      "limitation":""
+    },
+    {
+      "id":"native:word-openxml:inspect",
+      "packageId":"OfficeIMO.Word",
+      "formatId":"Word.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"word-openxml",
+      "operation":"Inspect",
+      "state":"Supported",
+      "publicApi":"WordDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Word.Tests create, load, edit, save, and preservation contracts::Inspect",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".docm",".docx",".dotm",".dotx"],
+      "limitation":""
+    },
+    {
+      "id":"native:word-openxml:validate",
+      "packageId":"OfficeIMO.Word",
+      "formatId":"Word.OpenXml",
+      "targetFormatId":"",
+      "capabilityId":"word-openxml",
+      "operation":"Validate",
+      "state":"Supported",
+      "publicApi":"WordDocument.Create / Load / Save",
+      "evidence":"OfficeIMO.Word.Tests create, load, edit, save, and preservation contracts::Validate",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".docm",".docx",".dotm",".dotx"],
+      "limitation":""
     },
     {
       "id":"conversion:docx-google-docs",

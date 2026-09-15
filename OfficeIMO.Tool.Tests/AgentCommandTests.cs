@@ -356,4 +356,47 @@ public sealed class AgentCommandTests {
         Assert.Equal(result.Operations.Count, result.OperationReturned);
         Assert.True(AgentJson.Serialize(result).Length <= 24_000);
     }
+
+    [Fact]
+    public void CapabilitiesPagesEveryUnfilteredOperationWithoutDroppingTheSuffix() {
+        var service = new OfficeImoAgentService();
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        int cursor = 0;
+        int? total = null;
+
+        do {
+            AgentCapabilitiesResult page = service.Capabilities(
+                operation: "create",
+                maxOutputCharacters: 4_000,
+                cursor: cursor);
+
+            total ??= page.OperationTotal;
+            Assert.Equal(total.Value, page.OperationTotal);
+            Assert.Equal(cursor, page.OperationCursor);
+            Assert.Equal(page.Operations.Count, page.OperationReturned);
+            Assert.NotEmpty(page.Operations);
+            Assert.All(page.Operations, row => Assert.True(ids.Add(row.Id), "Duplicate operation id: " + row.Id));
+            cursor = page.OperationNextCursor ?? page.OperationTotal;
+        } while (cursor < total!.Value);
+
+        Assert.Equal(total, ids.Count);
+    }
+
+    [Fact]
+    public async Task CliCapabilitiesAcceptsTheReturnedOperationCursor() {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await AgentCommand.RunAsync(
+            ["capabilities", "--operation", "create", "--cursor", "1", "--max-output-characters", "4000"],
+            output,
+            error);
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal(string.Empty, error.ToString());
+        using JsonDocument json = JsonDocument.Parse(output.ToString());
+        Assert.Equal(1, json.RootElement.GetProperty("operationCursor").GetInt32());
+        Assert.True(json.RootElement.GetProperty("operationTotal").GetInt32() > 1);
+        Assert.True(json.RootElement.GetProperty("operationReturned").GetInt32() > 0);
+    }
 }

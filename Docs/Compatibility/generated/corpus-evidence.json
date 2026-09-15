@@ -3,14 +3,15 @@
   "generatedFrom": "Build/CorpusEvidence/corpus-evidence.json",
   "summary": {
     "corpusCount": 5,
-    "recordCount": 62
+    "recordCount": 62,
+    "verifiedArtifactCount": 89
   },
   "corpora": [
     {
       "id": "office-binary-interoperability",
       "owner": "OfficeIMO.TestAssets",
       "manifest": "OfficeIMO.TestAssets/Documents/OfficeInteroperabilityCorpus/corpus-manifest.json",
-      "manifestSha256": "8f1e71581709f75af3fe0866b968331b3fa0e895a1c7cf69119c52c9661a48cc",
+      "manifestSha256": "0072fc1b9ee59bf89843cf26ddae9ddb06e17077e195ea1be9936aa18128a366",
       "recordCount": 7,
       "diffPolicy": {
         "kind": "package-and-semantic",
@@ -33,7 +34,7 @@
       "id": "word-evidence",
       "owner": "OfficeIMO.Word",
       "manifest": "OfficeIMO.TestAssets/Documents/Word/EvidenceCorpus/corpus-manifest.json",
-      "manifestSha256": "a0a3dc2486a14f313c7d129738bcb32237e2f2c803cd56ffa66f7500bf99cbae",
+      "manifestSha256": "28a34e5bd59b141e2b730ea5b7a87f871d9623e5a44f69bf69c4fbf6057e51aa",
       "recordCount": 10,
       "diffPolicy": {
         "kind": "package-and-semantic",
@@ -56,7 +57,7 @@
       "id": "open-document-producers",
       "owner": "OfficeIMO.OpenDocument",
       "manifest": "OfficeIMO.OpenDocument.Tests/Fixtures/producer-manifest.json",
-      "manifestSha256": "53cd71f85c2978d2e89e05ade2151a69192e5e8c25472c20999df2609544154a",
+      "manifestSha256": "825861587bf502d8f09b63e75c069d9589c7d6dddc676bfd41fc783db1ce4af8",
       "recordCount": 7,
       "diffPolicy": {
         "kind": "package-and-semantic",
@@ -78,7 +79,7 @@
       "id": "rtf-producers",
       "owner": "OfficeIMO.Rtf",
       "manifest": "OfficeIMO.Rtf.Tests/Documents/RtfCorpus/corpus-manifest.json",
-      "manifestSha256": "da61de8b90aa3dac89a19d5b5716a29de01f8ff361eb811682834a03a434b25b",
+      "manifestSha256": "42749cdc68a697b001e3f1a583ae4eb485b2d379aea0f699a3c67947cd863205",
       "recordCount": 24,
       "diffPolicy": {
         "kind": "package-and-semantic",
@@ -100,7 +101,7 @@
       "id": "pdf-interoperability",
       "owner": "OfficeIMO.Pdf",
       "manifest": "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/corpus-manifest.json",
-      "manifestSha256": "35b002fe29a555712e600d9889cadeda6589d43973510f420fd99207acc9975f",
+      "manifestSha256": "bf37abf6ffefca16cf880d6b7cff09213bbc4f39bfc1b320a9212b44df8f73fb",
       "recordCount": 14,
       "diffPolicy": {
         "kind": "package-and-semantic",

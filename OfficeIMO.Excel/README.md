@@ -924,12 +924,12 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 20 | 13 | 0 | 15 | 2 | 2 |
-| Read | 33 | 0 | 17 | 0 | 0 | 2 |
-| Edit | 10 | 0 | 39 | 2 | 1 | 0 |
-| Preserve | 9 | 0 | 39 | 0 | 0 | 0 |
-| Inspect | 5 | 0 | 0 | 0 | 0 | 0 |
-| Validate | 3 | 0 | 0 | 0 | 0 | 2 |
+| Create | 21 | 13 | 0 | 15 | 2 | 2 |
+| Read | 34 | 0 | 17 | 0 | 0 | 2 |
+| Edit | 11 | 0 | 39 | 2 | 1 | 0 |
+| Preserve | 10 | 0 | 39 | 0 | 0 | 0 |
+| Inspect | 6 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 4 | 0 | 0 | 0 | 0 | 2 |
 | Remove | 4 | 0 | 0 | 0 | 1 | 0 |
 | Convert | 48 | 39 | 0 | 9 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |

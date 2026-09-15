@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO Format and Operation Compatibility"
-description: "Check package-owned create, read, edit, preserve, inspect, validate, remove, convert, and export outcomes together with detailed Word, Excel, and PowerPoint format fidelity."
+description: "Check package-owned document operations and detailed Word, Excel, and PowerPoint format fidelity in one generated compatibility view."
 layout: compatibility
 slug: compatibility
 meta.social_card_badge: "Format compatibility"

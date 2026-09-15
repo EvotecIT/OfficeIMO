@@ -501,10 +501,11 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 2 | 0 | 0 | 0 | 3 | 0 |
-| Read | 5 | 0 | 0 | 0 | 0 | 0 |
-| Edit | 0 | 0 | 4 | 1 | 0 | 0 |
-| Inspect | 5 | 0 | 0 | 0 | 0 | 0 |
+| Create | 3 | 0 | 0 | 0 | 3 | 0 |
+| Read | 6 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 1 | 0 | 4 | 1 | 0 | 0 |
+| Preserve | 0 | 1 | 0 | 0 | 0 | 0 |
+| Inspect | 6 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 2 | 0 | 0 | 0 | 0 | 3 |
 | Remove | 0 | 0 | 0 | 0 | 1 | 4 |
 

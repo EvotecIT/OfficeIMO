@@ -336,7 +336,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     : "managed-parse-failed") + ";pixels=" + pixels,
                 OfficeConversionLossKind.Approximation);
             return true;
-        } catch (Exception exception) when (exception is not OperationCanceledException && exception is not OutOfMemoryException && exception is not StackOverflowException) {
+        } catch (Exception exception) when (exception is not OperationCanceledException &&
+                                            exception is not OfficeImageExportBatchLimitException &&
+                                            exception is not OutOfMemoryException &&
+                                            exception is not StackOverflowException) {
             return false;
         }
     }

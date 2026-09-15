@@ -139,8 +139,13 @@ internal sealed partial class OfficeImoAgentService {
     internal AgentCapabilitiesResult Capabilities(
         string? extension = null,
         string operation = "read",
-        int maxOutputCharacters = DefaultCapabilitiesOutputCharacters) {
+        int maxOutputCharacters = DefaultCapabilitiesOutputCharacters,
+        int cursor = 0) {
         maxOutputCharacters = ValidateOutputBudget(maxOutputCharacters);
+        if (cursor < 0 || cursor > MaximumSearchCursor) {
+            throw new AgentUsageException(
+                "Capabilities cursor must be between 0 and " + MaximumSearchCursor + ".");
+        }
         operation = NormalizeOperation(operation);
         string? normalizedExtension = NormalizeExtension(extension);
         OfficeDocumentReader reader = CreateReader();
@@ -163,11 +168,12 @@ internal sealed partial class OfficeImoAgentService {
             })
             .ToList();
         OfficeOperationKind? operationKind = GetCatalogOperation(operation);
-        var operations = operationKind.HasValue
+        var allOperations = operationKind.HasValue
             ? OfficeOperationCapabilityCatalog.All
                 .Where(row => row.Operation == operationKind.Value)
                 .Where(row => normalizedExtension == null ||
                     row.Extensions.Contains(normalizedExtension, StringComparer.OrdinalIgnoreCase))
+                .OrderBy(row => row.Id, StringComparer.Ordinal)
                 .Select(row => new AgentOperationCapabilitySummary {
                     Id = row.Id,
                     PackageId = row.PackageId,
@@ -183,6 +189,8 @@ internal sealed partial class OfficeImoAgentService {
                 })
                 .ToList()
             : new List<AgentOperationCapabilitySummary>();
+        int operationTotal = allOperations.Count;
+        var operations = allOperations.Skip(cursor).ToList();
         var conversions = operation == "convert"
             ? OfficeConversionCapabilityCatalog.AgentRoutes
                 .Where(route => normalizedExtension == null ||
@@ -207,22 +215,37 @@ internal sealed partial class OfficeImoAgentService {
             Operation = operation,
             Returned = capabilities.Count,
             Capabilities = capabilities,
+            OperationTotal = operationTotal,
+            OperationCursor = cursor,
+            OperationNextCursor = cursor + operations.Count < operationTotal
+                ? cursor + operations.Count
+                : null,
             OperationReturned = operations.Count,
             Operations = operations,
             ConversionReturned = conversions.Count,
             Conversions = conversions
         };
+        result.Truncated = cursor > 0 || result.OperationNextCursor.HasValue;
         while (AgentJson.Measure(result) > maxOutputCharacters &&
                (operations.Count > 0 || conversions.Count > 0 || capabilities.Count > 0)) {
-            if (operations.Count > 0) {
+            if (normalizedExtension != null && operations.Count > 0) {
                 operations.RemoveAt(operations.Count - 1);
                 result.OperationReturned = operations.Count;
+                result.OperationNextCursor = cursor + operations.Count < operationTotal
+                    ? cursor + operations.Count
+                    : null;
             } else if (conversions.Count > 0) {
                 conversions.RemoveAt(conversions.Count - 1);
                 result.ConversionReturned = conversions.Count;
-            } else {
+            } else if (capabilities.Count > 0) {
                 capabilities.RemoveAt(capabilities.Count - 1);
                 result.Returned = capabilities.Count;
+            } else {
+                operations.RemoveAt(operations.Count - 1);
+                result.OperationReturned = operations.Count;
+                result.OperationNextCursor = cursor + operations.Count < operationTotal
+                    ? cursor + operations.Count
+                    : null;
             }
             result.Truncated = true;
         }

@@ -168,11 +168,12 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 2 | 0 | 0 | 0 | 0 | 0 |
-| Read | 1 | 0 | 0 | 0 | 0 | 1 |
-| Edit | 1 | 0 | 0 | 1 | 0 | 0 |
-| Inspect | 3 | 0 | 0 | 0 | 0 | 0 |
-| Validate | 2 | 0 | 0 | 0 | 0 | 1 |
+| Create | 3 | 0 | 0 | 0 | 0 | 0 |
+| Read | 2 | 0 | 0 | 0 | 0 | 1 |
+| Edit | 2 | 0 | 0 | 1 | 0 | 0 |
+| Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
+| Inspect | 4 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 3 | 0 | 0 | 0 | 0 | 1 |
 | Remove | 3 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.OpenDocument` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

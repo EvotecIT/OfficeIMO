@@ -411,6 +411,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImages_CallerCodecSvgFallbackPropagatesTheEncodedByteBudget() {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 4'><rect width='10' height='4' fill='red' filter='url(#blur)'/></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
+        string html = "<img src='data:image/svg+xml;base64," + data + "' style='width:100px;height:40px'>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D),
+            ImageCodec = new SvgFallbackCodec(),
+            MaximumTotalEncodedBytes = 16
+        };
+
+        OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options));
+
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+        Assert.Equal(16, exception.Maximum);
+    }
+
+    [Fact]
     public void HtmlImages_UsesCallerCodecWhenManagedSvgParsingFails() {
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes("<svg-not-supported-by-managed-reader/>"));
         string html = "<img id='codec-svg' src='data:image/svg+xml;base64," + data + "' style='width:50px;height:20px'>";

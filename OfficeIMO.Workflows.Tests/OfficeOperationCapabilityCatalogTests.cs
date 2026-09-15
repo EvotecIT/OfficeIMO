@@ -55,6 +55,48 @@ public sealed class OfficeOperationCapabilityCatalogTests {
         });
     }
 
+    [Theory]
+    [InlineData(".docx", "OfficeIMO.Word")]
+    [InlineData(".xlsx", "OfficeIMO.Excel")]
+    [InlineData(".pptx", "OfficeIMO.PowerPoint")]
+    [InlineData(".vsdx", "OfficeIMO.Visio")]
+    public void ProtectionRowsExposeOnlyExtensionsOwnedByTheirPackage(string extension, string packageId) {
+        OfficeOperationCapability[] rows = OfficeOperationCapabilityCatalog.FindByExtension(extension)
+            .Where(row => row.Id.StartsWith("protection:", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.NotEmpty(rows);
+        Assert.All(rows, row => Assert.Equal(packageId, row.PackageId));
+    }
+
+    [Theory]
+    [InlineData(".docx", "OfficeIMO.Word")]
+    [InlineData(".xlsx", "OfficeIMO.Excel")]
+    [InlineData(".pptx", "OfficeIMO.PowerPoint")]
+    [InlineData(".vsdx", "OfficeIMO.Visio")]
+    [InlineData(".one", "OfficeIMO.OneNote")]
+    public void NativeFormatsPublishCreateReadAndEditLifecycle(string extension, string packageId) {
+        IReadOnlyList<OfficeOperationCapability> rows = OfficeOperationCapabilityCatalog.FindByExtension(extension);
+
+        Assert.All(new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit }, operation =>
+            Assert.Contains(rows, row =>
+                row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
+                row.PackageId == packageId &&
+                row.Operation == operation &&
+                row.State == OfficeOperationSupportState.Supported));
+    }
+
+    [Fact]
+    public void EpubLifecycleDoesNotOverstateAuthoringSupport() {
+        IReadOnlyList<OfficeOperationCapability> rows = OfficeOperationCapabilityCatalog.FindByExtension(".epub");
+
+        Assert.Contains(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
+            row.Operation == OfficeOperationKind.Read && row.State == OfficeOperationSupportState.Supported);
+        Assert.All(new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit }, operation =>
+            Assert.Contains(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
+                row.Operation == operation && row.State == OfficeOperationSupportState.Unsupported));
+    }
+
     [Fact]
     public void CatalogSerializesDeterministicallyAndFiltersByExtension() {
         string first = OfficeOperationCapabilityCatalog.ToJson();

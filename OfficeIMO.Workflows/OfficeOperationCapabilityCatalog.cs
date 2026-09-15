@@ -8,7 +8,7 @@ namespace OfficeIMO.Workflows;
 /// <summary>
 /// Canonical package-neutral operation catalog projected from the detailed OfficeIMO capability owners.
 /// </summary>
-public static class OfficeOperationCapabilityCatalog {
+public static partial class OfficeOperationCapabilityCatalog {
     /// <summary>Stable catalog identifier.</summary>
     public const string Id = "OfficeIMO.Operations";
 
@@ -38,6 +38,7 @@ public static class OfficeOperationCapabilityCatalog {
     private static OfficeOperationCapability[] CreateRows() {
         var rows = new List<OfficeOperationCapability>();
 
+        AddNativeLifecycleRows(rows);
         AddLegacyCatalog(rows, "OfficeIMO.Word", "Word", "WordCompatibilityCatalog.Current",
             WordCompatibilityCatalog.Current, WordFormatCatalog.All);
         AddLegacyCatalog(rows, "OfficeIMO.Excel", "Excel", "ExcelCompatibilityCatalog.Xls",
@@ -143,8 +144,10 @@ public static class OfficeOperationCapabilityCatalog {
     private static void AddProtectionRows(ICollection<OfficeOperationCapability> rows) {
         foreach (OfficeProtectionCapability capability in OfficeProtectionCapabilityCatalog.Current.Capabilities) {
             string[] packages = ProtectionPackages(capability).ToArray();
-            string[] extensions = FormatExtensions(capability.FormatId).ToArray();
             foreach (string packageId in packages) {
+                string[] extensions = FormatExtensions(capability.FormatId)
+                    .Where(extension => PackageOwnsExtension(packageId, extension))
+                    .ToArray();
                 AddProtectionRow(rows, capability, packageId, OfficeOperationKind.Inspect, capability.Inspect, extensions, "inspect");
                 AddProtectionRow(rows, capability, packageId, OfficeOperationKind.Read, capability.Open, extensions, "open");
                 AddProtectionRow(rows, capability, packageId, OfficeOperationKind.Create, capability.Create, extensions, "create");
@@ -254,18 +257,34 @@ public static class OfficeOperationCapabilityCatalog {
     }
 
     private static IEnumerable<string> FormatExtensions(string formatId) {
-        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
-            ["DOC"] = ".doc", ["DOCX"] = ".docx", ["DOCM"] = ".docm",
-            ["XLS"] = ".xls", ["XLSX"] = ".xlsx", ["XLSM"] = ".xlsm", ["XLSB"] = ".xlsb",
-            ["PPT"] = ".ppt", ["PPTX"] = ".pptx", ["PPTM"] = ".pptm",
-            ["VISIO"] = ".vsdx", ["ODT"] = ".odt", ["ODS"] = ".ods", ["ODP"] = ".odp",
-            ["EPUB"] = ".epub", ["PDF"] = ".pdf", ["ONE"] = ".one", ["PST"] = ".pst",
-            ["RTF"] = ".rtf", ["EML"] = ".eml", ["MSG"] = ".msg", ["TNEF"] = ".dat"
+        var map = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase) {
+            ["DOC"] = new[] { ".doc" }, ["DOCX"] = new[] { ".docx" }, ["DOCM"] = new[] { ".docm" },
+            ["XLS"] = new[] { ".xls" }, ["XLSX"] = new[] { ".xlsx" }, ["XLSM"] = new[] { ".xlsm" }, ["XLSB"] = new[] { ".xlsb" },
+            ["PPT"] = new[] { ".ppt" }, ["PPTX"] = new[] { ".pptx" }, ["PPTM"] = new[] { ".pptm" },
+            ["VISIO"] = new[] { ".vsdx", ".vsdm", ".vstx", ".vstm", ".vssx", ".vssm" },
+            ["ODT"] = new[] { ".odt" }, ["ODS"] = new[] { ".ods" }, ["ODP"] = new[] { ".odp" },
+            ["EPUB"] = new[] { ".epub" }, ["PDF"] = new[] { ".pdf" }, ["ONE"] = new[] { ".one" }, ["PST"] = new[] { ".pst" },
+            ["RTF"] = new[] { ".rtf" }, ["EML"] = new[] { ".eml" }, ["MSG"] = new[] { ".msg" }, ["TNEF"] = new[] { ".tnef", ".dat" }
         };
         foreach (string token in formatId.Split(new[] { '/', ' ', '(', ')', '-' }, StringSplitOptions.RemoveEmptyEntries)) {
-            if (map.TryGetValue(token, out string? extension)) yield return extension;
+            if (!map.TryGetValue(token, out string[]? extensions)) continue;
+            foreach (string extension in extensions) yield return extension;
         }
     }
+
+    private static bool PackageOwnsExtension(string packageId, string extension) => packageId switch {
+        "OfficeIMO.Word" => extension is ".doc" or ".docx" or ".docm" or ".dot" or ".dotx" or ".dotm",
+        "OfficeIMO.Excel" => extension is ".xls" or ".xlsx" or ".xlsm" or ".xlsb" or ".xlt" or ".xltx" or ".xltm" or ".xlam",
+        "OfficeIMO.PowerPoint" => extension is ".ppt" or ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" or ".ppam",
+        "OfficeIMO.Visio" => extension is ".vsdx" or ".vsdm" or ".vstx" or ".vstm" or ".vssx" or ".vssm",
+        "OfficeIMO.OpenDocument" => extension is ".odt" or ".ods" or ".odp",
+        "OfficeIMO.Email" => extension is ".eml" or ".mime" or ".msg" or ".oft" or ".tnef" or ".dat" or ".pst" or ".ost",
+        "OfficeIMO.OneNote" => extension is ".one" or ".onetoc2" or ".onepkg",
+        "OfficeIMO.Rtf" => extension == ".rtf",
+        "OfficeIMO.Pdf" => extension == ".pdf",
+        "OfficeIMO.Epub" => extension == ".epub",
+        _ => true
+    };
 
     private static string PackageSlug(string packageId) => packageId
         .Replace("OfficeIMO.", string.Empty)

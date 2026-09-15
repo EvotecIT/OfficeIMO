@@ -6,6 +6,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
+$verifiedArtifactCount = 0
 
 function Resolve-RepositoryPath {
     param([Parameter(Mandatory)][string] $RelativePath)
@@ -29,27 +30,95 @@ function Assert-Sha256 {
     if ([string] $Value -notmatch '^[a-fA-F0-9]{64}$') { throw $Message }
 }
 
+function Resolve-ContainedArtifactPath {
+    param(
+        [Parameter(Mandatory)][string] $BasePath,
+        [Parameter(Mandatory)][string] $RelativePath,
+        [Parameter(Mandatory)][string] $Label
+    )
+    if ([IO.Path]::IsPathRooted($RelativePath) -or $RelativePath -match '(^|[/\\])\.\.([/\\]|$)') {
+        throw "$Label artifact path must stay below its corpus root: $RelativePath"
+    }
+    $baseFullPath = [IO.Path]::GetFullPath($BasePath).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    $fullPath = [IO.Path]::GetFullPath((Join-Path $baseFullPath $RelativePath))
+    if (-not $fullPath.StartsWith($baseFullPath + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "$Label artifact path escapes its corpus root: $RelativePath"
+    }
+    return $fullPath
+}
+
+function Get-CanonicalTextSha256 {
+    param([Parameter(Mandatory)][string] $Path)
+    $text = (Get-Content -LiteralPath $Path -Raw).Replace("`r`n", "`n").Replace("`r", "`n")
+    $bytes = [Text.UTF8Encoding]::new($false).GetBytes($text)
+    return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
+}
+
+function Assert-ArtifactIdentity {
+    param(
+        [Parameter(Mandatory)][string] $Path,
+        [Parameter(Mandatory)][string] $ExpectedSha256,
+        [object] $ExpectedBytes,
+        [string] $HashMode = 'raw',
+        [Parameter(Mandatory)][string] $Label
+    )
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "$Label artifact is missing: $Path" }
+    $actualSha256 = if ($HashMode -eq 'canonical-text') {
+        Get-CanonicalTextSha256 $Path
+    } elseif ($HashMode -eq 'raw') {
+        (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+    } else {
+        throw "$Label artifact selected unsupported hashMode '$HashMode'."
+    }
+    if (-not $actualSha256.Equals($ExpectedSha256, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "$Label artifact hash mismatch for '$Path'. Expected $ExpectedSha256, actual $actualSha256."
+    }
+    if ($null -ne $ExpectedBytes -and [long] $ExpectedBytes -ne (Get-Item -LiteralPath $Path).Length) {
+        $actualBytes = (Get-Item -LiteralPath $Path).Length
+        throw "$Label artifact byte length mismatch for '$Path'. Expected $ExpectedBytes, actual $actualBytes."
+    }
+    $script:verifiedArtifactCount++
+}
+
 function Get-ManifestRecordCount {
-    param([object] $Manifest, [string] $ValidationKind, [string] $Label)
+    param([object] $Manifest, [string] $ManifestPath, [string] $ValidationKind, [string] $Label)
+    $manifestDirectory = [IO.Path]::GetDirectoryName($ManifestPath)
     switch ($ValidationKind) {
         'office-collections' {
+            $documentsRoot = [IO.Path]::GetDirectoryName($manifestDirectory)
             $records = @($Manifest.collections)
             foreach ($record in $records) {
                 Assert-Text $record.producer "$Label collection '$($record.id)' is missing producer provenance."
                 Assert-Text $record.producerVersion "$Label collection '$($record.id)' is missing producerVersion provenance."
                 foreach ($artifact in @($record.artifacts)) {
                     Assert-Sha256 $artifact.sha256 "$Label artifact '$($record.id)/$($artifact.file)' is missing a stable SHA-256."
+                    $relativePath = Join-Path ([string] $record.root) ([string] $artifact.file)
+                    $artifactPath = Resolve-ContainedArtifactPath $documentsRoot $relativePath $Label
+                    Assert-ArtifactIdentity $artifactPath ([string] $artifact.sha256) $null 'raw' "$Label artifact '$($record.id)/$($artifact.file)'"
+                    if ($artifact.approvedReport) {
+                        $reportPath = Resolve-ContainedArtifactPath ([IO.Path]::GetDirectoryName($artifactPath)) ([string] $artifact.approvedReport) $Label
+                        if (-not (Test-Path -LiteralPath $reportPath -PathType Leaf)) {
+                            throw "$Label approved report is missing for '$($record.id)/$($artifact.file)': $reportPath"
+                        }
+                    }
                 }
             }
             return $records.Count
         }
         'word-artifacts' {
+            $documentsRoot = [IO.Path]::GetDirectoryName([IO.Path]::GetDirectoryName($manifestDirectory))
             $records = @($Manifest.artifacts)
             foreach ($record in $records) {
                 Assert-Text $record.producer "$Label artifact '$($record.id)' is missing producer provenance."
                 Assert-Text $record.producerVersion "$Label artifact '$($record.id)' is missing producerVersion provenance."
                 Assert-Text $record.lossPolicy "$Label artifact '$($record.id)' is missing its semantic/package loss policy."
-                if ($record.path) { Assert-Sha256 $record.sha256 "$Label artifact '$($record.id)' is missing a stable SHA-256." }
+                Assert-Text $record.sourceTest "$Label artifact '$($record.id)' is missing its executable source test."
+                if ($record.path) {
+                    Assert-Sha256 $record.sha256 "$Label artifact '$($record.id)' is missing a stable SHA-256."
+                    $artifactPath = Resolve-ContainedArtifactPath $documentsRoot ([string] $record.path) $Label
+                    $hashMode = if ($record.hashMode) { [string] $record.hashMode } else { 'raw' }
+                    Assert-ArtifactIdentity $artifactPath ([string] $record.sha256) $null $hashMode "$Label artifact '$($record.id)'"
+                }
             }
             return $records.Count
         }
@@ -59,22 +128,40 @@ function Get-ManifestRecordCount {
                 Assert-Text $record.producer "$Label fixture '$($record.file)' is missing producer provenance."
                 Assert-Text $record.producerVersion "$Label fixture '$($record.file)' is missing producerVersion provenance."
                 Assert-Sha256 $record.sha256 "$Label fixture '$($record.file)' is missing a stable SHA-256."
+                $artifactPath = Resolve-ContainedArtifactPath $manifestDirectory ([string] $record.file) $Label
+                Assert-ArtifactIdentity $artifactPath ([string] $record.sha256) $record.bytes 'raw' "$Label fixture '$($record.file)'"
             }
             foreach ($record in @($Manifest.externalArtifacts)) {
                 Assert-Text $record.producer "$Label external artifact '$($record.id)' is missing producer provenance."
                 Assert-Text $record.producerVersion "$Label external artifact '$($record.id)' is missing producerVersion provenance."
                 Assert-Sha256 $record.semanticTextSha256 "$Label external artifact '$($record.id)' is missing a stable semantic hash."
+                Assert-Text $record.sourceUrl "$Label external artifact '$($record.id)' is missing its verification URL."
+                if ([long] $record.minBytes -lt 1 -or [long] $record.maxBytes -lt [long] $record.minBytes) {
+                    throw "$Label external artifact '$($record.id)' is missing a valid package-size oracle."
+                }
+                if ([long] $record.paragraphCount -lt 1) { throw "$Label external artifact '$($record.id)' is missing its paragraph-count oracle." }
             }
             return $records.Count + @($Manifest.externalArtifacts).Count
         }
         'rtf-fixtures' {
-            $records = @($Manifest.fixtures) + @($Manifest.externalArtifacts)
-            foreach ($record in $records) {
+            $fixtures = @($Manifest.fixtures)
+            foreach ($record in $fixtures) {
                 Assert-Text $record.producer "$Label record '$($record.id)' is missing producer provenance."
                 Assert-Text $record.producerVersion "$Label record '$($record.id)' is missing producerVersion provenance."
                 Assert-Sha256 $record.sha256 "$Label record '$($record.id)' is missing a stable SHA-256."
+                $artifactPath = Resolve-ContainedArtifactPath $manifestDirectory ([string] $record.file) $Label
+                Assert-ArtifactIdentity $artifactPath ([string] $record.sha256) $record.bytes 'raw' "$Label fixture '$($record.id)'"
             }
-            return $records.Count
+            $external = @($Manifest.externalArtifacts)
+            foreach ($record in $external) {
+                Assert-Text $record.producer "$Label record '$($record.id)' is missing producer provenance."
+                Assert-Text $record.producerVersion "$Label record '$($record.id)' is missing producerVersion provenance."
+                Assert-Sha256 $record.sha256 "$Label record '$($record.id)' is missing a stable SHA-256."
+                Assert-Text $record.sourceUrl "$Label external artifact '$($record.id)' is missing its verification URL."
+                if ([long] $record.bytes -lt 1) { throw "$Label external artifact '$($record.id)' is missing its expected byte length." }
+                if (@($record.requiredHeaderFragments).Count -eq 0) { throw "$Label external artifact '$($record.id)' is missing its header oracle." }
+            }
+            return $fixtures.Count + $external.Count
         }
         'pdf-source-cases' {
             $sources = @{}
@@ -87,6 +174,8 @@ function Get-ManifestRecordCount {
             foreach ($record in $records) {
                 if (-not $sources.ContainsKey([string] $record.source)) { throw "$Label case '$($record.id)' references an unknown producer source." }
                 Assert-Sha256 $record.sha256 "$Label case '$($record.id)' is missing a stable SHA-256."
+                $artifactPath = Resolve-ContainedArtifactPath $manifestDirectory ([string] $record.file) $Label
+                Assert-ArtifactIdentity $artifactPath ([string] $record.sha256) $record.byteLength 'raw' "$Label case '$($record.id)'"
             }
             return $records.Count
         }
@@ -110,12 +199,12 @@ foreach ($corpus in @($catalog.corpora)) {
     $manifestPath = Resolve-RepositoryPath ([string] $corpus.manifest)
     if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) { throw "Corpus manifest is missing: $($corpus.manifest)" }
     $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-    $recordCount = Get-ManifestRecordCount $manifest ([string] $corpus.validationKind) ([string] $corpus.id)
+    $recordCount = Get-ManifestRecordCount $manifest $manifestPath ([string] $corpus.validationKind) ([string] $corpus.id)
     $reports.Add([ordered]@{
         id = [string] $corpus.id
         owner = [string] $corpus.owner
         manifest = ([string] $corpus.manifest).Replace('\\', '/')
-        manifestSha256 = (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        manifestSha256 = Get-CanonicalTextSha256 $manifestPath
         recordCount = $recordCount
         diffPolicy = $corpus.diffPolicy
     })
@@ -127,6 +216,7 @@ $report = [ordered]@{
     summary = [ordered]@{
         corpusCount = $reports.Count
         recordCount = [Linq.Enumerable]::Sum([int[]] @($reports | ForEach-Object recordCount))
+        verifiedArtifactCount = $verifiedArtifactCount
     }
     corpora = $reports
 }
@@ -155,7 +245,7 @@ if ($Verify) {
             throw "Generated corpus evidence is missing or stale: $path"
         }
     }
-    Write-Host "Verified $($reports.Count) corpus contracts with $($report.summary.recordCount) producer records."
+    Write-Host "Verified $($reports.Count) corpus contracts with $($report.summary.recordCount) producer records and $verifiedArtifactCount checked-in artifacts."
     return
 }
 
@@ -164,4 +254,4 @@ $utf8 = [Text.UTF8Encoding]::new($false)
 foreach ($name in $outputs.Keys) {
     [IO.File]::WriteAllText((Join-Path $OutputDirectory $name), $outputs[$name], $utf8)
 }
-Write-Host "Generated $($reports.Count) corpus contracts with $($report.summary.recordCount) producer records."
+Write-Host "Generated $($reports.Count) corpus contracts with $($report.summary.recordCount) producer records and $verifiedArtifactCount checked-in artifacts."

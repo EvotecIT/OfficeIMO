@@ -16,7 +16,11 @@ $projects = @{
     CompatibilityCatalog = Join-Path $repoRoot 'Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj'
     Drawing = Join-Path $repoRoot 'OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj'
     Excel = Join-Path $repoRoot 'OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj'
+    ExternalEvidence = Join-Path $repoRoot 'Build/ProducerCorpus/ExternalEvidenceVerifier/ExternalEvidenceVerifier.csproj'
+    OpenDocument = Join-Path $repoRoot 'OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj'
+    Pdf = Join-Path $repoRoot 'OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj'
     PowerPoint = Join-Path $repoRoot 'OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj'
+    Rtf = Join-Path $repoRoot 'OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj'
     Word = Join-Path $repoRoot 'OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj'
 }
 
@@ -162,6 +166,31 @@ if ($Suite -in @('Full', 'Corpus')) {
         -Name 'PowerPoint corpus identity, preflight, conversion, and reopen contract' `
         -Project $projects.PowerPoint `
         -Filter 'Category=OfficeInteroperability'
+
+    Invoke-InteroperabilityGateStep `
+        -Name 'OpenDocument producer corpus package and semantic contract' `
+        -Project $projects.OpenDocument `
+        -Filter 'FullyQualifiedName~OpenDocumentProducerCorpusTests'
+
+    Invoke-InteroperabilityGateStep `
+        -Name 'RTF producer corpus parsing and deterministic-write contract' `
+        -Project $projects.Rtf `
+        -Filter 'FullyQualifiedName~RtfGoldenCorpusTests'
+
+    Invoke-InteroperabilityGateStep `
+        -Name 'PDF authoritative interoperability corpus contract' `
+        -Project $projects.Pdf `
+        -Filter 'FullyQualifiedName~PdfAuthoritativeInteroperabilityCorpusTests'
+
+    Write-Host ""
+    Write-Host "== External OpenDocument producer oracle ==" -ForegroundColor Cyan
+    & (Join-Path $repoRoot 'Build/Test-OpenDocumentExternalProducerEvidence.ps1') `
+        -Configuration $Configuration -Framework $Framework -NoRestore:$NoRestore -NoBuild:$NoBuild
+
+    Write-Host ""
+    Write-Host "== External RTF producer oracles ==" -ForegroundColor Cyan
+    & (Join-Path $repoRoot 'Build/Test-RtfExternalProducerEvidence.ps1') `
+        -Configuration $Configuration -Framework $Framework -NoRestore:$NoRestore -NoBuild:$NoBuild
 
     Invoke-InteroperabilityGateStep `
         -Name 'Legacy XLS approved import and projection-gap reports' `

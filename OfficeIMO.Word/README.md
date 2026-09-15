@@ -521,12 +521,12 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 13 | 12 | 0 | 8 | 2 | 2 |
-| Read | 23 | 0 | 9 | 0 | 2 | 3 |
-| Edit | 11 | 0 | 22 | 3 | 0 | 1 |
-| Preserve | 10 | 0 | 22 | 0 | 0 | 1 |
-| Inspect | 4 | 1 | 0 | 0 | 0 | 0 |
-| Validate | 3 | 0 | 0 | 0 | 0 | 2 |
+| Create | 14 | 12 | 0 | 8 | 2 | 2 |
+| Read | 24 | 0 | 9 | 0 | 2 | 3 |
+| Edit | 12 | 0 | 22 | 3 | 0 | 1 |
+| Preserve | 11 | 0 | 22 | 0 | 0 | 1 |
+| Inspect | 5 | 1 | 0 | 0 | 0 | 0 |
+| Validate | 4 | 0 | 0 | 0 | 0 | 2 |
 | Remove | 4 | 0 | 0 | 0 | 1 | 0 |
 | Convert | 31 | 26 | 0 | 8 | 0 | 1 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |

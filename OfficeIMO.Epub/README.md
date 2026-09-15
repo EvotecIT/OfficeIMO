@@ -197,10 +197,10 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 1 | 0 | 0 | 0 | 1 | 0 |
-| Read | 1 | 0 | 0 | 0 | 0 | 1 |
-| Edit | 0 | 0 | 0 | 1 | 0 | 1 |
-| Inspect | 3 | 0 | 0 | 0 | 0 | 0 |
+| Create | 1 | 0 | 0 | 0 | 2 | 0 |
+| Read | 2 | 0 | 0 | 0 | 0 | 1 |
+| Edit | 0 | 0 | 0 | 1 | 1 | 1 |
+| Inspect | 4 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 2 | 0 | 0 | 0 | 0 | 1 |
 | Remove | 2 | 0 | 0 | 0 | 0 | 1 |
 

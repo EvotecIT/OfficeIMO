@@ -1745,11 +1745,12 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 1 | 0 | 0 | 0 | 0 | 0 |
-| Read | 1 | 0 | 0 | 0 | 0 | 0 |
-| Edit | 1 | 0 | 0 | 0 | 0 | 0 |
-| Inspect | 2 | 0 | 0 | 0 | 0 | 0 |
-| Validate | 1 | 0 | 0 | 0 | 0 | 1 |
+| Create | 2 | 0 | 0 | 0 | 0 | 0 |
+| Read | 2 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 2 | 0 | 0 | 0 | 0 | 0 |
+| Preserve | 0 | 1 | 0 | 0 | 0 | 0 |
+| Inspect | 3 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 2 | 0 | 0 | 0 | 0 | 1 |
 | Remove | 2 | 0 | 0 | 0 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 

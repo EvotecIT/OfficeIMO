@@ -16,7 +16,7 @@
     "formatCount": 28,
     "capabilityCount": 137,
     "packageCount": 54,
-    "operationCount": 1135
+    "operationCount": 1199
   },
   "fidelityStates": [
     {
@@ -1860,13 +1860,15 @@
     {
       "id": "OfficeIMO.Email",
       "slug": "email",
-      "capabilityCount": 30,
+      "capabilityCount": 35,
       "formats": [
+        "Email.Native",
         "EML / RFC 5322 MIME",
         "MSG/TNEF S/MIME",
         "PST"
       ],
       "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle",
         "OfficeIMO.ProtectedContent"
       ],
       "operations": [
@@ -1877,7 +1879,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 3
             },
             {
               "id": "Unsupported",
@@ -1890,6 +1892,12 @@
         {
           "id": "Edit",
           "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
             {
               "id": "Preserved",
               "label": "Preserved",
@@ -1911,7 +1919,18 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 5
+              "count": 6
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
             }
           ]
         },
@@ -1922,7 +1941,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 5
+              "count": 6
             }
           ]
         },
@@ -1994,11 +2013,13 @@
     {
       "id": "OfficeIMO.Epub",
       "slug": "epub",
-      "capabilityCount": 15,
+      "capabilityCount": 19,
       "formats": [
-        "EPUB"
+        "EPUB",
+        "Epub.Native"
       ],
       "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance"
       ],
@@ -2016,7 +2037,7 @@
               "id": "Unsupported",
               "label": "Unsupported",
               "description": "The operation is not implemented.",
-              "count": 1
+              "count": 2
             }
           ]
         },
@@ -2027,6 +2048,12 @@
               "id": "Rejected",
               "label": "Rejected",
               "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 1
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
               "count": 1
             },
             {
@@ -2044,7 +2071,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 3
+              "count": 4
             }
           ]
         },
@@ -2055,7 +2082,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 1
+              "count": 2
             },
             {
               "id": "NotApplicable",
@@ -2133,13 +2160,14 @@
     {
       "id": "OfficeIMO.Excel",
       "slug": "excel",
-      "capabilityCount": 320,
+      "capabilityCount": 326,
       "formats": [
         "DOCM/XLSM/XLSB/PPTM families",
         "DOCX/XLSX/PPTX",
         "DOCX/XLSX/PPTX/Visio",
         "Excel",
         "Excel workbook package",
+        "Excel.OpenXml",
         "Excel.Xls",
         "Excel.Xlsb",
         "JPEG",
@@ -2154,6 +2182,7 @@
         "OfficeConversionCapabilityCatalog",
         "OfficeIMO.Excel.LegacyXls",
         "OfficeIMO.Excel.Xlsb",
+        "OfficeIMO.NativeLifecycle",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance"
       ],
@@ -2188,7 +2217,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 20
+              "count": 21
             },
             {
               "id": "Partial",
@@ -2223,7 +2252,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 10
+              "count": 11
             },
             {
               "id": "Preserved",
@@ -2263,7 +2292,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 5
+              "count": 6
             }
           ]
         },
@@ -2274,7 +2303,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 9
+              "count": 10
             },
             {
               "id": "Preserved",
@@ -2291,7 +2320,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 33
+              "count": 34
             },
             {
               "id": "Preserved",
@@ -2331,7 +2360,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 3
+              "count": 4
             },
             {
               "id": "NotApplicable",
@@ -2493,9 +2522,10 @@
     {
       "id": "OfficeIMO.Html",
       "slug": "html",
-      "capabilityCount": 8,
+      "capabilityCount": 13,
       "formats": [
         "HTML",
+        "Html.Native",
         "JPEG",
         "PNG",
         "SVG",
@@ -2504,9 +2534,32 @@
       ],
       "sourceCatalogs": [
         "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle",
         "OfficeIMO.Provenance"
       ],
       "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
         {
           "id": "Export",
           "states": [
@@ -2520,6 +2573,28 @@
         },
         {
           "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
           "states": [
             {
               "id": "Supported",
@@ -2662,16 +2737,62 @@
     {
       "id": "OfficeIMO.Markdown",
       "slug": "markdown",
-      "capabilityCount": 3,
+      "capabilityCount": 7,
       "formats": [
-        "Markdown"
+        "Markdown",
+        "Markdown.Native"
       ],
       "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle",
         "OfficeIMO.Provenance"
       ],
       "operations": [
         {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
           "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
           "states": [
             {
               "id": "Supported",
@@ -2883,11 +3004,12 @@
     {
       "id": "OfficeIMO.OneNote",
       "slug": "onenote",
-      "capabilityCount": 11,
+      "capabilityCount": 16,
       "formats": [
         "JPEG",
         "ONE",
         "OneNote",
+        "OneNote.Native",
         "PNG",
         "SVG",
         "TIFF",
@@ -2895,12 +3017,19 @@
       ],
       "sourceCatalogs": [
         "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle",
         "OfficeIMO.ProtectedContent"
       ],
       "operations": [
         {
           "id": "Create",
           "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
             {
               "id": "Unsupported",
               "label": "Unsupported",
@@ -2912,6 +3041,12 @@
         {
           "id": "Edit",
           "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
             {
               "id": "Rejected",
               "label": "Rejected",
@@ -2935,6 +3070,12 @@
           "id": "Inspect",
           "states": [
             {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
@@ -2943,8 +3084,25 @@
           ]
         },
         {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
           "id": "Read",
           "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
             {
               "id": "Unsupported",
               "label": "Unsupported",
@@ -3055,12 +3213,14 @@
     {
       "id": "OfficeIMO.OpenDocument",
       "slug": "opendocument",
-      "capabilityCount": 15,
+      "capabilityCount": 21,
       "formats": [
         "ODT/ODS/ODP",
-        "OpenDocument"
+        "OpenDocument",
+        "OpenDocument.Native"
       ],
       "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance"
       ],
@@ -3072,7 +3232,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 3
             }
           ]
         },
@@ -3083,7 +3243,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 1
+              "count": 2
             },
             {
               "id": "Rejected",
@@ -3100,7 +3260,18 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 3
+              "count": 4
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
             }
           ]
         },
@@ -3111,7 +3282,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 1
+              "count": 2
             },
             {
               "id": "NotApplicable",
@@ -3139,7 +3310,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 3
             },
             {
               "id": "NotApplicable",
@@ -3229,10 +3400,11 @@
     {
       "id": "OfficeIMO.Pdf",
       "slug": "pdf",
-      "capabilityCount": 14,
+      "capabilityCount": 20,
       "formats": [
         "JPEG",
         "PDF",
+        "Pdf.Native",
         "PNG",
         "SVG",
         "TIFF",
@@ -3240,6 +3412,7 @@
       ],
       "sourceCatalogs": [
         "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance"
       ],
@@ -3251,7 +3424,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 1
+              "count": 2
             }
           ]
         },
@@ -3262,7 +3435,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 1
+              "count": 2
             }
           ]
         },
@@ -3284,7 +3457,18 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
             }
           ]
         },
@@ -3295,7 +3479,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 1
+              "count": 2
             }
           ]
         },
@@ -3317,7 +3501,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 1
+              "count": 2
             },
             {
               "id": "NotApplicable",
@@ -3332,7 +3516,7 @@
     {
       "id": "OfficeIMO.PowerPoint",
       "slug": "powerpoint",
-      "capabilityCount": 368,
+      "capabilityCount": 374,
       "formats": [
         "DOCM/XLSM/XLSB/PPTM families",
         "DOCX/XLSX/PPTX",
@@ -3341,6 +3525,7 @@
         "PNG",
         "PowerPoint",
         "PowerPoint Open XML",
+        "PowerPoint.OpenXml",
         "PowerPoint.Ppt",
         "PPT",
         "PPTX",
@@ -3350,6 +3535,7 @@
       ],
       "sourceCatalogs": [
         "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle",
         "OfficeIMO.PowerPoint.LegacyPpt",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance"
@@ -3385,7 +3571,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 47
+              "count": 48
             },
             {
               "id": "Partial",
@@ -3414,7 +3600,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 20
+              "count": 21
             },
             {
               "id": "Preserved",
@@ -3448,7 +3634,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 5
+              "count": 6
             }
           ]
         },
@@ -3459,7 +3645,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 18
+              "count": 19
             },
             {
               "id": "Preserved",
@@ -3482,7 +3668,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 46
+              "count": 47
             },
             {
               "id": "Preserved",
@@ -3522,7 +3708,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 3
+              "count": 4
             },
             {
               "id": "NotApplicable",
@@ -3653,11 +3839,13 @@
     {
       "id": "OfficeIMO.Rtf",
       "slug": "rtf",
-      "capabilityCount": 6,
+      "capabilityCount": 11,
       "formats": [
-        "RTF"
+        "RTF",
+        "Rtf.Native"
       ],
       "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle",
         "OfficeIMO.ProtectedContent"
       ],
       "operations": [
@@ -3668,7 +3856,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 1
+              "count": 2
             }
           ]
         },
@@ -3679,12 +3867,23 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 1
+              "count": 2
             }
           ]
         },
         {
           "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
           "states": [
             {
               "id": "Supported",
@@ -3697,6 +3896,12 @@
         {
           "id": "Read",
           "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
             {
               "id": "NotApplicable",
               "label": "Not applicable",
@@ -3788,7 +3993,7 @@
     {
       "id": "OfficeIMO.Visio",
       "slug": "visio",
-      "capabilityCount": 14,
+      "capabilityCount": 20,
       "formats": [
         "DOCX/XLSX/PPTX/Visio",
         "JPEG",
@@ -3797,10 +4002,12 @@
         "TIFF",
         "Visio",
         "Visio Open XML",
+        "Visio.OpenXml",
         "WebP"
       ],
       "sourceCatalogs": [
         "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance"
       ],
@@ -3812,13 +4019,19 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 1
+              "count": 2
             }
           ]
         },
         {
           "id": "Edit",
           "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
             {
               "id": "Rejected",
               "label": "Rejected",
@@ -3845,13 +4058,30 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
             }
           ]
         },
         {
           "id": "Read",
           "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
             {
               "id": "NotApplicable",
               "label": "Not applicable",
@@ -3878,7 +4108,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 3
             }
           ]
         }
@@ -3912,7 +4142,7 @@
     {
       "id": "OfficeIMO.Word",
       "slug": "word",
-      "capabilityCount": 230,
+      "capabilityCount": 236,
       "formats": [
         "DOC",
         "DOCM/XLSM/XLSB/PPTM families",
@@ -3926,10 +4156,12 @@
         "WebP",
         "Word",
         "Word Open XML",
-        "Word.Doc"
+        "Word.Doc",
+        "Word.OpenXml"
       ],
       "sourceCatalogs": [
         "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance",
         "OfficeIMO.Word.LegacyDoc"
@@ -3971,7 +4203,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 13
+              "count": 14
             },
             {
               "id": "Partial",
@@ -4006,7 +4238,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 11
+              "count": 12
             },
             {
               "id": "Preserved",
@@ -4046,7 +4278,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 4
+              "count": 5
             },
             {
               "id": "Partial",
@@ -4063,7 +4295,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 10
+              "count": 11
             },
             {
               "id": "Preserved",
@@ -4086,7 +4318,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 23
+              "count": 24
             },
             {
               "id": "Preserved",
@@ -4132,7 +4364,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 3
+              "count": 4
             },
             {
               "id": "NotApplicable",
