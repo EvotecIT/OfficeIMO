@@ -146,6 +146,89 @@ public sealed class SvgContentSafetyAdversarialTests {
         Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
     }
 
+    [Fact]
+    public void InvalidNegativePresentationFontSizeDoesNotBecomeTinyText() {
+        byte[] svg = Svg("<text font-size='-1' x='10' y='35'>visible inherited size</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible inherited size");
+    }
+
+    [Fact]
+    public void NestedVisibleOverflowFindingsAreReportOnly() {
+        byte[] svg = Svg("<svg width='50' height='50' overflow='visible'><text x='100' y='35'>visible overflow text</text></svg>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "visible overflow text");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("visible overflow", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UnusableVisualPixelBudgetCannotAuthorizeCleanup() {
+        byte[] svg = Svg("<rect width='220' height='120' fill='white'/><text x='10' y='35'>ordinary visible text</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions {
+            MaximumContentSafetyVisualComparisons = 1,
+            MaximumContentSafetyVisualPixels = 2
+        };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item =>
+            item.TextPreview == "ordinary visible text" &&
+            item.CleanupCapability != OfficeContentCleanupCapability.ReportOnly);
+    }
+
+    [Fact]
+    public void StructuralBoundsAccountForVisibleTextStrokeExtent() {
+        byte[] svg = Svg("<text x='225' y='35' fill='none' stroke='black' stroke-width='20'>outlined text</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item =>
+            item.TextPreview == "outlined text" && item.Kind == OfficeContentConcealmentKind.OffCanvas);
+    }
+
+    [Fact]
+    public void ConfiguredDecodedCharacterLimitAppliesToWholeSvgDocument() {
+        byte[] svg = Svg("<!--" + new string('x', 256) + "--><text x='10' y='35'>visible text</text>");
+        var options = new OfficeContentSafetyOptions { MaxCharacters = 128 };
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg, options));
+    }
+
+    [Fact]
+    public void ClassSelectorsUseOnlyCssWhitespaceSeparators() {
+        byte[] svg = Svg("<style>.hidden{display:none}</style><text class='ordinary&#xA0;hidden' x='10' y='35'>visible nonbreaking class</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible nonbreaking class");
+    }
+
+    [Fact]
+    public void NonCssWhitespaceInStylesheetsFailsClosed() {
+        byte[] svg = Svg("<style>.hidden&#xA0;{display:none}</style><text class='hidden' x='10' y='35'>visible malformed selector</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void CssCommentMarkersInsideStringsDoNotRewriteTheCascade() {
+        byte[] svg = Svg("<style>text{display:none}text{--x:&quot;/*&quot;;display:inline;--y:&quot;*/&quot;}</style><text x='10' y='35'>visible quoted comment text</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible quoted comment text");
+    }
+
     private static byte[] Svg(string body) => Encoding.UTF8.GetBytes(
         "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='120' viewBox='0 0 220 120'>" + body + "</svg>");
 }

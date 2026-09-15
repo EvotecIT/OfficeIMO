@@ -119,15 +119,19 @@ public static partial class OfficeSvgDrawingReader {
                             out SvgVisualComparison comparison)) {
                         concealment = ClassifySvgVisualConcealment(candidate, document, baseline!, comparison, options);
                         visualConcealment = concealment.HasValue;
+                        bool visualResolutionInsufficient = concealment.HasValue &&
+                            !HasSufficientSvgVisualResolution(candidate, document, maximumRasterPixels);
                         hostBackdropDependent = concealment.HasValue &&
                             comparison.HasTransparentBackdrop &&
                             concealment.Value.Kind is OfficeContentConcealmentKind.LowContrastText or OfficeContentConcealmentKind.Other;
-                        if (hostBackdropDependent) {
+                        if (visualResolutionInsufficient || hostBackdropDependent) {
                             SvgContentSafetyConcealment visualFinding = concealment!.Value;
                             concealment = new SvgContentSafetyConcealment(
                                 visualFinding.Kind,
                                 visualFinding.Evidence +
-                                " The candidate backdrop contains transparent pixels, so visibility depends on the host background and cleanup is report-only.",
+                                (visualResolutionInsufficient
+                                    ? " The apportioned raster resolution cannot preserve at least four pixels across both resolved text-bound dimensions, so cleanup is report-only."
+                                    : " The candidate backdrop contains transparent pixels, so visibility depends on the host background and cleanup is report-only."),
                                 visualFinding.Risk);
                         }
                     }
@@ -148,7 +152,9 @@ public static partial class OfficeSvgDrawingReader {
                     targets,
                     candidate,
                     concealment.Value,
-                    contextDependent || visualConcealment && (baselineUnsupported > 0 || hostBackdropDependent)
+                    contextDependent || visualConcealment &&
+                        (baselineUnsupported > 0 || hostBackdropDependent ||
+                         !HasSufficientSvgVisualResolution(candidate, document, maximumRasterPixels))
                         ? OfficeContentCleanupCapability.ReportOnly
                         : OfficeContentCleanupCapability.RemoveText);
             } else if (contextDependent) {
@@ -462,6 +468,18 @@ public static partial class OfficeSvgDrawingReader {
         return null;
     }
 
+    private static bool HasSufficientSvgVisualResolution(
+        SvgContentSafetyCandidate candidate,
+        SvgContentSafetyDocument document,
+        double maximumRasterPixels) {
+        if (!candidate.HasBounds || maximumRasterPixels <= 0D) return false;
+        double viewportPixels = document.ViewportWidth * document.ViewportHeight;
+        if (viewportPixels <= 0D || double.IsNaN(viewportPixels) || double.IsInfinity(viewportPixels)) return false;
+        double scale = Math.Min(1D, Math.Sqrt(maximumRasterPixels / viewportPixels));
+        return (candidate.Right - candidate.Left) * scale >= 4D &&
+            (candidate.Bottom - candidate.Top) * scale >= 4D;
+    }
+
     private static bool TryFindEmptySvgClip(
         XElement element,
         SvgContentSafetyDocument document,
@@ -522,6 +540,7 @@ public static partial class OfficeSvgDrawingReader {
             string? value = ReadPresentationProperty(current, "font-size");
             if (string.IsNullOrWhiteSpace(value) || string.Equals(value!.Trim(), "inherit", StringComparison.OrdinalIgnoreCase)) continue;
             if (TrySvgLength(value, out double parsed)) {
+                if (parsed < 0D) return false;
                 fontSize = parsed;
                 return parsed <= options.MaximumTinyFontSizePoints;
             }

@@ -99,6 +99,7 @@ public static partial class OfficeSvgDrawingReader {
                 svgBytes,
                 readerOptions,
                 allowUnresolvedViewport: false,
+                maximumCharactersInDocument: options.MaxCharacters,
                 out _,
                 out int maximumElements,
                 out double maximumViewportDimension,
@@ -115,7 +116,7 @@ public static partial class OfficeSvgDrawingReader {
         var settings = new XmlReaderSettings {
             DtdProcessing = DtdProcessing.Prohibit,
             XmlResolver = null,
-            MaxCharactersInDocument = Math.Min(options.MaxInputBytes, MaximumInputBytes),
+            MaxCharactersInDocument = Math.Min(options.MaxCharacters, Math.Min(options.MaxInputBytes, MaximumInputBytes)),
             MaxCharactersFromEntities = 0,
             IgnoreWhitespace = false
         };

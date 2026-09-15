@@ -213,6 +213,10 @@ public static partial class OfficeSvgDrawingReader {
         ICollection<SvgCssRule> rules,
         ref int declarationCount,
         ref int unsupported) {
+        if (ContainsNonSvgCssWhitespace(css)) {
+            unsupported++;
+            return false;
+        }
         int cursor = 0;
         while (cursor < css.Length && rules.Count < MaximumSvgCssRules && declarationCount < MaximumSvgCssDeclarations) {
             int open = FindSvgCssCharacter(css, '{', cursor);
@@ -281,6 +285,10 @@ public static partial class OfficeSvgDrawingReader {
         var result = new List<SvgCssDeclaration>();
         complete = true;
         if (string.IsNullOrWhiteSpace(text)) return result;
+        if (ContainsNonSvgCssWhitespace(text!)) {
+            complete = false;
+            return result;
+        }
         foreach (string raw in SplitSvgCssTopLevel(text!, ';')) {
             if (declarationCount >= MaximumSvgCssDeclarations) {
                 if (!string.IsNullOrWhiteSpace(raw)) complete = false;
@@ -604,7 +612,7 @@ public static partial class OfficeSvgDrawingReader {
         for (int index = 0; index < text.Length; index++) {
             char current = text[index];
             if (quote != '\0') {
-                if (current == quote && (index == 0 || text[index - 1] != '\\')) quote = '\0';
+                if (current == quote && !IsEscapedSvgCssCharacter(text, index)) quote = '\0';
                 continue;
             }
             if (current is '\'' or '"') quote = current;
@@ -624,7 +632,7 @@ public static partial class OfficeSvgDrawingReader {
         for (int index = start; index < text.Length; index++) {
             char current = text[index];
             if (quote != '\0') {
-                if (current == quote && text[index - 1] != '\\') quote = '\0';
+                if (current == quote && !IsEscapedSvgCssCharacter(text, index)) quote = '\0';
             } else if (current is '\'' or '"') quote = current;
             else if (current == target) return index;
         }
@@ -637,7 +645,7 @@ public static partial class OfficeSvgDrawingReader {
         for (int index = start; index < text.Length; index++) {
             char current = text[index];
             if (quote != '\0') {
-                if (current == quote && text[index - 1] != '\\') quote = '\0';
+                if (current == quote && !IsEscapedSvgCssCharacter(text, index)) quote = '\0';
             } else if (current is '\'' or '"') quote = current;
             else if (current == open) depth++;
             else if (current == close && --depth == 0) return index;
@@ -647,14 +655,35 @@ public static partial class OfficeSvgDrawingReader {
 
     private static string RemoveSvgCssComments(string css) {
         var result = new StringBuilder(css.Length);
+        char quote = '\0';
         for (int index = 0; index < css.Length; index++) {
-            if (index + 1 < css.Length && css[index] == '/' && css[index + 1] == '*') {
+            char current = css[index];
+            if (quote != '\0') {
+                result.Append(current);
+                if (current == quote && !IsEscapedSvgCssCharacter(css, index)) quote = '\0';
+            } else if (current is '\'' or '"') {
+                quote = current;
+                result.Append(current);
+            } else if (index + 1 < css.Length && current == '/' && css[index + 1] == '*') {
                 int close = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
                 if (close < 0) break;
                 index = close + 1;
-            } else result.Append(css[index]);
+            } else result.Append(current);
         }
         return result.ToString();
+    }
+
+    private static bool IsEscapedSvgCssCharacter(string text, int index) {
+        int backslashes = 0;
+        for (int cursor = index - 1; cursor >= 0 && text[cursor] == '\\'; cursor--) backslashes++;
+        return backslashes % 2 != 0;
+    }
+
+    private static bool ContainsNonSvgCssWhitespace(string text) {
+        foreach (char character in text) {
+            if (char.IsWhiteSpace(character) && !IsSvgCssWhitespace(character)) return true;
+        }
+        return false;
     }
 
     private readonly struct SvgCssDeclaration {

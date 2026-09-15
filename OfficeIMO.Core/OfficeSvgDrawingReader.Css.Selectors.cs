@@ -55,7 +55,7 @@ public static partial class OfficeSvgDrawingReader {
         var parts = new List<SvgSelectorPart>();
         int cursor = 0;
         bool directParent = false;
-        while (cursor < selector.Length && char.IsWhiteSpace(selector[cursor])) cursor++;
+        while (cursor < selector.Length && IsSvgCssWhitespace(selector[cursor])) cursor++;
         if (cursor >= selector.Length || selector[cursor] == '>') {
             parsed = Array.Empty<SvgSelectorPart>();
             return false;
@@ -67,7 +67,7 @@ public static partial class OfficeSvgDrawingReader {
             while (cursor < selector.Length) {
                 char current = selector[cursor];
                 if (quote != '\0') {
-                    if (current == quote && selector[cursor - 1] != '\\') quote = '\0';
+                    if (current == quote && !IsEscapedSvgCssCharacter(selector, cursor)) quote = '\0';
                 } else if (current is '\'' or '"') quote = current;
                 else if (current == '[') brackets++;
                 else if (current == ']') {
@@ -75,7 +75,7 @@ public static partial class OfficeSvgDrawingReader {
                         parsed = Array.Empty<SvgSelectorPart>();
                         return false;
                     }
-                } else if (brackets == 0 && (current == '>' || char.IsWhiteSpace(current))) break;
+                } else if (brackets == 0 && (current == '>' || IsSvgCssWhitespace(current))) break;
                 cursor++;
             }
             if (quote != '\0' || brackets != 0 || cursor == start) {
@@ -84,7 +84,7 @@ public static partial class OfficeSvgDrawingReader {
             }
             parts.Add(new SvgSelectorPart(selector.Substring(start, cursor - start), directParent));
             bool hadWhitespace = false;
-            while (cursor < selector.Length && char.IsWhiteSpace(selector[cursor])) {
+            while (cursor < selector.Length && IsSvgCssWhitespace(selector[cursor])) {
                 hadWhitespace = true;
                 cursor++;
             }
@@ -92,7 +92,7 @@ public static partial class OfficeSvgDrawingReader {
             if (selector[cursor] == '>') {
                 directParent = true;
                 cursor++;
-                while (cursor < selector.Length && char.IsWhiteSpace(selector[cursor])) cursor++;
+                while (cursor < selector.Length && IsSvgCssWhitespace(selector[cursor])) cursor++;
                 if (cursor >= selector.Length || selector[cursor] == '>') {
                     parsed = Array.Empty<SvgSelectorPart>();
                     return false;
@@ -125,19 +125,21 @@ public static partial class OfficeSvgDrawingReader {
                 if (!string.Equals(element.Attribute("id")?.Value, id, StringComparison.Ordinal)) return false;
             } else if (marker == '.') {
                 string className = ReadSvgSelectorName(compound, ref index);
-                string[] classes = (element.Attribute("class")?.Value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+                string[] classes = (element.Attribute("class")?.Value ?? string.Empty).Split(
+                    new[] { ' ', '\t', '\n', '\r', '\f' },
+                    StringSplitOptions.RemoveEmptyEntries);
                 if (!classes.Contains(className, StringComparer.Ordinal)) return false;
             } else if (marker == '[') {
                 int close = compound.IndexOf(']', index);
                 if (close < 0) return false;
-                string predicate = compound.Substring(index, close - index).Trim();
+                string predicate = TrimSvgCssWhitespace(compound.Substring(index, close - index));
                 int equals = predicate.IndexOf('=');
-                string name = (equals < 0 ? predicate : predicate.Substring(0, equals)).Trim();
+                string name = TrimSvgCssWhitespace(equals < 0 ? predicate : predicate.Substring(0, equals));
                 XAttribute? attribute = element.Attributes().FirstOrDefault(item =>
                     item.Name.NamespaceName.Length == 0 && item.Name.LocalName.Equals(name, StringComparison.Ordinal));
                 if (attribute == null) return false;
                 if (equals >= 0) {
-                    string expected = predicate.Substring(equals + 1).Trim();
+                    string expected = TrimSvgCssWhitespace(predicate.Substring(equals + 1));
                     if (expected[0] is '\'' or '"') expected = expected.Substring(1, expected.Length - 2);
                     if (!string.Equals(attribute.Value, expected, StringComparison.Ordinal)) return false;
                 }
@@ -225,14 +227,14 @@ public static partial class OfficeSvgDrawingReader {
             if (marker != '[') return false;
             int close = compound.IndexOf(']', cursor);
             if (close < 0) return false;
-            string predicate = compound.Substring(cursor, close - cursor).Trim();
+            string predicate = TrimSvgCssWhitespace(compound.Substring(cursor, close - cursor));
             if (predicate.Length == 0 || predicate.IndexOf('[') >= 0) return false;
             int equals = predicate.IndexOf('=');
-            string name = (equals < 0 ? predicate : predicate.Substring(0, equals)).Trim();
+            string name = TrimSvgCssWhitespace(equals < 0 ? predicate : predicate.Substring(0, equals));
             if (!IsSupportedSvgSelectorIdentifier(name)) return false;
             if (equals >= 0) {
                 if (predicate.IndexOf('=', equals + 1) >= 0) return false;
-                string expected = predicate.Substring(equals + 1).Trim();
+                string expected = TrimSvgCssWhitespace(predicate.Substring(equals + 1));
                 if (expected.Length == 0) return false;
                 if (expected[0] is '\'' or '"') {
                     if (expected.Length < 2 || expected[expected.Length - 1] != expected[0]) return false;
@@ -251,5 +253,16 @@ public static partial class OfficeSvgDrawingReader {
             if (!char.IsLetterOrDigit(character) && character != '-' && character != '_') return false;
         }
         return true;
+    }
+
+    private static bool IsSvgCssWhitespace(char character) =>
+        character is ' ' or '\t' or '\n' or '\r' or '\f';
+
+    private static string TrimSvgCssWhitespace(string value) {
+        int start = 0;
+        while (start < value.Length && IsSvgCssWhitespace(value[start])) start++;
+        int end = value.Length;
+        while (end > start && IsSvgCssWhitespace(value[end - 1])) end--;
+        return value.Substring(start, end - start);
     }
 }

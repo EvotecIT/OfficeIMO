@@ -56,6 +56,7 @@ public static partial class OfficeSvgDrawingReader {
                 bytes,
                 options,
                 allowUnresolvedViewport,
+                MaximumInputBytes,
                 out XElement root,
                 out int maximumElements,
                 out double maximumViewportDimension,
@@ -159,6 +160,7 @@ public static partial class OfficeSvgDrawingReader {
                 bytes,
                 options,
                 allowUnresolvedViewport: true,
+                maximumCharactersInDocument: MaximumInputBytes,
                 out XElement root,
                 out int maximumElements,
                 out _,
@@ -180,6 +182,7 @@ public static partial class OfficeSvgDrawingReader {
         byte[]? bytes,
         OfficeSvgDrawingReaderOptions? options,
         bool allowUnresolvedViewport,
+        long maximumCharactersInDocument,
         out XElement root,
         out int maximumElements,
         out double maximumViewportDimension,
@@ -195,7 +198,7 @@ public static partial class OfficeSvgDrawingReader {
         maximumViewportDimension = options?.MaximumViewportDimension ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportDimension;
         maximumViewportPixels = options?.MaximumViewportPixels ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportPixels;
         viewX = viewY = viewWidth = viewHeight = viewportWidth = viewportHeight = 0D;
-        if (bytes == null || bytes.Length == 0 || bytes.Length > MaximumInputBytes) return false;
+        if (bytes == null || bytes.Length == 0 || bytes.Length > MaximumInputBytes || maximumCharactersInDocument <= 0L) return false;
         if (maximumElements <= 0 || maximumElements > OfficeSvgDrawingReaderOptions.MaximumAllowedElements) return false;
         if (maximumViewportDimension <= 0D || maximumViewportDimension > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension ||
             maximumViewportPixels <= 0D || maximumViewportPixels > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels) return false;
@@ -204,7 +207,7 @@ public static partial class OfficeSvgDrawingReader {
             var settings = new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
-                MaxCharactersInDocument = MaximumInputBytes
+                MaxCharactersInDocument = Math.Min(MaximumInputBytes, maximumCharactersInDocument)
             };
             XDocument document;
             using (var stream = new MemoryStream(bytes, writable: false))

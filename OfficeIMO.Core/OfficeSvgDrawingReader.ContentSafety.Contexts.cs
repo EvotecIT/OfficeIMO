@@ -162,6 +162,11 @@ public static partial class OfficeSvgDrawingReader {
         out string evidence) {
         foreach (XElement current in element.AncestorsAndSelf()) {
             string name = current.Name.LocalName.ToLowerInvariant();
+            if (name == "svg" && current.Parent != null &&
+                string.Equals(ReadPresentationProperty(current, "overflow")?.Trim(), "visible", StringComparison.OrdinalIgnoreCase)) {
+                evidence = "Text inside a nested SVG viewport with visible overflow depends on browser viewport painting and is therefore report-only.";
+                return true;
+            }
             if (name == "switch") {
                 evidence = "SVG switch-branch text depends on renderer language and feature context and is therefore report-only.";
                 return true;

@@ -97,6 +97,15 @@ public static partial class OfficeSvgDrawingReader {
         internal void Include(SvgTextRun run) {
             double y = run.Baseline - run.FontSize;
             double height = run.FontSize * 1.25D;
+            double strokeExtent = 0D;
+            if (HasStyle && Style.StrokeWidth > 0D &&
+                (Style.Stroke.HasValue || Style.StrokeGradient != null || Style.StrokeRadialGradient != null ||
+                 Style.StrokeDeferredGradient != null || Style.StrokePattern != null)) {
+                strokeExtent = Style.StrokeWidth / 2D;
+                if (Style.LineJoin == OfficeStrokeLineJoin.Miter) {
+                    strokeExtent *= Math.Max(1D, Style.MiterLimit);
+                }
+            }
             OfficeTransform transform = Math.Abs(run.RotationDegrees) <= 0.0000001D
                 ? run.Transform
                 : OfficeTransform.RotateDegrees(
@@ -104,7 +113,18 @@ public static partial class OfficeSvgDrawingReader {
                     run.RotationCenterX,
                     run.RotationCenterY).Then(run.Transform);
             (double Left, double Top, double Right, double Bottom) bounds =
-                transform.TransformRectangleBounds(run.X, y, run.Width, height);
+                transform.TransformRectangleBounds(
+                    run.X - strokeExtent,
+                    y - strokeExtent,
+                    run.Width + strokeExtent * 2D,
+                    height + strokeExtent * 2D);
+            if (strokeExtent > 0D) {
+                bounds = (
+                    bounds.Left - strokeExtent,
+                    bounds.Top - strokeExtent,
+                    bounds.Right + strokeExtent,
+                    bounds.Bottom + strokeExtent);
+            }
             double horizontalScale = Math.Sqrt(transform.M11 * transform.M11 + transform.M12 * transform.M12);
             double verticalScale = Math.Sqrt(transform.M21 * transform.M21 + transform.M22 * transform.M22);
             double minimumScale = Math.Min(horizontalScale, verticalScale);

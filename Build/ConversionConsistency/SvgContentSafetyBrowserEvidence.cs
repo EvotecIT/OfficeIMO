@@ -61,6 +61,8 @@ internal static class SvgContentSafetyBrowserEvidenceRunner {
         OfficeRasterImage afterRaster = VisualBaselineTestSupport.DecodePng(
             File.ReadAllBytes(afterPng),
             "The browser-rendered SVG after image is invalid.");
+        int beforeVisibleControlPixels = ValidateExpectedBrowserRaster(beforeRaster, "before");
+        int afterVisibleControlPixels = ValidateExpectedBrowserRaster(afterRaster, "after");
         VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(
                 beforeRaster,
                 afterRaster,
@@ -79,6 +81,10 @@ internal static class SvgContentSafetyBrowserEvidenceRunner {
             BrowserVersion: browserVersion,
             BeforeBlockedRequests: before.Diagnostics.BlockedRequestCount,
             AfterBlockedRequests: after.Diagnostics.BlockedRequestCount,
+            RasterWidth: beforeRaster.Width,
+            RasterHeight: beforeRaster.Height,
+            BeforeVisibleControlPixels: beforeVisibleControlPixels,
+            AfterVisibleControlPixels: afterVisibleControlPixels,
             FixtureSha256: ArtifactPaths.Hash(source),
             CleanedSha256: ArtifactPaths.Hash(cleaned.Output),
             RemovedFindings: cleaned.Changes.Count,
@@ -129,6 +135,29 @@ internal static class SvgContentSafetyBrowserEvidenceRunner {
         }
     }
 
+    private static int ValidateExpectedBrowserRaster(OfficeRasterImage raster, string lane) {
+        if (raster.Width != 640 || raster.Height is < 430 or > 431) {
+            throw new InvalidDataException(
+                "The " + lane + " SVG browser raster has unexpected dimensions " +
+                raster.Width + "x" + raster.Height + ".");
+        }
+        OfficeColor background = raster.GetPixel(raster.Width - 1, raster.Height - 1);
+        if (background.A != 255 || background.R < 248 || background.G < 248 || background.B < 248) {
+            throw new InvalidDataException("The " + lane + " SVG browser raster does not contain the expected white canvas.");
+        }
+        int visibleControlPixels = 0;
+        for (int y = 15; y < 50; y++) {
+            for (int x = 20; x < 250; x++) {
+                OfficeColor pixel = raster.GetPixel(x, y);
+                if (pixel.A == 255 && pixel.R < 192 && pixel.G < 192 && pixel.B < 192) visibleControlPixels++;
+            }
+        }
+        if (visibleControlPixels < 100) {
+            throw new InvalidDataException("The " + lane + " SVG browser raster did not paint the expected visible control text.");
+        }
+        return visibleControlPixels;
+    }
+
     private static Task<string> RasterizeAsync(
         string executable,
         string pdf,
@@ -146,6 +175,10 @@ internal sealed record SvgContentSafetyBrowserEvidence(
     string BrowserVersion,
     int BeforeBlockedRequests,
     int AfterBlockedRequests,
+    int RasterWidth,
+    int RasterHeight,
+    int BeforeVisibleControlPixels,
+    int AfterVisibleControlPixels,
     string FixtureSha256,
     string CleanedSha256,
     int RemovedFindings,
