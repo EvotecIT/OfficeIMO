@@ -11,26 +11,24 @@ Command: dotnet list OfficeIMO.Html/OfficeIMO.Html.csproj package --include-tran
   Determining projects to restore...
   All projects are up-to-date for restore.
 Project 'OfficeIMO.Html' has the following package references
-   [net10.0]: 
+   [net10.0]:
    Top-level Package      Requested   Resolved
-   > AngleSharp           1.7.1       1.7.1   
-   > AngleSharp.Css       1.0.1       1.0.1   
+   > AngleSharp           1.7.1       1.7.1
+   > AngleSharp.Css       1.0.1       1.0.1
 
 
 Command: dotnet list OfficeIMO.Html/OfficeIMO.Html.csproj package --include-transitive --framework net472
   Determining projects to restore...
   All projects are up-to-date for restore.
 Project 'OfficeIMO.Html' has the following package references
-   [net472]: 
+   [net472]:
    Top-level Package      Requested   Resolved
-   > AngleSharp           1.7.1       1.7.1   
-   > AngleSharp.Css       1.0.1       1.0.1   
+   > AngleSharp           1.7.1       1.7.1
+   > AngleSharp.Css       1.0.1       1.0.1
 
    Transitive Package                            Resolved
-   > System.Buffers                              4.5.1   
-   > System.Memory                               4.5.5   
-   > System.Numerics.Vectors                     4.5.0   
-   > System.Runtime.CompilerServices.Unsafe      6.0.0   
-   > System.Text.Encoding.CodePages              8.0.0   
-
-
+   > System.Buffers                              4.5.1
+   > System.Memory                               4.5.5
+   > System.Numerics.Vectors                     4.5.0
+   > System.Runtime.CompilerServices.Unsafe      6.0.0
+   > System.Text.Encoding.CodePages              8.0.0
