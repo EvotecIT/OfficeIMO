@@ -9,6 +9,7 @@ namespace OfficeIMO.Drawing;
 
 internal enum OfficeRasterEncodingCheckpoint {
     PngCompressionRow,
+    PngFilteringBlock,
     JpegCoefficientRow,
     TiffCompressionRow,
     WebpCompressionBlock

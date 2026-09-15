@@ -411,7 +411,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlImages_CallerCodecSvgFallbackPropagatesTheEncodedByteBudget() {
+    public void HtmlImages_CallerCodecSvgFallbackUsesAnInternalResourceBudget() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 4'><rect width='10' height='4' fill='red' filter='url(#blur)'/></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<img src='data:image/svg+xml;base64," + data + "' style='width:100px;height:40px'>";
@@ -423,9 +423,11 @@ public sealed partial class HtmlRenderingTests {
             MaximumTotalEncodedBytes = 16
         };
 
-        OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-            HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options));
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgRasterFallback);
 
+        OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options));
         Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
         Assert.Equal(16, exception.Maximum);
     }

@@ -79,7 +79,7 @@ jobs:
       - name: Capture isolated peak-memory evidence
         shell: pwsh
         run: |
-          dotnet run --project OfficeIMO.Drawing.Benchmarks/OfficeIMO.Drawing.Benchmarks.csproj --configuration Release --framework net10.0 --no-build -- --memory-evidence Screenshot AlphaGraphic Photo | Tee-Object ./artifacts/release-quality-images/peak-memory.txt
+          dotnet run --project OfficeIMO.Drawing.Benchmarks/OfficeIMO.Drawing.Benchmarks.csproj --configuration Release --framework net10.0 --no-build -- --memory-evidence Screenshot AlphaGraphic Photo Scan | Tee-Object ./artifacts/release-quality-images/peak-memory.txt
 
       - name: Upload evidence
         if: always()

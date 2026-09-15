@@ -169,11 +169,11 @@ public static partial class OfficePngWriter {
                 int rowOffset = y * stride;
                 if (y == 0) {
                     filteredRow[0] = 1;
-                    FilterFirstRowSub(rgba, rowOffset, stride, filteredRow, 1);
+                    FilterFirstRowSub(rgba, rowOffset, stride, filteredRow, 1, cancellationToken, checkpointObserver);
                 } else {
                     int previousRowOffset = rowOffset - stride;
-                    long upScore = FilterUp(rgba, rowOffset, previousRowOffset, stride, filteredRow, 1);
-                    long paethScore = FilterPaeth(rgba, rowOffset, previousRowOffset, stride, paethCandidate);
+                    long upScore = FilterUp(rgba, rowOffset, previousRowOffset, stride, filteredRow, 1, cancellationToken, checkpointObserver);
+                    long paethScore = FilterPaeth(rgba, rowOffset, previousRowOffset, stride, paethCandidate, cancellationToken, checkpointObserver);
                     if (paethScore < upScore) {
                         filteredRow[0] = 4;
                         Buffer.BlockCopy(paethCandidate, 0, filteredRow, 1, stride);
@@ -188,7 +188,7 @@ public static partial class OfficePngWriter {
                 }
                 Buffer.BlockCopy(filteredRow, 0, compressionBatch, batchLength, filteredRow.Length);
                 batchLength += filteredRow.Length;
-                UpdateAdler32(filteredRow, 0, filteredRow.Length, ref adlerA, ref adlerB);
+                UpdateAdler32(filteredRow, 0, filteredRow.Length, ref adlerA, ref adlerB, cancellationToken, checkpointObserver);
             }
             if (batchLength > 0) deflate.Write(compressionBatch, 0, batchLength);
         }
@@ -245,7 +245,7 @@ public static partial class OfficePngWriter {
             destination.WriteByte((byte)inverse);
             destination.WriteByte((byte)(inverse >> 8));
             destination.Write(block, 0, blockLength);
-            UpdateAdler32(block, 0, blockLength, ref adlerA, ref adlerB);
+            UpdateAdler32(block, 0, blockLength, ref adlerA, ref adlerB, cancellationToken, checkpointObserver);
         }
 
         WriteAdler32(destination, (adlerB << 16) | adlerA);

@@ -314,7 +314,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 raster,
                 OfficeImageExportFormat.Png,
                 _options.RasterEncoding,
-                _options.MaximumTotalEncodedBytes,
+                _options.MaxResourceBytes,
                 _cancellationToken);
             _cancellationToken.ThrowIfCancellationRequested();
             double resolvedWidth = width > 0D ? width : raster.Width;
@@ -337,7 +337,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 OfficeConversionLossKind.Approximation);
             return true;
         } catch (Exception exception) when (exception is not OperationCanceledException &&
-                                            exception is not OfficeImageExportBatchLimitException &&
                                             exception is not OutOfMemoryException &&
                                             exception is not StackOverflowException) {
             return false;

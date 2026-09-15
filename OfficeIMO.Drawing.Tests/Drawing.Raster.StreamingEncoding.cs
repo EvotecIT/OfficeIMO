@@ -270,6 +270,29 @@ public sealed class DrawingRasterStreamingEncodingTests {
         Assert.True(checkpointCount >= 2);
     }
 
+    [Fact]
+    public void CancellationCanStopPngInsideASingleWideFilteringRow() {
+        OfficeRasterImage image = new OfficeRasterImage(32768, 1, OfficeColor.CornflowerBlue);
+        using var cancellation = new CancellationTokenSource();
+        using var destination = new CountingWriteStream();
+        int checkpointCount = 0;
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeRasterImageEncoder.EncodeTo(
+                image,
+                OfficeImageExportFormat.Png,
+                destination,
+                CreateOptions(),
+                maximumEncodedBytes: long.MaxValue,
+                cancellationToken: cancellation.Token,
+                checkpointObserver: checkpoint => {
+                    if (checkpoint != OfficeRasterEncodingCheckpoint.PngFilteringBlock) return;
+                    if (++checkpointCount == 2) cancellation.Cancel();
+                }));
+
+        Assert.True(checkpointCount >= 2);
+    }
+
     [Theory]
     [InlineData(OfficeTiffCompression.Lzw)]
     [InlineData(OfficeTiffCompression.PackBits)]

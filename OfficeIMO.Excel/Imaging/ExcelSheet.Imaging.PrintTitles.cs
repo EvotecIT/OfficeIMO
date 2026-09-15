@@ -16,6 +16,9 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat workingFormat = format == OfficeImageExportFormat.Svg
                 ? OfficeImageExportFormat.Svg
                 : OfficeImageExportFormat.Png;
+            bool directFinalRaster = format.IsRaster() &&
+                                     format == workingFormat &&
+                                     !options.SplitByManualPageBreaks;
             OfficeImageExportResult result;
             ExcelRasterRenderState rasterState;
             if (options.SplitByManualPageBreaks &&
@@ -36,7 +39,7 @@ namespace OfficeIMO.Excel {
                     workingFormat,
                     options,
                     format,
-                    format == workingFormat,
+                    directFinalRaster,
                     out rasterState,
                     cancellationToken);
             }
@@ -65,7 +68,7 @@ namespace OfficeIMO.Excel {
                 result = ApplyFinalSvgOutputBounds(result, options);
             }
 
-            if (format == workingFormat) return options.EnsureAccepted(result);
+            if (format == OfficeImageExportFormat.Svg || directFinalRaster) return options.EnsureAccepted(result);
             cancellationToken.ThrowIfCancellationRequested();
             if (!OfficeRasterImageDecoder.TryDecode(
                     result.Bytes,
@@ -200,7 +203,7 @@ namespace OfficeIMO.Excel {
                     image,
                     format,
                     rasterState.EncodingOptions,
-                    ExcelRangeImageRenderer.ResolveEncodingByteCeiling(format == rasterPlanningFormat, options),
+                    ExcelRangeImageRenderer.ResolveEncodingByteCeiling(false, options),
                     cancellationToken),
                 Name,
                 Name + "!" + range.Range,

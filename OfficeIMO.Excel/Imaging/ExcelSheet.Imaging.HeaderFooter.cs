@@ -157,7 +157,7 @@ namespace OfficeIMO.Excel {
                     image,
                     format,
                     rasterState.EncodingOptions,
-                    ExcelRangeImageRenderer.ResolveEncodingByteCeiling(format == rasterPlanningFormat, options),
+                    ExcelRangeImageRenderer.ResolveEncodingByteCeiling(false, options),
                     cancellationToken),
                 content.Name,
                 content.Source,
