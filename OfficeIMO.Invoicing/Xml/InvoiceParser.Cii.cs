@@ -3,7 +3,7 @@ using System.Xml.Linq;
 namespace OfficeIMO.Invoicing;
 
 public static partial class InvoiceParser {
-    private static Invoice ReadCii(XElement root, InvoiceXmlReadContext c) {
+    private static Invoice ReadCii(XElement root, InvoiceXmlReadContext c, InvoiceProfile? profile) {
         XElement? context = c.Child(root, Rsm + "ExchangedDocumentContext");
         c.Text(c.Child(context, Ram + "GuidelineSpecifiedDocumentContextParameter"), Ram + "ID");
         XElement? document = c.Child(root, Rsm + "ExchangedDocument");
@@ -48,11 +48,14 @@ public static partial class InvoiceParser {
             if (invoice.Lines.Count >= 10000) throw new InvalidDataException("Invoice exceeds 10,000 lines.");
             c.AddTo(invoice.Lines, CiiLine(c, line, invoice.Currency));
         }
-        invoice.Payment = CiiPayment(c, settlement);
+        foreach (InvoicePayment payment in CiiPayments(c, settlement)) c.AddTo(invoice.Payments, payment);
         XElement? terms = c.Child(settlement, Ram + "SpecifiedTradePaymentTerms");
         invoice.PaymentTerms = c.Text(terms, Ram + "Description"); invoice.DueDate = CiiDate(c, terms, "DueDateDateTime");
         string? mandate = c.Text(terms, Ram + "DirectDebitMandateID");
-        if (mandate != null) { invoice.Payment = invoice.Payment ?? new InvoicePayment(); invoice.Payment.MandateReference = mandate; }
+        if (mandate != null) {
+            if (invoice.Payments.Count == 0) c.AddTo(invoice.Payments, new InvoicePayment());
+            invoice.Payments[0].MandateReference = mandate;
+        }
         foreach (XElement adjustment in c.Children(settlement, Ram + "SpecifiedTradeAllowanceCharge")) c.AddTo(invoice.AllowancesAndCharges, CiiAdjustment(c, adjustment, invoice.Currency, true));
         foreach (XElement reference in c.Children(settlement, Ram + "InvoiceReferencedDocument"))
             c.AddTo(invoice.PrecedingInvoices, new InvoiceReference(c.Required(reference, Ram + "IssuerAssignedID"), CiiDate(c, reference, "FormattedIssueDateTime", true)));
@@ -72,7 +75,7 @@ public static partial class InvoiceParser {
             }
             c.AddTo(invoice.DeclaredTaxes, declared);
         }
-        CiiTotals(c, c.Child(settlement, Ram + "SpecifiedTradeSettlementHeaderMonetarySummation"), invoice);
+        CiiTotals(c, c.Child(settlement, Ram + "SpecifiedTradeSettlementHeaderMonetarySummation"), invoice, profile);
         return invoice;
     }
 
@@ -104,10 +107,11 @@ public static partial class InvoiceParser {
         Reason = c.Text(element, Ram + "Reason"), ReasonCode = c.Text(element, Ram + "ReasonCode"),
         Tax = documentLevel ? CiiTaxCategory(c, c.Child(element, Ram + "CategoryTradeTax")) : null
     };
-    private static void CiiTotals(InvoiceXmlReadContext c, XElement? totals, Invoice invoice) {
+    private static void CiiTotals(InvoiceXmlReadContext c, XElement? totals, Invoice invoice, InvoiceProfile? profile) {
         if (totals == null) throw new InvalidDataException("CII invoice monetary totals are required.");
+        bool minimum = profile == InvoiceProfile.Minimum;
         invoice.DeclaredTotals = new InvoiceDeclaredTotals {
-            LineNetTotal = c.RequiredMoney(totals, Ram + "LineTotalAmount", invoice.Currency), AllowanceTotal = c.Money(totals, Ram + "AllowanceTotalAmount", invoice.Currency),
+            LineNetTotal = minimum ? c.Money(totals, Ram + "LineTotalAmount", invoice.Currency) : c.RequiredMoney(totals, Ram + "LineTotalAmount", invoice.Currency), AllowanceTotal = c.Money(totals, Ram + "AllowanceTotalAmount", invoice.Currency),
             ChargeTotal = c.Money(totals, Ram + "ChargeTotalAmount", invoice.Currency), TaxExclusiveTotal = c.RequiredMoney(totals, Ram + "TaxBasisTotalAmount", invoice.Currency),
             TaxInclusiveTotal = c.RequiredMoney(totals, Ram + "GrandTotalAmount", invoice.Currency), PayableAmount = c.RequiredMoney(totals, Ram + "DuePayableAmount", invoice.Currency)
         };
@@ -130,6 +134,7 @@ public static partial class InvoiceParser {
                 invoice.TaxAmountInAccountingCurrency = value;
             } else c.Loss(tax, "VAT amount uses an undeclared currency.");
         }
-        if (!invoice.DeclaredTotals.TaxTotal.HasValue || invoice.DeclaredTaxes.Count == 0) throw new InvalidDataException("CII VAT total and breakdown are required.");
+        if (!invoice.DeclaredTotals.TaxTotal.HasValue || !minimum && invoice.DeclaredTaxes.Count == 0)
+            throw new InvalidDataException(minimum ? "CII VAT total is required." : "CII VAT total and breakdown are required.");
     }
 }

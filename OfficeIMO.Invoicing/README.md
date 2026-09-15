@@ -27,23 +27,34 @@ var invoice = new Invoice {
     DueDate = new DateTime(2026, 10, 10),
     Currency = "EUR",
     Seller = new InvoiceParty {
-        Name = "Example Seller", VatIdentifier = "DE123456789",
+        Name = "Example Seller",
         Address = new InvoiceAddress { CountryCode = "DE" }
     },
     Buyer = new InvoiceParty {
         Name = "Example Buyer",
         Address = new InvoiceAddress { CountryCode = "DE" }
-    },
-    Payment = new InvoicePayment { MeansCode = "58" }
+    }
 };
-invoice.Payment.Accounts.Add(new InvoiceBankAccount { Identifier = "DE79000000001234567890" });
+invoice.Seller.TaxRegistrations.Add(
+    new InvoiceTaxRegistration("DE123456789", InvoiceTaxRegistration.VatScheme));
+invoice.Payments.Add(new InvoicePayment {
+    MeansCode = "58",
+    Reference = invoice.Number,
+    Account = new InvoiceBankAccount { Identifier = "DE79000000001234567890" }
+});
 invoice.Lines.Add(new InvoiceLine {
     Id = "1", Name = "Consulting", Quantity = 1m, UnitPrice = 100m,
     Tax = new InvoiceTaxCategory { Code = "S", Rate = 19m }
 });
-byte[] cii = InvoiceSerializer.Write(invoice);
+byte[] cii = InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(
+    InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2,
+    InvoiceSyntax.Cii,
+    InvoiceProfile.En16931));
 byte[] ubl = InvoiceSerializer.Write(invoice,
-    new InvoiceXmlOptions(InvoiceSyntax.Ubl, InvoiceProfile.En16931));
+    new InvoiceXmlOptions(
+        InvoiceSpecificationRelease.En16931_1_3_16,
+        InvoiceSyntax.Ubl,
+        InvoiceProfile.En16931));
 ```
 
 Serialization checks model arithmetic and the supported target mapping. Identical
@@ -56,22 +67,30 @@ Successful serialization alone does not establish standards compliance.
 
 | Area | Supported data |
 | --- | --- |
-| Syntax and profiles | CII D16B and UBL 2.1; EN 16931 and XRechnung 3.0; Peppol BIS on UBL |
+| Syntax and profiles | Factur-X 1.09.2 / ZUGFeRD 2.5.2 CII D22B with MINIMUM, BASIC WL, BASIC, EN 16931 and EXTENDED; EN 16931 1.3.16 and XRechnung 3.0.2 in CII D16B or UBL 2.1; Peppol BIS Billing 3.0.21 in UBL 2.1 |
 | Documents | Invoice and credit note; document currency and accounting-currency VAT. UBL credit notes cannot carry a due date or project reference; writing or converting those fields reports unsupported target data. |
-| Parties | Seller, buyer, payee, tax representative, addresses, identifiers and contacts within each semantic role. Multiple seller identifiers are supported in both syntaxes; multiple buyer identifiers require CII and block conversion to UBL. |
+| Parties | Seller, buyer, payee, tax representative, addresses, identifiers and contacts within each semantic role. Tax registrations retain their identifier and arbitrary source scheme. Target inspection reports the exact indexed registration when a target permits only VAT, one seller fiscal registration, or a canonical CII `VA`/`FC` scheme. |
 | Lines | Quantities, price base quantities, net/gross prices, discounts, allowances, charges, item identifiers, classifications and attributes |
 | VAT and totals | Category/rate breakdowns, exemptions, document adjustments, prepayments and payable rounding |
-| Payments | Transfer accounts, payment references, direct-debit mandate and creditor details, masked card details. CII direct-debit output requires a valid IBAN for the debtor account; UBL local debtor identifiers cannot be converted to CII. |
-| References | Orders, preceding invoices, contracts, projects, delivery, periods, accounting and supporting documents; external locations preserve well-formed absolute URIs, including FTP and URN schemes, without fetching them |
+| Payments | Ordered payment-means occurrences with their own description, account, reference, direct-debit and masked-card data. UBL preserves card network identifiers; CII reports them as unsupported. Conflicting CII invoice-level references, creditor identifiers or mandates are reported by exact payment index. |
+| References | Orders, preceding invoices, contracts, projects, delivery, periods, accounting and supporting documents. CII preserves a sales-order-only reference; UBL reports that it requires the associated purchase-order reference. External locations preserve well-formed absolute URIs, including FTP and URN schemes, without fetching them. |
 
 IBAN classification checks the registered country prefix, national length and character
 structure, and MOD-97 checksum against the [SWIFT IBAN Registry, release 102](https://www.swift.com/swift-resource/9606/download).
 Unknown prefixes and country-invalid identifiers remain generic UBL creditor accounts;
 they cannot be declared as CII IBANs. These checks do not establish that an account exists.
 
-Profile recognition also covers Factur-X MINIMUM, BASIC WL, BASIC, EXTENDED and EXTENDED-CTC-FR.
-Authoring those profiles is not supported by this engine. National CIUS rules
-other than XRechnung and Peppol require separate mappings and validation.
+Lower Factur-X profiles intentionally carry less business data. The default
+`RejectDataLoss` projection policy reports each populated source field that the
+selected profile omits. `AllowProfileDefinedDataLoss` permits only that declared
+profile reduction and returns the same findings as warnings from `InspectTarget`.
+MINIMUM and BASIC WL carry calculated aggregates without XML line occurrences.
+
+XRechnung is the only national CIUS with an authoring contract because this
+release includes its CII/UBL syntax mappings, pinned rules and corpus evidence.
+EXTENDED-CTC-FR remains recognizable for inspection but cannot be selected for
+authoring or validation. Peppol BIS is a cross-border network usage specification,
+not a substitute for a national CIUS contract.
 
 ## Read and edit safely
 
@@ -83,7 +102,10 @@ foreach (var item in parsed.UnmappedData)
 if (parsed.HasCompleteMapping) {
     parsed.Invoice.Lines[0].Quantity = 2m;
     InvoiceCalculator.UpdateDeclaredAmounts(parsed.Invoice);
-    File.WriteAllBytes("edited.xml", parsed.Write());
+    File.WriteAllBytes("edited.xml", parsed.Write(new InvoiceXmlOptions(
+        InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2,
+        InvoiceSyntax.Cii,
+        InvoiceProfile.En16931)));
 }
 ```
 
@@ -138,7 +160,10 @@ Serialized XML is limited to 16 MiB while it is written.
 
 ```csharp
 var conversion = InvoiceConverter.Convert(File.ReadAllBytes("invoice.xml"),
-    new InvoiceXmlOptions(InvoiceSyntax.Ubl, InvoiceProfile.XRechnung));
+    new InvoiceXmlOptions(
+        InvoiceSpecificationRelease.XRechnung_3_0_2_2026_08_31,
+        InvoiceSyntax.Ubl,
+        InvoiceProfile.XRechnung));
 if (conversion.Succeeded)
     File.WriteAllBytes("converted.xml", conversion.Xml!);
 else
@@ -147,9 +172,10 @@ else
 ```
 
 Conversion produces no bytes if observed source data cannot be represented in
-the target. Examples include arbitrary tax-registration schemes, conflicting
-payment descriptions, CII sales-order-only references and unsupported card
-network metadata. A changed guideline is reported and requires validation
+the target. Examples include a tax-registration scheme the target would relabel,
+a sales-order-only reference when writing UBL, CII card-network metadata, and
+conflicting exemption reasons or singleton payment fields. Every diagnostic names
+the exact source-model path and unsupported target meaning. A changed guideline is reported and requires validation
 against the target release. This is a bounded semantic conversion, with explicit
 loss reporting for fields outside the supported contract.
 
@@ -173,3 +199,11 @@ The French profile identifier follows [AFNOR XP Z12-012](https://www.impots.gouv
 Recognition does not establish French business-rule coverage.
 
 For visible hybrid PDFs, add the optional [OfficeIMO.Invoicing.Pdf adapter](../OfficeIMO.Invoicing.Pdf/README.md). The XML engine remains independent of PDF generation.
+
+## Measure equivalent workloads
+
+[`OfficeIMO.Invoicing.Benchmarks`](../OfficeIMO.Invoicing.Benchmarks/README.md)
+measures XML read, XML write, pinned rules validation and multilingual PDF
+generation separately over the same deterministic 25-line invoice. Correctness
+checks run outside measurement, and the suite owns explicit Windows, Linux and
+macOS elapsed/allocation ceilings.

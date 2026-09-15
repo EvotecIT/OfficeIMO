@@ -29,47 +29,31 @@ public static partial class InvoiceParser {
     private static void UblTaxRegistrations(InvoiceXmlReadContext c, XElement? element, InvoiceParty party) {
         foreach (XElement tax in c.Children(element, Cac + "PartyTaxScheme")) {
             string? scheme = c.Text(c.Child(tax, Cac + "TaxScheme"), Cbc + "ID"), identifier = c.Text(tax, Cbc + "CompanyID");
-            if (scheme == "VAT") {
-                if (party.VatIdentifier != null) c.Loss(tax, "Multiple VAT identifiers are outside the supported mapping.");
-                party.VatIdentifier = identifier;
-            } else {
-                if (scheme != "TAX") c.Loss(tax, "The non-VAT tax scheme cannot be preserved by the supported TAX/FC mapping.");
-                if (party.TaxRegistration != null) c.Loss(tax, "Multiple non-VAT registrations are outside the supported mapping.");
-                party.TaxRegistration = identifier;
-            }
+            if (scheme != null && identifier != null) c.AddTo(party.TaxRegistrations, new InvoiceTaxRegistration(identifier, scheme));
+            else c.Loss(tax, "A tax registration requires both an identifier and a scheme to preserve its meaning.");
         }
     }
-    private static InvoicePayment? UblPayment(InvoiceXmlReadContext c, XElement root, string? creditor) {
-        InvoicePayment? result = null;
+    private static IEnumerable<InvoicePayment> UblPayments(InvoiceXmlReadContext c, XElement root, string? creditor) {
+        bool found = false;
         foreach (XElement element in c.Children(root, Cac + "PaymentMeans")) {
+            found = true;
             XElement? code = c.Child(element, Cbc + "PaymentMeansCode");
             string means = c.Value(code) ?? string.Empty;
             string? text = c.Attribute(code, "name"), reference = c.Text(element, Cbc + "PaymentID");
-            if (result == null) result = new InvoicePayment { MeansCode = means, MeansText = text, Reference = reference, CreditorIdentifier = creditor };
-            else {
-                Agree(c, element, result.MeansCode, means, "payment means");
-                if (result.MeansText != null && text != null) Agree(c, element, result.MeansText, text, "payment descriptions");
-                if (result.Reference != null && reference != null) Agree(c, element, result.Reference, reference, "payment references");
-                result.MeansText = result.MeansText ?? text;
-                result.Reference = result.Reference ?? reference;
-            }
+            var result = new InvoicePayment { MeansCode = means, MeansText = text, Reference = reference, CreditorIdentifier = creditor };
             XElement? account = c.Child(element, Cac + "PayeeFinancialAccount");
             if (account != null) {
                 string identifier = c.Required(account, Cbc + "ID");
-                c.AddTo(result.Accounts, new InvoiceBankAccount { Identifier = identifier, IsIban = InvoiceBankAccountIdentity.IsValidIban(identifier),
-                    Name = c.Text(account, Cbc + "Name"), ProviderIdentifier = c.Text(c.Child(account, Cac + "FinancialInstitutionBranch"), Cbc + "ID") });
+                result.Account = new InvoiceBankAccount { Identifier = identifier, IsIban = InvoiceBankAccountIdentity.IsValidIban(identifier),
+                    Name = c.Text(account, Cbc + "Name"), ProviderIdentifier = c.Text(c.Child(account, Cac + "FinancialInstitutionBranch"), Cbc + "ID") };
             }
             XElement? card = c.Child(element, Cac + "CardAccount"), mandate = c.Child(element, Cac + "PaymentMandate");
-            c.Expected(c.Child(card, Cbc + "NetworkID"), "NA");
-            string? cardNumber = c.Text(card, Cbc + "PrimaryAccountNumberID"), cardHolder = c.Text(card, Cbc + "HolderName");
+            string? cardNumber = c.Text(card, Cbc + "PrimaryAccountNumberID"), cardNetwork = c.Text(card, Cbc + "NetworkID"), cardHolder = c.Text(card, Cbc + "HolderName");
             string? mandateReference = c.Text(mandate, Cbc + "ID"), debit = c.Text(c.Child(mandate, Cac + "PayerFinancialAccount"), Cbc + "ID");
-            if (result.CardNumber != null && cardNumber != null) Agree(c, element, result.CardNumber, cardNumber, "card numbers");
-            if (result.CardHolder != null && cardHolder != null) Agree(c, element, result.CardHolder, cardHolder, "card holders");
-            if (result.MandateReference != null && mandateReference != null) Agree(c, element, result.MandateReference, mandateReference, "mandates");
-            if (result.DebitedAccount != null && debit != null) Agree(c, element, result.DebitedAccount, debit, "debited accounts");
-            result.CardNumber = result.CardNumber ?? cardNumber; result.CardHolder = result.CardHolder ?? cardHolder;
-            result.MandateReference = result.MandateReference ?? mandateReference; result.DebitedAccount = result.DebitedAccount ?? debit;
+            result.CardNumber = cardNumber; result.CardNetworkId = cardNetwork; result.CardHolder = cardHolder;
+            result.MandateReference = mandateReference; result.DebitedAccount = debit;
+            yield return result;
         }
-        return result ?? (creditor == null ? null : new InvoicePayment { CreditorIdentifier = creditor });
+        if (!found && creditor != null) yield return new InvoicePayment { CreditorIdentifier = creditor };
     }
 }

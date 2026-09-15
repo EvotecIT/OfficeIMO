@@ -31,17 +31,18 @@ internal sealed class InvoiceModelLimits {
             Each(line.Attributes, value => Text(value.Name, value.Value));
         });
         Each(invoice.AllowancesAndCharges, Adjustment); Each(invoice.DeclaredTaxes, tax => Tax(tax.Category));
-        if (invoice.Payment != null) {
-            Text(invoice.Payment.MeansCode, invoice.Payment.MeansText, invoice.Payment.Reference, invoice.Payment.CardNumber, invoice.Payment.CardHolder,
-                invoice.Payment.MandateReference, invoice.Payment.CreditorIdentifier, invoice.Payment.DebitedAccount);
-            Each(invoice.Payment.Accounts, account => Text(account.Identifier, account.Name, account.ProviderIdentifier));
-        }
+        Each(invoice.Payments, payment => {
+            Text(payment.MeansCode, payment.MeansText, payment.Reference, payment.CardNumber, payment.CardNetworkId, payment.CardHolder,
+                payment.MandateReference, payment.CreditorIdentifier, payment.DebitedAccount);
+            if (payment.Account != null) Text(payment.Account.Identifier, payment.Account.Name, payment.Account.ProviderIdentifier);
+        });
         return _items;
     }
     private void Party(InvoiceParty? party) {
         if (party == null) return;
-        Text(party.Name, party.TradingName, party.LegalInformation, party.VatIdentifier, party.TaxRegistration);
-        Identifier(party.LegalRegistration); Identifier(party.ElectronicAddress); Each(party.Identifiers, Identifier); Address(party.Address);
+        Text(party.Name, party.TradingName, party.LegalInformation);
+        Identifier(party.LegalRegistration); Identifier(party.ElectronicAddress); Each(party.Identifiers, Identifier);
+        Each(party.TaxRegistrations, registration => Text(registration.Identifier, registration.SchemeId)); Address(party.Address);
         if (party.Contact != null) Text(party.Contact.Name, party.Contact.Telephone, party.Contact.Email);
     }
     private void Address(InvoiceAddress? address) {

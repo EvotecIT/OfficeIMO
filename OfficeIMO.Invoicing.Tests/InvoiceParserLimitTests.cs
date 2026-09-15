@@ -18,7 +18,7 @@ public class InvoiceParserLimitTests {
     [InlineData(false)]
     [InlineData(true)]
     public void NamespaceExpansionCannotMultiplyDiagnosticStorage(bool attributes) {
-        XDocument document = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(InvoiceFixture.Create())));
+        XDocument document = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(InvoiceFixture.Create(), InvoiceTestContracts.En16931())));
         XNamespace extra = "urn:" + new string('n', 65536);
         document.Root!.SetAttributeValue(XNamespace.Xmlns + "extra", extra.NamespaceName);
         for (int index = 0; index < 100; index++) {
@@ -33,7 +33,7 @@ public class InvoiceParserLimitTests {
             Assert.Contains("[truncated]", diagnostic.Location);
             Assert.Equal(InvoiceDiagnosticSeverity.Error, diagnostic.Severity);
         });
-        Assert.Throws<InvalidDataException>(() => read.Write());
+        Assert.Throws<InvalidDataException>(() => read.Write(InvoiceTestContracts.En16931()));
     }
 
     [Theory]
@@ -44,7 +44,7 @@ public class InvoiceParserLimitTests {
     public void ParsedTextMustFitTheSameModelBudgetsAsAuthoredText(InvoiceSyntax syntax, bool combined) {
         Invoice invoice = InvoiceFixture.Create();
         invoice.Notes.Add(new InvoiceNote("placeholder"));
-        XDocument document = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax))));
+        XDocument document = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax))));
         XElement note = document.Descendants().Single(e => e.Name.LocalName == (syntax == InvoiceSyntax.Cii ? "IncludedNote" : "Note"));
         (syntax == InvoiceSyntax.Cii ? note.Elements().Single() : note).Value = new string('x', combined ? 900000 : 1048577);
         if (combined) for (int index = 1; index < 5; index++) note.AddAfterSelf(new XElement(note));
@@ -57,13 +57,13 @@ public class InvoiceParserLimitTests {
     [InlineData(InvoiceSyntax.Ubl)]
     public void ParsedCollectionBudgetIncludesAllGroupsAndAllowsTheBoundary(InvoiceSyntax syntax) {
         Invoice invoice = InvoiceFixture.Create();
-        for (int index = 0; index < 49997; index++) invoice.Notes.Add(new InvoiceNote("Note"));
-        byte[] xml = InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax));
+        for (int index = 0; index < 49996; index++) invoice.Notes.Add(new InvoiceNote("Note"));
+        byte[] xml = InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax));
         InvoiceReadResult boundary = InvoiceParser.Read(xml);
         Assert.True(boundary.HasCompleteMapping);
-        Assert.Equal(49997, boundary.Invoice.Notes.Count);
+        Assert.Equal(49996, boundary.Invoice.Notes.Count);
         Assert.True(InvoiceModelValidator.Validate(boundary.Invoice).IsValid);
-        Assert.Equal(xml, boundary.Write());
+        Assert.Equal(xml, boundary.Write(InvoiceTestContracts.En16931(syntax)));
         XDocument document = XDocument.Parse(Encoding.UTF8.GetString(xml));
         XElement note = document.Descendants().First(e => e.Name.LocalName == (syntax == InvoiceSyntax.Cii ? "IncludedNote" : "Note"));
         note.AddAfterSelf(new XElement(note));
@@ -77,7 +77,7 @@ public class InvoiceParserLimitTests {
     [InlineData(InvoiceSyntax.Cii)]
     [InlineData(InvoiceSyntax.Ubl)]
     public void RepeatedUnmappedValuesStopAtTheDiagnosticBudget(InvoiceSyntax syntax) {
-        XDocument document = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(InvoiceFixture.Create(), new InvoiceXmlOptions(syntax))));
+        XDocument document = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(InvoiceFixture.Create(), InvoiceTestContracts.En16931(syntax))));
         for (int index = 0; index < 1001; index++) document.Root!.SetAttributeValue("extra" + index, "unmapped");
         Assert.Contains("1,000", Assert.Throws<InvalidDataException>(() =>
             InvoiceParser.Read(Encoding.UTF8.GetBytes(document.ToString()))).Message);
@@ -93,6 +93,6 @@ public class InvoiceParserLimitTests {
         invoice.Lines[0].OriginCountryCode = country;
         Assert.Contains(InvoiceModelValidator.Validate(invoice).Diagnostics, d => d.Location == "Lines[0].OriginCountryCode");
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl })
-            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax)));
+            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax)));
     }
 }

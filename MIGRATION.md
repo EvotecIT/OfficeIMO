@@ -141,6 +141,64 @@ guidelines, and ambiguous declarations are no longer accepted by the Factur-X
 helpers. These helpers retain the embedded XML and never rewrite its profile.
 XMP `Version` remains `1.0`; do not pass the specification release number there.
 
+### Explicit electronic-invoice releases and semantic collections
+
+Electronic-invoice authoring, rewriting, conversion, PDF capture and validation
+now require an explicit `InvoiceSpecificationRelease`. Replace implicit write
+calls and the former syntax/profile-only options with one exact contract:
+
+```csharp
+var contract = new InvoiceXmlOptions(
+    InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2,
+    InvoiceSyntax.Cii,
+    InvoiceProfile.En16931);
+
+byte[] xml = InvoiceSerializer.Write(invoice, contract);
+byte[] editedXml = InvoiceParser.Read(xml).Write(contract);
+var pdf = PdfInvoiceDocument.Create(invoice, contract);
+var report = await validator.ValidateAsync(xml, contract.Release);
+```
+
+There is no moving `Latest` release and no implicit fallback. The supported
+combinations are EN 16931 1.3.16 in CII or UBL; Factur-X 1.09.2 / ZUGFeRD 2.5.2
+in CII for MINIMUM, BASIC WL, BASIC, EN 16931 and EXTENDED; XRechnung 3.0.2
+configuration 2026-08-31 in CII or UBL; and Peppol BIS Billing 3.0.21 in UBL.
+`InvoiceRulesRelease` has been removed; use `InvoiceSpecificationRelease` for
+both authoring and validation. Validation stage states now use
+`InvoiceValidationStatus`.
+
+The party and payment models now preserve occurrences instead of collapsing
+them into convenient scalar fields:
+
+- Replace `InvoiceParty.VatIdentifier` and `TaxIdentifier` with
+  `TaxRegistrations`, adding `InvoiceTaxRegistration` values with their source
+  scheme.
+- Replace `Invoice.Payment` with the ordered `Invoice.Payments` collection.
+- Replace `InvoicePayment.Accounts` with one `Account` on each payment occurrence.
+- Store card-network metadata in `InvoicePayment.CardNetworkId`.
+
+These are deliberate breaking changes. They prevent arbitrary registration
+schemes, payment descriptions, references and card metadata from being merged or
+relabelled silently. `InvoiceSerializer.InspectTarget` and conversion now identify
+the exact indexed field when the selected target cannot carry it. Conflicting
+exemption reasons remain on their source categories and block a target that has
+only one category/rate breakdown field.
+
+Lower Factur-X profiles use `InvoiceProjectionPolicy`. The default
+`RejectDataLoss` blocks populated fields omitted by the profile. Select
+`AllowProfileDefinedDataLoss` only after inspecting the returned
+`INV-TARGET-PROJECTION` diagnostics; it permits that enumerated profile reduction,
+not arbitrary loss.
+Parsed MINIMUM and BASIC WL models contain the aggregates retained by those
+profiles and no synthetic line items. They can be edited and rewritten to the
+same lower profile; promotion to a line-based profile still requires real lines.
+
+Visible PDF localization is a separate captured presentation contract. Pass
+`InvoicePdfLayoutOptions.ForCultures(...)` for built-in English, German, Polish
+or French labels, combine cultures for multilingual labels, or create a custom
+`InvoicePdfLanguagePack`. Embed representative fonts for every script used by the
+invoice rather than relying on a development machine's installed fonts.
+
 ### Document AI execution failures and page limits
 
 Direct calls to `IntelligenceXOfficeAiExecutor.ExecuteAsync` now sanitize provider

@@ -247,13 +247,6 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 - [ ] Reduce AsciiDoc's lossless collection and semantic graph overhead beyond the current validated large baseline of 29.34 MiB allocated and 19.50 MiB retained for a 558 KiB source. Preserve exact spans, parent navigation, semantic editing, bounded nesting, table and list-continuation behavior, and byte-identical writing, and add Linux/macOS evidence.
 - [ ] Deepen RTF semantic parsing and writing beyond the current Broad and Preserved contracts for complex and nested tables, fields and form-field data, embedded pictures and objects, advanced destination groups, Unicode and code-page interactions, lists and overrides, and producer-specific controls. Extend the independent Word, WordPad, and Outlook corpus with editable semantic round trips and deterministic preservation diagnostics rather than treating syntax preservation or adapter reopening as full semantic coverage.
 
-## Electronic invoices
-
-- [ ] Extend `OfficeIMO.Invoicing` authoring and pinned validation to Factur-X MINIMUM, BASIC WL, BASIC and EXTENDED, with explicit specification releases and independent producer fixtures. Add national CIUS contracts only with their own syntax, rules and corpus evidence.
-- [ ] Expand loss-aware CII/UBL mappings for arbitrary tax-registration schemes, sales-order-only references, card network metadata and conflicting exemption or payment descriptions. Preserve source meaning or report the exact unsupported target data.
-- [ ] Add localized and multilingual invoice layouts, including long descriptions and mixed scripts, with representative fonts, visual inspection and exact XML/PDF agreement checks.
-- [ ] Benchmark XML read, write, rules validation and PDF generation as separate equivalent workloads; establish cross-platform elapsed and allocation budgets. Transport, tax-authority submission and accounting workflows remain separate product decisions.
-
 ## Google Workspace
 
 - [ ] Extend the shared declared- and unknown-length transport evidence to Linux/macOS, then measure Drive resumable upload/download and checkpoint persistence separately from network latency. Reduce the remaining Windows unknown-length elapsed cost while preserving response limits, cancellation, retry, safety policy, diagnostics, mutation ambiguity, cleared pooled storage, and exact payload bytes, and set absolute budgets for each transport contract.

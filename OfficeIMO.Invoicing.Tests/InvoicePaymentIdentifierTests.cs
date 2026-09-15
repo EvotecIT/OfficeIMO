@@ -3,71 +3,88 @@ using System.Xml.Linq;
 namespace OfficeIMO.Invoicing.Tests;
 
 public class InvoicePaymentIdentifierTests {
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    public void SingletonUblPaymentReferenceMergesAcrossAccounts(int referenceIndex) {
+    [Fact]
+    public void ConflictingUblPaymentReferencesRemainIndependentAndBlockCiiConversion() {
         Invoice invoice = InvoiceFixture.Create();
-        invoice.Payment!.Accounts.Add(new InvoiceBankAccount { Identifier = "DE79000000001234567890" });
-        XDocument source = XDocument.Parse(System.Text.Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl))));
-        XElement reference = source.Descendants().Single(e => e.Name.LocalName == "PaymentID");
-        reference.Remove();
-        source.Descendants().Where(e => e.Name.LocalName == "PaymentMeans").ElementAt(referenceIndex)
-            .Elements().Single(e => e.Name.LocalName == "PaymentMeansCode").AddAfterSelf(reference);
-        byte[] xml = System.Text.Encoding.UTF8.GetBytes(source.ToString());
+        invoice.Payments.Add(new InvoicePayment {
+            MeansCode = invoice.Payments[0].MeansCode,
+            MeansText = "Second route",
+            Reference = "second-reference",
+            Account = new InvoiceBankAccount { Identifier = "DE79000000001234567890" }
+        });
+        byte[] xml = InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl));
         InvoiceReadResult read = InvoiceParser.Read(xml);
         Assert.True(read.HasCompleteMapping);
-        Assert.Equal(invoice.Payment.Reference, read.Invoice.Payment!.Reference);
-        Assert.Equal(2, read.Invoice.Payment.Accounts.Count);
-        InvoiceConversionResult converted = InvoiceConverter.Convert(xml, new InvoiceXmlOptions(InvoiceSyntax.Cii));
-        Assert.True(converted.Succeeded, string.Join("; ", converted.Diagnostics.Select(d => d.Message)));
-        Assert.Equal(invoice.Payment.Reference, InvoiceParser.Read(converted.Xml!).Invoice.Payment!.Reference);
-        Assert.Equal(invoice.Payment.Reference, InvoiceParser.Read(read.Write()).Invoice.Payment!.Reference);
+        Assert.Equal(2, read.Invoice.Payments.Count);
+        Assert.Equal(invoice.Payments[0].Reference, read.Invoice.Payments[0].Reference);
+        Assert.Equal("second-reference", read.Invoice.Payments[1].Reference);
+        Assert.Equal("Second route", read.Invoice.Payments[1].MeansText);
+        Assert.Equal(xml, read.Write(InvoiceTestContracts.En16931(InvoiceSyntax.Ubl)));
+        InvoiceConversionResult converted = InvoiceConverter.Convert(xml, InvoiceTestContracts.En16931(InvoiceSyntax.Cii));
+        Assert.False(converted.Succeeded);
+        Assert.Null(converted.Xml);
+        Assert.Contains(converted.Diagnostics, d => d.Location == "Payments[1].Reference" && d.Message.IndexOf("second-reference", StringComparison.Ordinal) >= 0);
     }
 
     [Fact]
-    public void ConflictingUblPaymentReferencesRemainUnmapped() {
+    public void UblCardNetworkRoundTripsAndCiiReportsTheExactUnsupportedValue() {
         Invoice invoice = InvoiceFixture.Create();
-        invoice.Payment!.Accounts.Add(new InvoiceBankAccount { Identifier = "DE79000000001234567890" });
-        XDocument source = XDocument.Parse(System.Text.Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl))));
-        XElement reference = new XElement(source.Descendants().Single(e => e.Name.LocalName == "PaymentID")) { Value = "conflicting-reference" };
-        source.Descendants().Last(e => e.Name.LocalName == "PaymentMeans")
-            .Elements().Single(e => e.Name.LocalName == "PaymentMeansCode").AddAfterSelf(reference);
-        byte[] xml = System.Text.Encoding.UTF8.GetBytes(source.ToString());
-        Assert.False(InvoiceParser.Read(xml).HasCompleteMapping);
-        Assert.False(InvoiceConverter.Convert(xml, new InvoiceXmlOptions(InvoiceSyntax.Cii)).Succeeded);
+        InvoicePayment payment = invoice.Payments[0];
+        payment.MeansCode = "48";
+        payment.Account = null;
+        payment.CardNumber = "1234";
+        payment.CardHolder = "Card Holder";
+        payment.CardNetworkId = "VISA";
+        byte[] xml = InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl));
+        InvoiceReadResult read = InvoiceParser.Read(xml);
+        Assert.True(read.HasCompleteMapping);
+        Assert.Equal("VISA", read.Invoice.Payments[0].CardNetworkId);
+        Assert.Equal(xml, read.Write(InvoiceTestContracts.En16931(InvoiceSyntax.Ubl)));
+        InvoiceConversionResult converted = InvoiceConverter.Convert(xml, InvoiceTestContracts.En16931());
+        Assert.False(converted.Succeeded);
+        Assert.Contains(converted.Diagnostics, d => d.Location == "Payments[0].CardNetworkId" && d.Message.IndexOf("VISA", StringComparison.Ordinal) >= 0);
+    }
+
+    [Fact]
+    public void UblCardAccountRequiresAnExplicitNetworkIdentifier() {
+        Invoice invoice = InvoiceFixture.Create();
+        InvoicePayment payment = invoice.Payments[0];
+        payment.MeansCode = "48";
+        payment.Account = null;
+        payment.CardNumber = "1234";
+        payment.CardNetworkId = null;
+        IReadOnlyList<InvoiceDiagnostic> diagnostics = InvoiceSerializer.InspectTarget(invoice, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl));
+        Assert.Contains(diagnostics, d => d.Location == "Payments[0].CardNetworkId");
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl)));
+    }
+
+    [Fact]
+    public void ConflictingPaymentMeansCodesAreReportedPerOccurrence() {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Payments.Add(new InvoicePayment { MeansCode = "30", Account = new InvoiceBankAccount { Identifier = "DE79000000001234567890" } });
+        foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl }) {
+            IReadOnlyList<InvoiceDiagnostic> diagnostics = InvoiceSerializer.InspectTarget(invoice, InvoiceTestContracts.En16931(syntax));
+            Assert.Contains(diagnostics, d => d.Location == "Payments[1].MeansCode" && d.Message.IndexOf("30", StringComparison.Ordinal) >= 0);
+            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax)));
+        }
     }
 
     [Theory]
-    [InlineData(InvoiceSyntax.Cii, true, 0)]
-    [InlineData(InvoiceSyntax.Cii, true, 2)]
-    [InlineData(InvoiceSyntax.Ubl, true, 0)]
-    [InlineData(InvoiceSyntax.Ubl, true, 2)]
-    [InlineData(InvoiceSyntax.Cii, false, 0)]
-    [InlineData(InvoiceSyntax.Cii, false, 2)]
-    [InlineData(InvoiceSyntax.Ubl, false, 0)]
-    [InlineData(InvoiceSyntax.Ubl, false, 2)]
-    public void SingletonPaymentDetailsRoundTripWithZeroOrMultipleTransferAccounts(InvoiceSyntax syntax, bool card, int accounts) {
+    [InlineData(InvoiceSyntax.Cii)]
+    [InlineData(InvoiceSyntax.Ubl)]
+    public void MultiplePaymentOccurrencesAndTheirAccountsRoundTrip(InvoiceSyntax syntax) {
         Invoice invoice = InvoiceFixture.Create();
-        InvoicePayment payment = invoice.Payment!;
-        payment.Accounts.Clear();
-        for (int index = 0; index < accounts; index++) payment.Accounts.Add(new InvoiceBankAccount { Identifier = "DE79000000001234567890", Name = "Account " + index });
-        payment.MeansCode = card ? "48" : "59";
-        if (card) { payment.CardNumber = "1234"; payment.CardHolder = "Card Holder"; }
-        else { payment.MandateReference = "mandate-1"; payment.DebitedAccount = "DE79000000001234567890"; payment.CreditorIdentifier = "DE98ZZZ09999999999"; }
-        byte[] xml = InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax));
-        XDocument document = XDocument.Parse(System.Text.Encoding.UTF8.GetString(xml));
-        string singleton = card ? syntax == InvoiceSyntax.Cii ? "ApplicableTradeSettlementFinancialCard" : "CardAccount"
-            : syntax == InvoiceSyntax.Cii ? "PayerPartyDebtorFinancialAccount" : "PaymentMandate";
-        Assert.Single(document.Descendants().Where(element => element.Name.LocalName == singleton));
+        invoice.Payments.Add(new InvoicePayment {
+            MeansCode = invoice.Payments[0].MeansCode,
+            Account = new InvoiceBankAccount { Identifier = "DE79000000001234567890", Name = "Second account" }
+        });
+        byte[] xml = InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax));
         InvoiceReadResult read = InvoiceParser.Read(xml);
         Assert.True(read.HasCompleteMapping, string.Join("; ", read.UnmappedData.Select(d => d.Message)));
-        Assert.Equal(accounts, read.Invoice.Payment!.Accounts.Count);
-        Assert.Equal(payment.CardNumber, read.Invoice.Payment.CardNumber);
-        Assert.Equal(payment.CardHolder, read.Invoice.Payment.CardHolder);
-        Assert.Equal(payment.MandateReference, read.Invoice.Payment.MandateReference);
-        Assert.Equal(payment.DebitedAccount, read.Invoice.Payment.DebitedAccount);
-        Assert.Equal(payment.CreditorIdentifier, read.Invoice.Payment.CreditorIdentifier);
+        Assert.Equal(2, read.Invoice.Payments.Count);
+        Assert.Equal(invoice.Payments[0].Account!.Identifier, read.Invoice.Payments[0].Account!.Identifier);
+        Assert.Equal("DE79000000001234567890", read.Invoice.Payments[1].Account!.Identifier);
+        Assert.Equal("Second account", read.Invoice.Payments[1].Account!.Name);
     }
 
     [Theory]
@@ -79,7 +96,7 @@ public class InvoicePaymentIdentifierTests {
         invoice.Lines[0].StandardItemIdentifier = new InvoiceIdentifier("1234567890128", scheme);
         Assert.Contains(InvoiceModelValidator.Validate(invoice).Diagnostics, d => d.Location == "Lines[0].StandardItemIdentifier.SchemeId");
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl })
-            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax)));
+            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax)));
     }
 
     [Fact]
@@ -106,6 +123,6 @@ public class InvoicePaymentIdentifierTests {
         invoice.Lines[0].Classifications.Add(new InvoiceItemClassification { Value = value!, ListId = list! });
         Assert.Contains(InvoiceModelValidator.Validate(invoice).Diagnostics, d => d.Location == "Lines[0].Classifications." + missing);
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl })
-            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax)));
+            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax)));
     }
 }

@@ -21,7 +21,7 @@ public partial class InvoiceStandardsTests {
         if (missing) Assert.Throws<FileNotFoundException>(() => new SaxonInvoiceRulesRunner(runtime.Jar));
         else Assert.Throws<InvalidDataException>(() => new SaxonInvoiceRulesRunner(runtime.Jar));
         var validator = new InvoiceValidator(Bundle(), runner);
-        InvoiceValidationReport report = await validator.ValidateAsync(InvoiceSerializer.Write(OfficeIMO.Invoicing.Tests.InvoiceFixture.Create()), InvoiceRulesRelease.En16931_1_3_16);
+        InvoiceValidationReport report = await validator.ValidateAsync(InvoiceSerializer.Write(OfficeIMO.Invoicing.Tests.InvoiceFixture.Create(), InvoiceTestContracts.En16931()), InvoiceSpecificationRelease.En16931_1_3_16);
         Assert.Equal(InvoiceValidationStatus.Failed, report.BusinessRulesStatus);
         Assert.Null(report.Runner);
         Assert.Contains(report.Diagnostics, d => d.Code == "INV-RULES-ENGINE");
@@ -38,7 +38,7 @@ public partial class InvoiceStandardsTests {
             : "<xsl:stylesheet xmlns:xsl='http://www.w3.org/1999/XSL/Transform' version='2.0'><xsl:template match='/'><schematron-output xmlns='http://purl.oclc.org/dsdl/svrl'><fired-rule context='Invoice'/></schematron-output></xsl:template></xsl:stylesheet>");
         IReadOnlyList<InvoiceDiagnostic> diagnostics = await runner.RunAsync(Encoding.UTF8.GetBytes("<Invoice/>"), source, compile,
             new Dictionary<string, InvoiceDiagnosticSeverity>(), CancellationToken.None,
-            () => { foreach (string path in System.IO.Directory.EnumerateFiles(runtime.Directory, "*.jar", SearchOption.AllDirectories)) File.WriteAllText(path, "changed after verification"); });
+            ruleProcessStarted: () => { foreach (string path in System.IO.Directory.EnumerateFiles(runtime.Directory, "*.jar", SearchOption.AllDirectories)) File.WriteAllText(path, "changed after verification"); });
         Assert.Empty(diagnostics);
     }
 

@@ -15,13 +15,15 @@ public static partial class InvoiceSerializer {
     private static readonly XNamespace Cac = "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2";
 
     /// <summary>Validates the model and writes UTF-8 XML without a BOM. Identical models and options produce identical bytes.</summary>
-    public static byte[] Write(Invoice invoice, InvoiceXmlOptions? options = null) {
+    public static byte[] Write(Invoice invoice, InvoiceXmlOptions options) {
         if (invoice == null) throw new ArgumentNullException(nameof(invoice));
-        options = options ?? new InvoiceXmlOptions();
-        InvoiceModelValidationResult validation = InvoiceModelValidator.Validate(invoice);
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        InvoiceModelValidationResult validation = InvoiceModelValidator.ValidateForTarget(invoice, options);
         validation.ThrowIfInvalid();
         List<InvoiceDiagnostic> mapping = GetWriteDiagnostics(invoice, options);
-        if (mapping.Count != 0) throw new InvalidDataException(string.Join(Environment.NewLine, mapping.Select(item => item.Location + ": " + item.Message)));
+        if (mapping.Any(item => item.Severity == InvoiceDiagnosticSeverity.Error))
+            throw new InvalidDataException(string.Join(Environment.NewLine, mapping.Where(item => item.Severity == InvoiceDiagnosticSeverity.Error)
+                .Select(item => item.Location + ": " + item.Message)));
         XDocument document = options.Syntax == InvoiceSyntax.Cii
             ? WriteCii(invoice, validation.Calculation!, options)
             : WriteUbl(invoice, validation.Calculation!, options);
@@ -37,7 +39,7 @@ public static partial class InvoiceSerializer {
     public static IReadOnlyList<InvoiceDiagnostic> InspectTarget(Invoice invoice, InvoiceXmlOptions options) {
         if (invoice == null) throw new ArgumentNullException(nameof(invoice));
         if (options == null) throw new ArgumentNullException(nameof(options));
-        InvoiceModelValidationResult validation = InvoiceModelValidator.Validate(invoice);
+        InvoiceModelValidationResult validation = InvoiceModelValidator.ValidateForTarget(invoice, options);
         if (!validation.IsValid) return validation.Diagnostics;
         return GetWriteDiagnostics(invoice, options).AsReadOnly();
     }
@@ -45,17 +47,33 @@ public static partial class InvoiceSerializer {
     private static List<InvoiceDiagnostic> GetWriteDiagnostics(Invoice invoice, InvoiceXmlOptions options) {
         var diagnostics = new InvoiceDiagnosticBuffer();
         void Unsupported(string path, string text) => diagnostics.Add("INV-TARGET-UNSUPPORTED", text, path);
-        if (invoice.Payment != null) {
+        void Projection(string path, string text) => diagnostics.Add("INV-TARGET-PROJECTION", text, path,
+            options.ProjectionPolicy == InvoiceProjectionPolicy.AllowProfileDefinedDataLoss ? InvoiceDiagnosticSeverity.Warning : InvoiceDiagnosticSeverity.Error);
+        if (invoice.Payments.Count != 0) {
             CheckPaymentProfile(invoice, options, Unsupported);
-            if (options.Syntax == InvoiceSyntax.Cii && invoice.Payment.DebitedAccount != null && !InvoiceBankAccountIdentity.IsValidIban(invoice.Payment.DebitedAccount))
-                Unsupported("Payment.DebitedAccount", "The supported CII debtor-account mapping requires a valid IBAN; a generic account identifier cannot be relabeled as an IBAN.");
-            for (int index = 0; index < invoice.Payment.Accounts.Count; index++) {
-                InvoiceBankAccount account = invoice.Payment.Accounts[index];
+            CheckSingletonPaymentField(invoice, payment => payment.MeansCode, "MeansCode",
+                "EN 16931 requires every payment-means occurrence to use the same payment means code", Unsupported);
+            for (int index = 0; index < invoice.Payments.Count; index++) {
+                InvoicePayment payment = invoice.Payments[index];
+                string path = "Payments[" + index + "]";
+                if (options.Syntax == InvoiceSyntax.Ubl && payment.CardNumber != null && string.IsNullOrWhiteSpace(payment.CardNetworkId))
+                    Unsupported(path + ".CardNetworkId", "UBL requires a card network identifier when card account data is present.");
+                if (options.Syntax == InvoiceSyntax.Cii && payment.DebitedAccount != null && !InvoiceBankAccountIdentity.IsValidIban(payment.DebitedAccount))
+                    Unsupported(path + ".DebitedAccount", "The CII debtor-account target requires a valid IBAN; identifier '" + payment.DebitedAccount + "' cannot be relabeled as an IBAN.");
+                InvoiceBankAccount? account = payment.Account;
+                if (account == null) continue;
                 bool validIban = InvoiceBankAccountIdentity.IsValidIban(account.Identifier);
                 if (account.IsIban && !validIban)
-                    Unsupported("Payment.Accounts[" + index + "]", "An account marked as an IBAN must have a registered country format and valid checksum.");
+                    Unsupported(path + ".Account", "An account marked as an IBAN must have a registered country format and valid checksum.");
                 else if (options.Syntax == InvoiceSyntax.Ubl && !account.IsIban && validIban)
-                    Unsupported("Payment.Accounts[" + index + "]", "UBL cannot preserve an explicit proprietary-account classification for an identifier that is a valid IBAN.");
+                    Unsupported(path + ".Account", "UBL cannot preserve an explicit proprietary-account classification for an identifier that is a valid IBAN.");
+            }
+            if (options.Syntax == InvoiceSyntax.Cii) {
+                CheckSingletonPaymentField(invoice, payment => payment.Reference, "Reference", "CII has one invoice-level payment reference", Unsupported);
+                CheckSingletonPaymentField(invoice, payment => payment.CreditorIdentifier, "CreditorIdentifier", "CII has one invoice-level creditor identifier", Unsupported);
+                CheckSingletonPaymentField(invoice, payment => payment.MandateReference, "MandateReference", "CII has one invoice-level direct-debit mandate reference", Unsupported);
+            } else {
+                CheckSingletonPaymentField(invoice, payment => payment.CreditorIdentifier, "CreditorIdentifier", "UBL carries one seller-level SEPA creditor identifier", Unsupported);
             }
         }
         if (options.Syntax == InvoiceSyntax.Ubl && invoice.TypeCode != "380" && invoice.TypeCode != "381" && invoice.TypeCode != "384" && invoice.TypeCode != "389")
@@ -72,15 +90,51 @@ public static partial class InvoiceSerializer {
             if (invoice.Seller.Identifiers.Any(id => id.SchemeId == "SEPA")) Unsupported("Seller.Identifiers", "Use Payment.CreditorIdentifier for the reserved SEPA creditor identifier.");
             if (invoice.Buyer.Identifiers.Any(id => id.SchemeId == "SEPA")) Unsupported("Buyer.Identifiers", "The reserved SEPA creditor identifier belongs to the seller payment details, not the buyer.");
         }
-        if (options.Profile != InvoiceProfile.En16931 && string.IsNullOrWhiteSpace(invoice.BusinessProcessId))
+        if (options.Profile is (InvoiceProfile.XRechnung or InvoiceProfile.PeppolBis) && string.IsNullOrWhiteSpace(invoice.BusinessProcessId))
             Unsupported("BusinessProcessId", "XRechnung/Peppol output requires an explicit business process identifier.");
         if (options.Profile == InvoiceProfile.XRechnung && string.IsNullOrWhiteSpace(invoice.BuyerReference))
             Unsupported("BuyerReference", "XRechnung output requires a buyer routing reference.");
+        CheckExemptionConflicts(invoice, Unsupported);
+        CheckFacturXProjection(invoice, options, Projection);
+        CheckTaxRegistrations(invoice.Seller, "Seller", options, Unsupported);
+        CheckTaxRegistrations(invoice.Buyer, "Buyer", options, Unsupported);
+        if (invoice.Payee != null) CheckTaxRegistrations(invoice.Payee, "Payee", options, Unsupported);
+        if (invoice.TaxRepresentative != null) CheckTaxRegistrations(invoice.TaxRepresentative, "TaxRepresentative", options, Unsupported);
         // The EN semantic payee and tax-representative groups are intentionally narrower than seller/buyer.
         InvoicePartyMapping.Check(invoice.Payee, "Payee", Unsupported);
         InvoicePartyMapping.Check(invoice.TaxRepresentative, "TaxRepresentative", Unsupported);
         InvoicePartyMapping.Check(invoice.Buyer, "Buyer", Unsupported);
         return diagnostics.ToList();
+    }
+    private static void CheckTaxRegistrations(InvoiceParty party, string role, InvoiceXmlOptions options, Action<string, string> unsupported) {
+        int vatCount = 0, otherCount = 0;
+        for (int index = 0; index < party.TaxRegistrations.Count; index++) {
+            InvoiceTaxRegistration registration = party.TaxRegistrations[index];
+            string path = role + ".TaxRegistrations[" + index + "]";
+            if (registration.SchemeId == InvoiceTaxRegistration.VatScheme) {
+                if (++vatCount > 1) unsupported(path, "The target profile permits at most one VAT registration for this party; the additional occurrence remains available in the source model.");
+                continue;
+            }
+            otherCount++;
+            if (role != "Seller") {
+                unsupported(path, "The target profile has no semantic field for a non-VAT " + role + " tax registration with scheme '" + registration.SchemeId + "'.");
+            } else if (otherCount > 1) {
+                unsupported(path, "The target profile permits at most one non-VAT seller tax registration; this occurrence uses scheme '" + registration.SchemeId + "'.");
+            } else if (options.Syntax == InvoiceSyntax.Cii && registration.SchemeId != InvoiceTaxRegistration.TaxScheme) {
+                unsupported(path, "CII EN 16931 maps the seller fiscal registration through scheme 'FC' and cannot preserve source scheme '" + registration.SchemeId + "' without relabeling it.");
+            }
+        }
+    }
+    private static void CheckSingletonPaymentField(Invoice invoice, Func<InvoicePayment, string?> selector, string field, string targetContract,
+        Action<string, string> unsupported) {
+        string? retained = null;
+        for (int index = 0; index < invoice.Payments.Count; index++) {
+            string? value = selector(invoice.Payments[index]);
+            if (value == null) continue;
+            if (retained == null) retained = value;
+            else if (!string.Equals(retained, value, StringComparison.Ordinal))
+                unsupported("Payments[" + index + "]." + field, targetContract + "; conflicting value '" + value + "' cannot be combined with '" + retained + "'.");
+        }
     }
     private static string Number(decimal value) => value.ToString("0.############################", CultureInfo.InvariantCulture);
     private static string Amount(decimal value) => value.ToString("0.00", CultureInfo.InvariantCulture);
@@ -92,4 +146,6 @@ public static partial class InvoiceSerializer {
     private static XElement CiiAmount(string name, decimal value) => new XElement(Ram + name, Amount(value));
     private static XElement? Identifier(XName name, InvoiceIdentifier? value, string schemeAttribute = "schemeID") => value == null ? null :
         new XElement(name, value.SchemeId == null ? null : new XAttribute(schemeAttribute, value.SchemeId), value.Value);
+    private static string? FirstPaymentValue(Invoice invoice, Func<InvoicePayment, string?> selector) =>
+        invoice.Payments.Select(selector).FirstOrDefault(value => value != null);
 }

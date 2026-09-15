@@ -28,6 +28,26 @@ public static class InvoiceCalculator {
     /// <summary>Calculates line totals, category-level VAT and the amount due. Throws on invalid arithmetic inputs or decimal overflow.</summary>
     public static InvoiceCalculation Calculate(Invoice invoice) => Calculate(invoice, true);
 
+    internal static InvoiceCalculation FromDeclaredAggregate(Invoice invoice) {
+        InvoiceDeclaredTotals totals = invoice.DeclaredTotals
+            ?? throw new ArgumentException("Aggregate-only invoice data requires declared totals.", nameof(invoice));
+        if (!totals.TaxExclusiveTotal.HasValue || !totals.TaxTotal.HasValue || !totals.TaxInclusiveTotal.HasValue || !totals.PayableAmount.HasValue)
+            throw new ArgumentException("Aggregate-only invoice data is missing a required declared total.", nameof(invoice));
+        IReadOnlyList<InvoiceCalculatedTax> taxes = invoice.DeclaredTaxes.Select(tax => new InvoiceCalculatedTax(
+            tax.Category.Code, NormalizeRate(tax.Category), tax.TaxableAmount, tax.Category.ExemptionReason,
+            tax.Category.ExemptionReasonCode, tax.TaxAmount)).ToArray();
+        return new InvoiceCalculation(Array.Empty<InvoiceCalculatedLine>(), taxes,
+            totals.LineNetTotal ?? totals.TaxExclusiveTotal.Value,
+            totals.AllowanceTotal ?? 0m,
+            totals.ChargeTotal ?? 0m,
+            totals.TaxExclusiveTotal.Value,
+            totals.TaxTotal.Value,
+            totals.TaxInclusiveTotal.Value,
+            invoice.PrepaidAmount,
+            invoice.RoundingAmount,
+            totals.PayableAmount.Value);
+    }
+
     private static InvoiceCalculation Calculate(Invoice invoice, bool preserveDeclaredAmounts) {
         if (invoice == null) throw new ArgumentNullException(nameof(invoice));
         var lines = new List<InvoiceCalculatedLine>();
@@ -98,9 +118,9 @@ public static class InvoiceCalculator {
             ReasonCode = category.ExemptionReasonCode;
         }
         internal void MergeReason(InvoiceTaxCategory category) {
-            if (Reason != null && category.ExemptionReason != null && Reason != category.ExemptionReason ||
-                ReasonCode != null && category.ExemptionReasonCode != null && ReasonCode != category.ExemptionReasonCode)
-                throw new ArgumentException("A VAT category/rate has conflicting exemption reasons.");
+            // Preserve every source value on its owning model occurrence. The calculated
+            // group retains the first value; target inspection reports any conflict with
+            // the exact source paths and values before serialization.
             Reason = Reason ?? category.ExemptionReason;
             ReasonCode = ReasonCode ?? category.ExemptionReasonCode;
         }

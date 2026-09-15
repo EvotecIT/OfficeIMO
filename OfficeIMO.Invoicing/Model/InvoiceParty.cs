@@ -10,6 +10,20 @@ public sealed class InvoiceIdentifier {
     public string? SchemeId { get; set; }
 }
 
+/// <summary>A party tax registration with its explicit scheme.</summary>
+public sealed class InvoiceTaxRegistration {
+    /// <summary>Canonical scheme used for VAT registrations in the semantic model and UBL.</summary>
+    public const string VatScheme = "VAT";
+    /// <summary>Canonical scheme used for non-VAT fiscal registrations in the semantic model and UBL.</summary>
+    public const string TaxScheme = "TAX";
+    /// <summary>Creates a registration without interpreting or relabeling an arbitrary scheme.</summary>
+    public InvoiceTaxRegistration(string identifier, string schemeId) { Identifier = identifier; SchemeId = schemeId; }
+    /// <summary>Registration identifier.</summary>
+    public string Identifier { get; set; }
+    /// <summary>Registration scheme. VAT and TAX are canonical aliases; other values retain their source meaning.</summary>
+    public string SchemeId { get; set; }
+}
+
 /// <summary>Postal address (BG-5/BG-8/BG-12/BG-15).</summary>
 public sealed class InvoiceAddress {
     /// <summary>First address line.</summary>
@@ -50,10 +64,8 @@ public sealed class InvoiceParty {
     public IList<InvoiceIdentifier> Identifiers { get; } = new List<InvoiceIdentifier>();
     /// <summary>Legal registration identifier.</summary>
     public InvoiceIdentifier? LegalRegistration { get; set; }
-    /// <summary>VAT registration identifier including its country prefix.</summary>
-    public string? VatIdentifier { get; set; }
-    /// <summary>Other tax registration identifier.</summary>
-    public string? TaxRegistration { get; set; }
+    /// <summary>Tax registrations, preserving every occurrence and arbitrary source scheme.</summary>
+    public IList<InvoiceTaxRegistration> TaxRegistrations { get; } = new List<InvoiceTaxRegistration>();
     /// <summary>Electronic address with an explicit address scheme.</summary>
     public InvoiceIdentifier? ElectronicAddress { get; set; }
     /// <summary>Postal address.</summary>
