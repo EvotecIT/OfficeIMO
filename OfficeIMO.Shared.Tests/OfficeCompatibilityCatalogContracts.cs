@@ -124,10 +124,14 @@ public sealed class OfficeCompatibilityCatalogContractTests {
                     "This operation is actually supported.")
             });
 
+        var legacyCatalog = new OfficeProtectionCapabilityCatalog("legacy-catalog", 1, new[] { MissingDisposition() });
+
+        Assert.DoesNotContain("unsupportedOperations", legacyCatalog.ToJson(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Unsupported disposition", legacyCatalog.ToMarkdown(), StringComparison.Ordinal);
         Assert.Throws<ArgumentException>(() =>
-            new OfficeProtectionCapabilityCatalog("missing-catalog", 1, new[] { MissingDisposition() }));
+            new OfficeProtectionCapabilityCatalog("missing-catalog", 2, new[] { MissingDisposition() }));
         Assert.Throws<ArgumentException>(() =>
-            new OfficeProtectionCapabilityCatalog("extra-catalog", 1, new[] { ExtraDisposition() }));
+            new OfficeProtectionCapabilityCatalog("extra-catalog", 2, new[] { ExtraDisposition() }));
     }
 
     [Fact]
@@ -143,7 +147,7 @@ public sealed class OfficeCompatibilityCatalogContractTests {
                     OfficeProtectionUnsupportedDisposition.IntentionalBoundary,
                     "Control disposition\u0003reason")
             });
-        var catalog = new OfficeProtectionCapabilityCatalog("control\u0002catalog", 1, new[] { row });
+        var catalog = new OfficeProtectionCapabilityCatalog("control\u0002catalog", 2, new[] { row });
 
         using JsonDocument parsed = JsonDocument.Parse(catalog.ToJson());
 

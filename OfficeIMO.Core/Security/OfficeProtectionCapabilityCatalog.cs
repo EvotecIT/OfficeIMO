@@ -26,7 +26,9 @@ public sealed class OfficeProtectionCapabilityCatalog {
         string[] duplicates = rows.GroupBy(row => row.Id, StringComparer.Ordinal)
             .Where(group => group.Count() > 1).Select(group => group.Key).ToArray();
         if (duplicates.Length != 0) throw new ArgumentException("Capability ids must be unique: " + string.Join(", ", duplicates), nameof(capabilities));
-        foreach (OfficeProtectionCapability row in rows) ValidateUnsupportedOperations(row);
+        if (schemaVersion >= 2) {
+            foreach (OfficeProtectionCapability row in rows) ValidateUnsupportedOperations(row);
+        }
         Id = id.Trim();
         SchemaVersion = schemaVersion;
         Capabilities = new ReadOnlyCollection<OfficeProtectionCapability>(rows);
@@ -76,21 +78,24 @@ public sealed class OfficeProtectionCapabilityCatalog {
                 .Append("      \"mutate\":\"").Append(row.Mutate).Append("\",\n")
                 .Append("      \"remove\":\"").Append(row.Remove).Append("\",\n")
                 .Append("      \"api\":\"").Append(EscapeJson(row.Api)).Append("\",\n")
-                .Append("      \"limitation\":\"").Append(EscapeJson(row.Limitation)).Append("\",\n")
-                .Append("      \"unsupportedOperations\":[");
-            for (int unsupportedIndex = 0; unsupportedIndex < row.UnsupportedOperations.Count; unsupportedIndex++) {
-                OfficeProtectionUnsupportedOperation unsupported = row.UnsupportedOperations[unsupportedIndex];
-                if (unsupportedIndex > 0) output.Append(',');
-                output.Append("{\"operation\":\"").Append(unsupported.Operation)
-                    .Append("\",\"disposition\":\"").Append(unsupported.Disposition)
-                    .Append("\",\"rationale\":\"").Append(EscapeJson(unsupported.Rationale)).Append('"');
-                if (unsupported.RoadmapReference != null) {
-                    output.Append(",\"roadmapReference\":\"")
-                        .Append(EscapeJson(unsupported.RoadmapReference)).Append('"');
+                .Append("      \"limitation\":\"").Append(EscapeJson(row.Limitation)).Append('"');
+            if (SchemaVersion >= 2) {
+                output.Append(",\n      \"unsupportedOperations\":[");
+                for (int unsupportedIndex = 0; unsupportedIndex < row.UnsupportedOperations.Count; unsupportedIndex++) {
+                    OfficeProtectionUnsupportedOperation unsupported = row.UnsupportedOperations[unsupportedIndex];
+                    if (unsupportedIndex > 0) output.Append(',');
+                    output.Append("{\"operation\":\"").Append(unsupported.Operation)
+                        .Append("\",\"disposition\":\"").Append(unsupported.Disposition)
+                        .Append("\",\"rationale\":\"").Append(EscapeJson(unsupported.Rationale)).Append('"');
+                    if (unsupported.RoadmapReference != null) {
+                        output.Append(",\"roadmapReference\":\"")
+                            .Append(EscapeJson(unsupported.RoadmapReference)).Append('"');
+                    }
+                    output.Append('}');
                 }
-                output.Append('}');
+                output.Append(']');
             }
-            output.Append("]\n    }");
+            output.Append("\n    }");
             if (index + 1 < Capabilities.Count) output.Append(',');
             output.Append('\n');
         }
@@ -100,16 +105,23 @@ public sealed class OfficeProtectionCapabilityCatalog {
     /// <summary>Formats the catalog as a deterministic Markdown table.</summary>
     public string ToMarkdown() {
         var output = new StringBuilder();
-        output.Append("# ").Append(Id).Append(" capability contract\n\nSchema version: ").Append(SchemaVersion)
-            .Append("\n\n| Capability | Format | Owner | Kind | Inspect | Open | Create | Validate | Mutate | Remove | Unsupported disposition | API | Limitation |\n")
-            .Append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n");
+        output.Append("# ").Append(Id).Append(" capability contract\n\nSchema version: ").Append(SchemaVersion);
+        if (SchemaVersion >= 2) {
+            output.Append("\n\n| Capability | Format | Owner | Kind | Inspect | Open | Create | Validate | Mutate | Remove | Unsupported disposition | API | Limitation |\n")
+                .Append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n");
+        } else {
+            output.Append("\n\n| Capability | Format | Owner | Kind | Inspect | Open | Create | Validate | Mutate | Remove | API | Limitation |\n")
+                .Append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n");
+        }
         foreach (OfficeProtectionCapability row in Capabilities) {
             output.Append("| ").Append(EscapeMarkdown(row.Id)).Append(" | ").Append(EscapeMarkdown(row.FormatId))
                 .Append(" | ").Append(EscapeMarkdown(row.PackageId)).Append(" | ").Append(row.Kind)
                 .Append(" | ").Append(row.Inspect).Append(" | ").Append(row.Open).Append(" | ").Append(row.Create)
-                .Append(" | ").Append(row.Validate).Append(" | ").Append(row.Mutate).Append(" | ").Append(row.Remove)
-                .Append(" | ").Append(FormatUnsupportedOperations(row.UnsupportedOperations))
-                .Append(" | `").Append(EscapeMarkdown(row.Api)).Append("` | ").Append(EscapeMarkdown(row.Limitation)).Append(" |\n");
+                .Append(" | ").Append(row.Validate).Append(" | ").Append(row.Mutate).Append(" | ").Append(row.Remove);
+            if (SchemaVersion >= 2) {
+                output.Append(" | ").Append(FormatUnsupportedOperations(row.UnsupportedOperations));
+            }
+            output.Append(" | `").Append(EscapeMarkdown(row.Api)).Append("` | ").Append(EscapeMarkdown(row.Limitation)).Append(" |\n");
         }
         return output.ToString();
     }
