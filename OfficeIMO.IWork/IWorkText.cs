@@ -2,19 +2,29 @@ namespace OfficeIMO.IWork;
 
 /// <summary>Horizontal alignment recovered from an iWork paragraph style.</summary>
 public enum IWorkTextAlignment {
+    /// <summary>Alignment follows the source language and writing direction.</summary>
     Natural,
+    /// <summary>Align text to the left edge.</summary>
     Left,
+    /// <summary>Center text between both edges.</summary>
     Center,
+    /// <summary>Align text to the right edge.</summary>
     Right,
+    /// <summary>Expand text to both edges.</summary>
     Justified
 }
 
 /// <summary>The source delimiter that ended an iWork text paragraph.</summary>
 public enum IWorkParagraphBreakKind {
+    /// <summary>No terminal paragraph delimiter was recovered.</summary>
     None,
+    /// <summary>A normal paragraph delimiter.</summary>
     Paragraph,
+    /// <summary>A section boundary.</summary>
     Section,
+    /// <summary>A layout boundary.</summary>
     Layout,
+    /// <summary>An explicit page boundary.</summary>
     Page
 }
 

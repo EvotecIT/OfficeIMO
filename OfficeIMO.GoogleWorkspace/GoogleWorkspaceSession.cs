@@ -5,6 +5,9 @@ namespace OfficeIMO.GoogleWorkspace {
     public sealed class GoogleWorkspaceSession {
         private readonly System.Collections.Concurrent.ConcurrentDictionary<string, GoogleWorkspaceAccessToken>
             _verifiedTokens = new System.Collections.Concurrent.ConcurrentDictionary<string, GoogleWorkspaceAccessToken>(StringComparer.Ordinal);
+        /// <summary>Creates a session from a credential source and optional transport and policy settings.</summary>
+        /// <param name="credentialSource">Source used to acquire scoped Google OAuth tokens.</param>
+        /// <param name="options">Session settings, or <see langword="null"/> to use defaults.</param>
         public GoogleWorkspaceSession(
             IGoogleWorkspaceCredentialSource credentialSource,
             GoogleWorkspaceSessionOptions? options = null) {
@@ -12,9 +15,14 @@ namespace OfficeIMO.GoogleWorkspace {
             Options = options ?? new GoogleWorkspaceSessionOptions();
         }
 
+        /// <summary>Gets the credential source used by this session.</summary>
         public IGoogleWorkspaceCredentialSource CredentialSource { get; }
+        /// <summary>Gets the transport, retry, identity, and operation-policy settings.</summary>
         public GoogleWorkspaceSessionOptions Options { get; }
 
+        /// <summary>Combines an operation-specific Drive location with the session defaults.</summary>
+        /// <param name="location">Location supplied by the operation, or <see langword="null"/> to use all defaults.</param>
+        /// <returns>A new location instance; the supplied instance is not modified.</returns>
         public GoogleDriveFileLocation ResolveLocationDefaults(GoogleDriveFileLocation? location) {
             location ??= new GoogleDriveFileLocation();
 
@@ -26,6 +34,11 @@ namespace OfficeIMO.GoogleWorkspace {
             };
         }
 
+        /// <summary>Acquires and validates a token for every requested scope and the configured expected account.</summary>
+        /// <param name="scopes">OAuth scopes required by the operation. Blank and duplicate entries are removed.</param>
+        /// <param name="cancellationToken">Token used to cancel acquisition.</param>
+        /// <returns>A nonexpired token whose bound scopes cover the normalized request.</returns>
+        /// <exception cref="InvalidOperationException">The credential source returns no token, an expired token, insufficient scopes, or identity evidence that does not match the session policy.</exception>
         public async Task<GoogleWorkspaceAccessToken> AcquireAccessTokenAsync(
             IEnumerable<string> scopes,
             CancellationToken cancellationToken = default) {

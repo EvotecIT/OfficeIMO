@@ -1,4 +1,3 @@
-#pragma warning disable CS1591 // Inspection API documentation debt is confined to this file; new Word APIs remain checked.
 
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -16,6 +15,8 @@ namespace OfficeIMO.Word {
             internal IReadOnlyDictionary<string, string?> ParagraphStyleNames { get; }
         }
 
+        /// <summary>Creates an independent snapshot of document metadata, sections, stories, paragraphs, tables, notes, and images.</summary>
+        /// <returns>A snapshot suitable for inspection or serialization without retaining live Open XML elements.</returns>
         public WordDocumentSnapshot CreateInspectionSnapshot() {
             var expansionContext = new InspectionExpansionContext(BuildParagraphStyleNameLookup());
             var snapshot = new WordDocumentSnapshot {
@@ -631,4 +632,3 @@ namespace OfficeIMO.Word {
         }
     }
 }
-#pragma warning restore CS1591

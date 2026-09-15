@@ -6,9 +6,13 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
     /// Settings for interactive authorization of a desktop or other installed application.
     /// </summary>
     public sealed class GoogleInstalledApplicationAuthorizationOptions {
+        /// <summary>Gets or sets the installed-application OAuth client identifier and secret.</summary>
         public ClientSecrets? ClientSecrets { get; set; }
+        /// <summary>Gets or sets the Google API scopes requested during authorization.</summary>
         public IReadOnlyList<string> Scopes { get; set; } = Array.Empty<string>();
+        /// <summary>Gets or sets the stable local user key used for token persistence.</summary>
         public string? UserId { get; set; }
+        /// <summary>Gets or sets a legacy informational account label. Installed-application authorization does not use it as identity evidence; verified identity comes from <see cref="CredentialBindingResolver"/>.</summary>
         public string? Account { get; set; }
         /// <summary>
         /// Required by <see cref="GoogleInstalledApplicationAuthorization.AuthorizeAsync"/>; resolves the
@@ -16,7 +20,9 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
         /// <see cref="GoogleInstalledApplicationAuthorization.AuthorizeCredentialAsync"/> without a resolver.
         /// </summary>
         public GoogleWorkspaceCredentialBindingResolver? CredentialBindingResolver { get; set; }
+        /// <summary>Gets or sets the required application-owned secure OAuth token store.</summary>
         public IGoogleWorkspaceTokenStore? TokenStore { get; set; }
+        /// <summary>Gets or sets the receiver used to obtain the authorization code from the user agent.</summary>
         public ICodeReceiver? CodeReceiver { get; set; }
 
         internal void Validate() {
@@ -43,6 +49,10 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
     /// Runs Google's installed-application authorization flow with PKCE always enabled.
     /// </summary>
     public static class GoogleInstalledApplicationAuthorization {
+        /// <summary>Runs the PKCE installed-application flow and returns Google's native user credential.</summary>
+        /// <param name="options">Validated OAuth client, scope, user, token-store, and receiver settings.</param>
+        /// <param name="cancellationToken">Token used to cancel interactive authorization.</param>
+        /// <returns>The authorized Google user credential.</returns>
         public static async Task<UserCredential> AuthorizeCredentialAsync(
             GoogleInstalledApplicationAuthorizationOptions options,
             CancellationToken cancellationToken = default) {
