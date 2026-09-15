@@ -16,7 +16,7 @@
     "formatCount": 28,
     "capabilityCount": 137,
     "packageCount": 63,
-    "operationCount": 1302
+    "operationCount": 1310
   },
   "fidelityStates": [
     {
@@ -2504,8 +2504,8 @@
       "capabilityCount": 326,
       "formats": [
         "DOCM/XLSM/XLSB/PPTM families",
+        "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
         "DOCX/XLSX/PPTX",
-        "DOCX/XLSX/PPTX/Visio",
         "Excel",
         "Excel workbook package",
         "Excel.OpenXml",
@@ -4165,8 +4165,8 @@
       "capabilityCount": 374,
       "formats": [
         "DOCM/XLSM/XLSB/PPTM families",
+        "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
         "DOCX/XLSX/PPTX",
-        "DOCX/XLSX/PPTX/Visio",
         "JPEG",
         "PNG",
         "PowerPoint",
@@ -4485,7 +4485,7 @@
     {
       "id": "OfficeIMO.Project",
       "slug": "project",
-      "capabilityCount": 14,
+      "capabilityCount": 22,
       "formats": [
         "Project.MppMpt",
         "Project.Mpx",
@@ -4502,7 +4502,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 4
+              "count": 6
             }
           ]
         },
@@ -4513,7 +4513,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 3
             }
           ]
         },
@@ -4524,7 +4524,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 3
             }
           ]
         },
@@ -4535,7 +4535,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 3
             }
           ]
         },
@@ -4546,7 +4546,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 3
             }
           ]
         },
@@ -4557,7 +4557,18 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
             }
           ]
         }
@@ -4722,7 +4733,7 @@
       "slug": "visio",
       "capabilityCount": 20,
       "formats": [
-        "DOCX/XLSX/PPTX/Visio",
+        "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
         "JPEG",
         "PNG",
         "SVG",
@@ -4874,8 +4885,8 @@
         "DOC",
         "DOCM/XLSM/XLSB/PPTM families",
         "DOCX",
+        "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
         "DOCX/XLSX/PPTX",
-        "DOCX/XLSX/PPTX/Visio",
         "JPEG",
         "PNG",
         "SVG",

@@ -139,8 +139,7 @@ function Invoke-WordWorkflowBenchmarkValidation {
         '--framework', $Framework
     )
     if ($NoRestore) { $arguments += '--no-restore' }
-    # The benchmark executable is outside the CI test-build slice, so this gate
-    # compiles its own executable even when the surrounding test projects use -NoBuild.
+    if ($NoBuild) { $arguments += '--no-build' }
     $arguments += @('--', 'validate-workflows')
 
     Write-Host ""

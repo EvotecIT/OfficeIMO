@@ -158,7 +158,7 @@
     },
     {
       "id":"opc-package-signature",
-      "formatId":"DOCX/XLSX/PPTX/Visio",
+      "formatId":"DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
       "packageId":"format package + optional provider",
       "kind":"DigitalSignature",
       "inspect":"Supported",

@@ -127,6 +127,34 @@ public sealed class OfficeOperationCapabilityCatalogTests {
     }
 
     [Theory]
+    [InlineData(".docx", ".docm")]
+    [InlineData(".docx", ".dotm")]
+    [InlineData(".xlsx", ".xlsm")]
+    [InlineData(".xlsx", ".xltm")]
+    [InlineData(".xlsx", ".xlam")]
+    [InlineData(".pptx", ".pptm")]
+    [InlineData(".pptx", ".potm")]
+    [InlineData(".pptx", ".ppsm")]
+    [InlineData(".pptx", ".ppam")]
+    public void MacroEnabledOpenXmlVariantsPublishTheSamePackageSignatureRows(string canonical, string variant) {
+        string[] expected = OfficeOperationCapabilityCatalog.FindByExtension(canonical)
+            .Where(row => row.Id.StartsWith("protection:", StringComparison.Ordinal) &&
+                row.CapabilityId == "opc-package-signature")
+            .Select(row => row.Id)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        string[] actual = OfficeOperationCapabilityCatalog.FindByExtension(variant)
+            .Where(row => row.Id.StartsWith("protection:", StringComparison.Ordinal) &&
+                row.CapabilityId == "opc-package-signature")
+            .Select(row => row.Id)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.NotEmpty(expected);
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
     [InlineData(".dot", "OfficeIMO.Word")]
     [InlineData(".xlt", "OfficeIMO.Excel")]
     [InlineData(".xla", "OfficeIMO.Excel")]
@@ -213,6 +241,7 @@ public sealed class OfficeOperationCapabilityCatalogTests {
     [InlineData(".mpp", "OfficeIMO.Project")]
     [InlineData(".mpt", "OfficeIMO.Project")]
     [InlineData(".mpx", "OfficeIMO.Project")]
+    [InlineData(".xml", "OfficeIMO.Project")]
     [InlineData(".ics", "OfficeIMO.Email")]
     [InlineData(".vcf", "OfficeIMO.Email")]
     [InlineData(".csv", "OfficeIMO.CSV")]
@@ -263,9 +292,17 @@ public sealed class OfficeOperationCapabilityCatalogTests {
     [InlineData(".mpx", OfficeOperationKind.Edit)]
     [InlineData(".mpx", OfficeOperationKind.Preserve)]
     [InlineData(".mpx", OfficeOperationKind.Inspect)]
+    [InlineData(".xml", OfficeOperationKind.Create)]
+    [InlineData(".xml", OfficeOperationKind.Read)]
+    [InlineData(".xml", OfficeOperationKind.Edit)]
+    [InlineData(".xml", OfficeOperationKind.Preserve)]
+    [InlineData(".xml", OfficeOperationKind.Inspect)]
+    [InlineData(".xml", OfficeOperationKind.Validate)]
     public void NativeLifecycleRetainsBoundariesOnSupportedOperations(string extension, OfficeOperationKind operation) {
         OfficeOperationCapability row = Assert.Single(OfficeOperationCapabilityCatalog.FindByExtension(extension), row =>
-            row.SourceCatalog == "OfficeIMO.NativeLifecycle" && row.Operation == operation);
+            row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
+            row.Operation == operation &&
+            (extension != ".xml" || row.PackageId == "OfficeIMO.Project"));
 
         Assert.Equal(OfficeOperationSupportState.Supported, row.State);
         Assert.False(string.IsNullOrWhiteSpace(row.Limitation));
@@ -279,17 +316,26 @@ public sealed class OfficeOperationCapabilityCatalogTests {
         OfficeOperationCapability[] mpxRows = OfficeOperationCapabilityCatalog.FindByExtension(".mpx")
             .Where(row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" && row.Operation == OfficeOperationKind.Convert)
             .ToArray();
+        OfficeOperationCapability[] xmlRows = OfficeOperationCapabilityCatalog.FindByExtension(".xml")
+            .Where(row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
+                row.PackageId == "OfficeIMO.Project" &&
+                row.Operation == OfficeOperationKind.Convert)
+            .ToArray();
 
         Assert.Equal(new[] { "Project.Mpx", "Project.Xml" }, binaryRows.Select(row => row.TargetFormatId).OrderBy(value => value).ToArray());
         Assert.Equal(new[] { "Project.MppMpt", "Project.Xml" }, mpxRows.Select(row => row.TargetFormatId).OrderBy(value => value).ToArray());
-        Assert.All(binaryRows.Concat(mpxRows), row => {
+        Assert.Equal(new[] { "Project.MppMpt", "Project.Mpx" }, xmlRows.Select(row => row.TargetFormatId).OrderBy(value => value).ToArray());
+        Assert.All(binaryRows.Concat(mpxRows).Concat(xmlRows), row => {
             Assert.Equal(OfficeOperationSupportState.Partial, row.State);
             Assert.Contains("explicit caller permission", row.Limitation, StringComparison.Ordinal);
         });
     }
 
     [Fact]
-    public void ProjectBinaryAndMpxLifecycleRowsKeepDistinctFormatContracts() {
+    public void ProjectXmlBinaryAndMpxLifecycleRowsKeepDistinctFormatContracts() {
+        OfficeOperationCapability[] xmlRows = OfficeOperationCapabilityCatalog.FindByExtension(".xml")
+            .Where(row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" && row.PackageId == "OfficeIMO.Project")
+            .ToArray();
         OfficeOperationCapability[] binaryRows = OfficeOperationCapabilityCatalog.FindByExtension(".mpp")
             .Where(row => row.SourceCatalog == "OfficeIMO.NativeLifecycle")
             .ToArray();
@@ -297,10 +343,13 @@ public sealed class OfficeOperationCapabilityCatalogTests {
             .Where(row => row.SourceCatalog == "OfficeIMO.NativeLifecycle")
             .ToArray();
 
+        Assert.NotEmpty(xmlRows);
         Assert.NotEmpty(binaryRows);
         Assert.NotEmpty(mpxRows);
+        Assert.All(xmlRows, row => Assert.Equal("Project.Xml", row.FormatId));
         Assert.All(binaryRows, row => Assert.Equal("Project.MppMpt", row.FormatId));
         Assert.All(mpxRows, row => Assert.Equal("Project.Mpx", row.FormatId));
+        Assert.Contains(xmlRows, row => row.Operation == OfficeOperationKind.Validate && row.Limitation.Contains("output limits", StringComparison.Ordinal));
         Assert.Contains(binaryRows, row => row.Operation == OfficeOperationKind.Create && row.Limitation.Contains("Global.mpt", StringComparison.Ordinal));
         Assert.Contains(mpxRows, row => row.Operation == OfficeOperationKind.Read && row.Limitation.Contains("4.0/4.1", StringComparison.Ordinal));
     }

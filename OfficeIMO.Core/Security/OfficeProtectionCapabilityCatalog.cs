@@ -121,7 +121,7 @@ public sealed class OfficeProtectionCapabilityCatalog {
             S(), S(), S(), N(), P(), N(), "EmailSmime.Encrypt / Decrypt / SignAndEncrypt", "Certificate-recipient CMS encryption is provider-backed; protected source pass-through remains available without the provider."),
         Row("smime-envelope-msg-tnef", "MSG/TNEF S/MIME", "OfficeIMO.Email + optional provider", OfficeProtectionKind.RecipientEncryption,
             S(), S(), NS(), N(), P(), N(), "EmailSmime.Decrypt", "Protected MSG/TNEF content can be inspected and decrypted after parsing; outbound encryption creates RFC 5322/MIME bytes, not MSG or TNEF containers."),
-        Row("opc-package-signature", "DOCX/XLSX/PPTX/Visio", "format package + optional provider", OfficeProtectionKind.DigitalSignature,
+        Row("opc-package-signature", "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio", "format package + optional provider", OfficeProtectionKind.DigitalSignature,
             S(), N(), S(), S(), B(), S(), "InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures", "Changed signed packages require explicit invalidation handling."),
         Row("vba-signature", "DOCM/XLSM/XLSB/PPTM families", "format package + optional provider", OfficeProtectionKind.DigitalSignature,
             S(), N(), S(), S(), B(), S(), "InspectVbaSignatures / SignVbaProject", "Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."),

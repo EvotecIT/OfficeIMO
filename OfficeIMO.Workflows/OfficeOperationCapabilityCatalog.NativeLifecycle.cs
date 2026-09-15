@@ -192,10 +192,30 @@ public static partial class OfficeOperationCapabilityCatalog {
 
     private static void AddProjectLifecycleRows(ICollection<OfficeOperationCapability> rows) {
         const string packageId = "OfficeIMO.Project";
-        const string publicApi = "ProjectDocument.Create / Load / AssessSave / Save";
+        const string publicApi = "ProjectDocument.Create / Load / ReadDiagnostics / Validate / AssessSave / Save";
         const string evidence = "OfficeIMO.Project.Tests lifecycle, preservation, conversion, and independent-reader contracts";
+        string[] xmlExtensions = { ".xml" };
         string[] binaryExtensions = { ".mpp", ".mpt" };
         string[] mpxExtensions = { ".mpx" };
+
+        AddProjectLifecycleRow(rows, "project-xml", packageId, "Project.Xml", OfficeOperationKind.Create,
+            OfficeOperationSupportState.Supported, publicApi, evidence, xmlExtensions,
+            "Creates bounded MSPDI XML from the typed model; model, representable-range, output-size, and assessed-loss failures block output.");
+        AddProjectLifecycleRow(rows, "project-xml", packageId, "Project.Xml", OfficeOperationKind.Read,
+            OfficeOperationSupportState.Supported, publicApi, evidence, xmlExtensions,
+            "Reads bounded, DTD-disabled MSPDI XML without calculating or executing external content; unsupported structures remain explicit diagnostics.");
+        AddProjectLifecycleRow(rows, "project-xml", packageId, "Project.Xml", OfficeOperationKind.Edit,
+            OfficeOperationSupportState.Supported, publicApi, evidence, xmlExtensions,
+            "Typed edits retain qualified unmodeled XML where possible; representation changes and lossy normalization require explicit caller permission.");
+        AddProjectLifecycleRow(rows, "project-xml", packageId, "Project.Xml", OfficeOperationKind.Preserve,
+            OfficeOperationSupportState.Supported, publicApi, evidence, xmlExtensions,
+            "Unchanged saves can retain exact source bytes; edited saves preserve qualified unmodeled XML while allowing assessed normalization of modeled content.");
+        AddProjectLifecycleRow(rows, "project-xml", packageId, "Project.Xml", OfficeOperationKind.Inspect,
+            OfficeOperationSupportState.Supported, publicApi, evidence, xmlExtensions,
+            "Read diagnostics and validation expose bounded structure, retained-content, and model findings without resolving or executing external content.");
+        AddProjectLifecycleRow(rows, "project-xml", packageId, "Project.Xml", OfficeOperationKind.Validate,
+            OfficeOperationSupportState.Supported, publicApi, evidence, xmlExtensions,
+            "Validation and save assessment enforce model consistency, XML value ranges, representable duration and text contracts, and output limits.");
 
         AddProjectLifecycleRow(rows, "project-binary", packageId, "Project.MppMpt", OfficeOperationKind.Create,
             OfficeOperationSupportState.Supported, publicApi, evidence, binaryExtensions,
@@ -241,6 +261,12 @@ public static partial class OfficeOperationCapabilityCatalog {
         AddProjectLifecycleRow(rows, "project-mpx-to-binary", packageId, "Project.Mpx", OfficeOperationKind.Convert,
             OfficeOperationSupportState.Partial, publicApi, evidence, mpxExtensions,
             "The selected MPP or MPT generation controls the writable field profile; unsupported MPX semantics and target-profile loss require explicit caller permission.", "Project.MppMpt");
+        AddProjectLifecycleRow(rows, "project-xml-to-binary", packageId, "Project.Xml", OfficeOperationKind.Convert,
+            OfficeOperationSupportState.Partial, publicApi, evidence, xmlExtensions,
+            "The selected MPP or MPT generation controls the writable field profile; unsupported XML semantics, opaque content, and target-profile loss require explicit caller permission.", "Project.MppMpt");
+        AddProjectLifecycleRow(rows, "project-xml-to-mpx", packageId, "Project.Xml", OfficeOperationKind.Convert,
+            OfficeOperationSupportState.Partial, publicApi, evidence, xmlExtensions,
+            "MPX 4 output supports a bounded mapped subset; unsupported XML fields, structures, and representation changes require explicit caller permission.", "Project.Mpx");
     }
 
     private static void AddProjectLifecycleRow(

@@ -265,12 +265,13 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 2 | 0 | 0 | 0 | 0 | 0 |
-| Read | 2 | 0 | 0 | 0 | 0 | 0 |
-| Edit | 2 | 0 | 0 | 0 | 0 | 0 |
-| Preserve | 2 | 0 | 0 | 0 | 0 | 0 |
-| Inspect | 2 | 0 | 0 | 0 | 0 | 0 |
-| Convert | 0 | 4 | 0 | 0 | 0 | 0 |
+| Create | 3 | 0 | 0 | 0 | 0 | 0 |
+| Read | 3 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 3 | 0 | 0 | 0 | 0 | 0 |
+| Preserve | 3 | 0 | 0 | 0 | 0 | 0 |
+| Inspect | 3 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 1 | 0 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 6 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Project` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
