@@ -220,11 +220,12 @@ public sealed class OfficeOperationCatalog {
         output.Append("# ").Append(Id).Append(" operation contract\n\nSchema version: ")
             .Append(SchemaVersion.ToString(CultureInfo.InvariantCulture))
             .Append("\n\nEach row retains its detailed owning catalog and evidence. A supported row may still carry a bounded limitation.\n\n")
-            .Append("| Package | Format | Target | Operation | State | Capability | Source contract | Public API | Evidence | Boundary |\n")
-            .Append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n");
+            .Append("| Package | Format | Extensions | Target | Operation | State | Capability | Source contract | Public API | Evidence | Boundary |\n")
+            .Append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n");
         foreach (OfficeOperationCapability row in Capabilities) {
             output.Append("| `").Append(EscapeMarkdown(row.PackageId)).Append("` | ")
                 .Append(EscapeMarkdown(row.FormatId)).Append(" | ")
+                .Append(EscapeMarkdown(string.Join(", ", row.Extensions))).Append(" | ")
                 .Append(EscapeMarkdown(row.TargetFormatId)).Append(" | ")
                 .Append(row.Operation).Append(" | ").Append(row.State).Append(" | ")
                 .Append(EscapeMarkdown(row.CapabilityId)).Append(" | ")

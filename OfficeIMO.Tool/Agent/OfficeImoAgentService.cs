@@ -179,6 +179,7 @@ internal sealed partial class OfficeImoAgentService {
                     PackageId = row.PackageId,
                     FormatId = row.FormatId,
                     TargetFormatId = row.TargetFormatId,
+                    CapabilityId = row.CapabilityId,
                     Operation = row.Operation.ToString(),
                     State = row.State.ToString(),
                     Extensions = row.Extensions,

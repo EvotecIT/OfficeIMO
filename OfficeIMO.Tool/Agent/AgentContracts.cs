@@ -105,6 +105,7 @@ public sealed class AgentOperationCapabilitySummary {
     public string PackageId { get; set; } = string.Empty;
     public string FormatId { get; set; } = string.Empty;
     public string TargetFormatId { get; set; } = string.Empty;
+    public string CapabilityId { get; set; } = string.Empty;
     public string Operation { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
     public IReadOnlyList<string> Extensions { get; set; } = Array.Empty<string>();

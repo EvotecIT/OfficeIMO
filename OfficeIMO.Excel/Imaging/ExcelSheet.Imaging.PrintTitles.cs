@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
                     workingFormat,
                     options,
                     format,
-                    false,
+                    format == workingFormat,
                     out rasterState,
                     cancellationToken);
             }
@@ -200,7 +200,7 @@ namespace OfficeIMO.Excel {
                     image,
                     format,
                     rasterState.EncodingOptions,
-                    ExcelRangeImageRenderer.ResolveEncodingByteCeiling(false, options),
+                    ExcelRangeImageRenderer.ResolveEncodingByteCeiling(format == rasterPlanningFormat, options),
                     cancellationToken),
                 Name,
                 Name + "!" + range.Range,

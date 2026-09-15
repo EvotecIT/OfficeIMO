@@ -70,7 +70,7 @@
       "evidence":"OfficeIMO.AsciiDoc.Tests source-preserving syntax, bounded parsing, editing, and deterministic-write contracts::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".adoc",".asc",".asciidoc"],
-      "limitation":""
+      "limitation":"Unchanged syntax is character-preserving; Load and Save do not promise retention of the original encoding or byte-order mark."
     },
     {
       "id":"native:asciidoc-native:read",
@@ -84,7 +84,7 @@
       "evidence":"OfficeIMO.AsciiDoc.Tests source-preserving syntax, bounded parsing, editing, and deterministic-write contracts::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".adoc",".asc",".asciidoc"],
-      "limitation":""
+      "limitation":"Unchanged syntax is character-preserving; Load and Save do not promise retention of the original encoding or byte-order mark."
     },
     {
       "id":"native:asciidoc-native:edit",
@@ -98,7 +98,7 @@
       "evidence":"OfficeIMO.AsciiDoc.Tests source-preserving syntax, bounded parsing, editing, and deterministic-write contracts::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".adoc",".asc",".asciidoc"],
-      "limitation":""
+      "limitation":"Unchanged syntax is character-preserving; Load and Save do not promise retention of the original encoding or byte-order mark."
     },
     {
       "id":"native:asciidoc-native:preserve",
@@ -112,7 +112,7 @@
       "evidence":"OfficeIMO.AsciiDoc.Tests source-preserving syntax, bounded parsing, editing, and deterministic-write contracts::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".adoc",".asc",".asciidoc"],
-      "limitation":""
+      "limitation":"Unchanged syntax is character-preserving; Load and Save do not promise retention of the original encoding or byte-order mark."
     },
     {
       "id":"native:asciidoc-native:inspect",
@@ -126,7 +126,7 @@
       "evidence":"OfficeIMO.AsciiDoc.Tests source-preserving syntax, bounded parsing, editing, and deterministic-write contracts::Inspect",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".adoc",".asc",".asciidoc"],
-      "limitation":""
+      "limitation":"Unchanged syntax is character-preserving; Load and Save do not promise retention of the original encoding or byte-order mark."
     },
     {
       "id":"native:asciidoc-native:validate",
@@ -140,7 +140,7 @@
       "evidence":"OfficeIMO.AsciiDoc.Tests source-preserving syntax, bounded parsing, editing, and deterministic-write contracts::Validate",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".adoc",".asc",".asciidoc"],
-      "limitation":""
+      "limitation":"Unchanged syntax is character-preserving; Load and Save do not promise retention of the original encoding or byte-order mark."
     },
     {
       "id":"conversion:asciidoc-markdown",
@@ -196,7 +196,7 @@
       "evidence":"OfficeIMO.Bibliography.Tests codec, editing, exact-source preservation, conversion-report, and bounded I/O contracts::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".bib",".json",".medline",".nbib",".ris",".xml"],
-      "limitation":""
+      "limitation":"Extensions identify supported bibliography codecs in this package context; generic .json and .xml files require bounded content detection and cross-format writes report loss explicitly."
     },
     {
       "id":"native:bibliography-native:read",
@@ -210,7 +210,7 @@
       "evidence":"OfficeIMO.Bibliography.Tests codec, editing, exact-source preservation, conversion-report, and bounded I/O contracts::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".bib",".json",".medline",".nbib",".ris",".xml"],
-      "limitation":""
+      "limitation":"Extensions identify supported bibliography codecs in this package context; generic .json and .xml files require bounded content detection and cross-format writes report loss explicitly."
     },
     {
       "id":"native:bibliography-native:edit",
@@ -224,7 +224,7 @@
       "evidence":"OfficeIMO.Bibliography.Tests codec, editing, exact-source preservation, conversion-report, and bounded I/O contracts::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".bib",".json",".medline",".nbib",".ris",".xml"],
-      "limitation":""
+      "limitation":"Extensions identify supported bibliography codecs in this package context; generic .json and .xml files require bounded content detection and cross-format writes report loss explicitly."
     },
     {
       "id":"native:bibliography-native:preserve",
@@ -238,7 +238,7 @@
       "evidence":"OfficeIMO.Bibliography.Tests codec, editing, exact-source preservation, conversion-report, and bounded I/O contracts::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".bib",".json",".medline",".nbib",".ris",".xml"],
-      "limitation":""
+      "limitation":"Extensions identify supported bibliography codecs in this package context; generic .json and .xml files require bounded content detection and cross-format writes report loss explicitly."
     },
     {
       "id":"native:bibliography-native:inspect",
@@ -252,7 +252,7 @@
       "evidence":"OfficeIMO.Bibliography.Tests codec, editing, exact-source preservation, conversion-report, and bounded I/O contracts::Inspect",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".bib",".json",".medline",".nbib",".ris",".xml"],
-      "limitation":""
+      "limitation":"Extensions identify supported bibliography codecs in this package context; generic .json and .xml files require bounded content detection and cross-format writes report loss explicitly."
     },
     {
       "id":"native:bibliography-native:validate",
@@ -266,7 +266,7 @@
       "evidence":"OfficeIMO.Bibliography.Tests codec, editing, exact-source preservation, conversion-report, and bounded I/O contracts::Validate",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".bib",".json",".medline",".nbib",".ris",".xml"],
-      "limitation":""
+      "limitation":"Extensions identify supported bibliography codecs in this package context; generic .json and .xml files require bounded content detection and cross-format writes report loss explicitly."
     },
     {
       "id":"native:csv-native:create",
@@ -279,7 +279,7 @@
       "publicApi":"CsvDocument.Parse / Load / Save / Validate",
       "evidence":"OfficeIMO.CSV.Tests parsing, schema validation, editing, bounded streaming, and deterministic-write contracts::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
-      "extensions":[".csv"],
+      "extensions":[".br",".brotli",".csv",".deflate",".gz",".gzip",".zlib"],
       "limitation":""
     },
     {
@@ -293,7 +293,7 @@
       "publicApi":"CsvDocument.Parse / Load / Save / Validate",
       "evidence":"OfficeIMO.CSV.Tests parsing, schema validation, editing, bounded streaming, and deterministic-write contracts::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
-      "extensions":[".csv"],
+      "extensions":[".br",".brotli",".csv",".deflate",".gz",".gzip",".zlib"],
       "limitation":""
     },
     {
@@ -307,7 +307,7 @@
       "publicApi":"CsvDocument.Parse / Load / Save / Validate",
       "evidence":"OfficeIMO.CSV.Tests parsing, schema validation, editing, bounded streaming, and deterministic-write contracts::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
-      "extensions":[".csv"],
+      "extensions":[".br",".brotli",".csv",".deflate",".gz",".gzip",".zlib"],
       "limitation":""
     },
     {
@@ -321,7 +321,7 @@
       "publicApi":"CsvDocument.Parse / Load / Save / Validate",
       "evidence":"OfficeIMO.CSV.Tests parsing, schema validation, editing, bounded streaming, and deterministic-write contracts::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
-      "extensions":[".csv"],
+      "extensions":[".br",".brotli",".csv",".deflate",".gz",".gzip",".zlib"],
       "limitation":"Saving serializes the typed table with the selected dialect and normalization settings; byte-identical source preservation is not promised after parsing."
     },
     {
@@ -335,7 +335,7 @@
       "publicApi":"CsvDocument.Parse / Load / Save / Validate",
       "evidence":"OfficeIMO.CSV.Tests parsing, schema validation, editing, bounded streaming, and deterministic-write contracts::Inspect",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
-      "extensions":[".csv"],
+      "extensions":[".br",".brotli",".csv",".deflate",".gz",".gzip",".zlib"],
       "limitation":""
     },
     {
@@ -349,7 +349,7 @@
       "publicApi":"CsvDocument.Parse / Load / Save / Validate",
       "evidence":"OfficeIMO.CSV.Tests parsing, schema validation, editing, bounded streaming, and deterministic-write contracts::Validate",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
-      "extensions":[".csv"],
+      "extensions":[".br",".brotli",".csv",".deflate",".gz",".gzip",".zlib"],
       "limitation":""
     },
     {
@@ -574,7 +574,7 @@
       "evidence":"OfficeIMO.DocBook.Tests bounded DocBook 4/5 authoring, source preservation, validation, and conversion contracts::Validate",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".dbk",".docbook"],
-      "limitation":""
+      "limitation":"Validation covers the OfficeIMO common-structure profile rather than the complete external DTD, RELAX NG, Schematron, XInclude, or arbitrary extension schemas."
     },
     {
       "id":"protection:smime-envelope:email:create",
@@ -756,7 +756,7 @@
       "evidence":"OfficeIMO.Email.Tests ordered content-line mutation, validation, bounded I/O, and round-trip contracts::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".ics",".vcs"],
-      "limitation":""
+      "limitation":"iCalendar and legacy vCalendar use the ordered content-line preservation model; validation reports unsupported or malformed properties without erasing vendor data."
     },
     {
       "id":"native:calendar-native:read",
@@ -770,7 +770,7 @@
       "evidence":"OfficeIMO.Email.Tests ordered content-line mutation, validation, bounded I/O, and round-trip contracts::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".ics",".vcs"],
-      "limitation":""
+      "limitation":"iCalendar and legacy vCalendar use the ordered content-line preservation model; validation reports unsupported or malformed properties without erasing vendor data."
     },
     {
       "id":"native:calendar-native:edit",
@@ -784,7 +784,7 @@
       "evidence":"OfficeIMO.Email.Tests ordered content-line mutation, validation, bounded I/O, and round-trip contracts::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".ics",".vcs"],
-      "limitation":""
+      "limitation":"iCalendar and legacy vCalendar use the ordered content-line preservation model; validation reports unsupported or malformed properties without erasing vendor data."
     },
     {
       "id":"native:calendar-native:preserve",
@@ -798,7 +798,7 @@
       "evidence":"OfficeIMO.Email.Tests ordered content-line mutation, validation, bounded I/O, and round-trip contracts::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".ics",".vcs"],
-      "limitation":""
+      "limitation":"iCalendar and legacy vCalendar use the ordered content-line preservation model; validation reports unsupported or malformed properties without erasing vendor data."
     },
     {
       "id":"native:calendar-native:inspect",
@@ -812,7 +812,7 @@
       "evidence":"OfficeIMO.Email.Tests ordered content-line mutation, validation, bounded I/O, and round-trip contracts::Inspect",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".ics",".vcs"],
-      "limitation":""
+      "limitation":"iCalendar and legacy vCalendar use the ordered content-line preservation model; validation reports unsupported or malformed properties without erasing vendor data."
     },
     {
       "id":"native:calendar-native:validate",
@@ -826,7 +826,7 @@
       "evidence":"OfficeIMO.Email.Tests ordered content-line mutation, validation, bounded I/O, and round-trip contracts::Validate",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".ics",".vcs"],
-      "limitation":""
+      "limitation":"iCalendar and legacy vCalendar use the ordered content-line preservation model; validation reports unsupported or malformed properties without erasing vendor data."
     },
     {
       "id":"native:contact-native:create",
@@ -840,7 +840,7 @@
       "evidence":"OfficeIMO.Email.Tests ordered vCard mutation, validation, bounded I/O, and round-trip contracts::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".vcard",".vcf"],
-      "limitation":""
+      "limitation":"vCard uses the ordered content-line preservation model; validation reports unsupported or malformed properties without erasing vendor data."
     },
     {
       "id":"native:contact-native:read",
@@ -854,7 +854,7 @@
       "evidence":"OfficeIMO.Email.Tests ordered vCard mutation, validation, bounded I/O, and round-trip contracts::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".vcard",".vcf"],
-      "limitation":""
+      "limitation":"vCard uses the ordered content-line preservation model; validation reports unsupported or malformed properties without erasing vendor data."
     },
     {
       "id":"native:contact-native:edit",
@@ -868,7 +868,7 @@
       "evidence":"OfficeIMO.Email.Tests ordered vCard mutation, validation, bounded I/O, and round-trip contracts::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".vcard",".vcf"],
-      "limitation":""
+      "limitation":"vCard uses the ordered content-line preservation model; validation reports unsupported or malformed properties without erasing vendor data."
     },
     {
       "id":"native:contact-native:preserve",
@@ -882,7 +882,7 @@
       "evidence":"OfficeIMO.Email.Tests ordered vCard mutation, validation, bounded I/O, and round-trip contracts::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".vcard",".vcf"],
-      "limitation":""
+      "limitation":"vCard uses the ordered content-line preservation model; validation reports unsupported or malformed properties without erasing vendor data."
     },
     {
       "id":"native:contact-native:inspect",
@@ -896,7 +896,7 @@
       "evidence":"OfficeIMO.Email.Tests ordered vCard mutation, validation, bounded I/O, and round-trip contracts::Inspect",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".vcard",".vcf"],
-      "limitation":""
+      "limitation":"vCard uses the ordered content-line preservation model; validation reports unsupported or malformed properties without erasing vendor data."
     },
     {
       "id":"native:contact-native:validate",
@@ -910,7 +910,7 @@
       "evidence":"OfficeIMO.Email.Tests ordered vCard mutation, validation, bounded I/O, and round-trip contracts::Validate",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".vcard",".vcf"],
-      "limitation":""
+      "limitation":"vCard uses the ordered content-line preservation model; validation reports unsupported or malformed properties without erasing vendor data."
     },
     {
       "id":"native:email-native:create",
@@ -7098,7 +7098,7 @@
       "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".key",".numbers",".pages"],
-      "limitation":""
+      "limitation":"Modern IWA packages are bounded read-only sources; OfficeIMO does not author or rewrite iWork packages, and projections report unsupported records and visual fallbacks."
     },
     {
       "id":"native:iwork-native:edit",
@@ -7140,7 +7140,7 @@
       "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Inspect",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".key",".numbers",".pages"],
-      "limitation":""
+      "limitation":"Modern IWA packages are bounded read-only sources; OfficeIMO does not author or rewrite iWork packages, and projections report unsupported records and visual fallbacks."
     },
     {
       "id":"native:latex-native:create",
@@ -7154,7 +7154,7 @@
       "evidence":"OfficeIMO.Latex.Tests source-preserving syntax, bounded parsing, editing, and deterministic-write contracts::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".tex"],
-      "limitation":""
+      "limitation":"The bounded LaTeX2e profile preserves unknown syntax but does not compile TeX, execute commands, load packages, or promise typeset layout."
     },
     {
       "id":"native:latex-native:read",
@@ -7168,7 +7168,7 @@
       "evidence":"OfficeIMO.Latex.Tests source-preserving syntax, bounded parsing, editing, and deterministic-write contracts::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".tex"],
-      "limitation":""
+      "limitation":"The bounded LaTeX2e profile preserves unknown syntax but does not compile TeX, execute commands, load packages, or promise typeset layout."
     },
     {
       "id":"native:latex-native:edit",
@@ -7182,7 +7182,7 @@
       "evidence":"OfficeIMO.Latex.Tests source-preserving syntax, bounded parsing, editing, and deterministic-write contracts::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".tex"],
-      "limitation":""
+      "limitation":"The bounded LaTeX2e profile preserves unknown syntax but does not compile TeX, execute commands, load packages, or promise typeset layout."
     },
     {
       "id":"native:latex-native:preserve",
@@ -7196,7 +7196,7 @@
       "evidence":"OfficeIMO.Latex.Tests source-preserving syntax, bounded parsing, editing, and deterministic-write contracts::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".tex"],
-      "limitation":""
+      "limitation":"The bounded LaTeX2e profile preserves unknown syntax but does not compile TeX, execute commands, load packages, or promise typeset layout."
     },
     {
       "id":"native:latex-native:inspect",
@@ -7210,7 +7210,7 @@
       "evidence":"OfficeIMO.Latex.Tests source-preserving syntax, bounded parsing, editing, and deterministic-write contracts::Inspect",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".tex"],
-      "limitation":""
+      "limitation":"The bounded LaTeX2e profile preserves unknown syntax but does not compile TeX, execute commands, load packages, or promise typeset layout."
     },
     {
       "id":"native:latex-native:validate",
@@ -7224,7 +7224,7 @@
       "evidence":"OfficeIMO.Latex.Tests source-preserving syntax, bounded parsing, editing, and deterministic-write contracts::Validate",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".tex"],
-      "limitation":""
+      "limitation":"The bounded LaTeX2e profile preserves unknown syntax but does not compile TeX, execute commands, load packages, or promise typeset layout."
     },
     {
       "id":"conversion:latex-markdown",
@@ -8218,7 +8218,7 @@
       "evidence":"OfficeIMO.Opml.Tests create, parse, edit, validation, bounded I/O, and source-preserving round-trip contracts::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".opml"],
-      "limitation":""
+      "limitation":"Unchanged input retains its source; edited output serializes the bounded OPML 1.0/2.0 model and retained extension attributes."
     },
     {
       "id":"native:opml-native:read",
@@ -8232,7 +8232,7 @@
       "evidence":"OfficeIMO.Opml.Tests create, parse, edit, validation, bounded I/O, and source-preserving round-trip contracts::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".opml"],
-      "limitation":""
+      "limitation":"Unchanged input retains its source; edited output serializes the bounded OPML 1.0/2.0 model and retained extension attributes."
     },
     {
       "id":"native:opml-native:edit",
@@ -8246,7 +8246,7 @@
       "evidence":"OfficeIMO.Opml.Tests create, parse, edit, validation, bounded I/O, and source-preserving round-trip contracts::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".opml"],
-      "limitation":""
+      "limitation":"Unchanged input retains its source; edited output serializes the bounded OPML 1.0/2.0 model and retained extension attributes."
     },
     {
       "id":"native:opml-native:preserve",
@@ -8260,7 +8260,7 @@
       "evidence":"OfficeIMO.Opml.Tests create, parse, edit, validation, bounded I/O, and source-preserving round-trip contracts::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".opml"],
-      "limitation":""
+      "limitation":"Unchanged input retains its source; edited output serializes the bounded OPML 1.0/2.0 model and retained extension attributes."
     },
     {
       "id":"native:opml-native:inspect",
@@ -8274,7 +8274,7 @@
       "evidence":"OfficeIMO.Opml.Tests create, parse, edit, validation, bounded I/O, and source-preserving round-trip contracts::Inspect",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".opml"],
-      "limitation":""
+      "limitation":"Unchanged input retains its source; edited output serializes the bounded OPML 1.0/2.0 model and retained extension attributes."
     },
     {
       "id":"native:opml-native:validate",
@@ -8288,7 +8288,7 @@
       "evidence":"OfficeIMO.Opml.Tests create, parse, edit, validation, bounded I/O, and source-preserving round-trip contracts::Validate",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".opml"],
-      "limitation":""
+      "limitation":"Unchanged input retains its source; edited output serializes the bounded OPML 1.0/2.0 model and retained extension attributes."
     },
     {
       "id":"protection:pdf-password:pdf:create",

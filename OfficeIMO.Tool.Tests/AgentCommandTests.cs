@@ -351,6 +351,7 @@ public sealed class AgentCommandTests {
             row.PackageId == expectedPackage &&
             row.Operation.Equals(operation, StringComparison.OrdinalIgnoreCase) &&
             row.Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(row.CapabilityId) &&
             !string.IsNullOrWhiteSpace(row.SourceCatalog) &&
             !string.IsNullOrWhiteSpace(row.Evidence));
         Assert.Equal(result.Operations.Count, result.OperationReturned);

@@ -20,8 +20,17 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
                 sheet.ExportImage(OfficeImageExportFormat.Png, options));
+            OfficeImageExportBatchLimitException batchException = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                sheet.ExportImages(
+                    OfficeImageExportFormat.Png,
+                    new ExcelWorksheetImageExportOptions {
+                        MaximumTotalEncodedBytes = 8L,
+                        SplitByManualPageBreaks = true,
+                        UsePrintArea = false
+                    }));
 
             Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), batchException.LimitName);
             Assert.Throws<OperationCanceledException>(() =>
                 sheet.ToImage().AsPng().Export(new System.Threading.CancellationToken(canceled: true)));
         }

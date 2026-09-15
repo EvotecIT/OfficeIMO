@@ -353,6 +353,40 @@ public sealed class OfficeOperationCapabilityCatalogTests {
         Assert.False(string.IsNullOrWhiteSpace(row.Limitation));
     }
 
+    [Theory]
+    [InlineData(".ics", OfficeOperationKind.Validate)]
+    [InlineData(".opml", OfficeOperationKind.Preserve)]
+    [InlineData(".adoc", OfficeOperationKind.Read)]
+    [InlineData(".tex", OfficeOperationKind.Inspect)]
+    [InlineData(".bib", OfficeOperationKind.Edit)]
+    [InlineData(".dbk", OfficeOperationKind.Validate)]
+    [InlineData(".pages", OfficeOperationKind.Read)]
+    public void SupportedNativeRowsRetainTheirDeclaredFormatBoundaries(string extension, OfficeOperationKind operation) {
+        OfficeOperationCapability row = Assert.Single(OfficeOperationCapabilityCatalog.FindByExtension(extension), row =>
+            row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
+            row.Operation == operation);
+
+        Assert.Equal(OfficeOperationSupportState.Supported, row.State);
+        Assert.False(string.IsNullOrWhiteSpace(row.Limitation));
+    }
+
+    [Theory]
+    [InlineData(".gz")]
+    [InlineData(".gzip")]
+    [InlineData(".deflate")]
+    [InlineData(".br")]
+    [InlineData(".brotli")]
+    [InlineData(".zlib")]
+    public void CompressedCsvExtensionsPublishTheCsvLifecycle(string extension) {
+        OfficeOperationCapability[] rows = OfficeOperationCapabilityCatalog.FindByExtension(extension)
+            .Where(row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" && row.PackageId == "OfficeIMO.CSV")
+            .ToArray();
+
+        Assert.Contains(rows, row => row.Operation == OfficeOperationKind.Create && row.State == OfficeOperationSupportState.Supported);
+        Assert.Contains(rows, row => row.Operation == OfficeOperationKind.Read && row.State == OfficeOperationSupportState.Supported);
+        Assert.Contains(rows, row => row.Operation == OfficeOperationKind.Validate && row.State == OfficeOperationSupportState.Supported);
+    }
+
     [Fact]
     public void ProjectConversionPublishesDirectionalAssessedLossBoundaries() {
         OfficeOperationCapability[] binaryRows = OfficeOperationCapabilityCatalog.FindByExtension(".mpp")
@@ -435,7 +469,9 @@ public sealed class OfficeOperationCapabilityCatalogTests {
             OfficeOperationCapabilityCatalog.All.Select(row => row.Id).Distinct(StringComparer.Ordinal).Count());
 
         string markdown = OfficeOperationCapabilityCatalog.ToMarkdown();
-        Assert.Contains("| Package | Format | Target | Operation | State |", markdown, StringComparison.Ordinal);
+        OfficeOperationCapability multiExtensionRow = OfficeOperationCapabilityCatalog.All.First(row => row.Extensions.Count > 1);
+        Assert.Contains("| Package | Format | Extensions | Target | Operation | State |", markdown, StringComparison.Ordinal);
+        Assert.Contains(string.Join(", ", multiExtensionRow.Extensions), markdown, StringComparison.Ordinal);
         Assert.Contains("`OfficeIMO.Word.Pdf`", markdown, StringComparison.Ordinal);
         Assert.Contains("OfficeConversionCapabilityCatalog", markdown, StringComparison.Ordinal);
     }
