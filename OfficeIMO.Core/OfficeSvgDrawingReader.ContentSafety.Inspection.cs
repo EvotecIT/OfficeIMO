@@ -528,6 +528,9 @@ public static partial class OfficeSvgDrawingReader {
             string? filter = ReadPresentationProperty(current, "filter")?.Trim();
             if (!string.IsNullOrWhiteSpace(filter) &&
                 !filter!.Equals("none", StringComparison.OrdinalIgnoreCase)) return false;
+            string? strokeWidth = ReadPresentationProperty(current, "stroke-width")?.Trim();
+            if (!string.IsNullOrWhiteSpace(strokeWidth) &&
+                !TrySvgLength(strokeWidth, out _)) return false;
             if (current.Attributes().Any(attribute =>
                     attribute.Name.NamespaceName.Length == 0 &&
                     IsUnmodeledSvgTextGeometryAttribute(attribute.Name.LocalName))) return false;
@@ -538,7 +541,7 @@ public static partial class OfficeSvgDrawingReader {
     private static bool IsUnmodeledSvgTextGeometryAttribute(string name) => name switch {
         "alignment-baseline" or "direction" or "font-kerning" or "font-stretch" or "font-variant" or
         "glyph-orientation-horizontal" or "glyph-orientation-vertical" or "kerning" or "letter-spacing" or
-        "lengthAdjust" or "textLength" or "text-rendering" or "unicode-bidi" or "white-space" or
+        "lengthAdjust" or "stroke-width" or "textLength" or "text-rendering" or "unicode-bidi" or "white-space" or
         "transform-box" or "transform-origin" or "word-spacing" => true,
         _ => false
     };

@@ -23,6 +23,7 @@ internal static class SvgContentSafetyBrowserEvidenceRunner {
             "svg-concealed-adversarial.svg");
         byte[] source = File.ReadAllBytes(fixturePath);
         OfficeContentSafetyReport inspection = OfficeSvgDrawingReader.InspectContentSafety(source);
+        ValidateExpectedFindingInventory(inspection);
         string[] selected = inspection.Findings
             .Where(finding => finding.CleanupCapability != OfficeContentCleanupCapability.ReportOnly)
             .Select(finding => finding.Id)
@@ -35,6 +36,7 @@ internal static class SvgContentSafetyBrowserEvidenceRunner {
                 finding.CleanupCapability != OfficeContentCleanupCapability.ReportOnly)) {
             throw new InvalidDataException("The SVG adversarial fixture did not reach a stable cleanup state.");
         }
+        ValidateExpectedReportOnlyInventory(cleaned.After);
 
         var rendererOptions = new HtmlBrowserPdfRendererOptions(
             browserExecutablePath: browserExecutablePath,
@@ -97,6 +99,56 @@ internal static class SvgContentSafetyBrowserEvidenceRunner {
             DiffPngSha256: ArtifactPaths.HashFile(diffPath));
         GateJson.Write(Path.Combine(output, "svg-content-safety-browser-evidence.json"), report);
         return report;
+    }
+
+    private static void ValidateExpectedFindingInventory(OfficeContentSafetyReport report) {
+        OfficeContentSafetyFinding[] removable = report.Findings
+            .Where(finding => finding.CleanupCapability != OfficeContentCleanupCapability.ReportOnly)
+            .ToArray();
+        OfficeContentSafetyFinding[] reportOnly = report.Findings
+            .Where(finding => finding.CleanupCapability == OfficeContentCleanupCapability.ReportOnly)
+            .ToArray();
+        if (removable.Length != 6 || reportOnly.Length != 3) {
+            throw new InvalidDataException(
+                "The SVG adversarial fixture produced an unexpected cleanup/report-only finding inventory (" +
+                removable.Length + "/" + reportOnly.Length + ").");
+        }
+        RequireFinding(removable, "CSS DISPLAY PAYLOAD", OfficeContentConcealmentKind.HiddenByProperty);
+        RequireFinding(removable, "DEEP SELECTOR PAYLOAD", OfficeContentConcealmentKind.HiddenByProperty);
+        RequireFinding(removable, "PRESENTATION VISIBILITY PAYLOAD", OfficeContentConcealmentKind.HiddenByProperty);
+        RequireFinding(removable, "OPACITY PAYLOAD", OfficeContentConcealmentKind.TransparentText);
+        RequireFinding(removable, "CLIPPED PAYLOAD", OfficeContentConcealmentKind.ClippedContent);
+        RequireFinding(removable, "OFF CANVAS PAYLOAD", OfficeContentConcealmentKind.OffCanvas);
+        ValidateExpectedReportOnlyInventory(report);
+    }
+
+    private static void ValidateExpectedReportOnlyInventory(OfficeContentSafetyReport report) {
+        OfficeContentSafetyFinding[] reportOnly = report.Findings
+            .Where(finding => finding.CleanupCapability == OfficeContentCleanupCapability.ReportOnly)
+            .ToArray();
+        if (reportOnly.Length != 3) {
+            throw new InvalidDataException(
+                "The SVG adversarial fixture produced " + reportOnly.Length + " report-only findings instead of 3.");
+        }
+        RequireFinding(reportOnly, "LOW CONTRAST PAYLOAD", OfficeContentConcealmentKind.LowContrastText);
+        if (!reportOnly.Any(finding => finding.TextPreview == "PAINT ORDER PAYLOAD" &&
+                finding.Kind is OfficeContentConcealmentKind.LowContrastText or OfficeContentConcealmentKind.Other)) {
+            throw new InvalidDataException("The SVG adversarial fixture did not report the expected paint-order finding.");
+        }
+        if (!reportOnly.Any(finding => finding.Kind == OfficeContentConcealmentKind.NonPrimaryContent &&
+                finding.TextPreview.Contains(".css-hidden", StringComparison.Ordinal))) {
+            throw new InvalidDataException("The SVG adversarial fixture did not report its stylesheet as non-primary content.");
+        }
+    }
+
+    private static void RequireFinding(
+        IEnumerable<OfficeContentSafetyFinding> findings,
+        string text,
+        OfficeContentConcealmentKind kind) {
+        if (!findings.Any(finding => finding.TextPreview == text && finding.Kind == kind)) {
+            throw new InvalidDataException(
+                "The SVG adversarial fixture did not produce the expected " + kind + " finding for " + text + ".");
+        }
     }
 
     private static async Task<HtmlBrowserPdfResult> CaptureAsync(

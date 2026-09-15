@@ -407,7 +407,7 @@ public static partial class OfficeSvgDrawingReader {
 
         var builder = new StringBuilder(raw.Length);
         foreach (char character in raw) {
-            if (char.IsWhiteSpace(character)) {
+            if (IsSvgCssWhitespace(character)) {
                 if (cursor.HasText || builder.Length > 0) cursor.PendingSpace = true;
                 continue;
             }

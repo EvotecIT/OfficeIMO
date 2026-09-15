@@ -65,8 +65,8 @@ public static partial class OfficeSvgDrawingReader {
             unsupported++;
             return;
         }
-        string name = element.Name.LocalName.ToLowerInvariant();
-        if (name is "title" or "desc" or "metadata" or "style" or "lineargradient" or "radialgradient" or "pattern" or "stop") return;
+        string name = element.Name.LocalName;
+        if (name is "title" or "desc" or "metadata" or "style" or "linearGradient" or "radialGradient" or "pattern" or "stop") return;
         if (name == "defs") return;
 
         string? clipValue = ReadPresentationProperty(element, "clip-path");
@@ -93,7 +93,7 @@ public static partial class OfficeSvgDrawingReader {
         if (!style.Displayed) return;
         if (!style.VisibilityVisible && name is not "g" and not "a" and not "switch" and not "svg" and not "use" and not "text") return;
         OfficeTransform transform = ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported);
-        if (name == "foreignobject") {
+        if (name == "foreignObject") {
             TryAddForeignObject(
                 element,
                 drawing,
@@ -353,9 +353,9 @@ public static partial class OfficeSvgDrawingReader {
         ref bool pathCommandLimitExceeded,
         ref int unsupported) {
         foreach (XElement child in element.Elements()) {
-            string childName = child.Name.LocalName.ToLowerInvariant();
+            string childName = child.Name.LocalName;
             if (childName is "title" or "desc" or "metadata" or "defs" or "style"
-                or "lineargradient" or "radialgradient" or "pattern" or "stop") {
+                or "linearGradient" or "radialGradient" or "pattern" or "stop") {
                 continue;
             }
             if (child.Attribute("requiredExtensions") != null || child.Attribute("requiredFeatures") != null) {
@@ -370,7 +370,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static bool IsSupportedSwitchElement(string name) => name is
-        "svg" or "g" or "a" or "switch" or "foreignobject" or "use" or "text"
+        "svg" or "g" or "a" or "switch" or "foreignObject" or "use" or "text"
         or "image" or "rect" or "circle" or "ellipse" or "line" or "polygon" or "polyline" or "path";
 
 }

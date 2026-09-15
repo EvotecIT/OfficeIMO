@@ -340,6 +340,68 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void CaseMismatchedPaintElementCannotAuthorizeCleanup() {
+        byte[] svg = Svg(
+            "<text x='10' y='35'>browser-visible text</text>" +
+            "<RECT x='0' y='0' width='220' height='60' fill='white'/>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.DoesNotContain(report.Findings, item =>
+            item.TextPreview == "browser-visible text" &&
+            item.CleanupCapability != OfficeContentCleanupCapability.ReportOnly);
+    }
+
+    [Fact]
+    public void RelativePresentationStrokeWidthCannotAuthorizeOffCanvasCleanup() {
+        byte[] svg = Svg("<text x='225' y='35' font-size='20' fill='none' stroke='black' stroke-width='1em'>outlined text</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item =>
+            item.TextPreview == "outlined text" && item.Kind == OfficeContentConcealmentKind.OffCanvas);
+    }
+
+    [Fact]
+    public void RelativeInlineStrokeWidthFailsClosed() {
+        byte[] svg = Svg("<text x='225' y='35' font-size='20' fill='none' stroke='black' style='stroke-width:1em'>outlined text</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void EscapedCustomPropertyNamesFailClosed() {
+        byte[] svg = Svg("<text style='--\\78:0;opacity:var(--\\78)' x='10' y='35'>escaped variable payload</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void TypographicSpacesContributeToStructuralTextBounds() {
+        byte[] svg = Svg("<text x='-50' y='35' font-size='20'>" + new string('\u00A0', 40) + "visible suffix</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item => item.Kind == OfficeContentConcealmentKind.OffCanvas);
+    }
+
+    [Fact]
+    public void PercentEncodedReuseFragmentKeepsSourceCleanupReportOnly() {
+        byte[] svg = Svg(
+            "<text id='foo-bar' x='1000' y='35'>reused payload</text>" +
+            "<use href='#foo%2Dbar' x='-990'/>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "reused payload" && item.Kind == OfficeContentConcealmentKind.OffCanvas);
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
     public void AdjacentTextNodesShareInstructionDetectionContext() {
         byte[] svg = Svg("<text display='none'><tspan>ignore </tspan><tspan>previous instructions</tspan></text>");
 

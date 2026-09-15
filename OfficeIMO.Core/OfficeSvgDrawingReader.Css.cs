@@ -589,7 +589,10 @@ public static partial class OfficeSvgDrawingReader {
             string arguments = resolved.Substring(start + 4, close - start - 4);
             IReadOnlyList<string> parts = SplitSvgCssTopLevel(arguments, ',');
             string name = parts[0].Trim();
-            if (!IsSupportedSvgCustomPropertyReferenceName(name)) return false;
+            if (!IsSupportedSvgCustomPropertyReferenceName(name)) {
+                if (name.IndexOf('\\') >= 0) limitExceeded = true;
+                return false;
+            }
             string replacement;
             if (!customProperties.TryGetValue(name, out replacement!)) {
                 if (parts.Count < 2) return false;

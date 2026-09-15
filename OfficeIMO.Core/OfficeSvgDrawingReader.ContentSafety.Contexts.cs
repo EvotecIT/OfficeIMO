@@ -119,8 +119,8 @@ public static partial class OfficeSvgDrawingReader {
         XNamespace svgNamespace = root.Name.Namespace;
         foreach (XElement use in root.DescendantsAndSelf().Where(element =>
                      IsNativeSvgElement(element, svgNamespace) &&
-                     (element.Name.LocalName.Equals("use", StringComparison.OrdinalIgnoreCase) ||
-                      element.Name.LocalName.Equals("tref", StringComparison.OrdinalIgnoreCase)))) {
+                     (element.Name.LocalName.Equals("use", StringComparison.Ordinal) ||
+                      element.Name.LocalName.Equals("tref", StringComparison.Ordinal)))) {
             foreach (XAttribute href in use.Attributes().Where(attribute =>
                          attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase) &&
                          (attribute.Name.NamespaceName.Length == 0 ||
@@ -128,7 +128,12 @@ public static partial class OfficeSvgDrawingReader {
                 string value = href.Value.Trim();
                 if (value.Length > 1 && value[0] == '#' &&
                     value.IndexOfAny(new[] { ' ', '\t', '\r', '\n', '#', '(', ')' }, 1) < 0) {
-                    ids.Add(value.Substring(1));
+                    try {
+                        string decoded = Uri.UnescapeDataString(value.Substring(1));
+                        if (decoded.Length > 0) ids.Add(decoded);
+                    } catch (UriFormatException) {
+                        ids.Add(value.Substring(1));
+                    }
                 }
             }
         }
