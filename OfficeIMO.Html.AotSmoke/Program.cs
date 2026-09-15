@@ -29,9 +29,11 @@ HtmlComputedStyle headingStyle = HtmlComputedStyleEngine.Compute(source, new Htm
     IncludeCascadeTraces = true
 })[heading];
 HtmlCssCascadeTrace? headingColorTrace = headingStyle.GetCascadeTrace("color");
-if (headingStyle.GetValue("color") != "#123456" || headingColorTrace?.Candidates.Count != 1 ||
+if (headingStyle.GetValue("color") != "rgba(18, 52, 86, 1)" || headingColorTrace?.Candidates.Count != 1 ||
     headingColorTrace.Candidates[0].Decision != HtmlCssCascadeDecision.Selected) {
-    throw new InvalidOperationException("The NativeAOT cascade-trace contract failed.");
+    throw new InvalidOperationException(
+        $"The NativeAOT cascade-trace contract failed: value={headingStyle.GetValue("color")}, " +
+        $"candidates={headingColorTrace?.Candidates.Count}, decision={headingColorTrace?.Candidates.FirstOrDefault()?.Decision}.");
 }
 var imageOptions = new HtmlRenderOptions {
     ViewportWidth = 320D,
