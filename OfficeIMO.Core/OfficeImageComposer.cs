@@ -92,6 +92,48 @@ public static class OfficeImageComposer {
         Action<StringBuilder>? afterLayers = null) =>
         Encoding.UTF8.GetBytes(ComposeSvg(width, height, backgroundColor, layers, beforeLayers, afterLayers));
 
+    internal static byte[] ComposeSvgBytes(
+        int width,
+        int height,
+        OfficeColor backgroundColor,
+        IEnumerable<OfficeImageLayer> layers,
+        long maximumUtf8Bytes,
+        CancellationToken cancellationToken,
+        Action<StringBuilder>? beforeLayers = null,
+        Action<StringBuilder>? afterLayers = null) {
+        if (maximumUtf8Bytes < 1L) throw new ArgumentOutOfRangeException(nameof(maximumUtf8Bytes));
+        int maximumCharacters = maximumUtf8Bytes > int.MaxValue
+            ? int.MaxValue
+            : (int)maximumUtf8Bytes;
+        string svg;
+        try {
+            svg = ComposeSvgCore(
+                width,
+                height,
+                backgroundColor,
+                layers,
+                beforeLayers,
+                afterLayers,
+                maximumCharacters,
+                cancellationToken);
+        } catch (ArgumentOutOfRangeException) {
+            throw CreateSvgLimitException(maximumUtf8Bytes);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        long byteCount = Encoding.UTF8.GetByteCount(svg);
+        if (byteCount > maximumUtf8Bytes) {
+            throw new OfficeImageExportBatchLimitException(
+                nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes),
+                byteCount,
+                maximumUtf8Bytes);
+        }
+
+        byte[] bytes = Encoding.UTF8.GetBytes(svg);
+        cancellationToken.ThrowIfCancellationRequested();
+        return bytes;
+    }
+
     /// <summary>
     /// Composes SVG layers into a root SVG document.
     /// </summary>
@@ -101,13 +143,35 @@ public static class OfficeImageComposer {
         OfficeColor backgroundColor,
         IEnumerable<OfficeImageLayer> layers,
         Action<StringBuilder>? beforeLayers = null,
-        Action<StringBuilder>? afterLayers = null) {
+        Action<StringBuilder>? afterLayers = null) =>
+        ComposeSvgCore(
+            width,
+            height,
+            backgroundColor,
+            layers,
+            beforeLayers,
+            afterLayers,
+            maximumCharacters: null,
+            CancellationToken.None);
+
+    private static string ComposeSvgCore(
+        int width,
+        int height,
+        OfficeColor backgroundColor,
+        IEnumerable<OfficeImageLayer> layers,
+        Action<StringBuilder>? beforeLayers,
+        Action<StringBuilder>? afterLayers,
+        int? maximumCharacters,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateOutputSize(width, height);
         if (layers == null) {
             throw new ArgumentNullException(nameof(layers));
         }
 
-        var builder = new StringBuilder();
+        var builder = maximumCharacters.HasValue
+            ? new StringBuilder(Math.Min(256, maximumCharacters.Value), maximumCharacters.Value)
+            : new StringBuilder();
         builder.Append("<svg xmlns=\"http://www.w3.org/2000/svg\"")
             .AppendNumberAttribute("width", width)
             .AppendNumberAttribute("height", height)
@@ -123,6 +187,7 @@ public static class OfficeImageComposer {
         var seenIds = new HashSet<string>(StringComparer.Ordinal);
         var duplicateIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (OfficeImageLayer layer in layers) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (layer.SvgInnerContent != null) {
                 HashSet<string> ids = GetSvgIds(layer.SvgInnerContent);
                 foreach (string id in ids) {
@@ -138,6 +203,7 @@ public static class OfficeImageComposer {
 
         var reservedIds = new HashSet<string>(seenIds, StringComparer.Ordinal);
         for (int index = 0; index < svgLayers.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeImageLayer layer = svgLayers[index];
             string layerContent = layer.SvgInnerContent!;
             if (duplicateIds.Count > 0 && svgLayerIds[index].Overlaps(duplicateIds)) {
@@ -153,8 +219,15 @@ public static class OfficeImageComposer {
 
         afterLayers?.Invoke(builder);
         builder.Append("</svg>");
+        cancellationToken.ThrowIfCancellationRequested();
         return builder.ToString();
     }
+
+    private static OfficeImageExportBatchLimitException CreateSvgLimitException(long maximumUtf8Bytes) =>
+        new OfficeImageExportBatchLimitException(
+            nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes),
+            maximumUtf8Bytes == long.MaxValue ? long.MaxValue : maximumUtf8Bytes + 1L,
+            maximumUtf8Bytes);
 
     private static void ValidateOutputSize(int width, int height) {
         if (width <= 0) {

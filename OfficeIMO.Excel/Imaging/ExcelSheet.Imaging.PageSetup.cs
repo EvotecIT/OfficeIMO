@@ -11,7 +11,8 @@ namespace OfficeIMO.Excel {
             OfficeImageExportResult content,
             ExcelWorksheetImageExportOptions options,
             ref ExcelRasterRenderState rasterState,
-            System.Threading.CancellationToken cancellationToken) {
+            System.Threading.CancellationToken cancellationToken,
+            long? maximumSvgUtf8Bytes) {
             cancellationToken.ThrowIfCancellationRequested();
             ExcelSheetPageSetup pageSetup = GetPageSetup();
             if (!ShouldApplyPageSetupCanvas(pageSetup)) {
@@ -67,11 +68,19 @@ namespace OfficeIMO.Excel {
 
             byte[] bytes;
             if (format == OfficeImageExportFormat.Svg) {
-                bytes = OfficeImageComposer.ComposeSvgBytes(
-                    geometry.Width,
-                    geometry.Height,
-                    options.BackgroundColor,
-                    new[] { contentLayer });
+                bytes = maximumSvgUtf8Bytes.HasValue
+                    ? OfficeImageComposer.ComposeSvgBytes(
+                        geometry.Width,
+                        geometry.Height,
+                        options.BackgroundColor,
+                        new[] { contentLayer },
+                        maximumSvgUtf8Bytes.Value,
+                        cancellationToken)
+                    : OfficeImageComposer.ComposeSvgBytes(
+                        geometry.Width,
+                        geometry.Height,
+                        options.BackgroundColor,
+                        new[] { contentLayer });
             } else {
                 OfficeRasterImage image = OfficeImageComposer.ComposeRaster(
                     geometry.Width,

@@ -13,6 +13,53 @@ namespace OfficeIMO.Excel {
             int pageCount,
             CancellationToken cancellationToken = default,
             OfficeImageExportEncodingBudget? encodingBudget = null) {
+            if (format == OfficeImageExportFormat.Svg &&
+                options.SplitByManualPageBreaks &&
+                encodingBudget != null) {
+                OfficeImageExportResult? boundedResult = null;
+                encodingBudget.EncodeWithinRemainingBudget(
+                    remaining => {
+                        boundedResult = RenderWorksheetImageResultCore(
+                            format,
+                            range,
+                            options,
+                            headerFooterSnapshot,
+                            sourceImageBudget,
+                            pageNumber,
+                            pageCount,
+                            cancellationToken,
+                            encodingBudget: null,
+                            maximumSvgUtf8Bytes: remaining);
+                        return boundedResult.Bytes;
+                    },
+                    cancellationToken);
+                return boundedResult!;
+            }
+
+            return RenderWorksheetImageResultCore(
+                format,
+                range,
+                options,
+                headerFooterSnapshot,
+                sourceImageBudget,
+                pageNumber,
+                pageCount,
+                cancellationToken,
+                encodingBudget,
+                maximumSvgUtf8Bytes: null);
+        }
+
+        private OfficeImageExportResult RenderWorksheetImageResultCore(
+            OfficeImageExportFormat format,
+            WorksheetImageRangeResolution range,
+            ExcelWorksheetImageExportOptions options,
+            ExcelHeaderFooterSnapshot? headerFooterSnapshot,
+            ExcelSourceImageBudget sourceImageBudget,
+            int pageNumber,
+            int pageCount,
+            CancellationToken cancellationToken,
+            OfficeImageExportEncodingBudget? encodingBudget,
+            long? maximumSvgUtf8Bytes) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportFormat workingFormat = format == OfficeImageExportFormat.Svg
                 ? OfficeImageExportFormat.Svg
@@ -34,7 +81,8 @@ namespace OfficeIMO.Excel {
                     layout,
                     sourceImageBudget,
                     out rasterState,
-                    cancellationToken);
+                    cancellationToken,
+                    maximumSvgUtf8Bytes);
             } else {
                 ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, options, range.Diagnostics, sourceImageBudget);
                 result = ExcelRangeImageRenderer.Render(
@@ -45,7 +93,8 @@ namespace OfficeIMO.Excel {
                     directFinalRaster,
                     out rasterState,
                     cancellationToken,
-                    directFinalRaster || directFinalSvg ? encodingBudget : null);
+                    directFinalRaster || directFinalSvg ? encodingBudget : null,
+                    maximumSvgUtf8Bytes);
             }
 
             if (options.SplitByManualPageBreaks) {
@@ -55,7 +104,8 @@ namespace OfficeIMO.Excel {
                     result,
                     options,
                     ref rasterState,
-                    cancellationToken);
+                    cancellationToken,
+                    maximumSvgUtf8Bytes);
                 result = ApplyHeaderFooterTextChrome(
                     workingFormat,
                     format,
@@ -65,15 +115,16 @@ namespace OfficeIMO.Excel {
                     pageNumber,
                     pageCount,
                     ref rasterState,
-                    cancellationToken);
+                    cancellationToken,
+                    maximumSvgUtf8Bytes);
             }
 
             if (workingFormat == OfficeImageExportFormat.Svg) {
-                result = ApplyFinalSvgOutputBounds(result, options);
+                result = ApplyFinalSvgOutputBounds(result, options, cancellationToken, maximumSvgUtf8Bytes);
             }
 
             if (format == OfficeImageExportFormat.Svg) {
-                if (!directFinalSvg) encodingBudget?.Reserve(result.Bytes.Length);
+                if (!directFinalSvg && !maximumSvgUtf8Bytes.HasValue) encodingBudget?.Reserve(result.Bytes.Length);
                 return options.EnsureAccepted(result);
             }
             if (directFinalRaster) return options.EnsureAccepted(result);
@@ -110,7 +161,9 @@ namespace OfficeIMO.Excel {
 
         private static OfficeImageExportResult ApplyFinalSvgOutputBounds(
             OfficeImageExportResult result,
-            ExcelWorksheetImageExportOptions options) {
+            ExcelWorksheetImageExportOptions options,
+            CancellationToken cancellationToken,
+            long? maximumSvgUtf8Bytes) {
             ExcelWorksheetImageExportOptions fitOptions = options.CloneWorksheet();
             fitOptions.Scale = 1D;
             fitOptions.TargetDpi = null;
@@ -126,15 +179,24 @@ namespace OfficeIMO.Excel {
             string scaledInner = "<g transform=\"scale(" +
                 OfficeSvgFormatting.FormatNumber(scale) +
                 ")\">" + inner + "</g>";
+            byte[] bytes = maximumSvgUtf8Bytes.HasValue
+                ? OfficeImageComposer.ComposeSvgBytes(
+                    width,
+                    height,
+                    options.BackgroundColor,
+                    new[] { OfficeImageLayer.FromSvgInner(scaledInner, 0D, 0D, width, height) },
+                    maximumSvgUtf8Bytes.Value,
+                    cancellationToken)
+                : OfficeImageComposer.ComposeSvgBytes(
+                    width,
+                    height,
+                    options.BackgroundColor,
+                    new[] { OfficeImageLayer.FromSvgInner(scaledInner, 0D, 0D, width, height) });
             return new OfficeImageExportResult(
                 result.Format,
                 width,
                 height,
-                OfficeImageComposer.ComposeSvgBytes(
-                    width,
-                    height,
-                    options.BackgroundColor,
-                    new[] { OfficeImageLayer.FromSvgInner(scaledInner, 0D, 0D, width, height) }),
+                bytes,
                 result.Name,
                 result.Source,
                 result.Diagnostics);
@@ -148,7 +210,8 @@ namespace OfficeIMO.Excel {
             PrintTitleLayout layout,
             ExcelSourceImageBudget sourceImageBudget,
             out ExcelRasterRenderState rasterState,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            long? maximumSvgUtf8Bytes) {
             cancellationToken.ThrowIfCancellationRequested();
             var diagnostics = new List<OfficeImageExportDiagnostic>(range.Diagnostics);
             List<PrintTitleVisualComponent> visuals = CreatePrintTitleVisualComponents(layout, options, diagnostics, sourceImageBudget);
@@ -178,7 +241,8 @@ namespace OfficeIMO.Excel {
                 options,
                 renderScale,
                 diagnostics,
-                cancellationToken);
+                cancellationToken,
+                maximumSvgUtf8Bytes);
             int outputWidth = format == OfficeImageExportFormat.Svg
                 ? Math.Max(1, (int)Math.Ceiling(components.Max(component => component.X + component.Width)))
                 : rasterPlan!.Value.Limit.PixelWidth;
@@ -187,15 +251,24 @@ namespace OfficeIMO.Excel {
                 : rasterPlan!.Value.Limit.PixelHeight;
 
             if (format == OfficeImageExportFormat.Svg) {
+                byte[] bytes = maximumSvgUtf8Bytes.HasValue
+                    ? OfficeImageComposer.ComposeSvgBytes(
+                        outputWidth,
+                        outputHeight,
+                        options.BackgroundColor,
+                        components.Select(component => component.ToLayer()),
+                        maximumSvgUtf8Bytes.Value,
+                        cancellationToken)
+                    : OfficeImageComposer.ComposeSvgBytes(
+                        outputWidth,
+                        outputHeight,
+                        options.BackgroundColor,
+                        components.Select(component => component.ToLayer()));
                 return new OfficeImageExportResult(
                     format,
                     outputWidth,
                     outputHeight,
-                    OfficeImageComposer.ComposeSvgBytes(
-                        outputWidth,
-                        outputHeight,
-                        options.BackgroundColor,
-                        components.Select(component => component.ToLayer())),
+                    bytes,
                     Name,
                     Name + "!" + range.Range,
                     diagnostics.AsReadOnly());
@@ -293,7 +366,8 @@ namespace OfficeIMO.Excel {
             ExcelWorksheetImageExportOptions options,
             double renderScale,
             List<OfficeImageExportDiagnostic> diagnostics,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            long? maximumSvgUtf8Bytes) {
             ExcelWorksheetImageExportOptions renderOptions = options.CloneWorksheet();
             renderOptions.TargetDpi = null;
             renderOptions.Scale = renderScale;
@@ -305,7 +379,8 @@ namespace OfficeIMO.Excel {
                     format,
                     renderOptions,
                     diagnostics,
-                    cancellationToken));
+                    cancellationToken,
+                    maximumSvgUtf8Bytes));
             }
 
             return components;
@@ -316,12 +391,18 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             ExcelWorksheetImageExportOptions renderOptions,
             List<OfficeImageExportDiagnostic> diagnostics,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            long? maximumSvgUtf8Bytes) {
             var componentDiagnostics = new List<OfficeImageExportDiagnostic>();
             OfficeRasterImage? raster = null;
             string svgInner = string.Empty;
             if (format == OfficeImageExportFormat.Svg) {
-                string svg = ExcelRangeImageRenderer.RenderSvg(visual.Snapshot, renderOptions, componentDiagnostics, cancellationToken);
+                string svg = ExcelRangeImageRenderer.RenderSvg(
+                    visual.Snapshot,
+                    renderOptions,
+                    componentDiagnostics,
+                    cancellationToken,
+                    maximumSvgUtf8Bytes);
                 svgInner = OfficeSvgFormatting.ExtractSvgInner(svg);
             } else {
                 raster = ExcelRangeImageRenderer.RenderRaster(visual.Snapshot, renderOptions, componentDiagnostics, cancellationToken);

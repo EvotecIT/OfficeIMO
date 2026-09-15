@@ -36,6 +36,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_PageSlicedSvgCompositionHonorsAggregateEncodedByteLimit() {
+            using var stream = new MemoryStream();
+            using ExcelDocument document = ExcelDocument.Create(stream);
+            ExcelSheet sheet = document.AddWorksheet("BoundedSvg");
+            FillPageBreakGrid(sheet);
+            sheet.CellValue(3, 1, new string('\u754c', 10_000));
+            sheet.SetHeaderFooter(headerCenter: "Bounded header", footerCenter: "Bounded footer");
+            sheet.AddManualRowPageBreak(2, save: false);
+            var options = new ExcelWorksheetImageExportOptions {
+                Range = "A1:AZ4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false,
+                MaximumTotalEncodedBytes = 1_024L
+            };
+
+            OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                sheet.ExportImages(OfficeImageExportFormat.Svg, options));
+
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+            Assert.Equal(options.MaximumTotalEncodedBytes, exception.Maximum);
+            Assert.True(exception.Actual > exception.Maximum);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_DirectSvgCompositionHonorsEncodedByteLimit() {
+            using var stream = new MemoryStream();
+            using ExcelDocument document = ExcelDocument.Create(stream);
+            ExcelSheet sheet = document.AddWorksheet("BoundedDirectSvg");
+            for (int row = 1; row <= 100; row++) {
+                sheet.CellValue(row, 1, "Bounded direct SVG row " + row.ToString(CultureInfo.InvariantCulture));
+            }
+            var options = new ExcelWorksheetImageExportOptions {
+                Range = "A1:A100",
+                ShowGridlines = false,
+                MaximumTotalEncodedBytes = 1_024L
+            };
+
+            OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                sheet.ExportImage(OfficeImageExportFormat.Svg, options));
+
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+            Assert.Equal(options.MaximumTotalEncodedBytes, exception.Maximum);
+            Assert.True(exception.Actual > exception.Maximum);
+        }
+
+        [Fact]
         public void ExcelWorksheet_FinalJpegLimitDoesNotRejectTheLargerIntermediatePng() {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
