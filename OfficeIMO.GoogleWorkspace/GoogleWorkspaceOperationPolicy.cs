@@ -9,7 +9,7 @@ namespace OfficeIMO.GoogleWorkspace {
 
     /// <summary>Caller-selected behavior when Google reports quota throttling.</summary>
     public enum GoogleWorkspaceRateLimitPolicy {
-        /// <summary>Retry retryable quota responses and honor the server's <c>Retry-After</c> guidance.</summary>
+        /// <summary>Retry retryable quota responses using the server's <c>Retry-After</c> guidance, subject to the configured per-delay cap and overall operation budget.</summary>
         HonorRetryAfter = 0,
         /// <summary>Return quota responses immediately without retrying them.</summary>
         FailFast = 1,
@@ -130,7 +130,7 @@ namespace OfficeIMO.GoogleWorkspace {
         public IReadOnlyList<string> RequiredScopes { get; }
         /// <summary>The snapshotted retry-count limit that will govern this operation.</summary>
         public int MaxRetryCount { get; }
-        /// <summary>The snapshotted aggregate retry-time limit that will govern this operation.</summary>
+        /// <summary>The snapshotted overall elapsed-time budget that will govern this operation, including the initial attempt, retries, delays, and response processing.</summary>
         public TimeSpan MaxRetryElapsedTime { get; }
         /// <summary>The snapshotted rate-limit behavior that will govern this operation.</summary>
         public GoogleWorkspaceRateLimitPolicy RateLimitPolicy { get; }
@@ -149,7 +149,7 @@ namespace OfficeIMO.GoogleWorkspace {
         /// <param name="target">Logical resource identifier the mutation is allowed to affect.</param>
         /// <param name="expectedRevision">Required revision, create marker, or value returned by <see cref="ExplicitlyUnversionedRevision"/>.</param>
         /// <param name="maxRetryCount">Maximum number of retries after the initial request.</param>
-        /// <param name="maxRetryElapsedTime">Maximum aggregate retry duration.</param>
+        /// <param name="maxRetryElapsedTime">Overall elapsed-time budget for the initial attempt, retries, delays, and response processing.</param>
         /// <param name="rateLimitPolicy">Behavior for retryable quota responses.</param>
         /// <param name="dataLossDecision">Decision for potential data loss.</param>
         /// <param name="acceptedLoss">Specific loss accepted by the caller when acceptance is selected.</param>
@@ -180,7 +180,7 @@ namespace OfficeIMO.GoogleWorkspace {
         public string ExpectedRevision { get; }
         /// <summary>Gets the maximum number of retries after the initial request.</summary>
         public int MaxRetryCount { get; }
-        /// <summary>Gets the maximum aggregate retry duration.</summary>
+        /// <summary>Gets the overall elapsed-time budget for the initial attempt, retries, delays, and response processing.</summary>
         public TimeSpan MaxRetryElapsedTime { get; }
         /// <summary>Gets the behavior for retryable quota responses.</summary>
         public GoogleWorkspaceRateLimitPolicy RateLimitPolicy { get; }

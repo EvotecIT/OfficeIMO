@@ -15,7 +15,7 @@ namespace OfficeIMO.Word {
             internal IReadOnlyDictionary<string, string?> ParagraphStyleNames { get; }
         }
 
-        /// <summary>Creates an independent read-only snapshot of document metadata, sections, stories, paragraphs, tables, notes, and images.</summary>
+        /// <summary>Creates an independent snapshot of document metadata, sections, stories, paragraphs, tables, notes, and images.</summary>
         /// <returns>A snapshot suitable for inspection or serialization without retaining live Open XML elements.</returns>
         public WordDocumentSnapshot CreateInspectionSnapshot() {
             var expansionContext = new InspectionExpansionContext(BuildParagraphStyleNameLookup());

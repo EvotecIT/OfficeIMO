@@ -13,9 +13,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         public string? Domain { get; set; }
         /// <summary>Gets or sets whether an anyone or domain permission makes the file discoverable.</summary>
         public bool? AllowFileDiscovery { get; set; }
-        /// <summary>Gets or sets whether Google emails the grantee. The default is <see langword="true"/>.</summary>
+        /// <summary>Gets or sets whether the request asks Google to email an applicable grantee. The default is <see langword="true"/>.</summary>
         public bool SendNotificationEmail { get; set; } = true;
-        /// <summary>Gets or sets an optional message included in the notification email.</summary>
+        /// <summary>Gets or sets an optional message requested for an applicable notification email.</summary>
         public string? EmailMessage { get; set; }
     }
 

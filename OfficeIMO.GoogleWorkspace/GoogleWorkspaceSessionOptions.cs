@@ -7,9 +7,9 @@ namespace OfficeIMO.GoogleWorkspace {
     public sealed class GoogleWorkspaceSessionOptions {
         /// <summary>Gets or sets the application name sent in Google API requests. The default is <c>OfficeIMO</c>.</summary>
         public string ApplicationName { get; set; } = "OfficeIMO";
-        /// <summary>Gets or sets the stable end-user identifier used for Google quota accounting.</summary>
+        /// <summary>Gets or sets the stable end-user identifier sent for provider-side quota accounting.</summary>
         public string? QuotaUser { get; set; }
-        /// <summary>Gets or sets the Google Cloud project charged for quota and billing.</summary>
+        /// <summary>Gets or sets the requested Google Cloud consumer project sent for provider-side quota and billing evaluation.</summary>
         public string? QuotaProject { get; set; }
         /// <summary>Gets or sets a factory for correlation identifiers attached to outgoing operations.</summary>
         public Func<string>? RequestIdFactory { get; set; }
@@ -32,7 +32,7 @@ namespace OfficeIMO.GoogleWorkspace {
         public TimeSpan RetryBaseDelay { get; set; } = TimeSpan.FromMilliseconds(200);
         /// <summary>Gets or sets the upper bound for one retry delay. The default is 5 seconds.</summary>
         public TimeSpan RetryMaxDelay { get; set; } = TimeSpan.FromSeconds(5);
-        /// <summary>Gets or sets the maximum cumulative retry time for one operation. The default is 2 minutes.</summary>
+        /// <summary>Gets or sets the overall elapsed-time budget for one operation, including the initial attempt, retries, delays, and response processing. The default is 2 minutes.</summary>
         public TimeSpan MaxRetryElapsedTime { get; set; } = TimeSpan.FromMinutes(2);
         /// <summary>Gets or sets how server rate-limit guidance influences retry delays.</summary>
         public GoogleWorkspaceRateLimitPolicy RateLimitPolicy { get; set; } = GoogleWorkspaceRateLimitPolicy.HonorRetryAfter;

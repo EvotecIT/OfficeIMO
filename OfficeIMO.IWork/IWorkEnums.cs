@@ -34,7 +34,7 @@ public enum IWorkConversionMode {
 public enum IWorkProjectionKind {
     /// <summary>Editable content reconstructed from supported source structures.</summary>
     EditableReconstruction,
-    /// <summary>Visual output based on an embedded preview because editable reconstruction was unavailable.</summary>
+    /// <summary>Visual output based on an embedded preview, selected explicitly or used when editable reconstruction was unavailable.</summary>
     VisualFallback
 }
 

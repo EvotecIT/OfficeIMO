@@ -193,7 +193,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets structural and cell differences up to the requested limit.</summary>
         public IReadOnlyList<ExcelWorkbookDifference> Differences { get; }
         /// <summary>Gets whether the comparison recorded no differences.</summary>
-        /// <remarks>This represents workbook equality when the comparison was run with a positive difference limit.</remarks>
+        /// <remarks>With a positive difference limit, this represents equality only across the compared sheet presence, used ranges, formulas, and visible cell text.</remarks>
         public bool AreEqual => Differences.Count == 0;
     }
 

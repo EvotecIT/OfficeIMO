@@ -3,10 +3,10 @@ namespace OfficeIMO.GoogleWorkspace {
     /// Abstraction over the mechanism that acquires Google access tokens.
     /// </summary>
     public interface IGoogleWorkspaceCredentialSource {
-        /// <summary>Acquires an access token that is valid for every requested OAuth scope.</summary>
+        /// <summary>Acquires an access token and its available scope evidence for the requested operation.</summary>
         /// <param name="scopes">OAuth scopes required by the pending operation.</param>
         /// <param name="cancellationToken">Token used to cancel acquisition.</param>
-        /// <returns>A task that produces the acquired token and its scope and identity evidence.</returns>
+        /// <returns>A task that produces the acquired token and its scope and identity evidence. Callers must verify that the evidence covers their required scopes.</returns>
         Task<GoogleWorkspaceAccessToken> AcquireAccessTokenAsync(
             IEnumerable<string> scopes,
             CancellationToken cancellationToken = default);

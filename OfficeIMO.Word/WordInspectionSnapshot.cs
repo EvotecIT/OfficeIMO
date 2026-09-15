@@ -1,6 +1,6 @@
 
 namespace OfficeIMO.Word {
-    /// <summary>Read-only structural and metadata snapshot of a Word document.</summary>
+    /// <summary>Detached structural and metadata snapshot of a Word document.</summary>
     public sealed class WordDocumentSnapshot {
         private readonly List<WordSectionSnapshot> _sections = new List<WordSectionSnapshot>();
 
@@ -112,7 +112,7 @@ namespace OfficeIMO.Word {
         public string Text { get; internal set; } = string.Empty;
         /// <summary>Gets the applied paragraph style identifier.</summary>
         public string? StyleId { get; internal set; }
-        /// <summary>Gets the resolved paragraph style name.</summary>
+        /// <summary>Gets the OfficeIMO built-in paragraph-style classification, or the document style name for a custom classification when available; otherwise <c>Custom</c>.</summary>
         public string? StyleName { get; internal set; }
         /// <summary>Gets whether the paragraph participates in numbering.</summary>
         public bool IsListItem { get; internal set; }
@@ -120,9 +120,9 @@ namespace OfficeIMO.Word {
         public bool? IsOrderedList { get; internal set; }
         /// <summary>Gets the zero-based list nesting level.</summary>
         public int? ListLevel { get; internal set; }
-        /// <summary>Gets the resolved list style name.</summary>
+        /// <summary>Gets the OfficeIMO list-style classification.</summary>
         public string? ListStyleName { get; internal set; }
-        /// <summary>Gets the resolved paragraph alignment.</summary>
+        /// <summary>Gets the paragraph alignment authored directly on the paragraph, without resolving inherited styles.</summary>
         public string? Alignment { get; internal set; }
         /// <summary>Gets leading indentation in points.</summary>
         public double? IndentStartPoints { get; internal set; }
@@ -329,7 +329,7 @@ namespace OfficeIMO.Word {
         public int RowCount { get; internal set; }
         /// <summary>Gets the maximum number of physical cell elements in any row; inspect each cell's span for logical layout.</summary>
         public int ColumnCount { get; internal set; }
-        /// <summary>Gets the applied table style name.</summary>
+        /// <summary>Gets the OfficeIMO built-in table-style classification; snapshot creation requires an authored table style identifier to be recognized by the built-in mapping.</summary>
         public string? StyleName { get; internal set; }
         /// <summary>Gets the table title used by assistive technology.</summary>
         public string? Title { get; internal set; }
