@@ -129,7 +129,8 @@ namespace OfficeIMO.Word {
                 OfficeImageFormat.Tiff or
                 OfficeImageFormat.Emf or
                 OfficeImageFormat.Wmf or
-                OfficeImageFormat.Svg
+                OfficeImageFormat.Svg or
+                OfficeImageFormat.Jpeg2000
                 ? imageFormat
                 : throw new NotSupportedException($"Word image parts do not support {imageFormat} images.");
 

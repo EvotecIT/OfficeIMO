@@ -163,15 +163,27 @@ public static class PdfLogicalTableAnalysis {
         PdfDocumentReadResult document,
         int maximumComparisons) {
         Guard.NotNull(document, nameof(document));
+        bool hasOpenAction = document.HasReadableOpenAction;
+        int documentActionCount = document.CatalogActionCount;
+        if (hasOpenAction && !document.CatalogActions.Any(static action =>
+                string.Equals(action.Source, "OpenAction", StringComparison.Ordinal) &&
+                !action.IsChainedAction)) {
+            documentActionCount++;
+        }
         return AnalyzeExtractionScope(
             document.Pages,
+            document.FormFields.Count,
+            document.HasAcroFormXfa,
             document.OptionalContentGroupCount,
+            document.CatalogActionCount,
+            hasOpenAction,
+            documentActionCount,
             maximumComparisons);
     }
 
     /// <summary>
     /// Describes table extraction scope for a selected collection of logical pages.
-    /// Document-level optional-content groups are not attributed to individual pages.
+    /// Page-level optional-content usage is reported even when document-level group metadata is unavailable.
     /// </summary>
     /// <param name="pages">Logical pages to inspect.</param>
     /// <returns>Page-scoped table counts plus visible and interactive content outside detected tables.</returns>
@@ -181,18 +193,31 @@ public static class PdfLogicalTableAnalysis {
 
     /// <summary>
     /// Describes table extraction scope for selected logical pages while bounding attacker-controlled text/table comparisons.
-    /// Document-level optional-content groups are not attributed to individual pages.
+    /// Page-level optional-content usage is reported even when document-level group metadata is unavailable.
     /// </summary>
     public static PdfTableExtractionScopeReport AnalyzeExtractionScope(
         IReadOnlyList<PdfLogicalPage> pages,
         int maximumComparisons) {
         Guard.NotNull(pages, nameof(pages));
-        return AnalyzeExtractionScope(pages, optionalContentGroupCount: 0, maximumComparisons);
+        return AnalyzeExtractionScope(
+            pages,
+            formFieldCount: 0,
+            hasAcroFormXfa: false,
+            optionalContentGroupCount: 0,
+            catalogActionCount: 0,
+            hasOpenAction: false,
+            documentActionCount: 0,
+            maximumComparisons);
     }
 
     private static PdfTableExtractionScopeReport AnalyzeExtractionScope(
         IReadOnlyList<PdfLogicalPage> pages,
+        int formFieldCount,
+        bool hasAcroFormXfa,
         int optionalContentGroupCount,
+        int catalogActionCount,
+        bool hasOpenAction,
+        int documentActionCount,
         int maximumComparisons) {
 #pragma warning disable CA1512 // ThrowIfNegative is unavailable on netstandard2.0 and net472.
         if (maximumComparisons < 0) throw new ArgumentOutOfRangeException(nameof(maximumComparisons));
@@ -207,6 +232,7 @@ public static class PdfLogicalTableAnalysis {
         int formWidgetCount = 0;
         int annotationCount = 0;
         int pageActionCount = 0;
+        int pagesWithOptionalContent = 0;
         int interactiveMediaAnnotationCount = 0;
         int remainingComparisons = Math.Min(maximumComparisons, DefaultMaximumScopeAnalysisComparisons);
         bool analysisTruncated = false;
@@ -234,11 +260,13 @@ public static class PdfLogicalTableAnalysis {
             }
 
             vectorPrimitiveCount += page.VectorPrimitiveCount;
-            imageCount += page.Images.Count;
+            imageCount += page.Images.Count(image =>
+                PdfImagePlacementImportPolicy.HasVisiblePlacement(page, image));
             linkCount += page.Links.Count;
             formWidgetCount += page.FormWidgets.Count;
             annotationCount += page.Annotations.Count;
             pageActionCount += page.PageActions.Count;
+            if (page.HasOptionalContentUsage) pagesWithOptionalContent++;
             interactiveMediaAnnotationCount += page.Annotations.Count(static annotation =>
                 IsInteractiveMediaAnnotationSubtype(annotation.Subtype));
         }
@@ -252,9 +280,15 @@ public static class PdfLogicalTableAnalysis {
             imageCount,
             linkCount,
             formWidgetCount,
+            formFieldCount,
+            hasAcroFormXfa,
             annotationCount,
             pageActionCount,
+            catalogActionCount,
+            hasOpenAction,
+            documentActionCount,
             optionalContentGroupCount,
+            pagesWithOptionalContent,
             interactiveMediaAnnotationCount,
             analysisTruncated);
     }

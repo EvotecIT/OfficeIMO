@@ -13,14 +13,14 @@ public sealed class PdfWordConversionReport : IOfficeConversionReport {
     /// <summary>Diagnostics captured while reconstructing editable Word content.</summary>
     public IReadOnlyList<PdfCore.PdfConversionWarning> Warnings { get; }
 
-    /// <summary>True when the conversion reported a warning or error severity diagnostic.</summary>
+    /// <summary>True when conversion reported an approximation, omission, or failure.</summary>
     public bool HasLoss => Warnings.Any(static warning =>
-        warning.Severity != PdfCore.PdfConversionWarningSeverity.Information);
+        warning.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Throws when the conversion reported possible content loss.</summary>
     public void RequireNoLoss() {
         PdfCore.PdfConversionWarning? firstLoss = Warnings.FirstOrDefault(static warning =>
-            warning.Severity != PdfCore.PdfConversionWarningSeverity.Information);
+            warning.LossKind != OfficeConversionLossKind.None);
         if (firstLoss != null) {
             throw new InvalidOperationException("PDF-to-Word conversion reported possible content loss. First diagnostic: " + firstLoss);
         }

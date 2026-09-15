@@ -99,7 +99,7 @@ public static class PdfHtmlProfileContracts {
             new[] { "metadata", "headings", "paragraphs", "lists", "tables", "images", "links", "form-fields" },
             new[] { "page-numbers", "image-placeholders", "optional-link-sections", "optional-form-sections" },
             new[] { "themed-html-shell", "html-fragment", "export-summary" },
-            new[] { "conversion-report-warnings", "image-embedding-policy-warnings" },
+            new[] { "typed-layout-reflow-warning", "omitted-content-warnings", "image-embedding-policy-warnings" },
             new[] { "no-ocr", "no-pixel-perfect-rendering", "no-editable-office-reconstruction" }),
         new PdfHtmlProfileContract(
             PdfHtmlProfile.PositionedReview,
@@ -113,7 +113,7 @@ public static class PdfHtmlProfileContracts {
             new[] { "page-geometry", "text-blocks", "tables", "images", "links", "form-widgets" },
             new[] { "absolute-text-positions", "table-bounds", "image-placements", "link-frames", "form-widget-frames", "unsafe-link-inertness" },
             new[] { "themed-html-shell", "html-fragment", "export-summary" },
-            new[] { "conversion-report-warnings", "image-embedding-policy-warnings", "unsafe-link-sanitization" },
+            new[] { "typed-appearance-loss-warnings", "omitted-content-warnings", "image-embedding-policy-warnings", "unsafe-link-sanitization" },
             new[] { "no-full-graphics-renderer", "no-optional-content-composition", "no-scan-ocr", "no-editable-office-reconstruction" })
     });
 

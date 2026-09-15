@@ -13,9 +13,15 @@ public sealed class PdfTableExtractionScopeReport {
         int imageCount,
         int linkCount,
         int formWidgetCount,
+        int formFieldCount,
+        bool hasAcroFormXfa,
         int annotationCount,
         int pageActionCount,
+        int catalogActionCount,
+        bool hasOpenAction,
+        int documentActionCount,
         int optionalContentGroupCount,
+        int pagesWithOptionalContent,
         int interactiveMediaAnnotationCount,
         bool analysisTruncated) {
         SourcePageCount = sourcePageCount;
@@ -26,9 +32,15 @@ public sealed class PdfTableExtractionScopeReport {
         ImageCount = imageCount;
         LinkCount = linkCount;
         FormWidgetCount = formWidgetCount;
+        FormFieldCount = formFieldCount;
+        HasAcroFormXfa = hasAcroFormXfa;
         AnnotationCount = annotationCount;
         PageActionCount = pageActionCount;
+        CatalogActionCount = catalogActionCount;
+        HasOpenAction = hasOpenAction;
+        DocumentActionCount = documentActionCount;
         OptionalContentGroupCount = optionalContentGroupCount;
+        PagesWithOptionalContent = pagesWithOptionalContent;
         InteractiveMediaAnnotationCount = interactiveMediaAnnotationCount;
         AnalysisTruncated = analysisTruncated;
     }
@@ -54,7 +66,7 @@ public sealed class PdfTableExtractionScopeReport {
     /// </summary>
     public int VectorPrimitiveCount { get; }
 
-    /// <summary>Number of source images, which table-only adapters do not import.</summary>
+    /// <summary>Number of source images with at least one visible page placement, which table-only adapters do not import.</summary>
     public int ImageCount { get; }
 
     /// <summary>Number of source link annotations, which table-only adapters do not import.</summary>
@@ -62,6 +74,18 @@ public sealed class PdfTableExtractionScopeReport {
 
     /// <summary>Number of source form widgets, which table-only adapters do not import.</summary>
     public int FormWidgetCount { get; }
+
+    /// <summary>Number of document-level AcroForm fields, which table-only adapters do not import.</summary>
+    public int FormFieldCount { get; }
+
+    /// <summary>Whether the document has an XFA form definition, which table-only adapters do not import.</summary>
+    public bool HasAcroFormXfa { get; }
+
+    /// <summary>
+    /// Number of distinct form signals outside table-only output. Fields and widgets can describe the same
+    /// controls, so the larger count is used, with an XFA definition counted separately.
+    /// </summary>
+    public int FormContentCount => Math.Max(FormWidgetCount, FormFieldCount) + (HasAcroFormXfa ? 1 : 0);
 
     /// <summary>
     /// Number of generic source annotation records, which table-only adapters do not import.
@@ -72,8 +96,20 @@ public sealed class PdfTableExtractionScopeReport {
     /// <summary>Number of source page actions, which table-only adapters do not import.</summary>
     public int PageActionCount { get; }
 
+    /// <summary>Number of source catalog actions, which table-only adapters do not import.</summary>
+    public int CatalogActionCount { get; }
+
+    /// <summary>Whether the source has a readable document-open destination or GoTo action.</summary>
+    public bool HasOpenAction { get; }
+
+    /// <summary>Total distinct catalog and readable document-open actions outside table-only output.</summary>
+    public int DocumentActionCount { get; }
+
     /// <summary>Number of optional-content groups, which table-only adapters do not preserve as editable groups or layers.</summary>
     public int OptionalContentGroupCount { get; }
+
+    /// <summary>Number of inspected source pages that actually use optional content.</summary>
+    public int PagesWithOptionalContent { get; }
 
     /// <summary>Number of movie, sound, screen, rich-media, or 3D annotations, which table-only adapters do not import as animations or media.</summary>
     public int InteractiveMediaAnnotationCount { get; }
@@ -85,7 +121,7 @@ public sealed class PdfTableExtractionScopeReport {
     public bool AnalysisTruncated { get; }
 
     /// <summary>
-    /// Gets whether visible or interactive page content existed outside the detected tables.
+    /// Gets whether visible or interactive page or document content existed outside the detected tables.
     /// This is expected for table-only extraction and is separate from truncation within a table.
     /// </summary>
     public bool HasOmittedPageContent =>
@@ -94,9 +130,10 @@ public sealed class PdfTableExtractionScopeReport {
         VectorPrimitiveCount > 0 ||
         ImageCount > 0 ||
         LinkCount > 0 ||
-        FormWidgetCount > 0 ||
+        FormContentCount > 0 ||
         AnnotationCount > 0 ||
         PageActionCount > 0 ||
-        OptionalContentGroupCount > 0 ||
+        DocumentActionCount > 0 ||
+        PagesWithOptionalContent > 0 ||
         InteractiveMediaAnnotationCount > 0;
 }

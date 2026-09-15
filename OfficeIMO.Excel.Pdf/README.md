@@ -123,12 +123,12 @@ PdfExcelTableImportReport report = pdf.SaveTablesAsExcel(
     }).RequireSuccess().Report!;
 
 Console.WriteLine($"Imported {report.Entries.Count} table(s).");
-report.RequireNoLoss(); // checks table-row truncation, not unrelated page content
+report.RequireNoLoss(); // rejects row truncation and non-table page content
 ```
 
 `ReadOptions` also exposes the canonical Fast/Structured profile and semantic work limits for large or deliberately bounded imports. It is ignored when the source is already a `PdfDocumentReadResult`.
 
-Compatible table segments continue across adjacent pages by default. The shared PDF table analysis classifies Boolean, percentage, date-time, time-only, numeric, and text columns with confidence; the import options decide which detected families become typed Excel cells.
+Compatible table segments continue across adjacent pages by default. The shared PDF table analysis classifies Boolean, percentage, date-time, time-only, currency, numeric, and text columns with confidence; the import options decide which detected families become typed Excel cells. Consistent currency columns become decimal cells and retain their detected symbol or ISO 4217 code, prefix or suffix placement, source spacing, and each cell's visible fractional precision in the Excel number format. Mixed currency tokens or affix conventions remain text so the import does not silently normalize their meaning.
 
 ## What it maps
 
@@ -144,7 +144,7 @@ Compatible table segments continue across adjacent pages by default. The shared 
 ## Current limits
 
 - Workbook content is read through `OfficeIMO.Excel`; layout and PDF writing use `OfficeIMO.Pdf`.
-- PDF import is structured-data recovery. It reconstructs detected tables as worksheets; `SourceScope` and `HasOmittedPageContent` report text, source vector graphics, images, links, forms, annotations, or actions that are not represented by those tables.
+- PDF import is structured-data recovery. It reconstructs detected tables as worksheets; `SourceScope` and `HasOmittedPageContent` report text, source vector graphics, images, links, forms, annotations, or actions that are not represented by those tables. `HasLoss` and `RequireNoLoss()` include both that omitted page content and table-row truncation.
 - The current reverse route recovers detected tables and structured values; arbitrary PDF page art is reported rather than presented as an editable workbook. Open recovery work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
 
 ## Related packages

@@ -11,6 +11,22 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### PDF-to-Word editable layout defaults
+
+Editable PDF-to-Word conversion now preserves each source page's physical size, removes Word style spacing that would inflate explicitly positioned PDF text, and keeps supported axis-aligned images at their source page positions on unrotated, uncropped pages when their bounds fit the page. Other images remain in the document flow. These defaults improve dense business documents but can change pagination and image flow in applications that relied on the earlier Word defaults.
+
+To retain the earlier flowing layout, disable the three behaviors explicitly:
+
+```csharp
+var options = new PdfToWordOptions {
+    PreserveSourcePageSize = false,
+    PreserveCompactSourceSpacing = false,
+    PreserveImagePlacementPosition = false
+};
+```
+
+`PreserveImagePlacementSize` remains independent. Set it to `false` to use an image's natural pixel dimensions even when `PreserveImagePlacementPosition` keeps the image floating at its recovered page position.
+
 ### Provenance format ownership
 
 `OfficeIMO.Workflows` now accepts provenance requests only for extensions registered to a named OfficeIMO format owner, and it verifies that the file contents match that structural format. This keeps path, byte, command-line, and browser claims aligned with formats OfficeIMO can genuinely reopen and preserve.
@@ -1744,7 +1760,7 @@ OfficeIMO 3.0 renamed its table-only PDF routes so they did not imply full-page 
 
 The PowerPoint names broaden again in 3.1 because the default route changes from table-only recovery to one visual slide per PDF page. Apply the 3.0-to-3.1 mappings after completing this section.
 
-For table-only recovery, `HasLoss` means a detected table was truncated by an import limit. `HasOmittedPageContent` means the source also contains non-table text, vectors, images, links, forms, annotations, or actions that the adapter does not import. Use `SourceScope` for the counts behind that decision. Choose Word or RTF semantic conversion, or a rendered-page route, when the goal is a broader page representation.
+For table-only recovery, `HasLoss` now covers both detected-table truncation and visible source-page content outside the imported tables. `RequireNoLoss()` therefore also throws when non-table text, vectors, visible images, links, forms, annotations, or actions would be omitted. Previously these adapters exposed that condition only through `HasOmittedPageContent`. Use `HasOmittedPageContent` and `SourceScope` when the application needs to distinguish omission from row truncation. Choose Word or RTF semantic conversion, or a rendered-page route, when the goal is a broader page representation.
 
 ### Word, Excel, and EPUB changes
 

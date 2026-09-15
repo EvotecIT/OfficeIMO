@@ -219,7 +219,7 @@ public partial class Word {
         Assert.Contains(body.Descendants<Text>(), text => text.Text == "Second Page");
         Assert.DoesNotContain(body.Descendants<Text>(), text => text.Text.Contains("[PDF image: page 1", StringComparison.Ordinal));
         Assert.Contains(body.Descendants<Text>(), text => text.Text.Contains("[PDF form Tx: Approval = Ready]", StringComparison.Ordinal));
-        Assert.Contains(body.Descendants<Break>(), item => item.Type?.Value == BreakValues.Page);
+        Assert.Equal(2, body.Descendants<SectionProperties>().Count());
 
         Paragraph heading = Assert.Single(body.Elements<Paragraph>(), paragraph => ReadParagraphText(paragraph) == "PDF Semantic Import");
         Assert.Equal("Heading1", heading.ParagraphProperties?.ParagraphStyleId?.Val?.Value);
@@ -551,6 +551,28 @@ public partial class Word {
     }
 
     [Fact]
+    public void PdfSemanticImport_ReconstructedLinkReportsSupplementalActionsAsLoss() {
+        PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(BuildLinkWithSupplementalActionsPdf());
+        PdfCore.PdfAnnotation annotation = Assert.Single(
+            Assert.Single(logical.Pages).Annotations,
+            static item => string.Equals(item.Subtype, "Link", StringComparison.OrdinalIgnoreCase));
+        int expectedActionCount = annotation.AdditionalActions.Count + annotation.ChainedActions.Count;
+        Assert.Equal(2, expectedActionCount);
+
+        PdfWordConversionResult conversion = logical.ToWordDocumentResult(new PdfToWordOptions());
+        using OfficeWordDocument importedDocument = conversion.Value;
+
+        Assert.Contains(conversion.Report.Warnings, static warning => warning.Code == "PdfUriLinkReconstructed");
+        PdfCore.PdfConversionWarning warning = Assert.Single(
+            conversion.Report.Warnings,
+            static item => item.Code == "PdfLinkActionsNotReconstructed");
+        Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
+        Assert.Equal(expectedActionCount.ToString(System.Globalization.CultureInfo.InvariantCulture), warning.Details["ActionCount"]);
+        Assert.True(conversion.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => conversion.RequireNoLoss());
+    }
+
+    [Fact]
     public void PdfSemanticImport_DisabledImageImport_UsesEditablePlaceholder() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 320,
@@ -574,6 +596,10 @@ public partial class Word {
         byte[] documentBytes = importedDocument.ToBytes();
 
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.Contains(conversion.Report.Warnings, warning =>
+            warning.Code == "PdfImagePlaceholder" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.True(conversion.Report.HasLoss);
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Empty(package.MainDocumentPart!.ImageParts);
@@ -620,7 +646,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void PdfSemanticImport_DctImageStreamsWithSoftMask_AreEmbeddedWithTransparencyWarning() {
+    public void PdfSemanticImport_DctImageStreamsWithUnresolvedSoftMask_AreNotEmbedded() {
         byte[] pdf = BuildDeviceRgbJpegSoftMaskImagePdf();
         var options = new PdfToWordOptions();
 
@@ -628,20 +654,20 @@ public partial class Word {
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
         Assert.Contains(conversion.Report.Warnings, warning =>
             warning.Code == "PdfImageTransparencyMaskNotResolved" &&
+            warning.LossKind == OfficeConversionLossKind.Omission &&
             warning.Details.TryGetValue("MaskKind", out string? maskKind) &&
             maskKind == "soft-mask");
-        InvalidOperationException loss = Assert.Throws<InvalidOperationException>(() => conversion.RequireNoLoss());
-        Assert.Contains("PdfImageTransparencyMaskNotResolved", loss.Message, StringComparison.Ordinal);
+        Assert.Throws<InvalidOperationException>(() => conversion.RequireNoLoss());
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
-        Assert.Single(package.MainDocumentPart!.ImageParts);
-        Assert.NotEmpty(GetPdfSemanticBody(package).Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
-        Assert.DoesNotContain(GetPdfSemanticBody(package).Descendants<Text>(), text => text.Text.Contains("[PDF image: page 1", StringComparison.Ordinal));
+        Assert.Empty(package.MainDocumentPart!.ImageParts);
+        Assert.Empty(GetPdfSemanticBody(package).Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
+        Assert.Contains(GetPdfSemanticBody(package).Descendants<Text>(), text => text.Text.Contains("[PDF image: page 1", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -854,6 +880,38 @@ public partial class Word {
 
     private static byte[] BuildRawDeviceRgbImagePdf() {
         return BuildDeviceRgbImagePdf("abc", string.Empty);
+    }
+
+    private static byte[] BuildLinkWithSupplementalActionsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /Annots [5 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >> stream",
+            "",
+            "endstream endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Preserved link) /A << /S /URI /URI (https://example.com/preserved) /Next 6 0 R >> /AA << /E 7 0 R >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /S /JavaScript /JS (app.alert('chained')) >>",
+            "endobj",
+            "7 0 obj",
+            "<< /S /Launch /F (tool.exe) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        }) + "\n";
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
     private static byte[] BuildRawDeviceCmykImagePdf() {

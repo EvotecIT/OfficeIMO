@@ -21,6 +21,7 @@ namespace OfficeIMO.Word {
 
         private const double EnglishMetricUnitsPerInch = 914400;
         private const double PixelsPerInch = 96;
+        private const int DrawingAngleUnitsPerDegree = 60000;
 
         internal WordDrawing _Image = null!;
         private ImagePart? _imagePart;
@@ -505,14 +506,14 @@ namespace OfficeIMO.Word {
                 if (_Image.Inline != null) {
                     var picture = _Image.Inline.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                     if (picture?.ShapeProperties?.Transform2D?.Rotation != null) {
-                        return picture.ShapeProperties.Transform2D.Rotation / 10000;
+                        return picture.ShapeProperties.Transform2D.Rotation / DrawingAngleUnitsPerDegree;
                     }
                 } else if (_Image.Anchor != null) {
                     var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
                     if (anchorGraphic?.GraphicData != null) {
                         var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                         if (picture?.ShapeProperties?.Transform2D?.Rotation != null) {
-                            return picture.ShapeProperties.Transform2D.Rotation / 10000;
+                            return picture.ShapeProperties.Transform2D.Rotation / DrawingAngleUnitsPerDegree;
                         }
                     }
                 }
@@ -535,7 +536,7 @@ namespace OfficeIMO.Word {
                             shape.Transform2D = transform;
                         }
 
-                        transform.Rotation = value == null ? null : value.Value * 10000;
+                        transform.Rotation = value == null ? null : checked(value.Value * DrawingAngleUnitsPerDegree);
                     }
                 } else if (_Image.Anchor != null) {
                     var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
@@ -554,7 +555,7 @@ namespace OfficeIMO.Word {
                                 shape.Transform2D = transform;
                             }
 
-                            transform.Rotation = value == null ? null : value.Value * 10000;
+                            transform.Rotation = value == null ? null : checked(value.Value * DrawingAngleUnitsPerDegree);
                         }
                     }
                 }

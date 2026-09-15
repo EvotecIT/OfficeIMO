@@ -1249,8 +1249,11 @@ internal static partial class ResourceResolver {
         if (!hasMalformedFilterDeclaration && !hasSupportedOutputIntent &&
             TryGetJpxPayload(stream, objects, colorSpace, maxDecodedStreamBytes, out byte[] jpxPayload, cancellationToken)) {
             bytes = jpxPayload;
-            extension = "jp2";
-            mimeType = "image/jp2";
+            OfficeIMO.Drawing.OfficeImageFormat format = OfficeIMO.Drawing.OfficeJpeg2000Header.IsJp2Container(jpxPayload)
+                ? OfficeIMO.Drawing.OfficeImageFormat.Jpeg2000
+                : OfficeIMO.Drawing.OfficeImageFormat.Jpeg2000Codestream;
+            extension = OfficeIMO.Drawing.OfficeImageInfo.GetDefaultExtension(format).TrimStart('.');
+            mimeType = OfficeIMO.Drawing.OfficeImageInfo.GetMimeType(format);
             isImageFile = true;
         } else if (!hasMalformedFilterDeclaration &&
             isImageMask &&
@@ -1314,6 +1317,15 @@ internal static partial class ResourceResolver {
                 maxDecodedStreamBytes);
         }
 
+        bool hasExplicitDecode = HasResolvedArrayEntry(stream.Dictionary, "Decode", objects);
+        int decodeComponentCount = GetDeclaredDeviceColorCount(colorSpace);
+        bool hasUnsafePassThroughDecode = hasExplicitDecode &&
+            (decodeComponentCount == 0 ||
+             !PdfImageDecodeTransform.IsIdentityColorDecodeOrAbsent(
+                 stream.Dictionary,
+                 decodeComponentCount,
+                 objects));
+
         return new PdfExtractedImage(
             pageNumber,
             resourceName,
@@ -1333,12 +1345,34 @@ internal static partial class ResourceResolver {
             isImageMask,
             imageMaskColor ?? OfficeColor.Black,
             renderingIntent,
-            hasExplicitDecode: stream.Dictionary.Items.ContainsKey("Decode"),
-            hasDecodeParameters: stream.Dictionary.Items.ContainsKey("DecodeParms") || stream.Dictionary.Items.ContainsKey("DP"),
+            hasExplicitDecode: hasExplicitDecode,
+            hasDecodeParameters: HasResolvedDecodeParametersEntry(stream.Dictionary, objects),
             interpolate: stream.Dictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) &&
                 ResolveObject(interpolateObject, objects) is PdfBoolean { Value: true },
             hasAuthoredRenderingIntent: hasAuthoredRenderingIntent || inheritedHasAuthoredRenderingIntent,
-            requiresScanDecode: HasScanFilter(filterObj, objects));
+            requiresScanDecode: HasScanFilter(filterObj, objects),
+            hasUnsafePassThroughDecode: hasUnsafePassThroughDecode);
+    }
+
+    private static bool HasResolvedArrayEntry(
+        PdfDictionary dictionary,
+        string key,
+        Dictionary<int, PdfIndirectObject> objects) =>
+        dictionary.Items.TryGetValue(key, out PdfObject? value) &&
+        PdfObjectLookup.ResolveChain(objects, value) is PdfArray;
+
+    private static bool HasResolvedDecodeParametersEntry(
+        PdfDictionary dictionary,
+        Dictionary<int, PdfIndirectObject> objects) {
+        PdfObject? value = dictionary.Items.TryGetValue("DecodeParms", out PdfObject? fullName)
+            ? fullName
+            : dictionary.Items.TryGetValue("DP", out PdfObject? abbreviation)
+                ? abbreviation
+                : null;
+        PdfObject? resolved = PdfObjectLookup.ResolveChain(objects, value);
+        if (resolved is PdfDictionary) return true;
+        if (resolved is not PdfArray array) return false;
+        return array.Items.Any(item => PdfObjectLookup.ResolveChain(objects, item) is PdfDictionary);
     }
 
     private static bool HasScanFilter(PdfObject? filters, Dictionary<int, PdfIndirectObject> objects) {

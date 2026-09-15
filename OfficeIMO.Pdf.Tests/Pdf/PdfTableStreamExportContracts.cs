@@ -1,8 +1,11 @@
 using DocumentFormat.OpenXml.Packaging;
+using A = DocumentFormat.OpenXml.Drawing;
+using S = DocumentFormat.OpenXml.Spreadsheet;
 using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Word.Pdf;
@@ -42,15 +45,20 @@ public class PdfTableStreamExportContracts {
         PdfExcelTableImportResult excelResult = logical.ImportTablesToExcelDocumentResult();
         PdfPowerPointConversionResult powerPointResult = logical.ToPowerPointPresentationResult();
 
-        using var wordDocument = wordResult.RequireNoLoss();
-        using var excelDocument = excelResult.RequireNoLoss();
+        using var wordDocument = wordResult.Value;
+        using var excelDocument = excelResult.Value;
+        Assert.Throws<InvalidOperationException>(() => wordResult.RequireNoLoss());
+        Assert.Throws<InvalidOperationException>(() => excelResult.RequireNoLoss());
         Assert.Throws<InvalidOperationException>(() => powerPointResult.RequireNoLoss());
         using var powerPointPresentation = powerPointResult.Value;
         Assert.NotEmpty(wordDocument.ToBytes());
         Assert.NotEmpty(excelDocument.ToBytes());
         Assert.NotEmpty(powerPointPresentation.ToBytes());
-        Assert.False(wordResult.Report.HasLoss);
-        Assert.False(excelResult.Report.HasLoss);
+        Assert.True(wordResult.Report.HasLoss);
+        Assert.Contains(wordResult.Report.Warnings, warning =>
+            warning.Code == "PdfTextContentNotImported" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.True(excelResult.Report.HasLoss);
         Assert.True(powerPointResult.Report.HasLoss);
         Assert.True(excelResult.HasOmittedPageContent);
         Assert.True(powerPointResult.HasOmittedPageContent);
@@ -73,6 +81,424 @@ public class PdfTableStreamExportContracts {
         Assert.True(wordStream.Length > 1);
         Assert.True(excelStream.Length > 1);
         Assert.True(powerPointStream.Length > 1);
+    }
+
+    [Fact]
+    public void WordEditableConversionPreservesMixedSourcePageSizes() {
+        byte[] source = PdfDocument.Create().Compose(composer => {
+            composer.Page(page => page
+                .Size(420D, 595D)
+                .Margin(36D)
+                .Content(content => content.Column(column =>
+                    column.Item().Paragraph(paragraph => paragraph.Text("Small invoice page")))));
+            composer.Page(page => page
+                .Size(612D, 792D)
+                .Margin(36D)
+                .Content(content => content.Column(column =>
+                    column.Item().Paragraph(paragraph => paragraph.Text("Letter invoice page")))));
+        }).ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+
+        using OfficeIMO.Word.WordDocument word = logical.ToWordDocument();
+        using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
+        DocumentFormat.OpenXml.Wordprocessing.PageSize[] pageSizes = package.MainDocumentPart!.Document.Body!
+            .Descendants<DocumentFormat.OpenXml.Wordprocessing.SectionProperties>()
+            .Select(static section => section.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>()!)
+            .ToArray();
+
+        Assert.Equal(2, pageSizes.Length);
+        Assert.Equal(8400U, pageSizes[0].Width!.Value);
+        Assert.Equal(11900U, pageSizes[0].Height!.Value);
+        Assert.Equal(12240U, pageSizes[1].Width!.Value);
+        Assert.Equal(15840U, pageSizes[1].Height!.Value);
+    }
+
+    [Fact]
+    public void GenericRectangularClipRetainsInvoiceTextInEditablePowerPoint() {
+        byte[] source = BuildSingleStreamPdf(
+            """
+            q
+            0 0 m
+            240 0 l
+            240 200 l
+            0 200 l
+            0 0 l
+            h
+            W n
+            BT
+            /F1 12 Tf
+            20 165 Td
+            (INVOICE INV-1001) Tj
+            ET
+            BT
+            /F1 10 Tf
+            20 130 Td
+            (Service) Tj
+            ET
+            BT
+            /F1 10 Tf
+            150 130 Td
+            (120.00) Tj
+            ET
+            Q
+            """,
+            "<< /Font << /F1 5 0 R >> >>",
+            "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj");
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+
+        Assert.NotEmpty(logical.TextBlocks);
+        Assert.All(logical.TextBlocks.SelectMany(static block => block.Spans), static span =>
+            Assert.True(span.CanProjectCompleteText(200D)));
+        PdfPowerPointConversionResult result = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        using (result.Value) {
+            PdfPowerPointEditablePageEntry page = Assert.Single(result.Report.EditablePages);
+            Assert.True(page.TextBoxCount > 0);
+            Assert.Equal(0, page.OmittedTextCount);
+        }
+    }
+
+    [Fact]
+    public void WrappedInvoiceGridFlowsThroughAllEditableReverseConversions() {
+        byte[] source = BuildSingleStreamPdf(
+            """
+            q
+            0 0 m
+            240 0 l
+            240 200 l
+            0 200 l
+            0 0 l
+            h
+            W n
+            BT /F2 7 Tf 205 152 Td (Net) Tj ET
+            BT /F2 7 Tf 15 160 Td (Product) Tj ET
+            BT /F2 7 Tf 88 160 Td (Details) Tj ET
+            BT /F2 7 Tf 143 160 Td (Qty) Tj ET
+            BT /F2 7 Tf 162 160 Td (Unit) Tj ET
+            BT /F2 7 Tf 205 146 Td (amount) Tj ET
+            BT /F1 7 Tf 15 130 Td (Managed) Tj ET
+            BT /F1 7 Tf 15 120 Td (Service A) Tj ET
+            BT /F1 7 Tf 88 120 Td (Monthly) Tj ET
+            BT /F1 7 Tf 143 120 Td (2) Tj ET
+            BT /F1 7 Tf 162 120 Td (25.00 PLN) Tj ET
+            BT /F1 7 Tf 205 120 Td (50.00 PLN) Tj ET
+            BT /F1 7 Tf 15 110 Td (support) Tj ET
+            BT /F1 7 Tf 15 90 Td (Priority) Tj ET
+            BT /F1 7 Tf 15 80 Td (Service B) Tj ET
+            BT /F1 7 Tf 88 80 Td (Annual) Tj ET
+            BT /F1 7 Tf 143 80 Td (1) Tj ET
+            BT /F1 7 Tf 162 80 Td (75.00 PLN) Tj ET
+            BT /F1 7 Tf 205 80 Td (75.00 PLN) Tj ET
+            BT /F1 7 Tf 15 70 Td (response) Tj ET
+            BT /F1 7 Tf 15 50 Td (Archive) Tj ET
+            BT /F1 7 Tf 88 45 Td (Weekly) Tj ET
+            BT /F1 7 Tf 143 40 Td (1) Tj ET
+            BT /F1 7 Tf 162 40 Td (10.00 PLN) Tj ET
+            BT /F1 7 Tf 205 40 Td (10.00 PLN) Tj ET
+            BT /F1 7 Tf 15 30 Td (retention) Tj ET
+            Q
+            """,
+            "<< /Font << /F1 5 0 R /F2 6 0 R >> >>",
+            "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj");
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        PdfLogicalTable table = Assert.Single(
+            logical.Tables,
+            static candidate => candidate.DetectionKind == "wrapped-positioned-cells-bounded");
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+
+        Assert.Equal(5, data.Structure.ColumnCount);
+        Assert.Equal(3, data.Rows.Count);
+        Assert.Equal("Net amount", data.Columns[4]);
+        Assert.Equal("Archive retention", data.Rows[2][0]);
+        Assert.Equal("Weekly", data.Rows[2][1]);
+        Assert.Equal("10.00 PLN", data.Rows[2][4]);
+        Assert.All(logical.TextBlocks.SelectMany(static block => block.Spans), static span =>
+            Assert.True(span.CanProjectCompleteText(200D)));
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult(PdfToWordOptions.CreateTablesOnly());
+        using (word.Value) {
+            using WordprocessingDocument wordPackage = WordprocessingDocument.Open(new MemoryStream(word.Value.ToBytes()), false);
+            DocumentFormat.OpenXml.Wordprocessing.Table importedTable = Assert.Single(
+                wordPackage.MainDocumentPart!.Document.Body!.Descendants<DocumentFormat.OpenXml.Wordprocessing.Table>(),
+                static candidate => candidate.Descendants<DocumentFormat.OpenXml.Wordprocessing.TableGrid>()
+                    .Any(grid => grid.ChildElements.Count == 5));
+            Assert.All(importedTable.Descendants<DocumentFormat.OpenXml.Wordprocessing.Paragraph>(), static paragraph => {
+                DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines? spacing =
+                    paragraph.ParagraphProperties?.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines>();
+                Assert.Equal("0", spacing?.Before?.Value);
+                Assert.Equal("0", spacing?.After?.Value);
+            });
+        }
+
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        Assert.Contains("<table", html.Value, StringComparison.Ordinal);
+        Assert.Contains("50.00 PLN", html.Value, StringComparison.Ordinal);
+
+        PdfExcelTableImportResult excel = logical.ImportTablesToExcelDocumentResult(new PdfTablesToExcelOptions {
+            NumericCulture = System.Globalization.CultureInfo.InvariantCulture
+        });
+        using (excel.Value) {
+            PdfExcelTableImportEntry excelEntry = Assert.Single(
+                excel.Report.Entries,
+                static entry => entry.DetectionKind == "wrapped-positioned-cells-bounded");
+            Assert.Equal(
+                new[] {
+                    PdfExcelTableColumnKind.Text,
+                    PdfExcelTableColumnKind.Text,
+                    PdfExcelTableColumnKind.Number,
+                    PdfExcelTableColumnKind.Currency,
+                    PdfExcelTableColumnKind.Currency
+                },
+                excelEntry.ColumnKinds);
+            Assert.Equal(new string?[] { null, null, null, "PLN", "PLN" }, excelEntry.CurrencyTokens);
+            Assert.Equal(
+                new PdfLogicalCurrencyAffixPosition?[] {
+                    null,
+                    null,
+                    null,
+                    PdfLogicalCurrencyAffixPosition.Suffix,
+                    PdfLogicalCurrencyAffixPosition.Suffix
+                },
+                excelEntry.CurrencyAffixPositions);
+            Assert.Equal(new bool?[] { null, null, null, true, true }, excelEntry.CurrencyAffixUsesSpacing);
+
+            using SpreadsheetDocument excelPackage = SpreadsheetDocument.Open(
+                new MemoryStream(excel.Value.ToBytes()),
+                false);
+            WorkbookPart workbookPart = excelPackage.WorkbookPart!;
+            S.NumberingFormat currencyFormat = Assert.Single(
+                workbookPart.WorkbookStylesPart!.Stylesheet!.NumberingFormats!
+                    .Elements<S.NumberingFormat>(),
+                static format => format.FormatCode?.Value?.Contains("\"PLN\"", StringComparison.Ordinal) == true);
+            S.Sheet importedSheet = Assert.Single(
+                workbookPart.Workbook.Sheets!.Elements<S.Sheet>(),
+                sheet => string.Equals(sheet.Name?.Value, excelEntry.SheetName, StringComparison.Ordinal));
+            WorksheetPart worksheetPart = (WorksheetPart)workbookPart.GetPartById(importedSheet.Id!.Value!);
+            S.Cell[] currencyCells = worksheetPart.Worksheet.Descendants<S.Cell>()
+                .Where(static cell =>
+                    cell.CellReference?.Value is string reference &&
+                    reference.Length >= 2 &&
+                    (reference[0] == 'D' || reference[0] == 'E') &&
+                    reference != "D1" && reference != "E1")
+                .ToArray();
+            Assert.Equal(6, currencyCells.Length);
+            Assert.All(currencyCells, cell => {
+                S.CellFormat cellFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!
+                    .Elements<S.CellFormat>()
+                    .ElementAt((int)cell.StyleIndex!.Value);
+                Assert.Equal(currencyFormat.NumberFormatId!.Value, cellFormat.NumberFormatId!.Value);
+                Assert.DoesNotContain("PLN", cell.CellValue?.Text ?? string.Empty, StringComparison.Ordinal);
+            });
+        }
+
+        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        using (powerPoint.Value) {
+            PdfPowerPointEditablePageEntry page = Assert.Single(powerPoint.Report.EditablePages);
+            Assert.Equal(1, page.TableCount);
+            Assert.Equal(0, page.OmittedTextCount);
+            using var presentationStream = new MemoryStream();
+            powerPoint.Value.Save(presentationStream);
+            using PresentationDocument presentationPackage = PresentationDocument.Open(
+                new MemoryStream(presentationStream.ToArray()),
+                false);
+            A.Table importedTable = Assert.Single(
+                presentationPackage.PresentationPart!.SlideParts
+                    .SelectMany(static slidePart => slidePart.Slide.Descendants<A.Table>()));
+            Assert.All(
+                importedTable.Descendants<A.RunProperties>(),
+                static run => Assert.InRange(run.FontSize?.Value ?? 0, 100, 400000));
+            Assert.All(
+                importedTable.Descendants<A.BodyProperties>(),
+                static body => Assert.NotNull(body.GetFirstChild<A.NormalAutoFit>()));
+        }
+    }
+
+    [Fact]
+    public void ExcelCurrencyFormatsPreserveAffixPlacementAndSpacing() {
+        byte[] source = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420D,
+                PageHeight = 420D,
+                MarginLeft = 20D,
+                MarginRight = 20D,
+                MarginTop = 20D,
+                MarginBottom = 20D
+            })
+            .Table(new[] {
+                new[] { "Prefix", "Suffix" },
+                new[] { "$1,234", "1,234 KWD" },
+                new[] { "$2,345.7", "2,345.750 KWD" },
+                new[] { "$3,456.789", "3,456.125 KWD" },
+                new[] { "-$4,567.00", "(4,567.500 KWD)" },
+                new[] { "$5,678.00-", "5,678.500 KWD-" },
+                new[] { "+$6,789.00", "+6,789.500 KWD" },
+                new[] { "$+7,890.00", "7,890.500+ KWD" },
+                new[] { "$8,901.00+", "8,901.500 KWD+" },
+                new[] { "-$0.00", "(0.000 KWD)" },
+                new[] { "$0.00-", "0.000 KWD-" }
+            })
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+
+        PdfExcelTableImportResult result = logical.ImportTablesToExcelDocumentResult(new PdfTablesToExcelOptions {
+            NumericCulture = System.Globalization.CultureInfo.InvariantCulture
+        });
+        using (result.Value) {
+            PdfExcelTableImportEntry entry = Assert.Single(result.Report.Entries);
+            Assert.Equal(
+                new[] { PdfExcelTableColumnKind.Currency, PdfExcelTableColumnKind.Currency },
+                entry.ColumnKinds);
+            Assert.Equal(new string?[] { "$", "KWD" }, entry.CurrencyTokens);
+            Assert.Equal(
+                new PdfLogicalCurrencyAffixPosition?[] {
+                    PdfLogicalCurrencyAffixPosition.Prefix,
+                    PdfLogicalCurrencyAffixPosition.Suffix
+                },
+                entry.CurrencyAffixPositions);
+            Assert.Equal(new bool?[] { false, true }, entry.CurrencyAffixUsesSpacing);
+
+            using SpreadsheetDocument package = SpreadsheetDocument.Open(
+                new MemoryStream(result.Value.ToBytes()),
+                false);
+            string[] numberFormats = package.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.NumberingFormats!
+                .Elements<S.NumberingFormat>()
+                .Select(static format => format.FormatCode?.Value ?? string.Empty)
+                .ToArray();
+            Assert.Contains("\"$\"#,##0", numberFormats);
+            Assert.Contains("\"$\"#,##0.0", numberFormats);
+            Assert.Contains("\"$\"#,##0.00;\"-\"\"$\"#,##0.00", numberFormats);
+            Assert.Contains("\"$\"#,##0.00;\"$\"#,##0.00\"-\"", numberFormats);
+            Assert.Contains("\"$\"#,##0.000", numberFormats);
+            Assert.Contains("#,##0 \"KWD\"", numberFormats);
+            Assert.Contains("#,##0.000 \"KWD\"", numberFormats);
+
+            WorkbookPart workbookPart = package.WorkbookPart!;
+            S.Sheet importedSheet = Assert.Single(workbookPart.Workbook.Sheets!.Elements<S.Sheet>());
+            WorksheetPart worksheetPart = (WorksheetPart)workbookPart.GetPartById(importedSheet.Id!.Value!);
+            Dictionary<string, S.Cell> cells = worksheetPart.Worksheet.Descendants<S.Cell>()
+                .ToDictionary(static cell => cell.CellReference!.Value!);
+            Assert.Equal(
+                -4567M,
+                decimal.Parse(cells["A5"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                -4567.5M,
+                decimal.Parse(cells["B5"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                -5678M,
+                decimal.Parse(cells["A6"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                -5678.5M,
+                decimal.Parse(cells["B6"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                6789M,
+                decimal.Parse(cells["A7"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                6789.5M,
+                decimal.Parse(cells["B7"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                7890M,
+                decimal.Parse(cells["A8"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                7890.5M,
+                decimal.Parse(cells["B8"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                8901M,
+                decimal.Parse(cells["A9"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                8901.5M,
+                decimal.Parse(cells["B9"].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal("\"$\"#,##0.00;\"-\"\"$\"#,##0.00", GetCellNumberFormat("A5"));
+            Assert.Equal("#,##0.000 \"KWD\";\"(\"#,##0.000 \"KWD\"\")\"", GetCellNumberFormat("B5"));
+            Assert.Equal("\"$\"#,##0.00;\"$\"#,##0.00\"-\"", GetCellNumberFormat("A6"));
+            Assert.Equal("#,##0.000 \"KWD\";#,##0.000 \"KWD\"\"-\"", GetCellNumberFormat("B6"));
+            Assert.Equal("\"+\"\"$\"#,##0.00", GetCellNumberFormat("A7"));
+            Assert.Equal("\"+\"#,##0.000 \"KWD\"", GetCellNumberFormat("B7"));
+            Assert.Equal("\"$\"\"+\"#,##0.00", GetCellNumberFormat("A8"));
+            Assert.Equal("#,##0.000\"+\" \"KWD\"", GetCellNumberFormat("B8"));
+            Assert.Equal("\"$\"#,##0.00\"+\"", GetCellNumberFormat("A9"));
+            Assert.Equal("#,##0.000 \"KWD\"\"+\"", GetCellNumberFormat("B9"));
+            Assert.Equal(
+                "\"$\"#,##0.00;\"-\"\"$\"#,##0.00;\"-\"\"$\"#,##0.00",
+                GetCellNumberFormat("A10"));
+            Assert.Equal(
+                "#,##0.000 \"KWD\";\"(\"#,##0.000 \"KWD\"\")\";\"(\"#,##0.000 \"KWD\"\")\"",
+                GetCellNumberFormat("B10"));
+            Assert.Equal(
+                "\"$\"#,##0.00;\"$\"#,##0.00\"-\";\"$\"#,##0.00\"-\"",
+                GetCellNumberFormat("A11"));
+            Assert.Equal(
+                "#,##0.000 \"KWD\";#,##0.000 \"KWD\"\"-\";#,##0.000 \"KWD\"\"-\"",
+                GetCellNumberFormat("B11"));
+
+            string GetCellNumberFormat(string reference) {
+                S.Cell cell = cells[reference];
+                S.CellFormat cellFormat = package.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.CellFormats!
+                    .Elements<S.CellFormat>()
+                    .ElementAt((int)cell.StyleIndex!.Value);
+                uint numberFormatId = cellFormat.NumberFormatId!.Value;
+                return package.WorkbookPart.WorkbookStylesPart.Stylesheet.NumberingFormats!
+                    .Elements<S.NumberingFormat>()
+                    .Single(format => format.NumberFormatId!.Value == numberFormatId)
+                    .FormatCode!.Value!;
+            }
+        }
+    }
+
+    [Fact]
+    public void ExcelKeepsCurrencyAffixedPercentValuesAsText() {
+        byte[] source = PdfDocument.Create(new PdfOptions {
+                PageWidth = 300D,
+                PageHeight = 240D,
+                MarginLeft = 20D,
+                MarginRight = 20D,
+                MarginTop = 20D,
+                MarginBottom = 20D
+            })
+            .Table(new[] {
+                new[] { "Rate", "Description" },
+                new[] { "$5%", "First" },
+                new[] { "€10%", "Second" }
+            })
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+
+        PdfExcelTableImportResult result = logical.ImportTablesToExcelDocumentResult(new PdfTablesToExcelOptions {
+            NumericCulture = System.Globalization.CultureInfo.InvariantCulture
+        });
+        using (result.Value) {
+            PdfExcelTableImportEntry entry = Assert.Single(result.Report.Entries);
+            Assert.Equal(
+                new[] { PdfExcelTableColumnKind.Text, PdfExcelTableColumnKind.Text },
+                entry.ColumnKinds);
+
+            using SpreadsheetDocument package = SpreadsheetDocument.Open(
+                new MemoryStream(result.Value.ToBytes()),
+                false);
+            WorkbookPart workbookPart = package.WorkbookPart!;
+            S.Sheet sheet = Assert.Single(workbookPart.Workbook.Sheets!.Elements<S.Sheet>());
+            WorksheetPart worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!.Value!);
+            Dictionary<string, S.Cell> cells = worksheetPart.Worksheet.Descendants<S.Cell>()
+                .ToDictionary(static cell => cell.CellReference!.Value!);
+
+            Assert.Equal("$5%", ReadText(cells["A2"]));
+            Assert.Equal("€10%", ReadText(cells["A3"]));
+
+            string ReadText(S.Cell cell) {
+                if (cell.DataType?.Value == S.CellValues.SharedString) {
+                    int index = int.Parse(cell.CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture);
+                    return workbookPart.SharedStringTablePart!.SharedStringTable!
+                        .Elements<S.SharedStringItem>()
+                        .ElementAt(index)
+                        .InnerText;
+                }
+                if (cell.DataType?.Value == S.CellValues.InlineString) {
+                    return cell.InlineString?.InnerText ?? string.Empty;
+                }
+                Assert.Equal(S.CellValues.String, cell.DataType!.Value);
+                return cell.CellValue!.Text;
+            }
+        }
     }
 
     [Fact]
@@ -174,6 +600,45 @@ public class PdfTableStreamExportContracts {
         Assert.Equal(
             excelResult.Report.SourceScope.VectorPrimitiveCount,
             powerPointResult.Report.SourceScope!.VectorPrimitiveCount);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TableConversions_ReportDocumentLevelFormsWithoutPageWidgets(bool useXfa) {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildDocumentLevelFormPdf(useXfa));
+        PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+
+        Assert.Empty(logical.FormWidgets);
+        Assert.Equal(useXfa ? 0 : 1, scope.FormFieldCount);
+        Assert.Equal(useXfa, scope.HasAcroFormXfa);
+        Assert.Equal(1, scope.FormContentCount);
+        Assert.True(scope.HasOmittedPageContent);
+
+        PdfExcelTableImportResult excelResult = logical.ImportTablesToExcelDocumentResult();
+        PdfPowerPointConversionResult powerPointResult = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableTables());
+        PdfPowerPointConversionResult editablePowerPointResult = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        PdfWordConversionResult wordResult = logical.ToWordDocumentResult(PdfToWordOptions.CreateTablesOnly());
+        using (wordResult.Value)
+        using (excelResult.Value)
+        using (powerPointResult.Value)
+        using (editablePowerPointResult.Value) {
+            Assert.True(wordResult.Report.HasLoss);
+            Assert.True(excelResult.Report.HasLoss);
+            Assert.True(powerPointResult.Report.HasLoss);
+            Assert.True(editablePowerPointResult.Report.HasLoss);
+            Assert.Throws<InvalidOperationException>(() => wordResult.RequireNoLoss());
+            Assert.Throws<InvalidOperationException>(() => excelResult.RequireNoLoss());
+            Assert.Throws<InvalidOperationException>(() => powerPointResult.RequireNoLoss());
+            Assert.Contains(wordResult.Report.Warnings, static warning =>
+                warning.Code == "PdfFormDefinitionsNotReconstructed");
+            Assert.Contains(powerPointResult.Report.Warnings, static warning =>
+                warning.Code == "PdfFormsAndControlsNotEditable");
+            Assert.Contains(editablePowerPointResult.Report.Warnings, static warning =>
+                warning.Code == "PdfFormsNotReconstructed");
+        }
     }
 
     [Fact]
@@ -642,6 +1107,41 @@ public class PdfTableStreamExportContracts {
             "5 0 obj",
             "<< /Type /OCG /Name (Outer) >>",
             "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildDocumentLevelFormPdf(bool useXfa) {
+        string acroForm = useXfa
+            ? "<< /Fields [] /XFA (unsupported-packet) >>"
+            : "<< /Fields [6 0 R] >>";
+        string field = useXfa
+            ? string.Empty
+            : "6 0 obj\n<< /FT /Tx /T (InvoiceReference) /V (INV-1001) >>\nendobj\n";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            string.Empty,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            acroForm,
+            "endobj",
+            field,
             "trailer",
             "<< /Root 1 0 R >>",
             "%%EOF"

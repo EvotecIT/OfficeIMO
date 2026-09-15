@@ -27,12 +27,12 @@ internal static partial class PdfWordConverter {
                 OfficeDrawing drawing = source.Render.Drawing(page.PageNumber);
                 double width = drawing.Width, height = drawing.Height;
                 // Word's supported physical page size is at most 22 inches in each dimension.
-                if (width <= 0 || height <= 0 || width > 1584 || height > 1584)
-                    throw new NotSupportedException("The selected PDF page exceeds Word's supported physical page size.");
+                if (!TryGetEditablePageSizeTwips(width, height, out uint widthTwips, out uint heightTwips))
+                    throw new NotSupportedException("The selected PDF page is outside Word's supported physical page-size range.");
                 WordSection section = index == 0 ? target.Sections[0] : target.AddSection(WordSectionBreakType.NextPage);
                 section.PageSettings.Orientation = width > height ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
-                section.PageSettings.Width = (uint)Math.Round(width * 20D);
-                section.PageSettings.Height = (uint)Math.Round(height * 20D);
+                section.PageSettings.Width = widthTwips;
+                section.PageSettings.Height = heightTwips;
                 section.Margins.Left = section.Margins.Right = 0;
                 section.Margins.Top = section.Margins.Bottom = 0;
                 section.Margins.HeaderDistance = section.Margins.FooterDistance = 0;
