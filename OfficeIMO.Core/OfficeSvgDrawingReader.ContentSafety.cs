@@ -159,6 +159,18 @@ public static partial class OfficeSvgDrawingReader {
                     IsUnsupportedSvgCssWideKeyword(attribute.Value)))) {
             throw new InvalidDataException("The SVG uses unsupported revert cascade semantics in a presentation attribute.");
         }
+        if (root.DescendantsAndSelf().Where(element => IsNativeSvgElement(element, svgNamespace)).Any(element =>
+                element.Attributes().Any(attribute =>
+                    attribute.Name.NamespaceName.Length == 0 &&
+                    attribute.Name.LocalName.Equals(attribute.Name.LocalName.ToLowerInvariant(), StringComparison.Ordinal) &&
+                    IsSvgPresentationPropertyName(attribute.Name.LocalName) &&
+                    attribute.Value.IndexOf('\\') >= 0))) {
+            throw new InvalidDataException("The SVG uses escaped presentation-attribute syntax outside the bounded native CSS subset.");
+        }
+        if (root.DescendantsAndSelf().Where(element => IsNativeSvgElement(element, svgNamespace))
+            .Any(HasUnsupportedSvgTextPositioningLength)) {
+            throw new InvalidDataException("The SVG uses relative or unsupported text-positioning lengths outside the bounded native layout subset.");
+        }
         if (ExceedsSvgElementNestingLimit(root)) {
             throw new InvalidDataException("The SVG exceeds the bounded element-nesting limit.");
         }
@@ -188,6 +200,22 @@ public static partial class OfficeSvgDrawingReader {
             viewportHeight,
             maximumVisualComparisons,
             maximumVisualPixels);
+    }
+
+    private static bool HasUnsupportedSvgTextPositioningLength(XElement element) {
+        if (!element.AncestorsAndSelf().Any(ancestor => ancestor.Name.LocalName.Equals("text", StringComparison.Ordinal))) {
+            return false;
+        }
+        foreach (string name in new[] { "x", "y", "dx", "dy" }) {
+            string? value = element.Attribute(name)?.Value;
+            if (string.IsNullOrWhiteSpace(value)) continue;
+            string[] tokens = value!.Split(new[] { ' ', '\t', '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries);
+            if (tokens.Length == 0 || tokens.Length > MaximumTextRuns) return true;
+            foreach (string token in tokens) {
+                if (!TryViewportLength(token, 1D, out _, out _)) return true;
+            }
+        }
+        return false;
     }
 
     private static byte[] SerializeSvgContentSafetyDocument(XDocument document, long maximumBytes) {

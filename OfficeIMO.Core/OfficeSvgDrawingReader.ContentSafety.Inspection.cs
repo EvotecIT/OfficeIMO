@@ -303,7 +303,9 @@ public static partial class OfficeSvgDrawingReader {
         if (!options.DetectInstructionLikeText) return;
         foreach (IGrouping<XElement, SvgContentSafetyCandidate> group in candidates.GroupBy(candidate =>
                      FindSvgLogicalTextOwner(candidate.SourceText))) {
-            string logicalText = string.Concat(group.Select(candidate => candidate.SourceText.Value));
+            string logicalText = string.Concat(group
+                .OrderBy(candidate => candidate.SourceText, XNode.DocumentOrderComparer)
+                .Select(candidate => candidate.SourceText.Value));
             IReadOnlyList<string> signals = OfficeContentInstructionDetector.Detect(logicalText);
             foreach (SvgContentSafetyCandidate candidate in group) candidate.InstructionSignals = signals;
         }

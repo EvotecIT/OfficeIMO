@@ -169,14 +169,27 @@ public static partial class OfficeSvgDrawingReader {
     // comments before parsing selectors and declarations (including comments between tokens).
     private static string StripCssComments(string value) {
         var result = new StringBuilder(value.Length);
+        char quote = '\0';
         for (int index = 0; index < value.Length; index++) {
-            if (index + 1 < value.Length && value[index] == '/' && value[index + 1] == '*') {
+            char current = value[index];
+            if (quote != '\0') {
+                result.Append(current);
+                if (current == quote && !IsEscapedSvgCssCharacter(value, index)) quote = '\0';
+                continue;
+            }
+            if (current is '\'' or '"') {
+                quote = current;
+                result.Append(current);
+                continue;
+            }
+            if (index + 1 < value.Length && current == '/' && value[index + 1] == '*') {
                 index += 2;
                 while (index + 1 < value.Length && !(value[index] == '*' && value[index + 1] == '/')) index++;
                 if (index + 1 < value.Length) index++;
+                result.Append(' ');
                 continue;
             }
-            result.Append(value[index]);
+            result.Append(current);
         }
         return result.ToString();
     }

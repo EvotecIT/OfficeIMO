@@ -174,6 +174,12 @@ public static partial class OfficeSvgDrawingReader {
         ISet<string> reusableTextIds,
         bool hasDynamicRendering,
         out string evidence) {
+        XElement logicalOwner = element.AncestorsAndSelf().LastOrDefault(ancestor =>
+            ancestor.Name.LocalName.Equals("text", StringComparison.Ordinal)) ?? element;
+        if (HasSharedSvgTextPositioning(logicalOwner)) {
+            evidence = "SVG text shares character-indexed positioning lists with sibling text nodes and is therefore report-only.";
+            return true;
+        }
         foreach (XElement current in element.AncestorsAndSelf()) {
             string name = current.Name.LocalName.ToLowerInvariant();
             string? transform = ReadPresentationProperty(current, "transform");
@@ -233,6 +239,17 @@ public static partial class OfficeSvgDrawingReader {
         }
         evidence = string.Empty;
         return false;
+    }
+
+    private static bool HasSharedSvgTextPositioning(XElement logicalOwner) {
+        if (!logicalOwner.Name.LocalName.Equals("text", StringComparison.Ordinal)) return false;
+        if (logicalOwner.DescendantNodes().OfType<XText>().Count(text => !IsIgnorableSvgTextNode(text.Value)) < 2) return false;
+        return logicalOwner.DescendantsAndSelf().Any(element =>
+            new[] { "x", "y", "dx", "dy", "rotate" }.Any(name => {
+                string? value = element.Attribute(name)?.Value;
+                if (string.IsNullOrWhiteSpace(value)) return false;
+                return value!.Split(new[] { ' ', '\t', '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries).Length > 1;
+            }));
     }
 
     private static bool HasSvgFallbackPaint(string? value) {

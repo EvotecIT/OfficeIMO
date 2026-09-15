@@ -703,6 +703,7 @@ public static partial class OfficeSvgDrawingReader {
             } else if (index + 1 < css.Length && current == '/' && css[index + 1] == '*') {
                 int close = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
                 if (close < 0) break;
+                result.Append(' ');
                 index = close + 1;
             } else result.Append(current);
         }
