@@ -20,6 +20,7 @@ public static partial class OfficeSvgDrawingReader {
             string? units = definition.Attribute("clipPathUnits")?.Value;
             if (!string.IsNullOrWhiteSpace(units) && !units!.Equals("userSpaceOnUse", StringComparison.OrdinalIgnoreCase)) return false;
             XElement[] children = definition.Elements().Where(child =>
+                IsNativeSvgElement(child, references.NativeNamespace) &&
                 child.Name.LocalName is not "title" and not "desc" and not "metadata").Take(2).ToArray();
             if (children.Length == 0) {
                 clipped = new OfficeDrawing(content.Width, content.Height);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
@@ -9,40 +10,115 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeSvgDrawingReader {
     private const int MaximumSvgCssRules = 4096;
     private const int MaximumSvgCssDeclarations = 32768;
+    private const long MaximumSvgCssMatchWork = 2_000_000L;
 
-    private static void ApplySvgStylesheets(XElement root, ref int unsupported) {
+    private static bool ApplySvgStylesheets(XElement root, ref int unsupported, bool requireCompleteCss = false) {
         var rules = new List<SvgCssRule>();
         int declarations = 0;
-        foreach (XElement style in root.DescendantsAndSelf().Where(element =>
+        bool complete = true;
+        XNamespace svgNamespace = root.Name.Namespace;
+        XElement selectorRoot = new XElement(root);
+        foreach (XElement style in selectorRoot.DescendantsAndSelf().Where(element =>
+                     IsNativeSvgElement(element, svgNamespace) &&
                      element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase))) {
-            ParseSvgCssRules(RemoveSvgCssComments(style.Value), rules, ref declarations, ref unsupported);
-            if (rules.Count >= MaximumSvgCssRules || declarations >= MaximumSvgCssDeclarations) break;
+            if (rules.Count >= MaximumSvgCssRules || declarations >= MaximumSvgCssDeclarations) {
+                unsupported++;
+                complete = false;
+                break;
+            }
+            if (!ParseSvgCssRules(RemoveSvgCssComments(style.Value), rules, ref declarations, ref unsupported)) {
+                complete = false;
+            }
         }
-        if (rules.Count == 0) return;
+        var validationPaintServers = new SvgPaintServerRegistry(SvgDefinitionRegistry.Create(root));
+        var validatedRules = new List<SvgCssRule>(rules.Count);
+        foreach (SvgCssRule rule in rules) {
+            var validDeclarations = new List<SvgCssDeclaration>(rule.Declarations.Count);
+            foreach (SvgCssDeclaration declaration in rule.Declarations) {
+                if (IsSupportedSvgCssDeclaration(declaration, validationPaintServers, ref unsupported)) {
+                    validDeclarations.Add(declaration);
+                } else if (IsUnsupportedSvgCssWideKeyword(declaration.Value) || requireCompleteCss) {
+                    complete = false;
+                }
+            }
+            validatedRules.Add(new SvgCssRule(rule.Selector, rule.Parts, validDeclarations.AsReadOnly(), rule.Specificity, rule.Order));
+        }
+        rules = validatedRules;
 
-        foreach (XElement element in root.DescendantsAndSelf()) {
-            if (element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase)) continue;
-            var winners = new Dictionary<string, SvgCssWinner>(StringComparer.OrdinalIgnoreCase);
+        XElement[] elements = root.DescendantsAndSelf().ToArray();
+        XElement[] selectorElements = selectorRoot.DescendantsAndSelf().ToArray();
+        long remainingMatchWork = MaximumSvgCssMatchWork;
+        bool matchWorkExceeded = false;
+        var computedCustomProperties = new Dictionary<XElement, IReadOnlyDictionary<string, string>>();
+        for (int elementIndex = 0; elementIndex < elements.Length; elementIndex++) {
+            XElement element = elements[elementIndex];
+            XElement selectorElement = selectorElements[elementIndex];
+            if (!IsNativeSvgElement(element, svgNamespace) ||
+                element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase)) continue;
+            var winners = new Dictionary<string, SvgCssWinner>(StringComparer.Ordinal);
             foreach (SvgCssRule rule in rules) {
-                if (!MatchesSvgSelector(element, rule.Selector)) continue;
+                if (!MatchesSvgSelector(
+                        selectorElement,
+                        rule.Parts,
+                        svgNamespace,
+                        ref remainingMatchWork,
+                        ref matchWorkExceeded)) {
+                    if (matchWorkExceeded) {
+                        unsupported++;
+                        return false;
+                    }
+                    continue;
+                }
                 foreach (SvgCssDeclaration declaration in rule.Declarations) {
                     SetSvgCssWinner(winners, declaration, rule.Specificity, rule.Order);
                 }
             }
             int inlineOrder = rules.Count + 1;
-            foreach (SvgCssDeclaration declaration in ParseSvgCssDeclarations(element.Attribute("style")?.Value, ref declarations)) {
-                SetSvgCssWinner(winners, declaration, int.MaxValue, inlineOrder++);
+            bool hadInlineStyle = !string.IsNullOrWhiteSpace(selectorElement.Attribute("style")?.Value);
+            int inlineDeclarations = 0;
+            IReadOnlyList<SvgCssDeclaration> parsedInline = ParseSvgCssDeclarations(
+                selectorElement.Attribute("style")?.Value,
+                ref inlineDeclarations,
+                out bool inlineComplete);
+            if (!inlineComplete) {
+                unsupported++;
+                complete = false;
             }
-            if (winners.Count == 0) continue;
-
-            IReadOnlyDictionary<string, string> customProperties = ResolveSvgCustomProperties(element, winners);
-            var css = new StringBuilder();
-            foreach (KeyValuePair<string, SvgCssWinner> pair in winners.OrderBy(item => item.Value.Order)) {
-                if (pair.Key.StartsWith("--", StringComparison.Ordinal)) continue;
-                if (!TryResolveSvgCssVariables(pair.Value.Value, customProperties, 0, out string value)) {
-                    unsupported++;
+            foreach (SvgCssDeclaration declaration in parsedInline) {
+                if (!IsSupportedSvgCssDeclaration(declaration, validationPaintServers, ref unsupported)) {
+                    if (IsUnsupportedSvgCssWideKeyword(declaration.Value) || requireCompleteCss) complete = false;
                     continue;
                 }
+                SetSvgCssWinner(winners, declaration, SvgCssSpecificity.Inline, inlineOrder++);
+            }
+            IReadOnlyDictionary<string, string> customProperties = ResolveSvgCustomProperties(
+                element,
+                winners,
+                computedCustomProperties);
+            computedCustomProperties[element] = customProperties;
+            if (winners.Count == 0) {
+                if (hadInlineStyle) element.SetAttributeValue("style", null);
+                continue;
+            }
+
+            var css = new StringBuilder();
+            var appliedPresentationProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, SvgCssWinner> pair in winners.OrderBy(item => item.Value.Order)) {
+                if (pair.Key.StartsWith("--", StringComparison.Ordinal)) continue;
+                if (IsSvgPresentationPropertyName(pair.Key)) appliedPresentationProperties.Add(pair.Key);
+                if (!TryResolveSvgComputedCssValue(
+                        pair.Key,
+                        pair.Value.Value,
+                        customProperties,
+                        element.Parent,
+                        validationPaintServers,
+                        ref unsupported,
+                        out string? value)) {
+                    unsupported++;
+                    complete = false;
+                    continue;
+                }
+                if (value == null) continue;
                 if (css.Length > 0) css.Append(';');
                 css.Append(pair.Key).Append(':').Append(value);
             }
@@ -51,18 +127,21 @@ public static partial class OfficeSvgDrawingReader {
                 css.Append(custom.Key).Append(':').Append(custom.Value);
             }
             element.SetAttributeValue("style", css.ToString());
+            foreach (string propertyName in appliedPresentationProperties) {
+                element.Attribute(propertyName)?.Remove();
+            }
         }
+        return complete;
     }
 
     private static IReadOnlyDictionary<string, string> ResolveSvgCustomProperties(
         XElement element,
-        IReadOnlyDictionary<string, SvgCssWinner> winners) {
+        IReadOnlyDictionary<string, SvgCssWinner> winners,
+        IReadOnlyDictionary<XElement, IReadOnlyDictionary<string, string>> computedProperties) {
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
         XElement? parent = element.Parent;
-        if (parent != null) {
-            foreach (SvgCssDeclaration declaration in ParseSvgCssDeclarations(parent.Attribute("style")?.Value)) {
-                if (declaration.Name.StartsWith("--", StringComparison.Ordinal)) result[declaration.Name] = declaration.Value;
-            }
+        if (parent != null && computedProperties.TryGetValue(parent, out IReadOnlyDictionary<string, string>? inherited)) {
+            foreach (KeyValuePair<string, string> property in inherited) result[property.Key] = property.Value;
         }
         foreach (KeyValuePair<string, SvgCssWinner> winner in winners) {
             if (winner.Key.StartsWith("--", StringComparison.Ordinal)) result[winner.Key] = winner.Value.Value;
@@ -70,7 +149,7 @@ public static partial class OfficeSvgDrawingReader {
         return result;
     }
 
-    private static void ParseSvgCssRules(
+    private static bool ParseSvgCssRules(
         string css,
         ICollection<SvgCssRule> rules,
         ref int declarationCount,
@@ -82,37 +161,72 @@ public static partial class OfficeSvgDrawingReader {
             int close = FindSvgCssBlockEnd(css, open + 1);
             if (close < 0) {
                 unsupported++;
-                break;
+                return false;
             }
             string selectorText = css.Substring(cursor, open - cursor).Trim();
             string body = css.Substring(open + 1, close - open - 1);
-            if (!selectorText.StartsWith("@", StringComparison.Ordinal)) {
-                IReadOnlyList<SvgCssDeclaration> declarations = ParseSvgCssDeclarations(body, ref declarationCount);
-                foreach (string selector in SplitSvgCssTopLevel(selectorText, ',')) {
+            if (selectorText.StartsWith("@", StringComparison.Ordinal)) {
+                unsupported++;
+                return false;
+            } else {
+                IReadOnlyList<SvgCssDeclaration> declarations = ParseSvgCssDeclarations(body, ref declarationCount, out bool declarationsComplete);
+                if (!declarationsComplete) {
+                    unsupported++;
+                    return false;
+                }
+                IReadOnlyList<string> selectors = SplitSvgCssTopLevel(selectorText, ',');
+                foreach (string selector in selectors) {
                     string normalized = selector.Trim();
-                    if (normalized.Length == 0 || declarations.Count == 0) continue;
-                    if (!TryCalculateSvgSpecificity(normalized, out int specificity)) {
+                    if (normalized.Length == 0) {
                         unsupported++;
-                        continue;
+                        return false;
                     }
-                    rules.Add(new SvgCssRule(normalized, declarations, specificity, rules.Count));
-                    if (rules.Count >= MaximumSvgCssRules) break;
+                    if (declarations.Count == 0) continue;
+                    if (rules.Count >= MaximumSvgCssRules) {
+                        unsupported++;
+                        return false;
+                    }
+                    if (!TryCalculateSvgSpecificity(
+                            normalized,
+                            out SvgCssSpecificity specificity,
+                            out IReadOnlyList<SvgSelectorPart> parts)) {
+                        unsupported++;
+                        return false;
+                    }
+                    rules.Add(new SvgCssRule(normalized, parts, declarations, specificity, rules.Count));
                 }
             }
             cursor = close + 1;
         }
+        string remainder = css.Substring(cursor).Trim();
+        if (remainder.Length > 0) {
+            unsupported++;
+            return false;
+        }
+        if (cursor < css.Length && (rules.Count >= MaximumSvgCssRules || declarationCount >= MaximumSvgCssDeclarations)) {
+            unsupported++;
+            return false;
+        }
+        return true;
     }
 
     private static IReadOnlyList<SvgCssDeclaration> ParseSvgCssDeclarations(string? text) {
         int ignored = 0;
-        return ParseSvgCssDeclarations(text, ref ignored);
+        return ParseSvgCssDeclarations(text, ref ignored, out _);
     }
 
-    private static IReadOnlyList<SvgCssDeclaration> ParseSvgCssDeclarations(string? text, ref int declarationCount) {
+    private static IReadOnlyList<SvgCssDeclaration> ParseSvgCssDeclarations(
+        string? text,
+        ref int declarationCount,
+        out bool complete) {
         var result = new List<SvgCssDeclaration>();
+        complete = true;
         if (string.IsNullOrWhiteSpace(text)) return result;
         foreach (string raw in SplitSvgCssTopLevel(text!, ';')) {
-            if (declarationCount >= MaximumSvgCssDeclarations) break;
+            if (declarationCount >= MaximumSvgCssDeclarations) {
+                if (!string.IsNullOrWhiteSpace(raw)) complete = false;
+                continue;
+            }
             int colon = raw.IndexOf(':');
             if (colon <= 0) continue;
             string name = raw.Substring(0, colon).Trim();
@@ -125,114 +239,239 @@ public static partial class OfficeSvgDrawingReader {
         return result;
     }
 
-    private static void SetSvgCssWinner(
-        IDictionary<string, SvgCssWinner> winners,
+    private static bool IsSvgPresentationPropertyName(string propertyName) => propertyName.ToLowerInvariant() switch {
+        "baseline-shift" or "clip-path" or "clip-rule" or "color" or "display" or "dominant-baseline" or "fill" or "fill-opacity" or "fill-rule" or
+        "filter" or "flood-color" or "flood-opacity" or "font-family" or "font-size" or "font-style" or "font-weight" or "line-height" or "marker-end" or
+        "marker-mid" or "marker-start" or "mask" or "mask-type" or "mix-blend-mode" or "opacity" or "stop-color" or "stop-opacity" or
+        "stroke" or "stroke-dasharray" or "stroke-dashoffset" or "stroke-linecap" or "stroke-linejoin" or
+        "stroke-miterlimit" or "stroke-opacity" or "stroke-width" or "text-anchor" or "text-orientation" or "transform" or
+        "vector-effect" or "visibility" or "writing-mode" => true,
+        _ => false
+    };
+
+    private static bool IsSupportedSvgCssDeclaration(
         SvgCssDeclaration declaration,
-        int specificity,
-        int order) {
-        if (winners.TryGetValue(declaration.Name, out SvgCssWinner existing)) {
-            if (existing.Important != declaration.Important && !declaration.Important) return;
-            if (existing.Important == declaration.Important
-                && (specificity < existing.Specificity || specificity == existing.Specificity && order < existing.Order)) return;
+        SvgPaintServerRegistry paintServers,
+        ref int unsupported) {
+        if (declaration.Name.StartsWith("--", StringComparison.Ordinal)) return true;
+        int before = unsupported;
+        string name = declaration.Name.Trim().ToLowerInvariant();
+        string value = declaration.Value.Trim();
+        if (!IsSvgPresentationPropertyName(name)) {
+            return false;
         }
-        winners[declaration.Name] = new SvgCssWinner(declaration.Value, declaration.Important, specificity, order);
+        if (IsSvgCssWideKeyword(value)) {
+            if (value.Equals("revert", StringComparison.OrdinalIgnoreCase) ||
+                value.Equals("revert-layer", StringComparison.OrdinalIgnoreCase)) unsupported++;
+            return unsupported == before;
+        }
+        if (value.IndexOf("var(", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+        switch (name) {
+            case "transform":
+                if (!value.Equals("none", StringComparison.OrdinalIgnoreCase) &&
+                    !OfficeSvgTransformParser.TryParse(value, out _)) unsupported++;
+                break;
+            case "clip-path":
+            case "filter":
+            case "mask":
+            case "marker-start":
+            case "marker-mid":
+            case "marker-end":
+                if (!IsSvgLocalReferenceOrNone(value)) unsupported++;
+                break;
+            case "clip-rule":
+                if (!value.Equals("nonzero", StringComparison.OrdinalIgnoreCase) &&
+                    !value.Equals("evenodd", StringComparison.OrdinalIgnoreCase)) unsupported++;
+                break;
+            case "mix-blend-mode":
+                if (!TryParseBlendMode(value, out _)) unsupported++;
+                break;
+            case "flood-color":
+            case "stop-color":
+                if (!value.Equals("currentcolor", StringComparison.OrdinalIgnoreCase) &&
+                    !OfficeColor.TryParseCss(value, out _)) unsupported++;
+                break;
+            case "flood-opacity":
+            case "stop-opacity":
+            case "opacity":
+            case "fill-opacity":
+            case "stroke-opacity":
+                if (!TrySvgCssUnitOrPercentage(value)) unsupported++;
+                break;
+            case "mask-type":
+                if (!value.Equals("alpha", StringComparison.OrdinalIgnoreCase) &&
+                    !value.Equals("luminance", StringComparison.OrdinalIgnoreCase)) unsupported++;
+                break;
+            case "vector-effect":
+                if (!value.Equals("none", StringComparison.OrdinalIgnoreCase) &&
+                    !value.Equals("non-scaling-stroke", StringComparison.OrdinalIgnoreCase)) unsupported++;
+                break;
+            default:
+                SvgPaintContext validation = SvgPaintContext.Default;
+                ApplyProperty(name, value, paintServers, ref validation, ref unsupported);
+                break;
+        }
+        return unsupported == before;
     }
 
-    private static bool MatchesSvgSelector(XElement element, string selector) {
-        IReadOnlyList<SvgSelectorPart> parts = ParseSvgSelector(selector);
-        if (parts.Count == 0) return false;
-        XElement? current = element;
-        for (int index = parts.Count - 1; index >= 0; index--) {
-            if (current == null || !MatchesSvgCompound(current, parts[index].Compound)) return false;
-            if (index == 0) return true;
-            if (parts[index].DirectParent) {
-                current = current.Parent;
-                continue;
+    private static bool TryResolveSvgComputedCssValue(
+        string propertyName,
+        string authoredValue,
+        IReadOnlyDictionary<string, string> customProperties,
+        XElement? parent,
+        SvgPaintServerRegistry paintServers,
+        ref int unsupported,
+        out string? computedValue) {
+        string value;
+        bool variablesResolved = TryResolveSvgCssVariables(authoredValue, customProperties, 0, out value);
+        if (!variablesResolved) {
+            value = "unset";
+        } else if (!IsSvgCssWideKeyword(value)) {
+            value = NormalizeSvgCssPercentageValue(propertyName, value);
+            int validationUnsupported = 0;
+            if (!IsSupportedSvgCssDeclaration(
+                    new SvgCssDeclaration(propertyName, value, important: false),
+                    paintServers,
+                    ref validationUnsupported)) {
+                unsupported += validationUnsupported;
+                value = "unset";
             }
-            XElement? ancestor = current.Parent;
-            while (ancestor != null && !MatchesSvgCompound(ancestor, parts[index - 1].Compound)) ancestor = ancestor.Parent;
-            if (ancestor == null) return false;
-            current = ancestor;
-            index--;
         }
-        return true;
-    }
 
-    private static IReadOnlyList<SvgSelectorPart> ParseSvgSelector(string selector) {
-        var parts = new List<SvgSelectorPart>();
-        var token = new StringBuilder();
-        bool direct = false;
-        int brackets = 0;
-        for (int index = 0; index <= selector.Length; index++) {
-            char current = index < selector.Length ? selector[index] : ' ';
-            if (current == '[') brackets++;
-            if (current == ']') brackets--;
-            if (brackets == 0 && (current == '>' || char.IsWhiteSpace(current))) {
-                if (token.Length > 0) {
-                    parts.Add(new SvgSelectorPart(token.ToString(), direct));
-                    token.Clear();
-                    direct = false;
-                }
-                if (current == '>') direct = true;
-                continue;
+        string normalized = value.Trim();
+        if (normalized.Equals("revert", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Equals("revert-layer", StringComparison.OrdinalIgnoreCase)) {
+            computedValue = null;
+            return false;
+        }
+        if ((normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase) ||
+             normalized.Equals("unset", StringComparison.OrdinalIgnoreCase) && IsInheritedSvgCssPropertyName(propertyName)) &&
+            propertyName.Equals("baseline-shift", StringComparison.OrdinalIgnoreCase)) {
+            computedValue = "inherit";
+            return true;
+        }
+        if (normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Equals("unset", StringComparison.OrdinalIgnoreCase) && IsInheritedSvgCssPropertyName(propertyName)) {
+            if (IsInheritedSvgCssPropertyName(propertyName)) {
+                computedValue = null;
+                return true;
             }
-            token.Append(current);
+            computedValue = ResolveParentSvgCssValue(parent, propertyName);
+            if (computedValue == null) return TryGetInitialSvgCssValue(propertyName, out computedValue);
+            return true;
         }
-        return parts;
-    }
-
-    private static bool MatchesSvgCompound(XElement element, string compound) {
-        if (compound.Length == 0 || compound.IndexOf(':') >= 0) return false;
-        int index = 0;
-        if (compound[0] != '#' && compound[0] != '.' && compound[0] != '[') {
-            int start = index;
-            while (index < compound.Length && compound[index] != '#' && compound[index] != '.' && compound[index] != '[') index++;
-            string type = compound.Substring(start, index - start);
-            if (type != "*" && !element.Name.LocalName.Equals(type, StringComparison.OrdinalIgnoreCase)) return false;
+        if (normalized.Equals("initial", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Equals("unset", StringComparison.OrdinalIgnoreCase)) {
+            return TryGetInitialSvgCssValue(propertyName, out computedValue);
         }
-        while (index < compound.Length) {
-            char marker = compound[index++];
-            if (marker == '#') {
-                string id = ReadSvgSelectorName(compound, ref index);
-                if (!string.Equals(element.Attribute("id")?.Value, id, StringComparison.Ordinal)) return false;
-            } else if (marker == '.') {
-                string className = ReadSvgSelectorName(compound, ref index);
-                string[] classes = (element.Attribute("class")?.Value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-                if (!classes.Contains(className, StringComparer.Ordinal)) return false;
-            } else if (marker == '[') {
-                int close = compound.IndexOf(']', index);
-                if (close < 0) return false;
-                string predicate = compound.Substring(index, close - index).Trim();
-                int equals = predicate.IndexOf('=');
-                string name = (equals < 0 ? predicate : predicate.Substring(0, equals)).Trim();
-                XAttribute? attribute = element.Attribute(name);
-                if (attribute == null) return false;
-                if (equals >= 0) {
-                    string expected = predicate.Substring(equals + 1).Trim().Trim('\'', '"');
-                    if (!string.Equals(attribute.Value, expected, StringComparison.Ordinal)) return false;
-                }
-                index = close + 1;
-            } else return false;
-        }
+        computedValue = value;
         return true;
     }
 
-    private static string ReadSvgSelectorName(string text, ref int index) {
-        int start = index;
-        while (index < text.Length && text[index] != '#' && text[index] != '.' && text[index] != '[') index++;
-        return text.Substring(start, index - start);
+    private static string NormalizeSvgCssPercentageValue(string propertyName, string value) {
+        string name = propertyName.ToLowerInvariant();
+        if (name is not "opacity" and not "fill-opacity" and not "stroke-opacity" and not "stop-opacity" and not "flood-opacity") {
+            return value;
+        }
+        string normalized = value.Trim();
+        if (!normalized.EndsWith("%", StringComparison.Ordinal) ||
+            !double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
+                CultureInfo.InvariantCulture, out double percentage) ||
+            double.IsNaN(percentage) || double.IsInfinity(percentage)) return value;
+        return Math.Max(0D, Math.Min(1D, percentage / 100D)).ToString("R", CultureInfo.InvariantCulture);
     }
 
-    private static bool TryCalculateSvgSpecificity(string selector, out int specificity) {
-        specificity = 0;
-        if (selector.IndexOf('+') >= 0 || selector.IndexOf('~') >= 0 || selector.IndexOf(':') >= 0) return false;
-        foreach (SvgSelectorPart part in ParseSvgSelector(selector)) {
-            string compound = part.Compound;
-            specificity += compound.Count(character => character == '#') * 10000;
-            specificity += (compound.Count(character => character == '.') + compound.Count(character => character == '[')) * 100;
-            if (compound.Length > 0 && compound[0] != '*' && compound[0] != '#' && compound[0] != '.' && compound[0] != '[') specificity++;
-        }
-        return true;
+    private static string? ResolveParentSvgCssValue(XElement? parent, string propertyName) {
+        if (parent == null) return null;
+        return ReadPresentationProperty(parent, propertyName)?.Trim();
+    }
+
+    private static bool IsSvgCssWideKeyword(string value) {
+        string normalized = value.Trim();
+        return normalized.Equals("initial", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Equals("unset", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Equals("revert", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Equals("revert-layer", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsUnsupportedSvgCssWideKeyword(string value) {
+        string normalized = value.Trim();
+        return normalized.Equals("revert", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Equals("revert-layer", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsInheritedSvgCssPropertyName(string propertyName) => propertyName.ToLowerInvariant() switch {
+        "color" or "fill" or "fill-opacity" or "fill-rule" or "font-family" or "font-size" or
+        "font-style" or "font-weight" or "line-height" or "marker-end" or "marker-mid" or "marker-start" or
+        "stroke" or "stroke-dasharray" or "stroke-dashoffset" or "stroke-linecap" or "stroke-linejoin" or
+        "stroke-miterlimit" or "stroke-opacity" or "stroke-width" or "text-anchor" or "text-orientation" or
+        "visibility" or "writing-mode" => true,
+        _ => false
+    };
+
+    private static bool TryGetInitialSvgCssValue(string propertyName, out string? value) {
+        value = propertyName.ToLowerInvariant() switch {
+            "baseline-shift" => "0",
+            "clip-path" => "none",
+            "clip-rule" => "nonzero",
+            "color" => "black",
+            "display" => "inline",
+            "dominant-baseline" => "auto",
+            "fill" => "black",
+            "fill-opacity" => "1",
+            "fill-rule" => "nonzero",
+            "filter" => "none",
+            "flood-color" => "black",
+            "flood-opacity" => "1",
+            "font-family" => "Arial",
+            "font-size" => "16",
+            "font-style" => "normal",
+            "font-weight" => "normal",
+            "line-height" => "normal",
+            "marker-end" or "marker-mid" or "marker-start" or "mask" => "none",
+            "mask-type" => "luminance",
+            "mix-blend-mode" => "normal",
+            "opacity" => "1",
+            "stop-color" => "black",
+            "stop-opacity" => "1",
+            "stroke" => "none",
+            "stroke-dasharray" => "none",
+            "stroke-dashoffset" => "0",
+            "stroke-linecap" => "butt",
+            "stroke-linejoin" => "miter",
+            "stroke-miterlimit" => "4",
+            "stroke-opacity" => "1",
+            "stroke-width" => "1",
+            "text-anchor" => "start",
+            "text-orientation" => "mixed",
+            "transform" => "none",
+            "vector-effect" => "none",
+            "visibility" => "visible",
+            "writing-mode" => "horizontal-tb",
+            _ => null
+        };
+        return value != null;
+    }
+
+    private static bool TrySvgCssUnitOrPercentage(string value) {
+        if (TryUnit(value, out _)) return true;
+        string normalized = value.Trim();
+        if (!normalized.EndsWith("%", StringComparison.Ordinal)) return false;
+        return double.TryParse(
+            normalized.Substring(0, normalized.Length - 1),
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture,
+            out double percentage) && !double.IsNaN(percentage) && !double.IsInfinity(percentage);
+    }
+
+    private static bool IsSvgLocalReferenceOrNone(string value) {
+        if (value.Equals("none", StringComparison.OrdinalIgnoreCase)) return true;
+        string normalized = value.Trim();
+        if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase) ||
+            !normalized.EndsWith(")", StringComparison.Ordinal)) return false;
+        string reference = normalized.Substring(4, normalized.Length - 5).Trim().Trim('\'', '"');
+        return reference.Length > 1 && reference[0] == '#';
     }
 
     private static bool TryResolveSvgCssVariables(
@@ -323,25 +562,58 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private readonly struct SvgCssDeclaration {
-        internal SvgCssDeclaration(string name, string value, bool important) { Name = name; Value = value; Important = important; }
+        internal SvgCssDeclaration(string name, string value, bool important) {
+            string normalizedName = name.Trim();
+            Name = normalizedName.StartsWith("--", StringComparison.Ordinal)
+                ? normalizedName
+                : normalizedName.ToLowerInvariant();
+            Value = value;
+            Important = important;
+        }
         internal string Name { get; }
         internal string Value { get; }
         internal bool Important { get; }
     }
 
+    private readonly struct SvgCssSpecificity : IComparable<SvgCssSpecificity> {
+        internal static SvgCssSpecificity Inline => new SvgCssSpecificity(1, 0, 0, 0);
+
+        internal SvgCssSpecificity(int inline, int ids, int classes, int types) {
+            InlineCount = inline;
+            IdCount = ids;
+            ClassCount = classes;
+            TypeCount = types;
+        }
+
+        internal int InlineCount { get; }
+        internal int IdCount { get; }
+        internal int ClassCount { get; }
+        internal int TypeCount { get; }
+
+        public int CompareTo(SvgCssSpecificity other) {
+            int comparison = InlineCount.CompareTo(other.InlineCount);
+            if (comparison != 0) return comparison;
+            comparison = IdCount.CompareTo(other.IdCount);
+            if (comparison != 0) return comparison;
+            comparison = ClassCount.CompareTo(other.ClassCount);
+            return comparison != 0 ? comparison : TypeCount.CompareTo(other.TypeCount);
+        }
+    }
+
     private readonly struct SvgCssWinner {
-        internal SvgCssWinner(string value, bool important, int specificity, int order) { Value = value; Important = important; Specificity = specificity; Order = order; }
+        internal SvgCssWinner(string value, bool important, SvgCssSpecificity specificity, int order) { Value = value; Important = important; Specificity = specificity; Order = order; }
         internal string Value { get; }
         internal bool Important { get; }
-        internal int Specificity { get; }
+        internal SvgCssSpecificity Specificity { get; }
         internal int Order { get; }
     }
 
     private readonly struct SvgCssRule {
-        internal SvgCssRule(string selector, IReadOnlyList<SvgCssDeclaration> declarations, int specificity, int order) { Selector = selector; Declarations = declarations; Specificity = specificity; Order = order; }
+        internal SvgCssRule(string selector, IReadOnlyList<SvgSelectorPart> parts, IReadOnlyList<SvgCssDeclaration> declarations, SvgCssSpecificity specificity, int order) { Selector = selector; Parts = parts; Declarations = declarations; Specificity = specificity; Order = order; }
         internal string Selector { get; }
+        internal IReadOnlyList<SvgSelectorPart> Parts { get; }
         internal IReadOnlyList<SvgCssDeclaration> Declarations { get; }
-        internal int Specificity { get; }
+        internal SvgCssSpecificity Specificity { get; }
         internal int Order { get; }
     }
 

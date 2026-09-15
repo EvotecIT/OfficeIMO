@@ -85,6 +85,8 @@ public static partial class OfficeSvgDrawingReader {
 
         internal OfficeSvgForeignObjectRenderer? ForeignObjectRenderer { get; }
 
+        internal XNamespace NativeNamespace => _definitions.NativeNamespace;
+
         internal bool TryEnter(XElement use, out string id, out XElement? target) {
             return TryEnterDetailed(use, out id, out target) == SvgElementReferenceEntryResult.Entered;
         }
@@ -101,7 +103,9 @@ public static partial class OfficeSvgDrawingReader {
             id = string.Empty;
             target = null;
             XAttribute[] hrefAttributes = use.Attributes()
-                .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase))
+                .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase) &&
+                    (attribute.Name.NamespaceName.Length == 0 ||
+                     attribute.Name.NamespaceName.Equals("http://www.w3.org/1999/xlink", StringComparison.Ordinal)))
                 .Take(2)
                 .ToArray();
             if (hrefAttributes.Length != 1

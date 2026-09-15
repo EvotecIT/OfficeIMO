@@ -61,6 +61,10 @@ public static partial class OfficeSvgDrawingReader {
         bool suppressElementClip = false) {
         visited++;
         if (visited > maximumElements) return;
+        if (!IsNativeSvgElement(element, references.NativeNamespace)) {
+            unsupported++;
+            return;
+        }
         string name = element.Name.LocalName.ToLowerInvariant();
         if (name is "title" or "desc" or "metadata" or "style" or "lineargradient" or "radialgradient" or "pattern" or "stop") return;
         if (name == "defs") return;
@@ -86,7 +90,8 @@ public static partial class OfficeSvgDrawingReader {
 
         inherited.DashPercentageReference = NormalizedSvgDiagonal(drawing.Width, drawing.Height);
         SvgPaintContext style = ResolvePaintContext(element, inherited, paintServers, ref unsupported);
-        if (!style.Visible) return;
+        if (!style.Displayed) return;
+        if (!style.VisibilityVisible && name is not "g" and not "a" and not "switch" and not "svg" and not "use" and not "text") return;
         OfficeTransform transform = ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported);
         if (name == "foreignobject") {
             TryAddForeignObject(

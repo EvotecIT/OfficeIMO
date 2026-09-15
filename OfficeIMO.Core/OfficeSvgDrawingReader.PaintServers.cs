@@ -265,7 +265,8 @@ public static partial class OfficeSvgDrawingReader {
         private static bool TryReadStops(XElement gradient, out IReadOnlyList<OfficeGradientStop>? stops) {
             stops = null;
             XElement[] elements = gradient.Elements()
-                .Where(element => element.Name.LocalName.Equals("stop", StringComparison.OrdinalIgnoreCase))
+                .Where(element => element.Name.Namespace == gradient.Name.Namespace &&
+                    element.Name.LocalName.Equals("stop", StringComparison.OrdinalIgnoreCase))
                 .ToArray();
             if (elements.Length == 0 || elements.Length > MaximumGradientStops) return false;
             if (!TryResolveCurrentColor(gradient, out OfficeColor inheritedCurrentColor)) return false;

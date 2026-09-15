@@ -31,7 +31,7 @@ public static partial class OfficeSvgDrawingReader {
         var cursor = new SvgTextCursor { Chunk = -1 };
         bool preserve = string.Equals(element.Attribute(XNamespace.Xml + "space")?.Value, "preserve", StringComparison.OrdinalIgnoreCase);
         AddTextElementRuns(element, style, paintServers, references, drawing.Fonts, transform, preserve, false, viewX, viewY,
-            drawing.Width, drawing.Height, runs, textPaths, 0D, 0D, null, 0, ref cursor, ref unsupported);
+            drawing.Width, drawing.Height, runs, textPaths, observer: null, 0D, 0D, null, 0, ref cursor, ref unsupported);
         if (runs.Count == 0) return;
         ApplyTextAnchors(runs);
         ApplyTextPaths(runs, textPaths, references, viewX, viewY, ref unsupported);
@@ -69,6 +69,7 @@ public static partial class OfficeSvgDrawingReader {
         double viewportHeight,
         IList<SvgTextRun> runs,
         ICollection<SvgTextPathLayout> textPaths,
+        SvgContentSafetyTextObserver? observer,
         double inheritedBaselineShift,
         double inheritedOwnBaselineShift,
         SvgTextPositioning? inheritedPositioning,
@@ -87,7 +88,7 @@ public static partial class OfficeSvgDrawingReader {
         SvgPaintContext style = resolveElement
             ? ResolvePaintContext(element, inheritedStyle, paintServers, ref unsupported)
             : inheritedStyle;
-        if (!style.Visible) return;
+        if (!style.Displayed && observer == null) return;
         OfficeTransform transform = resolveElement
             ? ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported)
             : inheritedTransform;
@@ -118,27 +119,30 @@ public static partial class OfficeSvgDrawingReader {
             if (node is XText textNode) {
                 string text = NormalizeText(textNode.Value, preserve, ref cursor);
                 if (text.Length == 0) continue;
+                int firstTextRun = runs.Count;
                 double fontSize = Math.Max(0.1D, style.FontSize);
                 if (style.WritingMode != SvgWritingMode.HorizontalTb) {
                     AddVerticalTextRuns(text, style, fonts, transform, baselineShift, positioning, viewX, viewY, runs, ref cursor);
+                    observer?.Associate(textNode, style, runs, firstTextRun);
                     continue;
                 }
                 AddHorizontalTextRuns(text, style, fonts, transform, baselineShift, positioning, viewX, viewY, runs, ref cursor);
+                observer?.Associate(textNode, style, runs, firstTextRun);
                 continue;
             }
             if (node is XElement child && child.Name.LocalName.Equals("tspan", StringComparison.OrdinalIgnoreCase)) {
                 AddTextElementRuns(child, style, paintServers, references, fonts, transform, preserve, true, viewX, viewY,
-                    viewportWidth, viewportHeight, runs, textPaths, baselineShift, ownBaselineShift, positioning, depth + 1, ref cursor, ref unsupported);
+                    viewportWidth, viewportHeight, runs, textPaths, observer, baselineShift, ownBaselineShift, positioning, depth + 1, ref cursor, ref unsupported);
             } else if (node is XElement textPath && textPath.Name.LocalName.Equals("textPath", StringComparison.OrdinalIgnoreCase)) {
                 int pathStart = runs.Count;
                 AddTextElementRuns(textPath, style, paintServers, references, fonts, transform, preserve, true, viewX, viewY,
-                    viewportWidth, viewportHeight, runs, textPaths, baselineShift, ownBaselineShift, positioning, depth + 1, ref cursor, ref unsupported);
+                    viewportWidth, viewportHeight, runs, textPaths, observer, baselineShift, ownBaselineShift, positioning, depth + 1, ref cursor, ref unsupported);
                 if (runs.Count > pathStart) textPaths.Add(new SvgTextPathLayout(textPath, pathStart, runs.Count));
             } else if (node is XElement tref && tref.Name.LocalName.Equals("tref", StringComparison.OrdinalIgnoreCase)) {
                 AddReferencedTextRuns(
                     tref, style, paintServers, references, fonts, transform, preserve, viewX, viewY,
                     viewportWidth, viewportHeight, runs, textPaths, baselineShift, ownBaselineShift,
-                    positioning, depth + 1, ref cursor, ref unsupported);
+                    positioning, observer, depth + 1, ref cursor, ref unsupported);
             } else if (node is XElement) {
                 unsupported++;
             }
@@ -163,6 +167,7 @@ public static partial class OfficeSvgDrawingReader {
         double baselineShift,
         double ownBaselineShift,
         SvgTextPositioning? positioning,
+        SvgContentSafetyTextObserver? observer,
         int depth,
         ref SvgTextCursor cursor,
         ref int unsupported) {
@@ -177,7 +182,7 @@ public static partial class OfficeSvgDrawingReader {
                 new XText(target.Value));
             AddTextElementRuns(
                 substitute, style, paintServers, references, fonts, transform, preserve, true, viewX, viewY,
-                viewportWidth, viewportHeight, runs, textPaths, baselineShift, ownBaselineShift,
+                viewportWidth, viewportHeight, runs, textPaths, null, baselineShift, ownBaselineShift,
                 positioning, depth, ref cursor, ref unsupported);
         } finally {
             references.Exit(referenceId);
@@ -440,6 +445,7 @@ public static partial class OfficeSvgDrawingReader {
         ref int pathCommands,
         ref bool pathCommandLimitExceeded,
         ref int unsupported) {
+        if (!run.Style.VisibilityVisible) return;
         bool requiresPaintedOutline = RequiresPaintedTextOutline(run.Style);
         if (requiresPaintedOutline) {
             if (!TryAddPaintedTextRun(
