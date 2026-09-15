@@ -25,7 +25,6 @@
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <NoWarn>$(NoWarn);1591;RS1035</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

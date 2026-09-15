@@ -135,7 +135,7 @@ public sealed class PdfSearchableOcrReviewTests {
     private static System.Collections.Generic.IEnumerable<string> ActualText(
         System.Collections.Generic.IEnumerable<UglyToad.PdfPig.Content.MarkedContentElement> elements) {
         foreach (var element in elements) {
-            if (!string.IsNullOrEmpty(element.ActualText)) yield return element.ActualText;
+            if (!string.IsNullOrEmpty(element.ActualText)) yield return element.ActualText!;
             else foreach (string text in ActualText(element.Children)) yield return text;
         }
     }

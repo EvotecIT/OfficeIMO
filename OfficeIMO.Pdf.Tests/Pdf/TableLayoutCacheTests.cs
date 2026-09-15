@@ -60,9 +60,9 @@ namespace OfficeIMO.Tests.Pdf {
             WordTable table = document.AddTable(2, 3);
             table.GridColumnWidth = new List<int>();
             table.Rows[1].Cells[2].Remove();
-            table.Rows[1]._tableRow.TableRowProperties ??= new W.TableRowProperties();
-            table.Rows[1]._tableRow.TableRowProperties.Append(new W.GridBefore { Val = 1 });
-            table.Rows[1]._tableRow.TableRowProperties.Append(new W.GridAfter { Val = 1 });
+            W.TableRowProperties rowProperties = table.Rows[1]._tableRow.TableRowProperties ??= new W.TableRowProperties();
+            rowProperties.Append(new W.GridBefore { Val = 1 });
+            rowProperties.Append(new W.GridAfter { Val = 1 });
             table.Rows[1].Cells[0].Width = 2880;
             table.Rows[1].Cells[0].WidthType = WordTableWidthUnit.Dxa;
 
@@ -81,11 +81,11 @@ namespace OfficeIMO.Tests.Pdf {
             using WordDocument document = WordDocument.Create();
             WordTable table = document.AddTable(1, 1);
             table.GridColumnWidth = new List<int>();
-            table.Rows[0]._tableRow.TableRowProperties ??= new W.TableRowProperties();
+            W.TableRowProperties rowProperties = table.Rows[0]._tableRow.TableRowProperties ??= new W.TableRowProperties();
             if (before) {
-                table.Rows[0]._tableRow.TableRowProperties.Append(new W.GridBefore { Val = 16_385 });
+                rowProperties.Append(new W.GridBefore { Val = 16_385 });
             } else {
-                table.Rows[0]._tableRow.TableRowProperties.Append(new W.GridAfter { Val = 16_385 });
+                rowProperties.Append(new W.GridAfter { Val = 16_385 });
             }
 
             Assert.Throws<InvalidDataException>(() => TableLayoutCache.GetLayout(table));
@@ -96,9 +96,9 @@ namespace OfficeIMO.Tests.Pdf {
             using WordDocument document = WordDocument.Create();
             WordTable table = document.AddTable(1, 1);
             table.GridColumnWidth = new List<int>();
-            table.Rows[0]._tableRow.TableRowProperties ??= new W.TableRowProperties();
-            table.Rows[0]._tableRow.TableRowProperties.Append(new W.GridBefore { Val = 16_384 });
-            table.Rows[0]._tableRow.TableRowProperties.Append(new W.GridAfter { Val = 16_384 });
+            W.TableRowProperties rowProperties = table.Rows[0]._tableRow.TableRowProperties ??= new W.TableRowProperties();
+            rowProperties.Append(new W.GridBefore { Val = 16_384 });
+            rowProperties.Append(new W.GridAfter { Val = 16_384 });
             table.Rows[0].Cells[0].HorizontalMerge = WordCellMerge.Continue;
 
             Assert.Throws<InvalidDataException>(() => TableLayoutCache.GetLayout(table));

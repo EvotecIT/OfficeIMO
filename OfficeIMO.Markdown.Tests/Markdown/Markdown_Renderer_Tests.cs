@@ -2041,7 +2041,8 @@ Lead[^1]
             }
         };
         options.DocumentTransforms.Add(new RendererInspectFirstParagraphSourceTransform((document, context) => {
-            seenSpan = Assert.Single(context.TopLevelBlockSourceSpans);
+            Assert.NotNull(context.TopLevelBlockSourceSpans);
+            seenSpan = Assert.Single(context.TopLevelBlockSourceSpans!);
             return document;
         }));
 

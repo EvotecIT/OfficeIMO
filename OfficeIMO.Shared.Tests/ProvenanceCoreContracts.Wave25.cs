@@ -159,8 +159,8 @@ public sealed partial class ProvenanceCoreContracts {
         Assert.All(invalidResult.Before.Evidence, item => Assert.False(item.IsStructurallyValid));
         Assert.False(invalidResult.WasChanged);
         Assert.True(validResult.WasChanged);
-        Assert.Empty(validResult.After.Evidence.Where(item => item.DigitalSourceKind ==
-            OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia));
+        Assert.DoesNotContain(validResult.After.Evidence, item => item.DigitalSourceKind ==
+            OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia);
     }
 
     private static byte[] CreateVp8xChunk(bool advertiseXmp) {

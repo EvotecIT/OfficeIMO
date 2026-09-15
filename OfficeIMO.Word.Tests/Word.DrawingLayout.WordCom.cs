@@ -2,10 +2,16 @@ using OfficeIMO.Word;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
+#if NET5_0_OR_GREATER
+using System.Runtime.Versioning;
+#endif
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         [WordDesktopLayoutFact]
         [Trait("Category", "MicrosoftOfficeInteroperability")]
         public void DrawingLayout_AnchoredGroupMatchesDesktopWordGeometryWhenRequested() {
@@ -23,7 +29,8 @@ namespace OfficeIMO.Tests {
                     new WordShapeGroupItem(WordShapeType.Chevron, 72, 0, 80, 40),
                     new WordShapeGroupItem(WordShapeType.Chevron, 144, 0, 80, 40)
                 }, 24, 48);
-                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot packageLayout));
+                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? packageLayout));
+                Assert.NotNull(packageLayout);
                 Assert.Equal(224D, packageLayout.WidthPoints, 6);
                 Assert.Equal(40D, packageLayout.HeightPoints, 6);
                 Assert.Equal(24D, packageLayout.HorizontalOffsetPoints!.Value, 6);
@@ -38,6 +45,9 @@ namespace OfficeIMO.Tests {
             Assert.InRange(rendered.Height, 39D, 41D);
         }
 
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         private static (double Left, double Top, double Width, double Height) ReadFirstShapeGeometryViaWordCom(string path) {
             var failures = new List<string>();
             (double Left, double Top, double Width, double Height)? result = null;

@@ -512,6 +512,7 @@ public partial class PdfPageImageRendererTests {
 
         var exported = document.Pages[0].ExportImage(OfficeImageExportFormat.Png);
         Assert.True(OfficePngReader.TryDecode(exported.Bytes, out OfficeRasterImage? image));
+        Assert.NotNull(image);
         foreach (var bounds in new[] {
             (Left: 221, Top: 86, Right: 225, Bottom: 95),
             (Left: 225, Top: 86, Right: 229, Bottom: 95),
@@ -524,7 +525,7 @@ public partial class PdfPageImageRendererTests {
             int painted = 0;
             for (int y = bounds.Top; y < bounds.Bottom; y++) {
                 for (int x = bounds.Left; x < bounds.Right; x++) {
-                    OfficeColor pixel = image.GetPixel(x, y);
+                    OfficeColor pixel = image!.GetPixel(x, y);
                     if (pixel.A > 0 && pixel.R < 180 && pixel.G < 180 && pixel.B < 180) painted++;
                 }
             }

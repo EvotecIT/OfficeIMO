@@ -662,7 +662,8 @@ public sealed partial class ReaderMediaAdapterTests {
         Assert.Equal(3, result.Chunks.Count);
         Assert.All(result.Chunks, chunk => {
             Assert.InRange(chunk.Text.Length, 1, 256);
-            Assert.InRange(chunk.Markdown.Length, 1, 256);
+            Assert.NotNull(chunk.Markdown);
+            Assert.InRange(chunk.Markdown!.Length, 1, 256);
             Assert.Equal(0, chunk.Location.SourceBlockIndex);
             Assert.Contains(chunk.Warnings!, warning => warning.Contains("MaxChars", StringComparison.Ordinal));
         });

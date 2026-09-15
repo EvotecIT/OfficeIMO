@@ -616,7 +616,7 @@ public class Markdown_Native_Inline_Metadata_Tests {
         var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
         var hardBreak = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.HardBreak);
 
-        Assert.Empty(hardBreak.Metadata.Where(metadata => metadata.Name == "marker"));
+        Assert.DoesNotContain(hardBreak.Metadata, metadata => metadata.Name == "marker");
         Assert.Empty(hardBreak.SyntaxNode.Children);
         var snapshotBreak = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.HardBreak);
         Assert.False(snapshotBreak.Metadata.ContainsKey("marker"));

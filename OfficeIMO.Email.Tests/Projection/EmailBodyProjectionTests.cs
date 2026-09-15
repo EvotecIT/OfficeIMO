@@ -109,7 +109,9 @@ public sealed class EmailBodyProjectionTests {
         Assert.DoesNotContain("onload", result.Html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("javascript:", result.Html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("tracking.example", result.Html, StringComparison.OrdinalIgnoreCase);
-        string prepared = result.Document.CreateDocumentForConversion().DocumentElement.OuterHtml;
+        var preparedDocument = result.Document.CreateDocumentForConversion();
+        Assert.NotNull(preparedDocument.DocumentElement);
+        string prepared = preparedDocument.DocumentElement!.OuterHtml;
         Assert.DoesNotContain("<script", prepared, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("onload", prepared, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("tracking.example", prepared, StringComparison.OrdinalIgnoreCase);

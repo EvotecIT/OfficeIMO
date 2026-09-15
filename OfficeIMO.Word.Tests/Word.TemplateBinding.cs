@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                     new Run(new RunProperties(new Bold()), new Text("Hello {{Customer")),
                     new Run(new RunProperties(new Italic()), new Text(".Name}}!"))));
                 document.AddHeadersAndFooters();
-                document.Header.Default.AddParagraph("Order {{Order.Id}}");
+                document.Header!.Default!.AddParagraph("Order {{Order.Id}}");
 
                 var values = new Dictionary<string, object?> {
                     ["Customer"] = new Dictionary<string, object?> { ["Name"] = "Ada" },

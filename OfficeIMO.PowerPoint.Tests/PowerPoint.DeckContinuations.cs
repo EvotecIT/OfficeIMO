@@ -33,8 +33,8 @@ namespace OfficeIMO.Tests {
                 .Select(summary => summary.ContentItemCount));
             Assert.Equal("Delivery", summaries[0].Title);
             Assert.Equal("Delivery (continued 2/3)", summaries[1].Title);
-            Assert.Empty(expanded.ValidateSlides().Where(diagnostic =>
-                diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error));
+            Assert.DoesNotContain(expanded.ValidateSlides(), diagnostic =>
+                diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error);
         }
 
         [Fact]

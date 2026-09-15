@@ -630,7 +630,7 @@ namespace OfficeIMO.Tests {
                 var sheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(item => item.Name == "Data");
                 var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
                 foreach (uint rowIndex in new[] { 2U, 3U }) {
-                    var row = worksheetPart.Worksheet.Descendants<Row>().Single(item => item.RowIndex == rowIndex);
+                    var row = worksheetPart.Worksheet!.Descendants<Row>().Single(item => item.RowIndex! == rowIndex);
                     var cell = row.Elements<Cell>().Single(item => item.CellReference == "B" + rowIndex);
                     cell.Remove();
                     row.Append(cell);

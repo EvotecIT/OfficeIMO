@@ -1,5 +1,3 @@
-// StyleCop: disable header requirement for enums in this project scope
-#pragma warning disable SA1633 // File should have header
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Controls which endpoints of matching connectors should be retargeted.
@@ -13,4 +11,3 @@ namespace OfficeIMO.Visio {
         Both
     }
 }
-#pragma warning restore SA1633 // File should have header

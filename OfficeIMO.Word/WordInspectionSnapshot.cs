@@ -1,4 +1,4 @@
-#pragma warning disable CS1591
+#pragma warning disable CS1591 // Snapshot DTO documentation debt is confined to this legacy file; new Word APIs remain checked.
 
 namespace OfficeIMO.Word {
     public sealed class WordDocumentSnapshot {
@@ -284,3 +284,4 @@ namespace OfficeIMO.Word {
         public double PositionPoints { get; internal set; }
     }
 }
+#pragma warning restore CS1591

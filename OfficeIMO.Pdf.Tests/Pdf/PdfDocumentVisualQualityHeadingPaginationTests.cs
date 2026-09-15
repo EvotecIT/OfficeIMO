@@ -31,7 +31,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(pdf.NumberOfPages, CountOccurrences(content, "/StructParents "));
         PdfTaggedContentInfo tagged = PdfReadDocument.Open(bytes).TaggedContent!;
         Assert.NotNull(tagged);
-        PdfStructureElementInfo heading = Assert.Single(tagged.StructureElements.Where(element => element.StructureType == "H" + level));
+        PdfStructureElementInfo heading = Assert.Single(tagged.StructureElements, element => element.StructureType == "H" + level);
         Assert.Null(heading.PageObjectNumber);
         PdfStructureElementInfo[] children = tagged.StructureElements.Where(element => heading.ChildElementObjectNumbers.Contains(element.ObjectNumber)).ToArray();
         Assert.Equal(pdf.NumberOfPages, children.Length);

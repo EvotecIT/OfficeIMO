@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(wsPart.DrawingsPart);
                 Assert.True(wsPart.DrawingsPart!.ChartParts.Any());
 
-                var hiddenSheets = spreadsheet.WorkbookPart.Workbook.Sheets!
+                var hiddenSheets = spreadsheet.WorkbookPart!.Workbook!.Sheets!
                     .OfType<Sheet>()
                     .Where(s => s.State?.Value == SheetStateValues.Hidden)
                     .ToList();

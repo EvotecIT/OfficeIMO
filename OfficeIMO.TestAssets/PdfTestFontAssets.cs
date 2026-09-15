@@ -27,13 +27,13 @@ internal static class PdfTestFontAssets {
 
     private static System.Collections.Generic.IEnumerable<string> EnumerateSearchRoots() {
         string? current = AppContext.BaseDirectory;
-        while (!string.IsNullOrWhiteSpace(current)) {
+        while (current is not null && !string.IsNullOrWhiteSpace(current)) {
             yield return current;
             current = Directory.GetParent(current)?.FullName;
         }
 
         current = Directory.GetCurrentDirectory();
-        while (!string.IsNullOrWhiteSpace(current)) {
+        while (current is not null && !string.IsNullOrWhiteSpace(current)) {
             yield return current;
             current = Directory.GetParent(current)?.FullName;
         }

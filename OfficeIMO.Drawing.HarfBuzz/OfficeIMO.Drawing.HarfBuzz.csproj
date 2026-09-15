@@ -22,7 +22,6 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
-    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

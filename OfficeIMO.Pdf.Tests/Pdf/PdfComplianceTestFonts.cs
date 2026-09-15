@@ -65,14 +65,14 @@ internal static class PdfComplianceTestFonts {
 
     private static System.Collections.Generic.IEnumerable<string> EnumerateSearchRoots() {
         string? current = AppContext.BaseDirectory;
-        while (!string.IsNullOrWhiteSpace(current)) {
+        while (current is not null && !string.IsNullOrWhiteSpace(current)) {
             yield return current;
             DirectoryInfo? parent = Directory.GetParent(current);
             current = parent?.FullName;
         }
 
         current = Directory.GetCurrentDirectory();
-        while (!string.IsNullOrWhiteSpace(current)) {
+        while (current is not null && !string.IsNullOrWhiteSpace(current)) {
             yield return current;
             DirectoryInfo? parent = Directory.GetParent(current);
             current = parent?.FullName;

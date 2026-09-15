@@ -426,7 +426,7 @@ internal static class PdfAttachmentEditor {
         return "D:" + value.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture) + sign + offset.Hours.ToString("00", System.Globalization.CultureInfo.InvariantCulture) + "'" + offset.Minutes.ToString("00", System.Globalization.CultureInfo.InvariantCulture) + "'";
     }
 
-    #pragma warning disable CA5351, CA1850
+    #pragma warning disable CA5351, CA1850 // PDF embedded-file /CheckSum is an MD5 file identifier mandated by the format; use Create for net472.
     private static byte[] ComputeChecksum(byte[] data) { using (MD5 md5 = MD5.Create()) return md5.ComputeHash(data); }
     #pragma warning restore CA5351, CA1850
     private static string ToHex(byte[] bytes) { var builder = new System.Text.StringBuilder(bytes.Length * 2); for (int i = 0; i < bytes.Length; i++) builder.Append(bytes[i].ToString("x2", System.Globalization.CultureInfo.InvariantCulture)); return builder.ToString(); }

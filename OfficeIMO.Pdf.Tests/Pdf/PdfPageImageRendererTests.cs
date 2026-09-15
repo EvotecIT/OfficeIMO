@@ -3427,6 +3427,7 @@ public partial class PdfPageImageRendererTests {
         string svgText = Encoding.UTF8.GetString(svg);
         Assert.Contains("<linearGradient", svgText, StringComparison.Ordinal);
         Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? raster));
+        Assert.NotNull(raster);
         OfficeColor leftPixel = raster!.GetPixel(28, 100);
         OfficeColor rightPixel = raster.GetPixel(132, 100);
         Assert.True(leftPixel.R > leftPixel.B);
@@ -4116,7 +4117,7 @@ public partial class PdfPageImageRendererTests {
             }
         }
 
-        OfficeColor outside = raster.GetPixel(105, 105);
+        OfficeColor outside = raster!.GetPixel(105, 105);
         Assert.True(hasInkInsideClip);
         Assert.Equal(OfficeColor.White, outside);
     }

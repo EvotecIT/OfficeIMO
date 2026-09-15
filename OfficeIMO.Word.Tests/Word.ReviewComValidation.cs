@@ -17,6 +17,9 @@ namespace OfficeIMO.Tests {
         private const int WdFormatXmlDocument = 16;
         private static readonly TimeSpan WordComValidationTimeout = TimeSpan.FromMinutes(2);
 
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         [Fact]
         public void Test_InspectReview_WordComGeneratedReviewDocumentWhenRequested() {
             if (!IsWordComValidationRequested()) {

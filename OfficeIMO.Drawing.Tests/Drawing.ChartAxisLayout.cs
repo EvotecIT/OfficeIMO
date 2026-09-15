@@ -181,7 +181,7 @@ public class DrawingChartAxisLayoutTests {
     [Fact]
     public void OfficeChartDrawingRenderer_FiltersUnsupportedMixedScatterSeriesFromLegend() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
-            null,
+            "mixed-scatter-category-guard",
             "Mixed Scatter Category Guard",
             OfficeChartKind.ColumnClustered,
             new OfficeChartData(

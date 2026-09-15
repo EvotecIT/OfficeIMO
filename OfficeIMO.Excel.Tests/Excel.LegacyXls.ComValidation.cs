@@ -22,6 +22,9 @@ namespace OfficeIMO.Tests {
         private const int XlColumnClusteredChart = 51;
         private const int MsoShapeRectangle = 1;
 
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         [LegacyXlsComFact]
         public void LegacyXls_ComGeneratedWorkbook_ImportsAndOpensInDesktopExcelWhenRequested() {
             Assert.True(IsWindowsPlatform(), "Legacy XLS COM validation requires Windows.");
@@ -76,6 +79,9 @@ namespace OfficeIMO.Tests {
             AssertWorkbooksOpenViaExcelComWhenAvailable(new[] { importedXlsxPath, convertedXlsxPath }, "One or more imported or converted XLSX workbooks did not open through desktop Excel.");
         }
 
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         [LegacyXlsComFact]
         public void LegacyXls_CorpusFixtures_OpenBeforeAndAfterImportInDesktopExcelWhenRequested() {
             Assert.True(IsWindowsPlatform(), "Legacy XLS COM validation requires Windows.");
@@ -353,7 +359,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void ReleaseComObject(object? value) {
-            if (value != null && Marshal.IsComObject(value)) {
+            if (IsWindowsPlatform() && value != null && Marshal.IsComObject(value)) {
                 Marshal.FinalReleaseComObject(value);
             }
         }

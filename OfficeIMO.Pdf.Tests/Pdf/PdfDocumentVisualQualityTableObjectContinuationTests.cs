@@ -79,7 +79,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("Unique01", pdf.GetPage(1).Text);
         Assert.Contains("Unique11", pdf.GetPage(2).Text);
         string text = string.Join(" ", pdf.GetPages().Select(page => page.Text));
-        for (int line = 1; line <= 11; line++) Assert.Equal(1, Regex.Matches(text, "Unique" + line.ToString("D2")).Count);
+        for (int line = 1; line <= 11; line++) Assert.Single(Regex.Matches(text, "Unique" + line.ToString("D2")));
     }
 
     [Theory]

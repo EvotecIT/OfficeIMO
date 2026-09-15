@@ -96,7 +96,7 @@ public class PdfFontFamilyTests {
                 page.Letters,
                 letter =>
                     letter.Value == glyph &&
-                    letter.FontName.Contains("PremiumNamed", StringComparison.OrdinalIgnoreCase));
+                    letter.FontName?.Contains("PremiumNamed", StringComparison.OrdinalIgnoreCase) == true);
         }
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -169,8 +169,9 @@ public class PdfFontFamilyTests {
         if (!TryFindInstalledSystemFontFamily(out PdfEmbeddedFontFamily? family)) {
             return;
         }
+        Assert.NotNull(family);
 
-        PdfOptions options = new PdfOptions().UseFontFamily(family);
+        PdfOptions options = new PdfOptions().UseFontFamily(family!);
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
             })

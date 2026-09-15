@@ -1,6 +1,9 @@
 using OfficeIMO.Email;
 using System.Globalization;
 using System.Runtime.InteropServices;
+#if NET5_0_OR_GREATER
+using System.Runtime.Versioning;
+#endif
 using Xunit;
 
 namespace OfficeIMO.Email.Tests;
@@ -10,10 +13,11 @@ public sealed class OutlookInteropTests {
         "http://schemas.microsoft.com/mapi/string/{00020329-0000-0000-C000-000000000046}/OfficeIMOInterop";
 
     [EmailArtifactOutlookInteropFact]
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatform("windows")]
+#endif
     public void ExchangesMailAppointmentContactAndTaskMsgFilesWithInstalledOutlookWhenEnabled() {
-#pragma warning disable CA1416
         Type? outlookType = Type.GetTypeFromProgID("Outlook.Application");
-#pragma warning restore CA1416
         Assert.NotNull(outlookType);
 
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Email.Outlook." + Guid.NewGuid().ToString("N"));

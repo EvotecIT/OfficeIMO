@@ -41,7 +41,7 @@ public sealed partial class ReaderEpubModularTests {
             Assert.Equal("2", toc[1].Attributes["depth"]);
             Assert.Equal("Epub3Navigation", toc[1].Attributes["source"]);
             Assert.Equal(result.Source.Path + "::EPUB/chapters/two.xhtml", toc[1].Location!.Path);
-            Assert.Equal("details", toc[1].Location.BlockAnchor);
+            Assert.Equal("details", toc[1].Location!.BlockAnchor);
             Assert.Single(result.Metadata, item => item.Category == "epub.navigation.page-list");
             Assert.Equal(2, result.Metadata.Count(item => item.Category == "epub.navigation.landmarks"));
 
@@ -69,8 +69,8 @@ public sealed partial class ReaderEpubModularTests {
             OfficeDocumentMetadataEntry roundTripChild = Assert.Single(
                 roundTrip.Metadata,
                 item => item.Category == "epub.navigation.toc" && item.Attributes["depth"] == "2");
-            Assert.Equal(toc[1].Location.Path, roundTripChild.Location!.Path);
-            Assert.Equal("details", roundTripChild.Location.BlockAnchor);
+            Assert.Equal(toc[1].Location!.Path, roundTripChild.Location!.Path);
+            Assert.Equal("details", roundTripChild.Location!.BlockAnchor);
             Assert.Single(roundTrip.Assets, item => item.Location.Path == "https://cdn.example/remote.png");
         } finally {
             if (File.Exists(epubPath)) File.Delete(epubPath);

@@ -805,6 +805,9 @@ public sealed class ProvenanceAssessmentContracts {
         internal UnixFileMode ObservedDirectoryMode { get; private set; }
 
         public OfficeProvenanceSignalResult Detect(string filePath) {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                throw new PlatformNotSupportedException("Snapshot namespace mutation evidence requires Unix file modes.");
+            }
             string directory = Path.GetDirectoryName(filePath)!;
             string backup = filePath + ".leased";
             ObservedDirectoryMode = File.GetUnixFileMode(directory);
