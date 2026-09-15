@@ -103,6 +103,41 @@ memory or execution-time limit. Context reconstruction needed by the retained pr
 is isolated inside `OfficeIMO.Html.AngleSharp`; consumers retain the same owned API when
 the provider changes. Provider-independent CSS execution remains separate work.
 
+The first owned property grammar covers CSS-wide keywords and selected `display`,
+`visibility`, `opacity`, and `color` values. Inline declarations now enter the managed
+cascade through the lossless owned style-block parser. AngleSharp.Css still parses qualified
+rules and performs selector matching for the default renderer, while OfficeIMO owns cascade
+ordering and computed-style projection.
+
+Cascade explanations are opt-in so normal rendering does not retain candidate graphs for
+every element:
+
+```csharp
+using OfficeIMO.Html.Css;
+
+HtmlConversionDocument source = HtmlConversionDocument.Parse(
+    "<style>@layer theme { .status { color: blue } }</style>" +
+    "<p class='status' style='color:lime'>Ready</p>");
+var styles = HtmlComputedStyleEngine.Compute(source, new HtmlComputedStyleOptions {
+    IncludeCascadeTraces = true
+});
+HtmlCssCascadeTrace trace = styles[source.Document.QuerySelector(".status")!]
+    .GetCascadeTrace("color")!;
+HtmlCssCascadeCandidate winner = trace.Candidates.Single(candidate =>
+    candidate.Decision == HtmlCssCascadeDecision.Selected);
+```
+
+The trace uses OfficeIMO types only. It reports computed value, inheritance/reset state,
+source kind, selector, layer, specificity, importance, source order, winner decision, and
+the owned grammar status of each retained candidate. `IsEffective` identifies the authored
+declaration that won the local cascade. `InvalidAtComputedValue` identifies a failed custom-property
+substitution whose result fell back to inheritance or the property's initial value. A retained provider may normalize a
+stylesheet declaration before the cascade sees it; inspect `HtmlCssStyleSheet` when exact
+authored spelling and source spans are required. Traces are currently available for the
+properties in `HtmlCssPropertyCatalog`. Inline syntax parsing uses the conversion operation's
+CSS byte, token, syntax-node, declaration, and nesting limits; the explicitly unbounded document overload does
+not introduce the standalone CSS parser's default input ceiling.
+
 See [the migration guide](../MIGRATION.md#owned-html-documents-and-callbacks) for the
 replaced public DOM signatures.
 
@@ -345,7 +380,7 @@ HtmlConversionDocument source = HtmlConversionDocument.Parse(html, options);
 
 The untrusted profile is the default. It rejects local-file navigation, does not fetch external resources by itself, and applies one shared set of limits before adapters allocate native Office objects. Embedded `data:` resources remain available through the separate resource policy and are still subject to renderer or adapter byte budgets. Use `CreateTrustedProfile()` only when the caller controls the HTML and resource locations.
 
-`HtmlConversionLimits` is the common source for parser and CSS complexity decisions. Word forwards its compatibility limit properties to this object; Excel, PowerPoint, and OneNote use `HtmlImportLimits` for native artifact counts, image bytes, chart dimensions, table cells, and geometry. This keeps shared HTML decisions in `OfficeIMO.Html` while leaving format-specific constraints with the target model.
+`HtmlConversionLimits` is the common source for parser and CSS complexity decisions. CSS byte volume, rules, declarations, inline lexical tokens, inline syntax nodes, nesting depth, and selector evaluations have separate limits and stable diagnostics. Word forwards its compatibility limit properties to this object; Excel, PowerPoint, and OneNote use `HtmlImportLimits` for native artifact counts, image bytes, chart dimensions, table cells, and geometry. This keeps shared HTML decisions in `OfficeIMO.Html` while leaving format-specific constraints with the target model.
 
 ## Shared Diagnostics And Gallery Contracts
 

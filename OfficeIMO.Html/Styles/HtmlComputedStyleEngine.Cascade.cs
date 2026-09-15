@@ -1,35 +1,49 @@
 namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
+    private static readonly OfficeIMO.Html.Css.HtmlCssTokenizationOptions UnboundedPropertyTokenization =
+        new OfficeIMO.Html.Css.HtmlCssTokenizationOptions { MaxInputCharacters = null, MaxTokens = null };
+
     private static void ApplyInlineDeclarations(
         IDictionary<string, CascadedProperty> properties,
         IReadOnlyDictionary<string, string>? parentProperties,
         string? styleText,
-        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
+        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations,
+        HtmlCssProcessingBudget budget) {
         if (string.IsNullOrWhiteSpace(styleText)) {
             return;
         }
 
+        OfficeIMO.Html.Css.HtmlCssStyleBlock block;
+        try {
+            block = OfficeIMO.Html.Css.HtmlCssSyntaxParser.ParseStyleBlock(styleText!, budget.CreateInlineSyntaxOptions());
+        } catch (OfficeIMO.Html.Css.HtmlCssSyntaxLimitException exception) {
+            throw budget.TranslateSyntaxLimit(exception);
+        }
+        budget.RecordDeclarations(block.Declarations.Count);
         int declarationOrder = 0;
-        foreach (string declaration in SplitCssDeclarations(StripCssCommentsOutsideStrings(styleText!))) {
-            int separator = declaration.IndexOf(':');
-            if (separator <= 0) {
-                continue;
-            }
-
-            string name = declaration.Substring(0, separator).Trim();
-            string value = declaration.Substring(separator + 1).Trim();
-            bool isImportant;
-            value = StripTrailingImportant(value, out isImportant);
-
-            if (name.Length > 0 && value.Length > 0) {
-                ApplyDeclaration(properties, parentProperties, name, value, isImportant, Specificity.Inline, int.MaxValue, layerOrder: null, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
+        foreach (OfficeIMO.Html.Css.HtmlCssDeclaration declaration in block.Declarations) {
+            OfficeIMO.Html.Css.HtmlCssPropertyParseResult parsed =
+                OfficeIMO.Html.Css.HtmlCssPropertyParser.Parse(declaration, UnboundedPropertyTokenization);
+            string value = StripCssCommentsOutsideStrings(parsed.AuthoredValue).Trim();
+            if (declaration.Name.Length > 0 && value.Length > 0) {
+                ApplyDeclaration(properties, parentProperties, declaration.Name, value, declaration.IsImportant,
+                    Specificity.Inline, int.MaxValue, layerOrder: null, declarationOrder: declarationOrder,
+                    customPropertyRegistrations: customPropertyRegistrations,
+                    source: OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.InlineStyle);
             }
             declarationOrder++;
         }
     }
 
-    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, bool valueAlreadyValidated = false, int declarationOrder = 0, IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null, bool deferredFontShorthand = false) {
+    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties,
+        string name, string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder,
+        bool valueAlreadyValidated = false, int declarationOrder = 0,
+        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null,
+        bool deferredFontShorthand = false,
+        OfficeIMO.Html.Css.HtmlCssCascadeSourceKind source = OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule,
+        string? selector = null,
+        string? layerName = null) {
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value)) {
             return;
         }
@@ -39,7 +53,8 @@ public static partial class HtmlComputedStyleEngine {
             foreach (string longhand in FontShorthandLonghands) {
                 ApplyDeclaration(properties, parentProperties, longhand, value, isImportant, specificity, order, layerOrder,
                     valueAlreadyValidated: true, declarationOrder: declarationOrder,
-                    customPropertyRegistrations: customPropertyRegistrations, deferredFontShorthand: true);
+                    customPropertyRegistrations: customPropertyRegistrations, deferredFontShorthand: true,
+                    source: source, selector: selector, layerName: layerName);
             }
         }
 
@@ -48,7 +63,8 @@ public static partial class HtmlComputedStyleEngine {
             && TryExpandCascadeShorthand(name, value, out IReadOnlyList<KeyValuePair<string, string>> boxLonghands)) {
             foreach (KeyValuePair<string, string> longhand in boxLonghands) {
                 ApplyDeclaration(properties, parentProperties, longhand.Key, longhand.Value, isImportant, specificity, order, layerOrder,
-                    valueAlreadyValidated: false, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
+                    valueAlreadyValidated: false, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations,
+                    source: source, selector: selector, layerName: layerName);
             }
         }
 
@@ -64,29 +80,31 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(name, "container", StringComparison.OrdinalIgnoreCase)
             && IsSupportedDeclarationValue(name, shorthandValue)
             && TryExpandContainerShorthand(shorthandValue, out string containerName, out string containerType)) {
-            ApplyDeclaration(properties, parentProperties, "container-name", containerName, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
-            ApplyDeclaration(properties, parentProperties, "container-type", containerType, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
+            ApplyDeclaration(properties, parentProperties, "container-name", containerName, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName);
+            ApplyDeclaration(properties, parentProperties, "container-type", containerType, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName);
         }
         if (string.Equals(name, "animation", StringComparison.OrdinalIgnoreCase)
             && IsSupportedDeclarationValue(name, value)
             && HtmlResourcePipeline.TryExpandAnimationShorthandNames(value, out string animationNames)) {
-            ApplyDeclaration(properties, parentProperties, "animation-name", animationNames, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
+            ApplyDeclaration(properties, parentProperties, "animation-name", animationNames, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName);
         }
         string imageSourceProperty = GetImageSourcePropertyName(name);
         if (!string.Equals(imageSourceProperty, name, StringComparison.OrdinalIgnoreCase)
             && IsSupportedDeclarationValue(name, value)) {
-            ApplyDeclaration(properties, parentProperties, imageSourceProperty, value, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
+            ApplyDeclaration(properties, parentProperties, imageSourceProperty, value, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName);
         }
 
         CascadedProperty? existing;
         properties.TryGetValue(name, out existing);
         if (string.Equals(value.Trim(), "revert-layer", StringComparison.OrdinalIgnoreCase)) {
-            var candidate = CascadedProperty.RevertLayer(isImportant, specificity, order, layerOrder, alternatives: null, declarationOrder);
+            var candidate = CascadedProperty.RevertLayer(isImportant, specificity, order, layerOrder, alternatives: null,
+                declarationOrder, value, source, selector, layerName);
             if (existing != null && !ShouldReplace(existing, isImportant, specificity, order, layerOrder, declarationOrder)) {
                 properties[name] = existing.WithAlternative(candidate);
                 return;
             }
-            properties[name] = CascadedProperty.RevertLayer(isImportant, specificity, order, layerOrder, CollectCandidates(existing), declarationOrder);
+            properties[name] = CascadedProperty.RevertLayer(isImportant, specificity, order, layerOrder, CollectCandidates(existing),
+                declarationOrder, value, source, selector, layerName);
             return;
         }
 
@@ -94,12 +112,14 @@ public static partial class HtmlComputedStyleEngine {
         if (!resolved.HasValue) {
             CascadedProperty? resetExisting;
             if (properties.TryGetValue(name, out resetExisting) && resetExisting != null && !ShouldReplace(resetExisting, isImportant, specificity, order, layerOrder, declarationOrder)) {
-                resetExisting = resetExisting.WithAlternative(CascadedProperty.Clear(isImportant, specificity, order, layerOrder, alternatives: null, declarationOrder));
+                resetExisting = resetExisting.WithAlternative(CascadedProperty.Clear(isImportant, specificity, order, layerOrder,
+                    alternatives: null, declarationOrder, value, source, selector, layerName));
                 properties[name] = resetExisting;
                 return;
             }
 
-            properties[name] = CascadedProperty.Clear(isImportant, specificity, order, layerOrder, CollectCandidates(resetExisting), declarationOrder);
+            properties[name] = CascadedProperty.Clear(isImportant, specificity, order, layerOrder, CollectCandidates(resetExisting),
+                declarationOrder, value, source, selector, layerName);
             return;
         }
 
@@ -108,11 +128,14 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         if (existing != null && !ShouldReplace(existing, isImportant, specificity, order, layerOrder, declarationOrder)) {
-            properties[name] = existing.WithAlternative(new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, inheritsComputedValue: resolved.InheritsComputedValue, declarationOrder: declarationOrder, deferredFontShorthand: deferredFontShorthand));
+            properties[name] = existing.WithAlternative(new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder,
+                inheritsComputedValue: resolved.InheritsComputedValue, declarationOrder: declarationOrder,
+                deferredFontShorthand: deferredFontShorthand, authoredValue: value, source: source, selector: selector, layerName: layerName));
             return;
         }
 
-        properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, CollectCandidates(existing), resolved.InheritsComputedValue, declarationOrder, deferredFontShorthand);
+        properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, CollectCandidates(existing),
+            resolved.InheritsComputedValue, declarationOrder, deferredFontShorthand, value, source, selector, layerName);
     }
 
     private static string? TryGetCascadedValue(IDictionary<string, CascadedProperty> properties, string name) {

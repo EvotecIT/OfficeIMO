@@ -10,7 +10,7 @@ using OfficeIMO.Html.Dom;
 namespace OfficeIMO.Html.Benchmarks;
 
 internal static class HtmlOwnedDocumentEvidenceRunner {
-    private static readonly string[] Operations = ["Parse", "Query", "Edit", "Serialize", "ConversionOwned", "CssSyntax", "Cancel"];
+    private static readonly string[] Operations = ["Parse", "Query", "Edit", "Serialize", "ConversionOwned", "CssSyntax", "CssPropertyGrammar", "CssCascade", "CssCascadeTrace", "Cancel"];
     private static readonly (string Name, int Rows)[] Scales = [("Small", 10), ("Normal", 100), ("Large", 1000)];
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -232,6 +232,9 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
                     () => ParseConversionOwned(html),
                     result => ValidateConversion((HtmlConversionDocument)result, elementCount)),
                 "CssSyntax" => CreateCssSyntax(rows),
+                "CssPropertyGrammar" => CreateCssPropertyGrammar(rows),
+                "CssCascade" => CreateCssCascade(rows, includeTraces: false),
+                "CssCascadeTrace" => CreateCssCascade(rows, includeTraces: true),
                 _ => throw new ArgumentOutOfRangeException(nameof(operation))
             };
         }
@@ -299,6 +302,54 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
                     if (!string.Equals(sheet.Source, css, StringComparison.Ordinal) || sheet.Rules.Count != rows + 5)
                         throw new InvalidOperationException($"Owned CSS syntax retained {sheet.Rules.Count} top-level rules; expected {rows + 5}.");
                     return new EvidenceValidation(sheet.Rules.Count, Hash(sheet.ToCss()), sheet.Source.Length);
+                });
+        }
+
+        private static EvidenceOperation CreateCssPropertyGrammar(int rows) {
+            string[] values = Enumerable.Range(0, rows).SelectMany(index => new[] {
+                "display:" + (index % 2 == 0 ? "grid" : "flex"),
+                "visibility:" + (index % 3 == 0 ? "hidden" : "visible"),
+                "opacity:" + (index % 100).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%",
+                "color:" + (index % 2 == 0 ? "#315b8a" : "rebeccapurple")
+            }).ToArray();
+            int inputCharacters = values.Sum(value => value.Length);
+            return new EvidenceOperation(inputCharacters,
+                () => values.Select(value => {
+                    int separator = value.IndexOf(':');
+                    return HtmlCssPropertyParser.Parse(value.Substring(0, separator), value.Substring(separator + 1));
+                }).ToArray(),
+                result => {
+                    var parsed = (HtmlCssPropertyParseResult[])result;
+                    if (parsed.Length != rows * 4 || parsed.Any(value => !value.IsAccepted))
+                        throw new InvalidOperationException("Owned property grammar did not accept the generated declared slice.");
+                    string fingerprint = string.Join("|", parsed.Select(value => value.PropertyName + ":" + value.Value!.CanonicalText));
+                    return new EvidenceValidation(parsed.Length, Hash(fingerprint), fingerprint.Length);
+                });
+        }
+
+        private static EvidenceOperation CreateCssCascade(int rows, bool includeTraces) {
+            (_, string html) = HtmlProviderBenchmarkCorpus.BuildStyledCards(rows);
+            HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+            var options = new HtmlComputedStyleOptions { IncludeCascadeTraces = includeTraces };
+            return new EvidenceOperation(html.Length,
+                () => HtmlComputedStyleEngine.Compute(document, options),
+                result => {
+                    var styles = (IReadOnlyDictionary<HtmlElement, HtmlComputedStyle>)result;
+                    int expectedStyles = rows * 3 + 5;
+                    if (styles.Count != expectedStyles)
+                        throw new InvalidOperationException($"Owned cascade returned {styles.Count} styles; expected {expectedStyles}.");
+                    HtmlCssCascadeTrace[] traces = styles.Values
+                        .Select(style => style.GetCascadeTrace("color"))
+                        .Where(trace => trace != null)
+                        .Cast<HtmlCssCascadeTrace>()
+                        .ToArray();
+                    if (includeTraces && traces.Length < rows)
+                        throw new InvalidOperationException($"Owned cascade trace retained {traces.Length} color traces; expected at least {rows}.");
+                    if (!includeTraces && traces.Length != 0)
+                        throw new InvalidOperationException("Default cascade unexpectedly retained trace graphs.");
+                    string fingerprint = string.Join("|", traces.Select(trace => trace.ComputedValue + ":" + trace.Candidates.Count));
+                    if (!includeTraces) fingerprint = string.Join("|", styles.Values.Select(style => style.GetValue("color")));
+                    return new EvidenceValidation(styles.Count, Hash(fingerprint), fingerprint.Length);
                 });
         }
 

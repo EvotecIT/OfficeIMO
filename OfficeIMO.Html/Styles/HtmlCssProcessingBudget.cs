@@ -3,12 +3,33 @@ namespace OfficeIMO.Html;
 /// <summary>Tracks operation-wide CSS parsing and selector-matching complexity.</summary>
 internal sealed class HtmlCssProcessingBudget {
     private readonly HtmlConversionLimits _limits;
+    private readonly bool _hasConfiguredLimits;
     private long _declarations;
     private long _rules;
     private long _selectorEvaluations;
 
     internal HtmlCssProcessingBudget(HtmlConversionLimits? limits) {
+        _hasConfiguredLimits = limits != null;
         _limits = (limits ?? HtmlConversionLimits.CreateTrustedProfile()).Clone();
+    }
+
+    internal OfficeIMO.Html.Css.HtmlCssSyntaxOptions CreateInlineSyntaxOptions() =>
+        new OfficeIMO.Html.Css.HtmlCssSyntaxOptions {
+            MaxInputCharacters = null,
+            MaxTokens = _hasConfiguredLimits ? _limits.MaxCssTokens : null,
+            MaxNestingDepth = _hasConfiguredLimits ? _limits.MaxCssNestingDepth : null,
+            MaxSyntaxNodes = _hasConfiguredLimits ? _limits.MaxCssSyntaxNodes : null
+        };
+
+    internal void RecordDeclarations(int declarationCount) {
+        _declarations += declarationCount;
+        if (_limits.MaxCssDeclarations.HasValue && _declarations > _limits.MaxCssDeclarations.Value) {
+            throw Limit(
+                HtmlConversionDiagnosticCodes.CssDeclarationLimitExceeded,
+                nameof(HtmlConversionLimits.MaxCssDeclarations),
+                _declarations,
+                _limits.MaxCssDeclarations.Value);
+        }
     }
 
     internal void RecordRule(int declarationCount) {
@@ -21,14 +42,7 @@ internal sealed class HtmlCssProcessingBudget {
                 _limits.MaxCssRules.Value);
         }
 
-        _declarations += declarationCount;
-        if (_limits.MaxCssDeclarations.HasValue && _declarations > _limits.MaxCssDeclarations.Value) {
-            throw Limit(
-                HtmlConversionDiagnosticCodes.CssDeclarationLimitExceeded,
-                nameof(HtmlConversionLimits.MaxCssDeclarations),
-                _declarations,
-                _limits.MaxCssDeclarations.Value);
-        }
+        RecordDeclarations(declarationCount);
     }
 
     internal void RecordSelectorEvaluation() {
@@ -51,6 +65,33 @@ internal sealed class HtmlCssProcessingBudget {
                 depth,
                 maximum);
         }
+    }
+
+    internal HtmlDomLimitException TranslateSyntaxLimit(OfficeIMO.Html.Css.HtmlCssSyntaxLimitException exception) {
+        string code;
+        string source;
+        switch (exception.LimitName) {
+            case nameof(OfficeIMO.Html.Css.HtmlCssSyntaxOptions.MaxTokens):
+                code = HtmlConversionDiagnosticCodes.CssTokenLimitExceeded;
+                source = nameof(HtmlConversionLimits.MaxCssTokens);
+                break;
+            case nameof(OfficeIMO.Html.Css.HtmlCssSyntaxOptions.MaxSyntaxNodes):
+                code = HtmlConversionDiagnosticCodes.CssSyntaxNodeLimitExceeded;
+                source = nameof(HtmlConversionLimits.MaxCssSyntaxNodes);
+                break;
+            default:
+                code = HtmlConversionDiagnosticCodes.CssNestingDepthLimitExceeded;
+                source = nameof(HtmlConversionLimits.MaxCssNestingDepth);
+                break;
+        }
+
+        return new HtmlDomLimitException(
+            code,
+            "CSS processing exceeded the configured conversion complexity limit.",
+            source,
+            exception.Actual,
+            exception.Maximum,
+            exception);
     }
 
     private static HtmlDomLimitException Limit(string code, string source, long actual, long limit) =>

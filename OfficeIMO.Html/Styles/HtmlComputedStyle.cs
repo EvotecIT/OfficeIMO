@@ -4,25 +4,34 @@ namespace OfficeIMO.Html;
 /// Computed-style snapshot for one HTML element.
 /// </summary>
 public sealed class HtmlComputedStyle {
+    private static readonly IReadOnlyDictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace> EmptyCascadeTraces =
+        new System.Collections.ObjectModel.ReadOnlyDictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>(
+            new Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>(HtmlCssPropertyNameComparer.Instance));
     private readonly Dictionary<string, string> _properties;
     private readonly IReadOnlyDictionary<string, string> _readOnlyProperties;
     private readonly HashSet<string> _inheritedProperties;
     private readonly HashSet<string> _resetProperties;
     private readonly HashSet<string> _specifiedProperties;
     private readonly Dictionary<string, HtmlCssCascadePriority> _cascadePriorities;
+    private readonly IReadOnlyDictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace> _cascadeTraces;
 
     internal HtmlComputedStyle(
         IDictionary<string, string> properties,
         IEnumerable<string>? inheritedProperties = null,
         IEnumerable<string>? resetProperties = null,
         IEnumerable<string>? specifiedProperties = null,
-        IDictionary<string, HtmlCssCascadePriority>? cascadePriorities = null) {
+        IDictionary<string, HtmlCssCascadePriority>? cascadePriorities = null,
+        IDictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces = null) {
         _properties = new Dictionary<string, string>(properties ?? throw new ArgumentNullException(nameof(properties)), HtmlCssPropertyNameComparer.Instance);
         _readOnlyProperties = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(_properties);
         _inheritedProperties = new HashSet<string>(inheritedProperties ?? Array.Empty<string>(), HtmlCssPropertyNameComparer.Instance);
         _resetProperties = new HashSet<string>(resetProperties ?? Array.Empty<string>(), HtmlCssPropertyNameComparer.Instance);
         _specifiedProperties = new HashSet<string>(specifiedProperties ?? Array.Empty<string>(), HtmlCssPropertyNameComparer.Instance);
         _cascadePriorities = new Dictionary<string, HtmlCssCascadePriority>(cascadePriorities ?? new Dictionary<string, HtmlCssCascadePriority>(), HtmlCssPropertyNameComparer.Instance);
+        _cascadeTraces = cascadeTraces == null || cascadeTraces.Count == 0
+            ? EmptyCascadeTraces
+            : new System.Collections.ObjectModel.ReadOnlyDictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>(
+                new Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>(cascadeTraces, HtmlCssPropertyNameComparer.Instance));
     }
 
     private HtmlComputedStyle(
@@ -30,13 +39,15 @@ public sealed class HtmlComputedStyle {
         HashSet<string> inheritedProperties,
         HashSet<string> resetProperties,
         HashSet<string> specifiedProperties,
-        Dictionary<string, HtmlCssCascadePriority> cascadePriorities) {
+        Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
+        Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces) {
         _properties = properties;
         _readOnlyProperties = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(_properties);
         _inheritedProperties = inheritedProperties;
         _resetProperties = resetProperties;
         _specifiedProperties = specifiedProperties;
         _cascadePriorities = cascadePriorities;
+        _cascadeTraces = cascadeTraces == null || cascadeTraces.Count == 0 ? EmptyCascadeTraces : cascadeTraces;
     }
 
     internal static HtmlComputedStyle FromOwnedCollections(
@@ -44,8 +55,9 @@ public sealed class HtmlComputedStyle {
         HashSet<string> inheritedProperties,
         HashSet<string> resetProperties,
         HashSet<string> specifiedProperties,
-        Dictionary<string, HtmlCssCascadePriority> cascadePriorities) =>
-        new HtmlComputedStyle(properties, inheritedProperties, resetProperties, specifiedProperties, cascadePriorities);
+        Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
+        Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces) =>
+        new HtmlComputedStyle(properties, inheritedProperties, resetProperties, specifiedProperties, cascadePriorities, cascadeTraces);
 
     /// <summary>All computed properties known to the lightweight style engine.</summary>
     public IReadOnlyDictionary<string, string> Properties => _readOnlyProperties;
@@ -76,6 +88,19 @@ public sealed class HtmlComputedStyle {
             && priority.IsImplicitInheritance;
     }
 
+    /// <summary>Returns an owned cascade explanation for a property in the implemented grammar slice.</summary>
+    public bool TryGetCascadeTrace(string propertyName, out OfficeIMO.Html.Css.HtmlCssCascadeTrace? trace) {
+        if (string.IsNullOrWhiteSpace(propertyName)) {
+            trace = null;
+            return false;
+        }
+        return _cascadeTraces.TryGetValue(propertyName.Trim(), out trace);
+    }
+
+    /// <summary>Gets an owned cascade explanation, or null when the property's trace slice is not implemented.</summary>
+    public OfficeIMO.Html.Css.HtmlCssCascadeTrace? GetCascadeTrace(string propertyName) =>
+        TryGetCascadeTrace(propertyName, out OfficeIMO.Html.Css.HtmlCssCascadeTrace? trace) ? trace : null;
+
     internal bool IsResetValue(string propertyName) =>
         !string.IsNullOrWhiteSpace(propertyName) && _resetProperties.Contains(propertyName.Trim());
 
@@ -96,7 +121,13 @@ public sealed class HtmlComputedStyle {
             new HashSet<string>(_inheritedProperties, HtmlCssPropertyNameComparer.Instance),
             new HashSet<string>(_resetProperties, HtmlCssPropertyNameComparer.Instance),
             new HashSet<string>(_specifiedProperties, HtmlCssPropertyNameComparer.Instance),
-            cascadePriorities);
+            cascadePriorities,
+            _cascadeTraces.Count == 0
+                ? null
+                : _cascadeTraces.ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value,
+                    HtmlCssPropertyNameComparer.Instance));
         style.ResolvedFontSizePoints = ResolvedFontSizePoints;
         return style;
     }

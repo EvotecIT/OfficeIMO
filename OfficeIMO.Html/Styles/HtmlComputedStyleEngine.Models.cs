@@ -15,8 +15,22 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private sealed class CascadedProperty {
-        internal CascadedProperty(string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder = null, IEnumerable<CascadedProperty>? alternatives = null, bool inheritsComputedValue = false, int declarationOrder = 0, bool deferredFontShorthand = false) {
+        internal CascadedProperty(
+            string value,
+            bool isImportant,
+            Specificity specificity,
+            int order,
+            CascadeLayerOrder? layerOrder = null,
+            IEnumerable<CascadedProperty>? alternatives = null,
+            bool inheritsComputedValue = false,
+            int declarationOrder = 0,
+            bool deferredFontShorthand = false,
+            string? authoredValue = null,
+            OfficeIMO.Html.Css.HtmlCssCascadeSourceKind source = OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule,
+            string? selector = null,
+            string? layerName = null) {
             Value = value;
+            AuthoredValue = authoredValue ?? value;
             HasValue = true;
             IsImportant = isImportant;
             Specificity = specificity;
@@ -26,10 +40,16 @@ public static partial class HtmlComputedStyleEngine {
             Alternatives = MaterializeAlternatives(alternatives);
             InheritsComputedValue = inheritsComputedValue;
             IsDeferredFontShorthand = deferredFontShorthand;
+            Source = source;
+            Selector = selector;
+            LayerName = layerName;
         }
 
-        private CascadedProperty(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives, bool revertsLayer, int declarationOrder) {
+        private CascadedProperty(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder,
+            IEnumerable<CascadedProperty>? alternatives, bool revertsLayer, int declarationOrder, string authoredValue,
+            OfficeIMO.Html.Css.HtmlCssCascadeSourceKind source, string? selector, string? layerName) {
             Value = string.Empty;
+            AuthoredValue = authoredValue;
             HasValue = false;
             IsImportant = isImportant;
             Specificity = specificity;
@@ -39,16 +59,28 @@ public static partial class HtmlComputedStyleEngine {
             Alternatives = MaterializeAlternatives(alternatives);
             RevertsLayer = revertsLayer;
             InheritsComputedValue = false;
+            Source = source;
+            Selector = selector;
+            LayerName = layerName;
         }
 
-        internal static CascadedProperty Clear(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives, int declarationOrder = 0) {
-            return new CascadedProperty(isImportant, specificity, order, layerOrder, alternatives, revertsLayer: false, declarationOrder);
+        internal static CascadedProperty Clear(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder,
+            IEnumerable<CascadedProperty>? alternatives, int declarationOrder = 0, string authoredValue = "",
+            OfficeIMO.Html.Css.HtmlCssCascadeSourceKind source = OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule,
+            string? selector = null, string? layerName = null) {
+            return new CascadedProperty(isImportant, specificity, order, layerOrder, alternatives, revertsLayer: false,
+                declarationOrder, authoredValue, source, selector, layerName);
         }
 
-        internal static CascadedProperty RevertLayer(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives, int declarationOrder = 0) =>
-            new CascadedProperty(isImportant, specificity, order, layerOrder, alternatives, revertsLayer: true, declarationOrder);
+        internal static CascadedProperty RevertLayer(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder,
+            IEnumerable<CascadedProperty>? alternatives, int declarationOrder = 0, string authoredValue = "revert-layer",
+            OfficeIMO.Html.Css.HtmlCssCascadeSourceKind source = OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule,
+            string? selector = null, string? layerName = null) =>
+            new CascadedProperty(isImportant, specificity, order, layerOrder, alternatives, revertsLayer: true,
+                declarationOrder, authoredValue, source, selector, layerName);
 
         internal string Value { get; }
+        internal string AuthoredValue { get; }
         internal bool HasValue { get; }
         internal bool IsImportant { get; }
         internal Specificity Specificity { get; }
@@ -59,14 +91,18 @@ public static partial class HtmlComputedStyleEngine {
         internal bool RevertsLayer { get; }
         internal bool InheritsComputedValue { get; }
         internal bool IsDeferredFontShorthand { get; }
+        internal OfficeIMO.Html.Css.HtmlCssCascadeSourceKind Source { get; }
+        internal string? Selector { get; }
+        internal string? LayerName { get; }
 
         internal CascadedProperty WithAlternative(CascadedProperty alternative) {
             var alternatives = new List<CascadedProperty>(Alternatives) { alternative };
             return RevertsLayer
-                ? RevertLayer(IsImportant, Specificity, Order, LayerOrder, alternatives, DeclarationOrder)
+                ? RevertLayer(IsImportant, Specificity, Order, LayerOrder, alternatives, DeclarationOrder, AuthoredValue, Source, Selector, LayerName)
                 : HasValue
-                    ? new CascadedProperty(Value, IsImportant, Specificity, Order, LayerOrder, alternatives, InheritsComputedValue, DeclarationOrder, IsDeferredFontShorthand)
-                    : Clear(IsImportant, Specificity, Order, LayerOrder, alternatives, DeclarationOrder);
+                    ? new CascadedProperty(Value, IsImportant, Specificity, Order, LayerOrder, alternatives, InheritsComputedValue,
+                        DeclarationOrder, IsDeferredFontShorthand, AuthoredValue, Source, Selector, LayerName)
+                    : Clear(IsImportant, Specificity, Order, LayerOrder, alternatives, DeclarationOrder, AuthoredValue, Source, Selector, LayerName);
         }
 
         private static IReadOnlyList<CascadedProperty> MaterializeAlternatives(IEnumerable<CascadedProperty>? alternatives) =>
@@ -127,12 +163,14 @@ public static partial class HtmlComputedStyleEngine {
             int order,
             IDictionary<string, StyleDeclaration> declarations,
             CascadeLayerOrder? layerOrder = null,
+            string? layerName = null,
             IEnumerable<ContainerRuleCondition>? containerConditions = null) {
             Selector = selector;
             Specificity = specificity;
             Order = order;
             Declarations = new Dictionary<string, StyleDeclaration>(declarations, HtmlCssPropertyNameComparer.Instance);
             LayerOrder = layerOrder;
+            LayerName = layerName;
             ContainerConditions = new List<ContainerRuleCondition>(containerConditions ?? Array.Empty<ContainerRuleCondition>()).AsReadOnly();
             CandidateKey = GetSelectorCandidateKey(selector);
         }
@@ -142,6 +180,7 @@ public static partial class HtmlComputedStyleEngine {
         internal int Order { get; }
         internal IReadOnlyDictionary<string, StyleDeclaration> Declarations { get; }
         internal CascadeLayerOrder? LayerOrder { get; }
+        internal string? LayerName { get; }
         internal IReadOnlyList<ContainerRuleCondition> ContainerConditions { get; }
         internal SelectorCandidateKey CandidateKey { get; }
     }

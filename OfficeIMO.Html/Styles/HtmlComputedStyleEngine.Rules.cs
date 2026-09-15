@@ -114,7 +114,8 @@ public static partial class HtmlComputedStyleEngine {
         if (styleRule != null) {
             IReadOnlyList<string> resolvedSelectors = ResolveNestedSelectors(
                 RestoreManagedPseudoElements(styleRule.SelectorText ?? string.Empty), parentSelectors);
-            AddStyleRule(styleRule, resolvedSelectors, rules, parsedRuleMatches, budget, currentLayer == null ? null : layers.GetOrder(currentLayer), containerConditions);
+            AddStyleRule(styleRule, resolvedSelectors, rules, parsedRuleMatches, budget,
+                currentLayer == null ? null : layers.GetOrder(currentLayer), currentLayer, containerConditions);
             foreach (var childRule in styleRule.Rules) {
                 AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, resolvedSelectors, containerConditions);
             }
@@ -147,6 +148,7 @@ public static partial class HtmlComputedStyleEngine {
         IDictionary<string, int> parsedRuleMatches,
         HtmlCssProcessingBudget budget,
         CascadeLayerOrder? layerOrder,
+        string? layerName,
         IReadOnlyList<ContainerRuleCondition>? containerConditions) {
         if (resolvedSelectors.Count == 0) return;
         string[] selectors = resolvedSelectors.ToArray();
@@ -190,7 +192,7 @@ public static partial class HtmlComputedStyleEngine {
 
         foreach (string selector in selectors) {
             if (declarations.Count > 0) {
-                rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations, layerOrder, containerConditions));
+                rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations, layerOrder, layerName, containerConditions));
                 if (declarations.ContainsKey("string-set")) {
                     RecordParsedRule(parsedRuleMatches, ParsedRetainedRuleKey(selector));
                 }

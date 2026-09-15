@@ -88,7 +88,31 @@ order. `GetPosition(offset)` maps a span to a one-based line and column. `ToCss(
 the original source character-for-character, including its original line endings. Diagnostics report syntax
 recovery; an unknown name or value is preserved without being treated as invalid.
 
-The syntax model deliberately does not validate selectors or property grammars, apply the
+Apply the owned property grammar when tooling needs more than lossless syntax:
+
+```csharp
+HtmlCssPropertyParseResult value = HtmlCssPropertyParser.Parse("opacity", "62.5%");
+if (value.IsAccepted)
+    Console.WriteLine($"{value.Value!.Kind}: {value.Value.CanonicalText}");
+
+HtmlCssDeclaration color = HtmlCssSyntaxParser
+    .ParseStyleBlock("color: rebeccapurple !important")
+    .Declarations[0];
+HtmlCssPropertyParseResult declarationValue = HtmlCssPropertyParser.Parse(color);
+```
+
+`HtmlCssPropertyCatalog` currently owns CSS-wide keywords and selected values for
+`display`, `visibility`, `opacity`, and `color`. The result distinguishes a parsed
+value, a `var()` value deferred until substitution, an unknown property, a value
+outside the implemented slice, and malformed component syntax. Typed grammar support
+is an inspection contract; it does not imply that a renderer paints every parsed value.
+Named, hexadecimal, and CSS Color 4 system colors plus `currentColor` are typed now;
+the `color` definition exposes `CanvasText` as its initial value. Color functions,
+multi-keyword display values, `visibility: force-hidden`, and calculated
+opacity remain explicit grammar gaps even where the full conversion package may already
+render some of them through its retained implementation.
+
+The lossless syntax model deliberately does not validate selectors, apply the
 cascade, resolve computed values, load resources or claim rendering support. Consumers can
 therefore retain and inspect newer CSS while the full `OfficeIMO.Html` package continues to
 use its qualified style and rendering implementation.

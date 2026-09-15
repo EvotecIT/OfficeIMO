@@ -17,10 +17,22 @@ if (aotEditedTable.QuerySelectorAll("td").Count != 1) {
     throw new InvalidOperationException("The NativeAOT owned document fragment contract failed.");
 }
 HtmlCssStyleSheet aotCss = HtmlCssSyntaxParser.ParseStyleSheet("@future aot;.card{color:red;future:fn(one[two])}");
-if (aotCss.Rules.Count != 2 || aotCss.ToCss().Length == 0) {
-    throw new InvalidOperationException("The NativeAOT lossless CSS syntax contract failed.");
+HtmlCssPropertyParseResult aotOpacity = HtmlCssPropertyParser.Parse("opacity", "40%");
+if (aotCss.Rules.Count != 2 || aotCss.ToCss().Length == 0 ||
+    aotOpacity.Status != HtmlCssPropertyParseStatus.Parsed || aotOpacity.Value?.Number != 40D) {
+    throw new InvalidOperationException("The NativeAOT CSS syntax or property-grammar contract failed.");
 }
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+HtmlElement heading = source.Document.QuerySelector("h1")
+    ?? throw new InvalidOperationException("The NativeAOT cascade-trace element was not parsed.");
+HtmlComputedStyle headingStyle = HtmlComputedStyleEngine.Compute(source, new HtmlComputedStyleOptions {
+    IncludeCascadeTraces = true
+})[heading];
+HtmlCssCascadeTrace? headingColorTrace = headingStyle.GetCascadeTrace("color");
+if (headingStyle.GetValue("color") != "#123456" || headingColorTrace?.Candidates.Count != 1 ||
+    headingColorTrace.Candidates[0].Decision != HtmlCssCascadeDecision.Selected) {
+    throw new InvalidOperationException("The NativeAOT cascade-trace contract failed.");
+}
 var imageOptions = new HtmlRenderOptions {
     ViewportWidth = 320D,
     Margins = HtmlRenderMargins.All(12D)

@@ -38,6 +38,8 @@ internal static partial class HtmlConversionInputGuard {
                     if (string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase)) {
                         cssBudget.ReserveOrThrow(element.TextContent ?? string.Empty);
                     }
+                    string? inlineStyle = element.GetAttribute("style");
+                    if (!string.IsNullOrEmpty(inlineStyle)) cssBudget.ReserveOrThrow(inlineStyle!);
                     if (level.SrcDocDepth < MaxSrcDocDepth) {
                         string? source = element.GetAttribute("srcdoc");
                         if (!string.IsNullOrWhiteSpace(source)) {

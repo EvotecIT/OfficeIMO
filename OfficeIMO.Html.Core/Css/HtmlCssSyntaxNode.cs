@@ -90,6 +90,8 @@ public abstract class HtmlCssSyntaxNode {
     public HtmlCssSyntaxKind Kind { get; }
     /// <summary>Exact range in the original source.</summary>
     public HtmlCssSourceSpan Span { get; }
+    /// <summary>Original source retained by derived source-slice views.</summary>
+    protected string Source => _source;
     /// <summary>Returns the exact authored text represented by this node.</summary>
     public string GetText() => Span.GetText(_source);
     /// <inheritdoc />

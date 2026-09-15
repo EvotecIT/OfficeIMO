@@ -50,6 +50,8 @@ public sealed class HtmlCssQualifiedRule : HtmlCssRule {
 
 /// <summary>A declaration retained in source order without applying property grammar.</summary>
 public sealed class HtmlCssDeclaration : HtmlCssSyntaxNode {
+    private string? _valueText;
+
     internal HtmlCssDeclaration(
         string source,
         HtmlCssSourceSpan span,
@@ -67,6 +69,8 @@ public sealed class HtmlCssDeclaration : HtmlCssSyntaxNode {
     public string Name { get; }
     /// <summary>Exact source range after the colon and before the declaration terminator.</summary>
     public HtmlCssSourceSpan ValueSpan { get; }
+    /// <summary>Exact authored text after the colon and before the declaration terminator.</summary>
+    public string ValueText => _valueText ??= ValueSpan.GetText(Source);
     /// <summary>Nested component values in authored order, including comments and whitespace.</summary>
     public IReadOnlyList<HtmlCssComponentValue> Values { get; }
     /// <summary>Whether the final non-trivia value tokens form <c>!important</c>.</summary>

@@ -187,6 +187,9 @@ public static partial class HtmlComputedStyleEngine {
                 && !double.IsNaN(opacity)
                 && !double.IsInfinity(opacity);
         }
+        if (string.Equals(propertyName, "color", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlRenderCssValues.TryColor(value.Trim(), out _);
+        }
         if (string.Equals(propertyName, "object-fit", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssReplacedElementParser.IsSupportedObjectFitSyntax(normalized);
         }
@@ -332,6 +335,12 @@ public static partial class HtmlComputedStyleEngine {
         if (IsCssWideKeyword(rawNormalized)) {
             return true;
         }
+        OfficeIMO.Html.Css.HtmlCssPropertyParseResult owned =
+            OfficeIMO.Html.Css.HtmlCssPropertyParser.Parse(propertyName, value, UnboundedPropertyTokenization);
+        if (owned.Definition != null && owned.IsAccepted) return true;
+        if (owned.Definition != null
+            && (string.Equals(owned.Definition.Name, "display", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(owned.Definition.Name, "visibility", StringComparison.OrdinalIgnoreCase))) return false;
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
             case "font":
@@ -490,6 +499,8 @@ public static partial class HtmlComputedStyleEngine {
         out HashSet<string> resetProperties,
         out HashSet<string> specifiedProperties,
         out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
+        out Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces,
+        bool includeCascadeTraces,
         IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
         var raw = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         var deferredFonts = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
@@ -545,8 +556,9 @@ public static partial class HtmlComputedStyleEngine {
         bool requiresCustomPropertyResolution = raw.Any(pair =>
             !pair.Key.StartsWith("--", StringComparison.Ordinal)
             && HtmlCssCustomPropertyResolver.ContainsVarFunction(pair.Value));
+        var invalidAtComputedValue = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         Dictionary<string, string> resolved = requiresCustomPropertyResolution
-            ? ResolveCustomPropertyValues(raw, parentProperties)
+            ? ResolveCustomPropertyValues(raw, parentProperties, inherited, specified, invalidAtComputedValue)
             : raw;
 
         ExpandResolvedCascadeShorthands(resolved, priorities, inherited, reset, specified);
@@ -565,6 +577,9 @@ public static partial class HtmlComputedStyleEngine {
             foreach (string name in removedPriorityNames) priorities.Remove(name);
         }
         cascadePriorities = priorities;
+        cascadeTraces = includeCascadeTraces
+            ? BuildCascadeTraces(properties, resolved, inherited, reset, invalidAtComputedValue)
+            : null;
         return resolved;
     }
 
@@ -617,7 +632,10 @@ public static partial class HtmlComputedStyleEngine {
 
     private static Dictionary<string, string> ResolveCustomPropertyValues(
         IReadOnlyDictionary<string, string> raw,
-        IReadOnlyDictionary<string, string>? parentProperties) {
+        IReadOnlyDictionary<string, string>? parentProperties,
+        ISet<string> inheritedProperties,
+        ISet<string> specifiedProperties,
+        ISet<string> invalidAtComputedValueProperties) {
         var resolved = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         foreach (KeyValuePair<string, string> pair in raw) {
             if (pair.Key.StartsWith("--", StringComparison.Ordinal)) {
@@ -633,6 +651,21 @@ public static partial class HtmlComputedStyleEngine {
                 out string value);
             if (success && IsSupportedDeclarationValue(pair.Key, value)) {
                 resolved[pair.Key] = value;
+                continue;
+            }
+            if (!OfficeIMO.Html.Css.HtmlCssPropertyCatalog.TryGet(pair.Key,
+                    out OfficeIMO.Html.Css.HtmlCssPropertyDefinition? definition)) continue;
+
+            invalidAtComputedValueProperties.Add(pair.Key);
+            specifiedProperties.Remove(pair.Key);
+            if (definition!.IsInherited
+                && parentProperties != null
+                && parentProperties.TryGetValue(pair.Key, out string? inheritedValue)) {
+                resolved[pair.Key] = inheritedValue;
+                inheritedProperties.Add(pair.Key);
+            } else {
+                resolved[pair.Key] = definition.InitialValue;
+                inheritedProperties.Remove(pair.Key);
             }
         }
 

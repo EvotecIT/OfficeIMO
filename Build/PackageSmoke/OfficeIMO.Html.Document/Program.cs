@@ -27,9 +27,13 @@ if (source.QuerySelectorAll("td").Count != 0 ||
 const string css = "@future report; .status { color: green; future-property: fn(one[two]); }";
 HtmlCssStyleSheet styleSheet = HtmlCssSyntaxParser.ParseStyleSheet(css);
 HtmlCssStyleBlock inlineStyle = HtmlCssSyntaxParser.ParseStyleBlock("color:green;color:future");
+HtmlCssPropertyParseResult parsedOpacity = HtmlCssPropertyParser.Parse("opacity", "75%");
+HtmlCssPropertyParseResult unsupportedColor = HtmlCssPropertyParser.Parse("color", "rgb(1 2 3)");
 if (styleSheet.Rules.Count != 2 || styleSheet.ToCss() != css ||
-    inlineStyle.Declarations.Count != 2 || inlineStyle.Declarations[1].Name != "color") {
-    throw new InvalidOperationException("The packed lossless CSS syntax contract failed.");
+    inlineStyle.Declarations.Count != 2 || inlineStyle.Declarations[1].Name != "color" ||
+    parsedOpacity.Status != HtmlCssPropertyParseStatus.Parsed || parsedOpacity.Value?.Number != 75D ||
+    unsupportedColor.Status != HtmlCssPropertyParseStatus.UnsupportedValue) {
+    throw new InvalidOperationException("The packed CSS syntax or property-grammar contract failed.");
 }
 
 string[] coreReferences = typeof(HtmlDocument).Assembly.GetReferencedAssemblies()

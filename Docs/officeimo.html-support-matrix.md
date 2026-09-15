@@ -485,6 +485,8 @@ The exact cases and feature forms below describe each selected evidence claim. T
 | Safety | `CssRuleLimitExceeded` | Error | Active CSS rules exceeded the shared complexity budget. | Reduce CSS rule volume or raise MaxCssRules only for trusted input. |
 | Safety | `CssSelectorEvaluationLimitExceeded` | Error | Selector matching exceeded the shared evaluation budget. | Simplify selectors or raise MaxSelectorEvaluations only for trusted input. |
 | Safety | `CssSizeLimitExceeded` | Error | One embedded stylesheet exceeded the shared byte budget. | Reduce the stylesheet or raise MaxCssBytes only for trusted input. |
+| Safety | `CssSyntaxNodeLimitExceeded` | Error | CSS syntax nodes exceeded the shared complexity budget. | Reduce structured CSS complexity or raise MaxCssSyntaxNodes only for trusted input. |
+| Safety | `CssTokenLimitExceeded` | Error | CSS tokenization exceeded the shared complexity budget. | Reduce lexical CSS complexity or raise MaxCssTokens only for trusted input. |
 | Safety | `CssTotalSizeLimitExceeded` | Error | Embedded stylesheets exceeded the operation-wide byte budget. | Reduce embedded CSS or raise MaxTotalCssBytes only for trusted input. |
 | Safety | `HtmlDepthLimitExceeded` | Error | HTML nesting exceeded the shared pre-analysis depth budget. | Reduce nesting or raise MaxHtmlDepth only for trusted input. |
 | Safety | `HtmlNodeLimitExceeded` | Error | The parsed HTML document exceeded the configured DOM node budget before styling or layout. | Reduce repeated markup or raise MaxHtmlNodes only for trusted input. |

@@ -145,5 +145,18 @@ if (explicitPdf.RenderResult.Request.CssMedia != HtmlCssMediaContext.Screen ||
     explicitPdfBytes.Length < 4 || System.Text.Encoding.ASCII.GetString(explicitPdfBytes, 0, 4) != "%PDF")
     throw new InvalidOperationException("Packed explicit HTML-to-PDF request contract failed.");
 
+var tracedDocument = HtmlConversionDocument.Parse(
+    "<style>.notice { color: green; }</style><p class='notice' style='color:blue'>Status</p>");
+var tracedElement = tracedDocument.Document.QuerySelector(".notice")
+    ?? throw new InvalidOperationException("The packed cascade-trace element was not parsed.");
+HtmlComputedStyle tracedStyle = HtmlComputedStyleEngine.Compute(tracedDocument, new HtmlComputedStyleOptions {
+    IncludeCascadeTraces = true
+})[tracedElement];
+OfficeIMO.Html.Css.HtmlCssCascadeTrace? colorTrace = tracedStyle.GetCascadeTrace("color");
+if (tracedStyle.GetValue("color") != "blue" || colorTrace?.Candidates.Count != 2 ||
+    colorTrace.Candidates.Count(candidate => candidate.Decision == OfficeIMO.Html.Css.HtmlCssCascadeDecision.Selected) != 1 ||
+    colorTrace.Candidates[colorTrace.Candidates.Count - 1].Source != OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.InlineStyle)
+    throw new InvalidOperationException("The packed opt-in cascade-trace contract failed.");
+
 Console.WriteLine("OfficeIMO HTML packed API smoke passed on " +
     System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription + ".");
