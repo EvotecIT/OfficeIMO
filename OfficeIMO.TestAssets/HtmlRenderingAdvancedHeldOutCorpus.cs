@@ -11,24 +11,34 @@ internal sealed class HtmlRenderingAdvancedHeldOutCorpus {
     internal const string RelativeRoot = "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out";
     private const string ExpectedSchema = "officeimo.html.rendering-corpus";
     private const string ExpectedVersion = "2.0";
+    private const string ExpectedAcceptanceSchema = "officeimo.html.visual-acceptance";
 
     private HtmlRenderingAdvancedHeldOutCorpus(
         string rootPath,
         string manifestPath,
         string manifestSha256,
+        string acceptancePath,
+        string acceptanceSha256,
         HtmlRenderingAdvancedHeldOutManifest manifest,
+        HtmlRenderingVisualAcceptanceManifest acceptance,
         IReadOnlyList<HtmlRenderingAdvancedHeldOutCase> cases) {
         RootPath = rootPath;
         ManifestPath = manifestPath;
         ManifestSha256 = manifestSha256;
+        AcceptancePath = acceptancePath;
+        AcceptanceSha256 = acceptanceSha256;
         Manifest = manifest;
+        Acceptance = acceptance;
         Cases = cases;
     }
 
     internal string RootPath { get; }
     internal string ManifestPath { get; }
     internal string ManifestSha256 { get; }
+    internal string AcceptancePath { get; }
+    internal string AcceptanceSha256 { get; }
     internal HtmlRenderingAdvancedHeldOutManifest Manifest { get; }
+    internal HtmlRenderingVisualAcceptanceManifest Acceptance { get; }
     internal IReadOnlyList<HtmlRenderingAdvancedHeldOutCase> Cases { get; }
 
     internal static HtmlRenderingAdvancedHeldOutCorpus Load(string? rootPath = null) {
@@ -40,6 +50,15 @@ internal sealed class HtmlRenderingAdvancedHeldOutCorpus {
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
             ?? throw new InvalidDataException("H4/advanced-held-out rendering corpus manifest is empty.");
         ValidateManifest(manifest);
+
+        string manifestSha256 = Hash(manifestBytes);
+        string acceptancePath = Path.Combine(root, "acceptance.json");
+        byte[] acceptanceBytes = File.ReadAllBytes(acceptancePath);
+        HtmlRenderingVisualAcceptanceManifest acceptance = JsonSerializer.Deserialize<HtmlRenderingVisualAcceptanceManifest>(
+            acceptanceBytes,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+            ?? throw new InvalidDataException("H4/advanced-held-out visual acceptance manifest is empty.");
+        ValidateAcceptance(acceptance, manifest, manifestSha256);
 
         var cases = new List<HtmlRenderingAdvancedHeldOutCase>(manifest.Cases.Count);
         var declaredPaths = new HashSet<string>(StringComparer.Ordinal);
@@ -70,7 +89,8 @@ internal sealed class HtmlRenderingAdvancedHeldOutCorpus {
                 + "; expected: " + string.Join(", ", declaredInputs) + ".");
         }
 
-        return new HtmlRenderingAdvancedHeldOutCorpus(root, manifestPath, Hash(manifestBytes), manifest, cases.AsReadOnly());
+        return new HtmlRenderingAdvancedHeldOutCorpus(
+            root, manifestPath, manifestSha256, acceptancePath, Hash(acceptanceBytes), manifest, acceptance, cases.AsReadOnly());
     }
 
     private static string ResolveDefaultRoot() => Path.Combine(
@@ -94,6 +114,73 @@ internal sealed class HtmlRenderingAdvancedHeldOutCorpus {
                 throw new InvalidDataException("Invalid H4/advanced-held-out length or SHA-256 for " + item.Id + ".");
             if (item.ExpectedPrintPageCount <= 0)
                 throw new InvalidDataException("Expected print page count must be positive for " + item.Id + ".");
+        }
+    }
+
+    private static void ValidateAcceptance(
+        HtmlRenderingVisualAcceptanceManifest acceptance,
+        HtmlRenderingAdvancedHeldOutManifest manifest,
+        string manifestSha256) {
+        if (!string.Equals(acceptance.Schema, ExpectedAcceptanceSchema, StringComparison.Ordinal)
+            || acceptance.SchemaVersion != 1) {
+            throw new InvalidDataException("Unsupported H4/advanced-held-out visual acceptance schema.");
+        }
+        if (!string.Equals(acceptance.CorpusId, manifest.CorpusId, StringComparison.Ordinal)
+            || !string.Equals(acceptance.ManifestSha256, manifestSha256, StringComparison.Ordinal)) {
+            throw new InvalidDataException("The visual acceptance manifest does not identify the frozen rendering corpus.");
+        }
+        if (string.IsNullOrWhiteSpace(acceptance.ReferencePolicy)) {
+            throw new InvalidDataException("The visual acceptance manifest requires a reference policy.");
+        }
+        string[] expected = manifest.Cases.Select(item => item.Id).OrderBy(id => id, StringComparer.Ordinal).ToArray();
+        string[] actual = acceptance.Cases.Select(item => item.Id).OrderBy(id => id, StringComparer.Ordinal).ToArray();
+        if (!expected.SequenceEqual(actual, StringComparer.Ordinal)) {
+            throw new InvalidDataException("The visual acceptance manifest must contain exactly one gate for every frozen case.");
+        }
+        if (acceptance.Cases.Select(item => item.Id).Distinct(StringComparer.Ordinal).Count() != acceptance.Cases.Count) {
+            throw new InvalidDataException("The visual acceptance manifest contains duplicate case identifiers.");
+        }
+        foreach (HtmlRenderingVisualAcceptanceCase item in acceptance.Cases) {
+            ValidatePolicy(item.Id, "screen", item.Screen.Classification, item.Screen.Rationale);
+            ValidatePolicy(item.Id, "print", item.Print.Classification, item.Print.Rationale);
+            ValidatePolicy(item.Id, "screen-to-page", item.ScreenToPage.Classification, item.ScreenToPage.Rationale);
+            if (item.Print.PixelAlignment is not ("exact" or "exact-or-nearest-resize" or "center-crop")) {
+                throw new InvalidDataException("Visual acceptance case " + item.Id + " has an invalid print pixel alignment.");
+            }
+            ValidateRatio(item.Id, "screen minimum geometry match ratio", item.Screen.MinimumGeometryMatchRatio);
+            ValidateRatio(item.Id, "print minimum text recall", item.Print.MinimumTextRecall);
+            ValidateRatio(item.Id, "print minimum text precision", item.Print.MinimumTextPrecision);
+            ValidateMaximums(item.Id, new[] {
+                item.Screen.MaximumWidthDifferencePixels, item.Screen.MaximumHeightDifferencePixels,
+                item.Screen.MaximumMeanAbsoluteX, item.Screen.MaximumMeanAbsoluteY,
+                item.Screen.MaximumMeanAbsoluteWidth, item.Screen.MaximumMeanAbsoluteHeight,
+                item.Screen.MaximumPixelMeanAbsoluteError, item.Screen.MaximumPixelRootMeanSquareError,
+                item.Screen.MaximumPixelMeanLuminanceError,
+                item.Print.MaximumWidthDifferencePixels, item.Print.MaximumHeightDifferencePixels,
+                item.Print.MaximumPixelMeanAbsoluteError, item.Print.MaximumPixelRootMeanSquareError,
+                item.Print.MaximumPixelMeanLuminanceError,
+                item.ScreenToPage.MaximumClippedWidthPixels, item.ScreenToPage.MaximumTrailingHeightPixels,
+                item.ScreenToPage.MaximumPixelMeanAbsoluteError, item.ScreenToPage.MaximumPixelRootMeanSquareError,
+                item.ScreenToPage.MaximumPixelMeanLuminanceError
+            });
+        }
+    }
+
+    private static void ValidatePolicy(string caseId, string profile, string classification, string rationale) {
+        if (string.IsNullOrWhiteSpace(classification) || string.IsNullOrWhiteSpace(rationale)) {
+            throw new InvalidDataException($"Visual acceptance case {caseId} requires classification and rationale for {profile}.");
+        }
+    }
+
+    private static void ValidateRatio(string caseId, string name, double value) {
+        if (double.IsNaN(value) || double.IsInfinity(value) || value is < 0D or > 1D) {
+            throw new InvalidDataException($"Visual acceptance case {caseId} has an invalid {name}.");
+        }
+    }
+
+    private static void ValidateMaximums(string caseId, IEnumerable<double> values) {
+        if (values.Any(value => double.IsNaN(value) || double.IsInfinity(value) || value < 0D)) {
+            throw new InvalidDataException("Visual acceptance case " + caseId + " has an invalid maximum threshold.");
         }
     }
 
@@ -186,4 +273,62 @@ internal sealed class HtmlRenderingAdvancedHeldOutCase {
         using var stream = new MemoryStream(_sourceBytes, writable: false);
         return HtmlConversionDocument.Load(stream);
     }
+}
+
+internal sealed class HtmlRenderingVisualAcceptanceManifest {
+    [JsonPropertyName("$schema")]
+    public string Schema { get; set; } = string.Empty;
+    public int SchemaVersion { get; set; }
+    public string CorpusId { get; set; } = string.Empty;
+    public string ManifestSha256 { get; set; } = string.Empty;
+    public string ReferencePolicy { get; set; } = string.Empty;
+    public List<HtmlRenderingVisualAcceptanceCase> Cases { get; set; } = new();
+}
+
+internal sealed class HtmlRenderingVisualAcceptanceCase {
+    public string Id { get; set; } = string.Empty;
+    public HtmlRenderingScreenAcceptance Screen { get; set; } = new();
+    public HtmlRenderingPrintAcceptance Print { get; set; } = new();
+    public HtmlRenderingScreenToPageAcceptance ScreenToPage { get; set; } = new();
+}
+
+internal sealed class HtmlRenderingScreenAcceptance {
+    public string Classification { get; set; } = string.Empty;
+    public string Rationale { get; set; } = string.Empty;
+    public bool RequireDimensionsMatch { get; set; }
+    public double MaximumWidthDifferencePixels { get; set; }
+    public double MaximumHeightDifferencePixels { get; set; }
+    public double MinimumGeometryMatchRatio { get; set; }
+    public double MaximumMeanAbsoluteX { get; set; }
+    public double MaximumMeanAbsoluteY { get; set; }
+    public double MaximumMeanAbsoluteWidth { get; set; }
+    public double MaximumMeanAbsoluteHeight { get; set; }
+    public double MaximumPixelMeanAbsoluteError { get; set; }
+    public double MaximumPixelRootMeanSquareError { get; set; }
+    public double MaximumPixelMeanLuminanceError { get; set; }
+}
+
+internal sealed class HtmlRenderingPrintAcceptance {
+    public string Classification { get; set; } = string.Empty;
+    public string Rationale { get; set; } = string.Empty;
+    public bool RequirePageCountMatch { get; set; }
+    public string PixelAlignment { get; set; } = string.Empty;
+    public double MinimumTextRecall { get; set; }
+    public double MinimumTextPrecision { get; set; }
+    public double MaximumWidthDifferencePixels { get; set; }
+    public double MaximumHeightDifferencePixels { get; set; }
+    public double MaximumPixelMeanAbsoluteError { get; set; }
+    public double MaximumPixelRootMeanSquareError { get; set; }
+    public double MaximumPixelMeanLuminanceError { get; set; }
+}
+
+internal sealed class HtmlRenderingScreenToPageAcceptance {
+    public string Classification { get; set; } = string.Empty;
+    public string Rationale { get; set; } = string.Empty;
+    public bool RequireCoversScreenHeight { get; set; }
+    public double MaximumClippedWidthPixels { get; set; }
+    public double MaximumTrailingHeightPixels { get; set; }
+    public double MaximumPixelMeanAbsoluteError { get; set; }
+    public double MaximumPixelRootMeanSquareError { get; set; }
+    public double MaximumPixelMeanLuminanceError { get; set; }
 }

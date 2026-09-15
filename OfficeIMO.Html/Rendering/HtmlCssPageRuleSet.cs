@@ -42,6 +42,7 @@ internal sealed class HtmlCssPageRuleSet {
         var right = new HtmlCssPageCascadeValue();
         var bottom = new HtmlCssPageCascadeValue();
         var left = new HtmlCssPageCascadeValue();
+        var backgroundColor = new HtmlCssPageCascadeValue();
         foreach (HtmlCssPageRule rule in matching) {
             HtmlCssPageGeometryDeclaration geometry = rule.Geometry;
             Consider(ref size, geometry.Size, rule);
@@ -55,6 +56,7 @@ internal sealed class HtmlCssPageRuleSet {
             Consider(ref right, geometry.MarginRight, rule);
             Consider(ref bottom, geometry.MarginBottom, rule);
             Consider(ref left, geometry.MarginLeft, rule);
+            Consider(ref backgroundColor, geometry.BackgroundColor, rule);
         }
 
         double width = _baseWidth ?? options.PageWidth;
@@ -75,7 +77,8 @@ internal sealed class HtmlCssPageRuleSet {
         ApplySide(left, width, height, options.DefaultFontSize, ref resolvedLeft);
         HtmlRenderPrintProductionSettings? printProduction = ResolvePrintProduction(matching, width, height, options);
         HtmlRenderMargins margins = HtmlRenderMargins.FromCssPageRule(resolvedLeft, resolvedTop, resolvedRight, resolvedBottom);
-        if (printProduction == null) return new HtmlCssPageGeometry(width, height, margins);
+        OfficeColor? resolvedBackgroundColor = ResolveBackgroundColor(backgroundColor);
+        if (printProduction == null) return new HtmlCssPageGeometry(width, height, margins, backgroundColor: resolvedBackgroundColor);
 
         double sheetInset = printProduction.TrimInset;
         return new HtmlCssPageGeometry(
@@ -86,7 +89,17 @@ internal sealed class HtmlCssPageRuleSet {
                 margins.Top + sheetInset,
                 margins.Right + sheetInset,
                 margins.Bottom + sheetInset),
-            printProduction);
+            printProduction,
+            resolvedBackgroundColor);
+    }
+
+    private static OfficeColor? ResolveBackgroundColor(HtmlCssPageCascadeValue value) {
+        value = ResolveLayerRevert(value);
+        if (!value.HasValue
+            || string.Equals(value.Value, "initial", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value.Value, "unset", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value.Value, "transparent", StringComparison.OrdinalIgnoreCase)) return null;
+        return HtmlRenderCssValues.TryColor(value.Value, out OfficeColor color) ? color : null;
     }
 
     private static HtmlRenderPrintProductionSettings? ResolvePrintProduction(
@@ -415,17 +428,20 @@ internal readonly struct HtmlCssPageGeometry {
         double width,
         double height,
         HtmlRenderMargins margins,
-        HtmlRenderPrintProductionSettings? printProduction = null) {
+        HtmlRenderPrintProductionSettings? printProduction = null,
+        OfficeColor? backgroundColor = null) {
         Width = width;
         Height = height;
         Margins = margins;
         PrintProduction = printProduction;
+        BackgroundColor = backgroundColor;
     }
 
     internal double Width { get; }
     internal double Height { get; }
     internal HtmlRenderMargins Margins { get; }
     internal HtmlRenderPrintProductionSettings? PrintProduction { get; }
+    internal OfficeColor? BackgroundColor { get; }
     internal double ContentWidth => Math.Max(1D, Width - Margins.Left - Margins.Right);
     internal double ContentHeight => Math.Max(1D, Height - Margins.Top - Margins.Bottom);
 }
@@ -510,13 +526,15 @@ internal readonly struct HtmlCssPageGeometryDeclaration {
         HtmlCssPageDeclaration marginTop,
         HtmlCssPageDeclaration marginRight,
         HtmlCssPageDeclaration marginBottom,
-        HtmlCssPageDeclaration marginLeft) {
+        HtmlCssPageDeclaration marginLeft,
+        HtmlCssPageDeclaration backgroundColor) {
         Size = size;
         Margin = margin;
         MarginTop = marginTop;
         MarginRight = marginRight;
         MarginBottom = marginBottom;
         MarginLeft = marginLeft;
+        BackgroundColor = backgroundColor;
     }
 
     internal HtmlCssPageDeclaration Size { get; }
@@ -525,12 +543,14 @@ internal readonly struct HtmlCssPageGeometryDeclaration {
     internal HtmlCssPageDeclaration MarginRight { get; }
     internal HtmlCssPageDeclaration MarginBottom { get; }
     internal HtmlCssPageDeclaration MarginLeft { get; }
+    internal HtmlCssPageDeclaration BackgroundColor { get; }
     internal bool IsEmpty => Size.Value.Length == 0
         && Margin.Value.Length == 0
         && MarginTop.Value.Length == 0
         && MarginRight.Value.Length == 0
         && MarginBottom.Value.Length == 0
-        && MarginLeft.Value.Length == 0;
+        && MarginLeft.Value.Length == 0
+        && BackgroundColor.Value.Length == 0;
 }
 
 internal sealed class HtmlCssPageMarginTemplate {

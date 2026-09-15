@@ -537,6 +537,28 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_AppliesNamedPageBackgroundBehindContent() {
+        const string html = """
+            <style>
+              @page cover { size: 200px 120px; margin: 10px; background: #173a63; }
+              @page chapter { size: 200px 120px; margin: 10px; background-color: #edf4fb; }
+            </style>
+            <section style="page:cover;break-after:page;color:white">Cover</section>
+            <section style="page:chapter">Chapter</section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        HtmlRenderShape cover = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "@page background");
+        HtmlRenderShape chapter = Assert.Single(rendered.Pages[1].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "@page background");
+        Assert.Equal(OfficeColor.FromRgb(0x17, 0x3a, 0x63), cover.Shape.FillColor);
+        Assert.Equal(OfficeColor.FromRgb(0xed, 0xf4, 0xfb), chapter.Shape.FillColor);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Cover", StringComparison.Ordinal));
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Chapter", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void HtmlRender_RootBackgroundDoesNotCreateAFalseBlankPageBeforeFirstBreak() {
         const string html = "<style>body{background:#f0f0f0}</style><p style='break-before:page'>FirstPageMarker</p>";
 

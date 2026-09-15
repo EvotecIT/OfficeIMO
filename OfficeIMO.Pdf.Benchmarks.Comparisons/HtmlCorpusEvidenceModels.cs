@@ -6,6 +6,7 @@ internal sealed record HtmlCorpusEvidenceReport(
     HtmlCorpusEvidenceEnvironment Environment,
     HtmlCorpusEvidenceSource Source,
     IReadOnlyList<HtmlCorpusCaseEvidence> Cases,
+    HtmlCorpusAcceptanceEvidence? Acceptance,
     IReadOnlyList<string> Failures);
 
 internal sealed record HtmlCorpusEvidenceEnvironment(
@@ -79,6 +80,7 @@ internal sealed record HtmlCorpusComparisonEvidence(
     HtmlCorpusTextComparison? OfficeImoPrintToPeachPdf,
     HtmlCorpusGeometryComparison? ScreenGeometry,
     HtmlCorpusPixelComparison? ScreenPixels,
+    HtmlCorpusScreenToPageComparison? ScreenToPage,
     IReadOnlyList<HtmlCorpusPageComparison> PrintPagesToChromium,
     IReadOnlyList<HtmlCorpusPageComparison> PrintPagesToPeachPdf);
 
@@ -142,10 +144,29 @@ internal sealed record HtmlCorpusPixelComparison(
     int ExpectedHeight,
     int ActualWidth,
     int ActualHeight,
+    string Alignment,
+    int ComparisonWidth,
+    int ComparisonHeight,
     double? MeanAbsoluteError,
     double? RootMeanSquareError,
     double? MeanLuminanceError,
     string? DifferenceRelativePath);
+
+internal sealed record HtmlCorpusScreenToPageComparison(
+    int ScreenWidth,
+    int ScreenHeight,
+    int PageWidth,
+    int CombinedPageHeight,
+    int PageCount,
+    int ComparisonWidth,
+    int ComparisonHeight,
+    int ClippedWidth,
+    int TrailingHeight,
+    bool CoversScreenHeight,
+    double MeanAbsoluteError,
+    double RootMeanSquareError,
+    double MeanLuminanceError,
+    string DifferenceRelativePath);
 
 internal sealed record HtmlCorpusPageComparison(
     int PageNumber,
@@ -168,3 +189,42 @@ internal sealed class HtmlCorpusBrowserElement {
     public double Width { get; set; }
     public double Height { get; set; }
 }
+
+internal sealed record HtmlCorpusAcceptanceEvidence(
+    string ConfigurationSha256,
+    string ReferencePolicy,
+    bool Passed,
+    IReadOnlyList<HtmlCorpusCaseAcceptance> Cases,
+    IReadOnlyList<HtmlCorpusCapabilityAcceptance> Capabilities,
+    IReadOnlyList<string> Failures);
+
+internal sealed record HtmlCorpusCaseAcceptance(
+    string Id,
+    bool Passed,
+    HtmlCorpusIntentAcceptance Screen,
+    HtmlCorpusIntentAcceptance Print,
+    HtmlCorpusIntentAcceptance ScreenToPage);
+
+internal sealed record HtmlCorpusIntentAcceptance(
+    string Intent,
+    string Reference,
+    string Classification,
+    string Rationale,
+    bool Passed,
+    IReadOnlyList<HtmlCorpusAcceptanceCriterion> Criteria);
+
+internal sealed record HtmlCorpusAcceptanceCriterion(
+    string Id,
+    double? Actual,
+    string Comparison,
+    double? Threshold,
+    bool Passed,
+    string? Detail = null);
+
+internal sealed record HtmlCorpusCapabilityAcceptance(
+    string ProfileId,
+    string CapabilityId,
+    IReadOnlyList<string> Intents,
+    IReadOnlyList<string> RequiredCaseIds,
+    bool Passed,
+    IReadOnlyList<string> FailedCaseIds);

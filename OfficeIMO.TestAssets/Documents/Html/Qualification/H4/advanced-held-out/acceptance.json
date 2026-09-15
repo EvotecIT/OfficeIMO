@@ -1,0 +1,337 @@
+{
+  "$schema": "officeimo.html.visual-acceptance",
+  "schemaVersion": 1,
+  "corpusId": "officeimo-html-h4-advanced-held-out",
+  "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+  "referencePolicy": "Chromium provides screen and print reference observations, not a universal oracle. OfficeIMO screen-to-page is compared with the completed OfficeIMO screen display list. Every selected case and capability must pass each applicable intent; intentional sheet, clipping, and font differences are admitted only through explicit bounded criteria.",
+  "cases": [
+    {
+      "id": "subgrid-operations",
+      "screen": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+        "requireDimensionsMatch": true,
+        "maximumWidthDifferencePixels": 0,
+        "maximumHeightDifferencePixels": 32,
+        "minimumGeometryMatchRatio": 0.35,
+        "maximumMeanAbsoluteX": 80,
+        "maximumMeanAbsoluteY": 250,
+        "maximumMeanAbsoluteWidth": 140,
+        "maximumMeanAbsoluteHeight": 60,
+        "maximumPixelMeanAbsoluteError": 50,
+        "maximumPixelRootMeanSquareError": 100,
+        "maximumPixelMeanLuminanceError": 80
+      },
+      "print": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium print-to-PDF is the reference; centered page comparison admits bounded raster-edge and font differences.",
+        "requirePageCountMatch": true,
+        "pixelAlignment": "exact-or-nearest-resize",
+        "minimumTextRecall": 0.8,
+        "minimumTextPrecision": 0.8,
+        "maximumWidthDifferencePixels": 100,
+        "maximumHeightDifferencePixels": 100,
+        "maximumPixelMeanAbsoluteError": 200,
+        "maximumPixelRootMeanSquareError": 220,
+        "maximumPixelMeanLuminanceError": 220
+      },
+      "screenToPage": {
+        "classification": "profile-consistency",
+        "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+        "requireCoversScreenHeight": true,
+        "maximumClippedWidthPixels": 128,
+        "maximumTrailingHeightPixels": 900,
+        "maximumPixelMeanAbsoluteError": 100,
+        "maximumPixelRootMeanSquareError": 150,
+        "maximumPixelMeanLuminanceError": 150
+      }
+    },
+    {
+      "id": "nested-fragmentation-report",
+      "screen": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+        "requireDimensionsMatch": true,
+        "maximumWidthDifferencePixels": 0,
+        "maximumHeightDifferencePixels": 32,
+        "minimumGeometryMatchRatio": 0.35,
+        "maximumMeanAbsoluteX": 80,
+        "maximumMeanAbsoluteY": 250,
+        "maximumMeanAbsoluteWidth": 140,
+        "maximumMeanAbsoluteHeight": 60,
+        "maximumPixelMeanAbsoluteError": 50,
+        "maximumPixelRootMeanSquareError": 100,
+        "maximumPixelMeanLuminanceError": 80
+      },
+      "print": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium print-to-PDF is the reference; centered page comparison admits bounded raster-edge and font differences.",
+        "requirePageCountMatch": true,
+        "pixelAlignment": "exact-or-nearest-resize",
+        "minimumTextRecall": 0.8,
+        "minimumTextPrecision": 0.8,
+        "maximumWidthDifferencePixels": 100,
+        "maximumHeightDifferencePixels": 100,
+        "maximumPixelMeanAbsoluteError": 200,
+        "maximumPixelRootMeanSquareError": 220,
+        "maximumPixelMeanLuminanceError": 220
+      },
+      "screenToPage": {
+        "classification": "profile-consistency",
+        "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+        "requireCoversScreenHeight": true,
+        "maximumClippedWidthPixels": 128,
+        "maximumTrailingHeightPixels": 900,
+        "maximumPixelMeanAbsoluteError": 100,
+        "maximumPixelRootMeanSquareError": 150,
+        "maximumPixelMeanLuminanceError": 150
+      }
+    },
+    {
+      "id": "columns-footnotes-brief",
+      "screen": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+        "requireDimensionsMatch": true,
+        "maximumWidthDifferencePixels": 0,
+        "maximumHeightDifferencePixels": 32,
+        "minimumGeometryMatchRatio": 0.35,
+        "maximumMeanAbsoluteX": 80,
+        "maximumMeanAbsoluteY": 250,
+        "maximumMeanAbsoluteWidth": 140,
+        "maximumMeanAbsoluteHeight": 60,
+        "maximumPixelMeanAbsoluteError": 50,
+        "maximumPixelRootMeanSquareError": 100,
+        "maximumPixelMeanLuminanceError": 80
+      },
+      "print": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium print-to-PDF is the reference; centered page comparison admits bounded raster-edge and font differences.",
+        "requirePageCountMatch": true,
+        "pixelAlignment": "exact-or-nearest-resize",
+        "minimumTextRecall": 0.8,
+        "minimumTextPrecision": 0.8,
+        "maximumWidthDifferencePixels": 100,
+        "maximumHeightDifferencePixels": 100,
+        "maximumPixelMeanAbsoluteError": 200,
+        "maximumPixelRootMeanSquareError": 220,
+        "maximumPixelMeanLuminanceError": 220
+      },
+      "screenToPage": {
+        "classification": "profile-consistency",
+        "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+        "requireCoversScreenHeight": true,
+        "maximumClippedWidthPixels": 128,
+        "maximumTrailingHeightPixels": 900,
+        "maximumPixelMeanAbsoluteError": 100,
+        "maximumPixelRootMeanSquareError": 150,
+        "maximumPixelMeanLuminanceError": 150
+      }
+    },
+    {
+      "id": "named-pages-brochure",
+      "screen": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+        "requireDimensionsMatch": true,
+        "maximumWidthDifferencePixels": 0,
+        "maximumHeightDifferencePixels": 32,
+        "minimumGeometryMatchRatio": 0.35,
+        "maximumMeanAbsoluteX": 80,
+        "maximumMeanAbsoluteY": 250,
+        "maximumMeanAbsoluteWidth": 140,
+        "maximumMeanAbsoluteHeight": 60,
+        "maximumPixelMeanAbsoluteError": 50,
+        "maximumPixelRootMeanSquareError": 100,
+        "maximumPixelMeanLuminanceError": 80
+      },
+      "print": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium print-to-PDF is the reference; centered page comparison admits bounded raster-edge and font differences.",
+        "requirePageCountMatch": true,
+        "pixelAlignment": "exact-or-nearest-resize",
+        "minimumTextRecall": 0.8,
+        "minimumTextPrecision": 0.8,
+        "maximumWidthDifferencePixels": 100,
+        "maximumHeightDifferencePixels": 100,
+        "maximumPixelMeanAbsoluteError": 200,
+        "maximumPixelRootMeanSquareError": 220,
+        "maximumPixelMeanLuminanceError": 220
+      },
+      "screenToPage": {
+        "classification": "profile-consistency",
+        "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+        "requireCoversScreenHeight": true,
+        "maximumClippedWidthPixels": 128,
+        "maximumTrailingHeightPixels": 900,
+        "maximumPixelMeanAbsoluteError": 100,
+        "maximumPixelRootMeanSquareError": 150,
+        "maximumPixelMeanLuminanceError": 150
+      }
+    },
+    {
+      "id": "stacking-clipping-board",
+      "screen": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+        "requireDimensionsMatch": true,
+        "maximumWidthDifferencePixels": 0,
+        "maximumHeightDifferencePixels": 32,
+        "minimumGeometryMatchRatio": 0.35,
+        "maximumMeanAbsoluteX": 80,
+        "maximumMeanAbsoluteY": 250,
+        "maximumMeanAbsoluteWidth": 140,
+        "maximumMeanAbsoluteHeight": 60,
+        "maximumPixelMeanAbsoluteError": 50,
+        "maximumPixelRootMeanSquareError": 100,
+        "maximumPixelMeanLuminanceError": 80
+      },
+      "print": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium print-to-PDF is the reference; centered page comparison admits bounded raster-edge and font differences.",
+        "requirePageCountMatch": true,
+        "pixelAlignment": "exact-or-nearest-resize",
+        "minimumTextRecall": 0.8,
+        "minimumTextPrecision": 0.8,
+        "maximumWidthDifferencePixels": 100,
+        "maximumHeightDifferencePixels": 100,
+        "maximumPixelMeanAbsoluteError": 200,
+        "maximumPixelRootMeanSquareError": 220,
+        "maximumPixelMeanLuminanceError": 220
+      },
+      "screenToPage": {
+        "classification": "profile-consistency",
+        "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+        "requireCoversScreenHeight": true,
+        "maximumClippedWidthPixels": 128,
+        "maximumTrailingHeightPixels": 900,
+        "maximumPixelMeanAbsoluteError": 100,
+        "maximumPixelRootMeanSquareError": 150,
+        "maximumPixelMeanLuminanceError": 150
+      }
+    },
+    {
+      "id": "typography-specimen",
+      "screen": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+        "requireDimensionsMatch": true,
+        "maximumWidthDifferencePixels": 0,
+        "maximumHeightDifferencePixels": 32,
+        "minimumGeometryMatchRatio": 0.35,
+        "maximumMeanAbsoluteX": 80,
+        "maximumMeanAbsoluteY": 250,
+        "maximumMeanAbsoluteWidth": 140,
+        "maximumMeanAbsoluteHeight": 60,
+        "maximumPixelMeanAbsoluteError": 50,
+        "maximumPixelRootMeanSquareError": 100,
+        "maximumPixelMeanLuminanceError": 80
+      },
+      "print": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium print-to-PDF is the reference; centered page comparison admits bounded raster-edge and font differences.",
+        "requirePageCountMatch": true,
+        "pixelAlignment": "exact-or-nearest-resize",
+        "minimumTextRecall": 0.8,
+        "minimumTextPrecision": 0.8,
+        "maximumWidthDifferencePixels": 100,
+        "maximumHeightDifferencePixels": 100,
+        "maximumPixelMeanAbsoluteError": 200,
+        "maximumPixelRootMeanSquareError": 220,
+        "maximumPixelMeanLuminanceError": 220
+      },
+      "screenToPage": {
+        "classification": "profile-consistency",
+        "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+        "requireCoversScreenHeight": true,
+        "maximumClippedWidthPixels": 128,
+        "maximumTrailingHeightPixels": 900,
+        "maximumPixelMeanAbsoluteError": 100,
+        "maximumPixelRootMeanSquareError": 150,
+        "maximumPixelMeanLuminanceError": 150
+      }
+    },
+    {
+      "id": "professional-print-catalog",
+      "screen": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+        "requireDimensionsMatch": false,
+        "maximumWidthDifferencePixels": 0,
+        "maximumHeightDifferencePixels": 32,
+        "minimumGeometryMatchRatio": 0.35,
+        "maximumMeanAbsoluteX": 80,
+        "maximumMeanAbsoluteY": 250,
+        "maximumMeanAbsoluteWidth": 140,
+        "maximumMeanAbsoluteHeight": 60,
+        "maximumPixelMeanAbsoluteError": 50,
+        "maximumPixelRootMeanSquareError": 100,
+        "maximumPixelMeanLuminanceError": 80
+      },
+      "print": {
+        "classification": "intentional-sheet-expansion",
+        "rationale": "OfficeIMO bleed and printer marks expand the physical sheet; a centered crop compares the trim-sized overlap with Chromium print.",
+        "requirePageCountMatch": true,
+        "pixelAlignment": "center-crop",
+        "minimumTextRecall": 0.8,
+        "minimumTextPrecision": 0.8,
+        "maximumWidthDifferencePixels": 100,
+        "maximumHeightDifferencePixels": 100,
+        "maximumPixelMeanAbsoluteError": 200,
+        "maximumPixelRootMeanSquareError": 220,
+        "maximumPixelMeanLuminanceError": 220
+      },
+      "screenToPage": {
+        "classification": "profile-consistency",
+        "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+        "requireCoversScreenHeight": true,
+        "maximumClippedWidthPixels": 128,
+        "maximumTrailingHeightPixels": 900,
+        "maximumPixelMeanAbsoluteError": 100,
+        "maximumPixelRootMeanSquareError": 150,
+        "maximumPixelMeanLuminanceError": 150
+      }
+    },
+    {
+      "id": "legacy-portal",
+      "screen": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+        "requireDimensionsMatch": true,
+        "maximumWidthDifferencePixels": 0,
+        "maximumHeightDifferencePixels": 32,
+        "minimumGeometryMatchRatio": 0.35,
+        "maximumMeanAbsoluteX": 80,
+        "maximumMeanAbsoluteY": 250,
+        "maximumMeanAbsoluteWidth": 140,
+        "maximumMeanAbsoluteHeight": 60,
+        "maximumPixelMeanAbsoluteError": 50,
+        "maximumPixelRootMeanSquareError": 100,
+        "maximumPixelMeanLuminanceError": 80
+      },
+      "print": {
+        "classification": "browser-reference-tolerance",
+        "rationale": "Chromium print-to-PDF is the reference; centered page comparison admits bounded raster-edge and font differences.",
+        "requirePageCountMatch": true,
+        "pixelAlignment": "exact-or-nearest-resize",
+        "minimumTextRecall": 0.8,
+        "minimumTextPrecision": 0.8,
+        "maximumWidthDifferencePixels": 100,
+        "maximumHeightDifferencePixels": 100,
+        "maximumPixelMeanAbsoluteError": 200,
+        "maximumPixelRootMeanSquareError": 220,
+        "maximumPixelMeanLuminanceError": 220
+      },
+      "screenToPage": {
+        "classification": "profile-consistency",
+        "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+        "requireCoversScreenHeight": true,
+        "maximumClippedWidthPixels": 128,
+        "maximumTrailingHeightPixels": 900,
+        "maximumPixelMeanAbsoluteError": 100,
+        "maximumPixelRootMeanSquareError": 150,
+        "maximumPixelMeanLuminanceError": 150
+      }
+    }
+  ]
+}

@@ -205,13 +205,15 @@ internal static class HtmlCssPageSettingsResolver {
             string source = selectorText.Length == 0 ? "@page" : "@page " + selectorText;
             diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSizeUnsupported, "The @page size declaration could not be mapped to a supported physical page size.", HtmlDiagnosticSeverity.Warning, source, authoredSize.Value);
         }
+        HtmlCssPageDeclaration backgroundColor = ResolvePageBackgroundDeclaration(body);
         var geometry = new HtmlCssPageGeometryDeclaration(
             sizeDeclaration,
             FindTopLevelDeclarationWithPriority(body, "margin", value => HtmlCssPageRuleSet.TryExpandMargin(value, out _)),
             FindTopLevelDeclarationWithPriority(body, "margin-top", HtmlCssPageRuleSet.IsValidPageMarginComponent),
             FindTopLevelDeclarationWithPriority(body, "margin-right", HtmlCssPageRuleSet.IsValidPageMarginComponent),
             FindTopLevelDeclarationWithPriority(body, "margin-bottom", HtmlCssPageRuleSet.IsValidPageMarginComponent),
-            FindTopLevelDeclarationWithPriority(body, "margin-left", HtmlCssPageRuleSet.IsValidPageMarginComponent));
+            FindTopLevelDeclarationWithPriority(body, "margin-left", HtmlCssPageRuleSet.IsValidPageMarginComponent),
+            backgroundColor);
         bool IsValidBleed(string value) => IsCssWidePageProductionValue(value)
             || string.Equals(value.Trim(), "auto", StringComparison.OrdinalIgnoreCase)
             || HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: false, allowUnitlessZero: true)
@@ -246,6 +248,19 @@ internal static class HtmlCssPageSettingsResolver {
         if (marginBoxes.Count > 0 || !geometry.IsEmpty || !production.IsEmpty) {
             pageRules.Add(new HtmlCssPageRule(pageName, selector, marginBoxes, geometry, production, layerOrder));
         }
+    }
+
+    private static HtmlCssPageDeclaration ResolvePageBackgroundDeclaration(string body) {
+        static bool IsSupported(string value) => IsCssWidePageProductionValue(value)
+            || string.Equals(value.Trim(), "transparent", StringComparison.OrdinalIgnoreCase)
+            || HtmlRenderCssValues.TryColor(value.Trim(), out _);
+
+        HtmlCssPageDeclaration shorthand = FindTopLevelDeclarationWithPriority(body, "background", IsSupported);
+        HtmlCssPageDeclaration longhand = FindTopLevelDeclarationWithPriority(body, "background-color", IsSupported);
+        if (shorthand.Value.Length == 0) return longhand;
+        if (longhand.Value.Length == 0) return shorthand;
+        if (shorthand.IsImportant != longhand.IsImportant) return longhand.IsImportant ? longhand : shorthand;
+        return longhand.Order >= shorthand.Order ? longhand : shorthand;
     }
 
     private static bool IsCssWidePageProductionValue(string value) =>

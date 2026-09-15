@@ -577,7 +577,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         BuildRootStackingPaintOrders(blocks);
 
         var pages = new List<HtmlRenderPage>();
-        var visuals = CreatePageVisuals(pageWidth, pageHeight);
+        var visuals = CreatePageVisuals(pageWidth, pageHeight, pageGeometry.BackgroundColor);
         double y = pageGeometry.Margins.Top;
         void BeginPage(string? pageName) {
             pageGeometry = _pageRules.ResolveGeometry(pages.Count + 1, pageName, _options);
@@ -586,7 +586,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             pageHeight = pageGeometry.Height;
             contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, pageGeometry);
             ValidateSurface(pageWidth, pageHeight);
-            visuals = CreatePageVisuals(pageWidth, pageHeight);
+            visuals = CreatePageVisuals(pageWidth, pageHeight, pageGeometry.BackgroundColor);
             y = pageGeometry.Margins.Top;
         }
         for (int index = 0; index < blocks.Count; index++) {
@@ -862,8 +862,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return true;
     }
 
-    private List<HtmlRenderVisual> CreatePageVisuals(double width, double height) {
+    private List<HtmlRenderVisual> CreatePageVisuals(double width, double height, OfficeColor? pageBackgroundColor = null) {
         var visuals = new List<HtmlRenderVisual> { CreatePageBackground(width, height) };
+        bool paintsPageBackground = pageBackgroundColor.HasValue && pageBackgroundColor.Value.A > 0;
+        if (paintsPageBackground) {
+            OfficeShape pageBackground = OfficeShape.Rectangle(width, height);
+            pageBackground.FillColor = pageBackgroundColor;
+            pageBackground.StrokeWidth = 0D;
+            visuals.Add(new HtmlRenderShape(pageBackground, 0D, 0D, int.MinValue + 1, source: "@page background"));
+        }
         if (_surfaceRootElement == null || _surfaceRootStyle == null || !_surfaceRootStyle.PaintVisible || _surfaceRootStyle.Display == "none") return visuals;
 
         var rootBackground = new List<HtmlRenderVisual>();
@@ -879,7 +886,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderStyleResolver.DescribeSource(_surfaceRootElement),
             "render-root-background");
         for (int index = 0; index < rootBackground.Count; index++) {
-            visuals.Add(rootBackground[index].Translate(0D, 0D, int.MinValue + 1 + index));
+            visuals.Add(rootBackground[index].Translate(0D, 0D, int.MinValue + (paintsPageBackground ? 2 : 1) + index));
         }
 
         return visuals;
@@ -897,7 +904,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             geometry = _pageRules.ResolveGeometry(pages.Count + 1, pageName, _options);
             SetActivePageGeometry(geometry);
             ValidateSurface(geometry.Width, geometry.Height);
-            visuals = CreatePageVisuals(geometry.Width, geometry.Height);
+            visuals = CreatePageVisuals(geometry.Width, geometry.Height, geometry.BackgroundColor);
             y = geometry.Margins.Top;
         }
 
@@ -920,7 +927,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         geometry = _pageRules.ResolveGeometry(pages.Count + 1, pageName, _options);
         SetActivePageGeometry(geometry);
         ValidateSurface(geometry.Width, geometry.Height);
-        visuals = CreatePageVisuals(geometry.Width, geometry.Height);
+        visuals = CreatePageVisuals(geometry.Width, geometry.Height, geometry.BackgroundColor);
         y = geometry.Margins.Top;
     }
 

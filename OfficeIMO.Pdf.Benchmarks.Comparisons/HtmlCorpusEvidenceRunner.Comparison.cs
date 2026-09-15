@@ -76,30 +76,53 @@ internal static partial class HtmlCorpusEvidenceRunner {
         string expectedPath,
         string actualPath,
         string outputDirectory,
-        string differenceFileName) {
+        string differenceFileName,
+        HtmlCorpusPixelAlignment alignment = HtmlCorpusPixelAlignment.Exact) {
         OfficeRasterImage expected = DecodePng(File.ReadAllBytes(expectedPath), expectedPath);
         OfficeRasterImage actual = DecodePng(File.ReadAllBytes(actualPath), actualPath);
         int actualWidth = actual.Width;
         int actualHeight = actual.Height;
         bool dimensionsMatch = expected.Width == actualWidth && expected.Height == actualHeight;
+        int expectedOffsetX = 0;
+        int expectedOffsetY = 0;
+        int actualOffsetX = 0;
+        int actualOffsetY = 0;
+        int comparisonWidth = expected.Width;
+        int comparisonHeight = expected.Height;
+        string appliedAlignment = "exact";
         if (!dimensionsMatch
             && Math.Abs(expected.Width - actualWidth) <= 2
             && Math.Abs(expected.Height - actualHeight) <= 2) {
             actual = ResizeNearest(actual, expected.Width, expected.Height);
+            comparisonWidth = expected.Width;
+            comparisonHeight = expected.Height;
+            appliedAlignment = "nearest-resize";
+        } else if (!dimensionsMatch && alignment == HtmlCorpusPixelAlignment.TopLeftOverlap) {
+            comparisonWidth = Math.Min(expected.Width, actual.Width);
+            comparisonHeight = Math.Min(expected.Height, actual.Height);
+            appliedAlignment = "top-left-overlap";
+        } else if (!dimensionsMatch && alignment == HtmlCorpusPixelAlignment.CenterCrop) {
+            comparisonWidth = Math.Min(expected.Width, actual.Width);
+            comparisonHeight = Math.Min(expected.Height, actual.Height);
+            expectedOffsetX = (expected.Width - comparisonWidth) / 2;
+            expectedOffsetY = (expected.Height - comparisonHeight) / 2;
+            actualOffsetX = (actual.Width - comparisonWidth) / 2;
+            actualOffsetY = (actual.Height - comparisonHeight) / 2;
+            appliedAlignment = "center-crop";
         } else if (!dimensionsMatch) {
             return new HtmlCorpusPixelComparison(
                 false, expected.Width, expected.Height, actualWidth, actualHeight,
-                null, null, null, null);
+                "none", 0, 0, null, null, null, null);
         }
 
         long absoluteError = 0;
         long squaredError = 0;
         double luminanceError = 0D;
-        var difference = new OfficeRasterImage(expected.Width, expected.Height, OfficeColor.White);
-        for (int y = 0; y < expected.Height; y++) {
-            for (int x = 0; x < expected.Width; x++) {
-                OfficeColor left = expected.GetPixel(x, y);
-                OfficeColor right = actual.GetPixel(x, y);
+        var difference = new OfficeRasterImage(comparisonWidth, comparisonHeight, OfficeColor.White);
+        for (int y = 0; y < comparisonHeight; y++) {
+            for (int x = 0; x < comparisonWidth; x++) {
+                OfficeColor left = expected.GetPixel(x + expectedOffsetX, y + expectedOffsetY);
+                OfficeColor right = actual.GetPixel(x + actualOffsetX, y + actualOffsetY);
                 int red = Math.Abs(left.R - right.R);
                 int green = Math.Abs(left.G - right.G);
                 int blue = Math.Abs(left.B - right.B);
@@ -115,10 +138,78 @@ internal static partial class HtmlCorpusEvidenceRunner {
         }
         byte[] differencePng = OfficePngWriter.Encode(difference);
         File.WriteAllBytes(Path.Combine(outputDirectory, differenceFileName), differencePng);
-        double channels = expected.Width * expected.Height * 4D;
-        double pixels = expected.Width * expected.Height;
+        double channels = comparisonWidth * comparisonHeight * 4D;
+        double pixels = comparisonWidth * comparisonHeight;
         return new HtmlCorpusPixelComparison(
             dimensionsMatch, expected.Width, expected.Height, actualWidth, actualHeight,
+            appliedAlignment, comparisonWidth, comparisonHeight,
+            absoluteError / channels,
+            Math.Sqrt(squaredError / channels),
+            luminanceError / pixels,
+            differenceFileName);
+    }
+
+    private static HtmlCorpusScreenToPageComparison CompareScreenToPage(
+        string screenPath,
+        IReadOnlyList<HtmlCorpusPageArtifact> pageArtifacts,
+        string caseDirectory,
+        string differenceFileName) {
+        OfficeRasterImage screen = DecodePng(File.ReadAllBytes(screenPath), screenPath);
+        OfficeRasterImage[] pages = pageArtifacts.OrderBy(item => item.PageNumber)
+            .Select(item => DecodePng(File.ReadAllBytes(Path.Combine(caseDirectory, item.RelativePath)), item.RelativePath))
+            .ToArray();
+        if (pages.Length == 0) throw new InvalidDataException("Screen-to-page output has no rasterized pages.");
+        int pageWidth = pages.Min(page => page.Width);
+        int combinedHeight = pages.Sum(page => page.Height);
+        int comparisonWidth = Math.Min(screen.Width, pageWidth);
+        int comparisonHeight = Math.Min(screen.Height, combinedHeight);
+        if (comparisonWidth <= 0 || comparisonHeight <= 0) {
+            throw new InvalidDataException("Screen-to-page output has no comparable pixel area.");
+        }
+
+        long absoluteError = 0;
+        long squaredError = 0;
+        double luminanceError = 0D;
+        var difference = new OfficeRasterImage(comparisonWidth, comparisonHeight, OfficeColor.White);
+        int pageIndex = 0;
+        int pageStartY = 0;
+        for (int y = 0; y < comparisonHeight; y++) {
+            while (pageIndex < pages.Length - 1 && y >= pageStartY + pages[pageIndex].Height) {
+                pageStartY += pages[pageIndex].Height;
+                pageIndex++;
+            }
+            OfficeRasterImage page = pages[pageIndex];
+            int pageY = y - pageStartY;
+            for (int x = 0; x < comparisonWidth; x++) {
+                OfficeColor left = screen.GetPixel(x, y);
+                OfficeColor right = page.GetPixel(x, pageY);
+                int red = Math.Abs(left.R - right.R);
+                int green = Math.Abs(left.G - right.G);
+                int blue = Math.Abs(left.B - right.B);
+                int alpha = Math.Abs(left.A - right.A);
+                absoluteError += red + green + blue + alpha;
+                squaredError += red * red + green * green + blue * blue + alpha * alpha;
+                luminanceError += Math.Abs(
+                    left.R * 0.2126D + left.G * 0.7152D + left.B * 0.0722D -
+                    (right.R * 0.2126D + right.G * 0.7152D + right.B * 0.0722D));
+                int maximum = Math.Max(red, Math.Max(green, Math.Max(blue, alpha)));
+                difference.SetPixel(x, y, OfficeColor.FromRgb((byte)Math.Min(255, maximum * 5), 0, 0));
+            }
+        }
+        File.WriteAllBytes(Path.Combine(caseDirectory, differenceFileName), OfficePngWriter.Encode(difference));
+        double channels = comparisonWidth * comparisonHeight * 4D;
+        double pixels = comparisonWidth * comparisonHeight;
+        return new HtmlCorpusScreenToPageComparison(
+            screen.Width,
+            screen.Height,
+            pageWidth,
+            combinedHeight,
+            pages.Length,
+            comparisonWidth,
+            comparisonHeight,
+            Math.Max(0, screen.Width - pageWidth),
+            Math.Max(0, combinedHeight - screen.Height),
+            combinedHeight >= screen.Height,
             absoluteError / channels,
             Math.Sqrt(squaredError / channels),
             luminanceError / pixels,
@@ -153,10 +244,17 @@ internal static partial class HtmlCorpusEvidenceRunner {
                     Path.Combine(caseDirectory, left.RelativePath),
                     Path.Combine(caseDirectory, right.RelativePath),
                     caseDirectory,
-                    prefix + "-page-" + page.ToString(System.Globalization.CultureInfo.InvariantCulture) + "-difference.png");
+                    prefix + "-page-" + page.ToString(System.Globalization.CultureInfo.InvariantCulture) + "-difference.png",
+                    HtmlCorpusPixelAlignment.CenterCrop);
             results.Add(new HtmlCorpusPageComparison(page, left != null && right != null, pixels));
         }
         return results;
+    }
+
+    private enum HtmlCorpusPixelAlignment {
+        Exact,
+        TopLeftOverlap,
+        CenterCrop
     }
 
     private static IReadOnlyList<HtmlCorpusElementGeometry> ObserveGeometry(HtmlRenderDocument document) {

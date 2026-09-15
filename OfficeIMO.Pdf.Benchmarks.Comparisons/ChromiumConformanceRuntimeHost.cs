@@ -242,7 +242,7 @@ internal sealed class ChromiumConformancePage : IHtmlRuntimePage {
         try {
             await WaitForAsync(readyExpression ?? _options.ReadyExpression, cancellationToken).ConfigureAwait(false);
             string html = await _session.Page.ContentAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
-            HtmlDocument document = _parser.Parse(html, new HtmlParseOptions {
+            HtmlDocument document = _parser.ParseDocument(html, new HtmlParseOptions {
                 MaxInputCharacters = _options.MaxOutputCharacters,
                 MaxNodes = _options.MaxNodes,
                 MaxDepth = _options.MaxDepth

@@ -41,6 +41,12 @@ internal static partial class HtmlCorpusEvidenceRunner {
         string outputDirectory = ResolveOutputDirectory(args);
         using EvidenceOutputReservation outputReservation = EvidenceOutputReservation.Acquire(outputDirectory);
         string repositoryRoot = FindRepositoryRoot();
+        bool requireCleanSource = HasFlag(args, "--require-clean-source");
+        bool verifyAcceptance = HasFlag(args, "--verify-acceptance");
+        bool worktreeDirty = IsGitDirty(repositoryRoot);
+        if (requireCleanSource && worktreeDirty) {
+            throw new InvalidOperationException("Clean, commit-addressable OfficeIMO source is required for H4 visual acceptance evidence.");
+        }
         string? caseFilter = ReadOption(args, "--case");
         string corpusSelection = ReadOption(args, "--corpus") ?? "representative";
         HtmlCorpusEvidenceInputSet corpus = LoadCorpus(corpusSelection);
@@ -67,8 +73,22 @@ internal static partial class HtmlCorpusEvidenceRunner {
             failures.AddRange(result.Failures.Select(failure => input.Scenario.Id + ": " + failure));
         }
 
+        HtmlCorpusAcceptanceEvidence? acceptance = null;
+        if (corpus.AcceptanceCorpus != null) {
+            acceptance = HtmlCorpusAcceptanceEvaluator.Evaluate(corpus.AcceptanceCorpus, evidence);
+        }
+        if (verifyAcceptance) {
+            if (caseFilter != null) {
+                throw new InvalidOperationException("The H4 visual acceptance gate requires the complete selected corpus; remove --case.");
+            }
+            if (acceptance == null) {
+                throw new InvalidOperationException("The selected corpus does not define a visual acceptance manifest.");
+            }
+            failures.AddRange(acceptance.Failures.Select(failure => "acceptance: " + failure));
+        }
+
         var report = new HtmlCorpusEvidenceReport(
-            SchemaVersion: 1,
+            SchemaVersion: 2,
             GeneratedUtc: DateTimeOffset.UtcNow,
             Environment: new HtmlCorpusEvidenceEnvironment(
                 RuntimeInformation.OSDescription,
@@ -84,15 +104,23 @@ internal static partial class HtmlCorpusEvidenceRunner {
                 corpus.RelativeRoot,
                 corpus.ManifestSha256,
                 ReadGit(repositoryRoot, "rev-parse", "HEAD"),
-                IsGitDirty(repositoryRoot),
+                worktreeDirty,
                 cases.Length),
             Cases: evidence,
+            Acceptance: acceptance,
             Failures: failures);
 
         string reportPath = Path.Combine(outputDirectory, "html-corpus-evidence.json");
         await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(report, JsonOptions), new UTF8Encoding(false)).ConfigureAwait(false);
+        string? acceptanceReportPath = null;
+        if (acceptance != null) {
+            acceptanceReportPath = Path.Combine(outputDirectory, "html-corpus-acceptance.md");
+            await HtmlCorpusAcceptanceReportWriter.WriteAsync(acceptanceReportPath, acceptance, evidence).ConfigureAwait(false);
+        }
         Console.WriteLine("HTML_CORPUS_EVIDENCE_REPORT=" + reportPath);
+        if (acceptanceReportPath != null) Console.WriteLine("HTML_CORPUS_ACCEPTANCE_REPORT=" + acceptanceReportPath);
         Console.WriteLine("HTML_CORPUS_EVIDENCE_CASES=" + evidence.Count);
+        if (acceptance != null) Console.WriteLine("HTML_CORPUS_ACCEPTANCE_STATUS=" + (acceptance.Passed ? "Passed" : "Failed"));
         Console.WriteLine("HTML_CORPUS_EVIDENCE_FAILURES=" + failures.Count);
         foreach (string failure in failures) Console.Error.WriteLine("EVIDENCE FAILURE: " + failure);
         return failures.Count == 0 ? 0 : 1;
@@ -137,7 +165,15 @@ internal static partial class HtmlCorpusEvidenceRunner {
                 Path.Combine(caseDirectory, officeImo.ScreenPng.RelativePath),
                 Path.Combine(caseDirectory, chromium.ScreenPng.RelativePath),
                 caseDirectory,
-                "screen-difference.png"), "screen pixel comparison", failures)
+                "screen-difference.png",
+                HtmlCorpusPixelAlignment.TopLeftOverlap), "screen pixel comparison", failures)
+            : null;
+        HtmlCorpusScreenToPageComparison? screenToPage = officeImo != null
+            ? TryRender(() => CompareScreenToPage(
+                Path.Combine(caseDirectory, officeImo.ScreenPng.RelativePath),
+                officeImo.ScreenToPdf.Pages,
+                caseDirectory,
+                "screen-to-page-difference.png"), "screen-to-page comparison", failures)
             : null;
         IReadOnlyList<HtmlCorpusPageComparison> chromiumPageComparisons = officeImo != null && chromium != null
             ? TryRender(
@@ -154,6 +190,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
             peachTextComparison,
             screenGeometry,
             screenPixels,
+            screenToPage,
             chromiumPageComparisons,
             peachPageComparisons);
 
@@ -483,10 +520,15 @@ internal static partial class HtmlCorpusEvidenceRunner {
         return null;
     }
 
+    private static bool HasFlag(string[] args, string option) =>
+        args.Any(argument => string.Equals(argument, option, StringComparison.OrdinalIgnoreCase));
+
     private static void ValidateArguments(string[] args) {
         for (int index = 1; index < args.Length; index++) {
             string argument = args[index];
-            if (string.Equals(argument, "--help", StringComparison.OrdinalIgnoreCase)) continue;
+            if (string.Equals(argument, "--help", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(argument, "--require-clean-source", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(argument, "--verify-acceptance", StringComparison.OrdinalIgnoreCase)) continue;
             if (string.Equals(argument, "--output", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(argument, "--case", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(argument, "--corpus", StringComparison.OrdinalIgnoreCase)) {
@@ -533,8 +575,8 @@ internal static partial class HtmlCorpusEvidenceRunner {
         !string.IsNullOrWhiteSpace(ReadGit(repositoryRoot, "status", "--porcelain", "--untracked-files=normal"));
 
     private static void WriteHelp() {
-        Console.WriteLine("html-corpus-evidence [--corpus <representative|advanced-held-out>] [--case <id>] [--output <new-directory>]");
-        Console.WriteLine("Captures every H4 source through OfficeIMO print, screen and screen-to-PDF; PeachPDF print; and Chromium screen and print. It writes all-page PDF rasters, OfficeIMO scene PNG/SVG files, text, geometry and pixel comparisons.");
+        Console.WriteLine("html-corpus-evidence [--corpus <representative|advanced-held-out>] [--case <id>] [--output <new-directory>] [--verify-acceptance] [--require-clean-source]");
+        Console.WriteLine("Captures every H4 source through OfficeIMO print, screen and screen-to-PDF; PeachPDF print; and Chromium screen and print. It writes all-page PDF rasters, OfficeIMO scene PNG/SVG files, text, geometry, pixel comparisons, and the advanced held-out per-capability acceptance result.");
     }
 
     private static HtmlCorpusEvidenceInputSet LoadCorpus(string selection) {
@@ -542,6 +584,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
             return new HtmlCorpusEvidenceInputSet(
                 "officeimo-html-h4-representative",
                 HtmlRenderingRepresentativeCorpus.RelativeRoot,
+                null,
                 null,
                 HtmlRenderingRepresentativeCorpus.All.Select(scenario => new HtmlCorpusEvidenceInput(
                     scenario,
@@ -555,6 +598,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
                 corpus.Manifest.CorpusId,
                 HtmlRenderingAdvancedHeldOutCorpus.RelativeRoot,
                 corpus.ManifestSha256,
+                corpus,
                 corpus.Cases.Select(item => new HtmlCorpusEvidenceInput(
                     new HtmlRenderingCorpusCase(
                         item.Id,
@@ -581,6 +625,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
         string CorpusId,
         string RelativeRoot,
         string? ManifestSha256,
+        HtmlRenderingAdvancedHeldOutCorpus? AcceptanceCorpus,
         IReadOnlyList<HtmlCorpusEvidenceInput> Cases);
 
     private const string BrowserObservationScript = """
