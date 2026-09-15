@@ -1,6 +1,6 @@
 # H4 advanced held-out visual acceptance
 
-Status: **Passed**  
+Status: **Passed**
 Acceptance configuration SHA-256: `b347bb8e73ee67bd7130a460de8ee5bd4d3e336ff15cdc9f2756e02a3632a8ed`
 
 Chromium provides screen and print reference observations, not a universal oracle. OfficeIMO screen-to-page is compared with the completed OfficeIMO screen display list. Every selected case and capability must pass each applicable intent; intentional sheet, clipping, and font differences are admitted only through explicit bounded criteria.
@@ -102,4 +102,3 @@ Chromium provides screen and print reference observations, not a universal oracl
 - Screen: [OfficeIMO](legacy-portal/officeimo-screen.png), [Chromium](legacy-portal/chromium-screen.png), [difference](legacy-portal/screen-difference.png)
 - Screen-to-page: [difference](legacy-portal/screen-to-page-difference.png)
 - Print page 1: [OfficeIMO](legacy-portal/officeimo-print-page-1.png), [Chromium](legacy-portal/chromium-print-1.png), [difference](legacy-portal/print-chromium-page-1-difference.png)
-
