@@ -8,10 +8,15 @@ internal sealed class HtmlCssProcessingBudget {
     private long _rules;
     private long _selectorEvaluations;
 
-    internal HtmlCssProcessingBudget(HtmlConversionLimits? limits) {
+    internal HtmlCssProcessingBudget(HtmlConversionLimits? limits,
+        System.Func<OfficeIMO.Html.Css.IHtmlCssSelectorElement, string, bool>? providerMatcher = null) {
         _hasConfiguredLimits = limits != null;
         _limits = (limits ?? HtmlConversionLimits.CreateTrustedProfile()).Clone();
+        SelectorMatchContext = new OfficeIMO.Html.Css.HtmlCssSelectorMatchContext(
+            RecordSelectorEvaluation, default, providerMatcher);
     }
+
+    internal OfficeIMO.Html.Css.HtmlCssSelectorMatchContext SelectorMatchContext { get; }
 
     internal OfficeIMO.Html.Css.HtmlCssSyntaxOptions CreateInlineSyntaxOptions() =>
         new OfficeIMO.Html.Css.HtmlCssSyntaxOptions {

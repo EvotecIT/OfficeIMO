@@ -152,25 +152,47 @@ standalone length, and rejects unitless zero as a length inside math expressions
 zero remains a typed expression and resolves with `NonFiniteValue`, allowing property and
 rendering consumers to apply their documented fallback.
 
-Parse and match the selected selector subset directly against an owned element:
+Parse and match the selected selector subset directly against an owned element. Namespace
+prefixes are stylesheet-scoped, so the same immutable context can be passed to every selector
+parsed from that sheet:
 
 ```csharp
-HtmlCssSelectorParseResult parsedSelector = HtmlCssSelectorParser.Parse(
-    "main > article.card[data-state='READY' i]");
-if (parsedSelector.IsSupported) {
-    bool matches = parsedSelector.Selector!.Matches(article);
-    Console.WriteLine(parsedSelector.Selector.Specificity);
+HtmlCssStyleSheet sheet = HtmlCssSyntaxParser.ParseStyleSheet(
+    "@namespace svg url('http://www.w3.org/2000/svg');");
+var selectorOptions = new HtmlCssSelectorOptions {
+    Namespaces = HtmlCssNamespaceContext.FromStyleSheet(sheet)
+};
+HtmlCssSelectorListParseResult parsedSelectors = HtmlCssSelectorParser.ParseList(
+    "main > article.card:last-child:is([data-state='READY' i], .queued), svg|a:first-child",
+    selectorOptions);
+if (parsedSelectors.IsSupported) {
+    bool matches = parsedSelectors.SelectorList!.Matches(article);
+    Console.WriteLine(parsedSelectors.SelectorList.Selectors[0].Specificity);
 }
 ```
 
-The owned selector slice covers type, universal, id, class, and attribute selectors,
-including attribute comparison modifiers, with descendant, child, adjacent-sibling,
-and general-sibling combinators. A parse result distinguishes malformed syntax from a
-valid selector that needs a provider. Selector lists are split by stylesheet consumers;
-the standalone parser accepts one complex selector. Namespace selectors, pseudo-classes,
-pseudo-elements, nesting, and functional selectors currently return `Unsupported`.
-`HtmlCssSelectorOptions` bounds source length, token count, compounds, and simple selectors;
-cancellation and limit failures publish no partial selector.
+The owned selector slice covers type, universal, id, class, namespace-qualified type and
+attribute selectors, attribute comparison modifiers, and descendant, child, adjacent-sibling,
+and general-sibling combinators. It implements `:root`, `:empty`, first/last/only child and
+of-type forms, unfiltered `:nth-child()`, `:nth-last-child()`, `:nth-of-type()`, and
+`:nth-last-of-type()` An+B expressions, a single basic identifier `:lang()` range, plus
+`:is()`, `:where()`, and `:not()`. Logical
+specificity follows Selectors Level 4: `:where()` contributes zero while `:is()` and `:not()`
+use their most specific argument. `:is()` and `:where()` discard malformed list members;
+`:not()` keeps its strict list grammar. In logical pseudo-class arguments, an implicit
+universal on the final subject compound is not constrained by a stylesheet default namespace;
+preceding compounds still use that default namespace.
+
+`Parse` retains the single-complex-selector contract and classifies a top-level comma as
+`Unsupported`. `ParseList` parses a comma-separated list atomically; every member must be in
+the owned subset before a match can run. Both results distinguish malformed syntax from valid
+syntax that needs a provider. Dynamic state pseudo-classes, `:has()`, filtered
+`:nth-child(... of S)`, pseudo-elements, and nesting remain explicit provider cases. Default
+namespaces apply to explicit and implicit type/universal selectors but not to unprefixed
+attributes. `:empty` follows deployed browser text-node semantics: whitespace text makes an
+element non-empty, while comments do not. `HtmlCssSelectorOptions` bounds source length, token count, compounds, simple
+selectors, list members, and logical nesting. Parsing and matching observe cancellation, and
+limit failures publish no partial selector.
 
 The lossless syntax model deliberately preserves selector preludes without forcing the
 owned subset on every rule. Apply `HtmlCssSelectorParser` when a consumer wants validation

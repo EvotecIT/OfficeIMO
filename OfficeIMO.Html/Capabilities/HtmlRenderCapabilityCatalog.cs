@@ -29,10 +29,11 @@ public static partial class HtmlRenderCapabilityCatalog {
             CssScope(HtmlCapabilityStage.CascadeAndCompute, HtmlCapabilitySpecificationIds.CssCascade),
             Features("author stylesheets", "caller stylesheets", "inline styles", "!important", "inheritance", "custom properties", "@supports", "@layer", "revert-layer"),
             "Applies the bounded author cascade, selector specificity, cascade-layer ordering, layer rollback, inherited values, var() substitution, supported @supports conditions, and caller stylesheets appended after document styles."),
-        Qualified("css-selectors", "CSS selectors", HtmlRenderCapabilityKind.Css,
+        QualifiedWithLimitations("css-selectors", "CSS selectors", HtmlRenderCapabilityKind.Css,
             CssScope(HtmlCapabilityStage.DomAndQuery | HtmlCapabilityStage.CascadeAndCompute, HtmlCapabilitySpecificationIds.Selectors, HtmlCapabilitySpecificationIds.CssCascade),
-            Features("type", "class", "id", "attribute", "combinators", "structural pseudo-classes", "CSS nesting", "::before", "::after", "::marker"),
-            "Matches the documented selector subset, bounded parent-list and ampersand nesting including nested conditional rules, and generated before, after, and list-marker content; selectors outside the bounded subset do not match."),
+            Features("type", "class", "id", "attribute", "namespace selectors", "selector lists", "combinators", "child and of-type pseudo-classes", "An+B pseudo-classes", ":lang()", ":is()/:where()/:not()", "CSS nesting", "::before", "::after", "::marker"),
+            "Matches bounded selector lists and stylesheet namespace bindings through the OfficeIMO-owned path, including the listed structural, language, and logical pseudo-classes. The retained provider covers wider selectors and nested-rule parsing; provider-assisted pseudo-classes retain the owned namespace and combinator envelope. Dynamic state remains a runtime concern. Generated before, after, and list-marker content uses the same cascade. :empty follows deployed browser behavior, where whitespace text makes an element non-empty and comments do not.",
+            Features("Selectors Level 4 whitespace-ignoring :empty semantics")),
         Qualified("css-length-units", "CSS values", HtmlRenderCapabilityKind.Css,
             CssScope(HtmlCapabilityStage.CascadeAndCompute | HtmlCapabilityStage.Layout, HtmlCapabilitySpecificationIds.CssValues),
             Features("px", "pt", "pc", "in", "cm", "mm", "q", "em", "rem", "%", "vw/vh/vmin/vmax", "sv*/lv*/dv* viewport units", "cqw/cqh/cqi/cqb/cqmin/cqmax"),
@@ -312,6 +313,21 @@ public static partial class HtmlRenderCapabilityCatalog {
         string behavior,
         params string[] diagnostics) =>
         Create(id, area, kind, scope, HtmlCapabilityCoverage.Qualified, HtmlCapabilityHandling.Native, features, behavior, diagnostics);
+
+    private static HtmlRenderCapability QualifiedWithLimitations(
+        string id,
+        string area,
+        HtmlRenderCapabilityKind kind,
+        CapabilityScope scope,
+        IEnumerable<string> features,
+        string behavior,
+        IEnumerable<string> limitations,
+        params string[] diagnostics) {
+        HtmlRenderCapability capability = Create(id, area, kind, scope, HtmlCapabilityCoverage.Qualified,
+            HtmlCapabilityHandling.Native, features, behavior, diagnostics);
+        return new HtmlRenderCapability(capability.Id, capability.Area, capability.Kind, capability.Stages,
+            capability.ProfileBindings, capability.Features, capability.Behavior, limitations, capability.DiagnosticCodes);
+    }
 
     private static HtmlRenderCapability Fallback(
         string id,

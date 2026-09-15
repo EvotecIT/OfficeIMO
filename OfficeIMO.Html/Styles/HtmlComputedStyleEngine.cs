@@ -406,7 +406,7 @@ public static partial class HtmlComputedStyleEngine {
             throw new ArgumentNullException(nameof(document));
         }
 
-        var budget = new HtmlCssProcessingBudget(limits);
+        var budget = new HtmlCssProcessingBudget(limits, MatchProviderSelectorFragment);
         IReadOnlyDictionary<string, CustomPropertyRegistration> customPropertyRegistrations =
             ParseCustomPropertyRegistrations(document, environment);
         IReadOnlyList<StyleRule> rules = ParseStyleRules(document, environment, budget);

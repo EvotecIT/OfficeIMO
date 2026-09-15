@@ -146,19 +146,25 @@ if (explicitPdf.RenderResult.Request.CssMedia != HtmlCssMediaContext.Screen ||
     throw new InvalidOperationException("Packed explicit HTML-to-PDF request contract failed.");
 
 var tracedDocument = HtmlConversionDocument.Parse(
-    "<style>[data-tone='IMPORTANT' i] > .notice { color:hsl(210 50 40 / 75%); opacity:calc(.2 + .3); width:calc(20px + 10%); }</style>" +
-    "<section data-tone='important'><p class='notice'>Status</p></section>");
+    "<style>@namespace svg url('http://www.w3.org/2000/svg');" +
+    ".missing, [data-tone='IMPORTANT' i] > .notice:last-child:is(.notice):not(.blocked) " +
+    "{ color:hsl(210 50 40 / 75%); opacity:calc(.2 + .3); width:calc(20px + 10%); }" +
+    "svg|a:first-child { visibility:hidden; }</style>" +
+    "<section data-tone='important'><p class='notice'>Status</p></section><svg><a id='packed-svg'>Asset</a></svg>");
 var tracedElement = tracedDocument.Document.QuerySelector(".notice")
     ?? throw new InvalidOperationException("The packed cascade-trace element was not parsed.");
 HtmlComputedStyle tracedStyle = HtmlComputedStyleEngine.Compute(tracedDocument, new HtmlComputedStyleOptions {
     IncludeCascadeTraces = true
 })[tracedElement];
 OfficeIMO.Html.Css.HtmlCssCascadeTrace? colorTrace = tracedStyle.GetCascadeTrace("color");
+HtmlComputedStyle svgStyle = HtmlComputedStyleEngine.Compute(tracedDocument)[
+    tracedDocument.Document.QuerySelector("#packed-svg")!];
 if (!tracedStyle.TryGetTypedValue("width", out OfficeIMO.Html.Css.HtmlCssPropertyValue? typedWidth) ||
     OfficeIMO.Html.Css.HtmlCssMathResolver.ResolveLength(typedWidth!.MathExpression!,
         new OfficeIMO.Html.Css.HtmlCssLengthResolutionContext { PercentageReference = 200D }).Value != 40D)
     throw new InvalidOperationException("The packed typed computed length contract failed.");
 if (tracedStyle.GetValue("color") != "rgba(51, 102, 153, 0.75)" || tracedStyle.GetValue("opacity") != "0.5" ||
+    svgStyle.GetValue("visibility") != "hidden" ||
     colorTrace?.Candidates.Count != 1 || colorTrace.Candidates[0].Decision != OfficeIMO.Html.Css.HtmlCssCascadeDecision.Selected ||
     colorTrace.Candidates[0].Source != OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule)
     throw new InvalidOperationException("The packed owned selector, typed computed-value or cascade-trace contract failed.");

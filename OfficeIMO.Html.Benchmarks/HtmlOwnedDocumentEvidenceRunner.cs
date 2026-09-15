@@ -10,7 +10,7 @@ using OfficeIMO.Html.Dom;
 namespace OfficeIMO.Html.Benchmarks;
 
 internal static class HtmlOwnedDocumentEvidenceRunner {
-    private static readonly string[] Operations = ["Parse", "Query", "Edit", "Serialize", "ConversionOwned", "CssSyntax", "CssPropertyGrammar", "CssLengthMath", "CssCascade", "CssCascadeTrace", "Cancel"];
+    private static readonly string[] Operations = ["Parse", "Query", "Edit", "Serialize", "ConversionOwned", "CssSyntax", "CssPropertyGrammar", "CssLengthMath", "CssSelectorAdvanced", "CssCascade", "CssCascadeTrace", "Cancel"];
     private static readonly (string Name, int Rows)[] Scales = [("Small", 10), ("Normal", 100), ("Large", 1000)];
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -152,6 +152,25 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
                 if (actual > maximum) failures.Add($"{lane}: {metric} {actual:F0} > {maximum:F0}.");
             }
         }
+        EvaluateAdvancedSelectorScaling(measurements, failures);
+    }
+
+    private static void EvaluateAdvancedSelectorScaling(
+        IReadOnlyList<HtmlOwnedDocumentEvidenceMeasurement> measurements,
+        ICollection<string> failures) {
+        HtmlOwnedDocumentEvidenceMeasurement[] normal = measurements.Where(value =>
+            value.Operation == "CssSelectorAdvanced" && value.Scale == "Normal").ToArray();
+        HtmlOwnedDocumentEvidenceMeasurement[] large = measurements.Where(value =>
+            value.Operation == "CssSelectorAdvanced" && value.Scale == "Large").ToArray();
+        if (normal.Length == 0 || large.Length == 0) return;
+        double normalElapsed = Median(normal.Select(value => value.ElapsedMilliseconds));
+        double largeElapsed = Median(large.Select(value => value.ElapsedMilliseconds));
+        double normalAllocated = Median(normal.Select(value => (double)value.AllocatedBytes));
+        double largeAllocated = Median(large.Select(value => (double)value.AllocatedBytes));
+        if (largeElapsed > normalElapsed * 12D)
+            failures.Add($"CssSelectorAdvanced Normal-to-Large elapsed scaling {largeElapsed / normalElapsed:F2}x > 12.00x for 6x rows.");
+        if (largeAllocated > normalAllocated * 9D)
+            failures.Add($"CssSelectorAdvanced Normal-to-Large allocation scaling {largeAllocated / normalAllocated:F2}x > 9.00x for 6x rows.");
     }
 
     private static HtmlOwnedDocumentBudgetManifest LoadBudgetManifest() {
@@ -234,6 +253,7 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
                 "CssSyntax" => CreateCssSyntax(rows),
                 "CssPropertyGrammar" => CreateCssPropertyGrammar(rows),
                 "CssLengthMath" => CreateCssLengthMath(rows),
+                "CssSelectorAdvanced" => CreateCssSelectorAdvanced(rows),
                 "CssCascade" => CreateCssCascade(rows, includeTraces: false),
                 "CssCascadeTrace" => CreateCssCascade(rows, includeTraces: true),
                 _ => throw new ArgumentOutOfRangeException(nameof(operation))
@@ -385,6 +405,37 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
                     string fingerprint = string.Join("|", traces.Select(trace => trace.ComputedValue + ":" + trace.Candidates.Count));
                     if (!includeTraces) fingerprint = string.Join("|", styles.Values.Select(style => style.GetValue("color")));
                     return new EvidenceValidation(styles.Count, Hash(fingerprint), fingerprint.Length);
+                });
+        }
+
+        private static EvidenceOperation CreateCssSelectorAdvanced(int rows) {
+            rows = rows switch { 10 => 100, 100 => 1_000, _ => 6_000 };
+            var html = new System.Text.StringBuilder(rows * 64 + 512);
+            html.Append("<style>@namespace svg url('http://www.w3.org/2000/svg');")
+                .Append(".missing,.items>article:nth-child(odd):is([data-kind='item'],.missing):not(.blocked){color:red}")
+                .Append("svg|a:last-child{visibility:hidden}</style><main class='items'>");
+            for (int index = 0; index < rows; index++)
+                html.Append("<article id='row-").Append(index).Append("' data-kind='item'>Row ").Append(index).Append("</article>");
+            html.Append("</main><svg><a></a><a id='vector-target'></a></svg>");
+            string source = html.ToString();
+            HtmlConversionDocument document = HtmlConversionDocument.Parse(source);
+            return new EvidenceOperation(source.Length,
+                () => HtmlComputedStyleEngine.Compute(document),
+                result => {
+                    var styles = (IReadOnlyDictionary<HtmlElement, HtmlComputedStyle>)result;
+                    int matched = 0;
+                    for (int index = 0; index < rows; index++) {
+                        HtmlElement element = document.Document.QuerySelector("#row-" + index)!;
+                        bool selected = styles[element].GetValue("color") == "rgba(255, 0, 0, 1)";
+                        if (selected) matched++;
+                        if (selected != (index % 2 == 0))
+                            throw new InvalidOperationException("Owned grouped structural selector mismatch at row " + index + ".");
+                    }
+                    HtmlElement vector = document.Document.QuerySelector("#vector-target")!;
+                    if (styles[vector].GetValue("visibility") != "hidden")
+                        throw new InvalidOperationException("Owned namespace selector did not match the SVG link.");
+                    string fingerprint = matched + "|" + styles[vector].GetValue("visibility");
+                    return new EvidenceValidation(matched + 1, Hash(fingerprint), fingerprint.Length);
                 });
         }
 

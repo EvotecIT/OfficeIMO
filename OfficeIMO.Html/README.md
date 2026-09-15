@@ -113,13 +113,23 @@ conversion. Width and spacing percentages remain typed at computed-value time an
 against the layout reference at used-value time. Inline declarations enter the managed
 cascade through the lossless owned style-block parser.
 
-Top-level qualified rules whose declarations stay inside that property slice now retain
-their original OfficeIMO syntax nodes and selector AST through the cascade. The owned matcher
-handles type, universal, id, class, and attribute selectors with the four structural
-combinators. AngleSharp.Css remains in the default package for at-rules, nested rules, wider
-property grammars, pseudo and namespace selectors, and other fallback cases. OfficeIMO keeps
-rule order, cascade layers, computed-style projection, and fallback selection stable while
-the owned subset grows.
+Top-level qualified rules whose declarations stay inside that property slice retain their
+original OfficeIMO syntax nodes and selector AST through the cascade. The owned matcher
+handles atomic selector lists, stylesheet namespace bindings, type, universal, id, class,
+and attribute selectors, the four structural combinators, selected child/of-type and An+B
+pseudo-classes, a single-range `:lang()`, and `:is()`, `:where()`, and `:not()`. Grouped rules use the owned path only
+when every selector and declaration is qualified, so a partially understood list cannot
+silently change which elements match. For a namespace-qualified selector that also needs a
+wider pseudo-class, the owned matcher retains the stylesheet namespace and combinator envelope
+while the provider evaluates that pseudo-class against the current element. `:is()` and `:where()`
+use forgiving lists, while `:not()` stays strict. `:empty` follows deployed browser behavior:
+whitespace text makes an element non-empty and comments do not.
+
+AngleSharp.Css remains in the default package for wider property grammars, dynamic and
+relational pseudo-classes, filtered `:nth-child(... of S)`, nested rule parsing, at-rules,
+pseudo-elements, and other fallback cases. Retained declarations can still use an owned
+selector match, including namespace-qualified selectors. OfficeIMO keeps rule order, cascade
+layers, computed-style projection, and fallback selection stable while the owned subset grows.
 
 Cascade explanations are opt-in so normal rendering does not retain candidate graphs for
 every element:

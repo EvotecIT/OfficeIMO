@@ -8,7 +8,7 @@ var options = new HtmlParseOptions {
     MaxDepth = 32
 };
 HtmlDocument source = AngleSharpHtmlParser.Instance.ParseDocument(
-    "<table><tbody><tr id='items'><th>Item</th></tr></tbody></table>", options);
+    "<table><tbody><tr id='items'><th>Item</th></tr></tbody></table><svg><a id='asset'></a></svg>", options);
 HtmlElement row = source.QuerySelector("#items")
     ?? throw new InvalidOperationException("The packed document query lost its table row.");
 HtmlDocumentFragment cells = AngleSharpHtmlParser.Instance.ParseFragment(
@@ -30,6 +30,13 @@ HtmlCssStyleBlock inlineStyle = HtmlCssSyntaxParser.ParseStyleBlock("color:green
 HtmlCssPropertyParseResult parsedOpacity = HtmlCssPropertyParser.Parse("opacity", "calc(20% + 55%)");
 HtmlCssPropertyParseResult parsedColor = HtmlCssPropertyParser.Parse("color", "hsl(210 50 40 / 75%)");
 HtmlCssSelectorParseResult parsedSelector = HtmlCssSelectorParser.Parse("table > tbody tr#items");
+HtmlCssStyleSheet namespaceSheet = HtmlCssSyntaxParser.ParseStyleSheet(
+    "@namespace svg url('http://www.w3.org/2000/svg');svg|a:first-child{}");
+var selectorOptions = new HtmlCssSelectorOptions {
+    Namespaces = HtmlCssNamespaceContext.FromStyleSheet(namespaceSheet)
+};
+HtmlCssSelectorListParseResult parsedSelectorList = HtmlCssSelectorParser.ParseList(
+    "#missing, svg|a:first-child:is(#asset):not(.missing)", selectorOptions);
 HtmlCssMathParseResult parsedWidth = HtmlCssMathParser.ParseLengthPercentage("calc(24px + 25%)");
 HtmlCssLengthResolutionResult resolvedWidth = HtmlCssMathResolver.ResolveLength(parsedWidth.Expression!,
     new HtmlCssLengthResolutionContext { PercentageReference = 200D });
@@ -38,6 +45,7 @@ if (styleSheet.Rules.Count != 2 || styleSheet.ToCss() != css ||
     parsedOpacity.Status != HtmlCssPropertyParseStatus.Parsed || parsedOpacity.Value?.NumericValue?.Value != 75D ||
     parsedOpacity.Value.NumericValue.IsCalculated != true || parsedColor.Value?.ColorFunction?.Kind != HtmlCssColorFunctionKind.Hsl ||
     parsedColor.Value.ColorFunction.Alpha.Value != 75D || parsedSelector.Selector?.Matches(edited.QuerySelector("#items")!) != true ||
+    parsedSelectorList.SelectorList?.Matches(edited.QuerySelector("#asset")!) != true ||
     parsedWidth.Expression?.Type != HtmlCssNumericType.LengthPercentage || resolvedWidth.Value != 74D) {
     throw new InvalidOperationException("The packed CSS syntax or property-grammar contract failed.");
 }

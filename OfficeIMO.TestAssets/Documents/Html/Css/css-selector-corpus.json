@@ -10,9 +10,18 @@
   { "name": "descendant", "selector": "body article.primary", "status": "Parsed", "specificity": "0,1,2", "match": "target" },
   { "name": "adjacent sibling", "selector": "aside + article", "status": "Parsed", "specificity": "0,0,2", "match": "target" },
   { "name": "subsequent sibling", "selector": "header ~ article", "status": "Parsed", "specificity": "0,0,2", "match": "target" },
-  { "name": "pseudo fallback", "selector": "article:first-child", "status": "Unsupported" },
-  { "name": "namespace fallback", "selector": "svg|a", "status": "Unsupported" },
+  { "name": "structural pseudo", "selector": "article:last-child", "status": "Parsed", "specificity": "0,1,1", "match": "target" },
+  { "name": "logical is", "selector": ":is(article, #missing)", "status": "Parsed", "specificity": "1,0,0", "match": "target" },
+  { "name": "logical where", "selector": ":where(.card, #missing)", "status": "Parsed", "specificity": "0,0,0", "match": "target" },
+  { "name": "logical not", "selector": "article:not(.missing)", "status": "Parsed", "specificity": "0,1,1", "match": "target" },
+  { "name": "nth child", "selector": "article:nth-child(3)", "status": "Parsed", "specificity": "0,1,1", "match": "target" },
+  { "name": "namespace requires binding", "selector": "svg|a", "status": "InvalidSyntax" },
   { "name": "selector list fallback", "selector": "article, aside", "status": "Unsupported" },
+  { "name": "unsupported state pseudo", "selector": "article:hover", "status": "Unsupported" },
+  { "name": "unsupported relational pseudo", "selector": "article:has(span)", "status": "Unsupported" },
+  { "name": "unsupported nth selector list", "selector": "article:nth-child(1 of .card)", "status": "Unsupported" },
   { "name": "bad class", "selector": ".", "status": "InvalidSyntax" },
-  { "name": "unclosed attribute", "selector": "[data-role=hero", "status": "InvalidSyntax" }
+  { "name": "unclosed attribute", "selector": "[data-role=hero", "status": "InvalidSyntax" },
+  { "name": "bad nth", "selector": "article:nth-child(2n+-1)", "status": "InvalidSyntax" },
+  { "name": "empty logical list", "selector": "article:is()", "status": "InvalidSyntax" }
 ]

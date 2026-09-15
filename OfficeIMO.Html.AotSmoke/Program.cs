@@ -6,7 +6,10 @@ using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 
 const string marker = "AotMarker";
-const string html = "<style>body{margin:0}[data-tone='IMPORTANT' i]>h1.hero{color:hsl(210 50 40 / 75%);opacity:calc(.2 + .3);width:calc(20px + 10%)}</style><main data-tone='important'><h1 class='hero'>AotMarker</h1></main><p><a href='https://example.test/'>Searchable PDF link</a></p>";
+const string html = "<style>@namespace svg url('http://www.w3.org/2000/svg');body{margin:0}" +
+    ".missing,[data-tone='IMPORTANT' i]>h1.hero:last-child:is(.hero):not(.blocked){color:hsl(210 50 40 / 75%);opacity:calc(.2 + .3);width:calc(20px + 10%)}" +
+    "svg|a:first-child{visibility:hidden}</style><main data-tone='important'><h1 class='hero'>AotMarker</h1></main>" +
+    "<svg><a id='aot-svg'>Asset</a></svg><p><a href='https://example.test/'>Searchable PDF link</a></p>";
 HtmlDocument aotTable = HtmlDocumentEngine.Default.ParseDocument(
     "<table><tbody><tr id='aot-items'></tr></tbody></table>");
 HtmlDocumentFragment aotCells = HtmlDocumentEngine.Default.ParseFragment(
@@ -19,10 +22,13 @@ if (aotEditedTable.QuerySelectorAll("td").Count != 1) {
 HtmlCssStyleSheet aotCss = HtmlCssSyntaxParser.ParseStyleSheet("@future aot;.card{color:red;future:fn(one[two])}");
 HtmlCssPropertyParseResult aotOpacity = HtmlCssPropertyParser.Parse("opacity", "calc(15% + 25%)");
 HtmlCssSelectorParseResult aotSelector = HtmlCssSelectorParser.Parse("table > tbody tr#aot-items");
+HtmlCssSelectorListParseResult aotSelectorList = HtmlCssSelectorParser.ParseList(
+    "#missing, tr:first-child:is(#aot-items):not(.missing)");
 if (aotCss.Rules.Count != 2 || aotCss.ToCss().Length == 0 ||
     aotOpacity.Status != HtmlCssPropertyParseStatus.Parsed || aotOpacity.Value?.NumericValue?.Value != 40D ||
     aotOpacity.Value.NumericValue.IsCalculated != true ||
-    aotSelector.Selector?.Matches(aotEditedTable.QuerySelector("#aot-items")!) != true) {
+    aotSelector.Selector?.Matches(aotEditedTable.QuerySelector("#aot-items")!) != true ||
+    aotSelectorList.SelectorList?.Matches(aotEditedTable.QuerySelector("#aot-items")!) != true) {
     throw new InvalidOperationException("The NativeAOT CSS syntax or property-grammar contract failed.");
 }
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
@@ -32,12 +38,14 @@ HtmlComputedStyle headingStyle = HtmlComputedStyleEngine.Compute(source, new Htm
     IncludeCascadeTraces = true
 })[heading];
 HtmlCssCascadeTrace? headingColorTrace = headingStyle.GetCascadeTrace("color");
+HtmlComputedStyle svgLinkStyle = HtmlComputedStyleEngine.Compute(source)[source.Document.QuerySelector("#aot-svg")!];
 if (!headingStyle.TryGetTypedValue("width", out HtmlCssPropertyValue? headingWidth) ||
     HtmlCssMathResolver.ResolveLength(headingWidth!.MathExpression!,
         new HtmlCssLengthResolutionContext { PercentageReference = 200D }).Value != 40D) {
     throw new InvalidOperationException("The NativeAOT typed computed length contract failed.");
 }
 if (headingStyle.GetValue("color") != "rgba(51, 102, 153, 0.75)" || headingStyle.GetValue("opacity") != "0.5" ||
+    svgLinkStyle.GetValue("visibility") != "hidden" ||
     headingColorTrace?.Candidates.Count != 1 ||
     headingColorTrace.Candidates[0].Decision != HtmlCssCascadeDecision.Selected) {
     throw new InvalidOperationException(

@@ -164,19 +164,29 @@ public static partial class HtmlComputedStyleEngine {
             IDictionary<string, StyleDeclaration> declarations,
             CascadeLayerOrder? layerOrder = null,
             string? layerName = null,
-            IEnumerable<ContainerRuleCondition>? containerConditions = null) {
+            IEnumerable<ContainerRuleCondition>? containerConditions = null,
+            OfficeIMO.Html.Css.HtmlCssNamespaceContext? namespaceContext = null,
+            AngleSharp.Css.Dom.ISelector? providerSelector = null) {
             Selector = selector;
             string ownedSource = TryParsePseudoElementSelector(selector, out string hostSelector, out _) ? hostSelector : selector;
             OfficeIMO.Html.Css.HtmlCssSelector? ownedSelector = null;
             try {
-                ownedSelector = OfficeIMO.Html.Css.HtmlCssSelectorParser.Parse(ownedSource).Selector;
+                var selectorOptions = new OfficeIMO.Html.Css.HtmlCssSelectorOptions { Namespaces = namespaceContext };
+                ownedSelector = OfficeIMO.Html.Css.HtmlCssSelectorParser.Parse(ownedSource, selectorOptions).Selector;
+                if (ownedSelector == null && providerSelector != null) {
+                    ownedSelector = OfficeIMO.Html.Css.HtmlCssSelectorParser.ParseHybrid(ownedSource, selectorOptions).Selector;
+                }
             } catch (OfficeIMO.Html.Css.HtmlCssSelectorLimitException) {
                 // The conversion stylesheet budget remains authoritative. Selectors outside the
                 // standalone parser budget stay on the retained provider path.
             }
             OwnedSelector = ownedSelector;
-            Specificity = ownedSelector == null ? specificity : new Specificity(
-                ownedSelector.Specificity.Ids, ownedSelector.Specificity.Classes, ownedSelector.Specificity.Types);
+            ProviderSelector = ownedSelector == null || ownedSelector.RequiresProviderMatching ? providerSelector : null;
+            Specificity = ownedSelector != null && (!ownedSelector.RequiresProviderMatching || ProviderSelector == null)
+                ? new Specificity(ownedSelector.Specificity.Ids, ownedSelector.Specificity.Classes, ownedSelector.Specificity.Types)
+                : ProviderSelector != null
+                    ? new Specificity(ProviderSelector.Specificity.Ids, ProviderSelector.Specificity.Classes, ProviderSelector.Specificity.Tags)
+                    : specificity;
             Order = order;
             Declarations = new Dictionary<string, StyleDeclaration>(declarations, HtmlCssPropertyNameComparer.Instance);
             LayerOrder = layerOrder;
@@ -187,6 +197,7 @@ public static partial class HtmlComputedStyleEngine {
 
         internal string Selector { get; }
         internal OfficeIMO.Html.Css.HtmlCssSelector? OwnedSelector { get; }
+        internal AngleSharp.Css.Dom.ISelector? ProviderSelector { get; }
         internal Specificity Specificity { get; }
         internal int Order { get; }
         internal IReadOnlyDictionary<string, StyleDeclaration> Declarations { get; }
