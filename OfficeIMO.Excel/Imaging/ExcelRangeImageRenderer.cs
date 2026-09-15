@@ -88,7 +88,9 @@ namespace OfficeIMO.Excel {
             byte[] bytes = OfficeRasterImageEncoder.Encode(
                 image,
                 format,
-                rasterState.EncodingOptions);
+                rasterState.EncodingOptions,
+                options.MaximumTotalEncodedBytes,
+                cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return options.EnsureAccepted(new OfficeImageExportResult(format, image.Width, image.Height, bytes, snapshot.SheetName, source, diagnostics.AsReadOnly()));
         }

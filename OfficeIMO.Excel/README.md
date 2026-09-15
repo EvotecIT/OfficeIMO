@@ -916,3 +916,23 @@ static OfficeProvenanceReport InspectUploadedExcel(byte[] packageBytes) =>
 - **Security:** Open XML and VBA signature carriers are inspected and signed-package mutations fail safely without a cryptographic dependency. Package and VBA signature creation and cryptographic validation accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 20 | 13 | 0 | 15 | 2 | 2 |
+| Read | 33 | 0 | 17 | 0 | 0 | 2 |
+| Edit | 10 | 0 | 39 | 2 | 1 | 0 |
+| Preserve | 9 | 0 | 39 | 0 | 0 | 0 |
+| Inspect | 5 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 3 | 0 | 0 | 0 | 0 | 2 |
+| Remove | 4 | 0 | 0 | 0 | 1 | 0 |
+| Convert | 48 | 39 | 0 | 9 | 0 | 0 |
+| Export | 5 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Excel` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

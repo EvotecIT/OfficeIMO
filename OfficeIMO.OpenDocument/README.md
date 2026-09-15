@@ -160,3 +160,20 @@ Interoperability coverage includes ODT, ODS, and ODP files from LibreOffice and 
 - **Security:** ODF password encryption/decryption is first-party and dependency-free. Signature carriers are detected and changed signed packages fail safely without a cryptographic dependency. `OdfDocument.SignPackage(...)` and `ValidatePackageSignatures(...)` use an explicit provider for the bounded OfficeIMO XML package-manifest profile; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 2 | 0 | 0 | 0 | 0 | 0 |
+| Read | 1 | 0 | 0 | 0 | 0 | 1 |
+| Edit | 1 | 0 | 0 | 1 | 0 | 0 |
+| Inspect | 3 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 2 | 0 | 0 | 0 | 0 | 1 |
+| Remove | 3 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.OpenDocument` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

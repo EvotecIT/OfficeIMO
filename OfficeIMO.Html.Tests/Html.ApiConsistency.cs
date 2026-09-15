@@ -12,6 +12,20 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlApiConsistencyTests {
     [Fact]
+    public void Html_PublicRasterExportHonorsEncodedByteLimitAndCancellation() {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<main style='width:320px;height:180px;background:#369'>Bounded HTML raster export</main>");
+        var options = new HtmlRenderOptions { MaximumTotalEncodedBytes = 8L };
+
+        OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            document.ExportImage(OfficeImageExportFormat.Png, options));
+
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+        Assert.Throws<OperationCanceledException>(() =>
+            document.ToImage().AsPng().Export(new CancellationToken(canceled: true)));
+    }
+
+    [Fact]
     public void DirectHtmlOutputs_RequireTheNativeHtmlSourceModel() {
         Type pdfExtensions = typeof(HtmlPdfConverterExtensions);
         Type imageExtensions = typeof(HtmlImageExportExtensions);

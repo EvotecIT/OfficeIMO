@@ -10,6 +10,25 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class VisioImageExport {
+    [Fact]
+        public void VisioPage_PublicRasterExportHonorsEncodedByteLimitAndCancellation() {
+            using var package = new MemoryStream();
+            VisioDocument document = VisioDocument.Create(package);
+        VisioPage page = document.AddPage("Bounded").Size(2, 1);
+        page.AddRectangle(1, 0.5, 1.2, 0.5, "Bounded Visio raster export");
+        var options = new VisioImageExportOptions {
+            MaximumTotalEncodedBytes = 8L,
+            Supersampling = 1
+        };
+
+        OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            page.ExportImage(OfficeImageExportFormat.Png, options));
+
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+        Assert.Throws<OperationCanceledException>(() =>
+            page.ToImage().AsPng().Export(new System.Threading.CancellationToken(canceled: true)));
+    }
+
     [Theory]
     [InlineData("clip-path='url(#left)'", "")]
     [InlineData("style='clip-path:url(#left)'", "")]

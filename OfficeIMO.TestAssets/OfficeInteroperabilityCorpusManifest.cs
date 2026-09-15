@@ -89,6 +89,9 @@ internal static class OfficeInteroperabilityCorpusManifestLoader {
         if (string.IsNullOrWhiteSpace(collection.Producer)) {
             errors.Add($"{label}: producer is required.");
         }
+        if (string.IsNullOrWhiteSpace(collection.ProducerVersion)) {
+            errors.Add($"{label}: producerVersion is required.");
+        }
         ValidateStringSet(label, "direction", collection.Directions, Directions, errors);
         ValidateStringSet(label, "oracle", collection.Oracles, Oracles, errors);
         if (!IsSafeRelativePath(collection.Provenance)) {
@@ -263,6 +266,7 @@ internal sealed class OfficeInteroperabilityCorpusCollection {
     public string Role { get; set; } = string.Empty;
     public string Root { get; set; } = string.Empty;
     public string Producer { get; set; } = string.Empty;
+    public string ProducerVersion { get; set; } = string.Empty;
     public string Provenance { get; set; } = string.Empty;
     public List<string> Directions { get; set; } = new();
     public List<string> Oracles { get; set; } = new();

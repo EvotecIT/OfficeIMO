@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": "Build/CorpusEvidence/corpus-evidence.json",
+  "summary": {
+    "corpusCount": 5,
+    "recordCount": 62
+  },
+  "corpora": [
+    {
+      "id": "office-binary-interoperability",
+      "owner": "OfficeIMO.TestAssets",
+      "manifest": "OfficeIMO.TestAssets/Documents/OfficeInteroperabilityCorpus/corpus-manifest.json",
+      "manifestSha256": "8f1e71581709f75af3fe0866b968331b3fa0e895a1c7cf69119c52c9661a48cc",
+      "recordCount": 7,
+      "diffPolicy": {
+        "kind": "package-and-semantic",
+        "stableFields": [
+          "sha256",
+          "approvedReport",
+          "focus",
+          "directions",
+          "oracles"
+        ],
+        "volatileFields": [
+          "package timestamps",
+          "calculation identifiers",
+          "producer-generated relationship identifiers"
+        ],
+        "acceptance": "Package identity, approved import reports, semantic projections, diagnostics, and declared application reopen oracles must all pass."
+      }
+    },
+    {
+      "id": "word-evidence",
+      "owner": "OfficeIMO.Word",
+      "manifest": "OfficeIMO.TestAssets/Documents/Word/EvidenceCorpus/corpus-manifest.json",
+      "manifestSha256": "a0a3dc2486a14f313c7d129738bcb32237e2f2c803cd56ffa66f7500bf99cbae",
+      "recordCount": 10,
+      "diffPolicy": {
+        "kind": "package-and-semantic",
+        "stableFields": [
+          "sha256",
+          "hashMode",
+          "oracles",
+          "lossPolicy",
+          "sourceTest"
+        ],
+        "volatileFields": [
+          "ZIP entry order",
+          "package timestamps",
+          "generated relationship identifiers"
+        ],
+        "acceptance": "The declared package or semantic oracle and the artifact loss policy must pass; byte equality is required only when the manifest selects raw hashing."
+      }
+    },
+    {
+      "id": "open-document-producers",
+      "owner": "OfficeIMO.OpenDocument",
+      "manifest": "OfficeIMO.OpenDocument.Tests/Fixtures/producer-manifest.json",
+      "manifestSha256": "53cd71f85c2978d2e89e05ade2151a69192e5e8c25472c20999df2609544154a",
+      "recordCount": 7,
+      "diffPolicy": {
+        "kind": "package-and-semantic",
+        "stableFields": [
+          "sha256",
+          "bytes",
+          "evidence",
+          "semanticTextSha256",
+          "paragraphCount"
+        ],
+        "volatileFields": [
+          "ZIP metadata",
+          "generated XML identifiers"
+        ],
+        "acceptance": "Redistributed fixtures require exact package hashes. External regenerated exports require bounded package size and the stable semantic-text oracle."
+      }
+    },
+    {
+      "id": "rtf-producers",
+      "owner": "OfficeIMO.Rtf",
+      "manifest": "OfficeIMO.Rtf.Tests/Documents/RtfCorpus/corpus-manifest.json",
+      "manifestSha256": "da61de8b90aa3dac89a19d5b5716a29de01f8ff361eb811682834a03a434b25b",
+      "recordCount": 24,
+      "diffPolicy": {
+        "kind": "package-and-semantic",
+        "stableFields": [
+          "sha256",
+          "requiredText",
+          "requiredControls",
+          "adapters",
+          "producerCoverage"
+        ],
+        "volatileFields": [
+          "RTF generator comments",
+          "producer timestamps"
+        ],
+        "acceptance": "Redistributed fixtures require exact byte hashes and declared control/text oracles. External-only artifacts require pinned hashes or semantic headers plus bounded adapter execution."
+      }
+    },
+    {
+      "id": "pdf-interoperability",
+      "owner": "OfficeIMO.Pdf",
+      "manifest": "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/corpus-manifest.json",
+      "manifestSha256": "35b002fe29a555712e600d9889cadeda6589d43973510f420fd99207acc9975f",
+      "recordCount": 14,
+      "diffPolicy": {
+        "kind": "package-and-semantic",
+        "stableFields": [
+          "sha256",
+          "byteLength",
+          "pageCount",
+          "features",
+          "expectedMutationMode",
+          "expectedRenderDiagnosticCodes"
+        ],
+        "volatileFields": [
+          "incremental update offsets",
+          "document identifiers",
+          "producer timestamps"
+        ],
+        "acceptance": "Source bytes remain hash-pinned while reads, rendering, diagnostics, and mutation policy are compared through the declared semantic case fields."
+      }
+    }
+  ]
+}

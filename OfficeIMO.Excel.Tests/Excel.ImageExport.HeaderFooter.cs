@@ -7,6 +7,26 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class ExcelImageExportHeaderFooterTests {
         [Fact]
+        public void ExcelWorksheet_ComposedRasterExportHonorsEncodedByteLimitAndCancellation() {
+            using var stream = new MemoryStream();
+            using ExcelDocument document = ExcelDocument.Create(stream);
+            ExcelSheet sheet = document.AddWorksheet("Bounded");
+            sheet.CellValue(1, 1, "Composed Excel raster export");
+            sheet.SetHeaderFooter(headerCenter: "Header", footerCenter: "Footer");
+            var options = new ExcelWorksheetImageExportOptions {
+                MaximumTotalEncodedBytes = 8L,
+                UsePrintArea = false
+            };
+
+            OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                sheet.ExportImage(OfficeImageExportFormat.Png, options));
+
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+            Assert.Throws<OperationCanceledException>(() =>
+                sheet.ToImage().AsPng().Export(new System.Threading.CancellationToken(canceled: true)));
+        }
+
+        [Fact]
         public void ExcelWorksheet_PageSlicedSvgExportRendersPlainHeaderFooterText() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

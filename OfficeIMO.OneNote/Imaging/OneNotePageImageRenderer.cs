@@ -76,7 +76,9 @@ internal static class OneNotePageImageRenderer {
             byte[] bytes = OfficeRasterImageEncoder.Encode(
                 raster,
                 format,
-                plan.CreateEncodingOptions());
+                plan.CreateEncodingOptions(),
+                effective.MaximumTotalEncodedBytes,
+                cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return effective.EnsureAccepted(new OfficeImageExportResult(
                 format,

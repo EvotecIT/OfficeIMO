@@ -5,6 +5,26 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public sealed class PowerPointRasterFormatExportTests {
+        [Fact]
+        public void PowerPointSlide_PublicRasterExportHonorsEncodedByteLimitAndCancellation() {
+            using var package = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(package);
+            presentation.SlideSize.SetSizePoints(160, 90);
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.BackgroundColor = "123456";
+            var options = new PowerPointImageExportOptions {
+                IncludeSlideContent = false,
+                MaximumTotalEncodedBytes = 8L
+            };
+
+            OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                slide.ExportImage(OfficeImageExportFormat.Png, options));
+
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+            Assert.Throws<OperationCanceledException>(() =>
+                slide.ToImage().AsPng().Export(new System.Threading.CancellationToken(canceled: true)));
+        }
+
         [Theory]
         [InlineData(OfficeImageExportFormat.Jpeg, OfficeImageFormat.Jpeg)]
         [InlineData(OfficeImageExportFormat.Tiff, OfficeImageFormat.Tiff)]

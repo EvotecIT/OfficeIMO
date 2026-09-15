@@ -168,7 +168,9 @@ namespace OfficeIMO.Excel {
             byte[] bytes = OfficeRasterImageEncoder.Encode(
                 image,
                 format,
-                plan.CreateEncodingOptions());
+                plan.CreateEncodingOptions(),
+                options.MaximumTotalEncodedBytes,
+                cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return options.EnsureAccepted(new OfficeImageExportResult(
                 format,

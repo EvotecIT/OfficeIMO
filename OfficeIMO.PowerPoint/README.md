@@ -650,3 +650,23 @@ static OfficeProvenanceReport InspectUploadedPowerPoint(byte[] packageBytes) =>
 - **Security:** Open XML, legacy binary, and VBA signature carriers are inspected and signed-presentation mutations fail safely without a cryptographic dependency. OPC and VBA creation and cryptographic validation accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 47 | 2 | 0 | 10 | 0 | 1 |
+| Read | 46 | 0 | 8 | 4 | 0 | 2 |
+| Edit | 20 | 0 | 34 | 6 | 0 | 0 |
+| Preserve | 18 | 0 | 34 | 4 | 0 | 0 |
+| Inspect | 5 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 3 | 0 | 0 | 0 | 0 | 2 |
+| Remove | 5 | 0 | 0 | 0 | 0 | 0 |
+| Convert | 72 | 14 | 0 | 26 | 0 | 0 |
+| Export | 5 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.PowerPoint` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

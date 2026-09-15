@@ -1,0 +1,86 @@
+name: Release quality evidence
+
+on:
+  pull_request:
+    paths:
+      - "OfficeIMO.Core/**"
+      - "OfficeIMO.Word/**"
+      - "OfficeIMO.Excel/**"
+      - "OfficeIMO.PowerPoint/**"
+      - "OfficeIMO.Html/**"
+      - "OfficeIMO.OneNote/**"
+      - "OfficeIMO.Visio/**"
+      - "OfficeIMO.Drawing.Benchmarks/**"
+      - "Build/Benchmarks/release-quality-images.benchmark.ps1"
+      - "Build/Benchmarks/Run-ReleaseQualityImageEvidence.ps1"
+      - ".github/workflows/release-quality-evidence.yml"
+  push:
+    branches:
+      - master
+    paths:
+      - "OfficeIMO.Core/**"
+      - "OfficeIMO.Word/**"
+      - "OfficeIMO.Excel/**"
+      - "OfficeIMO.PowerPoint/**"
+      - "OfficeIMO.Html/**"
+      - "OfficeIMO.OneNote/**"
+      - "OfficeIMO.Visio/**"
+      - "OfficeIMO.Drawing.Benchmarks/**"
+      - "Build/Benchmarks/release-quality-images.benchmark.ps1"
+      - "Build/Benchmarks/Run-ReleaseQualityImageEvidence.ps1"
+      - ".github/workflows/release-quality-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  raster-evidence:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.112
+
+      - name: Install PowerForge benchmark tooling
+        shell: pwsh
+        run: Install-Module PSPublishModule -RequiredVersion 3.0.141 -Scope CurrentUser -Force -AllowClobber
+
+      - name: Build release-quality workload
+        run: dotnet build OfficeIMO.Drawing.Benchmarks/OfficeIMO.Drawing.Benchmarks.csproj --configuration Release --framework net10.0
+
+      - name: Run PowerForge evidence
+        shell: pwsh
+        run: ./Build/Benchmarks/Run-ReleaseQualityImageEvidence.ps1 -OutputRoot ./artifacts/release-quality-images
+
+      - name: Validate codecs and cancellation
+        shell: pwsh
+        run: |
+          dotnet run --project OfficeIMO.Drawing.Benchmarks/OfficeIMO.Drawing.Benchmarks.csproj --configuration Release --framework net10.0 --no-build -- --validate | Tee-Object ./artifacts/release-quality-images/codec-validation.txt
+
+      - name: Capture isolated peak-memory evidence
+        shell: pwsh
+        run: |
+          dotnet run --project OfficeIMO.Drawing.Benchmarks/OfficeIMO.Drawing.Benchmarks.csproj --configuration Release --framework net10.0 --no-build -- --memory-evidence Screenshot AlphaGraphic Photo | Tee-Object ./artifacts/release-quality-images/peak-memory.txt
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-quality-images-${{ matrix.os }}
+          path: artifacts/release-quality-images
+          if-no-files-found: error

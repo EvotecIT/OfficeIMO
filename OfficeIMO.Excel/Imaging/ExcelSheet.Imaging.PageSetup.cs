@@ -10,7 +10,9 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat rasterPlanningFormat,
             OfficeImageExportResult content,
             ExcelWorksheetImageExportOptions options,
-            ref ExcelRasterRenderState rasterState) {
+            ref ExcelRasterRenderState rasterState,
+            System.Threading.CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             ExcelSheetPageSetup pageSetup = GetPageSetup();
             if (!ShouldApplyPageSetupCanvas(pageSetup)) {
                 return content;
@@ -79,7 +81,9 @@ namespace OfficeIMO.Excel {
                 bytes = OfficeRasterImageEncoder.Encode(
                     image,
                     format,
-                    rasterState.EncodingOptions);
+                    rasterState.EncodingOptions,
+                    options.MaximumTotalEncodedBytes,
+                    cancellationToken);
             }
 
             return new OfficeImageExportResult(

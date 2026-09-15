@@ -33,9 +33,45 @@
         <div class="imo-capability-summary" aria-label="Compatibility catalog summary">
           <span><strong>{{ data.office_capabilities.summary.familyCount }}</strong> Office families</span>
           <span><strong>{{ data.office_capabilities.summary.formatCount }}</strong> file variants</span>
-          <span><strong>{{ data.office_capabilities.summary.capabilityCount }}</strong> tracked behaviors</span>
+          <span><strong>{{ data.office_capabilities.summary.packageCount }}</strong> package owners</span>
+          <span><strong>{{ data.office_capabilities.summary.operationCount }}</strong> operation outcomes</span>
         </div>
         {{ end }}
+      </div>
+    </section>
+
+    <section class="imo-capability-catalog" aria-labelledby="package-operation-contracts">
+      <div class="imo-container">
+        <p class="imo-section__eyebrow">Package-neutral discovery</p>
+        <h2 id="package-operation-contracts">Create, read, edit, preserve, inspect, convert, and export</h2>
+        <p>Every summary below is projected from the same machine-readable operation catalog used by package documentation and MCP discovery. Detailed format catalogs remain the evidence owners.</p>
+        <div class="imo-capability-grid">
+          {{ for package in data.office_capabilities.packages }}
+          <article id="package-{{ package.slug }}" class="imo-capability-card">
+            <div class="imo-capability-card__header">
+              <div>
+                <p class="imo-capability-card__package">Package owner</p>
+                <h3>{{ package.id }}</h3>
+              </div>
+              <div class="imo-capability-card__meta">
+                <span class="imo-capability-card__count">{{ package.capabilityCount }} outcomes</span>
+              </div>
+            </div>
+            <div class="imo-capability-operations">
+              {{ for operation in package.operations }}
+              <div class="imo-capability-operation">
+                <strong>{{ operation.id }}</strong>
+                <div>
+                  {{ for state in operation.states }}
+                  <span class="imo-capability-state" data-state="{{ state.label }}" title="{{ state.description }}"><span>{{ state.label }}</span><b>{{ state.count }}</b></span>
+                  {{ end }}
+                </div>
+              </div>
+              {{ end }}
+            </div>
+          </article>
+          {{ end }}
+        </div>
       </div>
     </section>
 
@@ -118,6 +154,11 @@
         <p>OfficeIMO reports whether content remains native and editable, becomes an approximation or visual fallback, is preserved for recovery, or is blocked to prevent silent loss.</p>
         <div class="imo-capability-legend__grid">
           {{ for state in data.office_capabilities.fidelityStates }}
+          <div><strong>{{ state.label }}</strong><span>{{ state.description }}</span></div>
+          {{ end }}
+        </div>
+        <div class="imo-capability-legend__grid">
+          {{ for state in data.office_capabilities.operationStates }}
           <div><strong>{{ state.label }}</strong><span>{{ state.description }}</span></div>
           {{ end }}
         </div>

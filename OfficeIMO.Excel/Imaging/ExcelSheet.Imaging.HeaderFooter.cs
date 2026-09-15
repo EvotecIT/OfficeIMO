@@ -155,7 +155,9 @@ namespace OfficeIMO.Excel {
                 OfficeRasterImageEncoder.Encode(
                     image,
                     format,
-                    rasterState.EncodingOptions),
+                    rasterState.EncodingOptions,
+                    options.MaximumTotalEncodedBytes,
+                    cancellationToken),
                 content.Name,
                 content.Source,
                 diagnostics);

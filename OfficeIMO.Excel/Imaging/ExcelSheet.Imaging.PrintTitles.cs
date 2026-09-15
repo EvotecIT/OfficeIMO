@@ -46,7 +46,8 @@ namespace OfficeIMO.Excel {
                     format,
                     result,
                     options,
-                    ref rasterState);
+                    ref rasterState,
+                    cancellationToken);
                 result = ApplyHeaderFooterTextChrome(
                     workingFormat,
                     format,
@@ -77,7 +78,12 @@ namespace OfficeIMO.Excel {
                 format,
                 result.Width,
                 result.Height,
-                OfficeRasterImageEncoder.Encode(image, format, rasterState.EncodingOptions),
+                OfficeRasterImageEncoder.Encode(
+                    image,
+                    format,
+                    rasterState.EncodingOptions,
+                    options.MaximumTotalEncodedBytes,
+                    cancellationToken),
                 result.Name,
                 result.Source,
                 result.Diagnostics));
@@ -185,7 +191,12 @@ namespace OfficeIMO.Excel {
                 format,
                 outputWidth,
                 outputHeight,
-                OfficeRasterImageEncoder.Encode(image, format, rasterState.EncodingOptions),
+                OfficeRasterImageEncoder.Encode(
+                    image,
+                    format,
+                    rasterState.EncodingOptions,
+                    options.MaximumTotalEncodedBytes,
+                    cancellationToken),
                 Name,
                 Name + "!" + range.Range,
                 diagnostics.AsReadOnly());

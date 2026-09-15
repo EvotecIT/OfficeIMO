@@ -90,8 +90,25 @@ public sealed class AgentCapabilitiesResult {
     public int Returned { get; set; }
     public bool Truncated { get; set; }
     public IReadOnlyList<AgentCapabilitySummary> Capabilities { get; set; } = Array.Empty<AgentCapabilitySummary>();
+    public int OperationReturned { get; set; }
+    public IReadOnlyList<AgentOperationCapabilitySummary> Operations { get; set; } = Array.Empty<AgentOperationCapabilitySummary>();
     public int ConversionReturned { get; set; }
     public IReadOnlyList<AgentConversionCapabilitySummary> Conversions { get; set; } = Array.Empty<AgentConversionCapabilitySummary>();
+}
+
+/// <summary>Package-neutral operation outcome intended for CLI and MCP discovery.</summary>
+public sealed class AgentOperationCapabilitySummary {
+    public string Id { get; set; } = string.Empty;
+    public string PackageId { get; set; } = string.Empty;
+    public string FormatId { get; set; } = string.Empty;
+    public string TargetFormatId { get; set; } = string.Empty;
+    public string Operation { get; set; } = string.Empty;
+    public string State { get; set; } = string.Empty;
+    public IReadOnlyList<string> Extensions { get; set; } = Array.Empty<string>();
+    public string Api { get; set; } = string.Empty;
+    public string Evidence { get; set; } = string.Empty;
+    public string SourceCatalog { get; set; } = string.Empty;
+    public string Limitation { get; set; } = string.Empty;
 }
 
 /// <summary>Small capability description intended for CLI and MCP discovery.</summary>

@@ -4,6 +4,7 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.All;
 using OfficeIMO.Reader.Email;
 using OfficeIMO.Tool.Commands.Reader;
+using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Tool.Agent;
 
@@ -147,9 +148,10 @@ internal sealed partial class OfficeImoAgentService {
             .Where(capability => normalizedExtension == null ||
                 capability.Extensions.Contains(normalizedExtension, StringComparer.OrdinalIgnoreCase))
             .Where(capability =>
-                operation != "convert" ||
-                (capability.Id != OfficeDocumentReaderBuilderEmailStoreExtensions.HandlerId &&
-                 capability.Id != OfficeDocumentReaderBuilderEmailExtensions.MailboxHandlerId))
+                operation is "read" or "inspect" or "search" or "fetch" ||
+                operation == "convert" &&
+                capability.Id != OfficeDocumentReaderBuilderEmailStoreExtensions.HandlerId &&
+                capability.Id != OfficeDocumentReaderBuilderEmailExtensions.MailboxHandlerId)
             .OrderBy(capability => capability.Id, StringComparer.Ordinal)
             .Select(capability => new AgentCapabilitySummary {
                 Id = capability.Id,
@@ -160,6 +162,27 @@ internal sealed partial class OfficeImoAgentService {
                     .ToArray()
             })
             .ToList();
+        OfficeOperationKind? operationKind = GetCatalogOperation(operation);
+        var operations = operationKind.HasValue
+            ? OfficeOperationCapabilityCatalog.All
+                .Where(row => row.Operation == operationKind.Value)
+                .Where(row => normalizedExtension == null ||
+                    row.Extensions.Contains(normalizedExtension, StringComparer.OrdinalIgnoreCase))
+                .Select(row => new AgentOperationCapabilitySummary {
+                    Id = row.Id,
+                    PackageId = row.PackageId,
+                    FormatId = row.FormatId,
+                    TargetFormatId = row.TargetFormatId,
+                    Operation = row.Operation.ToString(),
+                    State = row.State.ToString(),
+                    Extensions = row.Extensions,
+                    Api = row.PublicApi,
+                    Evidence = row.Evidence,
+                    SourceCatalog = row.SourceCatalog,
+                    Limitation = row.Limitation
+                })
+                .ToList()
+            : new List<AgentOperationCapabilitySummary>();
         var conversions = operation == "convert"
             ? OfficeConversionCapabilityCatalog.AgentRoutes
                 .Where(route => normalizedExtension == null ||
@@ -184,11 +207,17 @@ internal sealed partial class OfficeImoAgentService {
             Operation = operation,
             Returned = capabilities.Count,
             Capabilities = capabilities,
+            OperationReturned = operations.Count,
+            Operations = operations,
             ConversionReturned = conversions.Count,
             Conversions = conversions
         };
-        while (AgentJson.Measure(result) > maxOutputCharacters && (conversions.Count > 0 || capabilities.Count > 0)) {
-            if (conversions.Count > 0) {
+        while (AgentJson.Measure(result) > maxOutputCharacters &&
+               (operations.Count > 0 || conversions.Count > 0 || capabilities.Count > 0)) {
+            if (operations.Count > 0) {
+                operations.RemoveAt(operations.Count - 1);
+                result.OperationReturned = operations.Count;
+            } else if (conversions.Count > 0) {
                 conversions.RemoveAt(conversions.Count - 1);
                 result.ConversionReturned = conversions.Count;
             } else {
@@ -324,11 +353,25 @@ internal sealed partial class OfficeImoAgentService {
             ? "read"
             : operation.Trim().ToLowerInvariant();
         return normalized switch {
-            "read" or "inspect" or "search" or "fetch" or "convert" => normalized,
+            "create" or "read" or "edit" or "preserve" or "inspect" or "validate" or "remove" or
+                "search" or "fetch" or "convert" or "export" => normalized,
             _ => throw new AgentUsageException(
-                "Capability operation must be read, inspect, search, fetch, or convert.")
+                "Capability operation must be create, read, edit, preserve, inspect, validate, remove, search, fetch, convert, or export.")
         };
     }
+
+    private static OfficeOperationKind? GetCatalogOperation(string operation) => operation switch {
+        "create" => OfficeOperationKind.Create,
+        "read" => OfficeOperationKind.Read,
+        "edit" => OfficeOperationKind.Edit,
+        "preserve" => OfficeOperationKind.Preserve,
+        "inspect" => OfficeOperationKind.Inspect,
+        "validate" => OfficeOperationKind.Validate,
+        "remove" => OfficeOperationKind.Remove,
+        "convert" => OfficeOperationKind.Convert,
+        "export" => OfficeOperationKind.Export,
+        _ => null
+    };
 
     private static string? NormalizeExtension(string? extension) {
         if (string.IsNullOrWhiteSpace(extension)) return null;

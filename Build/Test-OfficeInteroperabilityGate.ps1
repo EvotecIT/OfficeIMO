@@ -48,6 +48,12 @@ function Test-CompatibilityCatalogArtifacts {
     }
 }
 
+function Test-CorpusEvidenceArtifacts {
+    Write-Host ""
+    Write-Host "== Cross-producer corpus evidence contracts ==" -ForegroundColor Cyan
+    & (Join-Path $repoRoot 'Build/CorpusEvidence/Build-CorpusEvidence.ps1') -Verify
+}
+
 foreach ($project in $projects.GetEnumerator()) {
     if (-not (Test-Path -LiteralPath $project.Value)) {
         throw "OfficeIMO $($project.Key) test project was not found: $($project.Value)"
@@ -139,6 +145,7 @@ $wordAdvancedFilter = @(
 Write-Host "Office interoperability gate suite: $Suite" -ForegroundColor Yellow
 
 Test-CompatibilityCatalogArtifacts
+Test-CorpusEvidenceArtifacts
 
 if ($Suite -in @('Full', 'Corpus')) {
     Invoke-InteroperabilityGateStep `

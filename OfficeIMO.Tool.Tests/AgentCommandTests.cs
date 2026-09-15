@@ -332,4 +332,28 @@ public sealed class AgentCommandTests {
         Assert.Contains(result.Conversions, static route => route.Id == "docx-markdown");
         Assert.Equal(result.Conversions.Count, result.ConversionReturned);
     }
+
+    [Theory]
+    [InlineData(".docx", "inspect", "OfficeIMO.Word")]
+    [InlineData(".pptx", "export", "OfficeIMO.PowerPoint")]
+    [InlineData(".xls", "preserve", "OfficeIMO.Excel")]
+    public void CapabilitiesExposePackageNeutralOperationOutcomes(
+        string extension,
+        string operation,
+        string expectedPackage) {
+        var service = new OfficeImoAgentService();
+
+        AgentCapabilitiesResult result = service.Capabilities(
+            extension, operation, maxOutputCharacters: 24_000);
+
+        Assert.NotEmpty(result.Operations);
+        Assert.Contains(result.Operations, row =>
+            row.PackageId == expectedPackage &&
+            row.Operation.Equals(operation, StringComparison.OrdinalIgnoreCase) &&
+            row.Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(row.SourceCatalog) &&
+            !string.IsNullOrWhiteSpace(row.Evidence));
+        Assert.Equal(result.Operations.Count, result.OperationReturned);
+        Assert.True(AgentJson.Serialize(result).Length <= 24_000);
+    }
 }

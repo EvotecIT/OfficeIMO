@@ -428,3 +428,18 @@ Use `HtmlDataUri` when the payload is textual. Its `DecodeText()` method honors 
 ## Concealed-content inspection and cleanup
 
 `HtmlContentSafety.Inspect(html)` evaluates the bounded CSS cascade and reports hidden, transparent, tiny, zero-size, clipped, off-canvas, and low-contrast text together with comments, scripts/styles, templates, metadata, alternative text, ARIA labels, and hidden form values. `HtmlContentSafety.RemoveSelected(...)` removes only reviewed current findings—including exact Unicode ranges inside machine-only text nodes—and reinspects the serialized HTML. An empty file selection preserves the source bytes and encoding. No script runs and no external resource is fetched.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Inspect | 1 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 1 | 0 | 0 | 0 | 0 | 0 |
+| Remove | 1 | 0 | 0 | 0 | 0 | 0 |
+| Export | 5 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Html` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

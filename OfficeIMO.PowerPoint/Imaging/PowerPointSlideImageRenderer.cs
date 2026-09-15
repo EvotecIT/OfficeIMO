@@ -77,7 +77,9 @@ namespace OfficeIMO.PowerPoint {
                 byte[] bytes = OfficeRasterImageEncoder.Encode(
                     image,
                     format,
-                    plan.CreateEncodingOptions());
+                    plan.CreateEncodingOptions(),
+                    options.MaximumTotalEncodedBytes,
+                    cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 return options.EnsureAccepted(new OfficeImageExportResult(format, image.Width, image.Height, bytes, "Slide", source, diagnostics));
             }

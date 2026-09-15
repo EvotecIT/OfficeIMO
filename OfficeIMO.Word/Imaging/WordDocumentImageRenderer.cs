@@ -89,7 +89,9 @@ namespace OfficeIMO.Word {
                 byte[] bytes = OfficeRasterImageEncoder.Encode(
                     image,
                     format,
-                    plan.CreateEncodingOptions());
+                    plan.CreateEncodingOptions(),
+                    options.MaximumTotalEncodedBytes,
+                    cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 return options.EnsureAccepted(new OfficeImageExportResult(format, image.Width, image.Height, bytes, "Page " + (options.PageIndex + 1), source, diagnostics));
             }

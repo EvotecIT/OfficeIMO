@@ -119,7 +119,9 @@ public static partial class HtmlImageExportExtensions {
             bytes = OfficeRasterImageEncoder.Encode(
                 image,
                 format,
-                plan.CreateEncodingOptions());
+                plan.CreateEncodingOptions(),
+                options.MaximumTotalEncodedBytes,
+                cancellationToken);
             width = image.Width;
             height = image.Height;
         } else {
