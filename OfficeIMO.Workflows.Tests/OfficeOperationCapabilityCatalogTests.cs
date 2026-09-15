@@ -87,6 +87,84 @@ public sealed class OfficeOperationCapabilityCatalogTests {
     }
 
     [Theory]
+    [InlineData(".docm", ".dotm")]
+    [InlineData(".xlsm", ".xltm")]
+    [InlineData(".xlsm", ".xlam")]
+    [InlineData(".pptm", ".potm")]
+    [InlineData(".pptm", ".ppsm")]
+    [InlineData(".pptm", ".ppam")]
+    public void MacroEnabledFamilyVariantsPublishTheSameVbaProtectionRows(string canonical, string variant) {
+        string[] expected = OfficeOperationCapabilityCatalog.FindByExtension(canonical)
+            .Where(row => row.Id.StartsWith("protection:", StringComparison.Ordinal) &&
+                row.CapabilityId.Contains("Vba", StringComparison.OrdinalIgnoreCase))
+            .Select(row => row.Id)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        string[] actual = OfficeOperationCapabilityCatalog.FindByExtension(variant)
+            .Where(row => row.Id.StartsWith("protection:", StringComparison.Ordinal) &&
+                row.CapabilityId.Contains("Vba", StringComparison.OrdinalIgnoreCase))
+            .Select(row => row.Id)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.NotEmpty(expected);
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void EveryModernMacroEnabledFormatPublishesVbaProtectionRows() {
+        OfficeFormatDescriptor[] formats = OfficeIMO.Word.WordFormatCatalog.All
+            .Concat(OfficeIMO.Excel.ExcelFormatCatalog.All)
+            .Concat(OfficeIMO.PowerPoint.PowerPointFormatCatalog.All)
+            .Where(format => format.Generation == OfficeFormatGeneration.Modern && format.IsMacroEnabled)
+            .ToArray();
+
+        Assert.NotEmpty(formats);
+        Assert.All(formats, format =>
+            Assert.Contains(OfficeOperationCapabilityCatalog.FindByExtension(format.Extension), row =>
+                row.Id.StartsWith("protection:", StringComparison.Ordinal) &&
+                row.CapabilityId.Contains("Vba", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    [Theory]
+    [InlineData(".dot", "OfficeIMO.Word")]
+    [InlineData(".xlt", "OfficeIMO.Excel")]
+    [InlineData(".xla", "OfficeIMO.Excel")]
+    [InlineData(".xlm", "OfficeIMO.Excel")]
+    [InlineData(".xlw", "OfficeIMO.Excel")]
+    [InlineData(".pot", "OfficeIMO.PowerPoint")]
+    [InlineData(".pps", "OfficeIMO.PowerPoint")]
+    [InlineData(".ppa", "OfficeIMO.PowerPoint")]
+    public void LegacyVariantsPublishReadEditPreserveAndModernizationRows(string extension, string packageId) {
+        OfficeOperationCapability[] rows = OfficeOperationCapabilityCatalog.FindByExtension(extension)
+            .Where(row => row.Id.StartsWith("legacy:", StringComparison.Ordinal) && row.PackageId == packageId)
+            .ToArray();
+
+        Assert.All(new[] { OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Preserve }, operation =>
+            Assert.Contains(rows, row => row.Operation == operation));
+        Assert.Contains(rows, row => row.Operation == OfficeOperationKind.Convert && row.TargetFormatId != null);
+    }
+
+    [Theory]
+    [InlineData(".xls", true)]
+    [InlineData(".xlsb", true)]
+    [InlineData(".xlt", false)]
+    [InlineData(".xla", false)]
+    [InlineData(".xlm", false)]
+    [InlineData(".xlw", false)]
+    [InlineData(".ppt", true)]
+    [InlineData(".pot", true)]
+    [InlineData(".pps", true)]
+    [InlineData(".ppa", false)]
+    public void LegacyCreationRowsExposeOnlyProvenWriterExtensions(string extension, bool expected) {
+        bool actual = OfficeOperationCapabilityCatalog.FindByExtension(extension)
+            .Any(row => row.Id.StartsWith("legacy:", StringComparison.Ordinal) &&
+                row.Operation == OfficeOperationKind.Create);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
     [InlineData(".pst", "Email.Store.Pst", OfficeOperationSupportState.Supported, OfficeOperationSupportState.Supported)]
     [InlineData(".ost", "Email.Store.Ost", OfficeOperationSupportState.Unsupported, OfficeOperationSupportState.Unsupported)]
     [InlineData(".olm", "Email.Store.Olm", OfficeOperationSupportState.Unsupported, OfficeOperationSupportState.Unsupported)]
@@ -135,6 +213,15 @@ public sealed class OfficeOperationCapabilityCatalogTests {
     [InlineData(".mpp", "OfficeIMO.Project")]
     [InlineData(".mpt", "OfficeIMO.Project")]
     [InlineData(".mpx", "OfficeIMO.Project")]
+    [InlineData(".ics", "OfficeIMO.Email")]
+    [InlineData(".vcf", "OfficeIMO.Email")]
+    [InlineData(".csv", "OfficeIMO.CSV")]
+    [InlineData(".opml", "OfficeIMO.Opml")]
+    [InlineData(".mhtml", "OfficeIMO.Mhtml")]
+    [InlineData(".adoc", "OfficeIMO.AsciiDoc")]
+    [InlineData(".tex", "OfficeIMO.Latex")]
+    [InlineData(".bib", "OfficeIMO.Bibliography")]
+    [InlineData(".dbk", "OfficeIMO.DocBook")]
     public void NativeFormatsPublishCreateReadAndEditLifecycle(string extension, string packageId) {
         IReadOnlyList<OfficeOperationCapability> rows = OfficeOperationCapabilityCatalog.FindByExtension(extension);
 
@@ -144,6 +231,22 @@ public sealed class OfficeOperationCapabilityCatalogTests {
                 row.PackageId == packageId &&
                 row.Operation == operation &&
                 row.State == OfficeOperationSupportState.Supported));
+    }
+
+    [Theory]
+    [InlineData(".pages")]
+    [InlineData(".numbers")]
+    [InlineData(".key")]
+    public void IWorkLifecycleDoesNotOverstateAuthoringSupport(string extension) {
+        IReadOnlyList<OfficeOperationCapability> rows = OfficeOperationCapabilityCatalog.FindByExtension(extension);
+
+        Assert.Contains(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
+            row.Operation == OfficeOperationKind.Read && row.State == OfficeOperationSupportState.Supported);
+        Assert.Contains(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
+            row.Operation == OfficeOperationKind.Inspect && row.State == OfficeOperationSupportState.Supported);
+        Assert.All(new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit, OfficeOperationKind.Preserve }, operation =>
+            Assert.Contains(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
+                row.Operation == operation && row.State == OfficeOperationSupportState.Unsupported));
     }
 
     [Theory]

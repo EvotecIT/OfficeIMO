@@ -30,6 +30,54 @@ function Assert-Sha256 {
     if ([string] $Value -notmatch '^[a-fA-F0-9]{64}$') { throw $Message }
 }
 
+function Assert-ExecutableSourceTest {
+    param(
+        [Parameter(Mandatory)][object] $Record,
+        [Parameter(Mandatory)][string] $Label
+    )
+    Assert-Text $Record.sourceProject "$Label is missing sourceProject."
+    Assert-Text $Record.sourceFile "$Label is missing sourceFile."
+    Assert-Text $Record.sourceExecution "$Label is missing sourceExecution."
+    Assert-Text $Record.sourceTest "$Label is missing sourceTest."
+    $execution = [string] $Record.sourceExecution
+    if ($execution -notin @('xunit', 'microsoft-office-xunit', 'benchmark-validation')) {
+        throw "$Label selected unsupported sourceExecution '$execution'."
+    }
+    $projectPath = Resolve-RepositoryPath ([string] $Record.sourceProject)
+    if (-not (Test-Path -LiteralPath $projectPath -PathType Leaf) -or
+        -not $projectPath.EndsWith('.csproj', [StringComparison]::OrdinalIgnoreCase)) {
+        throw "$Label source project is missing or is not a .csproj: $($Record.sourceProject)"
+    }
+    $projectDirectory = [IO.Path]::GetDirectoryName($projectPath)
+    $sourcePath = Resolve-ContainedArtifactPath $projectDirectory ([string] $Record.sourceFile) $Label
+    if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf) -or
+        -not $sourcePath.EndsWith('.cs', [StringComparison]::OrdinalIgnoreCase)) {
+        throw "$Label source file is missing or is not a .cs file: $($Record.sourceFile)"
+    }
+    $methodPattern = '\b(?:public|private|internal|protected)\s+(?:static\s+)?(?:async\s+)?[A-Za-z0-9_<>,?\[\].]+\s+' +
+        [regex]::Escape([string] $Record.sourceTest) + '\s*\('
+    $matches = @(Select-String -LiteralPath $sourcePath -Pattern $methodPattern)
+    if ($matches.Count -eq 0) {
+        throw "$Label sourceTest '$($Record.sourceTest)' does not resolve to a C# method in '$($Record.sourceProject)'."
+    }
+    if ($matches.Count -gt 1) {
+        $locations = $matches | ForEach-Object { "$($_.Path):$($_.LineNumber)" }
+        throw "$Label sourceTest '$($Record.sourceTest)' is ambiguous in '$($Record.sourceProject)': $($locations -join ', ')"
+    }
+    $sourceLines = @(Get-Content -LiteralPath $sourcePath)
+    $attributeStart = [Math]::Max(0, $matches[0].LineNumber - 12)
+    $attributeCount = $matches[0].LineNumber - $attributeStart
+    $declarationContext = @($sourceLines[$attributeStart..($attributeStart + $attributeCount - 1)]) -join "`n"
+    if ($execution -in @('xunit', 'microsoft-office-xunit') -and
+        $declarationContext -notmatch '\[[A-Za-z0-9_.]*(Fact|Theory)(Attribute)?(?:\(|\])') {
+        throw "$Label sourceTest '$($Record.sourceTest)' is not declared as an xUnit Fact or Theory."
+    }
+    if ($execution -eq 'benchmark-validation' -and
+        $declarationContext -notmatch '\[GlobalSetup(?:Attribute)?(?:\(|\])') {
+        throw "$Label sourceTest '$($Record.sourceTest)' is not declared as a BenchmarkDotNet GlobalSetup."
+    }
+}
+
 function Resolve-ContainedArtifactPath {
     param(
         [Parameter(Mandatory)][string] $BasePath,
@@ -112,7 +160,7 @@ function Get-ManifestRecordCount {
                 Assert-Text $record.producer "$Label artifact '$($record.id)' is missing producer provenance."
                 Assert-Text $record.producerVersion "$Label artifact '$($record.id)' is missing producerVersion provenance."
                 Assert-Text $record.lossPolicy "$Label artifact '$($record.id)' is missing its semantic/package loss policy."
-                Assert-Text $record.sourceTest "$Label artifact '$($record.id)' is missing its executable source test."
+                Assert-ExecutableSourceTest $record "$Label artifact '$($record.id)'"
                 if ($record.path) {
                     Assert-Sha256 $record.sha256 "$Label artifact '$($record.id)' is missing a stable SHA-256."
                     $artifactPath = Resolve-ContainedArtifactPath $documentsRoot ([string] $record.path) $Label

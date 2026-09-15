@@ -65,6 +65,12 @@ public static partial class OfficeOperationCapabilityCatalog {
             static format => format.Id,
             static format => new[] { format.Extension },
             StringComparer.Ordinal);
+        string[] familyLegacyExtensions = formats
+            .Where(static format => format.Generation == OfficeFormatGeneration.Legacy)
+            .Select(static format => format.Extension)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(static extension => extension, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
         string[] modernExtensions = formats
             .Where(static format => format.Generation == OfficeFormatGeneration.Modern)
             .Select(static format => format.Extension)
@@ -73,13 +79,22 @@ public static partial class OfficeOperationCapabilityCatalog {
             .ToArray();
 
         foreach (OfficeCapability capability in catalog.Capabilities) {
-            string[] legacyExtensions = extensionsByFormat.TryGetValue(capability.FormatId, out string[]? known)
+            string[] canonicalLegacyExtensions = extensionsByFormat.TryGetValue(capability.FormatId, out string[]? known)
                 ? known
                 : Array.Empty<string>();
+            bool isLegacyCapability = canonicalLegacyExtensions.Length > 0
+                && formats.Any(format => string.Equals(format.Id, capability.FormatId, StringComparison.Ordinal)
+                    && format.Generation == OfficeFormatGeneration.Legacy);
+            string[] legacyExtensions = isLegacyCapability
+                    ? familyLegacyExtensions
+                    : canonicalLegacyExtensions;
+            string[] writableLegacyExtensions = isLegacyCapability
+                ? WritableLegacyExtensions(packageId, legacyExtensions)
+                : legacyExtensions;
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Read,
                 capability.LegacyImport, capability.FormatId, null, legacyExtensions, "legacy-import");
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Create,
-                capability.NewLegacyWrite, capability.FormatId, null, legacyExtensions, "new-legacy-write");
+                capability.NewLegacyWrite, capability.FormatId, null, writableLegacyExtensions, "new-legacy-write");
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Edit,
                 capability.LegacyRoundTrip, capability.FormatId, null, legacyExtensions, "legacy-round-trip-edit");
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Preserve,
@@ -89,6 +104,15 @@ public static partial class OfficeOperationCapabilityCatalog {
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Convert,
                 capability.LegacyToModern, capability.FormatId, modernFormatId, legacyExtensions, "legacy-to-modern");
         }
+    }
+
+    private static string[] WritableLegacyExtensions(string packageId, IEnumerable<string> extensions) {
+        string[] writable = packageId switch {
+            "OfficeIMO.Excel" => new[] { ".xls" },
+            "OfficeIMO.PowerPoint" => new[] { ".ppt", ".pot", ".pps" },
+            _ => extensions.ToArray()
+        };
+        return extensions.Where(extension => writable.Contains(extension, StringComparer.OrdinalIgnoreCase)).ToArray();
     }
 
     private static void AddLegacyRow(
@@ -258,9 +282,9 @@ public static partial class OfficeOperationCapabilityCatalog {
 
     private static IEnumerable<string> FormatExtensions(string formatId) {
         var map = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase) {
-            ["DOC"] = new[] { ".doc" }, ["DOCX"] = new[] { ".docx" }, ["DOCM"] = new[] { ".docm" },
-            ["XLS"] = new[] { ".xls" }, ["XLSX"] = new[] { ".xlsx" }, ["XLSM"] = new[] { ".xlsm" }, ["XLSB"] = new[] { ".xlsb" },
-            ["PPT"] = new[] { ".ppt" }, ["PPTX"] = new[] { ".pptx" }, ["PPTM"] = new[] { ".pptm" },
+            ["DOC"] = new[] { ".doc", ".dot" }, ["DOCX"] = new[] { ".docx", ".dotx" }, ["DOCM"] = new[] { ".docm", ".dotm" },
+            ["XLS"] = new[] { ".xls", ".xlt", ".xla", ".xlm", ".xlw" }, ["XLSX"] = new[] { ".xlsx", ".xltx" }, ["XLSM"] = new[] { ".xlsm", ".xltm", ".xlam" }, ["XLSB"] = new[] { ".xlsb" },
+            ["PPT"] = new[] { ".ppt", ".pot", ".pps", ".ppa" }, ["PPTX"] = new[] { ".pptx", ".potx", ".ppsx" }, ["PPTM"] = new[] { ".pptm", ".potm", ".ppsm", ".ppam" },
             ["VISIO"] = new[] { ".vsdx", ".vsdm", ".vstx", ".vstm", ".vssx", ".vssm" },
             ["ODT"] = new[] { ".odt" }, ["ODS"] = new[] { ".ods" }, ["ODP"] = new[] { ".odp" },
             ["EPUB"] = new[] { ".epub" }, ["PDF"] = new[] { ".pdf" }, ["ONE"] = new[] { ".one" }, ["PST"] = new[] { ".pst" },
@@ -274,8 +298,8 @@ public static partial class OfficeOperationCapabilityCatalog {
 
     private static bool PackageOwnsExtension(string packageId, string extension) => packageId switch {
         "OfficeIMO.Word" => extension is ".doc" or ".docx" or ".docm" or ".dot" or ".dotx" or ".dotm",
-        "OfficeIMO.Excel" => extension is ".xls" or ".xlsx" or ".xlsm" or ".xlsb" or ".xlt" or ".xltx" or ".xltm" or ".xlam",
-        "OfficeIMO.PowerPoint" => extension is ".ppt" or ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" or ".ppam",
+        "OfficeIMO.Excel" => extension is ".xls" or ".xlsx" or ".xlsm" or ".xlsb" or ".xlt" or ".xla" or ".xlm" or ".xlw" or ".xltx" or ".xltm" or ".xlam",
+        "OfficeIMO.PowerPoint" => extension is ".ppt" or ".pptx" or ".pptm" or ".pot" or ".pps" or ".ppa" or ".potx" or ".potm" or ".ppsx" or ".ppsm" or ".ppam",
         "OfficeIMO.Visio" => extension is ".vsdx" or ".vsdm" or ".vstx" or ".vstm" or ".vssx" or ".vssm",
         "OfficeIMO.OpenDocument" => extension is ".odt" or ".ods" or ".odp",
         "OfficeIMO.Email" => extension is ".eml" or ".mime" or ".msg" or ".oft" or ".tnef" or ".dat" or ".pst" or ".ost" or ".olm" or ".mbox" or ".mbx" or ".emlx",

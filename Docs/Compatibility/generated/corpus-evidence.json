@@ -34,7 +34,7 @@
       "id": "word-evidence",
       "owner": "OfficeIMO.Word",
       "manifest": "OfficeIMO.TestAssets/Documents/Word/EvidenceCorpus/corpus-manifest.json",
-      "manifestSha256": "28a34e5bd59b141e2b730ea5b7a87f871d9623e5a44f69bf69c4fbf6057e51aa",
+      "manifestSha256": "332764b9db30d3e678f60b06248a38a6729f5fe48e42778974e2cb75322207f7",
       "recordCount": 10,
       "diffPolicy": {
         "kind": "package-and-semantic",

@@ -22,7 +22,9 @@ $projects = @{
     PowerPoint = Join-Path $repoRoot 'OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj'
     Rtf = Join-Path $repoRoot 'OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj'
     Word = Join-Path $repoRoot 'OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj'
+    WordBenchmarks = Join-Path $repoRoot 'OfficeIMO.Word.Benchmarks/OfficeIMO.Word.Benchmarks.csproj'
 }
+$wordEvidenceManifestPath = Join-Path $repoRoot 'OfficeIMO.TestAssets/Documents/Word/EvidenceCorpus/corpus-manifest.json'
 
 function Test-CompatibilityCatalogArtifacts {
     Write-Host ""
@@ -110,6 +112,49 @@ function Invoke-InteroperabilityGateStep {
     Write-Host ("Completed {0} in {1:mm\:ss}." -f $Name, $elapsed) -ForegroundColor Green
 }
 
+function Invoke-WordEvidenceSourceTests {
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet('xunit', 'microsoft-office-xunit')]
+        [string] $Execution
+    )
+
+    $manifest = Get-Content -LiteralPath $wordEvidenceManifestPath -Raw | ConvertFrom-Json
+    $records = @($manifest.artifacts | Where-Object { $_.sourceExecution -eq $Execution })
+    foreach ($group in @($records | Group-Object sourceProject)) {
+        $project = [IO.Path]::GetFullPath((Join-Path $repoRoot ([string] $group.Name)))
+        $filter = @($group.Group | ForEach-Object { 'FullyQualifiedName~' + [string] $_.sourceTest }) -join '|'
+        Invoke-InteroperabilityGateStep `
+            -Name "Word evidence manifest source contracts ($Execution, $($group.Name))" `
+            -Project $project `
+            -Filter $filter
+    }
+}
+
+function Invoke-WordWorkflowBenchmarkValidation {
+    $arguments = @(
+        'run',
+        '--project', $projects.WordBenchmarks,
+        '--configuration', $Configuration,
+        '--framework', $Framework
+    )
+    if ($NoRestore) { $arguments += '--no-restore' }
+    if ($NoBuild) { $arguments += '--no-build' }
+    $arguments += @('--', 'validate-workflows')
+
+    Write-Host ""
+    Write-Host '== Word evidence manifest benchmark validation ==' -ForegroundColor Cyan
+    Push-Location $repoRoot
+    try {
+        & dotnet @arguments
+        if ($LASTEXITCODE -ne 0) {
+            throw "Word evidence manifest benchmark validation failed with exit code $LASTEXITCODE."
+        }
+    } finally {
+        Pop-Location
+    }
+}
+
 $excelLegacyCorpusFilter = @(
     'FullyQualifiedName=OfficeIMO.Tests.Excel.LegacyXls_Corpus_Fixtures_MatchApprovedImportReports',
     'FullyQualifiedName=OfficeIMO.Tests.Excel.LegacyXls_DiagnosticCorpus_Fixtures_MatchApprovedImportReports',
@@ -157,10 +202,8 @@ if ($Suite -in @('Full', 'Corpus')) {
         -Project $projects.Excel `
         -Filter 'Category=OfficeInteroperability'
 
-    Invoke-InteroperabilityGateStep `
-        -Name 'Word corpus manifest identity and load contract' `
-        -Project $projects.Word `
-        -Filter 'Category=OfficeInteroperability'
+    Invoke-WordEvidenceSourceTests -Execution xunit
+    Invoke-WordWorkflowBenchmarkValidation
 
     Invoke-InteroperabilityGateStep `
         -Name 'PowerPoint corpus identity, preflight, conversion, and reopen contract' `
@@ -244,10 +287,7 @@ if ($MicrosoftOffice) {
         $env:OFFICEIMO_RUN_LEGACY_XLS_COM_VALIDATION = '1'
         $env:OFFICEIMO_RUN_LEGACY_PPT_COM_VALIDATION = '1'
 
-        Invoke-InteroperabilityGateStep `
-            -Name 'Microsoft Word desktop source and generated conversion oracle' `
-            -Project $projects.Word `
-            -Filter 'Category=MicrosoftOfficeInteroperability'
+        Invoke-WordEvidenceSourceTests -Execution microsoft-office-xunit
 
         Invoke-InteroperabilityGateStep `
             -Name 'Microsoft Excel desktop corpus source and conversion oracle' `
