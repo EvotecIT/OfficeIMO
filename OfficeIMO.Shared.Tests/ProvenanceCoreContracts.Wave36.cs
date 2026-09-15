@@ -6,6 +6,24 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceCoreContracts {
     [Fact]
+    public void NestedSvgManifestCarriersUseFullCarrierCounting() {
+        string encoded = Convert.ToBase64String(CreateManifestStore());
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:c2pa=\"http://c2pa.org/manifest\"><metadata>" +
+            $"<c2pa:manifest><metadata><c2pa:manifest>{encoded}</c2pa:manifest></metadata></c2pa:manifest>" +
+            "</metadata></svg>");
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(svg, "fixture.svg");
+
+        Assert.Equal(2, report.Evidence.Count);
+        Assert.All(report.Evidence, evidence => Assert.False(evidence.IsStructurallyValid));
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(
+            svg,
+            "fixture.svg",
+            new OfficeProvenanceOptions { MaxCarriers = 1 }));
+    }
+
+    [Fact]
     public void DuplicateSvgManifestElementsAreAllStructurallyInvalid() {
         string encoded = Convert.ToBase64String(CreateManifestStore());
         byte[] svg = Encoding.UTF8.GetBytes(

@@ -10,6 +10,19 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class OfficeCompatibilityCatalogContractTests {
     [Fact]
+    public void ProtectedContentCapabilityPreservesTheOriginalConstructorSignature() {
+        Type[] legacySignature = {
+            typeof(string), typeof(string), typeof(string), typeof(OfficeProtectionKind),
+            typeof(OfficeProtectionCoverageState), typeof(OfficeProtectionCoverageState),
+            typeof(OfficeProtectionCoverageState), typeof(OfficeProtectionCoverageState),
+            typeof(OfficeProtectionCoverageState), typeof(OfficeProtectionCoverageState),
+            typeof(string), typeof(string)
+        };
+
+        Assert.NotNull(typeof(OfficeProtectionCapability).GetConstructor(legacySignature));
+    }
+
+    [Fact]
     public void BinaryFormatCatalogsExposeUniqueStableRowsAndValidFormatReferences() {
         OfficeCapabilityCatalog[] catalogs = {
             WordCompatibilityCatalog.Current,
@@ -137,5 +150,30 @@ public sealed class OfficeCompatibilityCatalogContractTests {
         Assert.Equal("EML\tformat", parsed.RootElement.GetProperty("capabilities")[0].GetProperty("formatId").GetString());
         Assert.Equal("Control disposition\u0003reason", parsed.RootElement.GetProperty("capabilities")[0]
             .GetProperty("unsupportedOperations")[0].GetProperty("rationale").GetString());
+    }
+
+    [Fact]
+    public void ProtectedContentCatalogEscapesRoadmapReferencesInMarkdownLinks() {
+        var row = new OfficeProtectionCapability(
+            "roadmap-row", "DOC", "OfficeIMO.Word", OfficeProtectionKind.PasswordEncryption,
+            OfficeProtectionCoverageState.Detected, OfficeProtectionCoverageState.NotSupported,
+            OfficeProtectionCoverageState.NotApplicable, OfficeProtectionCoverageState.NotApplicable,
+            OfficeProtectionCoverageState.Blocked, OfficeProtectionCoverageState.NotApplicable,
+            "WordDocument.Load", "Roadmap escaping", new[] {
+                new OfficeProtectionUnsupportedOperation(
+                    OfficeProtectionOperation.Open,
+                    OfficeProtectionUnsupportedDisposition.RoadmapTracked,
+                    "Open support is tracked.",
+                    "../../ROAD|MAP(1).md#open\r\nnext")
+            });
+        var catalog = new OfficeProtectionCapabilityCatalog("roadmap-catalog", 2, new[] { row });
+
+        string markdown = catalog.ToMarkdown();
+
+        Assert.Contains(
+            "[roadmap](../../ROAD%7CMAP%281%29.md#open%0D%0Anext)",
+            markdown,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("ROAD|MAP", markdown, StringComparison.Ordinal);
     }
 }

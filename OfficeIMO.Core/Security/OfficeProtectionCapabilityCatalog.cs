@@ -209,9 +209,21 @@ public sealed class OfficeProtectionCapabilityCatalog {
                 : "intentional boundary";
             string prefix = operation.RoadmapReference == null
                 ? label
-                : "[" + label + "](" + operation.RoadmapReference + ")";
+                : "[" + label + "](" + EscapeMarkdownLinkDestination(operation.RoadmapReference) + ")";
             return operation.Operation + " → " + prefix + ": " + EscapeMarkdown(operation.Rationale);
         }));
+    }
+    private static string EscapeMarkdownLinkDestination(string value) {
+        var escaped = new StringBuilder(value.Length + 8);
+        foreach (char character in value) {
+            if (character < ' ' || character == '\u007f' ||
+                character is '\\' or '|' or '(' or ')' or '<' or '>' or ' ') {
+                escaped.Append(Uri.EscapeDataString(character.ToString()));
+            } else {
+                escaped.Append(character);
+            }
+        }
+        return escaped.ToString();
     }
     private static string EscapeJson(string value) {
         var escaped = new StringBuilder(value.Length + 8);

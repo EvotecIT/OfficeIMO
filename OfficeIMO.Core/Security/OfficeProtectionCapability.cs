@@ -39,13 +39,23 @@ public enum OfficeProtectionCoverageState {
 
 /// <summary>One machine-readable protected-content capability row.</summary>
 public sealed class OfficeProtectionCapability {
-    /// <summary>Creates one protected-content capability row.</summary>
+    /// <summary>Creates one protected-content capability row without unsupported-operation dispositions.</summary>
+    public OfficeProtectionCapability(string id, string formatId, string packageId, OfficeProtectionKind kind,
+        OfficeProtectionCoverageState inspect, OfficeProtectionCoverageState open,
+        OfficeProtectionCoverageState create, OfficeProtectionCoverageState validate,
+        OfficeProtectionCoverageState mutate, OfficeProtectionCoverageState remove,
+        string api, string limitation)
+        : this(id, formatId, packageId, kind, inspect, open, create, validate, mutate, remove,
+            api, limitation, null) {
+    }
+
+    /// <summary>Creates one protected-content capability row with explicit unsupported-operation dispositions.</summary>
     public OfficeProtectionCapability(string id, string formatId, string packageId, OfficeProtectionKind kind,
         OfficeProtectionCoverageState inspect, OfficeProtectionCoverageState open,
         OfficeProtectionCoverageState create, OfficeProtectionCoverageState validate,
         OfficeProtectionCoverageState mutate, OfficeProtectionCoverageState remove,
         string api, string limitation,
-        IEnumerable<OfficeProtectionUnsupportedOperation>? unsupportedOperations = null) {
+        IEnumerable<OfficeProtectionUnsupportedOperation>? unsupportedOperations) {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Capability id cannot be empty.", nameof(id));
         if (string.IsNullOrWhiteSpace(formatId)) throw new ArgumentException("Format id cannot be empty.", nameof(formatId));
         if (string.IsNullOrWhiteSpace(packageId)) throw new ArgumentException("Package id cannot be empty.", nameof(packageId));

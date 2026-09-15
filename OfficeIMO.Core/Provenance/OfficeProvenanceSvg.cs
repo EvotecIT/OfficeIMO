@@ -263,7 +263,9 @@ internal static class OfficeProvenanceSvg {
                     if (subtree.NodeType == XmlNodeType.Element) {
                         ReserveMaterializedNodes(ref materializedNodes, 1 + subtree.AttributeCount, options.MaxContainerEntries);
                         onlyText = false;
-                        if (IsXmpCarrier(subtree)) return new SvgManifestEvidence(false, false, 0, requiresFallback: true);
+                        if (IsXmpCarrier(subtree) || IsManifestElement(subtree)) {
+                            return new SvgManifestEvidence(false, false, 0, requiresFallback: true);
+                        }
                     } else if (IsMaterializedTextNode(subtree.NodeType)) {
                         ReserveMaterializedNodes(ref materializedNodes, 1, options.MaxContainerEntries);
                         if (subtree.NodeType is XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.Whitespace or XmlNodeType.SignificantWhitespace) {
@@ -314,6 +316,9 @@ internal static class OfficeProvenanceSvg {
         }
         return hasIptcAttribute;
     }
+
+    private static bool IsManifestElement(XmlReader reader) =>
+        reader.NamespaceURI == C2paNamespace.NamespaceName && reader.LocalName == "manifest";
 
     private static bool IsMaterializedTextNode(XmlNodeType nodeType) => nodeType is
         XmlNodeType.Text or
