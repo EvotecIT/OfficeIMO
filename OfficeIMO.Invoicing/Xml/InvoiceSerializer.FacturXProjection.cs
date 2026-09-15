@@ -1,10 +1,13 @@
 namespace OfficeIMO.Invoicing;
 
 public static partial class InvoiceSerializer {
+    private static bool IsReducedFacturX(InvoiceXmlOptions options) =>
+        options.Release == InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2 &&
+        options.Profile is InvoiceProfile.Minimum or InvoiceProfile.BasicWithoutLines or InvoiceProfile.Basic;
+
     private static void CheckFacturXProjection(Invoice invoice, InvoiceCalculation calculation, InvoiceXmlOptions options, Action<string, string> projection,
         Action<string, string> requiredProjection) {
-        if (options.Release != InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2 ||
-            options.Profile is InvoiceProfile.En16931 or InvoiceProfile.Extended) return;
+        if (!IsReducedFacturX(options)) return;
 
         string profile = options.Profile == InvoiceProfile.BasicWithoutLines ? "BASIC WL" : options.Profile.ToString().ToUpperInvariant();
         void Omitted(bool populated, string path, string meaning) {
@@ -16,11 +19,15 @@ public static partial class InvoiceSerializer {
 
         Omitted(invoice.BuyerReference != null, "BuyerReference", "the buyer routing reference");
         bool sellerVat = invoice.Seller.TaxRegistrations.Any(registration => registration != null &&
-            registration.SchemeId == InvoiceTaxRegistration.VatScheme && !string.IsNullOrWhiteSpace(registration.Identifier));
+            registration.Kind == InvoiceTaxRegistrationKind.Vat && !string.IsNullOrWhiteSpace(registration.Identifier));
         bool sellerTax = invoice.Seller.TaxRegistrations.Any(registration => registration != null &&
-            !string.IsNullOrWhiteSpace(registration.SchemeId) && !string.IsNullOrWhiteSpace(registration.Identifier));
+            registration.Kind is InvoiceTaxRegistrationKind.Vat or InvoiceTaxRegistrationKind.Fiscal &&
+            !string.IsNullOrWhiteSpace(registration.Identifier));
+        bool retainsTaxCategories = options.Profile is InvoiceProfile.BasicWithoutLines or InvoiceProfile.Basic;
+        bool requiresSellerTax = retainsTaxCategories && calculation.Taxes.Any(tax => tax.CategoryCode != "O");
+        bool requiresSellerVat = retainsTaxCategories && calculation.Taxes.Any(tax => tax.CategoryCode is "G" or "K");
         bool representativeRequired = invoice.TaxRepresentative != null && options.Profile is InvoiceProfile.BasicWithoutLines or InvoiceProfile.Basic &&
-            calculation.Taxes.Any(tax => tax.CategoryCode is "G" or "K" ? !sellerVat : tax.CategoryCode != "O" && !sellerTax);
+            (requiresSellerVat ? !sellerVat : requiresSellerTax && !sellerTax);
         if (representativeRequired)
             requiredProjection("TaxRepresentative", "The lower Factur-X projection cannot omit the tax representative whose VAT identifier is required by a retained VAT category.");
         else
@@ -69,10 +76,13 @@ public static partial class InvoiceSerializer {
             Omitted(invoice.DeclaredTotals?.ChargeTotal.HasValue == true, "DeclaredTotals.ChargeTotal", "the declared charge total");
         }
 
+        if (!representativeRequired && invoice.TaxRepresentative == null && requiresSellerTax && !sellerTax)
+            requiredProjection("Seller.TaxRegistrations", "The lower Factur-X projection cannot omit the seller's only qualifying tax registration while retaining taxable VAT categories.");
+
         bool sellerIdentifiersRequired = invoice.Seller.Identifiers.Any(identifier => !string.IsNullOrWhiteSpace(identifier?.Value)) &&
             string.IsNullOrWhiteSpace(invoice.Seller.LegalRegistration?.Value) &&
             !invoice.Seller.TaxRegistrations.Any(registration => registration != null &&
-                registration.SchemeId == InvoiceTaxRegistration.VatScheme && !string.IsNullOrWhiteSpace(registration.Identifier));
+                registration.Kind == InvoiceTaxRegistrationKind.Vat && !string.IsNullOrWhiteSpace(registration.Identifier));
         CheckReducedParty(invoice.Seller, "Seller", options.Profile == InvoiceProfile.Minimum, retainMinimumCountry: true,
             sellerIdentifiersRequired, projection, requiredProjection);
         CheckReducedParty(invoice.Buyer, "Buyer", options.Profile == InvoiceProfile.Minimum, retainMinimumCountry: false,
@@ -123,7 +133,7 @@ public static partial class InvoiceSerializer {
         }
         for (int index = 0; index < party.TaxRegistrations.Count; index++) {
             InvoiceTaxRegistration registration = party.TaxRegistrations[index];
-            if (registration.SchemeId is not InvoiceTaxRegistration.VatScheme and not InvoiceTaxRegistration.TaxScheme)
+            if (registration.Kind == InvoiceTaxRegistrationKind.Other)
                 projection(path + ".TaxRegistrations[" + index + "]", "The lower Factur-X projection cannot carry tax-registration scheme '" + registration.SchemeId + "'.");
         }
     }

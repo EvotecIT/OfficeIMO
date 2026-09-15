@@ -123,5 +123,28 @@ public class InvoiceCalculationTests {
         Assert.Equal("VATEX-EU-132", actual.Category.ExemptionReasonCode);
     }
 
+    [Theory]
+    [InlineData(InvoiceProfile.Minimum)]
+    [InlineData(InvoiceProfile.BasicWithoutLines)]
+    public void AggregateOnlyInvoicesRetainDeclaredValuesAcrossPublicCalculationApis(InvoiceProfile profile) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.RoundingAmount = 0m;
+        invoice.PrepaidAmount = 0m;
+        InvoiceCalculator.UpdateDeclaredAmounts(invoice);
+        InvoiceXmlOptions options = InvoiceTestContracts.FacturX(profile, InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
+        Invoice aggregate = InvoiceParser.Read(InvoiceSerializer.Write(invoice, options)).Invoice;
+        byte[] before = InvoiceSerializer.Write(aggregate, options);
+
+        InvoiceCalculation calculated = InvoiceCalculator.Calculate(aggregate);
+        InvoiceCalculation updated = InvoiceCalculator.UpdateDeclaredAmounts(aggregate);
+
+        Assert.Empty(calculated.Lines);
+        Assert.Equal(100m, calculated.TaxExclusiveTotal);
+        Assert.Equal(19m, calculated.TaxTotal);
+        Assert.Equal(119m, calculated.PayableAmount);
+        Assert.Equal(calculated.PayableAmount, updated.PayableAmount);
+        Assert.Equal(before, InvoiceSerializer.Write(aggregate, options));
+    }
+
     internal static Invoice Example() => InvoiceFixture.Create();
 }

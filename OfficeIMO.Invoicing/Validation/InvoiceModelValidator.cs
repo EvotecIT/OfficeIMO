@@ -198,6 +198,10 @@ public static partial class InvoiceModelValidator {
                 if (registration == null) { Error("INV-NULL", "Tax registration is null.", path + ".TaxRegistrations"); continue; }
                 Required(registration.Identifier, path + ".TaxRegistrations.Identifier");
                 Required(registration.SchemeId, path + ".TaxRegistrations.SchemeId");
+                if (!Enum.IsDefined(typeof(InvoiceTaxRegistrationKind), registration.Kind) ||
+                    registration.Kind == InvoiceTaxRegistrationKind.Vat && registration.SchemeId != InvoiceTaxRegistration.VatScheme ||
+                    registration.Kind == InvoiceTaxRegistrationKind.Fiscal && registration.SchemeId != InvoiceTaxRegistration.TaxScheme)
+                    Error("INV-TAX-SCHEME-KIND", "The tax-registration semantic role does not match its canonical scheme.", path + ".TaxRegistrations.Kind");
             }
             foreach (InvoiceIdentifier identifier in party.Identifiers) Identifier(identifier, path + ".Identifiers", false);
             if (party.LegalRegistration != null) Identifier(party.LegalRegistration, path + ".LegalRegistration", false);

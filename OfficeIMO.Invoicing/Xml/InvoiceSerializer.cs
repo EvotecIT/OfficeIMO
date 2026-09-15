@@ -50,7 +50,7 @@ public static partial class InvoiceSerializer {
         void Projection(string path, string text) => diagnostics.Add("INV-TARGET-PROJECTION", text, path,
             options.ProjectionPolicy == InvoiceProjectionPolicy.AllowProfileDefinedDataLoss ? InvoiceDiagnosticSeverity.Warning : InvoiceDiagnosticSeverity.Error);
         void RequiredProjection(string path, string text) => diagnostics.Add("INV-TARGET-PROJECTION", text, path);
-        if (invoice.Payments.Count != 0) {
+        if (invoice.Payments.Count != 0 && !IsReducedFacturX(options)) {
             CheckPaymentProfile(invoice, options, Unsupported);
             CheckSingletonPaymentField(invoice, payment => payment.MeansCode, "MeansCode",
                 "EN 16931 requires every payment-means occurrence to use the same payment means code", Unsupported);
@@ -109,19 +109,26 @@ public static partial class InvoiceSerializer {
     }
     private static void CheckTaxRegistrations(InvoiceParty party, string role, InvoiceXmlOptions options, Action<string, string> unsupported) {
         int vatCount = 0, otherCount = 0;
+        bool reducedFacturX = IsReducedFacturX(options);
         for (int index = 0; index < party.TaxRegistrations.Count; index++) {
             InvoiceTaxRegistration registration = party.TaxRegistrations[index];
             string path = role + ".TaxRegistrations[" + index + "]";
-            if (registration.SchemeId == InvoiceTaxRegistration.VatScheme) {
+            if (registration.Kind == InvoiceTaxRegistrationKind.Vat) {
                 if (++vatCount > 1) unsupported(path, "The target profile permits at most one VAT registration for this party; the additional occurrence remains available in the source model.");
                 continue;
             }
+            if (reducedFacturX && registration.Kind == InvoiceTaxRegistrationKind.Other) continue;
             otherCount++;
+            if (options.Syntax == InvoiceSyntax.Ubl && registration.Kind == InvoiceTaxRegistrationKind.Other &&
+                registration.SchemeId is InvoiceTaxRegistration.VatScheme or InvoiceTaxRegistration.TaxScheme) {
+                unsupported(path, "UBL reserves scheme '" + registration.SchemeId + "' as a canonical tax role and cannot preserve its explicitly arbitrary source meaning.");
+                continue;
+            }
             if (role != "Seller") {
                 unsupported(path, "The target profile has no semantic field for a non-VAT " + role + " tax registration with scheme '" + registration.SchemeId + "'.");
             } else if (otherCount > 1) {
                 unsupported(path, "The target profile permits at most one non-VAT seller tax registration; this occurrence uses scheme '" + registration.SchemeId + "'.");
-            } else if (options.Syntax == InvoiceSyntax.Cii && registration.SchemeId != InvoiceTaxRegistration.TaxScheme) {
+            } else if (options.Syntax == InvoiceSyntax.Cii && registration.Kind != InvoiceTaxRegistrationKind.Fiscal) {
                 unsupported(path, "CII EN 16931 maps the seller fiscal registration through scheme 'FC' and cannot preserve source scheme '" + registration.SchemeId + "' without relabeling it.");
             }
         }

@@ -4,6 +4,8 @@ namespace OfficeIMO.Invoicing;
 public static class InvoiceCalculator {
     /// <summary>Explicitly replaces source-declared amounts after editing prices, quantities, taxes or adjustments.</summary>
     public static InvoiceCalculation UpdateDeclaredAmounts(Invoice invoice) {
+        if (invoice == null) throw new ArgumentNullException(nameof(invoice));
+        if (invoice.Lines.Count == 0) return FromDeclaredAggregate(invoice);
         InvoiceCalculation calculation = Calculate(invoice, false);
         for (int index = 0; index < invoice.Lines.Count; index++) invoice.Lines[index].DeclaredNetAmount = calculation.Lines[index].NetAmount;
         invoice.DeclaredTotals = new InvoiceDeclaredTotals {
@@ -25,8 +27,11 @@ public static class InvoiceCalculator {
         return rounded;
     }
 
-    /// <summary>Calculates line totals, category-level VAT and the amount due. Throws on invalid arithmetic inputs or decimal overflow.</summary>
-    public static InvoiceCalculation Calculate(Invoice invoice) => Calculate(invoice, true);
+    /// <summary>Calculates line totals, category-level VAT and the amount due, or returns retained declared values for an aggregate-only invoice.</summary>
+    public static InvoiceCalculation Calculate(Invoice invoice) {
+        if (invoice == null) throw new ArgumentNullException(nameof(invoice));
+        return invoice.Lines.Count == 0 ? FromDeclaredAggregate(invoice) : Calculate(invoice, true);
+    }
 
     internal static InvoiceCalculation FromDeclaredAggregate(Invoice invoice) {
         InvoiceDeclaredTotals totals = invoice.DeclaredTotals

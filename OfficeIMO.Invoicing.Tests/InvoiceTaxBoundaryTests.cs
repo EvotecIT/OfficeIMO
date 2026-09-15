@@ -57,6 +57,49 @@ public class InvoiceTaxBoundaryTests {
     }
 
     [Theory]
+    [InlineData("VAT")]
+    [InlineData("TAX")]
+    public void LiteralCiiSchemesThatMatchCanonicalAliasesRemainArbitrary(string literalScheme) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Seller.LegalRegistration = new InvoiceIdentifier("seller-register");
+        XDocument cii = XDocument.Parse(Encoding.UTF8.GetString(
+            InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931())));
+        XElement registration = cii.Descendants().First(element => element.Name.LocalName == "SpecifiedTaxRegistration");
+        registration.Descendants().Single(element => element.Name.LocalName == "ID").SetAttributeValue("schemeID", literalScheme);
+
+        InvoiceReadResult read = InvoiceParser.Read(Encoding.UTF8.GetBytes(cii.ToString()));
+
+        Assert.True(read.HasCompleteMapping);
+        InvoiceTaxRegistration tax = Assert.Single(read.Invoice.Seller.TaxRegistrations);
+        Assert.Equal(literalScheme, tax.SchemeId);
+        Assert.Equal(InvoiceTaxRegistrationKind.Other, tax.Kind);
+        foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl }) {
+            InvoiceXmlOptions target = InvoiceTestContracts.En16931(syntax);
+            Assert.Contains(InvoiceSerializer.InspectTarget(read.Invoice, target),
+                diagnostic => diagnostic.Location == "Seller.TaxRegistrations[0]" &&
+                    diagnostic.Message.IndexOf(literalScheme, StringComparison.Ordinal) >= 0);
+            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(read.Invoice, target));
+        }
+    }
+
+    [Fact]
+    public void TaxRegistrationKindAndCanonicalSchemeMustRemainConsistent() {
+        Invoice invoice = InvoiceFixture.Create();
+        InvoiceTaxRegistration registration = invoice.Seller.TaxRegistrations[0];
+        registration.SchemeId = "PL-KRS";
+
+        Assert.Contains(InvoiceModelValidator.Validate(invoice).Diagnostics,
+            diagnostic => diagnostic.Code == "INV-TAX-SCHEME-KIND" && diagnostic.Location == "Seller.TaxRegistrations.Kind");
+        foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl })
+            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax)));
+
+        registration.SchemeId = InvoiceTaxRegistration.VatScheme;
+        registration.Kind = (InvoiceTaxRegistrationKind)99;
+        Assert.Contains(InvoiceModelValidator.Validate(invoice).Diagnostics,
+            diagnostic => diagnostic.Code == "INV-TAX-SCHEME-KIND");
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void ReservedSepaIdentifiersCannotChangeRolesInUbl(bool seller) {

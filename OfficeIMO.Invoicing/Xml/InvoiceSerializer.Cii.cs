@@ -34,9 +34,9 @@ public static partial class InvoiceSerializer {
         profile == InvoiceProfile.Minimum
             ? element == "SellerTradeParty" ? new XElement(Ram + "PostalTradeAddress", Text(Ram + "CountryID", party.Address.CountryCode)) : null
             : CiiAddress(party.Address),
-        party.TaxRegistrations.Where(registration => registration.SchemeId is InvoiceTaxRegistration.VatScheme or InvoiceTaxRegistration.TaxScheme)
+        party.TaxRegistrations.Where(registration => registration.Kind is InvoiceTaxRegistrationKind.Vat or InvoiceTaxRegistrationKind.Fiscal)
             .Select(registration => new XElement(Ram + "SpecifiedTaxRegistration", new XElement(Ram + "ID",
-                new XAttribute("schemeID", registration.SchemeId == InvoiceTaxRegistration.VatScheme ? "VA" : "FC"), registration.Identifier))));
+                new XAttribute("schemeID", registration.Kind == InvoiceTaxRegistrationKind.Vat ? "VA" : "FC"), registration.Identifier))));
 
     private static XElement CiiMinimumSettlement(Invoice invoice, InvoiceCalculation calculation) => new XElement(Ram + "ApplicableHeaderTradeSettlement",
         new XElement(Ram + "InvoiceCurrencyCode", invoice.Currency),

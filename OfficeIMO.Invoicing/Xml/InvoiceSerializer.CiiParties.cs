@@ -14,9 +14,9 @@ public static partial class InvoiceSerializer {
         includeAddress ? CiiAddress(party.Address) : null,
         party.ElectronicAddress == null ? null : new XElement(Ram + "URIUniversalCommunication", Identifier(Ram + "URIID", party.ElectronicAddress)),
         party.TaxRegistrations.Select(registration => new XElement(Ram + "SpecifiedTaxRegistration", new XElement(Ram + "ID",
-            new XAttribute("schemeID", registration.SchemeId switch {
-                InvoiceTaxRegistration.VatScheme => "VA",
-                InvoiceTaxRegistration.TaxScheme => "FC",
+            new XAttribute("schemeID", registration.Kind switch {
+                InvoiceTaxRegistrationKind.Vat => "VA",
+                InvoiceTaxRegistrationKind.Fiscal => "FC",
                 _ => registration.SchemeId
             }), registration.Identifier))));
 

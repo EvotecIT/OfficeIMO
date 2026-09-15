@@ -7,7 +7,7 @@ public static partial class InvoiceModelValidator {
             bool sellerVat = HasTaxRegistration(invoice.Seller, InvoiceTaxRegistration.VatScheme);
             bool representativeVat = HasTaxRegistration(invoice.TaxRepresentative, InvoiceTaxRegistration.VatScheme);
             bool sellerTax = sellerVat || representativeVat || invoice.Seller.TaxRegistrations.Any(registration =>
-                registration != null && !string.IsNullOrWhiteSpace(registration.SchemeId) &&
+                registration != null && registration.Kind != InvoiceTaxRegistrationKind.Vat && !string.IsNullOrWhiteSpace(registration.SchemeId) &&
                 !string.IsNullOrWhiteSpace(registration.Identifier));
             bool buyerVat = HasTaxRegistration(invoice.Buyer, InvoiceTaxRegistration.VatScheme);
             foreach (InvoiceCalculatedTax tax in calculation.Taxes) {

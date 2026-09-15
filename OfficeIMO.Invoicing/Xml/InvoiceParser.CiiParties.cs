@@ -17,11 +17,11 @@ public static partial class InvoiceParser {
         foreach (XElement tax in c.Children(element, Ram + "SpecifiedTaxRegistration")) {
             XElement? identifier = c.Child(tax, Ram + "ID");
             string? value = c.Value(identifier), scheme = c.Attribute(identifier, "schemeID");
-            if (value != null && scheme != null) c.AddTo(party.TaxRegistrations, new InvoiceTaxRegistration(value, scheme switch {
-                "VA" => InvoiceTaxRegistration.VatScheme,
-                "FC" => InvoiceTaxRegistration.TaxScheme,
-                _ => scheme
-            }));
+            if (value != null && scheme != null) c.AddTo(party.TaxRegistrations, scheme switch {
+                "VA" => new InvoiceTaxRegistration(value, InvoiceTaxRegistration.VatScheme, InvoiceTaxRegistrationKind.Vat),
+                "FC" => new InvoiceTaxRegistration(value, InvoiceTaxRegistration.TaxScheme, InvoiceTaxRegistrationKind.Fiscal),
+                _ => new InvoiceTaxRegistration(value, scheme, InvoiceTaxRegistrationKind.Other)
+            });
             else c.Loss(tax, "A tax registration requires both an identifier and a scheme to preserve its meaning.");
         }
         return party;

@@ -251,6 +251,63 @@ public class InvoiceSpecificationContractTests {
     }
 
     [Theory]
+    [InlineData(InvoiceProfile.Minimum)]
+    [InlineData(InvoiceProfile.BasicWithoutLines)]
+    [InlineData(InvoiceProfile.Basic)]
+    public void LowerProfileProjectionPolicyCanOmitAnArbitrarySellerTaxScheme(InvoiceProfile profile) {
+        Invoice invoice = CreateProjectionSafeInvoice(profile);
+        invoice.Seller.TaxRegistrations.Add(new InvoiceTaxRegistration("NATIONAL-123", "PL-KRS"));
+        InvoiceXmlOptions options = InvoiceTestContracts.FacturX(profile, InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
+
+        InvoiceDiagnostic diagnostic = Assert.Single(InvoiceSerializer.InspectTarget(invoice, options),
+            item => item.Location == "Seller.TaxRegistrations[1]");
+        Assert.Equal(InvoiceDiagnosticSeverity.Warning, diagnostic.Severity);
+        InvoiceReadResult read = InvoiceParser.Read(InvoiceSerializer.Write(invoice, options));
+        Assert.True(read.HasCompleteMapping);
+        Assert.DoesNotContain(read.Invoice.Seller.TaxRegistrations, item => item.SchemeId == "PL-KRS");
+        Assert.True(InvoiceModelValidator.ValidateForTarget(read.Invoice, options).IsValid);
+    }
+
+    [Theory]
+    [InlineData(InvoiceProfile.BasicWithoutLines)]
+    [InlineData(InvoiceProfile.Basic)]
+    public void LowerProfileProjectionCannotOmitTheOnlySellerTaxRegistration(InvoiceProfile profile) {
+        Invoice invoice = CreateProjectionSafeInvoice(profile);
+        invoice.Seller.TaxRegistrations.Clear();
+        invoice.Seller.LegalRegistration = new InvoiceIdentifier("seller-register");
+        invoice.Seller.TaxRegistrations.Add(new InvoiceTaxRegistration("NATIONAL-123", "PL-KRS"));
+        InvoiceXmlOptions options = InvoiceTestContracts.FacturX(profile, InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
+
+        Assert.True(InvoiceModelValidator.Validate(invoice).IsValid);
+        Assert.Contains(InvoiceSerializer.InspectTarget(invoice, options), item =>
+            item.Location == "Seller.TaxRegistrations" && item.Severity == InvoiceDiagnosticSeverity.Error);
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, options));
+    }
+
+    [Theory]
+    [InlineData(InvoiceProfile.Minimum)]
+    [InlineData(InvoiceProfile.BasicWithoutLines)]
+    [InlineData(InvoiceProfile.Basic)]
+    public void LowerProfileProjectionOmitsAllPaymentOnlyMappingsUnderTheSelectedPolicy(InvoiceProfile profile) {
+        Invoice invoice = CreateProjectionSafeInvoice(profile);
+        invoice.Payments.Clear();
+        invoice.Payments.Add(new InvoicePayment {
+            MeansCode = "48", Reference = "first", CardNumber = "1234", CardNetworkId = "VISA"
+        });
+        invoice.Payments.Add(new InvoicePayment {
+            MeansCode = "48", Reference = "second", CardNumber = "5678", CardNetworkId = "MASTERCARD"
+        });
+        InvoiceXmlOptions options = InvoiceTestContracts.FacturX(profile, InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
+
+        IReadOnlyList<InvoiceDiagnostic> diagnostics = InvoiceSerializer.InspectTarget(invoice, options);
+        Assert.DoesNotContain(diagnostics, item => item.Severity == InvoiceDiagnosticSeverity.Error);
+        Assert.Contains(diagnostics, item => item.Location == "Payments" && item.Severity == InvoiceDiagnosticSeverity.Warning);
+        InvoiceReadResult read = InvoiceParser.Read(InvoiceSerializer.Write(invoice, options));
+        Assert.Empty(read.Invoice.Payments);
+        Assert.True(InvoiceModelValidator.ValidateForTarget(read.Invoice, options).IsValid);
+    }
+
+    [Theory]
     [InlineData(InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2, InvoiceSyntax.Ubl, InvoiceProfile.En16931)]
     [InlineData(InvoiceSpecificationRelease.En16931_1_3_16, InvoiceSyntax.Cii, InvoiceProfile.XRechnung)]
     [InlineData(InvoiceSpecificationRelease.XRechnung_3_0_2_2026_08_31, InvoiceSyntax.Cii, InvoiceProfile.ExtendedCtcFr)]
