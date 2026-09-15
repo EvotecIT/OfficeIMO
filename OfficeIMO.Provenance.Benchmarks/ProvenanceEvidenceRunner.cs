@@ -2,10 +2,25 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.Provenance.Benchmarks;
 
 internal static class ProvenanceEvidenceRunner {
+    private const int RequiredLargeManifestBytes = 1024 * 1024;
+    private static readonly OfficeEvidenceRequirement[] RequiredLargeWorkloads = [
+        new("PNG|Large|Inspect", RequiredLargeManifestBytes, "manifest bytes"),
+        new("PNG|Large|Remove", RequiredLargeManifestBytes, "manifest bytes"),
+        new("TIFF|Large|Inspect", RequiredLargeManifestBytes, "manifest bytes"),
+        new("TIFF|Large|Remove", RequiredLargeManifestBytes, "manifest bytes"),
+        new("SVG|Large|Inspect", RequiredLargeManifestBytes, "manifest bytes"),
+        new("SVG|Large|Remove", RequiredLargeManifestBytes, "manifest bytes"),
+        new("ZIP|Large|Inspect", RequiredLargeManifestBytes, "manifest bytes"),
+        new("ZIP|Large|Remove", RequiredLargeManifestBytes, "manifest bytes"),
+        new("Text|Large|Inspect", RequiredLargeManifestBytes, "manifest bytes"),
+        new("Text|Large|Remove", RequiredLargeManifestBytes, "manifest bytes")
+    ];
+
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
@@ -27,6 +42,7 @@ internal static class ProvenanceEvidenceRunner {
         try {
             int repeat = GetPositiveIntOption(args, "--repeat", 1);
             string? jsonPath = GetOption(args, "--json");
+            string? budgetPath = GetOption(args, "--budget");
             var measurements = new List<ProvenanceEvidenceMeasurement>();
             foreach (string format in ProvenanceBenchmarkCorpus.Formats) {
                 foreach (string scale in ProvenanceBenchmarkCorpus.Scales) {
@@ -67,6 +83,20 @@ internal static class ProvenanceEvidenceRunner {
                 if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
                 File.WriteAllText(fullPath, JsonSerializer.Serialize(report, JsonOptions));
                 Console.WriteLine("Wrote " + fullPath);
+            }
+            if (!string.IsNullOrWhiteSpace(budgetPath)) {
+                OfficeEvidenceBudgetEvaluator.EnsureWithin(
+                    budgetPath,
+                    "provenance",
+                    RequiredLargeWorkloads,
+                    measurements.Select(item => new OfficeEvidenceObservation(
+                        $"{item.Format}|{item.Scale}|{item.Operation}",
+                        item.ManifestBytes,
+                        item.ElapsedMicrosecondsPerOperation,
+                        item.AllocatedBytesPerOperation,
+                        item.PeakManagedHeapGrowthBytes,
+                        item.AbsoluteProcessPeakWorkingSetBytes,
+                        item.OutputBytes)).ToArray());
             }
             return 0;
         } catch (Exception exception) {
@@ -114,6 +144,7 @@ internal static class ProvenanceEvidenceRunner {
             operation,
             1,
             fixture.Asset.Length,
+            fixture.ManifestBytes,
             outputBytes,
             iterations,
             stopwatch.Elapsed.TotalMicroseconds / iterations,
@@ -141,6 +172,7 @@ internal static class ProvenanceEvidenceRunner {
             throw new InvalidOperationException(
                 $"{fixture.Format}/{fixture.Scale} output was {outputBytes} bytes, expected {fixture.ExpectedOutputBytes}.");
         }
+        ProvenanceBenchmarkValidation.ValidateExactOutput(fixture, removal.ToArray());
         return outputBytes;
     }
 
@@ -202,6 +234,7 @@ internal sealed record ProvenanceEvidenceMeasurement(
     string Operation,
     int Iteration,
     int InputBytes,
+    int ManifestBytes,
     int? OutputBytes,
     int Operations,
     double ElapsedMicrosecondsPerOperation,

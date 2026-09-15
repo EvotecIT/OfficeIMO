@@ -1,4 +1,7 @@
 using System;
+#if NET8_0_OR_GREATER
+using System.Buffers;
+#endif
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -101,9 +104,16 @@ internal static class OfficeProvenanceText {
         if (candidates.Count == 0) return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
         candidates.Sort((left, right) => left.Offset.CompareTo(right.Offset));
         foreach ((int _, RemovalRange _, OfficeProvenanceChange change) in candidates) changes.Add(change);
-        using var output = new OfficeProvenanceBoundedMemoryStream(options.EffectiveMaxOutputBytes, data.Length);
+        int expectedLength = data.Length;
         int offset = 0;
-        foreach (RemovalRange range in candidates.Select(item => item.Range).OrderBy(item => item.Start)) {
+        foreach ((int _, RemovalRange range, OfficeProvenanceChange _) in candidates) {
+            if (range.Start < offset) continue;
+            expectedLength -= range.Length;
+            offset = range.Start + range.Length;
+        }
+        using var output = new OfficeProvenanceBoundedMemoryStream(options.EffectiveMaxOutputBytes, expectedLength);
+        offset = 0;
+        foreach ((int _, RemovalRange range, OfficeProvenanceChange _) in candidates) {
             if (range.Start < offset) continue;
             output.Write(data, offset, range.Start - offset);
             offset = range.Start + range.Length;
@@ -350,6 +360,25 @@ internal static class OfficeProvenanceText {
                 throw OfficeProvenanceLimitException.Create("The structured-text manifest exceeds the configured manifest limit.");
             }
             try {
+#if NET8_0_OR_GREATER
+                int maximumDecodedLength = checked((base64Length / 4) * 3 + 3);
+                char[] encoded = ArrayPool<char>.Shared.Rent(base64Length);
+                byte[] manifest = ArrayPool<byte>.Shared.Rent(maximumDecodedLength);
+                try {
+                    for (int index = 0; index < base64Length; index++) encoded[index] = (char)data[base64Offset + index];
+                    if (!Convert.TryFromBase64Chars(
+                        new ReadOnlySpan<char>(encoded, 0, base64Length), manifest, out int decodedLength)) return;
+                    manifestLength = decodedLength;
+                    if (decodedLength > maximumManifestBytes) {
+                        throw OfficeProvenanceLimitException.Create("The structured-text manifest exceeds the configured manifest limit.");
+                    }
+                    valid = OfficeC2paManifestStore.IsValid(
+                        manifest, 0, decodedLength, maximumManifestBytes, maximumContainerEntries, out _);
+                } finally {
+                    ArrayPool<byte>.Shared.Return(manifest, clearArray: true);
+                    ArrayPool<char>.Shared.Return(encoded, clearArray: true);
+                }
+#else
                 string encoded = Encoding.ASCII.GetString(data, base64Offset, base64Length);
                 byte[] manifest = Convert.FromBase64String(encoded);
                 manifestLength = manifest.Length;
@@ -358,6 +387,7 @@ internal static class OfficeProvenanceText {
                 }
                 valid = OfficeC2paManifestStore.IsValid(
                     manifest, 0, manifest.Length, maximumManifestBytes, maximumContainerEntries, out _);
+#endif
             } catch (FormatException) {
                 valid = false;
             }

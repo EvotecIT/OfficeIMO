@@ -170,7 +170,7 @@ cross-verifies both signatures and requires tamper rejection before timing.
 ```powershell
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Security.Benchmarks -- validate
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Security.Benchmarks -- --filter '*SecurityCms*' --job Short --noOverwrite
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Security.Benchmarks -- evidence --repeat 3 --json .benchmark-artifacts\security\evidence.json
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Security.Benchmarks -- evidence --repeat 3 --json .benchmark-artifacts\security\evidence.json --budget .\Build\BenchmarkBudgets\security-provenance.json
 ```
 
 The clean Windows evidence is recorded in
@@ -183,19 +183,22 @@ margins are 1.87x controlled time for the minimal platform-produced CMS and
 and later `System.Security.Cryptography.Pkcs` owns the narrow attribute-free
 platform fast path; Bouncy Castle remains the complete fallback and the only
 path on `netstandard2.0` and .NET Framework.
+The executable budget covers both verification engines against OfficeIMO- and
+platform-produced signatures over 1 KiB detached payloads. CI records and gates the same
+measurements on Windows, Linux, and macOS.
 
 ## Provenance structural carriers
 
 `OfficeIMO.Provenance.Benchmarks` measures bounded structural carrier
 inspection and selective removal across deterministic PNG, TIFF, SVG, ZIP, and
 structured-text fixtures. Preflight requires exactly one structurally valid
-C2PA carrier, one removal, no carrier afterward, and the exact expected output
-size.
+C2PA carrier, one removal, and no carrier afterward. It compares the complete
+PNG, TIFF, SVG, and text output and the preserved ZIP entry content.
 
 ```powershell
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Provenance.Benchmarks -- validate
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Provenance.Benchmarks -- --filter '*ProvenanceBenchmarks*' --job Short --noOverwrite
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Provenance.Benchmarks -- evidence --repeat 3 --json .benchmark-artifacts\provenance\evidence.json
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Provenance.Benchmarks -- evidence --repeat 3 --json .benchmark-artifacts\provenance\evidence.json --budget .\Build\BenchmarkBudgets\security-provenance.json
 ```
 
 The clean Windows evidence is recorded in
@@ -203,9 +206,11 @@ The clean Windows evidence is recorded in
 The 1 MiB PNG lane improved from 99.78 ms to 6.22 ms for inspection and from
 178.94 ms to 13.05 ms for removal; removal allocation fell from 1,046.05 KiB
 to 21.54 KiB. No contender ratio is claimed because no accepted managed .NET
-implementation exposes the same bounded structural contract. Large SVG, text,
-and ZIP allocation remains explicit remediation rather than being described as
-settled.
+implementation exposes the same bounded structural contract. The current gate
+covers large PNG, TIFF, SVG, ZIP, and structured-text inspect/remove workloads
+on Windows, Linux, and macOS. Pooled base64 validation removes the large text
+allocation hotspot, removal reuses validated SVG and ZIP evidence, and output
+buffers are sized for the retained content.
 
 ## Visio package workflows
 
