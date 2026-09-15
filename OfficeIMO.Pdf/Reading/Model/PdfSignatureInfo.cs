@@ -58,13 +58,15 @@ public sealed class PdfSignatureInfo {
     /// <summary>Readable AcroForm signature field name, when found.</summary>
     public string? FieldName { get; }
 
-    /// <summary>Signature field /Lock constraints, when present.</summary>
+    /// <summary>
+    /// Effective field-lock constraints from the signed FieldMDP transform, or the owning signature field /Lock dictionary when no signed transform is present.
+    /// </summary>
     public PdfSignatureFieldLockInfo? FieldLock { get; }
 
     /// <summary>Signature field /SV seed value constraints, when present.</summary>
     public PdfSignatureSeedValueInfo? SeedValue { get; }
 
-    /// <summary>True when the owning signature field exposes a /Lock dictionary.</summary>
+    /// <summary>True when the signature exposes effective FieldMDP or field /Lock constraints.</summary>
     public bool HasFieldLock => FieldLock is not null;
 
     /// <summary>True when the owning signature field exposes a /SV seed value dictionary.</summary>

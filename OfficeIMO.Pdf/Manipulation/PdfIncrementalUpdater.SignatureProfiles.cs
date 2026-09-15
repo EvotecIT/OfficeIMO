@@ -5,7 +5,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfIncrementalUpdater {
-    private static PdfSignatureProfile ResolveSignatureProfile(PdfExternalSignatureOptions options) {
+    internal static PdfSignatureProfile ResolveSignatureProfile(PdfExternalSignatureOptions options) {
         if (options.SubFilter == PdfExternalSignatureSubFilter.DocumentTimestamp) {
             if (options.Profile == PdfSignatureProfile.Certification) {
                 throw new ArgumentException("Certification signatures cannot use the document timestamp subfilter.", nameof(options));
