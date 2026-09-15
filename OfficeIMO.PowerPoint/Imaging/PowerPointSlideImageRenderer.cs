@@ -13,7 +13,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointSlide slide,
             OfficeImageExportFormat format,
             PowerPointImageExportOptions options,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            OfficeImageExportEncodingBudget? encodingBudget = null) {
             if (slide == null) {
                 throw new ArgumentNullException(nameof(slide));
             }
@@ -25,14 +26,15 @@ namespace OfficeIMO.PowerPoint {
             return OfficeImageExportExecutionScope.Run(
                 options,
                 cancellationToken,
-                token => RenderCore(slide, format, options, token));
+                token => RenderCore(slide, format, options, token, encodingBudget));
         }
 
         private static OfficeImageExportResult RenderCore(
             PowerPointSlide slide,
             OfficeImageExportFormat format,
             PowerPointImageExportOptions options,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            OfficeImageExportEncodingBudget? encodingBudget) {
             cancellationToken.ThrowIfCancellationRequested();
             PowerPointSlideVisualSnapshot snapshot = CreateSnapshot(slide, options);
             cancellationToken.ThrowIfCancellationRequested();
@@ -42,14 +44,25 @@ namespace OfficeIMO.PowerPoint {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
                 var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, "PowerPoint slide");
                 double scale = options.GetEffectiveScale(drawing.Width, drawing.Height);
-                byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(
-                    drawing,
-                    scale,
-                    OfficeSvgSizeUnit.Pixel,
-                    fallbackCodec,
-                    resourceIdPrefix: null,
-                    maximumUtf8Bytes: options.MaximumTotalEncodedBytes,
-                    cancellationToken);
+                byte[] svg = encodingBudget == null
+                    ? OfficeDrawingSvgExporter.ToSvgBytes(
+                        drawing,
+                        scale,
+                        OfficeSvgSizeUnit.Pixel,
+                        fallbackCodec,
+                        resourceIdPrefix: null,
+                        maximumUtf8Bytes: options.MaximumTotalEncodedBytes,
+                        cancellationToken)
+                    : encodingBudget.EncodeWithinRemainingBudget(
+                        remaining => OfficeDrawingSvgExporter.ToSvgBytes(
+                            drawing,
+                            scale,
+                            OfficeSvgSizeUnit.Pixel,
+                            fallbackCodec,
+                            resourceIdPrefix: null,
+                            maximumUtf8Bytes: remaining,
+                            cancellationToken),
+                        cancellationToken);
                 return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(drawing, scale), ScaledHeight(drawing, scale), svg, "Slide", "PowerPoint slide", diagnostics));
             }
 
@@ -74,12 +87,19 @@ namespace OfficeIMO.PowerPoint {
                     DiagnosticSource = source,
                     CancellationToken = cancellationToken
                 });
-                byte[] bytes = OfficeRasterImageEncoder.Encode(
-                    image,
-                    format,
-                    plan.CreateEncodingOptions(),
-                    options.MaximumTotalEncodedBytes,
-                    cancellationToken);
+                byte[] bytes = encodingBudget == null
+                    ? OfficeRasterImageEncoder.Encode(
+                        image,
+                        format,
+                        plan.CreateEncodingOptions(),
+                        options.MaximumTotalEncodedBytes,
+                        cancellationToken)
+                    : OfficeRasterImageEncoder.Encode(
+                        image,
+                        format,
+                        plan.CreateEncodingOptions(),
+                        encodingBudget,
+                        cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 return options.EnsureAccepted(new OfficeImageExportResult(format, image.Width, image.Height, bytes, "Slide", source, diagnostics));
             }

@@ -65,6 +65,7 @@ public static class VisioImageExportExtensions {
         int available = document.Pages.Count - resolved.PageIndex;
         int count = resolved.PageCount.HasValue ? Math.Min(resolved.PageCount.Value, available) : available;
         int[] pageIndexes = Enumerable.Range(resolved.PageIndex, count).ToArray();
+        var encodingBudget = new OfficeImageExportEncodingBudget(resolved.MaximumTotalEncodedBytes);
         OfficeImageExportBatchProcessor.ForEachOrdered(
             pageIndexes,
             resolved.MaximumDegreeOfParallelism,
@@ -77,7 +78,8 @@ public static class VisioImageExportExtensions {
                     resolved,
                     ResolvePageName(page, pageNumber),
                     "Visio page " + pageNumber,
-                    token);
+                    token,
+                    encodingBudget);
             },
             consumer,
             cancellationToken,

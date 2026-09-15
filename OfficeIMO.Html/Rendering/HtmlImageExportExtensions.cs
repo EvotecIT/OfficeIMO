@@ -18,6 +18,7 @@ public static partial class HtmlImageExportExtensions {
     internal static IReadOnlyList<OfficeImageExportResult> ExportImages(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null) {
         HtmlRenderOptions resolved = Normalize(options, 0);
         var results = new List<OfficeImageExportResult>();
+        var encodingBudget = new OfficeImageExportEncodingBudget(resolved.MaximumTotalEncodedBytes);
         OfficeImageExportBatchProcessor.Run(
             resolved,
             (accept, operationCancellationToken) => {
@@ -30,7 +31,7 @@ public static partial class HtmlImageExportExtensions {
                 }
                 foreach (HtmlRenderPage page in rendered.Pages) {
                     operationCancellationToken.ThrowIfCancellationRequested();
-                    accept(RenderPage(page, format, resolved, rendered.DiagnosticReport, operationCancellationToken));
+                    accept(RenderPage(page, format, resolved, rendered.DiagnosticReport, operationCancellationToken, encodingBudget));
                 }
             },
             results.Add,
@@ -51,6 +52,7 @@ public static partial class HtmlImageExportExtensions {
     internal static async Task<IReadOnlyList<OfficeImageExportResult>> ExportImagesAsync(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
         HtmlRenderOptions resolved = Normalize(options, 0);
         var results = new List<OfficeImageExportResult>();
+        var encodingBudget = new OfficeImageExportEncodingBudget(resolved.MaximumTotalEncodedBytes);
         await OfficeImageExportBatchProcessor.RunAsync(
             resolved,
             async (accept, operationCancellationToken) => {
@@ -64,7 +66,7 @@ public static partial class HtmlImageExportExtensions {
                 foreach (HtmlRenderPage page in rendered.Pages) {
                     operationCancellationToken.ThrowIfCancellationRequested();
                     await accept(
-                        RenderPage(page, format, resolved, rendered.DiagnosticReport, operationCancellationToken),
+                        RenderPage(page, format, resolved, rendered.DiagnosticReport, operationCancellationToken, encodingBudget),
                         operationCancellationToken).ConfigureAwait(false);
                 }
             },
@@ -76,7 +78,13 @@ public static partial class HtmlImageExportExtensions {
         return results.AsReadOnly();
     }
 
-    internal static OfficeImageExportResult RenderPage(HtmlRenderPage page, OfficeImageExportFormat format, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) {
+    internal static OfficeImageExportResult RenderPage(
+        HtmlRenderPage page,
+        OfficeImageExportFormat format,
+        HtmlRenderOptions options,
+        HtmlDiagnosticReport diagnostics,
+        CancellationToken cancellationToken,
+        OfficeImageExportEncodingBudget? encodingBudget = null) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeDrawing drawing = page.CreateDrawing(cancellationToken);
         var exportDiagnostics = new List<OfficeImageExportDiagnostic>(MapDiagnostics(diagnostics));
@@ -88,14 +96,25 @@ public static partial class HtmlImageExportExtensions {
         int height;
         if (format == OfficeImageExportFormat.Svg) {
             double scale = options.GetEffectiveScale(drawing.Width, drawing.Height);
-            bytes = OfficeDrawingSvgExporter.ToSvgBytes(
-                drawing,
-                scale,
-                OfficeSvgSizeUnit.Pixel,
-                fallbackCodec,
-                resourceIdPrefix: null,
-                maximumUtf8Bytes: options.MaximumTotalEncodedBytes,
-                cancellationToken: cancellationToken);
+            bytes = encodingBudget == null
+                ? OfficeDrawingSvgExporter.ToSvgBytes(
+                    drawing,
+                    scale,
+                    OfficeSvgSizeUnit.Pixel,
+                    fallbackCodec,
+                    resourceIdPrefix: null,
+                    maximumUtf8Bytes: options.MaximumTotalEncodedBytes,
+                    cancellationToken: cancellationToken)
+                : encodingBudget.EncodeWithinRemainingBudget(
+                    remaining => OfficeDrawingSvgExporter.ToSvgBytes(
+                        drawing,
+                        scale,
+                        OfficeSvgSizeUnit.Pixel,
+                        fallbackCodec,
+                        resourceIdPrefix: null,
+                        maximumUtf8Bytes: remaining,
+                        cancellationToken: cancellationToken),
+                    cancellationToken);
             width = Math.Max(1, (int)Math.Ceiling(page.Width * scale));
             height = Math.Max(1, (int)Math.Ceiling(page.Height * scale));
         } else if (format.IsRaster()) {
@@ -116,12 +135,19 @@ public static partial class HtmlImageExportExtensions {
                 DiagnosticSource = source,
                 CancellationToken = cancellationToken
             });
-            bytes = OfficeRasterImageEncoder.Encode(
-                image,
-                format,
-                plan.CreateEncodingOptions(),
-                options.MaximumTotalEncodedBytes,
-                cancellationToken);
+            bytes = encodingBudget == null
+                ? OfficeRasterImageEncoder.Encode(
+                    image,
+                    format,
+                    plan.CreateEncodingOptions(),
+                    options.MaximumTotalEncodedBytes,
+                    cancellationToken)
+                : OfficeRasterImageEncoder.Encode(
+                    image,
+                    format,
+                    plan.CreateEncodingOptions(),
+                    encodingBudget,
+                    cancellationToken);
             width = image.Width;
             height = image.Height;
         } else {

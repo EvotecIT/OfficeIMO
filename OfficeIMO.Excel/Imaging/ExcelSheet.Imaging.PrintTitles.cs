@@ -11,7 +11,8 @@ namespace OfficeIMO.Excel {
             ExcelSourceImageBudget sourceImageBudget,
             int pageNumber,
             int pageCount,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            OfficeImageExportEncodingBudget? encodingBudget = null) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportFormat workingFormat = format == OfficeImageExportFormat.Svg
                 ? OfficeImageExportFormat.Svg
@@ -19,6 +20,8 @@ namespace OfficeIMO.Excel {
             bool directFinalRaster = format.IsRaster() &&
                                      format == workingFormat &&
                                      !options.SplitByManualPageBreaks;
+            bool directFinalSvg = format == OfficeImageExportFormat.Svg &&
+                                  !options.SplitByManualPageBreaks;
             OfficeImageExportResult result;
             ExcelRasterRenderState rasterState;
             if (options.SplitByManualPageBreaks &&
@@ -41,7 +44,8 @@ namespace OfficeIMO.Excel {
                     format,
                     directFinalRaster,
                     out rasterState,
-                    cancellationToken);
+                    cancellationToken,
+                    directFinalRaster || directFinalSvg ? encodingBudget : null);
             }
 
             if (options.SplitByManualPageBreaks) {
@@ -68,7 +72,11 @@ namespace OfficeIMO.Excel {
                 result = ApplyFinalSvgOutputBounds(result, options);
             }
 
-            if (format == OfficeImageExportFormat.Svg || directFinalRaster) return options.EnsureAccepted(result);
+            if (format == OfficeImageExportFormat.Svg) {
+                if (!directFinalSvg) encodingBudget?.Reserve(result.Bytes.Length);
+                return options.EnsureAccepted(result);
+            }
+            if (directFinalRaster) return options.EnsureAccepted(result);
             cancellationToken.ThrowIfCancellationRequested();
             if (!OfficeRasterImageDecoder.TryDecode(
                     result.Bytes,
@@ -82,12 +90,19 @@ namespace OfficeIMO.Excel {
                 format,
                 result.Width,
                 result.Height,
-                OfficeRasterImageEncoder.Encode(
-                    image,
-                    format,
-                    rasterState.EncodingOptions,
-                    options.MaximumTotalEncodedBytes,
-                    cancellationToken),
+                encodingBudget == null
+                    ? OfficeRasterImageEncoder.Encode(
+                        image,
+                        format,
+                        rasterState.EncodingOptions,
+                        options.MaximumTotalEncodedBytes,
+                        cancellationToken)
+                    : OfficeRasterImageEncoder.Encode(
+                        image,
+                        format,
+                        rasterState.EncodingOptions,
+                        encodingBudget,
+                        cancellationToken),
                 result.Name,
                 result.Source,
                 result.Diagnostics));

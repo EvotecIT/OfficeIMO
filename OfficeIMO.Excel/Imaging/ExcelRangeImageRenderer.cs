@@ -42,12 +42,13 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat rasterPlanningFormat,
             bool finalOutput,
             out ExcelRasterRenderState rasterState,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            OfficeImageExportEncodingBudget? encodingBudget = null) {
             ExcelRasterRenderState resolvedState = default;
             OfficeImageExportResult result = OfficeImageExportExecutionScope.Run(
                 options,
                 cancellationToken,
-                token => RenderCore(snapshot, format, options, rasterPlanningFormat, finalOutput, out resolvedState, token));
+                token => RenderCore(snapshot, format, options, rasterPlanningFormat, finalOutput, out resolvedState, token, encodingBudget));
             rasterState = resolvedState;
             return result;
         }
@@ -59,7 +60,8 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat rasterPlanningFormat,
             bool finalOutput,
             out ExcelRasterRenderState rasterState,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            OfficeImageExportEncodingBudget? encodingBudget) {
             cancellationToken.ThrowIfCancellationRequested();
             List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
             if (format == OfficeImageExportFormat.Svg) {
@@ -69,7 +71,12 @@ namespace OfficeIMO.Excel {
                 rasterState = new ExcelRasterRenderState(svgOptions.Scale, svgOptions.RasterEncoding);
                 string svg = RenderSvg(snapshot, svgOptions, diagnostics, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-                var svgResult = new OfficeImageExportResult(format, ScaledWidth(snapshot, svgOptions), ScaledHeight(snapshot, svgOptions), Encoding.UTF8.GetBytes(svg), snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly());
+                byte[] svgBytes = encodingBudget == null
+                    ? Encoding.UTF8.GetBytes(svg)
+                    : encodingBudget.EncodeWithinRemainingBudget(
+                        remaining => EncodeSvgWithinLimit(svg, remaining),
+                        cancellationToken);
+                var svgResult = new OfficeImageExportResult(format, ScaledWidth(snapshot, svgOptions), ScaledHeight(snapshot, svgOptions), svgBytes, snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly());
                 return finalOutput ? options.EnsureAccepted(svgResult) : svgResult;
             }
             if (!rasterPlanningFormat.IsRaster()) {
@@ -89,12 +96,19 @@ namespace OfficeIMO.Excel {
             renderOptions.Scale = rasterState.Scale;
             renderOptions.TargetDpi = null;
             OfficeRasterImage image = RenderRaster(snapshot, renderOptions, diagnostics, cancellationToken);
-            byte[] bytes = OfficeRasterImageEncoder.Encode(
-                image,
-                format,
-                rasterState.EncodingOptions,
-                ResolveEncodingByteCeiling(finalOutput, options),
-                cancellationToken);
+            byte[] bytes = finalOutput && encodingBudget != null
+                ? OfficeRasterImageEncoder.Encode(
+                    image,
+                    format,
+                    rasterState.EncodingOptions,
+                    encodingBudget,
+                    cancellationToken)
+                : OfficeRasterImageEncoder.Encode(
+                    image,
+                    format,
+                    rasterState.EncodingOptions,
+                    ResolveEncodingByteCeiling(finalOutput, options),
+                    cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             var result = new OfficeImageExportResult(format, image.Width, image.Height, bytes, snapshot.SheetName, source, diagnostics.AsReadOnly());
             return finalOutput ? options.EnsureAccepted(result) : result;
@@ -106,6 +120,17 @@ namespace OfficeIMO.Excel {
             finalOutput
                 ? options.MaximumTotalEncodedBytes
                 : Math.Max(options.MaximumTotalEncodedBytes, OfficeImageExportOptions.DefaultMaximumTotalEncodedBytes);
+
+        private static byte[] EncodeSvgWithinLimit(string svg, long maximumBytes) {
+            long byteCount = Encoding.UTF8.GetByteCount(svg);
+            if (byteCount > maximumBytes) {
+                throw new OfficeImageExportBatchLimitException(
+                    nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes),
+                    byteCount,
+                    maximumBytes);
+            }
+            return Encoding.UTF8.GetBytes(svg);
+        }
 
         internal static OfficeRasterImage RenderRaster(
             ExcelRangeVisualSnapshot snapshot,

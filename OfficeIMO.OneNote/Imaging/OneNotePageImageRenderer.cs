@@ -10,13 +10,14 @@ internal static class OneNotePageImageRenderer {
         OneNotePageRenderingOptions options,
         string? name = null,
         string? source = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        OfficeImageExportEncodingBudget? encodingBudget = null) {
         if (page == null) throw new ArgumentNullException(nameof(page));
         if (options == null) throw new ArgumentNullException(nameof(options));
         return OfficeImageExportExecutionScope.Run(
             options,
             cancellationToken,
-            token => RenderCore(page, format, options, name, source, token));
+            token => RenderCore(page, format, options, name, source, token, encodingBudget));
     }
 
     private static OfficeImageExportResult RenderCore(
@@ -25,7 +26,8 @@ internal static class OneNotePageImageRenderer {
         OneNotePageRenderingOptions options,
         string? name,
         string? source,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        OfficeImageExportEncodingBudget? encodingBudget) {
         cancellationToken.ThrowIfCancellationRequested();
         OneNotePageRenderingOptions effective = options.Clone();
         effective.Validate();
@@ -35,14 +37,25 @@ internal static class OneNotePageImageRenderer {
             var diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
             var fallbackCodec = new OfficeRasterImageFallbackCodec(effective.ImageCodec, diagnostics, source ?? "OneNote page");
             double scale = effective.GetEffectiveScale(snapshot.Drawing.Width, snapshot.Drawing.Height);
-            byte[] bytes = OfficeDrawingSvgExporter.ToSvgBytes(
-                snapshot.Drawing,
-                scale,
-                OfficeSvgSizeUnit.Pixel,
-                fallbackCodec,
-                resourceIdPrefix: null,
-                maximumUtf8Bytes: effective.MaximumTotalEncodedBytes,
-                cancellationToken);
+            byte[] bytes = encodingBudget == null
+                ? OfficeDrawingSvgExporter.ToSvgBytes(
+                    snapshot.Drawing,
+                    scale,
+                    OfficeSvgSizeUnit.Pixel,
+                    fallbackCodec,
+                    resourceIdPrefix: null,
+                    maximumUtf8Bytes: effective.MaximumTotalEncodedBytes,
+                    cancellationToken)
+                : encodingBudget.EncodeWithinRemainingBudget(
+                    remaining => OfficeDrawingSvgExporter.ToSvgBytes(
+                        snapshot.Drawing,
+                        scale,
+                        OfficeSvgSizeUnit.Pixel,
+                        fallbackCodec,
+                        resourceIdPrefix: null,
+                        maximumUtf8Bytes: remaining,
+                        cancellationToken),
+                    cancellationToken);
             return effective.EnsureAccepted(new OfficeImageExportResult(
                 format,
                 Scaled(snapshot.Drawing.Width, scale),
@@ -73,12 +86,19 @@ internal static class OneNotePageImageRenderer {
                 DiagnosticSource = source ?? "OneNote page",
                 CancellationToken = cancellationToken
             });
-            byte[] bytes = OfficeRasterImageEncoder.Encode(
-                raster,
-                format,
-                plan.CreateEncodingOptions(),
-                effective.MaximumTotalEncodedBytes,
-                cancellationToken);
+            byte[] bytes = encodingBudget == null
+                ? OfficeRasterImageEncoder.Encode(
+                    raster,
+                    format,
+                    plan.CreateEncodingOptions(),
+                    effective.MaximumTotalEncodedBytes,
+                    cancellationToken)
+                : OfficeRasterImageEncoder.Encode(
+                    raster,
+                    format,
+                    plan.CreateEncodingOptions(),
+                    encodingBudget,
+                    cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return effective.EnsureAccepted(new OfficeImageExportResult(
                 format,
