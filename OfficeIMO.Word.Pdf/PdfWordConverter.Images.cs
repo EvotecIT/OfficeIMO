@@ -97,6 +97,12 @@ namespace OfficeIMO.Word.Pdf {
                 AddImageSkippedWarning(image, "PDF image stream is not exposed as a complete image file payload.");
                 return false;
             }
+            if (string.Equals(source.MimeType, "image/j2c", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(source.FileExtension?.TrimStart('.'), "j2c", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(source.FileExtension?.TrimStart('.'), "j2k", StringComparison.OrdinalIgnoreCase)) {
+                AddImageSkippedWarning(image, "Raw JPEG 2000 codestreams are not supported by the Word image-part format.");
+                return false;
+            }
 
             string extension = ResolveImageExtension(source);
             if (string.IsNullOrWhiteSpace(extension)) {

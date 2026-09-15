@@ -60,9 +60,12 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal(1, calls);
     }
 
-    [Fact]
-    public async Task Ocr_UsesJpeg2000CodecAndDoesNotSendBlankPageWhenCodecIsMissing() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Ocr_UsesJpeg2000CodecAndDoesNotSendBlankPageWhenCodecIsMissing(bool rawCodestream) {
         byte[] payload = ReadScanJpx("rgb");
+        if (rawCodestream) payload = payload.Skip(FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51)).ToArray();
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(payload,
             colorSpace: "/DeviceRGB", imageWidth: 1, imageFilterEntry: "/Filter /JPXDecode");
         var codec = new ScanJpxCodec(payload);
@@ -278,10 +281,14 @@ public partial class PdfPageImageRendererTests {
 
     private sealed class ScanJpxCodec : IOfficeRasterImageCodec {
         private readonly byte[] _expected;
-        internal ScanJpxCodec(byte[] expected) { _expected = expected; }
+        private readonly string _expectedContentType;
+        internal ScanJpxCodec(byte[] expected) {
+            _expected = expected;
+            _expectedContentType = OfficeJpeg2000Header.IsJp2Container(expected) ? "image/jp2" : "image/j2c";
+        }
         internal int Calls { get; private set; }
         public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
-            Assert.Equal("image/jp2", contentType);
+            Assert.Equal(_expectedContentType, contentType);
             Assert.Equal(_expected, encodedBytes);
             Calls++;
             Assert.Equal(1, Calls); // A one-shot codec must suffice for a single image placement.

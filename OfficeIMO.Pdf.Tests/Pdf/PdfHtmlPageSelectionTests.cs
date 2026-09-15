@@ -193,6 +193,30 @@ public sealed class PdfHtmlPageSelectionTests {
             warning.Code == "PdfGroupsNotReconstructed"));
     }
 
+    [Fact]
+    public void ReverseConversions_ReportOptionalContentInsideType3GlyphSelectedByExtGStateFont() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(
+            BuildType3OptionalContentPdf("A", useExtGStateFont: true));
+
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        PdfTableExtractionScopeReport tableScope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+        PdfHtmlConversionResult html = logical.ToHtmlResult();
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using OfficeIMO.Word.WordDocument wordDocument = word.Value;
+        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPoint.Value;
+
+        Assert.True(page.HasOptionalContentUsage);
+        Assert.Equal(1, tableScope.PagesWithOptionalContent);
+        Assert.Contains(html.Report.Warnings, static warning =>
+            warning.Code == "PdfOptionalContentGroupsFlattened");
+        Assert.Contains(word.Report.Warnings, static warning =>
+            warning.Code == "PdfOptionalContentGroupsFlattened");
+        Assert.Contains(powerPoint.Report.Warnings, static warning =>
+            warning.Code == "PdfGroupsNotReconstructed");
+    }
+
     private static byte[] BuildOptionalContentUsageWithoutCatalogMetadataPdf() {
         const string content = "/OC /UncataloguedLayer BDC BT /F1 12 Tf 20 100 Td (Layered text) Tj ET EMC";
         string pdf = string.Join("\n", new[] {
@@ -320,8 +344,13 @@ public sealed class PdfHtmlPageSelectionTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildType3OptionalContentPdf(string layeredGlyph) {
-        const string pageContent = "BT /F3 24 Tf 20 100 Td (A) Tj ET";
+    private static byte[] BuildType3OptionalContentPdf(string layeredGlyph, bool useExtGStateFont = false) {
+        string pageContent = useExtGStateFont
+            ? "BT /FontState gs 20 100 Td (A) Tj ET"
+            : "BT /F3 24 Tf 20 100 Td (A) Tj ET";
+        string extGState = useExtGStateFont
+            ? " /ExtGState << /FontState << /Font [/F3 24] >> >>"
+            : string.Empty;
         const string ordinaryGlyph = "0 0 500 700 d1 0 0 500 700 re f";
         const string layeredGlyphContent = "0 0 500 700 d1 /OC /Layer BDC 0 0 500 700 re f EMC";
         string glyphA = string.Equals(layeredGlyph, "A", StringComparison.Ordinal) ? layeredGlyphContent : ordinaryGlyph;
@@ -335,7 +364,7 @@ public sealed class PdfHtmlPageSelectionTests {
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "endobj",
             "3 0 obj",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F3 5 0 R >> >> /Contents 4 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F3 5 0 R >>" + extGState + " >> /Contents 4 0 R >>",
             "endobj",
             "4 0 obj",
             "<< /Length " + pageContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",

@@ -161,6 +161,11 @@ public sealed partial class PdfReadPage {
                     graphicsStates?.Items.TryGetValue(name, out PdfObject? graphicsStateObject) == true
                         ? graphicsStateObject
                         : null);
+                if (graphicsState != null &&
+                    TryReadExtGStateFont(graphicsState, out string? graphicsStateFont, out _) &&
+                    !string.IsNullOrEmpty(graphicsStateFont)) {
+                    fontName = graphicsStateFont;
+                }
                 PdfDictionary? softMask = ResolveDictionary(
                     graphicsState?.Items.TryGetValue("SMask", out PdfObject? softMaskObject) == true
                         ? softMaskObject

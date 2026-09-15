@@ -39,8 +39,7 @@ internal static partial class ResourceResolver {
             payload = Filters.StreamDecoder.DecodeRequired(prefix, stream.Data, objects, maximumBytes, cancellationToken);
             // SMaskInData=0 (including absence) requires ignoring encoded alpha. Until sample-level
             // normalization is available, only prove opaque Gray/RGB headers safe for pass-through.
-            if (!OfficeIMO.Drawing.OfficeJpeg2000Header.IsJp2Container(payload) ||
-                !OfficeIMO.Drawing.OfficeJpeg2000Header.TryValidateOpaquePayload(
+            if (!OfficeIMO.Drawing.OfficeJpeg2000Header.TryValidateOpaquePayload(
                     payload,
                     cancellationToken,
                     out int components,

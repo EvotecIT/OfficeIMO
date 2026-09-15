@@ -1019,11 +1019,14 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         PdfCore.PdfExtractedImage sourceImage = image.SourceImage;
-        if (!sourceImage.IsImageFile || string.IsNullOrWhiteSpace(sourceImage.MimeType)) {
+        if (!sourceImage.IsImageFile || string.IsNullOrWhiteSpace(sourceImage.MimeType) ||
+            string.Equals(sourceImage.MimeType, "image/j2c", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(sourceImage.FileExtension?.TrimStart('.'), "j2c", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(sourceImage.FileExtension?.TrimStart('.'), "j2k", StringComparison.OrdinalIgnoreCase)) {
             AddWarning(
                 options,
                 "ImageDataUnavailable",
-                "An extracted PDF image was represented as a placeholder because it is not available as a complete image file.",
+                "An extracted PDF image was represented as a placeholder because it is not available in a browser-embeddable image file format.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
                 OfficeConversionLossKind.Omission);
             return false;

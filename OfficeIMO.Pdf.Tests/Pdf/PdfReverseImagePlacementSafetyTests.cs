@@ -1143,7 +1143,10 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             imageDefinition: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /JPXDecode");
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         PdfLogicalImage image = Assert.Single(Assert.Single(logical.Pages).Images);
-        Assert.False(image.SourceImage.IsImageFile);
+        Assert.True(image.SourceImage.IsImageFile);
+        Assert.Equal("j2c", image.SourceImage.FileExtension);
+        Assert.Equal("image/j2c", image.SourceImage.MimeType);
+        Assert.Equal(rawCodestream, image.SourceImage.Bytes);
 
         AssertJpeg2000PayloadNotEmbeddedAcrossEditableAdapters(logical);
     }

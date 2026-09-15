@@ -14,11 +14,12 @@ public sealed partial class PdfReadPage {
         string? fontName = null;
         var fontStack = new Stack<string?>();
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
+        Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
         _ = PdfPageContentVisualParser.Parse(
             content,
             1D,
             1D,
-            GetGraphicsStateResources(resources),
+            graphicsStates,
             GetColorSpaceResources(
                 resources,
                 GetInvokedResourceNames(content, resources).ColorSpaces,
@@ -50,6 +51,12 @@ public sealed partial class PdfReadPage {
                         break;
                     case "Tf" when operation.Operands.Count == 2 && operation.Operands[0] is string selectedFont:
                         fontName = selectedFont;
+                        break;
+                    case "gs" when operation.Operands.Count == 1 &&
+                        operation.Operands[0] is string graphicsStateName &&
+                        graphicsStates.TryGetValue(graphicsStateName, out PdfPageGraphicsStateResource graphicsState) &&
+                        !string.IsNullOrEmpty(graphicsState.FontResource):
+                        fontName = graphicsState.FontResource;
                         break;
                     case "cs": case "CS":
                         malformed = rejectColorOperators ||
