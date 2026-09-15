@@ -88,7 +88,8 @@ public sealed class SvgContentSafetyTests {
     [Fact]
     public void RemoveSelectedContentRemovesOnlyTheSelectedTextNodeAndReopens() {
         byte[] svg = Svg("""
-            <text x="10" y="35"><tspan style="display:none">remove only me</tspan><tspan x="10" y="70">keep me</tspan></text>
+            <text style="display:none" x="10" y="35">remove only me</text>
+            <text x="10" y="70">keep me</text>
             """);
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
         OfficeContentSafetyFinding hidden = Assert.Single(report.Findings, item => item.TextPreview == "remove only me");

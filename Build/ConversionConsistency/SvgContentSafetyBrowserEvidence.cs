@@ -112,7 +112,7 @@ internal static class SvgContentSafetyBrowserEvidenceRunner {
         OfficeContentSafetyFinding[] reportOnly = report.Findings
             .Where(finding => finding.CleanupCapability == OfficeContentCleanupCapability.ReportOnly)
             .ToArray();
-        if (removable.Length != 6 || reportOnly.Length != 3) {
+        if (removable.Length != 5 || reportOnly.Length != 4) {
             throw new InvalidDataException(
                 "The SVG adversarial fixture produced an unexpected cleanup/report-only finding inventory (" +
                 removable.Length + "/" + reportOnly.Length + ").");
@@ -122,7 +122,6 @@ internal static class SvgContentSafetyBrowserEvidenceRunner {
         RequireFinding(removable, "PRESENTATION VISIBILITY PAYLOAD", OfficeContentConcealmentKind.HiddenByProperty);
         RequireFinding(removable, "OPACITY PAYLOAD", OfficeContentConcealmentKind.TransparentText);
         RequireFinding(removable, "CLIPPED PAYLOAD", OfficeContentConcealmentKind.ClippedContent);
-        RequireFinding(removable, "OFF CANVAS PAYLOAD", OfficeContentConcealmentKind.OffCanvas);
         ValidateExpectedReportOnlyInventory(report);
     }
 
@@ -130,10 +129,11 @@ internal static class SvgContentSafetyBrowserEvidenceRunner {
         OfficeContentSafetyFinding[] reportOnly = report.Findings
             .Where(finding => finding.CleanupCapability == OfficeContentCleanupCapability.ReportOnly)
             .ToArray();
-        if (reportOnly.Length != 3) {
+        if (reportOnly.Length != 4) {
             throw new InvalidDataException(
-                "The SVG adversarial fixture produced " + reportOnly.Length + " report-only findings instead of 3.");
+                "The SVG adversarial fixture produced " + reportOnly.Length + " report-only findings instead of 4.");
         }
+        RequireFinding(reportOnly, "OFF CANVAS PAYLOAD", OfficeContentConcealmentKind.OffCanvas);
         RequireFinding(reportOnly, "LOW CONTRAST PAYLOAD", OfficeContentConcealmentKind.LowContrastText);
         if (!reportOnly.Any(finding => finding.TextPreview == "PAINT ORDER PAYLOAD" &&
                 finding.Kind is OfficeContentConcealmentKind.LowContrastText or OfficeContentConcealmentKind.Other)) {

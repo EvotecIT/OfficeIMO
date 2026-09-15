@@ -928,6 +928,67 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void UnsupportedPaintProjectionReportsOtherwiseVisibleText() {
+        byte[] svg = Svg(
+            "<text x='10' y='35'>externally occluded payload</text>" +
+            "<image href='https://example.test/cover.png' width='220' height='120'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "externally occluded payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.NonPrimaryContent, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RootViewportScaleAppliesToVisualResolutionFloor() {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 1000 1000'>" +
+            "<rect width='1000' height='1000' fill='white'/>" +
+            "<text font-family='OfficeIMO Shaping Test' font-size='100' fill='white' transform='scale(.1,1)' x='1000' y='100'>A</text></svg>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        readerOptions.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, ManagedTextShapingTestAssets.CreateFont('A'));
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "A");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("raster resolution", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OffCanvasAdvanceBoundsCannotAuthorizeCleanup() {
+        byte[] svg = Svg(
+            "<text font-family='OfficeIMO Shaping Test' font-size='20' text-anchor='end' x='0' y='35'>A</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+        readerOptions.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, ManagedTextShapingTestAssets.CreateFont('A'));
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "A" && item.Kind == OfficeContentConcealmentKind.OffCanvas);
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("glyph-ink", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LayoutCoupledConcealedRunCannotAuthorizeCleanup() {
+        byte[] svg = Svg(
+            "<text x='10' y='35'><tspan opacity='0'>A</tspan><tspan>B</tspan></text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "A");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("visible glyph advances", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SignedSvgCleanupBlocksByDefault() {
         byte[] svg = SignedSvg();
         OfficeContentSafetyFinding finding = Assert.Single(

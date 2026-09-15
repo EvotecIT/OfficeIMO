@@ -92,6 +92,7 @@ public static partial class OfficeSvgDrawingReader {
                 hasDynamicRendering,
                 hasConditionalRendering,
                 out string contextEvidence);
+            bool followingUnsupportedImagePaint = HasFollowingUnsupportedSvgImagePaint(candidate, document.Root);
 
             if (TryClassifySvgNonPrimary(
                     candidate,
@@ -117,7 +118,7 @@ public static partial class OfficeSvgDrawingReader {
             SvgContentSafetyConcealment? concealment = ClassifySvgStructuralConcealment(candidate, document, options);
             bool visualConcealment = false;
             bool hostBackdropDependent = false;
-            bool estimatedFontBounds = false;
+            bool offCanvasBounds = false;
             if (!concealment.HasValue && baselineRendered) {
                 if (comparisons < maximumComparisons) {
                     comparisons++;
@@ -152,22 +153,32 @@ public static partial class OfficeSvgDrawingReader {
                 }
             }
 
-            if (concealment.HasValue &&
-                concealment.Value.Kind == OfficeContentConcealmentKind.OffCanvas &&
-                candidate.UsesEstimatedFontMetrics) {
-                SvgContentSafetyConcealment estimated = concealment.Value;
+            if (concealment.HasValue && concealment.Value.Kind == OfficeContentConcealmentKind.OffCanvas) {
+                SvgContentSafetyConcealment offCanvas = concealment.Value;
                 concealment = new SvgContentSafetyConcealment(
-                    estimated.Kind,
-                    estimated.Evidence + " The requested font metrics were unavailable, so browser fallback glyph bounds can differ and cleanup is report-only.",
-                    estimated.Risk);
-                estimatedFontBounds = true;
+                    offCanvas.Kind,
+                    offCanvas.Evidence +
+                    " Structural off-canvas bounds use bounded advances rather than browser glyph-ink outlines, so cleanup is report-only." +
+                    (candidate.UsesEstimatedFontMetrics
+                        ? " The requested font metrics were unavailable, so browser fallback glyph bounds can also differ."
+                        : string.Empty),
+                    offCanvas.Risk);
+                offCanvasBounds = true;
             }
 
             if (concealment.HasValue) {
+                bool layoutCoupled = HasSvgLayoutCoupledText(candidate);
                 if (contextDependent) {
                     concealment = new SvgContentSafetyConcealment(
                         concealment.Value.Kind,
                         concealment.Value.Evidence + " " + contextEvidence,
+                        concealment.Value.Risk);
+                }
+                if (layoutCoupled) {
+                    concealment = new SvgContentSafetyConcealment(
+                        concealment.Value.Kind,
+                        concealment.Value.Evidence +
+                        " The same flowing SVG text owner contains another text node, so deleting this payload could change visible glyph advances and cleanup is report-only.",
                         concealment.Value.Risk);
                 }
                 AddSvgContentSafetyFinding(
@@ -175,12 +186,15 @@ public static partial class OfficeSvgDrawingReader {
                     targets,
                     candidate,
                     concealment.Value,
-                    contextDependent || estimatedFontBounds || visualConcealment &&
+                    contextDependent || offCanvasBounds || layoutCoupled || visualConcealment &&
                         (baselineUnsupported > 0 || hostBackdropDependent ||
                          !HasSufficientSvgVisualResolution(candidate, document, maximumRasterPixels))
                         ? OfficeContentCleanupCapability.ReportOnly
                         : OfficeContentCleanupCapability.RemoveText);
-            } else if (contextDependent) {
+            } else if (contextDependent || followingUnsupportedImagePaint) {
+                string reportOnlyEvidence = contextDependent
+                    ? contextEvidence
+                    : "A following external SVG image is outside the bounded native paint projection and can occlude this text in a browser, so cleanup is report-only.";
                 if (options.IncludeNonPrimaryContent) {
                     AddSvgContentSafetyFinding(
                         builder,
@@ -188,7 +202,7 @@ public static partial class OfficeSvgDrawingReader {
                         candidate,
                         new SvgContentSafetyConcealment(
                             OfficeContentConcealmentKind.NonPrimaryContent,
-                            contextEvidence,
+                            reportOnlyEvidence,
                             OfficeContentSafetyRisk.Informational),
                         OfficeContentCleanupCapability.ReportOnly);
                 } else {
@@ -323,6 +337,29 @@ public static partial class OfficeSvgDrawingReader {
         // Outermost text owners are disjoint, so each bounded payload is aggregated and scanned once.
         return parent.AncestorsAndSelf().LastOrDefault(element =>
                    element.Name.LocalName.Equals("text", StringComparison.Ordinal)) ?? parent;
+    }
+
+    private static bool HasSvgLayoutCoupledText(SvgContentSafetyCandidate candidate) {
+        XElement owner = FindSvgLogicalTextOwner(candidate.SourceText);
+        return owner.DescendantNodes().OfType<XText>().Count(text => !IsIgnorableSvgTextNode(text.Value)) > 1;
+    }
+
+    private static bool HasFollowingUnsupportedSvgImagePaint(
+        SvgContentSafetyCandidate candidate,
+        XElement root) {
+        XElement? owner = candidate.SourceText.Parent;
+        if (owner == null) return false;
+        XNamespace svgNamespace = root.Name.Namespace;
+        return root.DescendantsAndSelf().Any(element => {
+            if (!IsNativeSvgElement(element, svgNamespace) ||
+                !element.Name.LocalName.Equals("image", StringComparison.Ordinal) ||
+                XNode.DocumentOrderComparer.Compare(element, owner) <= 0) return false;
+            XAttribute[] hrefs = element.Attributes()
+                .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal))
+                .ToArray();
+            return hrefs.Length != 1 ||
+                !hrefs[0].Value.Trim().StartsWith("data:", StringComparison.OrdinalIgnoreCase);
+        });
     }
 
     private static string BuildSvgContentSafetyLocation(XElement element, int textIndex) {
@@ -583,8 +620,9 @@ public static partial class OfficeSvgDrawingReader {
         double viewportPixels = document.ViewportWidth * document.ViewportHeight;
         if (viewportPixels <= 0D || double.IsNaN(viewportPixels) || double.IsInfinity(viewportPixels)) return false;
         double scale = Math.Min(1D, Math.Sqrt(maximumRasterPixels / viewportPixels));
-        return (candidate.Right - candidate.Left) * scale >= 4D &&
-            (candidate.Bottom - candidate.Top) * scale >= 4D;
+        ResolveSvgContentSafetyRootViewportScales(document, out double horizontalScale, out double verticalScale);
+        return (candidate.Right - candidate.Left) * horizontalScale * scale >= 4D &&
+            (candidate.Bottom - candidate.Top) * verticalScale * scale >= 4D;
     }
 
     private static bool TryFindEmptySvgClip(
