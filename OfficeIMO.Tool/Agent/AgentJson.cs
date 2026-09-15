@@ -47,5 +47,6 @@ internal static class AgentJson {
 [JsonSerializable(typeof(AgentSearchResult))]
 [JsonSerializable(typeof(AgentFetchResult))]
 [JsonSerializable(typeof(AgentCapabilitiesResult))]
+[JsonSerializable(typeof(AgentOperationCapabilitySummary))]
 [JsonSerializable(typeof(AgentConvertResult))]
 internal sealed partial class AgentJsonContext : JsonSerializerContext;

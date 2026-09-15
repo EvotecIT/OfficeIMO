@@ -7,6 +7,133 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class ExcelImageExportHeaderFooterTests {
         [Fact]
+        public void ExcelWorksheet_ComposedRasterExportHonorsEncodedByteLimitAndCancellation() {
+            using var stream = new MemoryStream();
+            using ExcelDocument document = ExcelDocument.Create(stream);
+            ExcelSheet sheet = document.AddWorksheet("Bounded");
+            sheet.CellValue(1, 1, "Composed Excel raster export");
+            sheet.SetHeaderFooter(headerCenter: "Header", footerCenter: "Footer");
+            var options = new ExcelWorksheetImageExportOptions {
+                MaximumTotalEncodedBytes = 8L,
+                UsePrintArea = false
+            };
+
+            OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                sheet.ExportImage(OfficeImageExportFormat.Png, options));
+            OfficeImageExportBatchLimitException batchException = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                sheet.ExportImages(
+                    OfficeImageExportFormat.Png,
+                    new ExcelWorksheetImageExportOptions {
+                        MaximumTotalEncodedBytes = 8L,
+                        SplitByManualPageBreaks = true,
+                        UsePrintArea = false
+                    }));
+
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), batchException.LimitName);
+            Assert.Throws<OperationCanceledException>(() =>
+                sheet.ToImage().AsPng().Export(new System.Threading.CancellationToken(canceled: true)));
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PageSlicedSvgCompositionHonorsAggregateEncodedByteLimit() {
+            using var stream = new MemoryStream();
+            using ExcelDocument document = ExcelDocument.Create(stream);
+            ExcelSheet sheet = document.AddWorksheet("BoundedSvg");
+            FillPageBreakGrid(sheet);
+            sheet.CellValue(3, 1, new string('\u754c', 10_000));
+            sheet.SetHeaderFooter(headerCenter: "Bounded header", footerCenter: "Bounded footer");
+            sheet.AddManualRowPageBreak(2, save: false);
+            var options = new ExcelWorksheetImageExportOptions {
+                Range = "A1:AZ4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false,
+                MaximumTotalEncodedBytes = 1_024L
+            };
+
+            OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                sheet.ExportImages(OfficeImageExportFormat.Svg, options));
+
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+            Assert.Equal(options.MaximumTotalEncodedBytes, exception.Maximum);
+            Assert.True(exception.Actual > exception.Maximum);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_DirectSvgCompositionHonorsEncodedByteLimit() {
+            using var stream = new MemoryStream();
+            using ExcelDocument document = ExcelDocument.Create(stream);
+            ExcelSheet sheet = document.AddWorksheet("BoundedDirectSvg");
+            for (int row = 1; row <= 100; row++) {
+                sheet.CellValue(row, 1, "Bounded direct SVG row " + row.ToString(CultureInfo.InvariantCulture));
+            }
+            var options = new ExcelWorksheetImageExportOptions {
+                Range = "A1:A100",
+                ShowGridlines = false,
+                MaximumTotalEncodedBytes = 1_024L
+            };
+
+            OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                sheet.ExportImage(OfficeImageExportFormat.Svg, options));
+
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+            Assert.Equal(options.MaximumTotalEncodedBytes, exception.Maximum);
+            Assert.True(exception.Actual > exception.Maximum);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_FinalJpegLimitDoesNotRejectTheLargerIntermediatePng() {
+            using var stream = new MemoryStream();
+            using ExcelDocument document = ExcelDocument.Create(stream);
+            ExcelSheet sheet = document.AddWorksheet("FinalLimit");
+            OfficeRasterImage source = CreateNoiseImage(320, 180);
+            sheet.AddImage(1, 1, OfficePngWriter.Encode(source), "image/png",
+                widthPixels: 320, heightPixels: 180, name: "Noise");
+
+            OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult jpeg = sheet.ExportImage(OfficeImageExportFormat.Jpeg);
+            Assert.True(png.Bytes.LongLength > jpeg.Bytes.LongLength);
+
+            OfficeImageExportResult limited = sheet.ExportImage(
+                OfficeImageExportFormat.Jpeg,
+                new ExcelWorksheetImageExportOptions { MaximumTotalEncodedBytes = jpeg.Bytes.LongLength });
+
+            Assert.Equal(jpeg.Bytes, limited.Bytes);
+            Assert.True(limited.Bytes.LongLength <= jpeg.Bytes.LongLength);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_FinalPngLimitDoesNotRejectLargerPageSetupIntermediate() {
+            using var stream = new MemoryStream();
+            using ExcelDocument document = ExcelDocument.Create(stream);
+            ExcelSheet sheet = document.AddWorksheet("FinalPngLimit");
+            OfficeRasterImage source = CreateNoiseImage(1200, 900);
+            sheet.AddImage(1, 1, OfficePngWriter.Encode(source), "image/png",
+                widthPixels: 1200, heightPixels: 900, name: "Noise");
+            sheet.SetPageSetup(scale: 10, paperSize: ExcelPaperSize.Letter);
+
+            var contentOptions = new ExcelWorksheetImageExportOptions {
+                Range = "A1:T50",
+                ShowGridlines = false
+            };
+            OfficeImageExportResult content = sheet.ExportImage(OfficeImageExportFormat.Png, contentOptions);
+
+            var pageOptions = new ExcelWorksheetImageExportOptions {
+                Range = "A1:T50",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            };
+            OfficeImageExportResult page = Assert.Single(sheet.ExportImages(OfficeImageExportFormat.Png, pageOptions));
+            Assert.True(content.Bytes.LongLength > page.Bytes.LongLength);
+
+            pageOptions.MaximumTotalEncodedBytes = page.Bytes.LongLength;
+            OfficeImageExportResult limited = Assert.Single(sheet.ExportImages(OfficeImageExportFormat.Png, pageOptions));
+
+            Assert.Equal(page.Bytes, limited.Bytes);
+            Assert.True(limited.Bytes.LongLength <= pageOptions.MaximumTotalEncodedBytes);
+        }
+
+        [Fact]
         public void ExcelWorksheet_PageSlicedSvgExportRendersPlainHeaderFooterText() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -703,6 +830,24 @@ namespace OfficeIMO.Tests {
             canvas.FillRectangle(0, 0, 24, 12, OfficeColor.FromRgb(220, 38, 38));
             canvas.FillRectangle(4, 3, 16, 6, OfficeColor.FromRgb(255, 255, 255));
             return OfficePngWriter.Encode(image, OfficePngCompression.Stored);
+        }
+
+        private static OfficeRasterImage CreateNoiseImage(int width, int height) {
+            var image = new OfficeRasterImage(width, height, OfficeColor.White);
+            uint state = 0x6d2b79f5U;
+            for (int y = 0; y < image.Height; y++) {
+                for (int x = 0; x < image.Width; x++) {
+                    state = unchecked(state * 1664525U + 1013904223U);
+                    byte red = (byte)(state >> 24);
+                    state = unchecked(state * 1664525U + 1013904223U);
+                    byte green = (byte)(state >> 24);
+                    state = unchecked(state * 1664525U + 1013904223U);
+                    byte blue = (byte)(state >> 24);
+                    image.SetPixel(x, y, OfficeColor.FromRgb(red, green, blue));
+                }
+            }
+
+            return image;
         }
 
         private static byte[] CreateHeaderFooterLogoBmp() {

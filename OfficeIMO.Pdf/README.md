@@ -1741,3 +1741,22 @@ contract, and remaining general engine work, read
 - **Optional security:** install `OfficeIMO.Security` for the built-in CMS/X.509/RFC 3161 adapters. It is not a transitive PDF dependency.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 2 | 0 | 0 | 0 | 0 | 0 |
+| Read | 2 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 2 | 0 | 0 | 0 | 0 | 0 |
+| Preserve | 0 | 1 | 0 | 0 | 0 | 0 |
+| Inspect | 3 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 2 | 0 | 0 | 0 | 0 | 1 |
+| Remove | 2 | 0 | 0 | 0 | 0 | 0 |
+| Export | 5 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

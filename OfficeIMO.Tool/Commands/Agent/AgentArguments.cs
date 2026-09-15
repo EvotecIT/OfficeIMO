@@ -171,7 +171,7 @@ internal sealed class AgentArguments {
                 if (Path != null || OutputPath != null || SourceId != null || Id != null || Query != null ||
                     Subject != null || Sender != null || FolderId != null || Since.HasValue || Before.HasValue ||
                     HasAttachments.HasValue || IsRead.HasValue || IncludeDescendants || Overwrite ||
-                    Cursor != 0 || Take != 10 || !Format.Equals("markdown", StringComparison.OrdinalIgnoreCase)) {
+                    Take != 10 || !Format.Equals("markdown", StringComparison.OrdinalIgnoreCase)) {
                     throw new AgentUsageException("Capabilities received an option that belongs to another command.");
                 }
                 break;

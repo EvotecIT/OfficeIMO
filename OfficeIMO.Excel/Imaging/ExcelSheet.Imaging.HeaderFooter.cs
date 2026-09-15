@@ -21,7 +21,8 @@ namespace OfficeIMO.Excel {
             int pageNumber,
             int pageCount,
             ref ExcelRasterRenderState rasterState,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            long? maximumSvgUtf8Bytes) {
             cancellationToken.ThrowIfCancellationRequested();
             DateTime headerFooterDateTime = options.HeaderFooterDateTime ?? DateTime.Now;
             if (headerFooterSnapshot == null ||
@@ -110,17 +111,34 @@ namespace OfficeIMO.Excel {
                     contentY,
                     contentWidth,
                     contentHeight);
-                return new OfficeImageExportResult(
-                    format,
-                    width,
-                    height,
-                    OfficeImageComposer.ComposeSvgBytes(
+                Action<StringBuilder>? beforeLayers = pageSetupCanvasApplied
+                    ? null
+                    : builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, scale, fallbackCodec, options.Fonts, cancellationToken);
+                Action<StringBuilder>? afterLayers = pageSetupCanvasApplied
+                    ? builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, scale, fallbackCodec, options.Fonts, cancellationToken)
+                    : null;
+                byte[] bytes = maximumSvgUtf8Bytes.HasValue
+                    ? OfficeImageComposer.ComposeSvgBytes(
                         width,
                         height,
                         options.BackgroundColor,
                         new[] { layer },
-                        beforeLayers: pageSetupCanvasApplied ? null : builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, scale, fallbackCodec, options.Fonts, cancellationToken),
-                        afterLayers: pageSetupCanvasApplied ? builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, scale, fallbackCodec, options.Fonts, cancellationToken) : null),
+                        maximumSvgUtf8Bytes.Value,
+                        cancellationToken,
+                        beforeLayers,
+                        afterLayers)
+                    : OfficeImageComposer.ComposeSvgBytes(
+                        width,
+                        height,
+                        options.BackgroundColor,
+                        new[] { layer },
+                        beforeLayers,
+                        afterLayers);
+                return new OfficeImageExportResult(
+                    format,
+                    width,
+                    height,
+                    bytes,
                     content.Name,
                     content.Source,
                     diagnostics);
@@ -147,7 +165,8 @@ namespace OfficeIMO.Excel {
                 new[] { contentLayer },
                 beforeLayers: pageSetupCanvasApplied ? null : canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale, fallbackCodec, cancellationToken),
                 afterLayers: pageSetupCanvasApplied ? canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale, fallbackCodec, cancellationToken) : null,
-                fonts: options.Fonts);
+                fonts: options.Fonts,
+                cancellationToken: cancellationToken);
             return new OfficeImageExportResult(
                 format,
                 width,
@@ -155,7 +174,9 @@ namespace OfficeIMO.Excel {
                 OfficeRasterImageEncoder.Encode(
                     image,
                     format,
-                    rasterState.EncodingOptions),
+                    rasterState.EncodingOptions,
+                    ExcelRangeImageRenderer.ResolveEncodingByteCeiling(false, options),
+                    cancellationToken),
                 content.Name,
                 content.Source,
                 diagnostics);

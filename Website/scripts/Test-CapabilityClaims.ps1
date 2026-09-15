@@ -20,6 +20,29 @@ if (-not (Test-Path -LiteralPath $catalogPath -PathType Leaf)) {
 }
 
 $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json
+if ([int] $catalog.schemaVersion -lt 2 -or
+    [string] $catalog.source.operationCatalog -ne 'Docs/Compatibility/generated/package-operations.json') {
+    throw 'Website capability data is not projected from the package-neutral operation catalog.'
+}
+
+$requiredOperations = @('Create', 'Read', 'Edit', 'Preserve', 'Inspect', 'Convert', 'Export')
+$allOperations = @($catalog.packages.operations.id | Sort-Object -Unique)
+foreach ($operation in $requiredOperations) {
+    if ($operation -notin $allOperations) {
+        throw "Package-neutral website capability data is missing operation '$operation'."
+    }
+}
+$requiredOperationStates = @('Supported', 'Partial', 'Preserved', 'Rejected', 'Unsupported')
+$operationStateIds = @($catalog.operationStates.id)
+foreach ($state in $requiredOperationStates) {
+    if ($state -notin $operationStateIds) {
+        throw "Package-neutral website capability data is missing state '$state'."
+    }
+}
+if ([int] $catalog.summary.packageCount -ne @($catalog.packages).Count -or
+    [int] $catalog.summary.operationCount -lt 1) {
+    throw 'Package-neutral website capability summary is inconsistent.'
+}
 $requirements = [ordered]@{
     word = @('.doc', '.docx', '.docm', '.dot')
     excel = @('.xls', '.xlsx', '.xlsb', '.xlsm')
@@ -192,11 +215,29 @@ foreach ($requiredLayoutEvidence in @(
     'family.contracts',
     'contract.hasUnimplementedCoverage',
     'state.label',
-    'state.description'
+    'state.description',
+    'data.office_capabilities.packages',
+    'package.operations',
+    'operation.states'
 )) {
     if (-not $compatibilityLayout.Contains($requiredLayoutEvidence, [StringComparison]::Ordinal)) {
         throw "Compatibility layout does not surface required contract evidence '$requiredLayoutEvidence'."
     }
+}
+
+$compatibilityPage = Get-Content -LiteralPath (Join-Path $siteRootPath 'content\pages\compatibility.md') -Raw
+$expectedSocialCardMetrics = '{0}|Package owners|package;{1}|Operation outcomes|check;{2}|Detailed legacy families|code' -f @(
+    [int] $catalog.summary.packageCount,
+    [int] $catalog.summary.operationCount,
+    [int] $catalog.summary.familyCount
+)
+$socialCardMetrics = [regex]::Match(
+    $compatibilityPage,
+    '(?m)^meta\.social_card_metrics:\s*"(?<metrics>[^"]+)"\s*$'
+)
+if (-not $socialCardMetrics.Success -or
+    -not $socialCardMetrics.Groups['metrics'].Value.Equals($expectedSocialCardMetrics, [StringComparison]::Ordinal)) {
+    throw "Compatibility social-card metrics must match the generated catalog summary '$expectedSocialCardMetrics'."
 }
 
 $aotPath = Join-Path $siteRootPath 'static\data\aot-compatibility.json'
@@ -317,4 +358,4 @@ if ($statValues['Word, Excel, and PowerPoint variants'] -ne [string] $catalog.su
     throw 'Website statistics do not match the generated Office format count.'
 }
 
-Write-Host "Capability claims verified against $($catalog.summary.formatCount) format variants and $($catalog.summary.capabilityCount) tracked behaviors."
+Write-Host "Capability claims verified against $($catalog.summary.formatCount) format variants, $($catalog.summary.packageCount) packages, and $($catalog.summary.operationCount) operation rows."

@@ -31,6 +31,7 @@ internal static class WordEvidenceCorpusManifestLoader {
             if (artifact.Families.Count == 0 || artifact.Families.Any(string.IsNullOrWhiteSpace)) errors.Add(label + ": families are required.");
             foreach (string family in artifact.Families) coveredFamilies.Add(family);
             if (string.IsNullOrWhiteSpace(artifact.Producer)) errors.Add(label + ": producer is required.");
+            if (string.IsNullOrWhiteSpace(artifact.ProducerVersion)) errors.Add(label + ": producerVersion is required.");
             if (artifact.Oracles.Count == 0 || artifact.Oracles.Any(string.IsNullOrWhiteSpace)) errors.Add(label + ": oracles are required.");
             if (string.IsNullOrWhiteSpace(artifact.LossPolicy)) errors.Add(label + ": lossPolicy is required.");
             if (string.IsNullOrWhiteSpace(artifact.SourceTest)) errors.Add(label + ": sourceTest is required.");
@@ -116,6 +117,7 @@ internal sealed class WordEvidenceCorpusArtifact {
     public string? ApprovedReport { get; set; }
     public string? Generator { get; set; }
     public string Producer { get; set; } = string.Empty;
+    public string ProducerVersion { get; set; } = string.Empty;
     public List<string> Oracles { get; set; } = new();
     public string LossPolicy { get; set; } = string.Empty;
     public string SourceTest { get; set; } = string.Empty;

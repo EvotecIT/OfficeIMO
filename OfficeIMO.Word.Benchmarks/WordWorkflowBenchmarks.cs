@@ -154,7 +154,7 @@ public class WordWorkflowBenchmarks {
 
     [GlobalCleanup]
     public void Cleanup() {
-        _loadedHtmlDocument.Dispose();
+        _loadedHtmlDocument?.Dispose();
         if (Directory.Exists(_temporaryDirectory)) Directory.Delete(_temporaryDirectory, recursive: true);
     }
 }

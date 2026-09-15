@@ -4,10 +4,10 @@
     Projects OfficeIMO compatibility contracts into website-ready capability data.
 
 .DESCRIPTION
-    Reads the generated Word, Excel, and PowerPoint compatibility contracts and
-    produces a compact public catalog. The compatibility libraries remain the
-    source of truth; the website receives a deterministic projection rather than
-    maintaining another format-support matrix.
+    Reads the generated package-neutral operation catalog and the detailed Word,
+    Excel, and PowerPoint compatibility contracts, then produces a compact public
+    catalog. The compatibility libraries remain the source of truth; the website
+    receives a deterministic projection rather than maintaining another matrix.
 #>
 
 [CmdletBinding()]
@@ -87,6 +87,53 @@ $siteRootPath = (Resolve-Path -LiteralPath $SiteRoot).Path
 $repositoryRootPath = (Resolve-Path -LiteralPath $RepositoryRoot).Path
 $compatibilityRoot = Join-Path $repositoryRootPath 'Docs\Compatibility\generated'
 $formatInventory = Read-JsonFile (Join-Path $compatibilityRoot 'office-formats.json')
+$operationCatalog = Read-JsonFile (Join-Path $compatibilityRoot 'package-operations.json')
+if (@($operationCatalog.capabilities).Count -eq 0) {
+    throw 'The package-neutral operation catalog contains no capabilities.'
+}
+
+$operationStateDefinitions = @(
+    [ordered]@{ id = 'Supported'; label = 'Supported'; description = 'Implemented and backed by named evidence.' },
+    [ordered]@{ id = 'Partial'; label = 'Partial'; description = 'A bounded subset is implemented with explicit limits.' },
+    [ordered]@{ id = 'Preserved'; label = 'Preserved'; description = 'Source content is retained without claiming editable interpretation.' },
+    [ordered]@{ id = 'Rejected'; label = 'Rejected'; description = 'The operation deliberately fails to prevent unsafe or misleading output.' },
+    [ordered]@{ id = 'Unsupported'; label = 'Unsupported'; description = 'The operation is not implemented.' },
+    [ordered]@{ id = 'NotApplicable'; label = 'Not applicable'; description = 'The operation does not apply to this capability.' }
+)
+
+$operationPackages = @($operationCatalog.capabilities |
+    Group-Object packageId |
+    Sort-Object Name |
+    ForEach-Object {
+        $packageRows = @($_.Group)
+        [ordered]@{
+            id = $_.Name
+            slug = ($_.Name -replace '^OfficeIMO\.', '' -replace '[^A-Za-z0-9]+', '-').ToLowerInvariant()
+            capabilityCount = $packageRows.Count
+            formats = @($packageRows |
+                ForEach-Object { @([string] $_.formatId, [string] $_.targetFormatId) } |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+                Sort-Object -Unique)
+            sourceCatalogs = @($packageRows.sourceCatalog | Sort-Object -Unique)
+            operations = @($packageRows |
+                Group-Object operation |
+                Sort-Object Name |
+                ForEach-Object {
+                    $operationRows = @($_.Group)
+                    [ordered]@{
+                        id = $_.Name
+                        states = @($operationStateDefinitions | ForEach-Object {
+                            [ordered]@{
+                                id = $_.id
+                                label = $_.label
+                                description = $_.description
+                                count = @($operationRows | Where-Object state -eq $_.id).Count
+                            }
+                        } | Where-Object count -gt 0)
+                    }
+                })
+        }
+    })
 
 $familyDefinitions = @(
     [ordered]@{
@@ -287,9 +334,10 @@ $formatCount = [int] (($families |
     Measure-Object -Sum).Sum)
 
 $catalog = [ordered]@{
-    schemaVersion = 1
+    schemaVersion = 2
     source = [ordered]@{
         formatInventory = 'Docs/Compatibility/generated/office-formats.json'
+        operationCatalog = 'Docs/Compatibility/generated/package-operations.json'
         compatibilityContracts = @(
             'Docs/Compatibility/generated/word-legacy-doc.json',
             'Docs/Compatibility/generated/excel-legacy-xls.json',
@@ -302,9 +350,13 @@ $catalog = [ordered]@{
         familyCount = $families.Count
         formatCount = $formatCount
         capabilityCount = $capabilityCount
+        packageCount = $operationPackages.Count
+        operationCount = @($operationCatalog.capabilities).Count
     }
     fidelityStates = $stateDefinitions
+    operationStates = $operationStateDefinitions
     families = @($families)
+    packages = $operationPackages
 }
 
 $dataPath = Join-Path $siteRootPath 'data\office_capabilities.json'
@@ -324,4 +376,4 @@ $stats = [ordered]@{
 }
 Write-JsonFile -Path (Join-Path $siteRootPath 'data\stats.json') -Value $stats
 
-Write-Host "Generated capability catalog: $($families.Count) families, $formatCount format variants, $capabilityCount tracked behaviors."
+Write-Host "Generated capability catalog: $($families.Count) legacy families, $($operationPackages.Count) packages, $(@($operationCatalog.capabilities).Count) operation rows."

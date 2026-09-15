@@ -332,4 +332,99 @@ public sealed class AgentCommandTests {
         Assert.Contains(result.Conversions, static route => route.Id == "docx-markdown");
         Assert.Equal(result.Conversions.Count, result.ConversionReturned);
     }
+
+    [Fact]
+    public void UnfilteredConvertPaginationPreservesRouteDetails() {
+        var service = new OfficeImoAgentService();
+
+        AgentCapabilitiesResult result = service.Capabilities(
+            operation: "convert",
+            maxOutputCharacters: 64_000);
+
+        Assert.NotEmpty(result.Conversions);
+        Assert.Contains(result.Conversions, route => route.Id == "docx-pdf");
+        Assert.Equal(result.Conversions.Count, result.ConversionReturned);
+        Assert.NotEmpty(result.Operations);
+        Assert.NotNull(result.OperationNextCursor);
+        Assert.True(AgentJson.Serialize(result).Length <= 64_000);
+    }
+
+    [Theory]
+    [InlineData(".docx", "inspect", "OfficeIMO.Word")]
+    [InlineData(".pptx", "export", "OfficeIMO.PowerPoint")]
+    [InlineData(".xls", "preserve", "OfficeIMO.Excel")]
+    public void CapabilitiesExposePackageNeutralOperationOutcomes(
+        string extension,
+        string operation,
+        string expectedPackage) {
+        var service = new OfficeImoAgentService();
+
+        AgentCapabilitiesResult result = service.Capabilities(
+            extension, operation, maxOutputCharacters: 24_000);
+
+        Assert.NotEmpty(result.Operations);
+        Assert.Contains(result.Operations, row =>
+            row.PackageId == expectedPackage &&
+            row.Operation.Equals(operation, StringComparison.OrdinalIgnoreCase) &&
+            row.Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(row.CapabilityId) &&
+            !string.IsNullOrWhiteSpace(row.SourceCatalog) &&
+            !string.IsNullOrWhiteSpace(row.Evidence));
+        Assert.Equal(result.Operations.Count, result.OperationReturned);
+        Assert.True(AgentJson.Serialize(result).Length <= 24_000);
+    }
+
+    [Fact]
+    public void CapabilitiesPagesEveryUnfilteredOperationWithoutDroppingTheSuffix() {
+        var service = new OfficeImoAgentService();
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        int cursor = 0;
+        int? total = null;
+
+        do {
+            AgentCapabilitiesResult page = service.Capabilities(
+                operation: "create",
+                maxOutputCharacters: 4_000,
+                cursor: cursor);
+
+            total ??= page.OperationTotal;
+            Assert.Equal(total.Value, page.OperationTotal);
+            Assert.Equal(cursor, page.OperationCursor);
+            Assert.Equal(page.Operations.Count, page.OperationReturned);
+            Assert.NotEmpty(page.Operations);
+            Assert.All(page.Operations, row => Assert.True(ids.Add(row.Id), "Duplicate operation id: " + row.Id));
+            cursor = page.OperationNextCursor ?? page.OperationTotal;
+        } while (cursor < total!.Value);
+
+        Assert.Equal(total, ids.Count);
+    }
+
+    [Fact]
+    public async Task CliCapabilitiesAcceptsTheReturnedOperationCursor() {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await AgentCommand.RunAsync(
+            ["capabilities", "--operation", "create", "--cursor", "1", "--max-output-characters", "4000"],
+            output,
+            error);
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal(string.Empty, error.ToString());
+        using JsonDocument json = JsonDocument.Parse(output.ToString());
+        Assert.Equal(1, json.RootElement.GetProperty("operationCursor").GetInt32());
+        Assert.True(json.RootElement.GetProperty("operationTotal").GetInt32() > 1);
+        Assert.True(json.RootElement.GetProperty("operationReturned").GetInt32() > 0);
+    }
+
+    [Fact]
+    public void CapabilitiesRejectsABudgetThatCannotCarryOneOperationInsteadOfRepeatingTheCursor() {
+        var service = new OfficeImoAgentService();
+
+        AgentUsageException exception = Assert.Throws<AgentUsageException>(() =>
+            service.Capabilities(operation: "create", maxOutputCharacters: 512, cursor: 0));
+
+        Assert.Contains("too small for one operation row", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Use at least", exception.Message, StringComparison.Ordinal);
+    }
 }

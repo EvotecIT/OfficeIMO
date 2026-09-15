@@ -30,6 +30,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_PublicRasterExportHonorsEncodedByteLimitAndCancellation() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.AddParagraph("Bounded Word raster export");
+            var options = new WordImageExportOptions { MaximumTotalEncodedBytes = 8L };
+
+            OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                document.ExportImage(OfficeImageExportFormat.Png, options));
+
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+            Assert.Throws<OperationCanceledException>(() =>
+                document.ToImage().AsPng().Export(new System.Threading.CancellationToken(canceled: true)));
+        }
+
+        [Fact]
         public void WordDocument_ExportsFirstPageToPngAndSvgThroughSharedDrawing() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);

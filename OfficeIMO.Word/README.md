@@ -513,3 +513,23 @@ Runnable samples live under [OfficeIMO.Examples/Word](../OfficeIMO.Examples/Word
 - **Optional security:** install `OfficeIMO.Security` and pass `OfficeSecurityProvider.Default` only for OPC/VBA signing or cryptographic validation. It is not a transitive Word dependency.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 14 | 12 | 0 | 8 | 2 | 2 |
+| Read | 24 | 0 | 9 | 0 | 2 | 3 |
+| Edit | 12 | 0 | 22 | 3 | 0 | 1 |
+| Preserve | 11 | 0 | 22 | 0 | 0 | 1 |
+| Inspect | 5 | 1 | 0 | 0 | 0 | 0 |
+| Validate | 4 | 0 | 0 | 0 | 0 | 2 |
+| Remove | 4 | 0 | 0 | 0 | 1 | 0 |
+| Convert | 31 | 26 | 0 | 8 | 0 | 1 |
+| Export | 5 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Word` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

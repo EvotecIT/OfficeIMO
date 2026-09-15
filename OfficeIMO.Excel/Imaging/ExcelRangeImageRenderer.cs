@@ -31,6 +31,7 @@ namespace OfficeIMO.Excel {
                 format,
                 options,
                 format,
+                true,
                 out _,
                 cancellationToken);
 
@@ -39,13 +40,23 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             ExcelImageExportOptions options,
             OfficeImageExportFormat rasterPlanningFormat,
+            bool finalOutput,
             out ExcelRasterRenderState rasterState,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            OfficeImageExportEncodingBudget? encodingBudget = null,
+            long? maximumSvgUtf8Bytes = null) {
             ExcelRasterRenderState resolvedState = default;
+            OfficeImageExportEncodingBudget? resolvedEncodingBudget = encodingBudget;
+            if (format == OfficeImageExportFormat.Svg &&
+                finalOutput &&
+                resolvedEncodingBudget == null &&
+                !maximumSvgUtf8Bytes.HasValue) {
+                resolvedEncodingBudget = new OfficeImageExportEncodingBudget(options.MaximumTotalEncodedBytes);
+            }
             OfficeImageExportResult result = OfficeImageExportExecutionScope.Run(
                 options,
                 cancellationToken,
-                token => RenderCore(snapshot, format, options, rasterPlanningFormat, out resolvedState, token));
+                token => RenderCore(snapshot, format, options, rasterPlanningFormat, finalOutput, out resolvedState, token, resolvedEncodingBudget, maximumSvgUtf8Bytes));
             rasterState = resolvedState;
             return result;
         }
@@ -55,8 +66,11 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             ExcelImageExportOptions options,
             OfficeImageExportFormat rasterPlanningFormat,
+            bool finalOutput,
             out ExcelRasterRenderState rasterState,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            OfficeImageExportEncodingBudget? encodingBudget,
+            long? maximumSvgUtf8Bytes) {
             cancellationToken.ThrowIfCancellationRequested();
             List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
             if (format == OfficeImageExportFormat.Svg) {
@@ -64,9 +78,22 @@ namespace OfficeIMO.Excel {
                 svgOptions.Scale = options.GetEffectiveScale(snapshot.Width, snapshot.Height);
                 svgOptions.TargetDpi = null;
                 rasterState = new ExcelRasterRenderState(svgOptions.Scale, svgOptions.RasterEncoding);
-                string svg = RenderSvg(snapshot, svgOptions, diagnostics, cancellationToken);
-                cancellationToken.ThrowIfCancellationRequested();
-                return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(snapshot, svgOptions), ScaledHeight(snapshot, svgOptions), Encoding.UTF8.GetBytes(svg), snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly()));
+                byte[] svgBytes;
+                if (encodingBudget != null) {
+                    svgBytes = encodingBudget.EncodeWithinRemainingBudget(
+                        remaining => EncodeSvgWithinLimit(
+                            RenderSvg(snapshot, svgOptions, diagnostics, cancellationToken, remaining),
+                            remaining),
+                        cancellationToken);
+                } else {
+                    string svg = RenderSvg(snapshot, svgOptions, diagnostics, cancellationToken, maximumSvgUtf8Bytes);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    svgBytes = maximumSvgUtf8Bytes.HasValue
+                        ? EncodeSvgWithinLimit(svg, maximumSvgUtf8Bytes.Value)
+                        : Encoding.UTF8.GetBytes(svg);
+                }
+                var svgResult = new OfficeImageExportResult(format, ScaledWidth(snapshot, svgOptions), ScaledHeight(snapshot, svgOptions), svgBytes, snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly());
+                return finalOutput ? options.EnsureAccepted(svgResult) : svgResult;
             }
             if (!rasterPlanningFormat.IsRaster()) {
                 throw new ArgumentException("A raster planning format is required.", nameof(rasterPlanningFormat));
@@ -85,12 +112,40 @@ namespace OfficeIMO.Excel {
             renderOptions.Scale = rasterState.Scale;
             renderOptions.TargetDpi = null;
             OfficeRasterImage image = RenderRaster(snapshot, renderOptions, diagnostics, cancellationToken);
-            byte[] bytes = OfficeRasterImageEncoder.Encode(
-                image,
-                format,
-                rasterState.EncodingOptions);
+            byte[] bytes = finalOutput && encodingBudget != null
+                ? OfficeRasterImageEncoder.Encode(
+                    image,
+                    format,
+                    rasterState.EncodingOptions,
+                    encodingBudget,
+                    cancellationToken)
+                : OfficeRasterImageEncoder.Encode(
+                    image,
+                    format,
+                    rasterState.EncodingOptions,
+                    ResolveEncodingByteCeiling(finalOutput, options),
+                    cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            return options.EnsureAccepted(new OfficeImageExportResult(format, image.Width, image.Height, bytes, snapshot.SheetName, source, diagnostics.AsReadOnly()));
+            var result = new OfficeImageExportResult(format, image.Width, image.Height, bytes, snapshot.SheetName, source, diagnostics.AsReadOnly());
+            return finalOutput ? options.EnsureAccepted(result) : result;
+        }
+
+        internal static long ResolveEncodingByteCeiling(
+            bool finalOutput,
+            ExcelImageExportOptions options) =>
+            finalOutput
+                ? options.MaximumTotalEncodedBytes
+                : Math.Max(options.MaximumTotalEncodedBytes, OfficeImageExportOptions.DefaultMaximumTotalEncodedBytes);
+
+        private static byte[] EncodeSvgWithinLimit(string svg, long maximumBytes) {
+            long byteCount = Encoding.UTF8.GetByteCount(svg);
+            if (byteCount > maximumBytes) {
+                throw new OfficeImageExportBatchLimitException(
+                    nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes),
+                    byteCount,
+                    maximumBytes);
+            }
+            return Encoding.UTF8.GetBytes(svg);
         }
 
         internal static OfficeRasterImage RenderRaster(
@@ -158,12 +213,36 @@ namespace OfficeIMO.Excel {
             ExcelRangeVisualSnapshot snapshot,
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics = null,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            long? maximumUtf8Bytes = null) {
+            try {
+                return RenderSvgCore(snapshot, options, diagnostics, cancellationToken, maximumUtf8Bytes);
+            } catch (ArgumentOutOfRangeException) when (maximumUtf8Bytes.HasValue) {
+                throw new OfficeImageExportBatchLimitException(
+                    nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes),
+                    maximumUtf8Bytes.Value == long.MaxValue ? long.MaxValue : maximumUtf8Bytes.Value + 1L,
+                    maximumUtf8Bytes.Value);
+            }
+        }
+
+        private static string RenderSvgCore(
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelImageExportOptions options,
+            List<OfficeImageExportDiagnostic>? diagnostics,
+            CancellationToken cancellationToken,
+            long? maximumUtf8Bytes) {
             cancellationToken.ThrowIfCancellationRequested();
             int width = ScaledWidth(snapshot, options);
             int height = ScaledHeight(snapshot, options);
             double scale = options.Scale;
-            StringBuilder builder = new StringBuilder();
+            int? maximumCharacters = maximumUtf8Bytes.HasValue
+                ? maximumUtf8Bytes.Value > int.MaxValue
+                    ? int.MaxValue
+                    : (int)maximumUtf8Bytes.Value
+                : null;
+            StringBuilder builder = maximumCharacters.HasValue
+                ? new StringBuilder(Math.Min(256, maximumCharacters.Value), maximumCharacters.Value)
+                : new StringBuilder();
             builder.Append("<svg xmlns=\"http://www.w3.org/2000/svg\"");
             builder.AppendNumberAttribute("width", width)
                 .AppendNumberAttribute("height", height)
@@ -223,7 +302,17 @@ namespace OfficeIMO.Excel {
 
             builder.Append("</svg>");
             cancellationToken.ThrowIfCancellationRequested();
-            return builder.ToString();
+            string svg = builder.ToString();
+            if (maximumUtf8Bytes.HasValue) {
+                long byteCount = Encoding.UTF8.GetByteCount(svg);
+                if (byteCount > maximumUtf8Bytes.Value) {
+                    throw new OfficeImageExportBatchLimitException(
+                        nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes),
+                        byteCount,
+                        maximumUtf8Bytes.Value);
+                }
+            }
+            return svg;
         }
 
         private static void DrawDataBar(OfficeRasterCanvas canvas, ExcelVisualConditionalDataBar dataBar, double scale) {

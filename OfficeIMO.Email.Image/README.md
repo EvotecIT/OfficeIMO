@@ -26,3 +26,15 @@ The renderer consumes `OfficeIMO.Email.Html` for the same body selection, untrus
 Keeping this capability separate prevents MIME-only applications from acquiring AngleSharp, CSS layout, and the RTF bridge.
 
 Dependency footprint: `OfficeIMO.Core`, `OfficeIMO.Email`, `OfficeIMO.Email.Html`, and `OfficeIMO.Html`.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Export | 0 | 5 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Email.Image` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

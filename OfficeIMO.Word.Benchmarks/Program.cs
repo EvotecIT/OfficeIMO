@@ -23,4 +23,17 @@ if (args.Length > 0 && string.Equals(args[0], "validate", StringComparison.Ordin
     return;
 }
 
+if (args.Length > 0 && string.Equals(args[0], "validate-workflows", StringComparison.OrdinalIgnoreCase)) {
+    foreach (int itemCount in new[] { 100, 1000 }) {
+        var workload = new WordWorkflowBenchmarks { ItemCount = itemCount };
+        try {
+            workload.Setup();
+        } finally {
+            workload.Cleanup();
+        }
+    }
+    Console.WriteLine("Word workflow benchmark setup validated the 100- and 1000-item semantic contracts.");
+    return;
+}
+
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);

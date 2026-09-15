@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("OfficeIMO.CSV")]
 [assembly: InternalsVisibleTo("OfficeIMO.AsciiDoc")]
 [assembly: InternalsVisibleTo("OfficeIMO.Drawing.Tests")]
+[assembly: InternalsVisibleTo("OfficeIMO.Drawing.Benchmarks")]
 [assembly: InternalsVisibleTo("OfficeIMO.Drawing.HarfBuzz")]
 [assembly: InternalsVisibleTo("OfficeIMO.Email")]
 [assembly: InternalsVisibleTo("OfficeIMO.Email.Tests")]

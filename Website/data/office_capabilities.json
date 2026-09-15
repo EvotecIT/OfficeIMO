@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "source": {
     "formatInventory": "Docs/Compatibility/generated/office-formats.json",
+    "operationCatalog": "Docs/Compatibility/generated/package-operations.json",
     "compatibilityContracts": [
       "Docs/Compatibility/generated/word-legacy-doc.json",
       "Docs/Compatibility/generated/excel-legacy-xls.json",
@@ -13,7 +14,9 @@
   "summary": {
     "familyCount": 3,
     "formatCount": 28,
-    "capabilityCount": 137
+    "capabilityCount": 137,
+    "packageCount": 63,
+    "operationCount": 1323
   },
   "fidelityStates": [
     {
@@ -75,6 +78,38 @@
       "id": "Dropped",
       "label": "Dropped with diagnostics",
       "description": "The feature is omitted and reported as known loss."
+    }
+  ],
+  "operationStates": [
+    {
+      "id": "Supported",
+      "label": "Supported",
+      "description": "Implemented and backed by named evidence."
+    },
+    {
+      "id": "Partial",
+      "label": "Partial",
+      "description": "A bounded subset is implemented with explicit limits."
+    },
+    {
+      "id": "Preserved",
+      "label": "Preserved",
+      "description": "Source content is retained without claiming editable interpretation."
+    },
+    {
+      "id": "Rejected",
+      "label": "Rejected",
+      "description": "The operation deliberately fails to prevent unsafe or misleading output."
+    },
+    {
+      "id": "Unsupported",
+      "label": "Unsupported",
+      "description": "The operation is not implemented."
+    },
+    {
+      "id": "NotApplicable",
+      "label": "Not applicable",
+      "description": "The operation does not apply to this capability."
     }
   ],
   "families": [
@@ -1666,6 +1701,3598 @@
                   "count": 43
                 }
               ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "id": "OfficeIMO.Adf",
+      "slug": "adf",
+      "capabilityCount": 4,
+      "formats": [
+        "ADF",
+        "HTML",
+        "Markdown"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.AsciiDoc",
+      "slug": "asciidoc",
+      "capabilityCount": 6,
+      "formats": [
+        "AsciiDoc.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.AsciiDoc.Markdown",
+      "slug": "asciidoc-markdown",
+      "capabilityCount": 2,
+      "formats": [
+        "AsciiDoc",
+        "Markdown"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.AsciiDoc.Pdf",
+      "slug": "asciidoc-pdf",
+      "capabilityCount": 1,
+      "formats": [
+        "AsciiDoc",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Bibliography",
+      "slug": "bibliography",
+      "capabilityCount": 6,
+      "formats": [
+        "Bibliography.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Confluence",
+      "slug": "confluence",
+      "capabilityCount": 4,
+      "formats": [
+        "Confluence",
+        "HTML",
+        "Markdown"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Core",
+      "slug": "core",
+      "capabilityCount": 6,
+      "formats": [
+        "Image provenance",
+        "Structured text"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.Provenance"
+      ],
+      "operations": [
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Remove",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.CSV",
+      "slug": "csv",
+      "capabilityCount": 6,
+      "formats": [
+        "Csv.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.DocBook",
+      "slug": "docbook",
+      "capabilityCount": 6,
+      "formats": [
+        "DocBook.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Email",
+      "slug": "email",
+      "capabilityCount": 88,
+      "formats": [
+        "Email.AddressBook.Oab",
+        "Email.Calendar",
+        "Email.Contact",
+        "Email.Native",
+        "Email.Store.Emlx",
+        "Email.Store.Mbox",
+        "Email.Store.Olm",
+        "Email.Store.Ost",
+        "Email.Store.Pst",
+        "EML / RFC 5322 MIME",
+        "MSG/TNEF S/MIME",
+        "PST"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.ProtectedContent"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 8
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 6
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 6
+            },
+            {
+              "id": "Preserved",
+              "label": "Preserved",
+              "description": "Source content is retained without claiming editable interpretation.",
+              "count": 4
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 1
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 5
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 14
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 4
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 14
+            }
+          ]
+        },
+        {
+          "id": "Remove",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 10
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Email.Image",
+      "slug": "email-image",
+      "capabilityCount": 5,
+      "formats": [
+        "Email",
+        "JPEG",
+        "PNG",
+        "SVG",
+        "TIFF",
+        "WebP"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Epub",
+      "slug": "epub",
+      "capabilityCount": 19,
+      "formats": [
+        "EPUB",
+        "Epub.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.ProtectedContent",
+        "OfficeIMO.Provenance"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 1
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Remove",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Epub.Image",
+      "slug": "epub-image",
+      "capabilityCount": 5,
+      "formats": [
+        "EPUB",
+        "JPEG",
+        "PNG",
+        "SVG",
+        "TIFF",
+        "WebP"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Excel",
+      "slug": "excel",
+      "capabilityCount": 326,
+      "formats": [
+        "DOCM/XLSM/XLSB/PPTM families",
+        "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM",
+        "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
+        "Excel",
+        "Excel workbook package",
+        "Excel.OpenXml",
+        "Excel.Xls",
+        "Excel.Xlsb",
+        "JPEG",
+        "PNG",
+        "SVG",
+        "TIFF",
+        "WebP",
+        "XLS",
+        "XLSX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.Excel.LegacyXls",
+        "OfficeIMO.Excel.Xlsb",
+        "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.ProtectedContent",
+        "OfficeIMO.Provenance"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 48
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 39
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 9
+            }
+          ]
+        },
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 21
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 13
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 15
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 2
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 11
+            },
+            {
+              "id": "Preserved",
+              "label": "Preserved",
+              "description": "Source content is retained without claiming editable interpretation.",
+              "count": 39
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 2
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 5
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 6
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 10
+            },
+            {
+              "id": "Preserved",
+              "label": "Preserved",
+              "description": "Source content is retained without claiming editable interpretation.",
+              "count": 39
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 34
+            },
+            {
+              "id": "Preserved",
+              "label": "Preserved",
+              "description": "Source content is retained without claiming editable interpretation.",
+              "count": 17
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Remove",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 4
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 4
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Excel.Csv",
+      "slug": "excel-csv",
+      "capabilityCount": 2,
+      "formats": [
+        "CSV",
+        "XLSX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Excel.GoogleSheets",
+      "slug": "excel-googlesheets",
+      "capabilityCount": 2,
+      "formats": [
+        "Google Sheets",
+        "XLSX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Excel.Html",
+      "slug": "excel-html",
+      "capabilityCount": 2,
+      "formats": [
+        "HTML",
+        "XLSX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Excel.OpenDocument",
+      "slug": "excel-opendocument",
+      "capabilityCount": 7,
+      "formats": [
+        "JPEG",
+        "ODS",
+        "PNG",
+        "SVG",
+        "TIFF",
+        "WebP",
+        "XLSX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Excel.Pdf",
+      "slug": "excel-pdf",
+      "capabilityCount": 2,
+      "formats": [
+        "PDF",
+        "XLSX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Html",
+      "slug": "html",
+      "capabilityCount": 13,
+      "formats": [
+        "HTML",
+        "Html.Native",
+        "JPEG",
+        "PNG",
+        "SVG",
+        "TIFF",
+        "WebP"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.Provenance"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 5
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Remove",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Html.Pdf",
+      "slug": "html-pdf",
+      "capabilityCount": 2,
+      "formats": [
+        "HTML",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Html.Rtf",
+      "slug": "html-rtf",
+      "capabilityCount": 2,
+      "formats": [
+        "HTML",
+        "RTF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.IWork",
+      "slug": "iwork",
+      "capabilityCount": 5,
+      "formats": [
+        "IWork.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Latex",
+      "slug": "latex",
+      "capabilityCount": 6,
+      "formats": [
+        "Latex.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Latex.Markdown",
+      "slug": "latex-markdown",
+      "capabilityCount": 2,
+      "formats": [
+        "LaTeX",
+        "Markdown"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Latex.Pdf",
+      "slug": "latex-pdf",
+      "capabilityCount": 1,
+      "formats": [
+        "LaTeX",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Markdown",
+      "slug": "markdown",
+      "capabilityCount": 7,
+      "formats": [
+        "Markdown",
+        "Markdown.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.Provenance"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Remove",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Markdown.Html",
+      "slug": "markdown-html",
+      "capabilityCount": 1,
+      "formats": [
+        "HTML",
+        "Markdown"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Markdown.Pdf",
+      "slug": "markdown-pdf",
+      "capabilityCount": 1,
+      "formats": [
+        "Markdown",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.MarkdownRenderer",
+      "slug": "markdownrenderer",
+      "capabilityCount": 1,
+      "formats": [
+        "HTML",
+        "Markdown"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Markup.Excel",
+      "slug": "markup-excel",
+      "capabilityCount": 1,
+      "formats": [
+        "OfficeIMO Markup",
+        "XLSX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Markup.PowerPoint",
+      "slug": "markup-powerpoint",
+      "capabilityCount": 1,
+      "formats": [
+        "OfficeIMO Markup",
+        "PPTX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Markup.Word",
+      "slug": "markup-word",
+      "capabilityCount": 1,
+      "formats": [
+        "DOCX",
+        "OfficeIMO Markup"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Mhtml",
+      "slug": "mhtml",
+      "capabilityCount": 6,
+      "formats": [
+        "Mhtml.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Mhtml.Pdf",
+      "slug": "mhtml-pdf",
+      "capabilityCount": 1,
+      "formats": [
+        "MHTML",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.OneNote",
+      "slug": "onenote",
+      "capabilityCount": 16,
+      "formats": [
+        "JPEG",
+        "ONE",
+        "OneNote",
+        "OneNote.Native",
+        "PNG",
+        "SVG",
+        "TIFF",
+        "WebP"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.ProtectedContent"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 5
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Remove",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.OneNote.Html",
+      "slug": "onenote-html",
+      "capabilityCount": 2,
+      "formats": [
+        "HTML",
+        "OneNote"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.OneNote.Markdown",
+      "slug": "onenote-markdown",
+      "capabilityCount": 1,
+      "formats": [
+        "Markdown",
+        "OneNote"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.OneNote.Pdf",
+      "slug": "onenote-pdf",
+      "capabilityCount": 1,
+      "formats": [
+        "OneNote",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.OpenDocument",
+      "slug": "opendocument",
+      "capabilityCount": 21,
+      "formats": [
+        "ODT/ODS/ODP",
+        "OpenDocument",
+        "OpenDocument.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.ProtectedContent",
+        "OfficeIMO.Provenance"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Remove",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 3
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.OpenDocument.Odp.Pdf",
+      "slug": "opendocument-odp-pdf",
+      "capabilityCount": 2,
+      "formats": [
+        "ODP",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.OpenDocument.Ods.Pdf",
+      "slug": "opendocument-ods-pdf",
+      "capabilityCount": 2,
+      "formats": [
+        "ODS",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.OpenDocument.Odt.Pdf",
+      "slug": "opendocument-odt-pdf",
+      "capabilityCount": 2,
+      "formats": [
+        "ODT",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Opml",
+      "slug": "opml",
+      "capabilityCount": 6,
+      "formats": [
+        "Opml.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Pdf",
+      "slug": "pdf",
+      "capabilityCount": 20,
+      "formats": [
+        "JPEG",
+        "PDF",
+        "Pdf.Native",
+        "PNG",
+        "SVG",
+        "TIFF",
+        "WebP"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.ProtectedContent",
+        "OfficeIMO.Provenance"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 5
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Remove",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.PowerPoint",
+      "slug": "powerpoint",
+      "capabilityCount": 374,
+      "formats": [
+        "DOCM/XLSM/XLSB/PPTM families",
+        "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM",
+        "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
+        "JPEG",
+        "PNG",
+        "PowerPoint",
+        "PowerPoint Open XML",
+        "PowerPoint.OpenXml",
+        "PowerPoint.Ppt",
+        "PPT",
+        "PPTX",
+        "SVG",
+        "TIFF",
+        "WebP"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.PowerPoint.LegacyPpt",
+        "OfficeIMO.ProtectedContent",
+        "OfficeIMO.Provenance"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 72
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 14
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 26
+            }
+          ]
+        },
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 48
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 2
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 10
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 21
+            },
+            {
+              "id": "Preserved",
+              "label": "Preserved",
+              "description": "Source content is retained without claiming editable interpretation.",
+              "count": 34
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 6
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 5
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 6
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 19
+            },
+            {
+              "id": "Preserved",
+              "label": "Preserved",
+              "description": "Source content is retained without claiming editable interpretation.",
+              "count": 34
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 47
+            },
+            {
+              "id": "Preserved",
+              "label": "Preserved",
+              "description": "Source content is retained without claiming editable interpretation.",
+              "count": 8
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 4
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Remove",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 5
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 4
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.PowerPoint.GoogleSlides",
+      "slug": "powerpoint-googleslides",
+      "capabilityCount": 2,
+      "formats": [
+        "Google Slides",
+        "PPTX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.PowerPoint.Html",
+      "slug": "powerpoint-html",
+      "capabilityCount": 2,
+      "formats": [
+        "HTML",
+        "PPTX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.PowerPoint.OpenDocument",
+      "slug": "powerpoint-opendocument",
+      "capabilityCount": 7,
+      "formats": [
+        "JPEG",
+        "ODP",
+        "PNG",
+        "PPTX",
+        "SVG",
+        "TIFF",
+        "WebP"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.PowerPoint.Pdf",
+      "slug": "powerpoint-pdf",
+      "capabilityCount": 2,
+      "formats": [
+        "PDF",
+        "PPTX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Project",
+      "slug": "project",
+      "capabilityCount": 24,
+      "formats": [
+        "Project.MppMpt",
+        "Project.Mpx",
+        "Project.Xml"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 6
+            }
+          ]
+        },
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Rtf",
+      "slug": "rtf",
+      "capabilityCount": 11,
+      "formats": [
+        "RTF",
+        "Rtf.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.ProtectedContent"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Remove",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Rtf.Markdown",
+      "slug": "rtf-markdown",
+      "capabilityCount": 2,
+      "formats": [
+        "Markdown",
+        "RTF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Rtf.Pdf",
+      "slug": "rtf-pdf",
+      "capabilityCount": 2,
+      "formats": [
+        "PDF",
+        "RTF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Visio",
+      "slug": "visio",
+      "capabilityCount": 20,
+      "formats": [
+        "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
+        "JPEG",
+        "PNG",
+        "SVG",
+        "TIFF",
+        "Visio",
+        "Visio Open XML",
+        "Visio.OpenXml",
+        "WebP"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.ProtectedContent",
+        "OfficeIMO.Provenance"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 5
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Remove",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Visio.Pdf",
+      "slug": "visio-pdf",
+      "capabilityCount": 1,
+      "formats": [
+        "PDF",
+        "Visio"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Word",
+      "slug": "word",
+      "capabilityCount": 236,
+      "formats": [
+        "DOC",
+        "DOCM/XLSM/XLSB/PPTM families",
+        "DOCX",
+        "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM",
+        "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
+        "JPEG",
+        "PNG",
+        "SVG",
+        "TIFF",
+        "WebP",
+        "Word",
+        "Word Open XML",
+        "Word.Doc",
+        "Word.OpenXml"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.ProtectedContent",
+        "OfficeIMO.Provenance",
+        "OfficeIMO.Word.LegacyDoc"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 31
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 26
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 8
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 14
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 12
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 8
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 2
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 12
+            },
+            {
+              "id": "Preserved",
+              "label": "Preserved",
+              "description": "Source content is retained without claiming editable interpretation.",
+              "count": 22
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 3
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 5
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 5
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 11
+            },
+            {
+              "id": "Preserved",
+              "label": "Preserved",
+              "description": "Source content is retained without claiming editable interpretation.",
+              "count": 22
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 24
+            },
+            {
+              "id": "Preserved",
+              "label": "Preserved",
+              "description": "Source content is retained without claiming editable interpretation.",
+              "count": 9
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 2
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Remove",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 4
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 4
+            },
+            {
+              "id": "NotApplicable",
+              "label": "Not applicable",
+              "description": "The operation does not apply to this capability.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Word.GoogleDocs",
+      "slug": "word-googledocs",
+      "capabilityCount": 2,
+      "formats": [
+        "DOCX",
+        "Google Docs"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Word.Html",
+      "slug": "word-html",
+      "capabilityCount": 2,
+      "formats": [
+        "DOCX",
+        "HTML"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Word.Markdown",
+      "slug": "word-markdown",
+      "capabilityCount": 2,
+      "formats": [
+        "DOCX",
+        "Markdown"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Word.OpenDocument",
+      "slug": "word-opendocument",
+      "capabilityCount": 7,
+      "formats": [
+        "DOCX",
+        "JPEG",
+        "ODT",
+        "PNG",
+        "SVG",
+        "TIFF",
+        "WebP"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Word.Pdf",
+      "slug": "word-pdf",
+      "capabilityCount": 2,
+      "formats": [
+        "DOCX",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Word.Rtf",
+      "slug": "word-rtf",
+      "capabilityCount": 2,
+      "formats": [
+        "DOCX",
+        "RTF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
             }
           ]
         }

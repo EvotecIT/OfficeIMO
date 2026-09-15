@@ -165,21 +165,6 @@ public class DrawingArchitectureTests {
     }
 
     [Fact]
-    public void VisioPngRendererUsesSharedDrawingRasterStack() {
-        string rasterAdapter = File.ReadAllText(Path.Combine(RepositoryRoot, "OfficeIMO.Visio", "VisioPngRenderer.RasterCanvas.cs"));
-        string renderer = File.ReadAllText(Path.Combine(RepositoryRoot, "OfficeIMO.Visio", "VisioPngRenderer.cs"));
-
-        Assert.Contains("OfficeRasterRenderTarget", rasterAdapter, StringComparison.Ordinal);
-        Assert.Contains("OfficeRasterCanvas", rasterAdapter, StringComparison.Ordinal);
-        Assert.Contains("OfficeTextBlockRenderer.DrawRasterTextBox", rasterAdapter, StringComparison.Ordinal);
-        Assert.Contains("OfficeRasterImage RenderRaster", renderer, StringComparison.Ordinal);
-        Assert.Contains("OfficeRasterImage.FromRgba32", renderer, StringComparison.Ordinal);
-        Assert.Contains("OfficeRasterImageEncoder.Encode(", renderer, StringComparison.Ordinal);
-        Assert.Contains("DpiX = options.PixelsPerInch", renderer, StringComparison.Ordinal);
-        Assert.Contains("DpiY = options.PixelsPerInch", renderer, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void ExcelImageExportOptionsReuseSharedOfficeImageExportOptions() {
         Assert.True(typeof(OfficeImageExportOptions).IsAssignableFrom(typeof(ExcelImageExportOptions)));
 

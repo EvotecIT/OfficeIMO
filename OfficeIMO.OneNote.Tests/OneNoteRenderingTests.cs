@@ -4,6 +4,25 @@ using System.Text;
 namespace OfficeIMO.OneNote.Tests;
 
 public sealed partial class OneNoteRenderingTests {
+    [Fact]
+    public void OneNotePage_PublicRasterExportHonorsEncodedByteLimitAndCancellation() {
+        var page = new OneNotePage {
+            Title = "Bounded",
+            PageSize = OneNotePageSize.IndexCard
+        };
+        var options = new OneNotePageRenderingOptions {
+            IncludeTitle = true,
+            MaximumTotalEncodedBytes = 8L
+        };
+
+        OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            page.ExportImage(OfficeImageExportFormat.Png, options));
+
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+        Assert.Throws<OperationCanceledException>(() =>
+            page.ToImage().AsPng().Export(new System.Threading.CancellationToken(canceled: true)));
+    }
+
     [Theory]
     [InlineData("testOneNote2016.one")]
     [InlineData("testOneNoteFromOffice365.one")]

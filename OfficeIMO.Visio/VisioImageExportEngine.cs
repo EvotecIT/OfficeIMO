@@ -14,14 +14,15 @@ internal static class VisioImageExportEngine {
         VisioImageExportOptions options,
         string? name = null,
         string? source = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        OfficeImageExportEncodingBudget? encodingBudget = null) {
         if (page == null) throw new ArgumentNullException(nameof(page));
         if (options == null) throw new ArgumentNullException(nameof(options));
         options.Validate();
         return OfficeImageExportExecutionScope.Run(
             options,
             cancellationToken,
-            token => RenderCore(page, format, options, name, source, token));
+            token => RenderCore(page, format, options, name, source, token, encodingBudget));
     }
 
     private static OfficeImageExportResult RenderCore(
@@ -30,7 +31,8 @@ internal static class VisioImageExportEngine {
         VisioImageExportOptions options,
         string? name,
         string? source,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        OfficeImageExportEncodingBudget? encodingBudget) {
         cancellationToken.ThrowIfCancellationRequested();
 
         double logicalWidth = Math.Max(page.Width * DefaultPixelsPerInch, 0.01D);
@@ -45,9 +47,17 @@ internal static class VisioImageExportEngine {
         if (format == OfficeImageExportFormat.Svg) {
             int width = Scaled(page.Width, pixelsPerInch);
             int height = Scaled(page.Height, pixelsPerInch);
-            byte[] bytes = Encoding.UTF8.GetBytes(VisioSvgRenderer.Render(
-                page,
-                CreateSvgOptions(options, pixelsPerInch, diagnostics, resultSource, cancellationToken)));
+            byte[] bytes = encodingBudget == null
+                ? Encoding.UTF8.GetBytes(VisioSvgRenderer.Render(
+                    page,
+                    CreateSvgOptions(options, pixelsPerInch, diagnostics, resultSource, cancellationToken)))
+                : encodingBudget.EncodeWithinRemainingBudget(
+                    remaining => EncodeSvgWithinLimit(
+                        VisioSvgRenderer.Render(
+                            page,
+                            CreateSvgOptions(options, pixelsPerInch, diagnostics, resultSource, cancellationToken)),
+                        remaining),
+                    cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return options.EnsureAccepted(new OfficeImageExportResult(
                 format,
@@ -77,10 +87,19 @@ internal static class VisioImageExportEngine {
         OfficeRasterImage image = VisioPngRenderer.RenderRaster(
             page,
             CreatePngOptions(options, effectivePixelsPerInch, diagnostics, resultSource, cancellationToken));
-        byte[] encoded = OfficeRasterImageEncoder.Encode(
-            image,
-            format,
-            plan.CreateEncodingOptions());
+        byte[] encoded = encodingBudget == null
+            ? OfficeRasterImageEncoder.Encode(
+                image,
+                format,
+                plan.CreateEncodingOptions(),
+                options.MaximumTotalEncodedBytes,
+                cancellationToken)
+            : OfficeRasterImageEncoder.Encode(
+                image,
+                format,
+                plan.CreateEncodingOptions(),
+                encodingBudget,
+                cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return options.EnsureAccepted(new OfficeImageExportResult(
             format,
@@ -90,6 +109,17 @@ internal static class VisioImageExportEngine {
             resultName,
             resultSource,
             diagnostics));
+    }
+
+    private static byte[] EncodeSvgWithinLimit(string svg, long maximumBytes) {
+        long byteCount = Encoding.UTF8.GetByteCount(svg);
+        if (byteCount > maximumBytes) {
+            throw new OfficeImageExportBatchLimitException(
+                nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes),
+                byteCount,
+                maximumBytes);
+        }
+        return Encoding.UTF8.GetBytes(svg);
     }
 
     private static VisioPngSaveOptions CreatePngOptions(

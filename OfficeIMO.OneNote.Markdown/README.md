@@ -26,3 +26,15 @@ Projection normalizes OneNote/RichEdit vertical-tab and form-feed paragraph sepa
 Caller-created models are validated before projection. Cyclic or shared section groups, pages, and content elements fail with a bounded `OneNoteFormatException` instead of recursing indefinitely or expanding the same graph repeatedly. `MaxSectionGroupDepth` defaults to 32, while `MaxPageRelationshipDepth` and `MaxContentDepth` default to 128; all three can be tightened up to the hard ceiling of 256. Conflict and version relationships are validated only when their projection is requested.
 
 The package is MIT licensed and has no Graph, GraphEssentialsX, COM, or installed-OneNote dependency.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Convert | 0 | 1 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.OneNote.Markdown` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->
