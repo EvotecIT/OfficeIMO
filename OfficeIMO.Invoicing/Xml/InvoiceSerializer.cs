@@ -49,6 +49,7 @@ public static partial class InvoiceSerializer {
         void Unsupported(string path, string text) => diagnostics.Add("INV-TARGET-UNSUPPORTED", text, path);
         void Projection(string path, string text) => diagnostics.Add("INV-TARGET-PROJECTION", text, path,
             options.ProjectionPolicy == InvoiceProjectionPolicy.AllowProfileDefinedDataLoss ? InvoiceDiagnosticSeverity.Warning : InvoiceDiagnosticSeverity.Error);
+        void ArithmeticProjection(string path, string text) => diagnostics.Add("INV-TARGET-PROJECTION", text, path);
         if (invoice.Payments.Count != 0) {
             CheckPaymentProfile(invoice, options, Unsupported);
             CheckSingletonPaymentField(invoice, payment => payment.MeansCode, "MeansCode",
@@ -95,7 +96,7 @@ public static partial class InvoiceSerializer {
         if (options.Profile == InvoiceProfile.XRechnung && string.IsNullOrWhiteSpace(invoice.BuyerReference))
             Unsupported("BuyerReference", "XRechnung output requires a buyer routing reference.");
         CheckExemptionConflicts(invoice, Unsupported);
-        CheckFacturXProjection(invoice, options, Projection);
+        CheckFacturXProjection(invoice, options, Projection, ArithmeticProjection);
         CheckTaxRegistrations(invoice.Seller, "Seller", options, Unsupported);
         CheckTaxRegistrations(invoice.Buyer, "Buyer", options, Unsupported);
         if (invoice.Payee != null) CheckTaxRegistrations(invoice.Payee, "Payee", options, Unsupported);

@@ -1,7 +1,8 @@
 namespace OfficeIMO.Invoicing;
 
 public static partial class InvoiceSerializer {
-    private static void CheckFacturXProjection(Invoice invoice, InvoiceXmlOptions options, Action<string, string> projection) {
+    private static void CheckFacturXProjection(Invoice invoice, InvoiceXmlOptions options, Action<string, string> projection,
+        Action<string, string> arithmeticProjection) {
         if (options.Release != InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2 ||
             options.Profile is InvoiceProfile.En16931 or InvoiceProfile.Extended) return;
 
@@ -34,10 +35,15 @@ public static partial class InvoiceSerializer {
         Omitted(invoice.Period != null, "Period", "the invoicing period");
         Omitted(invoice.TaxPointDate.HasValue || invoice.TaxPointDateCode != null, "TaxPoint", "the tax point date or code");
         Omitted(invoice.TaxCurrency != null || invoice.TaxAmountInAccountingCurrency.HasValue, "TaxCurrency", "accounting-currency VAT data");
-        Omitted(invoice.AllowancesAndCharges.Count != 0, "AllowancesAndCharges", invoice.AllowancesAndCharges.Count + " document allowance or charge occurrence(s)");
-        Omitted(invoice.RoundingAmount != 0m, "RoundingAmount", "the payable rounding adjustment");
+        if (options.Profile == InvoiceProfile.Basic && invoice.AllowancesAndCharges.Count != 0)
+            arithmeticProjection("AllowancesAndCharges", "Factur-X BASIC cannot omit document allowances or charges without changing the reconstructed invoice arithmetic.");
+        else
+            Omitted(invoice.AllowancesAndCharges.Count != 0, "AllowancesAndCharges", invoice.AllowancesAndCharges.Count + " document allowance or charge occurrence(s)");
+        if (invoice.RoundingAmount != 0m)
+            arithmeticProjection("RoundingAmount", "The selected lower Factur-X profile cannot carry the payable rounding adjustment without changing reconstructed totals.");
         if (options.Profile == InvoiceProfile.Minimum) {
-            Omitted(invoice.PrepaidAmount != 0m, "PrepaidAmount", "the prepaid amount");
+            if (invoice.PrepaidAmount != 0m)
+                arithmeticProjection("PrepaidAmount", "Factur-X MINIMUM cannot carry the prepaid amount without changing the reconstructed payable amount.");
             Omitted(invoice.DeclaredTaxes.Count != 0, "DeclaredTaxes", invoice.DeclaredTaxes.Count + " VAT breakdown occurrence(s)");
             Omitted(invoice.DeclaredTotals?.LineNetTotal.HasValue == true, "DeclaredTotals.LineNetTotal", "the declared line-net total");
             Omitted(invoice.DeclaredTotals?.AllowanceTotal.HasValue == true, "DeclaredTotals.AllowanceTotal", "the declared allowance total");
@@ -58,10 +64,13 @@ public static partial class InvoiceSerializer {
                 Omitted(line.StandardItemIdentifier != null || line.SellerItemIdentifier != null || line.BuyerItemIdentifier != null,
                     path + ".ItemIdentifiers", "line item identifiers");
                 Omitted(line.ObjectIdentifier != null, path + ".ObjectIdentifier", "the line invoiced-object identifier");
-                Omitted(line.GrossPrice.HasValue || line.PriceDiscount.HasValue || line.PriceBaseQuantity != 1m,
-                    path + ".Price", "gross price, discount, or price base quantity data");
+                Omitted(line.GrossPrice.HasValue || line.PriceDiscount.HasValue,
+                    path + ".Price", "gross price or discount data");
+                if (line.PriceBaseQuantity != 1m)
+                    arithmeticProjection(path + ".PriceBaseQuantity", "Factur-X BASIC cannot omit a non-default price base quantity without changing reconstructed line arithmetic.");
                 Omitted(line.Period != null, path + ".Period", "the line invoicing period");
-                Omitted(line.AllowancesAndCharges.Count != 0, path + ".AllowancesAndCharges", "line allowances or charges");
+                if (line.AllowancesAndCharges.Count != 0)
+                    arithmeticProjection(path + ".AllowancesAndCharges", "Factur-X BASIC cannot omit line allowances or charges without changing reconstructed line arithmetic.");
                 Omitted(line.Classifications.Count != 0, path + ".Classifications", "item classifications");
                 Omitted(line.Attributes.Count != 0, path + ".Attributes", "item attributes");
                 Omitted(line.OriginCountryCode != null, path + ".OriginCountryCode", "the item origin country");

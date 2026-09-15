@@ -29,7 +29,7 @@ public class InvoiceSpecificationContractTests {
             profile,
             InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
 
-        InvoiceReadResult result = InvoiceParser.Read(InvoiceSerializer.Write(InvoiceFixture.Create(), options));
+        InvoiceReadResult result = InvoiceParser.Read(InvoiceSerializer.Write(CreateProjectionSafeInvoice(profile), options));
 
         Assert.True(result.HasCompleteMapping);
         Assert.Equal(profile, result.Declaration.Profile);
@@ -47,7 +47,7 @@ public class InvoiceSpecificationContractTests {
     [InlineData(InvoiceProfile.En16931)]
     [InlineData(InvoiceProfile.Extended)]
     public void FacturXProfilesDoNotInventABusinessProcessIdentifier(InvoiceProfile profile) {
-        Invoice invoice = InvoiceFixture.Create();
+        Invoice invoice = CreateProjectionSafeInvoice(profile);
         invoice.BusinessProcessId = null;
         var options = new InvoiceXmlOptions(
             InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2,
@@ -115,6 +115,59 @@ public class InvoiceSpecificationContractTests {
     }
 
     [Theory]
+    [InlineData(InvoiceProfile.Minimum, "PrepaidAmount")]
+    [InlineData(InvoiceProfile.Minimum, "RoundingAmount")]
+    [InlineData(InvoiceProfile.BasicWithoutLines, "RoundingAmount")]
+    [InlineData(InvoiceProfile.Basic, "RoundingAmount")]
+    [InlineData(InvoiceProfile.Basic, "PriceBaseQuantity")]
+    [InlineData(InvoiceProfile.Basic, "LineAllowancesAndCharges")]
+    [InlineData(InvoiceProfile.Basic, "DocumentAllowancesAndCharges")]
+    public void ArithmeticChangingLowerProfileProjectionRemainsBlocked(InvoiceProfile profile, string field) {
+        Invoice invoice = CreateProjectionSafeInvoice(profile);
+        string location = field;
+        switch (field) {
+            case "PrepaidAmount": invoice.PrepaidAmount = 1m; break;
+            case "RoundingAmount": invoice.RoundingAmount = 0.01m; break;
+            case "PriceBaseQuantity": invoice.Lines[0].PriceBaseQuantity = 2m; location = "Lines[0].PriceBaseQuantity"; break;
+            case "LineAllowancesAndCharges":
+                invoice.Lines[0].AllowancesAndCharges.Add(new InvoiceAllowanceCharge { Amount = 1m, Reason = "Discount" });
+                location = "Lines[0].AllowancesAndCharges";
+                break;
+            case "DocumentAllowancesAndCharges":
+                invoice.AllowancesAndCharges.Add(new InvoiceAllowanceCharge {
+                    Amount = 1m, Reason = "Discount", Tax = new InvoiceTaxCategory { Code = "S", Rate = 19m }
+                });
+                location = "AllowancesAndCharges";
+                break;
+        }
+        InvoiceCalculator.UpdateDeclaredAmounts(invoice);
+        InvoiceXmlOptions options = InvoiceTestContracts.FacturX(profile, InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
+
+        InvoiceDiagnostic diagnostic = Assert.Single(InvoiceSerializer.InspectTarget(invoice, options),
+            item => item.Code == "INV-TARGET-PROJECTION" && item.Location == location);
+        Assert.Equal(InvoiceDiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, options));
+    }
+
+    [Fact]
+    public void AggregateOnlyModelRejectsDuplicateVatCategoryAndRate() {
+        InvoiceXmlOptions options = InvoiceTestContracts.FacturX(
+            InvoiceProfile.BasicWithoutLines,
+            InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
+        Invoice invoice = InvoiceParser.Read(InvoiceSerializer.Write(CreateProjectionSafeInvoice(InvoiceProfile.BasicWithoutLines), options)).Invoice;
+        InvoiceDeclaredTax source = Assert.Single(invoice.DeclaredTaxes);
+        invoice.DeclaredTaxes.Add(new InvoiceDeclaredTax {
+            Category = new InvoiceTaxCategory { Code = source.Category.Code, Rate = source.Category.Rate },
+            TaxableAmount = 0m,
+            TaxAmount = 0m
+        });
+
+        Assert.Contains(InvoiceSerializer.InspectTarget(invoice, options),
+            item => item.Code == "INV-TAX-BREAKDOWN" && item.Location == "DeclaredTaxes[1].Category");
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, options));
+    }
+
+    [Theory]
     [InlineData(InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2, InvoiceSyntax.Ubl, InvoiceProfile.En16931)]
     [InlineData(InvoiceSpecificationRelease.En16931_1_3_16, InvoiceSyntax.Cii, InvoiceProfile.XRechnung)]
     [InlineData(InvoiceSpecificationRelease.XRechnung_3_0_2_2026_08_31, InvoiceSyntax.Cii, InvoiceProfile.ExtendedCtcFr)]
@@ -145,5 +198,20 @@ public class InvoiceSpecificationContractTests {
             .Where(method => method.Name == nameof(InvoiceSerializer.Write)).ToArray();
         MethodInfo write = Assert.Single(writes);
         Assert.Equal(new[] { typeof(Invoice), typeof(InvoiceXmlOptions) }, write.GetParameters().Select(parameter => parameter.ParameterType));
+    }
+
+    private static Invoice CreateProjectionSafeInvoice(InvoiceProfile profile) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.RoundingAmount = 0m;
+        if (profile == InvoiceProfile.Minimum) invoice.PrepaidAmount = 0m;
+        if (profile == InvoiceProfile.Basic) {
+            invoice.AllowancesAndCharges.Clear();
+            foreach (InvoiceLine line in invoice.Lines) {
+                line.PriceBaseQuantity = 1m;
+                line.AllowancesAndCharges.Clear();
+            }
+        }
+        InvoiceCalculator.UpdateDeclaredAmounts(invoice);
+        return invoice;
     }
 }

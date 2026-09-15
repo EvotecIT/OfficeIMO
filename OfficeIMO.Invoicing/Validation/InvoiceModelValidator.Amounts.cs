@@ -39,8 +39,15 @@ public static partial class InvoiceModelValidator {
             Compare(payable, InvoiceArithmetic.Sum(new[] { taxInclusive!.Value, -invoice.PrepaidAmount, invoice.RoundingAmount }),
                 "DeclaredTotals.PayableAmount");
             if (invoice.DeclaredTaxes.Count != 0) {
-                foreach (InvoiceDeclaredTax declared in invoice.DeclaredTaxes) {
-                    Tax(declared.Category, "DeclaredTaxes.Category", true);
+                var declaredKeys = new HashSet<(string Code, decimal? Rate)>();
+                for (int index = 0; index < invoice.DeclaredTaxes.Count; index++) {
+                    InvoiceDeclaredTax declared = invoice.DeclaredTaxes[index];
+                    string categoryPath = "DeclaredTaxes[" + index + "].Category";
+                    Tax(declared.Category, categoryPath, true);
+                    if (!declaredKeys.Add((declared.Category.Code, InvoiceCalculator.NormalizeRate(declared.Category)))) {
+                        Error("INV-TAX-BREAKDOWN", "VAT category/rate is declared more than once.", categoryPath);
+                        valid = false;
+                    }
                     Money(declared.TaxableAmount, "DeclaredTaxes.TaxableAmount");
                     Money(declared.TaxAmount, "DeclaredTaxes.TaxAmount");
                 }
@@ -49,7 +56,7 @@ public static partial class InvoiceModelValidator {
                 Compare(tax, InvoiceArithmetic.Sum(invoice.DeclaredTaxes.Select(item => item.TaxAmount)),
                     "DeclaredTotals.TaxTotal");
             }
-            return true;
+            return valid;
         }
 
         internal void DeclaredAmounts(Invoice invoice, InvoiceCalculation calculation) {

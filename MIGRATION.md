@@ -170,7 +170,7 @@ both authoring and validation. Validation stage states now use
 The party and payment models now preserve occurrences instead of collapsing
 them into convenient scalar fields:
 
-- Replace `InvoiceParty.VatIdentifier` and `TaxIdentifier` with
+- Replace `InvoiceParty.VatIdentifier` and `InvoiceParty.TaxRegistration` with
   `TaxRegistrations`, adding `InvoiceTaxRegistration` values with their source
   scheme.
 - Replace `Invoice.Payment` with the ordered `Invoice.Payments` collection.
