@@ -13,6 +13,11 @@ public static class HtmlCssPropertyParser {
         "table", "table-caption", "table-column-group", "table-column", "table-header-group",
         "table-row-group", "table-footer-group", "table-row", "table-cell", "list-item", "contents", "flow-root");
     private static readonly HashSet<string> VisibilityKeywords = Set("visible", "hidden", "collapse");
+    private static readonly HashSet<string> AutoKeyword = Set("auto");
+    private static readonly HashSet<string> NoneKeyword = Set("none");
+    private static readonly HashSet<string> NonNegativeLengthProperties = Set(
+        "width", "height", "min-width", "min-height", "max-width", "max-height",
+        "padding-top", "padding-right", "padding-bottom", "padding-left");
     private static readonly HashSet<string> SystemColors = Set(
         "accentcolor", "accentcolortext", "activetext", "buttonborder", "buttonface", "buttontext",
         "canvas", "canvastext", "field", "fieldtext", "graytext", "highlight", "highlighttext",
@@ -45,6 +50,7 @@ public static class HtmlCssPropertyParser {
         CancellationToken cancellationToken = default) {
         if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
         if (value == null) throw new ArgumentNullException(nameof(value));
+        ValidateInputLength(value, options);
         string authoredValue = value.Trim();
         IReadOnlyList<HtmlCssToken> tokens = HtmlCssTokenizer.Tokenize(authoredValue, options, cancellationToken);
         return ParseTokens(propertyName.Trim(), authoredValue, tokens, isImportant: false, cancellationToken);
@@ -62,6 +68,7 @@ public static class HtmlCssPropertyParser {
         if (declaration == null) throw new ArgumentNullException(nameof(declaration));
         cancellationToken.ThrowIfCancellationRequested();
         string value = declaration.ValueText;
+        ValidateInputLength(value, options);
         if (declaration.IsImportant) value = RemoveImportantSuffix(value, options, cancellationToken);
         string authoredValue = value.Trim();
         IReadOnlyList<HtmlCssToken> tokens = HtmlCssTokenizer.Tokenize(authoredValue, options, cancellationToken);
@@ -93,6 +100,14 @@ public static class HtmlCssPropertyParser {
             "visibility" => ParseKeyword(authoredValue, significant, VisibilityKeywords),
             "opacity" => ParseOpacity(authoredValue, significant, cancellationToken),
             "color" => ParseColor(authoredValue, significant, cancellationToken),
+            "width" or "height" or "min-width" or "min-height" =>
+                ParseLengthProperty(definition.Name, authoredValue, significant, AutoKeyword, cancellationToken),
+            "max-width" or "max-height" =>
+                ParseLengthProperty(definition.Name, authoredValue, significant, NoneKeyword, cancellationToken),
+            "margin-top" or "margin-right" or "margin-bottom" or "margin-left" =>
+                ParseLengthProperty(definition.Name, authoredValue, significant, AutoKeyword, cancellationToken),
+            "padding-top" or "padding-right" or "padding-bottom" or "padding-left" =>
+                ParseLengthProperty(definition.Name, authoredValue, significant, null, cancellationToken),
             _ => null
         };
         return Result(propertyName, authoredValue,
@@ -119,6 +134,35 @@ public static class HtmlCssPropertyParser {
             number.ToString("R", CultureInfo.InvariantCulture) + (percentage ? "%" : string.Empty),
             number,
             numericValue: numeric);
+    }
+
+    private static HtmlCssPropertyValue? ParseLengthProperty(
+        string propertyName,
+        string text,
+        IReadOnlyList<HtmlCssToken> tokens,
+        ISet<string>? keywords,
+        CancellationToken cancellationToken) {
+        HtmlCssPropertyValue? keyword = keywords == null ? null : ParseKeyword(text, tokens, keywords);
+        if (keyword != null) return keyword;
+        HtmlCssMathParseResult parsed;
+        try {
+            parsed = HtmlCssMathParser.ParseLengthPercentage(text, tokens, cancellationToken);
+        } catch (HtmlCssMathLimitException) {
+            return null;
+        }
+        if (!parsed.IsParsed) return null;
+        HtmlCssMathExpression expression = parsed.Expression!;
+        if (NonNegativeLengthProperties.Contains(propertyName)
+            && expression.Kind == HtmlCssMathExpressionKind.Literal
+            && expression.Value < 0D) return null;
+        HtmlCssPropertyValueKind kind = expression.IsCalculated
+            ? HtmlCssPropertyValueKind.Calculation
+            : expression.Type == HtmlCssNumericType.Percentage
+                ? HtmlCssPropertyValueKind.Percentage
+                : HtmlCssPropertyValueKind.Length;
+        return new HtmlCssPropertyValue(kind, text, expression.CanonicalText,
+            expression.Kind == HtmlCssMathExpressionKind.Literal ? expression.Value : null,
+            mathExpression: expression);
     }
 
     private static HtmlCssPropertyValue? ParseColor(string text, IReadOnlyList<HtmlCssToken> tokens, CancellationToken cancellationToken) {
@@ -232,6 +276,13 @@ public static class HtmlCssPropertyParser {
         while (bang >= 0 && IsTrivia(tokens[bang].Kind)) bang--;
         if (bang < 0 || tokens[bang].Kind != HtmlCssTokenKind.Delimiter || tokens[bang].Value != "!") return value;
         return value.Substring(0, tokens[bang].Offset).TrimEnd();
+    }
+
+    private static void ValidateInputLength(string value, HtmlCssTokenizationOptions? options) {
+        HtmlCssTokenizationOptions effective = (options ?? new HtmlCssTokenizationOptions()).Clone();
+        effective.Validate();
+        if (effective.MaxInputCharacters.HasValue && value.Length > effective.MaxInputCharacters.Value)
+            throw new HtmlCssTokenizationLimitException(nameof(effective.MaxInputCharacters), value.Length, effective.MaxInputCharacters.Value);
     }
 
     private static HtmlCssPropertyParseResult Result(string propertyName, string value, HtmlCssPropertyParseStatus status,

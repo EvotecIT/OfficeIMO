@@ -146,7 +146,7 @@ if (explicitPdf.RenderResult.Request.CssMedia != HtmlCssMediaContext.Screen ||
     throw new InvalidOperationException("Packed explicit HTML-to-PDF request contract failed.");
 
 var tracedDocument = HtmlConversionDocument.Parse(
-    "<style>[data-tone='IMPORTANT' i] > .notice { color:hsl(210 50 40 / 75%); opacity:calc(.2 + .3); }</style>" +
+    "<style>[data-tone='IMPORTANT' i] > .notice { color:hsl(210 50 40 / 75%); opacity:calc(.2 + .3); width:calc(20px + 10%); }</style>" +
     "<section data-tone='important'><p class='notice'>Status</p></section>");
 var tracedElement = tracedDocument.Document.QuerySelector(".notice")
     ?? throw new InvalidOperationException("The packed cascade-trace element was not parsed.");
@@ -154,6 +154,10 @@ HtmlComputedStyle tracedStyle = HtmlComputedStyleEngine.Compute(tracedDocument, 
     IncludeCascadeTraces = true
 })[tracedElement];
 OfficeIMO.Html.Css.HtmlCssCascadeTrace? colorTrace = tracedStyle.GetCascadeTrace("color");
+if (!tracedStyle.TryGetTypedValue("width", out OfficeIMO.Html.Css.HtmlCssPropertyValue? typedWidth) ||
+    OfficeIMO.Html.Css.HtmlCssMathResolver.ResolveLength(typedWidth!.MathExpression!,
+        new OfficeIMO.Html.Css.HtmlCssLengthResolutionContext { PercentageReference = 200D }).Value != 40D)
+    throw new InvalidOperationException("The packed typed computed length contract failed.");
 if (tracedStyle.GetValue("color") != "rgba(51, 102, 153, 0.75)" || tracedStyle.GetValue("opacity") != "0.5" ||
     colorTrace?.Candidates.Count != 1 || colorTrace.Candidates[0].Decision != OfficeIMO.Html.Css.HtmlCssCascadeDecision.Selected ||
     colorTrace.Candidates[0].Source != OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule)

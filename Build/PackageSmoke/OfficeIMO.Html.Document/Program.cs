@@ -30,11 +30,15 @@ HtmlCssStyleBlock inlineStyle = HtmlCssSyntaxParser.ParseStyleBlock("color:green
 HtmlCssPropertyParseResult parsedOpacity = HtmlCssPropertyParser.Parse("opacity", "calc(20% + 55%)");
 HtmlCssPropertyParseResult parsedColor = HtmlCssPropertyParser.Parse("color", "hsl(210 50 40 / 75%)");
 HtmlCssSelectorParseResult parsedSelector = HtmlCssSelectorParser.Parse("table > tbody tr#items");
+HtmlCssMathParseResult parsedWidth = HtmlCssMathParser.ParseLengthPercentage("calc(24px + 25%)");
+HtmlCssLengthResolutionResult resolvedWidth = HtmlCssMathResolver.ResolveLength(parsedWidth.Expression!,
+    new HtmlCssLengthResolutionContext { PercentageReference = 200D });
 if (styleSheet.Rules.Count != 2 || styleSheet.ToCss() != css ||
     inlineStyle.Declarations.Count != 2 || inlineStyle.Declarations[1].Name != "color" ||
     parsedOpacity.Status != HtmlCssPropertyParseStatus.Parsed || parsedOpacity.Value?.NumericValue?.Value != 75D ||
     parsedOpacity.Value.NumericValue.IsCalculated != true || parsedColor.Value?.ColorFunction?.Kind != HtmlCssColorFunctionKind.Hsl ||
-    parsedColor.Value.ColorFunction.Alpha.Value != 75D || parsedSelector.Selector?.Matches(edited.QuerySelector("#items")!) != true) {
+    parsedColor.Value.ColorFunction.Alpha.Value != 75D || parsedSelector.Selector?.Matches(edited.QuerySelector("#items")!) != true ||
+    parsedWidth.Expression?.Type != HtmlCssNumericType.LengthPercentage || resolvedWidth.Value != 74D) {
     throw new InvalidOperationException("The packed CSS syntax or property-grammar contract failed.");
 }
 

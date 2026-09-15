@@ -103,21 +103,54 @@ HtmlCssPropertyParseResult declarationValue = HtmlCssPropertyParser.Parse(color)
 HtmlCssPropertyParseResult calculated = HtmlCssPropertyParser.Parse(
     "opacity", "clamp(10%, 75%, 60%)");
 HtmlCssNumericValue numeric = calculated.Value!.NumericValue!;
+
+HtmlCssMathParseResult width = HtmlCssMathParser.ParseLengthPercentage(
+    "calc(24px + 25%)");
+HtmlCssLengthResolutionResult usedWidth = HtmlCssMathResolver.ResolveLength(
+    width.Expression!,
+    new HtmlCssLengthResolutionContext {
+        PercentageReference = 640,
+        FontSize = 16,
+        RootFontSize = 16,
+        ViewportWidth = 1280,
+        ViewportHeight = 720
+    });
 ```
 
 `HtmlCssPropertyCatalog` currently owns CSS-wide keywords and selected values for
-`display`, `visibility`, `opacity`, and `color`. The result distinguishes a parsed
-value, a `var()` value deferred until substitution, an unknown property, a value
-outside the implemented slice, and malformed component syntax. Typed grammar support
-is an inspection contract; it does not imply that a renderer paints every parsed value.
+`display`, `visibility`, `opacity`, `color`, width and height constraints, and the four
+physical margin and padding longhands. The result distinguishes a parsed value, a `var()`
+value deferred until substitution, an unknown property, a value outside the implemented
+slice, and malformed component syntax. `HtmlCssPropertyValue.MathExpression` exposes the
+typed tree for the sizing and spacing properties. Typed grammar support is an inspection
+contract; it does not imply that a renderer paints every parsed value.
 Named, hexadecimal, and CSS Color 4 system colors plus `currentColor` are typed now;
 the `color` definition exposes `CanvasText` as its initial value. The typed functional
 slice covers legacy and modern `rgb()`/`rgba()` and `hsl()`/`hsla()`, plus modern
 `hwb()`. Numeric expressions cover constant number and percentage arithmetic through
-`calc()`, `min()`, `max()`, and `clamp()` with type checking. Wider Color 4 spaces,
-relative colors, color interpolation, dimensions, multi-keyword display values, and
-`visibility: force-hidden` remain explicit grammar gaps even where the full conversion
-package may already render some of them through its retained implementation.
+`calc()`, `min()`, `max()`, and `clamp()` with type checking. Length-percentage expressions
+retain percentages through parsing and computed-style inspection, then resolve only when
+the caller supplies the consuming property's percentage reference. Resolution returns a
+specific missing-context status instead of guessing a value.
+
+The length subset covers `px`, `pt`, `pc`, `in`, `cm`, `mm`, `q`, `em`, `rem`, the
+`vw`/`vh`/`vmin`/`vmax` families with `sv`, `lv`, and `dv` variants, and
+`cqw`/`cqh`/`cqi`/`cqb`/`cqmin`/`cqmax`. Specialized viewport dimensions can be supplied
+separately and otherwise use the declared default viewport. Container units use the query
+container dimensions and fall back to the small viewport dimensions when no eligible
+container is supplied. The current static subset treats inline and block container sizes as
+explicit context; it does not infer writing mode. Font metric units such as `ex`, `cap`,
+`ch`, `ic`, and `lh`, wider Color 4 spaces, relative colors, color interpolation,
+multi-keyword display values, and `visibility: force-hidden` remain explicit grammar gaps
+even where the full conversion package may already render some of them through its retained
+implementation.
+
+`HtmlCssMathOptions` bounds input, tokens, nesting, operations, and comparison arguments.
+Limit exhaustion throws `HtmlCssMathLimitException`; cancellation publishes no partial tree.
+The parser requires CSS whitespace around binary `+` and `-`, keeps unitless zero valid as a
+standalone length, and rejects unitless zero as a length inside math expressions. Division by
+zero remains a typed expression and resolves with `NonFiniteValue`, allowing property and
+rendering consumers to apply their documented fallback.
 
 Parse and match the selected selector subset directly against an owned element:
 

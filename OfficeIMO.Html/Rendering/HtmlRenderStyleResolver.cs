@@ -40,6 +40,25 @@ internal sealed partial class HtmlRenderStyleResolver {
             _activeContainerHeight,
             out result);
 
+    private bool TryResolveLength(
+        string? value,
+        double reference,
+        double fontSize,
+        double rootFontSize,
+        out double result,
+        out bool isCalculated) =>
+        HtmlRenderCssValues.TryLength(
+            value,
+            reference,
+            fontSize,
+            rootFontSize,
+            _viewportWidth,
+            _viewportHeight,
+            _activeContainerWidth,
+            _activeContainerHeight,
+            out result,
+            out isCalculated);
+
     internal HtmlRenderBoxStyle Resolve(IElement element, double containingWidth, HtmlRenderBoxStyle? parent = null) {
         HtmlComputedStyle computed = _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? found)
             ? found
@@ -828,11 +847,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.ExplicitWidthUsesPercentage = (cssWidth?.IndexOf('%') ?? -1) >= 0
             || (attributeWidth?.IndexOf('%') ?? -1) >= 0;
         double? parentContentHeight = ResolveDefiniteContentHeight(parent);
-        style.ExplicitHeight = ReadVerticalLength(computed.GetValue("height"), includeAttributes ? element.GetAttribute("height") : null, reference, parentContentHeight, fontSize);
+        style.ExplicitHeight = ReadVerticalLength(computed.GetValue("height"), includeAttributes ? element.GetAttribute("height") : null, parentContentHeight, fontSize);
         style.MinWidth = ReadLength(computed.GetValue("min-width"), null, reference, fontSize);
         style.MaxWidth = ReadLength(computed.GetValue("max-width"), null, reference, fontSize);
-        style.MinHeight = ReadVerticalLength(computed.GetValue("min-height"), null, reference, parentContentHeight, fontSize);
-        style.MaxHeight = ReadVerticalLength(computed.GetValue("max-height"), null, reference, parentContentHeight, fontSize);
+        style.MinHeight = ReadVerticalLength(computed.GetValue("min-height"), null, parentContentHeight, fontSize);
+        style.MaxHeight = ReadVerticalLength(computed.GetValue("max-height"), null, parentContentHeight, fontSize);
     }
 
     private void ApplyPaint(IElement element, HtmlComputedStyle computed, HtmlRenderBoxStyle style, bool pseudoElement) {
@@ -1406,34 +1425,32 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private double? ReadLength(string cssValue, string? attributeValue, double reference, double fontSize) {
-        string value = cssValue.Length > 0 ? cssValue : attributeValue ?? string.Empty;
-        return TryResolveLength(value, reference, fontSize, _options.DefaultFontSize, out double parsed) && parsed >= 0D ? parsed : null;
+        string value = cssValue.Length > 0 ? cssValue : NormalizeHtmlDimensionAttribute(attributeValue);
+        if (!TryResolveLength(value, reference, fontSize, _options.DefaultFontSize,
+                out double parsed, out bool isCalculated)) return null;
+        if (parsed >= 0D) return parsed;
+        return cssValue.Length > 0 && isCalculated ? 0D : null;
     }
 
     private double? ReadVerticalLength(
         string cssValue,
         string? attributeValue,
-        double fallbackReference,
         double? parentContentHeight,
         double fontSize) {
-        string value = cssValue.Length > 0 ? cssValue : attributeValue ?? string.Empty;
-        string normalized = value.Trim();
-        if (normalized.EndsWith("%", StringComparison.Ordinal)) {
-            if (!parentContentHeight.HasValue
-                || !double.TryParse(
-                    normalized.Substring(0, normalized.Length - 1),
-                    NumberStyles.Float,
-                    CultureInfo.InvariantCulture,
-                    out double percentage)
-                || percentage < 0D
-                || double.IsNaN(percentage)
-                || double.IsInfinity(percentage)) {
-                return null;
-            }
-            return parentContentHeight.Value * percentage / 100D;
-        }
+        string value = cssValue.Length > 0 ? cssValue : NormalizeHtmlDimensionAttribute(attributeValue);
+        if (!TryResolveLength(value, parentContentHeight ?? double.NaN, fontSize, _options.DefaultFontSize,
+                out double parsed, out bool isCalculated)) return null;
+        if (parsed >= 0D) return parsed;
+        return cssValue.Length > 0 && isCalculated ? 0D : null;
+    }
 
-        return ReadLength(cssValue, attributeValue, fallbackReference, fontSize);
+    private static string NormalizeHtmlDimensionAttribute(string? value) {
+        string normalized = (value ?? string.Empty).Trim();
+        if (normalized.Length == 0 || normalized.EndsWith("%", StringComparison.Ordinal)) return normalized;
+        return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+            && !double.IsNaN(number) && !double.IsInfinity(number)
+            ? normalized + "px"
+            : normalized;
     }
 
     private static double? ResolveDefiniteContentHeight(HtmlRenderBoxStyle? style) {

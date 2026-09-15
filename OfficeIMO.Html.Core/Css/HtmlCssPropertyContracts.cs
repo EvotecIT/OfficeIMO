@@ -28,7 +28,9 @@ public enum HtmlCssPropertyValueKind {
     Number,
     /// <summary>A percentage.</summary>
     Percentage,
-    /// <summary>A calculated number or percentage whose constant expression was evaluated.</summary>
+    /// <summary>A CSS length.</summary>
+    Length,
+    /// <summary>A calculated numeric value, including a contextual length-percentage expression.</summary>
     Calculation,
     /// <summary>A hexadecimal color.</summary>
     HexColor,
@@ -44,12 +46,16 @@ public enum HtmlCssPropertyValueKind {
     DeferredFunction
 }
 
-/// <summary>Numeric types supported by the first owned CSS math slice.</summary>
+/// <summary>Numeric types supported by the owned CSS math slice.</summary>
 public enum HtmlCssNumericType {
     /// <summary>A unitless number.</summary>
     Number,
     /// <summary>A percentage retaining its percentage scale.</summary>
-    Percentage
+    Percentage,
+    /// <summary>A CSS length.</summary>
+    Length,
+    /// <summary>A calculation containing both length and percentage components.</summary>
+    LengthPercentage
 }
 
 /// <summary>A constant numeric result parsed from a literal or CSS math function.</summary>
@@ -157,7 +163,8 @@ public sealed class HtmlCssPropertyValue {
         double? number = null,
         HtmlCssWideKeyword? cssWideKeyword = null,
         HtmlCssNumericValue? numericValue = null,
-        HtmlCssColorFunctionValue? colorFunction = null) {
+        HtmlCssColorFunctionValue? colorFunction = null,
+        HtmlCssMathExpression? mathExpression = null) {
         Kind = kind;
         AuthoredText = authoredText;
         CanonicalText = canonicalText;
@@ -165,6 +172,7 @@ public sealed class HtmlCssPropertyValue {
         CssWideKeyword = cssWideKeyword;
         NumericValue = numericValue;
         ColorFunction = colorFunction;
+        MathExpression = mathExpression;
     }
 
     /// <summary>Typed value category.</summary>
@@ -181,6 +189,8 @@ public sealed class HtmlCssPropertyValue {
     public HtmlCssNumericValue? NumericValue { get; }
     /// <summary>Typed functional color, when applicable.</summary>
     public HtmlCssColorFunctionValue? ColorFunction { get; }
+    /// <summary>Typed length, percentage, or length-percentage expression, when applicable.</summary>
+    public HtmlCssMathExpression? MathExpression { get; }
 }
 
 /// <summary>Result of applying an owned property grammar without making a rendering claim.</summary>
@@ -223,7 +233,21 @@ public static class HtmlCssPropertyCatalog {
             new HtmlCssPropertyDefinition("display", false, "inline", "supported single-keyword display values"),
             new HtmlCssPropertyDefinition("visibility", true, "visible", "visible | hidden | collapse"),
             new HtmlCssPropertyDefinition("opacity", false, "1", "<number> | <percentage> | calc() | min() | max() | clamp()"),
-            new HtmlCssPropertyDefinition("color", true, "CanvasText", "named color | system color | hex color | currentColor | rgb() | hsl() | hwb()")
+            new HtmlCssPropertyDefinition("color", true, "CanvasText", "named color | system color | hex color | currentColor | rgb() | hsl() | hwb()"),
+            new HtmlCssPropertyDefinition("width", false, "auto", "auto | <length-percentage [0,infinity]>"),
+            new HtmlCssPropertyDefinition("height", false, "auto", "auto | <length-percentage [0,infinity]>"),
+            new HtmlCssPropertyDefinition("min-width", false, "auto", "auto | <length-percentage [0,infinity]>"),
+            new HtmlCssPropertyDefinition("min-height", false, "auto", "auto | <length-percentage [0,infinity]>"),
+            new HtmlCssPropertyDefinition("max-width", false, "none", "none | <length-percentage [0,infinity]>"),
+            new HtmlCssPropertyDefinition("max-height", false, "none", "none | <length-percentage [0,infinity]>"),
+            new HtmlCssPropertyDefinition("margin-top", false, "0", "auto | <length-percentage>"),
+            new HtmlCssPropertyDefinition("margin-right", false, "0", "auto | <length-percentage>"),
+            new HtmlCssPropertyDefinition("margin-bottom", false, "0", "auto | <length-percentage>"),
+            new HtmlCssPropertyDefinition("margin-left", false, "0", "auto | <length-percentage>"),
+            new HtmlCssPropertyDefinition("padding-top", false, "0", "<length-percentage [0,infinity]>"),
+            new HtmlCssPropertyDefinition("padding-right", false, "0", "<length-percentage [0,infinity]>"),
+            new HtmlCssPropertyDefinition("padding-bottom", false, "0", "<length-percentage [0,infinity]>"),
+            new HtmlCssPropertyDefinition("padding-left", false, "0", "<length-percentage [0,infinity]>")
         });
     private static readonly Dictionary<string, HtmlCssPropertyDefinition> DefinitionsByName = CreateIndex();
 

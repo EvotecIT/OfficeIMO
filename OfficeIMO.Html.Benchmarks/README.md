@@ -118,8 +118,9 @@ runtime, architecture, and commit.
 ## Owned document and CSS syntax budgets
 
 The owned API gate measures parse, query, edit, serialization, conversion after owned
-document access, lossless CSS syntax, selected typed property grammar, one owned top-level
-qualified rule and selector path, the normal managed CSS cascade, and the same cascade with opt-in traces at 10, 100, and 1,000-row
+document access, lossless CSS syntax, selected typed property grammar, contextual length
+math, one owned top-level qualified rule and selector path, the normal managed CSS cascade,
+and the same cascade with opt-in traces at 10, 100, and 1,000-row
 scales. Every operation validates its structure or exact source before evidence is accepted.
 Query and serialization clear the short provider projection lease before timing, so they
 include reconstruction after memory pressure. The parse and conversion lanes retain their
@@ -137,5 +138,5 @@ exit within its declared latency budget. These ceilings guard the declared workl
 claim universal throughput or full CSS conformance. Compare `CssCascade` with
 `CssCascadeTrace` at the same scale to review the cost of retaining the selected trace slice;
 the default computation explicitly verifies that no trace graph was retained. The CSS corpus
-also verifies constant numeric calculations, functional colors, attribute matching with an
-ASCII-insensitive modifier, and child combinators on every scale.
+also verifies typed contextual dimensions, constant numeric calculations, functional colors,
+attribute matching with an ASCII-insensitive modifier, and child combinators on every scale.

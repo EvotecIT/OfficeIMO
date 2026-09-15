@@ -101,13 +101,17 @@ separate checks: an owned tree can contain data that HTML serialization omits, s
 as children of void elements. Cancellation is cooperative, not a hard worker
 memory or execution-time limit. Context reconstruction needed by the retained provider
 is isolated inside `OfficeIMO.Html.AngleSharp`; consumers retain the same owned API when
-the provider changes. Provider-independent CSS execution remains separate work.
+the provider changes. Provider-independent CSS execution is being adopted in qualified
+vertical slices while the retained CSS provider covers the remaining grammar.
 
 The owned property grammar covers CSS-wide keywords and selected `display`, `visibility`,
-`opacity`, and `color` values. It represents constant number/percentage calculations and
-legacy or modern sRGB, HSL, and HWB functions as typed values. Computed opacity is converted
-to a clamped number, while functional colors use the shared `OfficeColor` conversion.
-Inline declarations enter the managed cascade through the lossless owned style-block parser.
+`opacity`, `color`, physical width and height constraints, and physical margin and padding
+longhands. It represents constant number/percentage calculations, contextual length-percentage
+expressions, and legacy or modern sRGB, HSL, and HWB functions as typed values. Computed
+opacity is converted to a clamped number, while functional colors use the shared `OfficeColor`
+conversion. Width and spacing percentages remain typed at computed-value time and resolve
+against the layout reference at used-value time. Inline declarations enter the managed
+cascade through the lossless owned style-block parser.
 
 Top-level qualified rules whose declarations stay inside that property slice now retain
 their original OfficeIMO syntax nodes and selector AST through the cascade. The owned matcher
@@ -124,7 +128,7 @@ every element:
 using OfficeIMO.Html.Css;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(
-    "<style>@layer theme { .status { color: blue } }</style>" +
+    "<style>@layer theme { .status { color: blue; width:calc(24px + 25%) } }</style>" +
     "<p class='status' style='color:lime'>Ready</p>");
 var styles = HtmlComputedStyleEngine.Compute(source, new HtmlComputedStyleOptions {
     IncludeCascadeTraces = true
@@ -133,6 +137,13 @@ HtmlCssCascadeTrace trace = styles[source.Document.QuerySelector(".status")!]
     .GetCascadeTrace("color")!;
 HtmlCssCascadeCandidate winner = trace.Candidates.Single(candidate =>
     candidate.Decision == HtmlCssCascadeDecision.Selected);
+
+HtmlComputedStyle statusStyle = styles[source.Document.QuerySelector(".status")!];
+if (statusStyle.TryGetTypedValue("width", out HtmlCssPropertyValue? width)) {
+    HtmlCssLengthResolutionResult used = HtmlCssMathResolver.ResolveLength(
+        width.MathExpression!,
+        new HtmlCssLengthResolutionContext { PercentageReference = 640 });
+}
 ```
 
 The trace uses OfficeIMO types only. It reports computed value, inheritance/reset state,

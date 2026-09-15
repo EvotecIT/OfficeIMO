@@ -6,7 +6,7 @@ using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 
 const string marker = "AotMarker";
-const string html = "<style>body{margin:0}[data-tone='IMPORTANT' i]>h1.hero{color:hsl(210 50 40 / 75%);opacity:calc(.2 + .3)}</style><main data-tone='important'><h1 class='hero'>AotMarker</h1></main><p><a href='https://example.test/'>Searchable PDF link</a></p>";
+const string html = "<style>body{margin:0}[data-tone='IMPORTANT' i]>h1.hero{color:hsl(210 50 40 / 75%);opacity:calc(.2 + .3);width:calc(20px + 10%)}</style><main data-tone='important'><h1 class='hero'>AotMarker</h1></main><p><a href='https://example.test/'>Searchable PDF link</a></p>";
 HtmlDocument aotTable = HtmlDocumentEngine.Default.ParseDocument(
     "<table><tbody><tr id='aot-items'></tr></tbody></table>");
 HtmlDocumentFragment aotCells = HtmlDocumentEngine.Default.ParseFragment(
@@ -32,6 +32,11 @@ HtmlComputedStyle headingStyle = HtmlComputedStyleEngine.Compute(source, new Htm
     IncludeCascadeTraces = true
 })[heading];
 HtmlCssCascadeTrace? headingColorTrace = headingStyle.GetCascadeTrace("color");
+if (!headingStyle.TryGetTypedValue("width", out HtmlCssPropertyValue? headingWidth) ||
+    HtmlCssMathResolver.ResolveLength(headingWidth!.MathExpression!,
+        new HtmlCssLengthResolutionContext { PercentageReference = 200D }).Value != 40D) {
+    throw new InvalidOperationException("The NativeAOT typed computed length contract failed.");
+}
 if (headingStyle.GetValue("color") != "rgba(51, 102, 153, 0.75)" || headingStyle.GetValue("opacity") != "0.5" ||
     headingColorTrace?.Candidates.Count != 1 ||
     headingColorTrace.Candidates[0].Decision != HtmlCssCascadeDecision.Selected) {

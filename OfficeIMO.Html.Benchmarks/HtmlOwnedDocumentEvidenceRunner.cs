@@ -10,7 +10,7 @@ using OfficeIMO.Html.Dom;
 namespace OfficeIMO.Html.Benchmarks;
 
 internal static class HtmlOwnedDocumentEvidenceRunner {
-    private static readonly string[] Operations = ["Parse", "Query", "Edit", "Serialize", "ConversionOwned", "CssSyntax", "CssPropertyGrammar", "CssCascade", "CssCascadeTrace", "Cancel"];
+    private static readonly string[] Operations = ["Parse", "Query", "Edit", "Serialize", "ConversionOwned", "CssSyntax", "CssPropertyGrammar", "CssLengthMath", "CssCascade", "CssCascadeTrace", "Cancel"];
     private static readonly (string Name, int Rows)[] Scales = [("Small", 10), ("Normal", 100), ("Large", 1000)];
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -233,6 +233,7 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
                     result => ValidateConversion((HtmlConversionDocument)result, elementCount)),
                 "CssSyntax" => CreateCssSyntax(rows),
                 "CssPropertyGrammar" => CreateCssPropertyGrammar(rows),
+                "CssLengthMath" => CreateCssLengthMath(rows),
                 "CssCascade" => CreateCssCascade(rows, includeTraces: false),
                 "CssCascadeTrace" => CreateCssCascade(rows, includeTraces: true),
                 _ => throw new ArgumentOutOfRangeException(nameof(operation))
@@ -324,6 +325,40 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
                         throw new InvalidOperationException("Owned property grammar did not accept the generated declared slice.");
                     string fingerprint = string.Join("|", parsed.Select(value => value.PropertyName + ":" + value.Value!.CanonicalText));
                     return new EvidenceValidation(parsed.Length, Hash(fingerprint), fingerprint.Length);
+                });
+        }
+
+        private static EvidenceOperation CreateCssLengthMath(int rows) {
+            string[] values = Enumerable.Range(0, rows)
+                .Select(index => "calc(" + (index % 25).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    + "px + 5% + 1em + 2vw + 1cqi)")
+                .ToArray();
+            var context = new HtmlCssLengthResolutionContext {
+                PercentageReference = 400D,
+                FontSize = 16D,
+                RootFontSize = 16D,
+                ViewportWidth = 800D,
+                ViewportHeight = 600D,
+                ContainerWidth = 300D,
+                ContainerHeight = 200D,
+                ContainerInlineSize = 300D,
+                ContainerBlockSize = 200D
+            };
+            int inputCharacters = values.Sum(value => value.Length);
+            return new EvidenceOperation(inputCharacters,
+                () => values.Select(value => {
+                    HtmlCssMathParseResult parsed = HtmlCssMathParser.ParseLengthPercentage(value);
+                    if (!parsed.IsParsed)
+                        throw new InvalidOperationException("Owned length math rejected a generated declared expression.");
+                    return HtmlCssMathResolver.ResolveLength(parsed.Expression!, context);
+                }).ToArray(),
+                result => {
+                    var resolved = (HtmlCssLengthResolutionResult[])result;
+                    if (resolved.Length != rows || resolved.Any(value => !value.IsResolved || !value.Value.HasValue))
+                        throw new InvalidOperationException("Owned length math did not resolve the generated contextual slice.");
+                    string fingerprint = string.Join("|", resolved.Select(value =>
+                        value.Value!.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture)));
+                    return new EvidenceValidation(resolved.Length, Hash(fingerprint), fingerprint.Length);
                 });
         }
 

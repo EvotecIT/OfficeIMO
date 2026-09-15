@@ -77,6 +77,22 @@ public sealed class HtmlComputedStyle {
         return _properties.TryGetValue(propertyName.Trim(), out string? value) ? value : string.Empty;
     }
 
+    /// <summary>
+    /// Returns the provider-independent typed value for a computed property when its current
+    /// OfficeIMO grammar slice accepts the value. Layout-dependent percentages remain in the
+    /// returned expression until a caller supplies a used-value resolution context.
+    /// </summary>
+    public bool TryGetTypedValue(string propertyName, out OfficeIMO.Html.Css.HtmlCssPropertyValue? value) {
+        value = null;
+        string computed = GetValue(propertyName);
+        if (computed.Length == 0) return false;
+        OfficeIMO.Html.Css.HtmlCssPropertyParseResult parsed =
+            OfficeIMO.Html.Css.HtmlCssPropertyParser.Parse(propertyName, computed);
+        if (parsed.Status != OfficeIMO.Html.Css.HtmlCssPropertyParseStatus.Parsed) return false;
+        value = parsed.Value;
+        return value != null;
+    }
+
     internal bool IsInheritedValue(string propertyName) =>
         !string.IsNullOrWhiteSpace(propertyName) && _inheritedProperties.Contains(propertyName.Trim());
 

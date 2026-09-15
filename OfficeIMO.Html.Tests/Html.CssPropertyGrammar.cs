@@ -13,7 +13,7 @@ public sealed class HtmlCssPropertyGrammarTests {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Html", "Css", "css-property-grammar-corpus.json");
         CssPropertyCorpusCase[] corpus = JsonSerializer.Deserialize<CssPropertyCorpusCase[]>(
             File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-        Assert.Equal(22, corpus.Length);
+        Assert.Equal(35, corpus.Length);
 
         foreach (CssPropertyCorpusCase item in corpus) {
             HtmlCssPropertyParseResult parsed = HtmlCssPropertyParser.Parse(item.Property, item.Value);
@@ -25,7 +25,12 @@ public sealed class HtmlCssPropertyGrammarTests {
 
     [Fact]
     public void CatalogExposesTheFirstOwnedPropertyDefinitions() {
-        Assert.Equal(new[] { "display", "visibility", "opacity", "color" },
+        Assert.Equal(new[] {
+                "display", "visibility", "opacity", "color",
+                "width", "height", "min-width", "min-height", "max-width", "max-height",
+                "margin-top", "margin-right", "margin-bottom", "margin-left",
+                "padding-top", "padding-right", "padding-bottom", "padding-left"
+            },
             HtmlCssPropertyCatalog.All.Select(property => property.Name).ToArray());
         Assert.False(HtmlCssPropertyCatalog.All.Single(property => property.Name == "display").IsInherited);
         Assert.True(HtmlCssPropertyCatalog.All.Single(property => property.Name == "color").IsInherited);
@@ -105,6 +110,12 @@ public sealed class HtmlCssPropertyGrammarTests {
             HtmlCssPropertyParser.Parse("display", "block", cancellationToken: cancellation.Token));
         Assert.Throws<HtmlCssTokenizationLimitException>(() =>
             HtmlCssPropertyParser.Parse("display", "inline-block", new HtmlCssTokenizationOptions { MaxInputCharacters = 4 }));
+        Assert.Throws<HtmlCssTokenizationLimitException>(() =>
+            HtmlCssPropertyParser.Parse("display", "    grid", new HtmlCssTokenizationOptions { MaxInputCharacters = 4 }));
+        HtmlCssDeclaration declaration = Assert.Single(
+            HtmlCssSyntaxParser.ParseStyleBlock("display:    grid!important;").Declarations);
+        Assert.Throws<HtmlCssTokenizationLimitException>(() =>
+            HtmlCssPropertyParser.Parse(declaration, new HtmlCssTokenizationOptions { MaxInputCharacters = 4 }));
     }
 
     [Fact]

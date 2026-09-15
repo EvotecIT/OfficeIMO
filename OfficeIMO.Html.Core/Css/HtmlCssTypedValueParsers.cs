@@ -188,10 +188,10 @@ internal static class HtmlCssTypedValueParsers {
             return result.IsFinite;
         }
         private bool TryProduct(out Numeric result) {
-            if (!TryUnary(out result)) return false;
+            if (!TryPrimary(out result)) return false;
             while (IsDelimiter("*") || IsDelimiter("/")) {
                 bool divide = Current.Value == "/"; _position++; RecordOperation();
-                if (!TryUnary(out Numeric right)) return false;
+                if (!TryPrimary(out Numeric right)) return false;
                 if (divide) {
                     if (right.Value == 0D) return false;
                     if (right.Type == HtmlCssNumericType.Percentage) {
@@ -206,17 +206,6 @@ internal static class HtmlCssTypedValueParsers {
                 }
                 if (!result.IsFinite) return false;
             }
-            return true;
-        }
-        private bool TryUnary(out Numeric result) {
-            bool negative = false;
-            while (IsDelimiter("+") || IsDelimiter("-")) {
-                if (Current.Value == "-") negative = !negative;
-                _position++;
-                RecordOperation();
-            }
-            if (!TryPrimary(out result)) return false;
-            if (negative) result = new Numeric(-result.Value, result.Type);
             return true;
         }
         private bool TryPrimary(out Numeric result) {

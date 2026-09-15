@@ -125,10 +125,9 @@ public sealed class HtmlCssTypedValuesAndSelectorsTests {
 
     [Fact]
     public void OwnedMathAndSelectorTraversalStayBoundedOnAdversarialInputs() {
-        string unary = "calc(" + string.Concat(Enumerable.Repeat("+ ", 10_000)) + "1)";
-        HtmlCssPropertyParseResult unaryResult = HtmlCssPropertyParser.Parse("opacity", unary);
-        Assert.Equal(HtmlCssPropertyParseStatus.Parsed, unaryResult.Status);
-        Assert.Equal(1D, unaryResult.Value!.NumericValue!.Value);
+        string invalidUnary = "calc(" + string.Concat(Enumerable.Repeat("+ ", 10_000)) + "1)";
+        Assert.Equal(HtmlCssPropertyParseStatus.UnsupportedValue,
+            HtmlCssPropertyParser.Parse("opacity", invalidUnary).Status);
 
         const int depth = 80;
         string html = string.Concat(Enumerable.Repeat("<div>", depth)) + "target"
