@@ -171,6 +171,18 @@ public static partial class OfficeSvgDrawingReader {
         out string evidence) {
         foreach (XElement current in element.AncestorsAndSelf()) {
             string name = current.Name.LocalName.ToLowerInvariant();
+            XAttribute? fontSize = current.Attribute("font-size");
+            if (fontSize != null && !IsSvgCssWideKeyword(fontSize.Value) &&
+                fontSize.Value.IndexOf("var(", StringComparison.OrdinalIgnoreCase) < 0 &&
+                (!TrySvgLength(fontSize.Value, out double resolvedFontSize) || resolvedFontSize <= 0D)) {
+                evidence = "SVG text uses font-size syntax outside the bounded native layout subset and is therefore report-only.";
+                return true;
+            }
+            if (HasSvgFallbackPaint(current.Attribute("fill")?.Value) ||
+                HasSvgFallbackPaint(current.Attribute("stroke")?.Value)) {
+                evidence = "SVG text uses fallback paint syntax outside the bounded native paint subset and is therefore report-only.";
+                return true;
+            }
             if (name == "svg" && current.Parent != null &&
                 string.Equals(ReadPresentationProperty(current, "overflow")?.Trim(), "visible", StringComparison.OrdinalIgnoreCase)) {
                 evidence = "Text inside a nested SVG viewport with visible overflow depends on browser viewport painting and is therefore report-only.";
@@ -204,5 +216,14 @@ public static partial class OfficeSvgDrawingReader {
         }
         evidence = string.Empty;
         return false;
+    }
+
+    private static bool HasSvgFallbackPaint(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        string normalized = value!.Trim();
+        if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) return false;
+        int close = FindSvgCssBlockEnd(normalized, 4, '(', ')');
+        return close >= 0 && close < normalized.Length - 1 &&
+            normalized.Substring(close + 1).Trim().Length > 0;
     }
 }

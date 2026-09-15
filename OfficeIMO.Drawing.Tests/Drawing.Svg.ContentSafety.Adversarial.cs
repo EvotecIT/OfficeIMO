@@ -153,7 +153,9 @@ public sealed class SvgContentSafetyAdversarialTests {
 
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
 
-        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible inherited size");
+        Assert.DoesNotContain(report.Findings, item =>
+            item.TextPreview == "visible inherited size" &&
+            item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);
     }
 
     [Fact]
@@ -421,6 +423,102 @@ public sealed class SvgContentSafetyAdversarialTests {
 
         Assert.DoesNotContain(report.Findings, item => item.TextPreview == "empty custom property visible");
     }
+
+    [Fact]
+    public void UnsupportedRelativePresentationFontSizeCannotAuthorizeCleanup() {
+        byte[] svg = Svg("<g font-size='1'><text font-size='20em' x='1' y='5'>relative font visible</text></g>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "relative font visible");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void AnisotropicEnlargementCannotAuthorizeTinyTextCleanup() {
+        byte[] svg = Svg("<text font-size='16' transform='scale(.1,10)' x='10' y='5'>anisotropic visible text</text>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.DoesNotContain(report.Findings, item =>
+            item.TextPreview == "anisotropic visible text" && item.Kind == OfficeContentConcealmentKind.TinyText);
+    }
+
+    [Fact]
+    public void CssVariableSubstitutionHasACumulativeWorkBudget() {
+        string references = string.Concat(Enumerable.Repeat("var(--x)", 3000));
+        byte[] svg = Svg($"<text style='--x:1;opacity:{references}' x='10' y='35'>bounded substitutions</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void FallbackPaintCannotAuthorizeCleanup() {
+        byte[] svg = Svg("<text fill='url(#missing) red' x='10' y='35'>fallback paint visible</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "fallback paint visible");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void SignedSvgCleanupBlocksByDefault() {
+        byte[] svg = SignedSvg();
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "signed hidden text");
+
+        Assert.Throws<InvalidOperationException>(() => OfficeSvgDrawingReader.RemoveSelectedContent(
+            svg,
+            new OfficeContentCleanupSelection(new[] { finding.Id })));
+    }
+
+    [Fact]
+    public void SignedSvgCleanupCanRemoveInvalidatedSignatures() {
+        byte[] svg = SignedSvg();
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "signed hidden text");
+
+        OfficeContentCleanupResult result = OfficeSvgDrawingReader.RemoveSelectedContent(
+            svg,
+            new OfficeContentCleanupSelection(new[] { finding.Id }),
+            new OfficeContentCleanupOptions {
+                SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+            });
+
+        string cleaned = Encoding.UTF8.GetString(result.Output);
+        Assert.DoesNotContain("signed hidden text", cleaned, StringComparison.Ordinal);
+        Assert.DoesNotContain("http://www.w3.org/2000/09/xmldsig#", cleaned, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SignedSvgCleanupCanExplicitlyPreserveSignatureMarkup() {
+        byte[] svg = SignedSvg();
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "signed hidden text");
+
+        OfficeContentCleanupResult result = OfficeSvgDrawingReader.RemoveSelectedContent(
+            svg,
+            new OfficeContentCleanupSelection(new[] { finding.Id }),
+            new OfficeContentCleanupOptions {
+                SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup
+            });
+
+        string cleaned = Encoding.UTF8.GetString(result.Output);
+        Assert.DoesNotContain("signed hidden text", cleaned, StringComparison.Ordinal);
+        Assert.Contains("http://www.w3.org/2000/09/xmldsig#", cleaned, StringComparison.Ordinal);
+    }
+
+    private static byte[] SignedSvg() => Svg(
+        "<text display='none' x='10' y='35'>signed hidden text</text>" +
+        "<ds:Signature xmlns:ds='http://www.w3.org/2000/09/xmldsig#'><ds:SignedInfo/></ds:Signature>");
 
     private static byte[] Svg(string body) => Encoding.UTF8.GetBytes(
         "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='120' viewBox='0 0 220 120'>" + body + "</svg>");

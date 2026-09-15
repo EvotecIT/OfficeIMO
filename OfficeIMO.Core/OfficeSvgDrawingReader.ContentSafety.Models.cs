@@ -128,8 +128,8 @@ public static partial class OfficeSvgDrawingReader {
             }
             double horizontalScale = Math.Sqrt(transform.M11 * transform.M11 + transform.M12 * transform.M12);
             double verticalScale = Math.Sqrt(transform.M21 * transform.M21 + transform.M22 * transform.M22);
-            double minimumScale = Math.Min(horizontalScale, verticalScale);
-            MaximumEffectiveFontSize = Math.Max(MaximumEffectiveFontSize, run.FontSize * minimumScale);
+            double maximumScale = Math.Max(horizontalScale, verticalScale);
+            MaximumEffectiveFontSize = Math.Max(MaximumEffectiveFontSize, run.FontSize * maximumScale);
             if (!_hasBounds) {
                 _left = bounds.Left;
                 _top = bounds.Top;

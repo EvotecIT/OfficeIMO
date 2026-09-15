@@ -283,7 +283,7 @@ public sealed class SvgContentSafetyTests {
     }
 
     [Fact]
-    public void CssInheritMaterializesParentValueForNonInheritedTransform() {
+    public void CssInheritMaterializesParentTransformWithoutTinyFalsePositive() {
         byte[] svg = Svg("""
             <g transform="scale(0.2,1)">
               <text style="transform:inherit" font-size="16" x="10" y="35">inherited transform payload</text>
@@ -292,7 +292,7 @@ public sealed class SvgContentSafetyTests {
 
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
 
-        Assert.Contains(report.Findings, item =>
+        Assert.DoesNotContain(report.Findings, item =>
             item.Kind == OfficeContentConcealmentKind.TinyText && item.TextPreview == "inherited transform payload");
     }
 
@@ -411,14 +411,14 @@ public sealed class SvgContentSafetyTests {
     }
 
     [Fact]
-    public void AnisotropicTransformsContributeToTheEffectiveTinyTextThreshold() {
+    public void AnisotropicTransformsDoNotMakeVisiblyTallTextTiny() {
         byte[] svg = Svg("""
             <text transform="scale(0.001,1)" font-size="16" x="10" y="35">anisotropic tiny payload</text>
             """);
 
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
 
-        Assert.Contains(report.Findings, item =>
+        Assert.DoesNotContain(report.Findings, item =>
             item.Kind == OfficeContentConcealmentKind.TinyText && item.TextPreview == "anisotropic tiny payload");
     }
 

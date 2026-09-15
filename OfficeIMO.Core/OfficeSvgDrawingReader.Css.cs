@@ -55,6 +55,7 @@ public static partial class OfficeSvgDrawingReader {
         XElement[] selectorElements = selectorRoot.DescendantsAndSelf().ToArray();
         long remainingMatchWork = MaximumSvgCssMatchWork;
         long remainingComputedCssCharacters = MaximumSvgComputedCssCharacters;
+        long remainingVariableSubstitutionCharacters = MaximumSvgComputedCssCharacters;
         bool matchWorkExceeded = false;
         var computedCustomProperties = new Dictionary<XElement, IReadOnlyDictionary<string, string>>();
         for (int elementIndex = 0; elementIndex < elements.Length; elementIndex++) {
@@ -136,6 +137,7 @@ public static partial class OfficeSvgDrawingReader {
                         customProperties,
                         element.Parent,
                         validationPaintServers,
+                        ref remainingVariableSubstitutionCharacters,
                         ref unsupported,
                         out string? value)) {
                     unsupported++;
@@ -400,6 +402,7 @@ public static partial class OfficeSvgDrawingReader {
         IReadOnlyDictionary<string, string> customProperties,
         XElement? parent,
         SvgPaintServerRegistry paintServers,
+        ref long remainingVariableSubstitutionCharacters,
         ref int unsupported,
         out string? computedValue) {
         string value;
@@ -407,6 +410,7 @@ public static partial class OfficeSvgDrawingReader {
             authoredValue,
             customProperties,
             0,
+            ref remainingVariableSubstitutionCharacters,
             out value,
             out bool variableLimitExceeded);
         if (variableLimitExceeded) {
@@ -569,6 +573,7 @@ public static partial class OfficeSvgDrawingReader {
         string value,
         IReadOnlyDictionary<string, string> customProperties,
         int depth,
+        ref long remainingSubstitutionCharacters,
         out string resolved,
         out bool limitExceeded) {
         resolved = value;
@@ -594,6 +599,7 @@ public static partial class OfficeSvgDrawingReader {
                     replacement,
                     customProperties,
                     depth + 1,
+                    ref remainingSubstitutionCharacters,
                     out replacement,
                     out bool nestedLimitExceeded)) {
                 limitExceeded = nestedLimitExceeded;
@@ -604,6 +610,11 @@ public static partial class OfficeSvgDrawingReader {
                 limitExceeded = true;
                 return false;
             }
+            if (expandedLength > remainingSubstitutionCharacters) {
+                limitExceeded = true;
+                return false;
+            }
+            remainingSubstitutionCharacters -= expandedLength;
             resolved = resolved.Substring(0, start) + replacement + resolved.Substring(close + 1);
             start = resolved.IndexOf("var(", StringComparison.OrdinalIgnoreCase);
         }

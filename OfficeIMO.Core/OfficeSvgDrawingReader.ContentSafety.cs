@@ -57,6 +57,7 @@ public static partial class OfficeSvgDrawingReader {
         var targets = new Dictionary<string, SvgContentSafetyTarget>(StringComparer.Ordinal);
         OfficeContentSafetyReport current = InspectSvgContentSafetyDocument(document, svgBytes, options.Inspection, readerOptions, targets);
         IReadOnlyList<OfficeContentSafetyFinding> currentSelection = OfficeContentSafetyBuilder.ResolveSelection(current, selection);
+        ApplySvgSignatureMutationPolicy(document.Document, options.SignatureMutationPolicy);
         foreach (IGrouping<SvgContentSafetyTarget, OfficeContentSafetyFinding> group in currentSelection
             .OrderByDescending(item => item.SourceTextOffset ?? -1)
             .GroupBy(item => targets[item.Id])) {
@@ -71,6 +72,21 @@ public static partial class OfficeSvgDrawingReader {
             .Select(item => new OfficeContentCleanupChange(item.Id, item.Location, item.CleanupCapability))
             .ToArray();
         return new OfficeContentCleanupResult(output, before, after, changes);
+    }
+
+    private static void ApplySvgSignatureMutationPolicy(
+        XDocument document,
+        OfficeSignatureMutationPolicy policy) {
+        XNamespace xmlDsig = "http://www.w3.org/2000/09/xmldsig#";
+        XElement[] signatures = document.Descendants(xmlDsig + "Signature").ToArray();
+        if (signatures.Length == 0) return;
+        if (policy == OfficeSignatureMutationPolicy.BlockSave) {
+            throw new InvalidOperationException(
+                "Cleaning SVG content would invalidate an XML digital signature. Choose an explicit signature mutation policy.");
+        }
+        if (policy == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures) {
+            foreach (XElement signature in signatures) signature.Remove();
+        }
     }
 
     /// <summary>Atomically writes an explicitly cleaned SVG artifact.</summary>
