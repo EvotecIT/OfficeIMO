@@ -675,6 +675,26 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void WordBoundsUserUnitScaledEditableTypography() {
+        const string marker = "Bounded user unit text";
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawTextPdf(
+            "BT /F1 50000 Tf 0 0 Td (" + marker + ") Tj ET\n",
+            mediaBox: "[0 0 0.01 0.01]",
+            pageEntries: "/UserUnit 75000"));
+        Assert.Equal(50000D, Assert.Single(Assert.Single(logical.Pages).TextBlocks).FontSize);
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            using var serialized = new MemoryStream(word.Value.ToBytes());
+            using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
+            OfficeIMO.Word.WordParagraph paragraph = Assert.Single(
+                reopened.Paragraphs,
+                candidate => candidate.Text.Contains(marker, StringComparison.Ordinal));
+            Assert.Equal(4000D, paragraph.FontSizePoints);
+        }
+    }
+
+    [Fact]
     public void WordDoesNotScaleLaterPageTypographyWhenPageBreaksAreNotPreserved() {
         const string firstMarker = "First page typography";
         const string secondMarker = "Second page typography";
@@ -721,6 +741,31 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             OfficeIMO.Word.WordTable table = Assert.Single(reopened.Tables);
             Assert.All(table.Rows.SelectMany(static row => row.Cells), static cell =>
                 Assert.All(cell.Paragraphs, static paragraph => Assert.Equal(22D, paragraph.FontSizePoints)));
+        }
+    }
+
+    [Fact]
+    public void WordBoundsUserUnitScaledImportedTableTypography() {
+        byte[] source = WithUserUnitAndMediaBox(
+            CreateDocument()
+                .Table(new[] {
+                    new[] { "Item", "Amount" },
+                    new[] { "Service", "42.00" }
+                })
+                .ToBytes(),
+            userUnit: 400D,
+            width: 3.9D,
+            height: 3.9D);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        Assert.NotEmpty(logical.Tables);
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult(PdfToWordOptions.CreateTablesOnly());
+        using (word.Value) {
+            using var serialized = new MemoryStream(word.Value.ToBytes());
+            using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
+            OfficeIMO.Word.WordTable table = Assert.Single(reopened.Tables);
+            Assert.All(table.Rows.SelectMany(static row => row.Cells), static cell =>
+                Assert.All(cell.Paragraphs, static paragraph => Assert.Equal(4000D, paragraph.FontSizePoints)));
         }
     }
 
@@ -1202,6 +1247,22 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             return security.InfoObjectNumber;
         });
 
+    private static byte[] WithUserUnitAndMediaBox(byte[] source, double userUnit, double width, double height) =>
+        PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfIndirectObject page = Assert.Single(objects.Values, static item =>
+                item.Value is PdfDictionary dictionary &&
+                string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal));
+            PdfDictionary dictionary = Assert.IsType<PdfDictionary>(page.Value);
+            dictionary.Items["UserUnit"] = new PdfNumber(userUnit);
+            var mediaBox = new PdfArray();
+            mediaBox.Items.Add(new PdfNumber(0D));
+            mediaBox.Items.Add(new PdfNumber(0D));
+            mediaBox.Items.Add(new PdfNumber(width));
+            mediaBox.Items.Add(new PdfNumber(height));
+            dictionary.Items["MediaBox"] = mediaBox;
+            return security.InfoObjectNumber;
+        });
+
     private static byte[] CreateNestedFormImageWithGraphicsStatePdf(
         string outerGraphicsStateEntries,
         string innerGraphicsStateEntries) {
@@ -1266,6 +1327,24 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
         string objectCount = secondGraphicsStateEntries != null ? "8" : graphicsStateEntries == null ? "6" : "7";
         WriteAscii(output, "trailer\n<< /Root 1 0 R /Size " + objectCount + " >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] CreateRawTextPdf(
+        string content,
+        string? pageEntries = null,
+        string mediaBox = "[0 0 160 160]") {
+        byte[] contentBytes = System.Text.Encoding.ASCII.GetBytes(content);
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox " + mediaBox + " " + pageEntries + " /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length + " >>\nstream\n");
+        output.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(output, "endstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 6 >>\n%%EOF\n");
         return output.ToArray();
     }
 

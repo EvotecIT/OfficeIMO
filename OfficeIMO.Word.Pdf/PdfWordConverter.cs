@@ -8,6 +8,8 @@ namespace OfficeIMO.Word.Pdf {
     internal static partial class PdfWordConverter {
         private const string ConverterName = "OfficeIMO.Word.Pdf";
         private const double DefaultEditableTableFontSizePoints = 11D;
+        private const double MinimumEditableFontSizePoints = 0.5D;
+        private const double MaximumEditableFontSizePoints = 4000D;
 
         public static WordDocument Convert(PdfCore.PdfDocumentReadResult source, PdfToWordOptions? options) {
             if (source == null) {
@@ -484,11 +486,11 @@ namespace OfficeIMO.Word.Pdf {
                     string.IsNullOrWhiteSpace(linkText) ? heading.Text : linkText!,
                     options,
                     navigation,
-                    heading.FontSize > 0D ? heading.FontSize * typographyScale : null);
+                    heading.FontSize > 0D ? ScaleEditableFontSize(heading.FontSize, typographyScale) : null);
             paragraph.SetStyle(MapHeadingStyle(heading.Level));
             paragraph.KeepWithNext = true;
             if (heading.FontSize > 0) {
-                paragraph.FontSizePoints = Math.Max(0.5D, heading.FontSize * typographyScale);
+                paragraph.FontSizePoints = ScaleEditableFontSize(heading.FontSize, typographyScale);
             }
         }
 
@@ -511,7 +513,7 @@ namespace OfficeIMO.Word.Pdf {
                 string.IsNullOrWhiteSpace(linkText) ? paragraph.Text : linkText!,
                 options,
                 navigation,
-                GetFirstPositiveFontSize(paragraph.Lines) * typographyScale);
+                ScaleEditableFontSize(GetFirstPositiveFontSize(paragraph.Lines), typographyScale));
         }
 
         private static void AddTextBlock(
@@ -533,7 +535,7 @@ namespace OfficeIMO.Word.Pdf {
                 string.IsNullOrWhiteSpace(linkText) ? block.Text : linkText!,
                 options,
                 navigation,
-                GetFirstPositiveFontSize(new[] { block }) * typographyScale);
+                ScaleEditableFontSize(GetFirstPositiveFontSize(new[] { block }), typographyScale));
         }
 
         private static WordParagraph AddStyledParagraph(
@@ -565,7 +567,7 @@ namespace OfficeIMO.Word.Pdf {
             if (runs.Count == 0) {
                 WordParagraph fallbackRun = paragraph.AddText(fallbackText);
                 if (fallbackFontSize > 0D) {
-                    fallbackRun.FontSizePoints = Math.Max(0.5D, fallbackFontSize * typographyScale);
+                    fallbackRun.FontSizePoints = ScaleEditableFontSize(fallbackFontSize, typographyScale);
                 }
                 return;
             }
@@ -577,7 +579,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (source.IsItalic) run.SetItalic();
                 double fontSize = source.FontSize > 0D ? source.FontSize : fallbackFontSize;
                 if (fontSize > 0D) {
-                    run.FontSizePoints = Math.Max(0.5D, fontSize * typographyScale);
+                    run.FontSizePoints = ScaleEditableFontSize(fontSize, typographyScale);
                 }
                 if (source.Color.HasValue && source.Color.Value.A > 0) {
                     run.SetColorHex(source.Color.Value.ToRgbHex());
@@ -612,7 +614,7 @@ namespace OfficeIMO.Word.Pdf {
             WordParagraph hyperlink;
             if (target.IsUri) {
                 hyperlink = paragraph.AddHyperLink(text, target.Uri!, addStyle: true, tooltip: "Imported PDF link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture));
-                if (fontSizePoints > 0D) hyperlink.FontSizePoints = Math.Max(0.5D, fontSizePoints.Value);
+                if (fontSizePoints > 0D) hyperlink.FontSizePoints = BoundEditableFontSize(fontSizePoints.Value);
                 AddWarning(
                     options,
                     "PdfUriLinkReconstructed",
@@ -627,7 +629,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             hyperlink = paragraph.AddHyperLink(text, target.Anchor!, addStyle: true, tooltip: "Imported PDF internal link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture));
-            if (fontSizePoints > 0D) hyperlink.FontSizePoints = Math.Max(0.5D, fontSizePoints.Value);
+            if (fontSizePoints > 0D) hyperlink.FontSizePoints = BoundEditableFontSize(fontSizePoints.Value);
             AddWarning(
                 options,
                 "PdfInternalLinkReconstructed",
@@ -653,6 +655,22 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return null;
+        }
+
+        private static double? ScaleEditableFontSize(double? fontSize, double scale) =>
+            fontSize.HasValue ? ScaleEditableFontSize(fontSize.Value, scale) : null;
+
+        private static double ScaleEditableFontSize(double fontSize, double scale) =>
+            BoundEditableFontSize(fontSize * scale);
+
+        private static double BoundEditableFontSize(double fontSize) {
+            if (double.IsNaN(fontSize) || fontSize <= MinimumEditableFontSizePoints) {
+                return MinimumEditableFontSizePoints;
+            }
+
+            return double.IsInfinity(fontSize) || fontSize >= MaximumEditableFontSizePoints
+                ? MaximumEditableFontSizePoints
+                : fontSize;
         }
 
         private static WordParagraphStyles MapHeadingStyle(int level) {
@@ -811,7 +829,7 @@ namespace OfficeIMO.Word.Pdf {
                 WordParagraph paragraph = cells[columnIndex].AddParagraph(value ?? string.Empty, removeExistingParagraphs: true);
                 ApplySourceParagraphSpacing(paragraph, options);
                 if (typographyScale != 1D) {
-                    paragraph.FontSizePoints = Math.Max(0.5D, DefaultEditableTableFontSizePoints * typographyScale);
+                    paragraph.FontSizePoints = ScaleEditableFontSize(DefaultEditableTableFontSizePoints, typographyScale);
                 }
                 if (alignNumericColumns && data.IsNumericColumn(columnIndex)) {
                     paragraph.ParagraphAlignment = WordParagraphAlignment.Right;
