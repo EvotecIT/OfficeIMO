@@ -67,7 +67,8 @@ public static partial class OfficeSvgDrawingReader {
                          attribute.Name.NamespaceName.Length == 0 &&
                          attribute.Name.LocalName.Equals(attribute.Name.LocalName.ToLowerInvariant(), StringComparison.Ordinal) &&
                          IsSvgPresentationPropertyName(attribute.Name.LocalName) &&
-                         attribute.Value.IndexOf("var(", StringComparison.OrdinalIgnoreCase) >= 0)) {
+                         (attribute.Value.IndexOf("var(", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                          IsSvgCssWideKeyword(attribute.Value)))) {
                 SetSvgCssWinner(
                     winners,
                     new SvgCssDeclaration(attribute.Name.LocalName, attribute.Value, important: false),
@@ -309,7 +310,8 @@ public static partial class OfficeSvgDrawingReader {
             if (colon <= 0) continue;
             string name = raw.Substring(0, colon).Trim();
             string value = raw.Substring(colon + 1).Trim();
-            if (name.Length == 0 || value.Length == 0) continue;
+            if (name.Length == 0 ||
+                (value.Length == 0 && !name.StartsWith("--", StringComparison.Ordinal))) continue;
             bool important = TryStripImportant(value, out value);
             result.Add(new SvgCssDeclaration(name, value, important));
             declarationCount++;
@@ -412,6 +414,8 @@ public static partial class OfficeSvgDrawingReader {
             return false;
         }
         if (!variablesResolved) {
+            value = "unset";
+        } else if (value.Trim().Length == 0) {
             value = "unset";
         } else if (!IsSvgCssWideKeyword(value)) {
             value = NormalizeSvgCssPercentageValue(propertyName, value);

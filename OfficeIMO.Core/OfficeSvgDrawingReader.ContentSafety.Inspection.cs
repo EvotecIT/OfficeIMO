@@ -300,7 +300,8 @@ public static partial class OfficeSvgDrawingReader {
 
     private static XElement FindSvgLogicalTextOwner(XText text) {
         XElement parent = text.Parent ?? throw new InvalidDataException("The SVG text node has no owning element.");
-        return parent.AncestorsAndSelf().FirstOrDefault(element =>
+        // Outermost text owners are disjoint, so each bounded payload is aggregated and scanned once.
+        return parent.AncestorsAndSelf().LastOrDefault(element =>
                    element.Name.LocalName.Equals("text", StringComparison.Ordinal)) ?? parent;
     }
 
@@ -458,9 +459,12 @@ public static partial class OfficeSvgDrawingReader {
                     OfficeContentConcealmentKind.TransparentText,
                     "Computed SVG opacity and text paint leave no visible fill or stroke contribution.");
             }
-            double size = style.FontSize;
+            double size = candidate.HasBounds && candidate.MaximumEffectiveFontSize > 0D
+                ? candidate.MaximumEffectiveFontSize
+                : style.FontSize;
             bool tiny = size <= options.MaximumTinyFontSizePoints;
-            if (!tiny && TryFindSvgTinyFont(candidate.ComputedElement, options, out double authoredSize)) {
+            if (!candidate.HasBounds && !tiny &&
+                TryFindSvgTinyFont(candidate.ComputedElement, options, out double authoredSize)) {
                 size = authoredSize;
                 tiny = true;
             }
@@ -485,7 +489,7 @@ public static partial class OfficeSvgDrawingReader {
                     "Resolved SVG transforms reduce the effective font size to " +
                     candidate.MaximumEffectiveFontSize.ToString("0.###", CultureInfo.InvariantCulture) + " user units.");
             }
-            if (!HasSvgFilterEffect(candidate.ComputedElement) &&
+            if (CanUseSvgStructuralOffCanvasBounds(candidate.ComputedElement) &&
                 (candidate.Right <= 0D || candidate.Bottom <= 0D ||
                 candidate.Left >= document.ViewWidth || candidate.Top >= document.ViewHeight)) {
                 return new SvgContentSafetyConcealment(
@@ -496,14 +500,25 @@ public static partial class OfficeSvgDrawingReader {
         return null;
     }
 
-    private static bool HasSvgFilterEffect(XElement element) {
+    private static bool CanUseSvgStructuralOffCanvasBounds(XElement element) {
         foreach (XElement current in element.AncestorsAndSelf()) {
             string? filter = ReadPresentationProperty(current, "filter")?.Trim();
             if (!string.IsNullOrWhiteSpace(filter) &&
-                !filter!.Equals("none", StringComparison.OrdinalIgnoreCase)) return true;
+                !filter!.Equals("none", StringComparison.OrdinalIgnoreCase)) return false;
+            if (current.Attributes().Any(attribute =>
+                    attribute.Name.NamespaceName.Length == 0 &&
+                    IsUnmodeledSvgTextGeometryAttribute(attribute.Name.LocalName))) return false;
         }
-        return false;
+        return true;
     }
+
+    private static bool IsUnmodeledSvgTextGeometryAttribute(string name) => name switch {
+        "alignment-baseline" or "direction" or "font-kerning" or "font-stretch" or "font-variant" or
+        "glyph-orientation-horizontal" or "glyph-orientation-vertical" or "kerning" or "letter-spacing" or
+        "lengthAdjust" or "textLength" or "text-rendering" or "unicode-bidi" or "white-space" or
+        "word-spacing" => true,
+        _ => false
+    };
 
     private static bool HasSufficientSvgVisualResolution(
         SvgContentSafetyCandidate candidate,
@@ -531,7 +546,7 @@ public static partial class OfficeSvgDrawingReader {
             string id = reference.Substring(1);
             XElement? clip = document.Root.DescendantsAndSelf().FirstOrDefault(candidate =>
                 IsNativeSvgElement(candidate, document.Root.Name.Namespace) &&
-                candidate.Name.LocalName.Equals("clipPath", StringComparison.OrdinalIgnoreCase) &&
+                candidate.Name.LocalName.Equals("clipPath", StringComparison.Ordinal) &&
                 string.Equals(candidate.Attribute("id")?.Value, id, StringComparison.Ordinal));
             if (clip == null) continue;
             XElement[] geometry = clip.Elements().Where(child =>
