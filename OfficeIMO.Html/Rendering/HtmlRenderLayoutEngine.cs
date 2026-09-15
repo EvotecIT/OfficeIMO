@@ -577,7 +577,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         BuildRootStackingPaintOrders(blocks);
 
         var pages = new List<HtmlRenderPage>();
-        var visuals = CreatePageVisuals(pageWidth, pageHeight, pageGeometry.BackgroundColor);
+        var visuals = CreatePageVisuals(pageWidth, pageHeight, pageGeometry);
         double y = pageGeometry.Margins.Top;
         void BeginPage(string? pageName) {
             pageGeometry = _pageRules.ResolveGeometry(pages.Count + 1, pageName, _options);
@@ -586,7 +586,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             pageHeight = pageGeometry.Height;
             contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, pageGeometry);
             ValidateSurface(pageWidth, pageHeight);
-            visuals = CreatePageVisuals(pageWidth, pageHeight, pageGeometry.BackgroundColor);
+            visuals = CreatePageVisuals(pageWidth, pageHeight, pageGeometry);
             y = pageGeometry.Margins.Top;
         }
         for (int index = 0; index < blocks.Count; index++) {
@@ -862,14 +862,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return true;
     }
 
-    private List<HtmlRenderVisual> CreatePageVisuals(double width, double height, OfficeColor? pageBackgroundColor = null) {
+    private List<HtmlRenderVisual> CreatePageVisuals(double width, double height, HtmlCssPageGeometry? pageGeometry = null) {
         var visuals = new List<HtmlRenderVisual> { CreatePageBackground(width, height) };
+        OfficeColor? pageBackgroundColor = pageGeometry?.BackgroundColor;
+        double backgroundInset = pageGeometry?.PrintProduction?.MarkArea ?? 0D;
+        double backgroundWidth = Math.Max(0D, width - backgroundInset * 2D);
+        double backgroundHeight = Math.Max(0D, height - backgroundInset * 2D);
         bool paintsPageBackground = pageBackgroundColor.HasValue && pageBackgroundColor.Value.A > 0;
-        if (paintsPageBackground) {
-            OfficeShape pageBackground = OfficeShape.Rectangle(width, height);
+        if (paintsPageBackground && backgroundWidth > 0D && backgroundHeight > 0D) {
+            OfficeShape pageBackground = OfficeShape.Rectangle(backgroundWidth, backgroundHeight);
             pageBackground.FillColor = pageBackgroundColor;
             pageBackground.StrokeWidth = 0D;
-            visuals.Add(new HtmlRenderShape(pageBackground, 0D, 0D, int.MinValue + 1, source: "@page background"));
+            visuals.Add(new HtmlRenderShape(
+                pageBackground,
+                backgroundInset,
+                backgroundInset,
+                int.MinValue + 1,
+                source: "@page background"));
         }
         if (_surfaceRootElement == null || _surfaceRootStyle == null || !_surfaceRootStyle.PaintVisible || _surfaceRootStyle.Display == "none") return visuals;
 
@@ -877,10 +886,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxBackground(
             rootBackground,
             _surfaceRootStyle,
-            0D,
-            0D,
-            width,
-            height,
+            backgroundInset,
+            backgroundInset,
+            backgroundWidth,
+            backgroundHeight,
             0D,
             _surfaceRootElement,
             HtmlRenderStyleResolver.DescribeSource(_surfaceRootElement),
@@ -904,7 +913,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             geometry = _pageRules.ResolveGeometry(pages.Count + 1, pageName, _options);
             SetActivePageGeometry(geometry);
             ValidateSurface(geometry.Width, geometry.Height);
-            visuals = CreatePageVisuals(geometry.Width, geometry.Height, geometry.BackgroundColor);
+            visuals = CreatePageVisuals(geometry.Width, geometry.Height, geometry);
             y = geometry.Margins.Top;
         }
 
@@ -927,7 +936,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         geometry = _pageRules.ResolveGeometry(pages.Count + 1, pageName, _options);
         SetActivePageGeometry(geometry);
         ValidateSurface(geometry.Width, geometry.Height);
-        visuals = CreatePageVisuals(geometry.Width, geometry.Height, geometry.BackgroundColor);
+        visuals = CreatePageVisuals(geometry.Width, geometry.Height, geometry);
         y = geometry.Margins.Top;
     }
 

@@ -43,8 +43,11 @@ internal static partial class HtmlCorpusEvidenceRunner {
         string repositoryRoot = FindRepositoryRoot();
         bool requireCleanSource = HasFlag(args, "--require-clean-source");
         bool verifyAcceptance = HasFlag(args, "--verify-acceptance");
-        bool worktreeDirty = IsGitDirty(repositoryRoot);
-        if (requireCleanSource && worktreeDirty) {
+        GitCommandResult commitResult = ReadGit(repositoryRoot, "rev-parse", "--verify", "HEAD^{commit}");
+        GitCommandResult statusResult = ReadGit(repositoryRoot, "status", "--porcelain", "--untracked-files=normal");
+        string? sourceCommit = commitResult.Succeeded && IsCommitId(commitResult.Output) ? commitResult.Output : null;
+        bool worktreeDirty = !statusResult.Succeeded || !string.IsNullOrWhiteSpace(statusResult.Output);
+        if (requireCleanSource && (sourceCommit == null || !statusResult.Succeeded || worktreeDirty)) {
             throw new InvalidOperationException("Clean, commit-addressable OfficeIMO source is required for H4 visual acceptance evidence.");
         }
         string? caseFilter = ReadOption(args, "--case");
@@ -88,7 +91,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
         }
 
         var report = new HtmlCorpusEvidenceReport(
-            SchemaVersion: 2,
+            SchemaVersion: 3,
             GeneratedUtc: DateTimeOffset.UtcNow,
             Environment: new HtmlCorpusEvidenceEnvironment(
                 RuntimeInformation.OSDescription,
@@ -103,7 +106,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
                 corpus.CorpusId,
                 corpus.RelativeRoot,
                 corpus.ManifestSha256,
-                ReadGit(repositoryRoot, "rev-parse", "HEAD"),
+                sourceCommit,
                 worktreeDirty,
                 cases.Length),
             Cases: evidence,
@@ -173,7 +176,9 @@ internal static partial class HtmlCorpusEvidenceRunner {
                 Path.Combine(caseDirectory, officeImo.ScreenPng.RelativePath),
                 officeImo.ScreenToPdf.Pages,
                 caseDirectory,
-                "screen-to-page-difference.png"), "screen-to-page comparison", failures)
+                "screen-to-page-difference.png",
+                BrowserViewportWidth,
+                BrowserViewportHeight), "screen-to-page comparison", failures)
             : null;
         IReadOnlyList<HtmlCorpusPageComparison> chromiumPageComparisons = officeImo != null && chromium != null
             ? TryRender(
@@ -552,7 +557,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
         throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
     }
 
-    private static string? ReadGit(string repositoryRoot, params string[] arguments) {
+    private static GitCommandResult ReadGit(string repositoryRoot, params string[] arguments) {
         try {
             var info = new ProcessStartInfo("git") {
                 WorkingDirectory = repositoryRoot,
@@ -564,15 +569,19 @@ internal static partial class HtmlCorpusEvidenceRunner {
             foreach (string argument in arguments) info.ArgumentList.Add(argument);
             using Process process = Process.Start(info)!;
             string output = process.StandardOutput.ReadToEnd().Trim();
+            string error = process.StandardError.ReadToEnd().Trim();
             process.WaitForExit();
-            return process.ExitCode == 0 && output.Length > 0 ? output : null;
-        } catch {
-            return null;
+            return new GitCommandResult(process.ExitCode == 0, output, error);
+        } catch (Exception exception) {
+            return new GitCommandResult(false, string.Empty, exception.Message);
         }
     }
 
-    private static bool IsGitDirty(string repositoryRoot) =>
-        !string.IsNullOrWhiteSpace(ReadGit(repositoryRoot, "status", "--porcelain", "--untracked-files=normal"));
+    private static bool IsCommitId(string value) =>
+        (value.Length == 40 || value.Length == 64)
+        && value.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F');
+
+    private sealed record GitCommandResult(bool Succeeded, string Output, string Error);
 
     private static void WriteHelp() {
         Console.WriteLine("html-corpus-evidence [--corpus <representative|advanced-held-out>] [--case <id>] [--output <new-directory>] [--verify-acceptance] [--require-clean-source]");

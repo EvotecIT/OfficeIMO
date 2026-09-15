@@ -10,7 +10,9 @@ internal static partial class HtmlCorpusEvidenceRunner {
         byte[] pdf,
         IReadOnlyList<string> markers,
         ICollection<string> failures,
-        string owner) => ObserveText(PdfCore.PdfReadDocument.Open(pdf).ExtractText(), markers, failures, owner);
+        string owner) => ObserveText(
+            PdfCore.PdfReadDocument.Open(pdf).ExtractText(), markers, failures, owner,
+            HtmlCorpusMarkerMatchPolicy.OrderedNormalizedTokens);
 
     private static async Task<HtmlCorpusTextEvidence> ReadExternalPdfTextAsync(
         string pdfPath,
@@ -19,18 +21,30 @@ internal static partial class HtmlCorpusEvidenceRunner {
         string owner,
         ExternalPdfRasterizer rasterizer,
         bool failOnMissing = true) => ObserveText(
-            await rasterizer.ExtractTextAsync(pdfPath).ConfigureAwait(false), markers, failures, owner, failOnMissing);
+            await rasterizer.ExtractTextAsync(pdfPath).ConfigureAwait(false), markers, failures, owner,
+            HtmlCorpusMarkerMatchPolicy.OrderedNormalizedTokens, failOnMissing);
 
     private static HtmlCorpusTextEvidence ObserveText(
         string text,
         IReadOnlyList<string> markers,
         ICollection<string> failures,
         string owner,
+        HtmlCorpusMarkerMatchPolicy markerPolicy = HtmlCorpusMarkerMatchPolicy.ExactNormalizedPhrase,
         bool failOnMissing = true) {
         string normalized = NormalizeText(text);
-        string[] missing = markers.Where(marker => !ContainsMarker(normalized, marker)).ToArray();
+        HtmlCorpusMarkerEvidence[] markerEvidence = markers
+            .Select(marker => new HtmlCorpusMarkerEvidence(
+                marker,
+                markerPolicy.ToString(),
+                ContainsMarker(normalized, marker, markerPolicy)))
+            .ToArray();
+        string[] missing = markerEvidence.Where(item => !item.Matched).Select(item => item.Marker).ToArray();
         if (failOnMissing && missing.Length > 0) failures.Add(owner + " lost markers: " + string.Join(", ", missing) + ".");
-        return new HtmlCorpusTextEvidence(normalized.Length, Sha256(Encoding.UTF8.GetBytes(normalized)), missing);
+        return new HtmlCorpusTextEvidence(
+            normalized.Length,
+            Sha256(Encoding.UTF8.GetBytes(normalized)),
+            missing,
+            markerEvidence);
     }
 
     private static async Task<HtmlCorpusTextComparison> CompareTextAsync(
@@ -153,14 +167,27 @@ internal static partial class HtmlCorpusEvidenceRunner {
         string screenPath,
         IReadOnlyList<HtmlCorpusPageArtifact> pageArtifacts,
         string caseDirectory,
-        string differenceFileName) {
+        string differenceFileName,
+        int expectedPageWidth,
+        int expectedPageHeight) {
         OfficeRasterImage screen = DecodePng(File.ReadAllBytes(screenPath), screenPath);
-        OfficeRasterImage[] pages = pageArtifacts.OrderBy(item => item.PageNumber)
+        HtmlCorpusPageArtifact[] orderedArtifacts = pageArtifacts.OrderBy(item => item.PageNumber).ToArray();
+        OfficeRasterImage[] pages = orderedArtifacts
             .Select(item => DecodePng(File.ReadAllBytes(Path.Combine(caseDirectory, item.RelativePath)), item.RelativePath))
             .ToArray();
         if (pages.Length == 0) throw new InvalidDataException("Screen-to-page output has no rasterized pages.");
+        if (expectedPageWidth <= 0 || expectedPageHeight <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(expectedPageWidth), "Expected page dimensions must be positive.");
+        }
         int pageWidth = pages.Min(page => page.Width);
         int combinedHeight = pages.Sum(page => page.Height);
+        int expectedPageCount = (int)Math.Ceiling(screen.Height / (double)expectedPageHeight);
+        int expectedTrailingHeight = expectedPageCount * expectedPageHeight - screen.Height;
+        bool pageNumbersSequential = orderedArtifacts.Select((item, index) => item.PageNumber == index + 1).All(value => value);
+        bool uniformPageDimensions = pages.All(page => page.Width == pages[0].Width && page.Height == pages[0].Height);
+        bool pageWidthsMatch = pages.All(page => page.Width == expectedPageWidth);
+        bool pageHeightsMatch = pages.All(page => page.Height == expectedPageHeight);
+        bool pageCountMatches = pages.Length == expectedPageCount;
         int comparisonWidth = Math.Min(screen.Width, pageWidth);
         int comparisonHeight = Math.Min(screen.Height, combinedHeight);
         if (comparisonWidth <= 0 || comparisonHeight <= 0) {
@@ -199,16 +226,27 @@ internal static partial class HtmlCorpusEvidenceRunner {
         File.WriteAllBytes(Path.Combine(caseDirectory, differenceFileName), OfficePngWriter.Encode(difference));
         double channels = comparisonWidth * comparisonHeight * 4D;
         double pixels = comparisonWidth * comparisonHeight;
+        int trailingHeight = Math.Max(0, combinedHeight - screen.Height);
         return new HtmlCorpusScreenToPageComparison(
             screen.Width,
             screen.Height,
             pageWidth,
             combinedHeight,
             pages.Length,
+            expectedPageWidth,
+            expectedPageHeight,
+            expectedPageCount,
+            pageNumbersSequential,
+            uniformPageDimensions,
+            pageWidthsMatch,
+            pageHeightsMatch,
+            pageCountMatches,
             comparisonWidth,
             comparisonHeight,
             Math.Max(0, screen.Width - pageWidth),
-            Math.Max(0, combinedHeight - screen.Height),
+            trailingHeight,
+            expectedTrailingHeight,
+            trailingHeight == expectedTrailingHeight,
             combinedHeight >= screen.Height,
             absoluteError / channels,
             Math.Sqrt(squaredError / channels),
@@ -355,11 +393,27 @@ internal static partial class HtmlCorpusEvidenceRunner {
         return builder.ToString();
     }
 
-    private static bool ContainsMarker(string normalizedText, string marker) {
+    private static bool ContainsMarker(
+        string normalizedText,
+        string marker,
+        HtmlCorpusMarkerMatchPolicy policy) {
         string normalizedMarker = NormalizeText(marker);
-        if (normalizedText.Contains(normalizedMarker, StringComparison.Ordinal)) return true;
+        if (policy == HtmlCorpusMarkerMatchPolicy.ExactNormalizedPhrase) {
+            return normalizedText.Contains(normalizedMarker, StringComparison.Ordinal);
+        }
         string[] tokens = normalizedMarker.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return tokens.All(token => normalizedText.Contains(token, StringComparison.Ordinal));
+        int offset = 0;
+        foreach (string token in tokens) {
+            int index = normalizedText.IndexOf(token, offset, StringComparison.Ordinal);
+            if (index < 0) return false;
+            offset = index + token.Length;
+        }
+        return true;
+    }
+
+    private enum HtmlCorpusMarkerMatchPolicy {
+        ExactNormalizedPhrase,
+        OrderedNormalizedTokens
     }
 
     private static double? MeanOrNull(IEnumerable<double> values) {

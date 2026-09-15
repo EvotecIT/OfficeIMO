@@ -112,7 +112,13 @@ internal sealed record HtmlCorpusSceneEvidence(
 internal sealed record HtmlCorpusTextEvidence(
     int CharacterCount,
     string Sha256,
-    IReadOnlyList<string> MissingMarkers);
+    IReadOnlyList<string> MissingMarkers,
+    IReadOnlyList<HtmlCorpusMarkerEvidence> Markers);
+
+internal sealed record HtmlCorpusMarkerEvidence(
+    string Marker,
+    string Policy,
+    bool Matched);
 
 internal sealed record HtmlCorpusTextComparison(
     double TokenRecall,
@@ -158,10 +164,20 @@ internal sealed record HtmlCorpusScreenToPageComparison(
     int PageWidth,
     int CombinedPageHeight,
     int PageCount,
+    int ExpectedPageWidth,
+    int ExpectedPageHeight,
+    int ExpectedPageCount,
+    bool PageNumbersSequential,
+    bool UniformPageDimensions,
+    bool PageWidthsMatch,
+    bool PageHeightsMatch,
+    bool PageCountMatches,
     int ComparisonWidth,
     int ComparisonHeight,
     int ClippedWidth,
     int TrailingHeight,
+    int ExpectedTrailingHeight,
+    bool TrailingHeightMatches,
     bool CoversScreenHeight,
     double MeanAbsoluteError,
     double RootMeanSquareError,

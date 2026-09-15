@@ -114,6 +114,16 @@ internal static class HtmlCorpusAcceptanceEvaluator {
             return MissingIntent(ScreenToPageIntent, "OfficeIMO continuous screen display list", policy.Classification, policy.Rationale);
         }
         var criteria = new List<HtmlCorpusAcceptanceCriterion> {
+            Required("page-numbers-sequential", comparison.PageNumbersSequential, required: true),
+            Required("uniform-page-dimensions", comparison.UniformPageDimensions, required: true),
+            Required("fixed-page-width", comparison.PageWidthsMatch, required: true,
+                comparison.ExpectedPageWidth.ToString(System.Globalization.CultureInfo.InvariantCulture) + " px"),
+            Required("fixed-page-height", comparison.PageHeightsMatch, required: true,
+                comparison.ExpectedPageHeight.ToString(System.Globalization.CultureInfo.InvariantCulture) + " px"),
+            Required("page-count-match", comparison.PageCountMatches, required: true,
+                comparison.ExpectedPageCount.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            Required("final-page-padding-match", comparison.TrailingHeightMatches, required: true,
+                comparison.ExpectedTrailingHeight.ToString(System.Globalization.CultureInfo.InvariantCulture) + " px"),
             Required("covers-screen-height", comparison.CoversScreenHeight, policy.RequireCoversScreenHeight),
             Maximum("clipped-width-pixels", comparison.ClippedWidth, policy.MaximumClippedWidthPixels),
             Maximum("trailing-height-pixels", comparison.TrailingHeight, policy.MaximumTrailingHeightPixels),
@@ -131,15 +141,15 @@ internal static class HtmlCorpusAcceptanceEvaluator {
         AddCapabilities(
             HtmlCapabilityProfileIds.StaticScreenV1,
             HtmlCapabilityEvidenceIds.H4ScreenAdvancedHeldOut,
-            new[] { ScreenIntent },
-            result => result.Screen.Passed,
+            new[] { ScreenIntent, ScreenToPageIntent },
+            result => result.Screen.Passed && result.ScreenToPage.Passed,
             byId,
             results);
         AddCapabilities(
             HtmlCapabilityProfileIds.PagedPrintV1,
             HtmlCapabilityEvidenceIds.H4PagedAdvancedHeldOut,
-            new[] { PrintIntent, ScreenToPageIntent },
-            result => result.Print.Passed && result.ScreenToPage.Passed,
+            new[] { PrintIntent },
+            result => result.Print.Passed,
             byId,
             results);
         return results.OrderBy(item => item.ProfileId, StringComparer.Ordinal)

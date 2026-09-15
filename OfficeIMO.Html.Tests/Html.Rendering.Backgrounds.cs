@@ -559,6 +559,39 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_StopsPageBackgroundAtPrinterMarkArea() {
+        const string html = """
+            <style>
+              @page { size: 100px 80px; margin: 0; bleed: 4px; marks: crop cross; background: #173a63; }
+              html, body { margin: 0; background: transparent; }
+            </style>
+            <p>Production page</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        Assert.Equal(148D, page.Width, 6);
+        Assert.Equal(128D, page.Height, 6);
+        HtmlRenderShape background = Assert.Single(
+            page.Visuals.OfType<HtmlRenderShape>(),
+            visual => visual.Source == "@page background");
+        Assert.Equal(20D, background.X, 6);
+        Assert.Equal(20D, background.Y, 6);
+        Assert.Equal(108D, background.Width, 6);
+        Assert.Equal(88D, background.Height, 6);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing(), 1D, OfficeColor.White);
+        Assert.Equal(OfficeColor.White, raster.GetPixel(10, 10));
+        Assert.Equal(OfficeColor.FromRgb(0x17, 0x3a, 0x63), raster.GetPixel(22, 22));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(138, 118));
+    }
+
+    [Fact]
     public void HtmlRender_RootBackgroundDoesNotCreateAFalseBlankPageBeforeFirstBreak() {
         const string html = "<style>body{background:#f0f0f0}</style><p style='break-before:page'>FirstPageMarker</p>";
 

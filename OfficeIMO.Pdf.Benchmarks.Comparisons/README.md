@@ -76,7 +76,10 @@ screen-to-PDF artifact, and per-page scene PNG/SVG; a PeachPDF print PDF; and a
 Chromium screen PNG and print PDF. It records text-marker preservation, normalized
 text overlap, selected-element geometry, page counts, pixel differences, versions,
 hashes, timings, allocations, diagnostics, and individual provider failures in
-`html-corpus-evidence.json`. With `--verify-acceptance`, it also writes the
+the schema-3 `html-corpus-evidence.json`. Screen markers require an exact normalized
+phrase. PDF extraction uses ordered normalized tokens so table reading order may
+interleave cells without allowing marker words to pass out of order; the policy and
+result for every marker are recorded. With `--verify-acceptance`, the runner also writes the
 human-readable `html-corpus-acceptance.md` report and exits unsuccessfully when a
 required criterion, case, or capability selection fails.
 
@@ -90,7 +93,10 @@ per-case screen, print, and screen-to-page criteria in the checked-in
 `acceptance.json`. Every case and applicable capability selection must pass. Chromium
 provides the screen and print reference; it is not a universal oracle, so intentional
 sheet, extraction, font, clipping, and managed-layout differences are admitted only
-through a named classification and bounded criteria. Raw artifacts remain in the
+through a named classification and bounded criteria. Screen-to-page qualification
+also requires sequential pages, a fixed 640 x 900 pixel canvas, the expected page
+count, uniform page dimensions, and exact final-page padding before pixel tolerances
+are considered. Raw artifacts remain in the
 caller-selected output directory for visual review at normal reading size.
 
 H4/advanced-held-out is the independently authored held-out selection. Its original
@@ -98,6 +104,8 @@ source bytes and hashes are preserved in the bundle, including legacy encodings.
 Pass `--corpus representative` to use the established qualification corpus.
 `--case <id>` is available for focused inspection and cannot be combined with
 `--verify-acceptance`, because a partial run cannot qualify the corpus.
+`--require-clean-source` fails closed unless Git proves both an exact commit and an
+empty tracked and untracked status.
 
 Measure and enforce the H4/advanced-held-out OfficeIMO static-rendering budgets separately from
 the reference-engine comparison:
