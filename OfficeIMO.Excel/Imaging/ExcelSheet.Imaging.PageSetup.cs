@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel {
                     image,
                     format,
                     rasterState.EncodingOptions,
-                    options.MaximumTotalEncodedBytes,
+                    ExcelRangeImageRenderer.ResolveEncodingByteCeiling(false, options),
                     cancellationToken);
             }
 

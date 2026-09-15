@@ -52,23 +52,27 @@ public static partial class OfficeOperationCapabilityCatalog {
             "HtmlConversionDocument.Parse / ToHtml",
             "OfficeIMO.Html.Tests source parsing, editing, serialization, and rendering contracts",
             new[] { ".html", ".htm" },
-            new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Inspect },
+            new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Inspect },
+            limitedSupported: new[] { OfficeOperationKind.Edit },
             partial: new[] { OfficeOperationKind.Preserve },
             limitation: "Unedited source can be retained; semantic edits serialize normalized HTML rather than promising byte identity.");
         AddNativeLifecycle(rows, "pdf-native", "OfficeIMO.Pdf", "Pdf.Native",
             "PdfDocument.Create / Load / Save / Inspect",
             "OfficeIMO.Pdf.Tests authoritative interoperability read, render, diagnostics, and mutation contracts",
             new[] { ".pdf" },
-            new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Inspect, OfficeOperationKind.Validate },
+            new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Inspect, OfficeOperationKind.Validate },
+            limitedSupported: new[] { OfficeOperationKind.Edit },
             partial: new[] { OfficeOperationKind.Preserve },
             limitation: "Mutation and preservation depend on the parsed feature set and declared incremental or rewrite policy.");
         AddNativeLifecycle(rows, "email-native", "OfficeIMO.Email", "Email.Native",
-            "EmailDocument.Load / Save",
+            "EmailDocument / Load / Save",
             "OfficeIMO.Email.Tests typed read, edit, write, and fixture round-trip contracts",
             new[] { ".eml", ".mime", ".msg", ".oft", ".tnef", ".dat" },
-            new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Inspect },
+            new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Inspect },
+            limitedSupported: new[] { OfficeOperationKind.Edit },
             partial: new[] { OfficeOperationKind.Preserve },
             limitation: "Format-specific unsupported properties can remain opaque or require a documented conversion boundary.");
+        AddProjectLifecycleRows(rows);
         AddNativeLifecycle(rows, "epub-native", "OfficeIMO.Epub", "Epub.Native",
             "EpubReader / EpubPackage",
             "OfficeIMO.Epub.Tests package extraction, metadata, and navigation inspection contracts",
@@ -76,6 +80,86 @@ public static partial class OfficeOperationCapabilityCatalog {
             new[] { OfficeOperationKind.Read, OfficeOperationKind.Inspect },
             unsupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit },
             limitation: "The current package is an extraction and inspection surface; EPUB authoring is not implemented.");
+    }
+
+    private static void AddProjectLifecycleRows(ICollection<OfficeOperationCapability> rows) {
+        const string packageId = "OfficeIMO.Project";
+        const string publicApi = "ProjectDocument.Create / Load / AssessSave / Save";
+        const string evidence = "OfficeIMO.Project.Tests lifecycle, preservation, conversion, and independent-reader contracts";
+        string[] binaryExtensions = { ".mpp", ".mpt" };
+        string[] mpxExtensions = { ".mpx" };
+
+        AddProjectLifecycleRow(rows, "project-binary", packageId, "Project.MppMpt", OfficeOperationKind.Create,
+            OfficeOperationSupportState.Supported, publicApi, evidence, binaryExtensions,
+            "Creates generation profiles 8, 9, 12, and 14; a start date and named base calendar are required, unsupported fields require explicit omission permission, and path-based Global.mpt creation is rejected.");
+        AddProjectLifecycleRow(rows, "project-binary", packageId, "Project.MppMpt", OfficeOperationKind.Read,
+            OfficeOperationSupportState.Supported, publicApi, evidence, binaryExtensions,
+            "Read coverage is generation- and producer-qualified; unsupported external variable-storage layouts and protected inputs are rejected.");
+        AddProjectLifecycleRow(rows, "project-binary", packageId, "Project.MppMpt", OfficeOperationKind.Edit,
+            OfficeOperationSupportState.Supported, publicApi, evidence, binaryExtensions,
+            "Mapped scalar and structural edits are assessed; opaque references, unqualified native fields, and signed content require rejection or explicit caller permission.");
+        AddProjectLifecycleRow(rows, "project-binary", packageId, "Project.MppMpt", OfficeOperationKind.Preserve,
+            OfficeOperationSupportState.Supported, publicApi, evidence, binaryExtensions,
+            "Unchanged saves retain exact bytes; edited saves preserve opaque streams without claiming semantic support or safe reference remapping.");
+        AddProjectLifecycleRow(rows, "project-binary", packageId, "Project.MppMpt", OfficeOperationKind.Inspect,
+            OfficeOperationSupportState.Supported, publicApi, evidence, binaryExtensions,
+            "Inspection is bounded to container, generation, stream, producer, protection, macro, signature, and embedded-content inventory; it does not activate or semantically decode opaque content.");
+
+        AddProjectLifecycleRow(rows, "project-mpx", packageId, "Project.Mpx", OfficeOperationKind.Create,
+            OfficeOperationSupportState.Supported, publicApi, evidence, mpxExtensions,
+            "Creates MPX 4.0 with qualified field tables and encodings; unsupported model fields and unrepresentable text require rejection or explicit omission permission.");
+        AddProjectLifecycleRow(rows, "project-mpx", packageId, "Project.Mpx", OfficeOperationKind.Read,
+            OfficeOperationSupportState.Supported, publicApi, evidence, mpxExtensions,
+            "Read coverage is limited to MPX 4.0/4.1, qualified encodings, numeric or English field tables, and supported value vocabularies.");
+        AddProjectLifecycleRow(rows, "project-mpx", packageId, "Project.Mpx", OfficeOperationKind.Edit,
+            OfficeOperationSupportState.Supported, publicApi, evidence, mpxExtensions,
+            "Canonical rewrites cover the mapped MPX 4 profile; unknown records, unsupported fields, and ambiguous source syntax require explicit loss permission or rejection.");
+        AddProjectLifecycleRow(rows, "project-mpx", packageId, "Project.Mpx", OfficeOperationKind.Preserve,
+            OfficeOperationSupportState.Supported, publicApi, evidence, mpxExtensions,
+            "Unchanged saves retain exact source bytes; rewriting retained unknown records or noncanonical source placement requires explicit loss permission.");
+        AddProjectLifecycleRow(rows, "project-mpx", packageId, "Project.Mpx", OfficeOperationKind.Inspect,
+            OfficeOperationSupportState.Supported, publicApi, evidence, mpxExtensions,
+            "Inspection reports bounded MPX framing, encoding, field tables, and retained unknown records without executing or resolving external content.");
+
+        AddProjectLifecycleRow(rows, "project-binary-to-xml", packageId, "Project.MppMpt", OfficeOperationKind.Convert,
+            OfficeOperationSupportState.Partial, publicApi, evidence, binaryExtensions,
+            "Conversion uses the typed model and pre-write assessment; opaque native content and target-profile loss require explicit caller permission.", "Project.Xml");
+        AddProjectLifecycleRow(rows, "project-binary-to-mpx", packageId, "Project.MppMpt", OfficeOperationKind.Convert,
+            OfficeOperationSupportState.Partial, publicApi, evidence, binaryExtensions,
+            "MPX 4 output supports a bounded mapped subset; unsupported native fields, opaque records, and representation changes require explicit caller permission.", "Project.Mpx");
+        AddProjectLifecycleRow(rows, "project-mpx-to-xml", packageId, "Project.Mpx", OfficeOperationKind.Convert,
+            OfficeOperationSupportState.Partial, publicApi, evidence, mpxExtensions,
+            "Conversion uses the typed model; retained unknown MPX records and unsupported source semantics require explicit caller permission.", "Project.Xml");
+        AddProjectLifecycleRow(rows, "project-mpx-to-binary", packageId, "Project.Mpx", OfficeOperationKind.Convert,
+            OfficeOperationSupportState.Partial, publicApi, evidence, mpxExtensions,
+            "The selected MPP or MPT generation controls the writable field profile; unsupported MPX semantics and target-profile loss require explicit caller permission.", "Project.MppMpt");
+    }
+
+    private static void AddProjectLifecycleRow(
+        ICollection<OfficeOperationCapability> rows,
+        string id,
+        string packageId,
+        string formatId,
+        OfficeOperationKind operation,
+        OfficeOperationSupportState state,
+        string publicApi,
+        string evidence,
+        IEnumerable<string> extensions,
+        string limitation,
+        string? targetFormatId = null) {
+        rows.Add(new OfficeOperationCapability(
+            "native:" + id + ":" + operation.ToString().ToLowerInvariant(),
+            packageId,
+            formatId,
+            id,
+            operation,
+            state,
+            publicApi,
+            evidence + "::" + operation,
+            NativeLifecycleCatalogId,
+            extensions,
+            targetFormatId,
+            limitation));
     }
 
     private static void AddNativeLifecycle(
@@ -87,11 +171,14 @@ public static partial class OfficeOperationCapabilityCatalog {
         string evidence,
         IEnumerable<string> extensions,
         IEnumerable<OfficeOperationKind> supported,
+        IEnumerable<OfficeOperationKind>? limitedSupported = null,
         IEnumerable<OfficeOperationKind>? partial = null,
         IEnumerable<OfficeOperationKind>? unsupported = null,
         string? limitation = null) {
         AddNativeLifecycleRows(rows, capabilityId, packageId, formatId, publicApi, evidence, extensions,
             supported, OfficeOperationSupportState.Supported, limitation: null);
+        AddNativeLifecycleRows(rows, capabilityId, packageId, formatId, publicApi, evidence, extensions,
+            limitedSupported ?? Array.Empty<OfficeOperationKind>(), OfficeOperationSupportState.Supported, limitation);
         AddNativeLifecycleRows(rows, capabilityId, packageId, formatId, publicApi, evidence, extensions,
             partial ?? Array.Empty<OfficeOperationKind>(), OfficeOperationSupportState.Partial, limitation);
         AddNativeLifecycleRows(rows, capabilityId, packageId, formatId, publicApi, evidence, extensions,

@@ -257,3 +257,20 @@ The optional [OfficeIMO.Workflows](../OfficeIMO.Workflows/README.md) package own
 See [the operation matrix](SUPPORT.md) for tested features, dialects, native-format boundaries, and platform evidence. Advanced calculation and report support follow the declared profiles; native curves, native view/style fidelity, and online service integration remain outside them.
 
 Input limits bound bytes, XML characters/depth/elements/attributes, task outlines, entity counts, native variable values, timephased intervals, and retained diagnostics. DTDs and external entities are prohibited. No linked project, schema, image, or other external resource is fetched. Set `ProjectLoadOptions` deliberately for unusually large trusted files; output has a separate `MaxOutputBytes` limit.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 2 | 0 | 0 | 0 | 0 | 0 |
+| Read | 2 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 2 | 0 | 0 | 0 | 0 | 0 |
+| Preserve | 2 | 0 | 0 | 0 | 0 | 0 |
+| Inspect | 2 | 0 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 4 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Project` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

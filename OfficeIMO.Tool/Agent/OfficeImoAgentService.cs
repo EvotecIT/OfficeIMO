@@ -228,7 +228,8 @@ internal sealed partial class OfficeImoAgentService {
         result.Truncated = cursor > 0 || result.OperationNextCursor.HasValue;
         while (AgentJson.Measure(result) > maxOutputCharacters &&
                (operations.Count > 0 || conversions.Count > 0 || capabilities.Count > 0)) {
-            if (normalizedExtension != null && operations.Count > 0) {
+            bool removed = true;
+            if (normalizedExtension != null && operations.Count > 1) {
                 operations.RemoveAt(operations.Count - 1);
                 result.OperationReturned = operations.Count;
                 result.OperationNextCursor = cursor + operations.Count < operationTotal
@@ -240,14 +241,23 @@ internal sealed partial class OfficeImoAgentService {
             } else if (capabilities.Count > 0) {
                 capabilities.RemoveAt(capabilities.Count - 1);
                 result.Returned = capabilities.Count;
-            } else {
+            } else if (operations.Count > 1) {
                 operations.RemoveAt(operations.Count - 1);
                 result.OperationReturned = operations.Count;
                 result.OperationNextCursor = cursor + operations.Count < operationTotal
                     ? cursor + operations.Count
                     : null;
+            } else {
+                removed = false;
             }
+            if (!removed) break;
             result.Truncated = true;
+        }
+        int measuredCharacters = AgentJson.Measure(result);
+        if (measuredCharacters > maxOutputCharacters) {
+            throw new AgentUsageException(
+                "Capabilities max-output-characters is too small for one operation row. " +
+                "Use at least " + measuredCharacters + ".");
         }
         return result;
     }

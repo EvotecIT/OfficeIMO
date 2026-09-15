@@ -31,6 +31,7 @@ namespace OfficeIMO.Excel {
                 format,
                 options,
                 format,
+                true,
                 out _,
                 cancellationToken);
 
@@ -39,13 +40,14 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             ExcelImageExportOptions options,
             OfficeImageExportFormat rasterPlanningFormat,
+            bool finalOutput,
             out ExcelRasterRenderState rasterState,
             CancellationToken cancellationToken = default) {
             ExcelRasterRenderState resolvedState = default;
             OfficeImageExportResult result = OfficeImageExportExecutionScope.Run(
                 options,
                 cancellationToken,
-                token => RenderCore(snapshot, format, options, rasterPlanningFormat, out resolvedState, token));
+                token => RenderCore(snapshot, format, options, rasterPlanningFormat, finalOutput, out resolvedState, token));
             rasterState = resolvedState;
             return result;
         }
@@ -55,6 +57,7 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             ExcelImageExportOptions options,
             OfficeImageExportFormat rasterPlanningFormat,
+            bool finalOutput,
             out ExcelRasterRenderState rasterState,
             CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -66,7 +69,8 @@ namespace OfficeIMO.Excel {
                 rasterState = new ExcelRasterRenderState(svgOptions.Scale, svgOptions.RasterEncoding);
                 string svg = RenderSvg(snapshot, svgOptions, diagnostics, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-                return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(snapshot, svgOptions), ScaledHeight(snapshot, svgOptions), Encoding.UTF8.GetBytes(svg), snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly()));
+                var svgResult = new OfficeImageExportResult(format, ScaledWidth(snapshot, svgOptions), ScaledHeight(snapshot, svgOptions), Encoding.UTF8.GetBytes(svg), snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly());
+                return finalOutput ? options.EnsureAccepted(svgResult) : svgResult;
             }
             if (!rasterPlanningFormat.IsRaster()) {
                 throw new ArgumentException("A raster planning format is required.", nameof(rasterPlanningFormat));
@@ -89,11 +93,19 @@ namespace OfficeIMO.Excel {
                 image,
                 format,
                 rasterState.EncodingOptions,
-                options.MaximumTotalEncodedBytes,
+                ResolveEncodingByteCeiling(finalOutput, options),
                 cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            return options.EnsureAccepted(new OfficeImageExportResult(format, image.Width, image.Height, bytes, snapshot.SheetName, source, diagnostics.AsReadOnly()));
+            var result = new OfficeImageExportResult(format, image.Width, image.Height, bytes, snapshot.SheetName, source, diagnostics.AsReadOnly());
+            return finalOutput ? options.EnsureAccepted(result) : result;
         }
+
+        internal static long ResolveEncodingByteCeiling(
+            bool finalOutput,
+            ExcelImageExportOptions options) =>
+            finalOutput
+                ? options.MaximumTotalEncodedBytes
+                : Math.Max(options.MaximumTotalEncodedBytes, OfficeImageExportOptions.DefaultMaximumTotalEncodedBytes);
 
         internal static OfficeRasterImage RenderRaster(
             ExcelRangeVisualSnapshot snapshot,

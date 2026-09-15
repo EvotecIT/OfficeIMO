@@ -15,8 +15,8 @@
     "familyCount": 3,
     "formatCount": 28,
     "capabilityCount": 137,
-    "packageCount": 54,
-    "operationCount": 1199
+    "packageCount": 55,
+    "operationCount": 1213
   },
   "fidelityStates": [
     {
@@ -3825,6 +3825,87 @@
       "operations": [
         {
           "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Project",
+      "slug": "project",
+      "capabilityCount": 14,
+      "formats": [
+        "Project.MppMpt",
+        "Project.Mpx",
+        "Project.Xml"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Read",
           "states": [
             {
               "id": "Supported",

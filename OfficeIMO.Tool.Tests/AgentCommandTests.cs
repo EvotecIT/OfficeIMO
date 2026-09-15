@@ -399,4 +399,15 @@ public sealed class AgentCommandTests {
         Assert.True(json.RootElement.GetProperty("operationTotal").GetInt32() > 1);
         Assert.True(json.RootElement.GetProperty("operationReturned").GetInt32() > 0);
     }
+
+    [Fact]
+    public void CapabilitiesRejectsABudgetThatCannotCarryOneOperationInsteadOfRepeatingTheCursor() {
+        var service = new OfficeImoAgentService();
+
+        AgentUsageException exception = Assert.Throws<AgentUsageException>(() =>
+            service.Capabilities(operation: "create", maxOutputCharacters: 512, cursor: 0));
+
+        Assert.Contains("too small for one operation row", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Use at least", exception.Message, StringComparison.Ordinal);
+    }
 }

@@ -75,6 +75,9 @@ public sealed class OfficeOperationCapabilityCatalogTests {
     [InlineData(".pptx", "OfficeIMO.PowerPoint")]
     [InlineData(".vsdx", "OfficeIMO.Visio")]
     [InlineData(".one", "OfficeIMO.OneNote")]
+    [InlineData(".mpp", "OfficeIMO.Project")]
+    [InlineData(".mpt", "OfficeIMO.Project")]
+    [InlineData(".mpx", "OfficeIMO.Project")]
     public void NativeFormatsPublishCreateReadAndEditLifecycle(string extension, string packageId) {
         IReadOnlyList<OfficeOperationCapability> rows = OfficeOperationCapabilityCatalog.FindByExtension(extension);
 
@@ -84,6 +87,62 @@ public sealed class OfficeOperationCapabilityCatalogTests {
                 row.PackageId == packageId &&
                 row.Operation == operation &&
                 row.State == OfficeOperationSupportState.Supported));
+    }
+
+    [Theory]
+    [InlineData(".html", OfficeOperationKind.Edit)]
+    [InlineData(".pdf", OfficeOperationKind.Edit)]
+    [InlineData(".eml", OfficeOperationKind.Edit)]
+    [InlineData(".mpp", OfficeOperationKind.Create)]
+    [InlineData(".mpp", OfficeOperationKind.Read)]
+    [InlineData(".mpp", OfficeOperationKind.Edit)]
+    [InlineData(".mpp", OfficeOperationKind.Preserve)]
+    [InlineData(".mpp", OfficeOperationKind.Inspect)]
+    [InlineData(".mpx", OfficeOperationKind.Create)]
+    [InlineData(".mpx", OfficeOperationKind.Read)]
+    [InlineData(".mpx", OfficeOperationKind.Edit)]
+    [InlineData(".mpx", OfficeOperationKind.Preserve)]
+    [InlineData(".mpx", OfficeOperationKind.Inspect)]
+    public void NativeLifecycleRetainsBoundariesOnSupportedOperations(string extension, OfficeOperationKind operation) {
+        OfficeOperationCapability row = Assert.Single(OfficeOperationCapabilityCatalog.FindByExtension(extension), row =>
+            row.SourceCatalog == "OfficeIMO.NativeLifecycle" && row.Operation == operation);
+
+        Assert.Equal(OfficeOperationSupportState.Supported, row.State);
+        Assert.False(string.IsNullOrWhiteSpace(row.Limitation));
+    }
+
+    [Fact]
+    public void ProjectConversionPublishesDirectionalAssessedLossBoundaries() {
+        OfficeOperationCapability[] binaryRows = OfficeOperationCapabilityCatalog.FindByExtension(".mpp")
+            .Where(row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" && row.Operation == OfficeOperationKind.Convert)
+            .ToArray();
+        OfficeOperationCapability[] mpxRows = OfficeOperationCapabilityCatalog.FindByExtension(".mpx")
+            .Where(row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" && row.Operation == OfficeOperationKind.Convert)
+            .ToArray();
+
+        Assert.Equal(new[] { "Project.Mpx", "Project.Xml" }, binaryRows.Select(row => row.TargetFormatId).OrderBy(value => value).ToArray());
+        Assert.Equal(new[] { "Project.MppMpt", "Project.Xml" }, mpxRows.Select(row => row.TargetFormatId).OrderBy(value => value).ToArray());
+        Assert.All(binaryRows.Concat(mpxRows), row => {
+            Assert.Equal(OfficeOperationSupportState.Partial, row.State);
+            Assert.Contains("explicit caller permission", row.Limitation, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public void ProjectBinaryAndMpxLifecycleRowsKeepDistinctFormatContracts() {
+        OfficeOperationCapability[] binaryRows = OfficeOperationCapabilityCatalog.FindByExtension(".mpp")
+            .Where(row => row.SourceCatalog == "OfficeIMO.NativeLifecycle")
+            .ToArray();
+        OfficeOperationCapability[] mpxRows = OfficeOperationCapabilityCatalog.FindByExtension(".mpx")
+            .Where(row => row.SourceCatalog == "OfficeIMO.NativeLifecycle")
+            .ToArray();
+
+        Assert.NotEmpty(binaryRows);
+        Assert.NotEmpty(mpxRows);
+        Assert.All(binaryRows, row => Assert.Equal("Project.MppMpt", row.FormatId));
+        Assert.All(mpxRows, row => Assert.Equal("Project.Mpx", row.FormatId));
+        Assert.Contains(binaryRows, row => row.Operation == OfficeOperationKind.Create && row.Limitation.Contains("Global.mpt", StringComparison.Ordinal));
+        Assert.Contains(mpxRows, row => row.Operation == OfficeOperationKind.Read && row.Limitation.Contains("4.0/4.1", StringComparison.Ordinal));
     }
 
     [Fact]

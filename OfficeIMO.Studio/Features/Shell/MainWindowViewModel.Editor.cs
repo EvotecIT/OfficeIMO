@@ -411,8 +411,8 @@ public sealed partial class MainWindowViewModel {
         _pendingRedactionPlan = null;
         _pendingRedactionWorkspace = null;
         _pendingRedactionRevision = 0;
-        PendingRedactionSummary = null;
         UpdateRedactionOverlays();
+        PendingRedactionSummary = null;
         OnPropertyChanged(nameof(CanReviewRedactions));
         OnPropertyChanged(nameof(CanApplyReviewedRedactions));
     }
