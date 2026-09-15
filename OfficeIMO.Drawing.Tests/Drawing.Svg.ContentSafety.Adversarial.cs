@@ -834,6 +834,59 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void AncestorGroupOpacityMakesVisualProjectionReportOnly() {
+        byte[] svg = Svg(
+            "<g opacity='.5'><text x='10' y='35'>group opacity payload</text>" +
+            "<rect width='220' height='120' fill='white'/></g>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "group opacity payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.NonPrimaryContent, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("group compositing", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ThickStrokePreventsTinyTextCleanup() {
+        byte[] svg = Svg(
+            "<text font-size='1' fill='none' stroke='black' stroke-width='20' x='10' y='35'>outlined tiny payload</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "outlined tiny payload" && item.Kind == OfficeContentConcealmentKind.TinyText);
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("stroke-width", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UnmodeledTextGeometryMakesStructuralCleanupReportOnly() {
+        byte[] svg = Svg(
+            "<g direction='rtl'><text opacity='0' unicode-bidi='bidi-override' x='10' y='35'>bidi payload</text></g>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "bidi payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("unmodeled", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FullElementBudgetDisablesSyntheticVisualComparison() {
+        byte[] svg = Svg("<rect width='220' height='120' fill='white'/><text x='10' y='35'>bounded text</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumElements = 2 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.Contains(report.Diagnostics, item => item.Contains("full configured element budget", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void SignedSvgCleanupBlocksByDefault() {
         byte[] svg = SignedSvg();
         OfficeContentSafetyFinding finding = Assert.Single(

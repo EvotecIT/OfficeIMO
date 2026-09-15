@@ -49,7 +49,11 @@ public static partial class OfficeSvgDrawingReader {
         int workFundedComparisons = (int)Math.Max(
             0L,
             Math.Min(int.MaxValue, MaximumSvgContentSafetyDocumentWorkBytes / estimatedDocumentPassBytes - 1L));
-        int maximumComparisons = Math.Min(pixelFundedComparisons, workFundedComparisons);
+        bool hasComparisonElementCapacity = document.Root.Descendants().Take(document.MaximumElements).Count() <
+            document.MaximumElements;
+        int maximumComparisons = hasComparisonElementCapacity
+            ? Math.Min(pixelFundedComparisons, workFundedComparisons)
+            : 0;
         long maximumRasterPixels = maximumComparisons == 0
             ? 0L
             : Math.Min(
@@ -64,6 +68,7 @@ public static partial class OfficeSvgDrawingReader {
             out baseline,
             out baselineUnsupported);
         if (requestedComparisons == 0) builder.AddDiagnostic("SVG visual comparison was disabled by the caller; structural inspection still covered every bounded native text candidate.");
+        else if (!hasComparisonElementCapacity) builder.AddDiagnostic("SVG visual comparison was disabled because the accepted source document uses the full configured element budget and candidate suppression must not exceed that bound.");
         else if (maximumComparisons == 0) builder.AddDiagnostic("SVG visual comparison was disabled because the cumulative pixel or document-transformation work budget cannot fund a baseline and comparison render.");
         else if (!baselineRendered) builder.AddDiagnostic("SVG visual comparison was unavailable because the bounded SVG drawing surface could not be rendered.");
         else if (baselineUnsupported > 0) builder.AddDiagnostic(

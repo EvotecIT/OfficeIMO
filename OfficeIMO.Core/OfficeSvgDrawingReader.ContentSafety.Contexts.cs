@@ -192,8 +192,25 @@ public static partial class OfficeSvgDrawingReader {
         }
         foreach (XElement current in element.AncestorsAndSelf()) {
             string name = current.Name.LocalName.ToLowerInvariant();
+            if (current != element) {
+                string? opacity = ReadPresentationProperty(current, "opacity")?.Trim();
+                if (!string.IsNullOrWhiteSpace(opacity) &&
+                    TryUnit(opacity!, out double resolvedOpacity) &&
+                    resolvedOpacity < 1D) {
+                    evidence = "SVG ancestor opacity is applied after group compositing in browsers and is therefore report-only.";
+                    return true;
+                }
+            }
             if (current.Attribute("textLength") != null || current.Attribute("lengthAdjust") != null) {
                 evidence = "SVG text-length adjustment can change browser glyph bounds and is therefore report-only.";
+                return true;
+            }
+            XAttribute? unmodeledGeometry = current.Attributes().FirstOrDefault(attribute =>
+                attribute.Name.NamespaceName.Length == 0 &&
+                IsUnmodeledSvgTextGeometryAttribute(attribute.Name.LocalName));
+            if (unmodeledGeometry != null) {
+                evidence = "SVG text geometry uses the unmodeled " + unmodeledGeometry.Name.LocalName +
+                    " attribute and is therefore report-only.";
                 return true;
             }
             string? transform = ReadPresentationProperty(current, "transform");
