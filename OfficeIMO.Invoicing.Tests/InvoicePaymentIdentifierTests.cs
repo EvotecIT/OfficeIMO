@@ -87,6 +87,31 @@ public class InvoicePaymentIdentifierTests {
         Assert.Equal("Second account", read.Invoice.Payments[1].Account!.Name);
     }
 
+    [Fact]
+    public void CiiInvoiceLevelMandateAppliesToEveryDirectDebitOccurrence() {
+        Invoice invoice = InvoiceFixture.Create();
+        InvoicePayment first = invoice.Payments[0];
+        first.MeansCode = "59";
+        first.Account = null;
+        first.MandateReference = "mandate-1";
+        first.CreditorIdentifier = "DE98ZZZ09999999999";
+        first.DebitedAccount = "DE89370400440532013000";
+        invoice.Payments.Add(new InvoicePayment {
+            MeansCode = first.MeansCode,
+            Reference = first.Reference,
+            MandateReference = first.MandateReference,
+            CreditorIdentifier = first.CreditorIdentifier,
+            DebitedAccount = "DE44500105175407324931"
+        });
+        InvoiceXmlOptions options = InvoiceTestContracts.For(InvoiceSyntax.Cii, InvoiceProfile.XRechnung);
+
+        InvoiceReadResult read = InvoiceParser.Read(InvoiceSerializer.Write(invoice, options));
+
+        Assert.Equal(2, read.Invoice.Payments.Count);
+        Assert.All(read.Invoice.Payments, payment => Assert.Equal("mandate-1", payment.MandateReference));
+        Assert.True(InvoiceParser.Read(read.Write(options)).HasCompleteMapping);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]

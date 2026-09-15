@@ -37,6 +37,25 @@ public class InvoiceTaxBoundaryTests {
             diagnostic.Message.IndexOf("PL-KRS", StringComparison.Ordinal) >= 0);
     }
 
+    [Fact]
+    public void ArbitrarySellerTaxSchemeSatisfiesTheUblTaxRegistrationRequirement() {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Seller.TaxRegistrations.Clear();
+        invoice.Seller.LegalRegistration = new InvoiceIdentifier("KRS 0000123456");
+        invoice.Seller.TaxRegistrations.Add(new InvoiceTaxRegistration("NATIONAL-123", "PL-KRS"));
+
+        Assert.True(InvoiceModelValidator.Validate(invoice).IsValid);
+        byte[] ubl = InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl));
+        InvoiceTaxRegistration registration = Assert.Single(InvoiceParser.Read(ubl).Invoice.Seller.TaxRegistrations);
+        Assert.Equal("PL-KRS", registration.SchemeId);
+        Assert.Equal("NATIONAL-123", registration.Identifier);
+
+        Assert.Contains(InvoiceSerializer.InspectTarget(invoice, InvoiceTestContracts.En16931()),
+            diagnostic => diagnostic.Location == "Seller.TaxRegistrations[0]" &&
+                diagnostic.Message.IndexOf("PL-KRS", StringComparison.Ordinal) >= 0);
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931()));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

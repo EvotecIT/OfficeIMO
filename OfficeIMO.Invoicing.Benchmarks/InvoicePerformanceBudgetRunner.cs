@@ -18,9 +18,9 @@ internal static class InvoicePerformanceBudgetRunner {
         PdfInvoiceDocument pdfSnapshot = corpus.CapturePdf();
         var workloads = new[] {
             new Workload("xml-read", () => Task.FromResult<object>(InvoiceParser.Read(corpus.Xml)),
-                value => InvoiceBenchmarkCorrectness.Read((InvoiceReadResult)value)),
+                value => InvoiceBenchmarkCorrectness.Read((InvoiceReadResult)value, corpus)),
             new Workload("xml-write", () => Task.FromResult<object>(InvoiceSerializer.Write(corpus.Invoice, InvoiceBenchmarkCorpus.Contract)),
-                value => InvoiceBenchmarkCorrectness.Write((byte[])value)),
+                value => InvoiceBenchmarkCorrectness.Write((byte[])value, corpus)),
             new Workload("rules-validation", async () => await validator.ValidateAsync(corpus.Xml,
                     InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2).ConfigureAwait(false),
                 value => InvoiceBenchmarkCorrectness.Rules((InvoiceValidationReport)value)),

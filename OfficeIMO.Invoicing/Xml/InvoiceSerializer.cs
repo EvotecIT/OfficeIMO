@@ -20,7 +20,7 @@ public static partial class InvoiceSerializer {
         if (options == null) throw new ArgumentNullException(nameof(options));
         InvoiceModelValidationResult validation = InvoiceModelValidator.ValidateForTarget(invoice, options);
         validation.ThrowIfInvalid();
-        List<InvoiceDiagnostic> mapping = GetWriteDiagnostics(invoice, options);
+        List<InvoiceDiagnostic> mapping = GetWriteDiagnostics(invoice, options, validation.Calculation!);
         if (mapping.Any(item => item.Severity == InvoiceDiagnosticSeverity.Error))
             throw new InvalidDataException(string.Join(Environment.NewLine, mapping.Where(item => item.Severity == InvoiceDiagnosticSeverity.Error)
                 .Select(item => item.Location + ": " + item.Message)));
@@ -41,15 +41,15 @@ public static partial class InvoiceSerializer {
         if (options == null) throw new ArgumentNullException(nameof(options));
         InvoiceModelValidationResult validation = InvoiceModelValidator.ValidateForTarget(invoice, options);
         if (!validation.IsValid) return validation.Diagnostics;
-        return GetWriteDiagnostics(invoice, options).AsReadOnly();
+        return GetWriteDiagnostics(invoice, options, validation.Calculation!).AsReadOnly();
     }
 
-    private static List<InvoiceDiagnostic> GetWriteDiagnostics(Invoice invoice, InvoiceXmlOptions options) {
+    private static List<InvoiceDiagnostic> GetWriteDiagnostics(Invoice invoice, InvoiceXmlOptions options, InvoiceCalculation calculation) {
         var diagnostics = new InvoiceDiagnosticBuffer();
         void Unsupported(string path, string text) => diagnostics.Add("INV-TARGET-UNSUPPORTED", text, path);
         void Projection(string path, string text) => diagnostics.Add("INV-TARGET-PROJECTION", text, path,
             options.ProjectionPolicy == InvoiceProjectionPolicy.AllowProfileDefinedDataLoss ? InvoiceDiagnosticSeverity.Warning : InvoiceDiagnosticSeverity.Error);
-        void ArithmeticProjection(string path, string text) => diagnostics.Add("INV-TARGET-PROJECTION", text, path);
+        void RequiredProjection(string path, string text) => diagnostics.Add("INV-TARGET-PROJECTION", text, path);
         if (invoice.Payments.Count != 0) {
             CheckPaymentProfile(invoice, options, Unsupported);
             CheckSingletonPaymentField(invoice, payment => payment.MeansCode, "MeansCode",
@@ -96,7 +96,7 @@ public static partial class InvoiceSerializer {
         if (options.Profile == InvoiceProfile.XRechnung && string.IsNullOrWhiteSpace(invoice.BuyerReference))
             Unsupported("BuyerReference", "XRechnung output requires a buyer routing reference.");
         CheckExemptionConflicts(invoice, Unsupported);
-        CheckFacturXProjection(invoice, options, Projection, ArithmeticProjection);
+        CheckFacturXProjection(invoice, calculation, options, Projection, RequiredProjection);
         CheckTaxRegistrations(invoice.Seller, "Seller", options, Unsupported);
         CheckTaxRegistrations(invoice.Buyer, "Buyer", options, Unsupported);
         if (invoice.Payee != null) CheckTaxRegistrations(invoice.Payee, "Payee", options, Unsupported);

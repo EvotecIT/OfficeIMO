@@ -167,6 +167,89 @@ public class InvoiceSpecificationContractTests {
         Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, options));
     }
 
+    [Fact]
+    public void AggregateOnlyModelRejectsVatAmountsThatDoNotMatchTheirRate() {
+        InvoiceXmlOptions options = InvoiceTestContracts.FacturX(
+            InvoiceProfile.BasicWithoutLines,
+            InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
+        Invoice invoice = InvoiceParser.Read(InvoiceSerializer.Write(
+            CreateProjectionSafeInvoice(InvoiceProfile.BasicWithoutLines), options)).Invoice;
+        InvoiceDeclaredTax tax = Assert.Single(invoice.DeclaredTaxes);
+        tax.TaxAmount = 1m;
+        invoice.DeclaredTotals!.TaxTotal = 1m;
+        invoice.DeclaredTotals.TaxInclusiveTotal = invoice.DeclaredTotals.TaxExclusiveTotal + 1m;
+        invoice.DeclaredTotals.PayableAmount = invoice.DeclaredTotals.TaxInclusiveTotal;
+
+        Assert.Contains(InvoiceSerializer.InspectTarget(invoice, options),
+            item => item.Code == "INV-DECLARED-AMOUNT" && item.Location == "DeclaredTaxes[0].TaxAmount");
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, options));
+    }
+
+    [Theory]
+    [InlineData(InvoiceProfile.Minimum)]
+    [InlineData(InvoiceProfile.BasicWithoutLines)]
+    [InlineData(InvoiceProfile.Basic)]
+    public void LowerProfileProjectionCannotRemoveTheSellersOnlyQualifyingIdentity(InvoiceProfile profile) {
+        Invoice invoice = CreateProjectionSafeInvoice(profile);
+        invoice.Seller.TaxRegistrations.Clear();
+        invoice.Seller.TaxRegistrations.Add(new InvoiceTaxRegistration("local-tax-id", InvoiceTaxRegistration.TaxScheme));
+        invoice.Seller.LegalRegistration = null;
+        invoice.Seller.Identifiers.Add(new InvoiceIdentifier("seller-business-id"));
+        InvoiceXmlOptions options = InvoiceTestContracts.FacturX(profile, InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
+
+        Assert.True(InvoiceModelValidator.Validate(invoice).IsValid);
+        InvoiceDiagnostic diagnostic = Assert.Single(InvoiceSerializer.InspectTarget(invoice, options),
+            item => item.Location == "Seller.Identifiers" && item.Severity == InvoiceDiagnosticSeverity.Error);
+        Assert.Contains("only qualifying business identity", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, options));
+    }
+
+    [Theory]
+    [InlineData(InvoiceProfile.BasicWithoutLines)]
+    [InlineData(InvoiceProfile.Basic)]
+    public void LowerProfileProjectionCannotRemoveDeliveryEvidenceRequiredByCategoryK(InvoiceProfile profile) {
+        Invoice invoice = InvoiceFixture.WithTaxCategory("K");
+        InvoiceXmlOptions options = InvoiceTestContracts.FacturX(profile, InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
+
+        Assert.True(InvoiceModelValidator.Validate(invoice).IsValid);
+        InvoiceDiagnostic diagnostic = Assert.Single(InvoiceSerializer.InspectTarget(invoice, options),
+            item => item.Location == "Delivery" && item.Severity == InvoiceDiagnosticSeverity.Error);
+        Assert.Contains("VAT category K", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, options));
+    }
+
+    [Theory]
+    [InlineData(InvoiceProfile.BasicWithoutLines, "S")]
+    [InlineData(InvoiceProfile.BasicWithoutLines, "G")]
+    [InlineData(InvoiceProfile.Basic, "S")]
+    [InlineData(InvoiceProfile.Basic, "G")]
+    public void LowerProfileProjectionCannotRemoveARequiredTaxRepresentative(InvoiceProfile profile, string categoryCode) {
+        Invoice invoice = CreateProjectionSafeInvoice(profile);
+        invoice.Seller.TaxRegistrations.Clear();
+        invoice.Seller.LegalRegistration = new InvoiceIdentifier("seller-register");
+        if (categoryCode == "G")
+            invoice.Seller.TaxRegistrations.Add(new InvoiceTaxRegistration("seller-tax", InvoiceTaxRegistration.TaxScheme));
+        invoice.Lines[0].Tax = new InvoiceTaxCategory {
+            Code = categoryCode,
+            Rate = categoryCode == "G" ? 0m : 19m,
+            ExemptionReason = categoryCode == "G" ? "Export outside the EU" : null
+        };
+        invoice.TaxRepresentative = new InvoiceParty {
+            Name = "Tax representative",
+            Address = new InvoiceAddress { CountryCode = "DE" }
+        };
+        invoice.TaxRepresentative.TaxRegistrations.Add(
+            new InvoiceTaxRegistration("DE999999999", InvoiceTaxRegistration.VatScheme));
+        InvoiceCalculator.UpdateDeclaredAmounts(invoice);
+        InvoiceXmlOptions options = InvoiceTestContracts.FacturX(profile, InvoiceProjectionPolicy.AllowProfileDefinedDataLoss);
+
+        Assert.True(InvoiceModelValidator.Validate(invoice).IsValid);
+        InvoiceDiagnostic diagnostic = Assert.Single(InvoiceSerializer.InspectTarget(invoice, options),
+            item => item.Location == "TaxRepresentative" && item.Severity == InvoiceDiagnosticSeverity.Error);
+        Assert.Contains("required by a retained VAT category", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, options));
+    }
+
     [Theory]
     [InlineData(InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2, InvoiceSyntax.Ubl, InvoiceProfile.En16931)]
     [InlineData(InvoiceSpecificationRelease.En16931_1_3_16, InvoiceSyntax.Cii, InvoiceProfile.XRechnung)]

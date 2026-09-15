@@ -50,6 +50,9 @@ public static partial class InvoiceModelValidator {
                     }
                     Money(declared.TaxableAmount, "DeclaredTaxes.TaxableAmount");
                     Money(declared.TaxAmount, "DeclaredTaxes.TaxAmount");
+                    Compare(declared.TaxAmount, InvoiceArithmetic.RoundedProduct(
+                        declared.TaxableAmount, InvoiceCalculator.NormalizeRate(declared.Category) ?? 0m, 100m),
+                        "DeclaredTaxes[" + index + "].TaxAmount", 0.01m);
                 }
                 Compare(taxExclusive, InvoiceArithmetic.Sum(invoice.DeclaredTaxes.Select(item => item.TaxableAmount)),
                     "DeclaredTotals.TaxExclusiveTotal");

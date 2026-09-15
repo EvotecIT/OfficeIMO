@@ -6,7 +6,9 @@ public static partial class InvoiceModelValidator {
             // Check the emitted breakdown: imported reasons may exist only on DeclaredTaxes.
             bool sellerVat = HasTaxRegistration(invoice.Seller, InvoiceTaxRegistration.VatScheme);
             bool representativeVat = HasTaxRegistration(invoice.TaxRepresentative, InvoiceTaxRegistration.VatScheme);
-            bool sellerTax = sellerVat || representativeVat || HasTaxRegistration(invoice.Seller, InvoiceTaxRegistration.TaxScheme);
+            bool sellerTax = sellerVat || representativeVat || invoice.Seller.TaxRegistrations.Any(registration =>
+                registration != null && !string.IsNullOrWhiteSpace(registration.SchemeId) &&
+                !string.IsNullOrWhiteSpace(registration.Identifier));
             bool buyerVat = HasTaxRegistration(invoice.Buyer, InvoiceTaxRegistration.VatScheme);
             foreach (InvoiceCalculatedTax tax in calculation.Taxes) {
                 string path = "Taxes[" + tax.CategoryCode + "]";

@@ -11,7 +11,7 @@ public class InvoiceXmlWriteBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _corpus = InvoiceBenchmarkCorpus.Create();
-        InvoiceBenchmarkCorrectness.Write(WriteXml());
+        InvoiceBenchmarkCorrectness.Write(WriteXml(), _corpus);
     }
 
     [Benchmark]
@@ -26,7 +26,7 @@ public class InvoiceXmlReadBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _corpus = InvoiceBenchmarkCorpus.Create();
-        InvoiceBenchmarkCorrectness.Read(ReadXml());
+        InvoiceBenchmarkCorrectness.Read(ReadXml(), _corpus);
     }
 
     [Benchmark]

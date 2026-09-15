@@ -54,7 +54,7 @@ public static partial class InvoiceParser {
         string? mandate = c.Text(terms, Ram + "DirectDebitMandateID");
         if (mandate != null) {
             if (invoice.Payments.Count == 0) c.AddTo(invoice.Payments, new InvoicePayment());
-            invoice.Payments[0].MandateReference = mandate;
+            foreach (InvoicePayment payment in invoice.Payments) payment.MandateReference = mandate;
         }
         foreach (XElement adjustment in c.Children(settlement, Ram + "SpecifiedTradeAllowanceCharge")) c.AddTo(invoice.AllowancesAndCharges, CiiAdjustment(c, adjustment, invoice.Currency, true));
         foreach (XElement reference in c.Children(settlement, Ram + "InvoiceReferencedDocument"))

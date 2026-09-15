@@ -7,7 +7,7 @@ This permanent suite measures four separate operations over the same determinist
 - Rules validation runs the pinned Factur-X schema and business rules through Saxon.
 - PDF generation renders an already captured invoice snapshot, including its exact XML attachment and multilingual fonts.
 
-Every setup performs correctness checks outside measurement. The checks require the same line count and marker for XML, passed schema and business-rule status for validation, and exact attached XML plus visible mixed-script text for PDF. The rules lane intentionally includes the external Java process in elapsed time; managed allocation measures the .NET benchmark process and does not claim Java heap usage.
+Every setup performs correctness checks outside measurement. XML writes must reproduce the canonical corpus bytes, and parsed models must serialize back to those same bytes so seller, buyer, payment, line, VAT, and total semantics are all covered. Validation must pass the pinned schema and business rules, while PDF output must contain the exact XML attachment and representative visible mixed-script text. The rules lane intentionally includes the external Java process in elapsed time; managed allocation measures the .NET benchmark process and does not claim Java heap usage.
 
 ## BenchmarkDotNet
 

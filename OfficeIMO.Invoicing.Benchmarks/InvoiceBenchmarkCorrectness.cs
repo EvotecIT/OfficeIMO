@@ -4,11 +4,15 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Invoicing.Benchmarks;
 
 internal static class InvoiceBenchmarkCorrectness {
-    internal static void Write(byte[] xml) => Read(InvoiceParser.Read(xml));
+    internal static void Write(byte[] xml, InvoiceBenchmarkCorpus corpus) {
+        if (!xml.SequenceEqual(corpus.Xml))
+            throw new InvalidDataException("The XML write workload did not reproduce the canonical equivalent corpus.");
+        Read(InvoiceParser.Read(xml), corpus);
+    }
 
-    internal static void Read(InvoiceReadResult result) {
-        if (!result.HasCompleteMapping || result.Invoice.Lines.Count != InvoiceBenchmarkCorpus.LineCount ||
-            !string.Equals(result.Invoice.Lines[^1].Description?.Split(' ').Last(), InvoiceBenchmarkCorpus.Marker, StringComparison.Ordinal))
+    internal static void Read(InvoiceReadResult result, InvoiceBenchmarkCorpus corpus) {
+        if (!result.HasCompleteMapping ||
+            !InvoiceSerializer.Write(result.Invoice, InvoiceBenchmarkCorpus.Contract).SequenceEqual(corpus.Xml))
             throw new InvalidDataException("The XML workload did not preserve the equivalent invoice corpus.");
     }
 
