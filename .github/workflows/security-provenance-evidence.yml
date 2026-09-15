@@ -4,12 +4,17 @@ on:
   pull_request:
     paths:
       - '.github/workflows/security-provenance-evidence.yml'
+      - 'global.json'
+      - 'Directory.Build.props'
+      - 'Directory.Build.targets'
+      - 'Directory.Packages.props'
       - 'Build/BenchmarkBudgets/security-provenance.json'
-      - 'OfficeIMO.Core/Provenance/**'
+      - 'Build/Benchmarks/OfficeEvidenceBudget.cs'
+      - 'OfficeIMO.Core/**'
+      - 'OfficeIMO.SharedSource/Compound/**'
       - 'OfficeIMO.Provenance.Benchmarks/**'
       - 'OfficeIMO.Security/**'
       - 'OfficeIMO.Security.Benchmarks/**'
-      - 'Build/Benchmarks/OfficeEvidenceBudget.cs'
   workflow_dispatch:
 
 permissions:

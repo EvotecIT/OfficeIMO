@@ -5,11 +5,17 @@ namespace OfficeIMO.Benchmarks;
 
 internal sealed record OfficeEvidenceObservation(
     string Key,
+    long WorkloadBytes,
     double ElapsedMicrosecondsPerOperation,
     long AllocatedBytesPerOperation,
     long PeakManagedHeapGrowthBytes,
     long AbsoluteProcessPeakWorkingSetBytes,
     long? ArtifactBytes);
+
+internal sealed record OfficeEvidenceRequirement(
+    string Key,
+    long ExpectedWorkloadBytes,
+    string WorkloadLabel);
 
 internal static class OfficeEvidenceBudgetEvaluator {
     private static readonly JsonSerializerOptions JsonOptions = new() {
@@ -19,6 +25,7 @@ internal static class OfficeEvidenceBudgetEvaluator {
     internal static void EnsureWithin(
         string budgetPath,
         string suite,
+        IReadOnlyCollection<OfficeEvidenceRequirement> requirements,
         IReadOnlyCollection<OfficeEvidenceObservation> observations) {
         string fullPath = Path.GetFullPath(budgetPath);
         OfficeEvidenceBudgetFile file = JsonSerializer.Deserialize<OfficeEvidenceBudgetFile>(
@@ -29,32 +36,61 @@ internal static class OfficeEvidenceBudgetEvaluator {
             .Where(item => string.Equals(item.Suite, suite, StringComparison.Ordinal))
             .ToArray();
         if (suiteBudgets.Length == 0) throw new InvalidDataException($"No budgets are defined for suite '{suite}'.");
-        string[] requiredKeys = suiteBudgets.Select(item => item.Key).Distinct(StringComparer.Ordinal).ToArray();
+        if (requirements.Count == 0) throw new InvalidDataException($"No workload requirements are defined for suite '{suite}'.");
         var failures = new List<string>();
-        foreach (string key in requiredKeys) {
-            OfficeEvidenceBudget? budget = suiteBudgets.SingleOrDefault(item =>
+        OfficeEvidenceRequirement[] duplicateRequirements = requirements
+            .GroupBy(item => item.Key, StringComparer.Ordinal)
+            .Where(group => group.Count() != 1)
+            .Select(group => group.First())
+            .ToArray();
+        foreach (OfficeEvidenceRequirement duplicate in duplicateRequirements) {
+            failures.Add($"{duplicate.Key}: duplicate workload requirement");
+        }
+        foreach (OfficeEvidenceRequirement requirement in requirements) {
+            if (string.IsNullOrWhiteSpace(requirement.Key)) failures.Add("A workload requirement has no key");
+            if (requirement.ExpectedWorkloadBytes <= 0) failures.Add($"{requirement.Key}: required workload bytes must be positive");
+            if (string.IsNullOrWhiteSpace(requirement.WorkloadLabel)) failures.Add($"{requirement.Key}: workload label is missing");
+        }
+        HashSet<string> requiredKeys = requirements.Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
+        foreach (string extraKey in suiteBudgets.Select(item => item.Key).Distinct(StringComparer.Ordinal).Where(key => !requiredKeys.Contains(key))) {
+            failures.Add($"{extraKey}: budget has no matching workload requirement");
+        }
+        foreach (OfficeEvidenceRequirement requirement in requirements) {
+            OfficeEvidenceBudget[] operatingSystemBudgets = suiteBudgets.Where(item =>
                 string.Equals(item.OperatingSystem, operatingSystem, StringComparison.Ordinal) &&
-                string.Equals(item.Key, key, StringComparison.Ordinal));
-            budget ??= suiteBudgets.SingleOrDefault(item =>
+                string.Equals(item.Key, requirement.Key, StringComparison.Ordinal)).ToArray();
+            OfficeEvidenceBudget[] portableBudgets = suiteBudgets.Where(item =>
                 string.Equals(item.OperatingSystem, "Any", StringComparison.Ordinal) &&
-                string.Equals(item.Key, key, StringComparison.Ordinal));
+                string.Equals(item.Key, requirement.Key, StringComparison.Ordinal)).ToArray();
+            if (operatingSystemBudgets.Length > 1 || portableBudgets.Length > 1) {
+                failures.Add($"{requirement.Key}: duplicate {operatingSystem}/Any budget definition");
+                continue;
+            }
+            OfficeEvidenceBudget? budget = operatingSystemBudgets.SingleOrDefault() ?? portableBudgets.SingleOrDefault();
             if (budget == null) {
-                failures.Add($"{key}: no {operatingSystem} budget is defined");
+                failures.Add($"{requirement.Key}: no {operatingSystem} or Any budget is defined");
                 continue;
             }
-            OfficeEvidenceObservation[] matching = observations.Where(item => item.Key == key).ToArray();
+            OfficeEvidenceObservation[] matching = observations.Where(item => item.Key == requirement.Key).ToArray();
             if (matching.Length == 0) {
-                failures.Add($"{key}: no measurement was produced");
+                failures.Add($"{requirement.Key}: no measurement was produced");
                 continue;
             }
-            foreach (OfficeEvidenceObservation observation in matching) Evaluate(observation, budget, failures);
+            foreach (OfficeEvidenceObservation observation in matching) {
+                if (observation.WorkloadBytes != requirement.ExpectedWorkloadBytes) {
+                    failures.Add(
+                        $"{requirement.Key}: {requirement.WorkloadLabel} {observation.WorkloadBytes} != " +
+                        $"required {requirement.ExpectedWorkloadBytes}");
+                }
+                Evaluate(observation, budget, failures);
+            }
         }
         if (failures.Count != 0) {
             throw new InvalidOperationException(
                 $"{suite} evidence exceeded its {operatingSystem} budget:{Environment.NewLine}- " +
                 string.Join(Environment.NewLine + "- ", failures));
         }
-        Console.WriteLine($"{suite} evidence satisfied {requiredKeys.Length} {operatingSystem} budget(s).");
+        Console.WriteLine($"{suite} evidence satisfied {requirements.Count} required {operatingSystem} budget(s).");
     }
 
     private static void Evaluate(

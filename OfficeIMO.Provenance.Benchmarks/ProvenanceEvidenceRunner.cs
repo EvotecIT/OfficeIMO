@@ -7,6 +7,20 @@ using OfficeIMO.Benchmarks;
 namespace OfficeIMO.Provenance.Benchmarks;
 
 internal static class ProvenanceEvidenceRunner {
+    private const int RequiredLargeManifestBytes = 1024 * 1024;
+    private static readonly OfficeEvidenceRequirement[] RequiredLargeWorkloads = [
+        new("PNG|Large|Inspect", RequiredLargeManifestBytes, "manifest bytes"),
+        new("PNG|Large|Remove", RequiredLargeManifestBytes, "manifest bytes"),
+        new("TIFF|Large|Inspect", RequiredLargeManifestBytes, "manifest bytes"),
+        new("TIFF|Large|Remove", RequiredLargeManifestBytes, "manifest bytes"),
+        new("SVG|Large|Inspect", RequiredLargeManifestBytes, "manifest bytes"),
+        new("SVG|Large|Remove", RequiredLargeManifestBytes, "manifest bytes"),
+        new("ZIP|Large|Inspect", RequiredLargeManifestBytes, "manifest bytes"),
+        new("ZIP|Large|Remove", RequiredLargeManifestBytes, "manifest bytes"),
+        new("Text|Large|Inspect", RequiredLargeManifestBytes, "manifest bytes"),
+        new("Text|Large|Remove", RequiredLargeManifestBytes, "manifest bytes")
+    ];
+
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
@@ -74,8 +88,10 @@ internal static class ProvenanceEvidenceRunner {
                 OfficeEvidenceBudgetEvaluator.EnsureWithin(
                     budgetPath,
                     "provenance",
+                    RequiredLargeWorkloads,
                     measurements.Select(item => new OfficeEvidenceObservation(
                         $"{item.Format}|{item.Scale}|{item.Operation}",
+                        item.ManifestBytes,
                         item.ElapsedMicrosecondsPerOperation,
                         item.AllocatedBytesPerOperation,
                         item.PeakManagedHeapGrowthBytes,
@@ -128,6 +144,7 @@ internal static class ProvenanceEvidenceRunner {
             operation,
             1,
             fixture.Asset.Length,
+            fixture.ManifestBytes,
             outputBytes,
             iterations,
             stopwatch.Elapsed.TotalMicroseconds / iterations,
@@ -217,6 +234,7 @@ internal sealed record ProvenanceEvidenceMeasurement(
     string Operation,
     int Iteration,
     int InputBytes,
+    int ManifestBytes,
     int? OutputBytes,
     int Operations,
     double ElapsedMicrosecondsPerOperation,

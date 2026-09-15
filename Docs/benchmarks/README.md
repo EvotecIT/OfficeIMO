@@ -184,7 +184,7 @@ and later `System.Security.Cryptography.Pkcs` owns the narrow attribute-free
 platform fast path; Bouncy Castle remains the complete fallback and the only
 path on `netstandard2.0` and .NET Framework.
 The executable budget covers both verification engines against OfficeIMO- and
-platform-produced 1 KiB detached signatures. CI records and gates the same
+platform-produced signatures over 1 KiB detached payloads. CI records and gates the same
 measurements on Windows, Linux, and macOS.
 
 ## Provenance structural carriers

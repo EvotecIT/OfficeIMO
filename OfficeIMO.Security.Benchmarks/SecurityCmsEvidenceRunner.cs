@@ -7,6 +7,14 @@ using OfficeIMO.Benchmarks;
 namespace OfficeIMO.Security.Benchmarks;
 
 internal static class SecurityCmsEvidenceRunner {
+    private const int RequiredDetachedContentBytes = 1024;
+    private static readonly OfficeEvidenceRequirement[] RequiredVerificationWorkloads = [
+        new("Verify|OfficeIMO|Small|OfficeIMO", RequiredDetachedContentBytes, "detached content bytes"),
+        new("Verify|OfficeIMO|Small|Platform", RequiredDetachedContentBytes, "detached content bytes"),
+        new("Verify|Platform|Small|OfficeIMO", RequiredDetachedContentBytes, "detached content bytes"),
+        new("Verify|Platform|Small|Platform", RequiredDetachedContentBytes, "detached content bytes")
+    ];
+
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
@@ -74,8 +82,10 @@ internal static class SecurityCmsEvidenceRunner {
                 OfficeEvidenceBudgetEvaluator.EnsureWithin(
                     budgetPath,
                     "security-cms",
+                    RequiredVerificationWorkloads,
                     measurements.Select(item => new OfficeEvidenceObservation(
                         $"{item.Operation}|{item.Engine}|{item.Scale}|{item.Producer}",
+                        item.ContentBytes,
                         item.ElapsedMicrosecondsPerOperation,
                         item.AllocatedBytesPerOperation,
                         item.PeakManagedHeapGrowthBytes,
