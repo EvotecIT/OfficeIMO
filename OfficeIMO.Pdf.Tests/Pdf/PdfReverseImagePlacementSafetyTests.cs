@@ -622,6 +622,36 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
     }
 
+    [Theory]
+    [InlineData(90)]
+    [InlineData(180)]
+    [InlineData(270)]
+    public void PowerPointRotatesEditableImageWithThePdfPage(int pageRotation) {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
+            "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            pageEntries: "/Rotate " + pageRotation.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        PdfVisualBounds visual = page.TransformBoundsToVisual(20D, 30D, 100D, 70D);
+
+        PdfPowerPointConversionResult result = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        byte[] bytes;
+        using (result.Value) {
+            bytes = result.Value.ToBytes();
+        }
+
+        using var presentationStream = new MemoryStream(bytes);
+        using OfficeIMO.PowerPoint.PowerPointPresentation presentation =
+            OfficeIMO.PowerPoint.PowerPointPresentation.Load(presentationStream);
+        OfficeIMO.PowerPoint.PowerPointPicture picture = Assert.Single(Assert.Single(presentation.Slides).Pictures);
+        double scale = presentation.SlideSize.WidthPoints / 160D;
+        Assert.Equal(pageRotation, picture.Rotation);
+        Assert.Equal(80D * scale, picture.WidthPoints, 4);
+        Assert.Equal(40D * scale, picture.HeightPoints, 4);
+        Assert.Equal((visual.Left + visual.Width / 2D) * scale, picture.LeftPoints + picture.WidthPoints / 2D, 4);
+        Assert.Equal((visual.Top + visual.Height / 2D) * scale, picture.TopPoints + picture.HeightPoints / 2D, 4);
+    }
+
     [Fact]
     public void FloatingImagePaintedBeforeOverlappingTextStaysBehindTheText() {
         byte[] source = CreateDocument()

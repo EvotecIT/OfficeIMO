@@ -1357,7 +1357,9 @@ internal static partial class ResourceResolver {
                 ? abbreviation
                 : null;
         PdfObject? resolved = PdfObjectLookup.ResolveChain(objects, value);
-        return resolved is PdfDictionary or PdfArray;
+        if (resolved is PdfDictionary) return true;
+        if (resolved is not PdfArray array) return false;
+        return array.Items.Any(item => PdfObjectLookup.ResolveChain(objects, item) is PdfDictionary);
     }
 
     private static bool HasScanFilter(PdfObject? filters, Dictionary<int, PdfIndirectObject> objects) {

@@ -353,6 +353,10 @@ public static partial class PowerPointPdfConverterExtensions {
                     sourcePlacement.X + sourcePlacement.Width,
                     sourcePlacement.Y + sourcePlacement.Height);
                 EditableBounds bounds = placement.Map(visual.Left, visual.Top, visual.Width, visual.Height);
+                double pageRotation = NormalizeRotation(page.RotationDegrees);
+                if (pageRotation is 90D or 270D) {
+                    bounds = bounds.SwapDimensionsAroundCenter();
+                }
                 using var stream = new MemoryStream(image.SourceImage.Bytes, writable: false);
                 PptCore.PowerPointPicture picture = slide.AddPicturePoints(
                     stream,
@@ -361,6 +365,9 @@ public static partial class PowerPointPdfConverterExtensions {
                     bounds.Top,
                     bounds.Width,
                     bounds.Height);
+                if (pageRotation > 0.01D) {
+                    picture.Rotation = pageRotation;
+                }
                 if (assessment.HasNonDefaultOpacity) {
                     picture.FillTransparency = assessment.MappedTransparencyPercent;
                 }
@@ -930,6 +937,12 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private readonly record struct EditableBounds(double Left, double Top, double Width, double Height) {
+        internal EditableBounds SwapDimensionsAroundCenter() => new(
+            Left + (Width - Height) / 2D,
+            Top + (Height - Width) / 2D,
+            Height,
+            Width);
+
         internal bool ContainsCenterOf(EditableBounds candidate) {
             double x = candidate.Left + candidate.Width / 2D;
             double y = candidate.Top + candidate.Height / 2D;

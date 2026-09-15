@@ -232,6 +232,33 @@ public class PdfImageEditorTests {
             0D));
     }
 
+    [Theory]
+    [InlineData("/Filter [/DCTDecode] /DecodeParms [null]", "")]
+    [InlineData("/Filter [/DCTDecode] /DP [null]", "")]
+    [InlineData("/Filter [/DCTDecode] /DecodeParms [6 0 R]", "6 0 obj\nnull\nendobj\n")]
+    public void MoveAcceptsFilterAlignedNullJpegDecodeParameters(
+        string imageEntries,
+        string additionalObjects) {
+        byte[] jpeg = OfficeIMO.Drawing.OfficeJpegCodec.Encode(
+            OfficeIMO.Drawing.OfficeRasterImage.FromRgba32(1, 1, new byte[] { 255, 0, 0, 255 }),
+            new OfficeIMO.Drawing.OfficeJpegEncodeOptions {
+                Quality = 100,
+                Subsampling = OfficeIMO.Drawing.OfficeJpegSubsampling.Y444
+            });
+        PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            imageBytes: jpeg,
+            imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 " + imageEntries,
+            additionalObjects: additionalObjects));
+        PdfImagePlacement original = Assert.Single(document.Images.Placements());
+        Assert.False(Assert.Single(document.Reader.Images()).HasDecodeParameters);
+
+        PdfImageEditResult result = document.Images.Move(original, 10D, 0D);
+
+        PdfImagePlacement moved = Assert.Single(result.Document.Images.Placements());
+        Assert.Equal(original.X + 10D, moved.X, 2);
+    }
+
     [Fact]
     public void MoveRejectsSourceInterpolationThatRestampingCannotPreserve() {
         PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
