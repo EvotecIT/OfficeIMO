@@ -140,13 +140,22 @@ internal sealed partial class OfficeImoAgentService {
         string? extension = null,
         string operation = "read",
         int maxOutputCharacters = DefaultCapabilitiesOutputCharacters,
-        int cursor = 0) {
+        int cursor = 0,
+        int conversionCursor = 0) {
         maxOutputCharacters = ValidateOutputBudget(maxOutputCharacters);
         if (cursor < 0 || cursor > MaximumSearchCursor) {
             throw new AgentUsageException(
                 "Capabilities cursor must be between 0 and " + MaximumSearchCursor + ".");
         }
+        if (conversionCursor < 0 || conversionCursor > MaximumSearchCursor) {
+            throw new AgentUsageException(
+                "Capabilities conversion cursor must be between 0 and " + MaximumSearchCursor + ".");
+        }
         operation = NormalizeOperation(operation);
+        if (operation != "convert" && conversionCursor != 0) {
+            throw new AgentUsageException(
+                "Capabilities conversion cursor is only valid for the convert operation.");
+        }
         string? normalizedExtension = NormalizeExtension(extension);
         OfficeDocumentReader reader = CreateReader();
         var capabilities = reader.GetCapabilities()
@@ -192,7 +201,7 @@ internal sealed partial class OfficeImoAgentService {
             : new List<AgentOperationCapabilitySummary>();
         int operationTotal = allOperations.Count;
         var operations = allOperations.Skip(cursor).ToList();
-        var conversions = operation == "convert"
+        var allConversions = operation == "convert"
             ? OfficeConversionCapabilityCatalog.AgentRoutes
                 .Where(route => normalizedExtension == null ||
                     route.SourceExtensions.Contains(normalizedExtension, StringComparer.OrdinalIgnoreCase))
@@ -211,6 +220,8 @@ internal sealed partial class OfficeImoAgentService {
                 })
                 .ToList()
             : new List<AgentConversionCapabilitySummary>();
+        int conversionTotal = allConversions.Count;
+        var conversions = allConversions.Skip(conversionCursor).ToList();
         var result = new AgentCapabilitiesResult {
             Extension = normalizedExtension,
             Operation = operation,
@@ -223,10 +234,16 @@ internal sealed partial class OfficeImoAgentService {
                 : null,
             OperationReturned = operations.Count,
             Operations = operations,
+            ConversionTotal = operation == "convert" ? conversionTotal : null,
+            ConversionCursor = operation == "convert" ? conversionCursor : null,
+            ConversionNextCursor = conversionCursor + conversions.Count < conversionTotal
+                ? conversionCursor + conversions.Count
+                : null,
             ConversionReturned = conversions.Count,
             Conversions = conversions
         };
-        result.Truncated = cursor > 0 || result.OperationNextCursor.HasValue;
+        result.Truncated = cursor > 0 || result.OperationNextCursor.HasValue ||
+            conversionCursor > 0 || result.ConversionNextCursor.HasValue;
         while (AgentJson.Measure(result) > maxOutputCharacters &&
                (operations.Count > 0 || conversions.Count > 0 || capabilities.Count > 0)) {
             bool removed = true;
@@ -236,9 +253,12 @@ internal sealed partial class OfficeImoAgentService {
                 result.OperationNextCursor = cursor + operations.Count < operationTotal
                     ? cursor + operations.Count
                     : null;
-            } else if (conversions.Count > 0) {
+            } else if (conversions.Count > 1) {
                 conversions.RemoveAt(conversions.Count - 1);
                 result.ConversionReturned = conversions.Count;
+                result.ConversionNextCursor = conversionCursor + conversions.Count < conversionTotal
+                    ? conversionCursor + conversions.Count
+                    : null;
             } else if (capabilities.Count > 0) {
                 capabilities.RemoveAt(capabilities.Count - 1);
                 result.Returned = capabilities.Count;

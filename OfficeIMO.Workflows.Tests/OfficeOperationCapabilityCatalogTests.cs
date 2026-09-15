@@ -56,6 +56,25 @@ public sealed class OfficeOperationCapabilityCatalogTests {
     }
 
     [Theory]
+    [InlineData(".docm", "docx-pdf", OfficeOperationKind.Convert)]
+    [InlineData(".dotm", "docx-markdown", OfficeOperationKind.Convert)]
+    [InlineData(".xlsm", "xlsx-pdf", OfficeOperationKind.Convert)]
+    [InlineData(".xlam", "xlsx-csv", OfficeOperationKind.Convert)]
+    [InlineData(".pptm", "pptx-pdf", OfficeOperationKind.Convert)]
+    [InlineData(".ppam", "pptx-svg", OfficeOperationKind.Export)]
+    public void ModernOfficeFamilyVariantsRetainCanonicalConversionRoutes(
+        string extension,
+        string capabilityId,
+        OfficeOperationKind operation) {
+        Assert.Contains(
+            OfficeConversionCapabilityCatalog.FindBySourceExtension(extension),
+            route => route.Id == capabilityId);
+        Assert.Contains(
+            OfficeOperationCapabilityCatalog.FindByExtension(extension),
+            row => row.Operation == operation && row.CapabilityId == capabilityId);
+    }
+
+    [Theory]
     [InlineData(".docx", "OfficeIMO.Word")]
     [InlineData(".xlsx", "OfficeIMO.Excel")]
     [InlineData(".pptx", "OfficeIMO.PowerPoint")]

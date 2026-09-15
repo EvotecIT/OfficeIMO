@@ -6719,7 +6719,7 @@
       "publicApi":"ExcelDocument.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".xlsx"],
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -6733,7 +6733,7 @@
       "publicApi":"ExcelDocument.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".xlsx"],
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -6747,7 +6747,7 @@
       "publicApi":"ExcelDocument.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".xlsx"],
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -6761,7 +6761,7 @@
       "publicApi":"ExcelDocument.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".xlsx"],
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -6775,7 +6775,7 @@
       "publicApi":"ExcelDocument.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".xlsx"],
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -6803,7 +6803,7 @@
       "publicApi":"ExcelDocument.Load(stream).Sheets[0].ToCsv(options)",
       "evidence":"Delimited-data fixtures cover streams, files, delimiter detection, typed cell import, worksheet-range export, reopen behavior, and cancellation.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".xlsx"],
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
       "limitation":"CSV and TSV have no font, rich-text, formula, multi-sheet, drawing, or layout model; those workbook semantics are intentionally absent from CSV output."
     },
     {
@@ -6831,7 +6831,7 @@
       "publicApi":"ExcelDocument.Load(stream).ExportToGoogleSheetsAsync(session, options)",
       "evidence":"Native request/import fixtures verify cell and rich-run typography, values, formulas, tables, and remote operation policies without requiring live credentials.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".xlsx"],
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
       "limitation":"Google Sheets has no subscript, superscript, casing, or underline-variant fields in its cell text-format model; unsupported Excel-only behavior is diagnosed or uses Drive fallback."
     },
     {
@@ -6859,7 +6859,7 @@
       "publicApi":"ExcelDocument.Load(stream).ToHtmlResult(options)",
       "evidence":"Representative workbooks verify sheets, values, formulas, tables, and styles in deterministic review HTML.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".xlsx"],
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
       "limitation":"Interactive workbook behavior, charts, pivots, macros, and exact print layout are not represented in semantic HTML."
     },
     {
@@ -6957,7 +6957,7 @@
       "publicApi":"ExcelDocument.Load(stream).ToOpenDocumentResult(options)",
       "evidence":"Reopen tests verify typed values, formulas, annotations, basic styles, tables, and validation subsets with diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".xlsx"],
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
       "limitation":"Advanced validation, conditional formatting, charts, pivots, external links, macros, and complex styles remain incomplete."
     },
     {
@@ -6985,7 +6985,7 @@
       "publicApi":"ExcelDocument.Load(stream).ToPdfDocumentResult(options)",
       "evidence":"Structured workbook fixtures cover tables, values, formulas, styles, print layout, pagination, tagged output, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".xlsx"],
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
       "limitation":"Pivot tables, advanced conditional formatting, charts, external links, and exact Excel print-layout behavior remain incomplete."
     },
     {
@@ -9071,7 +9071,7 @@
       "publicApi":"PowerPointPresentation.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".pptx"],
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -9085,7 +9085,7 @@
       "publicApi":"PowerPointPresentation.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".pptx"],
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -9099,7 +9099,7 @@
       "publicApi":"PowerPointPresentation.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".pptx"],
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -9113,7 +9113,7 @@
       "publicApi":"PowerPointPresentation.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".pptx"],
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -9127,7 +9127,7 @@
       "publicApi":"PowerPointPresentation.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".pptx"],
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -13985,7 +13985,7 @@
       "publicApi":"PowerPointPresentation.Load(stream).ExportToGoogleSlidesAsync(session, options)",
       "evidence":"Native request/import fixtures verify per-run typography, geometry, shapes, tables, notes, remote operation policies, and Drive fallback behavior without requiring live credentials.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".pptx"],
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
       "limitation":"Google Slides supports single underline and strike rather than DrawingML variants; all-caps is materialized and complex PowerPoint-only composition uses explicit diagnostics or raster/Drive fallback."
     },
     {
@@ -14013,7 +14013,7 @@
       "publicApi":"PowerPointPresentation.Load(stream).ToHtmlResult(options)",
       "evidence":"Representative presentations verify slide order, text, tables, images, and geometry hints in deterministic review HTML.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".pptx"],
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
       "limitation":"The result is review HTML rather than a slide renderer; animations, media, SmartArt, and advanced effects are simplified."
     },
     {
@@ -14111,7 +14111,7 @@
       "publicApi":"PowerPointPresentation.Load(stream).ToOpenDocumentResult(options)",
       "evidence":"Reopen tests verify common slide text, tables, basic shapes, images, and page geometry with explicit approximation diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".pptx"],
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
       "limitation":"Masters, advanced DrawingML, SmartArt, media, transitions, animations, and theme inheritance remain incomplete."
     },
     {
@@ -14139,7 +14139,7 @@
       "publicApi":"PowerPointPresentation.Load(stream).ToPdfDocumentResult(options)",
       "evidence":"Slide fixtures cover text, tables, basic shapes, images, charts, themes, page geometry, tagged output, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".pptx"],
+      "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
       "limitation":"SmartArt, animation, media playback, advanced effects, uncommon DrawingML, and exact PowerPoint composition remain incomplete."
     },
     {
@@ -15161,7 +15161,7 @@
       "publicApi":"WordDocument.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".docx"],
+      "extensions":[".docm",".docx",".dotm",".dotx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -15175,7 +15175,7 @@
       "publicApi":"WordDocument.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".docx"],
+      "extensions":[".docm",".docx",".dotm",".dotx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -15189,7 +15189,7 @@
       "publicApi":"WordDocument.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".docx"],
+      "extensions":[".docm",".docx",".dotm",".dotx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -15203,7 +15203,7 @@
       "publicApi":"WordDocument.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".docx"],
+      "extensions":[".docm",".docx",".dotm",".dotx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -15217,7 +15217,7 @@
       "publicApi":"WordDocument.Load(stream).ExportImages(format, options)",
       "evidence":"Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".docx"],
+      "extensions":[".docm",".docx",".dotm",".dotx"],
       "limitation":"Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."
     },
     {
@@ -18297,7 +18297,7 @@
       "publicApi":"WordDocument.Load(stream).ExportToGoogleDocsAsync(session, options)",
       "evidence":"Native request/import fixtures verify run typography, paragraphs, tables, tabs, remote operation policies, and Drive fallback behavior without requiring live credentials.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".docx"],
+      "extensions":[".docm",".docx",".dotm",".dotx"],
       "limitation":"Google Docs supports single underline and strike rather than Word decoration variants; all-caps is materialized and unsupported Word-only layout uses explicit diagnostics or Drive fallback."
     },
     {
@@ -18325,7 +18325,7 @@
       "publicApi":"WordDocument.Load(stream).ToHtmlResult(options)",
       "evidence":"Representative Word fixtures verify readable structure, tables, lists, links, images, and deterministic semantic output.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".docx"],
+      "extensions":[".docm",".docx",".dotm",".dotx"],
       "limitation":"Page layout, floating objects, advanced fields, tracked changes, and unsupported DrawingML are simplified in semantic output."
     },
     {
@@ -18353,7 +18353,7 @@
       "publicApi":"WordDocument.Load(stream).ToMarkdownDocumentResult(options)",
       "evidence":"Representative Word fixtures verify readable structure, tables, lists, links, images, and deterministic semantic output.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".docx"],
+      "extensions":[".docm",".docx",".dotm",".dotx"],
       "limitation":"Page layout, floating objects, advanced fields, tracked changes, and unsupported DrawingML are simplified in semantic output."
     },
     {
@@ -18381,7 +18381,7 @@
       "publicApi":"WordDocument.Load(stream).ToOpenDocumentResult(options)",
       "evidence":"Reopen tests verify common paragraphs, runs, lists, tables, links, and basic images with explicit approximation diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".docx"],
+      "extensions":[".docm",".docx",".dotm",".dotx"],
       "limitation":"Fields, notes, section-specific layout, advanced drawings, nested styles, and producer-specific extensions remain incomplete."
     },
     {
@@ -18479,7 +18479,7 @@
       "publicApi":"WordDocument.Load(stream).ToPdfDocumentResult(options)",
       "evidence":"Realistic DOCX fixtures cover paragraphs, lists, tables, drawings, pagination, tagged output, portable fonts, and deterministic conversion reports.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".docx"],
+      "extensions":[".docm",".docx",".dotm",".dotx"],
       "limitation":"Complex floating layout, advanced DrawingML, SmartArt, field behavior, and exact Microsoft Word pagination are not fully reproduced."
     },
     {
@@ -18507,7 +18507,7 @@
       "publicApi":"WordDocument.Load(stream).ToRtfDocumentResult()",
       "evidence":"Bounded RTF fixtures verify parsing, editable or semantic output, reopen behavior, and deterministic loss diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".docx"],
+      "extensions":[".docm",".docx",".dotm",".dotx"],
       "limitation":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported."
     },
     {

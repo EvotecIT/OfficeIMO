@@ -16,7 +16,7 @@ Usage:
                          [--max-output-characters <512-64000>]
   officeimo agent convert <path> --output <file> [--format markdown|json] [--overwrite]
   officeimo agent capabilities [--extension <.ext>] [--operation create|read|edit|preserve|inspect|validate|remove|search|fetch|convert|export]
-                                [--cursor <n>] [--max-output-characters <512-64000>]
+                                [--cursor <n>] [--conversion-cursor <n>] [--max-output-characters <512-64000>]
 
 Output is one compact JSON object. Inspect or search first, then fetch selected results.
 """;
@@ -78,7 +78,8 @@ Output is one compact JSON object. Inspect or search first, then fetch selected 
                     parsed.Extension,
                     parsed.Operation,
                     parsed.MaxOutputCharacters ?? OfficeImoAgentService.DefaultCapabilitiesOutputCharacters,
-                    parsed.Cursor),
+                    parsed.Cursor,
+                    parsed.ConversionCursor),
                 _ => throw new AgentUsageException("Unknown agent command.")
             };
             await standardOutput.WriteLineAsync(AgentJson.Serialize(result)).ConfigureAwait(false);

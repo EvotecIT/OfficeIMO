@@ -246,7 +246,7 @@ public sealed class OfficeConversionCapability {
 /// <summary>The shared OfficeIMO conversion route catalog used by packages, agents, and browser surfaces.</summary>
 public static class OfficeConversionCapabilityCatalog {
     /// <summary>Gets the capability schema version.</summary>
-    public const int SchemaVersion = 7;
+    public const int SchemaVersion = 8;
 
     /// <summary>Gets all focused, public document-conversion routes in stable order.</summary>
     public static IReadOnlyList<OfficeConversionCapability> All { get; } =
@@ -487,7 +487,7 @@ public static class OfficeConversionCapabilityCatalog {
         OfficeConversionSupportAssessment support = OfficeConversionSupportAssessments.Get(id);
         (OfficeConversionTextFormattingKind textFormatting, string textFormattingContract) = GetTextFormattingContract(source, target);
         return new OfficeConversionCapability(
-            id, source, target, inputKind, sourceExtensions, targetExtension,
+            id, source, target, inputKind, ExpandModernOfficeFamily(source, sourceExtensions), targetExtension,
             packageId, api, description, fidelity, resultContract, browser,
             agentDiscoverable: true,
             supportLevel: support.Level,
@@ -495,6 +495,20 @@ public static class OfficeConversionCapabilityCatalog {
             knownLimitations: support.KnownLimitations,
             textFormatting: textFormatting,
             textFormattingContract: textFormattingContract);
+    }
+
+    private static IEnumerable<string> ExpandModernOfficeFamily(
+        string source,
+        IEnumerable<string> sourceExtensions) {
+        string[]? family = source switch {
+            "DOCX" => new[] { ".docx", ".docm", ".dotx", ".dotm" },
+            "XLSX" => new[] { ".xlsx", ".xlsm", ".xltx", ".xltm", ".xlam" },
+            "PPTX" => new[] { ".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm", ".ppam" },
+            _ => null
+        };
+        return family == null
+            ? sourceExtensions
+            : family.Concat(sourceExtensions).Distinct(StringComparer.OrdinalIgnoreCase);
     }
 
     private static (OfficeConversionTextFormattingKind Kind, string Contract) GetTextFormattingContract(

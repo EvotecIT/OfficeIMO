@@ -28,6 +28,7 @@ internal sealed class AgentArguments {
     internal bool IncludeDescendants { get; private set; }
     internal int Take { get; private set; } = 10;
     internal int Cursor { get; private set; }
+    internal int ConversionCursor { get; private set; }
     internal int? MaxOutputCharacters { get; private set; }
     internal string? OutputPath { get; private set; }
     internal string Format { get; private set; } = "markdown";
@@ -97,6 +98,9 @@ internal sealed class AgentArguments {
                 case "--cursor":
                     parsed.Cursor = ParseInt(Next(args, ref index, token), token);
                     break;
+                case "--conversion-cursor":
+                    parsed.ConversionCursor = ParseInt(Next(args, ref index, token), token);
+                    break;
                 case "--max-output-characters":
                     parsed.MaxOutputCharacters = ParseInt(Next(args, ref index, token), token);
                     break;
@@ -140,7 +144,8 @@ internal sealed class AgentArguments {
             case AgentCommandKind.Search:
                 RequirePath();
                 if (OutputPath != null || SourceId != null || Id != null || Extension != null ||
-                    Operation != "read" || Overwrite || !Format.Equals("markdown", StringComparison.OrdinalIgnoreCase)) {
+                    Operation != "read" || Overwrite || ConversionCursor != 0 ||
+                    !Format.Equals("markdown", StringComparison.OrdinalIgnoreCase)) {
                     throw new AgentUsageException("Search received an option that belongs to another command.");
                 }
                 break;
@@ -151,7 +156,7 @@ internal sealed class AgentArguments {
                 if (Query != null || Subject != null || Sender != null || FolderId != null ||
                     Since.HasValue || Before.HasValue || HasAttachments.HasValue || IsRead.HasValue ||
                     IncludeDescendants || OutputPath != null || Extension != null || Operation != "read" ||
-                    Overwrite || !Format.Equals("markdown", StringComparison.OrdinalIgnoreCase)) {
+                    Overwrite || ConversionCursor != 0 || !Format.Equals("markdown", StringComparison.OrdinalIgnoreCase)) {
                     throw new AgentUsageException("Fetch received an option that belongs to another command.");
                 }
                 break;
@@ -163,7 +168,8 @@ internal sealed class AgentArguments {
                 if (Query != null || Subject != null || Sender != null || FolderId != null ||
                     Since.HasValue || Before.HasValue || HasAttachments.HasValue || IsRead.HasValue ||
                     IncludeDescendants || SourceId != null || Id != null || Extension != null ||
-                    Operation != "read" || MaxOutputCharacters.HasValue || Cursor != 0 || Take != 10) {
+                    Operation != "read" || MaxOutputCharacters.HasValue || Cursor != 0 ||
+                    ConversionCursor != 0 || Take != 10) {
                     throw new AgentUsageException("Convert received an option that belongs to another command.");
                 }
                 break;
@@ -189,7 +195,7 @@ internal sealed class AgentArguments {
         if (SourceId != null || Id != null || Query != null || Subject != null || Sender != null ||
             FolderId != null || Since.HasValue || Before.HasValue || HasAttachments.HasValue ||
             IsRead.HasValue || IncludeDescendants || OutputPath != null || Extension != null ||
-            Operation != "read" || Overwrite || Cursor != 0 || Take != 10 ||
+            Operation != "read" || Overwrite || Cursor != 0 || ConversionCursor != 0 || Take != 10 ||
             !Format.Equals("markdown", StringComparison.OrdinalIgnoreCase)) {
             throw new AgentUsageException("Inspect received an option that belongs to another command.");
         }

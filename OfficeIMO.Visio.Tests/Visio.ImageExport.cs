@@ -54,6 +54,23 @@ public class VisioImageExport {
             page.ToImage().AsPng().Export(new System.Threading.CancellationToken(canceled: true)));
     }
 
+    [Fact]
+    public void DirectSvgExportHonorsEncodedByteLimitForPagesAndDocuments() {
+        using var package = new MemoryStream();
+        VisioDocument document = VisioDocument.Create(package);
+        VisioPage page = document.AddPage("BoundedSvg").Size(2, 1);
+        page.AddRectangle(1, 0.5, 1.2, 0.5, "Bounded Visio SVG export");
+        var options = new VisioImageExportOptions { MaximumTotalEncodedBytes = 8L };
+
+        OfficeImageExportBatchLimitException pageException = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            page.ExportImage(OfficeImageExportFormat.Svg, options));
+        OfficeImageExportBatchLimitException documentException = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            document.ExportImage(OfficeImageExportFormat.Svg, options));
+
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), pageException.LimitName);
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), documentException.LimitName);
+    }
+
     [Theory]
     [InlineData("clip-path='url(#left)'", "")]
     [InlineData("style='clip-path:url(#left)'", "")]

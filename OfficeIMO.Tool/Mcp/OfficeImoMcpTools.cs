@@ -129,9 +129,10 @@ internal sealed class OfficeImoMcpTools {
         [Description("Optional extension such as .docx, .msg, .eml, .pst, or .ost.")] string? extension = null,
         [Description("Operation: create, read, edit, preserve, inspect, validate, remove, search, fetch, convert, or export.")] string operation = "read",
         [Description("Maximum serialized result characters, from 512 through 64000.")] int maxOutputCharacters = OfficeImoAgentService.DefaultCapabilitiesOutputCharacters,
-        [Description("Zero-based operation cursor returned by the previous page.")] int cursor = 0) =>
+        [Description("Zero-based operation cursor returned by the previous page.")] int cursor = 0,
+        [Description("Zero-based conversion cursor returned by the previous page.")] int conversionCursor = 0) =>
         Execute(
-            () => _service.Capabilities(extension, operation, maxOutputCharacters, cursor),
+            () => _service.Capabilities(extension, operation, maxOutputCharacters, cursor, conversionCursor),
             _ => "Returned filtered OfficeIMO capabilities.");
 
     private static async Task<CallToolResult> ExecuteAsync<T>(

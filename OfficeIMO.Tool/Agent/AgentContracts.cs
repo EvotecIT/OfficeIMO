@@ -95,6 +95,9 @@ public sealed class AgentCapabilitiesResult {
     public int? OperationNextCursor { get; set; }
     public int OperationReturned { get; set; }
     public IReadOnlyList<AgentOperationCapabilitySummary> Operations { get; set; } = Array.Empty<AgentOperationCapabilitySummary>();
+    public int? ConversionTotal { get; set; }
+    public int? ConversionCursor { get; set; }
+    public int? ConversionNextCursor { get; set; }
     public int ConversionReturned { get; set; }
     public IReadOnlyList<AgentConversionCapabilitySummary> Conversions { get; set; } = Array.Empty<AgentConversionCapabilitySummary>();
 }

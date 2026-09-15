@@ -48,9 +48,11 @@ internal static class VisioImageExportEngine {
             int width = Scaled(page.Width, pixelsPerInch);
             int height = Scaled(page.Height, pixelsPerInch);
             byte[] bytes = encodingBudget == null
-                ? Encoding.UTF8.GetBytes(VisioSvgRenderer.Render(
-                    page,
-                    CreateSvgOptions(options, pixelsPerInch, diagnostics, resultSource, cancellationToken)))
+                ? EncodeSvgWithinLimit(
+                    VisioSvgRenderer.Render(
+                        page,
+                        CreateSvgOptions(options, pixelsPerInch, diagnostics, resultSource, cancellationToken)),
+                    options.MaximumTotalEncodedBytes)
                 : encodingBudget.EncodeWithinRemainingBudget(
                     remaining => EncodeSvgWithinLimit(
                         VisioSvgRenderer.Render(

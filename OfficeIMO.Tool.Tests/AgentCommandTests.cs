@@ -349,6 +349,55 @@ public sealed class AgentCommandTests {
         Assert.True(AgentJson.Serialize(result).Length <= 64_000);
     }
 
+    [Fact]
+    public void ConvertCapabilitiesPagesEveryRouteWithoutDroppingTheTrimmedSuffix() {
+        var service = new OfficeImoAgentService();
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        int conversionCursor = 0;
+        int? total = null;
+
+        do {
+            AgentCapabilitiesResult page = service.Capabilities(
+                operation: "convert",
+                maxOutputCharacters: 4_000,
+                conversionCursor: conversionCursor);
+
+            int conversionTotal = Assert.IsType<int>(page.ConversionTotal);
+            int returnedCursor = Assert.IsType<int>(page.ConversionCursor);
+            total ??= conversionTotal;
+            Assert.Equal(total.Value, conversionTotal);
+            Assert.Equal(conversionCursor, returnedCursor);
+            Assert.Equal(page.Conversions.Count, page.ConversionReturned);
+            Assert.NotEmpty(page.Conversions);
+            Assert.All(page.Conversions, route =>
+                Assert.True(ids.Add(route.Id), "Duplicate conversion route id: " + route.Id));
+            int next = page.ConversionNextCursor ?? conversionTotal;
+            Assert.True(next > conversionCursor);
+            conversionCursor = next;
+        } while (conversionCursor < total!.Value);
+
+        Assert.Equal(total, ids.Count);
+        Assert.Equal(
+            OfficeConversionCapabilityCatalog.AgentRoutes.Select(route => route.Id).OrderBy(id => id),
+            ids.OrderBy(id => id));
+    }
+
+    [Theory]
+    [InlineData(".docm", "docx-pdf")]
+    [InlineData(".xlsm", "xlsx-pdf")]
+    [InlineData(".pptm", "pptx-pdf")]
+    public void ConvertCapabilitiesExposeModernOfficeFamilyVariants(string extension, string routeId) {
+        var service = new OfficeImoAgentService();
+
+        AgentCapabilitiesResult result = service.Capabilities(
+            extension,
+            operation: "convert",
+            maxOutputCharacters: 12_000);
+
+        Assert.Contains(result.Conversions, route => route.Id == routeId);
+        Assert.Contains(result.Operations, row => row.CapabilityId == routeId);
+    }
+
     [Theory]
     [InlineData(".docx", "inspect", "OfficeIMO.Word")]
     [InlineData(".pptx", "export", "OfficeIMO.PowerPoint")]
@@ -415,6 +464,24 @@ public sealed class AgentCommandTests {
         Assert.Equal(1, json.RootElement.GetProperty("operationCursor").GetInt32());
         Assert.True(json.RootElement.GetProperty("operationTotal").GetInt32() > 1);
         Assert.True(json.RootElement.GetProperty("operationReturned").GetInt32() > 0);
+    }
+
+    [Fact]
+    public async Task CliCapabilitiesAcceptsTheReturnedConversionCursor() {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await AgentCommand.RunAsync(
+            ["capabilities", "--operation", "convert", "--conversion-cursor", "1", "--max-output-characters", "4000"],
+            output,
+            error);
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal(string.Empty, error.ToString());
+        using JsonDocument json = JsonDocument.Parse(output.ToString());
+        Assert.Equal(1, json.RootElement.GetProperty("conversionCursor").GetInt32());
+        Assert.True(json.RootElement.GetProperty("conversionTotal").GetInt32() > 1);
+        Assert.True(json.RootElement.GetProperty("conversionReturned").GetInt32() > 0);
     }
 
     [Fact]
