@@ -122,11 +122,11 @@ public static partial class OfficeSvgDrawingReader {
                 int firstTextRun = runs.Count;
                 double fontSize = Math.Max(0.1D, style.FontSize);
                 if (style.WritingMode != SvgWritingMode.HorizontalTb) {
-                    AddVerticalTextRuns(text, style, fonts, transform, baselineShift, positioning, viewX, viewY, runs, ref cursor);
+                    AddVerticalTextRuns(text, style, fonts, transform, baselineShift, positioning, viewX, viewY, runs, ref cursor, ref unsupported);
                     observer?.Associate(textNode, style, runs, firstTextRun);
                     continue;
                 }
-                AddHorizontalTextRuns(text, style, fonts, transform, baselineShift, positioning, viewX, viewY, runs, ref cursor);
+                AddHorizontalTextRuns(text, style, fonts, transform, baselineShift, positioning, viewX, viewY, runs, ref cursor, ref unsupported);
                 observer?.Associate(textNode, style, runs, firstTextRun);
                 continue;
             }
@@ -199,7 +199,8 @@ public static partial class OfficeSvgDrawingReader {
         double viewX,
         double viewY,
         ICollection<SvgTextRun> runs,
-        ref SvgTextCursor cursor) {
+        ref SvgTextCursor cursor,
+        ref int unsupported) {
         double fontSize = Math.Max(0.1D, style.FontSize);
         if (positioning == null || !positioning.RequiresPerCharacterRuns) {
             double rotation = positioning?.Apply(ref cursor, viewX, viewY) ?? 0D;
@@ -212,7 +213,10 @@ public static partial class OfficeSvgDrawingReader {
             return;
         }
         foreach (string glyph in OfficeTextElements.Split(text)) {
-            if (runs.Count >= MaximumTextRuns) return;
+            if (runs.Count >= MaximumTextRuns) {
+                ReportTextRunLimit(ref cursor, ref unsupported);
+                return;
+            }
             double rotation = positioning.Apply(ref cursor, viewX, viewY);
             double width = MeasureSvgText(glyph, fontSize, style, fonts, out IOfficeFontProgram? fontProgram);
             double baseline = ResolveTextBaseline(cursor.Baseline, fontSize, style.DominantBaseline) - baselineShift;
@@ -235,13 +239,17 @@ public static partial class OfficeSvgDrawingReader {
         double viewX,
         double viewY,
         ICollection<SvgTextRun> runs,
-        ref SvgTextCursor cursor) {
+        ref SvgTextCursor cursor,
+        ref int unsupported) {
         bool rightToLeftColumns = style.WritingMode is SvgWritingMode.VerticalRl or SvgWritingMode.SidewaysRl;
         bool alwaysSideways = style.WritingMode is SvgWritingMode.SidewaysRl or SvgWritingMode.SidewaysLr
             || style.TextOrientation == SvgTextOrientation.Sideways;
         double fontSize = Math.Max(0.1D, style.FontSize);
         foreach (string glyph in OfficeTextElements.Split(text)) {
-            if (runs.Count >= MaximumTextRuns) return;
+            if (runs.Count >= MaximumTextRuns) {
+                ReportTextRunLimit(ref cursor, ref unsupported);
+                return;
+            }
             double authoredRotation = positioning?.Apply(ref cursor, viewX, viewY) ?? 0D;
             double glyphWidth = MeasureSvgText(glyph, fontSize, style, fonts, out IOfficeFontProgram? fontProgram);
             double advance = fontSize;

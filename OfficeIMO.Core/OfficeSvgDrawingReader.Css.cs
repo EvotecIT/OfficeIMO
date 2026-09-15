@@ -11,6 +11,7 @@ public static partial class OfficeSvgDrawingReader {
     private const int MaximumSvgCssRules = 4096;
     private const int MaximumSvgCssDeclarations = 32768;
     private const long MaximumSvgCssMatchWork = 2_000_000L;
+    private const long MaximumSvgComputedCssCharacters = 16L * 1024L * 1024L;
 
     private static bool ApplySvgStylesheets(XElement root, ref int unsupported, bool requireCompleteCss = false) {
         var rules = new List<SvgCssRule>();
@@ -21,6 +22,11 @@ public static partial class OfficeSvgDrawingReader {
         foreach (XElement style in selectorRoot.DescendantsAndSelf().Where(element =>
                      IsNativeSvgElement(element, svgNamespace) &&
                      element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase))) {
+            if (!IsSupportedSvgStylesheetElement(style)) {
+                unsupported++;
+                complete = false;
+                continue;
+            }
             if (rules.Count >= MaximumSvgCssRules || declarations >= MaximumSvgCssDeclarations) {
                 unsupported++;
                 complete = false;
@@ -48,6 +54,7 @@ public static partial class OfficeSvgDrawingReader {
         XElement[] elements = root.DescendantsAndSelf().ToArray();
         XElement[] selectorElements = selectorRoot.DescendantsAndSelf().ToArray();
         long remainingMatchWork = MaximumSvgCssMatchWork;
+        long remainingComputedCssCharacters = MaximumSvgComputedCssCharacters;
         bool matchWorkExceeded = false;
         var computedCustomProperties = new Dictionary<XElement, IReadOnlyDictionary<string, string>>();
         for (int elementIndex = 0; elementIndex < elements.Length; elementIndex++) {
@@ -91,10 +98,15 @@ public static partial class OfficeSvgDrawingReader {
                 }
                 SetSvgCssWinner(winners, declaration, SvgCssSpecificity.Inline, inlineOrder++);
             }
-            IReadOnlyDictionary<string, string> customProperties = ResolveSvgCustomProperties(
+            if (!TryResolveSvgCustomProperties(
                 element,
                 winners,
-                computedCustomProperties);
+                computedCustomProperties,
+                ref remainingComputedCssCharacters,
+                out IReadOnlyDictionary<string, string> customProperties)) {
+                unsupported++;
+                return false;
+            }
             computedCustomProperties[element] = customProperties;
             if (winners.Count == 0) {
                 if (hadInlineStyle) element.SetAttributeValue("style", null);
@@ -119,14 +131,16 @@ public static partial class OfficeSvgDrawingReader {
                     continue;
                 }
                 if (value == null) continue;
+                long declarationCharacters = pair.Key.Length + value.Length + (css.Length > 0 ? 2L : 1L);
+                if (declarationCharacters > remainingComputedCssCharacters) {
+                    unsupported++;
+                    return false;
+                }
+                remainingComputedCssCharacters -= declarationCharacters;
                 if (css.Length > 0) css.Append(';');
                 css.Append(pair.Key).Append(':').Append(value);
             }
-            foreach (KeyValuePair<string, string> custom in customProperties) {
-                if (css.Length > 0) css.Append(';');
-                css.Append(custom.Key).Append(':').Append(custom.Value);
-            }
-            element.SetAttributeValue("style", css.ToString());
+            element.SetAttributeValue("style", css.Length == 0 ? null : css.ToString());
             foreach (string propertyName in appliedPresentationProperties) {
                 element.Attribute(propertyName)?.Remove();
             }
@@ -134,19 +148,52 @@ public static partial class OfficeSvgDrawingReader {
         return complete;
     }
 
-    private static IReadOnlyDictionary<string, string> ResolveSvgCustomProperties(
+    private static bool TryResolveSvgCustomProperties(
         XElement element,
         IReadOnlyDictionary<string, SvgCssWinner> winners,
-        IReadOnlyDictionary<XElement, IReadOnlyDictionary<string, string>> computedProperties) {
+        IReadOnlyDictionary<XElement, IReadOnlyDictionary<string, string>> computedProperties,
+        ref long remainingComputedCssCharacters,
+        out IReadOnlyDictionary<string, string> properties) {
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
         XElement? parent = element.Parent;
         if (parent != null && computedProperties.TryGetValue(parent, out IReadOnlyDictionary<string, string>? inherited)) {
-            foreach (KeyValuePair<string, string> property in inherited) result[property.Key] = property.Value;
+            foreach (KeyValuePair<string, string> property in inherited) {
+                if (!TryConsumeSvgComputedCssCharacters(property.Key, property.Value, ref remainingComputedCssCharacters)) {
+                    properties = result;
+                    return false;
+                }
+                result[property.Key] = property.Value;
+            }
         }
         foreach (KeyValuePair<string, SvgCssWinner> winner in winners) {
-            if (winner.Key.StartsWith("--", StringComparison.Ordinal)) result[winner.Key] = winner.Value.Value;
+            if (!winner.Key.StartsWith("--", StringComparison.Ordinal)) continue;
+            if (!TryConsumeSvgComputedCssCharacters(winner.Key, winner.Value.Value, ref remainingComputedCssCharacters)) {
+                properties = result;
+                return false;
+            }
+            result[winner.Key] = winner.Value.Value;
         }
-        return result;
+        properties = result;
+        return true;
+    }
+
+    private static bool TryConsumeSvgComputedCssCharacters(
+        string name,
+        string value,
+        ref long remainingCharacters) {
+        long required = name.Length + value.Length + 2L;
+        if (required > remainingCharacters) return false;
+        remainingCharacters -= required;
+        return true;
+    }
+
+    private static bool IsSupportedSvgStylesheetElement(XElement style) {
+        string? media = style.Attribute("media")?.Value;
+        if (!string.IsNullOrWhiteSpace(media) && !media!.Trim().Equals("all", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+        string? type = style.Attribute("type")?.Value;
+        return string.IsNullOrWhiteSpace(type) || type!.Trim().Equals("text/css", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool ParseSvgCssRules(

@@ -249,6 +249,11 @@ public static partial class OfficeSvgDrawingReader {
             fonts,
             document,
             observer,
+            document.ViewX,
+            document.ViewY,
+            document.ViewWidth,
+            document.ViewHeight,
+            depth: 0,
             ref unsupported);
     }
 
@@ -261,11 +266,39 @@ public static partial class OfficeSvgDrawingReader {
         OfficeFontFaceCollection fonts,
         SvgContentSafetyDocument document,
         SvgContentSafetyTextObserver observer,
+        double viewX,
+        double viewY,
+        double viewWidth,
+        double viewHeight,
+        int depth,
         ref int unsupported) {
+        if (depth > MaximumSvgNestingDepth) {
+            throw new InvalidDataException("The SVG exceeds the bounded element-nesting limit.");
+        }
         foreach (XElement child in parent.Elements()) {
             if (!IsNativeSvgElement(child, document.Root.Name.Namespace)) continue;
             SvgPaintContext style = ResolvePaintContext(child, inheritedStyle, paintServers, ref unsupported);
-            OfficeTransform transform = ResolveTransform(child, inheritedTransform, document.ViewX, document.ViewY, ref unsupported);
+            OfficeTransform transform = ResolveTransform(child, inheritedTransform, viewX, viewY, ref unsupported);
+            double childViewX = viewX;
+            double childViewY = viewY;
+            double childViewWidth = viewWidth;
+            double childViewHeight = viewHeight;
+            if (child.Name.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase) &&
+                !TryResolveSvgContentSafetyNestedViewport(
+                    child,
+                    transform,
+                    viewX,
+                    viewY,
+                    viewWidth,
+                    viewHeight,
+                    document,
+                    out transform,
+                    out childViewX,
+                    out childViewY,
+                    out childViewWidth,
+                    out childViewHeight)) {
+                throw new InvalidDataException("The SVG contains nested viewport geometry outside the bounded native subset.");
+            }
             if (child.Name.LocalName.Equals("text", StringComparison.OrdinalIgnoreCase)) {
                 var runs = new List<SvgTextRun>();
                 var paths = new List<SvgTextPathLayout>();
@@ -280,10 +313,10 @@ public static partial class OfficeSvgDrawingReader {
                     transform,
                     preserve,
                     resolveElement: false,
-                    document.ViewX,
-                    document.ViewY,
-                    document.ViewWidth,
-                    document.ViewHeight,
+                    childViewX,
+                    childViewY,
+                    childViewWidth,
+                    childViewHeight,
                     runs,
                     paths,
                     observer,
@@ -293,8 +326,11 @@ public static partial class OfficeSvgDrawingReader {
                     depth: 0,
                     ref cursor,
                     ref unsupported);
+                if (cursor.LimitReported) {
+                    throw new InvalidDataException("The SVG exceeds the bounded text-run inspection limit.");
+                }
                 ApplyTextAnchors(runs);
-                ApplyTextPaths(runs, paths, references, document.ViewX, document.ViewY, ref unsupported);
+                ApplyTextPaths(runs, paths, references, childViewX, childViewY, ref unsupported);
                 observer.FinalizeRuns(runs);
                 continue;
             }
@@ -307,8 +343,62 @@ public static partial class OfficeSvgDrawingReader {
                 fonts,
                 document,
                 observer,
+                childViewX,
+                childViewY,
+                childViewWidth,
+                childViewHeight,
+                depth + 1,
                 ref unsupported);
         }
+    }
+
+    private static bool TryResolveSvgContentSafetyNestedViewport(
+        XElement element,
+        OfficeTransform elementTransform,
+        double parentViewX,
+        double parentViewY,
+        double parentViewWidth,
+        double parentViewHeight,
+        SvgContentSafetyDocument document,
+        out OfficeTransform contentTransform,
+        out double childViewX,
+        out double childViewY,
+        out double childViewWidth,
+        out double childViewHeight) {
+        contentTransform = elementTransform;
+        childViewX = 0D;
+        childViewY = 0D;
+        childViewWidth = parentViewWidth;
+        childViewHeight = parentViewHeight;
+        double x = ReadViewportCoordinate(element, "x", parentViewX, parentViewWidth);
+        double y = ReadViewportCoordinate(element, "y", parentViewY, parentViewHeight);
+        if (!TryNestedViewportLength(element.Attribute("width")?.Value, parentViewWidth, out double width)
+            || !TryNestedViewportLength(element.Attribute("height")?.Value, parentViewHeight, out double height)
+            || !IsSupportedSvgViewport(width, height, document.MaximumViewportDimension, document.MaximumViewportPixels)) {
+            return false;
+        }
+
+        string? viewBoxText = element.Attribute("viewBox")?.Value;
+        if (string.IsNullOrWhiteSpace(viewBoxText)) {
+            childViewWidth = width;
+            childViewHeight = height;
+        } else {
+            if (!TryParseNumberList(viewBoxText, out IReadOnlyList<double> viewBox)
+                || viewBox.Count != 4
+                || !IsSupportedSvgViewport(viewBox[2], viewBox[3], document.MaximumViewportDimension, document.MaximumViewportPixels)) {
+                return false;
+            }
+            childViewX = viewBox[0];
+            childViewY = viewBox[1];
+            childViewWidth = viewBox[2];
+            childViewHeight = viewBox[3];
+        }
+        if (!TryParsePreserveAspectRatio(element.Attribute("preserveAspectRatio")?.Value,
+                out SvgAspectAlignment alignment, out bool slice)) return false;
+        contentTransform = ResolveViewportTransform(childViewWidth, childViewHeight, width, height, alignment, slice)
+            .Then(OfficeTransform.Translate(x, y))
+            .Then(elementTransform);
+        return IsSupportedSvgTransform(contentTransform);
     }
 
     private static bool TryClassifySvgNonPrimary(

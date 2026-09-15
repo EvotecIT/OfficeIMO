@@ -129,6 +129,9 @@ public static partial class OfficeSvgDrawingReader {
             !root.Name.NamespaceName.Equals("http://www.w3.org/2000/svg", StringComparison.Ordinal)) {
             throw new InvalidDataException("The SVG root must use the standard SVG namespace or no namespace.");
         }
+        if (ExceedsSvgElementNestingLimit(root)) {
+            throw new InvalidDataException("The SVG exceeds the bounded element-nesting limit.");
+        }
         int maximumVisualComparisons = readerOptions?.MaximumContentSafetyVisualComparisons ??
             OfficeSvgDrawingReaderOptions.DefaultMaximumContentSafetyVisualComparisons;
         long maximumVisualPixels = readerOptions?.MaximumContentSafetyVisualPixels ??

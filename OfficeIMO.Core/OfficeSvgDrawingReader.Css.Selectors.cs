@@ -137,7 +137,8 @@ public static partial class OfficeSvgDrawingReader {
                     item.Name.NamespaceName.Length == 0 && item.Name.LocalName.Equals(name, StringComparison.Ordinal));
                 if (attribute == null) return false;
                 if (equals >= 0) {
-                    string expected = predicate.Substring(equals + 1).Trim().Trim('\'', '"');
+                    string expected = predicate.Substring(equals + 1).Trim();
+                    if (expected[0] is '\'' or '"') expected = expected.Substring(1, expected.Length - 2);
                     if (!string.Equals(attribute.Value, expected, StringComparison.Ordinal)) return false;
                 }
                 index = close + 1;
@@ -211,13 +212,14 @@ public static partial class OfficeSvgDrawingReader {
             string name = (equals < 0 ? predicate : predicate.Substring(0, equals)).Trim();
             if (!IsSupportedSvgSelectorIdentifier(name)) return false;
             if (equals >= 0) {
+                if (predicate.IndexOf('=', equals + 1) >= 0) return false;
                 string expected = predicate.Substring(equals + 1).Trim();
                 if (expected.Length == 0) return false;
                 if (expected[0] is '\'' or '"') {
                     if (expected.Length < 2 || expected[expected.Length - 1] != expected[0]) return false;
-                } else if (expected.Any(char.IsWhiteSpace) || expected.IndexOfAny(new[] { '\'', '"' }) >= 0) {
-                    return false;
-                }
+                    string quoted = expected.Substring(1, expected.Length - 2);
+                    if (quoted.IndexOf(expected[0]) >= 0 || quoted.IndexOf('\\') >= 0 || quoted.Any(char.IsControl)) return false;
+                } else if (!IsSupportedSvgSelectorIdentifier(expected)) return false;
             }
             cursor = close + 1;
         }

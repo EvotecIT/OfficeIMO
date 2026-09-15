@@ -543,6 +543,66 @@ public sealed class SvgContentSafetyTests {
     }
 
     [Fact]
+    public void NestedSvgViewportMapsVisibleTextIntoTheRootCanvas() {
+        byte[] svg = Svg("""
+            <svg x="10" y="10" width="100" height="50" viewBox="1000 0 100 50">
+              <text x="1000" y="30">nested visible text</text>
+            </svg>
+            """);
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "nested visible text");
+    }
+
+    [Theory]
+    [InlineData("media='print'")]
+    [InlineData("type='text/less'")]
+    public void ConditionalOrNonCssStylesheetsFailClosed(string attributes) {
+        byte[] svg = Svg($"<style {attributes}>text {{ display:none }}</style><text x='10' y='35'>visible text</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void InheritedCustomPropertyExpansionHasACumulativeBudget() {
+        string value = new string('x', 3000);
+        string elements = string.Concat(Enumerable.Repeat("<g/>", 6000));
+        byte[] svg = Svg($"<style>svg{{--payload:{value}}}g{{opacity:1}}</style>{elements}<text x='10' y='35'>visible text</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Theory]
+    [InlineData("[data-state==hidden]")]
+    [InlineData("[data-state=hidden=again]")]
+    [InlineData("[data-state='hidden'junk]")]
+    public void MalformedAttributeSelectorEqualityFailsClosed(string selector) {
+        byte[] svg = Svg($"<style>{selector}{{display:none}}</style><text data-state='=hidden' x='10' y='35'>visible text</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void TextRunBudgetFailsClosedBeforeOmittingLaterCandidates() {
+        string fragmented = string.Join("<!---->", Enumerable.Repeat("x", 4097));
+        byte[] svg = Svg($"<text opacity='0' x='10' y='35'>{fragmented}</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void ExcessiveElementNestingFailsClosedBeforeRecursiveInspection() {
+        string nested = string.Concat(Enumerable.Repeat("<g>", 130)) +
+            "<text x='10' y='35'>nested text</text>" +
+            string.Concat(Enumerable.Repeat("</g>", 130));
+        byte[] svg = Svg(nested);
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
     public void ExcessiveTextNodeFragmentationFailsClosed() {
         string fragmented = string.Join("<!---->", Enumerable.Repeat("x", OfficeSvgDrawingReaderOptions.DefaultMaximumElements + 1));
         byte[] svg = Svg($"<text x=\"10\" y=\"35\">{fragmented}</text>");
