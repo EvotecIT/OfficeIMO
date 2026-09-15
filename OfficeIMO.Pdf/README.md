@@ -1048,7 +1048,9 @@ PdfExternalSignatureCompletion signed = PdfDocument
             VisibleAppearance = new PdfVisibleSignatureAppearanceOptions {
                 ImageBytes = File.ReadAllBytes("approval-mark.png"),
                 ImageFit = OfficeImageFit.Contain,
-                ShowText = false
+                ShowText = false,
+                ShowBackground = false,
+                ShowBorder = false
             }
         });
 
@@ -1062,6 +1064,8 @@ The PDF package owns byte ranges, incremental updates, signature dictionaries, a
 provider owns CMS, timestamps, and certificate trust. A custom `IPdfExternalSigner` or
 `IPdfSignatureCryptographyProvider` remains valid without `OfficeIMO.Security`.
 The optional appearance image is visual content only; certificate validation remains the source of signer identity.
+Set `ShowText`, `ShowBackground`, and `ShowBorder` to `false` for an image-only appearance. Existing appearances retain
+their background and border because both new visibility options default to `true`.
 
 ### Review, apply, and verify redactions
 

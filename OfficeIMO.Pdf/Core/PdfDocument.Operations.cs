@@ -135,6 +135,16 @@ public sealed partial class PdfDocument {
         PdfLoadOptions? options,
         PdfMutationExecutionPreference executionPreference,
         CancellationToken cancellationToken) {
+        return PlanMutation(operation, fieldNames, options, executionPreference, signatureProfile: null, cancellationToken);
+    }
+
+    private PdfMutationPlan PlanMutation(
+        PdfMutationOperation operation,
+        IEnumerable<string>? fieldNames,
+        PdfLoadOptions? options,
+        PdfMutationExecutionPreference executionPreference,
+        PdfSignatureProfile? signatureProfile,
+        CancellationToken cancellationToken) {
         var snapshot = GetReadSnapshot(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentPreflight preflight = PdfInspector.Preflight(
@@ -143,7 +153,7 @@ public sealed partial class PdfDocument {
             () => snapshot.Document,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        return PdfMutationPlanner.Plan(preflight, snapshot.Bytes, operation, fieldNames, executionPreference, snapshot.Options);
+        return PdfMutationPlanner.Plan(preflight, snapshot.Bytes, operation, fieldNames, executionPreference, snapshot.Options, signatureProfile);
     }
 
     /// <summary>
@@ -435,11 +445,18 @@ public sealed partial class PdfDocument {
         Func<PdfMutationExecutionMode, T> operation,
         IEnumerable<string>? fieldNames = null,
         PdfLoadOptions? options = null,
-        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) where T : class {
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
+        PdfSignatureProfile? signatureProfile = null) where T : class {
         Guard.NotNullOrWhiteSpace(operationName, nameof(operationName));
         Guard.NotNull(operation, nameof(operation));
 
-        PdfMutationPlan plan = PlanMutation(mutationOperation, fieldNames, options, executionPreference);
+        PdfMutationPlan plan = PlanMutation(
+            mutationOperation,
+            fieldNames,
+            options,
+            executionPreference,
+            signatureProfile,
+            CancellationToken.None);
         if (!plan.CanExecute) {
             return PdfOperationResult<T>.MutationBlocked(operationName, capability, plan);
         }
@@ -699,12 +716,15 @@ public sealed partial class PdfDocument {
     /// Attempts to append an external-signature placeholder revision, returning diagnostics when blocked or failed.
     /// </summary>
     internal PdfOperationResult<PdfExternalSignaturePreparation> PrepareExternalSignatureResult(PdfExternalSignatureOptions? signatureOptions = null, PdfLoadOptions? options = null) {
+        PdfExternalSignatureOptions effectiveOptions = signatureOptions ?? new PdfExternalSignatureOptions();
         return TryMutationOperation(
             "Prepare external signature",
             PdfPreflightCapability.PrepareExternalSignatureRevision,
             PdfMutationOperation.PrepareExternalSignature,
-            _ => PrepareExternalSignature(signatureOptions),
-            options: options);
+            _ => PrepareExternalSignature(effectiveOptions),
+            fieldNames: new[] { effectiveOptions.FieldName },
+            options: options,
+            signatureProfile: PdfIncrementalUpdater.ResolveSignatureProfile(effectiveOptions));
     }
 
     /// <summary>
