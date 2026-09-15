@@ -230,7 +230,7 @@ internal sealed partial class OfficeImoAgentService {
         while (AgentJson.Measure(result) > maxOutputCharacters &&
                (operations.Count > 0 || conversions.Count > 0 || capabilities.Count > 0)) {
             bool removed = true;
-            if (normalizedExtension != null && operations.Count > 1) {
+            if (operations.Count > 1) {
                 operations.RemoveAt(operations.Count - 1);
                 result.OperationReturned = operations.Count;
                 result.OperationNextCursor = cursor + operations.Count < operationTotal

@@ -16,7 +16,7 @@
     "formatCount": 28,
     "capabilityCount": 137,
     "packageCount": 63,
-    "operationCount": 1312
+    "operationCount": 1323
   },
   "fidelityStates": [
     {
@@ -2176,8 +2176,9 @@
     {
       "id": "OfficeIMO.Email",
       "slug": "email",
-      "capabilityCount": 77,
+      "capabilityCount": 88,
       "formats": [
+        "Email.AddressBook.Oab",
         "Email.Calendar",
         "Email.Contact",
         "Email.Native",
@@ -2208,7 +2209,7 @@
               "id": "Unsupported",
               "label": "Unsupported",
               "description": "The operation is not implemented.",
-              "count": 5
+              "count": 6
             }
           ]
         },
@@ -2237,7 +2238,18 @@
               "id": "Unsupported",
               "label": "Unsupported",
               "description": "The operation is not implemented.",
-              "count": 2
+              "count": 3
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 5
             }
           ]
         },
@@ -2248,7 +2260,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 13
+              "count": 14
             }
           ]
         },
@@ -2271,7 +2283,7 @@
               "id": "Unsupported",
               "label": "Unsupported",
               "description": "The operation is not implemented.",
-              "count": 2
+              "count": 3
             }
           ]
         },
@@ -2282,7 +2294,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 13
+              "count": 14
             }
           ]
         },
@@ -2310,7 +2322,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 9
+              "count": 10
             },
             {
               "id": "NotApplicable",

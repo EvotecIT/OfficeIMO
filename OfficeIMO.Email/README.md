@@ -501,13 +501,14 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 8 | 0 | 0 | 0 | 5 | 0 |
-| Read | 13 | 0 | 0 | 0 | 0 | 0 |
-| Edit | 6 | 0 | 4 | 1 | 2 | 0 |
-| Preserve | 2 | 4 | 0 | 0 | 2 | 0 |
-| Inspect | 13 | 0 | 0 | 0 | 0 | 0 |
-| Validate | 9 | 0 | 0 | 0 | 0 | 3 |
+| Create | 8 | 0 | 0 | 0 | 6 | 0 |
+| Read | 14 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 6 | 0 | 4 | 1 | 3 | 0 |
+| Preserve | 2 | 4 | 0 | 0 | 3 | 0 |
+| Inspect | 14 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 10 | 0 | 0 | 0 | 0 | 3 |
 | Remove | 0 | 0 | 0 | 0 | 1 | 4 |
+| Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Email` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

@@ -255,6 +255,23 @@ public sealed class OfficeOperationCapabilityCatalogTests {
         Assert.Contains(rows, row => row.Operation == OfficeOperationKind.Read && row.State == OfficeOperationSupportState.Supported);
         Assert.Contains(rows, row => row.Operation == OfficeOperationKind.Edit && row.State == editState);
         Assert.Contains(rows, row => row.Operation == OfficeOperationKind.Inspect && row.State == OfficeOperationSupportState.Supported);
+        Assert.Contains(rows, row => row.Operation == OfficeOperationKind.Export && row.State == OfficeOperationSupportState.Supported);
+        Assert.All(rows, row => Assert.False(string.IsNullOrWhiteSpace(row.Limitation)));
+    }
+
+    [Fact]
+    public void OfflineAddressBookPublishesBoundedReadOnlyLifecycle() {
+        OfficeOperationCapability[] rows = OfficeOperationCapabilityCatalog.FindByExtension(".oab")
+            .Where(row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
+                row.FormatId == "Email.AddressBook.Oab")
+            .ToArray();
+
+        Assert.All(new[] { OfficeOperationKind.Read, OfficeOperationKind.Inspect, OfficeOperationKind.Validate }, operation =>
+            Assert.Contains(rows, row => row.Operation == operation &&
+                row.State == OfficeOperationSupportState.Supported));
+        Assert.All(new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit, OfficeOperationKind.Preserve }, operation =>
+            Assert.Contains(rows, row => row.Operation == operation &&
+                row.State == OfficeOperationSupportState.Unsupported));
         Assert.All(rows, row => Assert.False(string.IsNullOrWhiteSpace(row.Limitation)));
     }
 

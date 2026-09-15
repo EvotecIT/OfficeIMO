@@ -333,6 +333,22 @@ public sealed class AgentCommandTests {
         Assert.Equal(result.Conversions.Count, result.ConversionReturned);
     }
 
+    [Fact]
+    public void UnfilteredConvertPaginationPreservesRouteDetails() {
+        var service = new OfficeImoAgentService();
+
+        AgentCapabilitiesResult result = service.Capabilities(
+            operation: "convert",
+            maxOutputCharacters: 64_000);
+
+        Assert.NotEmpty(result.Conversions);
+        Assert.Contains(result.Conversions, route => route.Id == "docx-pdf");
+        Assert.Equal(result.Conversions.Count, result.ConversionReturned);
+        Assert.NotEmpty(result.Operations);
+        Assert.NotNull(result.OperationNextCursor);
+        Assert.True(AgentJson.Serialize(result).Length <= 64_000);
+    }
+
     [Theory]
     [InlineData(".docx", "inspect", "OfficeIMO.Word")]
     [InlineData(".pptx", "export", "OfficeIMO.PowerPoint")]
