@@ -10,7 +10,7 @@ public static partial class HtmlRenderCapabilityCatalog {
     private const string MathMlRevision = "f69212ad1f21bbfb7cde24264608c23b96b0e1b7";
     private const string WptRevision = "d63987ce254c38880525061eb87949f3f56716a8";
     private const string Html5LibRevision = "224991ec10db04f056a89eed8b0bd8695fd2950e";
-    private const string H4AdvancedHeldOutManifestRevision = "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8";
+    private const string H4AdvancedHeldOutAcceptanceRevision = "ef96c8807e9077bda10a5eb96c5fd65873c5cf13ac109e143613cb0ee0aa2d1e";
 
     private static string[] H4AdvancedHeldOutCaseIds() => new[] {
         "columns-footnotes-brief", "legacy-portal", "named-pages-brochure", "nested-fragmentation-report",
@@ -102,12 +102,12 @@ public static partial class HtmlRenderCapabilityCatalog {
 
     private static readonly HtmlCapabilityEvidencePin[] StaticScreenEvidence = DocumentEvidence.Concat(new[] {
         Evidence(HtmlCapabilityEvidenceIds.H4ScreenRepresentative, "OfficeIMO H4 continuous-mode HTML rendering corpus", "H4/representative", HtmlCapabilityEvidenceRole.Qualification, "established whole-corpus qualification for the stable screen profile; it is not a capability-complete browser-equivalence claim", required: 9, passed: 9, failed: 0, excluded: 0, untested: 0, caseIds: new[] { "application-form", "browser-local-workbench", "chart-report", "dashboard-print", "email-render", "invoice", "multilingual-bidi", "product-catalog", "quarterly-report" }),
-        Evidence(HtmlCapabilityEvidenceIds.H4ScreenAdvancedHeldOut, "OfficeIMO H4 advanced held-out screen rendering selection", H4AdvancedHeldOutManifestRevision, HtmlCapabilityEvidenceRole.Regression, "screen-full-page-v1 through PNG and SVG with retained Chromium geometry and pixel observations; the selected execution counts are regression evidence and do not assert browser-equivalent visual acceptance", required: 8, passed: 8, failed: 0, excluded: 0, untested: 0, caseIds: H4AdvancedHeldOutCaseIds(), selections: CreateH4AdvancedHeldOutScreenSelections())
+        Evidence(HtmlCapabilityEvidenceIds.H4ScreenAdvancedHeldOut, "OfficeIMO H4 advanced held-out screen rendering selection", H4AdvancedHeldOutAcceptanceRevision, HtmlCapabilityEvidenceRole.Qualification, "screen-full-page-v1 passed the declared per-case source-marker, Chromium geometry, and pixel criteria on Windows, Linux, and macOS; bounded classifications and exclusions remain selected evidence rather than general browser equivalence", required: 8, passed: 8, failed: 0, excluded: 0, untested: 0, caseIds: H4AdvancedHeldOutCaseIds(), selections: CreateH4AdvancedHeldOutScreenSelections())
     }).ToArray();
 
     private static readonly HtmlCapabilityEvidencePin[] PagedEvidence = DocumentEvidence.Concat(new[] {
         Evidence(HtmlCapabilityEvidenceIds.H4PagedRepresentative, "OfficeIMO H4 paged-mode HTML rendering corpus", "H4/representative", HtmlCapabilityEvidenceRole.Qualification, "established whole-corpus qualification for the stable paged profile; it is not a capability-complete browser-equivalence claim", required: 6, passed: 6, failed: 0, excluded: 0, untested: 0, caseIds: new[] { "account-statement", "book-extract", "business-letter", "certificate", "legal-contract", "static-standards-showcase" }),
-        Evidence(HtmlCapabilityEvidenceIds.H4PagedAdvancedHeldOut, "OfficeIMO H4 advanced held-out paged rendering selection", H4AdvancedHeldOutManifestRevision, HtmlCapabilityEvidenceRole.Regression, "print-paged-v1 and screen-snapshot-paged-v1 through PDF, PNG, and SVG with retained Chromium print and screen observations; the selected execution counts are regression evidence and do not assert browser-equivalent visual acceptance", required: 8, passed: 8, failed: 0, excluded: 0, untested: 0, caseIds: H4AdvancedHeldOutCaseIds(), selections: CreateH4AdvancedHeldOutPagedSelections())
+        Evidence(HtmlCapabilityEvidenceIds.H4PagedAdvancedHeldOut, "OfficeIMO H4 advanced held-out paged rendering selection", H4AdvancedHeldOutAcceptanceRevision, HtmlCapabilityEvidenceRole.Qualification, "print-paged-v1 and screen-snapshot-paged-v1 passed the declared per-case source-marker, page, text, pixel, and profile-consistency criteria on Windows, Linux, and macOS; accepted bleed, fixed-slicing, text-extraction, and managed-layout differences remain explicitly bounded", required: 8, passed: 8, failed: 0, excluded: 0, untested: 0, caseIds: H4AdvancedHeldOutCaseIds(), selections: CreateH4AdvancedHeldOutPagedSelections())
     }).ToArray();
 
     private static readonly IReadOnlyList<HtmlCapabilityProfileManifest> Profiles = new[] {

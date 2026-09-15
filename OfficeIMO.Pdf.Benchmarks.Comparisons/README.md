@@ -66,7 +66,9 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
     -f net10.0 `
     -- html-corpus-evidence `
     --corpus advanced-held-out `
-    --output $output
+    --output $output `
+    --verify-acceptance `
+    --require-clean-source
 ```
 
 The command renders every selected H4 source as an OfficeIMO screen PNG, print PDF,
@@ -74,20 +76,28 @@ screen-to-PDF artifact, and per-page scene PNG/SVG; a PeachPDF print PDF; and a
 Chromium screen PNG and print PDF. It records text-marker preservation, normalized
 text overlap, selected-element geometry, page counts, pixel differences, versions,
 hashes, timings, allocations, diagnostics, and individual provider failures in
-`html-corpus-evidence.json`. Pass `--case <id>` for a focused run.
+`html-corpus-evidence.json`. With `--verify-acceptance`, it also writes the
+human-readable `html-corpus-acceptance.md` report and exits unsuccessfully when a
+required criterion, case, or capability selection fails.
 
 Poppler's `pdftoppm` and `pdftotext` must be on `PATH`. External PDF page images,
 page counts, and text are observed through Poppler so OfficeIMO.Pdf is not its own
 comparison oracle. Reference engines may omit text that OfficeIMO intentionally
 preserves, including form values, image alternatives, and SVG labels; those remain
-visible in each reference's `missingMarkers` field without failing OfficeIMO's
-rendering pass. Geometry and pixel differences are retained observations; the runner
-does not impose a universal browser-equivalence threshold. Raw artifacts are review
-and regression evidence and remain in the caller-selected output directory. H4/advanced-held-out is
-the independently authored held-out selection. Its original source bytes and hashes
-are preserved in the bundle, including legacy encodings. Pass
-`--corpus representative` to use the established qualification corpus or `--case <id>` for a
-focused run.
+visible in each reference's `missingMarkers` field. The H4/advanced-held-out gate
+requires OfficeIMO to preserve every declared source marker and applies the exact
+per-case screen, print, and screen-to-page criteria in the checked-in
+`acceptance.json`. Every case and applicable capability selection must pass. Chromium
+provides the screen and print reference; it is not a universal oracle, so intentional
+sheet, extraction, font, clipping, and managed-layout differences are admitted only
+through a named classification and bounded criteria. Raw artifacts remain in the
+caller-selected output directory for visual review at normal reading size.
+
+H4/advanced-held-out is the independently authored held-out selection. Its original
+source bytes and hashes are preserved in the bundle, including legacy encodings.
+Pass `--corpus representative` to use the established qualification corpus.
+`--case <id>` is available for focused inspection and cannot be combined with
+`--verify-acceptance`, because a partial run cannot qualify the corpus.
 
 Measure and enforce the H4/advanced-held-out OfficeIMO static-rendering budgets separately from
 the reference-engine comparison:

@@ -130,10 +130,10 @@ public partial class Html {
         HtmlCapabilityEvidencePin heldOutScreen = staticProfile.Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4ScreenAdvancedHeldOut);
         HtmlCapabilityEvidencePin heldOutPaged = HtmlRenderCapabilityCatalog.GetProfile(HtmlCapabilityProfileIds.PagedPrintV1)
             .Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4PagedAdvancedHeldOut);
-        Assert.Equal(heldOut.ManifestSha256, heldOutScreen.Revision);
-        Assert.Equal(heldOut.ManifestSha256, heldOutPaged.Revision);
-        Assert.Equal(HtmlCapabilityEvidenceRole.Regression, heldOutScreen.Role);
-        Assert.Equal(HtmlCapabilityEvidenceRole.Regression, heldOutPaged.Role);
+        Assert.Equal(heldOut.AcceptanceSha256, heldOutScreen.Revision);
+        Assert.Equal(heldOut.AcceptanceSha256, heldOutPaged.Revision);
+        Assert.Equal(HtmlCapabilityEvidenceRole.Qualification, heldOutScreen.Role);
+        Assert.Equal(HtmlCapabilityEvidenceRole.Qualification, heldOutPaged.Role);
         Assert.Equal(8, heldOutScreen.Required);
         Assert.Equal(8, heldOutScreen.Passed);
         Assert.Equal(11, heldOutScreen.Selections.Count);

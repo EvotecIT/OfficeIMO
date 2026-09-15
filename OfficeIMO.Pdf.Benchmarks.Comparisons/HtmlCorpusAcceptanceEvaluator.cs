@@ -62,6 +62,7 @@ internal static class HtmlCorpusAcceptanceEvaluator {
             ? 1D
             : geometry.MatchedElementCount / (double)Math.Max(geometry.OfficeImoElementCount, geometry.BrowserElementCount);
         var criteria = new List<HtmlCorpusAcceptanceCriterion> {
+            Required("source-text-markers", item.OfficeImo.ScreenText.MissingMarkers.Count == 0, required: true),
             Required("dimensions-match", pixels.DimensionsMatch, policy.RequireDimensionsMatch),
             Maximum("width-difference-pixels", Math.Abs(pixels.ExpectedWidth - pixels.ActualWidth), policy.MaximumWidthDifferencePixels),
             Maximum("height-difference-pixels", Math.Abs(pixels.ExpectedHeight - pixels.ActualHeight), policy.MaximumHeightDifferencePixels),
@@ -91,6 +92,7 @@ internal static class HtmlCorpusAcceptanceEvaluator {
         bool alignmentMatches = pixels.Length == pages.Length
             && pixels.All(pixel => MatchesAlignment(pixel.Alignment, policy.PixelAlignment));
         var criteria = new List<HtmlCorpusAcceptanceCriterion> {
+            Required("source-text-markers", item.OfficeImo.PrintText.MissingMarkers.Count == 0, required: true),
             Required("page-count-match", pageCountsMatch, policy.RequirePageCountMatch),
             Required("pixel-alignment", alignmentMatches, required: true, policy.PixelAlignment),
             Minimum("text-token-recall", text.TokenRecall, policy.MinimumTextRecall),
