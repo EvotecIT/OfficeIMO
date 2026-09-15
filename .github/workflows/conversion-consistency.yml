@@ -44,6 +44,8 @@ jobs:
           ./Build/ConversionConsistency/bin/Release/net8.0/playwright.ps1 install --with-deps chromium
       - name: Prepare native source fixtures
         run: dotnet $env:TOOL prepare --output "$env:EVIDENCE/fixtures"
+      - name: Validate SVG content safety in Chromium
+        run: dotnet $env:TOOL svg-content-safety --output "$env:EVIDENCE/svg-content-safety" --pdftoppm pdftoppm
       - name: Compare all native formats
         run: dotnet $env:TOOL run --suite "$env:EVIDENCE/fixtures/suite.json" --output "$env:EVIDENCE/native"
       - name: Compare report content and geometry

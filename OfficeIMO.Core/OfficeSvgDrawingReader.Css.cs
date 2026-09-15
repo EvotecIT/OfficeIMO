@@ -21,7 +21,7 @@ public static partial class OfficeSvgDrawingReader {
         XElement selectorRoot = new XElement(root);
         foreach (XElement style in selectorRoot.DescendantsAndSelf().Where(element =>
                      IsNativeSvgElement(element, svgNamespace) &&
-                     element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase))) {
+                     element.Name.LocalName.Equals("style", StringComparison.Ordinal))) {
             if (!IsSupportedSvgStylesheetElement(style)) {
                 unsupported++;
                 complete = false;
@@ -61,7 +61,7 @@ public static partial class OfficeSvgDrawingReader {
             XElement element = elements[elementIndex];
             XElement selectorElement = selectorElements[elementIndex];
             if (!IsNativeSvgElement(element, svgNamespace) ||
-                element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase)) continue;
+                element.Name.LocalName.Equals("style", StringComparison.Ordinal)) continue;
             var winners = new Dictionary<string, SvgCssWinner>(StringComparer.Ordinal);
             foreach (SvgCssRule rule in rules) {
                 if (!MatchesSvgSelector(

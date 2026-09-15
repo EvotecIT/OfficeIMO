@@ -25,7 +25,7 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool HasStylesheetRasterGeometryDeclaration(XElement root) {
         foreach (XElement style in root.DescendantsAndSelf()
-                     .Where(element => element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase))) {
+                     .Where(element => element.Name.LocalName.Equals("style", StringComparison.Ordinal))) {
             if (ContainsStylesheetRasterGeometryDeclaration(style.Value)) return true;
         }
         return false;
@@ -33,7 +33,7 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool HasStylesheetNonScalingStrokeDeclaration(XElement root) {
         foreach (XElement style in root.DescendantsAndSelf()
-                     .Where(element => element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase))) {
+                     .Where(element => element.Name.LocalName.Equals("style", StringComparison.Ordinal))) {
             if (ContainsStylesheetRasterDeclaration(style.Value, StylesheetNonScalingStrokeCssProperties)) return true;
         }
         return false;

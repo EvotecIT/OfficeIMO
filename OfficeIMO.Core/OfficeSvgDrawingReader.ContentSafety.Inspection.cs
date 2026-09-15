@@ -87,7 +87,18 @@ public static partial class OfficeSvgDrawingReader {
                     out SvgContentSafetyConcealment nonPrimary,
                     out OfficeContentCleanupCapability nonPrimaryCleanup)) {
                 if (options.IncludeNonPrimaryContent) {
-                    AddSvgContentSafetyFinding(builder, targets, candidate, nonPrimary, nonPrimaryCleanup);
+                    if (contextDependent) {
+                        nonPrimary = new SvgContentSafetyConcealment(
+                            nonPrimary.Kind,
+                            nonPrimary.Evidence + " " + contextEvidence,
+                            nonPrimary.Risk);
+                    }
+                    AddSvgContentSafetyFinding(
+                        builder,
+                        targets,
+                        candidate,
+                        nonPrimary,
+                        contextDependent ? OfficeContentCleanupCapability.ReportOnly : nonPrimaryCleanup);
                 }
                 continue;
             }

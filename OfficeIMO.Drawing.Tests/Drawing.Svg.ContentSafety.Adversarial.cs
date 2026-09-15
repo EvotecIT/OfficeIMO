@@ -109,6 +109,43 @@ public sealed class SvgContentSafetyAdversarialTests {
         Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible specificity winner");
     }
 
+    [Theory]
+    [InlineData("title")]
+    [InlineData("desc")]
+    public void DynamicAccessibilityTextIsReportOnly(string elementName) {
+        byte[] svg = Svg($"<script>void 0</script><{elementName}>runtime accessibility text</{elementName}>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "runtime accessibility text");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("script or animation", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UppercaseStyleElementDoesNotApplyCssInXmlSvg() {
+        byte[] svg = Svg("<STYLE>text{display:none}</STYLE><text x='10' y='35'>visible lowercase text</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible lowercase text");
+        Assert.Contains(report.Findings, item =>
+            item.TextPreview == "text{display:none}" && item.CleanupCapability == OfficeContentCleanupCapability.ReportOnly);
+    }
+
+    [Theory]
+    [InlineData("display", "revert")]
+    [InlineData("display", "revert-layer")]
+    [InlineData("visibility", "revert")]
+    [InlineData("visibility", "revert-layer")]
+    public void RevertPresentationAttributesFailClosed(string propertyName, string value) {
+        byte[] svg = Svg($"<text {propertyName}='{value}' x='10' y='35'>unsupported cascade</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
     private static byte[] Svg(string body) => Encoding.UTF8.GetBytes(
         "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='120' viewBox='0 0 220 120'>" + body + "</svg>");
 }

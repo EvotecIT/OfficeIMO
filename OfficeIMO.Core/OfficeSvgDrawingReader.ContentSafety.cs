@@ -133,6 +133,15 @@ public static partial class OfficeSvgDrawingReader {
             !root.Name.NamespaceName.Equals("http://www.w3.org/2000/svg", StringComparison.Ordinal)) {
             throw new InvalidDataException("The SVG root must use the standard SVG namespace or no namespace.");
         }
+        XNamespace svgNamespace = root.Name.Namespace;
+        if (root.DescendantsAndSelf().Where(element => IsNativeSvgElement(element, svgNamespace)).Any(element =>
+                element.Attributes().Any(attribute =>
+                    attribute.Name.NamespaceName.Length == 0 &&
+                    attribute.Name.LocalName.Equals(attribute.Name.LocalName.ToLowerInvariant(), StringComparison.Ordinal) &&
+                    IsSvgPresentationPropertyName(attribute.Name.LocalName) &&
+                    IsUnsupportedSvgCssWideKeyword(attribute.Value)))) {
+            throw new InvalidDataException("The SVG uses unsupported revert cascade semantics in a presentation attribute.");
+        }
         if (ExceedsSvgElementNestingLimit(root)) {
             throw new InvalidDataException("The SVG exceeds the bounded element-nesting limit.");
         }

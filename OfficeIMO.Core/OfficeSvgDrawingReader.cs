@@ -454,7 +454,7 @@ public static partial class OfficeSvgDrawingReader {
         }
         return expandedDefinitionIds.Count > 0
             && (root.Descendants().Any(element =>
-                    element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase)
+                    element.Name.LocalName.Equals("style", StringComparison.Ordinal)
                     && ContainsLocalCssUrlReference(element.Value, expandedDefinitionIds))
                 || root.DescendantsAndSelf().Any(element =>
                     ContainsLocalCssCustomPropertyUrlReference(ReadRasterInlineStyleAttribute(element), expandedDefinitionIds)));
@@ -1372,7 +1372,7 @@ public static partial class OfficeSvgDrawingReader {
                 else if (display is not "inline" and not "block" and not "contents" and not "list-item" and
                     not "inline-block" and not "table" and not "inline-table" and not "table-row" and
                     not "table-cell" and not "flex" and not "inline-flex" and not "grid" and not "inline-grid" and
-                    not "inherit" and not "initial" and not "unset" and not "revert") unsupported++;
+                    not "inherit" and not "initial" and not "unset") unsupported++;
                 break;
             case "visibility":
                 if (normalized.Equals("hidden", StringComparison.OrdinalIgnoreCase) || normalized.Equals("collapse", StringComparison.OrdinalIgnoreCase)) {
@@ -1381,8 +1381,7 @@ public static partial class OfficeSvgDrawingReader {
                     normalized.Equals("initial", StringComparison.OrdinalIgnoreCase)) {
                     style.VisibilityVisible = true;
                 } else if (!normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase) &&
-                    !normalized.Equals("unset", StringComparison.OrdinalIgnoreCase) &&
-                    !normalized.Equals("revert", StringComparison.OrdinalIgnoreCase)) unsupported++;
+                    !normalized.Equals("unset", StringComparison.OrdinalIgnoreCase)) unsupported++;
                 break;
             case "transform":
             case "clip-path":

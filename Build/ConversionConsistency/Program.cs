@@ -3,17 +3,18 @@ using OfficeIMO.ConversionConsistency;
 try {
     string command = args.FirstOrDefault() ?? "help";
     if (command == "help" || command is "--help" or "-h") {
-        Console.WriteLine("Conversion consistency: prepare|export|verify|run --suite <json> --output <directory> [--repository <directory>] [--case <id>] [--pdftoppm <executable>]");
+        Console.WriteLine("Conversion consistency: prepare|export|verify|run|svg-content-safety --suite <json> --output <directory> [--repository <directory>] [--case <id>] [--pdftoppm <executable>] [--browser-executable <path>]");
         return 0;
     }
-    if (command is not ("prepare" or "export" or "verify" or "run"))
+    if (command is not ("prepare" or "export" or "verify" or "run" or "svg-content-safety"))
         throw new ArgumentException("Unknown command: " + command);
     var seen = new HashSet<string>(StringComparer.Ordinal);
     for (int index = 1; index < args.Length; index += 2) {
         string name = args[index];
         bool allowed = name is "--repository" or "--output" ||
-            command is "export" or "run" && name is "--suite" or "--case" ||
-            command is "verify" or "run" && name == "--pdftoppm";
+            (command is "export" or "run" && name is "--suite" or "--case") ||
+            (command is "verify" or "run" or "svg-content-safety" && name == "--pdftoppm") ||
+            command == "svg-content-safety" && name == "--browser-executable";
         if (!allowed || !seen.Add(name)) throw new ArgumentException("Unknown, duplicate, or inapplicable option: " + name);
         if (index + 1 >= args.Length || args[index + 1].StartsWith("--", StringComparison.Ordinal))
             throw new ArgumentException(name + " requires a value.");
@@ -22,6 +23,16 @@ try {
     string output = Path.GetFullPath(Option("--output") ?? throw new ArgumentException("--output is required."));
     if (command == "prepare") { await FixtureCorpus.CreateAsync(repository, output); return 0; }
     using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(20));
+    if (command == "svg-content-safety") {
+        SvgContentSafetyBrowserEvidence report = await SvgContentSafetyBrowserEvidenceRunner.RunAsync(
+            repository,
+            output,
+            Option("--pdftoppm") ?? "pdftoppm",
+            Option("--browser-executable"),
+            timeout.Token);
+        Console.WriteLine($"{(report.Passed ? "PASS" : "FAIL")}: SVG content-safety browser evidence; browser {report.BrowserVersion}; evidence: {output}");
+        return report.Passed ? 0 : 1;
+    }
     if (command is "export" or "run") {
         string suitePath = Path.GetFullPath(Option("--suite") ?? throw new ArgumentException("--suite is required."));
         await BundleExporter.ExportAsync(repository, suitePath, output, Option("--case"), timeout.Token);
