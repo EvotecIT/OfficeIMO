@@ -39,13 +39,15 @@ public static partial class OfficeSvgDrawingReader {
         internal static SvgTextPositioning? Create(
             XElement element,
             SvgTextPositioning? parent,
+            double viewX,
+            double viewY,
             double viewportWidth,
             double viewportHeight,
             ref int unsupported) {
-            IReadOnlyList<double>? x = ParseLengthList(element, "x", viewportWidth, ref unsupported);
-            IReadOnlyList<double>? y = ParseLengthList(element, "y", viewportHeight, ref unsupported);
-            IReadOnlyList<double>? dx = ParseLengthList(element, "dx", viewportWidth, ref unsupported);
-            IReadOnlyList<double>? dy = ParseLengthList(element, "dy", viewportHeight, ref unsupported);
+            IReadOnlyList<double>? x = ParseLengthList(element, "x", viewportWidth, viewX, ref unsupported);
+            IReadOnlyList<double>? y = ParseLengthList(element, "y", viewportHeight, viewY, ref unsupported);
+            IReadOnlyList<double>? dx = ParseLengthList(element, "dx", viewportWidth, 0D, ref unsupported);
+            IReadOnlyList<double>? dy = ParseLengthList(element, "dy", viewportHeight, 0D, ref unsupported);
             IReadOnlyList<double>? rotate = ParseRotationList(element, ref unsupported);
             return x == null && y == null && dx == null && dy == null && rotate == null
                 ? parent
@@ -100,6 +102,7 @@ public static partial class OfficeSvgDrawingReader {
             XElement element,
             string name,
             double percentageReference,
+            double percentageOrigin,
             ref int unsupported) {
             string? text = element.Attribute(name)?.Value;
             if (string.IsNullOrWhiteSpace(text)) return null;
@@ -110,10 +113,11 @@ public static partial class OfficeSvgDrawingReader {
             }
             var values = new List<double>(tokens.Length);
             foreach (string token in tokens) {
-                if (!TryViewportLength(token, percentageReference, out double value, out _)) {
+                if (!TryViewportLength(token, percentageReference, out double value, out bool percentage)) {
                     unsupported++;
                     return null;
                 }
+                if (percentage) value += percentageOrigin;
                 values.Add(value);
             }
             return values.AsReadOnly();

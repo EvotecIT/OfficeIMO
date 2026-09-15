@@ -61,7 +61,7 @@ public static partial class OfficeSvgDrawingReader {
         out SvgContentSafetyConcealment concealment,
         out OfficeContentCleanupCapability cleanupCapability) {
         XElement? owner = candidate.ComputedElement.AncestorsAndSelf().FirstOrDefault(element => {
-            string name = element.Name.LocalName.ToLowerInvariant();
+            string name = element.Name.LocalName;
             return name is "title" or "desc" or "script" or "style" or "metadata";
         });
         if (!candidate.IsNativeSvg) {
@@ -86,7 +86,7 @@ public static partial class OfficeSvgDrawingReader {
             return false;
         }
 
-        string ownerName = owner.Name.LocalName.ToLowerInvariant();
+        string ownerName = owner.Name.LocalName;
         cleanupCapability = ownerName is "script" or "style" or "metadata"
             ? OfficeContentCleanupCapability.ReportOnly
             : OfficeContentCleanupCapability.RemoveText;
@@ -150,9 +150,18 @@ public static partial class OfficeSvgDrawingReader {
                     attributeName.Length > 2 &&
                     attributeName.StartsWith("on", StringComparison.OrdinalIgnoreCase)) return true;
                 return attributeName.Equals("href", StringComparison.OrdinalIgnoreCase) &&
-                    attribute.Value.TrimStart().StartsWith("javascript:", StringComparison.OrdinalIgnoreCase);
+                    IsSvgExecutableUrl(attribute.Value);
             });
         });
+    }
+
+    private static bool IsSvgExecutableUrl(string value) {
+        string normalized = new string(value.Where(character => character is not '\t' and not '\n' and not '\r').ToArray());
+        int start = 0;
+        while (start < normalized.Length && normalized[start] <= ' ') start++;
+        int end = normalized.Length;
+        while (end > start && normalized[end - 1] <= ' ') end--;
+        return normalized.Substring(start, end - start).StartsWith("javascript:", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TryDescribeSvgContextDependentText(

@@ -229,6 +229,78 @@ public sealed class SvgContentSafetyAdversarialTests {
         Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible quoted comment text");
     }
 
+    [Theory]
+    [InlineData("opacity", "fill='black'")]
+    [InlineData("fill-opacity", "fill='black'")]
+    [InlineData("stroke-opacity", "fill='none' stroke='black' stroke-width='2'")]
+    public void PercentagePresentationOpacityIsResolved(string propertyName, string paint) {
+        byte[] svg = Svg($"<text {paint} {propertyName}='0%' x='10' y='35'>percentage transparent text</text>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "percentage transparent text");
+
+        Assert.Equal(OfficeContentConcealmentKind.TransparentText, finding.Kind);
+    }
+
+    [Fact]
+    public void NonAsciiCustomPropertyNamesResolveExactly() {
+        byte[] svg = Svg("<text style='--☃:0;opacity:var(--☃)' x='10' y='35'>unicode variable text</text>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "unicode variable text");
+
+        Assert.Equal(OfficeContentConcealmentKind.TransparentText, finding.Kind);
+    }
+
+    [Theory]
+    [InlineData("TITLE")]
+    [InlineData("DESC")]
+    public void CaseMismatchedAccessibilityElementsAreReportOnly(string elementName) {
+        byte[] svg = Svg($"<{elementName}>case-sensitive extension text</{elementName}>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "case-sensitive extension text");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void ExecutableUrlsIgnoreAsciiTabAndNewlinePreprocessing() {
+        byte[] svg = Svg("<a href='java&#x9;script:void(0)'/><text opacity='0' x='10' y='35'>dynamic link text</text>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "dynamic link text");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("script or animation", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PercentageTextPositionsIncludeNonzeroViewBoxOrigin() {
+        byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='200' height='100' viewBox='100 0 200 100'><text x='0%' y='50%'>visible percentage position</text></svg>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item =>
+            item.TextPreview == "visible percentage position" && item.Kind == OfficeContentConcealmentKind.OffCanvas);
+    }
+
+    [Fact]
+    public void DisplayNoneRunsDoNotAdvanceVisibleSiblingLayout() {
+        byte[] svg = Svg("<text x='10' y='35'><tspan display='none'>this hidden prefix is intentionally extremely long and must not take layout space</tspan><tspan>visible sibling</tspan></text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.Contains(report.Findings, item => item.TextPreview!.Contains("hidden prefix", StringComparison.Ordinal));
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible sibling");
+    }
+
     private static byte[] Svg(string body) => Encoding.UTF8.GetBytes(
         "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='120' viewBox='0 0 220 120'>" + body + "</svg>");
 }

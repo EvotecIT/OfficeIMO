@@ -599,7 +599,13 @@ public static partial class OfficeSvgDrawingReader {
         if (name.Length <= 2 || !name.StartsWith("--", StringComparison.Ordinal)) return false;
         for (int index = 2; index < name.Length; index++) {
             char character = name[index];
-            if (!char.IsLetterOrDigit(character) && character != '-' && character != '_') return false;
+            if (char.IsHighSurrogate(character)) {
+                if (index + 1 >= name.Length || !char.IsLowSurrogate(name[index + 1])) return false;
+                index++;
+                continue;
+            }
+            if (char.IsLowSurrogate(character) || char.IsControl(character) || char.IsWhiteSpace(character)) return false;
+            if (character < 0x80 && !char.IsLetterOrDigit(character) && character != '-' && character != '_') return false;
         }
         return true;
     }

@@ -164,6 +164,14 @@ public static partial class OfficeSvgDrawingReader {
             for (int index = firstRun; index < runs.Count; index++) _byRun[runs[index]] = candidate;
         }
 
+        internal void AssociateSubtree(XElement element, SvgPaintContext style) {
+            foreach (XText text in element.DescendantNodes().OfType<XText>()) {
+                if (!_byText.TryGetValue(text, out SvgContentSafetyCandidate? candidate)) continue;
+                candidate.Style = style;
+                candidate.HasStyle = true;
+            }
+        }
+
         internal void FinalizeRuns(IEnumerable<SvgTextRun> runs) {
             foreach (SvgTextRun run in runs) {
                 if (_byRun.TryGetValue(run, out SvgContentSafetyCandidate? candidate)) candidate.Include(run);

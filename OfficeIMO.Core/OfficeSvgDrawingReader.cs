@@ -1500,9 +1500,13 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static bool TryUnit(string value, out double result) {
-        if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
+        string normalized = value.Trim();
+        bool percentage = normalized.EndsWith("%", StringComparison.Ordinal);
+        if (percentage) normalized = normalized.Substring(0, normalized.Length - 1).Trim();
+        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
             || double.IsNaN(result)
             || double.IsInfinity(result)) return false;
+        if (percentage) result /= 100D;
         result = Math.Max(0D, Math.Min(1D, result));
         return true;
     }

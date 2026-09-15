@@ -88,7 +88,10 @@ public static partial class OfficeSvgDrawingReader {
         SvgPaintContext style = resolveElement
             ? ResolvePaintContext(element, inheritedStyle, paintServers, ref unsupported)
             : inheritedStyle;
-        if (!style.Displayed && observer == null) return;
+        if (!style.Displayed) {
+            observer?.AssociateSubtree(element, style);
+            return;
+        }
         OfficeTransform transform = resolveElement
             ? ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported)
             : inheritedTransform;
@@ -106,7 +109,7 @@ public static partial class OfficeSvgDrawingReader {
             inheritedOwnBaselineShift);
         double baselineShift = inheritedBaselineShift + ownBaselineShift;
         SvgTextPositioning? positioning = SvgTextPositioning.Create(
-            element, inheritedPositioning, viewportWidth, viewportHeight, ref unsupported);
+            element, inheritedPositioning, viewX, viewY, viewportWidth, viewportHeight, ref unsupported);
         if (cursor.Chunk < 0) cursor.Chunk = 0;
         int firstRun = runs.Count;
         bool adjustGlyphs = TryReadTextLengthAdjustment(element, out double authoredLength, ref unsupported);
