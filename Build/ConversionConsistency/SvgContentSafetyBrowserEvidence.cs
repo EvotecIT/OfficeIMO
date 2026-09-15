@@ -1,6 +1,7 @@
 using HtmlTinkerX;
 using OfficeIMO.ContentSafety;
 using OfficeIMO.Drawing;
+using OfficeIMO.TestAssets;
 using OfficeIMO.Tests;
 
 namespace OfficeIMO.ConversionConsistency;
@@ -22,7 +23,9 @@ internal static class SvgContentSafetyBrowserEvidenceRunner {
             "ContentSafety",
             "svg-concealed-adversarial.svg");
         byte[] source = File.ReadAllBytes(fixturePath);
-        OfficeContentSafetyReport inspection = OfficeSvgDrawingReader.InspectContentSafety(source);
+        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        readerOptions.Fonts.AddRange(PortableVisualFontAssets.CreateSpreadsheetFonts());
+        OfficeContentSafetyReport inspection = OfficeSvgDrawingReader.InspectContentSafety(source, readerOptions: readerOptions);
         ValidateExpectedFindingInventory(inspection);
         string[] selected = inspection.Findings
             .Where(finding => finding.CleanupCapability != OfficeContentCleanupCapability.ReportOnly)
@@ -31,7 +34,8 @@ internal static class SvgContentSafetyBrowserEvidenceRunner {
         if (selected.Length == 0) throw new InvalidDataException("The SVG adversarial fixture produced no cleanup-capable findings.");
         OfficeContentCleanupResult cleaned = OfficeSvgDrawingReader.RemoveSelectedContent(
             source,
-            new OfficeContentCleanupSelection(selected));
+            new OfficeContentCleanupSelection(selected),
+            readerOptions: readerOptions);
         if (!cleaned.Changed || cleaned.After.Findings.Any(finding =>
                 finding.CleanupCapability != OfficeContentCleanupCapability.ReportOnly)) {
             throw new InvalidDataException("The SVG adversarial fixture did not reach a stable cleanup state.");
