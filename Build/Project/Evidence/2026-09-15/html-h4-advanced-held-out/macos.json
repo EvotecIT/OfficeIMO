@@ -1,33 +1,43 @@
 {
   "schemaVersion": 1,
-  "generatedUtc": "2026-09-14T23:27:58.958388+00:00",
+  "generatedUtc": "2026-09-15T09:02:52.23777+00:00",
   "environment": {
     "osFamily": "macOS",
     "osDescription": "macOS 27.0.0",
     "osArchitecture": "Arm64",
     "processArchitecture": "Arm64",
-    "frameworkDescription": ".NET 10.0.11",
+    "frameworkDescription": ".NET 10.0.12",
     "machineName": "evomini",
     "processorCount": 10
   },
   "source": {
-    "commit": "3808783dccaaeda9d0af34511e90c5e8af4e959c",
+    "commit": "74d80d8ea32a65836bd35543264ac0a6620b7b66",
     "worktreeClean": true,
-    "corpusId": "officeimo-html-h4-held-out-v2",
-    "manifestSha256": "60af2aab907af324bd1820a247a92b2b26f3e8445f235e06d50b10ac244375c7",
+    "corpusId": "officeimo-html-h4-advanced-held-out",
+    "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
     "caseCount": 8,
     "outputsPerIteration": 76
   },
+  "ceiling": {
+    "osFamily": "macOS",
+    "coldProcessElapsedMilliseconds": 8000,
+    "warmIterationElapsedMilliseconds": 3000,
+    "coldManagedAllocatedBytes": 1250000000,
+    "warmManagedAllocatedBytes": 1100000000,
+    "peakWorkingSetBytes": 700000000,
+    "outputBytesPerIteration": 3000000,
+    "cancellationElapsedMilliseconds": 250
+  },
   "cold": {
     "mode": "cold",
-    "processElapsedMilliseconds": 4870.5687,
-    "peakWorkingSetBytes": 429359104,
-    "memorySampleCount": 152,
+    "processElapsedMilliseconds": 5468.7994,
+    "peakWorkingSetBytes": 390823936,
+    "memorySampleCount": 160,
     "iterations": [
       {
         "number": 1,
-        "elapsedMilliseconds": 4812.0945,
-        "managedAllocatedBytes": 988410368,
+        "elapsedMilliseconds": 5373.1896,
+        "managedAllocatedBytes": 988698720,
         "outputBytes": 2117654,
         "caseCount": 8,
         "outputCount": 76,
@@ -38,14 +48,14 @@
   },
   "warm": {
     "mode": "warm",
-    "processElapsedMilliseconds": 10257.1725,
-    "peakWorkingSetBytes": 462356480,
-    "memorySampleCount": 318,
+    "processElapsedMilliseconds": 10243.3567,
+    "peakWorkingSetBytes": 460210176,
+    "memorySampleCount": 313,
     "iterations": [
       {
         "number": 1,
-        "elapsedMilliseconds": 1860.9527,
-        "managedAllocatedBytes": 827729392,
+        "elapsedMilliseconds": 1766.7847,
+        "managedAllocatedBytes": 827856888,
         "outputBytes": 2117654,
         "caseCount": 8,
         "outputCount": 76,
@@ -53,8 +63,8 @@
       },
       {
         "number": 2,
-        "elapsedMilliseconds": 1733.1987,
-        "managedAllocatedBytes": 829178512,
+        "elapsedMilliseconds": 1725.7824,
+        "managedAllocatedBytes": 829428704,
         "outputBytes": 2117654,
         "caseCount": 8,
         "outputCount": 76,
@@ -62,8 +72,8 @@
       },
       {
         "number": 3,
-        "elapsedMilliseconds": 1786.0269,
-        "managedAllocatedBytes": 829150568,
+        "elapsedMilliseconds": 1821.4526,
+        "managedAllocatedBytes": 829399968,
         "outputBytes": 2117654,
         "caseCount": 8,
         "outputCount": 76,
@@ -74,7 +84,7 @@
   },
   "cancellation": {
     "status": "Passed",
-    "elapsedMilliseconds": 1.7014,
+    "elapsedMilliseconds": 1.7865,
     "detail": "Cancellation propagated through the asynchronous resource boundary."
   },
   "failures": []

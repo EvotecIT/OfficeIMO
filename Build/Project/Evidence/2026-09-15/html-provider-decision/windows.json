@@ -1,0 +1,304 @@
+{
+  "capturedAtUtc": "2026-09-15T08:57:19.7350135+00:00",
+  "commit": "74d80d8ea32a65836bd35543264ac0a6620b7b66",
+  "trackedSourceDirty": false,
+  "framework": ".NET 10.0.12",
+  "operatingSystem": "Microsoft Windows 10.0.26200",
+  "architecture": "X64",
+  "processorCount": 32,
+  "repeat": 3,
+  "providers": [
+    {
+      "assembly": "AngleSharp",
+      "version": "1.7.1.0",
+      "informationalVersion": "1.7.1\u002Bfbfd8dbf5670ad77a986ebf128377693ecfa4e08",
+      "fileBytes": 1069056
+    },
+    {
+      "assembly": "AngleSharp.Css",
+      "version": "1.0.1.0",
+      "informationalVersion": "1.0.1\u002Bbd736dbccbc3a2b9737c7c9285d10c1142e92663",
+      "fileBytes": 585728
+    },
+    {
+      "assembly": "OfficeIMO.Html",
+      "version": "3.4.3.0",
+      "informationalVersion": "3.4.3\u002B74d80d8ea32a65836bd35543264ac0a6620b7b66",
+      "fileBytes": 1799680
+    },
+    {
+      "assembly": "OfficeIMO.Html.AngleSharp",
+      "version": "3.4.3.0",
+      "informationalVersion": "3.4.3\u002B74d80d8ea32a65836bd35543264ac0a6620b7b66",
+      "fileBytes": 40960
+    },
+    {
+      "assembly": "OfficeIMO.Html.Core",
+      "version": "3.4.3.0",
+      "informationalVersion": "3.4.3\u002B74d80d8ea32a65836bd35543264ac0a6620b7b66",
+      "fileBytes": 38912
+    },
+    {
+      "assembly": "System.Text.Encoding.CodePages",
+      "version": "10.0.0.0",
+      "informationalVersion": "10.0.12\u002B95017c711e6afc1085133d440e42b4bd78155701",
+      "fileBytes": 862032
+    }
+  ],
+  "measurements": [
+    {
+      "scenario": "AngleSharpHtmlNative",
+      "iteration": 1,
+      "inputCharacters": 5581,
+      "resultItems": 420,
+      "resultFingerprintSha256": "85178b304a9c260dd560cba117fea0d59e828b59547f7adc34f1a0f942e88f0c",
+      "elapsedMilliseconds": 0.6358,
+      "allocatedBytes": 397712,
+      "retainedManagedHeapBytesPerResult": 276586,
+      "absoluteProcessPeakWorkingSetBytes": 43524096
+    },
+    {
+      "scenario": "AngleSharpHtmlNative",
+      "iteration": 2,
+      "inputCharacters": 5581,
+      "resultItems": 420,
+      "resultFingerprintSha256": "85178b304a9c260dd560cba117fea0d59e828b59547f7adc34f1a0f942e88f0c",
+      "elapsedMilliseconds": 0.6393,
+      "allocatedBytes": 397712,
+      "retainedManagedHeapBytesPerResult": 276586,
+      "absoluteProcessPeakWorkingSetBytes": 43413504
+    },
+    {
+      "scenario": "AngleSharpHtmlNative",
+      "iteration": 3,
+      "inputCharacters": 5581,
+      "resultItems": 420,
+      "resultFingerprintSha256": "85178b304a9c260dd560cba117fea0d59e828b59547f7adc34f1a0f942e88f0c",
+      "elapsedMilliseconds": 0.6864,
+      "allocatedBytes": 397712,
+      "retainedManagedHeapBytesPerResult": 276586,
+      "absoluteProcessPeakWorkingSetBytes": 43163648
+    },
+    {
+      "scenario": "OfficeIMODocumentOwned",
+      "iteration": 1,
+      "inputCharacters": 5581,
+      "resultItems": 420,
+      "resultFingerprintSha256": "85178b304a9c260dd560cba117fea0d59e828b59547f7adc34f1a0f942e88f0c",
+      "elapsedMilliseconds": 1.4508,
+      "allocatedBytes": 1058440,
+      "retainedManagedHeapBytesPerResult": 654222,
+      "absoluteProcessPeakWorkingSetBytes": 51773440
+    },
+    {
+      "scenario": "OfficeIMODocumentOwned",
+      "iteration": 2,
+      "inputCharacters": 5581,
+      "resultItems": 420,
+      "resultFingerprintSha256": "85178b304a9c260dd560cba117fea0d59e828b59547f7adc34f1a0f942e88f0c",
+      "elapsedMilliseconds": 1.2436,
+      "allocatedBytes": 1058440,
+      "retainedManagedHeapBytesPerResult": 654222,
+      "absoluteProcessPeakWorkingSetBytes": 51777536
+    },
+    {
+      "scenario": "OfficeIMODocumentOwned",
+      "iteration": 3,
+      "inputCharacters": 5581,
+      "resultItems": 420,
+      "resultFingerprintSha256": "85178b304a9c260dd560cba117fea0d59e828b59547f7adc34f1a0f942e88f0c",
+      "elapsedMilliseconds": 1.2514,
+      "allocatedBytes": 1058440,
+      "retainedManagedHeapBytesPerResult": 654222,
+      "absoluteProcessPeakWorkingSetBytes": 51855360
+    },
+    {
+      "scenario": "ConversionNative",
+      "iteration": 1,
+      "inputCharacters": 5581,
+      "resultItems": 420,
+      "resultFingerprintSha256": "85178b304a9c260dd560cba117fea0d59e828b59547f7adc34f1a0f942e88f0c",
+      "elapsedMilliseconds": 0.788,
+      "allocatedBytes": 452360,
+      "retainedManagedHeapBytesPerResult": 279682,
+      "absoluteProcessPeakWorkingSetBytes": 45256704
+    },
+    {
+      "scenario": "ConversionNative",
+      "iteration": 2,
+      "inputCharacters": 5581,
+      "resultItems": 420,
+      "resultFingerprintSha256": "85178b304a9c260dd560cba117fea0d59e828b59547f7adc34f1a0f942e88f0c",
+      "elapsedMilliseconds": 1.0649,
+      "allocatedBytes": 452360,
+      "retainedManagedHeapBytesPerResult": 279682,
+      "absoluteProcessPeakWorkingSetBytes": 45481984
+    },
+    {
+      "scenario": "ConversionNative",
+      "iteration": 3,
+      "inputCharacters": 5581,
+      "resultItems": 420,
+      "resultFingerprintSha256": "85178b304a9c260dd560cba117fea0d59e828b59547f7adc34f1a0f942e88f0c",
+      "elapsedMilliseconds": 1.1732,
+      "allocatedBytes": 452360,
+      "retainedManagedHeapBytesPerResult": 279682,
+      "absoluteProcessPeakWorkingSetBytes": 45498368
+    },
+    {
+      "scenario": "ConversionNativeAndOwned",
+      "iteration": 1,
+      "inputCharacters": 5581,
+      "resultItems": 420,
+      "resultFingerprintSha256": "85178b304a9c260dd560cba117fea0d59e828b59547f7adc34f1a0f942e88f0c",
+      "elapsedMilliseconds": 1.3708,
+      "allocatedBytes": 1112944,
+      "retainedManagedHeapBytesPerResult": 657286,
+      "absoluteProcessPeakWorkingSetBytes": 53313536
+    },
+    {
+      "scenario": "ConversionNativeAndOwned",
+      "iteration": 2,
+      "inputCharacters": 5581,
+      "resultItems": 420,
+      "resultFingerprintSha256": "85178b304a9c260dd560cba117fea0d59e828b59547f7adc34f1a0f942e88f0c",
+      "elapsedMilliseconds": 1.6274,
+      "allocatedBytes": 1112944,
+      "retainedManagedHeapBytesPerResult": 657286,
+      "absoluteProcessPeakWorkingSetBytes": 53493760
+    },
+    {
+      "scenario": "ConversionNativeAndOwned",
+      "iteration": 3,
+      "inputCharacters": 5581,
+      "resultItems": 420,
+      "resultFingerprintSha256": "85178b304a9c260dd560cba117fea0d59e828b59547f7adc34f1a0f942e88f0c",
+      "elapsedMilliseconds": 1.3972,
+      "allocatedBytes": 1112944,
+      "retainedManagedHeapBytesPerResult": 657286,
+      "absoluteProcessPeakWorkingSetBytes": 53100544
+    },
+    {
+      "scenario": "AngleSharpCssSyntax",
+      "iteration": 1,
+      "inputCharacters": 27731,
+      "resultItems": 105,
+      "resultFingerprintSha256": "not-applicable",
+      "elapsedMilliseconds": 9.3077,
+      "allocatedBytes": 1986280,
+      "retainedManagedHeapBytesPerResult": 707541,
+      "absoluteProcessPeakWorkingSetBytes": 73650176
+    },
+    {
+      "scenario": "AngleSharpCssSyntax",
+      "iteration": 2,
+      "inputCharacters": 27731,
+      "resultItems": 105,
+      "resultFingerprintSha256": "not-applicable",
+      "elapsedMilliseconds": 9.7466,
+      "allocatedBytes": 1986280,
+      "retainedManagedHeapBytesPerResult": 707541,
+      "absoluteProcessPeakWorkingSetBytes": 73752576
+    },
+    {
+      "scenario": "AngleSharpCssSyntax",
+      "iteration": 3,
+      "inputCharacters": 27731,
+      "resultItems": 105,
+      "resultFingerprintSha256": "not-applicable",
+      "elapsedMilliseconds": 11.0946,
+      "allocatedBytes": 1986280,
+      "retainedManagedHeapBytesPerResult": 707541,
+      "absoluteProcessPeakWorkingSetBytes": 73457664
+    },
+    {
+      "scenario": "OfficeIMOCssCascade",
+      "iteration": 1,
+      "inputCharacters": 35653,
+      "resultItems": 305,
+      "resultFingerprintSha256": "not-applicable",
+      "elapsedMilliseconds": 248.1749,
+      "allocatedBytes": 50903920,
+      "retainedManagedHeapBytesPerResult": 1105812,
+      "absoluteProcessPeakWorkingSetBytes": 129478656
+    },
+    {
+      "scenario": "OfficeIMOCssCascade",
+      "iteration": 2,
+      "inputCharacters": 35653,
+      "resultItems": 305,
+      "resultFingerprintSha256": "not-applicable",
+      "elapsedMilliseconds": 295.9945,
+      "allocatedBytes": 50903920,
+      "retainedManagedHeapBytesPerResult": 1105755,
+      "absoluteProcessPeakWorkingSetBytes": 129937408
+    },
+    {
+      "scenario": "OfficeIMOCssCascade",
+      "iteration": 3,
+      "inputCharacters": 35653,
+      "resultItems": 305,
+      "resultFingerprintSha256": "not-applicable",
+      "elapsedMilliseconds": 247.6052,
+      "allocatedBytes": 50903632,
+      "retainedManagedHeapBytesPerResult": 1105812,
+      "absoluteProcessPeakWorkingSetBytes": 130035712
+    }
+  ],
+  "summaries": [
+    {
+      "scenario": "AngleSharpHtmlNative",
+      "medianElapsedMilliseconds": 0.6393,
+      "medianAllocatedBytes": 397712,
+      "medianRetainedManagedHeapBytesPerResult": 276586,
+      "medianAbsoluteProcessPeakWorkingSetBytes": 43413504,
+      "inputCharacters": 5581,
+      "resultItems": 420
+    },
+    {
+      "scenario": "OfficeIMODocumentOwned",
+      "medianElapsedMilliseconds": 1.2514,
+      "medianAllocatedBytes": 1058440,
+      "medianRetainedManagedHeapBytesPerResult": 654222,
+      "medianAbsoluteProcessPeakWorkingSetBytes": 51777536,
+      "inputCharacters": 5581,
+      "resultItems": 420
+    },
+    {
+      "scenario": "ConversionNative",
+      "medianElapsedMilliseconds": 1.0649,
+      "medianAllocatedBytes": 452360,
+      "medianRetainedManagedHeapBytesPerResult": 279682,
+      "medianAbsoluteProcessPeakWorkingSetBytes": 45481984,
+      "inputCharacters": 5581,
+      "resultItems": 420
+    },
+    {
+      "scenario": "ConversionNativeAndOwned",
+      "medianElapsedMilliseconds": 1.3972,
+      "medianAllocatedBytes": 1112944,
+      "medianRetainedManagedHeapBytesPerResult": 657286,
+      "medianAbsoluteProcessPeakWorkingSetBytes": 53313536,
+      "inputCharacters": 5581,
+      "resultItems": 420
+    },
+    {
+      "scenario": "AngleSharpCssSyntax",
+      "medianElapsedMilliseconds": 9.7466,
+      "medianAllocatedBytes": 1986280,
+      "medianRetainedManagedHeapBytesPerResult": 707541,
+      "medianAbsoluteProcessPeakWorkingSetBytes": 73650176,
+      "inputCharacters": 27731,
+      "resultItems": 105
+    },
+    {
+      "scenario": "OfficeIMOCssCascade",
+      "medianElapsedMilliseconds": 248.1749,
+      "medianAllocatedBytes": 50903920,
+      "medianRetainedManagedHeapBytesPerResult": 1105812,
+      "medianAbsoluteProcessPeakWorkingSetBytes": 129937408,
+      "inputCharacters": 35653,
+      "resultItems": 305
+    }
+  ]
+}
