@@ -160,7 +160,11 @@ internal static class PdfImagePlacementImportPolicy {
 
         PdfImageClipInfo? clip = placement.Clip;
         if (clip == null) return true;
-        if (!clip.IsExact || !clip.IsRectangle || clip.Width <= 0D || clip.Height <= 0D) return false;
+        if (!clip.IsExact ||
+            !clip.IsRectangle ||
+            clip.ContainsTextClipping ||
+            clip.Width <= 0D ||
+            clip.Height <= 0D) return false;
 
         PdfSelectionQuad visualClip = page.MapUserSpaceRectangleToVisual(
             clip.X,

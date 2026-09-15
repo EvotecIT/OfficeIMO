@@ -249,6 +249,21 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void TextClippedImagePlacementsNeverEmbedRawPixelsAcrossEditableAdapters() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateTextClippedRawImagePdf());
+        PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
+        Assert.NotNull(placement.Clip);
+        Assert.True(placement.Clip.ContainsTextClipping);
+        Assert.True(placement.Clip.IsRectangle);
+        Assert.True(placement.Clip.IsExact);
+
+        AssertRawImageOmittedAcrossEditableAdapters(
+            logical,
+            "PdfImageClipNotSafelyEditable",
+            "ImageClipNotSafelyEditable");
+    }
+
+    [Fact]
     public void PositionedPageAppearanceNeverEmbedsPixelsHiddenByImageClipping() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas.Clip(
@@ -1251,6 +1266,26 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
         string objectCount = secondGraphicsStateEntries != null ? "8" : graphicsStateEntries == null ? "6" : "7";
         WriteAscii(output, "trailer\n<< /Root 1 0 R /Size " + objectCount + " >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] CreateTextClippedRawImagePdf() {
+        const string content = "BT /F1 140 Tf 7 Tr 10 20 Td (M) Tj ET q 40 0 0 40 30 30 cm /Im1 Do Q\n";
+        byte[] contentBytes = System.Text.Encoding.ASCII.GetBytes(content);
+        byte[] imageBytes = { 255, 0, 0 };
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] /Resources << /XObject << /Im1 5 0 R >> /Font << /F1 6 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length + " >>\nstream\n");
+        output.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(output, "endstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\n");
+        output.Write(imageBytes, 0, imageBytes.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 7 >>\n%%EOF\n");
         return output.ToArray();
     }
 
