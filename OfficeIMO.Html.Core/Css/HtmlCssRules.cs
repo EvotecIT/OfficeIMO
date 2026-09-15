@@ -1,10 +1,14 @@
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace OfficeIMO.Html.Css;
 
 /// <summary>Base type for a CSS at-rule or qualified rule.</summary>
 public abstract class HtmlCssRule : HtmlCssSyntaxNode {
+    private IReadOnlyList<HtmlCssDeclaration>? _declarations;
     private string? _preludeText;
+    private IReadOnlyList<HtmlCssRule>? _rules;
     internal HtmlCssRule(
         HtmlCssSyntaxKind kind,
         string source,
@@ -12,7 +16,11 @@ public abstract class HtmlCssRule : HtmlCssSyntaxNode {
         IReadOnlyList<HtmlCssComponentValue> prelude,
         HtmlCssSimpleBlock? block,
         IReadOnlyList<HtmlCssSyntaxNode> contents)
-        : base(kind, source, span) { Prelude = prelude; Block = block; Contents = contents; }
+        : base(kind, source, span) {
+        Prelude = prelude;
+        Block = block;
+        Contents = contents;
+    }
     /// <summary>Component values before the rule block or terminator.</summary>
     public IReadOnlyList<HtmlCssComponentValue> Prelude { get; }
     /// <summary>Exact source text before the rule block or at-rule terminator.</summary>
@@ -29,6 +37,14 @@ public abstract class HtmlCssRule : HtmlCssSyntaxNode {
     /// <summary>Best-effort syntax-only declarations and nested rules in a block, in authored order.</summary>
     /// <remarks>The raw <see cref="Block"/> remains authoritative for at-rules whose grammar is not known here.</remarks>
     public IReadOnlyList<HtmlCssSyntaxNode> Contents { get; }
+    /// <summary>Direct declarations in the rule block, in authored order.</summary>
+    /// <remarks>Declarations inside nested rules are exposed by those rules. Unknown at-rule grammar remains best-effort.</remarks>
+    public IReadOnlyList<HtmlCssDeclaration> Declarations =>
+        _declarations ??= new ReadOnlyCollection<HtmlCssDeclaration>(Contents.OfType<HtmlCssDeclaration>().ToList());
+    /// <summary>Direct nested at-rules and qualified rules, in authored order.</summary>
+    /// <remarks>The raw <see cref="Block"/> remains authoritative when an unknown at-rule uses a different block grammar.</remarks>
+    public IReadOnlyList<HtmlCssRule> Rules =>
+        _rules ??= new ReadOnlyCollection<HtmlCssRule>(Contents.OfType<HtmlCssRule>().ToList());
 }
 
 /// <summary>An at-rule retained without requiring the name or grammar to be recognized.</summary>

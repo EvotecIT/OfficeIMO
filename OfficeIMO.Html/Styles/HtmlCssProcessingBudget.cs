@@ -74,6 +74,23 @@ internal sealed class HtmlCssProcessingBudget {
         }
     }
 
+    internal void ValidateResolvedSelectorList(int selectors, long characters) {
+        if (_limits.MaxCssSelectorsPerRule.HasValue && selectors > _limits.MaxCssSelectorsPerRule.Value) {
+            throw Limit(
+                HtmlConversionDiagnosticCodes.CssSelectorExpansionLimitExceeded,
+                nameof(HtmlConversionLimits.MaxCssSelectorsPerRule),
+                selectors,
+                _limits.MaxCssSelectorsPerRule.Value);
+        }
+        if (_limits.MaxCssSelectorCharacters.HasValue && characters > _limits.MaxCssSelectorCharacters.Value) {
+            throw Limit(
+                HtmlConversionDiagnosticCodes.CssSelectorExpansionLimitExceeded,
+                nameof(HtmlConversionLimits.MaxCssSelectorCharacters),
+                characters,
+                _limits.MaxCssSelectorCharacters.Value);
+        }
+    }
+
     internal HtmlDomLimitException TranslateSyntaxLimit(OfficeIMO.Html.Css.HtmlCssSyntaxLimitException exception) {
         string code;
         string source;

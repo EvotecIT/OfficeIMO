@@ -25,6 +25,8 @@ public sealed class HtmlConversionLimits {
         MaxCssTokens = 1_000_000,
         MaxCssNestingDepth = 64,
         MaxCssSyntaxNodes = 1_000_000,
+        MaxCssSelectorCharacters = 64 * 1024,
+        MaxCssSelectorsPerRule = 256,
         MaxSelectorEvaluations = 10_000_000L,
         MaxResponsiveImageCandidates = DefaultMaxResponsiveImageCandidates,
         MaxSemanticMetadataCharacters = 1024 * 1024
@@ -65,6 +67,12 @@ public sealed class HtmlConversionLimits {
     /// <summary>Maximum syntax nodes materialized while parsing one inline declaration block, or <c>null</c> for no node limit.</summary>
     public int? MaxCssSyntaxNodes { get; set; }
 
+    /// <summary>Maximum UTF-16 characters in one selector list after CSS nesting is resolved.</summary>
+    public int? MaxCssSelectorCharacters { get; set; } = 64 * 1024;
+
+    /// <summary>Maximum selectors in one rule after CSS nesting is resolved.</summary>
+    public int? MaxCssSelectorsPerRule { get; set; } = 256;
+
     /// <summary>Maximum element/selector match attempts, or <c>null</c> for no evaluation limit.</summary>
     public long? MaxSelectorEvaluations { get; set; }
 
@@ -86,6 +94,8 @@ public sealed class HtmlConversionLimits {
         MaxCssTokens = MaxCssTokens,
         MaxCssNestingDepth = MaxCssNestingDepth,
         MaxCssSyntaxNodes = MaxCssSyntaxNodes,
+        MaxCssSelectorCharacters = MaxCssSelectorCharacters,
+        MaxCssSelectorsPerRule = MaxCssSelectorsPerRule,
         MaxSelectorEvaluations = MaxSelectorEvaluations,
         MaxResponsiveImageCandidates = MaxResponsiveImageCandidates,
         MaxSemanticMetadataCharacters = MaxSemanticMetadataCharacters
@@ -108,6 +118,8 @@ public sealed class HtmlConversionLimits {
             MaxCssTokens = Minimum(left.MaxCssTokens, right.MaxCssTokens),
             MaxCssNestingDepth = Minimum(left.MaxCssNestingDepth, right.MaxCssNestingDepth),
             MaxCssSyntaxNodes = Minimum(left.MaxCssSyntaxNodes, right.MaxCssSyntaxNodes),
+            MaxCssSelectorCharacters = Minimum(left.MaxCssSelectorCharacters, right.MaxCssSelectorCharacters),
+            MaxCssSelectorsPerRule = Minimum(left.MaxCssSelectorsPerRule, right.MaxCssSelectorsPerRule),
             MaxSelectorEvaluations = Minimum(left.MaxSelectorEvaluations, right.MaxSelectorEvaluations),
             MaxResponsiveImageCandidates = Minimum(left.MaxResponsiveImageCandidates, right.MaxResponsiveImageCandidates),
             MaxSemanticMetadataCharacters = Minimum(left.MaxSemanticMetadataCharacters, right.MaxSemanticMetadataCharacters)
@@ -125,6 +137,8 @@ public sealed class HtmlConversionLimits {
         ValidatePositive(MaxCssTokens, nameof(MaxCssTokens));
         ValidatePositive(MaxCssNestingDepth, nameof(MaxCssNestingDepth));
         ValidatePositive(MaxCssSyntaxNodes, nameof(MaxCssSyntaxNodes));
+        ValidatePositive(MaxCssSelectorCharacters, nameof(MaxCssSelectorCharacters));
+        ValidatePositive(MaxCssSelectorsPerRule, nameof(MaxCssSelectorsPerRule));
         ValidatePositive(MaxSelectorEvaluations, nameof(MaxSelectorEvaluations));
         ValidatePositive(MaxResponsiveImageCandidates, nameof(MaxResponsiveImageCandidates));
         ValidatePositive(MaxSemanticMetadataCharacters, nameof(MaxSemanticMetadataCharacters));

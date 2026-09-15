@@ -147,9 +147,9 @@ if (explicitPdf.RenderResult.Request.CssMedia != HtmlCssMediaContext.Screen ||
 
 var tracedDocument = HtmlConversionDocument.Parse(
     "<style>@namespace svg url('http://www.w3.org/2000/svg');" +
-    ".missing, [data-tone='IMPORTANT' i] > .notice:last-child:is(.notice):not(.blocked) " +
-    "{ color:hsl(210 50 40 / 75%); opacity:calc(.2 + .3); width:calc(20px + 10%); }" +
-    "svg|a:first-child { visibility:hidden; }</style>" +
+    "[data-tone='IMPORTANT' i] { & > .missing, & > .notice:last-child:is(.notice):not(.blocked) " +
+    "{ color:hsl(210 50 40 / 75%); opacity:calc(.2 + .3); width:calc(20px + 10%); } }" +
+    "svg|svg { & > svg|a:first-child { visibility:hidden; } }</style>" +
     "<section data-tone='important'><p class='notice'>Status</p></section><svg><a id='packed-svg'>Asset</a></svg>");
 var tracedElement = tracedDocument.Document.QuerySelector(".notice")
     ?? throw new InvalidOperationException("The packed cascade-trace element was not parsed.");

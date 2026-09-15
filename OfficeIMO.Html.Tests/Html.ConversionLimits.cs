@@ -212,6 +212,20 @@ public sealed class HtmlConversionLimitTests {
     }
 
     [Fact]
+    public void HtmlConversionDocument_BoundsNestedSelectorExpansionBeforeCascadeWork() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssSelectorCharacters = 24;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>.alpha,.beta{& .one,& .two{color:red}}</style><p class='alpha'><span class='one'>x</span></p>",
+            new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => _ = document.StyleSummary);
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssSelectorExpansionLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlConversionLimits.MaxCssSelectorCharacters), exception.LimitSource);
+    }
+
+    [Fact]
     public void HtmlConversionDocument_CountsRetainedStringSetRuleOnce() {
         var limits = HtmlConversionLimits.CreateUntrustedProfile();
         limits.MaxCssRules = 1;

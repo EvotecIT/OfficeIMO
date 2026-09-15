@@ -59,6 +59,8 @@ public static class HtmlConversionDiagnosticCodes {
 
     /// <summary>CSS syntax materialization exceeded the configured node budget.</summary>
     public const string CssSyntaxNodeLimitExceeded = "CssSyntaxNodeLimitExceeded";
+    /// <summary>Resolved CSS nesting exceeded the selector expansion budget.</summary>
+    public const string CssSelectorExpansionLimitExceeded = "CssSelectorExpansionLimitExceeded";
 
     /// <summary>Selector matching exceeded the configured operation-wide evaluation budget.</summary>
     public const string CssSelectorEvaluationLimitExceeded = "CssSelectorEvaluationLimitExceeded";
@@ -116,6 +118,7 @@ public static class HtmlConversionDiagnosticCodes {
         CssTokenLimitExceeded,
         CssNestingDepthLimitExceeded,
         CssSyntaxNodeLimitExceeded,
+        CssSelectorExpansionLimitExceeded,
         CssSelectorEvaluationLimitExceeded,
         SemanticMetadataLimitExceeded,
         SemanticSchemaUnsupported,

@@ -7,8 +7,8 @@ using OfficeIMO.Pdf;
 
 const string marker = "AotMarker";
 const string html = "<style>@namespace svg url('http://www.w3.org/2000/svg');body{margin:0}" +
-    ".missing,[data-tone='IMPORTANT' i]>h1.hero:last-child:is(.hero):not(.blocked){color:hsl(210 50 40 / 75%);opacity:calc(.2 + .3);width:calc(20px + 10%)}" +
-    "svg|a:first-child{visibility:hidden}</style><main data-tone='important'><h1 class='hero'>AotMarker</h1></main>" +
+    "[data-tone='IMPORTANT' i]{&>.missing,&>h1.hero:last-child:is(.hero):not(.blocked){color:hsl(210 50 40 / 75%);opacity:calc(.2 + .3);width:calc(20px + 10%)}}" +
+    "svg|svg{&>svg|a:first-child{visibility:hidden}}</style><main data-tone='important'><h1 class='hero'>AotMarker</h1></main>" +
     "<svg><a id='aot-svg'>Asset</a></svg><p><a href='https://example.test/'>Searchable PDF link</a></p>";
 HtmlDocument aotTable = HtmlDocumentEngine.Default.ParseDocument(
     "<table><tbody><tr id='aot-items'></tr></tbody></table>");

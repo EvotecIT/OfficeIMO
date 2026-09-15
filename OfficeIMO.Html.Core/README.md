@@ -87,6 +87,10 @@ comments, whitespace, functions and simple blocks retain exact UTF-16 spans and 
 order. `GetPosition(offset)` maps a span to a one-based line and column. `ToCss()` returns
 the original source character-for-character, including its original line endings. Diagnostics report syntax
 recovery; an unknown name or value is preserved without being treated as invalid.
+Every `HtmlCssRule` exposes its direct `Declarations` and child `Rules` as convenience
+views over `Contents`; the combined `Contents` sequence remains the source for authored
+interleaving. These views do not assign semantics to unknown at-rule block grammars, whose
+raw `Block` remains authoritative.
 
 Apply the owned property grammar when tooling needs more than lossless syntax:
 

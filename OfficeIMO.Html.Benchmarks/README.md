@@ -120,6 +120,7 @@ runtime, architecture, and commit.
 The owned API gate measures parse, query, edit, serialization, conversion after owned
 document access, lossless CSS syntax, selected typed property grammar, contextual length
 math, owned selector lists, structural and logical pseudo-classes, stylesheet namespaces,
+nested qualified rules and interleaved nested declarations,
 the normal managed CSS cascade, and the same cascade with opt-in traces. General operations
 run at 10, 100, and 1,000 rows; the advanced selector lane runs at 100, 1,000, and 6,000
 siblings so its largest case crosses the former default-budget failure boundary. Every
@@ -140,7 +141,7 @@ exit within its declared latency budget. These ceilings guard the declared workl
 claim universal throughput or full CSS conformance. Compare `CssCascade` with
 `CssCascadeTrace` at the same scale to review the cost of retaining the selected trace slice;
 the default computation explicitly verifies that no trace graph was retained. The advanced
-selector lane additionally enforces Normal-to-Large elapsed and allocation ratios for six
-times as many siblings. The CSS corpus also verifies typed contextual dimensions, constant
+selector and nested-rule lanes additionally enforce Normal-to-Large elapsed and allocation
+ratios for six times as many siblings or rules. The CSS corpus also verifies typed contextual dimensions, constant
 numeric calculations, functional colors, attribute matching with an ASCII-insensitive
 modifier, grouped selectors, namespace matching, and structural and logical pseudo-classes.

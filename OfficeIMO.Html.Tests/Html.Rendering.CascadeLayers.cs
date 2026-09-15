@@ -208,6 +208,146 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlCssNesting_UsesOwnedNamespacesAndTypedDeclarations() {
+        const string html = """
+            <style>
+              @namespace svg url("http://www.w3.org/2000/svg");
+              svg|svg.card {
+                & > svg|a:first-child { color:hwb(120 0% 0%); width:calc(10px + 5px); }
+              }
+            </style>
+            <svg class="card"><a id="target">Owned</a></svg>
+            """;
+        var document = HtmlDocumentParser.ParseDocument(html);
+
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.QuerySelector("#target")!];
+
+        Assert.Equal("rgba(0, 255, 0, 1)", style.GetValue("color"));
+        Assert.Equal("calc(10px + 5px)", style.GetValue("width"));
+        Assert.True(style.TryGetTypedValue("width", out OfficeIMO.Html.Css.HtmlCssPropertyValue? width));
+        Assert.Equal(OfficeIMO.Html.Css.HtmlCssPropertyValueKind.Calculation, width!.Kind);
+    }
+
+    [Fact]
+    public void HtmlCssNesting_DoesNotPairInactiveConditionalRulesWithLaterSelectors() {
+        const string html = """
+            <style>
+              @media print { .card { & > .title { color:red; } } }
+              .card { & > .title { color:blue; } }
+            </style>
+            <section class="card"><strong class="title">Screen</strong></section>
+            """;
+        var document = HtmlDocumentParser.ParseDocument(html);
+
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.QuerySelector(".title")!];
+
+        Assert.Equal("rgba(0, 0, 255, 1)", style.GetValue("color"));
+    }
+
+    [Fact]
+    public void HtmlCssNesting_PreservesDeclarationsInterleavedWithQualifiedRules() {
+        const string html = """
+            <style>
+              .last-declaration { color:green; & { color:blue; } color:red; }
+              .last-rule { color:green; & { color:blue; } }
+            </style>
+            <p class="last-declaration">Red</p><p class="last-rule">Blue</p>
+            """;
+        var document = HtmlDocumentParser.ParseDocument(html);
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document);
+
+        Assert.Equal("rgba(255, 0, 0, 1)", styles[document.QuerySelector(".last-declaration")!].GetValue("color"));
+        Assert.Equal("rgba(0, 0, 255, 1)", styles[document.QuerySelector(".last-rule")!].GetValue("color"));
+    }
+
+    [Fact]
+    public void HtmlCssNesting_RetainsProviderFallbackForUnsupportedPseudoClasses() {
+        const string html = """
+            <style>.form { & input:required { color:red; } }</style>
+            <form class="form"><input id="target" required></form>
+            """;
+        var document = HtmlDocumentParser.ParseDocument(html);
+
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.QuerySelector("#target")!];
+
+        Assert.Equal("rgba(255, 0, 0, 1)", style.GetValue("color"));
+    }
+
+    [Fact]
+    public void HtmlCssNesting_PreservesDeclarationOrderWhenNestedSelectorUsesProviderFallback() {
+        const string html = """
+            <style>.field { color:green; &:where(:required) { color:blue; } color:red; }</style>
+            <input class="field" required>
+            """;
+        var document = HtmlDocumentParser.ParseDocument(html);
+
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.QuerySelector(".field")!];
+
+        Assert.Equal("rgba(255, 0, 0, 1)", style.GetValue("color"));
+    }
+
+    [Fact]
+    public void HtmlCssNesting_PreservesDeclarationOrderAcrossUnknownNestedAtRules() {
+        const string html = """
+            <style>.field { color:green; @future ignored { color:purple; } & { color:blue; } color:red; }</style>
+            <input class="field">
+            """;
+        var document = HtmlDocumentParser.ParseDocument(html);
+
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.QuerySelector(".field")!];
+
+        Assert.Equal("rgba(255, 0, 0, 1)", style.GetValue("color"));
+    }
+
+    [Fact]
+    public void HtmlCssNesting_KeepsOwnedNamespaceEnvelopeAroundProviderPseudoClass() {
+        const string html = """
+            <style>
+              @namespace h url("http://www.w3.org/1999/xhtml");
+              h|form.form { & > h|input:required { color:red; } }
+            </style>
+            <form class="form"><input id="target" required></form>
+            """;
+        var document = HtmlDocumentParser.ParseDocument(html);
+
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.QuerySelector("#target")!];
+
+        Assert.Equal("rgba(255, 0, 0, 1)", style.GetValue("color"));
+    }
+
+    [Fact]
+    public void HtmlCssNesting_DoesNotSplitEscapedOrCommentedCommas() {
+        const string html = """
+            <style>
+              .host { & > .item\,special { color:red; } }
+              .host { & > .commented/*,*/.target { background:blue; } }
+            </style>
+            <div class="host"><span id="escaped" class="item,special">Escaped</span><span id="commented" class="commented target">Commented</span></div>
+            """;
+        var document = HtmlDocumentParser.ParseDocument(html);
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document);
+
+        Assert.Equal("rgba(255, 0, 0, 1)", styles[document.QuerySelector("#escaped")!].GetValue("color"));
+        Assert.Equal("rgba(0, 0, 255, 1)", styles[document.QuerySelector("#commented")!].GetValue("background-color"));
+    }
+
+    [Fact]
+    public void HtmlCssNesting_PreservesFunctionalProviderPseudoSpecificity() {
+        const string html = """
+            <style>
+              .host { &:has(#marker) { color:red; } }
+              .host.alt { color:blue; }
+            </style>
+            <div class="host alt"><span id="marker">Marker</span></div>
+            """;
+        var document = HtmlDocumentParser.ParseDocument(html);
+
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.QuerySelector(".host")!];
+
+        Assert.Equal("rgba(255, 0, 0, 1)", style.GetValue("color"));
+    }
+
+    [Fact]
     public void HtmlCascadeLayers_TreatCommentsAsWhitespaceAroundRevertLayer() {
         const string normalHtml = """
             <style>

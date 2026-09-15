@@ -102,6 +102,28 @@ public sealed class HtmlCssSyntaxTests {
     }
 
     [Fact]
+    public void RulesExposeDirectDeclarationsAndNestedRulesWithoutFlatteningAuthoredOrder() {
+        const string css = ".card{color:red;&>.title{color:blue}@media screen{.body{display:block}}background:white}";
+
+        HtmlCssQualifiedRule card = Assert.IsType<HtmlCssQualifiedRule>(
+            Assert.Single(HtmlCssSyntaxParser.ParseStyleSheet(css).Rules));
+
+        Assert.Equal(new[] { "color", "background" }, card.Declarations.Select(value => value.Name).ToArray());
+        Assert.Collection(card.Rules,
+            value => Assert.Equal("&>.title", Assert.IsType<HtmlCssQualifiedRule>(value).PreludeText),
+            value => {
+                HtmlCssAtRule media = Assert.IsType<HtmlCssAtRule>(value);
+                Assert.Equal("media", media.Name);
+                Assert.Equal(".body", Assert.IsType<HtmlCssQualifiedRule>(Assert.Single(media.Rules)).PreludeText);
+            });
+        Assert.Collection(card.Contents,
+            value => Assert.Equal("color", Assert.IsType<HtmlCssDeclaration>(value).Name),
+            value => Assert.IsType<HtmlCssQualifiedRule>(value),
+            value => Assert.IsType<HtmlCssAtRule>(value),
+            value => Assert.Equal("background", Assert.IsType<HtmlCssDeclaration>(value).Name));
+    }
+
+    [Fact]
     public void EmptyDeclarationValueStartsAfterTheColon() {
         const string css = "a{future:}";
         HtmlCssDeclaration declaration = Assert.IsType<HtmlCssDeclaration>(

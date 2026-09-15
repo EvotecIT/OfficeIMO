@@ -113,8 +113,10 @@ conversion. Width and spacing percentages remain typed at computed-value time an
 against the layout reference at used-value time. Inline declarations enter the managed
 cascade through the lossless owned style-block parser.
 
-Top-level qualified rules whose declarations stay inside that property slice retain their
-original OfficeIMO syntax nodes and selector AST through the cascade. The owned matcher
+Qualified rules whose declarations stay inside that property slice retain their original
+OfficeIMO syntax nodes and selector AST through the cascade, including nested qualified rules
+inside style rules and supported `@media`, `@supports`, `@layer`, and `@container` groups.
+Direct declaration runs preserve their authored position around nested rules. The owned matcher
 handles atomic selector lists, stylesheet namespace bindings, type, universal, id, class,
 and attribute selectors, the four structural combinators, selected child/of-type and An+B
 pseudo-classes, a single-range `:lang()`, and `:is()`, `:where()`, and `:not()`. Grouped rules use the owned path only
@@ -126,8 +128,8 @@ use forgiving lists, while `:not()` stays strict. `:empty` follows deployed brow
 whitespace text makes an element non-empty and comments do not.
 
 AngleSharp.Css remains in the default package for wider property grammars, dynamic and
-relational pseudo-classes, filtered `:nth-child(... of S)`, nested rule parsing, at-rules,
-pseudo-elements, and other fallback cases. Retained declarations can still use an owned
+relational pseudo-classes, filtered `:nth-child(... of S)`, conditional-group evaluation,
+pseudo-elements, unknown at-rules, and other fallback cases. Retained declarations can still use an owned
 selector match, including namespace-qualified selectors. OfficeIMO keeps rule order, cascade
 layers, computed-style projection, and fallback selection stable while the owned subset grows.
 
@@ -164,7 +166,7 @@ substitution whose result fell back to inheritance or the property's initial val
 stylesheet declaration before the cascade sees it; inspect `HtmlCssStyleSheet` when exact
 authored spelling and source spans are required. Traces are currently available for the
 properties in `HtmlCssPropertyCatalog`. Inline syntax parsing uses the conversion operation's
-CSS byte, token, syntax-node, declaration, and nesting limits; the explicitly unbounded document overload does
+CSS byte, token, syntax-node, declaration, nesting, and resolved-selector expansion limits; the explicitly unbounded document overload does
 not introduce the standalone CSS parser's default input ceiling.
 
 See [the migration guide](../MIGRATION.md#owned-html-documents-and-callbacks) for the
@@ -409,7 +411,7 @@ HtmlConversionDocument source = HtmlConversionDocument.Parse(html, options);
 
 The untrusted profile is the default. It rejects local-file navigation, does not fetch external resources by itself, and applies one shared set of limits before adapters allocate native Office objects. Embedded `data:` resources remain available through the separate resource policy and are still subject to renderer or adapter byte budgets. Use `CreateTrustedProfile()` only when the caller controls the HTML and resource locations.
 
-`HtmlConversionLimits` is the common source for parser and CSS complexity decisions. CSS byte volume, rules, declarations, inline lexical tokens, inline syntax nodes, nesting depth, and selector evaluations have separate limits and stable diagnostics. Word forwards its compatibility limit properties to this object; Excel, PowerPoint, and OneNote use `HtmlImportLimits` for native artifact counts, image bytes, chart dimensions, table cells, and geometry. This keeps shared HTML decisions in `OfficeIMO.Html` while leaving format-specific constraints with the target model.
+`HtmlConversionLimits` is the common source for parser and CSS complexity decisions. CSS byte volume, rules, declarations, inline lexical tokens, inline syntax nodes, nesting depth, selectors per rule, resolved selector characters, and selector evaluations have separate limits and stable diagnostics. Word forwards its compatibility limit properties to this object; Excel, PowerPoint, and OneNote use `HtmlImportLimits` for native artifact counts, image bytes, chart dimensions, table cells, and geometry. This keeps shared HTML decisions in `OfficeIMO.Html` while leaving format-specific constraints with the target model.
 
 ## Shared Diagnostics And Gallery Contracts
 

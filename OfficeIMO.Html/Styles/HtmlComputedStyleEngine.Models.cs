@@ -173,7 +173,7 @@ public static partial class HtmlComputedStyleEngine {
             try {
                 var selectorOptions = new OfficeIMO.Html.Css.HtmlCssSelectorOptions { Namespaces = namespaceContext };
                 ownedSelector = OfficeIMO.Html.Css.HtmlCssSelectorParser.Parse(ownedSource, selectorOptions).Selector;
-                if (ownedSelector == null && providerSelector != null) {
+                if (ownedSelector == null) {
                     ownedSelector = OfficeIMO.Html.Css.HtmlCssSelectorParser.ParseHybrid(ownedSource, selectorOptions).Selector;
                 }
             } catch (OfficeIMO.Html.Css.HtmlCssSelectorLimitException) {
@@ -182,7 +182,7 @@ public static partial class HtmlComputedStyleEngine {
             }
             OwnedSelector = ownedSelector;
             ProviderSelector = ownedSelector == null || ownedSelector.RequiresProviderMatching ? providerSelector : null;
-            Specificity = ownedSelector != null && (!ownedSelector.RequiresProviderMatching || ProviderSelector == null)
+            Specificity = ownedSelector != null && !ownedSelector.RequiresProviderMatching
                 ? new Specificity(ownedSelector.Specificity.Ids, ownedSelector.Specificity.Classes, ownedSelector.Specificity.Types)
                 : ProviderSelector != null
                     ? new Specificity(ProviderSelector.Specificity.Ids, ProviderSelector.Specificity.Classes, ProviderSelector.Specificity.Tags)

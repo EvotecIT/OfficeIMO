@@ -24,8 +24,9 @@ if (source.QuerySelectorAll("td").Count != 0 ||
     throw new InvalidOperationException("The packed document parse, fragment, edit or serialization contract failed.");
 }
 
-const string css = "@future report; .status { color: green; future-property: fn(one[two]); }";
+const string css = "@future report; .status { color: green; & > .label { visibility:hidden } future-property: fn(one[two]); }";
 HtmlCssStyleSheet styleSheet = HtmlCssSyntaxParser.ParseStyleSheet(css);
+HtmlCssQualifiedRule statusRule = (HtmlCssQualifiedRule)styleSheet.Rules[1];
 HtmlCssStyleBlock inlineStyle = HtmlCssSyntaxParser.ParseStyleBlock("color:green;color:future");
 HtmlCssPropertyParseResult parsedOpacity = HtmlCssPropertyParser.Parse("opacity", "calc(20% + 55%)");
 HtmlCssPropertyParseResult parsedColor = HtmlCssPropertyParser.Parse("color", "hsl(210 50 40 / 75%)");
@@ -41,6 +42,7 @@ HtmlCssMathParseResult parsedWidth = HtmlCssMathParser.ParseLengthPercentage("ca
 HtmlCssLengthResolutionResult resolvedWidth = HtmlCssMathResolver.ResolveLength(parsedWidth.Expression!,
     new HtmlCssLengthResolutionContext { PercentageReference = 200D });
 if (styleSheet.Rules.Count != 2 || styleSheet.ToCss() != css ||
+    statusRule.Declarations.Count != 2 || statusRule.Rules.Count != 1 ||
     inlineStyle.Declarations.Count != 2 || inlineStyle.Declarations[1].Name != "color" ||
     parsedOpacity.Status != HtmlCssPropertyParseStatus.Parsed || parsedOpacity.Value?.NumericValue?.Value != 75D ||
     parsedOpacity.Value.NumericValue.IsCalculated != true || parsedColor.Value?.ColorFunction?.Kind != HtmlCssColorFunctionKind.Hsl ||

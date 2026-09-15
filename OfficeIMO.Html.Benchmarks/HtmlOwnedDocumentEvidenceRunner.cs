@@ -10,7 +10,7 @@ using OfficeIMO.Html.Dom;
 namespace OfficeIMO.Html.Benchmarks;
 
 internal static class HtmlOwnedDocumentEvidenceRunner {
-    private static readonly string[] Operations = ["Parse", "Query", "Edit", "Serialize", "ConversionOwned", "CssSyntax", "CssPropertyGrammar", "CssLengthMath", "CssSelectorAdvanced", "CssCascade", "CssCascadeTrace", "Cancel"];
+    private static readonly string[] Operations = ["Parse", "Query", "Edit", "Serialize", "ConversionOwned", "CssSyntax", "CssPropertyGrammar", "CssLengthMath", "CssSelectorAdvanced", "CssNestedRules", "CssCascade", "CssCascadeTrace", "Cancel"];
     private static readonly (string Name, int Rows)[] Scales = [("Small", 10), ("Normal", 100), ("Large", 1000)];
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -152,25 +152,27 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
                 if (actual > maximum) failures.Add($"{lane}: {metric} {actual:F0} > {maximum:F0}.");
             }
         }
-        EvaluateAdvancedSelectorScaling(measurements, failures);
+        EvaluateCssScaling(measurements, failures, "CssSelectorAdvanced");
+        EvaluateCssScaling(measurements, failures, "CssNestedRules");
     }
 
-    private static void EvaluateAdvancedSelectorScaling(
+    private static void EvaluateCssScaling(
         IReadOnlyList<HtmlOwnedDocumentEvidenceMeasurement> measurements,
-        ICollection<string> failures) {
+        ICollection<string> failures,
+        string operation) {
         HtmlOwnedDocumentEvidenceMeasurement[] normal = measurements.Where(value =>
-            value.Operation == "CssSelectorAdvanced" && value.Scale == "Normal").ToArray();
+            value.Operation == operation && value.Scale == "Normal").ToArray();
         HtmlOwnedDocumentEvidenceMeasurement[] large = measurements.Where(value =>
-            value.Operation == "CssSelectorAdvanced" && value.Scale == "Large").ToArray();
+            value.Operation == operation && value.Scale == "Large").ToArray();
         if (normal.Length == 0 || large.Length == 0) return;
         double normalElapsed = Median(normal.Select(value => value.ElapsedMilliseconds));
         double largeElapsed = Median(large.Select(value => value.ElapsedMilliseconds));
         double normalAllocated = Median(normal.Select(value => (double)value.AllocatedBytes));
         double largeAllocated = Median(large.Select(value => (double)value.AllocatedBytes));
         if (largeElapsed > normalElapsed * 12D)
-            failures.Add($"CssSelectorAdvanced Normal-to-Large elapsed scaling {largeElapsed / normalElapsed:F2}x > 12.00x for 6x rows.");
+            failures.Add($"{operation} Normal-to-Large elapsed scaling {largeElapsed / normalElapsed:F2}x > 12.00x for 6x rows.");
         if (largeAllocated > normalAllocated * 9D)
-            failures.Add($"CssSelectorAdvanced Normal-to-Large allocation scaling {largeAllocated / normalAllocated:F2}x > 9.00x for 6x rows.");
+            failures.Add($"{operation} Normal-to-Large allocation scaling {largeAllocated / normalAllocated:F2}x > 9.00x for 6x rows.");
     }
 
     private static HtmlOwnedDocumentBudgetManifest LoadBudgetManifest() {
@@ -254,6 +256,7 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
                 "CssPropertyGrammar" => CreateCssPropertyGrammar(rows),
                 "CssLengthMath" => CreateCssLengthMath(rows),
                 "CssSelectorAdvanced" => CreateCssSelectorAdvanced(rows),
+                "CssNestedRules" => CreateCssNestedRules(rows),
                 "CssCascade" => CreateCssCascade(rows, includeTraces: false),
                 "CssCascadeTrace" => CreateCssCascade(rows, includeTraces: true),
                 _ => throw new ArgumentOutOfRangeException(nameof(operation))
@@ -436,6 +439,40 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
                         throw new InvalidOperationException("Owned namespace selector did not match the SVG link.");
                     string fingerprint = matched + "|" + styles[vector].GetValue("visibility");
                     return new EvidenceValidation(matched + 1, Hash(fingerprint), fingerprint.Length);
+                });
+        }
+
+        private static EvidenceOperation CreateCssNestedRules(int rows) {
+            rows = rows switch { 10 => 100, 100 => 1_000, _ => 6_000 };
+            var html = new System.Text.StringBuilder(rows * 58 + 512);
+            html.Append("<style>.root{color:red;");
+            for (int index = 0; index < rows; index++) {
+                html.Append("&>#nested-").Append(index)
+                    .Append("{color:hwb(120 0% 0%);width:calc(10px + 5px)}");
+            }
+            html.Append("color:blue}</style><main class='root'>")
+                .Append("<span id='nested-0'>First</span>")
+                .Append("<span id='nested-").Append(rows / 2).Append("'>Middle</span>")
+                .Append("<span id='nested-").Append(rows - 1).Append("'>Last</span></main>");
+            string source = html.ToString();
+            HtmlConversionDocument document = HtmlConversionDocument.Parse(source);
+            return new EvidenceOperation(source.Length,
+                () => HtmlComputedStyleEngine.Compute(document),
+                result => {
+                    var styles = (IReadOnlyDictionary<HtmlElement, HtmlComputedStyle>)result;
+                    string rootColor = styles[document.Document.QuerySelector(".root")!].GetValue("color");
+                    string[] ids = ["#nested-0", "#nested-" + rows / 2, "#nested-" + (rows - 1)];
+                    foreach (string id in ids) {
+                        HtmlComputedStyle style = styles[document.Document.QuerySelector(id)!];
+                        if (style.GetValue("color") != "rgba(0, 255, 0, 1)"
+                            || style.GetValue("width") != "calc(10px + 5px)") {
+                            throw new InvalidOperationException("Owned nested qualified rule mismatch at " + id + ".");
+                        }
+                    }
+                    if (rootColor != "rgba(0, 0, 255, 1)")
+                        throw new InvalidOperationException("Interleaved declaration order was not preserved.");
+                    string fingerprint = rootColor + "|" + string.Join("|", ids);
+                    return new EvidenceValidation(ids.Length + 1, Hash(fingerprint), fingerprint.Length);
                 });
         }
 

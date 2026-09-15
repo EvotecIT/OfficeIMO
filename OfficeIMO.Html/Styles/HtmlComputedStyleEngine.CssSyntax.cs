@@ -59,8 +59,12 @@ public static partial class HtmlComputedStyleEngine {
         int start = 0;
         for (int i = 0; i < selectorText.Length; i++) {
             char current = selectorText[i];
+            if (current == '\\') {
+                if (i + 1 < selectorText.Length) i++;
+                continue;
+            }
             if (quote != '\0') {
-                if (current == quote && !IsEscaped(selectorText, i)) {
+                if (current == quote) {
                     quote = '\0';
                 }
 
@@ -69,6 +73,13 @@ public static partial class HtmlComputedStyleEngine {
 
             if (current == '"' || current == '\'') {
                 quote = current;
+                continue;
+            }
+
+            if (current == '/' && i + 1 < selectorText.Length && selectorText[i + 1] == '*') {
+                int commentEnd = selectorText.IndexOf("*/", i + 2, StringComparison.Ordinal);
+                if (commentEnd < 0) break;
+                i = commentEnd + 1;
                 continue;
             }
 
@@ -115,6 +126,7 @@ public static partial class HtmlComputedStyleEngine {
                     }
                     break;
             }
+
         }
 
         yield return styleText.Substring(start);
