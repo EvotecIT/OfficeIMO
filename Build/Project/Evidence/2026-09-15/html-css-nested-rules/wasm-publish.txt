@@ -1,0 +1,11 @@
+OfficeIMO.HTML nested-rule WebAssembly publish evidence
+Commit: acbf2c7201ee8a7b0fb5cb058799fc86ab87a544
+Host: Ubuntu 24.04.3 LTS, x64
+SDK: 10.0.112
+Workload: wasm-tools 10.0.112/10.0.100
+Project: Website/Apps/OfficeIMO.Web.Converter/OfficeIMO.Web.Converter.csproj
+Configuration: Release, net10.0, WasmBuildNative=true
+Result: publish passed
+Runtime: dotnet.native.zpz3odibt0.wasm
+Runtime bytes: 3876725
+HarfBuzz symbol hb_blob_create: present
