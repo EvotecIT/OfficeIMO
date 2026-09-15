@@ -91,6 +91,9 @@ public static partial class OfficeOperationCapabilityCatalog {
             string[] writableLegacyExtensions = isLegacyCapability
                 ? WritableLegacyExtensions(packageId, legacyExtensions)
                 : legacyExtensions;
+            string[] modernToLegacyExtensions = modernExtensions
+                .Where(extension => !canonicalLegacyExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+                .ToArray();
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Read,
                 capability.LegacyImport, capability.FormatId, null, legacyExtensions, "legacy-import");
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Create,
@@ -100,7 +103,7 @@ public static partial class OfficeOperationCapabilityCatalog {
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Preserve,
                 capability.LegacyRoundTrip, capability.FormatId, null, legacyExtensions, "legacy-round-trip-preserve");
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Convert,
-                capability.ModernToLegacy, modernFormatId, capability.FormatId, modernExtensions, "modern-to-legacy");
+                capability.ModernToLegacy, modernFormatId, capability.FormatId, modernToLegacyExtensions, "modern-to-legacy");
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Convert,
                 capability.LegacyToModern, capability.FormatId, modernFormatId, legacyExtensions, "legacy-to-modern");
         }

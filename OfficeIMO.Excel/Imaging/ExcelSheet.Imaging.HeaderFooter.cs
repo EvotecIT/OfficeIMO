@@ -147,7 +147,8 @@ namespace OfficeIMO.Excel {
                 new[] { contentLayer },
                 beforeLayers: pageSetupCanvasApplied ? null : canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale, fallbackCodec, cancellationToken),
                 afterLayers: pageSetupCanvasApplied ? canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale, fallbackCodec, cancellationToken) : null,
-                fonts: options.Fonts);
+                fonts: options.Fonts,
+                cancellationToken: cancellationToken);
             return new OfficeImageExportResult(
                 format,
                 width,

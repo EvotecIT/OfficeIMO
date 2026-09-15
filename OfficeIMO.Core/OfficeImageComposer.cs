@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -42,22 +43,40 @@ public static class OfficeImageComposer {
         IEnumerable<OfficeImageLayer> layers,
         Action<OfficeRasterCanvas>? beforeLayers,
         Action<OfficeRasterCanvas>? afterLayers,
-        OfficeFontFaceCollection? fonts) {
+        OfficeFontFaceCollection? fonts) =>
+        ComposeRaster(width, height, backgroundColor, layers, beforeLayers, afterLayers, fonts, default);
+
+    /// <summary>
+    /// Composes raster layers using scoped fonts and observes cancellation throughout raster drawing.
+    /// </summary>
+    public static OfficeRasterImage ComposeRaster(
+        int width,
+        int height,
+        OfficeColor backgroundColor,
+        IEnumerable<OfficeImageLayer> layers,
+        Action<OfficeRasterCanvas>? beforeLayers,
+        Action<OfficeRasterCanvas>? afterLayers,
+        OfficeFontFaceCollection? fonts,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateOutputSize(width, height);
         if (layers == null) {
             throw new ArgumentNullException(nameof(layers));
         }
 
         OfficeRasterImage image = new OfficeRasterImage(width, height, backgroundColor);
-        var canvas = new OfficeRasterCanvas(image, fonts: fonts);
+        cancellationToken.ThrowIfCancellationRequested();
+        var canvas = new OfficeRasterCanvas(image, font: null, fonts: fonts, cancellationToken: cancellationToken);
         beforeLayers?.Invoke(canvas);
         foreach (OfficeImageLayer layer in layers) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (layer.RasterImage != null) {
                 canvas.DrawImage(layer.RasterImage, layer.X, layer.Y, layer.Width, layer.Height);
             }
         }
 
         afterLayers?.Invoke(canvas);
+        cancellationToken.ThrowIfCancellationRequested();
         return image;
     }
 

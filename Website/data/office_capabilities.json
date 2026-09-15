@@ -16,7 +16,7 @@
     "formatCount": 28,
     "capabilityCount": 137,
     "packageCount": 63,
-    "operationCount": 1310
+    "operationCount": 1312
   },
   "fidelityStates": [
     {
@@ -2504,8 +2504,8 @@
       "capabilityCount": 326,
       "formats": [
         "DOCM/XLSM/XLSB/PPTM families",
+        "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
-        "DOCX/XLSX/PPTX",
         "Excel",
         "Excel workbook package",
         "Excel.OpenXml",
@@ -4165,8 +4165,8 @@
       "capabilityCount": 374,
       "formats": [
         "DOCM/XLSM/XLSB/PPTM families",
+        "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
-        "DOCX/XLSX/PPTX",
         "JPEG",
         "PNG",
         "PowerPoint",
@@ -4485,7 +4485,7 @@
     {
       "id": "OfficeIMO.Project",
       "slug": "project",
-      "capabilityCount": 22,
+      "capabilityCount": 24,
       "formats": [
         "Project.MppMpt",
         "Project.Mpx",
@@ -4568,7 +4568,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 1
+              "count": 3
             }
           ]
         }
@@ -4885,8 +4885,8 @@
         "DOC",
         "DOCM/XLSM/XLSB/PPTM families",
         "DOCX",
+        "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
-        "DOCX/XLSX/PPTX",
         "JPEG",
         "PNG",
         "SVG",

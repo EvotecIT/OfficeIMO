@@ -707,7 +707,9 @@ public sealed partial class OfficeRasterCanvas {
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
         int bottom = Clamp((int)Math.Ceiling(maxY), 0, Height - 1);
+        _cancellationToken.ThrowIfCancellationRequested();
         for (int py = top; py <= bottom; py++) {
+            _cancellationToken.ThrowIfCancellationRequested();
             for (int px = left; px <= right; px++) {
                 OfficePoint unit = inverseTransform.TransformPoint(new OfficePoint(px + 0.5D, py + 0.5D));
                 double u = unit.X;
@@ -726,6 +728,7 @@ public sealed partial class OfficeRasterCanvas {
                         Clamp((int)Math.Floor(sourceY + 0.5D), 0, image.Height - 1)));
             }
         }
+        _cancellationToken.ThrowIfCancellationRequested();
     }
 
     /// <summary>Draws an image through an arbitrary destination-space affine transform.</summary>

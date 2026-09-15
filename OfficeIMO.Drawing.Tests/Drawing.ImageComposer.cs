@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using System.Text;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -64,6 +65,34 @@ namespace OfficeIMO.Tests {
             Assert.Contains("id=\"officeimo-layer-2-officeimo-gradient-1\"", svg);
             Assert.Contains("fill=\"url(#officeimo-layer-2-officeimo-gradient-1)\"", svg);
             Assert.DoesNotContain("id=\"officeimo-gradient-1\"", svg);
+        }
+
+        [Fact]
+        public void OfficeImageComposer_ObservesCancellationDuringRasterLayerComposition() {
+            OfficeRasterImage layer = new OfficeRasterImage(4, 4, OfficeColor.Red);
+            using var cancellation = new CancellationTokenSource();
+            using var compositionStarted = new ManualResetEventSlim();
+            var cancellationThread = new Thread(() => {
+                compositionStarted.Wait();
+                cancellation.Cancel();
+            });
+            cancellationThread.Start();
+
+            try {
+                Assert.Throws<OperationCanceledException>(() =>
+                    OfficeImageComposer.ComposeRaster(
+                        2048,
+                        2048,
+                        OfficeColor.White,
+                        new[] { OfficeImageLayer.FromRaster(layer, 0, 0, 2048, 2048) },
+                        beforeLayers: _ => compositionStarted.Set(),
+                        afterLayers: null,
+                        fonts: null,
+                        cancellationToken: cancellation.Token));
+            } finally {
+                compositionStarted.Set();
+                cancellationThread.Join();
+            }
         }
     }
 }

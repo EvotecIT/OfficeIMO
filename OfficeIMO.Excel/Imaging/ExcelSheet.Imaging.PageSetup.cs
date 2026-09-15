@@ -77,7 +77,11 @@ namespace OfficeIMO.Excel {
                     geometry.Width,
                     geometry.Height,
                     options.BackgroundColor,
-                    new[] { contentLayer });
+                    new[] { contentLayer },
+                    beforeLayers: null,
+                    afterLayers: null,
+                    fonts: null,
+                    cancellationToken: cancellationToken);
                 bytes = OfficeRasterImageEncoder.Encode(
                     image,
                     format,

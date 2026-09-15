@@ -155,6 +155,34 @@ public sealed class OfficeOperationCapabilityCatalogTests {
     }
 
     [Theory]
+    [InlineData(".docx", ".docm")]
+    [InlineData(".docx", ".dotm")]
+    [InlineData(".xlsx", ".xlsm")]
+    [InlineData(".xlsx", ".xltm")]
+    [InlineData(".xlsx", ".xlam")]
+    [InlineData(".pptx", ".pptm")]
+    [InlineData(".pptx", ".potm")]
+    [InlineData(".pptx", ".ppsm")]
+    [InlineData(".pptx", ".ppam")]
+    public void MacroEnabledOpenXmlVariantsPublishTheSamePasswordProtectionRows(string canonical, string variant) {
+        string[] expected = OfficeOperationCapabilityCatalog.FindByExtension(canonical)
+            .Where(row => row.Id.StartsWith("protection:", StringComparison.Ordinal) &&
+                row.CapabilityId == "ooxml-password")
+            .Select(row => row.Id)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        string[] actual = OfficeOperationCapabilityCatalog.FindByExtension(variant)
+            .Where(row => row.Id.StartsWith("protection:", StringComparison.Ordinal) &&
+                row.CapabilityId == "ooxml-password")
+            .Select(row => row.Id)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.NotEmpty(expected);
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
     [InlineData(".dot", "OfficeIMO.Word")]
     [InlineData(".xlt", "OfficeIMO.Excel")]
     [InlineData(".xla", "OfficeIMO.Excel")]
@@ -190,6 +218,21 @@ public sealed class OfficeOperationCapabilityCatalogTests {
                 row.Operation == OfficeOperationKind.Create);
 
         Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void XlsbConversionRowsExcludeTheXlsbTargetFromItsOwnSourceSet() {
+        OfficeOperationCapability[] xlsbRows = OfficeOperationCapabilityCatalog.FindByExtension(".xlsb")
+            .Where(row => row.Id.StartsWith("legacy:", StringComparison.Ordinal) &&
+                row.Operation == OfficeOperationKind.Convert)
+            .ToArray();
+        OfficeOperationCapability[] xlsxRows = OfficeOperationCapabilityCatalog.FindByExtension(".xlsx")
+            .Where(row => row.Id.StartsWith("legacy:", StringComparison.Ordinal) &&
+                row.Operation == OfficeOperationKind.Convert)
+            .ToArray();
+
+        Assert.DoesNotContain(xlsbRows, row => row.TargetFormatId == "Excel.Xlsb");
+        Assert.Contains(xlsxRows, row => row.TargetFormatId == "Excel.Xlsb");
     }
 
     [Theory]
@@ -298,6 +341,8 @@ public sealed class OfficeOperationCapabilityCatalogTests {
     [InlineData(".xml", OfficeOperationKind.Preserve)]
     [InlineData(".xml", OfficeOperationKind.Inspect)]
     [InlineData(".xml", OfficeOperationKind.Validate)]
+    [InlineData(".mpp", OfficeOperationKind.Validate)]
+    [InlineData(".mpx", OfficeOperationKind.Validate)]
     public void NativeLifecycleRetainsBoundariesOnSupportedOperations(string extension, OfficeOperationKind operation) {
         OfficeOperationCapability row = Assert.Single(OfficeOperationCapabilityCatalog.FindByExtension(extension), row =>
             row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&

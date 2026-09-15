@@ -133,7 +133,7 @@ public sealed class OfficeProtectionCapabilityCatalog {
     }
 
     private static OfficeProtectionCapability[] CreateCurrentRows() => new[] {
-        Row("ooxml-password", "DOCX/XLSX/PPTX", "OfficeIMO.Word / OfficeIMO.Excel / OfficeIMO.PowerPoint", OfficeProtectionKind.PasswordEncryption,
+        Row("ooxml-password", "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM", "OfficeIMO.Word / OfficeIMO.Excel / OfficeIMO.PowerPoint", OfficeProtectionKind.PasswordEncryption,
             S(), S(), S(), N(), S(), S(), "format load/save password APIs", "Password encryption is format-owned; no OfficeIMO.Security dependency is required."),
         Row("doc-password", "DOC", "OfficeIMO.Word", OfficeProtectionKind.PasswordEncryption,
             D(), NS(), NS(), N(), B(), NS(), "WordDocument.Load", "Legacy DOC encryption is detected only; encrypted content is not exposed.",

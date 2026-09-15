@@ -187,7 +187,11 @@ namespace OfficeIMO.Excel {
                 outputWidth,
                 outputHeight,
                 options.BackgroundColor,
-                components.Select(component => component.ToLayer()));
+                components.Select(component => component.ToLayer()),
+                beforeLayers: null,
+                afterLayers: null,
+                fonts: null,
+                cancellationToken: cancellationToken);
             return new OfficeImageExportResult(
                 format,
                 outputWidth,

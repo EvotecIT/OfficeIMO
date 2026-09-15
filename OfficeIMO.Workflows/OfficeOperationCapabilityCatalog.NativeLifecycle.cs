@@ -232,6 +232,9 @@ public static partial class OfficeOperationCapabilityCatalog {
         AddProjectLifecycleRow(rows, "project-binary", packageId, "Project.MppMpt", OfficeOperationKind.Inspect,
             OfficeOperationSupportState.Supported, publicApi, evidence, binaryExtensions,
             "Inspection is bounded to container, generation, stream, producer, protection, macro, signature, and embedded-content inventory; it does not activate or semantically decode opaque content.");
+        AddProjectLifecycleRow(rows, "project-binary", packageId, "Project.MppMpt", OfficeOperationKind.Validate,
+            OfficeOperationSupportState.Supported, publicApi, evidence, binaryExtensions,
+            "Validation and save assessment enforce model consistency, generation-specific representability, protection and signature policy, opaque-content boundaries, and output limits.");
 
         AddProjectLifecycleRow(rows, "project-mpx", packageId, "Project.Mpx", OfficeOperationKind.Create,
             OfficeOperationSupportState.Supported, publicApi, evidence, mpxExtensions,
@@ -248,6 +251,9 @@ public static partial class OfficeOperationCapabilityCatalog {
         AddProjectLifecycleRow(rows, "project-mpx", packageId, "Project.Mpx", OfficeOperationKind.Inspect,
             OfficeOperationSupportState.Supported, publicApi, evidence, mpxExtensions,
             "Inspection reports bounded MPX framing, encoding, field tables, and retained unknown records without executing or resolving external content.");
+        AddProjectLifecycleRow(rows, "project-mpx", packageId, "Project.Mpx", OfficeOperationKind.Validate,
+            OfficeOperationSupportState.Supported, publicApi, evidence, mpxExtensions,
+            "Validation and save assessment enforce model consistency, MPX profile representability, encoding and field-table boundaries, retained-record policy, and output limits.");
 
         AddProjectLifecycleRow(rows, "project-binary-to-xml", packageId, "Project.MppMpt", OfficeOperationKind.Convert,
             OfficeOperationSupportState.Partial, publicApi, evidence, binaryExtensions,
