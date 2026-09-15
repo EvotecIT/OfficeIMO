@@ -529,9 +529,10 @@ public class PdfDocumentWorkflowTests {
 
         Assert.True(mutation.RequiresAppendOnlyMutation);
         Assert.False(mutation.CanAppendMetadata);
-        Assert.False(mutation.CanPrepareExternalSignature);
+        Assert.True(mutation.CanPrepareExternalSignature);
         Assert.Contains("Signed", mutation.Blockers);
-        Assert.Contains("SignaturePrepare", mutation.BlockedActions);
+        Assert.Contains("SignaturePrepare", mutation.SupportedActions);
+        Assert.Contains("SignedAdditionalSignature", mutation.Warnings);
         Assert.Contains("AcroFormAppendOnly", mutation.Warnings);
     }
 
