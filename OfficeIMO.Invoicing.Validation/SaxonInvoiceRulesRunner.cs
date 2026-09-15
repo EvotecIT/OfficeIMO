@@ -28,7 +28,8 @@ public sealed class SaxonInvoiceRulesRunner {
     public string Identity => SaxonInvoiceRuntime.Identity;
 
     internal async Task<IReadOnlyList<InvoiceDiagnostic>> RunAsync(byte[] xml, byte[] source, bool compile,
-        IReadOnlyDictionary<string, InvoiceDiagnosticSeverity> overrides, CancellationToken cancellationToken, Action? ruleProcessStarted = null) {
+        IReadOnlyDictionary<string, InvoiceDiagnosticSeverity> overrides, CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, byte[]>? supportingFiles = null, string? sourcePath = null, Action? ruleProcessStarted = null) {
         cancellationToken.ThrowIfCancellationRequested();
         SaxonInvoiceRuntime runtime = SaxonInvoiceRuntime.Load(_jar);
         string directory = Directory.CreateTempSubdirectory("OfficeIMO.InvoiceRules-").FullName;
@@ -36,6 +37,14 @@ public sealed class SaxonInvoiceRulesRunner {
             string runtimeJar = await runtime.WriteAsync(directory, cancellationToken).ConfigureAwait(false);
             string input = Path.Combine(directory, "invoice.xml"), stylesheet = Path.Combine(directory, "rules.xsl"), report = Path.Combine(directory, "report.xml");
             await File.WriteAllBytesAsync(input, xml, cancellationToken).ConfigureAwait(false);
+            if (supportingFiles != null) {
+                foreach ((string relativePath, byte[] bytes) in supportingFiles) {
+                    string target = SafeRulePath(directory, relativePath);
+                    Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                    await File.WriteAllBytesAsync(target, bytes, cancellationToken).ConfigureAwait(false);
+                }
+                stylesheet = SafeRulePath(directory, sourcePath ?? throw new InvalidDataException("A supporting rule bundle requires a source path."));
+            }
             if (compile) {
                 string schema = Path.Combine(directory, "rules.sch");
                 await File.WriteAllBytesAsync(schema, source, cancellationToken).ConfigureAwait(false);
@@ -46,13 +55,21 @@ public sealed class SaxonInvoiceRulesRunner {
                     await resource.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
                 }
                 await TransformAsync(schema, Path.Combine(directory, "iso_svrl_for_xslt2.xsl"), stylesheet, directory, runtimeJar, true, cancellationToken).ConfigureAwait(false);
-            } else await File.WriteAllBytesAsync(stylesheet, source, cancellationToken).ConfigureAwait(false);
+            } else if (supportingFiles == null) await File.WriteAllBytesAsync(stylesheet, source, cancellationToken).ConfigureAwait(false);
             await TransformAsync(input, stylesheet, report, directory, runtimeJar, false, cancellationToken, ruleProcessStarted).ConfigureAwait(false);
             using Stream result = File.OpenRead(report);
             return ReadSvrl(result, overrides);
         } finally {
             Directory.Delete(directory, recursive: true);
         }
+    }
+
+    private static string SafeRulePath(string directory, string relativePath) {
+        if (Path.IsPathRooted(relativePath)) throw new InvalidDataException("Rule bundle paths must be relative.");
+        string root = Path.GetFullPath(directory) + Path.DirectorySeparatorChar;
+        string target = Path.GetFullPath(Path.Combine(directory, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+        if (!target.StartsWith(root, StringComparison.Ordinal)) throw new InvalidDataException("Rule bundle path escapes its isolated workspace.");
+        return target;
     }
 
     private async Task TransformAsync(string input, string stylesheet, string output, string workingDirectory, string runtimeJar, bool compiler, CancellationToken cancellationToken, Action? ruleProcessStarted = null) {

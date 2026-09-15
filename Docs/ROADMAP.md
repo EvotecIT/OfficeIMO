@@ -244,10 +244,7 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 
 ## Electronic invoices
 
-- [ ] Extend `OfficeIMO.Invoicing` authoring and pinned validation to Factur-X MINIMUM, BASIC WL, BASIC and EXTENDED, with explicit specification releases and independent producer fixtures. Add national CIUS contracts only with their own syntax, rules and corpus evidence.
-- [ ] Expand loss-aware CII/UBL mappings for arbitrary tax-registration schemes, sales-order-only references, card network metadata and conflicting exemption or payment descriptions. Preserve source meaning or report the exact unsupported target data.
-- [ ] Add localized and multilingual invoice layouts, including long descriptions and mixed scripts, with representative fonts, visual inspection and exact XML/PDF agreement checks.
-- [ ] Benchmark XML read, write, rules validation and PDF generation as separate equivalent workloads; establish cross-platform elapsed and allocation budgets. Transport, tax-authority submission and accounting workflows remain separate product decisions.
+- [ ] Run the equivalent XML read, XML write, pinned-rules validation, and PDF-generation workloads on Windows and macOS target hosts. Retain elapsed and managed-allocation evidence for every operation, confirm or adjust the configured platform ceilings from those measurements, and keep the canonical XML and XML/PDF agreement gates identical to the qualified Linux run.
 
 ## Google Workspace
 

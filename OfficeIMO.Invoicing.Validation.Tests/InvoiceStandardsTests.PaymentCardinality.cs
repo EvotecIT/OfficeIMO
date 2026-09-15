@@ -17,7 +17,7 @@ public partial class InvoiceStandardsTests {
         invoice.Seller.Identifiers.Add(new InvoiceIdentifier("seller-2"));
         invoice.Buyer.Identifiers.Add(new InvoiceIdentifier("buyer-1"));
         if (syntax == InvoiceSyntax.Cii) invoice.Buyer.Identifiers.Add(new InvoiceIdentifier("buyer-2"));
-        var options = new InvoiceXmlOptions(syntax, profile);
+        var options = InvoiceTestContracts.For(syntax, profile);
         var validator = new InvoiceValidator(Bundle(), Runner());
         byte[] xml = InvoiceSerializer.Write(invoice, options);
         InvoiceValidationReport report = await validator.ValidateAsync(xml, PaymentProfileRelease(profile));
@@ -37,7 +37,7 @@ public partial class InvoiceStandardsTests {
             Assert.False(report.IsValid);
             Assert.Contains(report.Diagnostics, d => d.Code == "UBL-SR-16");
         }
-        InvoiceConversionResult conversion = InvoiceConverter.Convert(xml, new InvoiceXmlOptions(InvoiceSyntax.Ubl, profile));
+        InvoiceConversionResult conversion = InvoiceConverter.Convert(xml, InvoiceTestContracts.For(InvoiceSyntax.Ubl, profile));
         Assert.False(conversion.Succeeded);
         Assert.Null(conversion.Xml);
         Assert.Contains(conversion.Diagnostics, d => d.Location == "Buyer.Identifiers");
@@ -55,14 +55,15 @@ public partial class InvoiceStandardsTests {
         if (!german) {
             invoice.Seller.Address!.CountryCode = "FR";
             invoice.Buyer.Address!.CountryCode = "FR";
-            invoice.Seller.VatIdentifier = "FR40303265045";
+            invoice.Seller.TaxRegistrations.Clear();
+            invoice.Seller.TaxRegistrations.Add(new InvoiceTaxRegistration("FR40303265045", InvoiceTaxRegistration.VatScheme));
         }
-        invoice.Payment!.MeansCode = "59";
-        invoice.Payment.Accounts.Clear();
-        invoice.Payment.MandateReference = "mandate-1";
-        invoice.Payment.CreditorIdentifier = "DE98ZZZ09999999999";
-        invoice.Payment.DebitedAccount = "DE89370400440532013000";
-        var options = new InvoiceXmlOptions(syntax, profile);
+        invoice.Payments[0].MeansCode = "59";
+        invoice.Payments[0].Account = null;
+        invoice.Payments[0].MandateReference = "mandate-1";
+        invoice.Payments[0].CreditorIdentifier = "DE98ZZZ09999999999";
+        invoice.Payments[0].DebitedAccount = "DE89370400440532013000";
+        var options = InvoiceTestContracts.For(syntax, profile);
         byte[] xml = InvoiceSerializer.Write(invoice, options);
         var validator = new InvoiceValidator(Bundle(), Runner());
         InvoiceValidationReport report = await validator.ValidateAsync(xml, PaymentProfileRelease(profile));
@@ -85,7 +86,7 @@ public partial class InvoiceStandardsTests {
             InvoiceConversionResult conversion = InvoiceConverter.Convert(changed, options);
             Assert.Equal(!required, conversion.Succeeded);
             if (required) {
-                string path = field == 0 ? "Payment.MandateReference" : field == 1 ? "Payment.CreditorIdentifier" : "Payment.DebitedAccount";
+                string path = field == 0 ? "Payments[0].MandateReference" : field == 1 ? "Payments[0].CreditorIdentifier" : "Payments[0].DebitedAccount";
                 Assert.Contains(conversion.Diagnostics, d => d.Location == path);
                 Assert.Throws<InvalidDataException>(() => read.Write(options));
             }
@@ -99,9 +100,9 @@ public partial class InvoiceStandardsTests {
         return invoice;
     }
 
-    private static InvoiceRulesRelease PaymentProfileRelease(InvoiceProfile profile) => profile switch {
-        InvoiceProfile.En16931 => InvoiceRulesRelease.En16931_1_3_16,
-        InvoiceProfile.XRechnung => InvoiceRulesRelease.XRechnung_3_0_2_2026_08_31,
-        _ => InvoiceRulesRelease.PeppolBis_3_0_21
+    private static InvoiceSpecificationRelease PaymentProfileRelease(InvoiceProfile profile) => profile switch {
+        InvoiceProfile.En16931 => InvoiceSpecificationRelease.En16931_1_3_16,
+        InvoiceProfile.XRechnung => InvoiceSpecificationRelease.XRechnung_3_0_2_2026_08_31,
+        _ => InvoiceSpecificationRelease.PeppolBis_3_0_21
     };
 }

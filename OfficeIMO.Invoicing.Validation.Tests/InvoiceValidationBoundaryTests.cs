@@ -13,7 +13,7 @@ public class InvoiceValidationBoundaryTests {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml.ToString()));
         IReadOnlyList<InvoiceDiagnostic> result = SaxonInvoiceRulesRunner.ReadSvrl(stream, new Dictionary<string, InvoiceDiagnosticSeverity>());
         Assert.Equal(1000, result.Count);
-        InvoiceDiagnostic summary = Assert.Single(result.Where(d => d.Code == "INV-DIAGNOSTICS-TRUNCATED"));
+        InvoiceDiagnostic summary = Assert.Single(result, d => d.Code == "INV-DIAGNOSTICS-TRUNCATED");
         Assert.Equal(expected, summary.Severity);
     }
 
@@ -38,5 +38,17 @@ public class InvoiceValidationBoundaryTests {
             File.WriteAllBytes(path, new byte[] { 1, 2, 3 });
             Assert.Throws<InvalidDataException>(() => InvoiceRuleBundle.Load(path));
         } finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void FacturXReportIdentifiesTheFacturXAuthorityArtifact() {
+        var report = new InvoiceValidationReport("AA", 2,
+            InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2,
+            InvoiceValidationStatus.NotRun, InvoiceValidationStatus.NotRun,
+            Array.Empty<InvoiceDiagnostic>(), null);
+
+        Assert.Equal(InvoiceRuleBundle.FacturXSha256, report.AuthorityBundleSha256);
+        Assert.Equal(InvoiceRuleBundle.FacturXDownloadUrl, report.AuthoritySource);
+        Assert.Equal(InvoiceRuleBundle.FacturXSourceCommit, report.AuthoritySourceCommit);
     }
 }

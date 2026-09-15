@@ -23,7 +23,7 @@ public class InvoiceArithmeticBoundaryTests {
         Assert.Equal(Parse(expected), validation.Calculation!.LineNetTotal);
         Assert.Equal(Parse(expected), validation.Calculation.PayableAmount);
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl }) {
-            Invoice parsed = InvoiceParser.Read(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax))).Invoice;
+            Invoice parsed = InvoiceParser.Read(InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax))).Invoice;
             Assert.Equal(Parse(expected), parsed.Lines[0].DeclaredNetAmount);
             Assert.Equal(Parse(expected), parsed.DeclaredTotals!.PayableAmount);
         }

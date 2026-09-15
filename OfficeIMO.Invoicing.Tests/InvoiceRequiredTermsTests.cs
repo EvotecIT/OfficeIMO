@@ -8,19 +8,19 @@ public class InvoiceRequiredTermsTests {
     [InlineData(true)]
     public void AlternativeSellerIdentifiersAndNonTransferPaymentsRemainSupported(bool legal) {
         Invoice invoice = InvoiceFixture.WithTaxCategory("E");
-        invoice.Seller.VatIdentifier = null;
-        invoice.Seller.TaxRegistration = "local-tax-id";
+        invoice.Seller.TaxRegistrations.Clear();
+        invoice.Seller.TaxRegistrations.Add(new InvoiceTaxRegistration("local-tax-id", InvoiceTaxRegistration.TaxScheme));
         if (legal) invoice.Seller.LegalRegistration = new InvoiceIdentifier("HRB 1");
         else invoice.Seller.Identifiers.Add(new InvoiceIdentifier("seller-1"));
-        invoice.Payment!.MeansCode = "10";
-        invoice.Payment.Accounts.Clear();
+        invoice.Payments[0].MeansCode = "10";
+        invoice.Payments[0].Account = null;
         invoice.Lines[0].Tax.ExemptionReason = null;
         invoice.Lines[0].Tax.ExemptionReasonCode = "VATEX-EU-132";
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl }) {
-            InvoiceReadResult read = InvoiceParser.Read(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax)));
+            InvoiceReadResult read = InvoiceParser.Read(InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax)));
             Assert.True(read.HasCompleteMapping);
             Assert.Equal("VATEX-EU-132", Assert.Single(read.Invoice.DeclaredTaxes).Category.ExemptionReasonCode);
-            Assert.Empty(read.Invoice.Payment!.Accounts);
+            Assert.Null(read.Invoice.Payments[0].Account);
         }
     }
 
@@ -35,13 +35,13 @@ public class InvoiceRequiredTermsTests {
         InvoiceCalculator.UpdateDeclaredAmounts(invoice);
         invoice.Lines[0].Tax.ExemptionReason = null;
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl }) {
-            byte[] xml = InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax));
+            byte[] xml = InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax));
             InvoiceReadResult read = InvoiceParser.Read(xml);
             Assert.True(read.HasCompleteMapping);
             Assert.Equal("Exemption applies", Assert.Single(read.Invoice.DeclaredTaxes).Category.ExemptionReason);
             read.Invoice.Lines[0].UnitPrice = 150m;
             InvoiceCalculator.UpdateDeclaredAmounts(read.Invoice);
-            InvoiceReadResult edited = InvoiceParser.Read(read.Write());
+            InvoiceReadResult edited = InvoiceParser.Read(read.Write(InvoiceTestContracts.En16931(syntax)));
             Assert.Equal("Exemption applies", Assert.Single(edited.Invoice.DeclaredTaxes).Category.ExemptionReason);
             Assert.Equal(150m, Assert.Single(edited.Invoice.DeclaredTaxes).TaxableAmount);
         }
@@ -56,13 +56,13 @@ public class InvoiceRequiredTermsTests {
     public void MissingHeaderExemptionBlocksRewriteAndConversion(string code) {
         Invoice invoice = InvoiceFixture.WithTaxCategory(code);
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl }) {
-            var xml = System.Xml.Linq.XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax))));
+            var xml = System.Xml.Linq.XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax))));
             xml.Descendants().Where(e => e.Name.LocalName == "ExemptionReason" || e.Name.LocalName == "TaxExemptionReason").Remove();
             byte[] bytes = Encoding.UTF8.GetBytes(xml.ToString());
             InvoiceReadResult read = InvoiceParser.Read(bytes);
             Assert.Contains(InvoiceModelValidator.Validate(read.Invoice).Diagnostics, d => d.Code == "INV-VAT-EXEMPTION");
-            Assert.Throws<InvalidDataException>(() => read.Write(allowUnmappedDataLoss: true));
-            Assert.False(InvoiceConverter.Convert(bytes, new InvoiceXmlOptions(syntax == InvoiceSyntax.Cii ? InvoiceSyntax.Ubl : InvoiceSyntax.Cii)).Succeeded);
+            Assert.Throws<InvalidDataException>(() => read.Write(InvoiceTestContracts.En16931(syntax), allowUnmappedDataLoss: true));
+            Assert.False(InvoiceConverter.Convert(bytes, InvoiceTestContracts.En16931(syntax == InvoiceSyntax.Cii ? InvoiceSyntax.Ubl : InvoiceSyntax.Cii)).Succeeded);
         }
     }
 
@@ -104,17 +104,17 @@ public class InvoiceRequiredTermsTests {
         Invoice invoice = InvoiceFixture.WithTaxCategory(violation.StartsWith("community", StringComparison.Ordinal) ? "K" :
             violation.StartsWith("outside", StringComparison.Ordinal) ? "O" : violation == "reverse-buyer" ? "AE" : "S");
         switch (violation) {
-            case "seller-tax": invoice.Seller.VatIdentifier = null; invoice.Seller.LegalRegistration = new InvoiceIdentifier("HRB 1"); break;
+            case "seller-tax": RemoveVat(invoice.Seller); invoice.Seller.LegalRegistration = new InvoiceIdentifier("HRB 1"); break;
             case "reverse-buyer":
-            case "community-buyer": invoice.Buyer.VatIdentifier = null; break;
+            case "community-buyer": RemoveVat(invoice.Buyer); break;
             case "community-date": invoice.Delivery!.Date = null; break;
             case "community-country": invoice.Delivery!.Address = null; break;
-            case "outside-id": invoice.Buyer.VatIdentifier = "DE987654321"; break;
+            case "outside-id": invoice.Buyer.TaxRegistrations.Add(new InvoiceTaxRegistration("DE987654321", InvoiceTaxRegistration.VatScheme)); break;
             case "outside-mix": invoice.Lines.Add(InvoiceFixture.Create().Lines[0]); invoice.Lines[1].Id = "2"; break;
         }
         Assert.Contains(InvoiceModelValidator.Validate(invoice).Diagnostics, d => d.Code == "INV-VAT-IDENTIFIER" || d.Code == "INV-VAT-DELIVERY" || d.Code == "INV-VAT-MIX");
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl })
-            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax)));
+            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax)));
     }
 
     [Theory]
@@ -125,11 +125,12 @@ public class InvoiceRequiredTermsTests {
         Invoice invoice = InvoiceFixture.Create();
         invoice.Seller.Identifiers.Clear();
         invoice.Seller.LegalRegistration = null;
-        invoice.Seller.VatIdentifier = vat;
-        invoice.Seller.TaxRegistration = "other-tax-id";
+        invoice.Seller.TaxRegistrations.Clear();
+        if (vat != null) invoice.Seller.TaxRegistrations.Add(new InvoiceTaxRegistration(vat, InvoiceTaxRegistration.VatScheme));
+        invoice.Seller.TaxRegistrations.Add(new InvoiceTaxRegistration("other-tax-id", InvoiceTaxRegistration.TaxScheme));
         Assert.Contains(InvoiceModelValidator.Validate(invoice).Diagnostics, d => d.Code == "INV-SELLER-ID");
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl })
-            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax)));
+            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax)));
     }
 
     [Theory]
@@ -137,11 +138,11 @@ public class InvoiceRequiredTermsTests {
     [InlineData("58")]
     public void CreditTransferRequiresAnAccount(string means) {
         Invoice invoice = InvoiceFixture.Create();
-        invoice.Payment!.MeansCode = means;
-        invoice.Payment.Accounts.Clear();
+        invoice.Payments[0].MeansCode = means;
+        invoice.Payments[0].Account = null;
         Assert.Contains(InvoiceModelValidator.Validate(invoice).Diagnostics, d => d.Code == "INV-PAYMENT-ACCOUNT");
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl })
-            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax)));
+            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax)));
     }
 
     [Theory]
@@ -153,6 +154,12 @@ public class InvoiceRequiredTermsTests {
         invoice.Lines[0].Tax = new InvoiceTaxCategory { Code = "E", Rate = 0m, ExemptionReason = reason, ExemptionReasonCode = reason };
         Assert.Contains(InvoiceModelValidator.Validate(invoice).Diagnostics, d => d.Code == "INV-VAT-EXEMPTION");
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl })
-            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax)));
+            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax)));
+    }
+
+    private static void RemoveVat(InvoiceParty party) {
+        for (int index = party.TaxRegistrations.Count - 1; index >= 0; index--)
+            if (party.TaxRegistrations[index].SchemeId == InvoiceTaxRegistration.VatScheme)
+                party.TaxRegistrations.RemoveAt(index);
     }
 }

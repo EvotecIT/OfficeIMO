@@ -12,8 +12,55 @@ public static partial class InvoiceSerializer {
             new XElement(Rsm + "ExchangedDocument", new XElement(Ram + "ID", invoice.Number), new XElement(Ram + "TypeCode", invoice.TypeCode),
                 CiiDate("IssueDateTime", invoice.IssueDate), invoice.Notes.Select(note => new XElement(Ram + "IncludedNote", Text(Ram + "Content", note.Text), Text(Ram + "SubjectCode", note.SubjectCode)))),
             new XElement(Rsm + "SupplyChainTradeTransaction",
-                invoice.Lines.Select((line, index) => CiiLine(line, calculation.Lines[index])),
-                CiiAgreement(invoice), CiiDelivery(invoice), CiiSettlement(invoice, calculation))));
+                options.Profile is InvoiceProfile.Minimum or InvoiceProfile.BasicWithoutLines ? null :
+                    options.Profile == InvoiceProfile.Basic
+                        ? invoice.Lines.Select((line, index) => CiiBasicLine(line, calculation.Lines[index]))
+                        : invoice.Lines.Select((line, index) => CiiLine(line, calculation.Lines[index])),
+                options.Profile is InvoiceProfile.Minimum or InvoiceProfile.BasicWithoutLines or InvoiceProfile.Basic ? CiiReducedAgreement(invoice, options.Profile) : CiiAgreement(invoice),
+                options.Profile is InvoiceProfile.Minimum or InvoiceProfile.BasicWithoutLines or InvoiceProfile.Basic ? new XElement(Ram + "ApplicableHeaderTradeDelivery") : CiiDelivery(invoice),
+                options.Profile switch {
+                    InvoiceProfile.Minimum => CiiMinimumSettlement(invoice, calculation),
+                    InvoiceProfile.BasicWithoutLines => CiiBasicWithoutLinesSettlement(invoice, calculation),
+                    InvoiceProfile.Basic => CiiBasicSettlement(invoice, calculation),
+                    _ => CiiSettlement(invoice, calculation)
+                })));
+
+    private static XElement CiiReducedAgreement(Invoice invoice, InvoiceProfile profile) => new XElement(Ram + "ApplicableHeaderTradeAgreement",
+        CiiReducedParty("SellerTradeParty", invoice.Seller, profile), CiiReducedParty("BuyerTradeParty", invoice.Buyer, profile));
+
+    private static XElement CiiReducedParty(string element, InvoiceParty party, InvoiceProfile profile) => new XElement(Ram + element,
+        Text(Ram + "Name", party.Name),
+        party.LegalRegistration == null ? null : new XElement(Ram + "SpecifiedLegalOrganization", Identifier(Ram + "ID", party.LegalRegistration)),
+        profile == InvoiceProfile.Minimum
+            ? element == "SellerTradeParty" ? new XElement(Ram + "PostalTradeAddress", Text(Ram + "CountryID", party.Address.CountryCode)) : null
+            : CiiAddress(party.Address),
+        party.TaxRegistrations.Where(registration => registration.Kind is InvoiceTaxRegistrationKind.Vat or InvoiceTaxRegistrationKind.Fiscal)
+            .Select(registration => new XElement(Ram + "SpecifiedTaxRegistration", new XElement(Ram + "ID",
+                new XAttribute("schemeID", registration.Kind == InvoiceTaxRegistrationKind.Vat ? "VA" : "FC"), registration.Identifier))));
+
+    private static XElement CiiMinimumSettlement(Invoice invoice, InvoiceCalculation calculation) => new XElement(Ram + "ApplicableHeaderTradeSettlement",
+        new XElement(Ram + "InvoiceCurrencyCode", invoice.Currency),
+        new XElement(Ram + "SpecifiedTradeSettlementHeaderMonetarySummation",
+            CiiAmount("TaxBasisTotalAmount", calculation.TaxExclusiveTotal),
+            new XElement(Ram + "TaxTotalAmount", new XAttribute("currencyID", invoice.Currency), Amount(calculation.TaxTotal)),
+            CiiAmount("GrandTotalAmount", calculation.TaxInclusiveTotal), CiiAmount("DuePayableAmount", calculation.PayableAmount)));
+
+    private static XElement CiiBasicWithoutLinesSettlement(Invoice invoice, InvoiceCalculation calculation) => new XElement(Ram + "ApplicableHeaderTradeSettlement",
+        new XElement(Ram + "InvoiceCurrencyCode", invoice.Currency),
+        calculation.Taxes.Select(tax => CiiReducedTax(tax)),
+        new XElement(Ram + "SpecifiedTradeSettlementHeaderMonetarySummation",
+            CiiAmount("LineTotalAmount", calculation.LineNetTotal), CiiAmount("ChargeTotalAmount", calculation.ChargeTotal),
+            CiiAmount("AllowanceTotalAmount", calculation.AllowanceTotal), CiiAmount("TaxBasisTotalAmount", calculation.TaxExclusiveTotal),
+            new XElement(Ram + "TaxTotalAmount", new XAttribute("currencyID", invoice.Currency), Amount(calculation.TaxTotal)),
+            CiiAmount("GrandTotalAmount", calculation.TaxInclusiveTotal), CiiAmount("TotalPrepaidAmount", calculation.PrepaidAmount),
+            CiiAmount("DuePayableAmount", calculation.PayableAmount)));
+
+    private static XElement CiiBasicSettlement(Invoice invoice, InvoiceCalculation calculation) => CiiBasicWithoutLinesSettlement(invoice, calculation);
+
+    private static XElement CiiReducedTax(InvoiceCalculatedTax tax) => new XElement(Ram + "ApplicableTradeTax",
+        CiiAmount("CalculatedAmount", tax.TaxAmount), new XElement(Ram + "TypeCode", "VAT"), Text(Ram + "ExemptionReason", tax.ExemptionReason),
+        CiiAmount("BasisAmount", tax.TaxableAmount), new XElement(Ram + "CategoryCode", tax.CategoryCode),
+        Text(Ram + "ExemptionReasonCode", tax.ExemptionReasonCode), tax.Rate.HasValue ? Text(Ram + "RateApplicablePercent", Number(tax.Rate.Value)) : null);
 
     private static XElement CiiAgreement(Invoice invoice) => new XElement(Ram + "ApplicableHeaderTradeAgreement",
         Text(Ram + "BuyerReference", invoice.BuyerReference), CiiParty("SellerTradeParty", invoice.Seller), CiiParty("BuyerTradeParty", invoice.Buyer),
@@ -34,13 +81,15 @@ public static partial class InvoiceSerializer {
         CiiReference("DespatchAdviceReferencedDocument", invoice.DespatchAdviceReference), CiiReference("ReceivingAdviceReferencedDocument", invoice.ReceivingAdviceReference));
 
     private static XElement CiiSettlement(Invoice invoice, InvoiceCalculation calculation) => new XElement(Ram + "ApplicableHeaderTradeSettlement",
-        Text(Ram + "CreditorReferenceID", invoice.Payment?.CreditorIdentifier), Text(Ram + "PaymentReference", invoice.Payment?.Reference),
+        Text(Ram + "CreditorReferenceID", FirstPaymentValue(invoice, payment => payment.CreditorIdentifier)),
+        Text(Ram + "PaymentReference", FirstPaymentValue(invoice, payment => payment.Reference)),
         Text(Ram + "TaxCurrencyCode", invoice.TaxCurrency), new XElement(Ram + "InvoiceCurrencyCode", invoice.Currency),
         invoice.Payee == null ? null : CiiParty("PayeeTradeParty", invoice.Payee, includeAddress: false),
-        CiiPayment(invoice.Payment), calculation.Taxes.Select((tax, index) => CiiTax(tax, invoice, index == 0)), CiiPeriod(invoice.Period),
+        CiiPayments(invoice.Payments), calculation.Taxes.Select((tax, index) => CiiTax(tax, invoice, index == 0)), CiiPeriod(invoice.Period),
         invoice.AllowancesAndCharges.Select(item => CiiAdjustment(item, true)),
-        invoice.PaymentTerms == null && invoice.DueDate == null && invoice.Payment?.MandateReference == null ? null :
-            new XElement(Ram + "SpecifiedTradePaymentTerms", Text(Ram + "Description", invoice.PaymentTerms), CiiDate("DueDateDateTime", invoice.DueDate), Text(Ram + "DirectDebitMandateID", invoice.Payment?.MandateReference)),
+        invoice.PaymentTerms == null && invoice.DueDate == null && FirstPaymentValue(invoice, payment => payment.MandateReference) == null ? null :
+            new XElement(Ram + "SpecifiedTradePaymentTerms", Text(Ram + "Description", invoice.PaymentTerms), CiiDate("DueDateDateTime", invoice.DueDate),
+                Text(Ram + "DirectDebitMandateID", FirstPaymentValue(invoice, payment => payment.MandateReference))),
         new XElement(Ram + "SpecifiedTradeSettlementHeaderMonetarySummation", CiiAmount("LineTotalAmount", calculation.LineNetTotal),
             CiiAmount("ChargeTotalAmount", calculation.ChargeTotal), CiiAmount("AllowanceTotalAmount", calculation.AllowanceTotal), CiiAmount("TaxBasisTotalAmount", calculation.TaxExclusiveTotal),
             new XElement(Ram + "TaxTotalAmount", new XAttribute("currencyID", invoice.Currency), Amount(calculation.TaxTotal)),

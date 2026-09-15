@@ -17,13 +17,12 @@ public static partial class InvoiceParser {
         foreach (XElement tax in c.Children(element, Ram + "SpecifiedTaxRegistration")) {
             XElement? identifier = c.Child(tax, Ram + "ID");
             string? value = c.Value(identifier), scheme = c.Attribute(identifier, "schemeID");
-            if (scheme == "VA") {
-                if (party.VatIdentifier != null) c.Loss(tax, "Multiple VAT identifiers are outside the supported mapping.");
-                party.VatIdentifier = value;
-            } else if (scheme == "FC") {
-                if (party.TaxRegistration != null) c.Loss(tax, "Multiple non-VAT tax registrations are outside the supported mapping.");
-                party.TaxRegistration = value;
-            } else c.Loss(tax, "Unsupported tax registration scheme.");
+            if (value != null && scheme != null) c.AddTo(party.TaxRegistrations, scheme switch {
+                "VA" => new InvoiceTaxRegistration(value, InvoiceTaxRegistration.VatScheme, InvoiceTaxRegistrationKind.Vat),
+                "FC" => new InvoiceTaxRegistration(value, InvoiceTaxRegistration.TaxScheme, InvoiceTaxRegistrationKind.Fiscal),
+                _ => new InvoiceTaxRegistration(value, scheme, InvoiceTaxRegistrationKind.Other)
+            });
+            else c.Loss(tax, "A tax registration requires both an identifier and a scheme to preserve its meaning.");
         }
         return party;
     }
@@ -32,33 +31,32 @@ public static partial class InvoiceParser {
         City = c.Text(element, Ram + "CityName"), PostCode = c.Text(element, Ram + "PostcodeCode"), CountryCode = c.Required(element, Ram + "CountryID"), Subdivision = c.Text(element, Ram + "CountrySubDivisionName")
     };
 
-    private static InvoicePayment? CiiPayment(InvoiceXmlReadContext c, XElement? settlement) {
+    private static IEnumerable<InvoicePayment> CiiPayments(InvoiceXmlReadContext c, XElement? settlement) {
         string? reference = c.Text(settlement, Ram + "PaymentReference"), creditor = c.Text(settlement, Ram + "CreditorReferenceID");
-        InvoicePayment? result = null;
+        bool found = false;
         foreach (XElement element in c.Children(settlement, Ram + "SpecifiedTradeSettlementPaymentMeans")) {
-            string code = c.Required(element, Ram + "TypeCode");
-            string? text = c.Text(element, Ram + "Information");
-            if (result == null) result = new InvoicePayment { MeansCode = code, MeansText = text, Reference = reference, CreditorIdentifier = creditor };
-            else { Agree(c, element, result.MeansCode, code, "payment means"); if (result.MeansText != null && text != null) Agree(c, element, result.MeansText, text, "payment descriptions"); result.MeansText = result.MeansText ?? text; }
+            found = true;
+            var result = new InvoicePayment {
+                MeansCode = c.Required(element, Ram + "TypeCode"), MeansText = c.Text(element, Ram + "Information"),
+                Reference = reference, CreditorIdentifier = creditor
+            };
             XElement? account = c.Child(element, Ram + "PayeePartyCreditorFinancialAccount");
             XElement? institution = c.Child(element, Ram + "PayeeSpecifiedCreditorFinancialInstitution");
             if (account != null) {
                 string? iban = c.Text(account, Ram + "IBANID"), local = c.Text(account, Ram + "ProprietaryID");
                 if (iban != null && local != null) c.Loss(account, "Account declares both IBAN and proprietary identifiers.");
-                c.AddTo(result.Accounts, new InvoiceBankAccount { Identifier = iban ?? local ?? string.Empty, IsIban = iban != null,
-                    Name = c.Text(account, Ram + "AccountName"), ProviderIdentifier = c.Text(institution, Ram + "BICID") });
+                result.Account = new InvoiceBankAccount { Identifier = iban ?? local ?? string.Empty, IsIban = iban != null,
+                    Name = c.Text(account, Ram + "AccountName"), ProviderIdentifier = c.Text(institution, Ram + "BICID") };
             } else if (institution != null) c.Loss(institution, "A financial institution without an account is outside the supported mapping.");
             XElement? card = c.Child(element, Ram + "ApplicableTradeSettlementFinancialCard");
-            string? cardNumber = c.Text(card, Ram + "ID"), cardHolder = c.Text(card, Ram + "CardholderName");
+            result.CardNumber = c.Text(card, Ram + "ID");
+            result.CardHolder = c.Text(card, Ram + "CardholderName");
             XElement? debtorAccount = c.Child(element, Ram + "PayerPartyDebtorFinancialAccount");
-            string? debit = c.Text(debtorAccount, Ram + "IBANID");
-            if (debit != null && !InvoiceBankAccountIdentity.IsValidIban(debit))
+            result.DebitedAccount = c.Text(debtorAccount, Ram + "IBANID");
+            if (result.DebitedAccount != null && !InvoiceBankAccountIdentity.IsValidIban(result.DebitedAccount))
                 c.Loss(debtorAccount!, "The source debtor account is explicitly identified as an IBAN but does not have a registered country format and valid checksum.");
-            if (result.CardNumber != null && cardNumber != null) Agree(c, element, result.CardNumber, cardNumber, "card numbers");
-            if (result.CardHolder != null && cardHolder != null) Agree(c, element, result.CardHolder, cardHolder, "card holders");
-            if (result.DebitedAccount != null && debit != null) Agree(c, element, result.DebitedAccount, debit, "debited accounts");
-            result.CardNumber = result.CardNumber ?? cardNumber; result.CardHolder = result.CardHolder ?? cardHolder; result.DebitedAccount = result.DebitedAccount ?? debit;
+            yield return result;
         }
-        return result ?? (reference == null && creditor == null ? null : new InvoicePayment { Reference = reference, CreditorIdentifier = creditor });
+        if (!found && (reference != null || creditor != null)) yield return new InvoicePayment { Reference = reference, CreditorIdentifier = creditor };
     }
 }

@@ -3,6 +3,18 @@ using System.Xml.Linq;
 namespace OfficeIMO.Invoicing;
 
 public static partial class InvoiceSerializer {
+    private static XElement CiiBasicLine(InvoiceLine line, InvoiceCalculatedLine calculation) => new XElement(Ram + "IncludedSupplyChainTradeLineItem",
+        new XElement(Ram + "AssociatedDocumentLineDocument", Text(Ram + "LineID", line.Id)),
+        new XElement(Ram + "SpecifiedTradeProduct", Text(Ram + "Name", line.Name)),
+        new XElement(Ram + "SpecifiedLineTradeAgreement",
+            new XElement(Ram + "NetPriceProductTradePrice", Text(Ram + "ChargeAmount", Number(line.UnitPrice)))),
+        new XElement(Ram + "SpecifiedLineTradeDelivery",
+            new XElement(Ram + "BilledQuantity", new XAttribute("unitCode", line.UnitCode), Number(line.Quantity))),
+        new XElement(Ram + "SpecifiedLineTradeSettlement",
+            new XElement(Ram + "ApplicableTradeTax", new XElement(Ram + "TypeCode", "VAT"), new XElement(Ram + "CategoryCode", line.Tax.Code),
+                line.Tax.Rate.HasValue ? Text(Ram + "RateApplicablePercent", Number(line.Tax.Rate.Value)) : null),
+            new XElement(Ram + "SpecifiedTradeSettlementLineMonetarySummation", CiiAmount("LineTotalAmount", calculation.NetAmount))));
+
     private static XElement CiiLine(InvoiceLine line, InvoiceCalculatedLine calculation) => new XElement(Ram + "IncludedSupplyChainTradeLineItem",
         new XElement(Ram + "AssociatedDocumentLineDocument", Text(Ram + "LineID", line.Id), line.Note == null ? null : new XElement(Ram + "IncludedNote", Text(Ram + "Content", line.Note))),
         new XElement(Ram + "SpecifiedTradeProduct", Identifier(Ram + "GlobalID", line.StandardItemIdentifier), Text(Ram + "SellerAssignedID", line.SellerItemIdentifier),
