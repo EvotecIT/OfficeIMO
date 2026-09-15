@@ -146,9 +146,15 @@ public static partial class OfficeSvgDrawingReader {
             throw new InvalidDataException("The SVG uses an XML stylesheet processing instruction outside the bounded native subset.");
         }
         XElement root = parsed.Root ?? throw new InvalidDataException("The SVG has no root element.");
+        if (!root.Name.LocalName.Equals("svg", StringComparison.Ordinal)) {
+            throw new InvalidDataException("The SVG root element name must match XML SVG casing.");
+        }
         if (root.Name.NamespaceName.Length > 0 &&
             !root.Name.NamespaceName.Equals("http://www.w3.org/2000/svg", StringComparison.Ordinal)) {
             throw new InvalidDataException("The SVG root must use the standard SVG namespace or no namespace.");
+        }
+        if (root.Attributes().Any(IsInvalidSvgRootViewportAttribute)) {
+            throw new InvalidDataException("The SVG uses a namespaced or case-mismatched root viewport attribute outside XML SVG geometry.");
         }
         XNamespace svgNamespace = root.Name.Namespace;
         if (root.DescendantsAndSelf().Where(element => IsNativeSvgElement(element, svgNamespace)).Any(element =>
@@ -166,6 +172,14 @@ public static partial class OfficeSvgDrawingReader {
                     IsSvgPresentationPropertyName(attribute.Name.LocalName) &&
                     attribute.Value.IndexOf('\\') >= 0))) {
             throw new InvalidDataException("The SVG uses escaped presentation-attribute syntax outside the bounded native CSS subset.");
+        }
+        if (root.DescendantsAndSelf().Where(element => IsNativeSvgElement(element, svgNamespace)).Any(element =>
+                element.Attributes().Any(attribute =>
+                    attribute.Name.NamespaceName.Length == 0 &&
+                    attribute.Name.LocalName.Equals(attribute.Name.LocalName.ToLowerInvariant(), StringComparison.Ordinal) &&
+                    IsSvgPresentationPropertyName(attribute.Name.LocalName) &&
+                    ContainsUnsupportedSvgCssMathFunction(attribute.Value)))) {
+            throw new InvalidDataException("The SVG uses CSS math functions outside the bounded native presentation-attribute subset.");
         }
         if (root.DescendantsAndSelf().Where(element => IsNativeSvgElement(element, svgNamespace))
             .Any(HasUnsupportedSvgTextPositioningLength)) {
@@ -214,6 +228,29 @@ public static partial class OfficeSvgDrawingReader {
             foreach (string token in tokens) {
                 if (!TryViewportLength(token, 1D, out _, out _)) return true;
             }
+        }
+        return false;
+    }
+
+    private static bool IsInvalidSvgRootViewportAttribute(XAttribute attribute) {
+        if (attribute.IsNamespaceDeclaration) return false;
+        string? expected = attribute.Name.LocalName.ToLowerInvariant() switch {
+            "width" => "width",
+            "height" => "height",
+            "viewbox" => "viewBox",
+            "preserveaspectratio" => "preserveAspectRatio",
+            _ => null
+        };
+        return expected != null &&
+            (attribute.Name.NamespaceName.Length != 0 || !attribute.Name.LocalName.Equals(expected, StringComparison.Ordinal));
+    }
+
+    private static bool ContainsUnsupportedSvgCssMathFunction(string value) {
+        foreach (string name in new[] {
+            "calc", "min", "max", "clamp", "round", "mod", "rem", "sin", "cos", "tan",
+            "asin", "acos", "atan", "atan2", "pow", "sqrt", "hypot", "log", "exp", "abs", "sign"
+        }) {
+            if (ContainsPotentialCssIdentifier(value, name)) return true;
         }
         return false;
     }

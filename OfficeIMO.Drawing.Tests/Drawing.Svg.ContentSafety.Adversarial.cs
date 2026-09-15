@@ -791,6 +791,37 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void PresentationAttributeMathFunctionsFailClosed() {
+        byte[] svg = Svg("<text opacity='calc(0)' x='10' y='35'>calculated opacity payload</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void TextLengthAdjustedBoundsCannotAuthorizeCleanup() {
+        byte[] svg = Svg(
+            "<text textLength='10000' lengthAdjust='spacingAndGlyphs' transform='scale(.0005,1)' " +
+            "font-size='16' x='10' y='35'>W</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "W" && item.Kind == OfficeContentConcealmentKind.ZeroDimension);
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("text-length adjustment", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NamespacedRootViewportAttributesFailClosed() {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' xmlns:x='urn:foreign' width='200' height='100' " +
+            "x:viewBox='0 0 8000 100'><text font-size='50' x='10' y='60'>visible text</text></svg>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
     public void FallbackPaintCannotAuthorizeCleanup() {
         byte[] svg = Svg("<text fill='url(#missing) red' x='10' y='35'>fallback paint visible</text>");
         var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };

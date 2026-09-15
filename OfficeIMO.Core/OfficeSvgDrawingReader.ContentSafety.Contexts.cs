@@ -192,6 +192,10 @@ public static partial class OfficeSvgDrawingReader {
         }
         foreach (XElement current in element.AncestorsAndSelf()) {
             string name = current.Name.LocalName.ToLowerInvariant();
+            if (current.Attribute("textLength") != null || current.Attribute("lengthAdjust") != null) {
+                evidence = "SVG text-length adjustment can change browser glyph bounds and is therefore report-only.";
+                return true;
+            }
             string? transform = ReadPresentationProperty(current, "transform");
             if (!string.IsNullOrWhiteSpace(transform) &&
                 transform!.Any(character => char.IsWhiteSpace(character) && !IsSvgCssWhitespace(character))) {
