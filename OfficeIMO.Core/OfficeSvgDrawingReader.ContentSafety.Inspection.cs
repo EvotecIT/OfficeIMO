@@ -32,6 +32,8 @@ public static partial class OfficeSvgDrawingReader {
         var byComputedText = candidates.ToDictionary(item => item.ComputedText, item => item);
         var observer = new SvgContentSafetyTextObserver(byComputedText);
         CollectSvgContentSafetyTextRuns(computedRoot, document, readerOptions, observer, ref unsupported);
+        ISet<string> reusableTextIds = CollectSvgReusableTextReferencedIds(document.Root);
+        bool hasDynamicRendering = HasSvgDynamicRendering(document.Root);
 
         int requestedComparisons = document.MaximumVisualComparisons;
         int pixelFundedComparisons = (int)Math.Min(
@@ -74,8 +76,16 @@ public static partial class OfficeSvgDrawingReader {
         foreach (SvgContentSafetyCandidate candidate in candidates) {
             string text = candidate.SourceText.Value;
             if (text.Length == 0 || string.IsNullOrWhiteSpace(text)) continue;
+            bool contextDependent = TryDescribeSvgContextDependentText(
+                candidate.ComputedElement,
+                reusableTextIds,
+                hasDynamicRendering,
+                out string contextEvidence);
 
-            if (TryClassifySvgNonPrimary(candidate, out SvgContentSafetyConcealment nonPrimary, out OfficeContentCleanupCapability nonPrimaryCleanup)) {
+            if (TryClassifySvgNonPrimary(
+                    candidate,
+                    out SvgContentSafetyConcealment nonPrimary,
+                    out OfficeContentCleanupCapability nonPrimaryCleanup)) {
                 if (options.IncludeNonPrimaryContent) {
                     AddSvgContentSafetyFinding(builder, targets, candidate, nonPrimary, nonPrimaryCleanup);
                 }
@@ -83,6 +93,7 @@ public static partial class OfficeSvgDrawingReader {
             }
 
             SvgContentSafetyConcealment? concealment = ClassifySvgStructuralConcealment(candidate, document, options);
+            bool visualConcealment = false;
             if (!concealment.HasValue && baselineRendered) {
                 if (comparisons < maximumComparisons) {
                     comparisons++;
@@ -95,6 +106,7 @@ public static partial class OfficeSvgDrawingReader {
                             baselineUnsupported,
                             out SvgVisualComparison comparison)) {
                         concealment = ClassifySvgVisualConcealment(candidate, document, baseline!, comparison, options);
+                        visualConcealment = concealment.HasValue;
                     }
                 } else {
                     comparisonLimitReached = true;
@@ -102,12 +114,38 @@ public static partial class OfficeSvgDrawingReader {
             }
 
             if (concealment.HasValue) {
+                if (contextDependent) {
+                    concealment = new SvgContentSafetyConcealment(
+                        concealment.Value.Kind,
+                        concealment.Value.Evidence + " " + contextEvidence,
+                        concealment.Value.Risk);
+                }
                 AddSvgContentSafetyFinding(
                     builder,
                     targets,
                     candidate,
                     concealment.Value,
-                    OfficeContentCleanupCapability.RemoveText);
+                    contextDependent || visualConcealment && baselineUnsupported > 0
+                        ? OfficeContentCleanupCapability.ReportOnly
+                        : OfficeContentCleanupCapability.RemoveText);
+            } else if (contextDependent) {
+                if (options.IncludeNonPrimaryContent) {
+                    AddSvgContentSafetyFinding(
+                        builder,
+                        targets,
+                        candidate,
+                        new SvgContentSafetyConcealment(
+                            OfficeContentConcealmentKind.NonPrimaryContent,
+                            contextEvidence,
+                            OfficeContentSafetyRisk.Informational),
+                        OfficeContentCleanupCapability.ReportOnly);
+                } else {
+                    IReadOnlyList<OfficeContentSafetyFinding> unicode = builder.InspectVisibleText(
+                        candidate.Location,
+                        text,
+                        OfficeContentCleanupCapability.ReportOnly);
+                    RegisterSvgTargets(targets, candidate, unicode);
+                }
             } else {
                 IReadOnlyList<OfficeContentSafetyFinding> unicode = builder.InspectVisibleText(
                     candidate.Location,
@@ -209,6 +247,10 @@ public static partial class OfficeSvgDrawingReader {
         if (!isNativeSvg) return element.Nodes().OfType<XText>().Any();
         string name = element.Name.LocalName.ToLowerInvariant();
         if (name is "text" or "tspan" or "textpath" or "title" or "desc" or "script" or "style" or "metadata") return true;
+        if (name == "a" && element.Ancestors().Any(ancestor => {
+                string ancestorName = ancestor.Name.LocalName.ToLowerInvariant();
+                return ancestorName is "text" or "tspan" or "textpath" or "a";
+            })) return true;
         return element.Ancestors().Any(ancestor => {
             string ancestorName = ancestor.Name.LocalName.ToLowerInvariant();
             return ancestorName is "script" or "style" or "metadata";
@@ -350,95 +392,6 @@ public static partial class OfficeSvgDrawingReader {
                 depth + 1,
                 ref unsupported);
         }
-    }
-
-    private static bool TryResolveSvgContentSafetyNestedViewport(
-        XElement element,
-        OfficeTransform elementTransform,
-        double parentViewX,
-        double parentViewY,
-        double parentViewWidth,
-        double parentViewHeight,
-        SvgContentSafetyDocument document,
-        out OfficeTransform contentTransform,
-        out double childViewX,
-        out double childViewY,
-        out double childViewWidth,
-        out double childViewHeight) {
-        contentTransform = elementTransform;
-        childViewX = 0D;
-        childViewY = 0D;
-        childViewWidth = parentViewWidth;
-        childViewHeight = parentViewHeight;
-        double x = ReadViewportCoordinate(element, "x", parentViewX, parentViewWidth);
-        double y = ReadViewportCoordinate(element, "y", parentViewY, parentViewHeight);
-        if (!TryNestedViewportLength(element.Attribute("width")?.Value, parentViewWidth, out double width)
-            || !TryNestedViewportLength(element.Attribute("height")?.Value, parentViewHeight, out double height)
-            || !IsSupportedSvgViewport(width, height, document.MaximumViewportDimension, document.MaximumViewportPixels)) {
-            return false;
-        }
-
-        string? viewBoxText = element.Attribute("viewBox")?.Value;
-        if (string.IsNullOrWhiteSpace(viewBoxText)) {
-            childViewWidth = width;
-            childViewHeight = height;
-        } else {
-            if (!TryParseNumberList(viewBoxText, out IReadOnlyList<double> viewBox)
-                || viewBox.Count != 4
-                || !IsSupportedSvgViewport(viewBox[2], viewBox[3], document.MaximumViewportDimension, document.MaximumViewportPixels)) {
-                return false;
-            }
-            childViewX = viewBox[0];
-            childViewY = viewBox[1];
-            childViewWidth = viewBox[2];
-            childViewHeight = viewBox[3];
-        }
-        if (!TryParsePreserveAspectRatio(element.Attribute("preserveAspectRatio")?.Value,
-                out SvgAspectAlignment alignment, out bool slice)) return false;
-        contentTransform = ResolveViewportTransform(childViewWidth, childViewHeight, width, height, alignment, slice)
-            .Then(OfficeTransform.Translate(x, y))
-            .Then(elementTransform);
-        return IsSupportedSvgTransform(contentTransform);
-    }
-
-    private static bool TryClassifySvgNonPrimary(
-        SvgContentSafetyCandidate candidate,
-        out SvgContentSafetyConcealment concealment,
-        out OfficeContentCleanupCapability cleanupCapability) {
-        XElement? owner = candidate.ComputedElement.AncestorsAndSelf().FirstOrDefault(element => {
-            string name = element.Name.LocalName.ToLowerInvariant();
-            return name is "title" or "desc" or "script" or "style" or "metadata";
-        });
-        if (!candidate.IsNativeSvg) {
-            concealment = new SvgContentSafetyConcealment(
-                OfficeContentConcealmentKind.NonPrimaryContent,
-                "Foreign-namespace XML text is machine-readable extension content and is report-only because it is not native SVG paint.",
-                OfficeContentSafetyRisk.Informational);
-            cleanupCapability = OfficeContentCleanupCapability.ReportOnly;
-            return true;
-        }
-        if (owner == null) {
-            concealment = default;
-            cleanupCapability = OfficeContentCleanupCapability.ReportOnly;
-            return false;
-        }
-
-        string ownerName = owner.Name.LocalName.ToLowerInvariant();
-        cleanupCapability = ownerName is "style" or "metadata"
-            ? OfficeContentCleanupCapability.ReportOnly
-            : OfficeContentCleanupCapability.RemoveText;
-        string evidence = ownerName switch {
-            "title" => "SVG title text is machine-readable accessibility content but is not painted as ordinary canvas text.",
-            "desc" => "SVG description text is machine-readable accessibility content but is not painted as ordinary canvas text.",
-            "script" => "SVG script text is machine-readable source content but is not painted as ordinary canvas text.",
-            "style" => "SVG stylesheet text is machine-readable source content; removing it could change unrelated rendering and is therefore report-only.",
-            _ => "SVG metadata text is machine-readable package content; removing it could invalidate provenance or unrelated metadata and is therefore report-only."
-        };
-        concealment = new SvgContentSafetyConcealment(
-            OfficeContentConcealmentKind.NonPrimaryContent,
-            evidence,
-            OfficeContentSafetyRisk.Informational);
-        return true;
     }
 
     private static SvgContentSafetyConcealment? ClassifySvgStructuralConcealment(

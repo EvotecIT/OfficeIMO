@@ -1,0 +1,165 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Xml.Linq;
+using OfficeIMO.ContentSafety;
+
+namespace OfficeIMO.Drawing;
+
+public static partial class OfficeSvgDrawingReader {
+    private static bool TryResolveSvgContentSafetyNestedViewport(
+        XElement element,
+        OfficeTransform elementTransform,
+        double parentViewX,
+        double parentViewY,
+        double parentViewWidth,
+        double parentViewHeight,
+        SvgContentSafetyDocument document,
+        out OfficeTransform contentTransform,
+        out double childViewX,
+        out double childViewY,
+        out double childViewWidth,
+        out double childViewHeight) {
+        contentTransform = elementTransform;
+        childViewX = 0D;
+        childViewY = 0D;
+        childViewWidth = parentViewWidth;
+        childViewHeight = parentViewHeight;
+        double x = ReadViewportCoordinate(element, "x", parentViewX, parentViewWidth);
+        double y = ReadViewportCoordinate(element, "y", parentViewY, parentViewHeight);
+        if (!TryNestedViewportLength(element.Attribute("width")?.Value, parentViewWidth, out double width)
+            || !TryNestedViewportLength(element.Attribute("height")?.Value, parentViewHeight, out double height)
+            || !IsSupportedSvgViewport(width, height, document.MaximumViewportDimension, document.MaximumViewportPixels)) {
+            return false;
+        }
+
+        string? viewBoxText = element.Attribute("viewBox")?.Value;
+        if (string.IsNullOrWhiteSpace(viewBoxText)) {
+            childViewWidth = width;
+            childViewHeight = height;
+        } else {
+            if (!TryParseNumberList(viewBoxText, out IReadOnlyList<double> viewBox)
+                || viewBox.Count != 4
+                || !IsSupportedSvgViewport(viewBox[2], viewBox[3], document.MaximumViewportDimension, document.MaximumViewportPixels)) {
+                return false;
+            }
+            childViewX = viewBox[0];
+            childViewY = viewBox[1];
+            childViewWidth = viewBox[2];
+            childViewHeight = viewBox[3];
+        }
+        if (!TryParsePreserveAspectRatio(element.Attribute("preserveAspectRatio")?.Value,
+                out SvgAspectAlignment alignment, out bool slice)) return false;
+        contentTransform = ResolveViewportTransform(childViewWidth, childViewHeight, width, height, alignment, slice)
+            .Then(OfficeTransform.Translate(x, y))
+            .Then(elementTransform);
+        return IsSupportedSvgTransform(contentTransform);
+    }
+
+    private static bool TryClassifySvgNonPrimary(
+        SvgContentSafetyCandidate candidate,
+        out SvgContentSafetyConcealment concealment,
+        out OfficeContentCleanupCapability cleanupCapability) {
+        XElement? owner = candidate.ComputedElement.AncestorsAndSelf().FirstOrDefault(element => {
+            string name = element.Name.LocalName.ToLowerInvariant();
+            return name is "title" or "desc" or "script" or "style" or "metadata";
+        });
+        if (!candidate.IsNativeSvg) {
+            concealment = new SvgContentSafetyConcealment(
+                OfficeContentConcealmentKind.NonPrimaryContent,
+                "Foreign-namespace XML text is machine-readable extension content and is report-only because it is not native SVG paint.",
+                OfficeContentSafetyRisk.Informational);
+            cleanupCapability = OfficeContentCleanupCapability.ReportOnly;
+            return true;
+        }
+        if (owner == null) {
+            concealment = default;
+            cleanupCapability = OfficeContentCleanupCapability.ReportOnly;
+            return false;
+        }
+
+        string ownerName = owner.Name.LocalName.ToLowerInvariant();
+        cleanupCapability = ownerName is "script" or "style" or "metadata"
+            ? OfficeContentCleanupCapability.ReportOnly
+            : OfficeContentCleanupCapability.RemoveText;
+        string evidence = ownerName switch {
+            "title" => "SVG title text is machine-readable accessibility content but is not painted as ordinary canvas text.",
+            "desc" => "SVG description text is machine-readable accessibility content but is not painted as ordinary canvas text.",
+            "script" => "SVG script text is machine-readable source content but is not painted as ordinary canvas text.",
+            "style" => "SVG stylesheet text is machine-readable source content; removing it could change unrelated rendering and is therefore report-only.",
+            _ => "SVG metadata text is machine-readable package content; removing it could invalidate provenance or unrelated metadata and is therefore report-only."
+        };
+        concealment = new SvgContentSafetyConcealment(
+            OfficeContentConcealmentKind.NonPrimaryContent,
+            evidence,
+            OfficeContentSafetyRisk.Informational);
+        return true;
+    }
+
+    private static ISet<string> CollectSvgReusableTextReferencedIds(XElement root) {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        XNamespace svgNamespace = root.Name.Namespace;
+        foreach (XElement use in root.DescendantsAndSelf().Where(element =>
+                     IsNativeSvgElement(element, svgNamespace) &&
+                     (element.Name.LocalName.Equals("use", StringComparison.OrdinalIgnoreCase) ||
+                      element.Name.LocalName.Equals("tref", StringComparison.OrdinalIgnoreCase)))) {
+            foreach (XAttribute href in use.Attributes().Where(attribute =>
+                         attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase) &&
+                         (attribute.Name.NamespaceName.Length == 0 ||
+                          attribute.Name.NamespaceName.Equals("http://www.w3.org/1999/xlink", StringComparison.Ordinal)))) {
+                string value = href.Value.Trim();
+                if (value.Length > 1 && value[0] == '#' &&
+                    value.IndexOfAny(new[] { ' ', '\t', '\r', '\n', '#', '(', ')' }, 1) < 0) {
+                    ids.Add(value.Substring(1));
+                }
+            }
+        }
+        return ids;
+    }
+
+    private static bool HasSvgDynamicRendering(XElement root) {
+        XNamespace svgNamespace = root.Name.Namespace;
+        return root.DescendantsAndSelf().Any(element => {
+            if (!IsNativeSvgElement(element, svgNamespace)) return false;
+            string name = element.Name.LocalName.ToLowerInvariant();
+            return name is "script" or "animate" or "animatemotion" or "animatetransform" or "set" or "discard";
+        });
+    }
+
+    private static bool TryDescribeSvgContextDependentText(
+        XElement element,
+        ISet<string> reusableTextIds,
+        bool hasDynamicRendering,
+        out string evidence) {
+        foreach (XElement current in element.AncestorsAndSelf()) {
+            string name = current.Name.LocalName.ToLowerInvariant();
+            if (name == "switch") {
+                evidence = "SVG switch-branch text depends on renderer language and feature context and is therefore report-only.";
+                return true;
+            }
+            if (current.Attributes().Any(attribute =>
+                    attribute.Name.NamespaceName.Length == 0 &&
+                    (attribute.Name.LocalName.Equals("systemLanguage", StringComparison.Ordinal) ||
+                     attribute.Name.LocalName.Equals("requiredFeatures", StringComparison.Ordinal) ||
+                     attribute.Name.LocalName.Equals("requiredExtensions", StringComparison.Ordinal)))) {
+                evidence = "SVG conditional-processing text depends on renderer language and feature context and is therefore report-only.";
+                return true;
+            }
+            if (name is "defs" or "symbol" or "clippath" or "mask" or "pattern" or "marker" or "filter") {
+                evidence = "SVG definition text can affect reusable or composited rendering and is therefore report-only.";
+                return true;
+            }
+            string? id = current.Attribute("id")?.Value;
+            if (!string.IsNullOrEmpty(id) && reusableTextIds.Contains(id!)) {
+                evidence = "SVG text belongs to a reusable element referenced by use or tref and is therefore report-only.";
+                return true;
+            }
+        }
+        if (hasDynamicRendering) {
+            evidence = "SVG script or animation can change text visibility over time and is therefore report-only for static inspection.";
+            return true;
+        }
+        evidence = string.Empty;
+        return false;
+    }
+}

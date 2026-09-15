@@ -167,6 +167,15 @@ public static partial class OfficeSvgDrawingReader {
         }
         foreach (KeyValuePair<string, SvgCssWinner> winner in winners) {
             if (!winner.Key.StartsWith("--", StringComparison.Ordinal)) continue;
+            string normalized = winner.Value.Value.Trim();
+            if (normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("unset", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+            if (normalized.Equals("initial", StringComparison.OrdinalIgnoreCase)) {
+                result.Remove(winner.Key);
+                continue;
+            }
             if (!TryConsumeSvgComputedCssCharacters(winner.Key, winner.Value.Value, ref remainingComputedCssCharacters)) {
                 properties = result;
                 return false;
@@ -193,7 +202,10 @@ public static partial class OfficeSvgDrawingReader {
             return false;
         }
         string? type = style.Attribute("type")?.Value;
-        return string.IsNullOrWhiteSpace(type) || type!.Trim().Equals("text/css", StringComparison.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(type) && !type!.Trim().Equals("text/css", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+        return string.IsNullOrWhiteSpace(style.Attribute("title")?.Value);
     }
 
     private static bool ParseSvgCssRules(
@@ -370,7 +382,16 @@ public static partial class OfficeSvgDrawingReader {
         ref int unsupported,
         out string? computedValue) {
         string value;
-        bool variablesResolved = TryResolveSvgCssVariables(authoredValue, customProperties, 0, out value);
+        bool variablesResolved = TryResolveSvgCssVariables(
+            authoredValue,
+            customProperties,
+            0,
+            out value,
+            out bool variableLimitExceeded);
+        if (variableLimitExceeded) {
+            computedValue = null;
+            return false;
+        }
         if (!variablesResolved) {
             value = "unset";
         } else if (!IsSvgCssWideKeyword(value)) {
@@ -525,9 +546,14 @@ public static partial class OfficeSvgDrawingReader {
         string value,
         IReadOnlyDictionary<string, string> customProperties,
         int depth,
-        out string resolved) {
+        out string resolved,
+        out bool limitExceeded) {
         resolved = value;
-        if (depth > 16) return false;
+        limitExceeded = false;
+        if (depth > 16 || resolved.Length > MaximumSvgComputedCssCharacters) {
+            limitExceeded = true;
+            return false;
+        }
         int start = resolved.IndexOf("var(", StringComparison.OrdinalIgnoreCase);
         while (start >= 0) {
             int close = FindSvgCssBlockEnd(resolved, start + 4, '(', ')');
@@ -540,7 +566,20 @@ public static partial class OfficeSvgDrawingReader {
                 if (parts.Count < 2) return false;
                 replacement = string.Join(",", parts.Skip(1)).Trim();
             }
-            if (!TryResolveSvgCssVariables(replacement, customProperties, depth + 1, out replacement)) return false;
+            if (!TryResolveSvgCssVariables(
+                    replacement,
+                    customProperties,
+                    depth + 1,
+                    out replacement,
+                    out bool nestedLimitExceeded)) {
+                limitExceeded = nestedLimitExceeded;
+                return false;
+            }
+            long expandedLength = (long)resolved.Length - (close - start + 1L) + replacement.Length;
+            if (expandedLength > MaximumSvgComputedCssCharacters) {
+                limitExceeded = true;
+                return false;
+            }
             resolved = resolved.Substring(0, start) + replacement + resolved.Substring(close + 1);
             start = resolved.IndexOf("var(", StringComparison.OrdinalIgnoreCase);
         }

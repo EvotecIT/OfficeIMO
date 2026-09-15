@@ -1497,12 +1497,13 @@ public static partial class OfficeSvgDrawingReader {
             && !double.IsInfinity(result);
     }
 
-    private static bool TryUnit(string value, out double result) =>
-        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
-        && !double.IsNaN(result)
-        && !double.IsInfinity(result)
-        && result >= 0D
-        && result <= 1D;
+    private static bool TryUnit(string value, out double result) {
+        if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
+            || double.IsNaN(result)
+            || double.IsInfinity(result)) return false;
+        result = Math.Max(0D, Math.Min(1D, result));
+        return true;
+    }
 
     private static bool TryParseNumberList(string? value, out IReadOnlyList<double> values) =>
         TryParseNumberList(value, int.MaxValue, out values);

@@ -124,6 +124,10 @@ public static partial class OfficeSvgDrawingReader {
         using (XmlReader reader = XmlReader.Create(stream, settings)) {
             parsed = XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
         }
+        if (parsed.DescendantNodes().OfType<XProcessingInstruction>().Any(instruction =>
+                instruction.Target.Equals("xml-stylesheet", StringComparison.OrdinalIgnoreCase))) {
+            throw new InvalidDataException("The SVG uses an XML stylesheet processing instruction outside the bounded native subset.");
+        }
         XElement root = parsed.Root ?? throw new InvalidDataException("The SVG has no root element.");
         if (root.Name.NamespaceName.Length > 0 &&
             !root.Name.NamespaceName.Equals("http://www.w3.org/2000/svg", StringComparison.Ordinal)) {

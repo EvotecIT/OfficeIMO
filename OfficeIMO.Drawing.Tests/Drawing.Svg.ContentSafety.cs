@@ -559,6 +559,7 @@ public sealed class SvgContentSafetyTests {
     [Theory]
     [InlineData("media='print'")]
     [InlineData("type='text/less'")]
+    [InlineData("title='alternate'")]
     public void ConditionalOrNonCssStylesheetsFailClosed(string attributes) {
         byte[] svg = Svg($"<style {attributes}>text {{ display:none }}</style><text x='10' y='35'>visible text</text>");
 
@@ -570,6 +571,18 @@ public sealed class SvgContentSafetyTests {
         string value = new string('x', 3000);
         string elements = string.Concat(Enumerable.Repeat("<g/>", 6000));
         byte[] svg = Svg($"<style>svg{{--payload:{value}}}g{{opacity:1}}</style>{elements}<text x='10' y='35'>visible text</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void RecursiveCustomPropertyExpansionFailsClosedAtTheComputedValueBudget() {
+        string seed = new string('1', 550_000);
+        byte[] svg = Svg($"""
+            <svg style="--v0:{seed};--v1:var(--v0)var(--v0);--v2:var(--v1)var(--v1);--v3:var(--v2)var(--v2);--v4:var(--v3)var(--v3);--v5:var(--v4)var(--v4)">
+              <text style="opacity:var(--v5)" x="10" y="35">visible text</text>
+            </svg>
+            """);
 
         Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
     }
@@ -600,6 +613,170 @@ public sealed class SvgContentSafetyTests {
         byte[] svg = Svg(nested);
 
         Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void HyperlinkWrappedTextParticipatesInConcealmentInspection() {
+        byte[] svg = Svg("""
+            <text x="10" y="35"><a href="https://example.test" style="display:none">linked payload</a></text>
+            """);
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "linked payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.HiddenByProperty, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.RemoveText, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void UseReferencedTextIsReportOnlyBecauseOneSourceCanHaveVisibleInstances() {
+        byte[] svg = Svg("""
+            <g id="shared"><text x="1000" y="35">shared instance</text></g>
+            <use href="#shared" x="-990" />
+            """);
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "shared instance");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("use or tref", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SwitchBranchTextIsReportOnlyAcrossRendererContexts() {
+        byte[] svg = Svg("""
+            <switch>
+              <text systemLanguage="fr" x="10" y="35">French branch</text>
+              <text x="10" y="35">fallback branch</text>
+            </switch>
+            """);
+
+        OfficeContentSafetyFinding[] findings = OfficeSvgDrawingReader.InspectContentSafety(svg).Findings
+            .Where(item => item.TextPreview is "French branch" or "fallback branch")
+            .ToArray();
+
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, item => Assert.Equal(OfficeContentCleanupCapability.ReportOnly, item.CleanupCapability));
+    }
+
+    [Theory]
+    [InlineData("inherit")]
+    [InlineData("unset")]
+    public void InheritedCssWideCustomPropertyKeywordsRetainTheParentValue(string keyword) {
+        byte[] svg = Svg($"<svg style='--o:0'><text style='--o:{keyword};opacity:var(--o)' x='10' y='35'>hidden custom value</text></svg>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.Contains(report.Findings, item =>
+            item.Kind == OfficeContentConcealmentKind.TransparentText && item.TextPreview == "hidden custom value");
+    }
+
+    [Fact]
+    public void InitialCustomPropertyUsesVarFallbackInsteadOfTheInheritedValue() {
+        byte[] svg = Svg("<svg style='--o:0'><text style='--o:initial;opacity:var(--o,1)' x='10' y='35'>visible custom fallback</text></svg>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible custom fallback");
+    }
+
+    [Theory]
+    [InlineData("opacity='-1'")]
+    [InlineData("fill-opacity='-1'")]
+    [InlineData("fill='none' stroke='black' stroke-opacity='-1'")]
+    [InlineData("style='opacity:-1'")]
+    public void OutOfRangeOpacityClampsBeforeStructuralInspection(string attributes) {
+        byte[] svg = Svg($"<text {attributes} x='10' y='35'>clamped transparent text</text>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.Contains(report.Findings, item =>
+            item.Kind == OfficeContentConcealmentKind.TransparentText && item.TextPreview == "clamped transparent text");
+    }
+
+    [Fact]
+    public void ConditionalProcessingTextIsReportOnly() {
+        byte[] svg = Svg("<text systemLanguage='fr' x='10' y='35'>locale text</text>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "locale text");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void DynamicSvgMakesStaticTextCleanupReportOnly() {
+        byte[] svg = Svg("""
+            <text x="10" y="35">animated text<animate attributeName="opacity" values="0;1" dur="1s" /></text>
+            """);
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "animated text");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void ExcludingNonPrimaryContextStillReportsDynamicTextUnicodeAsReportOnly() {
+        byte[] svg = Svg("""
+            <text x="10" y="35">dynamic​text<animate attributeName="opacity" values="0;1" dur="1s" /></text>
+            """);
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(
+            svg,
+            new OfficeContentSafetyOptions { IncludeNonPrimaryContent = false });
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            report.Findings,
+            item => item.Kind == OfficeContentConcealmentKind.NonPrintingUnicode);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void TrefReferencedSourceTextIsReportOnly() {
+        byte[] svg = Svg("""
+            <text id="source" x="1000" y="35">referenced text</text>
+            <text x="10" y="35"><tref href="#source" /></text>
+            """);
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "referenced text");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void XmlStylesheetProcessingInstructionFailsClosed() {
+        byte[] svg = Encoding.UTF8.GetBytes("""
+            <?xml-stylesheet type="text/css" href="data:text/css,text%7Bdisplay:none%7D"?>
+            <svg xmlns="http://www.w3.org/2000/svg" width="220" height="120">
+              <text x="10" y="35">stylesheet text</text>
+            </svg>
+            """);
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void IncompleteRendererProjectionMakesVisualCleanupEvidenceReportOnly() {
+        byte[] svg = Svg("""
+            <image href="https://example.test/background.png" width="220" height="120" />
+            <text fill="white" x="10" y="35">context dependent contrast</text>
+            """);
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            report.Findings,
+            item => item.TextPreview == "context dependent contrast");
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains(report.Diagnostics, item => item.Contains("visual comparison was limited", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -130,15 +130,19 @@ public static partial class OfficeSvgDrawingReader {
                 observer?.Associate(textNode, style, runs, firstTextRun);
                 continue;
             }
-            if (node is XElement child && child.Name.LocalName.Equals("tspan", StringComparison.OrdinalIgnoreCase)) {
+            if (node is XElement child && child.Name.Namespace == element.Name.Namespace &&
+                (child.Name.LocalName.Equals("tspan", StringComparison.OrdinalIgnoreCase) ||
+                 child.Name.LocalName.Equals("a", StringComparison.OrdinalIgnoreCase))) {
                 AddTextElementRuns(child, style, paintServers, references, fonts, transform, preserve, true, viewX, viewY,
                     viewportWidth, viewportHeight, runs, textPaths, observer, baselineShift, ownBaselineShift, positioning, depth + 1, ref cursor, ref unsupported);
-            } else if (node is XElement textPath && textPath.Name.LocalName.Equals("textPath", StringComparison.OrdinalIgnoreCase)) {
+            } else if (node is XElement textPath && textPath.Name.Namespace == element.Name.Namespace &&
+                textPath.Name.LocalName.Equals("textPath", StringComparison.OrdinalIgnoreCase)) {
                 int pathStart = runs.Count;
                 AddTextElementRuns(textPath, style, paintServers, references, fonts, transform, preserve, true, viewX, viewY,
                     viewportWidth, viewportHeight, runs, textPaths, observer, baselineShift, ownBaselineShift, positioning, depth + 1, ref cursor, ref unsupported);
                 if (runs.Count > pathStart) textPaths.Add(new SvgTextPathLayout(textPath, pathStart, runs.Count));
-            } else if (node is XElement tref && tref.Name.LocalName.Equals("tref", StringComparison.OrdinalIgnoreCase)) {
+            } else if (node is XElement tref && tref.Name.Namespace == element.Name.Namespace &&
+                tref.Name.LocalName.Equals("tref", StringComparison.OrdinalIgnoreCase)) {
                 AddReferencedTextRuns(
                     tref, style, paintServers, references, fonts, transform, preserve, viewX, viewY,
                     viewportWidth, viewportHeight, runs, textPaths, baselineShift, ownBaselineShift,
