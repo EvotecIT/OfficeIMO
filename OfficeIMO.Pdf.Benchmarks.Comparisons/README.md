@@ -81,8 +81,11 @@ page counts, and text are observed through Poppler so OfficeIMO.Pdf is not its o
 comparison oracle. Reference engines may omit text that OfficeIMO intentionally
 preserves, including form values, image alternatives, and SVG labels; those remain
 visible in each reference's `missingMarkers` field without failing OfficeIMO's
-qualification. Raw artifacts are review evidence and remain in the caller-selected
-output directory. H4/v2 is the independently authored held-out selection. Pass
+rendering pass. Geometry and pixel differences are retained observations; the runner
+does not impose a universal browser-equivalence threshold. Raw artifacts are review
+and regression evidence and remain in the caller-selected output directory. H4/v2 is
+the independently authored held-out selection. Its original source bytes and hashes
+are preserved in the bundle, including legacy encodings. Pass
 `--corpus v1` to retain the established regression corpus or `--case <id>` for a
 focused run.
 
@@ -103,7 +106,8 @@ The command uses isolated cold and warmed worker processes. Each measured iterat
 renders all eight held-out cases through screen PNG/SVG, print PDF/PNG/SVG, and
 screen-to-page PDF/PNG/SVG. The report records elapsed time, managed allocations,
 process-tree peak working set, output bytes, deterministic fingerprints, source and
-corpus hashes, and asynchronous cancellation latency. Ceilings are absolute,
+corpus hashes, and asynchronous cancellation latency. The gate compares the cold
+fingerprint with every warmed iteration as well as checking warm repeatability. Ceilings are absolute,
 platform-specific regression limits in the frozen `budgets.json`; they are not a
 general throughput claim. Use `--measure-only` when calibrating a new platform or
 runtime, then review the raw report before changing a ceiling.

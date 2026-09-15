@@ -64,6 +64,7 @@ internal static class HtmlStaticBudgetRunner {
         Console.WriteLine("HTML_STATIC_BUDGET_COLD_MS=" + cold.ProcessElapsedMilliseconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
         Console.WriteLine("HTML_STATIC_BUDGET_WARM_MAX_MS=" + warm.Iterations.Max(item => item.ElapsedMilliseconds).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
         Console.WriteLine("HTML_STATIC_BUDGET_PEAK_BYTES=" + Math.Max(cold.PeakWorkingSetBytes, warm.PeakWorkingSetBytes));
+        Console.WriteLine("HTML_STATIC_BUDGET_COLD_WARM_DETERMINISTIC=" + SameFingerprintAcrossRuns(cold, warm));
         Console.WriteLine("HTML_STATIC_BUDGET_STATUS=" + (failures.Count == 0 ? (measureOnly ? "Measured" : "Passed") : "Failed"));
         foreach (string failure in failures) Console.Error.WriteLine(failure);
         return failures.Count == 0 ? 0 : 1;
@@ -164,10 +165,19 @@ internal static class HtmlStaticBudgetRunner {
         }
         Check(coldIteration.OutputBytes, ceiling.OutputBytesPerIteration, "cold output bytes", failures);
         Check(Math.Max(cold.PeakWorkingSetBytes, warm.PeakWorkingSetBytes), ceiling.PeakWorkingSetBytes, "peak working-set bytes", failures);
-        if (!cold.Deterministic || !warm.Deterministic) failures.Add("Output fingerprints were not deterministic within the cold/warm runs.");
+        if (!cold.Deterministic || !warm.Deterministic) failures.Add("Output fingerprints were not deterministic within a worker run.");
+        if (!SameFingerprintAcrossRuns(cold, warm)) failures.Add("The cold output fingerprint differed from one or more warm output fingerprints.");
         if (!string.Equals(cancellation.Status, "Passed", StringComparison.Ordinal)) failures.Add("Cancellation probe failed: " + cancellation.Detail);
         Check(cancellation.ElapsedMilliseconds, ceiling.CancellationElapsedMilliseconds, "cancellation elapsed milliseconds", failures);
         return failures;
+    }
+
+    private static bool SameFingerprintAcrossRuns(HtmlStaticBudgetRun cold, HtmlStaticBudgetRun warm) {
+        string coldFingerprint = cold.Iterations.Single().FingerprintSha256;
+        return warm.Iterations.All(iteration => string.Equals(
+            coldFingerprint,
+            iteration.FingerprintSha256,
+            StringComparison.Ordinal));
     }
 
     private static void Check(double actual, double maximum, string name, ICollection<string> failures) {

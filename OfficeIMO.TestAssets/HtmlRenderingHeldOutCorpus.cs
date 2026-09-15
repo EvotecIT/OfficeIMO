@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using OfficeIMO.Html;
 
 namespace OfficeIMO.Tests;
 
@@ -55,7 +56,7 @@ internal sealed class HtmlRenderingHeldOutCorpus {
                 throw new InvalidDataException($"H4/v2 input {relativePath} has SHA-256 {sha256}; expected {entry.Sha256}.");
             }
             Encoding encoding = ResolveEncoding(entry.Encoding);
-            cases.Add(new HtmlRenderingHeldOutCase(entry, encoding.GetString(bytes)));
+            cases.Add(new HtmlRenderingHeldOutCase(entry, bytes, encoding.GetString(bytes)));
         }
 
         string[] actualInputs = Directory.GetFiles(root, "*.html", SearchOption.AllDirectories)
@@ -167,13 +168,22 @@ internal sealed class HtmlRenderingHeldOutCaseManifest {
 }
 
 internal sealed class HtmlRenderingHeldOutCase {
-    internal HtmlRenderingHeldOutCase(HtmlRenderingHeldOutCaseManifest manifest, string html) {
+    private readonly byte[] _sourceBytes;
+
+    internal HtmlRenderingHeldOutCase(HtmlRenderingHeldOutCaseManifest manifest, byte[] sourceBytes, string html) {
         Manifest = manifest;
+        _sourceBytes = (byte[])sourceBytes.Clone();
         Html = html;
     }
 
     internal HtmlRenderingHeldOutCaseManifest Manifest { get; }
     internal string Id => Manifest.Id;
     internal string SourceRelativePath => HtmlRenderingHeldOutCorpus.RelativeRoot + "/" + Manifest.Path;
+    internal byte[] SourceBytes => (byte[])_sourceBytes.Clone();
     internal string Html { get; }
+
+    internal HtmlConversionDocument LoadDocument() {
+        using var stream = new MemoryStream(_sourceBytes, writable: false);
+        return HtmlConversionDocument.Load(stream);
+    }
 }

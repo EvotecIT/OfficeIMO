@@ -478,7 +478,13 @@ public static partial class HtmlRenderCapabilityCatalog {
             selectedEvidence = HtmlCapabilityEvidenceIds.H4ScreenV2;
         }
         if (selections.Any(selection => string.Equals(selection.CapabilityId, capabilityId, StringComparison.OrdinalIgnoreCase))) {
-            return new[] { HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests, selectedEvidence };
+            return new[] {
+                HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests,
+                string.Equals(profileId, HtmlCapabilityProfileIds.PagedPrintV1, StringComparison.OrdinalIgnoreCase)
+                    ? HtmlCapabilityEvidenceIds.H4PagedV1
+                    : HtmlCapabilityEvidenceIds.H4ScreenV1,
+                selectedEvidence
+            };
         }
         return new[] {
             HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests,

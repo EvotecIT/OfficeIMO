@@ -164,7 +164,7 @@ public static class HtmlSupportMatrixWriter {
         builder.AppendLine();
         builder.AppendLine("### Selected evidence by capability");
         builder.AppendLine();
-        builder.AppendLine("Only the exact cases and feature forms below qualify the named capability. Excluded corpus cases and out-of-scope forms remain outside this evidence claim.");
+        builder.AppendLine("The exact cases and feature forms below describe each selected evidence claim. The evidence role states whether a selection qualifies behavior or records regression/reference observations; excluded cases and out-of-scope forms remain outside the claim.");
         builder.AppendLine();
         builder.AppendLine("| Profile | Evidence | Capability | Required | Passed | Failed | Excluded | Untested | Required cases | Excluded cases | Selected scope | Out of scope |");
         builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
@@ -284,8 +284,16 @@ public static class HtmlSupportMatrixWriter {
         ids.Count == 0 ? "None" : string.Join(", ", ids.Select(id => "`" + id + "`"));
 
     private static string FormatStages(HtmlCapabilityStage stages) =>
-        string.Join(", ", Enum.GetValues(typeof(HtmlCapabilityStage)).Cast<HtmlCapabilityStage>()
+        string.Join(", ", GetCapabilityStages()
             .Where(stage => stage != HtmlCapabilityStage.None && stages.HasFlag(stage)));
+
+    private static IEnumerable<HtmlCapabilityStage> GetCapabilityStages() {
+#if NET5_0_OR_GREATER
+        return Enum.GetValues<HtmlCapabilityStage>();
+#else
+        return Enum.GetValues(typeof(HtmlCapabilityStage)).Cast<HtmlCapabilityStage>();
+#endif
+    }
 
     private static string FormatCount(int? value) => value?.ToString() ?? "—";
 }

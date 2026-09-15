@@ -11,9 +11,9 @@ public sealed partial class HtmlRenderingTests {
 
     [Theory]
     [MemberData(nameof(HeldOutRenderingCorpusCaseIds))]
-    public void HeldOutRenderingCorpus_ExercisesEveryQualifiedIntentAndOutputFamily(string caseId) {
+    public void HeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(string caseId) {
         HtmlRenderingHeldOutCase scenario = HtmlRenderingHeldOutCorpus.Load().Cases.Single(item => item.Id == caseId);
-        HtmlConversionDocument source = HtmlConversionDocument.Parse(scenario.Html);
+        HtmlConversionDocument source = scenario.LoadDocument();
 
         HtmlRenderOptions screenOptions = CreateHeldOutScreenOptions();
         ValidateImageResult(source, scenario, HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, screenOptions);

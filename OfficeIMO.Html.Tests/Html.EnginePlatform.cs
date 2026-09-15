@@ -129,6 +129,8 @@ public partial class Html {
             .Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4PagedV2);
         Assert.Equal(heldOut.ManifestSha256, heldOutScreen.Revision);
         Assert.Equal(heldOut.ManifestSha256, heldOutPaged.Revision);
+        Assert.Equal(HtmlCapabilityEvidenceRole.Regression, heldOutScreen.Role);
+        Assert.Equal(HtmlCapabilityEvidenceRole.Regression, heldOutPaged.Role);
         Assert.Equal(8, heldOutScreen.Required);
         Assert.Equal(8, heldOutScreen.Passed);
         Assert.Equal(11, heldOutScreen.Selections.Count);

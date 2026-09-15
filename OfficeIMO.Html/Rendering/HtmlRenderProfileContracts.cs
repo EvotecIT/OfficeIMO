@@ -81,7 +81,7 @@ public static class HtmlRenderProfileContracts {
     /// <summary>Validates profile identity, manifest, evidence, and promotion references.</summary>
     public static IReadOnlyList<string> Validate() {
         var errors = new List<string>();
-        if (Contracts.Count != Enum.GetValues(typeof(HtmlRenderIntentProfile)).Length) {
+        if (Contracts.Count != GetIntentProfileCount()) {
             errors.Add("Every HtmlRenderIntentProfile value requires exactly one built-in contract.");
         }
         foreach (IGrouping<string, HtmlRenderProfileContract> duplicate in Contracts
@@ -115,6 +115,14 @@ public static class HtmlRenderProfileContracts {
             }
         }
         return errors.AsReadOnly();
+    }
+
+    private static int GetIntentProfileCount() {
+#if NET5_0_OR_GREATER
+        return Enum.GetValues<HtmlRenderIntentProfile>().Length;
+#else
+        return Enum.GetValues(typeof(HtmlRenderIntentProfile)).Length;
+#endif
     }
 
     private static HtmlRenderProfileContract Contract(

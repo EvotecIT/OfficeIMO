@@ -23,11 +23,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(64, corpus.ManifestSha256.Length);
         Assert.All(corpus.Cases, item => {
             Assert.NotEmpty(item.Html);
+            Assert.Equal(item.Manifest.Length, item.SourceBytes.LongLength);
             Assert.All(item.Manifest.TextMarkers, marker => Assert.Contains(marker, item.Html, StringComparison.Ordinal));
         });
-        Assert.Contains(
-            corpus.Cases.Single(item => item.Id == "legacy-portal").Html,
-            value => value == '—');
+        HtmlRenderingHeldOutCase legacy = corpus.Cases.Single(item => item.Id == "legacy-portal");
+        Assert.Equal(1483, legacy.SourceBytes.Length);
+        Assert.Contains((byte)0x97, legacy.SourceBytes);
+        Assert.Contains(legacy.Html, value => value == '—');
     }
 
     [Fact]

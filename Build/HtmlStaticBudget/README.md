@@ -18,7 +18,10 @@ Each run creates isolated cold and warmed workers. Every measured iteration rend
 all eight cases through screen PNG/SVG, print PDF/PNG/SVG, and screen-to-page
 PDF/PNG/SVG. The JSON report records elapsed time, managed allocations, process-tree
 peak working set, output bytes, deterministic fingerprints, source and corpus hashes,
-and cancellation latency.
+and cancellation latency. The enforced gate requires every warmed fingerprint to
+match the independently started cold worker, in addition to repeatability within the
+warmed worker. Corpus documents enter OfficeIMO through their frozen source bytes so
+legacy-encoding work remains part of the measured path.
 
 Use `--measure-only` to collect a new calibration result without enforcing the
 checked-in platform ceiling. Evidence runs should use clean, commit-addressable source

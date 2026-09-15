@@ -449,7 +449,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _documentOrderByElement.TryGetValue(element, out int order) ? order : int.MaxValue;
 
     private HtmlRenderDocument RenderContinuous(IReadOnlyList<HtmlRenderFlowBlock> blocks) {
-        double width = _options.ViewportWidth;
+        double viewportWidth = _options.ViewportWidth;
+        double width = viewportWidth;
         double y = _options.Margins.Top;
         var placements = new List<FlowPaintLayer>(blocks.Count);
         foreach (HtmlRenderFlowBlock block in blocks) {
@@ -472,22 +473,46 @@ internal sealed partial class HtmlRenderLayoutEngine {
             height = Math.Max(height, _options.ViewportHeight.Value);
         }
         height = Math.Max(1D, height);
+        double viewportHeight = _options.ViewportHeight ?? height;
+        double rootContainingWidth = Math.Max(1D, viewportWidth - _options.Margins.Left - _options.Margins.Right);
+        double rootContainingHeight = Math.Max(1D, viewportHeight - _options.Margins.Top - _options.Margins.Bottom);
+        if (!_options.ClipContinuousSurfaceToViewport) {
+            ExpandContinuousSurfaceForRootPositionedContent(
+                ref width,
+                ref height,
+                rootContainingWidth,
+                rootContainingHeight);
+        }
         ValidateSurface(width, height);
 
         List<HtmlRenderVisual> visuals = CreatePageVisuals(width, height);
-        double contentWidth = Math.Max(1D, width - _options.Margins.Left - _options.Margins.Right);
-        double contentHeight = Math.Max(1D, height - _options.Margins.Top - _options.Margins.Bottom);
-        PrepareGlobalPositionedRequests(includeRoot: true, width, height, contentWidth, contentHeight);
+        PrepareGlobalPositionedRequests(includeRoot: true, viewportWidth, viewportHeight, rootContainingWidth, rootContainingHeight);
         BuildRootStackingPaintOrders(blocks);
-        AppendGlobalPositionedRequests(visuals, includeRoot: true, width, height, contentWidth, contentHeight, PositionedPaintBand.Negative);
+        AppendGlobalPositionedRequests(visuals, includeRoot: true, viewportWidth, viewportHeight, rootContainingWidth, rootContainingHeight, PositionedPaintBand.Negative);
         foreach (FlowPaintLayer placement in placements) {
             CheckCancellation();
             AddTranslatedVisuals(visuals, placement.Block.Visuals, placement.X, placement.Y, placement.Block);
         }
-        AppendGlobalPositionedRequests(visuals, includeRoot: true, width, height, contentWidth, contentHeight, PositionedPaintBand.NonNegative);
+        AppendGlobalPositionedRequests(visuals, includeRoot: true, viewportWidth, viewportHeight, rootContainingWidth, rootContainingHeight, PositionedPaintBand.NonNegative);
         ApplyViewportOverflow(visuals, width, height);
         var page = new HtmlRenderPage(1, width, height, visuals, fonts: _fonts);
         return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics, _fonts, _metadata, _bookmarkDefinitions);
+    }
+
+    private void ExpandContinuousSurfaceForRootPositionedContent(
+        ref double width,
+        ref double height,
+        double containingWidth,
+        double containingHeight) {
+        foreach (PositionedElementRequest request in _rootPositionedElements) {
+            PositionedLayer layer = request.Resolve(this, containingWidth, containingHeight);
+            double paintedWidth = Math.Max(layer.Block.Width, MaximumScrollRight(layer.Block.Visuals));
+            double paintedHeight = Math.Max(layer.Block.Height, MaximumScrollBottom(layer.Block.Visuals));
+            double candidateWidth = Math.Max(width, _options.Margins.Left + layer.X + paintedWidth);
+            if (CanRepresentSurface(candidateWidth, height)) width = candidateWidth;
+            double candidateHeight = Math.Max(height, _options.Margins.Top + layer.Y + paintedHeight);
+            if (CanRepresentSurface(width, candidateHeight)) height = candidateHeight;
+        }
     }
 
     private static double MaximumScrollRight(IEnumerable<HtmlRenderVisual> visuals) {
@@ -507,6 +532,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
             };
             if (children != null) right = Math.Max(right, MaximumScrollRight(children));
             maximum = Math.Max(maximum, right);
+        }
+        return maximum;
+    }
+
+    private static double MaximumScrollBottom(IEnumerable<HtmlRenderVisual> visuals) {
+        double maximum = 0D;
+        foreach (HtmlRenderVisual visual in visuals) {
+            bool paintOnlyBounds = visual is HtmlRenderPathClipGroup || visual is HtmlRenderEffectGroup;
+            double bottom = paintOnlyBounds ? 0D : visual.Y + visual.Height;
+            IEnumerable<HtmlRenderVisual>? children = visual switch {
+                HtmlRenderClipGroup clip when !clip.ClipVertical => clip.Visuals,
+                HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
+                HtmlRenderEffectGroup effect => effect.Visuals,
+                HtmlRenderSemanticGroup semantic => semantic.Visuals,
+                HtmlRenderLogicalTextGroup logical => logical.Visuals,
+                HtmlRenderLayoutRegion region => region.Visuals,
+                HtmlRenderFormField form => form.Visuals,
+                _ => null
+            };
+            if (children != null) bottom = Math.Max(bottom, MaximumScrollBottom(children));
+            maximum = Math.Max(maximum, bottom);
         }
         return maximum;
     }
@@ -1173,14 +1219,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ValidateSurface(double width, double height) {
+        if (!CanRepresentSurface(width, height)) {
+            throw new InvalidOperationException("HTML rendering exceeded the configured maximum image surface dimensions.");
+        }
+    }
+
+    private bool CanRepresentSurface(double width, double height) {
+        if (width <= 0D || height <= 0D || double.IsNaN(width) || double.IsInfinity(width)
+            || double.IsNaN(height) || double.IsInfinity(height)) return false;
         double scale = _options.GetEffectiveScale(width, height);
         double pixelWidth = Math.Ceiling(width * scale);
         double pixelHeight = Math.Ceiling(height * scale);
-        if (double.IsNaN(pixelWidth) || double.IsInfinity(pixelWidth) ||
-            double.IsNaN(pixelHeight) || double.IsInfinity(pixelHeight) ||
-            pixelWidth > _options.MaxSurfaceWidth || pixelHeight > _options.MaxSurfaceHeight) {
-            throw new InvalidOperationException("HTML rendering exceeded the configured maximum image surface dimensions.");
-        }
+        return !double.IsNaN(pixelWidth) && !double.IsInfinity(pixelWidth)
+            && !double.IsNaN(pixelHeight) && !double.IsInfinity(pixelHeight)
+            && pixelWidth <= _options.MaxSurfaceWidth && pixelHeight <= _options.MaxSurfaceHeight;
     }
 
     private void AddUnsupported(

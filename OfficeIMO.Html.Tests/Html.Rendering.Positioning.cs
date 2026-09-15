@@ -459,6 +459,38 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlScreenFullPage_IncludesRootAbsoluteOverflowWithoutLettingFixedContentGrowTheSurface() {
+        const string html = "<body style='margin:0'>"
+            + "<div id='flow' style='width:20px;height:20px;background:#0000ff'></div>"
+            + "<div id='absolute-overflow' style='position:absolute;left:500px;top:400px;width:100px;height:50px;background:#ff0000'></div>"
+            + "<div id='fixed-overflow' style='position:fixed;left:700px;top:700px;width:20px;height:20px;background:#00ff00'></div>"
+            + "</body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 320D,
+            ViewportHeight = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+
+        Assert.Equal(600D, page.Width, 3);
+        Assert.Equal(450D, page.Height, 3);
+        Assert.Equal(600, raster.Width);
+        Assert.Equal(450, raster.Height);
+        Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(550, 425));
+        Assert.Contains("width=\"600\"", svg, StringComparison.Ordinal);
+        Assert.Contains("height=\"450\"", svg, StringComparison.Ordinal);
+        Assert.Equal(500D, FindPositionedShape(rendered, "div#absolute-overflow").X, 3);
+        Assert.Equal(700D, FindPositionedShape(rendered, "div#fixed-overflow").X, 3);
+    }
+
+    [Fact]
     public void HtmlAbsolutePosition_UsesBlockStaticPositionWhenInsetsAreAuto() {
         const string html = "<div id='before-auto' style='height:30px;margin:0;background:#0000ff'></div>"
             + "<div id='auto-positioned' style='position:absolute;width:20px;height:20px;margin:0;background:#ff0000'></div>"

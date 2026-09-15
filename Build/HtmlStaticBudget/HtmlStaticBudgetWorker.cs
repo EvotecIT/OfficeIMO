@@ -82,7 +82,7 @@ internal static class HtmlStaticBudgetWorker {
         int outputCount = 0;
         var hashes = new List<string>();
         foreach (HtmlRenderingHeldOutCase scenario in corpus.Cases) {
-            HtmlConversionDocument source = HtmlConversionDocument.Parse(scenario.Html);
+            HtmlConversionDocument source = scenario.LoadDocument();
             RenderPdf(source, scenario, HtmlRenderIntentProfile.PrintPaged, CreatePrintOptions(), scenario.Manifest.ExpectedPrintPageCount, hashes, ref outputBytes, ref outputCount);
             RenderImages(source, scenario, HtmlRenderIntentProfile.PrintPaged, CreatePrintOptions(), hashes, ref outputBytes, ref outputCount);
             RenderImages(source, scenario, HtmlRenderIntentProfile.ScreenFullPage, CreateScreenOptions(), hashes, ref outputBytes, ref outputCount);

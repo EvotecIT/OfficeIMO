@@ -107,12 +107,12 @@ internal static partial class HtmlCorpusEvidenceRunner {
         string caseDirectory = Path.Combine(outputDirectory, scenario.Id);
         Directory.CreateDirectory(caseDirectory);
         string sourcePath = Path.Combine(caseDirectory, "source.html");
-        byte[] sourceBytes = Encoding.UTF8.GetBytes(scenario.Html);
+        byte[] sourceBytes = input.SourceBytes;
         await File.WriteAllBytesAsync(sourcePath, sourceBytes).ConfigureAwait(false);
         var failures = new List<string>();
 
         HtmlCorpusStaticEvidence? officeImo = TryRender(
-            () => RenderOfficeImo(scenario, caseDirectory, failures), "OfficeIMO", failures);
+            () => RenderOfficeImo(input, caseDirectory, failures), "OfficeIMO", failures);
         HtmlCorpusPdfEvidence? peachPdf = await TryRenderAsync(
             () => RenderPeachPdfAsync(scenario, caseDirectory, rasterizer, failures), "PeachPDF", failures).ConfigureAwait(false);
         HtmlCorpusBrowserEvidence? chromium = await TryRenderAsync(
@@ -172,10 +172,12 @@ internal static partial class HtmlCorpusEvidenceRunner {
     }
 
     private static HtmlCorpusStaticEvidence RenderOfficeImo(
-        HtmlRenderingCorpusCase scenario,
+        HtmlCorpusEvidenceInput input,
         string caseDirectory,
         ICollection<string> failures) {
-        HtmlConversionDocument source = HtmlConversionDocument.Parse(scenario.Html);
+        HtmlRenderingCorpusCase scenario = input.Scenario;
+        using var sourceStream = new MemoryStream(input.SourceBytes, writable: false);
+        HtmlConversionDocument source = HtmlConversionDocument.Load(sourceStream);
         HtmlToPdfOptions printOptions = new(scenario.CreateOptions());
         HtmlRenderRequest printRequest = HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, printOptions);
@@ -544,7 +546,8 @@ internal static partial class HtmlCorpusEvidenceRunner {
                 HtmlRenderingCorpus.All.Select(scenario => new HtmlCorpusEvidenceInput(
                     scenario,
                     scenario.SourceRelativePath,
-                    HtmlMarketScenarioCatalog.Get(scenario.Id).Capabilities)).ToArray());
+                    HtmlMarketScenarioCatalog.Get(scenario.Id).Capabilities,
+                    Encoding.UTF8.GetBytes(scenario.Html))).ToArray());
         }
         if (string.Equals(version, "v2", StringComparison.OrdinalIgnoreCase)) {
             HtmlRenderingHeldOutCorpus corpus = HtmlRenderingHeldOutCorpus.Load();
@@ -562,7 +565,8 @@ internal static partial class HtmlCorpusEvidenceRunner {
                         minimumVisualCount: 1,
                         minimumHeadingCount: 0),
                     item.SourceRelativePath,
-                    item.Manifest.Capabilities)).ToArray());
+                    item.Manifest.Capabilities,
+                    item.SourceBytes)).ToArray());
         }
         throw new ArgumentException("Unknown H4 corpus version: " + version + ". Use v1 or v2.");
     }
@@ -570,7 +574,8 @@ internal static partial class HtmlCorpusEvidenceRunner {
     private sealed record HtmlCorpusEvidenceInput(
         HtmlRenderingCorpusCase Scenario,
         string SourceRelativePath,
-        IReadOnlyList<string> Capabilities);
+        IReadOnlyList<string> Capabilities,
+        byte[] SourceBytes);
 
     private sealed record HtmlCorpusEvidenceInputSet(
         string CorpusId,
