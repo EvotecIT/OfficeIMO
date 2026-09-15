@@ -13,5 +13,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Security\OfficeIMO.Security.csproj" />
+    <Compile Include="..\Build\Benchmarks\OfficeEvidenceBudget.cs" Link="Evidence\OfficeEvidenceBudget.cs" />
   </ItemGroup>
 </Project>

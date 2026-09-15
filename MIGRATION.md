@@ -22,6 +22,30 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 | Pass package bytes under a different Office or OpenDocument subtype filename, such as DOCM content named `.docx` | Pass the filename extension that matches the package subtype. Package provenance APIs now reject mismatched subtype names before inspection or mutation. |
 | Read `officeimo.provenance.capabilities.v1` output from `officeimo provenance capabilities` | Accept `officeimo.provenance.capabilities.v2`, including exact structural format, memory-only, and browser qualification records for every extension. |
 
+### Protected-content capability catalog schema 2
+
+`OfficeProtectionCapabilityCatalog.Current` now uses schema version 2. Each
+operation whose coverage is `NotSupported` must have exactly one
+`OfficeProtectionUnsupportedOperation` that classifies it as either
+`RoadmapTracked` or `IntentionalBoundary`. Pass those classifications through the
+new `OfficeProtectionCapability` constructor overload.
+
+Existing custom catalogs that use the 12-argument capability constructor retain
+their former behavior when they declare schema version 1, including the legacy
+JSON fields and Markdown columns. Before this release the catalog constructor
+accepted any positive custom schema number, so applications that used version 2
+or higher without defining their own schema contract must make an explicit choice:
+
+| Previous custom catalog | Upgrade action |
+| --- | --- |
+| Keep the legacy row and export shape | Construct `OfficeProtectionCapabilityCatalog` with `schemaVersion: 1`. |
+| Adopt the structured unsupported-operation contract | Keep `schemaVersion: 2` or later and pass one disposition for every operation marked `NotSupported`. Do not classify operations in any other coverage state. |
+
+For `RoadmapTracked`, provide a non-empty roadmap reference. For
+`IntentionalBoundary`, omit the roadmap reference. Catalog construction throws
+`ArgumentException` when a schema-version-2-or-later row has missing, duplicate,
+or extraneous classifications.
+
 ### Owned HTML documents and callbacks
 
 Public HTML APIs now use `OfficeIMO.Html.Dom.HtmlDocument`, `HtmlElement` and
