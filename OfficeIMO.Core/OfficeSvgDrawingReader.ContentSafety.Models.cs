@@ -173,6 +173,12 @@ public static partial class OfficeSvgDrawingReader {
             }
         }
 
+        internal void Transfer(SvgTextRun source, SvgTextRun replacement) {
+            if (_byRun.TryGetValue(source, out SvgContentSafetyCandidate? candidate)) {
+                _byRun[replacement] = candidate;
+            }
+        }
+
         internal void FinalizeRuns(IEnumerable<SvgTextRun> runs) {
             foreach (SvgTextRun run in runs) {
                 if (_byRun.TryGetValue(run, out SvgContentSafetyCandidate? candidate)) candidate.Include(run);

@@ -34,7 +34,7 @@ public static partial class OfficeSvgDrawingReader {
             drawing.Width, drawing.Height, runs, textPaths, observer: null, 0D, 0D, null, 0, ref cursor, ref unsupported);
         if (runs.Count == 0) return;
         ApplyTextAnchors(runs);
-        ApplyTextPaths(runs, textPaths, references, viewX, viewY, ref unsupported);
+        ApplyTextPaths(runs, textPaths, references, viewX, viewY, observer: null, ref unsupported);
         foreach (SvgTextRun run in runs) {
             AddTextRun(
                 drawing,

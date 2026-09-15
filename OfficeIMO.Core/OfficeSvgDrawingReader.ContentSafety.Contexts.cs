@@ -188,6 +188,12 @@ public static partial class OfficeSvgDrawingReader {
                 evidence = "SVG text uses fallback paint syntax outside the bounded native paint subset and is therefore report-only.";
                 return true;
             }
+            string? filter = ReadPresentationProperty(current, "filter")?.Trim();
+            if (!string.IsNullOrWhiteSpace(filter) &&
+                !filter!.Equals("none", StringComparison.OrdinalIgnoreCase)) {
+                evidence = "SVG filter output can alter the painted text geometry and is therefore report-only.";
+                return true;
+            }
             if (name == "svg" && current.Parent != null &&
                 string.Equals(ReadPresentationProperty(current, "overflow")?.Trim(), "visible", StringComparison.OrdinalIgnoreCase)) {
                 evidence = "Text inside a nested SVG viewport with visible overflow depends on browser viewport painting and is therefore report-only.";

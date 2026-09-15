@@ -286,15 +286,11 @@ public static partial class OfficeSvgDrawingReader {
         IReadOnlyList<SvgContentSafetyCandidate> candidates,
         OfficeContentSafetyOptions options) {
         if (!options.DetectInstructionLikeText) return;
-        var signalsByOwner = new Dictionary<XElement, IReadOnlyList<string>>();
-        foreach (SvgContentSafetyCandidate candidate in candidates) {
-            XElement owner = FindSvgLogicalTextOwner(candidate.SourceText);
-            if (!signalsByOwner.TryGetValue(owner, out IReadOnlyList<string>? signals)) {
-                string logicalText = string.Concat(owner.DescendantNodes().OfType<XText>().Select(text => text.Value));
-                signals = OfficeContentInstructionDetector.Detect(logicalText);
-                signalsByOwner[owner] = signals;
-            }
-            candidate.InstructionSignals = signals;
+        foreach (IGrouping<XElement, SvgContentSafetyCandidate> group in candidates.GroupBy(candidate =>
+                     FindSvgLogicalTextOwner(candidate.SourceText))) {
+            string logicalText = string.Concat(group.Select(candidate => candidate.SourceText.Value));
+            IReadOnlyList<string> signals = OfficeContentInstructionDetector.Detect(logicalText);
+            foreach (SvgContentSafetyCandidate candidate in group) candidate.InstructionSignals = signals;
         }
     }
 
@@ -420,7 +416,7 @@ public static partial class OfficeSvgDrawingReader {
                     throw new InvalidDataException("The SVG exceeds the bounded text-run inspection limit.");
                 }
                 ApplyTextAnchors(runs);
-                ApplyTextPaths(runs, paths, references, childViewX, childViewY, ref unsupported);
+                ApplyTextPaths(runs, paths, references, childViewX, childViewY, observer, ref unsupported);
                 observer.FinalizeRuns(runs);
                 continue;
             }
@@ -479,7 +475,8 @@ public static partial class OfficeSvgDrawingReader {
         if (candidate.HasBounds) {
             double width = candidate.Right - candidate.Left;
             double height = candidate.Bottom - candidate.Top;
-            if (width <= 0.01D || height <= 0.01D) {
+            ResolveSvgContentSafetyRootViewportScales(document, out double rootHorizontalScale, out double rootVerticalScale);
+            if (width * rootHorizontalScale <= 0.01D || height * rootVerticalScale <= 0.01D) {
                 return new SvgContentSafetyConcealment(
                     OfficeContentConcealmentKind.ZeroDimension,
                     "Resolved SVG text geometry has zero or near-zero painted bounds.");
@@ -504,6 +501,14 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static double ResolveSvgContentSafetyRootViewportScale(SvgContentSafetyDocument document) {
+        ResolveSvgContentSafetyRootViewportScales(document, out double horizontalScale, out double verticalScale);
+        return Math.Max(horizontalScale, verticalScale);
+    }
+
+    private static void ResolveSvgContentSafetyRootViewportScales(
+        SvgContentSafetyDocument document,
+        out double horizontalScale,
+        out double verticalScale) {
         if (!TryParsePreserveAspectRatio(
                 document.Root.Attribute("preserveAspectRatio")?.Value,
                 out SvgAspectAlignment alignment,
@@ -518,9 +523,8 @@ public static partial class OfficeSvgDrawingReader {
             document.ViewportHeight,
             alignment,
             slice);
-        double horizontalScale = Math.Sqrt(transform.M11 * transform.M11 + transform.M12 * transform.M12);
-        double verticalScale = Math.Sqrt(transform.M21 * transform.M21 + transform.M22 * transform.M22);
-        return Math.Max(horizontalScale, verticalScale);
+        horizontalScale = Math.Sqrt(transform.M11 * transform.M11 + transform.M12 * transform.M12);
+        verticalScale = Math.Sqrt(transform.M21 * transform.M21 + transform.M22 * transform.M22);
     }
 
     private static bool CanUseSvgStructuralOffCanvasBounds(XElement element) {
