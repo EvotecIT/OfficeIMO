@@ -229,6 +229,79 @@ public partial class PdfPageImageRendererTests {
         Assert.False(OfficeImageReader.TryValidateContent(malformed, "scan.j2c", out _));
     }
 
+    [Theory]
+    [InlineData(0x52)] // COD cannot be an empty marker segment.
+    [InlineData(0x5C)] // QCD cannot be an empty marker segment.
+    public void ImageValidationRejectsJpeg2000CodestreamWithEmptyMandatoryMainHeaderSegment(int markerCode) {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        byte[] rawCodestream = payload.Skip(codestream).ToArray();
+        int marker = FindMarker(rawCodestream, 0xFF, (byte)markerCode);
+        int markerLength = (rawCodestream[marker + 2] << 8) | rawCodestream[marker + 3];
+        byte[] malformed = rawCodestream.Take(marker)
+            .Concat(new byte[] { 0xFF, (byte)markerCode, 0x00, 0x02 })
+            .Concat(rawCodestream.Skip(marker + 2 + markerLength))
+            .ToArray();
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(malformed, "scan.j2c", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(malformed, "scan.j2c", out _));
+    }
+
+    [Theory]
+    [InlineData(0x52)] // An optional tile COD override still requires a complete COD body.
+    [InlineData(0x5C)] // An optional tile QCD override still requires a complete QCD body.
+    public void ImageValidationRejectsJpeg2000CodestreamWithEmptyTileHeaderOverrideSegment(int markerCode) {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        byte[] rawCodestream = payload.Skip(codestream).ToArray();
+        int tilePart = FindMarker(rawCodestream, 0xFF, 0x90);
+        int startOfData = FindMarker(rawCodestream, 0xFF, 0x93);
+        uint tilePartLength = (uint)ReadUInt32BigEndian(rawCodestream, tilePart + 6);
+        byte[] malformed = rawCodestream.Take(startOfData)
+            .Concat(new byte[] { 0xFF, (byte)markerCode, 0x00, 0x02 })
+            .Concat(rawCodestream.Skip(startOfData))
+            .ToArray();
+        WriteJpxUInt32(malformed, tilePart + 6, tilePartLength + 4U);
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(malformed, "scan.j2c", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(malformed, "scan.j2c", out _));
+    }
+
+    [Theory]
+    [InlineData(0, 0x08)] // Scod reserved bits must be zero.
+    [InlineData(1, 5)] // Progression order is limited to the five Part 1 orders.
+    [InlineData(3, 0)] // At least one quality layer is required.
+    [InlineData(4, 2)] // Multiple-component transform is boolean.
+    [InlineData(5, 33)] // Decomposition levels are limited to 32.
+    [InlineData(6, 9)] // Code-block width exponent exceeds the Part 1 limit.
+    [InlineData(8, 0x40)] // Reserved code-block style bits must be zero.
+    [InlineData(9, 2)] // Only the reversible and irreversible Part 1 transforms are valid.
+    public void ImageValidationRejectsJpeg2000CodestreamWithInvalidCodingStyleDefaultField(
+        int fieldOffset,
+        int invalidValue) {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        byte[] rawCodestream = payload.Skip(codestream).ToArray();
+        int codingStyle = FindMarker(rawCodestream, 0xFF, 0x52);
+        rawCodestream[codingStyle + 4 + fieldOffset] = (byte)invalidValue;
+
+        Assert.False(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2c", out _));
+    }
+
+    [Theory]
+    [InlineData(0, 0x43)] // Quantization style 3 is reserved.
+    public void ImageValidationRejectsJpeg2000CodestreamWithInvalidQuantizationDefaultField(
+        int fieldOffset,
+        int invalidValue) {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        byte[] rawCodestream = payload.Skip(codestream).ToArray();
+        int quantization = FindMarker(rawCodestream, 0xFF, 0x5C);
+        rawCodestream[quantization + 4 + fieldOffset] = (byte)invalidValue;
+
+        Assert.False(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2c", out _));
+    }
+
     [Fact]
     public void ImageValidationRejectsJp2WithFileTypeBoxAfterHeader() {
         byte[] payload = ReadScanJpx("rgb");

@@ -263,13 +263,19 @@ internal static class OfficeJpeg2000Header {
         bool hasQuantizationDefault = false;
         while (offset < end - 2 && !IsMarker(bytes, offset, 0x90)) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!TryGetMarkerCode(bytes, offset, end - 2, out byte marker)) return false;
+            if (!TryGetMarkerCode(bytes, offset, end - 2, out byte marker, out int segmentOffset)) return false;
             if (!TrySkipMarkerSegment(bytes, ref offset, end - 2, cancellationToken)) return false;
             if (marker == 0x52) {
-                if (hasCodingStyleDefault) return false;
+                if (hasCodingStyleDefault || !TryValidateCodingStyleDefault(
+                        bytes,
+                        segmentOffset,
+                        end - 2)) return false;
                 hasCodingStyleDefault = true;
             } else if (marker == 0x5C) {
-                if (hasQuantizationDefault) return false;
+                if (hasQuantizationDefault || !TryValidateQuantizationDefault(
+                        bytes,
+                        segmentOffset,
+                        end - 2)) return false;
                 hasQuantizationDefault = true;
             }
         }
@@ -308,8 +314,29 @@ internal static class OfficeJpeg2000Header {
             }
 
             int tileHeaderOffset = offset + 12;
+            bool hasTileCodingStyleDefault = false;
+            bool hasTileQuantizationDefault = false;
             while (tileHeaderOffset < tilePartEnd && !IsMarker(bytes, tileHeaderOffset, 0x93)) {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (!TryGetMarkerCode(
+                        bytes,
+                        tileHeaderOffset,
+                        tilePartEnd,
+                        out byte tileMarker,
+                        out int tileSegmentOffset)) return false;
+                if (tileMarker == 0x52) {
+                    if (hasTileCodingStyleDefault || !TryValidateCodingStyleDefault(
+                            bytes,
+                            tileSegmentOffset,
+                            tilePartEnd)) return false;
+                    hasTileCodingStyleDefault = true;
+                } else if (tileMarker == 0x5C) {
+                    if (hasTileQuantizationDefault || !TryValidateQuantizationDefault(
+                            bytes,
+                            tileSegmentOffset,
+                            tilePartEnd)) return false;
+                    hasTileQuantizationDefault = true;
+                }
                 if (!TrySkipMarkerSegment(bytes, ref tileHeaderOffset, tilePartEnd, cancellationToken)) return false;
             }
             if (!IsMarker(bytes, tileHeaderOffset, 0x93) || tileHeaderOffset + 2 >= tilePartEnd) return false;
@@ -326,6 +353,52 @@ internal static class OfficeJpeg2000Header {
                 nextPartNumbers[tileIndex] != declaredPartCounts[tileIndex]) return false;
         }
         return true;
+    }
+
+    private static bool TryValidateCodingStyleDefault(
+        byte[] bytes,
+        int markerOffset,
+        int limit) {
+        if (limit - markerOffset < 14 || !IsMarker(bytes, markerOffset, 0x52)) return false;
+        int length = Read16(bytes, markerOffset + 2);
+        if (length < 12 || length > limit - markerOffset - 2) return false;
+
+        int content = markerOffset + 4;
+        byte codingStyle = bytes[content];
+        int levels = bytes[content + 5];
+        if ((codingStyle & 0xF8) != 0 ||
+            bytes[content + 1] > 4 ||
+            Read16(bytes, content + 2) == 0 ||
+            bytes[content + 4] > 1 ||
+            levels > 32 ||
+            bytes[content + 6] > 8 ||
+            bytes[content + 7] > 8 ||
+            bytes[content + 6] + bytes[content + 7] > 8 ||
+            (bytes[content + 8] & 0xC0) != 0 ||
+            bytes[content + 9] > 1) return false;
+        int precinctBytes = (codingStyle & 0x01) != 0 ? levels + 1 : 0;
+        if (length != 12 + precinctBytes) return false;
+        return true;
+    }
+
+    private static bool TryValidateQuantizationDefault(
+        byte[] bytes,
+        int markerOffset,
+        int limit) {
+        if (limit - markerOffset < 6 || !IsMarker(bytes, markerOffset, 0x5C)) return false;
+        int length = Read16(bytes, markerOffset + 2);
+        if (length < 4 || length > 197 || length > limit - markerOffset - 2) return false;
+
+        int content = markerOffset + 4;
+        int style = bytes[content] & 0x1F;
+        int stepBytes = length - 3;
+        if (style == 0) {
+            return (stepBytes - 1) % 3 == 0;
+        }
+        if (style == 1) return stepBytes == 2;
+        if (style != 2 || stepBytes < 2 || (stepBytes & 1) != 0) return false;
+        int subbands = stepBytes / 2;
+        return (subbands - 1) % 3 == 0;
     }
 
     private static bool TrySkipMarkerSegment(
@@ -350,12 +423,14 @@ internal static class OfficeJpeg2000Header {
     private static bool IsMarker(byte[] bytes, int offset, byte marker) =>
         offset >= 0 && offset + 1 < bytes.Length && bytes[offset] == 0xFF && bytes[offset + 1] == marker;
 
-    private static bool TryGetMarkerCode(byte[] bytes, int offset, int limit, out byte marker) {
+    private static bool TryGetMarkerCode(byte[] bytes, int offset, int limit, out byte marker, out int markerOffset) {
         marker = 0;
+        markerOffset = offset;
         if (offset >= limit || bytes[offset] != 0xFF) return false;
         while (offset + 1 < limit && bytes[offset + 1] == 0xFF) offset++;
         if (offset + 1 >= limit) return false;
         marker = bytes[offset + 1];
+        markerOffset = offset;
         return true;
     }
 
