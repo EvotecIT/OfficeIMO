@@ -28,6 +28,8 @@ public enum OfficeImageFormat {
     Pcx,
     /// <summary>WebP image.</summary>
     Webp,
-    /// <summary>JPEG 2000 image.</summary>
-    Jpeg2000
+    /// <summary>JPEG 2000 JP2 container image.</summary>
+    Jpeg2000,
+    /// <summary>Raw JPEG 2000 codestream without a JP2 container.</summary>
+    Jpeg2000Codestream
 }

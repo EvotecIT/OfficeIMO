@@ -11,6 +11,7 @@ public sealed partial class TesseractOcrEngine : IOcrEngine {
         "image/jpg",
         "image/tiff",
         "image/jp2",
+        "image/j2c",
         "image/gif",
         "image/webp",
         "image/bmp",

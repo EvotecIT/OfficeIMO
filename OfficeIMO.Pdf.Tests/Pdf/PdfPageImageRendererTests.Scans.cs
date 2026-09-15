@@ -136,11 +136,50 @@ public partial class PdfPageImageRendererTests {
         byte[] truncated = rawCodestream.Take(4 + sizeSegmentLength).ToArray();
 
         Assert.True(OfficeImageReader.TryIdentifyByContent(truncated, "scan.j2k", out OfficeImageInfo identified));
-        Assert.Equal(OfficeImageFormat.Jpeg2000, identified.Format);
+        Assert.Equal(OfficeImageFormat.Jpeg2000Codestream, identified.Format);
+        Assert.Equal("image/j2c", identified.MimeType);
+        Assert.Equal(".j2c", OfficeImageInfo.GetDefaultExtension(identified.Format));
         Assert.False(OfficeImageReader.TryValidateContent(truncated, "scan.j2k", out _));
         Assert.True(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2k", out OfficeImageInfo validated));
-        Assert.Equal(OfficeImageFormat.Jpeg2000, validated.Format);
+        Assert.Equal(OfficeImageFormat.Jpeg2000Codestream, validated.Format);
+        Assert.Equal("image/j2c", validated.MimeType);
+
+        Assert.True(OfficeImageReader.TryValidateContent(payload, "scan.jp2", out OfficeImageInfo container));
+        Assert.Equal(OfficeImageFormat.Jpeg2000, container.Format);
+        Assert.Equal("image/jp2", container.MimeType);
     }
+
+    [Theory]
+    [InlineData(4, 0xFF)] // Isot selects a tile outside the one-tile SIZ grid.
+    [InlineData(10, 1)] // TPsot must start at zero.
+    [InlineData(11, 2)] // TNsot declares a second tile-part that is absent.
+    public void ImageValidationRejectsJpeg2000CodestreamWithInvalidTilePartIdentity(
+        int tilePartFieldOffset,
+        int invalidValue) {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        byte[] rawCodestream = payload.Skip(codestream).ToArray();
+        int tilePart = FindMarker(rawCodestream, 0xFF, 0x90);
+        rawCodestream[tilePart + tilePartFieldOffset] = (byte)invalidValue;
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(rawCodestream, "scan.j2c", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2c", out _));
+    }
+
+    [Fact]
+    public void Jpeg2000ValidationHonorsCancellation() {
+        byte[] payload = ReadScanJpx("rgb");
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => {
+            OfficeImageReader.TryValidateContent(payload, "scan.jp2", cancellation.Token, out _);
+        });
+    }
+
+    private static int FindMarker(byte[] bytes, params byte[] marker) =>
+        Enumerable.Range(0, bytes.Length - marker.Length + 1).First(index =>
+            marker.Select((value, markerIndex) => bytes[index + markerIndex] == value).All(static match => match));
 
     private static byte[] ReadScanJpx(string mode) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory,
         "Pdf", "Fixtures", "Interoperability", "Scans", "red-" + mode + ".jp2"));

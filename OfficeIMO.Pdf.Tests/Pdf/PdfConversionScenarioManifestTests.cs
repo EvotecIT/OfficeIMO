@@ -1921,6 +1921,7 @@ public sealed class PdfConversionScenarioManifestTests {
     public void PdfToHtmlResult_ReportsInternalNavigationOutsideSelectedPagesAsLoss() {
         byte[] pdf = CreateDirectDestinationLinkPdf();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
+        Assert.False(Assert.Single(logical.Pages[0].Annotations).HasAction);
         var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true,
@@ -2305,7 +2306,7 @@ public sealed class PdfConversionScenarioManifestTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Annots [4 0 R] >>",
             "endobj",
             "4 0 obj",
-            "<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Jump to page two) /A << /S /GoTo /D [5 0 R /FitR 10 20 90 144] >> >>",
+            "<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Jump to page two) /Dest [5 0 R /FitR 10 20 90 144] >>",
             "endobj",
             "5 0 obj",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] >>",

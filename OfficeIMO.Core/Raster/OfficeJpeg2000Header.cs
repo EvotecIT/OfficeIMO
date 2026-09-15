@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Drawing;
 
 /// <summary>Recognizes the bounded, opaque Gray/RGB subset safe for codec pass-through.</summary>
@@ -7,37 +9,81 @@ internal static class OfficeJpeg2000Header {
     }
 
     internal static bool TryGetOpaqueDimensions(byte[] bytes, out int components, out int width, out int height) {
-        return TryReadOpaquePayload(bytes, requireCompleteCodestream: false, out components, out width, out height);
+        return TryGetOpaqueDimensions(bytes, CancellationToken.None, out components, out width, out height);
+    }
+
+    internal static bool TryGetOpaqueDimensions(
+        byte[] bytes,
+        CancellationToken cancellationToken,
+        out int components,
+        out int width,
+        out int height) {
+        return TryReadOpaquePayload(
+            bytes,
+            requireCompleteCodestream: false,
+            cancellationToken,
+            out components,
+            out width,
+            out height);
     }
 
     internal static bool TryValidateOpaquePayload(byte[] bytes, out int components, out int width, out int height) {
-        return TryReadOpaquePayload(bytes, requireCompleteCodestream: true, out components, out width, out height);
+        return TryValidateOpaquePayload(bytes, CancellationToken.None, out components, out width, out height);
     }
+
+    internal static bool TryValidateOpaquePayload(
+        byte[] bytes,
+        CancellationToken cancellationToken,
+        out int components,
+        out int width,
+        out int height) {
+        return TryReadOpaquePayload(
+            bytes,
+            requireCompleteCodestream: true,
+            cancellationToken,
+            out components,
+            out width,
+            out height);
+    }
+
+    internal static bool IsJp2Container(byte[] bytes) =>
+        bytes.Length >= 12 && Read32(bytes, 0) == 12 && Read32(bytes, 4) == 0x6A502020 &&
+        Read32(bytes, 8) == 0x0D0A870A;
 
     private static bool TryReadOpaquePayload(
         byte[] bytes,
         bool requireCompleteCodestream,
+        CancellationToken cancellationToken,
         out int components,
         out int width,
         out int height) {
         components = width = height = 0;
+        cancellationToken.ThrowIfCancellationRequested();
         if (TryReadCodestream(
                 bytes,
                 0,
                 bytes.Length,
                 requireCompleteCodestream,
+                cancellationToken,
                 out components,
                 out width,
                 out height)) return true;
-        if (bytes.Length < 12 || Read32(bytes, 0) != 12 || Read32(bytes, 4) != 0x6A502020 ||
-            Read32(bytes, 8) != 0x0D0A870A) return false;
+        if (!IsJp2Container(bytes)) return false;
         bool header = false, codestream = false;
         int expected = 0, expectedWidth = 0, expectedHeight = 0;
         int offset = 12;
         while (offset < bytes.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!TryReadBox(bytes, ref offset, bytes.Length, out uint type, out int start, out int end)) return false;
             if (type == 0x6A703268) { // jp2h
-                if (header || !TryReadHeader(bytes, start, end, out expected, out expectedWidth, out expectedHeight)) return false;
+                if (header || !TryReadHeader(
+                        bytes,
+                        start,
+                        end,
+                        cancellationToken,
+                        out expected,
+                        out expectedWidth,
+                        out expectedHeight)) return false;
                 header = true;
             } else if (type == 0x6A703263) { // jp2c
                 if (codestream || !TryReadCodestream(
@@ -45,6 +91,7 @@ internal static class OfficeJpeg2000Header {
                         start,
                         end,
                         requireCompleteCodestream,
+                        cancellationToken,
                         out components,
                         out width,
                         out height)) return false;
@@ -57,10 +104,18 @@ internal static class OfficeJpeg2000Header {
         return header && codestream && expected == components && expectedWidth == width && expectedHeight == height;
     }
 
-    private static bool TryReadHeader(byte[] bytes, int offset, int end, out int components, out int width, out int height) {
+    private static bool TryReadHeader(
+        byte[] bytes,
+        int offset,
+        int end,
+        CancellationToken cancellationToken,
+        out int components,
+        out int width,
+        out int height) {
         components = width = height = 0;
         int colorComponents = 0;
         while (offset < end) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!TryReadBox(bytes, ref offset, end, out uint type, out int start, out int boxEnd)) return false;
             if (type == 0x69686472) { // ihdr
                 if (components != 0 || boxEnd - start != 14) return false;
@@ -76,6 +131,7 @@ internal static class OfficeJpeg2000Header {
                 int count = Read16(bytes, start);
                 if (boxEnd - start != 2 + count * 6) return false;
                 for (int i = 0; i < count; i++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     int entry = start + 2 + i * 6;
                     if (Read16(bytes, entry) != i || Read16(bytes, entry + 2) != 0 ||
                         Read16(bytes, entry + 4) != i + 1) return false;
@@ -93,10 +149,12 @@ internal static class OfficeJpeg2000Header {
         int start,
         int end,
         bool requireCompleteCodestream,
+        CancellationToken cancellationToken,
         out int components,
         out int width,
         out int height) {
         components = width = height = 0;
+        cancellationToken.ThrowIfCancellationRequested();
         if (end - start < 42 || Read32(bytes, start) != 0xFF4FFF51) return false; // SOC, SIZ
         components = Read16(bytes, start + 40);
         int length = Read16(bytes, start + 4);
@@ -110,26 +168,59 @@ internal static class OfficeJpeg2000Header {
             !TryBoundDimensions(right, bottom, out _, out _) ||
             !TryBoundDimensions(tileWidth, tileHeight, out _, out _) ||
             !TryBoundDimensions(right - left, bottom - top, out width, out height)) return false;
+        ulong tilesAcross = ((ulong)right - tileLeft + tileWidth - 1UL) / tileWidth;
+        ulong tilesDown = ((ulong)bottom - tileTop + tileHeight - 1UL) / tileHeight;
+        ulong tileCountValue = tilesAcross * tilesDown;
+        if (tileCountValue == 0 || tileCountValue > ushort.MaxValue) return false;
         for (int i = 0; i < components; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int component = start + 42 + i * 3;
             if ((bytes[component] & 127) > 15 || bytes[component + 1] == 0 || bytes[component + 2] == 0) return false;
         }
-        return !requireCompleteCodestream || HasCompleteCodestream(bytes, start + 4 + length, end);
+        return !requireCompleteCodestream || HasCompleteCodestream(
+            bytes,
+            start + 4 + length,
+            end,
+            (int)tileCountValue,
+            cancellationToken);
     }
 
-    private static bool HasCompleteCodestream(byte[] bytes, int markerOffset, int end) {
+    private static bool HasCompleteCodestream(
+        byte[] bytes,
+        int markerOffset,
+        int end,
+        int tileCount,
+        CancellationToken cancellationToken) {
         if (end - markerOffset < 16 || bytes[end - 2] != 0xFF || bytes[end - 1] != 0xD9) return false;
 
         int offset = markerOffset;
         while (offset < end - 2 && !IsMarker(bytes, offset, 0x90)) {
-            if (!TrySkipMarkerSegment(bytes, ref offset, end - 2)) return false;
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!TrySkipMarkerSegment(bytes, ref offset, end - 2, cancellationToken)) return false;
         }
 
         bool foundTilePart = false;
+        var nextPartNumbers = new int[tileCount];
+        var declaredPartCounts = new int[tileCount];
+        var seenTiles = new bool[tileCount];
         while (offset < end - 2) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!IsMarker(bytes, offset, 0x90) || end - offset < 14 || Read16(bytes, offset + 2) != 10) {
                 return false;
             }
+
+            int tileIndex = Read16(bytes, offset + 4);
+            int partIndex = bytes[offset + 10];
+            int partCount = bytes[offset + 11];
+            if (tileIndex >= tileCount || partIndex != nextPartNumbers[tileIndex]) return false;
+            if (declaredPartCounts[tileIndex] != 0) {
+                if (partCount != declaredPartCounts[tileIndex]) return false;
+            } else if (partCount != 0) {
+                if (partIndex >= partCount) return false;
+                declaredPartCounts[tileIndex] = partCount;
+            }
+            nextPartNumbers[tileIndex]++;
+            seenTiles[tileIndex] = true;
 
             uint declaredLength = Read32(bytes, offset + 6);
             int tilePartEnd;
@@ -142,7 +233,8 @@ internal static class OfficeJpeg2000Header {
 
             int tileHeaderOffset = offset + 12;
             while (tileHeaderOffset < tilePartEnd && !IsMarker(bytes, tileHeaderOffset, 0x93)) {
-                if (!TrySkipMarkerSegment(bytes, ref tileHeaderOffset, tilePartEnd)) return false;
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!TrySkipMarkerSegment(bytes, ref tileHeaderOffset, tilePartEnd, cancellationToken)) return false;
             }
             if (!IsMarker(bytes, tileHeaderOffset, 0x93) || tileHeaderOffset + 2 >= tilePartEnd) return false;
 
@@ -150,13 +242,27 @@ internal static class OfficeJpeg2000Header {
             offset = tilePartEnd;
             if (declaredLength == 0) break;
         }
-        return foundTilePart && offset == end - 2;
+        if (!foundTilePart || offset != end - 2) return false;
+        for (int tileIndex = 0; tileIndex < tileCount; tileIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!seenTiles[tileIndex]) return false;
+            if (declaredPartCounts[tileIndex] != 0 &&
+                nextPartNumbers[tileIndex] != declaredPartCounts[tileIndex]) return false;
+        }
+        return true;
     }
 
-    private static bool TrySkipMarkerSegment(byte[] bytes, ref int offset, int limit) {
+    private static bool TrySkipMarkerSegment(
+        byte[] bytes,
+        ref int offset,
+        int limit,
+        CancellationToken cancellationToken) {
         if (limit - offset < 4 || bytes[offset] != 0xFF) return false;
         int markerOffset = offset;
-        while (markerOffset + 1 < limit && bytes[markerOffset + 1] == 0xFF) markerOffset++;
+        while (markerOffset + 1 < limit && bytes[markerOffset + 1] == 0xFF) {
+            cancellationToken.ThrowIfCancellationRequested();
+            markerOffset++;
+        }
         if (markerOffset + 3 >= limit || bytes[markerOffset + 1] <= 0x01 ||
             bytes[markerOffset + 1] is 0x90 or 0x93 or 0xD9) return false;
         int length = Read16(bytes, markerOffset + 2);

@@ -20,8 +20,8 @@ public static partial class OfficeDrawingRasterRenderer {
         public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
             _token.ThrowIfCancellationRequested();
             image = null;
-            if (contentType == "image/jp2" &&
-                (!OfficeJpeg2000Header.TryGetOpaqueDimensions(encodedBytes, out _, out int width, out int height) ||
+            if (contentType is "image/jp2" or "image/j2c" &&
+                (!OfficeJpeg2000Header.TryGetOpaqueDimensions(encodedBytes, _token, out _, out int width, out int height) ||
                  !OfficeRasterImageDecoder.IsWithinPixelLimit(width, height, _maximumPixels))) {
                 throw new NotSupportedException("The JPEG 2000 image dimensions exceed the supported raster limit or have an unsupported header.");
             }

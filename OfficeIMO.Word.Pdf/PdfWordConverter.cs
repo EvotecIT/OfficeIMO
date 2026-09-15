@@ -52,7 +52,6 @@ namespace OfficeIMO.Word.Pdf {
             for (int pageIndex = 0; pageIndex < source.Pages.Count; pageIndex++) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 PdfCore.PdfLogicalPage page = source.Pages[pageIndex];
-                double typographyScale = GetEditableTypographyScale(page, options);
                 ReportPageReconstructionBoundaries(page, options);
                 List<ImportItem> items = BuildImportItems(page, options, navigation);
                 bool hasNavigationAnchor = navigation.HasAnchorsForPage(page.PageNumber);
@@ -66,6 +65,7 @@ namespace OfficeIMO.Word.Pdf {
                 } else if (pageIndex == 0 && options.PreserveSourcePageSize) {
                     sourcePageSizeApplied = ConfigureEditablePageSection(target.Sections[0], page, options);
                 }
+                double typographyScale = GetEditableTypographyScale(page, sourcePageSizeApplied);
 
                 if (AddNavigationBookmarks(target, page, navigation)) {
                     emittedContent = true;

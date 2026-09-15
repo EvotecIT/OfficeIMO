@@ -402,7 +402,10 @@ public static partial class PdfHtmlConverterExtensions {
                 PdfCore.PdfAnnotation annotation = page.Annotations[annotationIndex];
                 omittedCount += annotation.AdditionalActions.Count;
                 omittedCount += annotation.ChainedActions.Count;
-                if (!annotation.HasAction) {
+                bool hasDirectLinkDestination = !annotation.HasAction &&
+                    string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase) &&
+                    page.Links.Any(link => HasSameRectangle(annotation, link) && link.IsInternalDestinationLink);
+                if (!annotation.HasAction && !hasDirectLinkDestination) {
                     continue;
                 }
 
@@ -447,6 +450,14 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfAnnotation annotation,
         PdfCore.PdfLogicalLinkAnnotation link,
         ISet<int> selectedPageNumbers) {
+        if (!annotation.HasAction) {
+            if (link.DestinationPageNumber.HasValue) {
+                return selectedPageNumbers.Contains(link.DestinationPageNumber.Value);
+            }
+
+            return !string.IsNullOrWhiteSpace(link.DestinationName);
+        }
+
         if (string.Equals(annotation.ActionType, "URI", StringComparison.OrdinalIgnoreCase)) {
             return link.Uri is not null && IsSafeLinkUri(link.Uri);
         }

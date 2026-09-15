@@ -660,6 +660,33 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void WordDoesNotScaleLaterPageTypographyWhenPageBreaksAreNotPreserved() {
+        const string firstMarker = "First page typography";
+        const string secondMarker = "Second page typography";
+        byte[] source = WithPageUserUnit(
+            CreateDocument()
+                .Paragraph(paragraph => paragraph.FontSize(10D).Text(firstMarker))
+                .PageBreak()
+                .Paragraph(paragraph => paragraph.FontSize(10D).Text(secondMarker))
+                .ToBytes(),
+            pageNumber: 2,
+            userUnit: 2D);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult(new PdfToWordOptions {
+            PreservePageBreaks = false,
+            PreserveSourcePageSize = true
+        });
+        using (word.Value) {
+            Assert.Equal(10D, Assert.Single(word.Value.Paragraphs,
+                paragraph => paragraph.Text.Contains(firstMarker, StringComparison.Ordinal)).FontSizePoints);
+            Assert.Equal(10D, Assert.Single(word.Value.Paragraphs,
+                paragraph => paragraph.Text.Contains(secondMarker, StringComparison.Ordinal)).FontSizePoints);
+            Assert.Single(word.Value.Sections);
+        }
+    }
+
+    [Fact]
     public void PreservedWordPageSizeScalesImportedTableCellTypographyByThePageUserUnit() {
         byte[] source = WithUserUnit(
             CreateDocument()
@@ -994,6 +1021,53 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void RawJpeg2000CodestreamIsNotEmbeddedAsAJP2FileAcrossEditableAdapters() {
+        byte[] container = File.ReadAllBytes(Path.Combine(
+            AppContext.BaseDirectory,
+            "Pdf",
+            "Fixtures",
+            "Interoperability",
+            "Scans",
+            "red-rgb.jp2"));
+        int codestream = Enumerable.Range(0, container.Length - 3).Single(index =>
+            container[index] == 0xFF && container[index + 1] == 0x4F &&
+            container[index + 2] == 0xFF && container[index + 3] == 0x51);
+        byte[] rawCodestream = container.Skip(codestream).ToArray();
+        byte[] source = CreateRawImagePdf(
+            "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            imageBytes: rawCodestream,
+            imageDefinition: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /JPXDecode");
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        PdfLogicalImage image = Assert.Single(Assert.Single(logical.Pages).Images);
+        Assert.False(image.SourceImage.IsImageFile);
+
+        AssertJpeg2000PayloadNotEmbeddedAcrossEditableAdapters(logical);
+    }
+
+    [Fact]
+    public void MalformedJp2ContainerIsNotEmbeddedAcrossEditableAdapters() {
+        byte[] container = File.ReadAllBytes(Path.Combine(
+            AppContext.BaseDirectory,
+            "Pdf",
+            "Fixtures",
+            "Interoperability",
+            "Scans",
+            "red-rgb.jp2"));
+        int tilePart = Enumerable.Range(0, container.Length - 1).First(index =>
+            container[index] == 0xFF && container[index + 1] == 0x90);
+        container[tilePart + 11] = 2; // TNsot declares an absent second tile-part.
+        byte[] source = CreateRawImagePdf(
+            "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            imageBytes: container,
+            imageDefinition: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /JPXDecode");
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        PdfLogicalImage image = Assert.Single(Assert.Single(logical.Pages).Images);
+        Assert.False(image.SourceImage.IsImageFile);
+
+        AssertJpeg2000PayloadNotEmbeddedAcrossEditableAdapters(logical);
+    }
+
+    [Fact]
     public void Jpeg2000NullDecodeDoesNotTriggerUnappliedDecodeLoss() {
         byte[] jpx = File.ReadAllBytes(Path.Combine(
             AppContext.BaseDirectory,
@@ -1061,6 +1135,26 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
     }
 
+    private static void AssertJpeg2000PayloadNotEmbeddedAcrossEditableAdapters(PdfDocumentReadResult logical) {
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        Assert.DoesNotContain("data:image/jp2", html.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain("data:image/j2c", html.Value, StringComparison.Ordinal);
+        Assert.True(html.HasLoss);
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            Assert.Empty(word.Value.Images);
+            Assert.True(word.HasLoss);
+        }
+
+        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        using (powerPoint.Value) {
+            Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Pictures));
+            Assert.True(powerPoint.HasLoss);
+        }
+    }
+
     private static byte[] CreateImageWithGraphicsStatePdf(string graphicsStateEntries) =>
         CreateRawImagePdf(
             "q /GS1 gs 80 0 0 40 20 30 cm /Im1 Do Q\n",
@@ -1072,6 +1166,18 @@ public sealed class PdfReverseImagePlacementSafetyTests {
                 item.Value is PdfDictionary dictionary &&
                 string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal));
             Assert.IsType<PdfDictionary>(page.Value).Items["UserUnit"] = new PdfNumber(userUnit);
+            return security.InfoObjectNumber;
+        });
+
+    private static byte[] WithPageUserUnit(byte[] source, int pageNumber, double userUnit) =>
+        PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfIndirectObject[] pages = objects.Values
+                .Where(static item => item.Value is PdfDictionary dictionary &&
+                    string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal))
+                .OrderBy(static item => item.ObjectNumber)
+                .ToArray();
+            Assert.InRange(pageNumber, 1, pages.Length);
+            Assert.IsType<PdfDictionary>(pages[pageNumber - 1].Value).Items["UserUnit"] = new PdfNumber(userUnit);
             return security.InfoObjectNumber;
         });
 

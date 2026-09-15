@@ -70,6 +70,7 @@ public sealed class OfficeImageInfo {
         OfficeImageFormat.Pcx => "image/x-pcx",
         OfficeImageFormat.Webp => "image/webp",
         OfficeImageFormat.Jpeg2000 => "image/jp2",
+        OfficeImageFormat.Jpeg2000Codestream => "image/j2c",
         _ => "application/octet-stream"
     };
 
@@ -91,6 +92,7 @@ public sealed class OfficeImageInfo {
         OfficeImageFormat.Pcx => ".pcx",
         OfficeImageFormat.Webp => ".webp",
         OfficeImageFormat.Jpeg2000 => ".jp2",
+        OfficeImageFormat.Jpeg2000Codestream => ".j2c",
         _ => ".bin"
     };
 
@@ -154,6 +156,7 @@ public sealed class OfficeImageInfo {
             "image/x-pcx" or "image/pcx" => OfficeImageFormat.Pcx,
             "image/webp" => OfficeImageFormat.Webp,
             "image/jp2" or "image/jpeg2000" => OfficeImageFormat.Jpeg2000,
+            "image/j2c" => OfficeImageFormat.Jpeg2000Codestream,
             _ => OfficeImageFormat.Unknown
         };
     }
