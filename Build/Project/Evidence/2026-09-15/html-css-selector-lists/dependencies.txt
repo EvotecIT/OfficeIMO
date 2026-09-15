@@ -1,0 +1,35 @@
+OfficeIMO.HTML selector-list dependency snapshot
+Captured from clean commit 767508746ec37ff6aee72d2009c40548d93385b1.
+
+Command: dotnet list OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj package --include-transitive --framework net10.0
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+Project 'OfficeIMO.Html.Core' has the following package references
+   [net10.0]: No packages were found for this framework.
+
+Command: dotnet list OfficeIMO.Html/OfficeIMO.Html.csproj package --include-transitive --framework net10.0
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+Project 'OfficeIMO.Html' has the following package references
+   [net10.0]: 
+   Top-level Package      Requested   Resolved
+   > AngleSharp           1.7.1       1.7.1   
+   > AngleSharp.Css       1.0.1       1.0.1   
+
+
+Command: dotnet list OfficeIMO.Html/OfficeIMO.Html.csproj package --include-transitive --framework net472
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+Project 'OfficeIMO.Html' has the following package references
+   [net472]: 
+   Top-level Package      Requested   Resolved
+   > AngleSharp           1.7.1       1.7.1   
+   > AngleSharp.Css       1.0.1       1.0.1   
+
+   Transitive Package                            Resolved
+   > System.Buffers                              4.5.1   
+   > System.Memory                               4.5.5   
+   > System.Numerics.Vectors                     4.5.0   
+   > System.Runtime.CompilerServices.Unsafe      6.0.0   
+   > System.Text.Encoding.CodePages              8.0.0   
+
