@@ -151,7 +151,7 @@ public static partial class OfficeSvgDrawingReader {
                     ? SvgGradientKind.Linear
                     : SvgGradientKind.Radial;
                 SvgGradientDefinition? inherited = null;
-                XAttribute? href = element.Attributes().FirstOrDefault(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase));
+                XAttribute? href = element.Attributes().FirstOrDefault(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal));
                 if (href != null) {
                     if (!TryReadLocalReference(href.Value, requireUrl: false, out string inheritedId)
                         || !_definitions.TryGetUnique(inheritedId, out XElement? inheritedElement)
@@ -265,7 +265,8 @@ public static partial class OfficeSvgDrawingReader {
         private static bool TryReadStops(XElement gradient, out IReadOnlyList<OfficeGradientStop>? stops) {
             stops = null;
             XElement[] elements = gradient.Elements()
-                .Where(element => element.Name.LocalName.Equals("stop", StringComparison.OrdinalIgnoreCase))
+                .Where(element => element.Name.Namespace == gradient.Name.Namespace &&
+                    element.Name.LocalName.Equals("stop", StringComparison.OrdinalIgnoreCase))
                 .ToArray();
             if (elements.Length == 0 || elements.Length > MaximumGradientStops) return false;
             if (!TryResolveCurrentColor(gradient, out OfficeColor inheritedCurrentColor)) return false;

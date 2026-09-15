@@ -34,6 +34,18 @@ public sealed class OfficeSvgDrawingReaderOptions {
     /// <summary>Hard maximum viewport area accepted for explicitly trusted SVG input.</summary>
     public const double MaximumAllowedViewportPixels = 256D * 1024D * 1024D;
 
+    /// <summary>Default maximum number of full SVG visual comparisons performed by content-safety inspection.</summary>
+    public const int DefaultMaximumContentSafetyVisualComparisons = 32;
+
+    /// <summary>Hard maximum number of SVG visual comparisons accepted from a caller.</summary>
+    public const int MaximumAllowedContentSafetyVisualComparisons = 128;
+
+    /// <summary>Default cumulative rendered-pixel budget for SVG content-safety inspection.</summary>
+    public const long DefaultMaximumContentSafetyVisualPixels = 32L * 1024L * 1024L;
+
+    /// <summary>Hard maximum cumulative rendered-pixel budget accepted from a caller.</summary>
+    public const long MaximumAllowedContentSafetyVisualPixels = 128L * 1024L * 1024L;
+
     /// <summary>
     /// Maximum number of descendant and expanded reference elements. Increase this only for trusted SVG input.
     /// </summary>
@@ -44,4 +56,13 @@ public sealed class OfficeSvgDrawingReaderOptions {
 
     /// <summary>Maximum SVG viewport width-times-height area. Increase this only for trusted SVG input.</summary>
     public double MaximumViewportPixels { get; set; } = DefaultMaximumViewportPixels;
+
+    /// <summary>
+    /// Maximum full-document visual comparisons used for paint-order and background evidence.
+    /// Set this to zero to use structural inspection only; the report records that visual comparison was disabled.
+    /// </summary>
+    public int MaximumContentSafetyVisualComparisons { get; set; } = DefaultMaximumContentSafetyVisualComparisons;
+
+    /// <summary>Cumulative rendered-pixel work allowed across the SVG content-safety baseline and comparison renders.</summary>
+    public long MaximumContentSafetyVisualPixels { get; set; } = DefaultMaximumContentSafetyVisualPixels;
 }

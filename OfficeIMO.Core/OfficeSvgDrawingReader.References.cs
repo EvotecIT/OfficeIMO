@@ -85,6 +85,8 @@ public static partial class OfficeSvgDrawingReader {
 
         internal OfficeSvgForeignObjectRenderer? ForeignObjectRenderer { get; }
 
+        internal XNamespace NativeNamespace => _definitions.NativeNamespace;
+
         internal bool TryEnter(XElement use, out string id, out XElement? target) {
             return TryEnterDetailed(use, out id, out target) == SvgElementReferenceEntryResult.Entered;
         }
@@ -101,7 +103,9 @@ public static partial class OfficeSvgDrawingReader {
             id = string.Empty;
             target = null;
             XAttribute[] hrefAttributes = use.Attributes()
-                .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase))
+                .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal) &&
+                    (attribute.Name.NamespaceName.Length == 0 ||
+                     attribute.Name.NamespaceName.Equals("http://www.w3.org/1999/xlink", StringComparison.Ordinal)))
                 .Take(2)
                 .ToArray();
             if (hrefAttributes.Length != 1
@@ -152,8 +156,14 @@ public static partial class OfficeSvgDrawingReader {
             id = string.Empty;
             string normalized = text.Trim();
             if (normalized.Length < 2 || normalized[0] != '#') return false;
-            id = normalized.Substring(1);
-            return id.Length > 0 && id.IndexOfAny(new[] { ' ', '\t', '\r', '\n', '#', '(', ')' }) < 0;
+            string encodedId = normalized.Substring(1);
+            if (encodedId.Length == 0 || encodedId.IndexOfAny(new[] { ' ', '\t', '\r', '\n', '#', '(', ')' }) >= 0) return false;
+            try {
+                id = Uri.UnescapeDataString(encodedId);
+            } catch (UriFormatException) {
+                return false;
+            }
+            return id.Length > 0;
         }
 
         private static bool TryReadLocalUrlReference(string? text, out string id) {

@@ -38,15 +38,57 @@ public sealed class OfficeContentSafetyBuilder {
         string? text,
         OfficeContentCleanupCapability cleanupCapability = OfficeContentCleanupCapability.ReportOnly,
         bool inspectTextIntegrityEvidence = true) {
-        if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A logical location is required.", nameof(location));
-        if (string.IsNullOrWhiteSpace(evidence)) throw new ArgumentException("Exact concealment evidence is required.", nameof(evidence));
-        text ??= string.Empty;
-        Charge(text.Length);
+        text = ValidateFindingArguments(location, evidence, text);
+        EnsureCanCharge(text.Length);
         EnsureFindingCapacity();
-
         IReadOnlyList<string> instructionSignals = _options.DetectInstructionLikeText
             ? OfficeContentInstructionDetector.Detect(text)
             : Array.Empty<string>();
+        return AddCore(
+            kind,
+            risk,
+            location,
+            evidence,
+            text,
+            instructionSignals,
+            cleanupCapability,
+            inspectTextIntegrityEvidence);
+    }
+
+    internal OfficeContentSafetyFinding AddWithInstructionSignals(
+        OfficeContentConcealmentKind kind,
+        OfficeContentSafetyRisk risk,
+        string location,
+        string evidence,
+        string? text,
+        IReadOnlyList<string> instructionSignals,
+        OfficeContentCleanupCapability cleanupCapability = OfficeContentCleanupCapability.ReportOnly,
+        bool inspectTextIntegrityEvidence = true) {
+        if (instructionSignals == null) throw new ArgumentNullException(nameof(instructionSignals));
+        return AddCore(
+            kind,
+            risk,
+            location,
+            evidence,
+            text,
+            _options.DetectInstructionLikeText ? instructionSignals : Array.Empty<string>(),
+            cleanupCapability,
+            inspectTextIntegrityEvidence);
+    }
+
+    private OfficeContentSafetyFinding AddCore(
+        OfficeContentConcealmentKind kind,
+        OfficeContentSafetyRisk risk,
+        string location,
+        string evidence,
+        string? text,
+        IReadOnlyList<string> instructionSignals,
+        OfficeContentCleanupCapability cleanupCapability,
+        bool inspectTextIntegrityEvidence) {
+        text = ValidateFindingArguments(location, evidence, text);
+        Charge(text.Length);
+        EnsureFindingCapacity();
+
         bool instructionLike = instructionSignals.Count > 0;
         if (instructionLike) risk = OfficeContentSafetyRisk.PotentiallyDangerous;
         string contentHash = Hash(text);
@@ -173,10 +215,20 @@ public sealed class OfficeContentSafetyBuilder {
         return resolved.AsReadOnly();
     }
 
-    private void Charge(int characters) {
+    private static string ValidateFindingArguments(string location, string evidence, string? text) {
+        if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A logical location is required.", nameof(location));
+        if (string.IsNullOrWhiteSpace(evidence)) throw new ArgumentException("Exact concealment evidence is required.", nameof(evidence));
+        return text ?? string.Empty;
+    }
+
+    private void EnsureCanCharge(int characters) {
         if (characters < 0 || _characters > _options.MaxCharacters - characters) {
             throw new InvalidDataException("The asset exceeds the configured decoded-character limit.");
         }
+    }
+
+    private void Charge(int characters) {
+        EnsureCanCharge(characters);
         _characters += characters;
     }
 

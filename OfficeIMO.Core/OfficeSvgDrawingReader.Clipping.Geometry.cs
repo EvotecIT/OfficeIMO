@@ -9,7 +9,7 @@ public static partial class OfficeSvgDrawingReader {
     private static bool IsEmptySvgClipGeometry(XElement element, double width, double height) {
         bool IsZero(string name, double reference) =>
             TryViewportLength(element, name, reference, out double value) && value == 0D;
-        return element.Name.LocalName.ToLowerInvariant() switch {
+        return element.Name.LocalName switch {
             "rect" => IsZero("width", width) || IsZero("height", height),
             "circle" => IsZero("r", NormalizedSvgDiagonal(width, height)),
             "ellipse" => IsZero("rx", width) || IsZero("ry", height),

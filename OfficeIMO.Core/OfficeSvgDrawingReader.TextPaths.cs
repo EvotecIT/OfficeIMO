@@ -13,6 +13,7 @@ public static partial class OfficeSvgDrawingReader {
         SvgElementReferenceRegistry references,
         double viewX,
         double viewY,
+        SvgContentSafetyTextObserver? observer,
         ref int unsupported) {
         foreach (SvgTextPathLayout layout in layouts.OrderByDescending(item => item.FirstRun)) {
             int end = Math.Min(layout.EndRun, runs.Count);
@@ -36,7 +37,7 @@ public static partial class OfficeSvgDrawingReader {
                     runAdvance += glyphAdvance;
                     if (!path!.TryResolve(distance, out OfficePoint point, out double angleDegrees)) continue;
                     double glyphWidth = Math.Max(0.1D, glyphAdvance / source.GlyphScale);
-                    replacements.Add(new SvgTextRun(
+                    var replacement = new SvgTextRun(
                         glyphs[glyphIndex],
                         point.X - glyphWidth / 2D,
                         point.Y,
@@ -51,7 +52,9 @@ public static partial class OfficeSvgDrawingReader {
                         point.X,
                         point.Y) {
                         GlyphScale = source.GlyphScale
-                    });
+                    };
+                    replacements.Add(replacement);
+                    observer?.Transfer(source, replacement);
                 }
             }
 

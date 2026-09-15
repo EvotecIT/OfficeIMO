@@ -56,6 +56,7 @@ public static partial class OfficeSvgDrawingReader {
                 bytes,
                 options,
                 allowUnresolvedViewport,
+                MaximumInputBytes,
                 out XElement root,
                 out int maximumElements,
                 out double maximumViewportDimension,
@@ -159,6 +160,7 @@ public static partial class OfficeSvgDrawingReader {
                 bytes,
                 options,
                 allowUnresolvedViewport: true,
+                maximumCharactersInDocument: MaximumInputBytes,
                 out XElement root,
                 out int maximumElements,
                 out _,
@@ -180,6 +182,7 @@ public static partial class OfficeSvgDrawingReader {
         byte[]? bytes,
         OfficeSvgDrawingReaderOptions? options,
         bool allowUnresolvedViewport,
+        long maximumCharactersInDocument,
         out XElement root,
         out int maximumElements,
         out double maximumViewportDimension,
@@ -195,7 +198,7 @@ public static partial class OfficeSvgDrawingReader {
         maximumViewportDimension = options?.MaximumViewportDimension ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportDimension;
         maximumViewportPixels = options?.MaximumViewportPixels ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportPixels;
         viewX = viewY = viewWidth = viewHeight = viewportWidth = viewportHeight = 0D;
-        if (bytes == null || bytes.Length == 0 || bytes.Length > MaximumInputBytes) return false;
+        if (bytes == null || bytes.Length == 0 || bytes.Length > MaximumInputBytes || maximumCharactersInDocument <= 0L) return false;
         if (maximumElements <= 0 || maximumElements > OfficeSvgDrawingReaderOptions.MaximumAllowedElements) return false;
         if (maximumViewportDimension <= 0D || maximumViewportDimension > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension ||
             maximumViewportPixels <= 0D || maximumViewportPixels > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels) return false;
@@ -204,7 +207,7 @@ public static partial class OfficeSvgDrawingReader {
             var settings = new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
-                MaxCharactersInDocument = MaximumInputBytes
+                MaxCharactersInDocument = Math.Min(MaximumInputBytes, maximumCharactersInDocument)
             };
             XDocument document;
             using (var stream = new MemoryStream(bytes, writable: false))
@@ -393,7 +396,7 @@ public static partial class OfficeSvgDrawingReader {
         var rasterWork = new SvgRasterWorkBudget(maximumViewportPixels, viewX, viewY,
             viewWidth, viewHeight, viewportWidth, viewportHeight, pixelScaleX, pixelScaleY,
             HasStylesheetNonScalingStrokeDeclaration(root));
-        var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
+        var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root, useProjectedIds: true));
         string? fill = ResolveInheritedSvgPaint(root, "fill", inherited: null);
         string? stroke = ResolveInheritedSvgPaint(root, "stroke", inherited: null);
         if (!TryResolveRasterStrokeStyle(root, SvgRasterStrokeStyle.Default, out SvgRasterStrokeStyle strokeStyle)) return true;
@@ -449,12 +452,12 @@ public static partial class OfficeSvgDrawingReader {
                 || name.Equals("linearGradient", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("radialGradient", StringComparison.OrdinalIgnoreCase);
             if (!isExpandedDefinition) continue;
-            string? id = ReadRasterElementId(element);
+            string? id = ReadRasterProjectedAttribute(element, "id")?.Trim();
             if (!string.IsNullOrEmpty(id)) expandedDefinitionIds.Add(id!);
         }
         return expandedDefinitionIds.Count > 0
             && (root.Descendants().Any(element =>
-                    element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase)
+                    element.Name.LocalName.Equals("style", StringComparison.Ordinal)
                     && ContainsLocalCssUrlReference(element.Value, expandedDefinitionIds))
                 || root.DescendantsAndSelf().Any(element =>
                     ContainsLocalCssCustomPropertyUrlReference(ReadRasterInlineStyleAttribute(element), expandedDefinitionIds)));
@@ -852,8 +855,12 @@ public static partial class OfficeSvgDrawingReader {
         double viewX,
         double viewY,
         ref int unsupported) {
-        string? value = element.Attribute("transform")?.Value;
+        string? value = ReadPresentationProperty(element, "transform");
         if (string.IsNullOrWhiteSpace(value)) return inherited;
+        if (value!.Any(character => char.IsWhiteSpace(character) && !IsSvgCssWhitespace(character))) {
+            unsupported++;
+            return inherited;
+        }
         if (!OfficeSvgTransformParser.TryParse(value, out OfficeTransform parsed)) {
             unsupported++;
             return inherited;
@@ -1367,10 +1374,21 @@ public static partial class OfficeSvgDrawingReader {
                 else style.BaselineShift = baselineShift;
                 break;
             case "display":
-                if (normalized.Equals("none", StringComparison.OrdinalIgnoreCase)) style.Visible = false;
+                string display = normalized.ToLowerInvariant();
+                if (display == "none") style.Displayed = false;
+                else if (display is not "inline" and not "block" and not "contents" and not "list-item" and
+                    not "inline-block" and not "table" and not "inline-table" and not "table-row" and
+                    not "table-cell" and not "flex" and not "inline-flex" and not "grid" and not "inline-grid" and
+                    not "inherit" and not "initial" and not "unset") unsupported++;
                 break;
             case "visibility":
-                if (normalized.Equals("hidden", StringComparison.OrdinalIgnoreCase) || normalized.Equals("collapse", StringComparison.OrdinalIgnoreCase)) style.Visible = false;
+                if (normalized.Equals("hidden", StringComparison.OrdinalIgnoreCase) || normalized.Equals("collapse", StringComparison.OrdinalIgnoreCase)) {
+                    style.VisibilityVisible = false;
+                } else if (normalized.Equals("visible", StringComparison.OrdinalIgnoreCase) ||
+                    normalized.Equals("initial", StringComparison.OrdinalIgnoreCase)) {
+                    style.VisibilityVisible = true;
+                } else if (!normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase) &&
+                    !normalized.Equals("unset", StringComparison.OrdinalIgnoreCase)) unsupported++;
                 break;
             case "transform":
             case "clip-path":
@@ -1485,12 +1503,17 @@ public static partial class OfficeSvgDrawingReader {
             && !double.IsInfinity(result);
     }
 
-    private static bool TryUnit(string value, out double result) =>
-        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
-        && !double.IsNaN(result)
-        && !double.IsInfinity(result)
-        && result >= 0D
-        && result <= 1D;
+    private static bool TryUnit(string value, out double result) {
+        string normalized = value.Trim();
+        bool percentage = normalized.EndsWith("%", StringComparison.Ordinal);
+        if (percentage) normalized = normalized.Substring(0, normalized.Length - 1).Trim();
+        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
+            || double.IsNaN(result)
+            || double.IsInfinity(result)) return false;
+        if (percentage) result /= 100D;
+        result = Math.Max(0D, Math.Min(1D, result));
+        return true;
+    }
 
     private static bool TryParseNumberList(string? value, out IReadOnlyList<double> values) =>
         TryParseNumberList(value, int.MaxValue, out values);
@@ -1608,7 +1631,9 @@ public static partial class OfficeSvgDrawingReader {
         internal string? MarkerStart;
         internal string? MarkerMid;
         internal string? MarkerEnd;
-        internal bool Visible;
+        internal bool Displayed;
+        internal bool VisibilityVisible;
+        internal bool Visible => Displayed && VisibilityVisible;
 
         internal void SetFill(SvgResolvedPaint paint) {
             Fill = paint.Color;
@@ -1649,7 +1674,8 @@ public static partial class OfficeSvgDrawingReader {
             BaselineShift = default,
             WritingMode = SvgWritingMode.HorizontalTb,
             TextOrientation = SvgTextOrientation.Mixed,
-            Visible = true
+            Displayed = true,
+            VisibilityVisible = true
         };
     }
 
