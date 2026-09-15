@@ -63,6 +63,7 @@ public static class HtmlCssSyntaxParser {
         internal CancellationToken Cancellation { get; }
         internal List<HtmlCssSyntaxDiagnostic> MutableDiagnostics { get; } = new List<HtmlCssSyntaxDiagnostic>();
         internal IReadOnlyList<HtmlCssSyntaxDiagnostic> Diagnostics => MutableDiagnostics.AsReadOnly();
+        private readonly HashSet<(string Code, int Offset, int Length)> _diagnosticEvents = new HashSet<(string, int, int)>();
         private int _syntaxNodes;
         internal void RecordNode() {
             Cancellation.ThrowIfCancellationRequested();
@@ -75,8 +76,12 @@ public static class HtmlCssSyntaxParser {
                 throw new HtmlCssSyntaxLimitException(nameof(Options.MaxNestingDepth), depth, Options.MaxNestingDepth.Value);
             Cancellation.ThrowIfCancellationRequested();
         }
-        internal void Diagnose(string code, string message, int offset, int length) =>
-            MutableDiagnostics.Add(new HtmlCssSyntaxDiagnostic(code, message, new HtmlCssSourceSpan(offset, length)));
+        internal void Diagnose(string code, string message, int offset, int length) {
+            // Rule blocks are retained both as component values and as parsed contents. Both views
+            // encounter the same malformed opening token, but it represents one recovery event.
+            if (_diagnosticEvents.Add((code, offset, length)))
+                MutableDiagnostics.Add(new HtmlCssSyntaxDiagnostic(code, message, new HtmlCssSourceSpan(offset, length)));
+        }
     }
 
     private sealed class Parser {
@@ -237,18 +242,72 @@ public static class HtmlCssSyntaxParser {
             if (cursor >= _end || Token(cursor).Kind != HtmlCssTokenKind.Colon) return false;
             string name = Current.Value ?? string.Empty;
             if (name.StartsWith("--", StringComparison.Ordinal)) return true;
-            // A top-level curly block after a colon is normally the nested rule's block. Generic
-            // syntax cannot validate future property grammars, so the raw block remains authoritative.
-            int nesting = 0;
-            for (cursor++; cursor < _end; cursor++) {
+            // A curly component after a colon is ambiguous with a nested selector. A terminating
+            // semicolon makes the component a declaration value; otherwise preserve the nested-rule
+            // interpretation. Skip complete, delimiter-matched component values so malformed closer
+            // tokens cannot expose an inner curly block as if it were top-level.
+            bool hasValueBeforeCurlyBlock = false;
+            for (cursor++; cursor < _end;) {
                 HtmlCssTokenKind kind = Token(cursor).Kind;
-                if (nesting == 0 && kind == HtmlCssTokenKind.Semicolon) return true;
-                if (nesting == 0 && kind == HtmlCssTokenKind.OpenBrace) return false;
-                if (kind == HtmlCssTokenKind.Function || kind == HtmlCssTokenKind.OpenParenthesis || kind == HtmlCssTokenKind.OpenBracket) nesting++;
-                else if (nesting > 0 && (kind == HtmlCssTokenKind.CloseParenthesis || kind == HtmlCssTokenKind.CloseBracket)) nesting--;
+                if (kind == HtmlCssTokenKind.Semicolon) return true;
+                if (kind == HtmlCssTokenKind.OpenBrace) {
+                    cursor = SkipComponentValue(cursor);
+                    int suffixStart = cursor;
+                    return !hasValueBeforeCurlyBlock && IsEmptyOrImportantSuffix(suffixStart, _end);
+                }
+                if (!IsTrivia(kind)) hasValueBeforeCurlyBlock = true;
+                cursor = SkipComponentValue(cursor);
             }
             return true;
         }
+
+        private bool IsEmptyOrImportantSuffix(int start, int end) {
+            while (start < end && IsTrivia(Token(start).Kind)) start++;
+            if (start == end) return true;
+            if (Token(start).Kind == HtmlCssTokenKind.Semicolon) {
+                return true;
+            }
+            if (Token(start).Kind != HtmlCssTokenKind.Delimiter || Token(start).Value != "!") return false;
+            start++;
+            while (start < end && IsTrivia(Token(start).Kind)) start++;
+            if (start >= end || Token(start).Kind != HtmlCssTokenKind.Identifier
+                || !string.Equals(Token(start).Value, "important", StringComparison.OrdinalIgnoreCase)) return false;
+            start++;
+            while (start < end && IsTrivia(Token(start).Kind)) start++;
+            if (start < end && Token(start).Kind == HtmlCssTokenKind.Semicolon) {
+                return true;
+            }
+            return start == end;
+        }
+
+        private int SkipComponentValue(int cursor) {
+            HtmlCssTokenKind opening = Token(cursor).Kind;
+            HtmlCssTokenKind? firstClosing = ExpectedClosing(opening);
+            if (!firstClosing.HasValue) return cursor + 1;
+            var closings = new List<HtmlCssTokenKind> { firstClosing.Value };
+            cursor++;
+            while (cursor < _end && closings.Count > 0) {
+                _context.Cancellation.ThrowIfCancellationRequested();
+                HtmlCssTokenKind kind = Token(cursor).Kind;
+                if (kind == closings[closings.Count - 1]) {
+                    closings.RemoveAt(closings.Count - 1);
+                    cursor++;
+                    continue;
+                }
+                HtmlCssTokenKind? closing = ExpectedClosing(kind);
+                if (closing.HasValue) closings.Add(closing.Value);
+                cursor++;
+            }
+            return cursor;
+        }
+
+        private static HtmlCssTokenKind? ExpectedClosing(HtmlCssTokenKind opening) => opening switch {
+            HtmlCssTokenKind.Function => HtmlCssTokenKind.CloseParenthesis,
+            HtmlCssTokenKind.OpenParenthesis => HtmlCssTokenKind.CloseParenthesis,
+            HtmlCssTokenKind.OpenBracket => HtmlCssTokenKind.CloseBracket,
+            HtmlCssTokenKind.OpenBrace => HtmlCssTokenKind.CloseBrace,
+            _ => null
+        };
 
         private static bool HasImportantSuffix(IReadOnlyList<HtmlCssComponentValue> values) {
             int index = values.Count - 1;

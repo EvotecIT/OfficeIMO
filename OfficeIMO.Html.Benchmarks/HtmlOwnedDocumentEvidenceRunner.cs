@@ -79,7 +79,7 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
     }
 
     private static HtmlOwnedDocumentEvidenceMeasurement Measure(string operation, (string Name, int Rows) scale) {
-        EvidenceOperation evidence = EvidenceOperation.Create(operation, scale.Rows);
+        EvidenceOperation evidence = EvidenceOperation.Create(operation, scale);
         for (int index = 0; index < 2; index++) evidence.Validate(evidence.Execute());
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
         long heapBefore = GC.GetTotalMemory(forceFullCollection: false);
@@ -216,7 +216,9 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
         internal object Execute() => _execute();
         internal EvidenceValidation Validate(object result) => _validate(result);
 
-        internal static EvidenceOperation Create(string operation, int rows) {
+        internal static EvidenceOperation Create(string operation, (string Name, int Rows) scale) {
+            if (operation == "Cancel") return CreateInFlightCancellation(scale.Name);
+            int rows = scale.Rows;
             string html = HtmlBenchmarkCorpus.BuildReport(rows);
             int elementCount = checked(rows * 4 + 20);
             return operation switch {
@@ -230,11 +232,21 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
                     () => ParseConversionOwned(html),
                     result => ValidateConversion((HtmlConversionDocument)result, elementCount)),
                 "CssSyntax" => CreateCssSyntax(rows),
-                "Cancel" => new EvidenceOperation(html.Length,
-                    () => ExecuteCanceledParse(html),
-                    result => new EvidenceValidation((int)result, Hash("cancelled"), 0)),
                 _ => throw new ArgumentOutOfRangeException(nameof(operation))
             };
+        }
+
+        private static EvidenceOperation CreateInFlightCancellation(string scale) {
+            int rows = scale switch {
+                "Small" => 10_000,
+                "Normal" => 25_000,
+                "Large" => 100_000,
+                _ => throw new ArgumentOutOfRangeException(nameof(scale))
+            };
+            string html = HtmlBenchmarkCorpus.BuildReport(rows);
+            return new EvidenceOperation(html.Length,
+                () => ExecuteInFlightCanceledParse(html),
+                result => new EvidenceValidation((int)result, Hash("cancelled-in-flight"), 0));
         }
 
         private static EvidenceOperation CreateQuery(string html, int rows) {
@@ -296,11 +308,61 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
             return conversion;
         }
 
-        private static int ExecuteCanceledParse(string html) {
+        private static int ExecuteInFlightCanceledParse(string html) {
+            using var cancellation = new CancellationTokenSource();
+            using var cancellationThreadReady = new ManualResetEventSlim();
+            using var providerEntered = new ManualResetEventSlim();
+            var engine = new HtmlDocumentEngine(new SignalingParserProvider(
+                HtmlDocumentEngine.Default.ParserProvider, providerEntered));
+            var cancellationThread = new Thread(() => {
+                cancellationThreadReady.Set();
+                providerEntered.Wait();
+                Thread.Sleep(5);
+                cancellation.Cancel();
+            }) { IsBackground = true, Name = "OfficeIMO.Html in-flight cancellation evidence" };
+            cancellationThread.Start();
+            cancellationThreadReady.Wait();
+            var stopwatch = Stopwatch.StartNew();
             try {
-                HtmlDocumentEngine.Default.ParseDocument(html, cancellationToken: new CancellationToken(canceled: true));
-                throw new InvalidOperationException("A pre-canceled parse completed.");
-            } catch (OperationCanceledException) { return 1; }
+                engine.ParseDocument(html, new HtmlParseOptions {
+                    MaxInputCharacters = html.Length,
+                    MaxNodes = null
+                }, cancellation.Token);
+            } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
+                stopwatch.Stop();
+                cancellationThread.Join();
+                if (stopwatch.ElapsedMilliseconds < 2)
+                    throw new InvalidOperationException("Cancellation occurred before the parse performed measurable work.");
+                return 1;
+            }
+            cancellationThread.Join();
+            throw new InvalidOperationException("The parse completed before the in-flight cancellation was observed.");
+        }
+
+        private sealed class SignalingParserProvider : IHtmlParserProvider {
+            private readonly IHtmlParserProvider _inner;
+            private readonly ManualResetEventSlim _entered;
+
+            internal SignalingParserProvider(IHtmlParserProvider inner, ManualResetEventSlim entered) {
+                _inner = inner;
+                _entered = entered;
+            }
+
+            public string Id => _inner.Id;
+
+            public HtmlDocument ParseDocument(string source, HtmlParseOptions options, CancellationToken cancellationToken = default) {
+                if (cancellationToken.IsCancellationRequested)
+                    throw new InvalidOperationException("Cancellation was requested before the parser provider was entered.");
+                _entered.Set();
+                return _inner.ParseDocument(source, options, cancellationToken);
+            }
+
+            public HtmlDocumentFragment ParseFragment(
+                string source,
+                HtmlElement contextElement,
+                HtmlParseOptions options,
+                CancellationToken cancellationToken = default) =>
+                _inner.ParseFragment(source, contextElement, options, cancellationToken);
         }
 
         private static EvidenceValidation ValidateConversion(HtmlConversionDocument conversion, int expectedElements) =>

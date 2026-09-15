@@ -460,15 +460,15 @@ The long-running engine branch is an integration and full-stack qualification li
 
 ### Retained-provider decision baseline
 
-The September 2026 provider baseline makes three separate decisions. They apply to the current retained-provider release candidate and must be revisited when a replacement passes the corresponding removal gate.
+The September 2026 provider baseline and the subsequent owned-document budget gate make three separate decisions. They apply to the retained-provider implementation and must be revisited when a replacement passes the corresponding removal gate.
 
 | Provider area | Current decision | Evidence and next trigger |
 | --- | --- | --- |
-| AngleSharp HTML parser and static adapter | Retain as the default parser behind `HtmlDocumentEngine`; do not spend the next delivery cycle reimplementing HTML parsing | The native 100-row report parse has a sub-millisecond median on Windows and Linux. The OfficeIMO owned projection is roughly twice the elapsed time and retains about 2.4 times the managed memory per result, so the immediate optimization target is the dual graph and projection rather than parser replacement. Reconsider the default only when an owned parser passes the selected HTML recovery, fragment, encoding, hostile-input and performance gates. |
-| AngleSharp.Css syntax provider | Retain for released behavior while starting the owned lossless CSS syntax path first | The current cascade owns semantics but still contains provider-specific protected-token rewriting and raw-rule reconciliation. The baseline separates raw provider parsing from OfficeIMO's much larger full-cascade workload; the two timings are not a parser speed ratio. Switch syntax providers only after the same declarations, recovery, selectors, cascade traces and computed values pass without those recovery paths. |
+| AngleSharp HTML parser and static adapter | Retain as the default parser behind `HtmlDocumentEngine`; do not start an HTML parser rewrite without a measured product or qualification trigger | Weak provider projections reduced directly comparable Windows owned-document retention from 638.9 KiB to 204.3 KiB and conversion native-plus-owned retention from 641.9 KiB to 207.0 KiB. Parse, query, edit, serialization and conversion budgets pass at 10, 100 and 1,000 rows on Windows, Linux and macOS; separate in-flight cancellation workloads cover 10,000, 25,000 and 100,000 rows. Reconsider the default only when an owned parser passes the selected HTML recovery, fragment, encoding, hostile-input and performance gates. |
+| AngleSharp.Css syntax provider | Retain for selectors, cascade and computed values; use the owned syntax tree for source-preserving syntax consumers and future migration slices | The first owned lane preserves exact source, trivia, unknown rules and declarations, nested component values, source spans and invalid-input recovery. On the 105-rule Windows workload it takes a 3.905 ms median versus 9.146 ms for AngleSharp.Css syntax, while its richer retained graph is 2,241.2 KiB versus 691.0 KiB. Add property grammar and migrate selected selector/cascade slices before changing the default style path. |
 | Retained AngleSharp DOM runtime fork | Retain for the qualified trusted runtime while treating it as a separate maintenance liability | The fork is substantially larger than the static adapter and is pinned independently for runtime hooks. Track upstream version lag, local patches, conformance and rebase cost. Prefer upstreamable hooks or a replaceable runtime DOM before expanding the fork; static-parser replacement alone does not retire it. |
 
-Package and source evidence accompanies this baseline in `Build/Project/Evidence/2026-09-15/html-provider-decision`. Dependency updates remain ordinary qualified maintenance. A newer upstream release is a reason to test and update the retained provider, not by itself a reason to replace or freeze it.
+Package and source evidence accompanies the baseline in `Build/Project/Evidence/2026-09-15/html-provider-decision`. The enforced current budgets and provider delta are in `Build/Project/Evidence/2026-09-15/html-owned-document-budgets`. Dependency updates remain ordinary qualified maintenance. A newer upstream release is a reason to test and update the retained provider, not by itself a reason to replace or freeze it.
 
 ### Replaceable provider contracts
 
@@ -477,7 +477,7 @@ Replaceability means that the engine can use another implementation without chan
 | Dependency | Boundary to establish now | What remains owned by OfficeIMO |
 | --- | --- | --- |
 | AngleSharp | Parse source/fragment into owned nodes and parse diagnostics | Document identity, mutation, serialization policy, query contract and consumer-facing types |
-| CSS parser | Parse into owned syntax/declaration data; isolate any selector implementation used temporarily | Source retention, cascade decisions, computed-value contract and capability reporting |
+| CSS parser | The owned lossless syntax boundary is established; add declaration/property grammar and isolate temporary selector/cascade implementations behind the next owned contracts | Source retention, cascade decisions, computed-value contract and capability reporting |
 | HarfBuzz | Existing shared shaping request/result contract | Fonts, glyph/cluster/logical-text mapping, lifetime, fallback policy and layout consumption |
 | CodePages | Central encoding resolution/decoding boundary using owned metadata and suitable BCL types | Label policy, BOM/HTML precedence, errors, streaming behavior and limits |
 | Script interpreter | Runtime provider bound to owned host/DOM contracts | Web API behavior, origins, scheduling policy, resource access and process isolation |
@@ -492,7 +492,7 @@ Here, independence means no third-party runtime packages or browser binaries in 
 
 | Dependency | Short-term role | Replacement/removal gate |
 | --- | --- | --- |
-| AngleSharp.Css | Current CSS parser while owned syntax is established | CSS grammar/recovery and cascade fixtures pass; existing protected-token/raw-recovery paths are removed |
+| AngleSharp.Css | Current selector, cascade and computed-style implementation while owned syntax and grammar mature | Selected declaration/property grammar, selector, cascade-trace and computed-value fixtures pass through the owned path; existing protected-token/raw-recovery paths are removed |
 | AngleSharp HTML/DOM | Production parser behind owned contracts | Selected full HTML parsing corpus, fragment/encoding tests, resource bounds and performance gates pass through a qualified replacement |
 | Encoding.CodePages | Current legacy encoding support | Explicit encoding compatibility matrix passes without it, or it remains only in a separately selected encoding provider; never silently narrow accepted inputs |
 | HarfBuzz/native typography | Optional complex shaping | Managed script/font/feature corpus meets text, cluster, glyph and geometry requirements on supported platforms |
@@ -537,7 +537,7 @@ Diagnostics should locate the earliest divergent stage: source/token, DOM, winni
 
 The owned document boundary is the stable consumer surface. Continue widening real document and runtime workflows through it rather than exposing provider nodes or creating product-specific DOMs. Keep HtmlTinkerX and other hosts thin; migrate them only when the owning OfficeIMO component is usable and available through an explicit package or source relationship.
 
-Strengthen style, layout, conversion and runtime components through OfficeIMO-owned contracts while the temporary providers remain behind them. Move CSS or parser replacement ahead when measured recovery or capability failures obstruct a required workflow. Advance managed typography in the shared graphics owner. Treat static rendering, the selected application profile and dependency retirement as separately qualified outcomes.
+Strengthen style, layout, conversion and runtime components through OfficeIMO-owned contracts while the temporary providers remain behind them. The lossless CSS syntax tree is now the owned input for future declaration/property grammar and selector/cascade slices; it is not yet the renderer's default style path. Move HTML parser replacement ahead when measured recovery or capability failures obstruct a required workflow. Advance managed typography in the shared graphics owner. Treat static rendering, the selected application profile and dependency retirement as separately qualified outcomes.
 
 The owned render request, six named profiles, explicit page selection and retained
 result now form the common static output boundary. Existing continuous image calls
@@ -555,13 +555,12 @@ The table formatting context now carries fixed-width visible descendant contribu
 
 Deliver the remaining work in reviewable vertical slices:
 
-1. Audit the existing capability catalog against real implementation paths and freeze the first versioned standards-and-evidence manifests. Reclassify broad claims before using them to choose implementation work.
-2. Productize `OfficeIMO.Html.Core` for a small non-Office consumer, including packed-package, public API, lifecycle and compatibility proof while the temporary parser is identified in diagnostics.
-3. Close H3-H4 CSS, layout, fragmentation and output gaps profile by profile against frozen browser, geometry, semantic and artifact references.
-4. Complete H5 as an integrated managed parser and serializer, switch the default only after conformance, bounds and performance gates pass, and retain the adapter only where real migration demand exists.
-5. Productize the existing H7-H8 runtime and locator foundation as typed contexts, pages, observations, actions, events, traces and optional agent tools while retained providers remain effective.
-6. Complete H6 by removing AngleSharp, AngleSharp.Css and other third-party runtime dependencies from the advertised static graph, with packed transitive-graph proof on every supported target.
-7. Complete H9 by replacing the JavaScript and remaining runtime providers over the H6 engine. The resulting managed HTML/CSS/JavaScript runtime has no third-party runtime packages or browser binary; broader browser compatibility continues through explicit profiles.
+1. Add selected declaration/property grammar over the owned CSS syntax tree, then migrate selector, cascade-trace and computed-value slices with exact conformance manifests.
+2. Close remaining H4 layout, fragmentation and output gaps profile by profile against frozen browser, geometry, semantic and artifact references.
+3. Complete H5 as an integrated managed parser and serializer, switch the default only after conformance, bounds and performance gates pass, and retain the adapter only where real migration demand exists.
+4. Productize the existing H7-H8 runtime and locator foundation as typed contexts, pages, observations, actions, events, traces and optional agent tools while retained providers remain effective.
+5. Complete H6 by removing AngleSharp, AngleSharp.Css and other third-party runtime dependencies from the advertised static graph, with packed transitive-graph proof on every supported target.
+6. Complete H9 by replacing the JavaScript and remaining runtime providers over the H6 engine. The resulting managed HTML/CSS/JavaScript runtime has no third-party runtime package or browser binary; broader browser compatibility continues through explicit profiles.
 
 Preserve explicit bounds, provider identity and unsupported results throughout. Competitive claims attach to the completed profile or adoption stage, never to the repository as a whole.
 

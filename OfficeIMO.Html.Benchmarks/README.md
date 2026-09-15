@@ -118,7 +118,7 @@ runtime, architecture, and commit.
 ## Owned document and CSS syntax budgets
 
 The owned API gate measures parse, query, edit, serialization, conversion after owned
-document access, lossless CSS syntax, and pre-canceled parsing at 10, 100, and 1,000-row
+document access and lossless CSS syntax at 10, 100, and 1,000-row
 scales. Every operation validates its structure or exact source before evidence is accepted.
 Query and serialization clear the short provider projection lease before timing, so they
 include reconstruction after memory pressure. The parse and conversion lanes retain their
@@ -131,6 +131,6 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.Html.Benchmarks -- --owne
 
 `html-owned-document-performance-budgets.json` supplies cross-platform regression ceilings
 for median elapsed time, median allocation, median retained heap, maximum sampled managed
-heap, process peak, and output length. The cancellation lane requires a pre-canceled parse to
-exit within its small fixed budget. These ceilings guard the declared workloads and do not
+heap, process peak, and output length. The cancellation lane starts 10,000-, 25,000-, and 100,000-row parses with a live token, signals from inside the selected provider's parse boundary, then cancels from a synchronized worker and requires
+exit within its declared latency budget. These ceilings guard the declared workloads and do not
 claim universal throughput or full CSS conformance.

@@ -11,7 +11,7 @@ public sealed class HtmlCssSyntaxTests {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Html", "Css", "css-syntax-corpus.json");
         CssSyntaxCorpusCase[] corpus = JsonSerializer.Deserialize<CssSyntaxCorpusCase[]>(
             File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-        Assert.Equal(12, corpus.Length);
+        Assert.Equal(14, corpus.Length);
 
         foreach (CssSyntaxCorpusCase item in corpus) {
             HtmlCssStyleSheet sheet = HtmlCssSyntaxParser.ParseStyleSheet(item.Source);
@@ -83,6 +83,8 @@ public sealed class HtmlCssSyntaxTests {
         Assert.Equal(css, sheet.ToString());
         Assert.Contains(sheet.Diagnostics, diagnostic => diagnostic.Code == "CSS003");
         Assert.Contains(sheet.Diagnostics, diagnostic => diagnostic.Code == "CSS004");
+        Assert.Equal(3, sheet.Diagnostics.Count);
+        Assert.Equal(3, sheet.Diagnostics.Select(diagnostic => (diagnostic.Code, diagnostic.Span.Offset, diagnostic.Span.Length)).Distinct().Count());
         HtmlCssSourcePosition color = sheet.GetPosition(css.IndexOf("color", StringComparison.Ordinal));
         Assert.Equal(2, color.Line);
         Assert.Equal(7, color.Column);
@@ -119,6 +121,35 @@ public sealed class HtmlCssSyntaxTests {
         Assert.Equal(new[] { "color", "future", "background" }, block.Declarations.Select(value => value.Name).ToArray());
         Assert.IsType<HtmlCssInvalidSyntax>(block.Contents[2]);
         Assert.Single(block.Diagnostics);
+    }
+
+    [Fact]
+    public void PreservesUnknownBlockValuesAndMatchedRecoveryBoundaries() {
+        const string css = "a{future:{x:y};final-block:{z:q}!important;a:hover{x:y}broken:[){}];last-block:{k:v}}";
+
+        HtmlCssQualifiedRule rule = Assert.IsType<HtmlCssQualifiedRule>(
+            Assert.Single(HtmlCssSyntaxParser.ParseStyleSheet(css).Rules));
+
+        Assert.Collection(rule.Contents,
+            value => {
+                HtmlCssDeclaration declaration = Assert.IsType<HtmlCssDeclaration>(value);
+                Assert.Equal("future", declaration.Name);
+                Assert.IsType<HtmlCssSimpleBlock>(Assert.Single(declaration.Values));
+            },
+            value => {
+                HtmlCssDeclaration declaration = Assert.IsType<HtmlCssDeclaration>(value);
+                Assert.Equal("final-block", declaration.Name);
+                Assert.True(declaration.IsImportant);
+            },
+            value => Assert.IsType<HtmlCssQualifiedRule>(value),
+            value => {
+                HtmlCssDeclaration declaration = Assert.IsType<HtmlCssDeclaration>(value);
+                Assert.Equal("broken", declaration.Name);
+                HtmlCssSimpleBlock block = Assert.IsType<HtmlCssSimpleBlock>(Assert.Single(declaration.Values));
+                Assert.Equal(HtmlCssTokenKind.OpenBracket, block.OpeningKind);
+                Assert.Contains(block.Values, component => component is HtmlCssSimpleBlock nested && nested.OpeningKind == HtmlCssTokenKind.OpenBrace);
+            },
+            value => Assert.Equal("last-block", Assert.IsType<HtmlCssDeclaration>(value).Name));
     }
 
     [Fact]
