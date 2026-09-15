@@ -4,6 +4,31 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     internal static partial class PdfWordConverter {
+        private static bool ShouldQueueImage(
+            PdfCore.PdfLogicalPage page,
+            PdfCore.PdfLogicalImage image,
+            PdfCore.PdfImagePlacement? placement,
+            PdfToWordOptions options) {
+            PdfCore.PdfImagePlacementImportAssessment assessment =
+                PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement);
+            if (assessment.IsSuppressed) {
+                if (assessment.Disposition == PdfCore.PdfImagePlacementImportDisposition.SuppressUnplaced &&
+                    options.IncludeImagePlaceholders) {
+                    return true;
+                }
+
+                ReportSuppressedImagePlacement(image, assessment, options);
+                return false;
+            }
+
+            if (!assessment.CanImport && !options.IncludeImagePlaceholders) {
+                ReportUnsafeImagePlacement(image, assessment, options);
+                return false;
+            }
+
+            return true;
+        }
+
         private static bool AddImage(
             WordDocument document,
             PdfCore.PdfLogicalPage page,

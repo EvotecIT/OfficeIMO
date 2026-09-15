@@ -78,6 +78,36 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SuppressedImageOnlyPageDoesNotCreateAnEmptyWordPage(bool preserveSourcePageSize) {
+        byte[] source = CreateDocument()
+            .Paragraph(paragraph => paragraph.Text("Visible first page"))
+            .PageBreak()
+            .Canvas(canvas => canvas.Effect(
+                OfficeIMO.Drawing.OfficeTransform.Identity,
+                0D,
+                effect => effect.Image(Png, 20D, 30D, 80D, 40D)))
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult(new PdfToWordOptions {
+            PreserveSourcePageSize = preserveSourcePageSize,
+            IncludeEmptyPages = false
+        });
+        using (word.Value) {
+            Assert.Contains(word.Value.Paragraphs, static paragraph =>
+                paragraph.Text.Contains("Visible first page", StringComparison.Ordinal));
+            Assert.Empty(word.Value.Images);
+            Assert.Empty(word.Value.PageBreaks);
+            Assert.Single(word.Value.Sections);
+            Assert.Contains(word.Report.Warnings, static warning =>
+                warning.Code == "PdfInvisibleImagePlacementSuppressed" &&
+                warning.LossKind == OfficeConversionLossKind.None);
+        }
+    }
+
     [Fact]
     public void UnplacedImageResourcesAreLossFreeInPositionedHtml() {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(

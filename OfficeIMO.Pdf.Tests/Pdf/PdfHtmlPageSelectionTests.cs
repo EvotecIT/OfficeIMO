@@ -1,5 +1,6 @@
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
+using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Word.Pdf;
 using Xunit;
 
@@ -109,6 +110,34 @@ public sealed class PdfHtmlPageSelectionTests {
             warning.Code == "PdfOptionalContentGroupsFlattened");
     }
 
+    [Theory]
+    [InlineData("A", true)]
+    [InlineData("B", false)]
+    public void ReverseConversions_ReportOptionalContentOnlyInsideInvokedType3Glyph(
+        string layeredGlyph,
+        bool expectedOptionalContent) {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(
+            BuildType3OptionalContentPdf(layeredGlyph));
+
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        PdfTableExtractionScopeReport tableScope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+        PdfHtmlConversionResult html = logical.ToHtmlResult();
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using OfficeIMO.Word.WordDocument wordDocument = word.Value;
+        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPoint.Value;
+
+        Assert.Equal(expectedOptionalContent, page.HasOptionalContentUsage);
+        Assert.Equal(expectedOptionalContent ? 1 : 0, tableScope.PagesWithOptionalContent);
+        Assert.Equal(expectedOptionalContent, html.Report.Warnings.Any(static warning =>
+            warning.Code == "PdfOptionalContentGroupsFlattened"));
+        Assert.Equal(expectedOptionalContent, word.Report.Warnings.Any(static warning =>
+            warning.Code == "PdfOptionalContentGroupsFlattened"));
+        Assert.Equal(expectedOptionalContent, powerPoint.Report.Warnings.Any(static warning =>
+            warning.Code == "PdfGroupsNotReconstructed"));
+    }
+
     private static byte[] BuildOptionalContentUsageWithoutCatalogMetadataPdf() {
         const string content = "/OC /UncataloguedLayer BDC BT /F1 12 Tf 20 100 Td (Layered text) Tj ET EMC";
         string pdf = string.Join("\n", new[] {
@@ -136,6 +165,54 @@ public sealed class PdfHtmlPageSelectionTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildType3OptionalContentPdf(string layeredGlyph) {
+        const string pageContent = "BT /F3 24 Tf 20 100 Td (A) Tj ET";
+        const string ordinaryGlyph = "0 0 500 700 d1 0 0 500 700 re f";
+        const string layeredGlyphContent = "0 0 500 700 d1 /OC /Layer BDC 0 0 500 700 re f EMC";
+        string glyphA = string.Equals(layeredGlyph, "A", StringComparison.Ordinal) ? layeredGlyphContent : ordinaryGlyph;
+        string glyphB = string.Equals(layeredGlyph, "B", StringComparison.Ordinal) ? layeredGlyphContent : ordinaryGlyph;
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F3 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + pageContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            pageContent,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R /B 7 0 R >> /Encoding << /Type /Encoding /Differences [65 /A /B] >> /FirstChar 65 /LastChar 66 /Widths [500 500] /Resources << /Properties << /Layer 8 0 R >> >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Length " + glyphA.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            glyphA,
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Length " + glyphB.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            glyphB,
+            "endstream",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /OCG /Name (Glyph layer) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
             "%%EOF"
         });
         return Encoding.ASCII.GetBytes(pdf);

@@ -127,6 +127,29 @@ public sealed class PdfReverseConversionScorecardTests {
         AssertPng(recoveredPng);
     }
 
+    [Fact]
+    public async System.Threading.Tasks.Task OcrTextUsesBlockFontSizeAndPageUserUnitWhenRunsHaveNoSourceSpan() {
+        byte[] scanned = WithUserUnit(
+            PdfCore.PdfDocument.Create()
+                .Image(PdfPngTestImages.CreateRgbPng(230, 230, 230), 220, 90, alternativeText: "Scaled OCR source")
+                .ToBytes(),
+            2D);
+        var provider = new ScorecardOcrProvider(request => Result(new[] {
+            OcrAt(request, "Scaled OCR", 36, 120, 72, 14)
+        }));
+
+        PdfOcrMergeResult result = await PdfCore.PdfDocument.Load(scanned).ReadWithOcrAsync(provider);
+        PdfCore.PdfLogicalTextBlock block = Assert.Single(result.Document.TextBlocks);
+        Assert.True(block.FontSize > 0D);
+        Assert.All(block.Runs, static run => Assert.Null(run.SourceSpan));
+
+        using OfficeIMO.Word.WordDocument word = result.Document.ToWordDocument();
+        OfficeIMO.Word.WordParagraph paragraph = Assert.Single(word.Paragraphs, candidate =>
+            candidate.Text.Contains("Scaled OCR", StringComparison.Ordinal));
+        Assert.True(paragraph.FontSizePoints.HasValue);
+        Assert.Equal(block.FontSize * 2D, paragraph.FontSizePoints.Value, 6);
+    }
+
     private static void ExecuteAndReopen(
         JsonElement routeConfiguration,
         byte[] source,
@@ -301,6 +324,15 @@ public sealed class PdfReverseConversionScorecardTests {
         };
 
     private static OcrResult Result(IEnumerable<OcrTextSpan> spans) => new OcrResult { Spans = spans.ToArray() };
+
+    private static byte[] WithUserUnit(byte[] source, double userUnit) =>
+        PdfCore.PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfCore.PdfIndirectObject page = Assert.Single(objects.Values, static item =>
+                item.Value is PdfCore.PdfDictionary dictionary &&
+                string.Equals(dictionary.Get<PdfCore.PdfName>("Type")?.Name, "Page", StringComparison.Ordinal));
+            Assert.IsType<PdfCore.PdfDictionary>(page.Value).Items["UserUnit"] = new PdfCore.PdfNumber(userUnit);
+            return security.InfoObjectNumber;
+        });
 
     private sealed class ScorecardOcrProvider : IOcrEngine {
         private readonly Func<OcrRequest, OcrResult> _response;

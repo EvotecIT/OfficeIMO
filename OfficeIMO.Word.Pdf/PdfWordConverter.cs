@@ -186,13 +186,17 @@ namespace OfficeIMO.Word.Pdf {
                 for (int i = 0; i < page.Images.Count; i++) {
                     PdfCore.PdfLogicalImage image = page.Images[i];
                     if (image.Placements.Count == 0) {
-                        items.Add(ImportItem.ForImage(image, null, GetImageSortY(image), sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Image, i, -1)));
+                        if (ShouldQueueImage(page, image, null, options)) {
+                            items.Add(ImportItem.ForImage(image, null, GetImageSortY(image), sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Image, i, -1)));
+                        }
                         continue;
                     }
 
                     for (int placementIndex = 0; placementIndex < image.Placements.Count; placementIndex++) {
                         PdfCore.PdfImagePlacement placement = image.Placements[placementIndex];
-                        items.Add(ImportItem.ForImage(image, placement, placement.Y + placement.Height, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Image, i, placementIndex)));
+                        if (ShouldQueueImage(page, image, placement, options)) {
+                            items.Add(ImportItem.ForImage(image, placement, placement.Y + placement.Height, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Image, i, placementIndex)));
+                        }
                     }
                 }
             } else {
@@ -542,7 +546,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 PdfCore.PdfLogicalTextBlock line = lines[lineIndex];
-                AppendStyledRuns(paragraph, line.Runs, line.Text, typographyScale);
+                AppendStyledRuns(paragraph, line.Runs, line.Text, line.FontSize, typographyScale);
             }
 
             ApplySourceParagraphSpacing(paragraph, options);
@@ -554,9 +558,13 @@ namespace OfficeIMO.Word.Pdf {
             WordParagraph paragraph,
             IReadOnlyList<PdfCore.PdfLogicalTextRun> runs,
             string fallbackText,
+            double fallbackFontSize,
             double typographyScale) {
             if (runs.Count == 0) {
-                paragraph.AddText(fallbackText);
+                WordParagraph fallbackRun = paragraph.AddText(fallbackText);
+                if (fallbackFontSize > 0D) {
+                    fallbackRun.FontSizePoints = Math.Max(0.5D, fallbackFontSize * typographyScale);
+                }
                 return;
             }
 
@@ -565,8 +573,9 @@ namespace OfficeIMO.Word.Pdf {
                 WordParagraph run = paragraph.AddText(source.Text);
                 if (source.IsBold) run.SetBold();
                 if (source.IsItalic) run.SetItalic();
-                if (source.FontSize > 0D) {
-                    run.FontSizePoints = Math.Max(0.5D, source.FontSize * typographyScale);
+                double fontSize = source.FontSize > 0D ? source.FontSize : fallbackFontSize;
+                if (fontSize > 0D) {
+                    run.FontSizePoints = Math.Max(0.5D, fontSize * typographyScale);
                 }
                 if (source.Color.HasValue && source.Color.Value.A > 0) {
                     run.SetColorHex(source.Color.Value.ToRgbHex());
@@ -638,6 +647,7 @@ namespace OfficeIMO.Word.Pdf {
                 for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
                     if (runs[runIndex].FontSize > 0D) return runs[runIndex].FontSize;
                 }
+                if (lines[lineIndex].FontSize > 0D) return lines[lineIndex].FontSize;
             }
 
             return null;
@@ -672,7 +682,7 @@ namespace OfficeIMO.Word.Pdf {
                 ? bulletList ??= document.AddListBulleted()
                 : numberedList ??= document.AddListNumbered();
             WordParagraph paragraph = list.AddItem((string?)null, Math.Max(0, item.Level - 1));
-            AppendStyledRuns(paragraph, item.Runs, item.Text, typographyScale);
+            AppendStyledRuns(paragraph, item.Runs, item.Text, item.Line.FontSize, typographyScale);
             ApplySourceParagraphSpacing(paragraph, options);
         }
 

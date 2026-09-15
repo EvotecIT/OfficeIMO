@@ -61,6 +61,9 @@ public sealed partial class PdfReadPage {
         int depth) {
         EnsureContentNestingBudget(depth);
         bool found = false;
+        string? fontName = null;
+        var fontStack = new Stack<string?>();
+        Dictionary<string, PdfFontResource>? fonts = null;
         PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
             budget.CancellationToken.ThrowIfCancellationRequested();
             if (found) return;
@@ -72,6 +75,38 @@ public sealed partial class PdfReadPage {
                     found = true;
                 }
                 return;
+            }
+
+            switch (operation.Name) {
+                case "q":
+                    fontStack.Push(fontName);
+                    return;
+                case "Q":
+                    fontName = fontStack.Count > 0 ? fontStack.Pop() : null;
+                    return;
+                case "Tf" when operation.Operands.Count == 2 && operation.Operands[0] is string selectedFont:
+                    fontName = selectedFont;
+                    return;
+                case "Tj": case "TJ": case "'": case "\"":
+                    if (fontName is string activeFontName &&
+                        (fonts ??= ResourceResolver.GetFontsForResources(resources, _objects))
+                            .TryGetValue(activeFontName, out PdfFontResource? font) &&
+                        font.Type3 is PdfType3FontResource type3) {
+                        foreach (byte[] bytes in GetShownTextBytes(operation)) {
+                            for (int index = 0; index < bytes.Length && !found; index++) {
+                                if (type3.TryGetGlyph(bytes[index], out PdfStream glyph)) {
+                                    found = Type3GlyphUsesOptionalContent(
+                                        glyph,
+                                        type3.Resources,
+                                        activeStreams,
+                                        budget,
+                                        depth + 1);
+                                }
+                            }
+                            if (found) break;
+                        }
+                    }
+                    return;
             }
 
             if (resources == null || operation.Operands.Count == 0) return;
@@ -101,6 +136,26 @@ public sealed partial class PdfReadPage {
         maxOperands: _limits.MaxContentOperands,
         inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         return found;
+    }
+
+    private bool Type3GlyphUsesOptionalContent(
+        PdfStream glyph,
+        PdfDictionary? resources,
+        HashSet<PdfStream> activeStreams,
+        PageContentBudget budget,
+        int depth) {
+        if (HasEffectiveOptionalContentEntry(glyph.Dictionary)) return true;
+        if (!activeStreams.Add(glyph)) return false;
+        try {
+            return ContentUsesOptionalContent(
+                PdfEncoding.Latin1GetString(budget.Decode(glyph)),
+                resources,
+                activeStreams,
+                budget,
+                depth);
+        } finally {
+            activeStreams.Remove(glyph);
+        }
     }
 
     private bool StreamUsesOptionalContent(
