@@ -134,6 +134,7 @@ public partial class Excel {
         Assert.Single(report.Entries);
         Assert.Equal(1, report.SourceScope.CatalogActionCount);
         Assert.True(report.SourceScope.HasOpenAction);
+        Assert.Equal(2, report.SourceScope.DocumentActionCount);
         Assert.True(report.HasOmittedPageContent);
         Assert.True(report.HasLoss);
         Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());

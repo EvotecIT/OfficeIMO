@@ -182,6 +182,34 @@ public partial class PdfPageImageRendererTests {
         Assert.False(OfficeImageReader.TryValidateContent(payload, "scan.jp2", out _));
     }
 
+    [Theory]
+    [InlineData(11)] // Valid unsigned 12-bit declaration does not match the codestream's unsigned 8-bit Ssiz.
+    [InlineData(135)] // Valid signed 8-bit declaration does not match the codestream's unsigned 8-bit Ssiz.
+    public void ImageValidationRejectsJp2WhenImageHeaderPrecisionDiffersFromCodestream(int headerPrecision) {
+        byte[] payload = ReadScanJpx("rgb");
+        int imageHeaderType = FindMarker(payload, 0x69, 0x68, 0x64, 0x72);
+        payload[imageHeaderType + 14] = (byte)headerPrecision;
+
+        Assert.False(OfficeImageReader.TryValidateContent(payload, "scan.jp2", out _));
+    }
+
+    [Theory]
+    [InlineData(0x52)] // COD: coding-style default.
+    [InlineData(0x5C)] // QCD: quantization default.
+    public void ImageValidationRejectsJpeg2000CodestreamWithoutMandatoryMainHeaderMarker(int markerCode) {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        byte[] rawCodestream = payload.Skip(codestream).ToArray();
+        int marker = FindMarker(rawCodestream, 0xFF, (byte)markerCode);
+        int markerLength = (rawCodestream[marker + 2] << 8) | rawCodestream[marker + 3];
+        byte[] malformed = rawCodestream.Take(marker)
+            .Concat(rawCodestream.Skip(marker + 2 + markerLength))
+            .ToArray();
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(malformed, "scan.j2c", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(malformed, "scan.j2c", out _));
+    }
+
     [Fact]
     public void ImageValidationRejectsJp2WithFileTypeBoxAfterHeader() {
         byte[] payload = ReadScanJpx("rgb");

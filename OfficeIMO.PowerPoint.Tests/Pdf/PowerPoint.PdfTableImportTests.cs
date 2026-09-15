@@ -427,6 +427,54 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
+    public void PdfDocument_ToPowerPointPresentation_ReportsDocumentActionsAsOmittedFromHybridAndEditableOutput() {
+        var pdfOptions = new PdfCore.PdfOptions {
+            PageWidth = 420,
+            PageHeight = 360,
+            MarginLeft = 36,
+            MarginRight = 36,
+            MarginTop = 36,
+            MarginBottom = 36,
+            DefaultFontSize = 10
+        }.SetOpenAction(1, destinationMode: PdfCore.PdfOpenActionDestinationMode.Fit);
+        byte[] tablePdf = PdfCore.PdfDocument.Create(pdfOptions)
+            .Table(new[] {
+                new[] { "Code", "Qty" },
+                new[] { "A-100", "2" },
+                new[] { "B-200", "14" }
+            })
+            .ToBytes();
+        byte[] pdf = PdfCore.PdfDocument.Load(tablePdf)
+            .JavaScript.AddOrReplace("Initialize", "app.alert('open');")
+            .ToBytes();
+
+        PdfPowerPointConversionResult hybrid = PdfCore.PdfDocument.Load(pdf)
+            .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateHybrid());
+        using (hybrid.Value) {
+            Assert.True(Assert.Single(hybrid.Report.VisualPages).Succeeded);
+            Assert.Equal(2, hybrid.Report.SourceScope!.DocumentActionCount);
+            Assert.True(hybrid.Report.HasOmittedPageContent);
+            Assert.True(hybrid.Report.HasLoss);
+            PdfCore.PdfConversionWarning warning = Assert.Single(hybrid.Warnings, static warning =>
+                warning.Code == "PdfDocumentActionsNotReconstructed");
+            Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
+            Assert.Equal("2", warning.Details["Count"]);
+            Assert.Equal("Omitted", warning.Details["Disposition"]);
+            Assert.Throws<InvalidOperationException>(() => hybrid.RequireNoLoss());
+        }
+
+        PdfPowerPointConversionResult editable = PdfCore.PdfDocumentReadResult.Load(pdf)
+            .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateEditableContent());
+        using (editable.Value) {
+            Assert.Contains(editable.Warnings, static warning =>
+                warning.Code == "PdfDocumentActionsNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.True(editable.Report.HasLoss);
+            Assert.Throws<InvalidOperationException>(() => editable.RequireNoLoss());
+        }
+    }
+
+    [Fact]
     public void PdfDocument_ToPowerPointPresentation_HybridMapsRotatedTableBoundsToVisualCoordinates() {
         byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,
@@ -750,6 +798,9 @@ public class PowerPointPdfTableImportTests {
             formWidgetCount: 0,
             annotationCount: 0,
             pageActionCount: 0,
+            catalogActionCount: 0,
+            hasOpenAction: false,
+            documentActionCount: 0,
             optionalContentGroupCount: 1,
             pagesWithOptionalContent: 1,
             interactiveMediaAnnotationCount: 0,
@@ -765,6 +816,9 @@ public class PowerPointPdfTableImportTests {
             formWidgetCount: 0,
             annotationCount: 0,
             pageActionCount: 0,
+            catalogActionCount: 0,
+            hasOpenAction: false,
+            documentActionCount: 0,
             optionalContentGroupCount: 0,
             pagesWithOptionalContent: 0,
             interactiveMediaAnnotationCount: 0,

@@ -17,6 +17,7 @@ public sealed class PdfTableExtractionScopeReport {
         int pageActionCount,
         int catalogActionCount,
         bool hasOpenAction,
+        int documentActionCount,
         int optionalContentGroupCount,
         int pagesWithOptionalContent,
         int interactiveMediaAnnotationCount,
@@ -33,6 +34,7 @@ public sealed class PdfTableExtractionScopeReport {
         PageActionCount = pageActionCount;
         CatalogActionCount = catalogActionCount;
         HasOpenAction = hasOpenAction;
+        DocumentActionCount = documentActionCount;
         OptionalContentGroupCount = optionalContentGroupCount;
         PagesWithOptionalContent = pagesWithOptionalContent;
         InteractiveMediaAnnotationCount = interactiveMediaAnnotationCount;
@@ -84,6 +86,9 @@ public sealed class PdfTableExtractionScopeReport {
     /// <summary>Whether the source has a readable document-open destination or GoTo action.</summary>
     public bool HasOpenAction { get; }
 
+    /// <summary>Total distinct catalog and readable document-open actions outside table-only output.</summary>
+    public int DocumentActionCount { get; }
+
     /// <summary>Number of optional-content groups, which table-only adapters do not preserve as editable groups or layers.</summary>
     public int OptionalContentGroupCount { get; }
 
@@ -112,8 +117,7 @@ public sealed class PdfTableExtractionScopeReport {
         FormWidgetCount > 0 ||
         AnnotationCount > 0 ||
         PageActionCount > 0 ||
-        CatalogActionCount > 0 ||
-        HasOpenAction ||
+        DocumentActionCount > 0 ||
         PagesWithOptionalContent > 0 ||
         InteractiveMediaAnnotationCount > 0;
 }

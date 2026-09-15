@@ -223,7 +223,8 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         SourceScope = sourceScope ?? throw new ArgumentNullException(nameof(sourceScope));
         if (failedVisualScope == null) throw new ArgumentNullException(nameof(failedVisualScope));
         bool hasFailedVisualPages = VisualPages.Any(static page => !page.Succeeded);
-        _hasOmittedPageContent = hasFailedVisualPages && failedVisualScope.HasOmittedPageContent;
+        _hasOmittedPageContent = SourceScope.DocumentActionCount > 0 ||
+            hasFailedVisualPages && failedVisualScope.HasOmittedPageContent;
         var warnings = new List<OfficeIMO.Pdf.PdfConversionWarning>(CreateProjectionWarnings(
             SourceScope,
             failedVisualScope,
@@ -268,7 +269,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
     /// <summary>Gets typed warnings for source content that is not editable in the selected projection.</summary>
     public IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> Warnings { get; }
 
-    /// <summary>Gets whether the source contained page content outside the imported tables.</summary>
+    /// <summary>Gets whether the source contained page or document content omitted by the selected projection.</summary>
     public bool HasOmittedPageContent => _hasOmittedPageContent;
 
     /// <summary>Gets whether source content exists outside editable table overlays, even when retained in the hybrid visual layer.</summary>
@@ -355,6 +356,21 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             (failedVisualScope?.LinkCount ?? scope.LinkCount) + (failedVisualScope?.PageActionCount ?? scope.PageActionCount),
             hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
             description: "links and page actions");
+        if (scope.DocumentActionCount > 0) {
+            warnings.Add(new OfficeIMO.Pdf.PdfConversionWarning(
+                "OfficeIMO.PowerPoint.Pdf",
+                "PdfDocumentActionsNotReconstructed",
+                "Document actions",
+                "PDF catalog and document-open actions are not reconstructed in PowerPoint output.",
+                OfficeIMO.Pdf.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission,
+                details: new Dictionary<string, string> {
+                    ["Count"] = scope.DocumentActionCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    ["CatalogActionCount"] = scope.CatalogActionCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    ["HasOpenAction"] = scope.HasOpenAction ? "true" : "false",
+                    ["Disposition"] = "Omitted"
+                }));
+        }
         AddProjectionWarning(warnings, "PdfFormsAndControlsNotEditable", "Forms", scope.FormWidgetCount,
             failedVisualScope?.FormWidgetCount ?? scope.FormWidgetCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
             description: "forms and interactive controls");
@@ -468,7 +484,7 @@ public sealed class PdfPowerPointConversionResult : OfficeConversionResult<PptCo
     internal PdfPowerPointConversionResult(PptCore.PowerPointPresentation value, PdfPowerPointConversionReport report)
         : base(value, report) { }
 
-    /// <summary>Gets whether the source contained page content outside the imported tables.</summary>
+    /// <summary>Gets whether the source contained page or document content omitted by the selected projection.</summary>
     public bool HasOmittedPageContent => Report.HasOmittedPageContent;
 
     /// <summary>Gets typed warnings for content that was retained only visually or omitted by the selected projection.</summary>

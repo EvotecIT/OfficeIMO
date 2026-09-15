@@ -13,7 +13,7 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ### PDF-to-Word editable layout defaults
 
-Editable PDF-to-Word conversion now preserves each source page's physical size, removes Word style spacing that would inflate explicitly positioned PDF text, and keeps axis-aligned images at their source page positions. These defaults improve dense business documents but can change pagination and image flow in applications that relied on the earlier Word defaults.
+Editable PDF-to-Word conversion now preserves each source page's physical size, removes Word style spacing that would inflate explicitly positioned PDF text, and keeps supported axis-aligned images at their source page positions on unrotated, uncropped pages when their bounds fit the page. Other images remain in the document flow. These defaults improve dense business documents but can change pagination and image flow in applications that relied on the earlier Word defaults.
 
 To retain the earlier flowing layout, disable the three behaviors explicitly:
 

@@ -67,7 +67,8 @@ internal static class OfficeJpeg2000Header {
                 cancellationToken,
                 out components,
                 out width,
-                out height)) return true;
+                out height,
+                out _)) return true;
         if (!IsJp2Container(bytes)) return false;
         int offset = 12;
         cancellationToken.ThrowIfCancellationRequested();
@@ -76,6 +77,8 @@ internal static class OfficeJpeg2000Header {
             !TryValidateFileTypeBox(bytes, fileTypeStart, fileTypeEnd, cancellationToken)) return false;
         bool header = false, codestream = false;
         int expected = 0, expectedWidth = 0, expectedHeight = 0;
+        byte[] expectedComponentPrecisions = System.Array.Empty<byte>();
+        byte[] componentPrecisions = System.Array.Empty<byte>();
         while (offset < bytes.Length) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!TryReadBox(bytes, ref offset, bytes.Length, out uint type, out int start, out int end)) return false;
@@ -87,7 +90,8 @@ internal static class OfficeJpeg2000Header {
                         cancellationToken,
                         out expected,
                         out expectedWidth,
-                        out expectedHeight)) return false;
+                        out expectedHeight,
+                        out expectedComponentPrecisions)) return false;
                 header = true;
             } else if (type == 0x6A703263) { // jp2c
                 if (!header || codestream || !TryReadCodestream(
@@ -98,14 +102,16 @@ internal static class OfficeJpeg2000Header {
                         cancellationToken,
                         out components,
                         out width,
-                        out height)) return false;
+                        out height,
+                        out componentPrecisions)) return false;
                 codestream = true;
             } else if (type != 0x66726565 && type != 0x786D6C20 && type != 0x75756964) {
                 // Extended JPX composition/channel metadata is outside this opaque subset.
                 return false;
             }
         }
-        return header && codestream && expected == components && expectedWidth == width && expectedHeight == height;
+        return header && codestream && expected == components && expectedWidth == width && expectedHeight == height &&
+            HaveSameComponentPrecisions(expectedComponentPrecisions, componentPrecisions);
     }
 
     private static bool TryValidateFileTypeBox(
@@ -130,10 +136,13 @@ internal static class OfficeJpeg2000Header {
         CancellationToken cancellationToken,
         out int components,
         out int width,
-        out int height) {
+        out int height,
+        out byte[] componentPrecisions) {
         components = width = height = 0;
+        componentPrecisions = System.Array.Empty<byte>();
         int colorComponents = 0;
         int bitsPerComponent = -1;
+        byte[]? variableComponentPrecisions = null;
         bool hasBitsPerComponentBox = false;
         bool hasBox = false;
         while (offset < end) {
@@ -173,14 +182,22 @@ internal static class OfficeJpeg2000Header {
                     cancellationToken.ThrowIfCancellationRequested();
                     if ((bytes[start + i] & 0x7F) > 37) return false;
                 }
+                variableComponentPrecisions = new byte[components];
+                System.Buffer.BlockCopy(bytes, start, variableComponentPrecisions, 0, components);
                 hasBitsPerComponentBox = true;
             } else if (type != 0x72657320) { // res
                 return false; // Palette/channel remapping and extended headers are not pass-through safe.
             }
         }
-        return components == colorComponents &&
-            components is 1 or 3 &&
-            (bitsPerComponent == 255) == hasBitsPerComponentBox;
+        if (components != colorComponents || components is not (1 or 3) ||
+            (bitsPerComponent == 255) != hasBitsPerComponentBox) return false;
+        if (bitsPerComponent == 255) {
+            componentPrecisions = variableComponentPrecisions!;
+        } else {
+            componentPrecisions = new byte[components];
+            for (int i = 0; i < components; i++) componentPrecisions[i] = (byte)bitsPerComponent;
+        }
+        return true;
     }
 
     private static bool TryReadCodestream(
@@ -191,8 +208,10 @@ internal static class OfficeJpeg2000Header {
         CancellationToken cancellationToken,
         out int components,
         out int width,
-        out int height) {
+        out int height,
+        out byte[] componentPrecisions) {
         components = width = height = 0;
+        componentPrecisions = System.Array.Empty<byte>();
         cancellationToken.ThrowIfCancellationRequested();
         if (end - start < 42 || Read32(bytes, start) != 0xFF4FFF51) return false; // SOC, SIZ
         components = Read16(bytes, start + 40);
@@ -211,17 +230,21 @@ internal static class OfficeJpeg2000Header {
         ulong tilesDown = ((ulong)bottom - tileTop + tileHeight - 1UL) / tileHeight;
         ulong tileCountValue = tilesAcross * tilesDown;
         if (tileCountValue == 0 || tileCountValue > ushort.MaxValue) return false;
+        var parsedComponentPrecisions = new byte[components];
         for (int i = 0; i < components; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             int component = start + 42 + i * 3;
             if ((bytes[component] & 127) > 15 || bytes[component + 1] == 0 || bytes[component + 2] == 0) return false;
+            parsedComponentPrecisions[i] = bytes[component];
         }
-        return !requireCompleteCodestream || HasCompleteCodestream(
+        if (requireCompleteCodestream && !HasCompleteCodestream(
             bytes,
             start + 4 + length,
             end,
             (int)tileCountValue,
-            cancellationToken);
+            cancellationToken)) return false;
+        componentPrecisions = parsedComponentPrecisions;
+        return true;
     }
 
     private static bool HasCompleteCodestream(
@@ -233,10 +256,21 @@ internal static class OfficeJpeg2000Header {
         if (end - markerOffset < 16 || bytes[end - 2] != 0xFF || bytes[end - 1] != 0xD9) return false;
 
         int offset = markerOffset;
+        bool hasCodingStyleDefault = false;
+        bool hasQuantizationDefault = false;
         while (offset < end - 2 && !IsMarker(bytes, offset, 0x90)) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!TryGetMarkerCode(bytes, offset, end - 2, out byte marker)) return false;
             if (!TrySkipMarkerSegment(bytes, ref offset, end - 2, cancellationToken)) return false;
+            if (marker == 0x52) {
+                if (hasCodingStyleDefault) return false;
+                hasCodingStyleDefault = true;
+            } else if (marker == 0x5C) {
+                if (hasQuantizationDefault) return false;
+                hasQuantizationDefault = true;
+            }
         }
+        if (!hasCodingStyleDefault || !hasQuantizationDefault) return false;
 
         bool foundTilePart = false;
         var nextPartNumbers = new int[tileCount];
@@ -312,6 +346,23 @@ internal static class OfficeJpeg2000Header {
 
     private static bool IsMarker(byte[] bytes, int offset, byte marker) =>
         offset >= 0 && offset + 1 < bytes.Length && bytes[offset] == 0xFF && bytes[offset + 1] == marker;
+
+    private static bool TryGetMarkerCode(byte[] bytes, int offset, int limit, out byte marker) {
+        marker = 0;
+        if (offset >= limit || bytes[offset] != 0xFF) return false;
+        while (offset + 1 < limit && bytes[offset + 1] == 0xFF) offset++;
+        if (offset + 1 >= limit) return false;
+        marker = bytes[offset + 1];
+        return true;
+    }
+
+    private static bool HaveSameComponentPrecisions(byte[] expected, byte[] actual) {
+        if (expected.Length != actual.Length) return false;
+        for (int i = 0; i < expected.Length; i++) {
+            if (expected[i] != actual[i]) return false;
+        }
+        return true;
+    }
 
     private static bool TryBoundDimensions(uint rawWidth, uint rawHeight, out int width, out int height) {
         width = height = 0;
