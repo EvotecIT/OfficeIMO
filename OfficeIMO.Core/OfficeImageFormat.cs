@@ -27,5 +27,7 @@ public enum OfficeImageFormat {
     /// <summary>PCX image.</summary>
     Pcx,
     /// <summary>WebP image.</summary>
-    Webp
+    Webp,
+    /// <summary>JPEG 2000 image.</summary>
+    Jpeg2000
 }

@@ -4,12 +4,12 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     internal static partial class PdfWordConverter {
-        private static void ConfigureEditablePageSection(
+        private static bool ConfigureEditablePageSection(
             WordSection section,
             PdfCore.PdfLogicalPage page,
             PdfToWordOptions options) {
             (double pageWidth, double pageHeight) = GetVisualPageSize(page);
-            if (pageWidth <= 0D || pageHeight <= 0D || pageWidth > 1584D || pageHeight > 1584D) {
+            if (!CanApplyEditablePageSize(pageWidth, pageHeight)) {
                 AddWarning(
                     options,
                     "PdfSourcePageSizeNotApplied",
@@ -20,7 +20,7 @@ namespace OfficeIMO.Word.Pdf {
                         ["WidthPoints"] = pageWidth.ToString(CultureInfo.InvariantCulture),
                         ["HeightPoints"] = pageHeight.ToString(CultureInfo.InvariantCulture)
                     });
-                return;
+                return false;
             }
 
             if (double.IsNaN(options.EditablePageMarginPoints) ||
@@ -44,6 +44,7 @@ namespace OfficeIMO.Word.Pdf {
             section.Margins.Right = marginTwips;
             section.Margins.Top = checked((int)marginTwips);
             section.Margins.Bottom = checked((int)marginTwips);
+            return true;
         }
 
         private static (double Width, double Height) GetVisualPageSize(PdfCore.PdfLogicalPage page) {
@@ -62,12 +63,15 @@ namespace OfficeIMO.Word.Pdf {
             if (!options.PreserveSourcePageSize) return 1D;
 
             (double pageWidth, double pageHeight) = GetVisualPageSize(page);
-            if (pageWidth <= 0D || pageHeight <= 0D || pageWidth > 1584D || pageHeight > 1584D) {
+            if (!CanApplyEditablePageSize(pageWidth, pageHeight)) {
                 return 1D;
             }
 
             double scale = page.UserUnit.GetValueOrDefault(1D);
             return scale > 0D && !double.IsNaN(scale) && !double.IsInfinity(scale) ? scale : 1D;
         }
+
+        private static bool CanApplyEditablePageSize(double pageWidth, double pageHeight) =>
+            pageWidth > 0D && pageHeight > 0D && pageWidth <= 1584D && pageHeight <= 1584D;
     }
 }

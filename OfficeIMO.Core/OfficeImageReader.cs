@@ -189,6 +189,9 @@ public static partial class OfficeImageReader {
                        TryReadWebp(data, out _, validateDecodedAlpha: true, decodedImage: webpImage, cancellationToken: cancellationToken);
             case OfficeImageFormat.Icon:
                 return HasCompleteIconPayload(data, cancellationToken);
+            case OfficeImageFormat.Jpeg2000:
+                cancellationToken.ThrowIfCancellationRequested();
+                return OfficeJpeg2000Header.TryGetOpaqueDimensions(data, out _, out _, out _);
             default:
                 cancellationToken.ThrowIfCancellationRequested();
                 return true;
@@ -215,6 +218,7 @@ public static partial class OfficeImageReader {
             TryReadTiff(data, cancellationToken, out info) ||
             TryReadIcon(data, cancellationToken, out info) ||
             TryReadPcx(data, out info) ||
+            TryReadJpeg2000(data, out info) ||
             TryReadEmf(data, out info) ||
             TryReadWmf(data, out info) ||
             TryReadSvg(data, fileName, validateCompleteDocument: !allowExtensionFallback, out info)) {
@@ -261,8 +265,19 @@ public static partial class OfficeImageReader {
             ".ico" => OfficeImageFormat.Icon,
             ".pcx" => OfficeImageFormat.Pcx,
             ".webp" => OfficeImageFormat.Webp,
+            ".jp2" or ".j2k" or ".j2c" => OfficeImageFormat.Jpeg2000,
             _ => OfficeImageFormat.Unknown
         };
+    }
+
+    private static bool TryReadJpeg2000(byte[] data, out OfficeImageInfo info) {
+        info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+        if (!OfficeJpeg2000Header.TryGetOpaqueDimensions(data, out _, out int width, out int height)) {
+            return false;
+        }
+
+        info = new OfficeImageInfo(OfficeImageFormat.Jpeg2000, width, height);
+        return true;
     }
 
     /// <summary>

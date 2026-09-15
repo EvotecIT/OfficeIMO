@@ -597,6 +597,40 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void WordFallsBackToInlineImagesWhenSourcePageSizeCannotBeApplied() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
+            "q 80 0 0 40 1700 30 cm /Im1 Do Q\n",
+            mediaBox: "[0 0 2000 800]"));
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            using var serialized = new MemoryStream(word.Value.ToBytes());
+            using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
+            OfficeIMO.Word.WordImage image = Assert.Single(reopened.Images);
+            Assert.Equal(OfficeIMO.Word.WordImageTextWrapping.InLineWithText, image.WrapText);
+            Assert.Contains(word.Report.Warnings, static warning =>
+                warning.Code == "PdfSourcePageSizeNotApplied");
+        }
+    }
+
+    [Fact]
+    public void WordDoesNotUsePageRelativeImageAnchorsWhenSourcePageSizingIsDisabled() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
+            "q 80 0 0 40 20 30 cm /Im1 Do Q\n"));
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult(new PdfToWordOptions {
+            PreserveSourcePageSize = false
+        });
+        using (word.Value) {
+            using var serialized = new MemoryStream(word.Value.ToBytes());
+            using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
+            Assert.Equal(
+                OfficeIMO.Word.WordImageTextWrapping.InLineWithText,
+                Assert.Single(reopened.Images).WrapText);
+        }
+    }
+
+    [Fact]
     public void PreservedWordPageSizeScalesEditableTypographyByThePageUserUnit() {
         const string marker = "Scaled user unit text";
         byte[] source = WithUserUnit(
@@ -894,6 +928,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfLogicalImage image = Assert.Single(Assert.Single(logical.Pages).Images);
         Assert.True(image.SourceImage.IsImageFile);
         Assert.True(image.SourceImage.HasExplicitDecode);
+        Assert.True(image.SourceImage.HasUnsafePassThroughDecode);
         Assert.Equal("image/jp2", image.SourceImage.MimeType);
 
         AssertRawImageOmittedAcrossEditableAdapters(
@@ -908,6 +943,54 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.Contains(positioned.Report.Warnings, static warning =>
             warning.Code == "PageAppearanceUnsafeImageFallback" &&
             warning.LossKind == OfficeConversionLossKind.None);
+    }
+
+    [Fact]
+    public void Jpeg2000IdentityDecodeRemainsPortableAcrossEditableAdapters() {
+        byte[] jpx = File.ReadAllBytes(Path.Combine(
+            AppContext.BaseDirectory,
+            "Pdf",
+            "Fixtures",
+            "Interoperability",
+            "Scans",
+            "red-rgb.jp2"));
+        byte[] source = CreateRawImagePdf(
+            "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            imageBytes: jpx,
+            imageDefinition: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /JPXDecode /Decode [0 1 0 1 0 1]");
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        PdfLogicalImage image = Assert.Single(Assert.Single(logical.Pages).Images);
+        Assert.True(image.SourceImage.IsImageFile);
+        Assert.True(image.SourceImage.HasExplicitDecode);
+        Assert.False(image.SourceImage.HasUnsafePassThroughDecode);
+        Assert.Equal(OfficeIMO.Drawing.OfficeImageFormat.Jpeg2000, OfficeIMO.Drawing.OfficeImageReader.Identify(jpx).Format);
+
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        Assert.Contains("data:image/jp2;base64,", html.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain(html.Report.Warnings, static warning => warning.Code == "ImageDecodeNotSafelyEditable");
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            using var serialized = new MemoryStream(word.Value.ToBytes());
+            using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
+            Assert.Single(reopened.Images);
+            Assert.Equal(jpx, Assert.Single(reopened.GetImageBytes()));
+            Assert.Empty(reopened.ValidateDocument());
+            Assert.DoesNotContain(word.Report.Warnings, static warning => warning.Code == "PdfImageDecodeNotSafelyEditable");
+        }
+
+        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        using (powerPoint.Value) {
+            using var serialized = new MemoryStream(powerPoint.Value.ToBytes());
+            using OfficeIMO.PowerPoint.PowerPointPresentation reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(serialized);
+            OfficeIMO.PowerPoint.PowerPointPicture picture = Assert.Single(
+                reopened.Slides.SelectMany(static slide => slide.Pictures));
+            Assert.Equal("image/jp2", picture.ContentType);
+            Assert.Equal(jpx, picture.GetImageBytes());
+            Assert.Empty(reopened.ValidateDocument());
+            Assert.DoesNotContain(powerPoint.Report.Warnings, static warning => warning.Code == "PdfImageDecodeNotSafelyEditable");
+        }
     }
 
     [Fact]
@@ -926,6 +1009,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         PdfLogicalImage image = Assert.Single(Assert.Single(logical.Pages).Images);
         Assert.False(image.SourceImage.HasExplicitDecode);
+        Assert.False(image.SourceImage.HasUnsafePassThroughDecode);
 
         PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
         Assert.Contains("data:image/jp2;base64,", html.Value, StringComparison.Ordinal);
@@ -1024,7 +1108,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         bool imageMask = false,
         string? secondGraphicsStateEntries = null,
         byte[]? imageBytes = null,
-        string? imageDefinition = null) {
+        string? imageDefinition = null,
+        string mediaBox = "[0 0 160 160]") {
         byte[] contentBytes = System.Text.Encoding.ASCII.GetBytes(content);
         byte[] resolvedImageBytes = imageBytes ?? (imageMask ? new byte[] { 0x80 } : new byte[] { 255, 0, 0 });
         using var output = new MemoryStream();
@@ -1036,7 +1121,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             : " /ExtGState << /GS1 6 0 R" +
               (secondGraphicsStateEntries == null ? string.Empty : " /GS2 7 0 R") +
               " >>";
-        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] " + pageEntries + " /Resources << /XObject << /Im1 5 0 R >>" + graphicsResources + " >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox " + mediaBox + " " + pageEntries + " /Resources << /XObject << /Im1 5 0 R >>" + graphicsResources + " >> /Contents 4 0 R >>\nendobj\n");
         WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length + " >>\nstream\n");
         output.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(output, "endstream\nendobj\n");

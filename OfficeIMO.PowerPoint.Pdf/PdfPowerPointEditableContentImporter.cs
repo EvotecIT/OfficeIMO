@@ -744,12 +744,14 @@ public static partial class PowerPointPdfConverterExtensions {
             "image/gif" => OfficeImageFormat.Gif,
             "image/bmp" => OfficeImageFormat.Bmp,
             "image/tiff" => OfficeImageFormat.Tiff,
+            "image/jp2" => OfficeImageFormat.Jpeg2000,
             _ => image.FileExtension?.TrimStart('.').ToLowerInvariant() switch {
                 "png" => OfficeImageFormat.Png,
                 "jpg" or "jpeg" => OfficeImageFormat.Jpeg,
                 "gif" => OfficeImageFormat.Gif,
                 "bmp" => OfficeImageFormat.Bmp,
                 "tif" or "tiff" => OfficeImageFormat.Tiff,
+                "jp2" or "j2k" or "j2c" => OfficeImageFormat.Jpeg2000,
                 _ => OfficeImageFormat.Unknown
             }
         };

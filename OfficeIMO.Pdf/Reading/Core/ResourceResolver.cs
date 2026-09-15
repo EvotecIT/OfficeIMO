@@ -1314,6 +1314,15 @@ internal static partial class ResourceResolver {
                 maxDecodedStreamBytes);
         }
 
+        bool hasExplicitDecode = HasResolvedArrayEntry(stream.Dictionary, "Decode", objects);
+        int decodeComponentCount = GetDeclaredDeviceColorCount(colorSpace);
+        bool hasUnsafePassThroughDecode = hasExplicitDecode &&
+            (decodeComponentCount == 0 ||
+             !PdfImageDecodeTransform.IsIdentityColorDecodeOrAbsent(
+                 stream.Dictionary,
+                 decodeComponentCount,
+                 objects));
+
         return new PdfExtractedImage(
             pageNumber,
             resourceName,
@@ -1333,12 +1342,13 @@ internal static partial class ResourceResolver {
             isImageMask,
             imageMaskColor ?? OfficeColor.Black,
             renderingIntent,
-            hasExplicitDecode: HasResolvedArrayEntry(stream.Dictionary, "Decode", objects),
+            hasExplicitDecode: hasExplicitDecode,
             hasDecodeParameters: HasResolvedDecodeParametersEntry(stream.Dictionary, objects),
             interpolate: stream.Dictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) &&
                 ResolveObject(interpolateObject, objects) is PdfBoolean { Value: true },
             hasAuthoredRenderingIntent: hasAuthoredRenderingIntent || inheritedHasAuthoredRenderingIntent,
-            requiresScanDecode: HasScanFilter(filterObj, objects));
+            requiresScanDecode: HasScanFilter(filterObj, objects),
+            hasUnsafePassThroughDecode: hasUnsafePassThroughDecode);
     }
 
     private static bool HasResolvedArrayEntry(

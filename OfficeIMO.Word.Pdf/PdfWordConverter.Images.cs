@@ -34,6 +34,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfLogicalPage page,
             PdfCore.PdfLogicalImage image,
             PdfCore.PdfImagePlacement? placement,
+            bool sourcePageSizeApplied,
             PdfToWordOptions options) {
             PdfCore.PdfImagePlacementImportAssessment assessment =
                 PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement);
@@ -55,7 +56,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            if (options.ImportImages && TryAddEmbeddedImage(document, page, image, placement, assessment, options)) {
+            if (options.ImportImages && TryAddEmbeddedImage(document, page, image, placement, assessment, sourcePageSizeApplied, options)) {
                 return true;
             }
 
@@ -89,6 +90,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfLogicalImage image,
             PdfCore.PdfImagePlacement? placement,
             PdfCore.PdfImagePlacementImportAssessment assessment,
+            bool sourcePageSizeApplied,
             PdfToWordOptions options) {
             PdfCore.PdfExtractedImage source = image.SourceImage;
             if (!source.IsImageFile || source.Bytes.Length == 0) {
@@ -127,7 +129,7 @@ namespace OfficeIMO.Word.Pdf {
                 ApplySourceParagraphSpacing(imageParagraph, options);
                 string description = "Imported PDF image " + image.ResourceName + " from page " + image.PageNumber.ToString(CultureInfo.InvariantCulture);
                 WordImage embeddedImage;
-                if (options.PreserveImagePlacementPosition && placement != null && placement.IsAxisAligned && page.RotationDegrees == 0) {
+                if (sourcePageSizeApplied && options.PreserveImagePlacementPosition && placement != null && placement.IsAxisAligned && page.RotationDegrees == 0) {
                     imageParagraph.LineSpacingRule = WordLineSpacingRule.Exact;
                     imageParagraph.LineSpacing = 1;
                     PdfCore.PdfSelectionQuad visual = page.MapUserSpaceRectangleToVisual(

@@ -69,6 +69,7 @@ public sealed class OfficeImageInfo {
         OfficeImageFormat.Icon => "image/x-icon",
         OfficeImageFormat.Pcx => "image/x-pcx",
         OfficeImageFormat.Webp => "image/webp",
+        OfficeImageFormat.Jpeg2000 => "image/jp2",
         _ => "application/octet-stream"
     };
 
@@ -89,6 +90,7 @@ public sealed class OfficeImageInfo {
         OfficeImageFormat.Icon => ".ico",
         OfficeImageFormat.Pcx => ".pcx",
         OfficeImageFormat.Webp => ".webp",
+        OfficeImageFormat.Jpeg2000 => ".jp2",
         _ => ".bin"
     };
 
@@ -151,6 +153,7 @@ public sealed class OfficeImageInfo {
             "image/x-icon" or "image/vnd.microsoft.icon" or "image/ico" => OfficeImageFormat.Icon,
             "image/x-pcx" or "image/pcx" => OfficeImageFormat.Pcx,
             "image/webp" => OfficeImageFormat.Webp,
+            "image/jp2" or "image/jpeg2000" => OfficeImageFormat.Jpeg2000,
             _ => OfficeImageFormat.Unknown
         };
     }

@@ -180,7 +180,7 @@ internal static partial class PdfImageEditor {
             throw new NotSupportedException("Moving this image is not supported because its interpolation setting cannot be preserved during restamping.");
         }
         if (string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal)) {
-            if (image.HasExplicitDecode || image.HasDecodeParameters) {
+            if (image.HasUnsafePassThroughDecode || image.HasDecodeParameters) {
                 throw new NotSupportedException("Moving this JPEG image is not supported because PDF Decode or DecodeParms semantics would be lost during restamping.");
             }
             if (image.BitsPerComponent != 8 ||

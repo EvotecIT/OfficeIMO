@@ -103,7 +103,7 @@ internal static class PdfImagePlacementImportPolicy {
                 opacity,
                 blendMode);
         }
-        if (image.SourceImage.HasExplicitDecode &&
+        if (image.SourceImage.HasUnsafePassThroughDecode &&
             string.Equals(image.SourceImage.MimeType, "image/jp2", StringComparison.OrdinalIgnoreCase)) {
             return new PdfImagePlacementImportAssessment(
                 PdfImagePlacementImportDisposition.OmitUnappliedDecode,

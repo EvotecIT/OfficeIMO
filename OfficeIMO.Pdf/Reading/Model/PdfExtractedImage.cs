@@ -31,7 +31,8 @@ public sealed class PdfExtractedImage {
         bool hasDecodeParameters = false,
         bool interpolate = false,
         bool hasAuthoredRenderingIntent = false,
-        bool requiresScanDecode = false) {
+        bool requiresScanDecode = false,
+        bool hasUnsafePassThroughDecode = false) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -52,6 +53,7 @@ public sealed class PdfExtractedImage {
         RenderingIntent = renderingIntent;
         HasAuthoredRenderingIntent = hasAuthoredRenderingIntent;
         HasExplicitDecode = hasExplicitDecode;
+        HasUnsafePassThroughDecode = hasUnsafePassThroughDecode;
         HasDecodeParameters = hasDecodeParameters;
         Interpolate = interpolate;
         RequiresScanDecode = requiresScanDecode;
@@ -134,6 +136,9 @@ public sealed class PdfExtractedImage {
 
     /// <summary>True when the image declared a Decode array.</summary>
     public bool HasExplicitDecode { get; }
+
+    /// <summary>True when passing through the encoded image would omit a non-identity or unrecognized Decode mapping.</summary>
+    internal bool HasUnsafePassThroughDecode { get; }
 
     /// <summary>True when the image filter declared DecodeParms.</summary>
     public bool HasDecodeParameters { get; }

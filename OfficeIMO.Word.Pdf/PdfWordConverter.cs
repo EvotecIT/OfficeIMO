@@ -56,14 +56,15 @@ namespace OfficeIMO.Word.Pdf {
                 ReportPageReconstructionBoundaries(page, options);
                 List<ImportItem> items = BuildImportItems(page, options, navigation);
                 bool hasNavigationAnchor = navigation.HasAnchorsForPage(page.PageNumber);
+                bool sourcePageSizeApplied = false;
                 if (pageIndex > 0 && options.PreservePageBreaks && (items.Count > 0 || options.IncludeEmptyPages || hasNavigationAnchor)) {
                     if (options.PreserveSourcePageSize) {
-                        ConfigureEditablePageSection(target.AddSection(WordSectionBreakType.NextPage), page, options);
+                        sourcePageSizeApplied = ConfigureEditablePageSection(target.AddSection(WordSectionBreakType.NextPage), page, options);
                     } else {
                         target.AddPageBreak();
                     }
                 } else if (pageIndex == 0 && options.PreserveSourcePageSize) {
-                    ConfigureEditablePageSection(target.Sections[0], page, options);
+                    sourcePageSizeApplied = ConfigureEditablePageSection(target.Sections[0], page, options);
                 }
 
                 if (AddNavigationBookmarks(target, page, navigation)) {
@@ -101,7 +102,7 @@ namespace OfficeIMO.Word.Pdf {
                             AddTable(target, item.TableExtraction!, options, typographyScale);
                             break;
                         case ImportItemKind.Image:
-                            itemEmitted = AddImage(target, page, item.Image!, item.ImagePlacement, options);
+                            itemEmitted = AddImage(target, page, item.Image!, item.ImagePlacement, sourcePageSizeApplied, options);
                             break;
                         case ImportItemKind.FormWidget:
                             AddFormWidgetPlaceholder(target, item.FormWidget!, options);
