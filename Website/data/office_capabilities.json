@@ -15,8 +15,8 @@
     "familyCount": 3,
     "formatCount": 28,
     "capabilityCount": 137,
-    "packageCount": 55,
-    "operationCount": 1243
+    "packageCount": 63,
+    "operationCount": 1302
   },
   "fidelityStates": [
     {
@@ -1735,6 +1735,85 @@
       ]
     },
     {
+      "id": "OfficeIMO.AsciiDoc",
+      "slug": "asciidoc",
+      "capabilityCount": 6,
+      "formats": [
+        "AsciiDoc.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "OfficeIMO.AsciiDoc.Markdown",
       "slug": "asciidoc-markdown",
       "capabilityCount": 2,
@@ -1778,6 +1857,85 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Bibliography",
+      "slug": "bibliography",
+      "capabilityCount": 6,
+      "formats": [
+        "Bibliography.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
               "count": 1
             }
           ]
@@ -1858,10 +2016,170 @@
       ]
     },
     {
+      "id": "OfficeIMO.CSV",
+      "slug": "csv",
+      "capabilityCount": 6,
+      "formats": [
+        "Csv.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.DocBook",
+      "slug": "docbook",
+      "capabilityCount": 6,
+      "formats": [
+        "DocBook.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "OfficeIMO.Email",
       "slug": "email",
-      "capabilityCount": 65,
+      "capabilityCount": 77,
       "formats": [
+        "Email.Calendar",
+        "Email.Contact",
         "Email.Native",
         "Email.Store.Emlx",
         "Email.Store.Mbox",
@@ -1884,7 +2202,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 6
+              "count": 8
             },
             {
               "id": "Unsupported",
@@ -1901,7 +2219,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 4
+              "count": 6
             },
             {
               "id": "Preserved",
@@ -1930,13 +2248,19 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 11
+              "count": 13
             }
           ]
         },
         {
           "id": "Preserve",
           "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            },
             {
               "id": "Partial",
               "label": "Partial",
@@ -1958,7 +2282,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 11
+              "count": 13
             }
           ]
         },
@@ -1986,7 +2310,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 7
+              "count": 9
             },
             {
               "id": "NotApplicable",
@@ -2702,6 +3026,153 @@
       ]
     },
     {
+      "id": "OfficeIMO.IWork",
+      "slug": "iwork",
+      "capabilityCount": 5,
+      "formats": [
+        "IWork.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Latex",
+      "slug": "latex",
+      "capabilityCount": 6,
+      "formats": [
+        "Latex.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "OfficeIMO.Latex.Markdown",
       "slug": "latex-markdown",
       "capabilityCount": 2,
@@ -2982,6 +3453,85 @@
       "operations": [
         {
           "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Mhtml",
+      "slug": "mhtml",
+      "capabilityCount": 6,
+      "formats": [
+        "Mhtml.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
           "states": [
             {
               "id": "Supported",
@@ -3409,6 +3959,85 @@
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
               "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Opml",
+      "slug": "opml",
+      "capabilityCount": 6,
+      "formats": [
+        "Opml.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
             }
           ]
         }
