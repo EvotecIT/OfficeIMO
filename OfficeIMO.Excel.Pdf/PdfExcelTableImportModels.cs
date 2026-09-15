@@ -135,17 +135,17 @@ public sealed class PdfExcelTableImportEntry {
         /// <summary>Gets source-page content that was outside this table-only import.</summary>
         public OfficeIMO.Pdf.PdfTableExtractionScopeReport SourceScope { get; }
 
-        /// <summary>Gets whether the source contained page content outside the imported tables.</summary>
+        /// <summary>Gets whether the source contained page or document content outside the imported tables.</summary>
         public bool HasOmittedPageContent => SourceScope.HasOmittedPageContent;
 
-        /// <summary>Gets whether page content was omitted or any detected source table was truncated.</summary>
+        /// <summary>Gets whether page or document content was omitted or any detected source table was truncated.</summary>
         public bool HasLoss => HasOmittedPageContent || Entries.Any(static entry => entry.Truncated);
 
-        /// <summary>Throws when page content was omitted or at least one detected source table was truncated.</summary>
+        /// <summary>Throws when page or document content was omitted or at least one detected source table was truncated.</summary>
         public void RequireNoLoss() {
             if (HasLoss) throw new InvalidOperationException(
                 HasOmittedPageContent
-                    ? "PDF table import to Excel omitted source-page content outside the imported tables."
+                    ? "PDF table import to Excel omitted source page or document content outside the imported tables."
                     : "PDF table import to Excel truncated one or more detected source tables.");
         }
     }
@@ -154,7 +154,7 @@ public sealed class PdfExcelTableImportEntry {
     public sealed class PdfExcelTableImportResult : OfficeConversionResult<ExcelDocument, PdfExcelTableImportReport> {
         internal PdfExcelTableImportResult(ExcelDocument value, PdfExcelTableImportReport report) : base(value, report) { }
 
-        /// <summary>Gets whether the source contained page content outside the imported tables.</summary>
+        /// <summary>Gets whether the source contained page or document content outside the imported tables.</summary>
         public bool HasOmittedPageContent => Report.HasOmittedPageContent;
 
     }

@@ -453,6 +453,26 @@ public static partial class PdfHtmlConverterExtensions {
         return count;
     }
 
+    private static int CountPreservedOutlines(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages) {
+        int count = 0;
+        CountPreservedOutlines(document.Outlines, document, pages, ref count);
+        return count;
+    }
+
+    private static void CountPreservedOutlines(IReadOnlyList<PdfCore.PdfOutlineItem> outlines, PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, ref int count) {
+        for (int i = 0; i < outlines.Count; i++) {
+            PdfCore.PdfOutlineItem outline = outlines[i];
+            if (!ShouldRenderOutline(outline, document, pages)) {
+                continue;
+            }
+
+            if (!outline.PageNumber.HasValue || IsPageInRenderScope(outline.PageNumber.Value, pages)) {
+                count++;
+            }
+            CountPreservedOutlines(outline.Children, document, pages, ref count);
+        }
+    }
+
     private static void CountRenderedOutlines(IReadOnlyList<PdfCore.PdfOutlineItem> outlines, PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, ref int count) {
         for (int i = 0; i < outlines.Count; i++) {
             PdfCore.PdfOutlineItem outline = outlines[i];

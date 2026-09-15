@@ -166,6 +166,8 @@ public static class PdfLogicalTableAnalysis {
         return AnalyzeExtractionScope(
             document.Pages,
             document.OptionalContentGroupCount,
+            document.CatalogActionCount,
+            document.HasReadableOpenAction,
             maximumComparisons);
     }
 
@@ -187,12 +189,19 @@ public static class PdfLogicalTableAnalysis {
         IReadOnlyList<PdfLogicalPage> pages,
         int maximumComparisons) {
         Guard.NotNull(pages, nameof(pages));
-        return AnalyzeExtractionScope(pages, optionalContentGroupCount: 0, maximumComparisons);
+        return AnalyzeExtractionScope(
+            pages,
+            optionalContentGroupCount: 0,
+            catalogActionCount: 0,
+            hasOpenAction: false,
+            maximumComparisons);
     }
 
     private static PdfTableExtractionScopeReport AnalyzeExtractionScope(
         IReadOnlyList<PdfLogicalPage> pages,
         int optionalContentGroupCount,
+        int catalogActionCount,
+        bool hasOpenAction,
         int maximumComparisons) {
 #pragma warning disable CA1512 // ThrowIfNegative is unavailable on netstandard2.0 and net472.
         if (maximumComparisons < 0) throw new ArgumentOutOfRangeException(nameof(maximumComparisons));
@@ -257,6 +266,8 @@ public static class PdfLogicalTableAnalysis {
             formWidgetCount,
             annotationCount,
             pageActionCount,
+            catalogActionCount,
+            hasOpenAction,
             optionalContentGroupCount,
             pagesWithOptionalContent,
             interactiveMediaAnnotationCount,

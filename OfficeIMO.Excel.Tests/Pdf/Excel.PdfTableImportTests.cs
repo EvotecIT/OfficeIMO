@@ -105,6 +105,41 @@ public partial class Excel {
     }
 
     [Fact]
+    public void PdfTables_SaveTablesAsExcel_ReportsDocumentActionsOutsideTableScope() {
+        var pdfOptions = new PdfCore.PdfOptions {
+            PageWidth = 420,
+            PageHeight = 360,
+            MarginLeft = 36,
+            MarginRight = 36,
+            MarginTop = 36,
+            MarginBottom = 36,
+            DefaultFontSize = 10
+        }.SetOpenAction(1, destinationMode: PdfCore.PdfOpenActionDestinationMode.Fit);
+        byte[] tablePdf = PdfCore.PdfDocument.Create(pdfOptions)
+            .Table(new[] {
+                new[] { "Code", "Qty" },
+                new[] { "A-100", "2" },
+                new[] { "B-200", "14" }
+            })
+            .ToBytes();
+        byte[] pdf = PdfCore.PdfDocument.Load(tablePdf)
+            .JavaScript.AddOrReplace("Initialize", "app.alert('open');")
+            .ToBytes();
+
+        using var workbook = new MemoryStream();
+        PdfExcelTableImportReport report = LoadTables(pdf).SaveTablesAsExcel(
+            workbook,
+            new PdfTablesToExcelOptions { AutoFitColumns = false }).RequireSuccess().Report!;
+
+        Assert.Single(report.Entries);
+        Assert.Equal(1, report.SourceScope.CatalogActionCount);
+        Assert.True(report.SourceScope.HasOpenAction);
+        Assert.True(report.HasOmittedPageContent);
+        Assert.True(report.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
+    [Fact]
     public void PdfTables_SaveTablesAsExcel_SupportsNonSeekableDestinationStreams() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,

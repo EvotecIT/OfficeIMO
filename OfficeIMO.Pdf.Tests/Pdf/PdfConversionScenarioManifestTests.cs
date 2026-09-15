@@ -1903,6 +1903,35 @@ public sealed class PdfConversionScenarioManifestTests {
     }
 
     [Fact]
+    public void PdfToHtmlResult_ReportsFilteredParentOutlineTargetAsLossWhileKeepingItsChild() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions { CreateOutlineFromHeadings = true })
+            .H1("Parent outline")
+            .Paragraph(paragraph => paragraph.Text("First page"))
+            .PageBreak()
+            .H2("Child outline")
+            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .ToBytes();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
+        var options = new PdfToHtmlOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeOutlines = true,
+            PageRanges = new[] { PdfCore.PdfPageRange.From(2, 2) }
+        };
+
+        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, options);
+
+        Assert.Equal(2, result.Summary.OutlineCount);
+        Assert.Equal(2, result.Summary.RenderedOutlineCount);
+        Assert.Contains("<span>Parent outline</span>", result.Value, StringComparison.Ordinal);
+        Assert.Contains(">Child outline</a>", result.Value, StringComparison.Ordinal);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, static warning =>
+            warning.Code == "PdfOutlinesOmitted");
+        Assert.StartsWith("1 PDF outline ", warning.Message, StringComparison.Ordinal);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+    }
+
+    [Fact]
     public void PdfToHtmlResult_PreservesDirectDestinationLinksAsReviewMetadata() {
         byte[] pdf = CreateDirectDestinationLinkPdf();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);

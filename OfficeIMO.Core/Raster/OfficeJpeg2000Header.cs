@@ -133,12 +133,23 @@ internal static class OfficeJpeg2000Header {
         out int height) {
         components = width = height = 0;
         int colorComponents = 0;
+        int bitsPerComponent = -1;
+        bool hasBitsPerComponentBox = false;
+        bool hasBox = false;
         while (offset < end) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!TryReadBox(bytes, ref offset, end, out uint type, out int start, out int boxEnd)) return false;
+            if (!hasBox && type != 0x69686472) return false;
+            hasBox = true;
             if (type == 0x69686472) { // ihdr
                 if (components != 0 || boxEnd - start != 14) return false;
                 components = Read16(bytes, start + 8);
+                if (components is not (1 or 3)) return false;
+                bitsPerComponent = bytes[start + 10];
+                if ((bitsPerComponent != 255 && (bitsPerComponent & 0x7F) > 37) ||
+                    bytes[start + 11] != 7 || // Compression type is always JPEG 2000.
+                    bytes[start + 12] > 1 || // Unknown-colourspace flag.
+                    bytes[start + 13] > 1) return false; // Intellectual-property flag.
                 if (!TryBoundDimensions(Read32(bytes, start + 4), Read32(bytes, start), out width, out height)) return false;
             } else if (type == 0x636F6C72) { // colr: baseline enumerated Gray or sRGB only
                 if (colorComponents != 0 || boxEnd - start != 7 || bytes[start] != 1) return false;
@@ -156,11 +167,20 @@ internal static class OfficeJpeg2000Header {
                         Read16(bytes, entry + 4) != i + 1) return false;
                 }
                 if (count != components) return false;
-            } else if (type != 0x62706363 && type != 0x72657320) { // bpcc, res
+            } else if (type == 0x62706363) { // bpcc
+                if (bitsPerComponent != 255 || hasBitsPerComponentBox || components == 0 || boxEnd - start != components) return false;
+                for (int i = 0; i < components; i++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if ((bytes[start + i] & 0x7F) > 37) return false;
+                }
+                hasBitsPerComponentBox = true;
+            } else if (type != 0x72657320) { // res
                 return false; // Palette/channel remapping and extended headers are not pass-through safe.
             }
         }
-        return components == colorComponents && components is 1 or 3;
+        return components == colorComponents &&
+            components is 1 or 3 &&
+            (bitsPerComponent == 255) == hasBitsPerComponentBox;
     }
 
     private static bool TryReadCodestream(

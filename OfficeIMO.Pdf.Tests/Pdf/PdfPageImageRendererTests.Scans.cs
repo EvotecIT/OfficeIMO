@@ -168,6 +168,20 @@ public partial class PdfPageImageRendererTests {
         Assert.False(OfficeImageReader.TryValidateContent(payload, "scan.jp2", out _));
     }
 
+    [Theory]
+    [InlineData(10, 38)] // Component precision is limited to 38 bits (encoded as precision minus one).
+    [InlineData(11, 6)] // Compression type must be JPEG 2000 (7).
+    [InlineData(12, 2)] // Unknown-colourspace flag is boolean.
+    [InlineData(13, 2)] // Intellectual-property flag is boolean.
+    [InlineData(10, 255)] // Variable component depths require a matching bpcc box.
+    public void ImageValidationRejectsJp2WithInvalidImageHeaderField(int fieldOffset, int invalidValue) {
+        byte[] payload = ReadScanJpx("rgb");
+        int imageHeaderType = FindMarker(payload, 0x69, 0x68, 0x64, 0x72);
+        payload[imageHeaderType + 4 + fieldOffset] = (byte)invalidValue;
+
+        Assert.False(OfficeImageReader.TryValidateContent(payload, "scan.jp2", out _));
+    }
+
     [Fact]
     public void ImageValidationRejectsJp2WithFileTypeBoxAfterHeader() {
         byte[] payload = ReadScanJpx("rgb");

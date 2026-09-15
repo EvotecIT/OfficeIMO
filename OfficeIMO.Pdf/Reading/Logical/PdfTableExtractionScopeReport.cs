@@ -15,6 +15,8 @@ public sealed class PdfTableExtractionScopeReport {
         int formWidgetCount,
         int annotationCount,
         int pageActionCount,
+        int catalogActionCount,
+        bool hasOpenAction,
         int optionalContentGroupCount,
         int pagesWithOptionalContent,
         int interactiveMediaAnnotationCount,
@@ -29,6 +31,8 @@ public sealed class PdfTableExtractionScopeReport {
         FormWidgetCount = formWidgetCount;
         AnnotationCount = annotationCount;
         PageActionCount = pageActionCount;
+        CatalogActionCount = catalogActionCount;
+        HasOpenAction = hasOpenAction;
         OptionalContentGroupCount = optionalContentGroupCount;
         PagesWithOptionalContent = pagesWithOptionalContent;
         InteractiveMediaAnnotationCount = interactiveMediaAnnotationCount;
@@ -74,6 +78,12 @@ public sealed class PdfTableExtractionScopeReport {
     /// <summary>Number of source page actions, which table-only adapters do not import.</summary>
     public int PageActionCount { get; }
 
+    /// <summary>Number of source catalog actions, which table-only adapters do not import.</summary>
+    public int CatalogActionCount { get; }
+
+    /// <summary>Whether the source has a readable document-open destination or GoTo action.</summary>
+    public bool HasOpenAction { get; }
+
     /// <summary>Number of optional-content groups, which table-only adapters do not preserve as editable groups or layers.</summary>
     public int OptionalContentGroupCount { get; }
 
@@ -90,7 +100,7 @@ public sealed class PdfTableExtractionScopeReport {
     public bool AnalysisTruncated { get; }
 
     /// <summary>
-    /// Gets whether visible or interactive page content existed outside the detected tables.
+    /// Gets whether visible or interactive page or document content existed outside the detected tables.
     /// This is expected for table-only extraction and is separate from truncation within a table.
     /// </summary>
     public bool HasOmittedPageContent =>
@@ -102,6 +112,8 @@ public sealed class PdfTableExtractionScopeReport {
         FormWidgetCount > 0 ||
         AnnotationCount > 0 ||
         PageActionCount > 0 ||
+        CatalogActionCount > 0 ||
+        HasOpenAction ||
         PagesWithOptionalContent > 0 ||
         InteractiveMediaAnnotationCount > 0;
 }

@@ -168,16 +168,16 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         int outlineCount = CountOutlines(document.Outlines);
-        int renderedOutlineCount = options.IncludeOutlines
-            ? CountRenderedOutlines(document, pages)
+        int preservedOutlineCount = options.IncludeOutlines
+            ? CountPreservedOutlines(document, pages)
             : 0;
-        int omittedOutlineCount = Math.Max(0, outlineCount - renderedOutlineCount);
+        int omittedOutlineCount = Math.Max(0, outlineCount - preservedOutlineCount);
         if (omittedOutlineCount > 0) {
             AddWarning(
                 options,
                 "PdfOutlinesOmitted",
                 omittedOutlineCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
-                " PDF outline entries were omitted because outline output is disabled or their destination is outside the selected pages.",
+                " PDF outline entries or navigation targets were omitted because outline output is disabled or their destination is outside the selected pages.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
                 OfficeConversionLossKind.Omission);
         }
