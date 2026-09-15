@@ -18,7 +18,7 @@
     {
       "osFamily": "Linux",
       "coldProcessElapsedMilliseconds": 12000,
-      "warmIterationElapsedMilliseconds": 4000,
+      "warmIterationElapsedMilliseconds": 5000,
       "coldManagedAllocatedBytes": 1100000000,
       "warmManagedAllocatedBytes": 1000000000,
       "peakWorkingSetBytes": 500000000,
