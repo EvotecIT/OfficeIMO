@@ -303,6 +303,40 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void ImageValidationRejectsJpeg2000CodestreamWhenQuantizationDoesNotCoverCodLevels() {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        byte[] rawCodestream = payload.Skip(codestream).ToArray();
+        int codingStyle = FindMarker(rawCodestream, 0xFF, 0x52);
+        rawCodestream[codingStyle + 9] = 1;
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(rawCodestream, "scan.j2c", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2c", out _));
+    }
+
+    [Fact]
+    public void ImageValidationRejectsJpeg2000TileCodOverrideWhenInheritedQuantizationIsTooShort() {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        byte[] rawCodestream = payload.Skip(codestream).ToArray();
+        int tilePart = FindMarker(rawCodestream, 0xFF, 0x90);
+        int startOfData = FindMarker(rawCodestream, 0xFF, 0x93);
+        uint tilePartLength = (uint)ReadUInt32BigEndian(rawCodestream, tilePart + 6);
+        byte[] tileCodingStyle = {
+            0xFF, 0x52, 0x00, 0x0C,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x04, 0x04, 0x00, 0x01
+        };
+        byte[] malformed = rawCodestream.Take(startOfData)
+            .Concat(tileCodingStyle)
+            .Concat(rawCodestream.Skip(startOfData))
+            .ToArray();
+        WriteJpxUInt32(malformed, tilePart + 6, tilePartLength + (uint)tileCodingStyle.Length);
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(malformed, "scan.j2c", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(malformed, "scan.j2c", out _));
+    }
+
+    [Fact]
     public void ImageValidationRejectsJp2WithFileTypeBoxAfterHeader() {
         byte[] payload = ReadScanJpx("rgb");
         int fileTypeLength = ReadUInt32BigEndian(payload, 12);

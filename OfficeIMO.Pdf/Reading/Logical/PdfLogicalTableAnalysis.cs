@@ -172,6 +172,8 @@ public static class PdfLogicalTableAnalysis {
         }
         return AnalyzeExtractionScope(
             document.Pages,
+            document.FormFields.Count,
+            document.HasAcroFormXfa,
             document.OptionalContentGroupCount,
             document.CatalogActionCount,
             hasOpenAction,
@@ -199,6 +201,8 @@ public static class PdfLogicalTableAnalysis {
         Guard.NotNull(pages, nameof(pages));
         return AnalyzeExtractionScope(
             pages,
+            formFieldCount: 0,
+            hasAcroFormXfa: false,
             optionalContentGroupCount: 0,
             catalogActionCount: 0,
             hasOpenAction: false,
@@ -208,6 +212,8 @@ public static class PdfLogicalTableAnalysis {
 
     private static PdfTableExtractionScopeReport AnalyzeExtractionScope(
         IReadOnlyList<PdfLogicalPage> pages,
+        int formFieldCount,
+        bool hasAcroFormXfa,
         int optionalContentGroupCount,
         int catalogActionCount,
         bool hasOpenAction,
@@ -274,6 +280,8 @@ public static class PdfLogicalTableAnalysis {
             imageCount,
             linkCount,
             formWidgetCount,
+            formFieldCount,
+            hasAcroFormXfa,
             annotationCount,
             pageActionCount,
             catalogActionCount,

@@ -261,6 +261,8 @@ internal static class OfficeJpeg2000Header {
         int offset = markerOffset;
         bool hasCodingStyleDefault = false;
         bool hasQuantizationDefault = false;
+        int mainDecompositionLevels = 0;
+        int? mainQuantizationLevels = null;
         while (offset < end - 2 && !IsMarker(bytes, offset, 0x90)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!TryGetMarkerCode(bytes, offset, end - 2, out byte marker, out int segmentOffset)) return false;
@@ -269,22 +271,31 @@ internal static class OfficeJpeg2000Header {
                 if (hasCodingStyleDefault || !TryValidateCodingStyleDefault(
                         bytes,
                         segmentOffset,
-                        end - 2)) return false;
+                        end - 2,
+                        out mainDecompositionLevels)) return false;
                 hasCodingStyleDefault = true;
             } else if (marker == 0x5C) {
                 if (hasQuantizationDefault || !TryValidateQuantizationDefault(
                         bytes,
                         segmentOffset,
-                        end - 2)) return false;
+                        end - 2,
+                        out mainQuantizationLevels)) return false;
                 hasQuantizationDefault = true;
             }
         }
-        if (!hasCodingStyleDefault || !hasQuantizationDefault) return false;
+        if (!hasCodingStyleDefault || !hasQuantizationDefault ||
+            !HasSufficientQuantizationLevels(mainDecompositionLevels, mainQuantizationLevels)) return false;
 
         bool foundTilePart = false;
         var nextPartNumbers = new int[tileCount];
         var declaredPartCounts = new int[tileCount];
         var seenTiles = new bool[tileCount];
+        var tileDecompositionLevels = new int[tileCount];
+        var tileQuantizationLevels = new int?[tileCount];
+        for (int tileIndex = 0; tileIndex < tileCount; tileIndex++) {
+            tileDecompositionLevels[tileIndex] = mainDecompositionLevels;
+            tileQuantizationLevels[tileIndex] = mainQuantizationLevels;
+        }
         while (offset < end - 2) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!IsMarker(bytes, offset, 0x90) || end - offset < 14 || Read16(bytes, offset + 2) != 10) {
@@ -328,17 +339,22 @@ internal static class OfficeJpeg2000Header {
                     if (hasTileCodingStyleDefault || !TryValidateCodingStyleDefault(
                             bytes,
                             tileSegmentOffset,
-                            tilePartEnd)) return false;
+                            tilePartEnd,
+                            out tileDecompositionLevels[tileIndex])) return false;
                     hasTileCodingStyleDefault = true;
                 } else if (tileMarker == 0x5C) {
                     if (hasTileQuantizationDefault || !TryValidateQuantizationDefault(
                             bytes,
                             tileSegmentOffset,
-                            tilePartEnd)) return false;
+                            tilePartEnd,
+                            out tileQuantizationLevels[tileIndex])) return false;
                     hasTileQuantizationDefault = true;
                 }
                 if (!TrySkipMarkerSegment(bytes, ref tileHeaderOffset, tilePartEnd, cancellationToken)) return false;
             }
+            if (!HasSufficientQuantizationLevels(
+                    tileDecompositionLevels[tileIndex],
+                    tileQuantizationLevels[tileIndex])) return false;
             if (!IsMarker(bytes, tileHeaderOffset, 0x93) || tileHeaderOffset + 2 >= tilePartEnd) return false;
 
             foundTilePart = true;
@@ -358,7 +374,9 @@ internal static class OfficeJpeg2000Header {
     private static bool TryValidateCodingStyleDefault(
         byte[] bytes,
         int markerOffset,
-        int limit) {
+        int limit,
+        out int decompositionLevels) {
+        decompositionLevels = 0;
         if (limit - markerOffset < 14 || !IsMarker(bytes, markerOffset, 0x52)) return false;
         int length = Read16(bytes, markerOffset + 2);
         if (length < 12 || length > limit - markerOffset - 2) return false;
@@ -378,13 +396,16 @@ internal static class OfficeJpeg2000Header {
             bytes[content + 9] > 1) return false;
         int precinctBytes = (codingStyle & 0x01) != 0 ? levels + 1 : 0;
         if (length != 12 + precinctBytes) return false;
+        decompositionLevels = levels;
         return true;
     }
 
     private static bool TryValidateQuantizationDefault(
         byte[] bytes,
         int markerOffset,
-        int limit) {
+        int limit,
+        out int? decompositionLevels) {
+        decompositionLevels = null;
         if (limit - markerOffset < 6 || !IsMarker(bytes, markerOffset, 0x5C)) return false;
         int length = Read16(bytes, markerOffset + 2);
         if (length < 4 || length > 197 || length > limit - markerOffset - 2) return false;
@@ -393,12 +414,25 @@ internal static class OfficeJpeg2000Header {
         int style = bytes[content] & 0x1F;
         int stepBytes = length - 3;
         if (style == 0) {
-            return (stepBytes - 1) % 3 == 0;
+            if (stepBytes < 1 || (stepBytes - 1) % 3 != 0) return false;
+            decompositionLevels = (stepBytes - 1) / 3;
+            return true;
         }
         if (style == 1) return stepBytes == 2;
         if (style != 2 || stepBytes < 2 || (stepBytes & 1) != 0) return false;
         int subbands = stepBytes / 2;
-        return (subbands - 1) % 3 == 0;
+        if ((subbands - 1) % 3 != 0) return false;
+        decompositionLevels = (subbands - 1) / 3;
+        return true;
+    }
+
+    private static bool HasSufficientQuantizationLevels(
+        int decompositionLevels,
+        int? quantizationLevels) {
+        // Scalar-derived quantization (style 1) deliberately provides one base step size.
+        // Styles 0 and 2 must cover every subband implied by COD, but may retain values
+        // for additional subbands after resolution truncation.
+        return !quantizationLevels.HasValue || quantizationLevels.Value >= decompositionLevels;
     }
 
     private static bool TrySkipMarkerSegment(

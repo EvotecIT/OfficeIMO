@@ -44,7 +44,7 @@ namespace OfficeIMO.Word.Pdf {
                 (options.ImportTables && page.Tables.Count > 0) ||
                 ((options.ImportImages || options.IncludeImagePlaceholders) &&
                  page.Images.Any(image => PdfCore.PdfImagePlacementImportPolicy.HasVisiblePlacement(page, image)))) ||
-                (options.IncludeFormFieldPlaceholders && source.FormFields.Count > 0);
+                (options.IncludeFormFieldPlaceholders && source.FormWidgets.Count > 0);
             if (reconstructsEditableContent) {
                 AddWarning(
                     options,
@@ -120,6 +120,22 @@ namespace OfficeIMO.Word.Pdf {
                     "Detected PDF tables were not imported because ImportTables is false.",
                     "TableCount",
                     source.Pages.Sum(static page => page.Tables.Count));
+            }
+            int documentOnlyFormCount = source.FormFields.Count(static field => field.Widgets.Count == 0) +
+                (source.HasAcroFormXfa ? 1 : 0);
+            if (documentOnlyFormCount > 0) {
+                AddWarning(
+                    options,
+                    "PdfFormDefinitionsNotReconstructed",
+                    "Document/Forms",
+                    "Document-level PDF form definitions without page widgets, including XFA content, are not reconstructed in editable Word output.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    OfficeConversionLossKind.Omission,
+                    new Dictionary<string, string> {
+                        ["Count"] = documentOnlyFormCount.ToString(CultureInfo.InvariantCulture),
+                        ["FieldWithoutWidgetCount"] = source.FormFields.Count(static field => field.Widgets.Count == 0).ToString(CultureInfo.InvariantCulture),
+                        ["HasAcroFormXfa"] = source.HasAcroFormXfa ? "true" : "false"
+                    });
             }
             if (source.Outlines.Count > 0) {
                 AddWarning(

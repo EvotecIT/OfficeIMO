@@ -371,8 +371,8 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
                     ["Disposition"] = "Omitted"
                 }));
         }
-        AddProjectionWarning(warnings, "PdfFormsAndControlsNotEditable", "Forms", scope.FormWidgetCount,
-            failedVisualScope?.FormWidgetCount ?? scope.FormWidgetCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
+        AddProjectionWarning(warnings, "PdfFormsAndControlsNotEditable", "Forms", scope.FormContentCount,
+            failedVisualScope?.FormContentCount ?? scope.FormContentCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
             description: "forms and interactive controls");
         AddProjectionWarning(warnings, "PdfAnnotationsNotEditable", "Annotations", scope.AnnotationCount,
             failedVisualScope?.AnnotationCount ?? scope.AnnotationCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,

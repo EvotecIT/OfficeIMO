@@ -13,6 +13,8 @@ public sealed class PdfTableExtractionScopeReport {
         int imageCount,
         int linkCount,
         int formWidgetCount,
+        int formFieldCount,
+        bool hasAcroFormXfa,
         int annotationCount,
         int pageActionCount,
         int catalogActionCount,
@@ -30,6 +32,8 @@ public sealed class PdfTableExtractionScopeReport {
         ImageCount = imageCount;
         LinkCount = linkCount;
         FormWidgetCount = formWidgetCount;
+        FormFieldCount = formFieldCount;
+        HasAcroFormXfa = hasAcroFormXfa;
         AnnotationCount = annotationCount;
         PageActionCount = pageActionCount;
         CatalogActionCount = catalogActionCount;
@@ -70,6 +74,18 @@ public sealed class PdfTableExtractionScopeReport {
 
     /// <summary>Number of source form widgets, which table-only adapters do not import.</summary>
     public int FormWidgetCount { get; }
+
+    /// <summary>Number of document-level AcroForm fields, which table-only adapters do not import.</summary>
+    public int FormFieldCount { get; }
+
+    /// <summary>Whether the document has an XFA form definition, which table-only adapters do not import.</summary>
+    public bool HasAcroFormXfa { get; }
+
+    /// <summary>
+    /// Number of distinct form signals outside table-only output. Fields and widgets can describe the same
+    /// controls, so the larger count is used, with an XFA definition counted separately.
+    /// </summary>
+    public int FormContentCount => Math.Max(FormWidgetCount, FormFieldCount) + (HasAcroFormXfa ? 1 : 0);
 
     /// <summary>
     /// Number of generic source annotation records, which table-only adapters do not import.
@@ -114,7 +130,7 @@ public sealed class PdfTableExtractionScopeReport {
         VectorPrimitiveCount > 0 ||
         ImageCount > 0 ||
         LinkCount > 0 ||
-        FormWidgetCount > 0 ||
+        FormContentCount > 0 ||
         AnnotationCount > 0 ||
         PageActionCount > 0 ||
         DocumentActionCount > 0 ||

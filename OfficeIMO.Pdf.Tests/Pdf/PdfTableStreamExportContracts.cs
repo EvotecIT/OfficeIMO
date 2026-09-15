@@ -600,6 +600,45 @@ public class PdfTableStreamExportContracts {
             powerPointResult.Report.SourceScope.VectorPrimitiveCount);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TableConversions_ReportDocumentLevelFormsWithoutPageWidgets(bool useXfa) {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildDocumentLevelFormPdf(useXfa));
+        PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+
+        Assert.Empty(logical.FormWidgets);
+        Assert.Equal(useXfa ? 0 : 1, scope.FormFieldCount);
+        Assert.Equal(useXfa, scope.HasAcroFormXfa);
+        Assert.Equal(1, scope.FormContentCount);
+        Assert.True(scope.HasOmittedPageContent);
+
+        PdfExcelTableImportResult excelResult = logical.ImportTablesToExcelDocumentResult();
+        PdfPowerPointConversionResult powerPointResult = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableTables());
+        PdfPowerPointConversionResult editablePowerPointResult = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        PdfWordConversionResult wordResult = logical.ToWordDocumentResult(PdfToWordOptions.CreateTablesOnly());
+        using (wordResult.Value)
+        using (excelResult.Value)
+        using (powerPointResult.Value)
+        using (editablePowerPointResult.Value) {
+            Assert.True(wordResult.Report.HasLoss);
+            Assert.True(excelResult.Report.HasLoss);
+            Assert.True(powerPointResult.Report.HasLoss);
+            Assert.True(editablePowerPointResult.Report.HasLoss);
+            Assert.Throws<InvalidOperationException>(() => wordResult.RequireNoLoss());
+            Assert.Throws<InvalidOperationException>(() => excelResult.RequireNoLoss());
+            Assert.Throws<InvalidOperationException>(() => powerPointResult.RequireNoLoss());
+            Assert.Contains(wordResult.Report.Warnings, static warning =>
+                warning.Code == "PdfFormDefinitionsNotReconstructed");
+            Assert.Contains(powerPointResult.Report.Warnings, static warning =>
+                warning.Code == "PdfFormsAndControlsNotEditable");
+            Assert.Contains(editablePowerPointResult.Report.Warnings, static warning =>
+                warning.Code == "PdfFormsNotReconstructed");
+        }
+    }
+
     [Fact]
     public void LogicalPowerPointEditableContent_CountsEachOmittedVectorOnce() {
         byte[] source = PdfDocument.Create()
@@ -1066,6 +1105,41 @@ public class PdfTableStreamExportContracts {
             "5 0 obj",
             "<< /Type /OCG /Name (Outer) >>",
             "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildDocumentLevelFormPdf(bool useXfa) {
+        string acroForm = useXfa
+            ? "<< /Fields [] /XFA (unsupported-packet) >>"
+            : "<< /Fields [6 0 R] >>";
+        string field = useXfa
+            ? string.Empty
+            : "6 0 obj\n<< /FT /Tx /T (InvoiceReference) /V (INV-1001) >>\nendobj\n";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            string.Empty,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            acroForm,
+            "endobj",
+            field,
             "trailer",
             "<< /Root 1 0 R >>",
             "%%EOF"
