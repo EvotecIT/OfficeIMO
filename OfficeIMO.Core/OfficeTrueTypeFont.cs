@@ -8,7 +8,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Small managed TrueType/OpenType outline reader used for dependency-free text rasterization.
+/// Small managed reader for sfnt fonts that use TrueType <c>glyf</c> outlines, used for dependency-free text rasterization.
 /// </summary>
 /// <remarks>
 /// This type reads font files directly and does not call operating-system graphics or font APIs.
@@ -181,18 +181,18 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     /// <summary>Attempts to load a standalone font or the first suitable face in a font collection.</summary>
-    /// <param name="path">Path to a TrueType or OpenType font file.</param>
+    /// <param name="path">Path to a TrueType font file, including an OpenType file that uses TrueType <c>glyf</c> outlines.</param>
     /// <returns>The loaded font, or <see langword="null"/> when the path or font data is invalid or inaccessible.</returns>
     public static OfficeTrueTypeFont? TryLoad(string? path) => TryLoad(path, null, null);
 
     /// <summary>Attempts to load a specific face from a font collection.</summary>
-    /// <param name="path">Path to a TrueType or OpenType font file.</param>
+    /// <param name="path">Path to a TrueType font file or collection, including OpenType fonts that use TrueType <c>glyf</c> outlines.</param>
     /// <param name="collectionIndex">Zero-based collection face index, or <see langword="null"/> to select the first suitable face.</param>
     /// <returns>The loaded font, or <see langword="null"/> when the path, index, or font data is invalid or inaccessible.</returns>
     public static OfficeTrueTypeFont? TryLoad(string? path, int? collectionIndex) => TryLoad(path, collectionIndex, null);
 
     /// <summary>Attempts to load a font face that matches an optional collection index and face name.</summary>
-    /// <param name="path">Path to a TrueType or OpenType font file.</param>
+    /// <param name="path">Path to a TrueType font file or collection, including OpenType fonts that use TrueType <c>glyf</c> outlines.</param>
     /// <param name="collectionIndex">Zero-based collection face index, or <see langword="null"/> to search the collection.</param>
     /// <param name="faceName">Preferred family, full, or PostScript face name; <see langword="null"/> accepts any suitable face.</param>
     /// <returns>The matching font, or <see langword="null"/> when the file cannot be read or no matching supported face exists.</returns>
@@ -222,18 +222,18 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     /// <summary>Attempts to decode a standalone font or the first suitable face in a font collection.</summary>
-    /// <param name="data">Complete TrueType or OpenType font bytes.</param>
+    /// <param name="data">Complete TrueType font data, including OpenType data that uses TrueType <c>glyf</c> outlines.</param>
     /// <returns>The decoded font, or <see langword="null"/> when the data is unsupported or malformed.</returns>
     public static OfficeTrueTypeFont? TryLoad(byte[] data) => TryLoad(data, null, null);
 
     /// <summary>Attempts to decode a specific face from in-memory font data.</summary>
-    /// <param name="data">Complete TrueType or OpenType font bytes.</param>
+    /// <param name="data">Complete TrueType font or collection data, including OpenType fonts that use TrueType <c>glyf</c> outlines.</param>
     /// <param name="collectionIndex">Zero-based collection face index, or <see langword="null"/> to select the first suitable face.</param>
     /// <returns>The decoded font, or <see langword="null"/> when the data or requested index is invalid.</returns>
     public static OfficeTrueTypeFont? TryLoad(byte[] data, int? collectionIndex) => TryLoad(data, collectionIndex, null);
 
     /// <summary>Attempts to decode a font face matching an optional collection index and face name.</summary>
-    /// <param name="data">Complete TrueType or OpenType font bytes.</param>
+    /// <param name="data">Complete TrueType font or collection data, including OpenType fonts that use TrueType <c>glyf</c> outlines.</param>
     /// <param name="collectionIndex">Zero-based collection face index, or <see langword="null"/> to search the collection.</param>
     /// <param name="faceName">Preferred family, full, or PostScript face name; <see langword="null"/> accepts any suitable face.</param>
     /// <returns>The matching font, or <see langword="null"/> when the data is malformed, unsupported, or contains no matching face.</returns>

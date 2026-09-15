@@ -57,7 +57,8 @@ namespace OfficeIMO.GoogleWorkspace {
         public string TokenEndpoint { get; }
         /// <summary>Gets the Workspace user to impersonate when domain-wide delegation is enabled.</summary>
         public string? SubjectUser { get; }
-        /// <summary>Gets whether JWT assertions include the delegated subject user.</summary>
+        /// <summary>Gets whether domain-wide delegation was requested for generated JWT assertions.</summary>
+        /// <remarks>A delegated <c>sub</c> claim is included only when this value is <see langword="true"/> and <see cref="SubjectUser"/> is not blank.</remarks>
         public bool UseDomainWideDelegation { get; }
         /// <summary>Gets the requested lifetime of signed JWT assertions and fallback access-token lifetime.</summary>
         public TimeSpan TokenLifetime { get; }

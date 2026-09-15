@@ -69,7 +69,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             _transport = new GoogleWorkspaceHttpTransport(session);
         }
 
-        /// <summary>Returns the least-privilege default scope for a logical Drive operation.</summary>
+        /// <summary>Returns the default scope used by this client for a logical Drive operation.</summary>
+        /// <remarks>Metadata reads share the broader read-only Drive scope used by content downloads and exports.</remarks>
         public static IReadOnlyList<string> GetRequiredScopes(GoogleDriveOperation operation) {
             switch (operation) {
                 case GoogleDriveOperation.ReadMetadata:
@@ -393,7 +394,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         }
     }
 
-    /// <summary>Logical Drive operation used to select a least-privilege OAuth scope.</summary>
+    /// <summary>Logical Drive operation used to select the client's default OAuth scope.</summary>
     public enum GoogleDriveOperation {
         /// <summary>Read file, folder, or shared-drive metadata.</summary>
         ReadMetadata = 0,

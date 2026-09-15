@@ -34,7 +34,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         public long BytesTransferred { get; }
         /// <summary>Gets the expected total byte count, when known.</summary>
         public long? TotalBytes { get; }
-        /// <summary>Gets completion from 0 through 100, or <see langword="null"/> when total length is unknown or zero.</summary>
+        /// <summary>Gets the raw transferred-to-total ratio as a percentage, or <see langword="null"/> when total length is unknown or nonpositive.</summary>
+        /// <remarks>The value is not clamped and can fall outside 0 through 100 when the supplied byte counts do.</remarks>
         public double? Percentage => TotalBytes > 0 ? (double)BytesTransferred / TotalBytes.Value * 100d : null;
     }
 

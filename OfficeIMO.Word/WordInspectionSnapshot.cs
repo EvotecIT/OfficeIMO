@@ -138,7 +138,7 @@ namespace OfficeIMO.Word {
         public int? LineSpacingValue { get; internal set; }
         /// <summary>Gets the authored line-spacing rule.</summary>
         public string? LineSpacingRule { get; internal set; }
-        /// <summary>Gets the paragraph shading fill as an RGB hex value.</summary>
+        /// <summary>Gets the authored OOXML paragraph-shading fill token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
         public string? ShadingFillColorHex { get; internal set; }
         /// <summary>Paragraph shading pattern, when explicitly authored.</summary>
         public WordShadingPattern? ShadingPattern { get; internal set; }
@@ -186,29 +186,29 @@ namespace OfficeIMO.Word {
         internal IReadOnlyList<WordPositionedImageSnapshot> PositionedImages { get; set; } = Array.Empty<WordPositionedImageSnapshot>();
         /// <summary>Gets visible run text.</summary>
         public string Text { get; internal set; } = string.Empty;
-        /// <summary>Gets whether bold formatting is applied.</summary>
+        /// <summary>Gets whether bold formatting is authored directly on the run.</summary>
         public bool Bold { get; internal set; }
-        /// <summary>Gets whether italic formatting is applied.</summary>
+        /// <summary>Gets whether italic formatting is authored directly on the run.</summary>
         public bool Italic { get; internal set; }
-        /// <summary>Gets whether any underline formatting is applied.</summary>
+        /// <summary>Gets whether underline formatting is authored directly on the run.</summary>
         public bool Underline { get; internal set; }
         /// <summary>Gets the authored underline style.</summary>
         public WordUnderlineStyle? UnderlineStyle { get; internal set; }
-        /// <summary>Gets whether single or double strikethrough is applied.</summary>
+        /// <summary>Gets whether single or double strikethrough is authored directly on the run.</summary>
         public bool Strike { get; internal set; }
-        /// <summary>Gets whether double strikethrough is applied.</summary>
+        /// <summary>Gets whether double strikethrough is authored directly on the run.</summary>
         public bool DoubleStrike { get; internal set; }
-        /// <summary>Gets the integral compatibility font size in points, truncated from half-point precision.</summary>
+        /// <summary>Gets the directly authored integral compatibility font size in points, truncated from half-point precision.</summary>
         public int? FontSize { get; internal set; }
-        /// <summary>Run font size in points with Word's native half-point precision.</summary>
+        /// <summary>Gets the directly authored run font size in points with Word's native half-point precision.</summary>
         public double? FontSizePoints { get; internal set; }
-        /// <summary>Gets the resolved font family.</summary>
+        /// <summary>Gets the font family authored directly on the run, without resolving inherited styles.</summary>
         public string? FontFamily { get; internal set; }
-        /// <summary>Gets the text color as an RGB hex value.</summary>
+        /// <summary>Gets the OOXML text-color token authored directly on the run.</summary>
         public string? ColorHex { get; internal set; }
         /// <summary>Gets the named Word highlight color.</summary>
         public string? HighlightColor { get; internal set; }
-        /// <summary>Exact run shading fill color, when present.</summary>
+        /// <summary>Gets the OOXML run-shading fill token authored directly on the run.</summary>
         public string? RunShadingFillColorHex { get; internal set; }
         /// <summary>Run shading pattern, when explicitly authored.</summary>
         public WordShadingPattern? RunShadingPattern { get; internal set; }
@@ -275,7 +275,7 @@ namespace OfficeIMO.Word {
         public string? FilePath { get; internal set; }
         /// <summary>Gets the image file name.</summary>
         public string? FileName { get; internal set; }
-        /// <summary>Gets the image MIME type.</summary>
+        /// <summary>Gets the image MIME type inferred from the available file name or path extension, or <see langword="null"/> when it cannot be inferred.</summary>
         public string? ContentType { get; internal set; }
         /// <summary>Gets the embedded image bytes.</summary>
         public byte[]? Bytes { get; internal set; }
@@ -283,9 +283,9 @@ namespace OfficeIMO.Word {
         public string? Description { get; internal set; }
         /// <summary>Gets the image title.</summary>
         public string? Title { get; internal set; }
-        /// <summary>Gets rendered width in points.</summary>
+        /// <summary>Gets rendered width in pixels at 96 pixels per inch.</summary>
         public double? Width { get; internal set; }
-        /// <summary>Gets rendered height in points.</summary>
+        /// <summary>Gets rendered height in pixels at 96 pixels per inch.</summary>
         public double? Height { get; internal set; }
         /// <summary>Gets whether the image is inline with text instead of anchored.</summary>
         public bool IsInline { get; internal set; }
@@ -327,7 +327,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets the row count.</summary>
         public int RowCount { get; internal set; }
-        /// <summary>Gets the maximum logical column count.</summary>
+        /// <summary>Gets the maximum number of physical cell elements in any row; inspect each cell's span for logical layout.</summary>
         public int ColumnCount { get; internal set; }
         /// <summary>Gets the applied table style name.</summary>
         public string? StyleName { get; internal set; }
@@ -337,7 +337,7 @@ namespace OfficeIMO.Word {
         public string? Description { get; internal set; }
         /// <summary>Gets whether a header row is configured to repeat on subsequent pages.</summary>
         public bool RepeatHeaderRow { get; internal set; }
-        /// <summary>Gets whether at least one cell spans multiple columns.</summary>
+        /// <summary>Gets whether at least one cell uses explicit horizontal-merge markup; grid-span-only cells do not set this value.</summary>
         public bool HasHorizontalMerges { get; internal set; }
         /// <summary>Gets whether at least one cell spans multiple rows.</summary>
         public bool HasVerticalMerges { get; internal set; }
@@ -356,13 +356,13 @@ namespace OfficeIMO.Word {
         }
     }
 
-    /// <summary>Logical cells from one table row.</summary>
+    /// <summary>Physical cell elements from one table row, in source order.</summary>
     public sealed class WordTableRowSnapshot {
         private readonly List<WordTableCellSnapshot> _cells = new List<WordTableCellSnapshot>();
 
         /// <summary>Gets the zero-based row index.</summary>
         public int RowIndex { get; internal set; }
-        /// <summary>Gets cells in logical column order.</summary>
+        /// <summary>Gets physical cell elements in source order.</summary>
         public IReadOnlyList<WordTableCellSnapshot> Cells => _cells;
 
         internal void AddCell(WordTableCellSnapshot cell) {
@@ -375,13 +375,13 @@ namespace OfficeIMO.Word {
     public sealed class WordTableCellSnapshot {
         private readonly List<WordParagraphSnapshot> _paragraphs = new List<WordParagraphSnapshot>();
 
-        /// <summary>Gets the zero-based logical starting column.</summary>
+        /// <summary>Gets the zero-based physical cell index within the row.</summary>
         public int ColumnIndex { get; internal set; }
         /// <summary>Gets the number of logical columns occupied by the cell.</summary>
         public int ColumnSpan { get; internal set; } = 1;
         /// <summary>Gets the number of logical rows occupied by the cell.</summary>
         public int RowSpan { get; internal set; } = 1;
-        /// <summary>Gets the cell shading fill as an RGB hex value.</summary>
+        /// <summary>Gets the authored OOXML cell-shading fill token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
         public string? ShadingFillColorHex { get; internal set; }
         /// <summary>Gets the left cell border.</summary>
         public WordTableCellBorderSnapshot? LeftBorder { get; internal set; }
@@ -391,7 +391,7 @@ namespace OfficeIMO.Word {
         public WordTableCellBorderSnapshot? TopBorder { get; internal set; }
         /// <summary>Gets the bottom cell border.</summary>
         public WordTableCellBorderSnapshot? BottomBorder { get; internal set; }
-        /// <summary>Gets whether the cell participates in a horizontal merge.</summary>
+        /// <summary>Gets whether the cell participates in explicit horizontal-merge markup; a grid-span-only cell does not set this value.</summary>
         public bool HasHorizontalMerge { get; internal set; }
         /// <summary>Gets whether the cell participates in a vertical merge.</summary>
         public bool HasVerticalMerge { get; internal set; }
@@ -408,7 +408,7 @@ namespace OfficeIMO.Word {
     public sealed class WordTableCellBorderSnapshot {
         /// <summary>Gets the authored Word border style.</summary>
         public string? Style { get; internal set; }
-        /// <summary>Gets the border color as an RGB hex value.</summary>
+        /// <summary>Gets the authored OOXML border-color token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
         public string? ColorHex { get; internal set; }
         /// <summary>Gets the border width in eighths of a point.</summary>
         public uint? Size { get; internal set; }
@@ -418,7 +418,7 @@ namespace OfficeIMO.Word {
     public sealed class WordParagraphBorderSnapshot {
         /// <summary>Gets the authored Word border style.</summary>
         public string? Style { get; internal set; }
-        /// <summary>Gets the border color as an RGB hex value.</summary>
+        /// <summary>Gets the authored OOXML border-color token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
         public string? ColorHex { get; internal set; }
         /// <summary>Gets the border width in eighths of a point.</summary>
         public uint? Size { get; internal set; }

@@ -107,7 +107,7 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<string> References { get; }
         /// <summary>Gets distinct function names found in the formula.</summary>
         public IReadOnlyList<string> Functions { get; }
-        /// <summary>Gets whether the formula references another workbook.</summary>
+        /// <summary>Gets whether the formula text contains an opening bracket, which can indicate an external workbook or a structured table reference.</summary>
         public bool HasExternalReference { get; }
         /// <summary>Gets whether the formula uses a known volatile function.</summary>
         public bool IsVolatile { get; }
@@ -127,7 +127,7 @@ namespace OfficeIMO.Excel {
         public int FormulaCount => Formulas.Count;
         /// <summary>Gets the number of formulas using known volatile functions.</summary>
         public int VolatileFormulaCount => Formulas.Count(formula => formula.IsVolatile);
-        /// <summary>Gets the number of formulas that reference another workbook.</summary>
+        /// <summary>Gets the number of formulas whose text contains an opening bracket, including external-workbook and structured table references.</summary>
         public int ExternalReferenceCount => Formulas.Count(formula => formula.HasExternalReference);
     }
 
@@ -192,7 +192,8 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Gets structural and cell differences up to the requested limit.</summary>
         public IReadOnlyList<ExcelWorkbookDifference> Differences { get; }
-        /// <summary>Gets whether no differences were found.</summary>
+        /// <summary>Gets whether the comparison recorded no differences.</summary>
+        /// <remarks>This represents workbook equality when the comparison was run with a positive difference limit.</remarks>
         public bool AreEqual => Differences.Count == 0;
     }
 
@@ -319,7 +320,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Analyzes formulas for references, external links, and volatile functions.
+        /// Analyzes formulas for references, opening brackets that may indicate special references, and volatile functions.
         /// </summary>
         public ExcelFormulaAnalysisReport AnalyzeFormulas() {
             var formulas = new List<ExcelFormulaInfo>();
@@ -411,6 +412,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Compares this workbook with another workbook by sheets, dimensions, formulas, and visible cell text.
         /// </summary>
+        /// <param name="other">Workbook to compare with this workbook.</param>
+        /// <param name="maxDifferences">Maximum number of differences to record. A nonpositive value records no differences.</param>
+        /// <returns>A report containing differences up to the requested limit.</returns>
         public ExcelWorkbookDiffReport CompareWorkbook(ExcelDocument other, int maxDifferences = 200) {
             if (other == null) throw new ArgumentNullException(nameof(other));
             var differences = new List<ExcelWorkbookDifference>();
@@ -514,7 +518,7 @@ namespace OfficeIMO.Excel {
         private void AddFormulaDiagnostics(ICollection<ExcelWorkbookDiagnosticIssue> issues) {
             foreach (ExcelFormulaInfo formula in AnalyzeFormulas().Formulas) {
                 if (formula.HasExternalReference) {
-                    issues.Add(new ExcelWorkbookDiagnosticIssue("Formula", ExcelFindingSeverity.Warning, "Formula references an external workbook.", formula.SheetName, formula.Address, "Review external links before automated refresh or distribution."));
+                    issues.Add(new ExcelWorkbookDiagnosticIssue("Formula", ExcelFindingSeverity.Warning, "Formula text contains an opening bracket, which can indicate an external workbook or a structured table reference.", formula.SheetName, formula.Address, "Review the formula before automated refresh or distribution."));
                 }
                 if (formula.IsVolatile) {
                     issues.Add(new ExcelWorkbookDiagnosticIssue("Formula", ExcelFindingSeverity.Info, "Formula uses a volatile function.", formula.SheetName, formula.Address));

@@ -17,9 +17,10 @@ namespace OfficeIMO.GoogleWorkspace {
         public string? DefaultDriveId { get; set; }
         /// <summary>Gets or sets the default parent-folder identifier used when an operation omits one.</summary>
         public string? DefaultFolderId { get; set; }
-        /// <summary>Gets or sets the Workspace user impersonated by service-account credentials.</summary>
+        /// <summary>Gets or sets the Workspace user requested for service-account impersonation.</summary>
+        /// <remarks>The user is included as the JWT subject only when <see cref="UseDomainWideDelegation"/> is enabled; successful impersonation also requires provider authorization.</remarks>
         public string? SubjectUser { get; set; }
-        /// <summary>Gets or sets whether service-account credentials use domain-wide delegation.</summary>
+        /// <summary>Gets or sets whether service-account credentials request domain-wide delegation.</summary>
         public bool UseDomainWideDelegation { get; set; }
         /// <summary>Gets or sets the HTTP client used for Google API requests. When absent, the transport owns a private client.</summary>
         public HttpClient? HttpClient { get; set; }
