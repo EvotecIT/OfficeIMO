@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 
-#pragma warning disable CS1591
+#pragma warning disable CS1591 // Legacy intelligence DTO documentation debt is confined to this file; new Excel APIs remain checked.
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Severity assigned to workbook diagnostics and compliance findings.
@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
         Info,
         Warning,
         Error
-}
+    }
     /// <summary>
     /// A diagnostic issue discovered in an Excel workbook.
     /// </summary>

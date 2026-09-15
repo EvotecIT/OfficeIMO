@@ -226,7 +226,7 @@ public class PdfCanvasStampTests {
         Assert.Contains(
             pdf.GetPage(1).Letters,
             letter => letter.Value == "N" &&
-                      letter.FontName.Contains("CanvasStampFamily", StringComparison.OrdinalIgnoreCase));
+                      letter.FontName?.Contains("CanvasStampFamily", StringComparison.OrdinalIgnoreCase) == true);
     }
 
     private static byte[] CreateRestrictedPdf(string userPassword, string ownerPassword, string text) {

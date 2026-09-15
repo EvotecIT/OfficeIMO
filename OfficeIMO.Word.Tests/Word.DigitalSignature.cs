@@ -2118,7 +2118,14 @@ namespace OfficeIMO.Tests {
                 DateTimeOffset.UtcNow.AddDays(-1),
                 DateTimeOffset.UtcNow.AddDays(1));
 
-            return new X509Certificate2(certificate.Export(X509ContentType.Pfx), (string?)null, X509KeyStorageFlags.Exportable);
+            byte[] exported = certificate.Export(X509ContentType.Pfx);
+#if NET9_0_OR_GREATER
+            return X509CertificateLoader.LoadPkcs12(exported, null, X509KeyStorageFlags.Exportable);
+#else
+#pragma warning disable SYSLIB0057 // X509CertificateLoader is unavailable before .NET 9.
+            return new X509Certificate2(exported, (string?)null, X509KeyStorageFlags.Exportable);
+#pragma warning restore SYSLIB0057
+#endif
         }
 
         private static int AddRfc3161Timestamp(

@@ -376,7 +376,7 @@ internal sealed partial class PdfPageOptionalContentVisibility {
         }
 
         if (index == digitStart ||
-#pragma warning disable CA1846
+#pragma warning disable CA1846 // Keep netstandard2.0-safe parsing instead of requiring span overloads.
             !int.TryParse(text.Substring(start, index - start), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out value)) {
 #pragma warning restore CA1846
             index = start;

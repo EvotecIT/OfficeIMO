@@ -129,6 +129,6 @@ public partial class DrawingRasterTests {
         Assert.Equal(150D, positioned.TextAdvanceWidth);
 
         OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing);
-        Assert.True(rendered.GetPixels().Any(static value => value != 0));
+        Assert.Contains(rendered.GetPixels(), static value => value != 0);
     }
 }

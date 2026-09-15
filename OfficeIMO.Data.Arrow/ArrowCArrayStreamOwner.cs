@@ -51,6 +51,7 @@ public sealed class ArrowCArrayStreamOwner : IDisposable {
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>Releases the unmanaged stream if the owner was not disposed.</summary>
     ~ArrowCArrayStreamOwner() {
         Release();
     }

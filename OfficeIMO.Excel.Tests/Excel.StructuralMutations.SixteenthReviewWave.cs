@@ -91,6 +91,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static string GetCellSmartTagReference(OpenXmlElement tag) =>
-            tag.GetAttributes().Single(attribute => attribute.LocalName == "r").Value;
+            tag.GetAttributes().Single(attribute => attribute.LocalName == "r").Value
+            ?? throw new InvalidOperationException("The cell smart tag reference attribute has no value.");
     }
 }

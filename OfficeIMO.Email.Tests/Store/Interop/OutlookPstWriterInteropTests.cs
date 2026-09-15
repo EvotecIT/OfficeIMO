@@ -3,6 +3,9 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Threading;
+#if NET5_0_OR_GREATER
+using System.Runtime.Versioning;
+#endif
 
 namespace OfficeIMO.Email.Store.Tests;
 
@@ -44,6 +47,9 @@ public sealed class OutlookPstWriterInteropTests {
     }
 
     [OutlookInteropFact]
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatform("windows")]
+#endif
     public void Generated_unicode_pst_can_be_mounted_read_and_removed_by_classic_outlook() {
         string? retainedPath = Environment.GetEnvironmentVariable(
             "OFFICEIMO_EMAIL_STORE_OUTLOOK_INTEROP_OUTPUT");
@@ -56,9 +62,7 @@ public sealed class OutlookPstWriterInteropTests {
             try { RunInterop(path, !string.IsNullOrWhiteSpace(retainedPath)); }
             catch (Exception exception) { failure = exception; }
         }) { IsBackground = true, Name = "OfficeIMO Outlook PST interoperability" };
-#pragma warning disable CA1416
         thread.SetApartmentState(ApartmentState.STA);
-#pragma warning restore CA1416
         thread.Start();
         bool completed = thread.Join(TimeSpan.FromMinutes(2));
         if (!completed && string.IsNullOrWhiteSpace(retainedPath)) TryDelete(path);
@@ -67,10 +71,11 @@ public sealed class OutlookPstWriterInteropTests {
         if (failure != null) ExceptionDispatchInfo.Capture(failure).Throw();
     }
 
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatform("windows")]
+#endif
     private static void RunInterop(string path, bool retainOutput) {
-#pragma warning disable CA1416
         Type? outlookType = Type.GetTypeFromProgID("Outlook.Application");
-#pragma warning restore CA1416
         Assert.NotNull(outlookType);
 
         object? application = null;
@@ -198,11 +203,12 @@ public sealed class OutlookPstWriterInteropTests {
         using (SHA256 sha256 = SHA256.Create()) return sha256.ComputeHash(stream);
     }
 
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatform("windows")]
+#endif
     private static void Release(object? value) {
         if (value == null || !Marshal.IsComObject(value)) return;
-#pragma warning disable CA1416
         try { Marshal.FinalReleaseComObject(value); }
-#pragma warning restore CA1416
         catch (InvalidComObjectException) { }
     }
 }

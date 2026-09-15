@@ -510,7 +510,7 @@ internal sealed partial class PdfStandardSecurityHandler {
     }
 
     private static byte[] Md5(byte[] data) {
-#pragma warning disable CA5351, CA1850
+#pragma warning disable CA5351, CA1850 // Reading PDF standard-security revisions 2-4 requires their MD5 key-derivation algorithm; use Create for legacy targets.
         using MD5 md5 = MD5.Create();
         return md5.ComputeHash(data);
 #pragma warning restore CA5351, CA1850

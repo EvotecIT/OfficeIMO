@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-#pragma warning disable CS1591
+#pragma warning disable CS1591 // Rewriter hook documentation debt is confined to this compatibility API; new Markdown APIs remain checked.
 
 /// <summary>
 /// Compatibility-first recursive rewriter for markdown block trees.
@@ -165,5 +165,4 @@ public abstract class MarkdownRewriter {
         return rewritten;
     }
 }
-
 #pragma warning restore CS1591

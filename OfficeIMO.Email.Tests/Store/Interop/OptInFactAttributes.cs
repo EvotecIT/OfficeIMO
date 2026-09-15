@@ -1,4 +1,7 @@
 using System.Runtime.InteropServices;
+#if NET5_0_OR_GREATER
+using System.Runtime.Versioning;
+#endif
 
 namespace OfficeIMO.Email.Store.Tests;
 
@@ -24,11 +27,10 @@ public sealed class OutlookInteropFactAttribute : FactAttribute {
         if (!string.Equals(Environment.GetEnvironmentVariable(
             "OFFICEIMO_EMAIL_STORE_OUTLOOK_INTEROP"), "1", StringComparison.Ordinal)) {
             Skip = "Set OFFICEIMO_EMAIL_STORE_OUTLOOK_INTEROP=1 to run classic Outlook interoperability.";
-        } else if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+        } else if (!IsWindowsPlatform()) {
             Skip = "Classic Outlook interoperability requires Windows.";
         } else {
-#pragma warning disable CA1416
-            if (Type.GetTypeFromProgID("Outlook.Application") == null) {
+            if (GetOutlookApplicationTypeOnWindows() == null) {
                 Skip = "Classic Outlook is not registered on this machine.";
             } else {
                 string? executable = Microsoft.Win32.Registry.GetValue(
@@ -38,9 +40,20 @@ public sealed class OutlookInteropFactAttribute : FactAttribute {
                     Skip = "A classic Outlook executable is not installed on this machine.";
                 }
             }
-#pragma warning restore CA1416
         }
     }
+
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatformGuard("windows")]
+#endif
+    private static bool IsWindowsPlatform() =>
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatform("windows")]
+#endif
+    private static Type? GetOutlookApplicationTypeOnWindows() =>
+        Type.GetTypeFromProgID("Outlook.Application");
 }
 
 public sealed class LibPffInteropFactAttribute : FactAttribute {

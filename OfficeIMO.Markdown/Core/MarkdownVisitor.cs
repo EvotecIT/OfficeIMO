@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-#pragma warning disable CS1591
+#pragma warning disable CS1591 // Visitor hook documentation debt is confined to this compatibility API; new Markdown APIs remain checked.
 
 /// <summary>
 /// Depth-first visitor over the OfficeIMO.Markdown object tree.
@@ -277,5 +277,4 @@ public abstract class MarkdownVisitor {
     protected virtual void VisitUnderlineInline(UnderlineInline inline) => VisitInline(inline);
     protected virtual void VisitHtmlRawInline(HtmlRawInline inline) => VisitInline(inline);
 }
-
 #pragma warning restore CS1591

@@ -1065,7 +1065,7 @@ namespace OfficeIMO.Tests {
             var malformedRule = new ConditionalFormattingRule {
                 Type = ConditionalFormatValues.Expression
             };
-            malformedRule.SetAttribute(new OpenXmlAttribute("priority", null, "not-an-integer"));
+            malformedRule.SetAttribute(new OpenXmlAttribute("priority", null!, "not-an-integer"));
             conditional.Append(malformedRule);
             Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
             worksheet.InsertAfter(conditional, worksheet.GetFirstChild<SheetData>());

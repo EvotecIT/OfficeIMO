@@ -24,25 +24,26 @@ namespace OfficeIMO.Tests {
             RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
 #if NET5_0_OR_GREATER
-        [SupportedOSPlatform("windows")]
+        [SupportedOSPlatformGuard("windows")]
 #endif
         private static bool IsExcelComAvailable() =>
-            Type.GetTypeFromProgID("Excel.Application") != null;
+            IsWindowsPlatform() && Type.GetTypeFromProgID("Excel.Application") != null;
 
-#if NET5_0_OR_GREATER
-        [SupportedOSPlatform("windows")]
-#endif
         private static void AssertWorkbookOpensViaExcelComWhenAvailable(string path, string failureMessage) =>
             AssertWorkbooksOpenViaExcelComWhenAvailable(new[] { path }, failureMessage);
 
-#if NET5_0_OR_GREATER
-        [SupportedOSPlatform("windows")]
-#endif
         private static void AssertWorkbooksOpenViaExcelComWhenAvailable(IEnumerable<string> paths, string failureMessage) {
-            if (!IsExcelComAvailable()) {
+            if (!IsWindowsPlatform() || !IsExcelComAvailable()) {
                 return;
             }
 
+            AssertWorkbooksOpenViaExcelComOnWindows(paths, failureMessage);
+        }
+
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
+        private static void AssertWorkbooksOpenViaExcelComOnWindows(IEnumerable<string> paths, string failureMessage) {
             var failures = new ConcurrentQueue<string>();
             var thread = new Thread(() => {
                 try {

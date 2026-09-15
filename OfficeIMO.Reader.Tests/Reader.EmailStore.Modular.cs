@@ -138,7 +138,8 @@ public sealed class ReaderEmailStoreModularTests {
         ReaderEmailStoreOptions clone = ReaderEmailStoreOptionsCloner.CloneOrDefault(options);
 
         Assert.NotSame(options.StoreOptions, clone.StoreOptions);
-        Assert.Equal(maxDecodedTableBytes, clone.StoreOptions.MaxDecodedTableBytes);
+        Assert.NotNull(clone.StoreOptions);
+        Assert.Equal(maxDecodedTableBytes, clone.StoreOptions!.MaxDecodedTableBytes);
     }
 
     [Fact]

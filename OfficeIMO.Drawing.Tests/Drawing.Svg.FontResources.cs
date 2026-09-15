@@ -28,7 +28,7 @@ public class DrawingSvgFontResourceTests {
         drawing!.AppendFontDiagnostics(diagnostics);
         Assert.DoesNotContain(diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.FontSubstituted);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
-        Assert.True(raster.GetPixels().Any(value => value != 0));
+        Assert.Contains(raster.GetPixels(), value => value != 0);
         static void CheckFonts(OfficeDrawing scene) {
             foreach (OfficeDrawingElement element in scene.Elements) {
                 if (element is OfficeDrawingText text) Assert.Null(scene.Fonts.CreateSubstitutionDiagnostic(text.Text, text.Font.FamilyName));

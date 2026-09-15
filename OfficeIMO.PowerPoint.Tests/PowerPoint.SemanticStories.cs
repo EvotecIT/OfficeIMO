@@ -99,8 +99,8 @@ namespace OfficeIMO.Tests {
                         MinimumReadableFontSizePoints = 8,
                         DetectShapeCollisions = false
                     });
-                    Assert.Empty(report.Findings.Where(finding =>
-                        finding.Severity == PowerPointDeckPreflightSeverity.Error));
+                    Assert.DoesNotContain(report.Findings, finding =>
+                        finding.Severity == PowerPointDeckPreflightSeverity.Error);
                     presentation.Save();
                 }
 
@@ -138,8 +138,8 @@ namespace OfficeIMO.Tests {
                 slide.Kind == PowerPointDeckPlanSlideKind.AppendixTable));
             Assert.All(expanded.Slides.OfType<PowerPointAppendixTablePlanSlide>(), slide =>
                 Assert.InRange(slide.Data.Rows.Count, 1, PowerPointDeckPlanLimits.MaxAppendixTableRows));
-            Assert.Empty(expanded.ValidateSlides().Where(diagnostic =>
-                diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error));
+            Assert.DoesNotContain(expanded.ValidateSlides(), diagnostic =>
+                diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error);
 
             PowerPointDeckRhythmReport report = plan.InspectRhythm(design);
             Assert.Contains(report.Findings, finding => finding.Code == "Rhythm.RepeatedKind");

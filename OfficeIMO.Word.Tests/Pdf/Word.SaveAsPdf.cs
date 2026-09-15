@@ -584,12 +584,12 @@ public partial class Word {
         var document = PdfCore.PdfReadDocument.Open(bytes);
         var (objects, _) = PdfCore.PdfSyntax.ParseObjects(bytes);
         int pageObjectNumber = document.Pages[pageNumber - 1].ObjectNumber;
-        if (!objects.TryGetValue(pageObjectNumber, out PdfCore.PdfIndirectObject pageObject) ||
-            pageObject.Value is not PdfCore.PdfDictionary pageDictionary) {
+        if (!objects.TryGetValue(pageObjectNumber, out PdfCore.PdfIndirectObject? pageObject) ||
+            pageObject?.Value is not PdfCore.PdfDictionary pageDictionary) {
             throw new InvalidOperationException("Page object was not found.");
         }
 
-        if (!pageDictionary.Items.TryGetValue("Contents", out PdfCore.PdfObject contents)) {
+        if (!pageDictionary.Items.TryGetValue("Contents", out PdfCore.PdfObject? contents) || contents is null) {
             throw new InvalidOperationException("Page contents were not found.");
         }
 
@@ -603,8 +603,8 @@ public partial class Word {
         PdfCore.PdfObject contents,
         List<string> streams) {
         if (contents is PdfCore.PdfReference reference) {
-            if (objects.TryGetValue(reference.ObjectNumber, out PdfCore.PdfIndirectObject indirect) &&
-                indirect.Value is PdfCore.PdfStream stream) {
+            if (objects.TryGetValue(reference.ObjectNumber, out PdfCore.PdfIndirectObject? indirect) &&
+                indirect?.Value is PdfCore.PdfStream stream) {
                 streams.Add(PdfOperatorSearchText.Decode(stream, objects));
             }
 

@@ -48,7 +48,7 @@ code
             doc.Save(ms);
             ms.Position = 0;
             using WordprocessingDocument docx = WordprocessingDocument.Open(ms, false);
-            var body = docx.MainDocumentPart!.Document.Body!;
+            var body = docx.MainDocumentPart!.Document!.Body!;
 
             var codeRun = body.Descendants<Run>().First(r => r.InnerText.Contains("code"));
             Assert.Equal(WordFontResolver.Resolve("monospace"), codeRun.RunProperties!.RunFonts!.Ascii);
@@ -240,7 +240,7 @@ code
 
             using var document = markdown.ToWordDocument();
 
-            var body = document._wordprocessingDocument.MainDocumentPart!.Document.Body!;
+            var body = document._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
             int topLevelTitleParagraphs = body
                 .Elements<Paragraph>()
                 .Count(paragraph => string.Equals(paragraph.InnerText.Trim(), "Contents", StringComparison.Ordinal));
