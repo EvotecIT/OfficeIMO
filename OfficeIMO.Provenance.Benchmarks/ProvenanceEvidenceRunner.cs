@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.Provenance.Benchmarks;
 
@@ -27,6 +28,7 @@ internal static class ProvenanceEvidenceRunner {
         try {
             int repeat = GetPositiveIntOption(args, "--repeat", 1);
             string? jsonPath = GetOption(args, "--json");
+            string? budgetPath = GetOption(args, "--budget");
             var measurements = new List<ProvenanceEvidenceMeasurement>();
             foreach (string format in ProvenanceBenchmarkCorpus.Formats) {
                 foreach (string scale in ProvenanceBenchmarkCorpus.Scales) {
@@ -67,6 +69,18 @@ internal static class ProvenanceEvidenceRunner {
                 if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
                 File.WriteAllText(fullPath, JsonSerializer.Serialize(report, JsonOptions));
                 Console.WriteLine("Wrote " + fullPath);
+            }
+            if (!string.IsNullOrWhiteSpace(budgetPath)) {
+                OfficeEvidenceBudgetEvaluator.EnsureWithin(
+                    budgetPath,
+                    "provenance",
+                    measurements.Select(item => new OfficeEvidenceObservation(
+                        $"{item.Format}|{item.Scale}|{item.Operation}",
+                        item.ElapsedMicrosecondsPerOperation,
+                        item.AllocatedBytesPerOperation,
+                        item.PeakManagedHeapGrowthBytes,
+                        item.AbsoluteProcessPeakWorkingSetBytes,
+                        item.OutputBytes)).ToArray());
             }
             return 0;
         } catch (Exception exception) {
@@ -141,6 +155,7 @@ internal static class ProvenanceEvidenceRunner {
             throw new InvalidOperationException(
                 $"{fixture.Format}/{fixture.Scale} output was {outputBytes} bytes, expected {fixture.ExpectedOutputBytes}.");
         }
+        ProvenanceBenchmarkValidation.ValidateExactOutput(fixture, removal.ToArray());
         return outputBytes;
     }
 

@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "budgets": [
+    {
+      "suite": "security-cms",
+      "operatingSystem": "Any",
+      "key": "Verify|OfficeIMO|Small|OfficeIMO",
+      "maxElapsedMicrosecondsPerOperation": 5000,
+      "maxAllocatedBytesPerOperation": 65536,
+      "maxPeakManagedHeapGrowthBytes": 8388608,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 201326592,
+      "maxArtifactBytes": 1600
+    },
+    {
+      "suite": "security-cms",
+      "operatingSystem": "Any",
+      "key": "Verify|OfficeIMO|Small|Platform",
+      "maxElapsedMicrosecondsPerOperation": 5000,
+      "maxAllocatedBytesPerOperation": 49152,
+      "maxPeakManagedHeapGrowthBytes": 8388608,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 201326592,
+      "maxArtifactBytes": 1600
+    },
+    {
+      "suite": "security-cms",
+      "operatingSystem": "Any",
+      "key": "Verify|Platform|Small|OfficeIMO",
+      "maxElapsedMicrosecondsPerOperation": 5000,
+      "maxAllocatedBytesPerOperation": 49152,
+      "maxPeakManagedHeapGrowthBytes": 8388608,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 201326592,
+      "maxArtifactBytes": 1600
+    },
+    {
+      "suite": "security-cms",
+      "operatingSystem": "Any",
+      "key": "Verify|Platform|Small|Platform",
+      "maxElapsedMicrosecondsPerOperation": 5000,
+      "maxAllocatedBytesPerOperation": 40960,
+      "maxPeakManagedHeapGrowthBytes": 8388608,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 201326592,
+      "maxArtifactBytes": 1600
+    },
+    {
+      "suite": "provenance",
+      "operatingSystem": "Any",
+      "key": "PNG|Large|Inspect",
+      "maxElapsedMicrosecondsPerOperation": 250000,
+      "maxAllocatedBytesPerOperation": 65536,
+      "maxPeakManagedHeapGrowthBytes": 4194304,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 268435456
+    },
+    {
+      "suite": "provenance",
+      "operatingSystem": "Any",
+      "key": "PNG|Large|Remove",
+      "maxElapsedMicrosecondsPerOperation": 500000,
+      "maxAllocatedBytesPerOperation": 65536,
+      "maxPeakManagedHeapGrowthBytes": 4194304,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 268435456,
+      "maxArtifactBytes": 69
+    },
+    {
+      "suite": "provenance",
+      "operatingSystem": "Any",
+      "key": "TIFF|Large|Inspect",
+      "maxElapsedMicrosecondsPerOperation": 250000,
+      "maxAllocatedBytesPerOperation": 65536,
+      "maxPeakManagedHeapGrowthBytes": 4194304,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 268435456
+    },
+    {
+      "suite": "provenance",
+      "operatingSystem": "Any",
+      "key": "TIFF|Large|Remove",
+      "maxElapsedMicrosecondsPerOperation": 500000,
+      "maxAllocatedBytesPerOperation": 1310720,
+      "maxPeakManagedHeapGrowthBytes": 16777216,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 268435456,
+      "maxArtifactBytes": 1048651
+    },
+    {
+      "suite": "provenance",
+      "operatingSystem": "Any",
+      "key": "SVG|Large|Inspect",
+      "maxElapsedMicrosecondsPerOperation": 500000,
+      "maxAllocatedBytesPerOperation": 10485760,
+      "maxPeakManagedHeapGrowthBytes": 100663296,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 268435456
+    },
+    {
+      "suite": "provenance",
+      "operatingSystem": "Any",
+      "key": "SVG|Large|Remove",
+      "maxElapsedMicrosecondsPerOperation": 1000000,
+      "maxAllocatedBytesPerOperation": 20971520,
+      "maxPeakManagedHeapGrowthBytes": 134217728,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 268435456,
+      "maxArtifactBytes": 117
+    },
+    {
+      "suite": "provenance",
+      "operatingSystem": "Any",
+      "key": "ZIP|Large|Inspect",
+      "maxElapsedMicrosecondsPerOperation": 500000,
+      "maxAllocatedBytesPerOperation": 2621440,
+      "maxPeakManagedHeapGrowthBytes": 33554432,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 268435456
+    },
+    {
+      "suite": "provenance",
+      "operatingSystem": "Any",
+      "key": "ZIP|Large|Remove",
+      "maxElapsedMicrosecondsPerOperation": 1500000,
+      "maxAllocatedBytesPerOperation": 9437184,
+      "maxPeakManagedHeapGrowthBytes": 67108864,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 268435456,
+      "maxArtifactBytes": 1049021
+    },
+    {
+      "suite": "provenance",
+      "operatingSystem": "Any",
+      "key": "Text|Large|Inspect",
+      "maxElapsedMicrosecondsPerOperation": 500000,
+      "maxAllocatedBytesPerOperation": 65536,
+      "maxPeakManagedHeapGrowthBytes": 4194304,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 268435456
+    },
+    {
+      "suite": "provenance",
+      "operatingSystem": "Any",
+      "key": "Text|Large|Remove",
+      "maxElapsedMicrosecondsPerOperation": 1000000,
+      "maxAllocatedBytesPerOperation": 65536,
+      "maxPeakManagedHeapGrowthBytes": 4194304,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 268435456,
+      "maxArtifactBytes": 13
+    }
+  ]
+}

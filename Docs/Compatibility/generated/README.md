@@ -23,6 +23,6 @@ dotnet run --framework net8.0 --project Build/CompatibilityCatalog/OfficeIMO.Com
 | OfficeIMO.Excel.Xlsb | 1 | 20 | [JSON](excel-xlsb.json) | [Markdown](excel-xlsb.md) |
 | OfficeIMO.PowerPoint.LegacyPpt | 1 | 56 | [JSON](powerpoint-legacy-ppt.json) | [Markdown](powerpoint-legacy-ppt.md) |
 | OfficeIMO.Provenance | 1 | 11 | [JSON](provenance.json) | [Markdown](provenance.md) |
-| OfficeIMO.ProtectedContent | 1 | 18 | [JSON](protected-content.json) | [Markdown](protected-content.md) |
+| OfficeIMO.ProtectedContent | 2 | 18 | [JSON](protected-content.json) | [Markdown](protected-content.md) |
 
 `office-formats.json` is the concrete extension, document-kind, encoding, and macro-carrier inventory used by conversion routing.

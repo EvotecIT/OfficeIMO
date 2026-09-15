@@ -1,0 +1,67 @@
+name: Security and provenance evidence
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/security-provenance-evidence.yml'
+      - 'Build/BenchmarkBudgets/security-provenance.json'
+      - 'OfficeIMO.Core/Provenance/**'
+      - 'OfficeIMO.Provenance.Benchmarks/**'
+      - 'OfficeIMO.Security/**'
+      - 'OfficeIMO.Security.Benchmarks/**'
+      - 'Build/Benchmarks/OfficeEvidenceBudget.cs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: 10.0.112
+  BUILD_CONFIGURATION: Release
+
+jobs:
+  evidence:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore evidence projects
+        shell: pwsh
+        run: |
+          dotnet restore OfficeIMO.Security.Benchmarks/OfficeIMO.Security.Benchmarks.csproj
+          dotnet restore OfficeIMO.Provenance.Benchmarks/OfficeIMO.Provenance.Benchmarks.csproj
+
+      - name: Validate equivalent workloads and exact outputs
+        shell: pwsh
+        run: |
+          dotnet run --configuration $env:BUILD_CONFIGURATION --framework net10.0 --no-restore --project OfficeIMO.Security.Benchmarks/OfficeIMO.Security.Benchmarks.csproj -- validate
+          dotnet run --configuration $env:BUILD_CONFIGURATION --framework net10.0 --no-restore --project OfficeIMO.Provenance.Benchmarks/OfficeIMO.Provenance.Benchmarks.csproj -- validate
+
+      - name: Capture and enforce evidence budgets
+        shell: pwsh
+        run: |
+          $output = ".benchmark-artifacts/security-evidence/${{ runner.os }}"
+          $budget = 'Build/BenchmarkBudgets/security-provenance.json'
+          dotnet run --configuration $env:BUILD_CONFIGURATION --framework net10.0 --no-restore --project OfficeIMO.Security.Benchmarks/OfficeIMO.Security.Benchmarks.csproj -- evidence --repeat 3 --json "$output/security-cms.json" --budget $budget
+          dotnet run --configuration $env:BUILD_CONFIGURATION --framework net10.0 --no-restore --project OfficeIMO.Provenance.Benchmarks/OfficeIMO.Provenance.Benchmarks.csproj -- evidence --repeat 3 --json "$output/provenance.json" --budget $budget
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: security-provenance-evidence-${{ runner.os }}
+          path: .benchmark-artifacts/security-evidence/${{ runner.os }}/*.json
+          if-no-files-found: warn

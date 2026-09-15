@@ -9,5 +9,6 @@
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <Compile Include="..\Build\Benchmarks\OfficeEvidenceBudget.cs" Link="Evidence\OfficeEvidenceBudget.cs" />
   </ItemGroup>
 </Project>

@@ -8,7 +8,9 @@ internal sealed record ProvenanceBenchmarkFixture(
     string Scale,
     string FileName,
     byte[] Asset,
-    int ExpectedOutputBytes);
+    int ExpectedOutputBytes,
+    byte[]? ExpectedOutput,
+    byte[]? ExpectedPreservedPayload);
 
 internal static class ProvenanceBenchmarkCorpus {
     internal static readonly string[] Formats = ["PNG", "TIFF", "SVG", "ZIP", "Text"];
@@ -38,7 +40,8 @@ internal static class ProvenanceBenchmarkCorpus {
         byte[] image = CreatePngChunk("IDAT", [0x78, 0x9C, 0x63, 0x60, 0x60, 0x60, 0, 0, 0, 4, 0, 1]);
         byte[] end = CreatePngChunk("IEND", []);
         byte[] asset = Join(header, ihdr, carrier, image, end);
-        return new ProvenanceBenchmarkFixture("PNG", scale, "fixture.png", asset, asset.Length - carrier.Length);
+        byte[] expected = Join(header, ihdr, image, end);
+        return new ProvenanceBenchmarkFixture("PNG", scale, "fixture.png", asset, expected.Length, expected, null);
     }
 
     private static ProvenanceBenchmarkFixture CreateTiff(string scale, byte[] manifest) {
@@ -55,22 +58,25 @@ internal static class ProvenanceBenchmarkCorpus {
         WriteLittleEndianEntry(asset, 46, 279, 4, 1, 1);
         WriteLittleEndianEntry(asset, 58, 0xCD41, 7, manifest.Length, payloadOffset);
         manifest.CopyTo(asset, payloadOffset);
-        return new ProvenanceBenchmarkFixture("TIFF", scale, "fixture.tiff", asset, asset.Length);
+        byte[] expected = (byte[])asset.Clone();
+        expected[8] = 4;
+        Array.Clear(expected, 58, 16);
+        return new ProvenanceBenchmarkFixture("TIFF", scale, "fixture.tiff", asset, expected.Length, expected, null);
     }
 
     private static ProvenanceBenchmarkFixture CreateSvg(string scale, byte[] manifest) {
         const string prefix = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:c2pa=\"http://c2pa.org/manifest\"><metadata><c2pa:manifest>";
         const string suffix = "</c2pa:manifest></metadata><text>preserve</text></svg>";
         byte[] asset = Encoding.UTF8.GetBytes(prefix + Convert.ToBase64String(manifest) + suffix);
-        int expected = Encoding.UTF8.GetByteCount("<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:c2pa=\"http://c2pa.org/manifest\"><metadata /><text>preserve</text></svg>");
-        return new ProvenanceBenchmarkFixture("SVG", scale, "fixture.svg", asset, expected);
+        byte[] expected = Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:c2pa=\"http://c2pa.org/manifest\"><metadata /><text>preserve</text></svg>");
+        return new ProvenanceBenchmarkFixture("SVG", scale, "fixture.svg", asset, expected.Length, expected, null);
     }
 
     private static ProvenanceBenchmarkFixture CreateZip(string scale, byte[] manifest) {
         byte[] keep = CreateDeterministicBytes(scale == "Large" ? 1024 * 1024 : 4 * 1024);
         byte[] asset = WriteZip(("META-INF/content_credential.c2pa", manifest), ("payload.bin", keep));
         int expectedOutputBytes = OfficeProvenanceRemover.Remove(asset, "fixture.zip").ToArray().Length;
-        return new ProvenanceBenchmarkFixture("ZIP", scale, "fixture.zip", asset, expectedOutputBytes);
+        return new ProvenanceBenchmarkFixture("ZIP", scale, "fixture.zip", asset, expectedOutputBytes, null, keep);
     }
 
     private static ProvenanceBenchmarkFixture CreateText(string scale, byte[] manifest) {
@@ -80,7 +86,8 @@ internal static class ProvenanceBenchmarkCorpus {
             "data:application/c2pa;base64," + Convert.ToBase64String(manifest) + "\n" +
             "-----END C2PA MANIFEST-----\n";
         byte[] asset = Encoding.UTF8.GetBytes(before + block + after);
-        return new ProvenanceBenchmarkFixture("Text", scale, "fixture.md", asset, Encoding.UTF8.GetByteCount(before + after));
+        byte[] expected = Encoding.UTF8.GetBytes(before + after);
+        return new ProvenanceBenchmarkFixture("Text", scale, "fixture.md", asset, expected.Length, expected, null);
     }
 
     private static byte[] CreateManifestStore(int length) {

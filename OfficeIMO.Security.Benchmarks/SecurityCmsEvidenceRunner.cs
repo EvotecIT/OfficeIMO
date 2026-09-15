@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.Security.Benchmarks;
 
@@ -27,6 +28,7 @@ internal static class SecurityCmsEvidenceRunner {
         try {
             int repeat = GetPositiveIntOption(args, "--repeat", 1);
             string? jsonPath = GetOption(args, "--json");
+            string? budgetPath = GetOption(args, "--budget");
             var measurements = new List<SecurityCmsEvidenceMeasurement>();
             foreach (string scale in SecurityCmsBenchmarkCorpus.Scales) {
                 foreach (string operation in new[] { "Sign", "Verify" }) {
@@ -67,6 +69,18 @@ internal static class SecurityCmsEvidenceRunner {
                 if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
                 File.WriteAllText(fullPath, JsonSerializer.Serialize(report, JsonOptions));
                 Console.WriteLine("Wrote " + fullPath);
+            }
+            if (!string.IsNullOrWhiteSpace(budgetPath)) {
+                OfficeEvidenceBudgetEvaluator.EnsureWithin(
+                    budgetPath,
+                    "security-cms",
+                    measurements.Select(item => new OfficeEvidenceObservation(
+                        $"{item.Operation}|{item.Engine}|{item.Scale}|{item.Producer}",
+                        item.ElapsedMicrosecondsPerOperation,
+                        item.AllocatedBytesPerOperation,
+                        item.PeakManagedHeapGrowthBytes,
+                        item.AbsoluteProcessPeakWorkingSetBytes,
+                        item.ArtifactBytes)).ToArray());
             }
             return 0;
         } catch (Exception exception) {

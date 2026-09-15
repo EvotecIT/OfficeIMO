@@ -81,7 +81,40 @@ public sealed class OfficeCompatibilityCatalogContractTests {
         Assert.Equal(OfficeProtectionCoverageState.Supported, catalog.Get("odf-password").Create);
         Assert.Equal(OfficeProtectionCoverageState.NotApplicable, catalog.Get("epub-font-obfuscation").Mutate);
         Assert.Equal(OfficeProtectionCoverageState.NotSupported, catalog.Get("smime-signature-msg-tnef").Create);
+        Assert.Equal(2, catalog.SchemaVersion);
+        Assert.Equal(OfficeProtectionUnsupportedDisposition.RoadmapTracked,
+            catalog.Get("xls-password").UnsupportedOperations.Single(item =>
+                item.Operation == OfficeProtectionOperation.Create).Disposition);
+        Assert.Equal(OfficeProtectionUnsupportedDisposition.IntentionalBoundary,
+            catalog.Get("smime-signature-msg-tnef").UnsupportedOperations.Single().Disposition);
         Assert.Contains("| Inspect | Open | Create |", catalog.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("[roadmap](../../ROADMAP.md#security-and-protected-content)", catalog.ToMarkdown(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProtectedContentCatalogRejectsMissingOrExtraneousUnsupportedDispositions() {
+        OfficeProtectionCapability MissingDisposition() => new(
+            "missing", "DOC", "OfficeIMO.Word", OfficeProtectionKind.PasswordEncryption,
+            OfficeProtectionCoverageState.Detected, OfficeProtectionCoverageState.NotSupported,
+            OfficeProtectionCoverageState.NotApplicable, OfficeProtectionCoverageState.NotApplicable,
+            OfficeProtectionCoverageState.Blocked, OfficeProtectionCoverageState.NotApplicable,
+            "WordDocument.Load", "Missing disposition");
+        OfficeProtectionCapability ExtraDisposition() => new(
+            "extra", "PDF", "OfficeIMO.Pdf", OfficeProtectionKind.PasswordEncryption,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.Supported,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.NotApplicable,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.Supported,
+            "PdfDocument.Security", "Extraneous disposition", new[] {
+                new OfficeProtectionUnsupportedOperation(
+                    OfficeProtectionOperation.Open,
+                    OfficeProtectionUnsupportedDisposition.IntentionalBoundary,
+                    "This operation is actually supported.")
+            });
+
+        Assert.Throws<ArgumentException>(() =>
+            new OfficeProtectionCapabilityCatalog("missing-catalog", 1, new[] { MissingDisposition() }));
+        Assert.Throws<ArgumentException>(() =>
+            new OfficeProtectionCapabilityCatalog("extra-catalog", 1, new[] { ExtraDisposition() }));
     }
 
     [Fact]
@@ -91,11 +124,18 @@ public sealed class OfficeCompatibilityCatalogContractTests {
             OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.Supported,
             OfficeProtectionCoverageState.NotSupported, OfficeProtectionCoverageState.NotApplicable,
             OfficeProtectionCoverageState.Preserved, OfficeProtectionCoverageState.NotApplicable,
-            "Verify\u0001Api", "line\bfeed\f");
+            "Verify\u0001Api", "line\bfeed\f", new[] {
+                new OfficeProtectionUnsupportedOperation(
+                    OfficeProtectionOperation.Create,
+                    OfficeProtectionUnsupportedDisposition.IntentionalBoundary,
+                    "Control disposition\u0003reason")
+            });
         var catalog = new OfficeProtectionCapabilityCatalog("control\u0002catalog", 1, new[] { row });
 
         using JsonDocument parsed = JsonDocument.Parse(catalog.ToJson());
 
         Assert.Equal("EML\tformat", parsed.RootElement.GetProperty("capabilities")[0].GetProperty("formatId").GetString());
+        Assert.Equal("Control disposition\u0003reason", parsed.RootElement.GetProperty("capabilities")[0]
+            .GetProperty("unsupportedOperations")[0].GetProperty("rationale").GetString());
     }
 }
