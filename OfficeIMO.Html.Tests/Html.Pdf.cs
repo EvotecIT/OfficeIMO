@@ -1950,6 +1950,43 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToPositionedHtml_ScalesSubUnitImageAndLinkBeforeApplyingMinimumSize() {
+        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 160,
+                PageHeight = 160,
+                MarginLeft = 0,
+                MarginRight = 0,
+                MarginTop = 0,
+                MarginBottom = 0
+            })
+            .Canvas(canvas => canvas.Image(
+                PdfPngTestImages.CreateRgbPng(1, 1),
+                20D,
+                30D,
+                0.5D,
+                0.25D))
+            .ToBytes();
+        source = WithUserUnit(source, 10D);
+
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(source)
+            .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+
+        Assert.Contains("style=\"width:1600pt;height:1600pt;\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("width:5pt;height:2.5pt;", result.Value, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-image-placeholder\"", result.Value, StringComparison.Ordinal);
+
+        const string linkUri = "https://example.com/sub-unit";
+        var linkOptions = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        linkOptions.IncludeLinkAnnotations = true;
+        PdfHtmlConversionResult linkResult = PdfCore.PdfDocumentReadResult.Load(CreateSubUnitUserUnitLinkPdf(linkUri))
+            .ToHtmlResult(linkOptions);
+
+        Assert.Contains("class=\"pdf-link\"", linkResult.Value, StringComparison.Ordinal);
+        Assert.Contains("width:5pt;height:2.5pt\"", linkResult.Value, StringComparison.Ordinal);
+        Assert.Contains("href=\"" + linkUri + "\"", linkResult.Value, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdf_BaselineArtifacts_ExposeStableRoundTripShape() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.Pdf." + Guid.NewGuid().ToString("N"));
         string pdfPath = Path.Combine(directory, "practical-html.pdf");
@@ -2224,6 +2261,39 @@ public sealed class HtmlPdfTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] WithUserUnit(byte[] source, double userUnit) =>
+        PdfCore.PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfCore.PdfIndirectObject page = Assert.Single(objects.Values, static item =>
+                item.Value is PdfCore.PdfDictionary dictionary &&
+                string.Equals(dictionary.Get<PdfCore.PdfName>("Type")?.Name, "Page", StringComparison.Ordinal));
+            Assert.IsType<PdfCore.PdfDictionary>(page.Value).Items["UserUnit"] = new PdfCore.PdfNumber(userUnit);
+            return security.InfoObjectNumber;
+        });
+
+    private static byte[] CreateSubUnitUserUnitLinkPdf(string uri) {
+        string escapedUri = uri.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] /UserUnit 10 /Annots [4 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            $"<< /Type /Annot /Subtype /Link /Rect [20 30 20.5 30.25] /A << /S /URI /URI ({escapedUri}) >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 5 >>",
             "%%EOF"
         }) + "\n";
 

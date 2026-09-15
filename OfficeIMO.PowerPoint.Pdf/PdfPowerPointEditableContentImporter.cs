@@ -446,13 +446,19 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         if (assessment.HasNonDefaultOpacity) {
+            bool opacityIsOmitted = assessment.MappedOpacityIsOmitted;
+            details["MappedTransparencyPercent"] = assessment.MappedTransparencyPercent.ToString(CultureInfo.InvariantCulture);
             warnings.Add(new PdfCore.PdfConversionWarning(
                 "OfficeIMO.PowerPoint.Pdf",
                 "PdfImageOpacityMapped",
                 source,
-                "PDF image opacity was mapped to native PowerPoint picture transparency.",
-                PdfCore.PdfConversionWarningSeverity.Information,
-                OfficeConversionLossKind.None,
+                opacityIsOmitted
+                    ? "PDF image opacity was below PowerPoint picture-transparency precision, so the image was made fully transparent."
+                    : "PDF image opacity was mapped to native PowerPoint picture transparency.",
+                opacityIsOmitted
+                    ? PdfCore.PdfConversionWarningSeverity.Warning
+                    : PdfCore.PdfConversionWarningSeverity.Information,
+                opacityIsOmitted ? OfficeConversionLossKind.Omission : OfficeConversionLossKind.None,
                 details: details));
         }
         if (assessment.HasNonNormalBlendMode) {

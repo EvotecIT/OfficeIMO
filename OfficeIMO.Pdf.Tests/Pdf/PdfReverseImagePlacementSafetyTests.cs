@@ -884,7 +884,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
-    public void VeryLowNonzeroImageOpacityRemainsVisibleAcrossEditableOfficeAdapters() {
+    public void VeryLowNonzeroImageOpacityIsReportedWhenOfficePrecisionOmitsIt() {
         byte[] source = CreateRawImagePdf(
             "q /GS1 gs 80 0 0 40 20 30 cm /Im1 Do Q\n",
             "/ca 0.0000004");
@@ -893,19 +893,25 @@ public sealed class PdfReverseImagePlacementSafetyTests {
 
         PdfWordConversionResult word = logical.ToWordDocumentResult();
         using (word.Value) {
-            Assert.Equal(99, Assert.Single(word.Value.Images).Transparency);
+            Assert.Equal(100, Assert.Single(word.Value.Images).Transparency);
             Assert.Contains(word.Report.Warnings, static warning =>
                 warning.Code == "PdfImageOpacityMapped" &&
-                warning.LossKind == OfficeConversionLossKind.None);
+                warning.LossKind == OfficeConversionLossKind.Omission &&
+                warning.Details["MappedTransparencyPercent"] == "100");
+            Assert.True(word.Report.HasLoss);
+            Assert.Throws<InvalidOperationException>(() => word.RequireNoLoss());
         }
 
         PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
             PdfToPowerPointOptions.CreateEditableContent());
         using (powerPoint.Value) {
-            Assert.Equal(99, Assert.Single(Assert.Single(powerPoint.Value.Slides).Pictures).FillTransparency);
+            Assert.Equal(100, Assert.Single(Assert.Single(powerPoint.Value.Slides).Pictures).FillTransparency);
             Assert.Contains(powerPoint.Report.Warnings, static warning =>
                 warning.Code == "PdfImageOpacityMapped" &&
-                warning.LossKind == OfficeConversionLossKind.None);
+                warning.LossKind == OfficeConversionLossKind.Omission &&
+                warning.Details["MappedTransparencyPercent"] == "100");
+            Assert.True(powerPoint.Report.HasLoss);
+            Assert.Throws<InvalidOperationException>(() => powerPoint.RequireNoLoss());
         }
 
         PdfHtmlConversionResult semanticHtml = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());

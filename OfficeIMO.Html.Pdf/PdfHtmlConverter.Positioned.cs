@@ -127,9 +127,9 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         double left = table.Columns.Count > 0 ? table.Columns[0].From : 0D;
-        double width = table.Columns.Count > 0 ? Math.Max(1D, table.Columns[table.Columns.Count - 1].To - left) : 1D;
+        double width = table.Columns.Count > 0 ? table.Columns[table.Columns.Count - 1].To - left : 1D;
         double bottom = Math.Min(table.YTop, table.YBottom);
-        double height = Math.Max(1D, Math.Abs(table.YTop - table.YBottom));
+        double height = Math.Abs(table.YTop - table.YBottom);
         PositionedBox box = geometry.TransformBox(left, bottom, width, height);
 
         builder.Append("<table class=\"pdf-table\" data-detection-kind=\"");
@@ -153,7 +153,7 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         string label = GetLinkLabel(link);
-        PositionedBox box = geometry.TransformBox(link.X1, link.Y1, Math.Max(1D, link.Width), Math.Max(1D, link.Height));
+        PositionedBox box = geometry.TransformBox(link.X1, link.Y1, link.Width, link.Height);
         builder.Append("<a class=\"pdf-link\" style=\"left:");
         builder.Append(Points(box.Left));
         builder.Append(";top:");
@@ -202,7 +202,7 @@ public static partial class PdfHtmlConverterExtensions {
 
         options.EmittedImagePlaceholderCount++;
         PositionedPageGeometry geometry = PositionedPageGeometry.From(page);
-        PositionedBox box = geometry.TransformBox(placement.X, placement.Y, Math.Max(1D, placement.Width), Math.Max(1D, placement.Height));
+        PositionedBox box = geometry.TransformBox(placement.X, placement.Y, placement.Width, placement.Height);
         builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
         builder.Append(HtmlAttribute(image.ResourceName));
         builder.Append("\" data-page-number=\"");
@@ -259,7 +259,7 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static void AppendPositionedFormWidget(StringBuilder builder, PositionedPageGeometry geometry, PdfCore.PdfLogicalFormWidget widget) {
         string name = widget.FieldName ?? widget.FieldType ?? "Field";
-        PositionedBox box = geometry.TransformBox(widget.X1, widget.Y1, Math.Max(1D, widget.Width), Math.Max(1D, widget.Height));
+        PositionedBox box = geometry.TransformBox(widget.X1, widget.Y1, widget.Width, widget.Height);
         builder.Append("<div class=\"pdf-form-widget\" style=\"left:");
         builder.Append(Points(box.Left));
         builder.Append(";top:");
@@ -327,8 +327,8 @@ public static partial class PdfHtmlConverterExtensions {
         public PositionedBox TransformBox(double left, double bottom, double width, double height) {
             left *= Scale;
             bottom *= Scale;
-            width *= Scale;
-            height *= Scale;
+            width = Math.Max(1D, width * Scale);
+            height = Math.Max(1D, height * Scale);
             switch (RotationDegrees) {
                 case 90:
                     return new PositionedBox(PageHeight - bottom - height, left, height, width);

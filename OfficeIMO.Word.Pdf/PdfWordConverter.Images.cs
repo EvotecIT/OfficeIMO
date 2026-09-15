@@ -269,16 +269,22 @@ namespace OfficeIMO.Word.Pdf {
             PdfToWordOptions options) {
             if (assessment.HasNonDefaultOpacity) {
                 embeddedImage.Transparency = assessment.MappedTransparencyPercent;
+                bool opacityIsOmitted = assessment.MappedOpacityIsOmitted;
                 AddWarning(
                     options,
                     "PdfImageOpacityMapped",
                     "Page " + image.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image",
-                    "PDF image opacity was mapped to native Word picture transparency.",
-                    PdfCore.PdfConversionWarningSeverity.Information,
-                    OfficeConversionLossKind.None,
+                    opacityIsOmitted
+                        ? "PDF image opacity was below Word picture-transparency precision, so the image was made fully transparent."
+                        : "PDF image opacity was mapped to native Word picture transparency.",
+                    opacityIsOmitted
+                        ? PdfCore.PdfConversionWarningSeverity.Warning
+                        : PdfCore.PdfConversionWarningSeverity.Information,
+                    opacityIsOmitted ? OfficeConversionLossKind.Omission : OfficeConversionLossKind.None,
                     new Dictionary<string, string> {
                         ["ResourceName"] = image.ResourceName,
-                        ["Opacity"] = assessment.Opacity.ToString("R", CultureInfo.InvariantCulture)
+                        ["Opacity"] = assessment.Opacity.ToString("R", CultureInfo.InvariantCulture),
+                        ["MappedTransparencyPercent"] = assessment.MappedTransparencyPercent.ToString(CultureInfo.InvariantCulture)
                     });
             }
             if (assessment.HasNonNormalBlendMode) {
