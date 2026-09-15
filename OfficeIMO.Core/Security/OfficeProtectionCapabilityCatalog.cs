@@ -15,7 +15,10 @@ public sealed class OfficeProtectionCapabilityCatalog {
     public static OfficeProtectionCapabilityCatalog Current { get; } = new OfficeProtectionCapabilityCatalog(
         "OfficeIMO.ProtectedContent", 2, CreateCurrentRows());
 
-    /// <summary>Creates a protected-content capability catalog.</summary>
+    /// <summary>
+    /// Creates a protected-content capability catalog. Schema version 2 and later require defined enum values and
+    /// exactly one disposition for every unsupported operation; schema version 1 retains the legacy row contract.
+    /// </summary>
     public OfficeProtectionCapabilityCatalog(string id, int schemaVersion,
         IEnumerable<OfficeProtectionCapability> capabilities) {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Catalog id cannot be empty.", nameof(id));
@@ -27,7 +30,10 @@ public sealed class OfficeProtectionCapabilityCatalog {
             .Where(group => group.Count() > 1).Select(group => group.Key).ToArray();
         if (duplicates.Length != 0) throw new ArgumentException("Capability ids must be unique: " + string.Join(", ", duplicates), nameof(capabilities));
         if (schemaVersion >= 2) {
-            foreach (OfficeProtectionCapability row in rows) ValidateUnsupportedOperations(row);
+            foreach (OfficeProtectionCapability row in rows) {
+                ValidateDefinedEnums(row);
+                ValidateUnsupportedOperations(row);
+            }
         }
         Id = id.Trim();
         SchemaVersion = schemaVersion;
@@ -198,6 +204,19 @@ public sealed class OfficeProtectionCapabilityCatalog {
     private static OfficeProtectionCoverageState B() => OfficeProtectionCoverageState.Blocked;
     private static OfficeProtectionCoverageState NS() => OfficeProtectionCoverageState.NotSupported;
     private static OfficeProtectionCoverageState N() => OfficeProtectionCoverageState.NotApplicable;
+    private static void ValidateDefinedEnums(OfficeProtectionCapability row) {
+        if (!Enum.IsDefined(typeof(OfficeProtectionKind), row.Kind)) {
+            throw new ArgumentException($"Capability '{row.Id}' has an undefined protection kind: {row.Kind}.");
+        }
+        OfficeProtectionOperation[] operations = (OfficeProtectionOperation[])Enum.GetValues(typeof(OfficeProtectionOperation));
+        foreach (OfficeProtectionOperation operation in operations) {
+            OfficeProtectionCoverageState coverage = row.GetCoverage(operation);
+            if (!Enum.IsDefined(typeof(OfficeProtectionCoverageState), coverage)) {
+                throw new ArgumentException(
+                    $"Capability '{row.Id}' has an undefined coverage state for {operation}: {coverage}.");
+            }
+        }
+    }
     private static void ValidateUnsupportedOperations(OfficeProtectionCapability row) {
         OfficeProtectionOperation[] operations = (OfficeProtectionOperation[])Enum.GetValues(typeof(OfficeProtectionOperation));
         OfficeProtectionOperation[] unsupported = operations

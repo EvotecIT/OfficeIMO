@@ -115,7 +115,10 @@ public sealed class OfficeProtectionCapability {
     /// <summary>Important boundary or limitation.</summary>
     public string Limitation { get; }
 
-    /// <summary>Roadmap or intentional-boundary disposition for every unsupported operation.</summary>
+    /// <summary>
+    /// Roadmap or intentional-boundary classifications supplied for unsupported operations. Catalog schema version 2
+    /// and later require exactly one classification for every operation whose coverage is <see cref="OfficeProtectionCoverageState.NotSupported"/>.
+    /// </summary>
     public IReadOnlyList<OfficeProtectionUnsupportedOperation> UnsupportedOperations { get; }
 
     /// <summary>Gets the coverage state for one operation.</summary>

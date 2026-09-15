@@ -135,6 +135,29 @@ public sealed class OfficeCompatibilityCatalogContractTests {
     }
 
     [Fact]
+    public void ProtectedContentCatalogSchemaTwoRejectsUndefinedEnumValuesWithoutBreakingSchemaOne() {
+        OfficeProtectionCapability InvalidKind() => new(
+            "invalid-kind", "DOCX", "OfficeIMO.Word", (OfficeProtectionKind)999,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.Supported,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.NotApplicable,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.Supported,
+            "WordDocument.Load", "Invalid kind");
+        OfficeProtectionCapability InvalidCoverage() => new(
+            "invalid-coverage", "DOCX", "OfficeIMO.Word", OfficeProtectionKind.PasswordEncryption,
+            (OfficeProtectionCoverageState)999, OfficeProtectionCoverageState.Supported,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.NotApplicable,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.Supported,
+            "WordDocument.Load", "Invalid coverage");
+
+        _ = new OfficeProtectionCapabilityCatalog("legacy-kind", 1, new[] { InvalidKind() });
+        _ = new OfficeProtectionCapabilityCatalog("legacy-coverage", 1, new[] { InvalidCoverage() });
+        Assert.Throws<ArgumentException>(() =>
+            new OfficeProtectionCapabilityCatalog("invalid-kind", 2, new[] { InvalidKind() }));
+        Assert.Throws<ArgumentException>(() =>
+            new OfficeProtectionCapabilityCatalog("invalid-coverage", 2, new[] { InvalidCoverage() }));
+    }
+
+    [Fact]
     public void ProtectedContentCatalogEscapesEveryJsonControlCharacter() {
         var row = new OfficeProtectionCapability(
             "control-row", "EML\tformat", "OfficeIMO.Email", OfficeProtectionKind.DigitalSignature,
