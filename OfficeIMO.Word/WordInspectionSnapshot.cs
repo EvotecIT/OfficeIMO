@@ -4,7 +4,7 @@ namespace OfficeIMO.Word {
     public sealed class WordDocumentSnapshot {
         private readonly List<WordSectionSnapshot> _sections = new List<WordSectionSnapshot>();
 
-        /// <summary>Gets the source file path, when the document was opened from disk.</summary>
+        /// <summary>Gets the file path currently associated with the document, when one exists.</summary>
         public string? FilePath { get; internal set; }
         /// <summary>Gets the document title from core properties.</summary>
         public string? Title { get; internal set; }
@@ -29,7 +29,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets the zero-based section index.</summary>
         public int Index { get; internal set; }
-        /// <summary>Gets the authored section-break type.</summary>
+        /// <summary>Gets the resolved section-break type, including Word's default when no type was authored.</summary>
         public string? SectionBreakType { get; internal set; }
         /// <summary>Gets page orientation.</summary>
         public string? Orientation { get; internal set; }
@@ -194,11 +194,11 @@ namespace OfficeIMO.Word {
         public bool Underline { get; internal set; }
         /// <summary>Gets the authored underline style.</summary>
         public WordUnderlineStyle? UnderlineStyle { get; internal set; }
-        /// <summary>Gets whether single strikethrough is applied.</summary>
+        /// <summary>Gets whether single or double strikethrough is applied.</summary>
         public bool Strike { get; internal set; }
         /// <summary>Gets whether double strikethrough is applied.</summary>
         public bool DoubleStrike { get; internal set; }
-        /// <summary>Gets the rounded font size in points.</summary>
+        /// <summary>Gets the integral compatibility font size in points, truncated from half-point precision.</summary>
         public int? FontSize { get; internal set; }
         /// <summary>Run font size in points with Word's native half-point precision.</summary>
         public double? FontSizePoints { get; internal set; }
@@ -271,7 +271,7 @@ namespace OfficeIMO.Word {
 
     /// <summary>Embedded image content, dimensions, accessibility text, and layout.</summary>
     public sealed class WordInlineImageSnapshot {
-        /// <summary>Gets the source package-part path.</summary>
+        /// <summary>Gets available image-origin text, such as a caller-supplied path or file name, a linked URI, or no value for package-loaded images.</summary>
         public string? FilePath { get; internal set; }
         /// <summary>Gets the image file name.</summary>
         public string? FileName { get; internal set; }

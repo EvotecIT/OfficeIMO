@@ -13,7 +13,7 @@ namespace OfficeIMO.GoogleWorkspace {
         Flatten = 3,
         /// <summary>Render the feature as an image.</summary>
         Rasterize = 4,
-        /// <summary>Reject the translation before mutation.</summary>
+        /// <summary>Record that the translation or operation failed.</summary>
         Fail = 5,
     }
 

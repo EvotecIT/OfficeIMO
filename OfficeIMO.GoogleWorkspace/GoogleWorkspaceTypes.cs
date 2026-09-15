@@ -116,7 +116,7 @@ namespace OfficeIMO.GoogleWorkspace {
     /// Describes the Drive target location for created or updated files.
     /// </summary>
     public sealed class GoogleDriveFileLocation {
-        /// <summary>Gets or sets the shared-drive identifier, or <see langword="null"/> for My Drive.</summary>
+        /// <summary>Gets or sets the shared-drive identifier, or leaves it unspecified to use the session default and then My Drive when no default exists.</summary>
         public string? DriveId { get; set; }
         /// <summary>Gets or sets the parent folder identifier for newly created files.</summary>
         public string? FolderId { get; set; }

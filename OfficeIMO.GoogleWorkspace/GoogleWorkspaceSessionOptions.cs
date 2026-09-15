@@ -39,7 +39,7 @@ namespace OfficeIMO.GoogleWorkspace {
         public string? ExpectedAccount { get; set; }
         /// <summary>Gets or sets a callback that supplies safety, retry, and precondition policy for an operation.</summary>
         public Func<GoogleWorkspaceOperationContext, GoogleWorkspaceOperationPolicy>? OperationPolicyProvider { get; set; }
-        /// <summary>Gets or sets a sink that receives the final receipt for each operation.</summary>
+        /// <summary>Gets or sets a sink that receives the final receipt for each mutation operation.</summary>
         public Action<GoogleWorkspaceOperationReceipt>? OperationReceiptSink { get; set; }
         /// <summary>Gets or sets a sink for structured diagnostics emitted during Workspace operations.</summary>
         public Action<GoogleWorkspaceDiagnosticEntry>? DiagnosticSink { get; set; }

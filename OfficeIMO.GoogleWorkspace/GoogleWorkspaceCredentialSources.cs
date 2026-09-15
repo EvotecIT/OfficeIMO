@@ -46,7 +46,7 @@ namespace OfficeIMO.GoogleWorkspace {
         private readonly Func<IReadOnlyList<string>, CancellationToken, Task<GoogleWorkspaceAccessToken>> _acquireAccessToken;
 
         /// <summary>Creates a credential source backed by the supplied asynchronous token-acquisition delegate.</summary>
-        /// <param name="acquireAccessToken">Delegate that receives the normalized requested scopes and cancellation token.</param>
+        /// <param name="acquireAccessToken">Delegate that receives the requested scopes materialized in enumeration order and the cancellation token.</param>
         /// <exception cref="ArgumentNullException"><paramref name="acquireAccessToken"/> is <see langword="null"/>.</exception>
         public DelegateGoogleWorkspaceCredentialSource(
             Func<IReadOnlyList<string>, CancellationToken, Task<GoogleWorkspaceAccessToken>> acquireAccessToken) {

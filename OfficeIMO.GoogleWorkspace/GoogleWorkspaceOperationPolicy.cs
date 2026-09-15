@@ -3,7 +3,7 @@ namespace OfficeIMO.GoogleWorkspace {
     public enum GoogleWorkspaceDataLossDecision {
         /// <summary>Reject mutations that may omit, replace, or delete data.</summary>
         RejectPotentialLoss = 0,
-        /// <summary>Permit only the specific potential loss named by the caller.</summary>
+        /// <summary>Permit a potentially lossy mutation and retain the caller's audit label describing the accepted loss.</summary>
         AcceptSpecifiedLoss = 1,
     }
 

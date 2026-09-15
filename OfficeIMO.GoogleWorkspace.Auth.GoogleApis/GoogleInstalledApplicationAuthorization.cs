@@ -12,7 +12,7 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
         public IReadOnlyList<string> Scopes { get; set; } = Array.Empty<string>();
         /// <summary>Gets or sets the stable local user key used for token persistence.</summary>
         public string? UserId { get; set; }
-        /// <summary>Gets or sets an informational account label for resolver-free read-only credentials.</summary>
+        /// <summary>Gets or sets a legacy informational account label. Installed-application authorization does not use it as identity evidence; verified identity comes from <see cref="CredentialBindingResolver"/>.</summary>
         public string? Account { get; set; }
         /// <summary>
         /// Required by <see cref="GoogleInstalledApplicationAuthorization.AuthorizeAsync"/>; resolves the
