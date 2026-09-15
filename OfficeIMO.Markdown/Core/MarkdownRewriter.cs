@@ -1,6 +1,5 @@
 namespace OfficeIMO.Markdown;
 
-#pragma warning disable CS1591 // Rewriter hook documentation debt is confined to this compatibility API; new Markdown APIs remain checked.
 
 /// <summary>
 /// Compatibility-first recursive rewriter for markdown block trees.
@@ -71,6 +70,7 @@ public abstract class MarkdownRewriter {
     /// <summary>Hook invoked after child blocks have already been rewritten.</summary>
     protected virtual IMarkdownBlock RewriteCurrentBlock(IMarkdownBlock block) => block;
 
+    /// <summary>Rewrites each non-null entry of a mutable block list in place.</summary>
     protected void RewriteMutableBlockList(IList<IMarkdownBlock> blocks) {
         for (var i = 0; i < blocks.Count; i++) {
             var block = blocks[i];
@@ -82,6 +82,7 @@ public abstract class MarkdownRewriter {
         }
     }
 
+    /// <summary>Rewrites the child blocks owned by each list item.</summary>
     protected virtual void RewriteListItems(IList<ListItem> items) {
         for (var i = 0; i < items.Count; i++) {
             var item = items[i];
@@ -93,6 +94,7 @@ public abstract class MarkdownRewriter {
         }
     }
 
+    /// <summary>Rewrites every definition body and clears the list's cached syntax.</summary>
     protected virtual void RewriteDefinitionList(DefinitionListBlock block) {
         var groups = block.Groups;
         for (var groupIndex = 0; groupIndex < groups.Count; groupIndex++) {
@@ -109,6 +111,7 @@ public abstract class MarkdownRewriter {
         block.ClearSyntaxCache();
     }
 
+    /// <summary>Rewrites blocks contained by the table's header and body cells.</summary>
     protected virtual void RewriteTable(TableBlock table) {
         RewriteTableCells(table.StructuredHeaders);
         if (table.StructuredRows == null) {
@@ -120,6 +123,7 @@ public abstract class MarkdownRewriter {
         }
     }
 
+    /// <summary>Rewrites child blocks in each supplied table cell, ignoring a null sequence.</summary>
     protected void RewriteTableCells(IEnumerable<TableCell>? cells) {
         if (cells == null) {
             return;
@@ -134,6 +138,7 @@ public abstract class MarkdownRewriter {
         }
     }
 
+    /// <summary>Rebuilds a footnote definition from its rewritten child blocks.</summary>
     protected virtual FootnoteDefinitionBlock RewriteFootnote(FootnoteDefinitionBlock block) {
         if (block.ChildBlocks.Count == 0) {
             return block;
@@ -143,6 +148,7 @@ public abstract class MarkdownRewriter {
         return new FootnoteDefinitionBlock(block.Label, block.Text, rewrittenBlocks, syntaxChildren: null);
     }
 
+    /// <summary>Rebuilds a callout from its rewritten child blocks.</summary>
     protected virtual CalloutBlock RewriteCallout(CalloutBlock block) {
         if (block.ChildBlocks.Count == 0) {
             return block;
@@ -165,4 +171,3 @@ public abstract class MarkdownRewriter {
         return rewritten;
     }
 }
-#pragma warning restore CS1591

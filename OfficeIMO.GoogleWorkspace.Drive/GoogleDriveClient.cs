@@ -1,11 +1,17 @@
 using OfficeIMO.GoogleWorkspace;
 
 namespace OfficeIMO.GoogleWorkspace.Drive {
+    /// <summary>OAuth scopes, shared-drive behavior, and download limits for <see cref="GoogleDriveClient"/>.</summary>
     public sealed class GoogleDriveClientOptions {
+        /// <summary>Default maximum buffered or file download size: 256 MiB.</summary>
         public const long DefaultMaxDownloadBytes = 256L * 1024L * 1024L;
+        /// <summary>Gets or sets OAuth scopes used by read operations.</summary>
         public IReadOnlyList<string> ReadScopes { get; set; } = new[] { GoogleWorkspaceScopeCatalog.DriveReadonly };
+        /// <summary>Gets or sets OAuth scopes used by mutation operations.</summary>
         public IReadOnlyList<string> WriteScopes { get; set; } = new[] { GoogleWorkspaceScopeCatalog.DriveFile };
+        /// <summary>Gets or sets whether requests include shared-drive support. The default is <see langword="true"/>.</summary>
         public bool SupportsAllDrives { get; set; } = true;
+        /// <summary>Gets or sets the maximum response body accepted by download operations.</summary>
         public long MaxDownloadBytes { get; set; } = DefaultMaxDownloadBytes;
 
         /// <summary>
@@ -19,18 +25,29 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         }
     }
 
+    /// <summary>Filtering, paging, projection, and corpus options for listing Drive files.</summary>
     public sealed class GoogleDriveListOptions {
+        /// <summary>Gets or sets the Drive query expression.</summary>
         public string? Query { get; set; }
+        /// <summary>Gets or sets a shared-drive identifier to restrict the corpus.</summary>
         public string? DriveId { get; set; }
+        /// <summary>Gets or sets the continuation token from a previous page.</summary>
         public string? PageToken { get; set; }
+        /// <summary>Gets or sets the requested page size, clamped to 1 through 1000.</summary>
         public int PageSize { get; set; } = 100;
+        /// <summary>Gets or sets a comma-separated list of spaces to search. The default is <c>drive</c>.</summary>
         public string Spaces { get; set; } = "drive";
+        /// <summary>Gets or sets the Drive API ordering expression.</summary>
         public string? OrderBy { get; set; }
+        /// <summary>Gets or sets the partial-response fields expression.</summary>
         public string? Fields { get; set; }
+        /// <summary>Gets or sets whether results may include items from shared drives.</summary>
         public bool IncludeItemsFromAllDrives { get; set; } = true;
     }
 
+    /// <summary>Dependency-light client for Google Drive metadata, content, collaboration, and change operations.</summary>
     public sealed partial class GoogleDriveClient : IDisposable {
+        /// <summary>Default Drive fields requested for file metadata.</summary>
         public const string DefaultFileFields = "id,name,mimeType,driveId,parents,webViewLink,webContentLink,modifiedTime,createdTime,version,size,trashed,capabilities(canDownload,canEdit,canMoveItemWithinDrive,canMoveItemOutOfDrive,canDelete,canShare,canComment)";
 
         private readonly GoogleWorkspaceSession _session;
@@ -38,6 +55,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         private readonly GoogleDriveClientOptions _options;
         private bool _disposed;
 
+        /// <summary>Creates a Drive client bound to a Workspace session and a snapshot of client options.</summary>
         public GoogleDriveClient(GoogleWorkspaceSession session, GoogleDriveClientOptions? options = null) {
             _session = session ?? throw new ArgumentNullException(nameof(session));
             GoogleDriveClientOptions configured = options ?? new GoogleDriveClientOptions();
@@ -51,6 +69,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             _transport = new GoogleWorkspaceHttpTransport(session);
         }
 
+        /// <summary>Returns the least-privilege default scope for a logical Drive operation.</summary>
         public static IReadOnlyList<string> GetRequiredScopes(GoogleDriveOperation operation) {
             switch (operation) {
                 case GoogleDriveOperation.ReadMetadata:
@@ -70,6 +89,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             }
         }
 
+        /// <summary>Gets the MIME formats Drive can import and export for the current account.</summary>
         public async Task<GoogleDriveAboutFormats> GetFormatsAsync(
             TranslationReport? report = null,
             CancellationToken cancellationToken = default) {
@@ -87,6 +107,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 cancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>Gets metadata for one Drive file using the default or caller-selected field projection.</summary>
         public async Task<GoogleDriveFile> GetFileAsync(
             string fileId,
             string? fields = null,
@@ -108,6 +129,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 cancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>Lists one page of Drive files using the requested query and corpus options.</summary>
         public async Task<GoogleDriveFileList> ListFilesAsync(
             GoogleDriveListOptions? options = null,
             TranslationReport? report = null,
@@ -144,6 +166,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 cancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>Creates a Drive folder, optionally under a parent folder.</summary>
         public async Task<GoogleDriveFile> CreateFolderAsync(
             string name,
             string? parentId = null,
@@ -172,6 +195,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 requiredScopes: _options.WriteScopes).ConfigureAwait(false);
         }
 
+        /// <summary>Copies a Drive file with an optional new name and parent.</summary>
         public async Task<GoogleDriveFile> CopyFileAsync(
             string fileId,
             string? name = null,
@@ -200,6 +224,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 requiredScopes: _options.WriteScopes).ConfigureAwait(false);
         }
 
+        /// <summary>Moves a file to one folder, removing its existing parents when necessary.</summary>
         public async Task<GoogleDriveFile> MoveFileAsync(
             string fileId,
             string folderId,
@@ -236,6 +261,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 requiredScopes: _options.WriteScopes).ConfigureAwait(false);
         }
 
+        /// <summary>Permanently deletes a Drive file using guarded mutation policy.</summary>
         public async Task DeleteFileAsync(
             string fileId,
             TranslationReport? report = null,
@@ -246,6 +272,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             await DeleteFileWithTokenAsync(token, fileId, report, cancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>Gets metadata and caller capabilities for a shared drive.</summary>
         public async Task<GoogleSharedDrive> GetSharedDriveAsync(
             string driveId,
             TranslationReport? report = null,
@@ -265,6 +292,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 cancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>Gets a folder and verifies its type and, when supplied, containing shared drive.</summary>
         public async Task<GoogleDriveFile> ResolveFolderAsync(
             string folderId,
             string? expectedDriveId = null,
@@ -283,6 +311,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             return folder;
         }
 
+        /// <summary>Releases transport resources owned by the client.</summary>
         public void Dispose() {
             if (_disposed) return;
             _transport.Dispose();
@@ -364,16 +393,27 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         }
     }
 
+    /// <summary>Logical Drive operation used to select a least-privilege OAuth scope.</summary>
     public enum GoogleDriveOperation {
+        /// <summary>Read file, folder, or shared-drive metadata.</summary>
         ReadMetadata = 0,
+        /// <summary>Download binary file content.</summary>
         Download = 1,
+        /// <summary>Export a Google-native file to an external format.</summary>
         Export = 2,
+        /// <summary>Create, copy, move, or upload content.</summary>
         CreateOrUpdate = 3,
+        /// <summary>Create or delete file permissions.</summary>
         ManagePermissions = 4,
+        /// <summary>Read file comments and replies.</summary>
         ReadComments = 5,
+        /// <summary>Create, update, resolve, or delete comments and replies.</summary>
         ManageComments = 6,
+        /// <summary>Read file revision history.</summary>
         ReadRevisions = 7,
+        /// <summary>Read the account or shared-drive change feed.</summary>
         ReadChanges = 8,
+        /// <summary>Permanently delete a Drive file.</summary>
         Delete = 9,
     }
 }

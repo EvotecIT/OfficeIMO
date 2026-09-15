@@ -1,7 +1,11 @@
 using System.Text.Json;
 
 namespace OfficeIMO.GoogleWorkspace {
+    /// <summary>Extracts concise diagnostic text from OAuth and Google API error payloads.</summary>
     public static class GoogleWorkspaceApiErrorFormatter {
+        /// <summary>Formats a supported JSON error payload for inclusion in an exception message.</summary>
+        /// <param name="responseBody">Raw response body returned by Google.</param>
+        /// <returns>A concise error description, or <see langword="null"/> for empty, invalid, or unrecognized payloads.</returns>
         public static string? Format(string responseBody) {
             if (string.IsNullOrWhiteSpace(responseBody)) {
                 return null;

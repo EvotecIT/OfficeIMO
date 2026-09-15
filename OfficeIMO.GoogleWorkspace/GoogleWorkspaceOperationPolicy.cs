@@ -1,32 +1,47 @@
 namespace OfficeIMO.GoogleWorkspace {
     /// <summary>Caller decision for a mutation whose outcome can omit, replace, or delete data.</summary>
     public enum GoogleWorkspaceDataLossDecision {
+        /// <summary>Reject mutations that may omit, replace, or delete data.</summary>
         RejectPotentialLoss = 0,
+        /// <summary>Permit only the specific potential loss named by the caller.</summary>
         AcceptSpecifiedLoss = 1,
     }
 
     /// <summary>Caller-selected behavior when Google reports quota throttling.</summary>
     public enum GoogleWorkspaceRateLimitPolicy {
+        /// <summary>Retry retryable quota responses and honor the server's <c>Retry-After</c> guidance.</summary>
         HonorRetryAfter = 0,
+        /// <summary>Return quota responses immediately without retrying them.</summary>
         FailFast = 1,
     }
 
     /// <summary>Semantic mutation kind supplied by the adapter independently of the HTTP verb.</summary>
     public enum GoogleWorkspaceMutationKind {
+        /// <summary>The adapter did not declare mutation semantics.</summary>
         Unspecified = 0,
+        /// <summary>Create a new remote resource.</summary>
         Create = 1,
+        /// <summary>Change an existing remote resource.</summary>
         Update = 2,
+        /// <summary>Delete a remote resource.</summary>
         Delete = 3,
+        /// <summary>Invoke a state-changing remote action.</summary>
         Action = 4,
     }
 
     /// <summary>How a Google mutation's expected revision is actually enforced.</summary>
     public enum GoogleWorkspaceRevisionPreconditionKind {
+        /// <summary>No revision-enforcement mode was declared.</summary>
         Unspecified = 0,
+        /// <summary>Creation is permitted only when the target resource is absent.</summary>
         ResourceAbsentCreate = 1,
+        /// <summary>An HTTP entity tag is enforced through <c>If-Match</c>.</summary>
         HttpEntityTag = 2,
+        /// <summary>The adapter embeds the expected revision in the request payload.</summary>
         PayloadRevision = 3,
+        /// <summary>The Google API exposes no usable conditional revision mechanism.</summary>
         Unavailable = 4,
+        /// <summary>A resumable upload session enforces the expected byte-range state.</summary>
         ResumableSessionState = 5,
     }
 
@@ -70,6 +85,7 @@ namespace OfficeIMO.GoogleWorkspace {
         internal static GoogleWorkspaceRevisionPrecondition ResourceAbsentCreate { get; } =
             new GoogleWorkspaceRevisionPrecondition(GoogleWorkspaceRevisionPreconditionKind.ResourceAbsentCreate);
 
+        /// <summary>Gets the revision-enforcement mechanism declared by the adapter.</summary>
         public GoogleWorkspaceRevisionPreconditionKind Kind { get; }
 
         /// <summary>The exact revision or resumable-session state already carried by the adapter request.</summary>
@@ -92,9 +108,13 @@ namespace OfficeIMO.GoogleWorkspace {
             MaxRetryCount = maxRetryCount; MaxRetryElapsedTime = maxRetryElapsedTime;
             RateLimitPolicy = rateLimitPolicy;
         }
+        /// <summary>Gets the Google service handling the operation.</summary>
         public string Service { get; }
+        /// <summary>Gets the HTTP method used for the request.</summary>
         public string Method { get; }
+        /// <summary>Gets the logical target identifier supplied by the adapter.</summary>
         public string Target { get; }
+        /// <summary>Gets whether the request may be retried safely after an ambiguous transport failure.</summary>
         public GoogleWorkspaceRequestSafety RequestSafety { get; }
         /// <summary>Adapter-declared create, update, delete, or action semantics; never inferred from POST alone.</summary>
         public GoogleWorkspaceMutationKind MutationKind { get; }
@@ -104,6 +124,7 @@ namespace OfficeIMO.GoogleWorkspace {
         public string? AdapterExpectedRevision { get; }
         /// <summary>True when the request deletes remote data or otherwise has a transport-known loss risk.</summary>
         public bool PotentialDataLoss { get; }
+        /// <summary>Gets the correlation or idempotency identifier attached to the request, when available.</summary>
         public string? RequestId { get; }
         /// <summary>The exact OAuth scopes requested by the adapter for this operation.</summary>
         public IReadOnlyList<string> RequiredScopes { get; }
@@ -122,6 +143,16 @@ namespace OfficeIMO.GoogleWorkspace {
 
         private const string ExplicitlyUnversionedPrefix = "explicitly-unversioned:";
 
+        /// <summary>Creates the caller-approved identity, scope, revision, retry, and data-loss contract for one mutation.</summary>
+        /// <param name="account">Provider-verified account expected to perform the mutation.</param>
+        /// <param name="scopes">OAuth scopes that must be bound to the credential.</param>
+        /// <param name="target">Logical resource identifier the mutation is allowed to affect.</param>
+        /// <param name="expectedRevision">Required revision, create marker, or value returned by <see cref="ExplicitlyUnversionedRevision"/>.</param>
+        /// <param name="maxRetryCount">Maximum number of retries after the initial request.</param>
+        /// <param name="maxRetryElapsedTime">Maximum aggregate retry duration.</param>
+        /// <param name="rateLimitPolicy">Behavior for retryable quota responses.</param>
+        /// <param name="dataLossDecision">Decision for potential data loss.</param>
+        /// <param name="acceptedLoss">Specific loss accepted by the caller when acceptance is selected.</param>
         public GoogleWorkspaceOperationPolicy(string account, IEnumerable<string> scopes, string target,
             string expectedRevision, int maxRetryCount, TimeSpan maxRetryElapsedTime,
             GoogleWorkspaceRateLimitPolicy rateLimitPolicy, GoogleWorkspaceDataLossDecision dataLossDecision,
@@ -139,14 +170,23 @@ namespace OfficeIMO.GoogleWorkspace {
             MaxRetryCount = maxRetryCount; MaxRetryElapsedTime = maxRetryElapsedTime;
             RateLimitPolicy = rateLimitPolicy; DataLossDecision = dataLossDecision; AcceptedLoss = acceptedLoss;
         }
+        /// <summary>Gets the provider-verified account approved for the mutation.</summary>
         public string Account { get; }
+        /// <summary>Gets the OAuth scopes required by the mutation.</summary>
         public IReadOnlyList<string> Scopes { get; }
+        /// <summary>Gets the logical resource identifier the mutation may affect.</summary>
         public string Target { get; }
+        /// <summary>Gets the required revision decision.</summary>
         public string ExpectedRevision { get; }
+        /// <summary>Gets the maximum number of retries after the initial request.</summary>
         public int MaxRetryCount { get; }
+        /// <summary>Gets the maximum aggregate retry duration.</summary>
         public TimeSpan MaxRetryElapsedTime { get; }
+        /// <summary>Gets the behavior for retryable quota responses.</summary>
         public GoogleWorkspaceRateLimitPolicy RateLimitPolicy { get; }
+        /// <summary>Gets the caller's decision for potential data loss.</summary>
         public GoogleWorkspaceDataLossDecision DataLossDecision { get; }
+        /// <summary>Gets the specific loss accepted by the caller, when acceptance was selected.</summary>
         public string? AcceptedLoss { get; }
 
         /// <summary>
@@ -166,6 +206,15 @@ namespace OfficeIMO.GoogleWorkspace {
 
     /// <summary>Non-secret, caller-observable evidence for one attempted cloud mutation.</summary>
     public sealed class GoogleWorkspaceOperationReceipt {
+        /// <summary>Creates observable evidence for a completed mutation attempt.</summary>
+        /// <param name="policy">Caller-approved operation policy.</param>
+        /// <param name="service">Google service that handled the request.</param>
+        /// <param name="method">HTTP method used for the request.</param>
+        /// <param name="target">Logical target identifier.</param>
+        /// <param name="requestId">Correlation identifier, when available.</param>
+        /// <param name="retryCount">Number of retries performed.</param>
+        /// <param name="succeeded">Whether the remote operation completed successfully.</param>
+        /// <param name="outcome">Human-readable outcome summary.</param>
         public GoogleWorkspaceOperationReceipt(GoogleWorkspaceOperationPolicy policy, string service,
             string method, string target, string? requestId, int retryCount, bool succeeded, string outcome) {
             Policy = policy; Service = service; Method = method; Target = target; RequestId = requestId;
@@ -184,13 +233,21 @@ namespace OfficeIMO.GoogleWorkspace {
             IsOutcomeAmbiguous = isOutcomeAmbiguous;
             CompletedAt = DateTimeOffset.UtcNow;
         }
+        /// <summary>Gets the caller-approved policy applied to the mutation.</summary>
         public GoogleWorkspaceOperationPolicy Policy { get; }
+        /// <summary>Gets the Google service that handled the request.</summary>
         public string Service { get; }
+        /// <summary>Gets the HTTP method used for the request.</summary>
         public string Method { get; }
+        /// <summary>Gets the logical target identifier.</summary>
         public string Target { get; }
+        /// <summary>Gets the correlation or idempotency identifier, when available.</summary>
         public string? RequestId { get; }
+        /// <summary>Gets the number of retries performed after the initial request.</summary>
         public int RetryCount { get; }
+        /// <summary>Gets whether the remote operation completed successfully.</summary>
         public bool Succeeded { get; }
+        /// <summary>Gets the human-readable outcome summary.</summary>
         public string Outcome { get; }
         /// <summary>
         /// True when the request may have committed remotely but no response headers were received.
@@ -203,6 +260,7 @@ namespace OfficeIMO.GoogleWorkspace {
         public GoogleWorkspaceRevisionPreconditionKind RevisionPreconditionKind { get; }
         /// <summary>The revision actually enforced by HTTP or payload precondition, when one was available.</summary>
         public string? EnforcedRevision { get; }
+        /// <summary>Gets the UTC instant when the receipt was created.</summary>
         public DateTimeOffset CompletedAt { get; }
     }
 

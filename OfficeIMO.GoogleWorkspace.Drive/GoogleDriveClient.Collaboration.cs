@@ -1,29 +1,44 @@
 using OfficeIMO.GoogleWorkspace;
 
 namespace OfficeIMO.GoogleWorkspace.Drive {
+    /// <summary>Grantee, role, discovery, and notification settings for creating a Drive permission.</summary>
     public sealed class GoogleDrivePermissionCreateOptions {
+        /// <summary>Gets or sets the grantee type. The default is <c>user</c>.</summary>
         public string Type { get; set; } = "user";
+        /// <summary>Gets or sets the granted role. The default is <c>reader</c>.</summary>
         public string Role { get; set; } = "reader";
+        /// <summary>Gets or sets the user or group email address.</summary>
         public string? EmailAddress { get; set; }
+        /// <summary>Gets or sets the domain for a domain permission.</summary>
         public string? Domain { get; set; }
+        /// <summary>Gets or sets whether an anyone or domain permission makes the file discoverable.</summary>
         public bool? AllowFileDiscovery { get; set; }
+        /// <summary>Gets or sets whether Google emails the grantee. The default is <see langword="true"/>.</summary>
         public bool SendNotificationEmail { get; set; } = true;
+        /// <summary>Gets or sets an optional message included in the notification email.</summary>
         public string? EmailMessage { get; set; }
     }
 
+    /// <summary>Corpus, paging, removal, and field options for reading a Drive change feed.</summary>
     public sealed class GoogleDriveChangeListOptions {
+        /// <summary>Gets or sets a shared-drive identifier for a drive-specific change feed.</summary>
         public string? DriveId { get; set; }
+        /// <summary>Gets or sets the requested page size, clamped to 1 through 1000.</summary>
         public int PageSize { get; set; } = 100;
+        /// <summary>Gets or sets whether removed resources appear in the feed.</summary>
         public bool IncludeRemoved { get; set; } = true;
+        /// <summary>Gets or sets whether resources removed from the requested corpus appear in the feed.</summary>
         public bool IncludeCorpusRemovals { get; set; } = true;
         /// <summary>
         /// Whether a user change feed should include items from shared drives. Disable this when shared-drive
         /// feeds are consumed separately to prevent the same shared-drive change from being observed twice.
         /// </summary>
         public bool IncludeItemsFromAllDrives { get; set; } = true;
+        /// <summary>Gets or sets the partial-response fields expression.</summary>
         public string? Fields { get; set; }
     }
 
+    /// <summary>Provides Drive collaboration, revision, and change-feed operations.</summary>
     public sealed partial class GoogleDriveClient {
         /// <summary>Lists one page of permissions for a file or shared drive.</summary>
         /// <param name="fileId">The file or shared-drive identifier.</param>
@@ -60,6 +75,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 cancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>Creates a permission for a file or shared drive.</summary>
         public async Task<GoogleDrivePermission> CreatePermissionAsync(
             string fileId,
             GoogleDrivePermissionCreateOptions options,
@@ -98,6 +114,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 requiredScopes: Options.WriteScopes).ConfigureAwait(false);
         }
 
+        /// <summary>Deletes a permission from a file or shared drive.</summary>
         public async Task DeletePermissionAsync(
             string fileId,
             string permissionId,
@@ -121,6 +138,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 requiredScopes: Options.WriteScopes).ConfigureAwait(false);
         }
 
+        /// <summary>Lists one page of comments, including deleted threads and replies.</summary>
         public async Task<GoogleDriveCommentList> ListCommentsAsync(
             string fileId,
             string? pageToken = null,
@@ -142,6 +160,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 cancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>Creates a Drive comment and reports the editor limitation for custom anchors.</summary>
         public async Task<GoogleDriveComment> CreateCommentAsync(
             string fileId,
             string content,
@@ -202,6 +221,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 requiredScopes: Options.WriteScopes).ConfigureAwait(false);
         }
 
+        /// <summary>Creates a reply or applies an action such as resolving a comment thread.</summary>
         public async Task<GoogleDriveReply> CreateReplyAsync(
             string fileId,
             string commentId,
@@ -260,6 +280,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 requiredScopes: Options.WriteScopes).ConfigureAwait(false);
         }
 
+        /// <summary>Lists one page of revision metadata for a Drive file.</summary>
         public async Task<GoogleDriveRevisionList> ListRevisionsAsync(
             string fileId,
             string? pageToken = null,
@@ -281,6 +302,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 cancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>Gets a starting token for a user or shared-drive change feed.</summary>
         public async Task<string> GetStartPageTokenAsync(
             string? driveId = null,
             TranslationReport? report = null,
@@ -301,6 +323,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             return response.Value ?? throw new InvalidOperationException("Google Drive did not return a start page token.");
         }
 
+        /// <summary>Reads one page from a Drive change feed and returns continuation state.</summary>
         public async Task<GoogleDriveChangeList> ListChangesAsync(
             string pageToken,
             GoogleDriveChangeListOptions? options = null,

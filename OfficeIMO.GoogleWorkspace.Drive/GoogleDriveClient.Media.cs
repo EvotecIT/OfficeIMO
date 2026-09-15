@@ -6,29 +6,43 @@ using System.Security.Cryptography;
 using System.Text;
 
 namespace OfficeIMO.GoogleWorkspace.Drive {
+    /// <summary>File metadata, conversion, chunking, and progress settings for Drive uploads.</summary>
     public sealed class GoogleDriveUploadOptions {
+        /// <summary>Gets or sets the destination file name.</summary>
         public string Name { get; set; } = string.Empty;
+        /// <summary>Gets or sets the uploaded content MIME type.</summary>
         public string ContentType { get; set; } = "application/octet-stream";
+        /// <summary>Gets or sets the destination parent-folder identifier.</summary>
         public string? ParentId { get; set; }
+        /// <summary>Gets or sets a Google-native MIME type into which Drive should convert the upload.</summary>
         public string? ConvertToGoogleMimeType { get; set; }
+        /// <summary>Gets or sets the resumable chunk size; values are normalized to Drive's 256 KiB alignment.</summary>
         public int ResumableChunkSize { get; set; } = 8 * 1024 * 1024;
+        /// <summary>Gets or sets a receiver for confirmed transfer progress.</summary>
         public IProgress<GoogleDriveTransferProgress>? Progress { get; set; }
     }
 
+    /// <summary>Confirmed byte progress for a Drive upload, download, or export.</summary>
     public sealed class GoogleDriveTransferProgress {
+        /// <summary>Creates a progress snapshot.</summary>
         public GoogleDriveTransferProgress(long bytesTransferred, long? totalBytes) {
             BytesTransferred = bytesTransferred;
             TotalBytes = totalBytes;
         }
 
+        /// <summary>Gets the byte count confirmed as transferred.</summary>
         public long BytesTransferred { get; }
+        /// <summary>Gets the expected total byte count, when known.</summary>
         public long? TotalBytes { get; }
+        /// <summary>Gets completion from 0 through 100, or <see langword="null"/> when total length is unknown or zero.</summary>
         public double? Percentage => TotalBytes > 0 ? (double)BytesTransferred / TotalBytes.Value * 100d : null;
     }
 
     public sealed partial class GoogleDriveClient {
         internal const long MultipartUploadLimitBytes = 5L * 1024 * 1024;
 
+        /// <summary>Uploads content of at most 5 MiB in one multipart request.</summary>
+        /// <returns>Metadata for the created Drive file.</returns>
         public async Task<GoogleDriveFile> UploadMultipartAsync(
             byte[] content,
             GoogleDriveUploadOptions options,
@@ -59,6 +73,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             return file;
         }
 
+        /// <summary>Uploads in aligned resumable chunks and reconciles ambiguous chunk responses with the server session.</summary>
+        /// <returns>Metadata for the created Drive file.</returns>
         public async Task<GoogleDriveFile> UploadResumableAsync(
             byte[] content,
             GoogleDriveUploadOptions options,
@@ -171,6 +187,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 || exception is TaskCanceledException;
         }
 
+        /// <summary>Downloads binary file content into memory subject to the configured or per-call size limit.</summary>
         public async Task<byte[]> DownloadAsync(
             string fileId,
             IProgress<GoogleDriveTransferProgress>? progress = null,
@@ -193,6 +210,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             return bytes;
         }
 
+        /// <summary>Exports a Google-native file into memory using the requested MIME type and size limit.</summary>
         public async Task<byte[]> ExportAsync(
             string fileId,
             string mimeType,

@@ -24,7 +24,13 @@ namespace OfficeIMO.GoogleWorkspace {
             : base("The request ended before response headers were received.", innerException) { }
     }
 
+    /// <summary>Immutable retry limits and rate-limit behavior for a Google Workspace request.</summary>
     public sealed class GoogleWorkspaceRetryOptions {
+        /// <summary>Creates normalized retry options.</summary>
+        /// <param name="maxRetryCount">Maximum retries after the initial request; negative values become zero.</param>
+        /// <param name="baseDelay">Initial backoff delay; nonpositive values use 200 milliseconds.</param>
+        /// <param name="maxDelay">Maximum delay between attempts; nonpositive values use 5 seconds and values below the base delay are raised to it.</param>
+        /// <param name="sessionOptions">Optional source for elapsed-time and rate-limit policy.</param>
         public GoogleWorkspaceRetryOptions(int maxRetryCount, TimeSpan baseDelay, TimeSpan maxDelay,
             GoogleWorkspaceSessionOptions? sessionOptions = null) {
             MaxRetryCount = Math.Max(0, maxRetryCount);
@@ -38,20 +44,38 @@ namespace OfficeIMO.GoogleWorkspace {
             }
         }
 
+        /// <summary>Gets the maximum retries after the initial request.</summary>
         public int MaxRetryCount { get; }
+        /// <summary>Gets the initial exponential-backoff delay.</summary>
         public TimeSpan BaseDelay { get; }
+        /// <summary>Gets the upper bound for one retry delay.</summary>
         public TimeSpan MaxDelay { get; }
+        /// <summary>Gets the originating session settings, when supplied.</summary>
         public GoogleWorkspaceSessionOptions? SessionOptions { get; }
+        /// <summary>Gets the maximum aggregate elapsed time for attempts and delays.</summary>
         public TimeSpan MaxElapsedTime { get; }
+        /// <summary>Gets the behavior applied to retryable quota responses.</summary>
         public GoogleWorkspaceRateLimitPolicy RateLimitPolicy { get; }
 
+        /// <summary>Creates retry options from the corresponding session settings.</summary>
+        /// <param name="options">Session settings to snapshot.</param>
+        /// <returns>Normalized immutable retry options.</returns>
         public static GoogleWorkspaceRetryOptions FromSessionOptions(GoogleWorkspaceSessionOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
             return new GoogleWorkspaceRetryOptions(options.MaxRetryCount, options.RetryBaseDelay, options.RetryMaxDelay, options);
         }
     }
 
+    /// <summary>Describes a retry immediately before its delay is applied.</summary>
     public sealed class GoogleWorkspaceRetryEvent {
+        /// <summary>Creates observable retry telemetry.</summary>
+        /// <param name="method">HTTP method of the request.</param>
+        /// <param name="uri">Request URI.</param>
+        /// <param name="retryAttempt">One-based retry number about to run.</param>
+        /// <param name="maxRetryCount">Maximum retries allowed.</param>
+        /// <param name="trigger">Response or transport condition that triggered the retry.</param>
+        /// <param name="delay">Delay before the next attempt.</param>
+        /// <param name="delayStrategy">Strategy that selected the delay.</param>
         public GoogleWorkspaceRetryEvent(
             string method,
             string uri,
@@ -69,18 +93,28 @@ namespace OfficeIMO.GoogleWorkspace {
             DelayStrategy = delayStrategy ?? string.Empty;
         }
 
+        /// <summary>Gets the HTTP method of the request.</summary>
         public string Method { get; }
+        /// <summary>Gets the request URI.</summary>
         public string Uri { get; }
+        /// <summary>Gets the one-based retry number about to run.</summary>
         public int RetryAttempt { get; }
+        /// <summary>Gets the maximum retries allowed.</summary>
         public int MaxRetryCount { get; }
+        /// <summary>Gets the response or transport condition that triggered the retry.</summary>
         public string Trigger { get; }
+        /// <summary>Gets the delay before the next attempt.</summary>
         public TimeSpan Delay { get; }
+        /// <summary>Gets whether server guidance or exponential backoff selected the delay.</summary>
         public string DelayStrategy { get; }
     }
 
+    /// <summary>Sends replayable Google API requests with bounded transient-failure retries.</summary>
     public static class GoogleWorkspaceRetryPolicy {
         private const int MaximumRateLimitErrorBytes = 64 * 1024;
 
+        /// <summary>Sends a request with retry policy and no per-attempt timeout.</summary>
+        /// <returns>The final response. The caller owns and must dispose it.</returns>
         public static Task<HttpResponseMessage> SendAsync(
             HttpClient client,
             Func<HttpRequestMessage> requestFactory,
@@ -98,6 +132,9 @@ namespace OfficeIMO.GoogleWorkspace {
                 onRetry);
         }
 
+        /// <summary>Sends a request with retry policy and a per-attempt timeout.</summary>
+        /// <returns>The final response. The caller owns and must dispose it.</returns>
+        /// <remarks>Only safe and idempotent requests are replayed after transport or retryable HTTP failures.</remarks>
         public static async Task<HttpResponseMessage> SendAsync(
             HttpClient client,
             Func<HttpRequestMessage> requestFactory,

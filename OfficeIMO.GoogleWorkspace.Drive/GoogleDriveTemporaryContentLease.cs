@@ -1,22 +1,33 @@
 using OfficeIMO.GoogleWorkspace;
 
 namespace OfficeIMO.GoogleWorkspace.Drive {
+    /// <summary>Cleanup state for one temporary public Drive file.</summary>
     public enum GoogleDriveCleanupStatus {
+        /// <summary>Cleanup has not completed.</summary>
         Pending = 0,
+        /// <summary>The temporary file was deleted successfully.</summary>
         Deleted = 1,
+        /// <summary>Deletion failed and requires follow-up.</summary>
         Failed = 2,
     }
 
+    /// <summary>Cleanup result for one temporary Drive file.</summary>
     public sealed class GoogleDriveCleanupEntry {
+        /// <summary>Gets or sets the Drive file identifier.</summary>
         public string FileId { get; set; } = string.Empty;
+        /// <summary>Gets or sets the current cleanup state.</summary>
         public GoogleDriveCleanupStatus Status { get; set; }
+        /// <summary>Gets or sets the deletion error when cleanup failed.</summary>
         public string? Error { get; set; }
     }
 
+    /// <summary>Tracks cleanup outcomes for temporary Drive content created by an operation.</summary>
     public sealed class GoogleDriveCleanupReport {
         private readonly List<GoogleDriveCleanupEntry> _entries = new List<GoogleDriveCleanupEntry>();
 
+        /// <summary>Gets cleanup entries in creation order.</summary>
         public IReadOnlyList<GoogleDriveCleanupEntry> Entries => _entries;
+        /// <summary>Gets whether at least one temporary file could not be deleted.</summary>
         public bool HasFailures => _entries.Any(entry => entry.Status == GoogleDriveCleanupStatus.Failed);
 
         internal GoogleDriveCleanupEntry Add(string fileId) {
@@ -26,6 +37,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         }
     }
 
+    /// <summary>Owns a short-lived publicly readable Drive file and its explicit cleanup result.</summary>
     public sealed class GoogleDriveTemporaryContentLease {
         private readonly GoogleDriveClient _client;
         private readonly TranslationReport _report;
@@ -47,10 +59,15 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             _cleanupEntry = cleanupReport.Add(file.Id ?? string.Empty);
         }
 
+        /// <summary>Gets metadata for the temporary Drive file.</summary>
         public GoogleDriveFile File { get; }
+        /// <summary>Gets the public download URI exposed while the lease is active.</summary>
         public string PublicUri { get; }
+        /// <summary>Gets the cleanup report associated with this lease.</summary>
         public GoogleDriveCleanupReport CleanupReport { get; }
 
+        /// <summary>Uploads content, grants a non-discoverable public-reader permission, and returns a cleanup lease.</summary>
+        /// <remarks>If permission creation fails after upload, the method attempts immediate best-effort deletion before rethrowing.</remarks>
         public static async Task<GoogleDriveTemporaryContentLease> CreatePublicReadLeaseAsync(
             GoogleDriveClient client,
             byte[] content,
@@ -102,6 +119,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             }
         }
 
+        /// <summary>Deletes the temporary file once and returns the persistent cleanup result.</summary>
+        /// <remarks>Failed deletion may be retried by calling this method again; successful cleanup is idempotent.</remarks>
         public async Task<GoogleDriveCleanupReport> CleanupAsync(CancellationToken cancellationToken = default) {
             await _cleanupGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try {

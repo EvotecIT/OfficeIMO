@@ -18,6 +18,11 @@ namespace OfficeIMO.GoogleWorkspace {
         private readonly bool _disposeHttpClient;
         private readonly RSAParameters _privateKeyParameters;
 
+        /// <summary>Creates a service-account credential source from an email identity and PKCS#8 PEM private key.</summary>
+        /// <param name="clientEmail">Service-account email used as the JWT issuer.</param>
+        /// <param name="privateKeyPem">RSA private key in PEM form used to sign JWT assertions.</param>
+        /// <param name="tokenEndpoint">OAuth token endpoint, or <see langword="null"/> for Google's default endpoint.</param>
+        /// <param name="sessionOptions">Optional delegation, HTTP-client, and timeout settings.</param>
         public GoogleServiceAccountCredentialSource(
             string clientEmail,
             string privateKeyPem,
@@ -46,13 +51,23 @@ namespace OfficeIMO.GoogleWorkspace {
             _privateKeyParameters = GoogleServiceAccountPemKeyLoader.LoadRsaPrivateKey(privateKeyPem);
         }
 
+        /// <summary>Gets the service-account email used as the JWT issuer.</summary>
         public string ClientEmail { get; }
+        /// <summary>Gets the OAuth endpoint used to exchange signed JWT assertions.</summary>
         public string TokenEndpoint { get; }
+        /// <summary>Gets the Workspace user to impersonate when domain-wide delegation is enabled.</summary>
         public string? SubjectUser { get; }
+        /// <summary>Gets whether JWT assertions include the delegated subject user.</summary>
         public bool UseDomainWideDelegation { get; }
+        /// <summary>Gets the requested lifetime of signed JWT assertions and fallback access-token lifetime.</summary>
         public TimeSpan TokenLifetime { get; }
+        /// <summary>Gets how early a cached token is refreshed before its expiry.</summary>
         public TimeSpan RefreshSkew { get; }
 
+        /// <summary>Creates a credential source from a Google service-account JSON document.</summary>
+        /// <param name="serviceAccountJson">JSON containing <c>client_email</c>, <c>private_key</c>, and optionally <c>token_uri</c>.</param>
+        /// <param name="sessionOptions">Optional delegation, HTTP-client, and timeout settings.</param>
+        /// <returns>A configured credential source.</returns>
         public static GoogleServiceAccountCredentialSource FromJson(
             string serviceAccountJson,
             GoogleWorkspaceSessionOptions? sessionOptions = null) {
@@ -74,6 +89,10 @@ namespace OfficeIMO.GoogleWorkspace {
                 sessionOptions);
         }
 
+        /// <summary>Creates a credential source from a Google service-account JSON file.</summary>
+        /// <param name="serviceAccountJsonPath">Path to the service-account JSON file.</param>
+        /// <param name="sessionOptions">Optional delegation, HTTP-client, and timeout settings.</param>
+        /// <returns>A configured credential source.</returns>
         public static GoogleServiceAccountCredentialSource FromFile(
             string serviceAccountJsonPath,
             GoogleWorkspaceSessionOptions? sessionOptions = null) {
@@ -81,6 +100,8 @@ namespace OfficeIMO.GoogleWorkspace {
             return FromJson(File.ReadAllText(serviceAccountJsonPath), sessionOptions);
         }
 
+        /// <inheritdoc />
+        /// <remarks>Tokens are cached by normalized scope set and refreshed when they enter <see cref="RefreshSkew"/>.</remarks>
         public async Task<GoogleWorkspaceAccessToken> AcquireAccessTokenAsync(
             IEnumerable<string> scopes,
             CancellationToken cancellationToken = default) {
@@ -103,6 +124,7 @@ namespace OfficeIMO.GoogleWorkspace {
             }
         }
 
+        /// <summary>Releases the token-cache lock and the internally created HTTP client, if any.</summary>
         public void Dispose() {
             if (_disposeHttpClient) {
                 _httpClient.Dispose();
