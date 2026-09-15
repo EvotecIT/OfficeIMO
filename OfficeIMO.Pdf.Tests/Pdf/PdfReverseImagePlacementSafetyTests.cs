@@ -310,6 +310,24 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void PositionedPageAppearanceChargesInterpolatedDecodedImagesToOneAggregatePixelBudget() {
+        byte[] tiff = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(
+            new OfficeIMO.Drawing.OfficeRasterImage(300, 200, OfficeIMO.Drawing.OfficeColor.Red),
+            OfficeIMO.Drawing.OfficeImageExportFormat.Tiff);
+        PdfExtractedImage first = new PdfExtractedImage(
+            1, "Im1", 5, 300, 200, 24, "DeviceRGB", string.Empty,
+            tiff, "tiff", "image/tiff", isImageFile: true, interpolate: true);
+        PdfExtractedImage second = new PdfExtractedImage(
+            1, "Im2", 6, 300, 200, 24, "DeviceRGB", string.Empty,
+            tiff, "tiff", "image/tiff", isImageFile: true, interpolate: true);
+
+        Assert.True(PdfHtmlConverterExtensions.CanRenderPageAppearanceImagesWithinBudgetForTesting(
+            new[] { first }, 100_000));
+        Assert.False(PdfHtmlConverterExtensions.CanRenderPageAppearanceImagesWithinBudgetForTesting(
+            new[] { first, second }, 100_000));
+    }
+
+    [Fact]
     public void RotatedPageClipsAreComparedInTheSameVisualCoordinateSpaceAsImages() {
         const string content = "q 0 0 150 60 re W n 40 0 0 80 20 20 cm /Im1 Do Q\n";
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(content, pageEntries: "/Rotate 90"));
@@ -604,6 +622,68 @@ public sealed class PdfReverseImagePlacementSafetyTests {
                 unscaled.Value.Paragraphs,
                 candidate => candidate.Text.Contains(marker, StringComparison.Ordinal));
             Assert.Equal(10D, paragraph.FontSizePoints);
+        }
+    }
+
+    [Fact]
+    public void PreservedWordPageSizeScalesImportedTableCellTypographyByThePageUserUnit() {
+        byte[] source = WithUserUnit(
+            CreateDocument()
+                .Table(new[] {
+                    new[] { "Item", "Amount" },
+                    new[] { "Service", "42.00" }
+                })
+                .ToBytes(),
+            2D);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        Assert.NotEmpty(logical.Tables);
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult(PdfToWordOptions.CreateTablesOnly());
+        using (word.Value) {
+            using var serialized = new MemoryStream(word.Value.ToBytes());
+            using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
+            OfficeIMO.Word.WordTable table = Assert.Single(reopened.Tables);
+            Assert.All(table.Rows.SelectMany(static row => row.Cells), static cell =>
+                Assert.All(cell.Paragraphs, static paragraph => Assert.Equal(22D, paragraph.FontSizePoints)));
+        }
+    }
+
+    [Theory]
+    [InlineData("q -80 0 0 40 100 30 cm /Im1 Do Q\n", true, false)]
+    [InlineData("q 80 0 0 -40 20 70 cm /Im1 Do Q\n", false, true)]
+    [InlineData("q -80 0 0 -40 100 70 cm /Im1 Do Q\n", true, true)]
+    public void WordPreservesAxisAlignedImageReflections(
+        string content,
+        bool expectedHorizontalFlip,
+        bool expectedVerticalFlip) {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(content));
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            using var serialized = new MemoryStream(word.Value.ToBytes());
+            using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
+            OfficeIMO.Word.WordImage image = Assert.Single(reopened.Images);
+            Assert.Equal(expectedHorizontalFlip, image.HorizontalFlip);
+            Assert.Equal(expectedVerticalFlip, image.VerticalFlip);
+        }
+    }
+
+    [Fact]
+    public void WordFloatingImagesUsePdfPaintOrderForTheirZOrder() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateTwoRawImagePdf(
+            "q 60 0 0 30 30 40 cm /Im2 Do Q\n" +
+            "q 80 0 0 40 20 30 cm /Im1 Do Q\n"));
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        Assert.Equal(2, page.Images.Count);
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            using var serialized = new MemoryStream(word.Value.ToBytes());
+            using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
+            Assert.Equal(2, reopened.Images.Count);
+            OfficeIMO.Word.WordImage front = Assert.Single(reopened.Images, static image => image.Width > 100D);
+            OfficeIMO.Word.WordImage back = Assert.Single(reopened.Images, static image => image.Width < 100D);
+            Assert.True(front.ZOrder > back.ZOrder);
         }
     }
 
@@ -974,6 +1054,26 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
         string objectCount = secondGraphicsStateEntries != null ? "8" : graphicsStateEntries == null ? "6" : "7";
         WriteAscii(output, "trailer\n<< /Root 1 0 R /Size " + objectCount + " >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] CreateTwoRawImagePdf(string content) {
+        byte[] contentBytes = System.Text.Encoding.ASCII.GetBytes(content);
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] /Resources << /XObject << /Im1 5 0 R /Im2 6 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length + " >>\nstream\n");
+        output.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(output, "endstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\n");
+        output.Write(new byte[] { 255, 0, 0 }, 0, 3);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\n");
+        output.Write(new byte[] { 0, 0, 255 }, 0, 3);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 7 >>\n%%EOF\n");
         return output.ToArray();
     }
 

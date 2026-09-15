@@ -47,10 +47,40 @@ public sealed partial class PdfReadPage {
         for (int index = 0; index < annotations.Items.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? annotation = ResolveDictionary(annotations.Items[index]);
-            if (annotation != null && HasEffectiveOptionalContentEntry(annotation)) return true;
+            if (annotation == null) continue;
+            if (HasEffectiveOptionalContentEntry(annotation)) return true;
+            if (TryGetNormalAppearanceStream(annotation, out PdfStream appearanceStream) &&
+                AnnotationAppearanceUsesOptionalContent(
+                    appearanceStream,
+                    resources,
+                    activeStreams,
+                    budget)) return true;
         }
 
         return false;
+    }
+
+    private bool AnnotationAppearanceUsesOptionalContent(
+        PdfStream appearanceStream,
+        PdfDictionary? pageResources,
+        HashSet<PdfStream> activeStreams,
+        PageContentBudget budget) {
+        if (HasEffectiveOptionalContentEntry(appearanceStream.Dictionary)) return true;
+        if (!activeStreams.Add(appearanceStream)) return false;
+        try {
+            PdfDictionary? appearanceResources = ResolveDictionary(
+                appearanceStream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject)
+                    ? resourcesObject
+                    : null) ?? pageResources;
+            return ContentUsesOptionalContent(
+                PdfEncoding.Latin1GetString(budget.Decode(appearanceStream)),
+                appearanceResources,
+                activeStreams,
+                budget,
+                depth: 1);
+        } finally {
+            activeStreams.Remove(appearanceStream);
+        }
     }
 
     private bool ContentUsesOptionalContent(

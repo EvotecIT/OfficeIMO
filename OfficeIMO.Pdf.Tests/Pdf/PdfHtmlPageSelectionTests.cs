@@ -111,6 +111,35 @@ public sealed class PdfHtmlPageSelectionTests {
     }
 
     [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    public void ReverseConversions_ReportOptionalContentOnlyFromTheSelectedAnnotationAppearance(
+        bool useStateDictionary,
+        bool selectLayeredAppearance) {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(
+            BuildAnnotationAppearanceOptionalContentPdf(useStateDictionary, selectLayeredAppearance));
+
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        PdfTableExtractionScopeReport tableScope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+        PdfHtmlConversionResult html = logical.ToHtmlResult();
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using OfficeIMO.Word.WordDocument wordDocument = word.Value;
+        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPoint.Value;
+
+        Assert.Equal(selectLayeredAppearance, page.HasOptionalContentUsage);
+        Assert.Equal(selectLayeredAppearance ? 1 : 0, tableScope.PagesWithOptionalContent);
+        Assert.Equal(selectLayeredAppearance, html.Report.Warnings.Any(static warning =>
+            warning.Code == "PdfOptionalContentGroupsFlattened"));
+        Assert.Equal(selectLayeredAppearance, word.Report.Warnings.Any(static warning =>
+            warning.Code == "PdfOptionalContentGroupsFlattened"));
+        Assert.Equal(selectLayeredAppearance, powerPoint.Report.Warnings.Any(static warning =>
+            warning.Code == "PdfGroupsNotReconstructed"));
+    }
+
+    [Theory]
     [InlineData("A", true)]
     [InlineData("B", false)]
     public void ReverseConversions_ReportOptionalContentOnlyInsideInvokedType3Glyph(
@@ -165,6 +194,59 @@ public sealed class PdfHtmlPageSelectionTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildAnnotationAppearanceOptionalContentPdf(
+        bool useStateDictionary,
+        bool selectLayeredAppearance) {
+        const string layeredContent = "/OC /Layer BDC 0 0 40 40 re f EMC";
+        const string ordinaryContent = "0 0 40 40 re f";
+        string normalAppearance = useStateDictionary
+            ? "<< /On 6 0 R /Off 7 0 R >>"
+            : "6 0 R";
+        string appearanceState = useStateDictionary
+            ? " /AS /" + (selectLayeredAppearance ? "On" : "Off")
+            : string.Empty;
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Annots [5 0 R] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            string.Empty,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Stamp /Rect [20 20 60 60] /AP << /N " + normalAppearance + " >>" + appearanceState + " >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 40 40] /Resources << /Properties << /Layer 8 0 R >> >> /Length " + layeredContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            layeredContent,
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 40 40] /Length " + ordinaryContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            ordinaryContent,
+            "endstream",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /OCG /Name (Annotation layer) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
             "%%EOF"
         });
         return Encoding.ASCII.GetBytes(pdf);

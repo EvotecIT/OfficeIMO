@@ -149,11 +149,16 @@ namespace OfficeIMO.Word.Pdf {
                     embeddedImage.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
                     embeddedImage.HorizontalPositionOffset = PdfPointsToEmu(visual.Left);
                     embeddedImage.VerticalPositionOffset = PdfPointsToEmu(visual.Top);
+                    embeddedImage.ZOrder = GetWordImageZOrder(page, placement);
                 } else {
                     embeddedImage = imageParagraph.InsertImage(stream, fileName, width, height, description: description);
                     if (placement != null && page.RotationDegrees != 0) {
                         embeddedImage.Rotation = page.RotationDegrees;
                     }
+                }
+                if (placement?.IsAxisAligned == true) {
+                    embeddedImage.HorizontalFlip = placement.A < 0D;
+                    embeddedImage.VerticalFlip = placement.D < 0D;
                 }
                 ApplyImagePlacementEffects(embeddedImage, image, assessment, options);
                 AddWarning(
@@ -190,6 +195,20 @@ namespace OfficeIMO.Word.Pdf {
                         ["IsImageFile"] = skippedImage.SourceImage.IsImageFile ? "true" : "false"
                     });
             }
+        }
+
+        private static uint GetWordImageZOrder(
+            PdfCore.PdfLogicalPage page,
+            PdfCore.PdfImagePlacement placement) {
+            const uint baseZOrder = 251658240U;
+            int rank = page.Images
+                .SelectMany(static image => image.Placements)
+                .OrderBy(static candidate => candidate.PaintOrder)
+                .ThenBy(static candidate => candidate.ObjectNumber)
+                .ThenBy(static candidate => candidate.ResourceName, StringComparer.Ordinal)
+                .TakeWhile(candidate => !ReferenceEquals(candidate, placement))
+                .Count();
+            return baseZOrder + (uint)Math.Min(rank, (long)uint.MaxValue - baseZOrder);
         }
 
         private static bool HasOverlappingTextPaintedAfter(

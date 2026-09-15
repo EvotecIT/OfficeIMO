@@ -7,6 +7,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     internal static partial class PdfWordConverter {
         private const string ConverterName = "OfficeIMO.Word.Pdf";
+        private const double DefaultEditableTableFontSizePoints = 11D;
 
         public static WordDocument Convert(PdfCore.PdfDocumentReadResult source, PdfToWordOptions? options) {
             if (source == null) {
@@ -97,7 +98,7 @@ namespace OfficeIMO.Word.Pdf {
                             AddListItem(target, item.ListItem!, ref bulletList, ref numberedList, options, typographyScale);
                             break;
                         case ImportItemKind.Table:
-                            AddTable(target, item.TableExtraction!, options);
+                            AddTable(target, item.TableExtraction!, options, typographyScale);
                             break;
                         case ImportItemKind.Image:
                             itemEmitted = AddImage(target, page, item.Image!, item.ImagePlacement, options);
@@ -708,7 +709,11 @@ namespace OfficeIMO.Word.Pdf {
                 trimmed == "\u00B7";
         }
 
-        private static void AddTable(WordDocument document, PdfCore.PdfLogicalTableExtraction extraction, PdfToWordOptions options) {
+        private static void AddTable(
+            WordDocument document,
+            PdfCore.PdfLogicalTableExtraction extraction,
+            PdfToWordOptions options,
+            double typographyScale) {
             PdfCore.PdfLogicalTableData data = extraction.Data;
             if (data.Truncated) {
                 AddWarning(
@@ -731,7 +736,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             WordTable table = document.AddTable(rowCount, columnCount, options.TableStyle);
-            PopulateTable(table, extraction.Table, data, headerRowIncluded, options);
+            PopulateTable(table, extraction.Table, data, headerRowIncluded, options, typographyScale);
         }
 
         private static bool HasHeaderRow(PdfCore.PdfLogicalTableData data) {
@@ -745,19 +750,20 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfLogicalTable sourceTable,
             PdfCore.PdfLogicalTableData data,
             bool headerRowIncluded,
-            PdfToWordOptions options) {
+            PdfToWordOptions options,
+            double typographyScale) {
             List<WordTableRow> rows = table.Rows;
             int rowOffset = headerRowIncluded ? 1 : 0;
 
             if (headerRowIncluded) {
-                WriteRow(rows[0], data.Columns, data, alignNumericColumns: false, options);
+                WriteRow(rows[0], data.Columns, data, alignNumericColumns: false, options, typographyScale);
                 if (options.RepeatHeaderRows) {
                     rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
                 }
             }
 
             for (int rowIndex = 0; rowIndex < data.Rows.Count; rowIndex++) {
-                WriteRow(rows[rowIndex + rowOffset], data.Rows[rowIndex], data, options.AlignNumericColumns, options);
+                WriteRow(rows[rowIndex + rowOffset], data.Rows[rowIndex], data, options.AlignNumericColumns, options, typographyScale);
             }
 
             if (options.FitTablesToPageWidth) {
@@ -796,12 +802,16 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<string> values,
             PdfCore.PdfLogicalTableData data,
             bool alignNumericColumns,
-            PdfToWordOptions options) {
+            PdfToWordOptions options,
+            double typographyScale) {
             List<WordTableCell> cells = row.Cells;
             for (int columnIndex = 0; columnIndex < cells.Count; columnIndex++) {
                 string value = columnIndex < values.Count ? values[columnIndex] : string.Empty;
                 WordParagraph paragraph = cells[columnIndex].AddParagraph(value ?? string.Empty, removeExistingParagraphs: true);
                 ApplySourceParagraphSpacing(paragraph, options);
+                if (typographyScale != 1D) {
+                    paragraph.FontSizePoints = Math.Max(0.5D, DefaultEditableTableFontSizePoints * typographyScale);
+                }
                 if (alignNumericColumns && data.IsNumericColumn(columnIndex)) {
                     paragraph.ParagraphAlignment = WordParagraphAlignment.Right;
                 }

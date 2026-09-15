@@ -49,16 +49,9 @@ public static partial class PdfHtmlConverterExtensions {
             PdfCore.PdfExtractedImage sourceImage = image.SourceImage;
             if (options.MaxEmbeddedImageBytes.HasValue &&
                 sourceImage.Bytes.LongLength > options.MaxEmbeddedImageBytes.Value) return false;
-            if (!sourceImage.Interpolate) {
-                long declaredPixels = (long)sourceImage.Width * sourceImage.Height;
-                if (declaredPixels <= 0L || declaredPixels > pixelBudget) {
-                    return ReportImageAppearanceFallback(options);
-                }
-            }
-            if (!CanRenderPageAppearanceImage(sourceImage, pixelBudget, token, out long decodedPixels)) {
+            if (!TryConsumePageAppearanceImageBudget(sourceImage, ref pixelBudget, token)) {
                 return ReportImageAppearanceFallback(options);
             }
-            if (!sourceImage.Interpolate) pixelBudget -= decodedPixels;
         }
         var source = options.VisualSource.GetReadDocument(options.VisualSource.ReadOptions, token);
         var sourcePage = source.Pages[page.PageNumber - 1];
@@ -129,6 +122,35 @@ public static partial class PdfHtmlConverterExtensions {
             out _) || raster is null) return false;
         decodedPixels = (long)raster.Width * raster.Height;
         return decodedPixels > 0L && decodedPixels <= maximumDecodedPixels;
+    }
+
+    private static bool TryConsumePageAppearanceImageBudget(
+        PdfCore.PdfExtractedImage image,
+        ref long remainingPixels,
+        System.Threading.CancellationToken cancellationToken) {
+        if (!image.Interpolate) {
+            long declaredPixels = (long)image.Width * image.Height;
+            if (declaredPixels <= 0L || declaredPixels > remainingPixels) return false;
+        }
+        if (!CanRenderPageAppearanceImage(image, remainingPixels, cancellationToken, out long decodedPixels)) {
+            return false;
+        }
+        remainingPixels -= decodedPixels;
+        return true;
+    }
+
+    internal static bool CanRenderPageAppearanceImagesWithinBudgetForTesting(
+        IReadOnlyList<PdfCore.PdfExtractedImage> images,
+        long maximumDecodedPixels,
+        System.Threading.CancellationToken cancellationToken = default) {
+        long remainingPixels = maximumDecodedPixels;
+        for (int index = 0; index < images.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!TryConsumePageAppearanceImageBudget(images[index], ref remainingPixels, cancellationToken)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static bool ReportImageAppearanceFallback(PdfToHtmlOptions options) {
