@@ -174,7 +174,7 @@ public static partial class OfficeSvgDrawingReader {
         };
         using (XmlWriter writer = XmlWriter.Create(output, settings)) document.Save(writer);
         if (output.Length > maximumBytes) {
-            throw new InvalidDataException("The cleaned SVG exceeds the configured output-byte limit.");
+            throw new InvalidDataException("The serialized SVG exceeds the configured output-byte limit.");
         }
         return output.ToArray();
     }

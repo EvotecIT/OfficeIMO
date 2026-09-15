@@ -116,7 +116,7 @@ public static partial class OfficeSvgDrawingReader {
             int start = index;
             while (index < compound.Length && compound[index] != '#' && compound[index] != '.' && compound[index] != '[') index++;
             string type = compound.Substring(start, index - start);
-            if (type != "*" && !element.Name.LocalName.Equals(type, StringComparison.OrdinalIgnoreCase)) return false;
+            if (type != "*" && !element.Name.LocalName.Equals(type, StringComparison.Ordinal)) return false;
         }
         while (index < compound.Length) {
             char marker = compound[index++];
@@ -172,9 +172,28 @@ public static partial class OfficeSvgDrawingReader {
         foreach (SvgSelectorPart part in parts) {
             string compound = part.Compound;
             if (!HasSupportedSvgCompoundSelectorSyntax(compound)) return false;
-            ids += compound.Count(character => character == '#');
-            classes += compound.Count(character => character == '.') + compound.Count(character => character == '[');
-            if (compound.Length > 0 && compound[0] != '*' && compound[0] != '#' && compound[0] != '.' && compound[0] != '[') types++;
+            int cursor = 0;
+            if (compound[cursor] != '#' && compound[cursor] != '.' && compound[cursor] != '[') {
+                while (cursor < compound.Length && compound[cursor] != '#' && compound[cursor] != '.' && compound[cursor] != '[') cursor++;
+                if (compound[0] != '*') types++;
+            }
+            while (cursor < compound.Length) {
+                char marker = compound[cursor++];
+                if (marker == '#') {
+                    ids++;
+                    while (cursor < compound.Length && compound[cursor] != '#' && compound[cursor] != '.' && compound[cursor] != '[') cursor++;
+                } else if (marker == '.') {
+                    classes++;
+                    while (cursor < compound.Length && compound[cursor] != '#' && compound[cursor] != '.' && compound[cursor] != '[') cursor++;
+                } else if (marker == '[') {
+                    classes++;
+                    int close = compound.IndexOf(']', cursor);
+                    if (close < 0) return false;
+                    cursor = close + 1;
+                } else {
+                    return false;
+                }
+            }
         }
         specificity = new SvgCssSpecificity(0, ids, classes, types);
         return true;

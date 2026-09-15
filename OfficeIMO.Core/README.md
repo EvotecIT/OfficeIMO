@@ -273,7 +273,7 @@ WordDocument.RemoveSelectedContent(
     new OfficeContentCleanupSelection(reviewed.Select(item => item.Id)));
 ```
 
-SVG uses the same report and selection contracts through the native drawing owner. The inspection resolves presentation attributes and the bounded stylesheet cascade, then uses the drawing renderer for clipping, compositing, paint-order, and background evidence. Text in reusable definitions, `use` or `tref` targets, conditional branches, and documents with script or animation remains report-only because removing one source node can alter a different visible instance, renderer-selected branch, or runtime state.
+SVG uses the same report and selection contracts through the native drawing owner. The inspection resolves presentation attributes and the bounded stylesheet cascade, then uses the drawing renderer for clipping, compositing, paint-order, and background evidence. Text in reusable definitions, `use` or `tref` targets, conditional branches, unrecognized elements, and documents with scripts, event handlers, executable links, or animation remains report-only because removing one source node can alter a different visible instance, renderer-selected branch, or runtime state. Contrast evidence over a transparent canvas is also report-only when visibility depends on the host background.
 
 ```csharp
 using OfficeIMO.Drawing;

@@ -197,13 +197,15 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private readonly struct SvgVisualComparison {
-        internal SvgVisualComparison(int changedPixels, double maximumContrastRatio) {
+        internal SvgVisualComparison(int changedPixels, double maximumContrastRatio, bool hasTransparentBackdrop) {
             ChangedPixels = changedPixels;
             MaximumContrastRatio = maximumContrastRatio;
+            HasTransparentBackdrop = hasTransparentBackdrop;
         }
 
         internal int ChangedPixels { get; }
         internal double MaximumContrastRatio { get; }
+        internal bool HasTransparentBackdrop { get; }
     }
 
     private static bool IsNativeSvgElement(XElement element, XNamespace svgNamespace) =>

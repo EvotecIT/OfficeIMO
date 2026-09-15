@@ -94,6 +94,7 @@ public static partial class OfficeSvgDrawingReader {
 
             SvgContentSafetyConcealment? concealment = ClassifySvgStructuralConcealment(candidate, document, options);
             bool visualConcealment = false;
+            bool hostBackdropDependent = false;
             if (!concealment.HasValue && baselineRendered) {
                 if (comparisons < maximumComparisons) {
                     comparisons++;
@@ -107,6 +108,17 @@ public static partial class OfficeSvgDrawingReader {
                             out SvgVisualComparison comparison)) {
                         concealment = ClassifySvgVisualConcealment(candidate, document, baseline!, comparison, options);
                         visualConcealment = concealment.HasValue;
+                        hostBackdropDependent = concealment.HasValue &&
+                            comparison.HasTransparentBackdrop &&
+                            concealment.Value.Kind is OfficeContentConcealmentKind.LowContrastText or OfficeContentConcealmentKind.Other;
+                        if (hostBackdropDependent) {
+                            SvgContentSafetyConcealment visualFinding = concealment!.Value;
+                            concealment = new SvgContentSafetyConcealment(
+                                visualFinding.Kind,
+                                visualFinding.Evidence +
+                                " The candidate backdrop contains transparent pixels, so visibility depends on the host background and cleanup is report-only.",
+                                visualFinding.Risk);
+                        }
                     }
                 } else {
                     comparisonLimitReached = true;
@@ -125,7 +137,7 @@ public static partial class OfficeSvgDrawingReader {
                     targets,
                     candidate,
                     concealment.Value,
-                    contextDependent || visualConcealment && baselineUnsupported > 0
+                    contextDependent || visualConcealment && (baselineUnsupported > 0 || hostBackdropDependent)
                         ? OfficeContentCleanupCapability.ReportOnly
                         : OfficeContentCleanupCapability.RemoveText);
             } else if (contextDependent) {
@@ -245,16 +257,7 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool IsSvgContentSafetyTextContainer(XElement element, bool isNativeSvg) {
         if (!isNativeSvg) return element.Nodes().OfType<XText>().Any();
-        string name = element.Name.LocalName.ToLowerInvariant();
-        if (name is "text" or "tspan" or "textpath" or "title" or "desc" or "script" or "style" or "metadata") return true;
-        if (name == "a" && element.Ancestors().Any(ancestor => {
-                string ancestorName = ancestor.Name.LocalName.ToLowerInvariant();
-                return ancestorName is "text" or "tspan" or "textpath" or "a";
-            })) return true;
-        return element.Ancestors().Any(ancestor => {
-            string ancestorName = ancestor.Name.LocalName.ToLowerInvariant();
-            return ancestorName is "script" or "style" or "metadata";
-        });
+        return element.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value));
     }
 
     private static string BuildSvgContentSafetyLocation(XElement element, int textIndex) {
@@ -584,14 +587,17 @@ public static partial class OfficeSvgDrawingReader {
             comparison = default;
             return false;
         }
-        textNodes[candidate.TextNodeIndex].Remove();
-        byte[] bytes;
-        try {
-            bytes = SerializeSvgContentSafetyDocument(variant, MaximumInputBytes);
-        } catch (InvalidDataException) {
-            comparison = default;
-            return false;
-        }
+        XText target = textNodes[candidate.TextNodeIndex];
+        var suppressed = new XElement(
+            elements[candidate.ElementIndex].Name.Namespace + "tspan",
+            new XAttribute(
+                "style",
+                "display:inline!important;opacity:0!important;font-family:inherit!important;font-size:inherit!important;" +
+                "font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;" +
+                "text-anchor:inherit!important;writing-mode:inherit!important"),
+            target.Value);
+        target.ReplaceWith(suppressed);
+        byte[] bytes = SerializeSvgContentSafetyDocument(variant, MaximumInputBytes);
         if (!TryRenderSvgContentSafety(
                 bytes,
                 readerOptions,
@@ -599,10 +605,19 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeRasterImage? without,
                 out int unsupported) ||
             unsupported != baselineUnsupported || without!.Width != baseline.Width || without.Height != baseline.Height) {
-            comparison = default;
-            return false;
+            throw new InvalidDataException(
+                "The bounded SVG comparison variant could not be rendered consistently with the inspected source (baseline unsupported " +
+                baselineUnsupported.ToString(CultureInfo.InvariantCulture) + ", variant unsupported " +
+                unsupported.ToString(CultureInfo.InvariantCulture) + ").");
         }
         comparison = CompareSvgRasters(baseline, without);
+        if (!comparison.HasTransparentBackdrop &&
+            HasTransparentSvgBackdrop(candidate, document, without)) {
+            comparison = new SvgVisualComparison(
+                comparison.ChangedPixels,
+                comparison.MaximumContrastRatio,
+                hasTransparentBackdrop: true);
+        }
         return true;
     }
 
@@ -633,7 +648,7 @@ public static partial class OfficeSvgDrawingReader {
         if (scale <= 0D) return false;
         image = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
             Scale = scale,
-            Background = OfficeColor.White,
+            Background = OfficeColor.Transparent,
             MaximumRasterPixels = maximumPixels
         });
         return true;
@@ -644,6 +659,7 @@ public static partial class OfficeSvgDrawingReader {
         byte[] withoutPixels = withoutText.PixelBuffer;
         int changed = 0;
         double maximumContrast = 1D;
+        bool hasTransparentBackdrop = false;
         for (int offset = 0; offset < withPixels.Length; offset += 4) {
             int delta = Math.Abs(withPixels[offset] - withoutPixels[offset]) +
                 Math.Abs(withPixels[offset + 1] - withoutPixels[offset + 1]) +
@@ -653,9 +669,36 @@ public static partial class OfficeSvgDrawingReader {
             changed++;
             OfficeColor foreground = OfficeColor.FromRgba(withPixels[offset], withPixels[offset + 1], withPixels[offset + 2], withPixels[offset + 3]);
             OfficeColor background = OfficeColor.FromRgba(withoutPixels[offset], withoutPixels[offset + 1], withoutPixels[offset + 2], withoutPixels[offset + 3]);
-            maximumContrast = Math.Max(maximumContrast, OfficeColorContrast.ContrastRatio(foreground, background));
+            hasTransparentBackdrop |= background.A < byte.MaxValue;
+            OfficeColor foregroundOnBlack = CompositeSvgPaint(foreground, OfficeColor.Black);
+            OfficeColor backgroundOnBlack = CompositeSvgPaint(background, OfficeColor.Black);
+            OfficeColor foregroundOnWhite = CompositeSvgPaint(foreground, OfficeColor.White);
+            OfficeColor backgroundOnWhite = CompositeSvgPaint(background, OfficeColor.White);
+            maximumContrast = Math.Max(maximumContrast, Math.Max(
+                OfficeColorContrast.ContrastRatio(foregroundOnBlack, backgroundOnBlack),
+                OfficeColorContrast.ContrastRatio(foregroundOnWhite, backgroundOnWhite)));
         }
-        return new SvgVisualComparison(changed, maximumContrast);
+        return new SvgVisualComparison(changed, maximumContrast, hasTransparentBackdrop);
+    }
+
+    private static bool HasTransparentSvgBackdrop(
+        SvgContentSafetyCandidate candidate,
+        SvgContentSafetyDocument document,
+        OfficeRasterImage background) {
+        if (!candidate.HasBounds) return false;
+        double scaleX = background.Width / document.ViewWidth;
+        double scaleY = background.Height / document.ViewHeight;
+        int left = Math.Max(0, (int)Math.Floor(candidate.Left * scaleX));
+        int top = Math.Max(0, (int)Math.Floor(candidate.Top * scaleY));
+        int right = Math.Min(background.Width, (int)Math.Ceiling(candidate.Right * scaleX));
+        int bottom = Math.Min(background.Height, (int)Math.Ceiling(candidate.Bottom * scaleY));
+        if (left >= right || top >= bottom) return false;
+        for (int y = top; y < bottom; y++) {
+            for (int x = left; x < right; x++) {
+                if (background.GetPixel(x, y).A < byte.MaxValue) return true;
+            }
+        }
+        return false;
     }
 
     private static bool TryResolveSvgPaintContrast(

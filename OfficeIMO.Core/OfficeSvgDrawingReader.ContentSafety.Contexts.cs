@@ -72,6 +72,14 @@ public static partial class OfficeSvgDrawingReader {
             cleanupCapability = OfficeContentCleanupCapability.ReportOnly;
             return true;
         }
+        if (owner == null && !IsSvgPaintedTextContainer(candidate.ComputedElement)) {
+            concealment = new SvgContentSafetyConcealment(
+                OfficeContentConcealmentKind.NonPrimaryContent,
+                "Text stored directly in a native SVG element outside the supported painted-text structure is machine-readable and report-only.",
+                OfficeContentSafetyRisk.Informational);
+            cleanupCapability = OfficeContentCleanupCapability.ReportOnly;
+            return true;
+        }
         if (owner == null) {
             concealment = default;
             cleanupCapability = OfficeContentCleanupCapability.ReportOnly;
@@ -94,6 +102,16 @@ public static partial class OfficeSvgDrawingReader {
             evidence,
             OfficeContentSafetyRisk.Informational);
         return true;
+    }
+
+    private static bool IsSvgPaintedTextContainer(XElement element) {
+        string name = element.Name.LocalName;
+        if (name == "text") return true;
+        if (name is not "tspan" and not "textPath" and not "a") return false;
+        return element.Ancestors().Any(ancestor => {
+            string ancestorName = ancestor.Name.LocalName;
+            return ancestorName is "text" or "tspan" or "textPath" or "a";
+        });
     }
 
     private static ISet<string> CollectSvgReusableTextReferencedIds(XElement root) {
@@ -120,9 +138,20 @@ public static partial class OfficeSvgDrawingReader {
     private static bool HasSvgDynamicRendering(XElement root) {
         XNamespace svgNamespace = root.Name.Namespace;
         return root.DescendantsAndSelf().Any(element => {
-            if (!IsNativeSvgElement(element, svgNamespace)) return false;
             string name = element.Name.LocalName.ToLowerInvariant();
-            return name is "script" or "animate" or "animatemotion" or "animatetransform" or "set" or "discard";
+            if (name == "script") return true;
+            if (IsNativeSvgElement(element, svgNamespace) &&
+                name is "animate" or "animatemotion" or "animatetransform" or "set" or "discard") {
+                return true;
+            }
+            return element.Attributes().Any(attribute => {
+                string attributeName = attribute.Name.LocalName;
+                if (attribute.Name.NamespaceName.Length == 0 &&
+                    attributeName.Length > 2 &&
+                    attributeName.StartsWith("on", StringComparison.OrdinalIgnoreCase)) return true;
+                return attributeName.Equals("href", StringComparison.OrdinalIgnoreCase) &&
+                    attribute.Value.TrimStart().StartsWith("javascript:", StringComparison.OrdinalIgnoreCase);
+            });
         });
     }
 

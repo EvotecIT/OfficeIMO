@@ -79,7 +79,8 @@ public sealed class SvgContentSafetyTests {
 
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
 
-        Assert.Contains(report.Findings, item => item.Kind == OfficeContentConcealmentKind.LowContrastText && item.TextPreview == "white on white");
+        Assert.Contains(report.Findings, item => item.Kind == OfficeContentConcealmentKind.LowContrastText &&
+            item.TextPreview == "white on white" && item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);
         Assert.Contains(report.Findings, item => item.TextPreview == "covered by later paint" &&
             (item.Kind == OfficeContentConcealmentKind.LowContrastText || item.Kind == OfficeContentConcealmentKind.Other));
     }
@@ -767,7 +768,7 @@ public sealed class SvgContentSafetyTests {
     public void IncompleteRendererProjectionMakesVisualCleanupEvidenceReportOnly() {
         byte[] svg = Svg("""
             <image href="https://example.test/background.png" width="220" height="120" />
-            <text fill="white" x="10" y="35">context dependent contrast</text>
+            <text fill="white" fill-opacity="0.1" x="10" y="35">context dependent contrast</text>
             """);
 
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);

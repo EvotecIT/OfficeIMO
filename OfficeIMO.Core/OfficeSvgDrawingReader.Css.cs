@@ -561,6 +561,7 @@ public static partial class OfficeSvgDrawingReader {
             string arguments = resolved.Substring(start + 4, close - start - 4);
             IReadOnlyList<string> parts = SplitSvgCssTopLevel(arguments, ',');
             string name = parts[0].Trim();
+            if (!IsSupportedSvgCustomPropertyReferenceName(name)) return false;
             string replacement;
             if (!customProperties.TryGetValue(name, out replacement!)) {
                 if (parts.Count < 2) return false;
@@ -582,6 +583,15 @@ public static partial class OfficeSvgDrawingReader {
             }
             resolved = resolved.Substring(0, start) + replacement + resolved.Substring(close + 1);
             start = resolved.IndexOf("var(", StringComparison.OrdinalIgnoreCase);
+        }
+        return true;
+    }
+
+    private static bool IsSupportedSvgCustomPropertyReferenceName(string name) {
+        if (name.Length <= 2 || !name.StartsWith("--", StringComparison.Ordinal)) return false;
+        for (int index = 2; index < name.Length; index++) {
+            char character = name[index];
+            if (!char.IsLetterOrDigit(character) && character != '-' && character != '_') return false;
         }
         return true;
     }
