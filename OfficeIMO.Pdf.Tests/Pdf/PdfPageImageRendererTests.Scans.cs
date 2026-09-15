@@ -194,6 +194,21 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Theory]
+    [InlineData(1)] // PRECEDENCE must be zero in the baseline JP2 subset.
+    [InlineData(2)] // APPROX must be zero for an exact baseline colourspace.
+    public void ImageValidationRejectsJp2WithNonzeroColourSpecificationFlag(int fieldOffset) {
+        byte[] payload = ReadScanJpx("rgb");
+        int colorSpecificationType = FindMarker(payload, 0x63, 0x6F, 0x6C, 0x72);
+        int colorSpecificationContent = colorSpecificationType + 4;
+        Assert.Equal(0, payload[colorSpecificationContent + fieldOffset]);
+        payload[colorSpecificationContent + fieldOffset] = 1;
+
+        Assert.False(OfficeJpeg2000Header.TryGetOpaqueDimensions(payload, out _, out _, out _));
+        Assert.False(OfficeJpeg2000Header.TryValidateOpaquePayload(payload, out _, out _, out _));
+        Assert.False(OfficeImageReader.TryValidateContent(payload, "scan.jp2", out _));
+    }
+
+    [Theory]
     [InlineData(0x52)] // COD: coding-style default.
     [InlineData(0x5C)] // QCD: quantization default.
     public void ImageValidationRejectsJpeg2000CodestreamWithoutMandatoryMainHeaderMarker(int markerCode) {

@@ -161,7 +161,10 @@ internal static class OfficeJpeg2000Header {
                     bytes[start + 13] > 1) return false; // Intellectual-property flag.
                 if (!TryBoundDimensions(Read32(bytes, start + 4), Read32(bytes, start), out width, out height)) return false;
             } else if (type == 0x636F6C72) { // colr: baseline enumerated Gray or sRGB only
-                if (colorComponents != 0 || boxEnd - start != 7 || bytes[start] != 1) return false;
+                if (colorComponents != 0 || boxEnd - start != 7 ||
+                    bytes[start] != 1 || // Enumerated colourspace method.
+                    bytes[start + 1] != 0 || // Baseline JP2 precedence.
+                    bytes[start + 2] != 0) return false; // Exact baseline approximation.
                 uint color = Read32(bytes, start + 3);
                 colorComponents = color == 16 ? 3 : color == 17 ? 1 : 0;
                 if (colorComponents == 0) return false;
