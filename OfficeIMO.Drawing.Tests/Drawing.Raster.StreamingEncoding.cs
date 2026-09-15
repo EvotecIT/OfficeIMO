@@ -243,6 +243,34 @@ public sealed class DrawingRasterStreamingEncodingTests {
     }
 
     [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void CancellationCanStopPngAndWebpInsideCompressionWork(OfficeImageExportFormat format) {
+        OfficeRasterEncodingCheckpoint expectedCheckpoint = format == OfficeImageExportFormat.Png
+            ? OfficeRasterEncodingCheckpoint.PngCompressionRow
+            : OfficeRasterEncodingCheckpoint.WebpCompressionBlock;
+        OfficeRasterImage image = new OfficeRasterImage(256, 256, OfficeColor.CornflowerBlue);
+        using var cancellation = new CancellationTokenSource();
+        using var destination = new CountingWriteStream();
+        int checkpointCount = 0;
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeRasterImageEncoder.EncodeTo(
+                image,
+                format,
+                destination,
+                CreateOptions(),
+                maximumEncodedBytes: long.MaxValue,
+                cancellationToken: cancellation.Token,
+                checkpointObserver: checkpoint => {
+                    if (checkpoint != expectedCheckpoint) return;
+                    if (++checkpointCount == 2) cancellation.Cancel();
+                }));
+
+        Assert.True(checkpointCount >= 2);
+    }
+
+    [Theory]
     [InlineData(OfficeTiffCompression.Lzw)]
     [InlineData(OfficeTiffCompression.PackBits)]
     [InlineData(OfficeTiffCompression.Deflate)]

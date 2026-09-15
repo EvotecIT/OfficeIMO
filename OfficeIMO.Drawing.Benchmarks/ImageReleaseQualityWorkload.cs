@@ -116,14 +116,55 @@ public sealed class ImageReleaseQualityWorkload {
             throw new InvalidOperationException("The bounded encoder reported the wrong public limit.");
         }
 
-        ExpectException<OperationCanceledException>(() =>
-            OfficeRasterImageEncoder.Encode(
-                _source,
-                _format,
-                _options,
-                maximumEncodedBytes: long.MaxValue,
-                cancellationToken: new CancellationToken(canceled: true)));
+        ValidateInFlightCancellation();
         CancellationObserved = 1;
+    }
+
+    private void ValidateInFlightCancellation() {
+        OfficeRasterEncodingCheckpoint expectedCheckpoint = _format switch {
+            OfficeImageExportFormat.Png => OfficeRasterEncodingCheckpoint.PngCompressionRow,
+            OfficeImageExportFormat.Jpeg => OfficeRasterEncodingCheckpoint.JpegCoefficientRow,
+            OfficeImageExportFormat.Tiff => OfficeRasterEncodingCheckpoint.TiffCompressionRow,
+            OfficeImageExportFormat.Webp => OfficeRasterEncodingCheckpoint.WebpCompressionBlock,
+            _ => throw new ArgumentOutOfRangeException(nameof(_format))
+        };
+        using var encodingStarted = new ManualResetEventSlim();
+        using var cancellationRequested = new ManualResetEventSlim();
+        using var cancellation = new CancellationTokenSource();
+        var cancellationThread = new Thread(() => {
+            encodingStarted.Wait();
+            cancellation.Cancel();
+            cancellationRequested.Set();
+        }) {
+            IsBackground = true,
+            Name = "OfficeIMO release-quality encoder cancellation"
+        };
+        cancellationThread.Start();
+        int checkpointCount = 0;
+        try {
+            using var output = new MemoryStream();
+            ExpectException<OperationCanceledException>(() =>
+                OfficeRasterImageEncoder.EncodeTo(
+                    _source,
+                    _format,
+                    output,
+                    _options,
+                    maximumEncodedBytes: long.MaxValue,
+                    cancellationToken: cancellation.Token,
+                    checkpointObserver: checkpoint => {
+                        if (checkpoint != expectedCheckpoint || Interlocked.Increment(ref checkpointCount) != 2) return;
+                        encodingStarted.Set();
+                        if (!cancellationRequested.Wait(TimeSpan.FromSeconds(5))) {
+                            throw new InvalidOperationException("The synchronized cancellation request did not arrive.");
+                        }
+                    }));
+        } finally {
+            encodingStarted.Set();
+            cancellationThread.Join();
+        }
+        if (checkpointCount < 2) {
+            throw new InvalidOperationException($"{ScenarioId} {Format} did not progress through two compression checkpoints.");
+        }
     }
 
     private static TException ExpectException<TException>(Action action) where TException : Exception {

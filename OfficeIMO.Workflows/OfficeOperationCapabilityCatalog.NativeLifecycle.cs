@@ -72,6 +72,7 @@ public static partial class OfficeOperationCapabilityCatalog {
             limitedSupported: new[] { OfficeOperationKind.Edit },
             partial: new[] { OfficeOperationKind.Preserve },
             limitation: "Format-specific unsupported properties can remain opaque or require a documented conversion boundary.");
+        AddEmailStoreLifecycleRows(rows);
         AddProjectLifecycleRows(rows);
         AddNativeLifecycle(rows, "epub-native", "OfficeIMO.Epub", "Epub.Native",
             "EpubReader / EpubPackage",
@@ -80,6 +81,49 @@ public static partial class OfficeOperationCapabilityCatalog {
             new[] { OfficeOperationKind.Read, OfficeOperationKind.Inspect },
             unsupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit },
             limitation: "The current package is an extraction and inspection surface; EPUB authoring is not implemented.");
+    }
+
+    private static void AddEmailStoreLifecycleRows(ICollection<OfficeOperationCapability> rows) {
+        AddNativeLifecycle(rows, "email-store-pst", "OfficeIMO.Email", "Email.Store.Pst",
+            "EmailStoreSession / EmailStorePstWriter / EmailStoreConverter.ConvertToPst / EmailStoreConverter.MergeToPst / EmailStorePstMutationTransaction",
+            "OfficeIMO.Email.Tests PST read, inspection, validation, export, conversion, merge, and verified rewrite contracts",
+            new[] { ".pst" },
+            Array.Empty<OfficeOperationKind>(),
+            limitedSupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Inspect, OfficeOperationKind.Validate },
+            partial: new[] { OfficeOperationKind.Preserve },
+            limitation: "PST creation writes a distinct destination. Mutation is a verified atomic rewrite of an existing Unicode PST; ANSI mutation, append, in-place NDB editing or repair, and password or encryption authoring are not supported. Opaque or unsupported semantics require explicit loss policy.");
+        AddNativeLifecycle(rows, "email-store-ost", "OfficeIMO.Email", "Email.Store.Ost",
+            "EmailStoreSession",
+            "OfficeIMO.Email.Tests OST traversal, inspection, validation, and export contracts",
+            new[] { ".ost" },
+            Array.Empty<OfficeOperationKind>(),
+            limitedSupported: new[] { OfficeOperationKind.Read, OfficeOperationKind.Inspect, OfficeOperationKind.Validate },
+            unsupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit, OfficeOperationKind.Preserve },
+            limitation: "OST is a bounded read, inspect, validate, and export source. OfficeIMO does not create, rewrite, append to, or preserve an OST as a newly serialized OST artifact.");
+        AddNativeLifecycle(rows, "email-store-olm", "OfficeIMO.Email", "Email.Store.Olm",
+            "EmailStoreSession",
+            "OfficeIMO.Email.Tests OLM traversal, inspection, validation, and export contracts",
+            new[] { ".olm" },
+            Array.Empty<OfficeOperationKind>(),
+            limitedSupported: new[] { OfficeOperationKind.Read, OfficeOperationKind.Inspect, OfficeOperationKind.Validate },
+            unsupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit, OfficeOperationKind.Preserve },
+            limitation: "OLM is a bounded read, inspect, validate, and export source. OfficeIMO does not create or rewrite OLM archives, and unsupported OLM entries remain diagnostic evidence rather than a round-trip promise.");
+        AddNativeLifecycle(rows, "email-store-mbox", "OfficeIMO.Email", "Email.Store.Mbox",
+            "EmailMailboxReader / EmailMailboxWriter / EmailStoreSession",
+            "OfficeIMO.Email.Tests mboxo and mboxrd streaming read, edit, write, inspection, validation, and interoperability contracts",
+            new[] { ".mbox", ".mbx" },
+            Array.Empty<OfficeOperationKind>(),
+            limitedSupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Inspect, OfficeOperationKind.Validate },
+            partial: new[] { OfficeOperationKind.Preserve },
+            limitation: "Writing emits deterministic mboxo or mboxrd from the typed messages. Envelope and escaping semantics are retained, but edited output is normalized and byte-identical aggregate preservation is not promised.");
+        AddNativeLifecycle(rows, "email-store-emlx", "OfficeIMO.Email", "Email.Store.Emlx",
+            "EmailStoreSession / EmailStoreEmlxWriter / ExportToNativeDirectory",
+            "OfficeIMO.Email.Tests EMLX bounded read, edit, write, native export, metadata, inspection, and validation contracts",
+            new[] { ".emlx" },
+            Array.Empty<OfficeOperationKind>(),
+            limitedSupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Inspect, OfficeOperationKind.Validate },
+            partial: new[] { OfficeOperationKind.Preserve },
+            limitation: "EMLX writes regenerate the RFC message and supported Apple property-list metadata. Unsupported binary or unrecognized metadata remains diagnostic evidence rather than a complete byte-preserving round trip.");
     }
 
     private static void AddProjectLifecycleRows(ICollection<OfficeOperationCapability> rows) {

@@ -69,6 +69,63 @@ public sealed class OfficeOperationCapabilityCatalogTests {
         Assert.All(rows, row => Assert.Equal(packageId, row.PackageId));
     }
 
+    [Fact]
+    public void MimeAliasPublishesTheSameSmimeProtectionRowsAsEml() {
+        string[] eml = OfficeOperationCapabilityCatalog.FindByExtension(".eml")
+            .Where(row => row.Id.StartsWith("protection:", StringComparison.Ordinal))
+            .Select(row => row.Id)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        string[] mime = OfficeOperationCapabilityCatalog.FindByExtension(".mime")
+            .Where(row => row.Id.StartsWith("protection:", StringComparison.Ordinal))
+            .Select(row => row.Id)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.NotEmpty(eml);
+        Assert.Equal(eml, mime);
+    }
+
+    [Theory]
+    [InlineData(".pst", "Email.Store.Pst", OfficeOperationSupportState.Supported, OfficeOperationSupportState.Supported)]
+    [InlineData(".ost", "Email.Store.Ost", OfficeOperationSupportState.Unsupported, OfficeOperationSupportState.Unsupported)]
+    [InlineData(".olm", "Email.Store.Olm", OfficeOperationSupportState.Unsupported, OfficeOperationSupportState.Unsupported)]
+    [InlineData(".mbox", "Email.Store.Mbox", OfficeOperationSupportState.Supported, OfficeOperationSupportState.Supported)]
+    [InlineData(".emlx", "Email.Store.Emlx", OfficeOperationSupportState.Supported, OfficeOperationSupportState.Supported)]
+    public void EmailStoresPublishFormatSpecificLifecycleBoundaries(
+        string extension,
+        string formatId,
+        OfficeOperationSupportState createState,
+        OfficeOperationSupportState editState) {
+        OfficeOperationCapability[] rows = OfficeOperationCapabilityCatalog.FindByExtension(extension)
+            .Where(row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" && row.FormatId == formatId)
+            .ToArray();
+
+        Assert.NotEmpty(rows);
+        Assert.Contains(rows, row => row.Operation == OfficeOperationKind.Create && row.State == createState);
+        Assert.Contains(rows, row => row.Operation == OfficeOperationKind.Read && row.State == OfficeOperationSupportState.Supported);
+        Assert.Contains(rows, row => row.Operation == OfficeOperationKind.Edit && row.State == editState);
+        Assert.Contains(rows, row => row.Operation == OfficeOperationKind.Inspect && row.State == OfficeOperationSupportState.Supported);
+        Assert.All(rows, row => Assert.False(string.IsNullOrWhiteSpace(row.Limitation)));
+    }
+
+    [Fact]
+    public void PstLifecycleNamesOnlyPublicStoreEntryPoints() {
+        OfficeOperationCapability[] rows = OfficeOperationCapabilityCatalog.FindByExtension(".pst")
+            .Where(row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" && row.FormatId == "Email.Store.Pst")
+            .ToArray();
+
+        Assert.NotEmpty(rows);
+        Assert.All(rows, row => {
+            Assert.Contains("EmailStorePstWriter", row.PublicApi, StringComparison.Ordinal);
+            Assert.Contains("EmailStoreConverter.ConvertToPst", row.PublicApi, StringComparison.Ordinal);
+            Assert.Contains("EmailStoreConverter.MergeToPst", row.PublicApi, StringComparison.Ordinal);
+            Assert.Contains("EmailStorePstMutationTransaction", row.PublicApi, StringComparison.Ordinal);
+            Assert.DoesNotContain("EmailStorePstMerger", row.PublicApi, StringComparison.Ordinal);
+            Assert.DoesNotContain("RewriteUnicodePst", row.PublicApi, StringComparison.Ordinal);
+        });
+    }
+
     [Theory]
     [InlineData(".docx", "OfficeIMO.Word")]
     [InlineData(".xlsx", "OfficeIMO.Excel")]

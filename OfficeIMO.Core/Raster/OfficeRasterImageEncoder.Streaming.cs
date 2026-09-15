@@ -8,8 +8,10 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 internal enum OfficeRasterEncodingCheckpoint {
+    PngCompressionRow,
     JpegCoefficientRow,
-    TiffCompressionRow
+    TiffCompressionRow,
+    WebpCompressionBlock
 }
 
 public static partial class OfficeRasterImageEncoder {
@@ -86,7 +88,8 @@ public static partial class OfficeRasterImageEncoder {
                     image,
                     destination,
                     effective.Png ?? throw new InvalidOperationException("PNG encoding options cannot be null."),
-                    cancellationToken);
+                    cancellationToken,
+                    checkpointObserver);
                 break;
             case OfficeImageExportFormat.Jpeg:
                 OfficeJpegCodec.EncodeTo(
@@ -110,7 +113,8 @@ public static partial class OfficeRasterImageEncoder {
                     destination,
                     effective.WriteResolutionMetadata ? effective.DpiX : (double?)null,
                     effective.WriteResolutionMetadata ? effective.DpiY : (double?)null,
-                    cancellationToken);
+                    cancellationToken,
+                    checkpointObserver);
                 break;
             case OfficeImageExportFormat.Svg:
                 throw new ArgumentException("SVG output requires a vector renderer.", nameof(format));

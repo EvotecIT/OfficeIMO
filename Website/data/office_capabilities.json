@@ -16,7 +16,7 @@
     "formatCount": 28,
     "capabilityCount": 137,
     "packageCount": 55,
-    "operationCount": 1213
+    "operationCount": 1243
   },
   "fidelityStates": [
     {
@@ -1860,9 +1860,14 @@
     {
       "id": "OfficeIMO.Email",
       "slug": "email",
-      "capabilityCount": 35,
+      "capabilityCount": 65,
       "formats": [
         "Email.Native",
+        "Email.Store.Emlx",
+        "Email.Store.Mbox",
+        "Email.Store.Olm",
+        "Email.Store.Ost",
+        "Email.Store.Pst",
         "EML / RFC 5322 MIME",
         "MSG/TNEF S/MIME",
         "PST"
@@ -1879,13 +1884,13 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 3
+              "count": 6
             },
             {
               "id": "Unsupported",
               "label": "Unsupported",
               "description": "The operation is not implemented.",
-              "count": 3
+              "count": 5
             }
           ]
         },
@@ -1896,7 +1901,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 1
+              "count": 4
             },
             {
               "id": "Preserved",
@@ -1909,6 +1914,12 @@
               "label": "Rejected",
               "description": "The operation deliberately fails to prevent unsafe or misleading output.",
               "count": 1
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 2
             }
           ]
         },
@@ -1919,7 +1930,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 6
+              "count": 11
             }
           ]
         },
@@ -1930,7 +1941,13 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 1
+              "count": 4
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 2
             }
           ]
         },
@@ -1941,7 +1958,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 6
+              "count": 11
             }
           ]
         },
@@ -1969,7 +1986,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 7
             },
             {
               "id": "NotApplicable",

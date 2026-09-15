@@ -264,7 +264,7 @@ public static partial class OfficeOperationCapabilityCatalog {
             ["VISIO"] = new[] { ".vsdx", ".vsdm", ".vstx", ".vstm", ".vssx", ".vssm" },
             ["ODT"] = new[] { ".odt" }, ["ODS"] = new[] { ".ods" }, ["ODP"] = new[] { ".odp" },
             ["EPUB"] = new[] { ".epub" }, ["PDF"] = new[] { ".pdf" }, ["ONE"] = new[] { ".one" }, ["PST"] = new[] { ".pst" },
-            ["RTF"] = new[] { ".rtf" }, ["EML"] = new[] { ".eml" }, ["MSG"] = new[] { ".msg" }, ["TNEF"] = new[] { ".tnef", ".dat" }
+            ["RTF"] = new[] { ".rtf" }, ["EML"] = new[] { ".eml", ".mime" }, ["MSG"] = new[] { ".msg" }, ["TNEF"] = new[] { ".tnef", ".dat" }
         };
         foreach (string token in formatId.Split(new[] { '/', ' ', '(', ')', '-' }, StringSplitOptions.RemoveEmptyEntries)) {
             if (!map.TryGetValue(token, out string[]? extensions)) continue;
@@ -278,7 +278,7 @@ public static partial class OfficeOperationCapabilityCatalog {
         "OfficeIMO.PowerPoint" => extension is ".ppt" or ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" or ".ppam",
         "OfficeIMO.Visio" => extension is ".vsdx" or ".vsdm" or ".vstx" or ".vstm" or ".vssx" or ".vssm",
         "OfficeIMO.OpenDocument" => extension is ".odt" or ".ods" or ".odp",
-        "OfficeIMO.Email" => extension is ".eml" or ".mime" or ".msg" or ".oft" or ".tnef" or ".dat" or ".pst" or ".ost",
+        "OfficeIMO.Email" => extension is ".eml" or ".mime" or ".msg" or ".oft" or ".tnef" or ".dat" or ".pst" or ".ost" or ".olm" or ".mbox" or ".mbx" or ".emlx",
         "OfficeIMO.OneNote" => extension is ".one" or ".onetoc2" or ".onepkg",
         "OfficeIMO.Rtf" => extension == ".rtf",
         "OfficeIMO.Pdf" => extension == ".pdf",

@@ -70,7 +70,7 @@ if (verify) {
         return;
     }
     var staleReadmes = packageReadmes
-        .Where(pair => !File.Exists(pair.Key) || Normalize(File.ReadAllText(pair.Key)) != Normalize(pair.Value))
+        .Where(pair => !File.Exists(pair.Key) || PackageReadmeOperationProjection.Read(repositoryRoot, pair.Key) != Normalize(pair.Value))
         .Select(pair => Path.GetRelativePath(repositoryRoot, pair.Key))
         .ToArray();
     if (staleReadmes.Length != 0) {
@@ -90,7 +90,7 @@ string? websiteDataDirectory = Path.GetDirectoryName(websiteDataPath);
 if (!string.IsNullOrEmpty(websiteDataDirectory)) Directory.CreateDirectory(websiteDataDirectory);
 File.WriteAllText(websiteDataPath, Normalize(outputs["conversion-routes.json"]), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 foreach ((string path, string content) in packageReadmes) {
-    File.WriteAllText(path, Normalize(content), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+    PackageReadmeOperationProjection.Write(repositoryRoot, path, content);
 }
 if (!VerifyConverterPowerPointSample(converterSamplePath, out _)) {
     GenerateConverterPowerPointSample(converterSamplePath);
