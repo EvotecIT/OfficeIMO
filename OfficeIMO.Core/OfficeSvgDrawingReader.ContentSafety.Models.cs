@@ -88,6 +88,7 @@ public static partial class OfficeSvgDrawingReader {
         internal SvgPaintContext Style { get; set; }
         internal bool HasStyle { get; set; }
         internal bool HasBounds => _hasBounds;
+        internal IReadOnlyList<string> InstructionSignals { get; set; } = Array.Empty<string>();
         internal double Left => _left;
         internal double Top => _top;
         internal double Right => _right;

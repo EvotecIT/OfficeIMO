@@ -29,6 +29,7 @@ public static partial class OfficeSvgDrawingReader {
             document.Root,
             computedRoot,
             document.MaximumElements);
+        PopulateSvgLogicalInstructionSignals(candidates, options);
         var byComputedText = candidates.ToDictionary(item => item.ComputedText, item => item);
         var observer = new SvgContentSafetyTextObserver(byComputedText);
         CollectSvgContentSafetyTextRuns(computedRoot, document, readerOptions, observer, ref unsupported);
@@ -75,7 +76,7 @@ public static partial class OfficeSvgDrawingReader {
         bool comparisonLimitReached = false;
         foreach (SvgContentSafetyCandidate candidate in candidates) {
             string text = candidate.SourceText.Value;
-            if (text.Length == 0 || string.IsNullOrWhiteSpace(text)) continue;
+            if (IsIgnorableSvgTextNode(text)) continue;
             bool contextDependent = TryDescribeSvgContextDependentText(
                 candidate.ComputedElement,
                 reusableTextIds,
@@ -199,12 +200,13 @@ public static partial class OfficeSvgDrawingReader {
         SvgContentSafetyCandidate candidate,
         SvgContentSafetyConcealment concealment,
         OfficeContentCleanupCapability cleanupCapability) {
-        OfficeContentSafetyFinding finding = builder.Add(
+        OfficeContentSafetyFinding finding = builder.AddWithInstructionSignals(
             concealment.Kind,
             concealment.Risk,
             candidate.Location,
             concealment.Evidence,
             candidate.SourceText.Value,
+            candidate.InstructionSignals,
             cleanupCapability,
             inspectTextIntegrityEvidence: false);
         if (targets != null && cleanupCapability != OfficeContentCleanupCapability.ReportOnly) {
@@ -274,7 +276,32 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool IsSvgContentSafetyTextContainer(XElement element, bool isNativeSvg) {
         if (!isNativeSvg) return element.Nodes().OfType<XText>().Any();
-        return element.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value));
+        return element.Nodes().OfType<XText>().Any(text => !IsIgnorableSvgTextNode(text.Value));
+    }
+
+    private static bool IsIgnorableSvgTextNode(string text) =>
+        text.Length == 0 || text.All(character => character is ' ' or '\t' or '\r' or '\n');
+
+    private static void PopulateSvgLogicalInstructionSignals(
+        IReadOnlyList<SvgContentSafetyCandidate> candidates,
+        OfficeContentSafetyOptions options) {
+        if (!options.DetectInstructionLikeText) return;
+        var signalsByOwner = new Dictionary<XElement, IReadOnlyList<string>>();
+        foreach (SvgContentSafetyCandidate candidate in candidates) {
+            XElement owner = FindSvgLogicalTextOwner(candidate.SourceText);
+            if (!signalsByOwner.TryGetValue(owner, out IReadOnlyList<string>? signals)) {
+                string logicalText = string.Concat(owner.DescendantNodes().OfType<XText>().Select(text => text.Value));
+                signals = OfficeContentInstructionDetector.Detect(logicalText);
+                signalsByOwner[owner] = signals;
+            }
+            candidate.InstructionSignals = signals;
+        }
+    }
+
+    private static XElement FindSvgLogicalTextOwner(XText text) {
+        XElement parent = text.Parent ?? throw new InvalidDataException("The SVG text node has no owning element.");
+        return parent.AncestorsAndSelf().FirstOrDefault(element =>
+                   element.Name.LocalName.Equals("text", StringComparison.Ordinal)) ?? parent;
     }
 
     private static string BuildSvgContentSafetyLocation(XElement element, int textIndex) {
@@ -458,14 +485,24 @@ public static partial class OfficeSvgDrawingReader {
                     "Resolved SVG transforms reduce the effective font size to " +
                     candidate.MaximumEffectiveFontSize.ToString("0.###", CultureInfo.InvariantCulture) + " user units.");
             }
-            if (candidate.Right <= 0D || candidate.Bottom <= 0D ||
-                candidate.Left >= document.ViewWidth || candidate.Top >= document.ViewHeight) {
+            if (!HasSvgFilterEffect(candidate.ComputedElement) &&
+                (candidate.Right <= 0D || candidate.Bottom <= 0D ||
+                candidate.Left >= document.ViewWidth || candidate.Top >= document.ViewHeight)) {
                 return new SvgContentSafetyConcealment(
                     OfficeContentConcealmentKind.OffCanvas,
                     "Resolved SVG text bounds fall completely outside the ordinary view box.");
             }
         }
         return null;
+    }
+
+    private static bool HasSvgFilterEffect(XElement element) {
+        foreach (XElement current in element.AncestorsAndSelf()) {
+            string? filter = ReadPresentationProperty(current, "filter")?.Trim();
+            if (!string.IsNullOrWhiteSpace(filter) &&
+                !filter!.Equals("none", StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
     }
 
     private static bool HasSufficientSvgVisualResolution(

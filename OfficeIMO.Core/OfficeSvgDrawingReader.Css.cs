@@ -63,6 +63,17 @@ public static partial class OfficeSvgDrawingReader {
             if (!IsNativeSvgElement(element, svgNamespace) ||
                 element.Name.LocalName.Equals("style", StringComparison.Ordinal)) continue;
             var winners = new Dictionary<string, SvgCssWinner>(StringComparer.Ordinal);
+            foreach (XAttribute attribute in selectorElement.Attributes().Where(attribute =>
+                         attribute.Name.NamespaceName.Length == 0 &&
+                         attribute.Name.LocalName.Equals(attribute.Name.LocalName.ToLowerInvariant(), StringComparison.Ordinal) &&
+                         IsSvgPresentationPropertyName(attribute.Name.LocalName) &&
+                         attribute.Value.IndexOf("var(", StringComparison.OrdinalIgnoreCase) >= 0)) {
+                SetSvgCssWinner(
+                    winners,
+                    new SvgCssDeclaration(attribute.Name.LocalName, attribute.Value, important: false),
+                    SvgCssSpecificity.PresentationAttribute,
+                    order: -1);
+            }
             foreach (SvgCssRule rule in rules) {
                 if (!MatchesSvgSelector(
                         selectorElement,
@@ -707,6 +718,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private readonly struct SvgCssSpecificity : IComparable<SvgCssSpecificity> {
+        internal static SvgCssSpecificity PresentationAttribute => new SvgCssSpecificity(0, 0, 0, 0);
         internal static SvgCssSpecificity Inline => new SvgCssSpecificity(1, 0, 0, 0);
 
         internal SvgCssSpecificity(int inline, int ids, int classes, int types) {

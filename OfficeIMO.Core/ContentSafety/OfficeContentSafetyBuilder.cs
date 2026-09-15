@@ -38,15 +38,56 @@ public sealed class OfficeContentSafetyBuilder {
         string? text,
         OfficeContentCleanupCapability cleanupCapability = OfficeContentCleanupCapability.ReportOnly,
         bool inspectTextIntegrityEvidence = true) {
+        IReadOnlyList<string> instructionSignals = _options.DetectInstructionLikeText
+            ? OfficeContentInstructionDetector.Detect(text ?? string.Empty)
+            : Array.Empty<string>();
+        return AddCore(
+            kind,
+            risk,
+            location,
+            evidence,
+            text,
+            instructionSignals,
+            cleanupCapability,
+            inspectTextIntegrityEvidence);
+    }
+
+    internal OfficeContentSafetyFinding AddWithInstructionSignals(
+        OfficeContentConcealmentKind kind,
+        OfficeContentSafetyRisk risk,
+        string location,
+        string evidence,
+        string? text,
+        IReadOnlyList<string> instructionSignals,
+        OfficeContentCleanupCapability cleanupCapability = OfficeContentCleanupCapability.ReportOnly,
+        bool inspectTextIntegrityEvidence = true) {
+        if (instructionSignals == null) throw new ArgumentNullException(nameof(instructionSignals));
+        return AddCore(
+            kind,
+            risk,
+            location,
+            evidence,
+            text,
+            _options.DetectInstructionLikeText ? instructionSignals : Array.Empty<string>(),
+            cleanupCapability,
+            inspectTextIntegrityEvidence);
+    }
+
+    private OfficeContentSafetyFinding AddCore(
+        OfficeContentConcealmentKind kind,
+        OfficeContentSafetyRisk risk,
+        string location,
+        string evidence,
+        string? text,
+        IReadOnlyList<string> instructionSignals,
+        OfficeContentCleanupCapability cleanupCapability,
+        bool inspectTextIntegrityEvidence) {
         if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A logical location is required.", nameof(location));
         if (string.IsNullOrWhiteSpace(evidence)) throw new ArgumentException("Exact concealment evidence is required.", nameof(evidence));
         text ??= string.Empty;
         Charge(text.Length);
         EnsureFindingCapacity();
 
-        IReadOnlyList<string> instructionSignals = _options.DetectInstructionLikeText
-            ? OfficeContentInstructionDetector.Detect(text)
-            : Array.Empty<string>();
         bool instructionLike = instructionSignals.Count > 0;
         if (instructionLike) risk = OfficeContentSafetyRisk.PotentiallyDangerous;
         string contentHash = Hash(text);
