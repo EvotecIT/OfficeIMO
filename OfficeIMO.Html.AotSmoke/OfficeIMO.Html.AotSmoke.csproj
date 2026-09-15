@@ -9,9 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" GlobalPropertiesToRemove="PublishAot" />
+    <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" GlobalPropertiesToRemove="PublishAot" />
+    <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" GlobalPropertiesToRemove="PublishAot" />
+    <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" GlobalPropertiesToRemove="PublishAot" />
   </ItemGroup>
 </Project>
