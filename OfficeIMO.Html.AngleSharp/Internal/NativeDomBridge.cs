@@ -11,10 +11,29 @@ namespace OfficeIMO.Html;
 
 /// <summary>Explicit structural bridge for the existing native-DOM CSS/layout implementation. Never reparses serialized source.</summary>
 internal static class NativeDomBridge {
-    private static readonly ConditionalWeakTable<HtmlDocument, NativeState> OwnedStates = new ConditionalWeakTable<HtmlDocument, NativeState>();
+    // The owned document is the public source of truth. Keep its replaceable native projection
+    // reclaimable so a long-lived owned snapshot does not permanently retain a second tree and
+    // two node maps. A caller actively holding the native document can keep that exact projection;
+    // the bridge can rebuild its maps without keeping either graph alive by itself.
+    private static readonly ConditionalWeakTable<HtmlDocument, NativeStateReference> OwnedStates = new ConditionalWeakTable<HtmlDocument, NativeStateReference>();
     private static readonly ConditionalWeakTable<IHtmlDocument, Lazy<CallbackState>> CallbackSnapshots = new ConditionalWeakTable<IHtmlDocument, Lazy<CallbackState>>();
     private static readonly ConditionalWeakTable<HtmlDocument, CallbackState> CallbackSources = new ConditionalWeakTable<HtmlDocument, CallbackState>();
     private static readonly object CacheSync = new object();
+    private sealed class NativeStateReference {
+        private readonly WeakReference<NativeState> _state;
+        private readonly WeakReference<IHtmlDocument> _native;
+        private readonly long _revision;
+        internal NativeStateReference(NativeState state) {
+            _state = new WeakReference<NativeState>(state);
+            _native = new WeakReference<IHtmlDocument>(state.Native);
+            _revision = state.Revision;
+        }
+        internal bool TryGet(out NativeState? state) => _state.TryGetTarget(out state);
+        internal bool TryGetNative(long revision, out IHtmlDocument? native) {
+            native = null;
+            return revision == _revision && _native.TryGetTarget(out native);
+        }
+    }
 
     internal sealed class NativeState {
         internal NativeState(IHtmlDocument native, HtmlDocument owned) { Native = native; Owned = owned; Revision = owned.Revision; }
@@ -64,7 +83,7 @@ internal static class NativeDomBridge {
         cancellationToken.ThrowIfCancellationRequested();
         lock (CacheSync) {
             cancellationToken.ThrowIfCancellationRequested();
-            OwnedStates.Add(owned, state);
+            OwnedStates.Add(owned, new NativeStateReference(state));
         }
         return owned;
     }
@@ -206,20 +225,67 @@ internal static class NativeDomBridge {
     internal static NativeState GetState(HtmlDocument document, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
+        IHtmlDocument? retainedNative = null;
         lock (CacheSync) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (OwnedStates.TryGetValue(document, out NativeState? state) && state.Revision == document.Revision) return state;
+            if (TryGetCurrentState(document, out NativeState? state)) return state!;
+            if (OwnedStates.TryGetValue(document, out NativeStateReference? reference))
+                reference.TryGetNative(document.Revision, out retainedNative);
         }
         // Concurrent first readers may build candidates, but only one complete state is installed.
         // No tree traversal or provider materialization may hold the process-wide cache lock.
-        NativeState candidate = Export(document, cancellationToken);
+        NativeState candidate = retainedNative == null
+            ? Export(document, cancellationToken)
+            : RebuildState(retainedNative, document, cancellationToken) ?? Export(document, cancellationToken);
         lock (CacheSync) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (OwnedStates.TryGetValue(document, out NativeState? state) && state.Revision == document.Revision) return state;
+            if (TryGetCurrentState(document, out NativeState? state)) return state!;
             OwnedStates.Remove(document);
-            OwnedStates.Add(document, candidate);
+            OwnedStates.Add(document, new NativeStateReference(candidate));
             return candidate;
         }
+    }
+
+    private static bool TryGetCurrentState(HtmlDocument document, out NativeState? state) {
+        state = null;
+        return OwnedStates.TryGetValue(document, out NativeStateReference? reference)
+            && reference.TryGet(out state)
+            && state != null
+            && state.Revision == document.Revision;
+    }
+
+    private static NativeState? RebuildState(IHtmlDocument native, HtmlDocument owned, CancellationToken cancellationToken) {
+        var state = new NativeState(native, owned);
+        var pending = new Stack<(INode Native, HtmlNode Owned)>();
+        pending.Push((native, owned));
+        while (pending.Count != 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var current = pending.Pop();
+            if (!NodesMatch(current.Native, current.Owned)
+                || current.Native.ChildNodes.Length != current.Owned.ChildNodes.Count) return null;
+            state.Add(current.Native, current.Owned);
+            for (int index = 0; index < current.Native.ChildNodes.Length; index++)
+                pending.Push((current.Native.ChildNodes[index], current.Owned.ChildNodes[index]));
+            if (current.Native is IHtmlTemplateElement nativeTemplate && current.Owned is HtmlElement ownedTemplate) {
+                if (ownedTemplate.TemplateContent == null) return null;
+                pending.Push((nativeTemplate.Content, ownedTemplate.TemplateContent));
+            } else if (current.Owned is HtmlElement { TemplateContent: not null }) return null;
+        }
+        return state;
+    }
+
+    private static bool NodesMatch(INode native, HtmlNode owned) {
+        if (native is IElement nativeElement && owned is HtmlElement ownedElement)
+            return string.Equals(nativeElement.LocalName, ownedElement.LocalName, StringComparison.Ordinal)
+                && string.Equals(nativeElement.NamespaceUri ?? string.Empty, ownedElement.NamespaceUri, StringComparison.Ordinal);
+        return native.NodeType switch {
+            NodeType.Document => owned.Kind == HtmlNodeKind.Document,
+            NodeType.DocumentFragment => owned.Kind == HtmlNodeKind.DocumentFragment,
+            NodeType.DocumentType => owned.Kind == HtmlNodeKind.DocumentType,
+            NodeType.Text => owned.Kind == HtmlNodeKind.Text,
+            NodeType.Comment => owned.Kind == HtmlNodeKind.Comment,
+            _ => false
+        };
     }
 
     private static HtmlNode ImportNode(INode source, HtmlDocument document, CancellationToken cancellationToken, int sourceIndexOffset = 0) {

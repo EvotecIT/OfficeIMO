@@ -31,6 +31,21 @@ if (args.Length > 0 && string.Equals(args[0], "--provider-evidence", StringCompa
     return;
 }
 
+if (args.Length > 0 && string.Equals(args[0], "--owned-document-evidence-probe", StringComparison.OrdinalIgnoreCase)) {
+    Environment.ExitCode = HtmlOwnedDocumentEvidenceRunner.RunProbe(args.Skip(1).ToArray());
+    return;
+}
+
+if (args.Length > 0 && string.Equals(args[0], "--owned-document-evidence", StringComparison.OrdinalIgnoreCase)) {
+    Environment.ExitCode = HtmlOwnedDocumentEvidenceRunner.Run(args.Skip(1).ToArray(), verifyBudgets: false);
+    return;
+}
+
+if (args.Length > 0 && string.Equals(args[0], "--owned-document-verify-budgets", StringComparison.OrdinalIgnoreCase)) {
+    Environment.ExitCode = HtmlOwnedDocumentEvidenceRunner.Run(args.Skip(1).ToArray(), verifyBudgets: true);
+    return;
+}
+
 if (args.Length > 0 && string.Equals(args[0], "--layout-verify-budgets", StringComparison.OrdinalIgnoreCase)) {
     Environment.ExitCode = HtmlLayoutEvidenceRunner.RunEvidence(args.Skip(1).ToArray(), verifyBudgets: true);
     return;

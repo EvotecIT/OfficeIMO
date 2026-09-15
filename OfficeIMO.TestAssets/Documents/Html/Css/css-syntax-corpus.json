@@ -1,0 +1,14 @@
+[
+  { "name": "duplicate declarations", "source": "a{color:red;color:blue}", "topLevelRules": 1, "declarations": 2, "diagnostics": 0 },
+  { "name": "unknown at rules", "source": "@future token;@other x{future:y}", "topLevelRules": 2, "declarations": 1, "diagnostics": 0 },
+  { "name": "nested rules", "source": ".a{.b:hover{x:y}@media(width>1px){display:grid}}", "topLevelRules": 1, "declarations": 2, "diagnostics": 0 },
+  { "name": "bad declaration recovery", "source": "a{broken value;color:green}", "topLevelRules": 1, "declarations": 1, "diagnostics": 1 },
+  { "name": "custom property blocks", "source": "a{--blob:{x:y;z:[1,2]};unknown:fn(a(b[c]))}", "topLevelRules": 1, "declarations": 2, "diagnostics": 0 },
+  { "name": "unclosed outer rule", "source": "@media screen{a{color:red}", "topLevelRules": 1, "declarations": 1, "diagnostics": 1 },
+  { "name": "legacy cdo cdc", "source": "<!--a{x:y}-->", "topLevelRules": 1, "declarations": 1, "diagnostics": 0 },
+  { "name": "delimiters inside values", "source": "a{content:\";{}\";background:url(data:a;b{c})}", "topLevelRules": 1, "declarations": 2, "diagnostics": 0 },
+  { "name": "escaped declaration name", "source": "@supports selector(:has(> x)){x{co\\6c or:red}}", "topLevelRules": 1, "declarations": 1, "diagnostics": 0 },
+  { "name": "non identifier recovery", "source": "a{123:bad;color:ok}", "topLevelRules": 1, "declarations": 1, "diagnostics": 1 },
+  { "name": "statement at rule", "source": "@charset \"utf-8\";", "topLevelRules": 1, "declarations": 0, "diagnostics": 0 },
+  { "name": "paged nested at rule", "source": "@page{size:A4;@top-center{content:\"x\"}}", "topLevelRules": 1, "declarations": 2, "diagnostics": 0 }
+]

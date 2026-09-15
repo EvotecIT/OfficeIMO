@@ -95,9 +95,9 @@ These are review triggers, not flaky unit-test assertions. A change may intentio
 
 The provider lanes separate native AngleSharp parsing, the OfficeIMO-owned document
 projection, the lazy conversion-document path, raw AngleSharp.Css syntax parsing,
-and the complete OfficeIMO cascade. The raw CSS parser and complete cascade perform
-different work; compare each lane with itself across revisions rather than treating
-their elapsed-time ratio as parser overhead.
+OfficeIMO's lossless CSS syntax result, and the complete OfficeIMO cascade. Raw syntax
+parsers and the complete cascade perform different work; compare each lane with itself
+across revisions rather than treating their elapsed-time ratio as parser overhead.
 
 Capture process-isolated elapsed, allocation, retained managed heap per result,
 provider assembly identity, and platform information:
@@ -114,3 +114,23 @@ cascade separately. Retained-heap values use eight simultaneously retained resul
 inside a fresh child process and are diagnostic observations rather than hard budgets.
 Run the same command on each platform and compare medians only for equivalent source,
 runtime, architecture, and commit.
+
+## Owned document and CSS syntax budgets
+
+The owned API gate measures parse, query, edit, serialization, conversion after owned
+document access, lossless CSS syntax, and pre-canceled parsing at 10, 100, and 1,000-row
+scales. Every operation validates its structure or exact source before evidence is accepted.
+Query and serialization clear the short provider projection lease before timing, so they
+include reconstruction after memory pressure. The parse and conversion lanes retain their
+result through a compacting collection, which makes duplicate-graph regressions visible.
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Html.Benchmarks -- --owned-document-evidence --repeat 3 --json .benchmark-artifacts/html/owned-document.json
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Html.Benchmarks -- --owned-document-verify-budgets --repeat 3
+```
+
+`html-owned-document-performance-budgets.json` supplies cross-platform regression ceilings
+for median elapsed time, median allocation, median retained heap, maximum sampled managed
+heap, process peak, and output length. The cancellation lane requires a pre-canceled parse to
+exit within its small fixed budget. These ceilings guard the declared workloads and do not
+claim universal throughput or full CSS conformance.

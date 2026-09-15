@@ -56,6 +56,10 @@ public class HtmlProviderCssBenchmarks {
     public AngleSharp.Css.Dom.ICssStyleSheet AngleSharpCssSyntax() => _cssParser.ParseStyleSheet(_css);
 
     [Benchmark]
+    public OfficeIMO.Html.Css.HtmlCssStyleSheet OfficeIMOLosslessCssSyntax() =>
+        OfficeIMO.Html.Css.HtmlCssSyntaxParser.ParseStyleSheet(_css);
+
+    [Benchmark]
     public IReadOnlyDictionary<HtmlElement, HtmlComputedStyle> OfficeIMOOwnedCascade() =>
         HtmlComputedStyleEngine.Compute(_document, HtmlCssMediaContext.Screen);
 }

@@ -22,6 +22,7 @@ internal static class HtmlProviderEvidenceRunner {
         "ConversionNative",
         "ConversionNativeAndOwned",
         "AngleSharpCssSyntax",
+        "OfficeIMOCssSyntax",
         "OfficeIMOCssCascade"
     ];
     private static readonly JsonSerializerOptions JsonOptions = new() {
@@ -277,6 +278,7 @@ internal static class HtmlProviderEvidenceRunner {
                     () => ParseConversionWithOwned(html),
                     result => ValidateConversion((HtmlConversionDocument)result, requireOwned: true)),
                 "AngleSharpCssSyntax" => CreateCssSyntax(css),
+                "OfficeIMOCssSyntax" => CreateOwnedCssSyntax(css),
                 "OfficeIMOCssCascade" => CreateCssCascade(styledHtml),
                 _ => throw new ArgumentOutOfRangeException(nameof(scenario))
             };
@@ -303,6 +305,18 @@ internal static class HtmlProviderEvidenceRunner {
                     int count = ((IReadOnlyDictionary<HtmlElement, HtmlComputedStyle>)result).Count;
                     if (count < 200) throw new InvalidOperationException("The owned CSS cascade lost styled-card elements.");
                     return new ProviderEvidenceValidation(count, "not-applicable");
+                });
+        }
+
+        private static ProviderEvidenceOperation CreateOwnedCssSyntax(string css) {
+            return new ProviderEvidenceOperation(
+                css.Length,
+                () => OfficeIMO.Html.Css.HtmlCssSyntaxParser.ParseStyleSheet(css),
+                result => {
+                    var sheet = (OfficeIMO.Html.Css.HtmlCssStyleSheet)result;
+                    if (!string.Equals(sheet.ToCss(), css, StringComparison.Ordinal) || sheet.Rules.Count < 3)
+                        throw new InvalidOperationException("The owned CSS syntax evidence lost source or top-level rules.");
+                    return new ProviderEvidenceValidation(sheet.Rules.Count, Hash(new StringBuilder(sheet.ToCss())));
                 });
         }
 

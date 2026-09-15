@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <None Include="html-layout-performance-budgets.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="html-owned-document-performance-budgets.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\H0\baseline-report\**"
           Link="Documents\Html\Qualification\H0\baseline-report\%(RecursiveDir)%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />

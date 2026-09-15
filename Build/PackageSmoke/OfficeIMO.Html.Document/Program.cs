@@ -1,4 +1,5 @@
 using OfficeIMO.Html.Dom;
+using OfficeIMO.Html.Css;
 using OfficeIMO.Html.Providers;
 
 var options = new HtmlParseOptions {
@@ -21,6 +22,14 @@ if (source.QuerySelectorAll("td").Count != 0 ||
     edited.QuerySelectorAll("td").Count != 2 ||
     edited.OuterHtml.IndexOf("Quarterly report", StringComparison.Ordinal) < 0) {
     throw new InvalidOperationException("The packed document parse, fragment, edit or serialization contract failed.");
+}
+
+const string css = "@future report; .status { color: green; future-property: fn(one[two]); }";
+HtmlCssStyleSheet styleSheet = HtmlCssSyntaxParser.ParseStyleSheet(css);
+HtmlCssStyleBlock inlineStyle = HtmlCssSyntaxParser.ParseStyleBlock("color:green;color:future");
+if (styleSheet.Rules.Count != 2 || styleSheet.ToCss() != css ||
+    inlineStyle.Declarations.Count != 2 || inlineStyle.Declarations[1].Name != "color") {
+    throw new InvalidOperationException("The packed lossless CSS syntax contract failed.");
 }
 
 string[] coreReferences = typeof(HtmlDocument).Assembly.GetReferencedAssemblies()

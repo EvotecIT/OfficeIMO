@@ -63,24 +63,47 @@ fragment splices them into the destination. Neither operation sanitizes content.
 For cancellation with atomic snapshot publication, perform the import in `Edit`;
 a cancelled import into a mutable document can leave partial detached copies.
 
-CSS inspection is available without an HTML parser or rendering dependency:
+CSS inspection is available without an HTML parser or rendering dependency. Parse a
+stylesheet when you need rules and nested contents, or a style block for inline CSS:
 
 ```csharp
 using OfficeIMO.Html.Css;
 
-string css = "color: red; --layout: {columns: 2; gap: 12px};";
-foreach (HtmlCssToken token in HtmlCssTokenizer.Tokenize(css)) {
-    Console.WriteLine($"{token.Kind} at {token.Offset}: {token.GetText(css)}");
+string css = "@future demo; .card { color: red; --layout: {columns: 2}; }";
+HtmlCssStyleSheet sheet = HtmlCssSyntaxParser.ParseStyleSheet(css);
+foreach (HtmlCssRule rule in sheet.Rules) {
+    Console.WriteLine($"{rule.Kind} at {rule.Span}: {rule.GetText()}");
 }
+
+HtmlCssStyleBlock inline = HtmlCssSyntaxParser.ParseStyleBlock(
+    "color: red; future-property: paint(foo(1, [two]));");
+foreach (HtmlCssDeclaration declaration in inline.Declarations)
+    Console.WriteLine($"{declaration.Name}: {declaration.ValueSpan.GetText(inline.Source)}");
 ```
 
-The tokenizer preserves comments and exact UTF-16 source spans, including original
-line endings. `Value` contains decoded identifiers, strings, URLs and dimension
-units; numeric spelling is available through `GetText`. A zero-length
-`EndOfFile` token terminates the result. Comments are source trivia, not whitespace.
-Tokenization does not validate property values, resolve selectors or compute styles.
+`HtmlCssStyleSheet` and `HtmlCssStyleBlock` preserve the complete original input.
+Rules, declarations, unknown at-rules, duplicate properties, invalid recovered source,
+comments, whitespace, functions and simple blocks retain exact UTF-16 spans and authored
+order. `GetPosition(offset)` maps a span to a one-based line and column. `ToCss()` returns
+the original source character-for-character, including its original line endings. Diagnostics report syntax
+recovery; an unknown name or value is preserved without being treated as invalid.
+
+The syntax model deliberately does not validate selectors or property grammars, apply the
+cascade, resolve computed values, load resources or claim rendering support. Consumers can
+therefore retain and inspect newer CSS while the full `OfficeIMO.Html` package continues to
+use its qualified style and rendering implementation.
+
+`HtmlCssTokenizer.Tokenize` remains available for lexical tooling. It preserves comments
+and exact UTF-16 source spans, including original line endings. `Value` contains decoded
+identifiers, strings, URLs and dimension units; numeric spelling is available through
+`GetText`. A zero-length `EndOfFile` token terminates the result. Comments are source
+trivia, not whitespace.
 
 `HtmlCssTokenizationOptions` defaults to 8,388,608 UTF-16 characters and one million
 tokens, excluding `EndOfFile`. Set either limit to `null` for caller-bounded input.
 An exceeded budget throws `HtmlCssTokenizationLimitException`; cancellation throws
 `OperationCanceledException`. Neither operation returns a partial list.
+
+`HtmlCssSyntaxOptions` adds nesting and syntax-node limits to the same input and token
+bounds. An exceeded syntax limit throws `HtmlCssSyntaxLimitException`. A canceled or
+failed syntax parse publishes no partial document.

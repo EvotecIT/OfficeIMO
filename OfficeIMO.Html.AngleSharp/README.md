@@ -27,7 +27,14 @@ HtmlDocumentFragment cells = AngleSharpHtmlParser.Instance.ParseFragment(
     "<td>A</td><td>B</td>", table.QuerySelector("#items")!, new HtmlParseOptions());
 ```
 
-The provider retains a native tree alongside owned nodes for selector and conversion reuse. The existing CSS/layout engine still uses a structural native-DOM adapter internally. This package does not claim dependency independence or browser execution. Source and tree budgets are enforced before downstream conversion work; parsing remains subject to the underlying parser's cooperative cancellation behavior.
+The owned tree is the long-lived source of truth. The provider caches its native selector
+and serializer projection weakly. When a caller still holds the native document, the bridge
+preserves that document identity and can rebuild only its maps after collection. `HtmlConversionDocument` keeps conversion-only
+parsing on the native fast path until its owned `Document` is requested, then allows the
+duplicate source projection to be reclaimed. The existing CSS/layout engine still uses a
+structural native-DOM adapter internally. This package does not claim dependency independence
+or browser execution. Source and tree budgets are enforced before downstream conversion work;
+parsing remains subject to the underlying parser's cooperative cancellation behavior.
 
 `AngleSharpEncodingProvider` implements the owned `IHtmlEncodingProvider` charset
 contract. It retains AngleSharp web aliases and `System.Text.Encoding.CodePages`;

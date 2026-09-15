@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Css;
 using OfficeIMO.Html.Dom;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
@@ -14,6 +15,10 @@ HtmlDocument aotEditedTable = aotTable.Edit(document =>
     document.QuerySelector("#aot-items")!.AppendChild(document.ImportNode(aotCells)));
 if (aotEditedTable.QuerySelectorAll("td").Count != 1) {
     throw new InvalidOperationException("The NativeAOT owned document fragment contract failed.");
+}
+HtmlCssStyleSheet aotCss = HtmlCssSyntaxParser.ParseStyleSheet("@future aot;.card{color:red;future:fn(one[two])}");
+if (aotCss.Rules.Count != 2 || aotCss.ToCss().Length == 0) {
+    throw new InvalidOperationException("The NativeAOT lossless CSS syntax contract failed.");
 }
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 var imageOptions = new HtmlRenderOptions {

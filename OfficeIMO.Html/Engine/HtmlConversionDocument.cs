@@ -7,7 +7,7 @@ namespace OfficeIMO.Html;
 /// Canonical OfficeIMO HTML conversion document shared by target adapters.
 /// </summary>
 public sealed partial class HtmlConversionDocument {
-    private readonly IHtmlDocument _sourceDocument;
+    private IHtmlDocument? _sourceDocument;
     private readonly Lazy<Dom.HtmlDocument> _document;
     private readonly HtmlConversionDocumentOptions _options;
     private readonly HtmlCssMediaContext _mediaContext;
@@ -31,16 +31,26 @@ public sealed partial class HtmlConversionDocument {
         Dom.HtmlDocument? sourceSnapshot = null) {
         SourceHtml = sourceHtml ?? throw new ArgumentNullException(nameof(sourceHtml));
         _sourceDocument = sourceDocument ?? throw new ArgumentNullException(nameof(sourceDocument));
-        _document = new Lazy<Dom.HtmlDocument>(() => sourceSnapshot ?? AnalyzeSource(() => NativeDomBridge.Import(_sourceDocument, new Dom.HtmlParseOptions {
-            MaxInputCharacters = options.Limits.MaxInputCharacters,
-            MaxNodes = options.Limits.MaxHtmlNodes,
-            MaxDepth = options.Limits.MaxHtmlDepth
-        }).Freeze()), LazyThreadSafetyMode.ExecutionAndPublication);
+        _document = new Lazy<Dom.HtmlDocument>(() => {
+            if (sourceSnapshot != null) return sourceSnapshot;
+            return AnalyzeSource(source => {
+                Dom.HtmlDocument owned = NativeDomBridge.Import(source, new Dom.HtmlParseOptions {
+                    MaxInputCharacters = options.Limits.MaxInputCharacters,
+                    MaxNodes = options.Limits.MaxHtmlNodes,
+                    MaxDepth = options.Limits.MaxHtmlDepth
+                }).Freeze();
+                // The immutable owned snapshot now carries the canonical structure. Its provider
+                // projection is weakly cached and can be reconstructed structurally when needed.
+                _sourceDocument = null;
+                return owned;
+            });
+        }, LazyThreadSafetyMode.ExecutionAndPublication);
         HasExplicitDocumentEnvelope = sourceDocument.Doctype != null ||
             sourceSnapshot?.DocumentElement?.SourceIndex >= 0 || sourceSnapshot?.Head?.SourceIndex >= 0 || sourceSnapshot?.Body?.SourceIndex >= 0 ||
             sourceDocument.DocumentElement?.SourceReference?.Position.Index >= 0 ||
             sourceDocument.Head?.SourceReference?.Position.Index >= 0 ||
             sourceDocument.Body?.SourceReference?.Position.Index >= 0;
+        if (sourceSnapshot != null) _sourceDocument = null;
         // Parse owns this already-resolved snapshot; retaining it avoids cloning the full policy
         // and limits graph a second time before any lazy projection has been requested.
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -53,7 +63,7 @@ public sealed partial class HtmlConversionDocument {
         FallbackBaseUri = _options.BaseUri;
         _adapterDocument = new Lazy<IHtmlDocument>(BuildAdapterDocument, LazyThreadSafetyMode.ExecutionAndPublication);
         _logicalDocument = new Lazy<HtmlLogicalDocument>(
-            () => AnalyzeSource(() => HtmlLogicalDocumentBuilder.FromDocument(_sourceDocument, _options.UseBodyContentsOnly)),
+            () => AnalyzeSource(source => HtmlLogicalDocumentBuilder.FromDocument(source, _options.UseBodyContentsOnly)),
             LazyThreadSafetyMode.ExecutionAndPublication);
         _semanticDocument = new Lazy<HtmlSemanticDocument>(
             () => AnalyzeSource(() => HtmlSemanticDocumentBuilder.FromDocument(
@@ -62,17 +72,17 @@ public sealed partial class HtmlConversionDocument {
                 _options.Limits)),
             LazyThreadSafetyMode.ExecutionAndPublication);
         _styleSummary = new Lazy<HtmlComputedStyleSummary>(
-            () => AnalyzeSource(() => HtmlComputedStyleEngine.Summarize(HtmlComputedStyleEngine.Compute(_sourceDocument, _mediaContext, _options.Limits))),
+            () => AnalyzeSource(source => HtmlComputedStyleEngine.Summarize(HtmlComputedStyleEngine.Compute(source, _mediaContext, _options.Limits))),
             LazyThreadSafetyMode.ExecutionAndPublication);
         _resourceManifest = new Lazy<HtmlResourceManifest>(
-            () => AnalyzeSource(() => HtmlResourcePipeline.BuildManifest(_sourceDocument, _options.ToResourcePipelineOptions())),
+            () => AnalyzeSource(source => HtmlResourcePipeline.BuildManifest(source, _options.ToResourcePipelineOptions())),
             LazyThreadSafetyMode.ExecutionAndPublication);
         _resourcePlan = new Lazy<HtmlResourceDependencyPlan>(
             () => HtmlResourceDependencyPlanner.Create(_resourceManifest.Value),
             LazyThreadSafetyMode.ExecutionAndPublication);
         _normalizedHtml = new Lazy<string>(
             () => _options.IncludeNormalizedHtml
-                ? AnalyzeSource(() => HtmlNormalizer.Normalize(_sourceDocument, ConfigureNormalization(_sourceDocument, _options)))
+                ? AnalyzeSource(source => HtmlNormalizer.Normalize(source, ConfigureNormalization(source, _options)))
                 : string.Empty,
             LazyThreadSafetyMode.ExecutionAndPublication);
     }
@@ -131,7 +141,7 @@ public sealed partial class HtmlConversionDocument {
     /// their own element filters before URL resolution. Parsing remains owned by OfficeIMO.Html.
     /// </summary>
     internal IHtmlDocument CreateSourceDocumentForConversion() {
-        lock (_analysisSync) return HtmlDocumentParser.CloneDocument(_sourceDocument);
+        return AnalyzeSource(source => HtmlDocumentParser.CloneDocument(source));
     }
 
     /// <summary>
@@ -140,7 +150,7 @@ public sealed partial class HtmlConversionDocument {
     /// </summary>
     internal T ProjectSourceDocument<T>(Func<IHtmlDocument, T> projection) {
         if (projection == null) throw new ArgumentNullException(nameof(projection));
-        lock (_analysisSync) return projection(_sourceDocument);
+        return AnalyzeSource(projection);
     }
 
     /// <summary>
@@ -174,7 +184,7 @@ public sealed partial class HtmlConversionDocument {
     /// authorizing a source that a generic untrusted adapter would omit.
     /// </summary>
     internal IHtmlDocument CreateDocumentForRendering() {
-        lock (_analysisSync) return HtmlDocumentParser.CloneDocument(_sourceDocument);
+        return AnalyzeSource(source => HtmlDocumentParser.CloneDocument(source));
     }
 
     /// <summary>Shared limits snapshot used by target adapters and renderers.</summary>
@@ -249,11 +259,18 @@ public sealed partial class HtmlConversionDocument {
     }
 
     private IHtmlDocument BuildAdapterDocument() {
-        return AnalyzeSource(() => {
-            IHtmlDocument document = HtmlNormalizer.NormalizeToDocument(_sourceDocument, ConfigureAdapterNormalization(_sourceDocument, _options));
+        return AnalyzeSource(source => {
+            IHtmlDocument document = HtmlNormalizer.NormalizeToDocument(source, ConfigureAdapterNormalization(source, _options));
             HtmlConversionInputGuard.ValidateDocument(document, _options.Limits);
             return document;
         });
+    }
+
+    private T AnalyzeSource<T>(Func<IHtmlDocument, T> analysis) {
+        lock (_analysisSync) {
+            IHtmlDocument source = _sourceDocument ?? NativeDomBridge.GetNativeDocument(_document.Value);
+            return analysis(source);
+        }
     }
 
     private T AnalyzeSource<T>(Func<T> analysis) {

@@ -161,6 +161,25 @@ public sealed class HtmlFoundationProviderContractTests {
     }
 
     [Fact]
+    public void NativeProjectionLeasePreservesIdentityWithoutMakingTheProviderGraphPermanent() {
+        var lease = CreateProjectionLease();
+        CollectReleasedGraphs();
+
+        Assert.False(lease.State.TryGetTarget(out _));
+        Assert.Same(lease.Native, NativeDomBridge.GetNativeDocument(lease.Owned));
+        Assert.Equal("leased", lease.Native.QuerySelector("p")!.TextContent);
+        GC.KeepAlive(lease.Native);
+
+        HtmlDocument retainedOwned = AngleSharpHtmlParser.Instance.ParseDocument("<p>collectible</p>", new HtmlParseOptions()).Freeze();
+        WeakReference native = CreateUnleasedProjection(retainedOwned);
+        CollectReleasedGraphs();
+
+        Assert.False(native.IsAlive);
+        Assert.Equal("collectible", retainedOwned.QuerySelector("p")!.TextContent);
+        GC.KeepAlive(retainedOwned);
+    }
+
+    [Fact]
     public async Task ConcurrentDetachedProjectionAndCallbackSnapshotsRetainNodeIdentity() {
         HtmlDocument document = AngleSharpHtmlParser.Instance.ParseDocument("<p>Attached</p>", new HtmlParseOptions()).Clone();
         HtmlElement[] detached = Enumerable.Range(0, 12).Select(index => {
@@ -183,6 +202,23 @@ public sealed class HtmlFoundationProviderContractTests {
             Assert.NotSame(callbacks[0].Document, NativeDomBridge.Wrap(paragraph).Document);
             Assert.Same(paragraph, NativeDomBridge.GetCallbackNative(callbacks[0], callbacks[0].Document));
         } finally { NativeDomBridge.ReleaseCallbackSnapshot(native); }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static (HtmlDocument Owned, AngleSharp.Html.Dom.IHtmlDocument Native, WeakReference<NativeDomBridge.NativeState> State) CreateProjectionLease() {
+        HtmlDocument owned = AngleSharpHtmlParser.Instance.ParseDocument("<p>leased</p>", new HtmlParseOptions()).Freeze();
+        NativeDomBridge.NativeState state = NativeDomBridge.GetState(owned);
+        return (owned, state.Native, new WeakReference<NativeDomBridge.NativeState>(state));
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static WeakReference CreateUnleasedProjection(HtmlDocument owned) => new WeakReference(NativeDomBridge.GetNativeDocument(owned));
+
+    private static void CollectReleasedGraphs() {
+        for (int index = 0; index < 3; index++) {
+            GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+            GC.WaitForPendingFinalizers();
+        }
     }
 
     private sealed class ForwardingParser : IHtmlParserProvider {
