@@ -97,6 +97,8 @@ public sealed class PdfExtractedImage {
     /// </summary>
     public byte[] Bytes => (byte[])_bytes.Clone();
 
+    internal byte[] EncodedBytes => _bytes;
+
     /// <summary>Suggested file extension, such as jpg or png, when the bytes are a complete image file.</summary>
     public string? FileExtension { get; }
 

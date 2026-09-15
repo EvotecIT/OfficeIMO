@@ -183,9 +183,10 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         ActionDiagnosticSummary actionSummary = BuildActionDiagnosticSummary(document, pages);
+        var selectedPageNumbers = new HashSet<int>(pages.Select(static page => page.PageNumber));
         int omittedDocumentActionCount = actionSummary.CatalogActionCount +
             actionSummary.SelectedPageActionCount +
-            CountOmittedAnnotationActions(pages, options.IncludeLinkAnnotations) +
+            CountOmittedAnnotationActions(pages, selectedPageNumbers, options.IncludeLinkAnnotations) +
             (actionSummary.HasOpenAction ? 1 : 0);
         if (omittedDocumentActionCount > 0) {
             AddWarning(
@@ -391,6 +392,7 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static int CountOmittedAnnotationActions(
         IReadOnlyList<PdfCore.PdfLogicalPage> pages,
+        ISet<int> selectedPageNumbers,
         bool includeLinkAnnotations) {
         int omittedCount = 0;
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
@@ -405,7 +407,7 @@ public static partial class PdfHtmlConverterExtensions {
                 }
 
                 if (!includeLinkAnnotations ||
-                    !TryMatchRepresentedPrimaryLinkAction(page, annotation, representedLinks)) {
+                    !TryMatchRepresentedPrimaryLinkAction(page, annotation, selectedPageNumbers, representedLinks)) {
                     omittedCount++;
                 }
             }
@@ -417,6 +419,7 @@ public static partial class PdfHtmlConverterExtensions {
     private static bool TryMatchRepresentedPrimaryLinkAction(
         PdfCore.PdfLogicalPage page,
         PdfCore.PdfAnnotation annotation,
+        ISet<int> selectedPageNumbers,
         HashSet<int> representedLinks) {
         if (!string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase)) {
             return false;
@@ -428,7 +431,8 @@ public static partial class PdfHtmlConverterExtensions {
             }
 
             PdfCore.PdfLogicalLinkAnnotation link = page.Links[linkIndex];
-            if (!HasSameRectangle(annotation, link) || !IsPrimaryLinkActionRepresented(annotation, link)) {
+            if (!HasSameRectangle(annotation, link) ||
+                !IsPrimaryLinkActionRepresented(annotation, link, selectedPageNumbers)) {
                 continue;
             }
 
@@ -441,13 +445,18 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static bool IsPrimaryLinkActionRepresented(
         PdfCore.PdfAnnotation annotation,
-        PdfCore.PdfLogicalLinkAnnotation link) {
+        PdfCore.PdfLogicalLinkAnnotation link,
+        ISet<int> selectedPageNumbers) {
         if (string.Equals(annotation.ActionType, "URI", StringComparison.OrdinalIgnoreCase)) {
             return link.Uri is not null && IsSafeLinkUri(link.Uri);
         }
 
         if (string.Equals(annotation.ActionType, "GoTo", StringComparison.OrdinalIgnoreCase)) {
-            return !string.IsNullOrWhiteSpace(link.DestinationName) || link.DestinationPageNumber.HasValue;
+            if (link.DestinationPageNumber.HasValue) {
+                return selectedPageNumbers.Contains(link.DestinationPageNumber.Value);
+            }
+
+            return !string.IsNullOrWhiteSpace(link.DestinationName);
         }
 
         return false;

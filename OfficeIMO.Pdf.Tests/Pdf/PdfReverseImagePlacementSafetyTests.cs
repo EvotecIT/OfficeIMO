@@ -273,6 +273,43 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void PositionedPageAppearanceHashesRepeatedBackingImageOnlyOnce() {
+        string content = string.Concat(Enumerable.Range(0, 16).Select(index =>
+            "q 8 0 0 8 " + (8 + index % 4 * 20).ToString(System.Globalization.CultureInfo.InvariantCulture) + " " +
+            (8 + index / 4 * 20).ToString(System.Globalization.CultureInfo.InvariantCulture) + " cm /Im1 Do Q\n"));
+        byte[] source = CreateRawImagePdf(content);
+        OfficeIMO.Drawing.OfficeDrawing drawing = PdfReadDocument.Open(source).Pages[0].ToDrawing();
+        OfficeIMO.Drawing.OfficeDrawingImage[] drawingImages = drawing.Images.ToArray();
+        Assert.Equal(16, drawingImages.Length);
+        Assert.All(drawingImages, image => Assert.Same(drawingImages[0].EncodedBytes, image.EncodedBytes));
+
+        int hashCount = 0;
+        PdfHtmlConverterExtensions.ImagePayloadHashObserverForTesting = () => hashCount++;
+        try {
+            PdfHtmlConversionResult html = PdfDocument.Load(source)
+                .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+            Assert.Contains("pdf-page-appearance", html.Value, StringComparison.Ordinal);
+        } finally {
+            PdfHtmlConverterExtensions.ImagePayloadHashObserverForTesting = null;
+        }
+
+        Assert.Equal(2, hashCount); // One logical-read payload and one separately parsed visual-source payload.
+    }
+
+    [Fact]
+    public void PositionedPageAppearanceObservesCancellationBeforeHashingANewImagePayload() {
+        byte[] source = CreateRawImagePdf("q 40 0 0 20 20 30 cm /Im1 Do Q\n");
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        PdfHtmlConverterExtensions.ImagePayloadHashObserverForTesting = cancellation.Cancel;
+        try {
+            Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(source)
+                .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile(), cancellation.Token));
+        } finally {
+            PdfHtmlConverterExtensions.ImagePayloadHashObserverForTesting = null;
+        }
+    }
+
+    [Fact]
     public void RotatedPageClipsAreComparedInTheSameVisualCoordinateSpaceAsImages() {
         const string content = "q 0 0 150 60 re W n 40 0 0 80 20 20 cm /Im1 Do Q\n";
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(content, pageEntries: "/Rotate 90"));

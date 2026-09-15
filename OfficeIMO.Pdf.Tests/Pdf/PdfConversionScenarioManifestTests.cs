@@ -1918,6 +1918,27 @@ public sealed class PdfConversionScenarioManifestTests {
     }
 
     [Fact]
+    public void PdfToHtmlResult_ReportsInternalNavigationOutsideSelectedPagesAsLoss() {
+        byte[] pdf = CreateDirectDestinationLinkPdf();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
+        var options = new PdfToHtmlOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true,
+            PageRanges = new[] { PdfCore.PdfPageRange.From(1, 1) }
+        };
+
+        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, options);
+
+        Assert.Contains("data-destination-page-number=\"2\"", result.Value, StringComparison.Ordinal);
+        Assert.Equal(new[] { 1 }, result.Summary.PageNumbers);
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+    }
+
+    [Fact]
     public void PdfEditableOfficeProfiles_ProduceManifestedProof() {
         byte[] pdf = CreateLogicalProofPdf();
         var layoutOptions = new PdfCore.PdfTextLayoutOptions {

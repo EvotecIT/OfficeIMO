@@ -2816,7 +2816,7 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        drawing.AddImageWithInterpolation(image.Bytes, image.MimeType, projection, image.Interpolate, opacity: placement.ImageOpacity ?? 1D);
+        drawing.AddImageSharedWithInterpolation(image.EncodedBytes, image.MimeType, projection, image.Interpolate, opacity: placement.ImageOpacity ?? 1D);
     }
 
     private static bool TryAddClippedImagePlacement(OfficeDrawing drawing, PdfImagePlacement placement, PdfExtractedImage image, OfficeImageProjection projection) {
@@ -2854,7 +2854,7 @@ public sealed partial class PdfReadPage {
             return false;
         }
 
-        drawing.AddClippedImageWithInterpolation(image.Bytes, image.MimeType, projection, image.Interpolate, clip.X, clip.Y, clipPath, opacity: placement.ImageOpacity ?? 1D);
+        drawing.AddClippedImageSharedWithInterpolation(image.EncodedBytes, image.MimeType, projection, image.Interpolate, clip.X, clip.Y, clipPath, opacity: placement.ImageOpacity ?? 1D);
         return true;
     }
 
