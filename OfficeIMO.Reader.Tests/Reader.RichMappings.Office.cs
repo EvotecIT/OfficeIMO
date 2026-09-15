@@ -404,7 +404,7 @@ public sealed class ReaderOfficeRichMappingTests {
                 hiddenFillPart.FeedData(hiddenFillStream);
             }
             string hiddenFillRelationshipId = slidePart.GetIdOfPart(hiddenFillPart);
-            P.Shape hiddenFillShape = slidePart.Slide.Descendants<P.Shape>().Single(shape =>
+            P.Shape hiddenFillShape = slidePart.Slide!.Descendants<P.Shape>().Single(shape =>
                 shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Id?.Value == hiddenImageFillId);
             hiddenFillShape.ShapeProperties!.Append(new A.BlipFill(
                 new A.Blip { Embed = hiddenFillRelationshipId },

@@ -54,8 +54,9 @@ public class PdfTableStreamExportContracts {
         Assert.True(powerPointResult.Report.HasLoss);
         Assert.True(excelResult.HasOmittedPageContent);
         Assert.True(powerPointResult.HasOmittedPageContent);
+        Assert.NotNull(powerPointResult.Report.SourceScope);
         Assert.Equal(1, excelResult.Report.SourceScope.NonTableTextBlockCount);
-        Assert.Equal(1, powerPointResult.Report.SourceScope.NonTableTextBlockCount);
+        Assert.Equal(1, powerPointResult.Report.SourceScope!.NonTableTextBlockCount);
         Assert.Equal(0, excelResult.Report.SourceScope.DetectedTableCount);
         Assert.Equal(0, powerPointResult.Report.SourceScope.DetectedTableCount);
 
@@ -169,9 +170,10 @@ public class PdfTableStreamExportContracts {
         Assert.True(excelResult.HasOmittedPageContent);
         Assert.True(powerPointResult.HasOmittedPageContent);
         Assert.True(excelResult.Report.SourceScope.VectorPrimitiveCount > 0);
+        Assert.NotNull(powerPointResult.Report.SourceScope);
         Assert.Equal(
             excelResult.Report.SourceScope.VectorPrimitiveCount,
-            powerPointResult.Report.SourceScope.VectorPrimitiveCount);
+            powerPointResult.Report.SourceScope!.VectorPrimitiveCount);
     }
 
     [Fact]
@@ -190,7 +192,7 @@ public class PdfTableStreamExportContracts {
             PdfToPowerPointOptions.CreateEditableContent());
 
         using (result.Value) {
-            Assert.Equal(1, logical.Pages.Count);
+            Assert.Single(logical.Pages);
             Assert.True(logical.Pages[0].VectorPrimitiveCount > 0);
             Assert.Equal(
                 logical.Pages[0].VectorPrimitiveCount,

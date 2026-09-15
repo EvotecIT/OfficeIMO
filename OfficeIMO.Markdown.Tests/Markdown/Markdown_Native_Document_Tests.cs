@@ -1565,7 +1565,7 @@ After
         Assert.Equal("false", snapshot.Blocks[1].Fields["isComment"]);
         Assert.Equal("true", snapshot.Blocks[2].Fields["isComment"]);
         Assert.Equal(5, snapshot.Blocks[2].SourceSpan!.StartLine);
-        Assert.Equal(7, snapshot.Blocks[2].SourceSpan.EndLine);
+        Assert.Equal(7, snapshot.Blocks[2].SourceSpan!.EndLine);
         Assert.Equal(5, snapshot.Blocks[2].FieldSourceSpans["htmlCommentOpeningMarker"]!.StartLine);
         Assert.Equal(4, snapshot.Blocks[2].FieldSourceSpans["htmlCommentOpeningMarker"]!.EndColumn);
         Assert.Equal(12, snapshot.Blocks[2].FieldSourceSpans["htmlCommentBody"]!.EndColumn);

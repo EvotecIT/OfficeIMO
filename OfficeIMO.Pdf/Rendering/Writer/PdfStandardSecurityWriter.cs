@@ -380,7 +380,7 @@ internal static partial class PdfStandardSecurityWriter {
     }
 
     private static byte[] Md5(byte[] data) {
-#pragma warning disable CA5351, CA1850
+#pragma warning disable CA5351, CA1850 // PDF standard-security revisions 2-4 mandate MD5 key derivation; use Create for legacy targets.
         using MD5 md5 = MD5.Create();
         return md5.ComputeHash(data);
 #pragma warning restore CA5351, CA1850

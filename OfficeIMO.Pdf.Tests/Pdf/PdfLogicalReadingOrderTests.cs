@@ -147,7 +147,7 @@ public sealed class PdfLogicalReadingOrderTests {
 
         using (OfficeIMO.Word.WordDocument word = logical.ToWordDocument(new PdfToWordOptions { UseSharedPageReadingOrder = true })) {
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
-            string wordText = string.Join(" ", package.MainDocumentPart!.Document.Body!.Descendants<Text>().Select(static text => text.Text));
+            string wordText = string.Join(" ", package.MainDocumentPart!.Document!.Body!.Descendants<Text>().Select(static text => text.Text));
             AssertInOrder(wordText, "Left top", "Left bottom", "Right top", "Right bottom");
         }
 
@@ -185,7 +185,7 @@ public sealed class PdfLogicalReadingOrderTests {
 
         using (OfficeIMO.Word.WordDocument word = logical.ToWordDocument(new PdfToWordOptions { UseSharedPageReadingOrder = true })) {
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
-            string wordText = string.Join(" ", package.MainDocumentPart!.Document.Body!.Descendants<Text>().Select(static text => text.Text));
+            string wordText = string.Join(" ", package.MainDocumentPart!.Document!.Body!.Descendants<Text>().Select(static text => text.Text));
             AssertArtifactSequence(wordText, header, "First page body marker.", footer);
         }
 

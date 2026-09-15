@@ -206,9 +206,11 @@ public sealed class DrawingFontUnicodeRangeTests {
         byte[] font = ManagedTextShapingTestAssets.CreateFont('A', 0x05D0);
         Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0000-007F", out OfficeFontUnicodeRangeSet? latin));
         Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0590-05FF", out OfficeFontUnicodeRangeSet? hebrew));
+        Assert.NotNull(latin);
+        Assert.NotNull(hebrew);
         var drawing = new OfficeDrawing(120D, 30D);
-        drawing.Fonts.Add("Scoped", font, OfficeFontStyle.Regular, latin);
-        drawing.Fonts.Add("Scoped", font, OfficeFontStyle.Regular, hebrew);
+        drawing.Fonts.Add("Scoped", font, OfficeFontStyle.Regular, latin!);
+        drawing.Fonts.Add("Scoped", font, OfficeFontStyle.Regular, hebrew!);
         drawing.AddText("A\u05D0", 0D, 0D, 120D, 30D, new OfficeFontInfo("Scoped", 12D));
 
         string svg = OfficeDrawingSvgExporter.ToSvg(drawing);

@@ -15,7 +15,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>Latest</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>OfficeIMO.png</PackageIcon>
   </PropertyGroup>

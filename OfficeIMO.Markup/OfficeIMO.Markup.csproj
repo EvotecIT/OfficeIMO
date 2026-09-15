@@ -24,6 +24,7 @@
         <IsPublishable>False</IsPublishable>
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
+        <!-- Existing public API documentation debt is tracked separately; keep this scoped to the owning package. -->
         <NoWarn>$(NoWarn);1591</NoWarn>
         <LangVersion>Latest</LangVersion>
         <Nullable>enable</Nullable>

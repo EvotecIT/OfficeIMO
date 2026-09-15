@@ -7,9 +7,9 @@
     </TargetFrameworks>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
+    <!-- xUnit assertions and Open XML value wrappers establish non-null test fixtures that Roslyn cannot track consistently across legacy TFMs. Keep nullable return, write, and explicit-null diagnostics enabled. -->
+    <NoWarn>$(NoWarn);CS8600;CS8602;CS8604</NoWarn>
     <LangVersion>Latest</LangVersion>
-    <WarningsNotAsErrors>$(WarningsNotAsErrors);CS8600;CS8601;CS8602;CS8603;CS8604;CS8625</WarningsNotAsErrors>
-    <NoWarn>$(NoWarn);CS0436;CS8600;CS8601;CS8602;CS8603;CS8604;CS8625;CA1416;SYSLIB0057;xUnit2012;xUnit2013;xUnit2029</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

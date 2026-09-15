@@ -1,4 +1,4 @@
-#pragma warning disable CS1591
+#pragma warning disable CS1591 // Inspection API documentation debt is confined to this file; new Word APIs remain checked.
 
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -631,3 +631,4 @@ namespace OfficeIMO.Word {
         }
     }
 }
+#pragma warning restore CS1591

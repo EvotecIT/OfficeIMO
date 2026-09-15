@@ -675,12 +675,13 @@ public sealed class PdfConversionScenarioManifestTests {
                 "The provider-shaped-text review proof requires TrueType Arabic coverage and the bundled OpenType/CFF office ligature.");
             return;
         }
+        Assert.NotNull(officeGlyphs);
 
         var provider = new ManifestTextShapingProvider(
             complexText,
             CreateTrueTypeGlyphMap(complexText, trueTypeFont),
             "office",
-            officeGlyphs);
+            officeGlyphs!);
         var report = new PdfCore.PdfConversionReport();
         var options = new PdfCore.PdfOptions {
                 CompressContentStreams = false,
@@ -1952,7 +1953,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.True(powerPointStream.Length > 0);
         using (WordprocessingDocument semanticWordPackage = WordprocessingDocument.Open(new MemoryStream(semanticWordStream.ToArray()), false)) {
             Assert.Single(semanticWordPackage.MainDocumentPart!.ImageParts);
-            Body body = semanticWordPackage.MainDocumentPart.Document.Body!;
+            Body body = semanticWordPackage.MainDocumentPart!.Document!.Body!;
             Assert.NotEmpty(body.Descendants<Table>());
             Hyperlink internalLink = Assert.Single(body.Descendants<Hyperlink>(), link => !string.IsNullOrWhiteSpace(link.Anchor?.Value));
             string anchor = Assert.IsType<string>(internalLink.Anchor?.Value);
@@ -2366,7 +2367,7 @@ public sealed class PdfConversionScenarioManifestTests {
         PowerPointAutoShape second = slide.AddRectanglePoints(60, 20, 30, 20);
         second.FillColor = "00AA00";
         slide.GroupShapes(new PowerPointShape[] { first, second }, "Dashboard group");
-        DocumentFormat.OpenXml.Presentation.GroupShape group = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+        DocumentFormat.OpenXml.Presentation.GroupShape group = slide.SlidePart.Slide!.CommonSlideData!.ShapeTree!
             .Elements<DocumentFormat.OpenXml.Presentation.GroupShape>()
             .Single();
         TransformGroup transform = group.GroupShapeProperties!.TransformGroup!;

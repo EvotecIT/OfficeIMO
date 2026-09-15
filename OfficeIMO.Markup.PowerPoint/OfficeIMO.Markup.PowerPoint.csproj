@@ -24,7 +24,6 @@
         <IsPublishable>False</IsPublishable>
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
-        <NoWarn>$(NoWarn);1591</NoWarn>
         <LangVersion>Latest</LangVersion>
         <Nullable>enable</Nullable>
         <EnableTrimmingPolyfills>false</EnableTrimmingPolyfills>

@@ -26,6 +26,9 @@ namespace OfficeIMO.Tests {
         private const int WdColorRed = 255;
         private static readonly TimeSpan WordComOpenTimeout = TimeSpan.FromMinutes(2);
 
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         [LegacyDocComFact]
         [Trait("Category", "MicrosoftOfficeInteroperability")]
         public void LegacyDoc_ComGeneratedDocument_ImportsAndNativeSaveOpensInDesktopWordWhenRequested() {
@@ -60,6 +63,9 @@ namespace OfficeIMO.Tests {
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { convertedDocxPath }, "The OfficeIMO converted DOCX output did not open through desktop Word.");
         }
 
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         [LegacyDocComFact]
         public void LegacyDoc_NativeFootnoteSaveOpensInDesktopWordWhenRequested() {
             Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
@@ -79,6 +85,9 @@ namespace OfficeIMO.Tests {
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { nativeDocPath }, "The OfficeIMO native legacy DOC footnote output did not open through desktop Word.");
         }
 
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         [LegacyDocComFact]
         public void LegacyDoc_NativeEndnoteSaveOpensInDesktopWordWhenRequested() {
             Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
@@ -98,6 +107,9 @@ namespace OfficeIMO.Tests {
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { nativeDocPath }, "The OfficeIMO native legacy DOC endnote output did not open through desktop Word.");
         }
 
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         [LegacyDocComFact]
         [Trait("Category", "MicrosoftOfficeInteroperability")]
         public void LegacyDoc_ConvertGeneratedDocxToDocOpensInDesktopWordWhenRequested() {
@@ -121,6 +133,9 @@ namespace OfficeIMO.Tests {
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { directDocPath, convertedDocPath }, "One or more OfficeIMO generated native DOC outputs did not open through desktop Word.");
         }
 
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         [LegacyDocComFact]
         public void LegacyDoc_ComGeneratedCustomParagraphStyle_ImportsStylesheetStyleWhenRequested() {
             Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
@@ -164,6 +179,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Courier New", runFonts.HighAnsi?.Value);
         }
 
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         [LegacyDocComFact]
         [Trait("Category", "MicrosoftOfficeInteroperability")]
         public void LegacyDoc_CorpusFixtures_OpenInDesktopWordWhenRequested() {
@@ -195,10 +213,10 @@ namespace OfficeIMO.Tests {
             RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
 #if NET5_0_OR_GREATER
-        [SupportedOSPlatform("windows")]
+        [SupportedOSPlatformGuard("windows")]
 #endif
         private static bool IsWordComAvailable() =>
-            Type.GetTypeFromProgID("Word.Application") != null;
+            IsWindowsPlatform() && Type.GetTypeFromProgID("Word.Application") != null;
 
         private static string GetCurrentTargetFrameworkLabel() {
 #if NET472
@@ -256,14 +274,18 @@ namespace OfficeIMO.Tests {
             Assert.True(failures.Count == 0, "Failed to generate the legacy DOC document through desktop Word." + Environment.NewLine + string.Join(Environment.NewLine, failures));
         }
 
-#if NET5_0_OR_GREATER
-        [SupportedOSPlatform("windows")]
-#endif
         private static void AssertDocumentsOpenViaWordComWhenAvailable(IEnumerable<string> paths, string failureMessage) {
-            if (!IsWordComAvailable()) {
+            if (!IsWindowsPlatform() || !IsWordComAvailable()) {
                 return;
             }
 
+            AssertDocumentsOpenViaWordComOnWindows(paths, failureMessage);
+        }
+
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
+        private static void AssertDocumentsOpenViaWordComOnWindows(IEnumerable<string> paths, string failureMessage) {
             List<string> failures = new();
             var thread = new Thread(() => OpenDocumentsViaWordCom(paths.ToList(), failures));
             thread.IsBackground = true;
@@ -427,6 +449,9 @@ namespace OfficeIMO.Tests {
             }
         }
 
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         private static object CreateWordComApplication() {
             var wordType = Type.GetTypeFromProgID("Word.Application")
                 ?? throw new InvalidOperationException("Word COM automation is not available.");
@@ -497,9 +522,18 @@ namespace OfficeIMO.Tests {
             InvokeCom(word, "Quit", WdDoNotSaveChanges);
         }
 
-        private static void ReleaseComObject(object? comObject) {
-            if (comObject != null && Marshal.IsComObject(comObject)) {
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
+        private static void ReleaseComObjectOnWindows(object comObject) {
+            if (Marshal.IsComObject(comObject)) {
                 Marshal.FinalReleaseComObject(comObject);
+            }
+        }
+
+        private static void ReleaseComObject(object? comObject) {
+            if (IsWindowsPlatform() && comObject is not null) {
+                ReleaseComObjectOnWindows(comObject);
             }
         }
 

@@ -982,7 +982,7 @@ public class PdfAcroFormAuthoringTests {
         Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "button",
             Kind = kind,
-            Caption = kind == PdfFormFieldCreationKind.PushButton ? "Run" : null,
+            Caption = kind == PdfFormFieldCreationKind.PushButton ? "Run" : string.Empty,
             FieldFlags = fieldFlags,
             ChoiceOptions = kind == PdfFormFieldCreationKind.RadioButtonGroup ? new[] { "One" } : Array.Empty<string>(),
             Value = kind == PdfFormFieldCreationKind.RadioButtonGroup ? "One" : string.Empty,

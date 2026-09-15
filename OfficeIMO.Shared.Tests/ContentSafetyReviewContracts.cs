@@ -36,8 +36,10 @@ public sealed class ContentSafetyReviewContracts {
         Assert.DoesNotContain(cleaned.After.Findings, item => item.Kind == OfficeContentConcealmentKind.NonPrintingUnicode);
         using var stream = new MemoryStream(cleaned.Output, writable: false);
         using SpreadsheetDocument package = SpreadsheetDocument.Open(stream, false);
-        S.Cell[] cells = package.WorkbookPart!.WorksheetParts.Single(part =>
-            part.Worksheet.Descendants<S.Cell>().Any()).Worksheet.Descendants<S.Cell>().ToArray();
+        WorksheetPart worksheetPart = package.WorkbookPart!.WorksheetParts.Single(part =>
+            part.Worksheet?.Descendants<S.Cell>().Any() == true);
+        Assert.NotNull(worksheetPart.Worksheet);
+        S.Cell[] cells = worksheetPart.Worksheet!.Descendants<S.Cell>().ToArray();
         Assert.Equal(string.Empty, cells.Single(item => item.CellReference?.Value == "A1").InnerText);
         Assert.Equal("payload", cells.Single(item => item.CellReference?.Value == "A2").InnerText);
     }
@@ -192,8 +194,9 @@ public sealed class ContentSafetyReviewContracts {
         stream.Position = 0;
         using (SpreadsheetDocument package = SpreadsheetDocument.Open(stream, true)) {
             WorksheetPart worksheetPart = package.WorkbookPart!.WorksheetParts.Single();
+            Assert.NotNull(worksheetPart.Worksheet);
             DrawingsPart drawingsPart = worksheetPart.AddNewPart<DrawingsPart>();
-            worksheetPart.Worksheet.Append(new S.Drawing { Id = worksheetPart.GetIdOfPart(drawingsPart) });
+            worksheetPart.Worksheet!.Append(new S.Drawing { Id = worksheetPart.GetIdOfPart(drawingsPart) });
             drawingsPart.WorksheetDrawing = new Xdr.WorksheetDrawing(
                 new Xdr.TwoCellAnchor(
                     MarkerFrom(0, 0),
@@ -224,15 +227,20 @@ public sealed class ContentSafetyReviewContracts {
         return stream.ToArray();
     }
 
-    private static Xdr.Shape DrawingShape(uint id, string name, OpenXmlElement textElement, string? fill = null) => new Xdr.Shape(
-        new Xdr.NonVisualShapeProperties(
-            new Xdr.NonVisualDrawingProperties { Id = id, Name = name },
-            new Xdr.NonVisualShapeDrawingProperties()),
-        new Xdr.ShapeProperties(
+    private static Xdr.Shape DrawingShape(uint id, string name, OpenXmlElement textElement, string? fill = null) {
+        var shapeProperties = new Xdr.ShapeProperties(
             new A.Transform2D(new A.Offset { X = 0L, Y = 0L }, new A.Extents { Cx = 1_000_000L, Cy = 1_000_000L }),
-            new A.PresetGeometry { Preset = A.ShapeTypeValues.Rectangle },
-            fill == null ? null : new A.SolidFill(new A.RgbColorModelHex { Val = fill })),
-        new Xdr.TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(textElement)));
+            new A.PresetGeometry { Preset = A.ShapeTypeValues.Rectangle });
+        if (fill != null) {
+            shapeProperties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = fill }));
+        }
+        return new Xdr.Shape(
+            new Xdr.NonVisualShapeProperties(
+                new Xdr.NonVisualDrawingProperties { Id = id, Name = name },
+                new Xdr.NonVisualShapeDrawingProperties()),
+            shapeProperties,
+            new Xdr.TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(textElement)));
+    }
 
     private static Xdr.FromMarker MarkerFrom(int column, int row) => new Xdr.FromMarker(
         new Xdr.ColumnId(column.ToString()), new Xdr.ColumnOffset("0"),

@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
             paragraph2.AddImage(filePathImage, 500, 500);
             var paragraph2Image = paragraph2.Image;
             Assert.NotNull(paragraph2Image);
-#pragma warning disable CS0618
+#pragma warning disable CS0618 // Verify the obsolete misspelled alias still forwards to the supported property.
             paragraph2Image.BlackWiteMode = WordImageBlackWhiteMode.GrayWhite;
 #pragma warning restore CS0618
             Assert.Equal(WordImageBlackWhiteMode.GrayWhite, paragraph2Image.BlackWhiteMode);

@@ -765,7 +765,7 @@ namespace OfficeIMO.Tests {
                 .ToList();
 
             Assert.Contains(listItems, item => item.Marker == "1" && item.Text == "LevelMarkerFontSizeBody");
-            Assert.Equal(1, Regex.Matches(content, @"/F\d+\s+20\s+Tf").Count);
+            Assert.Single(Regex.Matches(content, @"/F\d+\s+20\s+Tf"));
             Assert.True(
                 Regex.Matches(content, @"/F\d+\s+11\s+Tf").Count >= 1,
                 "Expected the list body text to keep the normal paragraph font size while only the marker uses the numbering level font size.");

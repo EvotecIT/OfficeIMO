@@ -192,9 +192,9 @@ internal static class OfficeInteroperabilityCorpusManifestLoader {
             if (collection.Format is "doc" or "xls") {
                 errors.Add($"{label}: legacy binary artifacts require an approved import report.");
             }
-        } else if (!IsSafeRelativePath(artifact.ApprovedReport)) {
+        } else if (!IsSafeRelativePath(artifact.ApprovedReport!)) {
             errors.Add($"{label}: approvedReport must be a safe relative path.");
-        } else if (!File.Exists(ResolveDocumentPath(CombineRelative(collection.Root, artifact.ApprovedReport)))) {
+        } else if (!File.Exists(ResolveDocumentPath(CombineRelative(collection.Root, artifact.ApprovedReport!)))) {
             errors.Add($"{label}: approved report does not exist: {artifact.ApprovedReport}");
         }
     }
