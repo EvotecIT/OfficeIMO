@@ -57,14 +57,15 @@ namespace OfficeIMO.Word.Pdf {
                 ReportPageReconstructionBoundaries(page, options);
                 List<ImportItem> items = BuildImportItems(page, options, navigation);
                 bool hasNavigationAnchor = navigation.HasAnchorsForPage(page.PageNumber);
+                bool hasPageOutputCandidate = items.Count > 0 || options.IncludeEmptyPages || hasNavigationAnchor;
                 bool sourcePageSizeApplied = false;
-                if (pageIndex > 0 && options.PreservePageBreaks && (items.Count > 0 || options.IncludeEmptyPages || hasNavigationAnchor)) {
+                if (emittedContent && options.PreservePageBreaks && hasPageOutputCandidate) {
                     if (options.PreserveSourcePageSize) {
                         sourcePageSizeApplied = ConfigureEditablePageSection(target.AddSection(WordSectionBreakType.NextPage), page, options);
                     } else {
                         target.AddPageBreak();
                     }
-                } else if (pageIndex == 0 && options.PreserveSourcePageSize) {
+                } else if (!emittedContent && options.PreserveSourcePageSize && hasPageOutputCandidate) {
                     sourcePageSizeApplied = ConfigureEditablePageSection(target.Sections[0], page, options);
                 }
                 double typographyScale = GetEditableTypographyScale(page, sourcePageSizeApplied);
