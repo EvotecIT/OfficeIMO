@@ -894,7 +894,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(" style=\"");
         if (assessment.HasNonDefaultOpacity) {
             builder.Append("opacity:");
-            builder.Append(assessment.Opacity.ToString("0.######", CultureInfo.InvariantCulture));
+            builder.Append(FormatCssOpacity(assessment.Opacity));
             builder.Append(';');
         }
         if (assessment.HasNonNormalBlendMode) {
@@ -904,6 +904,9 @@ public static partial class PdfHtmlConverterExtensions {
         }
         builder.Append('"');
     }
+
+    private static string FormatCssOpacity(double opacity) =>
+        opacity.ToString("R", CultureInfo.InvariantCulture);
 
     private static string ToCssBlendMode(OfficeIMO.Drawing.OfficeBlendMode blendMode) => blendMode switch {
         OfficeIMO.Drawing.OfficeBlendMode.ColorDodge => "color-dodge",

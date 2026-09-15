@@ -333,7 +333,9 @@ public class PdfTableStreamExportContracts {
                 new[] { "$5,678.00-", "5,678.500 KWD-" },
                 new[] { "+$6,789.00", "+6,789.500 KWD" },
                 new[] { "$+7,890.00", "7,890.500+ KWD" },
-                new[] { "$8,901.00+", "8,901.500 KWD+" }
+                new[] { "$8,901.00+", "8,901.500 KWD+" },
+                new[] { "-$0.00", "(0.000 KWD)" },
+                new[] { "$0.00-", "0.000 KWD-" }
             })
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
@@ -415,6 +417,18 @@ public class PdfTableStreamExportContracts {
             Assert.Equal("#,##0.000\"+\" \"KWD\"", GetCellNumberFormat("B8"));
             Assert.Equal("\"$\"#,##0.00\"+\"", GetCellNumberFormat("A9"));
             Assert.Equal("#,##0.000 \"KWD\"\"+\"", GetCellNumberFormat("B9"));
+            Assert.Equal(
+                "\"$\"#,##0.00;\"-\"\"$\"#,##0.00;\"-\"\"$\"#,##0.00",
+                GetCellNumberFormat("A10"));
+            Assert.Equal(
+                "#,##0.000 \"KWD\";\"(\"#,##0.000 \"KWD\"\")\";\"(\"#,##0.000 \"KWD\"\")\"",
+                GetCellNumberFormat("B10"));
+            Assert.Equal(
+                "\"$\"#,##0.00;\"$\"#,##0.00\"-\";\"$\"#,##0.00\"-\"",
+                GetCellNumberFormat("A11"));
+            Assert.Equal(
+                "#,##0.000 \"KWD\";#,##0.000 \"KWD\"\"-\";#,##0.000 \"KWD\"\"-\"",
+                GetCellNumberFormat("B11"));
 
             string GetCellNumberFormat(string reference) {
                 S.Cell cell = cells[reference];

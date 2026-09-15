@@ -229,7 +229,7 @@ public static partial class PdfHtmlConverterExtensions {
             builder.Append("\" style=\"width:100%;height:100%;object-fit:contain;display:block;");
             if (assessment.HasNonDefaultOpacity) {
                 builder.Append("opacity:");
-                builder.Append(assessment.Opacity.ToString("0.######", CultureInfo.InvariantCulture));
+                builder.Append(FormatCssOpacity(assessment.Opacity));
                 builder.Append(';');
             }
             if (assessment.HasNonNormalBlendMode) {

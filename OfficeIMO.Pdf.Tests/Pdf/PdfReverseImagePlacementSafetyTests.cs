@@ -714,14 +714,11 @@ public sealed class PdfReverseImagePlacementSafetyTests {
 
     [Fact]
     public void VeryLowNonzeroImageOpacityRemainsVisibleAcrossEditableOfficeAdapters() {
-        byte[] source = CreateDocument()
-            .Canvas(canvas => canvas.Effect(
-                OfficeIMO.Drawing.OfficeTransform.Identity,
-                0.001D,
-                effect => effect.Image(Png, 20D, 30D, 80D, 40D)))
-            .ToBytes();
+        byte[] source = CreateRawImagePdf(
+            "q /GS1 gs 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            "/ca 0.0000004");
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
-        Assert.Equal(0.001D, Assert.Single(Assert.Single(logical.Pages).Images).Placements[0].Opacity, 6);
+        Assert.Equal(0.0000004D, Assert.Single(Assert.Single(logical.Pages).Images).Placements[0].Opacity, 10);
 
         PdfWordConversionResult word = logical.ToWordDocumentResult();
         using (word.Value) {
@@ -739,6 +736,18 @@ public sealed class PdfReverseImagePlacementSafetyTests {
                 warning.Code == "PdfImageOpacityMapped" &&
                 warning.LossKind == OfficeConversionLossKind.None);
         }
+
+        PdfHtmlConversionResult semanticHtml = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        Assert.Contains("opacity:4E-07;", semanticHtml.Value, StringComparison.Ordinal);
+        Assert.Contains(semanticHtml.Report.Warnings, static warning =>
+            warning.Code == "ImageOpacityMapped" &&
+            warning.LossKind == OfficeConversionLossKind.None);
+
+        PdfHtmlConversionResult positionedHtml = logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        Assert.Contains("opacity:4E-07;", positionedHtml.Value, StringComparison.Ordinal);
+        Assert.Contains(positionedHtml.Report.Warnings, static warning =>
+            warning.Code == "ImageOpacityMapped" &&
+            warning.LossKind == OfficeConversionLossKind.None);
     }
 
     [Fact]

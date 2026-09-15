@@ -332,7 +332,12 @@ namespace OfficeIMO.Excel.Pdf {
                 ? literal + separator + numeric
                 : numeric + separator + literal;
             string normalized = sourceValue.Trim();
-            if (parsedValue >= 0M) {
+            string negativeSign = numericCulture.NumberFormat.NegativeSign;
+            if (string.IsNullOrEmpty(negativeSign)) negativeSign = "-";
+            bool usesAccountingNotation = normalized.Length >= 3 &&
+                normalized[0] == '(' && normalized[normalized.Length - 1] == ')';
+            bool usesNegativeSign = normalized.IndexOf(negativeSign, StringComparison.Ordinal) >= 0;
+            if (parsedValue > 0M || parsedValue == 0M && !usesAccountingNotation && !usesNegativeSign) {
                 string positiveSign = numericCulture.NumberFormat.PositiveSign;
                 return !string.IsNullOrEmpty(positiveSign) &&
                        normalized.IndexOf(positiveSign, StringComparison.Ordinal) >= 0
@@ -348,21 +353,21 @@ namespace OfficeIMO.Excel.Pdf {
                     : positive;
             }
 
-            if (normalized.Length >= 3 && normalized[0] == '(' && normalized[normalized.Length - 1] == ')') {
-                return positive + ";\"(\"" + positive + "\")\"";
+            string negative = usesAccountingNotation
+                ? "\"(\"" + positive + "\")\""
+                : BuildSignedCurrencyPattern(
+                    normalized,
+                    negativeSign,
+                    currencyToken,
+                    affixPosition,
+                    literal,
+                    separator,
+                    numeric,
+                    positive);
+            if (parsedValue == 0M) {
+                return positive + ";" + negative + ";" + negative;
             }
 
-            string negativeSign = numericCulture.NumberFormat.NegativeSign;
-            if (string.IsNullOrEmpty(negativeSign)) negativeSign = "-";
-            string negative = BuildSignedCurrencyPattern(
-                normalized,
-                negativeSign,
-                currencyToken,
-                affixPosition,
-                literal,
-                separator,
-                numeric,
-                positive);
             return string.Equals(negative, positive, StringComparison.Ordinal)
                 ? positive
                 : positive + ";" + negative;
