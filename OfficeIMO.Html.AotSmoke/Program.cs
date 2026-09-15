@@ -6,7 +6,7 @@ using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 
 const string marker = "AotMarker";
-const string html = "<style>body{margin:0}h1{color:#123456}</style><h1>AotMarker</h1><p><a href='https://example.test/'>Searchable PDF link</a></p>";
+const string html = "<style>body{margin:0}[data-tone='IMPORTANT' i]>h1.hero{color:hsl(210 50 40 / 75%);opacity:calc(.2 + .3)}</style><main data-tone='important'><h1 class='hero'>AotMarker</h1></main><p><a href='https://example.test/'>Searchable PDF link</a></p>";
 HtmlDocument aotTable = HtmlDocumentEngine.Default.ParseDocument(
     "<table><tbody><tr id='aot-items'></tr></tbody></table>");
 HtmlDocumentFragment aotCells = HtmlDocumentEngine.Default.ParseFragment(
@@ -17,9 +17,12 @@ if (aotEditedTable.QuerySelectorAll("td").Count != 1) {
     throw new InvalidOperationException("The NativeAOT owned document fragment contract failed.");
 }
 HtmlCssStyleSheet aotCss = HtmlCssSyntaxParser.ParseStyleSheet("@future aot;.card{color:red;future:fn(one[two])}");
-HtmlCssPropertyParseResult aotOpacity = HtmlCssPropertyParser.Parse("opacity", "40%");
+HtmlCssPropertyParseResult aotOpacity = HtmlCssPropertyParser.Parse("opacity", "calc(15% + 25%)");
+HtmlCssSelectorParseResult aotSelector = HtmlCssSelectorParser.Parse("table > tbody tr#aot-items");
 if (aotCss.Rules.Count != 2 || aotCss.ToCss().Length == 0 ||
-    aotOpacity.Status != HtmlCssPropertyParseStatus.Parsed || aotOpacity.Value?.Number != 40D) {
+    aotOpacity.Status != HtmlCssPropertyParseStatus.Parsed || aotOpacity.Value?.NumericValue?.Value != 40D ||
+    aotOpacity.Value.NumericValue.IsCalculated != true ||
+    aotSelector.Selector?.Matches(aotEditedTable.QuerySelector("#aot-items")!) != true) {
     throw new InvalidOperationException("The NativeAOT CSS syntax or property-grammar contract failed.");
 }
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
@@ -29,7 +32,8 @@ HtmlComputedStyle headingStyle = HtmlComputedStyleEngine.Compute(source, new Htm
     IncludeCascadeTraces = true
 })[heading];
 HtmlCssCascadeTrace? headingColorTrace = headingStyle.GetCascadeTrace("color");
-if (headingStyle.GetValue("color") != "rgba(18, 52, 86, 1)" || headingColorTrace?.Candidates.Count != 1 ||
+if (headingStyle.GetValue("color") != "rgba(51, 102, 153, 0.75)" || headingStyle.GetValue("opacity") != "0.5" ||
+    headingColorTrace?.Candidates.Count != 1 ||
     headingColorTrace.Candidates[0].Decision != HtmlCssCascadeDecision.Selected) {
     throw new InvalidOperationException(
         $"The NativeAOT cascade-trace contract failed: value={headingStyle.GetValue("color")}, " +

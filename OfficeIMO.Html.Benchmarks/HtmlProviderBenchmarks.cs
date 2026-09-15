@@ -70,7 +70,8 @@ internal static class HtmlProviderBenchmarkCorpus {
         css.Append("@layer reset,theme,components;@layer reset{*{box-sizing:border-box}}")
             .Append("@layer theme{:root{--accent:#315b8a;--space:6px;color:#172033}}")
             .Append("@supports(display:grid){@media screen and (min-width:300px){.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space)}}}")
-            .Append("@font-face{font-family:Evidence;src:local('Arial');font-style:normal;font-weight:400}");
+            .Append("@font-face{font-family:Evidence;src:local('Arial');font-style:normal;font-weight:400}")
+            .Append(".cards > article[data-kind='ITEM' i] > h2{color:hsl(210 50% 40% / 75%);opacity:calc(.2 + .3)}");
         for (int index = 0; index < ruleCount; index++) {
             css.Append("@layer components{.card-").Append(index)
                 .Append("{font:400 12px/1.4 Evidence,Arial;color:var(--accent);padding:calc(var(--space) + 1px);background:linear-gradient(135deg,#eef4ff,#fff);border:1px solid color-mix(in srgb,var(--accent) 35%,white)}")
@@ -80,7 +81,7 @@ internal static class HtmlProviderBenchmarkCorpus {
         var html = new System.Text.StringBuilder(css.Length + ruleCount * 80 + 128);
         html.Append("<style>").Append(css).Append("</style><main class='cards'>");
         for (int index = 0; index < ruleCount; index++) {
-            html.Append("<article class='card-").Append(index).Append("'><h2>Item ").Append(index)
+            html.Append("<article class='card-").Append(index).Append("' data-kind='item'><h2>Item ").Append(index)
                 .Append("</h2><p>Provider evidence row</p></article>");
         }
         html.Append("</main>");

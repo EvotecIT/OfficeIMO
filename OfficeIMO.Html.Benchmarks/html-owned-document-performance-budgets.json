@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "description": "Cross-platform regression ceilings for OfficeIMO-owned HTML document operations, lossless CSS syntax, selected property grammar and opt-in cascade traces. These guard validated behavior; they are not provider-parity claims.",
+  "description": "Cross-platform regression ceilings for OfficeIMO-owned HTML document operations, lossless CSS syntax, selected typed property grammar, top-level rule and selector execution, and opt-in cascade traces. These guard validated behavior; they are not provider-parity claims.",
   "budgets": [
     { "operation": "Parse", "scale": "Small", "maxElapsedMilliseconds": 20, "maxAllocatedBytes": 524288, "maxRetainedManagedHeapGrowthBytes": 524288, "maxPeakManagedHeapGrowthBytes": 1048576, "maxAbsoluteProcessPeakWorkingSetBytes": 268435456, "maxOutputCharacters": 0 },
     { "operation": "Parse", "scale": "Normal", "maxElapsedMilliseconds": 30, "maxAllocatedBytes": 2097152, "maxRetainedManagedHeapGrowthBytes": 1048576, "maxPeakManagedHeapGrowthBytes": 3145728, "maxAbsoluteProcessPeakWorkingSetBytes": 268435456, "maxOutputCharacters": 0 },

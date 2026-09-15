@@ -1,0 +1,18 @@
+[
+  { "name": "type", "selector": "article", "status": "Parsed", "specificity": "0,0,1", "match": "target" },
+  { "name": "universal class", "selector": "*.card", "status": "Parsed", "specificity": "0,1,0", "match": "target" },
+  { "name": "id and classes", "selector": "#target.card.primary", "status": "Parsed", "specificity": "1,2,0", "match": "target" },
+  { "name": "attribute presence", "selector": "[data-role]", "status": "Parsed", "specificity": "0,1,0", "match": "target" },
+  { "name": "attribute insensitive", "selector": "[data-role='HERO' i]", "status": "Parsed", "specificity": "0,1,0", "match": "target" },
+  { "name": "attribute token", "selector": "[data-tags~=beta]", "status": "Parsed", "specificity": "0,1,0", "match": "target" },
+  { "name": "attribute dash", "selector": "[lang|=en]", "status": "Parsed", "specificity": "0,1,0", "match": "target" },
+  { "name": "child", "selector": "main > article", "status": "Parsed", "specificity": "0,0,2", "match": "target" },
+  { "name": "descendant", "selector": "body article.primary", "status": "Parsed", "specificity": "0,1,2", "match": "target" },
+  { "name": "adjacent sibling", "selector": "aside + article", "status": "Parsed", "specificity": "0,0,2", "match": "target" },
+  { "name": "subsequent sibling", "selector": "header ~ article", "status": "Parsed", "specificity": "0,0,2", "match": "target" },
+  { "name": "pseudo fallback", "selector": "article:first-child", "status": "Unsupported" },
+  { "name": "namespace fallback", "selector": "svg|a", "status": "Unsupported" },
+  { "name": "selector list fallback", "selector": "article, aside", "status": "Unsupported" },
+  { "name": "bad class", "selector": ".", "status": "InvalidSyntax" },
+  { "name": "unclosed attribute", "selector": "[data-role=hero", "status": "InvalidSyntax" }
+]

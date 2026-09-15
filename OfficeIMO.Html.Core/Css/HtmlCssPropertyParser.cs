@@ -91,8 +91,8 @@ public static class HtmlCssPropertyParser {
         HtmlCssPropertyValue? parsed = definition!.Name switch {
             "display" => ParseKeyword(authoredValue, significant, DisplayKeywords),
             "visibility" => ParseKeyword(authoredValue, significant, VisibilityKeywords),
-            "opacity" => ParseOpacity(authoredValue, significant),
-            "color" => ParseColor(authoredValue, significant),
+            "opacity" => ParseOpacity(authoredValue, significant, cancellationToken),
+            "color" => ParseColor(authoredValue, significant, cancellationToken),
             _ => null
         };
         return Result(propertyName, authoredValue,
@@ -108,21 +108,27 @@ public static class HtmlCssPropertyParser {
             : null;
     }
 
-    private static HtmlCssPropertyValue? ParseOpacity(string text, IReadOnlyList<HtmlCssToken> tokens) {
-        if (tokens.Count != 1 || tokens[0].Kind != HtmlCssTokenKind.Number && tokens[0].Kind != HtmlCssTokenKind.Percentage) return null;
-        string numberText = tokens[0].GetText(text);
-        bool percentage = tokens[0].Kind == HtmlCssTokenKind.Percentage;
-        if (percentage) numberText = numberText.Substring(0, numberText.Length - 1);
-        if (!double.TryParse(numberText, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
-            || double.IsNaN(number) || double.IsInfinity(number)) return null;
+    private static HtmlCssPropertyValue? ParseOpacity(string text, IReadOnlyList<HtmlCssToken> tokens, CancellationToken cancellationToken) {
+        if (!HtmlCssTypedValueParsers.TryParseNumeric(text, tokens, cancellationToken, out HtmlCssNumericValue? numeric)) return null;
+        double number = numeric!.Value;
+        bool percentage = numeric.Type == HtmlCssNumericType.Percentage;
         return new HtmlCssPropertyValue(
-            percentage ? HtmlCssPropertyValueKind.Percentage : HtmlCssPropertyValueKind.Number,
+            numeric.IsCalculated ? HtmlCssPropertyValueKind.Calculation
+                : percentage ? HtmlCssPropertyValueKind.Percentage : HtmlCssPropertyValueKind.Number,
             text,
             number.ToString("R", CultureInfo.InvariantCulture) + (percentage ? "%" : string.Empty),
-            number);
+            number,
+            numericValue: numeric);
     }
 
-    private static HtmlCssPropertyValue? ParseColor(string text, IReadOnlyList<HtmlCssToken> tokens) {
+    private static HtmlCssPropertyValue? ParseColor(string text, IReadOnlyList<HtmlCssToken> tokens, CancellationToken cancellationToken) {
+        if (tokens.Count > 1) {
+            if (!HtmlCssTypedValueParsers.TryParseColorFunction(text, tokens, cancellationToken,
+                    out HtmlCssColorFunctionValue? function)) return null;
+            int open = text.IndexOf('(');
+            string functionCanonical = open < 0 ? text : text.Substring(0, open).Trim().ToLowerInvariant() + text.Substring(open);
+            return new HtmlCssPropertyValue(HtmlCssPropertyValueKind.ColorFunction, text, functionCanonical, colorFunction: function);
+        }
         if (tokens.Count != 1) return null;
         HtmlCssToken token = tokens[0];
         if (token.Kind == HtmlCssTokenKind.Hash) {

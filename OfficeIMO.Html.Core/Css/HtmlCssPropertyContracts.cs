@@ -28,6 +28,8 @@ public enum HtmlCssPropertyValueKind {
     Number,
     /// <summary>A percentage.</summary>
     Percentage,
+    /// <summary>A calculated number or percentage whose constant expression was evaluated.</summary>
+    Calculation,
     /// <summary>A hexadecimal color.</summary>
     HexColor,
     /// <summary>A CSS named color.</summary>
@@ -36,8 +38,81 @@ public enum HtmlCssPropertyValueKind {
     SystemColor,
     /// <summary>The currentColor keyword.</summary>
     CurrentColor,
+    /// <summary>An sRGB, HSL, or HWB color function represented by typed components.</summary>
+    ColorFunction,
     /// <summary>A function whose value is resolved later, such as var().</summary>
     DeferredFunction
+}
+
+/// <summary>Numeric types supported by the first owned CSS math slice.</summary>
+public enum HtmlCssNumericType {
+    /// <summary>A unitless number.</summary>
+    Number,
+    /// <summary>A percentage retaining its percentage scale.</summary>
+    Percentage
+}
+
+/// <summary>A constant numeric result parsed from a literal or CSS math function.</summary>
+public sealed class HtmlCssNumericValue {
+    internal HtmlCssNumericValue(HtmlCssNumericType type, double value, bool calculated) {
+        Type = type; Value = value; IsCalculated = calculated;
+    }
+    /// <summary>Numeric type of the result.</summary>
+    public HtmlCssNumericType Type { get; }
+    /// <summary>Finite result; percentages retain their percentage scale.</summary>
+    public double Value { get; }
+    /// <summary>Whether the value came from calc(), min(), max(), or clamp().</summary>
+    public bool IsCalculated { get; }
+}
+
+/// <summary>Color functions supported by the first owned typed-color slice.</summary>
+public enum HtmlCssColorFunctionKind {
+    /// <summary>rgb() or its rgba() alias.</summary>
+    Rgb,
+    /// <summary>hsl() or its hsla() alias.</summary>
+    Hsl,
+    /// <summary>hwb().</summary>
+    Hwb
+}
+
+/// <summary>Typed component category in an owned color function.</summary>
+public enum HtmlCssColorComponentKind {
+    /// <summary>A unitless number.</summary>
+    Number,
+    /// <summary>A percentage.</summary>
+    Percentage,
+    /// <summary>An angle normalized to degrees.</summary>
+    Angle,
+    /// <summary>The CSS missing-component keyword none.</summary>
+    None
+}
+
+/// <summary>One finite or missing component of a CSS color function.</summary>
+public sealed class HtmlCssColorComponent {
+    internal HtmlCssColorComponent(HtmlCssColorComponentKind kind, double? value) { Kind = kind; Value = value; }
+    /// <summary>Component category.</summary>
+    public HtmlCssColorComponentKind Kind { get; }
+    /// <summary>Finite component value, or null for none. Percentages retain their percentage scale; angles use degrees.</summary>
+    public double? Value { get; }
+}
+
+/// <summary>A provider-independent sRGB, HSL, or HWB functional color.</summary>
+public sealed class HtmlCssColorFunctionValue {
+    internal HtmlCssColorFunctionValue(
+        HtmlCssColorFunctionKind kind,
+        IReadOnlyList<HtmlCssColorComponent> components,
+        HtmlCssColorComponent alpha,
+        bool legacySyntax) {
+        Kind = kind; Components = components; Alpha = alpha; UsesLegacyCommaSyntax = legacySyntax;
+    }
+    /// <summary>Color function model.</summary>
+    public HtmlCssColorFunctionKind Kind { get; }
+    /// <summary>Three model-specific components in source order.</summary>
+    public IReadOnlyList<HtmlCssColorComponent> Components { get; }
+    /// <summary>Alpha component; an omitted alpha is represented as the number 1.</summary>
+    public HtmlCssColorComponent Alpha { get; }
+    /// <summary>Whether rgb()/rgba() or hsl()/hsla() used the legacy comma grammar.</summary>
+    public bool UsesLegacyCommaSyntax { get; }
 }
 
 /// <summary>Keywords accepted by every CSS property.</summary>
@@ -80,12 +155,16 @@ public sealed class HtmlCssPropertyValue {
         string authoredText,
         string canonicalText,
         double? number = null,
-        HtmlCssWideKeyword? cssWideKeyword = null) {
+        HtmlCssWideKeyword? cssWideKeyword = null,
+        HtmlCssNumericValue? numericValue = null,
+        HtmlCssColorFunctionValue? colorFunction = null) {
         Kind = kind;
         AuthoredText = authoredText;
         CanonicalText = canonicalText;
         Number = number;
         CssWideKeyword = cssWideKeyword;
+        NumericValue = numericValue;
+        ColorFunction = colorFunction;
     }
 
     /// <summary>Typed value category.</summary>
@@ -98,6 +177,10 @@ public sealed class HtmlCssPropertyValue {
     public double? Number { get; }
     /// <summary>Parsed CSS-wide keyword, or null for a property-specific value.</summary>
     public HtmlCssWideKeyword? CssWideKeyword { get; }
+    /// <summary>Typed numeric literal or constant math result, when applicable.</summary>
+    public HtmlCssNumericValue? NumericValue { get; }
+    /// <summary>Typed functional color, when applicable.</summary>
+    public HtmlCssColorFunctionValue? ColorFunction { get; }
 }
 
 /// <summary>Result of applying an owned property grammar without making a rendering claim.</summary>
@@ -139,8 +222,8 @@ public static class HtmlCssPropertyCatalog {
         new ReadOnlyCollection<HtmlCssPropertyDefinition>(new List<HtmlCssPropertyDefinition> {
             new HtmlCssPropertyDefinition("display", false, "inline", "supported single-keyword display values"),
             new HtmlCssPropertyDefinition("visibility", true, "visible", "visible | hidden | collapse"),
-            new HtmlCssPropertyDefinition("opacity", false, "1", "<number> | <percentage>"),
-            new HtmlCssPropertyDefinition("color", true, "CanvasText", "named color | system color | hex color | currentColor")
+            new HtmlCssPropertyDefinition("opacity", false, "1", "<number> | <percentage> | calc() | min() | max() | clamp()"),
+            new HtmlCssPropertyDefinition("color", true, "CanvasText", "named color | system color | hex color | currentColor | rgb() | hsl() | hwb()")
         });
     private static readonly Dictionary<string, HtmlCssPropertyDefinition> DefinitionsByName = CreateIndex();
 

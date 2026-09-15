@@ -512,7 +512,7 @@ public static partial class HtmlComputedStyleEngine {
             budget.RecordSelectorEvaluation();
             if (AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment)
                 && !TryParsePseudoElementSelector(rule.Selector, out _, out _)
-                && MatchesSelector(element, rule.Selector)) {
+                && MatchesSelector(element, rule, budget)) {
                 foreach (var declaration in rule.Declarations) {
                     if (declaration.Value.IsSupported) {
                         ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value,
@@ -602,7 +602,7 @@ public static partial class HtmlComputedStyleEngine {
             if (!AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment)
                 || !TryParsePseudoElementSelector(rule.Selector, out string hostSelector, out HtmlPseudoElementKind ruleKind)
                 || ruleKind != kind
-                || !MatchesSelector(element, hostSelector)) {
+                || !MatchesSelector(element, rule, budget)) {
                 continue;
             }
 

@@ -21,6 +21,8 @@ internal sealed class HtmlCssProcessingBudget {
             MaxSyntaxNodes = _hasConfiguredLimits ? _limits.MaxCssSyntaxNodes : null
         };
 
+    internal OfficeIMO.Html.Css.HtmlCssSyntaxOptions CreateStylesheetSyntaxOptions() => CreateInlineSyntaxOptions();
+
     internal void RecordDeclarations(int declarationCount) {
         _declarations += declarationCount;
         if (_limits.MaxCssDeclarations.HasValue && _declarations > _limits.MaxCssDeclarations.Value) {

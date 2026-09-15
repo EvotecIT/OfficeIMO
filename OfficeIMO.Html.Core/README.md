@@ -1,6 +1,6 @@
 # OfficeIMO.Html.Core
 
-Owned HTML document, node, mutation and provider contracts. This package has no third-party runtime dependencies and does not load resources or execute scripts. Parsing, selectors and serialization are supplied through explicit providers.
+Owned HTML document, node, mutation, CSS syntax, typed value, and selected selector contracts. This package has no third-party runtime dependencies and does not load resources or execute scripts. HTML parsing and serialization, plus selector features outside the owned subset, are supplied through explicit providers.
 
 ```sh
 dotnet add package OfficeIMO.Html.Core
@@ -99,6 +99,10 @@ HtmlCssDeclaration color = HtmlCssSyntaxParser
     .ParseStyleBlock("color: rebeccapurple !important")
     .Declarations[0];
 HtmlCssPropertyParseResult declarationValue = HtmlCssPropertyParser.Parse(color);
+
+HtmlCssPropertyParseResult calculated = HtmlCssPropertyParser.Parse(
+    "opacity", "clamp(10%, 75%, 60%)");
+HtmlCssNumericValue numeric = calculated.Value!.NumericValue!;
 ```
 
 `HtmlCssPropertyCatalog` currently owns CSS-wide keywords and selected values for
@@ -107,15 +111,39 @@ value, a `var()` value deferred until substitution, an unknown property, a value
 outside the implemented slice, and malformed component syntax. Typed grammar support
 is an inspection contract; it does not imply that a renderer paints every parsed value.
 Named, hexadecimal, and CSS Color 4 system colors plus `currentColor` are typed now;
-the `color` definition exposes `CanvasText` as its initial value. Color functions,
-multi-keyword display values, `visibility: force-hidden`, and calculated
-opacity remain explicit grammar gaps even where the full conversion package may already
-render some of them through its retained implementation.
+the `color` definition exposes `CanvasText` as its initial value. The typed functional
+slice covers legacy and modern `rgb()`/`rgba()` and `hsl()`/`hsla()`, plus modern
+`hwb()`. Numeric expressions cover constant number and percentage arithmetic through
+`calc()`, `min()`, `max()`, and `clamp()` with type checking. Wider Color 4 spaces,
+relative colors, color interpolation, dimensions, multi-keyword display values, and
+`visibility: force-hidden` remain explicit grammar gaps even where the full conversion
+package may already render some of them through its retained implementation.
 
-The lossless syntax model deliberately does not validate selectors, apply the
-cascade, resolve computed values, load resources or claim rendering support. Consumers can
-therefore retain and inspect newer CSS while the full `OfficeIMO.Html` package continues to
-use its qualified style and rendering implementation.
+Parse and match the selected selector subset directly against an owned element:
+
+```csharp
+HtmlCssSelectorParseResult parsedSelector = HtmlCssSelectorParser.Parse(
+    "main > article.card[data-state='READY' i]");
+if (parsedSelector.IsSupported) {
+    bool matches = parsedSelector.Selector!.Matches(article);
+    Console.WriteLine(parsedSelector.Selector.Specificity);
+}
+```
+
+The owned selector slice covers type, universal, id, class, and attribute selectors,
+including attribute comparison modifiers, with descendant, child, adjacent-sibling,
+and general-sibling combinators. A parse result distinguishes malformed syntax from a
+valid selector that needs a provider. Selector lists are split by stylesheet consumers;
+the standalone parser accepts one complex selector. Namespace selectors, pseudo-classes,
+pseudo-elements, nesting, and functional selectors currently return `Unsupported`.
+`HtmlCssSelectorOptions` bounds source length, token count, compounds, and simple selectors;
+cancellation and limit failures publish no partial selector.
+
+The lossless syntax model deliberately preserves selector preludes without forcing the
+owned subset on every rule. Apply `HtmlCssSelectorParser` when a consumer wants validation
+or matching. `OfficeIMO.Html.Core` does not apply the cascade, resolve computed values, load
+resources, or claim rendering support, so consumers can retain and inspect newer CSS while
+the full `OfficeIMO.Html` package continues to use its qualified style and rendering pipeline.
 
 `HtmlCssTokenizer.Tokenize` remains available for lexical tooling. It preserves comments
 and exact UTF-16 source spans, including original line endings. `Value` contains decoded

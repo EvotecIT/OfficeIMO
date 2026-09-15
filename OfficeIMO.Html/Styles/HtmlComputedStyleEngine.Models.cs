@@ -166,7 +166,17 @@ public static partial class HtmlComputedStyleEngine {
             string? layerName = null,
             IEnumerable<ContainerRuleCondition>? containerConditions = null) {
             Selector = selector;
-            Specificity = specificity;
+            string ownedSource = TryParsePseudoElementSelector(selector, out string hostSelector, out _) ? hostSelector : selector;
+            OfficeIMO.Html.Css.HtmlCssSelector? ownedSelector = null;
+            try {
+                ownedSelector = OfficeIMO.Html.Css.HtmlCssSelectorParser.Parse(ownedSource).Selector;
+            } catch (OfficeIMO.Html.Css.HtmlCssSelectorLimitException) {
+                // The conversion stylesheet budget remains authoritative. Selectors outside the
+                // standalone parser budget stay on the retained provider path.
+            }
+            OwnedSelector = ownedSelector;
+            Specificity = ownedSelector == null ? specificity : new Specificity(
+                ownedSelector.Specificity.Ids, ownedSelector.Specificity.Classes, ownedSelector.Specificity.Types);
             Order = order;
             Declarations = new Dictionary<string, StyleDeclaration>(declarations, HtmlCssPropertyNameComparer.Instance);
             LayerOrder = layerOrder;
@@ -176,6 +186,7 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         internal string Selector { get; }
+        internal OfficeIMO.Html.Css.HtmlCssSelector? OwnedSelector { get; }
         internal Specificity Specificity { get; }
         internal int Order { get; }
         internal IReadOnlyDictionary<string, StyleDeclaration> Declarations { get; }

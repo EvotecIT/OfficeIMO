@@ -27,12 +27,14 @@ if (source.QuerySelectorAll("td").Count != 0 ||
 const string css = "@future report; .status { color: green; future-property: fn(one[two]); }";
 HtmlCssStyleSheet styleSheet = HtmlCssSyntaxParser.ParseStyleSheet(css);
 HtmlCssStyleBlock inlineStyle = HtmlCssSyntaxParser.ParseStyleBlock("color:green;color:future");
-HtmlCssPropertyParseResult parsedOpacity = HtmlCssPropertyParser.Parse("opacity", "75%");
-HtmlCssPropertyParseResult unsupportedColor = HtmlCssPropertyParser.Parse("color", "rgb(1 2 3)");
+HtmlCssPropertyParseResult parsedOpacity = HtmlCssPropertyParser.Parse("opacity", "calc(20% + 55%)");
+HtmlCssPropertyParseResult parsedColor = HtmlCssPropertyParser.Parse("color", "hsl(210 50 40 / 75%)");
+HtmlCssSelectorParseResult parsedSelector = HtmlCssSelectorParser.Parse("table > tbody tr#items");
 if (styleSheet.Rules.Count != 2 || styleSheet.ToCss() != css ||
     inlineStyle.Declarations.Count != 2 || inlineStyle.Declarations[1].Name != "color" ||
-    parsedOpacity.Status != HtmlCssPropertyParseStatus.Parsed || parsedOpacity.Value?.Number != 75D ||
-    unsupportedColor.Status != HtmlCssPropertyParseStatus.UnsupportedValue) {
+    parsedOpacity.Status != HtmlCssPropertyParseStatus.Parsed || parsedOpacity.Value?.NumericValue?.Value != 75D ||
+    parsedOpacity.Value.NumericValue.IsCalculated != true || parsedColor.Value?.ColorFunction?.Kind != HtmlCssColorFunctionKind.Hsl ||
+    parsedColor.Value.ColorFunction.Alpha.Value != 75D || parsedSelector.Selector?.Matches(edited.QuerySelector("#items")!) != true) {
     throw new InvalidOperationException("The packed CSS syntax or property-grammar contract failed.");
 }
 

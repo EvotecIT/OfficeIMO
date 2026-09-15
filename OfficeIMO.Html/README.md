@@ -103,11 +103,19 @@ memory or execution-time limit. Context reconstruction needed by the retained pr
 is isolated inside `OfficeIMO.Html.AngleSharp`; consumers retain the same owned API when
 the provider changes. Provider-independent CSS execution remains separate work.
 
-The first owned property grammar covers CSS-wide keywords and selected `display`,
-`visibility`, `opacity`, and `color` values. Inline declarations now enter the managed
-cascade through the lossless owned style-block parser. AngleSharp.Css still parses qualified
-rules and performs selector matching for the default renderer, while OfficeIMO owns cascade
-ordering and computed-style projection.
+The owned property grammar covers CSS-wide keywords and selected `display`, `visibility`,
+`opacity`, and `color` values. It represents constant number/percentage calculations and
+legacy or modern sRGB, HSL, and HWB functions as typed values. Computed opacity is converted
+to a clamped number, while functional colors use the shared `OfficeColor` conversion.
+Inline declarations enter the managed cascade through the lossless owned style-block parser.
+
+Top-level qualified rules whose declarations stay inside that property slice now retain
+their original OfficeIMO syntax nodes and selector AST through the cascade. The owned matcher
+handles type, universal, id, class, and attribute selectors with the four structural
+combinators. AngleSharp.Css remains in the default package for at-rules, nested rules, wider
+property grammars, pseudo and namespace selectors, and other fallback cases. OfficeIMO keeps
+rule order, cascade layers, computed-style projection, and fallback selection stable while
+the owned subset grows.
 
 Cascade explanations are opt-in so normal rendering does not retain candidate graphs for
 every element:

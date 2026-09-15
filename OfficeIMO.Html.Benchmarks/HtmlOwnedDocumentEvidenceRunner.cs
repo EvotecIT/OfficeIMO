@@ -299,8 +299,8 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
                 () => HtmlCssSyntaxParser.ParseStyleSheet(css),
                 result => {
                     var sheet = (HtmlCssStyleSheet)result;
-                    if (!string.Equals(sheet.Source, css, StringComparison.Ordinal) || sheet.Rules.Count != rows + 5)
-                        throw new InvalidOperationException($"Owned CSS syntax retained {sheet.Rules.Count} top-level rules; expected {rows + 5}.");
+                    if (!string.Equals(sheet.Source, css, StringComparison.Ordinal) || sheet.Rules.Count != rows + 6)
+                        throw new InvalidOperationException($"Owned CSS syntax retained {sheet.Rules.Count} top-level rules; expected {rows + 6}.");
                     return new EvidenceValidation(sheet.Rules.Count, Hash(sheet.ToCss()), sheet.Source.Length);
                 });
         }
@@ -309,8 +309,8 @@ internal static class HtmlOwnedDocumentEvidenceRunner {
             string[] values = Enumerable.Range(0, rows).SelectMany(index => new[] {
                 "display:" + (index % 2 == 0 ? "grid" : "flex"),
                 "visibility:" + (index % 3 == 0 ? "hidden" : "visible"),
-                "opacity:" + (index % 100).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%",
-                "color:" + (index % 2 == 0 ? "#315b8a" : "rebeccapurple")
+                "opacity:calc(" + (index % 50).ToString(System.Globalization.CultureInfo.InvariantCulture) + "% + 25%)",
+                "color:" + (index % 2 == 0 ? "hsl(210 50% 40% / 75%)" : "rgb(49 91 138 / 80%)")
             }).ToArray();
             int inputCharacters = values.Sum(value => value.Length);
             return new EvidenceOperation(inputCharacters,

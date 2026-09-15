@@ -4,6 +4,7 @@ namespace OfficeIMO.Html.Css;
 
 /// <summary>Base type for a CSS at-rule or qualified rule.</summary>
 public abstract class HtmlCssRule : HtmlCssSyntaxNode {
+    private string? _preludeText;
     internal HtmlCssRule(
         HtmlCssSyntaxKind kind,
         string source,
@@ -14,6 +15,15 @@ public abstract class HtmlCssRule : HtmlCssSyntaxNode {
         : base(kind, source, span) { Prelude = prelude; Block = block; Contents = contents; }
     /// <summary>Component values before the rule block or terminator.</summary>
     public IReadOnlyList<HtmlCssComponentValue> Prelude { get; }
+    /// <summary>Exact source text before the rule block or at-rule terminator.</summary>
+    public string PreludeText {
+        get {
+            if (_preludeText != null) return _preludeText;
+            var text = new System.Text.StringBuilder();
+            foreach (HtmlCssComponentValue value in Prelude) text.Append(value.GetText());
+            return _preludeText = text.ToString();
+        }
+    }
     /// <summary>The exact curly block, or null for a statement at-rule.</summary>
     public HtmlCssSimpleBlock? Block { get; }
     /// <summary>Best-effort syntax-only declarations and nested rules in a block, in authored order.</summary>

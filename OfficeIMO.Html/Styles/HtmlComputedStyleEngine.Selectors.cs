@@ -94,6 +94,35 @@ public static partial class HtmlComputedStyleEngine {
         }
     }
 
+    private static bool MatchesSelector(IElement element, StyleRule rule, HtmlCssProcessingBudget budget) =>
+        rule.OwnedSelector != null
+            ? rule.OwnedSelector.Matches(new AngleSharpSelectorElement(element), budget.RecordSelectorEvaluation)
+            : MatchesSelector(element, TryParsePseudoElementSelector(rule.Selector, out string host, out _) ? host : rule.Selector);
+
+    private sealed class AngleSharpSelectorElement : OfficeIMO.Html.Css.IHtmlCssSelectorElement {
+        private readonly IElement _element;
+        internal AngleSharpSelectorElement(IElement element) { _element = element; }
+        public object Identity => _element;
+        public string LocalName => _element.LocalName ?? _element.TagName ?? string.Empty;
+        public string NamespaceUri => _element.NamespaceUri ?? string.Empty;
+        public string Id => _element.Id ?? string.Empty;
+        public OfficeIMO.Html.Css.IHtmlCssSelectorElement? ParentElement =>
+            _element.ParentElement == null ? null : new AngleSharpSelectorElement(_element.ParentElement);
+        public OfficeIMO.Html.Css.IHtmlCssSelectorElement? PreviousElementSibling =>
+            _element.PreviousElementSibling == null ? null : new AngleSharpSelectorElement(_element.PreviousElementSibling);
+        public bool HasClass(string name) => _element.ClassList.Contains(name);
+        public bool HasAttributeInNoNamespace(string name) => GetAttributeInNoNamespace(name) != null;
+        public string? GetAttributeInNoNamespace(string name) {
+            foreach (IAttr attribute in _element.Attributes) {
+                if (!string.IsNullOrEmpty(attribute.NamespaceUri)) continue;
+                if (_element.NamespaceUri == OfficeIMO.Html.Dom.HtmlElement.HtmlNamespace
+                    ? OfficeIMO.Html.Css.HtmlCssAscii.EqualsIgnoreCase(attribute.LocalName ?? attribute.Name, name)
+                    : string.Equals(attribute.LocalName ?? attribute.Name, name, StringComparison.Ordinal)) return attribute.Value;
+            }
+            return null;
+        }
+    }
+
     private static bool MatchesSimpleSelector(IElement element, string selector) {
         if (selector.StartsWith(".", StringComparison.Ordinal)) {
             return element.ClassList.Contains(selector.Substring(1));
