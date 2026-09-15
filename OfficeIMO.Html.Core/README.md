@@ -10,7 +10,11 @@ Keep directly referenced OfficeIMO packages on the same version. Applications th
 use the AngleSharp provider can install `OfficeIMO.Html.AngleSharp` instead; it
 includes this package as a dependency.
 
-Parsed documents are immutable snapshots. Use `document.Edit(editor => ...)` to produce a new snapshot, or `Clone()` for a mutable tree with one owner. Node IDs survive cloning; snapshot identities are independent. Attribute values and text are decoded data. Serializing HTML does not sanitize it.
+Parsed documents and contextual fragments are immutable snapshots. Implementations of
+`IHtmlParserProvider` supply both operations without exposing provider nodes. Use
+`document.Edit(editor => ...)` to produce a new snapshot, or `Clone()` for a mutable tree
+with one owner. Node IDs survive cloning; snapshot identities are independent. Attribute
+values and text are decoded data. Serializing HTML does not sanitize it.
 
 Runtime captures can attach immutable `HtmlFormControlState` to an element's
 `FormState` property. This retains current input and textarea values, input
@@ -39,7 +43,7 @@ local-name overloads to select a specific namespace. `Id`, `ClassName` and
 `ClassList` reflect only empty-namespace attributes. `SetAttribute` adds or
 replaces an attribute in the supplied namespace; its default is the empty namespace.
 
-Use `OfficeIMO.Html.AngleSharp` for the current parser and syntax implementation, and `OfficeIMO.Html` for resource policy, conversion, styles and rendering.
+Use `OfficeIMO.Html.AngleSharp` for the current HTML parser, selectors, serializer and charset labels, and `OfficeIMO.Html` for resource policy, conversion, styles and rendering.
 
 To copy content between documents, import it into the destination and then insert
 the returned detached node:

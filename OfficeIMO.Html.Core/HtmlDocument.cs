@@ -50,14 +50,17 @@ public sealed partial class HtmlDocument : HtmlNode {
     /// <summary>Creates a comment in this mutable document.</summary>
     public HtmlNode CreateComment(string text) => CreateDataNode(HtmlNodeKind.Comment, text);
     /// <summary>Creates a detached fragment in this mutable document.</summary>
-    public HtmlNode CreateFragment() => CreateDataNode(HtmlNodeKind.DocumentFragment, string.Empty);
+    public HtmlDocumentFragment CreateFragment() {
+        EnsureMutable();
+        return Register(new HtmlDocumentFragment(this, NextId()));
+    }
     /// <summary>Creates a document type with the supplied identifiers.</summary>
     public HtmlDocumentType CreateDocumentType(string name, string publicIdentifier = "", string systemIdentifier = "") {
         EnsureMutable();
         return Register(new HtmlDocumentType(this, NextId(), name, publicIdentifier, systemIdentifier));
     }
     /// <summary>Creates or returns this template element's separate content fragment.</summary>
-    public HtmlNode GetOrCreateTemplateContent(HtmlElement template) {
+    public HtmlDocumentFragment GetOrCreateTemplateContent(HtmlElement template) {
         EnsureMutable();
         if (template == null) throw new ArgumentNullException(nameof(template));
         if (!ReferenceEquals(template.Document, this) || template.NamespaceUri != HtmlElement.HtmlNamespace || template.LocalName != "template") throw new ArgumentException("An HTML template in this document is required.", nameof(template));
@@ -113,7 +116,7 @@ public sealed partial class HtmlDocument : HtmlNode {
             HtmlNode copy = CloneNode(source, clone, cancellationToken);
             if (source.TemplateHost != null) {
                 var host = (HtmlElement)clone._nodes[source.TemplateHost.NodeId];
-                host.TemplateContent = copy;
+                host.TemplateContent = (HtmlDocumentFragment)copy;
                 copy.TemplateHost = host;
             } else clone._nodes[source.Parent!.NodeId].AppendChild(copy);
         }
@@ -133,7 +136,7 @@ public sealed partial class HtmlDocument : HtmlNode {
                 target.AppendChild(clone._nodes[child.NodeId]);
             }
             if (source is HtmlElement element && element.TemplateContent != null && target is HtmlElement targetElement) {
-                HtmlNode content = clone._nodes[element.TemplateContent.NodeId];
+                HtmlDocumentFragment content = (HtmlDocumentFragment)clone._nodes[element.TemplateContent.NodeId];
                 targetElement.TemplateContent = content;
                 content.TemplateHost = targetElement;
             }
@@ -168,6 +171,7 @@ public sealed partial class HtmlDocument : HtmlNode {
             newElement.FormState = element.FormState;
             copy = newElement;
         } else if (source is HtmlDocumentType type) copy = new HtmlDocumentType(clone, source.NodeId, type.Name, type.PublicIdentifier, type.SystemIdentifier);
+        else if (source is HtmlDocumentFragment) copy = new HtmlDocumentFragment(clone, source.NodeId);
         else copy = new HtmlNode(clone, source.NodeId, source.Kind, source.Data);
         copy.SourceIndex = source.SourceIndex;
         return clone.Register(copy);

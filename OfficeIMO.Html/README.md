@@ -12,7 +12,7 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - image source discovery for `img`, lazy-loading attributes, `srcset`, and `picture/source`
 - image data URI parsing and media-type extension mapping
 - deterministic accessible-name, ARIA heading, EPUB structural-semantic, and logical quote/code/footnote projection
-- dependency-free HTML layout for continuous and paged output
+- browser-free HTML layout for continuous and paged output
 - structured Presentation MathML routed through the shared OfficeIMO.Core expression and vector-rendering model
 - bounded CSS length math, caller stylesheets, deterministic media preferences, running strings and elements, and Unicode-range-aware font fallback packs
 - first-party TrueType/WOFF 1, .NET 8+ single-face WOFF 2, CFF/CFF2, and variable-font programs, plus an optional complete OpenType shaping provider
@@ -40,16 +40,29 @@ using OfficeIMO.Html;
 using OfficeIMO.Html.Dom;
 using OfficeIMO.Markdown.Html;
 
-HtmlConversionDocument source = HtmlConversionDocument.Parse("<h1 id='title'>Draft</h1>");
-HtmlElement title = source.Document.QuerySelector("#title")!;
-HtmlConversionDocument edited = source.Edit(document => {
-    document.GetNode(title.NodeId)!.TextContent = "Approved";
+HtmlDocument source = HtmlDocumentEngine.Default.ParseDocument(
+    "<table><tbody><tr id='items'><th>Item</th></tr></tbody></table>");
+HtmlElement row = source.QuerySelector("#items")!;
+HtmlDocumentFragment cells = HtmlDocumentEngine.Default.ParseFragment(
+    "<td>Quarterly report</td><td>Approved</td>", row);
+
+HtmlDocument edited = source.Edit(document => {
+    HtmlElement targetRow = document.QuerySelector("#items")!;
+    targetRow.AppendChild(document.ImportNode(cells));
 });
-string markdown = edited.ToMarkdown();
-byte[] preview = edited.ToPng();
+HtmlConversionDocument conversion = HtmlConversionDocument.FromDocument(edited);
+string markdown = conversion.ToMarkdown();
+byte[] preview = conversion.ToPng();
 ```
 
-`Document` is an immutable source snapshot. `Edit` clones it and freezes the result;
+`HtmlDocumentEngine` is the provider-neutral document entry point. The default engine
+uses the packaged AngleSharp provider, while its constructor accepts any
+`IHtmlParserProvider`. Full documents and contextual fragments are immutable owned
+snapshots. Fragment parsing uses the supplied element and ancestor context, including
+table insertion modes, foreign namespaces and ancestor forms. Import a returned
+fragment into a mutable destination before insertion; appending it splices its children.
+
+`HtmlConversionDocument.Document` is also an immutable source snapshot. `Edit` clones it and freezes the result;
 the original document, retained node handles and cached conversion results remain
 unchanged. `Clone` returns a mutable tree for a single owner, while
 `HtmlConversionDocument.FromDocument` captures the attached tree, including template
@@ -86,8 +99,9 @@ comments and doctype identifiers before copying or native projection. Canonical
 source serialization stops when its expanded output exceeds that limit. These are
 separate checks: an owned tree can contain data that HTML serialization omits, such
 as children of void elements. Cancellation is cooperative, not a hard worker
-memory or execution-time limit. Fragment-context parsing and provider-independent CSS
-execution remain separate work; parsing a string here uses full-document HTML rules.
+memory or execution-time limit. Context reconstruction needed by the retained provider
+is isolated inside `OfficeIMO.Html.AngleSharp`; consumers retain the same owned API when
+the provider changes. Provider-independent CSS execution remains separate work.
 
 See [the migration guide](../MIGRATION.md#owned-html-documents-and-callbacks) for the
 replaced public DOM signatures.

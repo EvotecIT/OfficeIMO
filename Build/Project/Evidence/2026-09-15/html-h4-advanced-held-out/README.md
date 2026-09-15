@@ -1,6 +1,6 @@
-# H4/v2 static-rendering budget calibration
+# H4/advanced-held-out static-rendering budget calibration
 
-These reports calibrate the H4/v2 OfficeIMO static-rendering gate on Windows,
+These reports calibrate the H4/advanced-held-out OfficeIMO static-rendering gate on Windows,
 Ubuntu Linux, and macOS. All three runs used clean source at commit
 `3808783dccaaeda9d0af34511e90c5e8af4e959c`, corpus manifest SHA-256
 `60af2aab907af324bd1820a247a92b2b26f3e8445f235e06d50b10ac244375c7`, and

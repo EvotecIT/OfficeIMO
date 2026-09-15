@@ -5,7 +5,7 @@ namespace OfficeIMO.Html;
 /// </summary>
 public sealed class HtmlConversionDocumentOptions {
     /// <summary>Inert parser supplying the document contract. The current provider is retained by default.</summary>
-    public Dom.IHtmlParserProvider ParserProvider { get; set; } = Providers.AngleSharpHtmlParser.Instance;
+    public Dom.IHtmlParserProvider ParserProvider { get; set; } = HtmlDocumentEngine.Default.ParserProvider;
     /// <summary>Charset labels used when loading source HTML bytes. Explicit encodings override sniffing.
     /// External resource decoders use their own configured/default provider.</summary>
     public Dom.IHtmlEncodingProvider InputEncodingProvider { get; set; } = Providers.AngleSharpEncodingProvider.Instance;

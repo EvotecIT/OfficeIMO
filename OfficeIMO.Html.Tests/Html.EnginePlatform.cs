@@ -103,30 +103,33 @@ public partial class Html {
         Assert.Contains(HtmlCapabilityProviderIds.CallerTextShaper, typography.OptionalProviderIds);
 
         HtmlCapabilityEvidencePin documentEvidence = HtmlRenderCapabilityCatalog.GetProfile(HtmlCapabilityProfileIds.WebDocumentV1)
-            .Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.DocumentV1);
-        Assert.Equal(4, documentEvidence.Required);
-        Assert.Equal(4, documentEvidence.Passed);
+            .Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.DocumentFoundation);
+        Assert.Equal(7, documentEvidence.Required);
+        Assert.Equal(7, documentEvidence.Passed);
         Assert.Equal(new[] {
             "ForeignAttributesAndSourcePositionsSurviveEdits",
+            "ForeignFragmentRetainsSvgAndMathMlNamespacesAndNames",
+            "FragmentRetainsAncestorFormParsingContext",
             "HtmlConversionDocument_LoadDetectsMetaCharsetFromByteInput",
             "RecoveredDoctypeSurvivesEditingAndSerialization",
-            "Snapshot_EditPreservesIdentityWithoutMutatingSourceOrLeakedHandles"
+            "Snapshot_EditPreservesIdentityWithoutMutatingSourceOrLeakedHandles",
+            "TableFragmentUsesTheSuppliedRowContextAndCanBeImported"
         }, documentEvidence.CaseIds);
 
-        HtmlCapabilityEvidencePin screenEvidence = staticProfile.Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4ScreenV1);
+        HtmlCapabilityEvidencePin screenEvidence = staticProfile.Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4ScreenRepresentative);
         HtmlCapabilityEvidencePin pagedEvidence = HtmlRenderCapabilityCatalog.GetProfile(HtmlCapabilityProfileIds.PagedPrintV1)
-            .Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4PagedV1);
+            .Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4PagedRepresentative);
         Assert.Equal(
-            HtmlRenderingCorpus.All.Where(item => item.Mode == HtmlRenderMode.Continuous).Select(item => item.Id).OrderBy(value => value, StringComparer.Ordinal),
+            HtmlRenderingRepresentativeCorpus.All.Where(item => item.Mode == HtmlRenderMode.Continuous).Select(item => item.Id).OrderBy(value => value, StringComparer.Ordinal),
             screenEvidence.CaseIds);
         Assert.Equal(
-            HtmlRenderingCorpus.All.Where(item => item.Mode == HtmlRenderMode.Paged).Select(item => item.Id).OrderBy(value => value, StringComparer.Ordinal),
+            HtmlRenderingRepresentativeCorpus.All.Where(item => item.Mode == HtmlRenderMode.Paged).Select(item => item.Id).OrderBy(value => value, StringComparer.Ordinal),
             pagedEvidence.CaseIds);
 
-        HtmlRenderingHeldOutCorpus heldOut = HtmlRenderingHeldOutCorpus.Load();
-        HtmlCapabilityEvidencePin heldOutScreen = staticProfile.Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4ScreenV2);
+        HtmlRenderingAdvancedHeldOutCorpus heldOut = HtmlRenderingAdvancedHeldOutCorpus.Load();
+        HtmlCapabilityEvidencePin heldOutScreen = staticProfile.Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4ScreenAdvancedHeldOut);
         HtmlCapabilityEvidencePin heldOutPaged = HtmlRenderCapabilityCatalog.GetProfile(HtmlCapabilityProfileIds.PagedPrintV1)
-            .Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4PagedV2);
+            .Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4PagedAdvancedHeldOut);
         Assert.Equal(heldOut.ManifestSha256, heldOutScreen.Revision);
         Assert.Equal(heldOut.ManifestSha256, heldOutPaged.Revision);
         Assert.Equal(HtmlCapabilityEvidenceRole.Regression, heldOutScreen.Role);
@@ -142,7 +145,7 @@ public partial class Html {
             Assert.Equal(0, selection.Untested);
             Assert.NotEmpty(selection.OutOfScope);
         });
-        Assert.Contains(HtmlCapabilityEvidenceIds.H4ScreenV2,
+        Assert.Contains(HtmlCapabilityEvidenceIds.H4ScreenAdvancedHeldOut,
             HtmlRenderCapabilityCatalog.Get("layout-grid").GetProfileBinding(HtmlCapabilityProfileIds.StaticScreenV1).EvidenceIds);
         Assert.DoesNotContain(HtmlCapabilityEvidenceIds.WebPlatformTests,
             HtmlRenderCapabilityCatalog.Get("layout-grid").GetProfileBinding(HtmlCapabilityProfileIds.StaticScreenV1).EvidenceIds);

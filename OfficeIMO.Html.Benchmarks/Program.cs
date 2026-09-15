@@ -21,6 +21,16 @@ if (args.Length > 0 && string.Equals(args[0], "--layout-evidence", StringCompari
     return;
 }
 
+if (args.Length > 0 && string.Equals(args[0], "--provider-evidence-probe", StringComparison.OrdinalIgnoreCase)) {
+    Environment.ExitCode = HtmlProviderEvidenceRunner.RunProbe(args.Skip(1).ToArray());
+    return;
+}
+
+if (args.Length > 0 && string.Equals(args[0], "--provider-evidence", StringComparison.OrdinalIgnoreCase)) {
+    Environment.ExitCode = HtmlProviderEvidenceRunner.Run(args.Skip(1).ToArray());
+    return;
+}
+
 if (args.Length > 0 && string.Equals(args[0], "--layout-verify-budgets", StringComparison.OrdinalIgnoreCase)) {
     Environment.ExitCode = HtmlLayoutEvidenceRunner.RunEvidence(args.Skip(1).ToArray(), verifyBudgets: true);
     return;

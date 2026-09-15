@@ -69,6 +69,55 @@ internal static class NativeDomBridge {
         return owned;
     }
 
+    internal static HtmlDocumentFragment ImportFragment(
+        IEnumerable<INode> nativeNodes,
+        HtmlDocumentMode mode,
+        HtmlParseOptions? options = null,
+        CancellationToken cancellationToken = default,
+        int sourceIndexOffset = 0) {
+        if (nativeNodes == null) throw new ArgumentNullException(nameof(nativeNodes));
+        var owned = new HtmlDocument(AngleSharpDomServices.Instance, AngleSharpHtmlParser.Instance.Id, mode);
+        HtmlDocumentFragment fragment = owned.CreateFragment();
+        var pending = new Stack<(INode Native, HtmlNode Owned, int Depth)>();
+        int nodes = 0;
+        foreach (INode native in nativeNodes) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int depth = native is IElement ? 1 : 0;
+            RecordImportedNode(options, ref nodes, depth, native is IElement);
+            HtmlNode converted = ImportNode(native, owned, cancellationToken, sourceIndexOffset);
+            fragment.AppendChild(converted);
+            pending.Push((native, converted, depth));
+        }
+        while (pending.Count != 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var current = pending.Pop();
+            foreach (INode child in current.Native.ChildNodes) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int depth = current.Depth + (child is IElement ? 1 : 0);
+                RecordImportedNode(options, ref nodes, depth, child is IElement);
+                HtmlNode converted = ImportNode(child, owned, cancellationToken, sourceIndexOffset);
+                current.Owned.AppendChild(converted);
+                pending.Push((child, converted, depth));
+            }
+            if (current.Native is IHtmlTemplateElement template && current.Owned is HtmlElement element) {
+                RecordImportedNode(options, ref nodes, current.Depth, isElement: false);
+                HtmlDocumentFragment content = owned.GetOrCreateTemplateContent(element);
+                pending.Push((template.Content, content, current.Depth));
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        owned.Freeze();
+        return fragment;
+    }
+
+    private static void RecordImportedNode(HtmlParseOptions? options, ref int nodes, int depth, bool isElement) {
+        nodes++;
+        if (options?.MaxNodes is int maxNodes && nodes > maxNodes)
+            throw new HtmlParseLimitException(nameof(options.MaxNodes), nodes, maxNodes);
+        if (isElement && options?.MaxDepth is int maxDepth && depth > maxDepth)
+            throw new HtmlParseLimitException(nameof(options.MaxDepth), depth, maxDepth);
+    }
+
     private sealed class CallbackState {
         internal Dictionary<INode, HtmlNode> ToOwned { get; } = new Dictionary<INode, HtmlNode>();
         internal Dictionary<int, INode> ToOriginal { get; } = new Dictionary<int, INode>();
@@ -173,14 +222,15 @@ internal static class NativeDomBridge {
         }
     }
 
-    private static HtmlNode ImportNode(INode source, HtmlDocument document, CancellationToken cancellationToken) {
+    private static HtmlNode ImportNode(INode source, HtmlDocument document, CancellationToken cancellationToken, int sourceIndexOffset = 0) {
         if (source is IElement element) {
             HtmlElement result = document.CreateElement(element.LocalName, element.NamespaceUri ?? string.Empty, element.Prefix);
             foreach (IAttr attribute in element.Attributes) {
                 cancellationToken.ThrowIfCancellationRequested();
                 result.SetAttribute(new HtmlAttribute(attribute.Name, attribute.Value, attribute.NamespaceUri));
             }
-            if (element.SourceReference?.Position.Index is int index && index >= 0) document.SetSourceIndex(result, index);
+            if (element.SourceReference?.Position.Index is int index && index >= sourceIndexOffset)
+                document.SetSourceIndex(result, index - sourceIndexOffset);
             result.FormState = NativeFormState.Get(element);
             return result;
         }

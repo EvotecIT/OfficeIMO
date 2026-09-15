@@ -1,6 +1,6 @@
 # HTML static-rendering budgets
 
-This build tool measures the frozen H4/v2 corpus with OfficeIMO's owned static
+This build tool measures the frozen H4/advanced-held-out corpus with OfficeIMO's owned static
 renderer. It has no comparison-engine dependencies, so the same command can run on
 Windows, Linux, and macOS.
 

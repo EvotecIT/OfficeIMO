@@ -1,10 +1,20 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Dom;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 
 const string marker = "AotMarker";
 const string html = "<style>body{margin:0}h1{color:#123456}</style><h1>AotMarker</h1><p><a href='https://example.test/'>Searchable PDF link</a></p>";
+HtmlDocument aotTable = HtmlDocumentEngine.Default.ParseDocument(
+    "<table><tbody><tr id='aot-items'></tr></tbody></table>");
+HtmlDocumentFragment aotCells = HtmlDocumentEngine.Default.ParseFragment(
+    "<td>Aot fragment</td>", aotTable.QuerySelector("#aot-items")!);
+HtmlDocument aotEditedTable = aotTable.Edit(document =>
+    document.QuerySelector("#aot-items")!.AppendChild(document.ImportNode(aotCells)));
+if (aotEditedTable.QuerySelectorAll("td").Count != 1) {
+    throw new InvalidOperationException("The NativeAOT owned document fragment contract failed.");
+}
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 var imageOptions = new HtmlRenderOptions {
     ViewportWidth = 320D,

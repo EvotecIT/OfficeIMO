@@ -8,7 +8,7 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlOptionalNodeTests {
-    private static HtmlDocument Parse(string source) => AngleSharpHtmlParser.Instance.Parse(source, new HtmlParseOptions());
+    private static HtmlDocument Parse(string source) => AngleSharpHtmlParser.Instance.ParseDocument(source, new HtmlParseOptions());
 
     [Fact]
     public void MissingSelectorResultsRetainAccessibilityFallbacks() {

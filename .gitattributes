@@ -26,8 +26,8 @@ Website/data/pdf_corpus_report.json -text -diff
 
 # The HTML qualification corpus validates every source byte against its manifest.
 # Preserve exact fixture bytes across Windows, Linux, and macOS checkouts.
-OfficeIMO.TestAssets/Documents/Html/Qualification/H0/v1/** text eol=lf -diff
-OfficeIMO.TestAssets/Documents/Html/Qualification/H0/v1/**/*.otf -text -diff
+OfficeIMO.TestAssets/Documents/Html/Qualification/H0/baseline-report/** text eol=lf -diff
+OfficeIMO.TestAssets/Documents/Html/Qualification/H0/baseline-report/**/*.otf -text -diff
 OfficeIMO.TestAssets/Documents/Html/Qualification/H4/** text eol=lf -diff
 
 ###############################################################################

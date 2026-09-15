@@ -6,8 +6,8 @@ namespace OfficeIMO.Tests;
 /// <summary>
 /// Shared test-owned HTML rendering corpus used by HTML image and PDF artifact gates.
 /// </summary>
-internal static class HtmlRenderingCorpus {
-    internal const string RelativeRoot = "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/v1";
+internal static class HtmlRenderingRepresentativeCorpus {
+    internal const string RelativeRoot = "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/representative";
 
     internal static IReadOnlyList<HtmlRenderingCorpusCase> All { get; } = new[] {
         new HtmlRenderingCorpusCase(
@@ -156,7 +156,7 @@ internal static class HtmlRenderingCorpus {
             "Html",
             "Qualification",
             "H4",
-            "v1",
+            "representative",
             id + ".html");
         if (File.Exists(outputCandidate)) return File.ReadAllText(outputCandidate);
 
@@ -207,7 +207,7 @@ internal sealed class HtmlRenderingCorpusCase {
     }
 
     internal string Id { get; }
-    internal string SourceRelativePath => HtmlRenderingCorpus.RelativeRoot + "/" + Id + ".html";
+    internal string SourceRelativePath => HtmlRenderingRepresentativeCorpus.RelativeRoot + "/" + Id + ".html";
     internal HtmlRenderMode Mode { get; }
     internal string Html { get; }
     internal IReadOnlyList<string> TextMarkers { get; }

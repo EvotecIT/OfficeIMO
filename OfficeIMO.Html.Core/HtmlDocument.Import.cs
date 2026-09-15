@@ -58,7 +58,7 @@ public sealed partial class HtmlDocument {
         if (source is HtmlDocumentType type) return CreateDocumentType(type.Name, type.PublicIdentifier, type.SystemIdentifier);
         if (source.Kind == HtmlNodeKind.Text) return CreateTextNode(source.TextContent);
         if (source.Kind == HtmlNodeKind.Comment) return CreateComment(source.TextContent);
-        if (source.Kind == HtmlNodeKind.DocumentFragment) return CreateFragment();
+        if (source is HtmlDocumentFragment) return CreateFragment();
         throw new ArgumentException("The node kind cannot be imported.", nameof(source));
     }
 }

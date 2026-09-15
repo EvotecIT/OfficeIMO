@@ -26,7 +26,7 @@ public sealed partial class HtmlConversionDocument {
             document = HtmlDocumentParser.ParseDocument(html, cancellationToken);
         } else {
             try {
-                sourceSnapshot = resolved.ParserProvider.Parse(html, new Dom.HtmlParseOptions {
+                sourceSnapshot = resolved.ParserProvider.ParseDocument(html, new Dom.HtmlParseOptions {
                     MaxInputCharacters = resolved.Limits.MaxInputCharacters,
                     MaxNodes = resolved.Limits.MaxHtmlNodes,
                     MaxDepth = resolved.Limits.MaxHtmlDepth

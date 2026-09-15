@@ -27,10 +27,10 @@
              Link="ProcessTreeMemorySampler.cs" />
     <Compile Include="..\..\OfficeIMO.Pdf.Benchmarks.Comparisons\SourceProvenanceReader.cs"
              Link="SourceProvenanceReader.cs" />
-    <Compile Include="..\..\OfficeIMO.TestAssets\HtmlRenderingHeldOutCorpus.cs"
-             Link="HtmlRenderingHeldOutCorpus.cs" />
-    <None Include="..\..\OfficeIMO.TestAssets\Documents\Html\Qualification\H4\v2\**\*"
-          Link="Documents\Html\Qualification\H4\v2\%(RecursiveDir)%(Filename)%(Extension)"
+    <Compile Include="..\..\OfficeIMO.TestAssets\HtmlRenderingAdvancedHeldOutCorpus.cs"
+             Link="HtmlRenderingAdvancedHeldOutCorpus.cs" />
+    <None Include="..\..\OfficeIMO.TestAssets\Documents\Html\Qualification\H4\advanced-held-out\**\*"
+          Link="Documents\Html\Qualification\H4\advanced-held-out\%(RecursiveDir)%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

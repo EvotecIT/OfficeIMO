@@ -15,11 +15,11 @@ public static partial class HtmlRenderCapabilityCatalog {
             "Loads bounded source bytes through the configured encoding provider. Explicit caller encoding wins; otherwise the current path applies byte-order-mark and HTML meta-charset detection before producing the immutable source snapshot."),
         Qualified("html-document-parsing", "HTML document", HtmlRenderCapabilityKind.Html,
             DocumentScope(HtmlCapabilityStage.ParseAndPreserve, HtmlCapabilitySpecificationIds.Html),
-            Features("full-document parsing", "HTML error recovery", "templates", "doctype and document mode", "source locations", "bounded native-to-owned projection"),
-            "Parses a bounded inert full HTML document through the selected provider and projects it into OfficeIMO-owned nodes without exposing provider objects. Contextual fragment parsing, complete foreign-content qualification, and pre-allocation worker isolation remain outside this profile."),
+            Features("full-document parsing", "contextual fragments for tables, SVG, MathML and ancestor forms", "HTML error recovery", "templates", "doctype and document mode", "source locations", "bounded native-to-owned projection"),
+            "Parses bounded inert HTML through the selected provider and projects it into OfficeIMO-owned documents or independent contextual fragments without exposing provider objects. Raw-text/RCDATA fragment states, complete foreign-content qualification, and pre-allocation worker isolation remain outside this profile."),
         Qualified("html-owned-dom", "HTML document", HtmlRenderCapabilityKind.Dom,
             DocumentScope(HtmlCapabilityStage.DomAndQuery, HtmlCapabilitySpecificationIds.Dom, HtmlCapabilitySpecificationIds.Html),
-            Features("owned nodes", "stable node IDs", "immutable snapshots", "mutable clones", "query selectors", "attributes", "text content", "detached editing history", "template contents"),
+            Features("owned nodes", "owned document fragments", "stable node IDs", "immutable snapshots", "mutable clones", "query selectors", "attributes", "text content", "detached editing history", "template contents"),
             "Exposes provider-neutral document and node contracts for query, inspection, cloning, bounded mutation, import, and immutable capture. Node IDs remain meaningful within an edit lineage and snapshot IDs distinguish independently frozen trees."),
         Qualified("html-serialization", "HTML document", HtmlRenderCapabilityKind.Html,
             DocumentScope(HtmlCapabilityStage.ParseAndPreserve, HtmlCapabilitySpecificationIds.Html),
@@ -451,46 +451,46 @@ public static partial class HtmlRenderCapabilityCatalog {
 
     private static string[] DocumentEvidenceIds(string profileId, string capabilityId) {
         if (string.Equals(profileId, HtmlCapabilityProfileIds.WebDocumentV1, StringComparison.OrdinalIgnoreCase)) {
-            return new[] { HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests, HtmlCapabilityEvidenceIds.DocumentV1 };
+            return new[] { HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests, HtmlCapabilityEvidenceIds.DocumentFoundation };
         }
         HtmlCapabilityEvidenceSelection[] selections;
         string selectedEvidence;
         if (string.Equals(profileId, HtmlCapabilityProfileIds.PagedPrintV1, StringComparison.OrdinalIgnoreCase)) {
-            selections = CreateH4V2PagedSelections();
-            selectedEvidence = HtmlCapabilityEvidenceIds.H4PagedV2;
+            selections = CreateH4AdvancedHeldOutPagedSelections();
+            selectedEvidence = HtmlCapabilityEvidenceIds.H4PagedAdvancedHeldOut;
         } else {
-            selections = CreateH4V2ScreenSelections();
-            selectedEvidence = HtmlCapabilityEvidenceIds.H4ScreenV2;
+            selections = CreateH4AdvancedHeldOutScreenSelections();
+            selectedEvidence = HtmlCapabilityEvidenceIds.H4ScreenAdvancedHeldOut;
         }
         return selections.Any(selection => string.Equals(selection.CapabilityId, capabilityId, StringComparison.OrdinalIgnoreCase))
-            ? new[] { HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests, HtmlCapabilityEvidenceIds.DocumentV1, selectedEvidence }
-            : new[] { HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests, HtmlCapabilityEvidenceIds.DocumentV1 };
+            ? new[] { HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests, HtmlCapabilityEvidenceIds.DocumentFoundation, selectedEvidence }
+            : new[] { HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests, HtmlCapabilityEvidenceIds.DocumentFoundation };
     }
 
     private static string[] StaticEvidenceIds(string profileId, string capabilityId) {
         HtmlCapabilityEvidenceSelection[] selections;
         string selectedEvidence;
         if (string.Equals(profileId, HtmlCapabilityProfileIds.PagedPrintV1, StringComparison.OrdinalIgnoreCase)) {
-            selections = CreateH4V2PagedSelections();
-            selectedEvidence = HtmlCapabilityEvidenceIds.H4PagedV2;
+            selections = CreateH4AdvancedHeldOutPagedSelections();
+            selectedEvidence = HtmlCapabilityEvidenceIds.H4PagedAdvancedHeldOut;
         } else {
-            selections = CreateH4V2ScreenSelections();
-            selectedEvidence = HtmlCapabilityEvidenceIds.H4ScreenV2;
+            selections = CreateH4AdvancedHeldOutScreenSelections();
+            selectedEvidence = HtmlCapabilityEvidenceIds.H4ScreenAdvancedHeldOut;
         }
         if (selections.Any(selection => string.Equals(selection.CapabilityId, capabilityId, StringComparison.OrdinalIgnoreCase))) {
             return new[] {
                 HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests,
                 string.Equals(profileId, HtmlCapabilityProfileIds.PagedPrintV1, StringComparison.OrdinalIgnoreCase)
-                    ? HtmlCapabilityEvidenceIds.H4PagedV1
-                    : HtmlCapabilityEvidenceIds.H4ScreenV1,
+                    ? HtmlCapabilityEvidenceIds.H4PagedRepresentative
+                    : HtmlCapabilityEvidenceIds.H4ScreenRepresentative,
                 selectedEvidence
             };
         }
         return new[] {
             HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests,
             string.Equals(profileId, HtmlCapabilityProfileIds.PagedPrintV1, StringComparison.OrdinalIgnoreCase)
-                ? HtmlCapabilityEvidenceIds.H4PagedV1
-                : HtmlCapabilityEvidenceIds.H4ScreenV1
+                ? HtmlCapabilityEvidenceIds.H4PagedRepresentative
+                : HtmlCapabilityEvidenceIds.H4ScreenRepresentative
         };
     }
 

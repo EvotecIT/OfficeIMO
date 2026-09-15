@@ -79,7 +79,7 @@ internal sealed class HtmlQualificationCorpus {
     internal string EntryHtml => Encoding.UTF8.GetString(_bytesByPath[NormalizePath(Manifest.EntryPath)]);
 
     internal static string ResolveDefaultRoot() => Path.Combine(
-        AppContext.BaseDirectory, "Documents", "Html", "Qualification", "H0", "v1");
+        AppContext.BaseDirectory, "Documents", "Html", "Qualification", "H0", "baseline-report");
 
     internal static HtmlQualificationCorpus Load(string? rootPath = null) {
         string root = Path.GetFullPath(rootPath ?? ResolveDefaultRoot());

@@ -23,7 +23,7 @@ internal static class HtmlStaticBudgetWorker {
         if (mode is not ("cold" or "warm")) throw new ArgumentException("--mode must be cold or warm.");
         if (iterations < 1 || iterations > 10) throw new ArgumentOutOfRangeException(nameof(iterations));
 
-        HtmlRenderingHeldOutCorpus corpus = HtmlRenderingHeldOutCorpus.Load();
+        HtmlRenderingAdvancedHeldOutCorpus corpus = HtmlRenderingAdvancedHeldOutCorpus.Load();
         if (mode == "warm") {
             _ = RenderIteration(corpus, 0);
             GC.Collect();
@@ -75,13 +75,13 @@ internal static class HtmlStaticBudgetWorker {
             ?? throw new InvalidDataException("The HTML static budget worker result was empty.");
     }
 
-    private static HtmlStaticBudgetIteration RenderIteration(HtmlRenderingHeldOutCorpus corpus, int number) {
+    private static HtmlStaticBudgetIteration RenderIteration(HtmlRenderingAdvancedHeldOutCorpus corpus, int number) {
         long allocatedBefore = GC.GetTotalAllocatedBytes(precise: false);
         var stopwatch = Stopwatch.StartNew();
         long outputBytes = 0;
         int outputCount = 0;
         var hashes = new List<string>();
-        foreach (HtmlRenderingHeldOutCase scenario in corpus.Cases) {
+        foreach (HtmlRenderingAdvancedHeldOutCase scenario in corpus.Cases) {
             HtmlConversionDocument source = scenario.LoadDocument();
             RenderPdf(source, scenario, HtmlRenderIntentProfile.PrintPaged, CreatePrintOptions(), scenario.Manifest.ExpectedPrintPageCount, hashes, ref outputBytes, ref outputCount);
             RenderImages(source, scenario, HtmlRenderIntentProfile.PrintPaged, CreatePrintOptions(), hashes, ref outputBytes, ref outputCount);
@@ -104,7 +104,7 @@ internal static class HtmlStaticBudgetWorker {
 
     private static void RenderPdf(
         HtmlConversionDocument source,
-        HtmlRenderingHeldOutCase scenario,
+        HtmlRenderingAdvancedHeldOutCase scenario,
         HtmlRenderIntentProfile profile,
         HtmlRenderOptions options,
         int? expectedPages,
@@ -118,7 +118,7 @@ internal static class HtmlStaticBudgetWorker {
 
     private static void RenderImages(
         HtmlConversionDocument source,
-        HtmlRenderingHeldOutCase scenario,
+        HtmlRenderingAdvancedHeldOutCase scenario,
         HtmlRenderIntentProfile profile,
         HtmlRenderOptions options,
         ICollection<string> hashes,
@@ -133,7 +133,7 @@ internal static class HtmlStaticBudgetWorker {
         }
     }
 
-    private static void ValidateDocument(HtmlRenderDocument document, HtmlRenderingHeldOutCase scenario, int? expectedPages) {
+    private static void ValidateDocument(HtmlRenderDocument document, HtmlRenderingAdvancedHeldOutCase scenario, int? expectedPages) {
         if (expectedPages.HasValue && document.Pages.Count != expectedPages.Value) {
             throw new InvalidDataException($"{scenario.Id} rendered {document.Pages.Count} pages; expected {expectedPages.Value}.");
         }

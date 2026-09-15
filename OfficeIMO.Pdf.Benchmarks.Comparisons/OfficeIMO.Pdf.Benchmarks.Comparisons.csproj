@@ -73,15 +73,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\OfficeIMO.TestAssets\HtmlRenderingCorpus.cs"
-             Link="HtmlEvidence\HtmlRenderingCorpus.cs" />
-    <Compile Include="..\OfficeIMO.TestAssets\HtmlRenderingHeldOutCorpus.cs"
-             Link="HtmlEvidence\HtmlRenderingHeldOutCorpus.cs" />
-    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\H4\v1\**\*"
-          Link="Documents\Html\Qualification\H4\v1\%(RecursiveDir)%(Filename)%(Extension)"
+    <Compile Include="..\OfficeIMO.TestAssets\HtmlRenderingRepresentativeCorpus.cs"
+             Link="HtmlEvidence\HtmlRenderingRepresentativeCorpus.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\HtmlRenderingAdvancedHeldOutCorpus.cs"
+             Link="HtmlEvidence\HtmlRenderingAdvancedHeldOutCorpus.cs" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\H4\representative\**\*"
+          Link="Documents\Html\Qualification\H4\representative\%(RecursiveDir)%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\H4\v2\**\*"
-          Link="Documents\Html\Qualification\H4\v2\%(RecursiveDir)%(Filename)%(Extension)"
+    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\H4\advanced-held-out\**\*"
+          Link="Documents\Html\Qualification\H4\advanced-held-out\%(RecursiveDir)%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

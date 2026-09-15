@@ -7,14 +7,14 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
-    public static IEnumerable<object[]> HtmlRenderingCorpusScenarioIds => HtmlRenderingCorpus.All
+    public static IEnumerable<object[]> HtmlRenderingRepresentativeCorpusScenarioIds => HtmlRenderingRepresentativeCorpus.All
         .Select(item => new object[] { item.Id });
 
     [Fact]
-    public void HeldOutRenderingCorpus_LoadsOnlyFrozenInputsAndDeclaredContracts() {
-        HtmlRenderingHeldOutCorpus corpus = HtmlRenderingHeldOutCorpus.Load();
+    public void AdvancedHeldOutRenderingCorpus_LoadsOnlyFrozenInputsAndDeclaredContracts() {
+        HtmlRenderingAdvancedHeldOutCorpus corpus = HtmlRenderingAdvancedHeldOutCorpus.Load();
 
-        Assert.Equal("officeimo-html-h4-held-out-v2", corpus.Manifest.CorpusId);
+        Assert.Equal("officeimo-html-h4-advanced-held-out", corpus.Manifest.CorpusId);
         Assert.Equal(8, corpus.Cases.Count);
         Assert.Equal(
             new[] { "screen-full-page-v1", "print-paged-v1", "screen-snapshot-paged-v1" },
@@ -26,7 +26,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(item.Manifest.Length, item.SourceBytes.LongLength);
             Assert.All(item.Manifest.TextMarkers, marker => Assert.Contains(marker, item.Html, StringComparison.Ordinal));
         });
-        HtmlRenderingHeldOutCase legacy = corpus.Cases.Single(item => item.Id == "legacy-portal");
+        HtmlRenderingAdvancedHeldOutCase legacy = corpus.Cases.Single(item => item.Id == "legacy-portal");
         Assert.Equal(1483, legacy.SourceBytes.Length);
         Assert.Contains((byte)0x97, legacy.SourceBytes);
         Assert.Contains(legacy.Html, value => value == '—');
@@ -52,15 +52,15 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRenderingCorpus_CoversEveryPublishedMarketScenario() {
+    public void HtmlRenderingRepresentativeCorpus_CoversEveryPublishedMarketScenario() {
         Assert.Equal(
             HtmlMarketScenarioCatalog.All.Select(item => item.Id),
-            HtmlRenderingCorpus.All.Select(item => item.Id));
+            HtmlRenderingRepresentativeCorpus.All.Select(item => item.Id));
     }
 
     [Fact]
-    public void HtmlRenderingCorpus_DashboardHeadingAndIncidentRemainFullyVisible() {
-        HtmlRenderingCorpusCase scenario = HtmlRenderingCorpus.All.Single(item => item.Id == "dashboard-print");
+    public void HtmlRenderingRepresentativeCorpus_DashboardHeadingAndIncidentRemainFullyVisible() {
+        HtmlRenderingCorpusCase scenario = HtmlRenderingRepresentativeCorpus.All.Single(item => item.Id == "dashboard-print");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(scenario.Html, scenario.CreateOptions());
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene))
             .OfType<HtmlRenderText>()
@@ -81,8 +81,8 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRenderingCorpus_StaticStandardsGridUsesTwoAuthoredColumns() {
-        HtmlRenderingCorpusCase scenario = HtmlRenderingCorpus.All.Single(item => item.Id == "static-standards-showcase");
+    public void HtmlRenderingRepresentativeCorpus_StaticStandardsGridUsesTwoAuthoredColumns() {
+        HtmlRenderingCorpusCase scenario = HtmlRenderingRepresentativeCorpus.All.Single(item => item.Id == "static-standards-showcase");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(scenario.Html, scenario.CreateOptions());
         HtmlRenderText firstRow = Assert.Single(
             rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene)).OfType<HtmlRenderText>(),
@@ -99,8 +99,8 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRenderingCorpus_StaticStandardsRunningHeaderPaintsOnEveryRasterPage() {
-        HtmlRenderingCorpusCase scenario = HtmlRenderingCorpus.All.Single(item => item.Id == "static-standards-showcase");
+    public void HtmlRenderingRepresentativeCorpus_StaticStandardsRunningHeaderPaintsOnEveryRasterPage() {
+        HtmlRenderingCorpusCase scenario = HtmlRenderingRepresentativeCorpus.All.Single(item => item.Id == "static-standards-showcase");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(scenario.Html, scenario.CreateOptions());
 
         Assert.Equal(2, rendered.Pages.Count);
@@ -127,9 +127,9 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [MemberData(nameof(HtmlRenderingCorpusScenarioIds))]
-    public void HtmlRenderingCorpus_ProvesSharedSceneImageAndSearchablePdf(string scenarioId) {
-        HtmlRenderingCorpusCase scenario = HtmlRenderingCorpus.All.Single(item => item.Id == scenarioId);
+    [MemberData(nameof(HtmlRenderingRepresentativeCorpusScenarioIds))]
+    public void HtmlRenderingRepresentativeCorpus_ProvesSharedSceneImageAndSearchablePdf(string scenarioId) {
+        HtmlRenderingCorpusCase scenario = HtmlRenderingRepresentativeCorpus.All.Single(item => item.Id == scenarioId);
         HtmlRenderOptions options = scenario.CreateOptions();
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(scenario.Html, options);

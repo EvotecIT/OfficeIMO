@@ -7,7 +7,7 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlRetentionTests {
-    private static HtmlDocument Parse(string source) => AngleSharpHtmlParser.Instance.Parse(source, new HtmlParseOptions());
+    private static HtmlDocument Parse(string source) => AngleSharpHtmlParser.Instance.ParseDocument(source, new HtmlParseOptions());
 
     [Theory]
     [InlineData(false)]

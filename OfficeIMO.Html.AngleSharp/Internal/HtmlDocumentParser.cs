@@ -30,6 +30,95 @@ internal static class HtmlDocumentParser {
         return parser.ParseDocumentAsync(normalized, cancellationToken).GetAwaiter().GetResult();
     }
 
+    /// <summary>Parses an HTML fragment using the supplied element and its ancestors as context.</summary>
+    public static HtmlFragmentParseResult ParseFragment(string html, IElement contextElement, CancellationToken cancellationToken) {
+        if (html == null) throw new ArgumentNullException(nameof(html));
+        if (contextElement == null) throw new ArgumentNullException(nameof(contextElement));
+        cancellationToken.ThrowIfCancellationRequested();
+        var parser = new HtmlParser(new HtmlParserOptions {
+            IsKeepingSourceReferences = true
+        });
+        string normalized = NormalizeSvgHrefAttributeOrder(html, cancellationToken);
+        if (RequiresContextEnvelope(contextElement)) {
+            return ParseFragmentWithContextEnvelope(normalized, contextElement, cancellationToken);
+        }
+        INodeList nodes = parser.ParseFragment(normalized, contextElement);
+        cancellationToken.ThrowIfCancellationRequested();
+        return new HtmlFragmentParseResult(nodes, 0);
+    }
+
+    private static bool RequiresContextEnvelope(IElement contextElement) =>
+        !string.Equals(contextElement.NamespaceUri, OfficeIMO.Html.Dom.HtmlElement.HtmlNamespace, StringComparison.Ordinal)
+        || contextElement.Ancestors<IElement>().Any(element =>
+            string.Equals(element.NamespaceUri, OfficeIMO.Html.Dom.HtmlElement.HtmlNamespace, StringComparison.Ordinal)
+            && string.Equals(element.LocalName, "form", StringComparison.Ordinal));
+
+    private static HtmlFragmentParseResult ParseFragmentWithContextEnvelope(
+        string html,
+        IElement contextElement,
+        CancellationToken cancellationToken) {
+        const string MarkerName = "data-officeimo-fragment-context";
+        string markerValue = Guid.NewGuid().ToString("N");
+        List<IElement> chain = ContextChain(contextElement);
+        var prefix = new StringBuilder("<!doctype html><html><body>");
+        var closing = new Stack<string>();
+        foreach (IElement element in chain) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string name = element.NodeName;
+            prefix.Append('<').Append(name);
+            foreach (IAttr attribute in element.Attributes) {
+                if (string.Equals(attribute.Name, MarkerName, StringComparison.OrdinalIgnoreCase)) continue;
+                prefix.Append(' ').Append(attribute.Name).Append("=\"")
+                    .Append(System.Net.WebUtility.HtmlEncode(attribute.Value)).Append('"');
+            }
+            if (ReferenceEquals(element, contextElement)) {
+                prefix.Append(' ').Append(MarkerName).Append("=\"").Append(markerValue).Append('"');
+            }
+            prefix.Append('>');
+            closing.Push("</" + name + ">");
+        }
+        int sourceIndexOffset = prefix.Length;
+        var documentSource = new StringBuilder(prefix.Length + html.Length + closing.Count * 16 + 32)
+            .Append(prefix)
+            .Append(html);
+        while (closing.Count != 0) documentSource.Append(closing.Pop());
+        documentSource.Append("</body></html>");
+        IHtmlDocument parsed = ParseDocument(documentSource.ToString(), cancellationToken);
+        IElement parsedContext = parsed.QuerySelector("[" + MarkerName + "=\"" + markerValue + "\"]")
+            ?? throw new InvalidOperationException("The fragment parsing context could not be reconstructed.");
+        cancellationToken.ThrowIfCancellationRequested();
+        return new HtmlFragmentParseResult(parsedContext.ChildNodes, sourceIndexOffset);
+    }
+
+    private static List<IElement> ContextChain(IElement contextElement) {
+        var chain = new List<IElement>();
+        for (IElement? current = contextElement; current != null; current = current.ParentElement) {
+            chain.Add(current);
+            bool htmlForm = string.Equals(current.NamespaceUri, OfficeIMO.Html.Dom.HtmlElement.HtmlNamespace, StringComparison.Ordinal)
+                && string.Equals(current.LocalName, "form", StringComparison.Ordinal);
+            bool foreignRoot = !string.Equals(current.NamespaceUri, OfficeIMO.Html.Dom.HtmlElement.HtmlNamespace, StringComparison.Ordinal)
+                && (string.Equals(current.LocalName, "svg", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(current.LocalName, "math", StringComparison.OrdinalIgnoreCase));
+            if (htmlForm || foreignRoot) break;
+        }
+        chain.Reverse();
+        if (!string.Equals(contextElement.NamespaceUri, OfficeIMO.Html.Dom.HtmlElement.HtmlNamespace, StringComparison.Ordinal)
+            && !chain.Any(element => string.Equals(element.LocalName, "svg", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(element.LocalName, "math", StringComparison.OrdinalIgnoreCase))) {
+            throw new NotSupportedException("Contextual fragment parsing requires an SVG or MathML namespace root.");
+        }
+        return chain;
+    }
+
+    internal readonly struct HtmlFragmentParseResult {
+        internal HtmlFragmentParseResult(INodeList nodes, int sourceIndexOffset) {
+            Nodes = nodes;
+            SourceIndexOffset = sourceIndexOffset;
+        }
+        internal INodeList Nodes { get; }
+        internal int SourceIndexOffset { get; }
+    }
+
     internal static string? GetExactAttributeValue(IElement element, string name) =>
         GetExactAttribute(element, name)?.Value;
 

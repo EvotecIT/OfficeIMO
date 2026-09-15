@@ -3,7 +3,7 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html;
 
 /// <summary>
-/// First-party dependency-free HTML layout entry point shared by image and PDF adapters.
+/// First-party browser-free HTML layout entry point shared by image and PDF adapters.
 /// </summary>
 public static class HtmlRenderEngine {
     // Raw text entry points remain internal for renderer-focused tests and low-level package code.

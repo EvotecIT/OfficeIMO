@@ -10,7 +10,7 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlImportTests {
-    private static HtmlDocument Parse(string html) => AngleSharpHtmlParser.Instance.Parse(html, new HtmlParseOptions());
+    private static HtmlDocument Parse(string html) => AngleSharpHtmlParser.Instance.ParseDocument(html, new HtmlParseOptions());
 
     [Fact]
     public void ImportCreatesIndependentNodesAndKeepsDestinationIdentity() {

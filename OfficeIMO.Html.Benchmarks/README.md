@@ -18,6 +18,8 @@ dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj 
 dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net8.0 -- --filter *HtmlPagedPurchaseTableBenchmarks*
 dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net8.0 -- --filter *HtmlLongDocumentBenchmarks*
 dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net8.0 -- --filter *HtmlStaticStandardsBenchmarks*
+dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net10.0 -- --filter *HtmlProviderParsingBenchmarks*
+dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net10.0 -- --filter *HtmlProviderCssBenchmarks*
 ```
 
 For a quick harness and allocation smoke, use BenchmarkDotNet's dry job:
@@ -28,10 +30,10 @@ dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj 
 
 ## H0 qualification baseline
 
-The versioned H0 bundle is an independently authored static report with external CSS, a redistributable font, an SVG image, responsive screen profiles, and paged print rules. Capture the current engine evidence in an empty output directory:
+The H0 baseline-report bundle is an independently authored static report with external CSS, a redistributable font, an SVG image, responsive screen profiles, and paged print rules. Capture the current engine evidence in an empty output directory:
 
 ```powershell
-dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net10.0 -- --qualification-baseline --output .benchmark-artifacts/html/qualification/h0-v1
+dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net10.0 -- --qualification-baseline --output .benchmark-artifacts/html/qualification/h0-baseline-report
 ```
 
 The runner verifies every input byte against `manifest.json`, then records the owned DOM and query results, logical and semantic projections, computed-style probes with cascade priority, resource resolution, layout pages, diagnostics, cancellation, provider versions, and source/environment identity. It writes PNG and SVG for each page plus a searchable PDF for the print profile. A missing marker, changed page count, undeclared or unused resource, style mismatch, diagnosed rendering loss, failed PDF readback, or pre-cancellation failure makes the command fail.
@@ -88,3 +90,25 @@ Use these allocation ceilings as regression-review budgets for the deterministic
 | Searchable PDF, multilingual Unicode text | 256 MB |
 
 These are review triggers, not flaky unit-test assertions. A change may intentionally exceed one when the corpus or fidelity contract grows, but the new baseline and reason should be recorded in the change.
+
+## Provider decision evidence
+
+The provider lanes separate native AngleSharp parsing, the OfficeIMO-owned document
+projection, the lazy conversion-document path, raw AngleSharp.Css syntax parsing,
+and the complete OfficeIMO cascade. The raw CSS parser and complete cascade perform
+different work; compare each lane with itself across revisions rather than treating
+their elapsed-time ratio as parser overhead.
+
+Capture process-isolated elapsed, allocation, retained managed heap per result,
+provider assembly identity, and platform information:
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Html.Benchmarks -- --provider-evidence --repeat 5 --json .benchmark-artifacts/html/provider-evidence.json
+```
+
+The 100-row HTML scenarios all validate the same 420-element recovered tree. The
+100-rule CSS scenarios validate the provider stylesheet and the owned 305-element
+cascade separately. Retained-heap values use eight simultaneously retained results
+inside a fresh child process and are diagnostic observations rather than hard budgets.
+Run the same command on each platform and compare medians only for equivalent source,
+runtime, architecture, and commit.

@@ -35,7 +35,7 @@ internal static class HtmlStaticBudgetRunner {
             throw new InvalidOperationException("Clean, commit-addressable OfficeIMO source is required for budget evidence.");
         }
 
-        HtmlRenderingHeldOutCorpus corpus = HtmlRenderingHeldOutCorpus.Load();
+        HtmlRenderingAdvancedHeldOutCorpus corpus = HtmlRenderingAdvancedHeldOutCorpus.Load();
         HtmlStaticBudgetConfiguration configuration = await ReadConfigurationAsync(corpus.RootPath).ConfigureAwait(false);
         HtmlStaticBudgetCeiling? ceiling = measureOnly ? null : ResolveCeiling(configuration, GetOsFamily(), corpus, iterations);
         HtmlStaticBudgetRun cold = await RunWorkerAsync("cold", 1, outputDirectory, repositoryRoot).ConfigureAwait(false);
@@ -194,7 +194,7 @@ internal static class HtmlStaticBudgetRunner {
     private static HtmlStaticBudgetCeiling ResolveCeiling(
         HtmlStaticBudgetConfiguration configuration,
         string osFamily,
-        HtmlRenderingHeldOutCorpus corpus,
+        HtmlRenderingAdvancedHeldOutCorpus corpus,
         int iterations) {
         if (configuration.SchemaVersion != 1 || configuration.CorpusId != corpus.Manifest.CorpusId
             || configuration.ManifestSha256 != corpus.ManifestSha256 || configuration.WarmIterations != iterations) {
@@ -247,6 +247,6 @@ internal static class HtmlStaticBudgetRunner {
     }
     private static void WriteHelp() {
         Console.WriteLine("html-static-budget [--output <new-directory>] [--iterations 2-10] [--measure-only] [--require-clean-source]");
-        Console.WriteLine("Measures the frozen H4/v2 corpus in fresh cold and warmed worker processes, including all declared static output contracts, allocations, process-tree peak memory, output bytes, determinism, and cancellation.");
+        Console.WriteLine("Measures the frozen H4/advanced-held-out corpus in fresh cold and warmed worker processes, including all declared static output contracts, allocations, process-tree peak memory, output bytes, determinism, and cancellation.");
     }
 }

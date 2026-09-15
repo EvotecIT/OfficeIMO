@@ -242,16 +242,16 @@ public static class HtmlCapabilitySpecificationIds {
 public static class HtmlCapabilityEvidenceIds {
     /// <summary>The executable OfficeIMO HTML contract and regression suite from the package source revision.</summary>
     public const string OfficeIMOHtmlTests = "officeimo-html-tests";
-    /// <summary>The selected H1-H2/v1 owned web-document qualification cases.</summary>
-    public const string DocumentV1 = "officeimo-html-document-v1";
-    /// <summary>The nine continuous-mode cases in the frozen H4/v1 rendering corpus.</summary>
-    public const string H4ScreenV1 = "officeimo-html-h4-screen-v1";
-    /// <summary>The six paged-mode cases in the frozen H4/v1 rendering corpus.</summary>
-    public const string H4PagedV1 = "officeimo-html-h4-paged-v1";
-    /// <summary>The held-out H4/v2 screen evidence with per-capability selections.</summary>
-    public const string H4ScreenV2 = "officeimo-html-h4-screen-v2";
-    /// <summary>The held-out H4/v2 paged evidence with per-capability selections.</summary>
-    public const string H4PagedV2 = "officeimo-html-h4-paged-v2";
+    /// <summary>The selected H1-H2 owned web-document foundation qualification cases.</summary>
+    public const string DocumentFoundation = "officeimo-html-document-foundation";
+    /// <summary>The nine continuous-mode cases in the frozen H4/representative rendering corpus.</summary>
+    public const string H4ScreenRepresentative = "officeimo-html-h4-screen-representative";
+    /// <summary>The six paged-mode cases in the frozen H4/representative rendering corpus.</summary>
+    public const string H4PagedRepresentative = "officeimo-html-h4-paged-representative";
+    /// <summary>The held-out H4/advanced-held-out screen evidence with per-capability selections.</summary>
+    public const string H4ScreenAdvancedHeldOut = "officeimo-html-h4-screen-advanced-held-out";
+    /// <summary>The held-out H4/advanced-held-out paged evidence with per-capability selections.</summary>
+    public const string H4PagedAdvancedHeldOut = "officeimo-html-h4-paged-advanced-held-out";
     /// <summary>The pinned html5lib parser test source.</summary>
     public const string Html5Lib = "html5lib-tests";
     /// <summary>The pinned Web Platform Tests source.</summary>

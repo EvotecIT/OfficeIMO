@@ -65,7 +65,7 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
     -c Release `
     -f net10.0 `
     -- html-corpus-evidence `
-    --corpus v2 `
+    --corpus advanced-held-out `
     --output $output
 ```
 
@@ -83,13 +83,13 @@ preserves, including form values, image alternatives, and SVG labels; those rema
 visible in each reference's `missingMarkers` field without failing OfficeIMO's
 rendering pass. Geometry and pixel differences are retained observations; the runner
 does not impose a universal browser-equivalence threshold. Raw artifacts are review
-and regression evidence and remain in the caller-selected output directory. H4/v2 is
+and regression evidence and remain in the caller-selected output directory. H4/advanced-held-out is
 the independently authored held-out selection. Its original source bytes and hashes
 are preserved in the bundle, including legacy encodings. Pass
-`--corpus v1` to retain the established regression corpus or `--case <id>` for a
+`--corpus representative` to use the established qualification corpus or `--case <id>` for a
 focused run.
 
-Measure and enforce the H4/v2 OfficeIMO static-rendering budgets separately from
+Measure and enforce the H4/advanced-held-out OfficeIMO static-rendering budgets separately from
 the reference-engine comparison:
 
 ```powershell

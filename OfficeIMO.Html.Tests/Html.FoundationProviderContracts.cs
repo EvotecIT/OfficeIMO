@@ -31,7 +31,7 @@ public sealed class HtmlFoundationProviderContractTests {
     [InlineData("\u202f")]
     public void ParserRecoveredUnicodeAttributeNamesSurviveOwnedEditingAndCallbackSnapshots(string name) {
         string source = "<p " + name + "='kept'>Text</p>";
-        HtmlDocument parsed = AngleSharpHtmlParser.Instance.Parse(source, new HtmlParseOptions());
+        HtmlDocument parsed = AngleSharpHtmlParser.Instance.ParseDocument(source, new HtmlParseOptions());
         Assert.Equal("kept", parsed.QuerySelector("p")!.GetAttribute(name));
         HtmlConversionDocument conversion = HtmlConversionDocument.Parse(source);
         Assert.Equal("kept", conversion.Document.QuerySelector("p")!.GetAttribute(name));
@@ -138,7 +138,7 @@ public sealed class HtmlFoundationProviderContractTests {
     [Fact]
     public async Task ConcurrentFirstProjectionPublishesOneCompleteStatePerSnapshot() {
         HtmlDocument[] documents = Enumerable.Range(0, 8).Select(index => {
-            HtmlDocument document = AngleSharpHtmlParser.Instance.Parse("<p>Attached</p>", new HtmlParseOptions()).Clone();
+            HtmlDocument document = AngleSharpHtmlParser.Instance.ParseDocument("<p>Attached</p>", new HtmlParseOptions()).Clone();
             document.QuerySelector("p")!.SetAttribute("id", "document-" + index);
             for (int child = 0; child < 100; child++) document.Body!.AppendChild(document.CreateElement("span")).TextContent = "item";
             return document.Freeze();
@@ -162,7 +162,7 @@ public sealed class HtmlFoundationProviderContractTests {
 
     [Fact]
     public async Task ConcurrentDetachedProjectionAndCallbackSnapshotsRetainNodeIdentity() {
-        HtmlDocument document = AngleSharpHtmlParser.Instance.Parse("<p>Attached</p>", new HtmlParseOptions()).Clone();
+        HtmlDocument document = AngleSharpHtmlParser.Instance.ParseDocument("<p>Attached</p>", new HtmlParseOptions()).Clone();
         HtmlElement[] detached = Enumerable.Range(0, 12).Select(index => {
             HtmlElement root = document.CreateElement("div");
             root.TextContent = "Detached " + index;
@@ -187,12 +187,15 @@ public sealed class HtmlFoundationProviderContractTests {
 
     private sealed class ForwardingParser : IHtmlParserProvider {
         public string Id => "forwarding";
-        public HtmlDocument Parse(string source, HtmlParseOptions options, CancellationToken cancellationToken = default) => AngleSharpHtmlParser.Instance.Parse(source, options, cancellationToken);
+        public HtmlDocument ParseDocument(string source, HtmlParseOptions options, CancellationToken cancellationToken = default) => AngleSharpHtmlParser.Instance.ParseDocument(source, options, cancellationToken);
+        public HtmlDocumentFragment ParseFragment(string source, HtmlElement contextElement, HtmlParseOptions options, CancellationToken cancellationToken = default) =>
+            AngleSharpHtmlParser.Instance.ParseFragment(source, contextElement, options, cancellationToken);
     }
     private sealed class FailingParser : IHtmlParserProvider {
         private readonly HtmlParseLimitException _failure;
         public FailingParser(HtmlParseLimitException failure) => _failure = failure;
         public string Id => "failing";
-        public HtmlDocument Parse(string source, HtmlParseOptions options, CancellationToken cancellationToken = default) => throw _failure;
+        public HtmlDocument ParseDocument(string source, HtmlParseOptions options, CancellationToken cancellationToken = default) => throw _failure;
+        public HtmlDocumentFragment ParseFragment(string source, HtmlElement contextElement, HtmlParseOptions options, CancellationToken cancellationToken = default) => throw _failure;
     }
 }

@@ -12,7 +12,7 @@ public sealed class HtmlQualificationBaselineTests {
     public void FrozenCorpus_LoadsWithDeclaredInputsAndProfiles() {
         HtmlQualificationCorpus corpus = HtmlQualificationCorpus.Load();
 
-        Assert.Equal("officeimo-html-h0-static-v1", corpus.Manifest.CorpusId);
+        Assert.Equal("officeimo-html-h0-baseline-report", corpus.Manifest.CorpusId);
         Assert.Equal(7, corpus.Manifest.Files.Count);
         Assert.Equal(new[] { "wide", "narrow", "print-a4" }, corpus.Manifest.Profiles.Select(profile => profile.Id));
         Assert.Equal(64, corpus.ManifestSha256.Length);

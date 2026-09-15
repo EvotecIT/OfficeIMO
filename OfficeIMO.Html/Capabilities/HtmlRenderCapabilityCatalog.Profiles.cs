@@ -10,31 +10,31 @@ public static partial class HtmlRenderCapabilityCatalog {
     private const string MathMlRevision = "f69212ad1f21bbfb7cde24264608c23b96b0e1b7";
     private const string WptRevision = "d63987ce254c38880525061eb87949f3f56716a8";
     private const string Html5LibRevision = "224991ec10db04f056a89eed8b0bd8695fd2950e";
-    private const string H4V2ManifestRevision = "60af2aab907af324bd1820a247a92b2b26f3e8445f235e06d50b10ac244375c7";
+    private const string H4AdvancedHeldOutManifestRevision = "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8";
 
-    private static string[] H4V2CaseIds() => new[] {
+    private static string[] H4AdvancedHeldOutCaseIds() => new[] {
         "columns-footnotes-brief", "legacy-portal", "named-pages-brochure", "nested-fragmentation-report",
         "professional-print-catalog", "stacking-clipping-board", "subgrid-operations", "typography-specimen"
     };
 
-    private static HtmlCapabilityEvidenceSelection[] CreateH4V2ScreenSelections() => new[] {
-        H4V2Selection("html-source-decoding", "Windows-1252 decoding selected by the legacy portal", new[] { "legacy-portal" }, "other legacy encodings", "encoding sniffing conflicts"),
-        H4V2Selection("css-backgrounds", "gradients used by the stacking board and production catalog", new[] { "professional-print-catalog", "stacking-clipping-board" }, "unlisted image functions", "fixed backgrounds"),
-        H4V2Selection("css-borders-effects", "stacking, clipping, transforms, gradients, and shadows used by the stacking board", new[] { "stacking-clipping-board" }, "three-dimensional transforms", "unlisted clip paths and filters"),
-        H4V2Selection("bidi-text", "mixed left-to-right, right-to-left, Arabic, and Hebrew runs in the typography specimen", new[] { "typography-specimen" }, "unlisted bidi control combinations"),
-        H4V2Selection("text-flow", "column and multilingual line flow in the columns brief and typography specimen", new[] { "columns-footnotes-brief", "typography-specimen" }, "dictionary-complete hyphenation", "unlisted line-breaking scripts"),
-        H4V2Selection("vertical-text", "vertical writing used by the typography specimen", new[] { "typography-specimen" }, "ruby combinations", "all writing-mode and orientation permutations"),
-        H4V2Selection("layout-grid", "column subgrid plus nested and production grids", new[] { "nested-fragmentation-report", "professional-print-catalog", "subgrid-operations" }, "masonry", "row-subgrid browser-reference coverage", "unlisted track functions"),
-        H4V2Selection("layout-columns", "balanced columns, gaps, rules, and spanning content", new[] { "columns-footnotes-brief", "nested-fragmentation-report" }, "cross-page atomic column fragments", "unlisted column values"),
-        H4V2Selection("layout-positioning", "positioned, running, stacked, and clipped content used by the brochure and board", new[] { "named-pages-brochure", "stacking-clipping-board" }, "interactive sticky or scroll state", "three-dimensional positioning"),
-        H4V2Selection("layout-tables", "legacy table layout and presentational table markup", new[] { "legacy-portal" }, "arbitrary malformed-table recovery", "unlisted intrinsic table combinations"),
-        H4V2Selection("generated-content", "running strings and counters used by the named-page brochure", new[] { "named-pages-brochure" }, "unlisted generated-content functions", "dynamic counters")
+    private static HtmlCapabilityEvidenceSelection[] CreateH4AdvancedHeldOutScreenSelections() => new[] {
+        H4AdvancedHeldOutSelection("html-source-decoding", "Windows-1252 decoding selected by the legacy portal", new[] { "legacy-portal" }, "other legacy encodings", "encoding sniffing conflicts"),
+        H4AdvancedHeldOutSelection("css-backgrounds", "gradients used by the stacking board and production catalog", new[] { "professional-print-catalog", "stacking-clipping-board" }, "unlisted image functions", "fixed backgrounds"),
+        H4AdvancedHeldOutSelection("css-borders-effects", "stacking, clipping, transforms, gradients, and shadows used by the stacking board", new[] { "stacking-clipping-board" }, "three-dimensional transforms", "unlisted clip paths and filters"),
+        H4AdvancedHeldOutSelection("bidi-text", "mixed left-to-right, right-to-left, Arabic, and Hebrew runs in the typography specimen", new[] { "typography-specimen" }, "unlisted bidi control combinations"),
+        H4AdvancedHeldOutSelection("text-flow", "column and multilingual line flow in the columns brief and typography specimen", new[] { "columns-footnotes-brief", "typography-specimen" }, "dictionary-complete hyphenation", "unlisted line-breaking scripts"),
+        H4AdvancedHeldOutSelection("vertical-text", "vertical writing used by the typography specimen", new[] { "typography-specimen" }, "ruby combinations", "all writing-mode and orientation permutations"),
+        H4AdvancedHeldOutSelection("layout-grid", "column subgrid plus nested and production grids", new[] { "nested-fragmentation-report", "professional-print-catalog", "subgrid-operations" }, "masonry", "row-subgrid browser-reference coverage", "unlisted track functions"),
+        H4AdvancedHeldOutSelection("layout-columns", "balanced columns, gaps, rules, and spanning content", new[] { "columns-footnotes-brief", "nested-fragmentation-report" }, "cross-page atomic column fragments", "unlisted column values"),
+        H4AdvancedHeldOutSelection("layout-positioning", "positioned, running, stacked, and clipped content used by the brochure and board", new[] { "named-pages-brochure", "stacking-clipping-board" }, "interactive sticky or scroll state", "three-dimensional positioning"),
+        H4AdvancedHeldOutSelection("layout-tables", "legacy table layout and presentational table markup", new[] { "legacy-portal" }, "arbitrary malformed-table recovery", "unlisted intrinsic table combinations"),
+        H4AdvancedHeldOutSelection("generated-content", "running strings and counters used by the named-page brochure", new[] { "named-pages-brochure" }, "unlisted generated-content functions", "dynamic counters")
     };
 
-    private static HtmlCapabilityEvidenceSelection[] CreateH4V2PagedSelections() => CreateH4V2ScreenSelections().Concat(new[] {
-        H4V2Selection("paged-page-rules", "named pages, page size, bleed, and printer marks", new[] { "named-pages-brochure", "professional-print-catalog" }, "duplex page selection", "unlisted margin-box combinations"),
-        H4V2Selection("paged-footnotes", "authored footnote calls and bodies in the columns brief", new[] { "columns-footnotes-brief" }, "multiple footnote areas", "interactive footnote behavior"),
-        H4V2Selection("paged-fragmentation", "nested grid/column fragmentation and break-inside boundaries", new[] { "columns-footnotes-brief", "nested-fragmentation-report", "professional-print-catalog" }, "arbitrary oversized replaced content", "unlisted fragmentation contexts")
+    private static HtmlCapabilityEvidenceSelection[] CreateH4AdvancedHeldOutPagedSelections() => CreateH4AdvancedHeldOutScreenSelections().Concat(new[] {
+        H4AdvancedHeldOutSelection("paged-page-rules", "named pages, page size, bleed, and printer marks", new[] { "named-pages-brochure", "professional-print-catalog" }, "duplex page selection", "unlisted margin-box combinations"),
+        H4AdvancedHeldOutSelection("paged-footnotes", "authored footnote calls and bodies in the columns brief", new[] { "columns-footnotes-brief" }, "multiple footnote areas", "interactive footnote behavior"),
+        H4AdvancedHeldOutSelection("paged-fragmentation", "nested grid/column fragmentation and break-inside boundaries", new[] { "columns-footnotes-brief", "nested-fragmentation-report", "professional-print-catalog" }, "arbitrary oversized replaced content", "unlisted fragmentation contexts")
     }).ToArray();
 
     private static readonly HtmlCapabilityProviderPin[] DocumentProviders = {
@@ -95,19 +95,19 @@ public static partial class HtmlRenderCapabilityCatalog {
 
     private static readonly HtmlCapabilityEvidencePin[] DocumentEvidence = {
         Evidence(HtmlCapabilityEvidenceIds.OfficeIMOHtmlTests, "OfficeIMO.Html.Tests executable contract suite", "package RepositoryCommit; catalog schema 2", HtmlCapabilityEvidenceRole.Regression, "owned document, provider, conversion, resource, rendering, output, and catalog contracts selected by each capability row"),
-        Evidence(HtmlCapabilityEvidenceIds.DocumentV1, "OfficeIMO H1-H2 owned web-document qualification selection", "H1-H2/v1", HtmlCapabilityEvidenceRole.Qualification, "selected executable byte decoding, parsing, serialization, query, mutation, identity, foreign-attribute, and source-position cases", required: 4, passed: 4, failed: 0, excluded: 0, untested: 0, caseIds: new[] { "ForeignAttributesAndSourcePositionsSurviveEdits", "HtmlConversionDocument_LoadDetectsMetaCharsetFromByteInput", "RecoveredDoctypeSurvivesEditingAndSerialization", "Snapshot_EditPreservesIdentityWithoutMutatingSourceOrLeakedHandles" }),
+        Evidence(HtmlCapabilityEvidenceIds.DocumentFoundation, "OfficeIMO owned web-document foundation selection", "document-foundation", HtmlCapabilityEvidenceRole.Qualification, "selected executable byte decoding, document and contextual-fragment parsing, serialization, query, mutation, identity, foreign-attribute, and source-position cases", required: 7, passed: 7, failed: 0, excluded: 0, untested: 0, caseIds: new[] { "ForeignAttributesAndSourcePositionsSurviveEdits", "ForeignFragmentRetainsSvgAndMathMlNamespacesAndNames", "FragmentRetainsAncestorFormParsingContext", "HtmlConversionDocument_LoadDetectsMetaCharsetFromByteInput", "RecoveredDoctypeSurvivesEditingAndSerialization", "Snapshot_EditPreservesIdentityWithoutMutatingSourceOrLeakedHandles", "TableFragmentUsesTheSuppliedRowContextAndCanBeImported" }),
         Evidence(HtmlCapabilityEvidenceIds.Html5Lib, "html5lib-tests", Html5LibRevision, HtmlCapabilityEvidenceRole.ConformanceReference, "pinned upstream parser corpus; individual selected paths and counts remain unqualified until H5 manifests adopt them"),
         Evidence(HtmlCapabilityEvidenceIds.WebPlatformTests, "web-platform-tests", WptRevision, HtmlCapabilityEvidenceRole.ConformanceReference, "pinned upstream source; only explicitly selected paths and counts can qualify a capability")
     };
 
     private static readonly HtmlCapabilityEvidencePin[] StaticScreenEvidence = DocumentEvidence.Concat(new[] {
-        Evidence(HtmlCapabilityEvidenceIds.H4ScreenV1, "OfficeIMO H4 continuous-mode HTML rendering corpus", "H4/v1", HtmlCapabilityEvidenceRole.Qualification, "established whole-corpus qualification for the stable screen profile; it is not a capability-complete browser-equivalence claim", required: 9, passed: 9, failed: 0, excluded: 0, untested: 0, caseIds: new[] { "application-form", "browser-local-workbench", "chart-report", "dashboard-print", "email-render", "invoice", "multilingual-bidi", "product-catalog", "quarterly-report" }),
-        Evidence(HtmlCapabilityEvidenceIds.H4ScreenV2, "OfficeIMO H4/v2 held-out screen rendering selection", H4V2ManifestRevision, HtmlCapabilityEvidenceRole.Regression, "screen-full-page-v1 through PNG and SVG with retained Chromium geometry and pixel observations; the selected execution counts are regression evidence and do not assert browser-equivalent visual acceptance", required: 8, passed: 8, failed: 0, excluded: 0, untested: 0, caseIds: H4V2CaseIds(), selections: CreateH4V2ScreenSelections())
+        Evidence(HtmlCapabilityEvidenceIds.H4ScreenRepresentative, "OfficeIMO H4 continuous-mode HTML rendering corpus", "H4/representative", HtmlCapabilityEvidenceRole.Qualification, "established whole-corpus qualification for the stable screen profile; it is not a capability-complete browser-equivalence claim", required: 9, passed: 9, failed: 0, excluded: 0, untested: 0, caseIds: new[] { "application-form", "browser-local-workbench", "chart-report", "dashboard-print", "email-render", "invoice", "multilingual-bidi", "product-catalog", "quarterly-report" }),
+        Evidence(HtmlCapabilityEvidenceIds.H4ScreenAdvancedHeldOut, "OfficeIMO H4 advanced held-out screen rendering selection", H4AdvancedHeldOutManifestRevision, HtmlCapabilityEvidenceRole.Regression, "screen-full-page-v1 through PNG and SVG with retained Chromium geometry and pixel observations; the selected execution counts are regression evidence and do not assert browser-equivalent visual acceptance", required: 8, passed: 8, failed: 0, excluded: 0, untested: 0, caseIds: H4AdvancedHeldOutCaseIds(), selections: CreateH4AdvancedHeldOutScreenSelections())
     }).ToArray();
 
     private static readonly HtmlCapabilityEvidencePin[] PagedEvidence = DocumentEvidence.Concat(new[] {
-        Evidence(HtmlCapabilityEvidenceIds.H4PagedV1, "OfficeIMO H4 paged-mode HTML rendering corpus", "H4/v1", HtmlCapabilityEvidenceRole.Qualification, "established whole-corpus qualification for the stable paged profile; it is not a capability-complete browser-equivalence claim", required: 6, passed: 6, failed: 0, excluded: 0, untested: 0, caseIds: new[] { "account-statement", "book-extract", "business-letter", "certificate", "legal-contract", "static-standards-showcase" }),
-        Evidence(HtmlCapabilityEvidenceIds.H4PagedV2, "OfficeIMO H4/v2 held-out paged rendering selection", H4V2ManifestRevision, HtmlCapabilityEvidenceRole.Regression, "print-paged-v1 and screen-snapshot-paged-v1 through PDF, PNG, and SVG with retained Chromium print and screen observations; the selected execution counts are regression evidence and do not assert browser-equivalent visual acceptance", required: 8, passed: 8, failed: 0, excluded: 0, untested: 0, caseIds: H4V2CaseIds(), selections: CreateH4V2PagedSelections())
+        Evidence(HtmlCapabilityEvidenceIds.H4PagedRepresentative, "OfficeIMO H4 paged-mode HTML rendering corpus", "H4/representative", HtmlCapabilityEvidenceRole.Qualification, "established whole-corpus qualification for the stable paged profile; it is not a capability-complete browser-equivalence claim", required: 6, passed: 6, failed: 0, excluded: 0, untested: 0, caseIds: new[] { "account-statement", "book-extract", "business-letter", "certificate", "legal-contract", "static-standards-showcase" }),
+        Evidence(HtmlCapabilityEvidenceIds.H4PagedAdvancedHeldOut, "OfficeIMO H4 advanced held-out paged rendering selection", H4AdvancedHeldOutManifestRevision, HtmlCapabilityEvidenceRole.Regression, "print-paged-v1 and screen-snapshot-paged-v1 through PDF, PNG, and SVG with retained Chromium print and screen observations; the selected execution counts are regression evidence and do not assert browser-equivalent visual acceptance", required: 8, passed: 8, failed: 0, excluded: 0, untested: 0, caseIds: H4AdvancedHeldOutCaseIds(), selections: CreateH4AdvancedHeldOutPagedSelections())
     }).ToArray();
 
     private static readonly IReadOnlyList<HtmlCapabilityProfileManifest> Profiles = new[] {
@@ -193,13 +193,13 @@ public static partial class HtmlRenderCapabilityCatalog {
         IEnumerable<HtmlCapabilityEvidenceSelection>? selections = null) =>
         new HtmlCapabilityEvidencePin(id, source, revision, role, scope, required, passed, failed, excluded, untested, caseIds, selections);
 
-    private static HtmlCapabilityEvidenceSelection H4V2Selection(
+    private static HtmlCapabilityEvidenceSelection H4AdvancedHeldOutSelection(
         string capabilityId,
         string scope,
         IEnumerable<string> requiredCaseIds,
         params string[] outOfScope) {
         string[] required = requiredCaseIds.OrderBy(value => value, StringComparer.Ordinal).ToArray();
-        string[] excluded = H4V2CaseIds().Except(required, StringComparer.OrdinalIgnoreCase).ToArray();
+        string[] excluded = H4AdvancedHeldOutCaseIds().Except(required, StringComparer.OrdinalIgnoreCase).ToArray();
         return new HtmlCapabilityEvidenceSelection(
             capabilityId, scope, required, excluded, required.Length, failed: 0, untested: 0, outOfScope);
     }

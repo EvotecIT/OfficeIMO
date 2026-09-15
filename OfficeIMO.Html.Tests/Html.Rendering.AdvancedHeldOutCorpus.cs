@@ -6,13 +6,13 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
-    public static IEnumerable<object[]> HeldOutRenderingCorpusCaseIds => HtmlRenderingHeldOutCorpus.Load().Cases
+    public static IEnumerable<object[]> AdvancedHeldOutRenderingCorpusCaseIds => HtmlRenderingAdvancedHeldOutCorpus.Load().Cases
         .Select(item => new object[] { item.Id });
 
     [Theory]
-    [MemberData(nameof(HeldOutRenderingCorpusCaseIds))]
-    public void HeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(string caseId) {
-        HtmlRenderingHeldOutCase scenario = HtmlRenderingHeldOutCorpus.Load().Cases.Single(item => item.Id == caseId);
+    [MemberData(nameof(AdvancedHeldOutRenderingCorpusCaseIds))]
+    public void AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(string caseId) {
+        HtmlRenderingAdvancedHeldOutCase scenario = HtmlRenderingAdvancedHeldOutCorpus.Load().Cases.Single(item => item.Id == caseId);
         HtmlConversionDocument source = scenario.LoadDocument();
 
         HtmlRenderOptions screenOptions = CreateHeldOutScreenOptions();
@@ -32,7 +32,7 @@ public sealed partial class HtmlRenderingTests {
 
     private static void ValidatePdfResult(
         HtmlConversionDocument source,
-        HtmlRenderingHeldOutCase scenario,
+        HtmlRenderingAdvancedHeldOutCase scenario,
         HtmlRenderIntentProfile profile,
         HtmlRenderOptions options,
         int? expectedPageCount) {
@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
 
     private static void ValidateImageResult(
         HtmlConversionDocument source,
-        HtmlRenderingHeldOutCase scenario,
+        HtmlRenderingAdvancedHeldOutCase scenario,
         HtmlRenderIntentProfile profile,
         HtmlRenderEncoder encoder,
         HtmlRenderOptions options) {
@@ -74,7 +74,7 @@ public sealed partial class HtmlRenderingTests {
         ValidateHeldOutDocument(result.Document, scenario);
     }
 
-    private static void ValidateHeldOutDocument(HtmlRenderDocument document, HtmlRenderingHeldOutCase scenario) {
+    private static void ValidateHeldOutDocument(HtmlRenderDocument document, HtmlRenderingAdvancedHeldOutCase scenario) {
         string text = NormalizeCorpusWhitespace(document.Text);
         Assert.All(scenario.Manifest.TextMarkers, marker =>
             Assert.Contains(NormalizeCorpusWhitespace(marker), text, StringComparison.Ordinal));

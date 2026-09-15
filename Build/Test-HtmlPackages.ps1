@@ -51,14 +51,18 @@ try {
         '--property:EnableOfficeIMOHtmlPackageSmoke=true',
         "--property:OfficeIMOHtmlPackageVersion=$Version"
     )
-    $projectPath = 'Build/PackageSmoke/OfficeIMO.Html/OfficeIMO.Html.PackageSmoke.csproj'
-    dotnet restore $projectPath @properties --configfile $configPath --packages $packagesPath --no-http-cache --force-evaluate
-    if ($LASTEXITCODE -ne 0) { throw 'Packed HTML consumer restore failed.' }
-
+    $consumerProjects = @(
+        'Build/PackageSmoke/OfficeIMO.Html.Document/OfficeIMO.Html.Document.PackageSmoke.csproj',
+        'Build/PackageSmoke/OfficeIMO.Html/OfficeIMO.Html.PackageSmoke.csproj'
+    )
     $frameworks = if ($IsWindows) { @('net472', 'net8.0', 'net10.0') } else { @('net8.0', 'net10.0') }
-    foreach ($framework in $frameworks) {
-        dotnet run --project $projectPath --configuration Release --framework $framework --no-restore @properties
-        if ($LASTEXITCODE -ne 0) { throw "Packed HTML consumer failed on $framework." }
+    foreach ($projectPath in $consumerProjects) {
+        dotnet restore $projectPath @properties --configfile $configPath --packages $packagesPath --no-http-cache --force-evaluate
+        if ($LASTEXITCODE -ne 0) { throw "Packed HTML consumer restore failed for $projectPath." }
+        foreach ($framework in $frameworks) {
+            dotnet run --project $projectPath --configuration Release --framework $framework --no-restore @properties
+            if ($LASTEXITCODE -ne 0) { throw "Packed HTML consumer failed for $projectPath on $framework." }
+        }
     }
 } finally {
     if (-not $retainArtifacts -and (Test-Path -LiteralPath $workingPath)) {

@@ -89,7 +89,7 @@ if (!galleryResult.IsReadOnly || !galleryResult.Diagnostics.IsReadOnly) {
     throw new InvalidOperationException("The packed gallery-result snapshot is not frozen.");
 }
 
-var parsed = AngleSharpHtmlParser.Instance.Parse("<!DOCTYPE odd@name><h1 id='title'>Original</h1>", new HtmlParseOptions());
+var parsed = HtmlDocumentEngine.Default.ParseDocument("<!DOCTYPE odd@name><h1 id='title'>Original</h1>");
 var changed = parsed.Edit(edit => {
     var title = edit.QuerySelector("#title")!;
     title.TextContent = "Packed edit";

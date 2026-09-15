@@ -42,8 +42,8 @@ internal static partial class HtmlCorpusEvidenceRunner {
         using EvidenceOutputReservation outputReservation = EvidenceOutputReservation.Acquire(outputDirectory);
         string repositoryRoot = FindRepositoryRoot();
         string? caseFilter = ReadOption(args, "--case");
-        string corpusVersion = ReadOption(args, "--corpus") ?? "v1";
-        HtmlCorpusEvidenceInputSet corpus = LoadCorpus(corpusVersion);
+        string corpusSelection = ReadOption(args, "--corpus") ?? "representative";
+        HtmlCorpusEvidenceInputSet corpus = LoadCorpus(corpusSelection);
         HtmlCorpusEvidenceInput[] cases = corpus.Cases
             .Where(item => caseFilter == null || string.Equals(item.Scenario.Id, caseFilter, StringComparison.OrdinalIgnoreCase))
             .ToArray();
@@ -533,27 +533,27 @@ internal static partial class HtmlCorpusEvidenceRunner {
         !string.IsNullOrWhiteSpace(ReadGit(repositoryRoot, "status", "--porcelain", "--untracked-files=normal"));
 
     private static void WriteHelp() {
-        Console.WriteLine("html-corpus-evidence [--corpus <v1|v2>] [--case <id>] [--output <new-directory>]");
+        Console.WriteLine("html-corpus-evidence [--corpus <representative|advanced-held-out>] [--case <id>] [--output <new-directory>]");
         Console.WriteLine("Captures every H4 source through OfficeIMO print, screen and screen-to-PDF; PeachPDF print; and Chromium screen and print. It writes all-page PDF rasters, OfficeIMO scene PNG/SVG files, text, geometry and pixel comparisons.");
     }
 
-    private static HtmlCorpusEvidenceInputSet LoadCorpus(string version) {
-        if (string.Equals(version, "v1", StringComparison.OrdinalIgnoreCase)) {
+    private static HtmlCorpusEvidenceInputSet LoadCorpus(string selection) {
+        if (string.Equals(selection, "representative", StringComparison.OrdinalIgnoreCase)) {
             return new HtmlCorpusEvidenceInputSet(
-                "officeimo-html-h4-v1",
-                HtmlRenderingCorpus.RelativeRoot,
+                "officeimo-html-h4-representative",
+                HtmlRenderingRepresentativeCorpus.RelativeRoot,
                 null,
-                HtmlRenderingCorpus.All.Select(scenario => new HtmlCorpusEvidenceInput(
+                HtmlRenderingRepresentativeCorpus.All.Select(scenario => new HtmlCorpusEvidenceInput(
                     scenario,
                     scenario.SourceRelativePath,
                     HtmlMarketScenarioCatalog.Get(scenario.Id).Capabilities,
                     Encoding.UTF8.GetBytes(scenario.Html))).ToArray());
         }
-        if (string.Equals(version, "v2", StringComparison.OrdinalIgnoreCase)) {
-            HtmlRenderingHeldOutCorpus corpus = HtmlRenderingHeldOutCorpus.Load();
+        if (string.Equals(selection, "advanced-held-out", StringComparison.OrdinalIgnoreCase)) {
+            HtmlRenderingAdvancedHeldOutCorpus corpus = HtmlRenderingAdvancedHeldOutCorpus.Load();
             return new HtmlCorpusEvidenceInputSet(
                 corpus.Manifest.CorpusId,
-                HtmlRenderingHeldOutCorpus.RelativeRoot,
+                HtmlRenderingAdvancedHeldOutCorpus.RelativeRoot,
                 corpus.ManifestSha256,
                 corpus.Cases.Select(item => new HtmlCorpusEvidenceInput(
                     new HtmlRenderingCorpusCase(
@@ -568,7 +568,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
                     item.Manifest.Capabilities,
                     item.SourceBytes)).ToArray());
         }
-        throw new ArgumentException("Unknown H4 corpus version: " + version + ". Use v1 or v2.");
+        throw new ArgumentException("Unknown H4 corpus selection: " + selection + ". Use representative or advanced-held-out.");
     }
 
     private sealed record HtmlCorpusEvidenceInput(

@@ -36,7 +36,7 @@ public sealed class HtmlElement : HtmlNode {
     /// <summary>Class tokens for inspection.</summary>
     public IReadOnlyList<string> ClassList => ClassName.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries);
     /// <summary>Template contents, retained separately from normal child nodes.</summary>
-    public HtmlNode? TemplateContent { get; internal set; }
+    public HtmlDocumentFragment? TemplateContent { get; internal set; }
     /// <summary>Optional immutable live form properties. Attributes and text retain their authored defaults.</summary>
     /// <remarks>Assignment requires a mutable document and a matching HTML form element.
     /// Set to null to use attribute-based form semantics again.</remarks>

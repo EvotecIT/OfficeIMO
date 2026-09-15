@@ -23,7 +23,7 @@ public sealed class HtmlRenderRequestTests {
         Assert.Equal(HtmlCapabilityCoverage.Qualified, print.Coverage);
         Assert.Equal(HtmlCapabilityPromotionState.StableDefault, print.Promotion);
         Assert.Contains(HtmlRenderEncoder.Pdf, print.Encoders);
-        Assert.Contains(HtmlCapabilityEvidenceIds.H4PagedV1, print.EvidenceIds);
+        Assert.Contains(HtmlCapabilityEvidenceIds.H4PagedRepresentative, print.EvidenceIds);
 
         HtmlRenderProfileContract screenPaged = HtmlRenderProfileContracts.Get(HtmlRenderIntentProfile.ScreenMediaPaged);
         Assert.Equal(HtmlCssMediaContext.Screen, screenPaged.CssMedia);

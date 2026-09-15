@@ -9,7 +9,12 @@ public interface IHtmlParserProvider {
     /// <summary>Identifies the parser implementation for diagnostics and reproducibility.</summary>
     string Id { get; }
     /// <summary>Parses a complete document and returns an immutable snapshot.</summary>
-    HtmlDocument Parse(string source, HtmlParseOptions options, CancellationToken cancellationToken = default);
+    HtmlDocument ParseDocument(string source, HtmlParseOptions options, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Parses source with the supplied element as the HTML fragment-parsing context. The returned
+    /// fragment belongs to an independent owned document and can be inserted with <see cref="HtmlDocument.ImportNode"/>.
+    /// </summary>
+    HtmlDocumentFragment ParseFragment(string source, HtmlElement contextElement, HtmlParseOptions options, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Replaceable syntax services used by an owned document without exposing provider nodes.</summary>

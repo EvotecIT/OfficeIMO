@@ -220,7 +220,7 @@
       "kind": "standards-corpus",
       "scenarioId": "html-static-market-corpus",
       "producer": "OfficeIMO static HTML market corpus",
-      "sourcePath": "OfficeIMO.TestAssets/HtmlRenderingCorpus.cs",
+      "sourcePath": "OfficeIMO.TestAssets/HtmlRenderingRepresentativeCorpus.cs",
       "baselineDirectory": "OfficeIMO.Pdf.Tests/Pdf/VisualBaselines"
     }
   ],

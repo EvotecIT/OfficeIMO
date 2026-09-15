@@ -32,6 +32,8 @@ internal AngleSharp/CSS implementation.
 
 | Previous code or behavior | Replacement |
 | --- | --- |
+| Call `IHtmlParserProvider.Parse(source, options)` | Implement or call `ParseDocument(source, options)`. Providers also implement contextual `ParseFragment(source, contextElement, options)` through the same owned contract. |
+| Call `AngleSharpHtmlParser.Instance` from a full `OfficeIMO.Html` workflow | Use `HtmlDocumentEngine.Default.ParseDocument(...)` or `ParseFragment(...)`. Construct `HtmlDocumentEngine` with a selected `IHtmlParserProvider` when provider choice is application policy. Document-only consumers may keep the explicit adapter from `OfficeIMO.Html.AngleSharp`. |
 | `AngleSharp.Html.Dom.IHtmlDocument html = conversion.CreateDocumentForConversion()` | Use `HtmlDocument` or `var`; the result is an independent mutable conversion tree. |
 | Mutate a retained source tree | Read `conversion.Document`; use `conversion.Edit(edit => ...)` to obtain a new conversion snapshot. |
 | Pass native DOMs to `HtmlNormalizer`, `HtmlResourcePipeline`, `HtmlComputedStyleEngine` or `OfficeHtmlSemanticEnvelope` | Pass an owned document, or use the string/conversion-document overload. |
