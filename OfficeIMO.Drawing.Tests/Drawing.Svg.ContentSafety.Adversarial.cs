@@ -1118,6 +1118,25 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void FilterRegionPaintKeepsVisualCleanupReportOnly() {
+        byte[] svg = Svg(
+            "<defs><filter id='shift'><feOffset dx='200'/></filter></defs>" +
+            "<text font-family='OfficeIMO Shaping Test' font-size='20' x='10' y='35'>filter-region visible</text>" +
+            "<rect x='-200' width='220' height='120' fill='white' filter='url(#shift)'/>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        readerOptions.Fonts.Add(
+            ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont("filter-region visible".Distinct().Select(character => (int)character).ToArray()));
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "filter-region visible");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RootViewportScaleAppliesToVisualResolutionFloor() {
         byte[] svg = Encoding.UTF8.GetBytes(
             "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 1000 1000'>" +

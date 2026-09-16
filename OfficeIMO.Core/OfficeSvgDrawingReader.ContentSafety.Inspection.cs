@@ -388,6 +388,9 @@ public static partial class OfficeSvgDrawingReader {
             if (!IsNativeSvgElement(element, svgNamespace)) return false;
             string localName = element.Name.LocalName;
             if (IsCaseMismatchedSvgPaintDefinitionName(localName)) return true;
+            string? filter = ReadPresentationProperty(element, "filter");
+            if (!string.IsNullOrWhiteSpace(filter) &&
+                !TrimSvgCssWhitespace(filter!).Equals("none", StringComparison.OrdinalIgnoreCase)) return true;
             if (element.Name.LocalName.Equals("foreignObject", StringComparison.Ordinal)) return true;
             if (element.Name.LocalName.Equals("pattern", StringComparison.Ordinal)) {
                 return element.Attribute("viewBox") != null ||
