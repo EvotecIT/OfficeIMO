@@ -135,6 +135,7 @@ internal static class WordListNumberingResolver {
         NumberingProperties? direct = paragraph._paragraph.ParagraphProperties?.NumberingProperties;
         int? numberId = ReadNumberId(direct);
         int? level = ReadLevel(direct);
+        bool hasDirectNumberId = numberId.HasValue;
         if (numberId == 0) {
             return false;
         }
@@ -154,8 +155,13 @@ internal static class WordListNumberingResolver {
                 numberId = linked.NumberId;
                 level ??= linked.Level;
             }
-            if (!level.HasValue && numberId > 0) {
-                level = ResolveLinkedLevel(styleCatalog, numberId.Value, styleId) ?? ReadLevel(inherited);
+            if (numberId > 0) {
+                int? linkedLevel = ResolveLinkedLevel(styleCatalog, numberId.Value, styleId);
+                if (!hasDirectNumberId && linkedLevel.HasValue) {
+                    level = linkedLevel.Value;
+                } else if (!level.HasValue) {
+                    level = linkedLevel ?? ReadLevel(inherited);
+                }
             }
         }
 

@@ -46,6 +46,7 @@ public sealed class PdfTextRun {
     public PdfInlineElement? InlineElement { get; }
     /// <summary>Optional OpenType feature selections for this run.</summary>
     public OfficeIMO.Drawing.OfficeTextFeatureSettings FeatureSettings { get; private set; }
+    internal double HorizontalOffset { get; private set; }
 
     /// <summary>Create a new run with the specified styles.</summary>
     /// <param name="text">Run text.</param>
@@ -199,6 +200,18 @@ public sealed class PdfTextRun {
         if (InlineElement != null) return this;
         var copy = new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor);
         copy.FeatureSettings = featureSettings;
+        copy.HorizontalOffset = HorizontalOffset;
+        return copy;
+    }
+
+    internal PdfTextRun WithHorizontalOffset(double horizontalOffset) {
+        if (horizontalOffset < 0D || double.IsNaN(horizontalOffset) || double.IsInfinity(horizontalOffset)) {
+            throw new ArgumentOutOfRangeException(nameof(horizontalOffset), "Horizontal text offsets must be finite and non-negative.");
+        }
+        if (InlineElement != null) return this;
+        var copy = new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor);
+        copy.FeatureSettings = FeatureSettings;
+        copy.HorizontalOffset = horizontalOffset;
         return copy;
     }
     /// <summary>Create a hyperlink run that points to a URI.</summary>

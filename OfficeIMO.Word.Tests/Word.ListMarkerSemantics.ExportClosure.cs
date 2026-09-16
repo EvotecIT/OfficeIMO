@@ -91,6 +91,67 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.InRange(content.FontSize, 8.5D, 9.5D);
     }
 
+    [Fact]
+    public void PdfHeaderTabSuffixUsesSupportedSpacingAndListIndentation() {
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        document.Header!.Default!.AddParagraph("PlainHeaderReference");
+        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = 2160;
+        level.IndentationHanging = 360;
+        level.LevelSuffix = WordListLevelSuffix.Tab;
+        WordParagraph header = document.Header.Default.AddParagraph("IndentedHeaderItem");
+        AttachToList(header, list.NumberId);
+        document.AddParagraph("Body");
+
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan reference = Assert.Single(spans, span => span.Text.Contains("PlainHeaderReference", StringComparison.Ordinal));
+        PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
+        PdfTextSpan content = Assert.Single(spans, span => span.Text.Contains("IndentedHeaderItem", StringComparison.Ordinal));
+        Assert.True(marker.X > reference.X + 70D, $"reference={reference.X}, marker={marker.X}");
+        Assert.InRange(Math.Abs(content.X - (marker.X + marker.Advance)), 0D, 0.5D);
+        Assert.True(content.X > reference.X + 95D,
+            $"marker={marker.X}+{marker.Advance}, content={content.X}");
+    }
+
+    [Fact]
+    public void PdfHeaderTextBoxPreservesInnerMarkerStyle() {
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000", 18);
+        list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
+        WordParagraph host = document.Header!.Default!.AddParagraph("Before ");
+        WordTextBox box = host.AddTextBox("StyledHeaderBox", WordImageTextWrapping.Square);
+        host.AddText(" After");
+        AttachToList(box.Paragraphs[0], list.NumberId);
+        document.AddParagraph("Body");
+
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
+        Assert.InRange(marker.FontSize, 17.5D, 18.5D);
+        Assert.True(marker.IsBold);
+        Assert.Equal(OfficeColor.FromRgb(255, 0, 0), marker.Color);
+        string text = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        Assert.Contains("Before * StyledHeaderBox", text, StringComparison.Ordinal);
+        Assert.True(text.IndexOf("StyledHeaderBox", StringComparison.Ordinal) < text.IndexOf("After", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void PdfHeaderRendersVisibleMarkerForEmptyListItem() {
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordParagraph emptyItem = document.Header!.Default!.AddParagraph();
+        AttachToList(emptyItem, list.NumberId);
+        document.AddParagraph("Body");
+
+        PdfTextSpan marker = Assert.Single(
+            PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans(),
+            span => span.Text == "*");
+        Assert.True(marker.Advance > 0D);
+    }
+
     [Theory]
     [InlineData(WordListLevelSuffix.Nothing, "*ImageSuffix")]
     [InlineData(WordListLevelSuffix.Space, "* ImageSuffix")]
@@ -116,6 +177,43 @@ public sealed partial class WordListMarkerSemanticsTests {
 
         Assert.True(spaceGap > nothingGap + 1D, $"nothing={nothingGap}, space={spaceGap}");
         Assert.True(tabGap > spaceGap + 5D, $"space={spaceGap}, tab={tabGap}");
+    }
+
+    [Fact]
+    public void ImageWrappedListContinuationKeepsAuthoredTextIndent() {
+        using WordDocument document = WordDocument.Create();
+        WordSection section = document.Sections[0];
+        section.PageSettings.Width = 4200U;
+        section.SetMargins(WordMargin.Narrow);
+        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = 1800;
+        level.IndentationHanging = 720;
+        level.LevelSuffix = WordListLevelSuffix.Nothing;
+        WordParagraph item = document.AddParagraph(string.Join(" ", Enumerable.Range(1, 8).Select(index => "WrapVisible" + index.ToString("00"))));
+        AttachToList(item, list.NumberId);
+
+        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+        OfficeDrawingText marker = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "*");
+        OfficeDrawingText body = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(),
+            text => text.Text.StartsWith("Wrap", StringComparison.Ordinal));
+        OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
+            body.Text,
+            body.Font.Size,
+            body.Width - body.Padding.Horizontal,
+            body.Height - body.Padding.Vertical,
+            body.LineHeight.GetValueOrDefault(body.Font.Size * 1.25D) / body.Font.Size,
+            1D,
+            (text, size) => (text?.Length ?? 0) * size * 0.5D,
+            wrap: true,
+            paragraphIndent: body.ParagraphIndent);
+
+        Assert.True(layout.Lines.Count > 1, string.Join(" | ", layout.Lines.Select(line => $"{line.Text}@{line.OffsetX}")));
+        Assert.Equal(0D, layout.Lines[0].OffsetX);
+        Assert.True(layout.Lines[1].OffsetX > 20D,
+            $"marker={marker.X}, body={body.X}, continuationOffset={layout.Lines[1].OffsetX}");
+        Assert.True(body.X + layout.Lines[1].OffsetX > marker.X + 30D,
+            $"marker={marker.X}, continuation={body.X + layout.Lines[1].OffsetX}");
     }
 
     [Fact]

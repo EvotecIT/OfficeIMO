@@ -131,7 +131,7 @@ internal static partial class PdfWriter {
                         ? Math.Max(0D, lineBoxWidth.Value - lineWidth)
                         : 0D
                 : 0D;
-            double cursorX = x + dx;
+            double cursorX = x + dx + GetPageTextLineHorizontalOffset(line);
 
             foreach (PdfTextRun run in line) {
                 string text = run.Text ?? string.Empty;

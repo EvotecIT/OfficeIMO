@@ -1444,7 +1444,8 @@ internal static partial class PdfWriter {
             underlineStyle: styleTemplate.UnderlineStyle,
             strikeStyle: styleTemplate.StrikeStyle,
             decorationColor: styleTemplate.DecorationColor)
-            .WithFeatureSettings(styleTemplate.FeatureSettings);
+            .WithFeatureSettings(styleTemplate.FeatureSettings)
+            .WithHorizontalOffset(styleTemplate.HorizontalOffset);
     }
 
     private static bool CanWriteRunWithSelectedFont(PdfTextRun run, PdfStandardFont baseFont, PdfOptions? options) {

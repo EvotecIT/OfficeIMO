@@ -141,11 +141,18 @@ namespace OfficeIMO.Word {
             }
 
             resolvedTextOffset = Math.Min(Math.Max(0D, resolvedTextOffset), Math.Max(0D, textFrame.Width - 1D));
+            textOffset = Math.Min(Math.Max(0D, textOffset), Math.Max(0D, textFrame.Width - 1D));
             markerWidth = Math.Max(1D, Math.Min(markerWidth, Math.Max(1D, textFrame.Width - markerOffset)));
-            double textLeft = textFrame.Left + resolvedTextOffset;
-            double textWidth = Math.Max(1D, textFrame.Width - resolvedTextOffset);
+            double baseTextOffset = Math.Min(resolvedTextOffset, textOffset);
+            double firstLineOffset = Math.Max(0D, resolvedTextOffset - baseTextOffset);
+            double continuationLineOffset = Math.Max(0D, textOffset - baseTextOffset);
+            OfficeTextParagraphIndent listParagraphIndent = firstLineOffset > 0D || continuationLineOffset > 0D
+                ? new OfficeTextParagraphIndent(firstLineOffset, continuationLineOffset)
+                : OfficeTextParagraphIndent.Empty;
+            double textLeft = textFrame.Left + baseTextOffset;
+            double textWidth = Math.Max(1D, textFrame.Width - baseTextOffset);
 
-            return new WordImageTextLayout(textLeft, textWidth, textFrame.Left + markerOffset, markerWidth, OfficeTextPadding.Empty, OfficeTextParagraphIndent.Empty);
+            return new WordImageTextLayout(textLeft, textWidth, textFrame.Left + markerOffset, markerWidth, OfficeTextPadding.Empty, listParagraphIndent);
         }
 
         private static void ResolveParagraphTextFrame(WordParagraph? paragraph, double contentWidth, out OfficeTextPadding padding, out OfficeTextParagraphIndent paragraphIndent) {
