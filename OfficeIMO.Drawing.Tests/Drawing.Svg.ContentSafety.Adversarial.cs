@@ -1157,10 +1157,50 @@ public sealed class SvgContentSafetyAdversarialTests {
     [InlineData("dx", "10,,20")]
     [InlineData("dy", "10, ,20")]
     [InlineData("rotate", ",10")]
+    [InlineData("x", "\u00A010")]
     public void MalformedTextPositionListSeparatorsFailClosed(string attributeName, string value) {
         byte[] svg = Svg($"<text {attributeName}='{value}'>malformed text position</text>");
 
         Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void NonSvgWhitespaceInRootDimensionsFailsClosed() {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='&#xA0;10' height='100' viewBox='0 0 100 100'>" +
+            "<text x='10' y='35'>invalid root dimension</text></svg>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void ReferencedTextPathGeometryKeepsCleanupReportOnly() {
+        byte[] svg = Svg(
+            "<defs><g transform='translate(100)'><path id='p' d='M0 35 L200 35'/></g></defs>" +
+            "<text><textPath href='#p' display='none'>transformed text path payload</textPath></text>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "transformed text path payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgDefinitionIdsPreserveAuthoredWhitespace() {
+        byte[] svg = Svg(
+            "<defs><rect id=' cover' width='220' height='120' fill='white'/></defs>" +
+            "<text font-family='OfficeIMO Shaping Test' font-size='20' x='10' y='35'>literal id visible</text>" +
+            "<use href='#cover'/>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        readerOptions.Fonts.Add(
+            ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont("literal id visible".Distinct().Select(character => (int)character).ToArray()));
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "literal id visible");
     }
 
     [Fact]

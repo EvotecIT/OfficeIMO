@@ -392,6 +392,7 @@ public static partial class OfficeSvgDrawingReader {
                 HasActiveSvgPresentationProperty(element, "marker-start") ||
                 HasActiveSvgPresentationProperty(element, "marker-mid") ||
                 HasActiveSvgPresentationProperty(element, "marker-end")) return true;
+            if (localName.Equals("textPath", StringComparison.Ordinal)) return true;
             if (element.Name.LocalName.Equals("foreignObject", StringComparison.Ordinal)) return true;
             if (element.Name.LocalName.Equals("pattern", StringComparison.Ordinal)) {
                 return element.Attribute("viewBox") != null ||

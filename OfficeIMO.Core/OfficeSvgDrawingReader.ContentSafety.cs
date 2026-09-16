@@ -242,7 +242,7 @@ public static partial class OfficeSvgDrawingReader {
         foreach (string name in new[] { "x", "y", "dx", "dy" }) {
             string? value = element.Attribute(name)?.Value;
             if (string.IsNullOrWhiteSpace(value)) continue;
-            if (HasMalformedSvgListSeparators(value!)) return true;
+            if (ContainsNonSvgCssWhitespace(value!) || HasMalformedSvgListSeparators(value!)) return true;
             string[] tokens = value!.Split(new[] { ' ', '\t', '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries);
             if (tokens.Length == 0 || tokens.Length > MaximumTextRuns) return true;
             foreach (string token in tokens) {
@@ -251,7 +251,7 @@ public static partial class OfficeSvgDrawingReader {
         }
         string? rotation = element.Attribute("rotate")?.Value;
         if (!string.IsNullOrWhiteSpace(rotation)) {
-            if (HasMalformedSvgListSeparators(rotation!)) return true;
+            if (ContainsNonSvgCssWhitespace(rotation!) || HasMalformedSvgListSeparators(rotation!)) return true;
             string[] tokens = rotation!.Split(new[] { ' ', '\t', '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries);
             if (tokens.Length == 0 || tokens.Length > MaximumTextRuns) return true;
             foreach (string token in tokens) {
@@ -290,6 +290,10 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool HasUnsupportedSvgViewportSyntax(XElement element) {
         string name = element.Name.LocalName;
+        foreach (string dimensionName in new[] { "width", "height" }) {
+            XAttribute? dimension = element.Attribute(dimensionName);
+            if (dimension != null && ContainsNonSvgCssWhitespace(dimension.Value)) return true;
+        }
         bool acceptsViewBox = name is "svg" or "symbol" or "marker" or "pattern" or "view";
         bool acceptsPreserveAspectRatio = acceptsViewBox || name.Equals("image", StringComparison.Ordinal);
         XAttribute? viewBox = acceptsViewBox ? element.Attribute("viewBox") : null;

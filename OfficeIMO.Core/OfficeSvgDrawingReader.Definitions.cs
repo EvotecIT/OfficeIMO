@@ -26,7 +26,7 @@ public static partial class OfficeSvgDrawingReader {
             foreach (XElement element in root.Descendants()) {
                 if (!IsNativeSvgElement(element, root.Name.Namespace)) continue;
                 string? id = useProjectedIds
-                    ? ReadRasterProjectedAttribute(element, "id")?.Trim()
+                    ? ReadRasterProjectedAttribute(element, "id")
                     : ReadRasterElementId(element);
                 if (string.IsNullOrEmpty(id)) continue;
                 if (definitions.ContainsKey(id!)) {
@@ -45,7 +45,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static string? ReadRasterElementId(XElement element) {
-        string? id = element.Attribute("id")?.Value.Trim();
+        string? id = element.Attribute("id")?.Value;
         return string.IsNullOrEmpty(id) ? null : id;
     }
 
