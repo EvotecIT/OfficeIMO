@@ -3,39 +3,56 @@ using System.Text;
 using OfficeIMO.GoogleWorkspace;
 
 namespace OfficeIMO.Excel.GoogleSheets {
+    /// <summary>One classified difference between an Excel source and a Google spreadsheet.</summary>
     public sealed class GoogleSheetsDiffItem {
+        /// <summary>Creates a difference with a semantic path and explanation.</summary>
         public GoogleSheetsDiffItem(GoogleWorkspaceDiffKind kind, string path, string message) {
             Kind = kind;
             Path = path;
             Message = message;
         }
+        /// <summary>Gets the local, remote, conflict, or lossy classification.</summary>
         public GoogleWorkspaceDiffKind Kind { get; }
+        /// <summary>Gets the semantic path of the changed content.</summary>
         public string Path { get; }
+        /// <summary>Gets the explanation for the classification.</summary>
         public string Message { get; }
     }
 
     /// <summary>Minimal checkpoint used to distinguish local and remote spreadsheet changes.</summary>
     public sealed class GoogleSheetsSyncCheckpoint {
+        /// <summary>Gets or sets the previously observed Drive version.</summary>
         public long? DriveVersion { get; set; }
+        /// <summary>Gets the mutable map of semantic paths to baseline content hashes.</summary>
         public IDictionary<string, string> ContentHashes { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
     }
 
-    /// <summary>Read-only plan produced before a synchronization or replacement apply.</summary>
+    /// <summary>Remote metadata, classified content differences, and native-import notices.</summary>
     public sealed class GoogleSheetsDiffPlan {
         internal GoogleSheetsDiffPlan(GoogleSpreadsheetReference remote, IReadOnlyList<GoogleSheetsDiffItem> items, TranslationReport report) {
             Remote = remote;
             Items = items;
             Report = report;
         }
+        /// <summary>Gets the remote spreadsheet reference observed during planning.</summary>
         public GoogleSpreadsheetReference Remote { get; }
+        /// <summary>Gets classified differences in semantic-path order, followed by import and version notices.</summary>
         public IReadOnlyList<GoogleSheetsDiffItem> Items { get; }
+        /// <summary>Gets fidelity notices from native remote import.</summary>
         public TranslationReport Report { get; }
+        /// <summary>Gets whether any path was classified as a conflict.</summary>
         public bool HasConflicts => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.Conflict);
+        /// <summary>Gets whether import warnings produced any lossy-action items.</summary>
         public bool HasLossyActions => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.LossyAction);
+        /// <summary>Gets whether the plan has neither conflicts nor report errors.</summary>
+        /// <remarks>This is advisory; it neither approves loss nor mutates the remote spreadsheet.</remarks>
         public bool CanApply => !HasConflicts && !Report.HasErrors;
     }
 
+    /// <summary>Builds source fingerprints and compares an Excel document with native Google Sheets data.</summary>
     public static class GoogleSheetsDiffPlanner {
+        /// <summary>Captures source content hashes and an optional observed remote Drive version.</summary>
+        /// <remarks>Persist the checkpoint only when it accurately represents a synchronized baseline.</remarks>
         public static GoogleSheetsSyncCheckpoint CreateCheckpoint(ExcelDocument document, long? driveVersion = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             var checkpoint = new GoogleSheetsSyncCheckpoint { DriveVersion = driveVersion };
@@ -43,6 +60,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return checkpoint;
         }
 
+        /// <summary>Imports the remote spreadsheet natively and compares it with the source and optional baseline.</summary>
+        /// <remarks>Import warnings are classified as lossy actions. A changed Drive version is reported separately when old and current values are both available.</remarks>
         public static async Task<GoogleSheetsDiffPlan> BuildAsync(
             ExcelDocument source,
             string spreadsheetId,

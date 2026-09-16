@@ -9,9 +9,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
             UnsupportedFunctions = unsupportedFunctions;
         }
 
+        /// <summary>Gets the formula with a leading equals sign and mapped function names.</summary>
         public string Formula { get; }
+        /// <summary>Gets distinct function names recognized in the formula after mapping.</summary>
         public IReadOnlyList<string> Functions { get; }
+        /// <summary>Gets distinct function names classified as unsupported.</summary>
         public IReadOnlyList<string> UnsupportedFunctions { get; }
+        /// <summary>Gets whether no detected function was classified as unsupported.</summary>
         public bool IsSupported => UnsupportedFunctions.Count == 0;
     }
 
@@ -52,6 +56,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             "CUBE", "_XLWS.", "RTD", "CALL", "REGISTER.", "WEBSERVICE"
         };
 
+        /// <summary>Normalizes a formula and rewrites known or caller-mapped function names.</summary>
+        /// <remarks>Blank input becomes <c>=</c>. This catalog classifies function names; it does not evaluate the formula or guarantee Google Sheets accepts every argument or syntax form.</remarks>
         public static GoogleSheetsFormulaTranslation Translate(string formula, GoogleSheetsFormulaOptions? options = null) {
             if (string.IsNullOrWhiteSpace(formula)) {
                 return new GoogleSheetsFormulaTranslation("=", Array.Empty<string>(), Array.Empty<string>());
