@@ -9,7 +9,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
-public sealed class WordListMarkerSemanticsTests {
+public sealed partial class WordListMarkerSemanticsTests {
     private static string IssueDocumentPath => Path.Combine(AppContext.BaseDirectory, "Documents", "Issue2510-SymbolBullets.docx");
 
     [Fact]
@@ -168,6 +168,8 @@ public sealed class WordListMarkerSemanticsTests {
         document.AddHeadersAndFooters();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        WordParagraph body = document.AddParagraph("Body list item");
+        AttachToList(body, list.NumberId);
         WordParagraph before = document.Header!.Default!.AddParagraph("Before");
         AttachToList(before, list.NumberId);
         WordTextBox box = document.Header.Default.AddParagraph("Host").AddTextBox("Inside", WordImageTextWrapping.Square);
@@ -177,6 +179,7 @@ public sealed class WordListMarkerSemanticsTests {
         AttachToList(after, list.NumberId);
 
         var markers = WordDocumentTraversal.BuildListMarkers(document);
+        Assert.Equal("1.", markers[body].Marker);
         Assert.Equal("1.", markers[before].Marker);
         Assert.Equal("2.", markers[inside].Marker);
         Assert.Equal("3.", markers[after].Marker);

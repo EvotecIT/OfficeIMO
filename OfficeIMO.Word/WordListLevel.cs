@@ -336,7 +336,9 @@ namespace OfficeIMO.Word {
         /// Removes this level from the list.
         /// </summary>
         public void Remove() {
+            Numbering? numbering = _level.Ancestors<Numbering>().FirstOrDefault();
             _level.Remove();
+            WordListNumberingResolver.InvalidateNumbering(numbering);
         }
 
         /// <summary>

@@ -227,14 +227,14 @@ namespace OfficeIMO.Word {
             Dictionary<WordParagraph, ResolvedListMarker> result = new(ParagraphReferenceComparer.Instance);
             WordListNumberingResolver.StyleCatalog styleCatalog = WordListNumberingResolver.CreateStyleCatalog(document);
             Dictionary<int, ListNumberingDefinition> definitions = BuildListNumberingDefinitions(document);
-            Dictionary<int, List<WordParagraph>> itemsByNumberId = BuildListItemsByNumberId(document, styleCatalog);
+            List<List<WordParagraph>> itemsByStoryAndNumberId = BuildListItemsByStoryAndNumberId(document, styleCatalog);
 
-            foreach (KeyValuePair<int, List<WordParagraph>> listItems in itemsByNumberId) {
+            foreach (List<WordParagraph> listItems in itemsByStoryAndNumberId) {
                 Dictionary<int, int> indices = new();
                 Dictionary<int, WordNumberFormat?> formats = new();
                 int lastLevel = 0;
                 bool first = true;
-                foreach (WordParagraph item in listItems.Value) {
+                foreach (WordParagraph item in listItems) {
                     ListInfo? info = GetListInfo(item, definitions, styleCatalog);
                     if (info == null) {
                         continue;
@@ -321,14 +321,14 @@ namespace OfficeIMO.Word {
             Dictionary<WordParagraph, (int, int)> result = new(ParagraphReferenceComparer.Instance);
             WordListNumberingResolver.StyleCatalog styleCatalog = WordListNumberingResolver.CreateStyleCatalog(document);
             Dictionary<int, ListNumberingDefinition> definitions = BuildListNumberingDefinitions(document);
-            Dictionary<int, List<WordParagraph>> itemsByNumberId = BuildListItemsByNumberId(document, styleCatalog);
+            List<List<WordParagraph>> itemsByStoryAndNumberId = BuildListItemsByStoryAndNumberId(document, styleCatalog);
 
-            foreach (KeyValuePair<int, List<WordParagraph>> listItems in itemsByNumberId) {
+            foreach (List<WordParagraph> listItems in itemsByStoryAndNumberId) {
                 // Track current numbering per level within this list
                 Dictionary<int, int> indices = new();
                 int lastLevel = 0;
                 bool first = true;
-                foreach (WordParagraph item in listItems.Value) {
+                foreach (WordParagraph item in listItems) {
                     ListInfo? info = GetListInfo(item, definitions, styleCatalog);
                     if (info == null) continue;
 
@@ -450,26 +450,30 @@ namespace OfficeIMO.Word {
                 pictureBulletId: effectiveLevel.GetFirstChild<LevelPictureBulletId>()?.Val?.Value);
         }
 
-        private static Dictionary<int, List<WordParagraph>> BuildListItemsByNumberId(WordDocument document, WordListNumberingResolver.StyleCatalog styleCatalog) {
-            var result = new Dictionary<int, List<WordParagraph>>();
-            foreach (WordParagraph paragraph in EnumerateListParagraphs(document)) {
-                if (!WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering, styleCatalog)) {
-                    continue;
-                }
+        private static List<List<WordParagraph>> BuildListItemsByStoryAndNumberId(WordDocument document, WordListNumberingResolver.StyleCatalog styleCatalog) {
+            var result = new List<List<WordParagraph>>();
+            foreach (IEnumerable<WordParagraph> story in EnumerateListStories(document)) {
+                var itemsByNumberId = new Dictionary<int, List<WordParagraph>>();
+                foreach (WordParagraph paragraph in story) {
+                    if (!WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering, styleCatalog)) {
+                        continue;
+                    }
 
-                int numberId = numbering.NumberId;
-                if (!result.TryGetValue(numberId, out List<WordParagraph>? items)) {
-                    items = new List<WordParagraph>();
-                    result[numberId] = items;
-                }
+                    int numberId = numbering.NumberId;
+                    if (!itemsByNumberId.TryGetValue(numberId, out List<WordParagraph>? items)) {
+                        items = new List<WordParagraph>();
+                        itemsByNumberId[numberId] = items;
+                    }
 
-                items.Add(paragraph);
+                    items.Add(paragraph);
+                }
+                result.AddRange(itemsByNumberId.Values);
             }
 
             return result;
         }
 
-        private static IEnumerable<WordParagraph> EnumerateListParagraphs(WordDocument document) {
+        private static IEnumerable<IEnumerable<WordParagraph>> EnumerateListStories(WordDocument document) {
             var seen = new HashSet<Paragraph>();
 
             IEnumerable<WordParagraph> EnumerateParagraph(Paragraph paragraph) {
@@ -495,15 +499,11 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            foreach (WordParagraph paragraph in EnumerateStory(document._wordprocessingDocument.MainDocumentPart?.Document?.Body)) {
-                yield return paragraph;
-            }
+            yield return EnumerateStory(document._wordprocessingDocument.MainDocumentPart?.Document?.Body);
             foreach (WordSection section in document.Sections) {
                 foreach (WordHeaderFooter? headerFooter in new WordHeaderFooter?[] { section.Header.Default, section.Header.First, section.Header.Even, section.Footer.Default, section.Footer.First, section.Footer.Even }) {
                     if (headerFooter == null) continue;
-                    foreach (WordParagraph paragraph in EnumerateStory((DocumentFormat.OpenXml.OpenXmlCompositeElement?)headerFooter._header ?? headerFooter._footer)) {
-                        yield return paragraph;
-                    }
+                    yield return EnumerateStory((DocumentFormat.OpenXml.OpenXmlCompositeElement?)headerFooter._header ?? headerFooter._footer);
                 }
             }
         }
