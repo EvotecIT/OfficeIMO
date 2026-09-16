@@ -6,6 +6,7 @@ namespace OfficeIMO.Html.Runtime;
 [JsonSerializable(typeof(HtmlRuntimeCommand))]
 [JsonSerializable(typeof(HtmlRuntimeResponse))]
 [JsonSerializable(typeof(HtmlPublicRenderRequest))]
+[JsonSerializable(typeof(HtmlPublicResourceBatch))]
 [JsonSerializable(typeof(HtmlPublicRenderResponse))]
 internal sealed partial class HtmlRuntimeProtocolJsonContext : JsonSerializerContext;
 

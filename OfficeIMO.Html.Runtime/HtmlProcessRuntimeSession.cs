@@ -151,6 +151,8 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimePage {
             foreach (HtmlRuntimeWireEvent item in response.Events ?? new()) _trace.Add(item, ContextId, Id);
             if (response.Error != null) {
                 if (response.ErrorKind == "timeout") throw new TimeoutException(response.Error);
+                if (response.MissingResourceUrls is { Length: > 0 })
+                    throw new HtmlScriptRuntimeException(response.Error, response.MissingResourceUrls);
                 throw new HtmlScriptRuntimeException(response.Error);
             }
             T result = convert(response, operation.Token);

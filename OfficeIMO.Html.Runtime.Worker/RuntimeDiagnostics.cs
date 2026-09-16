@@ -7,10 +7,18 @@ internal sealed class RuntimeDiagnostics {
     private readonly List<HtmlRuntimeWireEvent> _pending = new();
     private readonly object _sync = new();
     private int _recorded;
+    private readonly Dictionary<string, Uri> _missingResourceUrls = new(StringComparer.Ordinal);
 
     internal RuntimeDiagnostics(HtmlRuntimeWireTraceOptions? options) => _options = options ?? new HtmlRuntimeWireTraceOptions();
     internal bool IncludeConsoleMessages => _options.IncludeConsoleMessages;
     internal bool IncludeFailureMessages => _options.IncludeFailureMessages;
+    internal Uri[] MissingResourceUrls { get { lock (_sync) return _missingResourceUrls.Values.ToArray(); } }
+
+    internal void RecordMissingResource(Uri url) {
+        lock (_sync) _missingResourceUrls[HtmlRuntimeResourcePolicy.Key(url)] = url;
+    }
+
+    internal void ClearMissingResources() { lock (_sync) _missingResourceUrls.Clear(); }
 
     internal void Record(HtmlRuntimeEventKind kind, string operation, string status, DateTimeOffset started,
         TimeSpan elapsed = default, long? revision = null, string? detail = null, Uri? url = null,

@@ -1,0 +1,27 @@
+{
+  "document": {
+    "url": "https://www.w3.org/Style/Examples/011/mypage.html",
+    "finalUrl": "https://www.w3.org/Style/Examples/011/mypage.html",
+    "StatusCode": 200,
+    "ContentType": "text/html; charset=utf-8",
+    "bytes": 748,
+    "Sha256": "59dbe5874a99a9517630034847ff5b8c112e9f82e5a86e8741daad3dc83ae6ab",
+    "FetchedAtUtc": "2026-09-16T14:23:24.6504691+00:00",
+    "connectedAddress": "104.18.22.19",
+    "redirects": []
+  },
+  "assets": [
+    {
+      "url": "https://www.w3.org/Style/Examples/011/mystyle.css",
+      "finalUrl": "https://www.w3.org/Style/Examples/011/mystyle.css",
+      "StatusCode": 200,
+      "ContentType": "text/css; charset=utf-8",
+      "bytes": 630,
+      "Sha256": "93da7bd5e06bdcfa2e661e6be7d5fbdfcdc06ee0ccf5ea5edfd1254fd0eee108",
+      "FetchedAtUtc": "2026-09-16T14:23:40.0051798+00:00",
+      "connectedAddress": "104.18.22.19",
+      "redirects": []
+    }
+  ],
+  "skipped": []
+}

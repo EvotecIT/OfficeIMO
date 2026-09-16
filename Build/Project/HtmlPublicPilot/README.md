@@ -25,13 +25,19 @@ dotnet run --project Build/Project/HtmlPublicPilot/OfficeIMO.Html.PublicPilot.cs
 ```
 
 The output directory must be new. The host does not parse page markup or CSS.
-For pages with known external assets, append up to 24 exact `--resource=URL`
-arguments and, if an allowed redirect needs another DNS name, `--host=DNS-name`.
-There is no automatic asset discovery yet. The host fetches only those explicit
-URLs, records status, redirects, connected IP and SHA-256, then sends exact
-bytes to the offline container. CSS imports/URLs, module dependency graphs,
-responsive images, frames and dynamic requests are not automatically prefetched.
-Cookies and credentials are outside this profile.
+Inside isolation, the renderer discovers HTML scripts, stylesheets, images and
+fonts, then follows stylesheet imports and selected CSS URLs. If execution
+requests an unsupplied GET resource, the worker can ask the host to fetch it and
+restart the offline capture. Every request passes through the same bounded host
+broker; rejected hosts and URLs are recorded as skipped resources. Discovery is
+limited to 16 rounds and 24 supplied assets. The acquired bytes, redirects,
+connected IP addresses and SHA-256 hashes are recorded before rendering.
+
+Append `--resource=URL` for assets outside this discovery path. An external DNS
+name must be explicitly approved with `--host=DNS-name`; explicit resource
+URLs approve their own host. Responsive source selection, frame documents,
+non-GET requests and browser-wide dynamic loading are not qualified by this
+pilot. Cookies and credentials are outside this profile.
 
 The broker allows standard HTTP(S) ports and UTF-8 HTML, validates public IPv4
 answers before each direct connection, forbids proxy use and HTTPS downgrade,
@@ -39,7 +45,7 @@ and caps a fetch at 20 seconds, five redirects and 4 MiB. Acquisition as a
 whole allows 32 attempts and 16 MiB. The OCI lease verifies rootless Podman,
 seccomp, CPU/memory/PID cgroups, read-only root, no network or mounts, non-root
 user, dropped capabilities and no-new-privileges. The full pipeline has a
-two-minute host deadline; the container limits are 256 MiB, one CPU and 32 PIDs.
+two-minute host deadline; the container limits are 512 MiB, one CPU and 32 PIDs.
 The container image includes fontconfig and DejaVu fonts for deterministic basic
 text rendering. The image is addressed by its full SHA-256 ID, and the returned
 renderer and script-worker binary hashes must match the published files supplied

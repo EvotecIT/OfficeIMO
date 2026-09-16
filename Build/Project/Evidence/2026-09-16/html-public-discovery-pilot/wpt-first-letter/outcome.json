@@ -1,0 +1,39 @@
+{
+  "provider": "officeimo.oci-public-pilot",
+  "innerProvider": "officeimo.trusted-process",
+  "CaptureUrl": "https://wpt.live/css/css-pseudo/first-letter-001-ref.html",
+  "CaptureManifest": "sha256:838a4c33d39a5a8671ffb37fb6f56693fbe5f41e86b1a4ea0794a5fd1d712d47",
+  "TraceEntries": [
+    "Lifecycle:document-opened:success",
+    "Page:open:success",
+    "Capture:capture:success",
+    "Artifact:capture-manifest:generated"
+  ],
+  "imageId": "sha256:a564776b03261e4629bdc8099337cda60421acd5f32af944b1e23f09a59357be",
+  "containerName": "officeimo-html-377a63a2649347aaa4d3ba884f379834",
+  "containerRemoved": true,
+  "isolationPolicy": "rootless-podman;seccomp;cgroups-cpu-memory-pids;network-none;read-only;uid-65532;cap-drop-all;no-new-privileges;no-mounts",
+  "RendererSha256": "457ba7e357909d7c8908ae8246671b0778f96d1eaf65669b032501d52312b5f0",
+  "WorkerSha256": "de05c0b45fcde90c232d012f37167b59e2f2d9ff3aadc9fb884cfd906c87e790",
+  "RendererFilesSha256": "6db50fda73bafdfaf7667feb4ca5abdff35cc020e98932cb232d1974282c325d",
+  "WorkerFilesSha256": "76345330123e7c70eab09935f0a41eee9e5206b58e38d789f8141f9ccbc5bdd8",
+  "discoveredAssets": 0,
+  "skippedResources": [],
+  "outputs": [
+    {
+      "file": "screen.png",
+      "bytes": 7629,
+      "sha256": "8cc6f3d73eef839900b21898866cb87f18f26d987ccef8b653123fce63b882e0"
+    },
+    {
+      "file": "print.pdf",
+      "bytes": 2710,
+      "sha256": "8a83995d9b87ab2ebb786feb5ce722f28de95ef2d1b9fcd20aeb082435dde53d"
+    },
+    {
+      "file": "screen-to-page.pdf",
+      "bytes": 2715,
+      "sha256": "985d3ec727754b53fbf92634bcad277c86d52cec586695707e69f057091b0c9c"
+    }
+  ]
+}

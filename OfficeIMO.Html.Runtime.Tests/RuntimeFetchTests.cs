@@ -334,6 +334,30 @@ public sealed class RuntimeFetchTests {
             Html = "<script>fetch('/missing');</script>", ReadyExpression = "false"
         }));
         Assert.Contains("network loading is disabled", failure.Message);
+        Assert.Equal(new[] { new Uri("https://officeimo.invalid/missing") }, failure.MissingResourceUrls);
+    }
+
+    [Fact]
+    public async Task LaterFatalMissingGetOutranksAnEarlierHandledMiss() {
+        var failure = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+            Html = "<script>fetch('/optional').catch(() => {}).then(() => fetch('/required'));</script>",
+            ReadyExpression = "false"
+        }));
+
+        Assert.Contains("network loading is disabled", failure.Message);
+        Assert.Contains(new Uri("https://officeimo.invalid/required"), failure.MissingResourceUrls);
+    }
+
+    [Fact]
+    public async Task ConcurrentFatalAndCaughtMissingGetsRetainBothAttemptedUrls() {
+        var failure = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+            Html = "<script>fetch('/required'); fetch('/optional').catch(() => {});</script>",
+            ReadyExpression = "false"
+        }));
+
+        Assert.Contains("network loading is disabled", failure.Message);
+        Assert.Equal(new[] { "/optional", "/required" },
+            failure.MissingResourceUrls.Select(url => url.AbsolutePath).OrderBy(path => path));
     }
 
     [Theory]

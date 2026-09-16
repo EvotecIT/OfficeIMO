@@ -1,0 +1,247 @@
+{
+  "document": {
+    "url": "https://officeimo.com/",
+    "finalUrl": "https://officeimo.com/",
+    "StatusCode": 200,
+    "ContentType": "text/html; charset=utf-8",
+    "bytes": 69306,
+    "Sha256": "b51373b1c45304c38b53b995ae52c4be746adf5636e2b5cb475c795a7b9271cf",
+    "FetchedAtUtc": "2026-09-16T14:22:14.9919192+00:00",
+    "connectedAddress": "188.114.96.11",
+    "redirects": []
+  },
+  "assets": [
+    {
+      "url": "https://officeimo.com/favicon.svg",
+      "finalUrl": "https://officeimo.com/favicon.svg",
+      "StatusCode": 200,
+      "ContentType": "image/svg\u002Bxml",
+      "bytes": 265,
+      "Sha256": "8c308838c585d99c1e8a42e574132d12fbaa10acf988b53077860f0e35bb9f1d",
+      "FetchedAtUtc": "2026-09-16T14:22:30.7816697+00:00",
+      "connectedAddress": "188.114.96.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/css/app.css",
+      "finalUrl": "https://officeimo.com/css/app.css",
+      "StatusCode": 200,
+      "ContentType": "text/css; charset=utf-8",
+      "bytes": 74162,
+      "Sha256": "88e895809f701915422420d8654b835eba78db3b6bc3ad6d2262e9a01978af30",
+      "FetchedAtUtc": "2026-09-16T14:22:30.8837276+00:00",
+      "connectedAddress": "188.114.97.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/css/prism-theme.css",
+      "finalUrl": "https://officeimo.com/css/prism-theme.css",
+      "StatusCode": 200,
+      "ContentType": "text/css; charset=utf-8",
+      "bytes": 1851,
+      "Sha256": "731b5122a8634d10d3fd362cdd31f459905d7ab5f4575f4bfc9162344d32d90a",
+      "FetchedAtUtc": "2026-09-16T14:22:30.9974426+00:00",
+      "connectedAddress": "188.114.96.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/css/home.css",
+      "finalUrl": "https://officeimo.com/css/home.css",
+      "StatusCode": 200,
+      "ContentType": "text/css; charset=utf-8",
+      "bytes": 31083,
+      "Sha256": "ca97f7ad129205c21419f33a67438438ad1a27c7a0e3358ba9e330e8ce57748b",
+      "FetchedAtUtc": "2026-09-16T14:22:31.0944302+00:00",
+      "connectedAddress": "188.114.97.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/css/visual-system.css",
+      "finalUrl": "https://officeimo.com/css/visual-system.css",
+      "StatusCode": 200,
+      "ContentType": "text/css; charset=utf-8",
+      "bytes": 51935,
+      "Sha256": "9e3dbf12757753a9422a5403560189ecec7d3b9d46b9cac6aa6020c97737a4ac",
+      "FetchedAtUtc": "2026-09-16T14:22:31.1903578+00:00",
+      "connectedAddress": "188.114.96.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/css/site-shell.css",
+      "finalUrl": "https://officeimo.com/css/site-shell.css",
+      "StatusCode": 200,
+      "ContentType": "text/css; charset=utf-8",
+      "bytes": 15756,
+      "Sha256": "684949fb0edbddf854baaba5a74442121f1b563d2a19f3e0c683e411825d8cfc",
+      "FetchedAtUtc": "2026-09-16T14:22:31.2862074+00:00",
+      "connectedAddress": "188.114.97.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/css/applications.css",
+      "finalUrl": "https://officeimo.com/css/applications.css",
+      "StatusCode": 200,
+      "ContentType": "text/css; charset=utf-8",
+      "bytes": 8322,
+      "Sha256": "85547a34087e0c5db48746c2d126321f0545da859870796d5edf1de1140e8f8a",
+      "FetchedAtUtc": "2026-09-16T14:22:31.3828091+00:00",
+      "connectedAddress": "188.114.96.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/css/global-search.css",
+      "finalUrl": "https://officeimo.com/css/global-search.css",
+      "StatusCode": 200,
+      "ContentType": "text/css; charset=utf-8",
+      "bytes": 4273,
+      "Sha256": "593bb78c7c308eef8931aa3685c243880cab620e2a8e21243457ccd015ec0249",
+      "FetchedAtUtc": "2026-09-16T14:22:31.4778991+00:00",
+      "connectedAddress": "188.114.97.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/js/search-page.js",
+      "finalUrl": "https://officeimo.com/js/search-page.js",
+      "StatusCode": 200,
+      "ContentType": "application/javascript; charset=utf-8",
+      "bytes": 4710,
+      "Sha256": "f87649e1da6db5abb5e82ebd5ce75918f617bfa7ccd0eacad8b1c68181b669a1",
+      "FetchedAtUtc": "2026-09-16T14:22:31.5705372+00:00",
+      "connectedAddress": "188.114.96.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/assets/powerforge/webmcp-site-search.v1.js",
+      "finalUrl": "https://officeimo.com/assets/powerforge/webmcp-site-search.v1.js",
+      "StatusCode": 200,
+      "ContentType": "application/javascript; charset=utf-8",
+      "bytes": 13502,
+      "Sha256": "d89cd09e99bfc967efe2d7f8bee9aabf36313ab1df3fe4764748a304ab853d65",
+      "FetchedAtUtc": "2026-09-16T14:22:31.6782623+00:00",
+      "connectedAddress": "188.114.97.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/images/studio/workspace-light.png",
+      "finalUrl": "https://officeimo.com/images/studio/workspace-light.png",
+      "StatusCode": 200,
+      "ContentType": "image/png",
+      "bytes": 167340,
+      "Sha256": "5b6a2fadd19a14f061de172e5af09020b0265ce48f1c59407ccd112443296157",
+      "FetchedAtUtc": "2026-09-16T14:22:31.7732912+00:00",
+      "connectedAddress": "188.114.96.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/downloads/showcase/workflows/word-project-charter/preview.png",
+      "finalUrl": "https://officeimo.com/downloads/showcase/workflows/word-project-charter/preview.png",
+      "StatusCode": 200,
+      "ContentType": "image/png",
+      "bytes": 77848,
+      "Sha256": "baebb173e92f2fdc5371f0c006ee124a68190255aedc01c6eb4669da3e32cd51",
+      "FetchedAtUtc": "2026-09-16T14:22:31.8888429+00:00",
+      "connectedAddress": "188.114.97.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/downloads/showcase/workflows/excel-budget-scenarios/preview.png",
+      "finalUrl": "https://officeimo.com/downloads/showcase/workflows/excel-budget-scenarios/preview.png",
+      "StatusCode": 200,
+      "ContentType": "image/png",
+      "bytes": 16105,
+      "Sha256": "d8dadaf228abdf2876f3d4f9759af43ae86f33cd61cb2b9d241478665b480bc4",
+      "FetchedAtUtc": "2026-09-16T14:22:31.996261+00:00",
+      "connectedAddress": "188.114.96.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/downloads/showcase/workflows/powerpoint-project-roadmap/preview.png",
+      "finalUrl": "https://officeimo.com/downloads/showcase/workflows/powerpoint-project-roadmap/preview.png",
+      "StatusCode": 200,
+      "ContentType": "image/png",
+      "bytes": 25285,
+      "Sha256": "769d658a0fa58aa4df5be08328e3cba8fbf318b2ac8c3350425adbc9937ad535",
+      "FetchedAtUtc": "2026-09-16T14:22:32.0918011+00:00",
+      "connectedAddress": "188.114.97.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/downloads/showcase/workflows/pdf-workshop-pack/preview.png",
+      "finalUrl": "https://officeimo.com/downloads/showcase/workflows/pdf-workshop-pack/preview.png",
+      "StatusCode": 200,
+      "ContentType": "image/png",
+      "bytes": 64478,
+      "Sha256": "e17a9eadbce5ba0a56370876c10603966373da186c3bf9f0d853442949c72540",
+      "FetchedAtUtc": "2026-09-16T14:22:32.1891372+00:00",
+      "connectedAddress": "188.114.96.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/js/site.js",
+      "finalUrl": "https://officeimo.com/js/site.js",
+      "StatusCode": 200,
+      "ContentType": "application/javascript; charset=utf-8",
+      "bytes": 12448,
+      "Sha256": "0a1069d5e8a6a34c4b2fd0b5593296c31dfb5b9e98214c47d395a6b6b9223863",
+      "FetchedAtUtc": "2026-09-16T14:22:32.2983475+00:00",
+      "connectedAddress": "188.114.97.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/assets/prism/prism-core.min.js",
+      "finalUrl": "https://officeimo.com/assets/prism/prism-core.min.js",
+      "StatusCode": 200,
+      "ContentType": "application/javascript; charset=utf-8",
+      "bytes": 7406,
+      "Sha256": "de77dae916ea4fbc88346780f4073509650f04f4254b19b2e513b94b5901a057",
+      "FetchedAtUtc": "2026-09-16T14:22:32.3954546+00:00",
+      "connectedAddress": "188.114.96.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/assets/prism/prism-autoloader.min.js",
+      "finalUrl": "https://officeimo.com/assets/prism/prism-autoloader.min.js",
+      "StatusCode": 200,
+      "ContentType": "application/javascript; charset=utf-8",
+      "bytes": 5729,
+      "Sha256": "351d558d7c5440e73f2a634e0d013f6613966e819b9ce8db246eb7c6178fb903",
+      "FetchedAtUtc": "2026-09-16T14:22:32.4887324+00:00",
+      "connectedAddress": "188.114.97.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/js/source-viewer.js",
+      "finalUrl": "https://officeimo.com/js/source-viewer.js",
+      "StatusCode": 200,
+      "ContentType": "application/javascript; charset=utf-8",
+      "bytes": 2119,
+      "Sha256": "cc9b1c4f8f226c87c5ebdac134089186df3f0d7ee8e27d2f656c19231d159c3f",
+      "FetchedAtUtc": "2026-09-16T14:22:32.5894384+00:00",
+      "connectedAddress": "188.114.96.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/assets/powerforge/media-viewer.v1.js",
+      "finalUrl": "https://officeimo.com/assets/powerforge/media-viewer.v1.js",
+      "StatusCode": 200,
+      "ContentType": "application/javascript; charset=utf-8",
+      "bytes": 16863,
+      "Sha256": "57aaa1cb8d949d37b854e36c2354d01d9409819153cf33ec5a533f467dc1c1c3",
+      "FetchedAtUtc": "2026-09-16T14:22:32.684457+00:00",
+      "connectedAddress": "188.114.97.11",
+      "redirects": []
+    },
+    {
+      "url": "https://officeimo.com/assets/powerforge/media-viewer.v1.css",
+      "finalUrl": "https://officeimo.com/assets/powerforge/media-viewer.v1.css",
+      "StatusCode": 200,
+      "ContentType": "text/css; charset=utf-8",
+      "bytes": 10665,
+      "Sha256": "790d17120b4cb00163f31f8eae2bce6d973d4938ad2c6675e83bdc2b30180115",
+      "FetchedAtUtc": "2026-09-16T14:22:35.0085301+00:00",
+      "connectedAddress": "188.114.96.11",
+      "redirects": []
+    }
+  ],
+  "skipped": []
+}

@@ -662,8 +662,9 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private static string ResolveDisplay(IElement element, string value) {
-        if (!string.IsNullOrWhiteSpace(value)) return value.Trim().ToLowerInvariant();
         string tag = element.TagName.ToLowerInvariant();
+        if (tag == "dialog" && !element.HasAttribute("open") && string.IsNullOrWhiteSpace(value)) return "none";
+        if (!string.IsNullOrWhiteSpace(value)) return value.Trim().ToLowerInvariant();
         if (tag == "math" && string.Equals(element.GetAttribute("display"), "block", StringComparison.OrdinalIgnoreCase)) return "block";
         if (tag == "li") return "list-item";
         if (tag == "table") return "table";

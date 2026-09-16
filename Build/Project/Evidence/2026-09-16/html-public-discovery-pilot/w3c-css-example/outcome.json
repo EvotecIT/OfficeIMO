@@ -1,0 +1,41 @@
+{
+  "provider": "officeimo.oci-public-pilot",
+  "innerProvider": "officeimo.trusted-process",
+  "CaptureUrl": "https://www.w3.org/Style/Examples/011/mypage.html",
+  "CaptureManifest": "sha256:296960d01a9c282c9bb8ba66335cff90e3aeab3c164394b1dee98917518539c8",
+  "TraceEntries": [
+    "Policy:resource-source:allowed",
+    "Resource:resource-load:success",
+    "Lifecycle:document-opened:success",
+    "Page:open:success",
+    "Capture:capture:success",
+    "Artifact:capture-manifest:generated"
+  ],
+  "imageId": "sha256:a564776b03261e4629bdc8099337cda60421acd5f32af944b1e23f09a59357be",
+  "containerName": "officeimo-html-880012e7702542b1b0f4d3aa5cf5ec6b",
+  "containerRemoved": true,
+  "isolationPolicy": "rootless-podman;seccomp;cgroups-cpu-memory-pids;network-none;read-only;uid-65532;cap-drop-all;no-new-privileges;no-mounts",
+  "RendererSha256": "457ba7e357909d7c8908ae8246671b0778f96d1eaf65669b032501d52312b5f0",
+  "WorkerSha256": "de05c0b45fcde90c232d012f37167b59e2f2d9ff3aadc9fb884cfd906c87e790",
+  "RendererFilesSha256": "6db50fda73bafdfaf7667feb4ca5abdff35cc020e98932cb232d1974282c325d",
+  "WorkerFilesSha256": "76345330123e7c70eab09935f0a41eee9e5206b58e38d789f8141f9ccbc5bdd8",
+  "discoveredAssets": 1,
+  "skippedResources": [],
+  "outputs": [
+    {
+      "file": "screen.png",
+      "bytes": 22279,
+      "sha256": "37c8b0169f2b3d577849b8896837ed62f05e03a8ca4962d5e344951d43f8927a"
+    },
+    {
+      "file": "print.pdf",
+      "bytes": 7111,
+      "sha256": "5cf10fad5d75533146098c43aa09f9375f3a0b4c5b33def974d702a9146eb223"
+    },
+    {
+      "file": "screen-to-page.pdf",
+      "bytes": 7135,
+      "sha256": "d099ee37a65fc4145a19f5f315e01cf0917ae781e2acdceff7b6029d93494025"
+    }
+  ]
+}

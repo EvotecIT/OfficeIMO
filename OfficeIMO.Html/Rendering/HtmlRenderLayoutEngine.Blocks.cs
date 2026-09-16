@@ -33,6 +33,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? continuationTarget = null,
         int continuationLogicalCharacters = 0) {
         EnsureDepth(depth, container);
+        if (container.TagName.Equals("details", StringComparison.OrdinalIgnoreCase) && !container.HasAttribute("open")) {
+            IElement? summary = container.Children.FirstOrDefault(child =>
+                child.TagName.Equals("summary", StringComparison.OrdinalIgnoreCase));
+            nodes = nodes.Where(node => ReferenceEquals(node, summary));
+        }
         var blocks = new List<HtmlRenderFlowBlock>();
         IElement? continuationChild = FindDirectChildContaining(container, continuationTarget);
         bool seekingContinuation = continuationChild != null;

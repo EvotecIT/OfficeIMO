@@ -56,6 +56,18 @@ public class RuntimePublicResourceBrokerTests {
     }
 
     [Fact]
+    public void ApprovedHostsExposeOnlyStandardHttpOriginsToTheOfflineWorker() {
+        var broker = new HtmlPublicResourceBroker(new[] { "example.com", "assets.example.com" });
+
+        Assert.Equal(new[] {
+            "http://example.com/", "https://example.com/",
+            "http://assets.example.com/", "https://assets.example.com/"
+        }.Order(), broker.AllowedOrigins.Select(origin => origin.AbsoluteUri).Order());
+        Assert.True(broker.AllowsHost(new Uri("https://assets.example.com/theme.css")));
+        Assert.False(broker.AllowsHost(new Uri("https://other.example.com/theme.css")));
+    }
+
+    [Fact]
     public void HtmlDecodingRejectsInvalidUtf8AndUnqualifiedMediaTypes() {
         var url = new Uri("https://example.com/");
         Assert.Equal("<p>Ready</p>", HtmlPublicResourceBroker.DecodeUtf8Html(

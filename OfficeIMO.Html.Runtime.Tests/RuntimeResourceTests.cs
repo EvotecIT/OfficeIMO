@@ -36,10 +36,19 @@ public sealed class RuntimeResourceTests {
             DocumentUrl = server.Origin, Html = "<script src='/app.js'></script>"
         }));
         Assert.Contains("network loading is disabled", disabled.Message);
+        Assert.Equal(new[] { new Uri(server.Origin, "app.js") }, disabled.MissingResourceUrls);
         var forbidden = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
             DocumentUrl = Origin, Html = $"<script src='{new Uri(server.Origin, "app.js")}'></script>", ResourcePolicy = new() { AllowNetwork = true }
         }));
         Assert.Contains("origin is not allowed", forbidden.Message);
+        Assert.Empty(forbidden.MissingResourceUrls);
+        Uri approvedExternal = new("https://assets.example/app.js");
+        var approvedButUnsupplied = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() =>
+            Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+                DocumentUrl = Origin, Html = $"<script src='{approvedExternal}'></script>",
+                ResourcePolicy = new() { AllowedOrigins = new[] { new Uri("https://assets.example/") } }
+            }));
+        Assert.Equal(new[] { approvedExternal }, approvedButUnsupplied.MissingResourceUrls);
         Assert.Empty(server.Requests);
         var capture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
             DocumentUrl = server.Origin, Html = "<script src='/app.js'></script>", ResourcePolicy = new() { AllowNetwork = true }, ReadyExpression = "window.ready===true"

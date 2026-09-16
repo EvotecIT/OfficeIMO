@@ -102,3 +102,5 @@ OfficeIMO.Invoicing.Validation/Compiler/*.xsl -text -diff
 OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/*.xml -text -diff
 OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/LICENSE.txt -text -diff
 OfficeIMO.Html.Runtime.Tests/Fixtures/ReactBuild/dist/*.js -text -diff
+Build/Project/Evidence/2026-09-16/html-public-discovery-pilot/**/*.pdf -text -diff
+Build/Project/Evidence/2026-09-16/html-public-discovery-pilot/**/*.png -text -diff

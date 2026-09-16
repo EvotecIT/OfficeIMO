@@ -11,6 +11,7 @@ try {
     while (true) {
         HtmlRuntimeCommand? command = await HtmlRuntimeProtocol.ReadAsync<HtmlRuntimeCommand>(input, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
         if (command == null) break;
+        diagnostics?.ClearMissingResources();
         var response = new HtmlRuntimeResponse { Id = command.Id };
         try {
             if (session == null) {
@@ -46,7 +47,9 @@ try {
             await HtmlRuntimeProtocol.WriteAsync(output, response, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
             break;
         } catch (Exception error) {
-            response = new HtmlRuntimeResponse { Id = command.Id, Error = error.Message };
+            response = new HtmlRuntimeResponse { Id = command.Id, Error = error.Message,
+                MissingResourceUrls = error.Message.Contains(RuntimeResourceLoader.MissingResourceMessage, StringComparison.Ordinal)
+                    ? diagnostics?.MissingResourceUrls : null };
             response.Events = diagnostics?.Drain() ?? new();
             await HtmlRuntimeProtocol.WriteAsync(output, response, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
             break;

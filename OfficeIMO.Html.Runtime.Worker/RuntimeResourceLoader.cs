@@ -4,6 +4,7 @@ namespace OfficeIMO.Html.Runtime.Worker;
 
 // Document resources and fetch share transport, authority, concurrency and cumulative budgets.
 internal sealed class RuntimeResourceLoader : IDisposable {
+    internal const string MissingResourceMessage = "The resource was not supplied and network loading is disabled.";
     private readonly HtmlRuntimeResourcePolicy _policy;
     private readonly Dictionary<string, HtmlRuntimeResource> _supplied;
     private readonly RuntimeResourceBudget _budget;
@@ -143,9 +144,10 @@ internal sealed class RuntimeResourceLoader : IDisposable {
             return new HtmlRuntimeResource(url, method == "HEAD" ? Array.Empty<byte>() : supplied.Buffer, supplied.ContentType, supplied.StatusCode, new Uri(HtmlRuntimeResourcePolicy.Key(supplied.FinalUrl)), supplied.RedirectCount, suppliedHeaders, supplied.StatusText);
         }
         if (!_policy.AllowNetwork) {
+            if (method == "GET" && body == null) _diagnostics.RecordMissingResource(url);
             _diagnostics.Record(HtmlRuntimeEventKind.Policy, "network-access", "blocked", DateTimeOffset.UtcNow,
                 url: url, method: method, decision: "network-disabled");
-            throw new HtmlScriptRuntimeException("The resource was not supplied and network loading is disabled.");
+            throw new HtmlScriptRuntimeException(MissingResourceMessage);
         }
         _diagnostics.Record(HtmlRuntimeEventKind.Policy, "network-access", "allowed", DateTimeOffset.UtcNow,
             url: url, method: method, decision: "network-enabled");

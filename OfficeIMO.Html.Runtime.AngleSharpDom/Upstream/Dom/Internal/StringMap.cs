@@ -4,6 +4,7 @@ namespace AngleSharp.Dom
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     /// Represents a list of DOMTokens.
@@ -31,8 +32,24 @@ namespace AngleSharp.Dom
 
         public String? this[String name]
         {
-            get => _parent.GetOwnAttribute(_prefix + Check(name));
-            set => _parent.SetOwnAttribute(_prefix + Check(name), value);
+            get => HasForbiddenDash(name) ? null : _parent.GetOwnAttribute(_prefix + ToAttributeName(name));
+            set
+            {
+                if (HasForbiddenDash(name))
+                {
+                    throw new DomException(DomError.Syntax);
+                }
+
+                var attributeName = _prefix + ToAttributeName(name);
+                if (value == null)
+                {
+                    _parent.RemoveAttribute(attributeName);
+                }
+                else
+                {
+                    _parent.SetAttribute(attributeName, value);
+                }
+            }
         }
 
         #endregion
@@ -41,42 +58,66 @@ namespace AngleSharp.Dom
 
         public void Remove(String name)
         {
-            if (Contains(name))
-            {
-                this[name] = null;
-            }
+            _parent.RemoveAttribute(_prefix + ToAttributeName(name));
         }
 
         public Boolean Contains(String name)
         {
-            return _parent.HasOwnAttribute(_prefix + Check(name));
+            return !HasForbiddenDash(name) && _parent.HasOwnAttribute(_prefix + ToAttributeName(name));
         }
 
         #endregion
 
         #region Helper
 
-        private static String Check(String name)
+        private static Boolean HasForbiddenDash(String name)
         {
-            if (name.StartsWith(TagNames.Xml, StringComparison.OrdinalIgnoreCase))
+            for (var i = 0; i < name.Length - 1; i++)
             {
-                throw new DomException(DomError.Syntax);
-            }
-
-            if (name.IndexOf(Symbols.Semicolon) >= 0)
-            {
-                throw new DomException(DomError.Syntax);
-            }
-
-            for (var i = 0; i < name.Length; i++)
-            {
-                if (name[i].IsUppercaseAscii())
+                if (name[i] == '-' && name[i + 1].IsLowercaseAscii())
                 {
-                    throw new DomException(DomError.Syntax);
+                    return true;
                 }
             }
 
-            return name;
+            return false;
+        }
+
+        private static String ToAttributeName(String name)
+        {
+            var builder = new System.Text.StringBuilder(name.Length);
+            foreach (var character in name)
+            {
+                if (character.IsUppercaseAscii())
+                {
+                    builder.Append('-');
+                    builder.Append(Char.ToLowerInvariant(character));
+                }
+                else
+                {
+                    builder.Append(character);
+                }
+            }
+
+            return builder.ToString();
+        }
+
+        private static String ToPropertyName(String name)
+        {
+            var builder = new System.Text.StringBuilder(name.Length);
+            for (var i = 0; i < name.Length; i++)
+            {
+                if (name[i] == '-' && i + 1 < name.Length && name[i + 1].IsLowercaseAscii())
+                {
+                    builder.Append(Char.ToUpperInvariant(name[++i]));
+                }
+                else
+                {
+                    builder.Append(name[i]);
+                }
+            }
+
+            return builder.ToString();
         }
 
         #endregion
@@ -87,11 +128,12 @@ namespace AngleSharp.Dom
         {
             foreach (var attr in _parent.Attributes)
             {
-                if (attr.NamespaceUri is null && attr.Name.StartsWith(_prefix, StringComparison.OrdinalIgnoreCase))
+                if (attr.NamespaceUri is null && attr.Name.StartsWith(_prefix, StringComparison.Ordinal) &&
+                    !attr.Name.Substring(_prefix.Length).Any(character => character.IsUppercaseAscii()))
                 {
                     var name = attr.Name.Remove(0, _prefix.Length);
                     var value = attr.Value;
-                    yield return new KeyValuePair<String, String>(name, value);
+                    yield return new KeyValuePair<String, String>(ToPropertyName(name), value);
                 }
             }
         }

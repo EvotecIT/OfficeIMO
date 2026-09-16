@@ -21,6 +21,11 @@ internal sealed class HtmlPublicResourceBroker {
             throw new ArgumentException("The pilot requires one to sixteen explicitly allowed hosts.", nameof(allowedHosts));
     }
 
+    internal bool AllowsHost(Uri url) => _allowedHosts.Contains(ValidateHost(ValidateUrl(url).IdnHost));
+    internal Uri[] AllowedOrigins => _allowedHosts.SelectMany(host => new[] {
+        new Uri("http://" + host + "/"), new Uri("https://" + host + "/")
+    }).ToArray();
+
     internal async Task<HtmlPublicResourceResult> FetchAsync(Uri requestedUrl, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(requestedUrl);
         Uri current = ValidateUrl(requestedUrl);

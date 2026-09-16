@@ -1,0 +1,17 @@
+{
+  "errorKind": "HtmlScriptRuntimeException",
+  "error": "OutOfMemoryException: Exception of type \u0027System.OutOfMemoryException\u0027 was thrown.",
+  "phase": "resource-discovery",
+  "requestedUrl": "https://officeimo.com/",
+  "imageId": "sha256:277c47df7daecd09b926216eabb2bf1dd5bf3c03f3d42c26975c8c352856ec9c",
+  "containerName": "officeimo-html-741180a299e1438682cef8a1cdff3740",
+  "containerRemoved": true,
+  "rendererSha256": "ca36e2199cfc965f38bea5740d451cdc9d5575822f39c8228a0e965142b94013",
+  "workerSha256": "9c270e62a16f34d1b0e1951dc65921d3744425706086942f519144a009dfd8ea",
+  "rendererFilesSha256": "96acafce2967d87e3237e7ebee9f344dc11d3d3ecaf50e377a338975097cbb6f",
+  "workerFilesSha256": "4884700aee1b78ffc270b0272e04eebb63442a624795ff61b7cd26622e11193f",
+  "trace": [],
+  "documentSha256": "b51373b1c45304c38b53b995ae52c4be746adf5636e2b5cb475c795a7b9271cf",
+  "assets": 21,
+  "skippedResources": []
+}

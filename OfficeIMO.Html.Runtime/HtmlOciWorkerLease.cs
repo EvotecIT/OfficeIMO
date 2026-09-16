@@ -36,7 +36,7 @@ internal sealed class HtmlOciWorkerLease : IDisposable, IAsyncDisposable {
             string[] baselineCapabilities = VerifyEngine(engineInfo);
             createAttempted = true;
             await RunAsync(podmanExecutable, new[] { "create", "--interactive", "--name", name,
-                "--network", "none", "--read-only", "--pids-limit", "32", "--memory", "256m",
+                "--network", "none", "--read-only", "--pids-limit", "32", "--memory", "512m",
                 "--cpus", "1", "--cap-drop", "all", "--security-opt", "no-new-privileges",
                 "--user", "65532:65532", imageId }, TimeSpan.FromSeconds(30), token).ConfigureAwait(false);
             string inspection = await RunAsync(podmanExecutable, new[] { "inspect", name }, TimeSpan.FromSeconds(15), token).ConfigureAwait(false);
@@ -150,7 +150,7 @@ internal sealed class HtmlOciWorkerLease : IDisposable, IAsyncDisposable {
         JsonElement config = item.GetProperty("Config");
         bool admitted = item.GetProperty("Name").GetString() == name
             && item.GetProperty("Image").GetString() == imageId[7..]
-            && host.GetProperty("Memory").GetInt64() == 256L * 1024 * 1024
+            && host.GetProperty("Memory").GetInt64() == 512L * 1024 * 1024
             && host.GetProperty("PidsLimit").GetInt32() == 32
             && host.GetProperty("NanoCpus").GetInt64() == 1_000_000_000L
             && host.GetProperty("ReadonlyRootfs").GetBoolean()

@@ -23,17 +23,62 @@ try {
     HtmlScriptRequest page = incoming.Page.Snapshot();
     if (page.Profile != HtmlRuntimeProfile.WebApplicationV1 || page.ResourcePolicy.AllowNetwork)
         throw new NotSupportedException("The isolated renderer accepts only offline WebApplicationV1 input.");
+    var discovery = new HtmlApplicationResourceDiscovery();
+    var supplied = page.Resources.ToList();
+    string[] pending = discovery.DiscoverDocument(page.Html, page.DocumentUrl, supplied);
     IHtmlRuntimeHost host = new HtmlProcessRuntimeProvider(workerPath, AngleSharpDomServices.Instance);
-    var rendering = new HtmlToPdfOptions { ViewportWidth = 816D, Margins = HtmlRenderMargins.All(0D) };
-    HtmlApplicationDocumentResult result = await HtmlApplicationDocumentWorkflow.RunAsync(host,
-        new HtmlApplicationDocumentRequest {
-            Page = page,
-            RenderRequests = new[] {
-                HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, rendering),
-                HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, rendering),
-                HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf, rendering)
+    var rendering = new HtmlToPdfOptions { ViewportWidth = 816D, ViewportHeight = 720D,
+        Margins = HtmlRenderMargins.All(0D) };
+    HtmlApplicationDocumentResult result;
+    var missingAtRuntime = new HashSet<string>(StringComparer.Ordinal);
+    for (int round = 0; ; ) {
+        if (pending.Length != 0) {
+            if (++round > 16)
+                throw new HtmlScriptRuntimeException("Resource discovery exceeded its round limit.");
+            response.DiscoveryUrls = pending;
+            response.DiscoveryComplete = false;
+            await HtmlRuntimeProtocol.WriteAsync(output, response, 24 * 1024 * 1024, deadline.Token);
+            HtmlPublicResourceBatch batch = await HtmlRuntimeProtocol.ReadAsync<HtmlPublicResourceBatch>(
+                input, 24 * 1024 * 1024, deadline.Token)
+                ?? throw new HtmlScriptRuntimeException("The host did not answer resource discovery.");
+            if (batch.Resources == null || batch.Resources.Length > 24 - supplied.Count)
+                throw new HtmlScriptRuntimeException("The host exceeded the pilot's supplied resource limit.");
+            var requested = pending.ToHashSet(StringComparer.Ordinal);
+            foreach (HtmlRuntimeResource resource in batch.Resources) {
+                if (resource == null || !requested.Remove(HtmlRuntimeResourcePolicy.Key(resource.Url)))
+                    throw new HtmlScriptRuntimeException("The host supplied an unexpected or duplicate discovered resource.");
+                supplied.Add(resource);
             }
-        }, deadline.Token);
+            page.Resources = supplied.ToArray();
+            page.ResourcePolicy.AllowedOrigins = page.ResourcePolicy.AllowedOrigins
+                .Concat(supplied.SelectMany(resource => new[] { resource.Url, resource.FinalUrl }))
+                .Select(resourceUrl => new Uri(resourceUrl.GetLeftPart(UriPartial.Authority)))
+                .Where(origin => origin.GetLeftPart(UriPartial.Authority) != page.DocumentUrl.GetLeftPart(UriPartial.Authority))
+                .DistinctBy(origin => origin.AbsoluteUri, StringComparer.OrdinalIgnoreCase).ToArray();
+            page = page.Snapshot();
+            pending = discovery.DiscoverStylesheets(batch.Resources);
+            continue;
+        }
+        try {
+            result = await HtmlApplicationDocumentWorkflow.RunAsync(host,
+                new HtmlApplicationDocumentRequest {
+                    Page = page,
+                    RenderRequests = new[] {
+                        HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, rendering),
+                        HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, rendering),
+                        HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf, rendering)
+                    }
+                }, deadline.Token);
+            break;
+        } catch (HtmlScriptRuntimeException error) when (error.MissingResourceUrls.Count != 0) {
+            pending = error.MissingResourceUrls.Select(HtmlRuntimeResourcePolicy.Key)
+                .Where(missingAtRuntime.Add).ToArray();
+            if (pending.Length == 0) throw;
+        }
+    }
+    response.DiscoveryUrls = Array.Empty<string>();
+    response.DiscoveryComplete = true;
+    await HtmlRuntimeProtocol.WriteAsync(output, response, 24 * 1024 * 1024, deadline.Token);
     byte[] screen = result.Outputs[0].Images.Single().Bytes;
     byte[] print = result.Outputs[1].Pdf!.ToBytes();
     byte[] screenToPage = result.Outputs[2].Pdf!.ToBytes();
@@ -53,5 +98,7 @@ try {
 } catch (Exception error) {
     response.ErrorKind = error.GetType().Name;
     response.Error = error.Message.Length > 1024 ? error.Message[..1024] : error.Message;
+    response.DiscoveryComplete = true;
+    response.DiscoveryUrls = Array.Empty<string>();
 }
 await HtmlRuntimeProtocol.WriteAsync(output, response, 24 * 1024 * 1024, CancellationToken.None);

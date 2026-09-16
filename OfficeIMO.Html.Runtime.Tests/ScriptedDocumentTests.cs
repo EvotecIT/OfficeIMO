@@ -30,6 +30,25 @@ public sealed class ScriptedDocumentTests {
         Path.Combine(AppContext.BaseDirectory, "RuntimeWorker", "OfficeIMO.Html.Runtime.Worker.dll"), AngleSharpDomServices.Instance);
 
     [Fact]
+    public async Task DatasetCamelCaseMapsToDashedAttributes() {
+        var capture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+            Html = "<div id='target' data-workspace-src='/studio' data-foo-bar='first'></div>",
+            Scripts = new[] { """
+                const target = document.querySelector('#target');
+                if (target.dataset.workspaceSrc !== '/studio' || target.dataset.fooBar !== 'first')
+                    throw new Error('dataset getter mapping failed');
+                target.dataset.workspaceSrc = '/editor';
+                target.dataset.fooBar = 'second';
+                if (target.getAttribute('data-workspace-src') !== '/editor'
+                    || target.getAttribute('data-foo-bar') !== 'second')
+                    throw new Error('dataset setter mapping failed');
+                """ }
+        });
+        Assert.Equal("/editor", capture.Document.QuerySelector("#target")!.GetAttribute("data-workspace-src"));
+        Assert.Equal("second", capture.Document.QuerySelector("#target")!.GetAttribute("data-foo-bar"));
+    }
+
+    [Fact]
     public async Task QuerySelectorAllReturnsStaticNodeListWithForEach() {
         var capture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
             Html = "<p>one</p><p>two</p><input name='fieldName'>",

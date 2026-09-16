@@ -16,6 +16,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Html.PublicRenderWorker" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.Runtime.Tests" />
+    <ProjectReference Include="../OfficeIMO.Html/OfficeIMO.Html.csproj" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
     <ProjectReference Include="../OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj" />
     <None Include="README.md" Pack="true" PackagePath="/" />

@@ -149,4 +149,9 @@ public sealed partial class HtmlScriptCapture {
 public sealed class HtmlScriptRuntimeException : InvalidOperationException {
     /// <summary>Creates a runtime failure with a provider-independent message.</summary>
     public HtmlScriptRuntimeException(string message) : base(message) { }
+    /// <summary>Creates a runtime failure with the offline GET URLs attempted during the failed command.</summary>
+    public HtmlScriptRuntimeException(string message, IReadOnlyList<Uri> missingResourceUrls) : base(message) =>
+        MissingResourceUrls = Array.AsReadOnly((missingResourceUrls ?? throw new ArgumentNullException(nameof(missingResourceUrls))).ToArray());
+    /// <summary>Offline GET URLs attempted during the failed command; the runtime does not attribute a specific URL to a JavaScript rejection.</summary>
+    public IReadOnlyList<Uri> MissingResourceUrls { get; } = Array.Empty<Uri>();
 }
