@@ -216,7 +216,10 @@ public static partial class OfficeSvgDrawingReader {
         if (string.IsNullOrWhiteSpace(text)) return !double.IsNaN(defaultValue);
         string normalized = text!.Trim();
         bool percentage = normalized.EndsWith("%", StringComparison.Ordinal);
-        if (percentage) normalized = normalized.Substring(0, normalized.Length - 1).Trim();
+        if (percentage) {
+            if (HasSeparatedSvgNumericSuffix(normalized, 1)) return false;
+            normalized = normalized.Substring(0, normalized.Length - 1);
+        }
         if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
             || double.IsNaN(value)
             || double.IsInfinity(value)) return false;

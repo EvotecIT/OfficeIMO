@@ -258,6 +258,7 @@ public static partial class OfficeSvgDrawingReader {
         if (string.IsNullOrWhiteSpace(value)) return true;
         string normalized = value!.Trim();
         if (normalized.EndsWith("%", StringComparison.Ordinal)) {
+            if (HasSeparatedSvgNumericSuffix(normalized, 1)) return false;
             percentage = true;
             return double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
                        CultureInfo.InvariantCulture, out double percentValue)

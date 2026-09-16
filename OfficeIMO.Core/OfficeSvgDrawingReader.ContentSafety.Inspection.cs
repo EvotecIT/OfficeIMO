@@ -540,16 +540,17 @@ public static partial class OfficeSvgDrawingReader {
                 ? candidate.MaximumEffectiveFontSize
                 : style.FontSize;
             size *= rootViewportScale;
-            bool tiny = size <= options.MaximumTinyFontSizePoints;
+            double sizePoints = size * 72D / 96D;
+            bool tiny = sizePoints <= options.MaximumTinyFontSizePoints;
             if (!candidate.HasBounds && !tiny &&
                 TryFindSvgTinyFont(candidate.ComputedElement, options, out double authoredSize)) {
-                size = authoredSize * rootViewportScale;
-                tiny = size <= options.MaximumTinyFontSizePoints;
+                sizePoints = authoredSize * rootViewportScale * 72D / 96D;
+                tiny = sizePoints <= options.MaximumTinyFontSizePoints;
             }
             if (tiny) {
                 return new SvgContentSafetyConcealment(
                     OfficeContentConcealmentKind.TinyText,
-                    "Computed SVG font size is " + size.ToString("0.###", CultureInfo.InvariantCulture) + " effective viewport units.");
+                    "Computed SVG font size is " + sizePoints.ToString("0.###", CultureInfo.InvariantCulture) + " effective points.");
             }
         }
         if (candidate.HasBounds) {
@@ -561,13 +562,14 @@ public static partial class OfficeSvgDrawingReader {
                     OfficeContentConcealmentKind.ZeroDimension,
                     "Resolved SVG text geometry has zero or near-zero painted bounds.");
             }
-            double effectiveViewportFontSize = candidate.MaximumEffectiveFontSize * ResolveSvgContentSafetyRootViewportScale(document);
-            if (effectiveViewportFontSize > 0D &&
-                effectiveViewportFontSize <= options.MaximumTinyFontSizePoints) {
+            double effectiveFontSizePoints = candidate.MaximumEffectiveFontSize *
+                ResolveSvgContentSafetyRootViewportScale(document) * 72D / 96D;
+            if (effectiveFontSizePoints > 0D &&
+                effectiveFontSizePoints <= options.MaximumTinyFontSizePoints) {
                 return new SvgContentSafetyConcealment(
                     OfficeContentConcealmentKind.TinyText,
                     "Resolved SVG transforms and viewport scaling reduce the effective font size to " +
-                    effectiveViewportFontSize.ToString("0.###", CultureInfo.InvariantCulture) + " viewport units.");
+                    effectiveFontSizePoints.ToString("0.###", CultureInfo.InvariantCulture) + " points.");
             }
             if (CanUseSvgStructuralOffCanvasBounds(candidate.ComputedElement) &&
                 (candidate.Right <= document.ViewX || candidate.Bottom <= document.ViewY ||
@@ -750,7 +752,7 @@ public static partial class OfficeSvgDrawingReader {
             if (TrySvgLength(value, out double parsed)) {
                 if (parsed < 0D) return false;
                 fontSize = parsed;
-                return parsed <= options.MaximumTinyFontSizePoints;
+                return parsed * 72D / 96D <= options.MaximumTinyFontSizePoints;
             }
             return false;
         }

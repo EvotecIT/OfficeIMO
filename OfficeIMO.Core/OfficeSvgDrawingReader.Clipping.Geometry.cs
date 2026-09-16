@@ -7,16 +7,35 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeSvgDrawingReader {
     private static bool IsEmptySvgClipGeometry(XElement element, double width, double height) {
-        bool IsZero(string name, double reference) =>
-            TryViewportLength(element, name, reference, out double value) && value == 0D;
+        bool IsAutoOrMissing(string name) {
+            string? authored = ReadPresentationProperty(element, name);
+            return string.IsNullOrWhiteSpace(authored) ||
+                string.Equals(authored, "auto", StringComparison.OrdinalIgnoreCase);
+        }
+        bool IsNonPositive(string name, double reference, bool absentIsZero) {
+            string? authored = ReadPresentationProperty(element, name);
+            if (IsAutoOrMissing(name)) return absentIsZero;
+            return TryViewportLength(authored, reference, out double value, out _) && value <= 0D;
+        }
         return element.Name.LocalName switch {
-            "rect" => IsZero("width", width) || IsZero("height", height),
-            "circle" => IsZero("r", NormalizedSvgDiagonal(width, height)),
-            "ellipse" => IsZero("rx", width) || IsZero("ry", height),
-            "path" => string.IsNullOrWhiteSpace(element.Attribute("d")?.Value),
+            "rect" => IsNonPositive("width", width, absentIsZero: true) ||
+                      IsNonPositive("height", height, absentIsZero: true),
+            "circle" => IsNonPositive("r", NormalizedSvgDiagonal(width, height), absentIsZero: true),
+            "ellipse" => IsNonPositive("rx", width, absentIsZero: false) ||
+                         IsNonPositive("ry", height, absentIsZero: false) ||
+                         (IsAutoOrMissing("rx") && IsAutoOrMissing("ry")),
+            "line" => true,
+            "path" => IsEmptySvgClipPath(element),
             "polygon" => string.IsNullOrWhiteSpace(element.Attribute("points")?.Value),
             _ => false
         };
+    }
+
+    private static bool IsEmptySvgClipPath(XElement element) {
+        string? data = element.Attribute("d")?.Value;
+        return string.IsNullOrWhiteSpace(data) ||
+            OfficeSvgPathDataParser.TryParse(data, MaximumSvgPathCommands, out var commands, out _, allowEmptyGeometry: true) &&
+            commands.All(command => command.Kind is OfficePathCommandKind.MoveTo or OfficePathCommandKind.Close);
     }
 
     // Transform the clip geometry, not the painted canvas. Inverse-transforming a fixed-size

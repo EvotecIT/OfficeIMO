@@ -1477,8 +1477,13 @@ public static partial class OfficeSvgDrawingReader {
         if (string.IsNullOrWhiteSpace(text)) return false;
         string normalized = text!.Trim();
         percentage = normalized.EndsWith("%", StringComparison.Ordinal);
-        if (percentage) normalized = normalized.Substring(0, normalized.Length - 1).Trim();
-        else if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) normalized = normalized.Substring(0, normalized.Length - 2).Trim();
+        if (percentage) {
+            if (HasSeparatedSvgNumericSuffix(normalized, 1)) return false;
+            normalized = normalized.Substring(0, normalized.Length - 1);
+        } else if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) {
+            if (HasSeparatedSvgNumericSuffix(normalized, 2)) return false;
+            normalized = normalized.Substring(0, normalized.Length - 2);
+        }
         if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             || double.IsNaN(parsed)
             || double.IsInfinity(parsed)) return false;
@@ -1497,7 +1502,10 @@ public static partial class OfficeSvgDrawingReader {
         result = 0D;
         if (string.IsNullOrWhiteSpace(value)) return false;
         string text = value!.Trim();
-        if (text.EndsWith("px", StringComparison.OrdinalIgnoreCase)) text = text.Substring(0, text.Length - 2).Trim();
+        if (text.EndsWith("px", StringComparison.OrdinalIgnoreCase)) {
+            if (HasSeparatedSvgNumericSuffix(text, 2)) return false;
+            text = text.Substring(0, text.Length - 2);
+        }
         return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
             && !double.IsNaN(result)
             && !double.IsInfinity(result);
@@ -1506,7 +1514,13 @@ public static partial class OfficeSvgDrawingReader {
     private static bool TryUnit(string value, out double result) {
         string normalized = value.Trim();
         bool percentage = normalized.EndsWith("%", StringComparison.Ordinal);
-        if (percentage) normalized = normalized.Substring(0, normalized.Length - 1).Trim();
+        if (percentage) {
+            if (HasSeparatedSvgNumericSuffix(normalized, 1)) {
+                result = 0D;
+                return false;
+            }
+            normalized = normalized.Substring(0, normalized.Length - 1);
+        }
         if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
             || double.IsNaN(result)
             || double.IsInfinity(result)) return false;
@@ -1514,6 +1528,9 @@ public static partial class OfficeSvgDrawingReader {
         result = Math.Max(0D, Math.Min(1D, result));
         return true;
     }
+
+    private static bool HasSeparatedSvgNumericSuffix(string value, int suffixLength) =>
+        value.Length <= suffixLength || char.IsWhiteSpace(value[value.Length - suffixLength - 1]);
 
     private static bool TryParseNumberList(string? value, out IReadOnlyList<double> values) =>
         TryParseNumberList(value, int.MaxValue, out values);
@@ -1538,7 +1555,8 @@ public static partial class OfficeSvgDrawingReader {
         result = 0D;
         string normalized = value.Trim();
         if (normalized.EndsWith("%", StringComparison.Ordinal)) {
-            normalized = normalized.Substring(0, normalized.Length - 1).Trim();
+            if (HasSeparatedSvgNumericSuffix(normalized, 1)) return false;
+            normalized = normalized.Substring(0, normalized.Length - 1);
             if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)
                 || double.IsNaN(percentage) || double.IsInfinity(percentage)
                 || double.IsNaN(percentageReference) || double.IsInfinity(percentageReference)) return false;
@@ -1813,6 +1831,7 @@ public static partial class OfficeSvgDrawingReader {
             return true;
         }
         if (normalized.EndsWith("%", StringComparison.Ordinal)
+            && !HasSeparatedSvgNumericSuffix(normalized, 1)
             && double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
                 CultureInfo.InvariantCulture, out double percentage)
             && !double.IsNaN(percentage)
@@ -1845,6 +1864,11 @@ public static partial class OfficeSvgDrawingReader {
             return false;
         }
 
+        if (HasSeparatedSvgNumericSuffix(value, 2)) {
+            shift = default;
+            return false;
+        }
+
         if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier)
             || double.IsNaN(multiplier)
             || double.IsInfinity(multiplier)) {
@@ -1863,6 +1887,7 @@ public static partial class OfficeSvgDrawingReader {
             return true;
         }
         if (normalized.EndsWith("%", StringComparison.Ordinal)
+            && !HasSeparatedSvgNumericSuffix(normalized, 1)
             && double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
                 CultureInfo.InvariantCulture, out double percentage)
             && percentage >= 0D

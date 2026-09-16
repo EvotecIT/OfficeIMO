@@ -482,6 +482,7 @@ public static partial class OfficeSvgDrawingReader {
         }
         string normalized = value.Trim();
         if (!normalized.EndsWith("%", StringComparison.Ordinal) ||
+            HasSeparatedSvgNumericSuffix(normalized, 1) ||
             !double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
                 CultureInfo.InvariantCulture, out double percentage) ||
             double.IsNaN(percentage) || double.IsInfinity(percentage)) return value;
@@ -564,7 +565,8 @@ public static partial class OfficeSvgDrawingReader {
     private static bool TrySvgCssUnitOrPercentage(string value) {
         if (TryUnit(value, out _)) return true;
         string normalized = value.Trim();
-        if (!normalized.EndsWith("%", StringComparison.Ordinal)) return false;
+        if (!normalized.EndsWith("%", StringComparison.Ordinal) ||
+            HasSeparatedSvgNumericSuffix(normalized, 1)) return false;
         return double.TryParse(
             normalized.Substring(0, normalized.Length - 1),
             NumberStyles.Float,

@@ -638,7 +638,7 @@ public sealed class SvgContentSafetyAdversarialTests {
     public void NonOrthogonalTransformUsesTheFullAffineScaleForTinyText() {
         byte[] svg = Svg(
             "<text font-size='100' transform='matrix(.1,.1,.1,.1,0,0)' x='10' y='35'>sheared visible text</text>");
-        var options = new OfficeContentSafetyOptions { MaximumTinyFontSizePoints = 15D };
+        var options = new OfficeContentSafetyOptions { MaximumTinyFontSizePoints = 14D };
         var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
 
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(

@@ -367,8 +367,19 @@ public static partial class OfficeSvgDrawingReader {
             }
             string normalized = text!.Trim();
             bool percentage = normalized.EndsWith("%", StringComparison.Ordinal);
-            if (percentage) normalized = normalized.Substring(0, normalized.Length - 1).Trim();
-            else if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) normalized = normalized.Substring(0, normalized.Length - 2).Trim();
+            if (percentage) {
+                if (HasSeparatedSvgNumericSuffix(normalized, 1)) {
+                    coordinate = default;
+                    return false;
+                }
+                normalized = normalized.Substring(0, normalized.Length - 1);
+            } else if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) {
+                if (HasSeparatedSvgNumericSuffix(normalized, 2)) {
+                    coordinate = default;
+                    return false;
+                }
+                normalized = normalized.Substring(0, normalized.Length - 2);
+            }
             if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
                 || double.IsNaN(value)
                 || double.IsInfinity(value)) {
@@ -383,7 +394,13 @@ public static partial class OfficeSvgDrawingReader {
         private static bool TryUnitOrPercentage(string text, bool clamp, out double value) {
             string normalized = text.Trim();
             bool percentage = normalized.EndsWith("%", StringComparison.Ordinal);
-            if (percentage) normalized = normalized.Substring(0, normalized.Length - 1).Trim();
+            if (percentage) {
+                if (HasSeparatedSvgNumericSuffix(normalized, 1)) {
+                    value = 0D;
+                    return false;
+                }
+                normalized = normalized.Substring(0, normalized.Length - 1);
+            }
             if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
                 || double.IsNaN(value)
                 || double.IsInfinity(value)) return false;
