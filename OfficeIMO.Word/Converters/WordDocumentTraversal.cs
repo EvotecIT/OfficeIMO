@@ -94,13 +94,15 @@ namespace OfficeIMO.Word {
         /// characters have been projected to portable Unicode text.
         /// </summary>
         internal readonly struct ResolvedListMarker {
-            internal ResolvedListMarker(int level, string marker, bool useTextFont, int? pictureBulletId) {
-                Level = level;
+            internal ResolvedListMarker(ListInfo info, string marker, bool useTextFont) {
+                Info = info;
+                Level = info.Level;
                 Marker = marker;
                 UseTextFont = useTextFont;
-                PictureBulletId = pictureBulletId;
+                PictureBulletId = info.PictureBulletId;
             }
 
+            internal ListInfo Info { get; }
             internal int Level { get; }
             internal string Marker { get; }
             internal bool UseTextFont { get; }
@@ -129,9 +131,9 @@ namespace OfficeIMO.Word {
             return GetListInfo(paragraph, numbering, definitions);
         }
 
-        private static ListInfo? GetListInfo(WordParagraph paragraph, IReadOnlyDictionary<int, ListNumberingDefinition> definitions) {
+        private static ListInfo? GetListInfo(WordParagraph paragraph, IReadOnlyDictionary<int, ListNumberingDefinition> definitions, WordListNumberingResolver.StyleCatalog styleCatalog) {
             if (paragraph == null ||
-                !WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering)) {
+                !WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering, styleCatalog)) {
                 return null;
             }
 
@@ -218,8 +220,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         internal static Dictionary<WordParagraph, ResolvedListMarker> BuildResolvedListMarkers(WordDocument document) {
             Dictionary<WordParagraph, ResolvedListMarker> result = new(ParagraphReferenceComparer.Instance);
+            WordListNumberingResolver.StyleCatalog styleCatalog = WordListNumberingResolver.CreateStyleCatalog(document);
             Dictionary<int, ListNumberingDefinition> definitions = BuildListNumberingDefinitions(document);
-            Dictionary<int, List<WordParagraph>> itemsByNumberId = BuildListItemsByNumberId(document);
+            Dictionary<int, List<WordParagraph>> itemsByNumberId = BuildListItemsByNumberId(document, styleCatalog);
 
             foreach (KeyValuePair<int, List<WordParagraph>> listItems in itemsByNumberId) {
                 Dictionary<int, int> indices = new();
@@ -227,7 +230,7 @@ namespace OfficeIMO.Word {
                 int lastLevel = 0;
                 bool first = true;
                 foreach (WordParagraph item in listItems.Value) {
-                    ListInfo? info = GetListInfo(item, definitions);
+                    ListInfo? info = GetListInfo(item, definitions, styleCatalog);
                     if (info == null) {
                         continue;
                     }
@@ -266,7 +269,7 @@ namespace OfficeIMO.Word {
                     }
 
                     (string marker, bool useTextFont) = NormalizeListMarker(rawMarker, info.Value.MarkerFontFamily);
-                    result[item] = new ResolvedListMarker(level, marker, useTextFont, info.Value.PictureBulletId);
+                    result[item] = new ResolvedListMarker(info.Value, marker, useTextFont);
                 }
             }
 
@@ -311,8 +314,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         public static Dictionary<WordParagraph, (int Level, int Index)> BuildListIndices(WordDocument document) {
             Dictionary<WordParagraph, (int, int)> result = new(ParagraphReferenceComparer.Instance);
+            WordListNumberingResolver.StyleCatalog styleCatalog = WordListNumberingResolver.CreateStyleCatalog(document);
             Dictionary<int, ListNumberingDefinition> definitions = BuildListNumberingDefinitions(document);
-            Dictionary<int, List<WordParagraph>> itemsByNumberId = BuildListItemsByNumberId(document);
+            Dictionary<int, List<WordParagraph>> itemsByNumberId = BuildListItemsByNumberId(document, styleCatalog);
 
             foreach (KeyValuePair<int, List<WordParagraph>> listItems in itemsByNumberId) {
                 // Track current numbering per level within this list
@@ -320,7 +324,7 @@ namespace OfficeIMO.Word {
                 int lastLevel = 0;
                 bool first = true;
                 foreach (WordParagraph item in listItems.Value) {
-                    ListInfo? info = GetListInfo(item, definitions);
+                    ListInfo? info = GetListInfo(item, definitions, styleCatalog);
                     if (info == null) continue;
 
                     int level = info.Value.Level;
@@ -441,10 +445,10 @@ namespace OfficeIMO.Word {
                 pictureBulletId: overrideLevel?.GetFirstChild<LevelPictureBulletId>()?.Val?.Value ?? abstractLevel?.GetFirstChild<LevelPictureBulletId>()?.Val?.Value);
         }
 
-        private static Dictionary<int, List<WordParagraph>> BuildListItemsByNumberId(WordDocument document) {
+        private static Dictionary<int, List<WordParagraph>> BuildListItemsByNumberId(WordDocument document, WordListNumberingResolver.StyleCatalog styleCatalog) {
             var result = new Dictionary<int, List<WordParagraph>>();
             foreach (WordParagraph paragraph in EnumerateListParagraphs(document)) {
-                if (!WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering)) {
+                if (!WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering, styleCatalog)) {
                     continue;
                 }
 

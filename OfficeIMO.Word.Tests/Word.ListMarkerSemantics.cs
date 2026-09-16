@@ -46,14 +46,19 @@ public sealed class WordListMarkerSemanticsTests {
         string pdfText = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
         Assert.Contains("▪", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("\uf0a7", pdfText, StringComparison.Ordinal);
+        string html = document.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+        Assert.DoesNotContain("\uf0a7", html, StringComparison.Ordinal);
+        Assert.Contains("list-style-type:'▪'", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void WordAuthoredBulletsExportAsUnorderedHtmlAndReadablePdf() {
         using WordDocument document = WordDocument.Load(IssueDocumentPath);
-        string html = document.ToHtml();
+        string html = document.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
         Assert.Contains("<ul", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("<ol", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("\uf0b7", html, StringComparison.Ordinal);
+        Assert.Contains("list-style-type:disc", html, StringComparison.OrdinalIgnoreCase);
 
         using var output = new MemoryStream();
         document.SaveAsPdfResult(output);
@@ -162,6 +167,30 @@ public sealed class WordListMarkerSemanticsTests {
     }
 
     [Fact]
+    public void StyleLinkedNumberingLevelOverridesStyleNumPrLevel() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.BulletSquareSymbol));
+        list.Numbering.Levels[2].OpenXmlElement.Append(new ParagraphStyleIdInLevel { Val = "Issue2510LinkedLevel" });
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(new StyleParagraphProperties(new NumberingProperties(
+            new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }))) {
+            Type = StyleValues.Paragraph, StyleId = "Issue2510LinkedLevel"
+        });
+        WordParagraph item = document.AddParagraph("Linked square");
+        item._paragraph.ParagraphProperties = new ParagraphProperties(new ParagraphStyleId { Val = "Issue2510LinkedLevel" });
+
+        WordDocumentTraversal.ListInfo info = WordDocumentTraversal.GetListInfo(item)!.Value;
+        Assert.Equal(2, info.Level);
+        Assert.False(info.Ordered);
+        Assert.Equal("■", WordDocumentTraversal.BuildListMarkers(document)[item].Marker);
+        Assert.Contains("- Linked square", document.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("<ul", document.ToHtml(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void MixedAndUnmarkedLevelsFollowEachEffectiveNumberFormat() {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
@@ -181,6 +210,11 @@ public sealed class WordListMarkerSemanticsTests {
         string pdfText = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
         Assert.Contains("No marker", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("• No marker", pdfText, StringComparison.Ordinal);
+        string markdown = document.ToMarkdown();
+        Assert.Contains("No marker", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("- No marker", markdown, StringComparison.Ordinal);
+        string html = document.ToHtml();
+        Assert.Contains("list-style-type:none", html, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

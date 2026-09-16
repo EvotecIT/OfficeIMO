@@ -34,7 +34,7 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             var listInfo = WordDocumentTraversal.GetListInfo(paragraph);
-            if (listInfo != null) {
+            if (listInfo != null && listInfo.Value.MarkerVisible) {
                 int level = ValidateListLevel(listInfo.Value.Level, options.MaxListNestingDepth);
                 sb.Append(new string(' ', checked(level * 2)));
                 sb.Append(listInfo.Value.Ordered ? "1. " : "- ");

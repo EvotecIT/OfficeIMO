@@ -50,6 +50,7 @@ namespace OfficeIMO.Word.Markdown {
             _visualFallbackResourceIndex = 0;
             _exportedImageFileNames.Clear();
             var listIndices = WordDocumentTraversal.BuildListIndices(document);
+            var listMarkers = WordDocumentTraversal.BuildResolvedListMarkers(document);
             int sectionIndex = 0;
             foreach (var section in WordDocumentTraversal.EnumerateSections(document)) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -71,7 +72,8 @@ namespace OfficeIMO.Word.Markdown {
                     listIndices,
                     cancellationToken,
                     allowQuoteHeuristic: true,
-                    trimBoundaryWhitespace: false);
+                    trimBoundaryWhitespace: false,
+                    listMarkers: listMarkers);
 
                 if (options.IncludeHeadersAndFootersAsSemanticBlocks) {
                     AppendFooterSemanticBlocks(markdown, section, options, cancellationToken, sectionIndex);
@@ -177,6 +179,14 @@ namespace OfficeIMO.Word.Markdown {
                 extendedBlocks.AddRange(paragraphBlocks);
                 extendedBlocks.AddRange(unsupportedContentBlocks);
                 paragraphBlocks = extendedBlocks;
+            }
+
+            if (!listInfo.MarkerVisible) {
+                // Markdown has no markerless list syntax. Preserve the content as paragraphs
+                // rather than inventing a bullet that was absent in the Word document.
+                listStack.Clear();
+                foreach (IMarkdownBlock block in paragraphBlocks) addRootBlock(block);
+                return;
             }
 
             EnsureListFrame(addRootBlock, listStack, listInfo, GetListStartForCurrentItem(paragraph, listInfo, listIndices), options.MaxListNestingDepth);
@@ -328,7 +338,8 @@ namespace OfficeIMO.Word.Markdown {
             IReadOnlyDictionary<WordParagraph, (int Level, int Index)>? listIndices,
             CancellationToken cancellationToken,
             bool allowQuoteHeuristic,
-            bool trimBoundaryWhitespace) {
+            bool trimBoundaryWhitespace,
+            IReadOnlyDictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker>? listMarkers = null) {
             var listStack = new List<PendingListFrame>();
 
             for (int i = 0; i < elements.Count; i++) {
@@ -345,7 +356,8 @@ namespace OfficeIMO.Word.Markdown {
                             listIndices,
                             cancellationToken,
                             allowQuoteHeuristic: allowQuoteHeuristic,
-                            trimBoundaryWhitespace: true);
+                            trimBoundaryWhitespace: true,
+                            listMarkers: listMarkers);
                         continue;
                     }
 
@@ -366,7 +378,9 @@ namespace OfficeIMO.Word.Markdown {
 
                     ResolveParagraphCheckboxState(paragraph, out bool hasCheckbox, out bool checkboxChecked);
 
-                    var listInfo = WordDocumentTraversal.GetListInfo(paragraph);
+                    WordDocumentTraversal.ListInfo? listInfo = listMarkers != null
+                        ? listMarkers.TryGetValue(paragraph, out var marker) ? marker.Info : null
+                        : WordDocumentTraversal.GetListInfo(paragraph);
                     if (listInfo != null) {
                         AddListParagraph(addRootBlock, listStack, paragraph, listInfo.Value, options, listIndices, hasCheckbox, checkboxChecked, trimBoundaryWhitespace);
                         continue;

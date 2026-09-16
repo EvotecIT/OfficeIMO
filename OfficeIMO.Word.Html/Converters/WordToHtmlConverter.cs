@@ -1049,13 +1049,13 @@ namespace OfficeIMO.Word.Html {
                                 cellElements[elementIndex - 1] is WordTable &&
                                 elementIndex + 1 < cellElements.Count &&
                                 cellElements[elementIndex + 1] is WordParagraph nextListParagraph &&
-                                WordDocumentTraversal.GetListInfo(nextListParagraph) != null) {
+                                GetCachedListInfo(nextListParagraph) != null) {
                                 // A table cell must retain a paragraph after a nested table. HTML import can
                                 // therefore leave an empty package carrier between that table and the next
                                 // list item; it is not a user-authored block and must not close the list.
                                 continue;
                             }
-                            var cellListInfo = WordDocumentTraversal.GetListInfo(p);
+                            var cellListInfo = GetCachedListInfo(p);
                             if (cellListInfo != null) {
                                 cellDefinitionList = null;
                                 AppendListParagraph(cellElement, p, cellListInfo.Value, cellListStack, cellItemStack, cellListNumberStack);
@@ -1138,10 +1138,15 @@ namespace OfficeIMO.Word.Html {
                 { NumberFormatValues.IrohaFullWidth, (null, "katakana-iroha") },
             };
 
-            string? GetListStyle(WordDocumentTraversal.ListInfo info) {
+            var listMarkers = WordDocumentTraversal.BuildResolvedListMarkers(document);
+            WordDocumentTraversal.ListInfo? GetCachedListInfo(WordParagraph paragraph) =>
+                listMarkers.TryGetValue(paragraph, out var marker) ? marker.Info : null;
+
+            string? GetListStyle(WordDocumentTraversal.ListInfo info, string marker) {
+                if (!info.MarkerVisible) return "none";
                 var format = info.NumberFormat;
                 if (format == WordNumberFormat.Bullet) {
-                    return info.LevelText switch {
+                    return marker switch {
                         "o" or "◦" => "circle",
                         "■" or "§" => "square",
                         "-" => "'-'",
@@ -1150,7 +1155,7 @@ namespace OfficeIMO.Word.Html {
                         "*" => "'*'",
                         "+" => "'+'",
                         "•" or "·" or "●" or "∙" or "" or null or "" => "disc",
-                        _ => QuoteCssListMarker(info.LevelText),
+                        _ => QuoteCssListMarker(marker),
                     };
                 }
                 if (format != null && formatMap.TryGetValue(format.Value.ToOpenXml(), out var map)) {
@@ -1169,10 +1174,11 @@ namespace OfficeIMO.Word.Html {
                 return $"'{escaped}'";
             }
 
-            string? GetListType(WordDocumentTraversal.ListInfo info) {
+            string? GetListType(WordDocumentTraversal.ListInfo info, string marker) {
+                if (!info.MarkerVisible) return null;
                 var format = info.NumberFormat;
                 if (format == WordNumberFormat.Bullet) {
-                    return info.LevelText switch {
+                    return marker switch {
                         "o" or "◦" => "circle",
                         "■" or "§" => "square",
                         "-" or "\u2013" or "\u2014" or "*" or "+" => null,
@@ -1221,6 +1227,7 @@ namespace OfficeIMO.Word.Html {
                 bool ordered = listInfo.Ordered;
                 string listTag = ordered ? "ol" : "ul";
                 int numberId = paragraph._listNumberId.GetValueOrDefault();
+                string marker = listMarkers.TryGetValue(paragraph, out var resolvedMarker) ? resolvedMarker.Marker : listInfo.LevelText ?? string.Empty;
                 if (lists.Count == desiredListDepth
                     && (numberIds.Peek() != numberId
                         || !string.Equals(lists.Peek().TagName, listTag, StringComparison.OrdinalIgnoreCase))) {
@@ -1237,12 +1244,12 @@ namespace OfficeIMO.Word.Html {
                             SetOutputAttribute(listEl, "start", listInfo.Start.ToString(CultureInfo.InvariantCulture), "List:start");
                         }
                     }
-                    var typeAttr = GetListType(listInfo);
+                    var typeAttr = GetListType(listInfo, marker);
                     if (!string.IsNullOrEmpty(typeAttr)) {
                         SetOutputAttribute(listEl, "type", typeAttr!, "List:type");
                     }
-                    var listStyle = GetListStyle(listInfo);
-                    if (options.IncludeListStyles && !string.IsNullOrEmpty(listStyle)) {
+                    var listStyle = GetListStyle(listInfo, marker);
+                    if ((options.IncludeListStyles || !listInfo.MarkerVisible) && !string.IsNullOrEmpty(listStyle)) {
                         SetOutputAttribute(listEl, "style", $"list-style-type:{listStyle}", "List:style");
                     }
                     if (options.IncludeListDefinitions) {
@@ -1344,7 +1351,7 @@ namespace OfficeIMO.Word.Html {
                             activeDefinitionList = null;
                             continue;
                         }
-                        var listInfo = WordDocumentTraversal.GetListInfo(paragraph);
+                        var listInfo = GetCachedListInfo(paragraph);
                         if (listInfo != null) {
                             activeDefinitionList = null;
                             AppendListParagraph(sectionParent, paragraph, listInfo.Value, listStack, itemStack, listNumberStack);
@@ -1393,7 +1400,7 @@ namespace OfficeIMO.Word.Html {
                                 activeDefinitionList = null;
                                 List<string> lines = new();
                                 lines.Add(paragraph.Text);
-                                while (idx + 1 < elements.Count && elements[idx + 1] is WordParagraph nextPara && WordDocumentTraversal.GetListInfo(nextPara) == null && IsCodeParagraph(nextPara)) {
+                                while (idx + 1 < elements.Count && elements[idx + 1] is WordParagraph nextPara && GetCachedListInfo(nextPara) == null && IsCodeParagraph(nextPara)) {
                                     lines.Add(nextPara.Text);
                                     idx++;
                                 }

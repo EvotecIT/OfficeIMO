@@ -8,6 +8,50 @@ namespace OfficeIMO.Word;
 /// through paragraph styles and direct <c>w:numId="0"</c> cancellation.
 /// </summary>
 internal static class WordListNumberingResolver {
+    internal sealed class StyleCatalog {
+        internal StyleCatalog(MainDocumentPart? mainPart) {
+            IEnumerable<Style> styles =
+                (mainPart?.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
+                .Concat(mainPart?.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>());
+            ById = styles
+                .Where(style => style.Type?.Value == StyleValues.Paragraph && !string.IsNullOrWhiteSpace(style.StyleId?.Value))
+                .GroupBy(style => style.StyleId!.Value!, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+            DefaultStyleId = ById.Values.FirstOrDefault(style => style.Default?.Value == true)?.StyleId?.Value;
+            LinkedLevels = new Dictionary<(int NumberId, string StyleId), int>();
+            Numbering? numbering = mainPart?.NumberingDefinitionsPart?.Numbering;
+            if (numbering == null) return;
+            Dictionary<int, AbstractNum> abstracts = numbering.Elements<AbstractNum>()
+                .Where(abstractNum => abstractNum.AbstractNumberId?.Value != null)
+                .GroupBy(abstractNum => abstractNum.AbstractNumberId!.Value)
+                .ToDictionary(group => group.Key, group => group.First());
+            foreach (NumberingInstance instance in numbering.Elements<NumberingInstance>()) {
+                if (instance.NumberID?.Value is not int numberId ||
+                    instance.AbstractNumId?.Val?.Value is not int abstractId ||
+                    !abstracts.TryGetValue(abstractId, out AbstractNum? abstractNum)) continue;
+                foreach (Level level in abstractNum.Elements<Level>()) {
+                    if (level.LevelIndex?.Value is int index &&
+                        level.GetFirstChild<ParagraphStyleIdInLevel>()?.Val?.Value is string linkedStyle) {
+                        LinkedLevels[(numberId, linkedStyle)] = index;
+                    }
+                }
+                foreach (LevelOverride levelOverride in instance.Elements<LevelOverride>()) {
+                    if (levelOverride.LevelIndex?.Value is int index &&
+                        levelOverride.GetFirstChild<Level>()?.GetFirstChild<ParagraphStyleIdInLevel>()?.Val?.Value is string linkedStyle) {
+                        LinkedLevels[(numberId, linkedStyle)] = index;
+                    }
+                }
+            }
+        }
+
+        internal Dictionary<string, Style> ById { get; }
+        internal string? DefaultStyleId { get; }
+        internal Dictionary<(int NumberId, string StyleId), int> LinkedLevels { get; }
+    }
+
+    internal static StyleCatalog CreateStyleCatalog(WordDocument document) =>
+        new(document._wordprocessingDocument.MainDocumentPart);
+
     internal readonly struct ResolvedNumbering {
         internal ResolvedNumbering(int numberId, int level) {
             NumberId = numberId;
@@ -18,7 +62,7 @@ internal static class WordListNumberingResolver {
         internal int Level { get; }
     }
 
-    internal static bool TryResolve(WordParagraph paragraph, out ResolvedNumbering numbering) {
+    internal static bool TryResolve(WordParagraph paragraph, out ResolvedNumbering numbering, StyleCatalog? styleCatalog = null) {
         numbering = default;
         if (paragraph?._paragraph == null || paragraph._document == null) {
             return false;
@@ -38,11 +82,13 @@ internal static class WordListNumberingResolver {
         }
 
         if (!numberId.HasValue || !level.HasValue) {
-            NumberingProperties? inherited = ResolveStyleNumbering(
-                paragraph._document._wordprocessingDocument.MainDocumentPart,
-                paragraph._paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value);
+            styleCatalog ??= CreateStyleCatalog(paragraph._document);
+            string? styleId = paragraph._paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+            NumberingProperties? inherited = ResolveStyleNumbering(styleCatalog, styleId);
             numberId ??= ReadNumberId(inherited);
-            level ??= ReadLevel(inherited);
+            if (!level.HasValue && numberId > 0) {
+                level = ResolveLinkedLevel(styleCatalog, numberId.Value, styleId) ?? ReadLevel(inherited);
+            }
         }
 
         if (!numberId.HasValue || numberId.Value <= 0) {
@@ -53,29 +99,15 @@ internal static class WordListNumberingResolver {
         return true;
     }
 
-    private static NumberingProperties? ResolveStyleNumbering(MainDocumentPart? mainPart, string? styleId) {
-        if (mainPart == null) {
-            return null;
-        }
-
-        IEnumerable<Style> styles =
-            (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
-            .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>());
-        Dictionary<string, Style> byId = styles
-            .Where(style => style.Type?.Value == StyleValues.Paragraph && !string.IsNullOrWhiteSpace(style.StyleId?.Value))
-            .GroupBy(style => style.StyleId!.Value!, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-
-        if (string.IsNullOrWhiteSpace(styleId)) {
-            styleId = byId.Values.FirstOrDefault(style => style.Default?.Value == true)?.StyleId?.Value;
-        }
+    private static NumberingProperties? ResolveStyleNumbering(StyleCatalog catalog, string? styleId) {
+        if (string.IsNullOrWhiteSpace(styleId)) styleId = catalog.DefaultStyleId;
 
         int? numberId = null;
         int? level = null;
         string? currentStyleId = styleId;
         var visited = new HashSet<string>(StringComparer.Ordinal);
         while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!)) {
-            if (!byId.TryGetValue(currentStyleId!, out Style? style)) {
+            if (!catalog.ById.TryGetValue(currentStyleId!, out Style? style)) {
                 break;
             }
 
@@ -101,6 +133,18 @@ internal static class WordListNumberingResolver {
             resolved.Append(new NumberingId { Val = numberId.Value });
         }
         return resolved;
+    }
+
+    private static int? ResolveLinkedLevel(StyleCatalog catalog, int numberId, string? styleId) {
+        string? currentStyleId = string.IsNullOrWhiteSpace(styleId) ? catalog.DefaultStyleId : styleId;
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!)) {
+            if (catalog.LinkedLevels.TryGetValue((numberId, currentStyleId!), out int level)) return level;
+            currentStyleId = catalog.ById.TryGetValue(currentStyleId!, out Style? style)
+                ? style.BasedOn?.Val?.Value
+                : null;
+        }
+        return null;
     }
 
     private static int? ReadNumberId(NumberingProperties? properties) =>
