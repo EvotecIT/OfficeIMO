@@ -17,6 +17,7 @@ internal static partial class PdfWordConverter {
         WordDocument target = WordDocument.Create();
         try {
             if (options.IncludeMetadata) CopyMetadata(source.Reader.Metadata(), target);
+            else ReportDisabledMetadata(source.Reader.Metadata(), options);
             AddWarning(options, "VisualPagesNotEditable", "Document",
                 "PDF pages are embedded as images. Text, links, and forms are not editable Word objects.",
                 PdfCore.PdfConversionWarningSeverity.Warning);

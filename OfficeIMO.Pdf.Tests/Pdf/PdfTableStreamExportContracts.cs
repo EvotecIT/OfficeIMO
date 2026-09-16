@@ -601,17 +601,33 @@ public class PdfTableStreamExportContracts {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void TableConversions_ReportDocumentLevelFormsWithoutPageWidgets(bool useXfa) {
-        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildDocumentLevelFormPdf(useXfa));
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void TableConversions_ReportDocumentLevelFormsWithoutPageWidgets(bool useXfa, bool unplacedWidget) {
+        byte[] source = BuildDocumentLevelFormPdf(useXfa, unplacedWidget);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
 
         Assert.Empty(logical.FormWidgets);
         Assert.Equal(useXfa ? 0 : 1, scope.FormFieldCount);
         Assert.Equal(useXfa, scope.HasAcroFormXfa);
         Assert.Equal(1, scope.FormContentCount);
+        Assert.Equal(useXfa ? 0 : 1, scope.UnplacedFormFieldCount);
+        if (unplacedWidget) {
+            Assert.Single(logical.FormFields[0].Widgets);
+            Assert.Null(logical.FormFields[0].Widgets[0].PageNumber);
+        }
         Assert.True(scope.HasOmittedPageContent);
+
+        PdfHtmlConversionResult htmlResult = logical.ToHtmlResult();
+        Assert.Equal(useXfa ? 0 : 1, htmlResult.Summary.FormFieldCount);
+        Assert.True(htmlResult.HasLoss);
+        Assert.Contains(htmlResult.Report.Warnings, warning =>
+            warning.Code == (useXfa ? "AcroFormXfaDetected" : "PdfFormDefinitionsOmitted"));
+
+        PdfPowerPointConversionResult hybridPowerPointResult = PdfDocument.Load(source).ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateHybrid());
 
         PdfExcelTableImportResult excelResult = logical.ImportTablesToExcelDocumentResult();
         PdfPowerPointConversionResult powerPointResult = logical.ToPowerPointPresentationResult(
@@ -623,6 +639,13 @@ public class PdfTableStreamExportContracts {
         using (excelResult.Value)
         using (powerPointResult.Value)
         using (editablePowerPointResult.Value) {
+            using (hybridPowerPointResult.Value) {
+                Assert.True(hybridPowerPointResult.Report.HasOmittedPageContent);
+                Assert.True(hybridPowerPointResult.Report.HasLoss);
+                Assert.Contains(hybridPowerPointResult.Report.Warnings, static warning =>
+                    warning.Code == "PdfFormDefinitionsNotReconstructed" &&
+                    warning.LossKind == OfficeConversionLossKind.Omission);
+            }
             Assert.True(wordResult.Report.HasLoss);
             Assert.True(excelResult.Report.HasLoss);
             Assert.True(powerPointResult.Report.HasLoss);
@@ -633,9 +656,69 @@ public class PdfTableStreamExportContracts {
             Assert.Contains(wordResult.Report.Warnings, static warning =>
                 warning.Code == "PdfFormDefinitionsNotReconstructed");
             Assert.Contains(powerPointResult.Report.Warnings, static warning =>
-                warning.Code == "PdfFormsAndControlsNotEditable");
+                warning.Code == "PdfFormDefinitionsNotReconstructed");
             Assert.Contains(editablePowerPointResult.Report.Warnings, static warning =>
                 warning.Code == "PdfFormsNotReconstructed");
+        }
+    }
+
+    [Fact]
+    public void TableScopeIncludesDocumentOutlinesAndAttachments() {
+        byte[] source = PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true })
+            .AttachFile("invoice.xml", System.Text.Encoding.UTF8.GetBytes("<invoice />"), "application/xml")
+            .H1("Invoice")
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+
+        Assert.True(scope.OutlineCount > 0);
+        Assert.Equal(1, scope.AttachmentCount);
+        Assert.True(scope.HasOmittedPageContent);
+
+        PdfExcelTableImportResult excelResult = logical.ImportTablesToExcelDocumentResult();
+        PdfPowerPointConversionResult powerPointResult = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableTables());
+        PdfPowerPointConversionResult hybridResult = PdfDocument.Load(source).ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateHybrid());
+        using (excelResult.Value)
+        using (powerPointResult.Value)
+        using (hybridResult.Value) {
+            Assert.True(excelResult.Report.HasLoss);
+            Assert.True(powerPointResult.Report.HasLoss);
+            Assert.True(hybridResult.Report.HasLoss);
+            Assert.Contains(hybridResult.Report.Warnings, static warning =>
+                warning.Code == "PdfOutlinesNotReconstructed");
+            Assert.Contains(hybridResult.Report.Warnings, static warning =>
+                warning.Code == "PdfAttachmentsNotReconstructed");
+        }
+    }
+
+    [Fact]
+    public void WordConversionReportsDisabledPopulatedMetadata() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(PdfDocument.Create().ToBytes());
+        logical.Metadata.Title = "Invoice";
+        logical.Metadata.Author = "Accounts payable";
+        PdfWordConversionResult result = logical.ToWordDocumentResult(PdfToWordOptions.CreateTablesOnly());
+        using (result.Value) {
+            Assert.True(result.Report.HasLoss);
+            Assert.Contains(result.Report.Warnings, static warning =>
+                warning.Code == "PdfMetadataNotImported" &&
+                warning.LossKind == OfficeConversionLossKind.Omission &&
+                warning.Details["PropertyCount"] == "2");
+        }
+
+
+        PdfDocument opened = PdfDocument.Load(PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Invoice"))
+            .ToBytes())
+            .UpdateMetadata(title: "Invoice");
+        PdfToWordOptions visualOptions = PdfToWordOptions.CreateVisualPages();
+        visualOptions.IncludeMetadata = false;
+        PdfWordConversionResult visualResult = opened.ToWordDocumentResult(visualOptions);
+        using (visualResult.Value) {
+            Assert.Contains(visualResult.Report.Warnings, static warning =>
+                warning.Code == "PdfMetadataNotImported" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
         }
     }
 
@@ -1112,13 +1195,17 @@ public class PdfTableStreamExportContracts {
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildDocumentLevelFormPdf(bool useXfa) {
+    private static byte[] BuildDocumentLevelFormPdf(bool useXfa, bool unplacedWidget = false) {
         string acroForm = useXfa
             ? "<< /Fields [] /XFA (unsupported-packet) >>"
             : "<< /Fields [6 0 R] >>";
         string field = useXfa
             ? string.Empty
-            : "6 0 obj\n<< /FT /Tx /T (InvoiceReference) /V (INV-1001) >>\nendobj\n";
+            : "6 0 obj\n<< /FT /Tx /T (InvoiceReference) /V (INV-1001)" +
+              (unplacedWidget ? " /Kids [7 0 R]" : string.Empty) + " >>\nendobj\n";
+        string widget = unplacedWidget
+            ? "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 120 40] >>\nendobj\n"
+            : string.Empty;
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj",
@@ -1140,6 +1227,7 @@ public class PdfTableStreamExportContracts {
             acroForm,
             "endobj",
             field,
+            widget,
             "trailer",
             "<< /Root 1 0 R >>",
             "%%EOF"

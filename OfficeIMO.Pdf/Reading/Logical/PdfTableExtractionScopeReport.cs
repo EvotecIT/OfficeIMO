@@ -23,6 +23,9 @@ public sealed class PdfTableExtractionScopeReport {
         int optionalContentGroupCount,
         int pagesWithOptionalContent,
         int interactiveMediaAnnotationCount,
+        int unplacedFormFieldCount,
+        int outlineCount,
+        int attachmentCount,
         bool analysisTruncated) {
         SourcePageCount = sourcePageCount;
         PagesWithTables = pagesWithTables;
@@ -42,6 +45,9 @@ public sealed class PdfTableExtractionScopeReport {
         OptionalContentGroupCount = optionalContentGroupCount;
         PagesWithOptionalContent = pagesWithOptionalContent;
         InteractiveMediaAnnotationCount = interactiveMediaAnnotationCount;
+        UnplacedFormFieldCount = unplacedFormFieldCount;
+        OutlineCount = outlineCount;
+        AttachmentCount = attachmentCount;
         AnalysisTruncated = analysisTruncated;
     }
 
@@ -77,6 +83,9 @@ public sealed class PdfTableExtractionScopeReport {
 
     /// <summary>Number of document-level AcroForm fields, which table-only adapters do not import.</summary>
     public int FormFieldCount { get; }
+
+    /// <summary>Form fields with no widgets or with a widget not attached to a readable page.</summary>
+    public int UnplacedFormFieldCount { get; }
 
     /// <summary>Whether the document has an XFA form definition, which table-only adapters do not import.</summary>
     public bool HasAcroFormXfa { get; }
@@ -114,6 +123,12 @@ public sealed class PdfTableExtractionScopeReport {
     /// <summary>Number of movie, sound, screen, rich-media, or 3D annotations, which table-only adapters do not import as animations or media.</summary>
     public int InteractiveMediaAnnotationCount { get; }
 
+    /// <summary>Document outline entries outside table-only output.</summary>
+    public int OutlineCount { get; }
+
+    /// <summary>Embedded document attachments outside table-only output.</summary>
+    public int AttachmentCount { get; }
+
     /// <summary>
     /// True when bounded text/table correlation stopped before every visible text block could be classified.
     /// Exact omission counts describe only blocks classified before the limit was reached.
@@ -134,6 +149,8 @@ public sealed class PdfTableExtractionScopeReport {
         AnnotationCount > 0 ||
         PageActionCount > 0 ||
         DocumentActionCount > 0 ||
+        OutlineCount > 0 ||
+        AttachmentCount > 0 ||
         PagesWithOptionalContent > 0 ||
         InteractiveMediaAnnotationCount > 0;
 }

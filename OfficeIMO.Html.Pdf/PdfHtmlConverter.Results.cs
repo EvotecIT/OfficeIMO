@@ -146,6 +146,17 @@ public static partial class PdfHtmlConverterExtensions {
             }
         }
 
+        int unplacedFormFieldCount = document.FormFields.Count(static field => field.HasUnplacedContent);
+        if (unplacedFormFieldCount > 0) {
+            AddWarning(
+                options,
+                "PdfFormDefinitionsOmitted",
+                unplacedFormFieldCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " unplaced PDF form definitions were not represented in HTML.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
         if (annotationCount > 0) {
             AddWarning(
                 options,
@@ -256,6 +267,7 @@ public static partial class PdfHtmlConverterExtensions {
             }
         }
 
+        formFields.UnionWith(document.FormFields.Where(static field => field.HasUnplacedContent));
         int skippedLinkCount = Math.Max(0, linkCount - renderedLinkCount);
         int outlineCount = CountOutlines(document.Outlines);
         int renderedOutlineCount = options.IncludeOutlines

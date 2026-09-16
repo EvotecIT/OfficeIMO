@@ -38,6 +38,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ReportDocumentReconstructionBoundaries(PdfCore.PdfDocumentReadResult source, PdfToWordOptions options) {
+            ReportDisabledMetadata(source.Metadata, options);
             bool importsText = options.ImportHeadings || options.ImportParagraphs || options.ImportLists;
             bool reconstructsEditableContent = source.Pages.Any(page =>
                 (importsText && page.TextBlocks.Count > 0) ||
@@ -121,19 +122,20 @@ namespace OfficeIMO.Word.Pdf {
                     "TableCount",
                     source.Pages.Sum(static page => page.Tables.Count));
             }
-            int documentOnlyFormCount = source.FormFields.Count(static field => field.Widgets.Count == 0) +
+            int documentOnlyFormCount = source.FormFields.Count(static field => field.HasUnplacedContent) +
                 (source.HasAcroFormXfa ? 1 : 0);
             if (documentOnlyFormCount > 0) {
                 AddWarning(
                     options,
                     "PdfFormDefinitionsNotReconstructed",
                     "Document/Forms",
-                    "Document-level PDF form definitions without page widgets, including XFA content, are not reconstructed in editable Word output.",
+                    "PDF form definitions or widgets not attached to a page, including XFA content, are not reconstructed in editable Word output.",
                     PdfCore.PdfConversionWarningSeverity.Warning,
                     OfficeConversionLossKind.Omission,
                     new Dictionary<string, string> {
                         ["Count"] = documentOnlyFormCount.ToString(CultureInfo.InvariantCulture),
                         ["FieldWithoutWidgetCount"] = source.FormFields.Count(static field => field.Widgets.Count == 0).ToString(CultureInfo.InvariantCulture),
+                        ["UnplacedFieldCount"] = source.FormFields.Count(static field => field.HasUnplacedContent).ToString(CultureInfo.InvariantCulture),
                         ["HasAcroFormXfa"] = source.HasAcroFormXfa ? "true" : "false"
                     });
             }
@@ -261,6 +263,25 @@ namespace OfficeIMO.Word.Pdf {
             target.BuiltinDocumentProperties.Creator = source.Author;
             target.BuiltinDocumentProperties.Subject = source.Subject;
             target.BuiltinDocumentProperties.Keywords = source.Keywords;
+        }
+
+
+        private static void ReportDisabledMetadata(PdfCore.PdfMetadata source, PdfToWordOptions options) {
+            if (options.IncludeMetadata) return;
+            int count = 0;
+            if (!string.IsNullOrWhiteSpace(source.Title)) count++;
+            if (!string.IsNullOrWhiteSpace(source.Author)) count++;
+            if (!string.IsNullOrWhiteSpace(source.Subject)) count++;
+            if (!string.IsNullOrWhiteSpace(source.Keywords)) count++;
+            if (count == 0) return;
+            AddWarning(
+                options,
+                "PdfMetadataNotImported",
+                "Document/Metadata",
+                "PDF title, author, subject, and keyword metadata was not copied because IncludeMetadata is false.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission,
+                new Dictionary<string, string> { ["PropertyCount"] = count.ToString(CultureInfo.InvariantCulture) });
         }
 
         private static void AddWarning(

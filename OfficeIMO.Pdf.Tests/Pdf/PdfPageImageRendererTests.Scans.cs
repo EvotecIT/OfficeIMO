@@ -268,6 +268,57 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Theory]
+    [InlineData(0x53)] // COC changes component coding style.
+    [InlineData(0x5D)] // QCC changes component quantization.
+    [InlineData(0x5E)] // RGN changes region-of-interest decoding.
+    [InlineData(0x5F)] // POC changes progression order.
+    public void ImageValidationRejectsUnvalidatedJpeg2000MainAndTileMarkers(int markerCode) {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        byte[] raw = payload.Skip(codestream).ToArray();
+        int tilePart = FindMarker(raw, 0xFF, 0x90);
+        byte[] segment = { 0xFF, (byte)markerCode, 0x00, 0x02 };
+        byte[] malformedMain = raw.Take(tilePart).Concat(segment).Concat(raw.Skip(tilePart)).ToArray();
+        Assert.False(OfficeImageReader.TryValidateContent(malformedMain, "scan.j2c", out _));
+
+        int startOfData = FindMarker(raw, 0xFF, 0x93);
+        uint tilePartLength = (uint)ReadUInt32BigEndian(raw, tilePart + 6);
+        byte[] malformedTile = raw.Take(startOfData).Concat(segment).Concat(raw.Skip(startOfData)).ToArray();
+        WriteJpxUInt32(malformedTile, tilePart + 6, tilePartLength + (uint)segment.Length);
+        Assert.False(OfficeImageReader.TryValidateContent(malformedTile, "scan.j2c", out _));
+    }
+
+    [Fact]
+    public void ImageValidationRejectsMalformedJpeg2000CommentMarker() {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        byte[] raw = payload.Skip(codestream).ToArray();
+        int tilePart = FindMarker(raw, 0xFF, 0x90);
+        byte[] malformed = raw.Take(tilePart)
+            .Concat(new byte[] { 0xFF, 0x64, 0x00, 0x04, 0x00, 0x02 })
+            .Concat(raw.Skip(tilePart)).ToArray();
+
+        Assert.False(OfficeImageReader.TryValidateContent(malformed, "scan.j2c", out _));
+    }
+
+    [Fact]
+    public void ImageValidationAcceptsValidJpeg2000CommentMarkers() {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        byte[] raw = payload.Skip(codestream).ToArray();
+        int tilePart = FindMarker(raw, 0xFF, 0x90);
+        byte[] comment = { 0xFF, 0x64, 0x00, 0x04, 0x00, 0x01 };
+        byte[] withMainComment = raw.Take(tilePart).Concat(comment).Concat(raw.Skip(tilePart)).ToArray();
+        Assert.True(OfficeImageReader.TryValidateContent(withMainComment, "scan.j2c", out _));
+
+        int startOfData = FindMarker(raw, 0xFF, 0x93);
+        uint tilePartLength = (uint)ReadUInt32BigEndian(raw, tilePart + 6);
+        byte[] withTileComment = raw.Take(startOfData).Concat(comment).Concat(raw.Skip(startOfData)).ToArray();
+        WriteJpxUInt32(withTileComment, tilePart + 6, tilePartLength + (uint)comment.Length);
+        Assert.True(OfficeImageReader.TryValidateContent(withTileComment, "scan.j2c", out _));
+    }
+
+    [Theory]
     [InlineData(0, 0x08)] // Scod reserved bits must be zero.
     [InlineData(1, 5)] // Progression order is limited to the five Part 1 orders.
     [InlineData(3, 0)] // At least one quality layer is required.

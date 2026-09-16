@@ -224,6 +224,10 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         if (failedVisualScope == null) throw new ArgumentNullException(nameof(failedVisualScope));
         bool hasFailedVisualPages = VisualPages.Any(static page => !page.Succeeded);
         _hasOmittedPageContent = SourceScope.DocumentActionCount > 0 ||
+            SourceScope.UnplacedFormFieldCount > 0 ||
+            SourceScope.HasAcroFormXfa ||
+            SourceScope.OutlineCount > 0 ||
+            SourceScope.AttachmentCount > 0 ||
             hasFailedVisualPages && failedVisualScope.HasOmittedPageContent;
         var warnings = new List<OfficeIMO.Pdf.PdfConversionWarning>(CreateProjectionWarnings(
             SourceScope,
@@ -371,9 +375,16 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
                     ["Disposition"] = "Omitted"
                 }));
         }
-        AddProjectionWarning(warnings, "PdfFormsAndControlsNotEditable", "Forms", scope.FormContentCount,
-            failedVisualScope?.FormContentCount ?? scope.FormContentCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
+        AddProjectionWarning(warnings, "PdfFormsAndControlsNotEditable", "Forms", scope.FormWidgetCount,
+            failedVisualScope?.FormWidgetCount ?? scope.FormWidgetCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
             description: "forms and interactive controls");
+        AddDocumentOmissionWarning(warnings, "PdfFormDefinitionsNotReconstructed", "Form definitions",
+            scope.UnplacedFormFieldCount + (scope.HasAcroFormXfa ? 1 : 0),
+            "form definitions not attached to a page and XFA content");
+        AddDocumentOmissionWarning(warnings, "PdfOutlinesNotReconstructed", "Outlines",
+            scope.OutlineCount, "outline navigation entries");
+        AddDocumentOmissionWarning(warnings, "PdfAttachmentsNotReconstructed", "Attachments",
+            scope.AttachmentCount, "embedded attachments");
         AddProjectionWarning(warnings, "PdfAnnotationsNotEditable", "Annotations", scope.AnnotationCount,
             failedVisualScope?.AnnotationCount ?? scope.AnnotationCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
             description: "annotations");
@@ -439,6 +450,26 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             details: new Dictionary<string, string> {
                 ["Count"] = count.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["Disposition"] = GetDispositionValue(disposition)
+            }));
+    }
+
+    private static void AddDocumentOmissionWarning(
+        ICollection<OfficeIMO.Pdf.PdfConversionWarning> warnings,
+        string code,
+        string source,
+        int count,
+        string description) {
+        if (count <= 0) return;
+        warnings.Add(new OfficeIMO.Pdf.PdfConversionWarning(
+            "OfficeIMO.PowerPoint.Pdf",
+            code,
+            source,
+            "PDF " + description + " are not reconstructed in PowerPoint output.",
+            OfficeIMO.Pdf.PdfConversionWarningSeverity.Warning,
+            OfficeConversionLossKind.Omission,
+            details: new Dictionary<string, string> {
+                ["Count"] = count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["Disposition"] = "Omitted"
             }));
     }
 

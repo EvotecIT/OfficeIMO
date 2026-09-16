@@ -178,6 +178,9 @@ public static class PdfLogicalTableAnalysis {
             document.CatalogActionCount,
             hasOpenAction,
             documentActionCount,
+            document.FormFields.Count(static field => field.HasUnplacedContent),
+            CountOutlines(document.Outlines),
+            document.AttachmentCount,
             maximumComparisons);
     }
 
@@ -207,6 +210,9 @@ public static class PdfLogicalTableAnalysis {
             catalogActionCount: 0,
             hasOpenAction: false,
             documentActionCount: 0,
+            unplacedFormFieldCount: 0,
+            outlineCount: 0,
+            attachmentCount: 0,
             maximumComparisons);
     }
 
@@ -218,6 +224,9 @@ public static class PdfLogicalTableAnalysis {
         int catalogActionCount,
         bool hasOpenAction,
         int documentActionCount,
+        int unplacedFormFieldCount,
+        int outlineCount,
+        int attachmentCount,
         int maximumComparisons) {
 #pragma warning disable CA1512 // ThrowIfNegative is unavailable on netstandard2.0 and net472.
         if (maximumComparisons < 0) throw new ArgumentOutOfRangeException(nameof(maximumComparisons));
@@ -290,7 +299,22 @@ public static class PdfLogicalTableAnalysis {
             optionalContentGroupCount,
             pagesWithOptionalContent,
             interactiveMediaAnnotationCount,
+            unplacedFormFieldCount,
+            outlineCount,
+            attachmentCount,
             analysisTruncated);
+    }
+
+    private static int CountOutlines(IReadOnlyList<PdfOutlineItem> outlines) {
+        int count = 0;
+        var pending = new Stack<PdfOutlineItem>(outlines.Reverse());
+        while (pending.Count > 0) {
+            PdfOutlineItem outline = pending.Pop();
+            count++;
+            for (int childIndex = outline.Children.Count - 1; childIndex >= 0; childIndex--)
+                pending.Push(outline.Children[childIndex]);
+        }
+        return count;
     }
 
     private static bool IsInteractiveMediaAnnotationSubtype(string subtype) =>

@@ -892,6 +892,8 @@ public static partial class PowerPointPdfConverterExtensions {
         AddEditableDocumentOmission(warnings, "PdfNavigationNotReconstructed", "Navigation", scope.LinkCount + scope.PageActionCount, "links and page actions");
         AddEditableDocumentOmission(warnings, "PdfDocumentActionsNotReconstructed", "Document actions", scope.DocumentActionCount, "catalog and document-open actions");
         AddEditableDocumentOmission(warnings, "PdfFormsNotReconstructed", "Forms", scope.FormContentCount, "forms and interactive controls");
+        AddEditableDocumentOmission(warnings, "PdfOutlinesNotReconstructed", "Outlines", scope.OutlineCount, "outline navigation entries");
+        AddEditableDocumentOmission(warnings, "PdfAttachmentsNotReconstructed", "Attachments", scope.AttachmentCount, "embedded attachments");
         AddEditableDocumentOmission(warnings, "PdfAnnotationsNotReconstructed", "Annotations", scope.AnnotationCount, "annotations");
         AddEditableDocumentOmission(warnings, "PdfGroupsNotReconstructed", "Groups", scope.PagesWithOptionalContent, "pages using optional content");
         AddEditableDocumentOmission(warnings, "PdfAnimationsNotReconstructed", "Animations", scope.InteractiveMediaAnnotationCount, "interactive media and animations");

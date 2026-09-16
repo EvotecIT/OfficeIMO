@@ -281,6 +281,9 @@ internal static class OfficeJpeg2000Header {
                         end - 2,
                         out mainQuantizationLevels)) return false;
                 hasQuantizationDefault = true;
+            } else if (marker != 0x64 || !TryValidateCommentSegment(bytes, segmentOffset, end - 2)) {
+                // Other marker bodies can change decoding and are outside this validated opaque subset.
+                return false;
             }
         }
         if (!hasCodingStyleDefault || !hasQuantizationDefault ||
@@ -349,6 +352,8 @@ internal static class OfficeJpeg2000Header {
                             tilePartEnd,
                             out tileQuantizationLevels[tileIndex])) return false;
                     hasTileQuantizationDefault = true;
+                } else if (tileMarker != 0x64 || !TryValidateCommentSegment(bytes, tileSegmentOffset, tilePartEnd)) {
+                    return false;
                 }
                 if (!TrySkipMarkerSegment(bytes, ref tileHeaderOffset, tilePartEnd, cancellationToken)) return false;
             }
@@ -434,6 +439,13 @@ internal static class OfficeJpeg2000Header {
         // for additional subbands after resolution truncation.
         return !quantizationLevels.HasValue || quantizationLevels.Value >= decompositionLevels;
     }
+
+    private static bool TryValidateCommentSegment(byte[] bytes, int markerOffset, int limit) =>
+        limit - markerOffset >= 6 &&
+        IsMarker(bytes, markerOffset, 0x64) &&
+        Read16(bytes, markerOffset + 2) >= 4 &&
+        Read16(bytes, markerOffset + 2) <= limit - markerOffset - 2 &&
+        Read16(bytes, markerOffset + 4) is 0 or 1;
 
     private static bool TrySkipMarkerSegment(
         byte[] bytes,

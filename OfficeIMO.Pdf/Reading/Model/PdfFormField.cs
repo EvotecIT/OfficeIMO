@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -323,6 +325,9 @@ public sealed class PdfFormField {
 
     /// <summary>Simple widget annotations that visually represent this field, when readable.</summary>
     public IReadOnlyList<PdfFormWidget> Widgets { get; }
+
+    /// <summary>Whether this field has no widgets or has a widget not attached to a readable page.</summary>
+    public bool HasUnplacedContent => Widgets.Count == 0 || Widgets.Any(static widget => !widget.PageNumber.HasValue);
 
     /// <summary>Number of readable widget annotations associated with this field.</summary>
     public int WidgetCount => Widgets.Count;

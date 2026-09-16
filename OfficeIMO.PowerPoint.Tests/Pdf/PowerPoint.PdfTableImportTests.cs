@@ -806,6 +806,9 @@ public class PowerPointPdfTableImportTests {
             optionalContentGroupCount: 1,
             pagesWithOptionalContent: 1,
             interactiveMediaAnnotationCount: 0,
+            unplacedFormFieldCount: 0,
+            outlineCount: 0,
+            attachmentCount: 0,
             analysisTruncated: false);
         var failedScope = new PdfCore.PdfTableExtractionScopeReport(
             sourcePageCount: 1,
@@ -826,6 +829,9 @@ public class PowerPointPdfTableImportTests {
             optionalContentGroupCount: 0,
             pagesWithOptionalContent: 0,
             interactiveMediaAnnotationCount: 0,
+            unplacedFormFieldCount: 0,
+            outlineCount: 0,
+            attachmentCount: 0,
             analysisTruncated: false);
         var report = new PdfPowerPointConversionReport(
             Array.Empty<PdfPowerPointTableImportEntry>(),
