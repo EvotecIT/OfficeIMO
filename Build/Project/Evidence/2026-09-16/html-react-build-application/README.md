@@ -15,9 +15,13 @@ Run the selected acceptance case with:
 dotnet test OfficeIMO.Html.Runtime.Tests/OfficeIMO.Html.Runtime.Tests.csproj -f net10.0 --filter FullyQualifiedName~RuntimeReactBuildApplicationTests
 ```
 
-On Windows x64, the selected test passed under .NET 8 and .NET 10. The complete
-HTML suite passed 3,144/3,144 and the complete runtime suite 354/354 on each
-framework. The captured route was
+On Windows x64, the selected test passed under .NET 8 and .NET 10. At commit
+`ed980db7a4`, the complete HTML suite passed 3,148/3,148 and the complete runtime
+suite passed 354/354 on each framework. The same commit passed both suites under
+.NET 10 on Linux x64 and macOS Arm64. The first macOS HTML run had one failure in
+`ConcurrentDetachedProjectionAndCallbackSnapshotsRetainNodeIdentity`; that case
+passed alone, and a full rerun passed 3,148/3,148 without a code change. The
+captured route was
 `/review`, the selected region was South, the controlled title was Quarterly,
 and the adjusted total was 21. Both PDFs reopened as tagged, searchable files
 with the selected title and total. The screen PNG decoded and retained the
@@ -37,9 +41,8 @@ auto margins did not absorb free width. Those defaults and auto margins now have
 focused tests and produce a closer screen and print layout. The retained images
 still show small text metric and vertical-spacing differences; this is a named
 application workflow, not a pixel-parity or arbitrary-website claim. The PDF
-previews were rasterized with Poppler 26.07.0. This slice has Windows runtime
-proof and a Linux browser reference; OfficeIMO runtime validation on Linux and
-macOS remains to be run before cross-platform promotion.
+previews were rasterized with Poppler 26.07.0. This slice has runtime proof on
+Windows, Linux and macOS, plus the separate Linux browser reference.
 
 The session uses explicitly trusted inputs. Public-site scripts still require
 the separate isolation profile tracked in the roadmap.
