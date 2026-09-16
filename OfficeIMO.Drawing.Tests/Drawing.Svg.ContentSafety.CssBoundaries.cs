@@ -101,6 +101,22 @@ public sealed class SvgContentSafetyCssBoundaryTests {
     }
 
     [Fact]
+    public void UnsupportedPatternPaintMakesProjectionReportOnly() {
+        byte[] svg = Svg(
+            "<defs><pattern id='paint' patternUnits='userSpaceOnUse' width='220' height='120' viewBox='0 0 220 120'>" +
+            "<rect width='220' height='120' fill='black'/></pattern></defs>" +
+            "<text fill='black' x='10' y='35'>pattern paint payload</text>" +
+            "<rect width='220' height='120' fill='url(#paint)'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "pattern paint payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.NonPrimaryContent, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
     public void UnsupportedPaintProducedByVarFailsClosed() {
         byte[] svg = Svg(
             "<g fill='none'><text style='--paint:url(#missing) red;fill:var(--paint)' x='10' y='35'>browser visible paint</text></g>");
@@ -185,6 +201,17 @@ public sealed class SvgContentSafetyCssBoundaryTests {
         Assert.Contains("font-size-adjust", finding.Evidence, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("scale(.01,,.01)")]
+    [InlineData("SCALE(.01 .01)")]
+    [InlineData("scale(.01\u00A0.01)")]
+    public void TransformSyntaxOutsideTheBoundedSvgGrammarFailsClosed(string transform) {
+        byte[] svg = Svg(
+            $"<text font-size='100' transform='{transform}' x='10' y='35'>malformed transform payload</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
     [Fact]
     public void RepeatedViewBoxCommasFailClosed() {
         byte[] svg = Encoding.UTF8.GetBytes(
@@ -204,6 +231,32 @@ public sealed class SvgContentSafetyCssBoundaryTests {
         Assert.NotNull(drawing);
         Assert.Equal(0, unsupported);
         Assert.Single(drawing!.Shapes);
+    }
+
+    [Fact]
+    public void UnbalancedClipPathQuoteCannotAuthorizeCleanup() {
+        byte[] svg = Svg(
+            "<defs><clipPath id='empty'/></defs>" +
+            "<text clip-path=\"url('#empty)\" x='10' y='35'>malformed clip payload</text>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.DoesNotContain(report.Findings, item =>
+            item.TextPreview == "malformed clip payload" &&
+            item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);
+    }
+
+    [Fact]
+    public void TextUnderUnknownContainerIsReportOnly() {
+        byte[] svg = Svg(
+            "<unknown><text display='none' x='10' y='35'>unknown container payload</text></unknown>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "unknown container payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.NonPrimaryContent, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
     }
 
     [Fact]

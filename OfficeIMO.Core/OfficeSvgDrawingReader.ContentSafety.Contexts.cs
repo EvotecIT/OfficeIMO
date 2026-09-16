@@ -72,6 +72,18 @@ public static partial class OfficeSvgDrawingReader {
             cleanupCapability = OfficeContentCleanupCapability.ReportOnly;
             return true;
         }
+        XElement? unsupportedAncestor = candidate.ComputedElement.Ancestors().FirstOrDefault(element =>
+            element.Name.Namespace == candidate.ComputedElement.Name.Namespace &&
+            !IsSupportedSvgTextAncestor(element.Name.LocalName));
+        if (unsupportedAncestor != null) {
+            concealment = new SvgContentSafetyConcealment(
+                OfficeContentConcealmentKind.NonPrimaryContent,
+                "SVG text is nested under the unrecognized " + unsupportedAncestor.Name.LocalName +
+                " container and is report-only because that ancestor is outside the bounded native paint model.",
+                OfficeContentSafetyRisk.Informational);
+            cleanupCapability = OfficeContentCleanupCapability.ReportOnly;
+            return true;
+        }
         if (owner == null && !IsSvgPaintedTextContainer(candidate.ComputedElement)) {
             concealment = new SvgContentSafetyConcealment(
                 OfficeContentConcealmentKind.NonPrimaryContent,
@@ -113,6 +125,10 @@ public static partial class OfficeSvgDrawingReader {
             return ancestorName is "text" or "tspan" or "textPath" or "a";
         });
     }
+
+    private static bool IsSupportedSvgTextAncestor(string name) => name is
+        "svg" or "g" or "a" or "switch" or "use" or "defs" or "symbol" or
+        "text" or "tspan" or "textPath" or "title" or "desc" or "script" or "style" or "metadata";
 
     private static ISet<string> CollectSvgReusableTextReferencedIds(XElement root) {
         var ids = new HashSet<string>(StringComparer.Ordinal);
@@ -212,8 +228,16 @@ public static partial class OfficeSvgDrawingReader {
             }
             string? transform = ReadPresentationProperty(current, "transform");
             if (!string.IsNullOrWhiteSpace(transform) &&
-                transform!.Any(character => char.IsWhiteSpace(character) && !IsSvgCssWhitespace(character))) {
-                evidence = "SVG transform syntax contains non-CSS whitespace outside the browser grammar and is therefore report-only.";
+                (transform!.Any(character => char.IsWhiteSpace(character) && !IsSvgCssWhitespace(character)) ||
+                 !OfficeSvgTransformParser.TryParse(transform, out _))) {
+                evidence = "SVG transform syntax is outside the bounded browser grammar and is therefore report-only.";
+                return true;
+            }
+            string? clipPath = ReadPresentationProperty(current, "clip-path")?.Trim();
+            if (!string.IsNullOrWhiteSpace(clipPath) &&
+                !clipPath!.Equals("none", StringComparison.OrdinalIgnoreCase) &&
+                !TryReadBoundedSvgLocalUrlReference(clipPath, out _)) {
+                evidence = "SVG clip-path syntax is outside the bounded local URL grammar and is therefore report-only.";
                 return true;
             }
             XAttribute? fontSize = current.Attribute("font-size");

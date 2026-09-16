@@ -12,12 +12,14 @@ internal static class OfficeSvgTransformParser {
         if (string.IsNullOrWhiteSpace(value)) return true;
         int index = 0;
         int operationCount = 0;
-        while (SkipSeparators(value!, ref index)) {
+        SkipWhitespace(value!, ref index);
+        if (index >= value!.Length || value[index] == ',') return false;
+        while (index < value.Length) {
             if (++operationCount > MaximumTransformOperations) return false;
             int nameStart = index;
-            while (index < value!.Length && char.IsLetter(value[index])) index++;
+            while (index < value!.Length && IsAsciiLetter(value[index])) index++;
             if (index == nameStart) return false;
-            string name = value.Substring(nameStart, index - nameStart).ToLowerInvariant();
+            string name = value.Substring(nameStart, index - nameStart);
             SkipWhitespace(value, ref index);
             if (index >= value.Length || value[index++] != '(') return false;
             int argumentsStart = index;
@@ -27,6 +29,21 @@ internal static class OfficeSvgTransformParser {
                 || !TryCreateTransform(name, arguments, out OfficeTransform current)) return false;
             transform = current.Then(transform);
             index = close + 1;
+            int separatorStart = index;
+            bool hasWhitespace = false;
+            while (index < value.Length && IsSvgWhitespace(value[index])) {
+                hasWhitespace = true;
+                index++;
+            }
+            if (index >= value.Length) return true;
+            if (value[index] == ',') {
+                index++;
+                while (index < value.Length && IsSvgWhitespace(value[index])) index++;
+                if (index >= value.Length || value[index] == ',') return false;
+            } else if (!hasWhitespace) {
+                return false;
+            }
+            if (index == separatorStart) return false;
         }
         return true;
     }
@@ -52,13 +69,13 @@ internal static class OfficeSvgTransformParser {
                     ? OfficeTransform.RotateDegrees(values[0])
                     : OfficeTransform.RotateDegrees(values[0], values[1], values[2]);
                 return true;
-            case "skewx":
+            case "skewX":
                 if (values.Count != 1) return false;
                 double tangentX = Math.Tan(values[0] * Math.PI / 180D);
                 if (!IsFinite(tangentX)) return false;
                 transform = new OfficeTransform(1D, 0D, tangentX, 1D, 0D, 0D);
                 return true;
-            case "skewy":
+            case "skewY":
                 if (values.Count != 1) return false;
                 double tangentY = Math.Tan(values[0] * Math.PI / 180D);
                 if (!IsFinite(tangentY)) return false;
@@ -74,52 +91,64 @@ internal static class OfficeSvgTransformParser {
         var result = new List<double>(maximumNumbers);
         numbers = result;
         int index = startIndex;
-        while (SkipSeparators(value, ref index, endIndex)) {
+        while (index < endIndex && IsSvgWhitespace(value[index])) index++;
+        if (index >= endIndex || value[index] == ',') return false;
+        while (index < endIndex) {
             if (result.Count >= maximumNumbers) return false;
             int start = index;
             if (value[index] is '+' or '-') index++;
             bool digits = false;
-            while (index < endIndex && char.IsDigit(value[index])) {
+            while (index < endIndex && IsAsciiDigit(value[index])) {
                 digits = true;
                 index++;
             }
             if (index < endIndex && value[index] == '.') {
                 index++;
-                while (index < endIndex && char.IsDigit(value[index])) {
+                while (index < endIndex && IsAsciiDigit(value[index])) {
                     digits = true;
                     index++;
                 }
             }
             if (!digits) return false;
             if (index < endIndex && (value[index] is 'e' or 'E')) {
-                int exponent = index++;
+                index++;
                 if (index < endIndex && (value[index] is '+' or '-')) index++;
                 int exponentDigits = index;
-                while (index < endIndex && char.IsDigit(value[index])) index++;
-                if (index == exponentDigits) index = exponent;
+                while (index < endIndex && IsAsciiDigit(value[index])) index++;
+                if (index == exponentDigits) return false;
             }
             int length = index - start;
             if (length > 128
                 || !double.TryParse(value.Substring(start, length), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                 || !IsFinite(number)) return false;
             result.Add(number);
+            bool hasWhitespace = false;
+            while (index < endIndex && IsSvgWhitespace(value[index])) {
+                hasWhitespace = true;
+                index++;
+            }
+            if (index >= endIndex) return true;
+            if (value[index] == ',') {
+                index++;
+                while (index < endIndex && IsSvgWhitespace(value[index])) index++;
+                if (index >= endIndex || value[index] == ',') return false;
+            } else if (!hasWhitespace) {
+                return false;
+            }
         }
         return result.Count > 0;
     }
 
-    private static bool SkipSeparators(string value, ref int index, int endIndex) {
-        while (index < endIndex && (char.IsWhiteSpace(value[index]) || value[index] == ',')) index++;
-        return index < endIndex;
-    }
-
-    private static bool SkipSeparators(string value, ref int index) {
-        while (index < value.Length && (char.IsWhiteSpace(value[index]) || value[index] == ',')) index++;
-        return index < value.Length;
-    }
-
     private static void SkipWhitespace(string value, ref int index) {
-        while (index < value.Length && char.IsWhiteSpace(value[index])) index++;
+        while (index < value.Length && IsSvgWhitespace(value[index])) index++;
     }
+
+    private static bool IsAsciiDigit(char value) => value is >= '0' and <= '9';
+
+    private static bool IsAsciiLetter(char value) =>
+        value is >= 'A' and <= 'Z' or >= 'a' and <= 'z';
+
+    private static bool IsSvgWhitespace(char value) => value is ' ' or '\t' or '\r' or '\n';
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 }

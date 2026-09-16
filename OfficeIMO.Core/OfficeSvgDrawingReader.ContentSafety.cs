@@ -162,6 +162,11 @@ public static partial class OfficeSvgDrawingReader {
                 .Any(HasUnsupportedSvgViewportSyntax)) {
             throw new InvalidDataException("The SVG uses viewport syntax outside the bounded case-sensitive SVG grammar.");
         }
+        if (root.DescendantsAndSelf()
+                .Where(element => IsNativeSvgElement(element, svgNamespace))
+                .Any(HasUnsupportedSvgTransformSyntax)) {
+            throw new InvalidDataException("The SVG uses transform syntax outside the bounded SVG grammar.");
+        }
         if (root.DescendantsAndSelf().Where(element => IsNativeSvgElement(element, svgNamespace)).Any(element =>
                 element.Attributes().Any(attribute =>
                     attribute.Name.NamespaceName.Length == 0 &&
@@ -270,6 +275,14 @@ public static partial class OfficeSvgDrawingReader {
         XAttribute? preserveAspectRatio = acceptsPreserveAspectRatio ? element.Attribute("preserveAspectRatio") : null;
         return preserveAspectRatio != null &&
             !TryParsePreserveAspectRatio(preserveAspectRatio.Value, out _, out _);
+    }
+
+    private static bool HasUnsupportedSvgTransformSyntax(XElement element) {
+        foreach (string name in new[] { "transform", "gradientTransform", "patternTransform" }) {
+            XAttribute? attribute = element.Attribute(name);
+            if (attribute != null && !OfficeSvgTransformParser.TryParse(attribute.Value, out _)) return true;
+        }
+        return false;
     }
 
     private static bool ContainsUnsupportedSvgCssMathFunction(string value) {

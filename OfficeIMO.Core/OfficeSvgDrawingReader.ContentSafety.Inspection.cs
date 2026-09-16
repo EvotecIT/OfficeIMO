@@ -374,6 +374,10 @@ public static partial class OfficeSvgDrawingReader {
         return root.DescendantsAndSelf().Any(element => {
             if (!IsNativeSvgElement(element, svgNamespace)) return false;
             if (element.Name.LocalName.Equals("foreignObject", StringComparison.Ordinal)) return true;
+            if (element.Name.LocalName.Equals("pattern", StringComparison.Ordinal)) {
+                return element.Attribute("viewBox") != null ||
+                    element.Attribute("preserveAspectRatio") != null;
+            }
             if (!element.Name.LocalName.Equals("image", StringComparison.Ordinal)) return false;
             XAttribute[] hrefs = element.Attributes()
                 .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal))
@@ -678,10 +682,7 @@ public static partial class OfficeSvgDrawingReader {
         foreach (XElement current in element.AncestorsAndSelf()) {
             string? value = ReadPresentationProperty(current, "clip-path")?.Trim();
             if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "none", StringComparison.OrdinalIgnoreCase)) continue;
-            string normalized = value!;
-            if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase) || !normalized.EndsWith(")", StringComparison.Ordinal)) continue;
-            string reference = normalized.Substring(4, normalized.Length - 5).Trim().Trim('\'', '"');
-            if (!reference.StartsWith("#", StringComparison.Ordinal) || reference.Length == 1) continue;
+            if (!TryReadBoundedSvgLocalUrlReference(value!, out string reference)) continue;
             string id;
             try {
                 id = Uri.UnescapeDataString(reference.Substring(1));
@@ -703,6 +704,26 @@ public static partial class OfficeSvgDrawingReader {
         }
         evidence = string.Empty;
         return false;
+    }
+
+    private static bool TryReadBoundedSvgLocalUrlReference(string value, out string reference) {
+        reference = string.Empty;
+        string normalized = value.Trim();
+        if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase) ||
+            !normalized.EndsWith(")", StringComparison.Ordinal)) return false;
+        string inner = normalized.Substring(4, normalized.Length - 5).Trim();
+        if (inner.Length == 0) return false;
+        if (inner[0] is '\'' or '"') {
+            char quote = inner[0];
+            if (inner.Length < 2 || inner[inner.Length - 1] != quote) return false;
+            inner = inner.Substring(1, inner.Length - 2).Trim();
+        } else if (inner[inner.Length - 1] is '\'' or '"') {
+            return false;
+        }
+        if (inner.IndexOfAny(new[] { '\'', '"' }) >= 0 ||
+            !inner.StartsWith("#", StringComparison.Ordinal) || inner.Length == 1) return false;
+        reference = inner;
+        return true;
     }
 
     private static bool TryFindSvgHiddenProperty(XElement element, out string evidence) {
