@@ -50,3 +50,11 @@ stopped an oversized captured document, and interrupted a nonterminating
 script. All four runs reported the expected result and confirmed exact
 container removal. These generated fixtures validate isolated failure recovery,
 not public-host redirects, DNS changes, or arbitrary-site compatibility.
+
+The [controlled acquisition tests](../../../../../OfficeIMO.Html.Runtime.Tests/RuntimePublicResourceBrokerTests.cs)
+direct synthetic public DNS answers through a loopback test transport. They
+prove same-host and explicitly approved cross-host redirect provenance,
+per-hop DNS revalidation, rejection before an unapproved second connection,
+and declared-response byte limits without depending on mutable public DNS.
+These checks cover host-side acquisition; the redirect and DNS-change cases
+still need to pass through the complete OCI capture and rendering pipeline.

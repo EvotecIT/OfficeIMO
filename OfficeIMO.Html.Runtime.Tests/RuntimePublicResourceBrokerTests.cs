@@ -1,5 +1,8 @@
 using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using OfficeIMO.Html.Runtime;
+using OfficeIMO.Tests;
 using Xunit;
 
 namespace OfficeIMO.Html.Runtime.Tests;
@@ -86,4 +89,138 @@ public class RuntimePublicResourceBrokerTests {
         Exception error = await Assert.ThrowsAnyAsync<Exception>(() => broker.FetchAsync(new Uri("http://127.0.0.1/")));
         Assert.Contains("non-public address", error.ToString(), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task AcquisitionRevalidatesDnsAndStopsSameHostRebindingAfterRedirect() {
+        await using var server = new RuntimeHttpFixture((path, _) => Task.FromResult(path == "/start"
+            ? RuntimeHttpFixture.Reply.Text("", "text/plain", 302, "Location: /final\r\n")
+            : RuntimeHttpFixture.Reply.Text("unexpected", "text/plain")));
+        int resolutions = 0, connections = 0;
+        var broker = Broker(server, new[] { "page.example.test" }, (_, _) => Task.FromResult(
+            new[] { IPAddress.Parse(Interlocked.Increment(ref resolutions) == 1 ? "93.184.216.34" : "127.0.0.1") }),
+            (address, port) => {
+                Assert.Equal(IPAddress.Parse("93.184.216.34"), address);
+                Assert.Equal(80, port);
+                Interlocked.Increment(ref connections);
+            });
+
+        Exception error = await Assert.ThrowsAnyAsync<Exception>(() =>
+            broker.FetchAsync(new Uri("http://page.example.test/start")));
+
+        Assert.Contains("non-public address", error.ToString(), StringComparison.Ordinal);
+        Assert.Equal(2, resolutions);
+        Assert.Equal(1, connections);
+        Assert.Equal(new[] { "/start" }, server.Requests);
+    }
+
+    [Fact]
+    public async Task AcquisitionRecordsSameHostAndApprovedCrossHostRedirects() {
+        await using var server = new RuntimeHttpFixture((path, _) => Task.FromResult(path switch {
+            "/same" => RuntimeHttpFixture.Reply.Text("", "text/plain", 302, "Location: /final\r\n"),
+            "/cross" => RuntimeHttpFixture.Reply.Text("", "text/plain", 302,
+                "Location: http://assets.example.test/final\r\n"),
+            _ => RuntimeHttpFixture.Reply.Text("ready", "text/plain")
+        }));
+        int resolutions = 0;
+        var connections = new List<(IPAddress Address, int Port)>();
+        var broker = Broker(server, new[] { "page.example.test", "assets.example.test" }, (host, _) => {
+            Interlocked.Increment(ref resolutions);
+            return Task.FromResult(new[] { IPAddress.Parse(host.StartsWith("assets", StringComparison.Ordinal) ?
+                "1.1.1.1" : "93.184.216.34") });
+        }, (address, port) => connections.Add((address, port)));
+
+        HtmlPublicResourceResult same = await broker.FetchAsync(new Uri("http://page.example.test/same"));
+        HtmlPublicResourceResult cross = await broker.FetchAsync(new Uri("http://page.example.test/cross"));
+
+        Assert.Equal(new Uri("http://page.example.test/final"), same.Resource.FinalUrl);
+        Assert.Equal(new Uri("http://assets.example.test/final"), cross.Resource.FinalUrl);
+        Assert.Equal(302, Assert.Single(same.Redirects).StatusCode);
+        HtmlPublicRedirect hop = Assert.Single(cross.Redirects);
+        Assert.Equal(IPAddress.Parse("93.184.216.34"), hop.ConnectedAddress);
+        Assert.Equal("ready", Encoding.UTF8.GetString(cross.Resource.Content));
+        Assert.Equal(IPAddress.Parse("1.1.1.1"), cross.ConnectedAddress);
+        Assert.Equal(4, resolutions);
+        Assert.Equal(new[] {
+            (IPAddress.Parse("93.184.216.34"), 80),
+            (IPAddress.Parse("93.184.216.34"), 80),
+            (IPAddress.Parse("93.184.216.34"), 80),
+            (IPAddress.Parse("1.1.1.1"), 80)
+        }, connections);
+    }
+
+    [Fact]
+    public async Task AcquisitionRejectsUnapprovedCrossHostRedirectBeforeSecondConnection() {
+        await using var server = new RuntimeHttpFixture((_, _) => Task.FromResult(
+            RuntimeHttpFixture.Reply.Text("", "text/plain", 302,
+                "Location: http://other.example.test/final\r\n")));
+        int connections = 0;
+        var broker = Broker(server, new[] { "page.example.test" }, (_, _) =>
+            Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") }),
+            (_, _) => Interlocked.Increment(ref connections));
+
+        var error = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() =>
+            broker.FetchAsync(new Uri("http://page.example.test/start")));
+
+        Assert.Contains("redirect host is not allowed", error.Message, StringComparison.Ordinal);
+        Assert.Equal(1, connections);
+        Assert.Equal(new[] { "/start" }, server.Requests);
+    }
+
+    [Fact]
+    public async Task AcquisitionRejectsOversizedDeclaredResponseBeforeReadingIt() {
+        await using var server = new RuntimeHttpFixture((_, _) => Task.FromResult(new RuntimeHttpFixture.Reply(
+            new byte[4 * 1024 * 1024 + 1], "application/octet-stream")));
+        var broker = Broker(server, new[] { "page.example.test" }, (_, _) =>
+            Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") }));
+
+        var error = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() =>
+            broker.FetchAsync(new Uri("http://page.example.test/large")));
+
+        Assert.Contains("byte budget", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DefaultConnectorUsesExactEndpointAndOwnsSocket() {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        Stream? stream = null;
+        Socket? accepted = null;
+        try {
+            stream = await HtmlPublicResourceBroker.ConnectToAddressAsync(
+                IPAddress.Loopback, port, CancellationToken.None);
+            accepted = await listener.AcceptSocketAsync();
+            Assert.Equal(IPAddress.Loopback, ((IPEndPoint)accepted.RemoteEndPoint!).Address);
+
+            await stream.DisposeAsync();
+            stream = null;
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            int received = await accepted.ReceiveAsync(new Memory<byte>(new byte[1]), SocketFlags.None, timeout.Token);
+            Assert.Equal(0, received);
+        } finally {
+            if (stream is not null) await stream.DisposeAsync();
+            accepted?.Dispose();
+            listener.Stop();
+        }
+    }
+
+    [Fact]
+    public async Task DefaultConnectorHonorsPreCancelledToken() {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await HtmlPublicResourceBroker.ConnectToAddressAsync(IPAddress.Loopback, 9, cancellation.Token));
+    }
+
+    private static HtmlPublicResourceBroker Broker(RuntimeHttpFixture server, IEnumerable<string> hosts,
+        Func<string, CancellationToken, Task<IPAddress[]>> resolve,
+        Action<IPAddress, int>? connected = null) => new(hosts, resolve, async (address, port, token) => {
+            connected?.Invoke(address, port);
+            var client = new TcpClient(AddressFamily.InterNetwork);
+            try {
+                await client.ConnectAsync(IPAddress.Loopback, server.Origin.Port, token);
+                return client.GetStream();
+            } catch { client.Dispose(); throw; }
+        });
 }

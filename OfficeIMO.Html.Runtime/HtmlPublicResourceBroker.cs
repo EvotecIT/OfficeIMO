@@ -10,12 +10,21 @@ namespace OfficeIMO.Html.Runtime;
 // immutable bytes and has no network route; this broker never runs in it.
 internal sealed class HtmlPublicResourceBroker {
     private readonly HashSet<string> _allowedHosts;
+    private readonly Func<string, CancellationToken, Task<IPAddress[]>> _resolveAddresses;
+    private readonly Func<IPAddress, int, CancellationToken, ValueTask<Stream>> _connect;
     private readonly object _budgetSync = new();
     private int _requests;
     private long _bytes;
 
-    internal HtmlPublicResourceBroker(IEnumerable<string> allowedHosts) {
+    internal HtmlPublicResourceBroker(IEnumerable<string> allowedHosts) : this(
+        allowedHosts, (host, token) => Dns.GetHostAddressesAsync(host, token), ConnectToAddressAsync) { }
+
+    internal HtmlPublicResourceBroker(IEnumerable<string> allowedHosts,
+        Func<string, CancellationToken, Task<IPAddress[]>> resolveAddresses,
+        Func<IPAddress, int, CancellationToken, ValueTask<Stream>> connect) {
         ArgumentNullException.ThrowIfNull(allowedHosts);
+        _resolveAddresses = resolveAddresses ?? throw new ArgumentNullException(nameof(resolveAddresses));
+        _connect = connect ?? throw new ArgumentNullException(nameof(connect));
         _allowedHosts = new HashSet<string>(allowedHosts.Select(ValidateHost), StringComparer.OrdinalIgnoreCase);
         if (_allowedHosts.Count == 0 || _allowedHosts.Count > 16)
             throw new ArgumentException("The pilot requires one to sixteen explicitly allowed hosts.", nameof(allowedHosts));
@@ -43,13 +52,10 @@ internal sealed class HtmlPublicResourceBroker {
                 ConnectCallback = async (context, token) => {
                     string host = ValidateHost(context.DnsEndPoint.Host);
                     if (!_allowedHosts.Contains(host)) throw new HtmlScriptRuntimeException("The public resource host is not allowed.");
-                    IPAddress address = SelectPublicAddress(await Dns.GetHostAddressesAsync(host, token).ConfigureAwait(false));
-                    var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    try {
-                        await socket.ConnectAsync(address, context.DnsEndPoint.Port, token).ConfigureAwait(false);
-                        connectedAddress = address;
-                        return new NetworkStream(socket, ownsSocket: true);
-                    } catch { socket.Dispose(); throw; }
+                    IPAddress address = SelectPublicAddress(await _resolveAddresses(host, token).ConfigureAwait(false));
+                    Stream stream = await _connect(address, context.DnsEndPoint.Port, token).ConfigureAwait(false);
+                    connectedAddress = address;
+                    return stream;
                 }
             };
             using var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
@@ -150,6 +156,14 @@ internal sealed class HtmlPublicResourceBroker {
     }
 
     private static Uri WithoutFragment(Uri url) => new UriBuilder(url) { Fragment = string.Empty }.Uri;
+
+    internal static async ValueTask<Stream> ConnectToAddressAsync(IPAddress address, int port, CancellationToken token) {
+        var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        try {
+            await socket.ConnectAsync(address, port, token).ConfigureAwait(false);
+            return new NetworkStream(socket, ownsSocket: true);
+        } catch { socket.Dispose(); throw; }
+    }
 
     private void ReserveRequest() {
         lock (_budgetSync) if (++_requests > 32) throw new HtmlScriptRuntimeException("The public acquisition request budget was exceeded.");
