@@ -2,8 +2,59 @@ namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfTrueTypeFontProgram {
     private const uint TrueTypeChecksumMagic = 0xB1B0AFBA;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<SubsetCacheKey, byte[]> SubsetFileCache = new();
 
+    // Memoize subset bytes per (font, used-glyph set): the subset is a pure function of those and is
+    // never mutated, so caching removes the per-document rebuild that churns the LOH/Gen2 heap.
     internal byte[] BuildSubsetFontFile() {
+        var key = new SubsetCacheKey(_data, GetUsedGlyphIds());
+        if (SubsetFileCache.TryGetValue(key, out byte[]? cached)) {
+            return cached;
+        }
+
+        byte[] built = BuildSubsetFontFileUncached();
+        if (SubsetFileCache.Count < 512) {
+            SubsetFileCache.TryAdd(key, built);
+        }
+
+        return built;
+    }
+
+    private readonly struct SubsetCacheKey : IEquatable<SubsetCacheKey> {
+        private readonly byte[] _fontData;
+        private readonly int[] _glyphIds;
+        private readonly int _hash;
+
+        internal SubsetCacheKey(byte[] fontData, IReadOnlyList<int> glyphIds) {
+            _fontData = fontData;
+            _glyphIds = glyphIds as int[] ?? System.Linq.Enumerable.ToArray(glyphIds);
+            int hash = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(fontData);
+            for (int i = 0; i < _glyphIds.Length; i++) {
+                hash = (hash * 31) + _glyphIds[i];
+            }
+
+            _hash = hash;
+        }
+
+        public bool Equals(SubsetCacheKey other) {
+            if (!ReferenceEquals(_fontData, other._fontData) || _glyphIds.Length != other._glyphIds.Length) {
+                return false;
+            }
+
+            for (int i = 0; i < _glyphIds.Length; i++) {
+                if (_glyphIds[i] != other._glyphIds[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public override bool Equals(object? obj) => obj is SubsetCacheKey other && Equals(other);
+        public override int GetHashCode() => _hash;
+    }
+
+    private byte[] BuildSubsetFontFileUncached() {
         var glyphs = new SortedSet<int>(GetUsedGlyphIds());
         if (!_tables.TryGetValue("glyf", out TableRecord originalGlyf) ||
             !_tables.TryGetValue("loca", out TableRecord originalLoca)) {
