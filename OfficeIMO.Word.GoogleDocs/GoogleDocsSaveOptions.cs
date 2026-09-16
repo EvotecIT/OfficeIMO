@@ -65,7 +65,7 @@ namespace OfficeIMO.Word.GoogleDocs {
     public enum GoogleDocsInlineImageMode {
         /// <summary>Insert a textual placeholder instead of publishing image content.</summary>
         Placeholder = 0,
-        /// <summary>Use short-lived public Drive image leases so Docs can fetch the content.</summary>
+        /// <summary>Stage images in temporary publicly readable Drive files so Docs can fetch them; deletion is best-effort and must be verified.</summary>
         TemporaryPublicDriveLease = 1,
     }
 

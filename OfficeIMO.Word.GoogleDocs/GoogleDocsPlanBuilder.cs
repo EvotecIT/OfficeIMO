@@ -94,7 +94,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     "InlineImages",
                     options.InlineImageMode == GoogleDocsInlineImageMode.Placeholder
                         ? "Inline images will remain readable placeholders because temporary public Drive staging was not explicitly enabled."
-                        : "Inline images will use short-lived public Drive staging and the exporter will delete every staging file after Google Docs fetches it.",
+                        : "Inline images use temporary public Drive staging with no automatic expiry. The exporter attempts deletion after Google Docs fetches them; inspect cleanup failures because a file can remain public.",
                     code: options.InlineImageMode == GoogleDocsInlineImageMode.Placeholder
                         ? "DOCS.IMAGE.STAGING_DISABLED"
                         : "DOCS.IMAGE.TEMPORARY_PUBLIC_LEASE",
