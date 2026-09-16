@@ -857,6 +857,7 @@ public static partial class OfficeSvgDrawingReader {
         ref int unsupported) {
         string? value = ReadPresentationProperty(element, "transform");
         if (string.IsNullOrWhiteSpace(value)) return inherited;
+        if (IsSvgIdentityTransformValue(value!)) return inherited;
         if (value!.Any(character => char.IsWhiteSpace(character) && !IsSvgCssWhitespace(character))) {
             unsupported++;
             return inherited;
@@ -875,6 +876,9 @@ public static partial class OfficeSvgDrawingReader {
         }
         return combined;
     }
+
+    private static bool IsSvgIdentityTransformValue(string value) =>
+        TrimSvgCssWhitespace(value).Equals("none", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsSupportedSvgTransform(OfficeTransform transform) =>
         Math.Abs(transform.M11) <= MaximumSvgTransformCoefficient &&

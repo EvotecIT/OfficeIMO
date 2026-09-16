@@ -621,6 +621,7 @@ public static partial class OfficeSvgDrawingReader {
             if (current.Attributes().Any(attribute =>
                     attribute.Name.NamespaceName.Length == 0 &&
                     IsUnmodeledSvgTextGeometryAttribute(attribute.Name.LocalName))) return false;
+            if (TryFindUnsupportedSvgBaselineGeometry(current, out _)) return false;
         }
         return true;
     }
@@ -634,6 +635,23 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool IsUnmodeledSvgTextGeometryAttribute(string name) =>
         SvgUnmodeledTextGeometryProperties.Contains(name, StringComparer.Ordinal);
+
+    private static bool TryFindUnsupportedSvgBaselineGeometry(XElement element, out string propertyName) {
+        string? baselineShift = ReadPresentationProperty(element, "baseline-shift");
+        if (!string.IsNullOrWhiteSpace(baselineShift) && !IsValidBaselineShiftValue(baselineShift!.Trim())) {
+            propertyName = "baseline-shift";
+            return true;
+        }
+        string? lineHeight = ReadPresentationProperty(element, "line-height");
+        if (!string.IsNullOrWhiteSpace(lineHeight) &&
+            !IsSvgCssWideKeyword(lineHeight!) &&
+            !TryParseLineHeight(lineHeight!, 16D, out _)) {
+            propertyName = "line-height";
+            return true;
+        }
+        propertyName = string.Empty;
+        return false;
+    }
 
     private static bool TryFindUnmodeledSvgTextGeometryProperty(XElement element, out string name) {
         XAttribute? attribute = element.Attributes().FirstOrDefault(candidate =>

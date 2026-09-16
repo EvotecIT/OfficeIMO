@@ -309,7 +309,10 @@ public static partial class OfficeSvgDrawingReader {
     private static bool HasUnsupportedSvgTransformSyntax(XElement element) {
         foreach (string name in new[] { "transform", "gradientTransform", "patternTransform" }) {
             XAttribute? attribute = element.Attribute(name);
-            if (attribute != null && !OfficeSvgTransformParser.TryParse(attribute.Value, out _)) return true;
+            if (attribute == null) continue;
+            if (name.Equals("transform", StringComparison.Ordinal) &&
+                (IsSvgIdentityTransformValue(attribute.Value) || IsSvgCssWideKeyword(attribute.Value))) continue;
+            if (!OfficeSvgTransformParser.TryParse(attribute.Value, out _)) return true;
         }
         return false;
     }

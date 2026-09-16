@@ -121,6 +121,77 @@ public sealed class SvgContentSafetyStructuralSyntaxTests {
             item.Kind == OfficeContentConcealmentKind.TinyText));
     }
 
+    [Fact]
+    public void PaintEscapingLaterNestedViewportReportsEarlierTextAsProjectionIncomplete() {
+        byte[] svg = Svg(
+            "<text x='120' y='35'>overflow-covered payload</text>" +
+            "<svg width='100' height='60' overflow='visible'>" +
+            "<rect x='110' y='0' width='110' height='60' fill='white'/></svg>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "overflow-covered payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.NonPrimaryContent, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("none")]
+    [InlineData("initial")]
+    [InlineData("unset")]
+    public void IdentityTransformKeywordsRemainWithinTheSupportedSubset(string transform) {
+        byte[] svg = Svg("<text transform='" + transform + "' x='10' y='35'>visible transform payload</text>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible transform payload" &&
+            item.Kind == OfficeContentConcealmentKind.NonPrimaryContent);
+    }
+
+    [Fact]
+    public void UnsupportedBaselineShiftLengthCannotSilentlyHideAnOcclusionCandidate() {
+        byte[] svg = Svg(
+            "<text x='10' y='100' baseline-shift='72pt'>baseline-shift payload</text>" +
+            "<rect x='0' y='0' width='220' height='55' fill='white'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "baseline-shift payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.NonPrimaryContent, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("baseline-shift", finding.Evidence, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void UnsupportedLineHeightLengthAlsoDowngradesBaselineGeometry() {
+        byte[] svg = Svg(
+            "<text x='10' y='100' baseline-shift='50%' line-height='72pt'>line-height payload</text>" +
+            "<rect x='0' y='0' width='220' height='55' fill='white'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "line-height payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("line-height", finding.Evidence, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void SupportedBaselineShiftStillAllowsExactStructuralCleanup() {
+        byte[] svg = Svg("<text x='10' y='35' baseline-shift='8px' opacity='0'>hidden shifted payload</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "hidden shifted payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.TransparentText, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.RemoveText, finding.CleanupCapability);
+    }
+
     private static byte[] Svg(string body) => Encoding.UTF8.GetBytes(
         "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='120' viewBox='0 0 220 120'>" + body + "</svg>");
 }

@@ -250,10 +250,15 @@ public static partial class OfficeSvgDrawingReader {
                     " property and is therefore report-only.";
                 return true;
             }
+            if (TryFindUnsupportedSvgBaselineGeometry(current, out string baselineGeometry)) {
+                evidence = "SVG text geometry uses " + baselineGeometry +
+                    " outside the bounded native baseline layout subset and is therefore report-only.";
+                return true;
+            }
             string? transform = ReadPresentationProperty(current, "transform");
             if (!string.IsNullOrWhiteSpace(transform) &&
                 (transform!.Any(character => char.IsWhiteSpace(character) && !IsSvgCssWhitespace(character)) ||
-                 !OfficeSvgTransformParser.TryParse(transform, out _))) {
+                 !IsSvgIdentityTransformValue(transform!) && !OfficeSvgTransformParser.TryParse(transform, out _))) {
                 evidence = "SVG transform syntax is outside the bounded browser grammar and is therefore report-only.";
                 return true;
             }

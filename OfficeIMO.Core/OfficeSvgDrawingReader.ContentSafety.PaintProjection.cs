@@ -14,6 +14,13 @@ public static partial class OfficeSvgDrawingReader {
             if (element.Attribute(XNamespace.Xml + "base") != null) return true;
             if (!IsNativeSvgElement(element, svgNamespace)) return false;
             string localName = element.Name.LocalName;
+            // Native nested viewport rendering clips even when browser paint may escape the
+            // viewport and cover an earlier, otherwise unrelated text candidate.
+            if (localName.Equals("svg", StringComparison.Ordinal) && element.Parent != null) {
+                string? overflow = ReadPresentationProperty(element, "overflow");
+                if (!string.IsNullOrWhiteSpace(overflow) &&
+                    !TrimSvgCssWhitespace(overflow!).Equals("hidden", StringComparison.OrdinalIgnoreCase)) return true;
+            }
             if (IsCaseMismatchedSvgPaintDefinitionName(localName) ||
                 HasEncodedSvgPaintServerReference(element, localName) ||
                 HasUnsupportedSvgPaintServerMode(element, localName) ||
