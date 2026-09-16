@@ -136,6 +136,41 @@ public class PowerPointPdfTableImportTests {
             geometry => geometry.Preset?.Value == A.ShapeTypeValues.Rectangle);
     }
 
+    [Fact]
+    public void LogicalEditableContentReportsRepresentableVectorsAsOmittedWithoutRenderer() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 300,
+                PageBackgroundShapes = new[] {
+                    PdfCore.PdfPageBackgroundShape.Rectangle(
+                        40,
+                        210,
+                        120,
+                        36,
+                        fill: PdfCore.PdfColor.FromRgb(219, 234, 254),
+                        stroke: PdfCore.PdfColor.FromRgb(37, 99, 235),
+                        strokeWidth: 1)
+                }
+            })
+            .Paragraph(paragraph => paragraph.Text("Logical-only vector"))
+            .ToBytes();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
+        PdfCore.PdfLogicalPage sourcePage = Assert.Single(logical.Pages);
+        Assert.True(sourcePage.VectorPrimitiveCount > 0);
+
+        PdfPowerPointConversionResult result = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+
+        using (result.Value) {
+            PdfPowerPointEditablePageEntry page = Assert.Single(result.Report.EditablePages);
+            Assert.Equal(0, page.ShapeCount);
+            Assert.Equal(sourcePage.VectorPrimitiveCount, page.OmittedVectorCount);
+            Assert.Contains(result.Warnings, static warning =>
+                warning.Code == "PdfVectorsNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
+    }
+
     [Theory]
     [InlineData(PdfPowerPointImportMode.VisualPages)]
     [InlineData(PdfPowerPointImportMode.EditableTables)]

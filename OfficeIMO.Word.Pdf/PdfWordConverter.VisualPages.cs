@@ -40,7 +40,8 @@ internal static partial class PdfWordConverter {
                     "PDF tagged accessibility structure is not copied into the visual Word document.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
             }
-            if (sourceInfo.HasOpenActions || sourceInfo.CatalogActionCount > 0) {
+            if (PdfCore.PdfPageRangeObjectFilter.CountDocumentActionsByPageNumbers(
+                    sourceInfo, selectedPageNumbers) > 0) {
                 AddWarning(options, "PdfCatalogActionsNotReconstructed", "Document/CatalogActions",
                     "PDF document open and catalog actions are not copied into the visual Word document.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);

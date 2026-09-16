@@ -1256,6 +1256,33 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
     }
 
+    [Theory]
+    [InlineData("42")]
+    [InlineData("99 0 R")]
+    public void Jpeg2000WithMalformedDecodeIsClassifiedUnsafe(string decodeValue) {
+        byte[] jpx = File.ReadAllBytes(Path.Combine(
+            AppContext.BaseDirectory,
+            "Pdf",
+            "Fixtures",
+            "Interoperability",
+            "Scans",
+            "red-rgb.jp2"));
+        byte[] source = CreateRawImagePdf(
+            "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            imageBytes: jpx,
+            imageDefinition: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /JPXDecode /Decode " + decodeValue);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        PdfLogicalImage image = Assert.Single(Assert.Single(logical.Pages).Images);
+        Assert.True(image.SourceImage.IsImageFile);
+        Assert.False(image.SourceImage.HasExplicitDecode);
+        Assert.True(image.SourceImage.HasUnsafePassThroughDecode);
+
+        AssertRawImageOmittedAcrossEditableAdapters(
+            logical,
+            "PdfImageDecodeNotSafelyEditable",
+            "ImageDecodeNotSafelyEditable");
+    }
+
     [Fact]
     public void RawJpeg2000CodestreamIsNotEmbeddedAsAJP2FileAcrossEditableAdapters() {
         byte[] container = File.ReadAllBytes(Path.Combine(

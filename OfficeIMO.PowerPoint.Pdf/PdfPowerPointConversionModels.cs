@@ -315,13 +315,12 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
                     ["construct"] = "Visual page slides"
                 })
         };
-        int documentActionCount = sourceInfo.CatalogActionCount;
-        if (sourceInfo.OpenAction != null && !sourceInfo.CatalogActions.Any(static action =>
-                string.Equals(action.Source, "OpenAction", StringComparison.Ordinal) && !action.IsChainedAction)) {
-            documentActionCount++;
-        }
+        int[] selectedPageNumbers = visualPages.Select(static page => page.PageNumber).ToArray();
+        int documentActionCount = OfficeIMO.Pdf.PdfPageRangeObjectFilter.CountDocumentActionsByPageNumbers(
+            sourceInfo,
+            selectedPageNumbers);
         AddDocumentOmissionWarning(warnings, "PdfDocumentActionsNotReconstructed", "Document actions",
-            Math.Max(documentActionCount, sourceInfo.HasOpenActions ? 1 : 0), "document open and catalog actions");
+            documentActionCount, "document open and catalog actions");
         AddDocumentOmissionWarning(warnings, "PdfFormDefinitionsNotReconstructed", "Form definitions",
             sourceInfo.FormFields.Count(static field => field.HasUnplacedContent) + (sourceInfo.HasAcroFormXfa ? 1 : 0),
             "form definitions not attached to a page and XFA content");
@@ -351,9 +350,9 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
                 OfficeIMO.Pdf.PdfConversionWarningSeverity.Warning,
                 OfficeConversionLossKind.Approximation));
         }
-        var selectedPageNumbers = new HashSet<int>(visualPages.Select(static page => page.PageNumber));
+        var selectedPageNumberSet = new HashSet<int>(selectedPageNumbers);
         foreach (OfficeIMO.Pdf.PdfPageInfo page in sourceInfo.Pages) {
-            if (!selectedPageNumbers.Contains(page.PageNumber)) continue;
+            if (!selectedPageNumberSet.Contains(page.PageNumber)) continue;
             string source = "PDF page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
             AddDocumentOmissionWarning(warnings, "PdfLinksNotReconstructed", source + "/Links",
                 Math.Max(page.LinkAnnotations.Count, page.Annotations.Count(static annotation =>

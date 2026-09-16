@@ -9,6 +9,31 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Tests;
 
 public partial class Excel {
+    [Theory]
+    [InlineData("$9,012.00−", "$", PdfCore.PdfLogicalCurrencyAffixPosition.Prefix, false, 2, -9012, "\"$\"#,##0.00;\"$\"#,##0.00\"−\"")]
+    [InlineData("$−9,123.00", "$", PdfCore.PdfLogicalCurrencyAffixPosition.Prefix, false, 2, -9123, "\"$\"#,##0.00;\"$\"\"−\"#,##0.00")]
+    [InlineData("9,012.500 KWD−", "KWD", PdfCore.PdfLogicalCurrencyAffixPosition.Suffix, true, 3, -9012.5, "#,##0.000 \"KWD\";#,##0.000 \"KWD\"\"−\"")]
+    [InlineData("9,123.500− KWD", "KWD", PdfCore.PdfLogicalCurrencyAffixPosition.Suffix, true, 3, -9123.5, "#,##0.000 \"KWD\";#,##0.000\"−\" \"KWD\"")]
+    public void PdfCurrencyFormatsPreserveEquivalentUnicodeSignPlacement(
+        string source,
+        string currencyToken,
+        PdfCore.PdfLogicalCurrencyAffixPosition affixPosition,
+        bool usesSpacing,
+        int decimalPlaces,
+        double parsedValue,
+        string expected) {
+        string actual = PdfExcelTableConverterExtensions.BuildCurrencyNumberFormat(
+            currencyToken,
+            affixPosition,
+            usesSpacing,
+            decimalPlaces,
+            (decimal)parsedValue,
+            source,
+            CultureInfo.InvariantCulture);
+
+        Assert.Equal(expected, actual);
+    }
+
     [Fact]
     public void PdfTables_SaveTablesAsExcel_PreservesHeaderWhenNarrativePrecedesAutoSizedTable() {
         byte[] pdf = PdfCore.PdfDocument.Create()

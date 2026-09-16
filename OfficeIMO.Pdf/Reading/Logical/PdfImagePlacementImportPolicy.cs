@@ -106,7 +106,7 @@ internal static class PdfImagePlacementImportPolicy {
                 blendMode);
         }
         if (image.SourceImage.HasUnsafePassThroughDecode &&
-            string.Equals(image.SourceImage.MimeType, "image/jp2", StringComparison.OrdinalIgnoreCase)) {
+            IsPassThroughScanMimeType(image.SourceImage.MimeType)) {
             return new PdfImagePlacementImportAssessment(
                 PdfImagePlacementImportDisposition.OmitUnappliedDecode,
                 opacity,
@@ -148,6 +148,11 @@ internal static class PdfImagePlacementImportPolicy {
             opacity,
             blendMode);
     }
+
+    private static bool IsPassThroughScanMimeType(string? mimeType) =>
+        string.Equals(mimeType, "image/jpeg", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(mimeType, "image/jp2", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(mimeType, "image/j2c", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsFullyVisibleRectangle(PdfLogicalPage page, PdfImagePlacement placement) {
         if (placement.Width <= 0D || placement.Height <= 0D) return false;

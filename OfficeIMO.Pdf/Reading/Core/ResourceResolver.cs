@@ -1319,10 +1319,13 @@ internal static partial class ResourceResolver {
                 maxDecodedStreamBytes);
         }
 
-        bool hasExplicitDecode = HasResolvedArrayEntry(stream.Dictionary, "Decode", objects);
+        bool hasDecodeEntry = stream.Dictionary.Items.TryGetValue("Decode", out PdfObject? decodeObject);
+        PdfObject? resolvedDecode = PdfObjectLookup.ResolveChain(objects, decodeObject);
+        bool hasExplicitDecode = resolvedDecode is PdfArray;
+        bool hasMalformedDecode = hasDecodeEntry && resolvedDecode is not (PdfArray or PdfNull);
         int decodeComponentCount = GetDeclaredDeviceColorCount(colorSpace);
-        bool hasUnsafePassThroughDecode = hasExplicitDecode &&
-            (decodeComponentCount == 0 ||
+        bool hasUnsafePassThroughDecode = hasMalformedDecode ||
+            hasExplicitDecode && (decodeComponentCount == 0 ||
              !PdfImageDecodeTransform.IsIdentityColorDecodeOrAbsent(
                  stream.Dictionary,
                  decodeComponentCount,
@@ -1355,13 +1358,6 @@ internal static partial class ResourceResolver {
             requiresScanDecode: HasScanFilter(filterObj, objects),
             hasUnsafePassThroughDecode: hasUnsafePassThroughDecode);
     }
-
-    private static bool HasResolvedArrayEntry(
-        PdfDictionary dictionary,
-        string key,
-        Dictionary<int, PdfIndirectObject> objects) =>
-        dictionary.Items.TryGetValue(key, out PdfObject? value) &&
-        PdfObjectLookup.ResolveChain(objects, value) is PdfArray;
 
     private static bool HasResolvedDecodeParametersEntry(
         PdfDictionary dictionary,

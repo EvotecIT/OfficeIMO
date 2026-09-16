@@ -82,7 +82,7 @@ public static partial class PowerPointPdfConverterExtensions {
             EditableImportCount shapeImport = drawing == null
                 ? new EditableImportCount(
                     0,
-                    0,
+                    page.VectorPrimitiveCount,
                     false)
                 : ImportEditableShapes(drawing, slide, placement, tableBounds, remainingObjects, cancellationToken);
             remainingObjects -= shapeImport.Imported;

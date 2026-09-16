@@ -221,7 +221,8 @@ public partial class PdfPageImageRendererTests {
     [Theory]
     [InlineData(10, 38)] // Component precision is limited to 38 bits (encoded as precision minus one).
     [InlineData(11, 6)] // Compression type must be JPEG 2000 (7).
-    [InlineData(12, 2)] // Unknown-colourspace flag is boolean.
+    [InlineData(12, 1)] // The accepted opaque subset requires a known colourspace.
+    [InlineData(12, 2)] // Non-Boolean unknown-colourspace declarations are also invalid.
     [InlineData(13, 1)] // Intellectual-property metadata is outside the accepted opaque subset.
     [InlineData(13, 2)] // Intellectual-property flag must still be Boolean.
     [InlineData(10, 255)] // Variable component depths require a matching bpcc box.

@@ -314,7 +314,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static string BuildCurrencyNumberFormat(
+        internal static string BuildCurrencyNumberFormat(
             string currencyToken,
             PdfCore.PdfLogicalCurrencyAffixPosition affixPosition,
             bool affixUsesSpacing,
@@ -336,14 +336,15 @@ namespace OfficeIMO.Excel.Pdf {
             if (string.IsNullOrEmpty(negativeSign)) negativeSign = "-";
             bool usesAccountingNotation = normalized.Length >= 3 &&
                 normalized[0] == '(' && normalized[normalized.Length - 1] == ')';
-            bool usesNegativeSign = normalized.IndexOf(negativeSign, StringComparison.Ordinal) >= 0;
+            string? detectedNegativeSign = FindEquivalentSign(normalized, negativeSign, negative: true);
+            bool usesNegativeSign = detectedNegativeSign is not null;
             if (parsedValue > 0M || parsedValue == 0M && !usesAccountingNotation && !usesNegativeSign) {
                 string positiveSign = numericCulture.NumberFormat.PositiveSign;
-                return !string.IsNullOrEmpty(positiveSign) &&
-                       normalized.IndexOf(positiveSign, StringComparison.Ordinal) >= 0
+                string? detectedPositiveSign = FindEquivalentSign(normalized, positiveSign, negative: false);
+                return detectedPositiveSign is not null
                     ? BuildSignedCurrencyPattern(
                         normalized,
-                        positiveSign,
+                        detectedPositiveSign,
                         currencyToken,
                         affixPosition,
                         literal,
@@ -357,7 +358,7 @@ namespace OfficeIMO.Excel.Pdf {
                 ? "\"(\"" + positive + "\")\""
                 : BuildSignedCurrencyPattern(
                     normalized,
-                    negativeSign,
+                    detectedNegativeSign ?? negativeSign,
                     currencyToken,
                     affixPosition,
                     literal,
@@ -371,6 +372,21 @@ namespace OfficeIMO.Excel.Pdf {
             return string.Equals(negative, positive, StringComparison.Ordinal)
                 ? positive
                 : positive + ";" + negative;
+        }
+
+        private static string? FindEquivalentSign(string value, string cultureSign, bool negative) {
+            if (!string.IsNullOrEmpty(cultureSign) && value.IndexOf(cultureSign, StringComparison.Ordinal) >= 0) {
+                return cultureSign;
+            }
+
+            string equivalents = negative
+                ? "-\u2212\uFE63\uFF0D"
+                : "+\uFE62\uFF0B";
+            for (int index = 0; index < equivalents.Length; index++) {
+                if (value.IndexOf(equivalents[index]) >= 0) return equivalents[index].ToString();
+            }
+
+            return null;
         }
 
         private static string BuildSignedCurrencyPattern(

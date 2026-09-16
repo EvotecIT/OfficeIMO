@@ -850,12 +850,24 @@ public class PdfTableStreamExportContracts {
         PdfHtmlConversionResult html = opened.ToHtmlResult(new PdfToHtmlOptions {
             PageRanges = new[] { PdfPageRange.From(1, 1) }
         });
+        var visualWordOptions = PdfToWordOptions.CreateVisualPages();
+        visualWordOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) };
+        PdfWordConversionResult visualWord = opened.ToWordDocumentResult(visualWordOptions);
+        var visualPowerPointOptions = PdfToPowerPointOptions.CreateVisualPages();
+        visualPowerPointOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) };
+        PdfPowerPointConversionResult visualPowerPoint = opened.ToPowerPointPresentationResult(visualPowerPointOptions);
         using (word.Value)
-        using (projectedWord.Value) {
+        using (projectedWord.Value)
+        using (visualWord.Value)
+        using (visualPowerPoint.Value) {
             Assert.DoesNotContain(word.Report.Warnings, static warning =>
                 warning.Code == "PdfCatalogActionsNotReconstructed");
             Assert.DoesNotContain(projectedWord.Report.Warnings, static warning =>
                 warning.Code == "PdfCatalogActionsNotReconstructed");
+            Assert.DoesNotContain(visualWord.Report.Warnings, static warning =>
+                warning.Code == "PdfCatalogActionsNotReconstructed");
+            Assert.DoesNotContain(visualPowerPoint.Report.Warnings, static warning =>
+                warning.Code == "PdfDocumentActionsNotReconstructed");
         }
         Assert.DoesNotContain(html.Report.Warnings, static warning =>
             warning.Code == "PdfDocumentActionsOmitted");

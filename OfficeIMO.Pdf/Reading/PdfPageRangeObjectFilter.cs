@@ -123,6 +123,26 @@ internal static class PdfPageRangeObjectFilter {
         return selectedPageNumbers.Contains(openAction.PageNumber.Value) ? openAction : null;
     }
 
+    internal static int CountDocumentActionsByPageNumbers(PdfDocumentInfo sourceInfo, int[] pageNumbers) {
+        PdfDocumentOpenAction? selectedOpenAction = FilterOpenActionByPageNumbers(sourceInfo.OpenAction, pageNumbers);
+        bool excludedReadableOpenAction = sourceInfo.OpenAction is not null && selectedOpenAction is null;
+        int openActionCatalogCount = sourceInfo.CatalogActions.Count(static action =>
+            string.Equals(action.Source, "OpenAction", StringComparison.Ordinal));
+        int count = Math.Max(
+            0,
+            sourceInfo.CatalogActionCount - (excludedReadableOpenAction ? openActionCatalogCount : 0));
+        if (selectedOpenAction is not null && !sourceInfo.CatalogActions.Any(static action =>
+                string.Equals(action.Source, "OpenAction", StringComparison.Ordinal) && !action.IsChainedAction)) {
+            count++;
+        }
+
+        if (count == 0 && sourceInfo.OpenAction is null && sourceInfo.HasOpenActions) {
+            count = 1;
+        }
+
+        return count;
+    }
+
     internal static IReadOnlyList<PdfFormField> FilterFormFieldsByPageNumbers(IReadOnlyList<PdfFormField> formFields, int[] pageNumbers, bool preservePageDuplicates) {
         if (formFields.Count == 0) {
             return formFields;
