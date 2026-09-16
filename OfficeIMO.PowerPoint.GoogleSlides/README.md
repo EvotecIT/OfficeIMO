@@ -85,7 +85,7 @@ Set `TemplatePresentationId` to copy a template before authoring. Template copy,
 - `DriveExport` exports Google Slides to PPTX and loads it through `OfficeIMO.PowerPoint`. This is the default and broadest-fidelity import.
 - `Native` reads Slides API objects directly. It imports slide size, text boxes and core styles, hyperlinks, tables, images, geometry, and speaker-note text, and returns the Slides revision needed for safe replacement.
 
-The Slides API fetches created images from a URL. Export therefore creates short-lived public Drive objects and removes their permissions and files after the batch, including failure paths. Do not grant permanent public access to source assets.
+The Slides API fetches created images from a URL. Export stages temporary publicly readable Drive files and attempts to delete them after the batch, including failure paths. Deletion can fail, and a file then remains public until it is removed. Inspect `GooglePresentationReference.Report` for `DRIVE.TEMPORARY_CONTENT.CLEANUP_FAILED` after a successful export and follow up on the named file. Do not grant permanent public access to source assets.
 
 ## Authentication and scopes
 
@@ -100,3 +100,15 @@ Authoring uses `GoogleWorkspaceScopeCatalog.SlidesAuthoring` (`drive.file` and `
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
 
 See `GoogleSlidesFeatureSupportCatalog.Features` for the code-owned support matrix and the [complete OfficeIMO package map](../README.md) for related formats.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Convert | 2 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.PowerPoint.GoogleSlides` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

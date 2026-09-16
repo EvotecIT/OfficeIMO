@@ -30,6 +30,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_PublicRasterExportHonorsEncodedByteLimitAndCancellation() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.AddParagraph("Bounded Word raster export");
+            var options = new WordImageExportOptions { MaximumTotalEncodedBytes = 8L };
+
+            OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                document.ExportImage(OfficeImageExportFormat.Png, options));
+
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+            Assert.Throws<OperationCanceledException>(() =>
+                document.ToImage().AsPng().Export(new System.Threading.CancellationToken(canceled: true)));
+        }
+
+        [Fact]
         public void WordDocument_ExportsFirstPageToPngAndSvgThroughSharedDrawing() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
@@ -4328,6 +4343,36 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Even-numbered footer", svgText, StringComparison.Ordinal);
             Assert.DoesNotContain("Odd/default numbered header", svgText, StringComparison.Ordinal);
             Assert.DoesNotContain("Odd/default numbered footer", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_RendersInheritedEvenHeaderFooterOnSecondSectionPage() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection firstSection = document.Sections[0];
+            firstSection.PageSettings.PageSize = WordPageSize.A4;
+            firstSection.SetMargins(WordMargin.Narrow);
+            firstSection.AddParagraph("First section body");
+
+            WordSection secondSection = document.AddSection(WordSectionBreakType.NextPage);
+            firstSection.GetOrCreateHeader(WordHeaderFooterType.Even).AddParagraph("Inherited even header marker");
+            firstSection.GetOrCreateFooter(WordHeaderFooterType.Even).AddParagraph("Inherited even footer marker");
+            secondSection.AddPageNumbering(2);
+            secondSection.AddParagraph("Second section body");
+            Assert.Null(secondSection.Header.Even);
+            Assert.Null(secondSection.Footer.Even);
+            Assert.True(secondSection.DifferentOddAndEvenPages);
+            Assert.Same(firstSection.Header.Even, secondSection.ResolveEvenHeader());
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+
+            Assert.Contains(snapshot.Drawing.Elements, element =>
+                element is OfficeDrawingText text && text.Text == "Inherited even header marker");
+            Assert.Contains(snapshot.Drawing.Elements, element =>
+                element is OfficeDrawingText text && text.Text == "Inherited even footer marker");
+            Assert.Contains(snapshot.Drawing.Elements, element =>
+                element is OfficeDrawingText text && text.Text == "Second section body");
         }
 
         [Fact]

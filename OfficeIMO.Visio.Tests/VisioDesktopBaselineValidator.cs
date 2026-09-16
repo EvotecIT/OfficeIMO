@@ -4,6 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+#if NET5_0_OR_GREATER
+using System.Runtime.Versioning;
+#endif
 using System.Threading;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
@@ -319,12 +322,13 @@ namespace OfficeIMO.Tests {
                         using (FileStream stream = File.OpenRead(path)) {
                             XDocument svg = XDocument.Load(stream,
                                 LoadOptions.PreserveWhitespace);
-                            if (!string.Equals(svg.Root?.Name.LocalName, "svg",
+                            XElement? root = svg.Root;
+                            if (root == null || !string.Equals(root.Name.LocalName, "svg",
                                     StringComparison.OrdinalIgnoreCase)) {
                                 issue = "SVG root element was not found: " + path;
                                 return false;
                             }
-                            if (!HasVisibleSvgContent(svg.Root)) {
+                            if (!HasVisibleSvgContent(root)) {
                                 issue = "SVG contains no visible graphical content with usable bounds: "
                                     + path;
                                 return false;
@@ -469,14 +473,18 @@ namespace OfficeIMO.Tests {
 
             try {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Marshal.IsComObject(value)) {
-#pragma warning disable CA1416
-                    Marshal.FinalReleaseComObject(value);
-#pragma warning restore CA1416
+                    FinalReleaseComObjectOnWindows(value);
                 }
             } catch {
                 // Best effort cleanup only.
             }
         }
+
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
+        private static void FinalReleaseComObjectOnWindows(object value) =>
+            Marshal.FinalReleaseComObject(value);
     }
 
     internal sealed class VisioDesktopValidationOptions {

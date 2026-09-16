@@ -236,9 +236,11 @@ totals. Unsupported source data is reported before rewriting. The core has no
 external runtime dependencies.
 
 [OfficeIMO.Invoicing.Validation](OfficeIMO.Invoicing.Validation/README.md) adds
-hash-pinned XSD and Schematron releases for EN 16931, XRechnung and UBL Peppol BIS.
+hash-pinned XSD and Schematron releases for all five Factur-X 1.09.2 profiles,
+EN 16931, XRechnung and UBL Peppol BIS, plus pinned independent corpus evidence.
 Business-rule execution uses an explicitly configured local Java/Saxon runtime.
-[`OfficeIMO.Invoicing.Pdf`](OfficeIMO.Invoicing.Pdf/README.md) renders and attaches one captured invoice through `PdfInvoiceDocument`.
+[`OfficeIMO.Invoicing.Pdf`](OfficeIMO.Invoicing.Pdf/README.md) renders localized or
+multilingual layouts and attaches the exact captured XML through `PdfInvoiceDocument`.
 
 #### [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md)
 
@@ -269,6 +271,8 @@ _Dependency footprint:_ only `OfficeIMO.Core`; no third-party PDF parser, writer
 - [x] Capture a typed invoice once for visible PDF content and its embedded CII XML
 - [x] Render invoices and credit notes with line items, VAT breakdowns, payment details, identifiers, and totals
 - [x] Keep later model edits separate from an existing snapshot
+- [x] Localize generated labels in English, German, Polish, French, or custom multilingual packs
+- [x] Preserve long mixed-script descriptions through embedded font fallbacks and exact XML/PDF agreement checks
 
 _Dependency footprint:_ `OfficeIMO.Invoicing` and `OfficeIMO.Pdf`. Install this optional adapter only when combining the XML invoice engine with PDF generation.
 

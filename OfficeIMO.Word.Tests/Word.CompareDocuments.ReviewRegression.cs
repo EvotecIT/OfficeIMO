@@ -1349,7 +1349,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordFieldUpdateStatus.Updated, update.Status);
                 Paragraph paragraph = Assert.Single(document._document.Body!.Elements<Paragraph>());
                 Assert.Contains(paragraph.Elements<Run>(), run => run.Elements<FieldChar>().Any(field => field.FieldCharType?.Value == FieldCharValues.Separate));
-                Assert.True(paragraph.Elements<Run>().TakeWhile(run => !run.Elements<FieldChar>().Any(field => field.FieldCharType?.Value == FieldCharValues.End)).Any(run => run.InnerText == "Current title"));
+                Assert.Contains(paragraph.Elements<Run>().TakeWhile(run => !run.Elements<FieldChar>().Any(field => field.FieldCharType?.Value == FieldCharValues.End)), run => run.InnerText == "Current title");
             }
         }
 

@@ -194,3 +194,22 @@ Notebook readers exclude the `OneNote_RecycleBin` section group by default. Set 
 The test corpus contains legally reusable Apache-2.0 fixtures for desktop and Microsoft 365/FSSHTTP encodings plus an MPL-2.0 real-world handwriting-recognition fixture. Tests cover native read/write round trips, decoded ink geometry and recognition, image formats, visual conversion, unknown-data preservation, deterministic corruption mutations, truncation, limits, package paths, and supported target frameworks. Generated desktop sections have also been opened, edited, saved, closed, and reopened with Microsoft OneNote during interoperability validation; OneNote is not required at runtime or in CI.
 
 See the [current-state and capability matrix](../Docs/officeimo.onenote.current-state.md) for detailed boundaries and links to the Microsoft format specifications.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 1 | 0 | 0 | 0 | 1 | 0 |
+| Read | 1 | 0 | 0 | 0 | 1 | 0 |
+| Edit | 1 | 0 | 0 | 1 | 0 | 0 |
+| Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
+| Inspect | 1 | 1 | 0 | 0 | 0 | 0 |
+| Validate | 0 | 0 | 0 | 0 | 0 | 1 |
+| Remove | 0 | 0 | 0 | 0 | 1 | 0 |
+| Export | 0 | 5 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.OneNote` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

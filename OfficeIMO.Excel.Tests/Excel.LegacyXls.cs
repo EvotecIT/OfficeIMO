@@ -1378,9 +1378,9 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.Empty(result.UnsupportedFeatures.Where(item =>
+            Assert.DoesNotContain(result.UnsupportedFeatures, item =>
                 item.Kind == LegacyXlsUnsupportedFeatureKind.WorksheetView
-                && item.RecordType == (ushort)BiffRecordType.Pane));
+                && item.RecordType == (ushort)BiffRecordType.Pane);
             Assert.DoesNotContain(result.Diagnostics, diagnostic =>
                 diagnostic.Code == "XLS-BIFF-FEATURE-WORKSHEET-VIEW-UNSUPPORTED"
                 && diagnostic.RecordType == (ushort)BiffRecordType.Pane);

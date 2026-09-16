@@ -91,7 +91,7 @@ public sealed class PdfReverseConversionScorecardTests {
         Assert.All(scannedResult.Document.TextBlocks, block => Assert.Equal(PdfCore.PdfLogicalContentSourceKind.Ocr, block.SourceKind));
         using (OfficeIMO.Word.WordDocument word = scannedResult.Document.ToWordDocument()) {
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
-            Assert.Contains("Scanned invoice", package.MainDocumentPart!.Document.InnerText, StringComparison.Ordinal);
+            Assert.Contains("Scanned invoice", package.MainDocumentPart!.Document!.InnerText, StringComparison.Ordinal);
         }
 
         byte[] mixed = PdfCore.PdfDocument.Create()
@@ -202,9 +202,9 @@ public sealed class PdfReverseConversionScorecardTests {
                     result.Value.Save(stream);
                     using PresentationDocument package = PresentationDocument.Open(new MemoryStream(stream.ToArray()), false);
                     Assert.Equal(logical.Pages.Count, package.PresentationPart!.SlideParts.Count());
-                    string presentationText = string.Join(" ", package.PresentationPart.SlideParts.SelectMany(static slide => slide.Slide.Descendants<A.Text>()).Select(static text => text.Text));
+                    string presentationText = string.Join(" ", package.PresentationPart.SlideParts.SelectMany(static slide => slide.Slide!.Descendants<A.Text>()).Select(static text => text.Text));
                     AssertTokenRecall(sourceTokens, presentationText, routeConfiguration.GetProperty("minimumTokenRecall").GetDouble(), route);
-                    if (expectedTables) Assert.NotEmpty(package.PresentationPart.SlideParts.SelectMany(static slide => slide.Slide.Descendants<A.Table>()));
+                    if (expectedTables) Assert.NotEmpty(package.PresentationPart.SlideParts.SelectMany(static slide => slide.Slide!.Descendants<A.Table>()));
                 }
                 return;
             case "pdf-to-odt": {
@@ -281,7 +281,7 @@ public sealed class PdfReverseConversionScorecardTests {
             .Select(static item => item.InnerText)
             .ToArray() ?? Array.Empty<string>();
         var values = new List<string>();
-        foreach (S.Cell cell in package.WorkbookPart!.WorksheetParts.SelectMany(static worksheet => worksheet.Worksheet.Descendants<S.Cell>())) {
+        foreach (S.Cell cell in package.WorkbookPart!.WorksheetParts.SelectMany(static worksheet => worksheet.Worksheet!.Descendants<S.Cell>())) {
             if (cell.DataType?.Value == S.CellValues.SharedString &&
                 int.TryParse(cell.CellValue?.Text, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int sharedIndex) &&
                 sharedIndex >= 0 && sharedIndex < sharedStrings.Length) {
@@ -353,7 +353,7 @@ public sealed class PdfReverseConversionScorecardTests {
 
     private static string FindRepositoryRoot() {
         string? current = AppContext.BaseDirectory;
-        while (!string.IsNullOrWhiteSpace(current)) {
+        while (current is not null && !string.IsNullOrWhiteSpace(current)) {
             if (File.Exists(Path.Combine(current, "OfficeIMO.sln"))) return current;
             current = Directory.GetParent(current)?.FullName;
         }

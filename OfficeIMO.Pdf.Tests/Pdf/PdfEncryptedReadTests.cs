@@ -480,7 +480,7 @@ public class PdfEncryptedReadTests {
         }
 
         private static byte[] Md5(byte[] data) {
-#pragma warning disable CA5351, CA1850
+#pragma warning disable CA5351, CA1850 // The fixture reproduces the mandated legacy PDF encryption algorithm across all test targets.
             using MD5 md5 = MD5.Create();
             return md5.ComputeHash(data);
 #pragma warning restore CA5351, CA1850

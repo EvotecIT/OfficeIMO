@@ -400,8 +400,8 @@ public class DrawingSvgReaderTests {
         Assert.Contains("<linearGradient", exported, StringComparison.Ordinal);
         Assert.DoesNotContain("<text", exported, StringComparison.Ordinal);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
-        Assert.True(Enumerable.Range(0, raster.Height).Any(y =>
-            Enumerable.Range(0, raster.Width).Any(x => raster.GetPixel(x, y).A > 0)));
+        Assert.Contains(Enumerable.Range(0, raster.Height), y =>
+            Enumerable.Range(0, raster.Width).Any(x => raster.GetPixel(x, y).A > 0));
     }
 
     [Fact]

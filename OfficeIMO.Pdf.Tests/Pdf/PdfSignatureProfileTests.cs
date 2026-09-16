@@ -295,6 +295,264 @@ public class PdfSignatureProfileTests {
         Assert.Contains("/SubFilter /ETSI.RFC3161", raw, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void VisibleApprovalProfileOmitsBackgroundAndBorderWhenDisabled() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Image only appearance source"))
+            .ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source,
+            new PdfExternalSignatureOptions {
+                FieldName = "ImageOnly",
+                VisibleAppearance = new PdfVisibleSignatureAppearanceOptions {
+                    Width = 180,
+                    Height = 72,
+                    ImageBytes = PdfPngTestImages.CreateRgbPng(4, 2),
+                    ImagePadding = 0,
+                    ShowText = false,
+                    ShowBackground = false,
+                    ShowBorder = false
+                },
+                ReservedSignatureContentsBytes = 512
+            });
+        PdfStream appearance = FindImageAppearanceStream(preparation.PreparedPdf);
+        string content = PdfEncoding.Latin1GetString(appearance.Data);
+
+        Assert.Contains("/Im1 Do", content, StringComparison.Ordinal);
+        Assert.DoesNotContain(" re f", content, StringComparison.Ordinal);
+        Assert.DoesNotContain(" re S", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("BT ", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ApprovalProfileAllowsAdditionalSignatureOverSignedRevision() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Multi-signature source"))
+            .ToBytes();
+        PdfExternalSignaturePreparation first = PdfIncrementalUpdater.PrepareExternalSignature(
+            source,
+            new PdfExternalSignatureOptions { FieldName = "First", ReservedSignatureContentsBytes = 512 });
+        byte[] firstSigned = PdfIncrementalUpdater.ApplyExternalSignature(first, new byte[] { 0x30, 0x03, 0x02, 0x01, 0x01 });
+
+        PdfAppendOnlyMutationReport mutation = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(firstSigned);
+        PdfExternalSignaturePreparation second = PdfIncrementalUpdater.PrepareExternalSignature(
+            firstSigned,
+            new PdfExternalSignatureOptions { FieldName = "Second", ReservedSignatureContentsBytes = 512 });
+        byte[] secondSigned = PdfIncrementalUpdater.ApplyExternalSignature(second, new byte[] { 0x30, 0x03, 0x02, 0x01, 0x02 });
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(secondSigned);
+
+        Assert.True(mutation.CanPrepareExternalSignature);
+        Assert.Contains("SignedAdditionalSignature", mutation.Warnings);
+        Assert.True(secondSigned.AsSpan(0, firstSigned.Length).SequenceEqual(firstSigned));
+        Assert.Equal(2, report.Signatures.Count);
+        Assert.True(report.IsStructurallyValid);
+        Assert.Contains(report.Signatures, signature => signature.Signature.FieldName == "First");
+        Assert.Contains(report.Signatures, signature => signature.Signature.FieldName == "Second");
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void CertificationWithPermittedChangesAllowsAdditionalSignaturePreparation(int permissionLevel) {
+        byte[] certified = PdfITextInspiredCoverageTests.BuildDocMdpFormPdf(permissionLevel);
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            certified,
+            new PdfExternalSignatureOptions { FieldName = "Second", ReservedSignatureContentsBytes = 512 });
+        PdfDocumentSecurityInfo security = PdfInspector.Inspect(preparation.PreparedPdf).Security;
+
+        Assert.True(preparation.PreparedPdf.AsSpan(0, certified.Length).SequenceEqual(certified));
+        Assert.Equal(permissionLevel, security.DocMDPPermissionLevel);
+        Assert.Equal(2, security.SignatureFieldCount);
+    }
+
+    [Fact]
+    public void AdditionalSignaturePreparationBlocksAFieldIncludedBySignatureLock() {
+        byte[] certified = PdfITextInspiredCoverageTests.BuildDocMdpFormPdf(
+            permissionLevel: 2,
+            lockDictionary: "<< /Type /SigFieldLock /Action /Include /Fields [(Second)] >>");
+        var options = new PdfExternalSignatureOptions { FieldName = "Second", ReservedSignatureContentsBytes = 512 };
+
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfIncrementalUpdater.PrepareExternalSignature(certified, options));
+        PdfOperationResult<PdfExternalSignaturePreparation> result = PdfDocument.Load(certified)
+            .PrepareExternalSignatureResult(options);
+
+        Assert.Contains("AppendOnly.SignatureFieldLock", exception.Plan.BlockerCodes);
+        Assert.False(result.Succeeded);
+        Assert.Contains("AppendOnly.SignatureFieldLock", Assert.IsType<PdfMutationPlan>(result.MutationPlan).BlockerCodes);
+    }
+
+    [Fact]
+    public void AdditionalSignaturePreparationAllowsAFieldOutsideSignatureLock() {
+        byte[] certified = PdfITextInspiredCoverageTests.BuildDocMdpFormPdf(
+            permissionLevel: 2,
+            lockDictionary: "<< /Type /SigFieldLock /Action /Include /Fields [(Name)] >>");
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            certified,
+            new PdfExternalSignatureOptions { FieldName = "Second", ReservedSignatureContentsBytes = 512 });
+
+        Assert.True(preparation.PreparedPdf.AsSpan(0, certified.Length).SequenceEqual(certified));
+        Assert.Equal("Second", preparation.FieldName);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CertificationProfileRequiresTheFirstSignedRevision(bool existingCertification) {
+        byte[] signed;
+        if (existingCertification) {
+            signed = PdfITextInspiredCoverageTests.BuildDocMdpFormPdf(permissionLevel: 2);
+        } else {
+            byte[] source = PdfDocument.Create()
+                .Paragraph(paragraph => paragraph.Text("Approval source"))
+                .ToBytes();
+            PdfExternalSignaturePreparation approval = PdfIncrementalUpdater.PrepareExternalSignature(
+                source,
+                new PdfExternalSignatureOptions { FieldName = "Approval", ReservedSignatureContentsBytes = 512 });
+            signed = PdfIncrementalUpdater.ApplyExternalSignature(approval, new byte[] { 0x30, 0x03, 0x02, 0x01, 0x01 });
+        }
+        var options = new PdfExternalSignatureOptions {
+            Profile = PdfSignatureProfile.Certification,
+            FieldName = "Certification",
+            ReservedSignatureContentsBytes = 512
+        };
+
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfIncrementalUpdater.PrepareExternalSignature(signed, options));
+        PdfOperationResult<PdfExternalSignaturePreparation> result = PdfDocument.Load(signed)
+            .PrepareExternalSignatureResult(options);
+
+        Assert.Contains("AppendOnly.CertificationRequiresFirstSignature", exception.Plan.BlockerCodes);
+        Assert.False(result.Succeeded);
+        Assert.Contains(
+            "AppendOnly.CertificationRequiresFirstSignature",
+            Assert.IsType<PdfMutationPlan>(result.MutationPlan).BlockerCodes);
+    }
+
+    [Fact]
+    public void CertificationProfileAllowsTheFirstSignatureWhenOnlyAnUnsignedFieldExists() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Unsigned field source"))
+            .ToBytes();
+        byte[] unsigned = PdfAcroFormEditor.Edit(
+            source,
+            edit => edit.PlaceSignatureField("EmptySignature", 1, 72, 500, 180, 40)).ToBytes();
+        unsigned = PdfDocumentObjectGraphRewriter.Rewrite(unsigned, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[Assert.IsType<int>(security.RootObjectNumber)].Value);
+            PdfDictionary acroForm = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["AcroForm"]));
+            acroForm.Items["SigFlags"] = new PdfNumber(1);
+            return security.InfoObjectNumber;
+        });
+        PdfDocumentSecurityInfo security = PdfInspector.Inspect(unsigned).Security;
+        var options = new PdfExternalSignatureOptions {
+            Profile = PdfSignatureProfile.Certification,
+            FieldName = "Certification",
+            ReservedSignatureContentsBytes = 512
+        };
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(unsigned, options);
+        PdfOperationResult<PdfExternalSignaturePreparation> result = PdfDocument.Load(unsigned)
+            .PrepareExternalSignatureResult(options);
+
+        Assert.True(security.AcroFormSignaturesExist);
+        Assert.Equal(0, security.SignatureValueCount);
+        Assert.Equal(PdfSignatureProfile.Certification, preparation.Profile);
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void SignedFieldMdpBlocksAFieldWithoutMutableSignatureLock() {
+        byte[] certified = PdfITextInspiredCoverageTests.BuildDocMdpFormPdf(
+            permissionLevel: 2,
+            fieldMdpTransformParameters: "<< /Type /TransformParams /V /1.2 /Action /Include /Fields [(Second)] >>");
+        var options = new PdfExternalSignatureOptions { FieldName = "Second", ReservedSignatureContentsBytes = 512 };
+
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfIncrementalUpdater.PrepareExternalSignature(certified, options));
+        PdfSignatureFieldLockInfo fieldLock = Assert.IsType<PdfSignatureFieldLockInfo>(
+            Assert.Single(PdfInspector.Inspect(certified).Security.Signatures).FieldLock);
+
+        Assert.Contains("AppendOnly.SignatureFieldLock", exception.Plan.BlockerCodes);
+        Assert.True(fieldLock.LocksIncludedFields);
+        Assert.Equal(new[] { "Second" }, fieldLock.Fields);
+    }
+
+    [Fact]
+    public void SignedFieldMdpOverridesDivergentMutableSignatureLock() {
+        byte[] certified = PdfITextInspiredCoverageTests.BuildDocMdpFormPdf(
+            permissionLevel: 2,
+            lockDictionary: "<< /Type /SigFieldLock /Action /Include /Fields [(Name)] >>",
+            fieldMdpTransformParameters: "<< /Type /TransformParams /V /1.2 /Action /Include /Fields [(Second)] >>");
+
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfIncrementalUpdater.PrepareExternalSignature(
+                certified,
+                new PdfExternalSignatureOptions { FieldName = "Second", ReservedSignatureContentsBytes = 512 }));
+
+        Assert.Contains("AppendOnly.SignatureFieldLock", exception.Plan.BlockerCodes);
+    }
+
+    [Fact]
+    public void SignedFieldMdpAllowsAFieldDespiteDivergentMutableSignatureLock() {
+        byte[] certified = PdfITextInspiredCoverageTests.BuildDocMdpFormPdf(
+            permissionLevel: 2,
+            lockDictionary: "<< /Type /SigFieldLock /Action /Include /Fields [(Second)] >>",
+            fieldMdpTransformParameters: "<< /Type /TransformParams /V /1.2 /Action /Include /Fields [(Name)] >>");
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            certified,
+            new PdfExternalSignatureOptions { FieldName = "Second", ReservedSignatureContentsBytes = 512 });
+
+        Assert.True(preparation.PreparedPdf.AsSpan(0, certified.Length).SequenceEqual(certified));
+        Assert.Equal("Second", preparation.FieldName);
+    }
+
+    [Theory]
+    [InlineData("<< /TransformMethod /FieldMDP /TransformParams << /Action /Include /Fields [(Second)] >> >>")]
+    [InlineData("[10 0 R]")]
+    [InlineData("[<< /TransformMethod /FieldMDP /TransformParams << /Action /Include /Fields [(Second) 42] >> >>]")]
+    public void MalformedSignedFieldMdpFailsClosed(string signatureReference) {
+        byte[] signed = PdfITextInspiredCoverageTests.BuildDocMdpFormPdf(
+            permissionLevel: 2,
+            signatureReference: signatureReference,
+            includeDocMdpPermissions: false);
+        var options = new PdfExternalSignatureOptions { FieldName = "Second", ReservedSignatureContentsBytes = 512 };
+
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfIncrementalUpdater.PrepareExternalSignature(signed, options));
+        PdfSignatureFieldLockInfo fieldLock = Assert.IsType<PdfSignatureFieldLockInfo>(
+            Assert.Single(PdfInspector.Inspect(signed).Security.Signatures).FieldLock);
+
+        Assert.True(fieldLock.LocksAllFields);
+        Assert.Contains("AppendOnly.SignatureFieldLock", exception.Plan.BlockerCodes);
+    }
+
+    [Fact]
+    public void CertificationWithNoChangesBlocksAdditionalSignaturePreparation() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Locked certification source"))
+            .ToBytes();
+        PdfExternalSignaturePreparation certification = PdfIncrementalUpdater.PrepareExternalSignature(
+            source,
+            new PdfExternalSignatureOptions {
+                Profile = PdfSignatureProfile.Certification,
+                CertificationPermission = PdfCertificationPermissionLevel.NoChanges,
+                FieldName = "Certification",
+                ReservedSignatureContentsBytes = 512
+            });
+        byte[] certified = PdfIncrementalUpdater.ApplyExternalSignature(certification, new byte[] { 0x30, 0x03, 0x02, 0x01, 0x01 });
+
+        PdfAppendOnlyMutationReport mutation = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(certified);
+
+        Assert.False(mutation.CanPrepareExternalSignature);
+        Assert.Contains("SignaturePrepare", mutation.BlockedActions);
+        Assert.Throws<PdfMutationBlockedException>(() => PdfIncrementalUpdater.PrepareExternalSignature(
+            certified,
+            new PdfExternalSignatureOptions { FieldName = "Second", ReservedSignatureContentsBytes = 512 }));
+    }
+
     private static PdfStream FindImageAppearanceStream(byte[] pdf) {
         Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf).Map;
         return Assert.Single(objects.Values

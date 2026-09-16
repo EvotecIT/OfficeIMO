@@ -1062,7 +1062,7 @@ namespace OfficeIMO.Tests {
             C.BarChartSeries firstSeries = doc._wordprocessingDocument.MainDocumentPart!
                 .ChartParts
                 .First()
-                .ChartSpace
+                .ChartSpace!
                 .GetFirstChild<C.Chart>()!
                 .PlotArea!
                 .GetFirstChild<C.BarChart>()!
@@ -1082,11 +1082,12 @@ namespace OfficeIMO.Tests {
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
             chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
 
-            C.ChartSpace chartSpace = doc._wordprocessingDocument.MainDocumentPart!
+            C.ChartSpace? chartSpace = doc._wordprocessingDocument.MainDocumentPart!
                 .ChartParts
                 .First()
                 .ChartSpace;
-            foreach (C.PointCount pointCount in chartSpace.Descendants<C.PointCount>()) {
+            Assert.NotNull(chartSpace);
+            foreach (C.PointCount pointCount in chartSpace!.Descendants<C.PointCount>()) {
                 pointCount.Val = 1_000_000U;
             }
 
@@ -1107,7 +1108,7 @@ namespace OfficeIMO.Tests {
             C.PlotArea plotArea = doc._wordprocessingDocument.MainDocumentPart!
                 .ChartParts
                 .First()
-                .ChartSpace
+                .ChartSpace!
                 .GetFirstChild<C.Chart>()!
                 .PlotArea!;
             plotArea.Append(new C.BubbleChart());
@@ -1125,7 +1126,7 @@ namespace OfficeIMO.Tests {
             C.BarChartSeries seriesElement = doc._wordprocessingDocument.MainDocumentPart!
                 .ChartParts
                 .First()
-                .ChartSpace
+                .ChartSpace!
                 .GetFirstChild<C.Chart>()!
                 .PlotArea!
                 .GetFirstChild<C.BarChart>()!
@@ -1169,7 +1170,7 @@ namespace OfficeIMO.Tests {
             C.BarChartSeries seriesElement = doc._wordprocessingDocument.MainDocumentPart!
                 .ChartParts
                 .First()
-                .ChartSpace
+                .ChartSpace!
                 .GetFirstChild<C.Chart>()!
                 .PlotArea!
                 .GetFirstChild<C.BarChart>()!
@@ -1209,7 +1210,7 @@ namespace OfficeIMO.Tests {
             var seriesElements = doc._wordprocessingDocument.MainDocumentPart!
                 .ChartParts
                 .First()
-                .ChartSpace
+                .ChartSpace!
                 .GetFirstChild<C.Chart>()!
                 .PlotArea!
                 .GetFirstChild<C.BarChart>()!
@@ -1251,7 +1252,7 @@ namespace OfficeIMO.Tests {
             C.LineChartSeries seriesElement = doc._wordprocessingDocument.MainDocumentPart!
                 .ChartParts
                 .First()
-                .ChartSpace
+                .ChartSpace!
                 .GetFirstChild<C.Chart>()!
                 .PlotArea!
                 .GetFirstChild<C.LineChart>()!

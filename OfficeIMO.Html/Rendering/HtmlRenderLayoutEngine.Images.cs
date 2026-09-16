@@ -310,7 +310,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (pixels > _options.MaximumRasterPixels
                 || raster.Width > _options.MaxSurfaceWidth
                 || raster.Height > _options.MaxSurfaceHeight) return false;
-            byte[] png = OfficeRasterImageEncoder.Encode(raster, OfficeImageExportFormat.Png, _options.RasterEncoding);
+            byte[] png = OfficeRasterImageEncoder.Encode(
+                raster,
+                OfficeImageExportFormat.Png,
+                _options.RasterEncoding,
+                _options.MaxResourceBytes,
+                _cancellationToken);
             _cancellationToken.ThrowIfCancellationRequested();
             double resolvedWidth = width > 0D ? width : raster.Width;
             double resolvedHeight = height > 0D ? height : raster.Height;
@@ -331,7 +336,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     : "managed-parse-failed") + ";pixels=" + pixels,
                 OfficeConversionLossKind.Approximation);
             return true;
-        } catch (Exception exception) when (exception is not OperationCanceledException && exception is not OutOfMemoryException && exception is not StackOverflowException) {
+        } catch (Exception exception) when (exception is not OperationCanceledException &&
+                                            exception is not OutOfMemoryException &&
+                                            exception is not StackOverflowException) {
             return false;
         }
     }

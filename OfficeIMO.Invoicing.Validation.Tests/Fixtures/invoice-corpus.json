@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "facturX": {
+    "producer": "AdVitam facturx",
+    "license": "MIT",
+    "sourceUrl": "https://github.com/AdVitam/facturx",
+    "sourceCommit": "cbd3619da18f1aefe3c88ee33978d408e98d1e1d",
+    "archiveUrl": "https://codeload.github.com/AdVitam/facturx/zip/cbd3619da18f1aefe3c88ee33978d408e98d1e1d",
+    "archiveSha256": "91702E94A45EB4EF2119A0981D977A329B3956681234C500E40A33C88D7D8604",
+    "fixtureRoot": "facturx-cbd3619da18f1aefe3c88ee33978d408e98d1e1d/facturx-schematron/spec/fixtures/xml",
+    "fixtures": [
+      { "file": "minimum.xml", "profile": "Minimum", "sha256": "3FE9BB8EA24BFD595BD1188EF54789A9A5269E8E9684F3FB86497CBAC7BF37A8" },
+      { "file": "basic_wl.xml", "profile": "BasicWithoutLines", "sha256": "972004167D74050EFF0D408B2830FD674CC1AC9D2AA63016DB9C734D4BE1E8C8" },
+      { "file": "basic.xml", "profile": "Basic", "sha256": "D446DD9089A65EC411DD553B580C03742823D36E7D8495679D8610C87BE576D6" },
+      { "file": "en16931.xml", "profile": "En16931", "sha256": "BBE72251C63614FFB2BC5FFAF8DCB2CF044D399346E5965B3FF2CDB0A1D563DF" },
+      { "file": "extended.xml", "profile": "Extended", "sha256": "DE3C9452B3F5FA1C46C47B06ECEB1E8193DCA8436A07D38DDF9B4BDA8F6ABE3F" }
+    ]
+  },
+  "xRechnung": {
+    "producer": "KoSIT XRechnung test suite",
+    "license": "Apache-2.0",
+    "sourceUrl": "https://github.com/itplr-kosit/xrechnung-testsuite",
+    "sourceCommit": "1ce1dafffd035e5ce59a7ab0d3bf44ac14af16c9",
+    "release": "XRechnung 3.0.2 2026-08-31",
+    "syntaxes": [ "Cii", "Ubl" ],
+    "fixtures": [
+      { "file": "01.01a-INVOICE_ubl.xml", "sha256": "74FB09C609D5FBA15A8C543060998D3B92858F56A81FB5B0ED244D6794E498D1" },
+      { "file": "01.01a-INVOICE_uncefact.xml", "sha256": "727B51982A84C9B406599A7384783570910440ED405C9BB6D918B22442636886" },
+      { "file": "01.05a-INVOICE_ubl.xml", "sha256": "09CFF10C3AD2A6934E4825B1F5E1AB595410443FF2F150D3CDA634D2F0EEDC6C" },
+      { "file": "01.05a-INVOICE_uncefact.xml", "sha256": "8F95097B5231474C835BF6685AA215BD41076AF8AC0C0C8BE0E98FDD93001764" }
+    ]
+  }
+}

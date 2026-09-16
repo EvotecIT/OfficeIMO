@@ -237,10 +237,14 @@ namespace OfficeIMO.Tests {
             using X509Certificate2 created = request.CreateSelfSigned(
                 DateTimeOffset.UtcNow.AddMinutes(-5),
                 DateTimeOffset.UtcNow.AddDays(1));
-            return new X509Certificate2(
-                created.Export(X509ContentType.Pfx),
-                (string?)null,
-                X509KeyStorageFlags.Exportable);
+            byte[] exported = created.Export(X509ContentType.Pfx);
+#if NET9_0_OR_GREATER
+            return X509CertificateLoader.LoadPkcs12(exported, null, X509KeyStorageFlags.Exportable);
+#else
+#pragma warning disable SYSLIB0057 // X509CertificateLoader is unavailable before .NET 9.
+            return new X509Certificate2(exported, (string?)null, X509KeyStorageFlags.Exportable);
+#pragma warning restore SYSLIB0057
+#endif
         }
 
         private static void AddTimestampedMacroSignatureProfile(

@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Lightweight metadata from a signature field /Lock dictionary.
+/// Effective field-lock metadata from a signed FieldMDP transform or signature field /Lock dictionary.
 /// </summary>
 public sealed class PdfSignatureFieldLockInfo {
     internal PdfSignatureFieldLockInfo(string? action, IReadOnlyList<string> fields) {
@@ -12,7 +12,7 @@ public sealed class PdfSignatureFieldLockInfo {
     /// <summary>Field-lock /Action name such as All, Include, or Exclude, when readable.</summary>
     public string? Action { get; }
 
-    /// <summary>Field names listed by the lock dictionary /Fields array.</summary>
+    /// <summary>Field names listed by the effective lock /Fields array.</summary>
     public IReadOnlyList<string> Fields { get; }
 
     /// <summary>True when the lock applies to every form field.</summary>

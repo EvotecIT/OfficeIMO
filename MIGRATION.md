@@ -27,6 +27,10 @@ var options = new PdfToWordOptions {
 
 `PreserveImagePlacementSize` remains independent. Set it to `false` to use an image's natural pixel dimensions even when `PreserveImagePlacementPosition` keeps the image floating at its recovered page position.
 
+### Google Slides sync checkpoints
+
+`GoogleSlidesDiffPlanner.CreateCheckpoint` now records a hash-format version and uses culture- and runtime-independent numeric fingerprints. Previously persisted `GoogleSlidesSyncCheckpoint` values without a format version cannot be safely compared after upgrading; `BuildAsync` rejects them before contacting Google. Compare the source and remote presentation without the old checkpoint, reconcile any differences, then create and persist a new checkpoint with the observed revision and Drive version only when the two are synchronized. Do not mark old hashes as the new format.
+
 ### Provenance format ownership
 
 `OfficeIMO.Workflows` now accepts provenance requests only for extensions registered to a named OfficeIMO format owner, and it verifies that the file contents match that structural format. This keeps path, byte, command-line, and browser claims aligned with formats OfficeIMO can genuinely reopen and preserve.
@@ -37,6 +41,30 @@ var options = new PdfToWordOptions {
 | Inspect a generic `.zip` through the cross-format workflow | Use the package-specific owner for a supported document format. Generic containers are no longer advertised by the workflow. |
 | Pass package bytes under a different Office or OpenDocument subtype filename, such as DOCM content named `.docx` | Pass the filename extension that matches the package subtype. Package provenance APIs now reject mismatched subtype names before inspection or mutation. |
 | Read `officeimo.provenance.capabilities.v1` output from `officeimo provenance capabilities` | Accept `officeimo.provenance.capabilities.v2`, including exact structural format, memory-only, and browser qualification records for every extension. |
+
+### Protected-content capability catalog schema 2
+
+`OfficeProtectionCapabilityCatalog.Current` now uses schema version 2. Each
+operation whose coverage is `NotSupported` must have exactly one
+`OfficeProtectionUnsupportedOperation` that classifies it as either
+`RoadmapTracked` or `IntentionalBoundary`. Pass those classifications through the
+new `OfficeProtectionCapability` constructor overload.
+
+Existing custom catalogs that use the 12-argument capability constructor retain
+their former behavior when they declare schema version 1, including the legacy
+JSON fields and Markdown columns. Before this release the catalog constructor
+accepted any positive custom schema number, so applications that used version 2
+or higher without defining their own schema contract must make an explicit choice:
+
+| Previous custom catalog | Upgrade action |
+| --- | --- |
+| Keep the legacy row and export shape | Construct `OfficeProtectionCapabilityCatalog` with `schemaVersion: 1`. |
+| Adopt the structured unsupported-operation contract | Keep `schemaVersion: 2` or later and pass one disposition for every operation marked `NotSupported`. Do not classify operations in any other coverage state. |
+
+For `RoadmapTracked`, provide a non-empty roadmap reference. For
+`IntentionalBoundary`, omit the roadmap reference. Catalog construction throws
+`ArgumentException` when a schema-version-2-or-later row has missing, duplicate,
+or extraneous classifications.
 
 ### Owned HTML documents and callbacks
 
@@ -156,6 +184,64 @@ XRechnung 3.0. Unrecognized identifiers, legacy ZUGFeRD 1 identifiers, missing
 guidelines, and ambiguous declarations are no longer accepted by the Factur-X
 helpers. These helpers retain the embedded XML and never rewrite its profile.
 XMP `Version` remains `1.0`; do not pass the specification release number there.
+
+### Explicit electronic-invoice releases and semantic collections
+
+Electronic-invoice authoring, rewriting, conversion, PDF capture and validation
+now require an explicit `InvoiceSpecificationRelease`. Replace implicit write
+calls and the former syntax/profile-only options with one exact contract:
+
+```csharp
+var contract = new InvoiceXmlOptions(
+    InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2,
+    InvoiceSyntax.Cii,
+    InvoiceProfile.En16931);
+
+byte[] xml = InvoiceSerializer.Write(invoice, contract);
+byte[] editedXml = InvoiceParser.Read(xml).Write(contract);
+var pdf = PdfInvoiceDocument.Create(invoice, contract);
+var report = await validator.ValidateAsync(xml, contract.Release);
+```
+
+There is no moving `Latest` release and no implicit fallback. The supported
+combinations are EN 16931 1.3.16 in CII or UBL; Factur-X 1.09.2 / ZUGFeRD 2.5.2
+in CII for MINIMUM, BASIC WL, BASIC, EN 16931 and EXTENDED; XRechnung 3.0.2
+configuration 2026-08-31 in CII or UBL; and Peppol BIS Billing 3.0.21 in UBL.
+`InvoiceRulesRelease` has been removed; use `InvoiceSpecificationRelease` for
+both authoring and validation. Validation stage states now use
+`InvoiceValidationStatus`.
+
+The party and payment models now preserve occurrences instead of collapsing
+them into convenient scalar fields:
+
+- Replace `InvoiceParty.VatIdentifier` and `InvoiceParty.TaxRegistration` with
+  `TaxRegistrations`, adding `InvoiceTaxRegistration` values with their source
+  scheme.
+- Replace `Invoice.Payment` with the ordered `Invoice.Payments` collection.
+- Replace `InvoicePayment.Accounts` with one `Account` on each payment occurrence.
+- Store card-network metadata in `InvoicePayment.CardNetworkId`.
+
+These are deliberate breaking changes. They prevent arbitrary registration
+schemes, payment descriptions, references and card metadata from being merged or
+relabelled silently. `InvoiceSerializer.InspectTarget` and conversion now identify
+the exact indexed field when the selected target cannot carry it. Conflicting
+exemption reasons remain on their source categories and block a target that has
+only one category/rate breakdown field.
+
+Lower Factur-X profiles use `InvoiceProjectionPolicy`. The default
+`RejectDataLoss` blocks populated fields omitted by the profile. Select
+`AllowProfileDefinedDataLoss` only after inspecting the returned
+`INV-TARGET-PROJECTION` diagnostics; it permits that enumerated profile reduction,
+not arbitrary loss.
+Parsed MINIMUM and BASIC WL models contain the aggregates retained by those
+profiles and no synthetic line items. They can be edited and rewritten to the
+same lower profile; promotion to a line-based profile still requires real lines.
+
+Visible PDF localization is a separate captured presentation contract. Pass
+`InvoicePdfLayoutOptions.ForCultures(...)` for built-in English, German, Polish
+or French labels, combine cultures for multilingual labels, or create a custom
+`InvoicePdfLanguagePack`. Embed representative fonts for every script used by the
+invoice rather than relying on a development machine's installed fonts.
 
 ### Document AI execution failures and page limits
 

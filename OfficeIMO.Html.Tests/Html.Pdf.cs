@@ -1049,7 +1049,7 @@ public sealed class HtmlPdfTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes());
 
-        Assert.Empty(info.FormFields.Where(field => field.MappingName == "tag"));
+        Assert.DoesNotContain(info.FormFields, field => field.MappingName == "tag");
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldRepeatedNameStaticFallback);
         PdfCore.PdfFormField[] statuses = info.FormFields.Where(field => field.MappingName == "status").ToArray();
         Assert.Equal(2, statuses.Length);
@@ -1073,7 +1073,7 @@ public sealed class HtmlPdfTests {
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
 
         Assert.True(rendered.Pages.Count > 1);
-        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields.Where(field => field.MappingName is "filter" or "summary"));
+        Assert.DoesNotContain(PdfCore.PdfInspector.Inspect(pdf).FormFields, field => field.MappingName is "filter" or "summary");
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldRepeatedNameStaticFallback);
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Contains("All rows", text, StringComparison.Ordinal);
@@ -1094,7 +1094,7 @@ public sealed class HtmlPdfTests {
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
 
         Assert.True(rendered.Pages.Count > 1);
-        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields.Where(field => field.MappingName == "fixed-search"));
+        Assert.DoesNotContain(PdfCore.PdfInspector.Inspect(pdf).FormFields, field => field.MappingName == "fixed-search");
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldRepeatedNameStaticFallback);
         Assert.Contains("Paragraph", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }

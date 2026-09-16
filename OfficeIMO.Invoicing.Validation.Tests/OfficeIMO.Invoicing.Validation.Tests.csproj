@@ -8,5 +8,6 @@
     <Using Include="Xunit" />
     <Compile Include="../OfficeIMO.Invoicing.Tests/Fixtures/InvoiceFixture.cs" Link="InvoiceFixture.cs" />
     <None Include="../OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/*.xml" Link="Fixtures/KoSIT/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures/invoice-corpus.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

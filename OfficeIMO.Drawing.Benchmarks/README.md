@@ -30,6 +30,21 @@ dotnet run --project OfficeIMO.Drawing.Benchmarks -c Release -f net10.0 -- --mem
 
 Pass one or more scenario names such as `Screenshot`, `HighEntropy`, or `VeryLarge` to narrow that run. Each row starts after the decoded/generated source image is resident. `Peak private` is a process-level managed-plus-native boundary, not a claim that the runtime can attribute every byte to a specific native codec.
 
+## Release-quality evidence suite
+
+The repository-level release gate uses the same benchmark assembly through PowerForge's structured evidence runner. Build the benchmark project first, then run the suite from the repository root with PowerShell on .NET 10 or newer and PSPublishModule 3.0.141 or later:
+
+```powershell
+dotnet build OfficeIMO.Drawing.Benchmarks/OfficeIMO.Drawing.Benchmarks.csproj -c Release -f net10.0
+pwsh ./Build/Benchmarks/Run-ReleaseQualityImageEvidence.ps1
+```
+
+Use `-Plan` to inspect the resolved cases and policy without executing measurements. `-BinaryRoot`, `-OutputRoot`, `-WarmupCount`, and `-IterationCount` provide explicit inputs for a controlled run. The default output is `.validation/release-quality-images`; it contains JSON, CSV, and Markdown evidence and remains a task-owned validation artifact rather than a committed benchmark result.
+
+The suite runs PNG screenshot, TIFF scan, WebP alpha-graphic, and JPEG text cases through the shared bounded encoder. Each case validates decoded output, deterministic encoding, cancellation observation, and format-specific fidelity before it can succeed. Evidence records elapsed time, encoded bytes, managed allocation, peak process memory, deterministic status, cancellation status, and mean absolute error where applicable. A non-planning run fails when any case is not `Succeeded`.
+
+Interpret correctness and cancellation as gates. Compare encoded size, elapsed time, allocation, and peak memory as separate tradeoffs across equivalent cases and the same machine/runtime; do not treat the fastest row alone as release-quality evidence. JPEG error is a lossy-fidelity metric, while the lossless cases must satisfy their exact decoded-pixel contract.
+
 Start benchmark work with a short diagnostic run:
 
 ```powershell

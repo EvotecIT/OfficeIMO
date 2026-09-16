@@ -24,12 +24,12 @@ public class InvoiceDiagnosticLimitTests {
         AssertBounded(result.Diagnostics);
         InvalidDataException error = Assert.Throws<InvalidDataException>(result.ThrowIfInvalid);
         Assert.True(error.Message.Length < 200000);
-        AssertBounded(InvoiceSerializer.InspectTarget(invoice, new InvoiceXmlOptions()));
+        AssertBounded(InvoiceSerializer.InspectTarget(invoice, InvoiceTestContracts.En16931()));
     }
 
     [Fact]
     public void MappedMalformedXmlCannotAmplifyConversionDiagnostics() {
-        XDocument document = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(InvoiceFixture.Create(), new InvoiceXmlOptions(InvoiceSyntax.Ubl))));
+        XDocument document = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(InvoiceFixture.Create(), InvoiceTestContracts.En16931(InvoiceSyntax.Ubl))));
         XNamespace cac = "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2";
         XNamespace cbc = "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2";
         XElement item = document.Descendants(cac + "Item").First();
@@ -38,7 +38,7 @@ public class InvoiceDiagnosticLimitTests {
         Assert.True(xml.Length < 16 * 1024 * 1024);
         InvoiceReadResult read = InvoiceParser.Read(xml);
         Assert.True(read.HasCompleteMapping);
-        InvoiceConversionResult result = InvoiceConverter.Convert(xml, new InvoiceXmlOptions(InvoiceSyntax.Cii, InvoiceProfile.XRechnung));
+        InvoiceConversionResult result = InvoiceConverter.Convert(xml, InvoiceTestContracts.XRechnung(InvoiceSyntax.Cii));
         Assert.False(result.Succeeded);
         Assert.Null(result.Xml);
         AssertBounded(result.Diagnostics);
@@ -47,11 +47,14 @@ public class InvoiceDiagnosticLimitTests {
     [Fact]
     public void TargetDiagnosticsAreBoundedAndNullItemsAreReported() {
         Invoice invoice = InvoiceFixture.Create();
-        for (int i = 0; i < 49000; i++) invoice.Payment!.Accounts.Add(new InvoiceBankAccount { Identifier = "DE89370400440532013000", IsIban = false });
-        AssertBounded(InvoiceSerializer.InspectTarget(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl)));
-        invoice.Payment!.Accounts.Clear();
-        invoice.Payment.Accounts.Add(null!);
-        Assert.Contains(InvoiceSerializer.InspectTarget(invoice, new InvoiceXmlOptions()), d => d.Severity == InvoiceDiagnosticSeverity.Error);
+        for (int i = 0; i < 49000; i++) invoice.Payments.Add(new InvoicePayment {
+            MeansCode = "30",
+            Account = new InvoiceBankAccount { Identifier = "DE89370400440532013000", IsIban = false }
+        });
+        AssertBounded(InvoiceSerializer.InspectTarget(invoice, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl)));
+        invoice.Payments.Clear();
+        invoice.Payments.Add(null!);
+        Assert.Contains(InvoiceSerializer.InspectTarget(invoice, InvoiceTestContracts.En16931()), d => d.Severity == InvoiceDiagnosticSeverity.Error);
     }
 
     private static void AssertBounded(IReadOnlyList<InvoiceDiagnostic> diagnostics) {

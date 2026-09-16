@@ -34,7 +34,12 @@ internal static partial class PdfIncrementalUpdater {
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         ValidateExternalSignatureOptions(effectiveOptions);
         PdfSignatureProfile signatureProfile = ResolveSignatureProfile(effectiveOptions);
-        _ = PdfMutationPlanner.RequireAppendOnly(pdf, PdfMutationOperation.PrepareExternalSignature, readOptions);
+        _ = PdfMutationPlanner.RequireAppendOnly(
+            pdf,
+            PdfMutationOperation.PrepareExternalSignature,
+            readOptions,
+            new[] { effectiveOptions.FieldName },
+            signatureProfile);
 
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
 

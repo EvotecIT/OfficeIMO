@@ -28,3 +28,15 @@ var oauthSession = new ConfluenceSession(
 Use `PlanDeletePage` before `DeletePageAsync` when a caller needs a reviewable destructive-operation plan. Attachment overloads accepting `Stream` avoid buffering file-sized payloads; caller-owned streams remain open.
 
 Credentials remain caller-owned through `IConfluenceCredentialSource`. The library does not provide a secret store or persist tokens.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Convert | 0 | 4 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Confluence` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

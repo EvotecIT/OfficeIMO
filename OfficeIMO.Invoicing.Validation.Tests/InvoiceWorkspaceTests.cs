@@ -34,7 +34,7 @@ public class InvoiceWorkspaceTests {
             var runner = new SaxonInvoiceRulesRunner(Environment.GetEnvironmentVariable("OFFICEIMO_INVOICE_SAXON_JAR")!, relative);
             bool started = false;
             await Assert.ThrowsAsync<InvalidOperationException>(() => runner.RunAsync(Encoding.UTF8.GetBytes("invoice"), Encoding.UTF8.GetBytes("rules"), false,
-                new Dictionary<string, InvoiceDiagnosticSeverity>(), CancellationToken.None, () => started = true));
+                new Dictionary<string, InvoiceDiagnosticSeverity>(), CancellationToken.None, ruleProcessStarted: () => started = true));
             Assert.True(started);
         } finally { Directory.Delete(directory, recursive: true); }
     }
@@ -51,7 +51,7 @@ public class InvoiceWorkspaceTests {
             var runner = new SaxonInvoiceRulesRunner(Environment.GetEnvironmentVariable("OFFICEIMO_INVOICE_SAXON_JAR")!, executable);
             bool started = false;
             await Assert.ThrowsAsync<InvalidOperationException>(() => runner.RunAsync(Encoding.UTF8.GetBytes("invoice"), Encoding.UTF8.GetBytes("rules"), compile,
-                new Dictionary<string, InvoiceDiagnosticSeverity>(), CancellationToken.None, () => started = true));
+                new Dictionary<string, InvoiceDiagnosticSeverity>(), CancellationToken.None, ruleProcessStarted: () => started = true));
             Assert.Equal(!compile, started);
         } finally { Directory.Delete(probe, recursive: true); }
     }

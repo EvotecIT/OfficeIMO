@@ -10,6 +10,19 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class OfficeCompatibilityCatalogContractTests {
     [Fact]
+    public void ProtectedContentCapabilityPreservesTheOriginalConstructorSignature() {
+        Type[] legacySignature = {
+            typeof(string), typeof(string), typeof(string), typeof(OfficeProtectionKind),
+            typeof(OfficeProtectionCoverageState), typeof(OfficeProtectionCoverageState),
+            typeof(OfficeProtectionCoverageState), typeof(OfficeProtectionCoverageState),
+            typeof(OfficeProtectionCoverageState), typeof(OfficeProtectionCoverageState),
+            typeof(string), typeof(string)
+        };
+
+        Assert.NotNull(typeof(OfficeProtectionCapability).GetConstructor(legacySignature));
+    }
+
+    [Fact]
     public void BinaryFormatCatalogsExposeUniqueStableRowsAndValidFormatReferences() {
         OfficeCapabilityCatalog[] catalogs = {
             WordCompatibilityCatalog.Current,
@@ -81,7 +94,67 @@ public sealed class OfficeCompatibilityCatalogContractTests {
         Assert.Equal(OfficeProtectionCoverageState.Supported, catalog.Get("odf-password").Create);
         Assert.Equal(OfficeProtectionCoverageState.NotApplicable, catalog.Get("epub-font-obfuscation").Mutate);
         Assert.Equal(OfficeProtectionCoverageState.NotSupported, catalog.Get("smime-signature-msg-tnef").Create);
+        Assert.Equal(2, catalog.SchemaVersion);
+        Assert.Equal(OfficeProtectionUnsupportedDisposition.RoadmapTracked,
+            catalog.Get("xls-password").UnsupportedOperations.Single(item =>
+                item.Operation == OfficeProtectionOperation.Create).Disposition);
+        Assert.Equal(OfficeProtectionUnsupportedDisposition.IntentionalBoundary,
+            catalog.Get("smime-signature-msg-tnef").UnsupportedOperations.Single().Disposition);
         Assert.Contains("| Inspect | Open | Create |", catalog.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("[roadmap](../../ROADMAP.md#security-and-protected-content)", catalog.ToMarkdown(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProtectedContentCatalogRejectsMissingOrExtraneousUnsupportedDispositions() {
+        OfficeProtectionCapability MissingDisposition() => new(
+            "missing", "DOC", "OfficeIMO.Word", OfficeProtectionKind.PasswordEncryption,
+            OfficeProtectionCoverageState.Detected, OfficeProtectionCoverageState.NotSupported,
+            OfficeProtectionCoverageState.NotApplicable, OfficeProtectionCoverageState.NotApplicable,
+            OfficeProtectionCoverageState.Blocked, OfficeProtectionCoverageState.NotApplicable,
+            "WordDocument.Load", "Missing disposition");
+        OfficeProtectionCapability ExtraDisposition() => new(
+            "extra", "PDF", "OfficeIMO.Pdf", OfficeProtectionKind.PasswordEncryption,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.Supported,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.NotApplicable,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.Supported,
+            "PdfDocument.Security", "Extraneous disposition", new[] {
+                new OfficeProtectionUnsupportedOperation(
+                    OfficeProtectionOperation.Open,
+                    OfficeProtectionUnsupportedDisposition.IntentionalBoundary,
+                    "This operation is actually supported.")
+            });
+
+        var legacyCatalog = new OfficeProtectionCapabilityCatalog("legacy-catalog", 1, new[] { MissingDisposition() });
+
+        Assert.DoesNotContain("unsupportedOperations", legacyCatalog.ToJson(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Unsupported disposition", legacyCatalog.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Throws<ArgumentException>(() =>
+            new OfficeProtectionCapabilityCatalog("missing-catalog", 2, new[] { MissingDisposition() }));
+        Assert.Throws<ArgumentException>(() =>
+            new OfficeProtectionCapabilityCatalog("extra-catalog", 2, new[] { ExtraDisposition() }));
+    }
+
+    [Fact]
+    public void ProtectedContentCatalogSchemaTwoRejectsUndefinedEnumValuesWithoutBreakingSchemaOne() {
+        OfficeProtectionCapability InvalidKind() => new(
+            "invalid-kind", "DOCX", "OfficeIMO.Word", (OfficeProtectionKind)999,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.Supported,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.NotApplicable,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.Supported,
+            "WordDocument.Load", "Invalid kind");
+        OfficeProtectionCapability InvalidCoverage() => new(
+            "invalid-coverage", "DOCX", "OfficeIMO.Word", OfficeProtectionKind.PasswordEncryption,
+            (OfficeProtectionCoverageState)999, OfficeProtectionCoverageState.Supported,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.NotApplicable,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.Supported,
+            "WordDocument.Load", "Invalid coverage");
+
+        _ = new OfficeProtectionCapabilityCatalog("legacy-kind", 1, new[] { InvalidKind() });
+        _ = new OfficeProtectionCapabilityCatalog("legacy-coverage", 1, new[] { InvalidCoverage() });
+        Assert.Throws<ArgumentException>(() =>
+            new OfficeProtectionCapabilityCatalog("invalid-kind", 2, new[] { InvalidKind() }));
+        Assert.Throws<ArgumentException>(() =>
+            new OfficeProtectionCapabilityCatalog("invalid-coverage", 2, new[] { InvalidCoverage() }));
     }
 
     [Fact]
@@ -91,11 +164,43 @@ public sealed class OfficeCompatibilityCatalogContractTests {
             OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.Supported,
             OfficeProtectionCoverageState.NotSupported, OfficeProtectionCoverageState.NotApplicable,
             OfficeProtectionCoverageState.Preserved, OfficeProtectionCoverageState.NotApplicable,
-            "Verify\u0001Api", "line\bfeed\f");
-        var catalog = new OfficeProtectionCapabilityCatalog("control\u0002catalog", 1, new[] { row });
+            "Verify\u0001Api", "line\bfeed\f", new[] {
+                new OfficeProtectionUnsupportedOperation(
+                    OfficeProtectionOperation.Create,
+                    OfficeProtectionUnsupportedDisposition.IntentionalBoundary,
+                    "Control disposition\u0003reason")
+            });
+        var catalog = new OfficeProtectionCapabilityCatalog("control\u0002catalog", 2, new[] { row });
 
         using JsonDocument parsed = JsonDocument.Parse(catalog.ToJson());
 
         Assert.Equal("EML\tformat", parsed.RootElement.GetProperty("capabilities")[0].GetProperty("formatId").GetString());
+        Assert.Equal("Control disposition\u0003reason", parsed.RootElement.GetProperty("capabilities")[0]
+            .GetProperty("unsupportedOperations")[0].GetProperty("rationale").GetString());
+    }
+
+    [Fact]
+    public void ProtectedContentCatalogEscapesRoadmapReferencesInMarkdownLinks() {
+        var row = new OfficeProtectionCapability(
+            "roadmap-row", "DOC", "OfficeIMO.Word", OfficeProtectionKind.PasswordEncryption,
+            OfficeProtectionCoverageState.Detected, OfficeProtectionCoverageState.NotSupported,
+            OfficeProtectionCoverageState.NotApplicable, OfficeProtectionCoverageState.NotApplicable,
+            OfficeProtectionCoverageState.Blocked, OfficeProtectionCoverageState.NotApplicable,
+            "WordDocument.Load", "Roadmap escaping", new[] {
+                new OfficeProtectionUnsupportedOperation(
+                    OfficeProtectionOperation.Open,
+                    OfficeProtectionUnsupportedDisposition.RoadmapTracked,
+                    "Open support is tracked.",
+                    "../../ROAD|MAP(1).md#open\r\nnext")
+            });
+        var catalog = new OfficeProtectionCapabilityCatalog("roadmap-catalog", 2, new[] { row });
+
+        string markdown = catalog.ToMarkdown();
+
+        Assert.Contains(
+            "[roadmap](../../ROAD%7CMAP%281%29.md#open%0D%0Anext)",
+            markdown,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("ROAD|MAP", markdown, StringComparison.Ordinal);
     }
 }

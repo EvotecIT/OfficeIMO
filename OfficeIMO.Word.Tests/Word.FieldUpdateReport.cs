@@ -1631,6 +1631,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_IgnoresExplicitlyDisabledParagraphPageStart() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.DisabledPageStart.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("First page");
+                Paragraph paragraph = document.AddParagraph("Still first page")._paragraph;
+                paragraph.ParagraphProperties = new ParagraphProperties(new PageBreakBefore { Val = false });
+                paragraph.Append(BuildSimpleField(" PAGE ", "stale-page"));
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+                Assert.Equal("1", Assert.Single(report.Results, result =>
+                    result.FieldType == WordFieldType.Page).ResultText);
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_ReportsUnsupportedReferenceFormatSwitches() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.ReferenceUnsupportedFormats.docx");
 

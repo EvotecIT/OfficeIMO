@@ -6,6 +6,22 @@ namespace OfficeIMO.Drawing.Tests;
 
 public sealed class DrawingFontContainerTests {
     [Fact]
+    public void OfficeTrueTypeFont_RejectsNegativeCollectionIndexesAcrossPublicLoadOverloads() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFont('A');
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".ttf");
+        File.WriteAllBytes(path, source);
+
+        try {
+            Assert.Null(OfficeTrueTypeFont.TryLoad(source, -1));
+            Assert.Null(OfficeTrueTypeFont.TryLoad(source, -1, null));
+            Assert.Null(OfficeTrueTypeFont.TryLoad(path, -1));
+            Assert.Null(OfficeTrueTypeFont.TryLoad(path, -1, null));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OfficeFontContainerDecoder_RoundTripsCompressedWoffIntoReusableOpenType() {
         byte[] source = ManagedTextShapingTestAssets.CreateFont('A', 0x1F600);
         int headOffset = FindTableOffset(source, "head");

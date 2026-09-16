@@ -9,6 +9,41 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public sealed partial class GoogleSlidesTests {
+        [Fact]
+        public async Task Exporter_HonorsDisabledSharedDriveAwareness() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.AddSlide().AddTextBox("Local");
+            Uri? driveRequestUri = null;
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                string uri = request.RequestUri!.AbsoluteUri;
+                if (request.Method == HttpMethod.Post && uri == "https://slides.googleapis.com/v1/presentations") {
+                    return Task.FromResult(Json("{\"presentationId\":\"no-shared-drive\"}"));
+                }
+                if (request.Method == HttpMethod.Get && uri == "https://slides.googleapis.com/v1/presentations/no-shared-drive") {
+                    return Task.FromResult(Json("{\"presentationId\":\"no-shared-drive\",\"revisionId\":\"revision-1\",\"slides\":[{\"objectId\":\"initial-slide\"}]}"));
+                }
+                if (request.Method == HttpMethod.Post && uri.EndsWith(":batchUpdate", StringComparison.Ordinal)) {
+                    return Task.FromResult(Json("{\"presentationId\":\"no-shared-drive\",\"writeControl\":{\"requiredRevisionId\":\"revision-2\"}}"));
+                }
+                if (request.Method == HttpMethod.Get && request.RequestUri.Host == "www.googleapis.com") {
+                    driveRequestUri = request.RequestUri;
+                    return Task.FromResult(Json("{\"id\":\"no-shared-drive\",\"name\":\"Deck\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":2}"));
+                }
+
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }));
+
+            GooglePresentationReference result = await presentation.ExportToGoogleSlidesAsync(
+                Session(httpClient),
+                new GoogleSlidesSaveOptions {
+                    Location = new GoogleDriveFileLocation { SharedDriveAware = false },
+                });
+
+            Assert.Equal("no-shared-drive", result.PresentationId);
+            Assert.NotNull(driveRequestUri);
+            Assert.Contains("supportsAllDrives=false", driveRequestUri!.Query, StringComparison.Ordinal);
+        }
+
         [Theory]
         [InlineData(true, "SLIDES.REPLACE.DRIVE_ACCESS_REQUIRED")]
         [InlineData(false, "SLIDES.REPLACE.DRIVE_EDIT_REQUIRED")]

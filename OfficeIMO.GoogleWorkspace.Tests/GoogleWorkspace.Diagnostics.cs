@@ -61,6 +61,34 @@ namespace OfficeIMO.Tests {
             Assert.Equal(GoogleWorkspaceFailureKind.TokenAcquisition, entries[2].FailureKind);
         }
 
+        [Theory]
+        [InlineData("invalid_grant: Bad Request", "admin@example.com")]
+        [InlineData("delegation token request failed", "admin@example.com")]
+        [InlineData("domain-wide delegation is disabled", null)]
+        public void Test_TokenFailure_DoesNotOverclassifyDomainWideDelegation(
+            string failureMessage,
+            string? subjectUser) {
+            var session = new GoogleWorkspaceSession(
+                new StaticAccessTokenCredentialSource("unused"),
+                new GoogleWorkspaceSessionOptions {
+                    UseDomainWideDelegation = true,
+                    SubjectUser = subjectUser,
+                });
+            var report = new TranslationReport();
+
+            GoogleWorkspaceExportException exception = GoogleWorkspaceFailureDiagnostics.CreateTokenAcquisitionFailure(
+                "Test export",
+                new[] { GoogleWorkspaceScopeCatalog.Documents },
+                session,
+                report,
+                new HttpRequestException(failureMessage));
+
+            Assert.Equal(GoogleWorkspaceFailureKind.TokenAcquisition, exception.FailureKind);
+            TranslationNotice notice = Assert.Single(report.Notices);
+            Assert.Equal("Authentication", notice.Feature);
+            Assert.Equal(GoogleWorkspaceDiagnosticCodes.AuthenticationFailed, notice.Code);
+        }
+
         [Fact]
         public async Task Test_GoogleSheetsExporter_DoesNotRetryAmbiguousCreate() {
             string filePath = Path.Combine(Path.GetTempPath(), "GoogleSheetsExporterNoAmbiguousCreateRetry-" + Guid.NewGuid().ToString("N") + ".xlsx");

@@ -1,0 +1,22 @@
+{
+  "platforms": {
+    "windows": {
+      "xml-read": { "maxElapsedMilliseconds": 25, "maxAllocatedBytes": 4194304 },
+      "xml-write": { "maxElapsedMilliseconds": 15, "maxAllocatedBytes": 2097152 },
+      "rules-validation": { "maxElapsedMilliseconds": 6000, "maxAllocatedBytes": 67108864 },
+      "pdf-generation": { "maxElapsedMilliseconds": 600, "maxAllocatedBytes": 134217728 }
+    },
+    "linux": {
+      "xml-read": { "maxElapsedMilliseconds": 25, "maxAllocatedBytes": 4194304 },
+      "xml-write": { "maxElapsedMilliseconds": 15, "maxAllocatedBytes": 2097152 },
+      "rules-validation": { "maxElapsedMilliseconds": 6000, "maxAllocatedBytes": 67108864 },
+      "pdf-generation": { "maxElapsedMilliseconds": 600, "maxAllocatedBytes": 134217728 }
+    },
+    "macos": {
+      "xml-read": { "maxElapsedMilliseconds": 35, "maxAllocatedBytes": 6291456 },
+      "xml-write": { "maxElapsedMilliseconds": 20, "maxAllocatedBytes": 3145728 },
+      "rules-validation": { "maxElapsedMilliseconds": 8000, "maxAllocatedBytes": 100663296 },
+      "pdf-generation": { "maxElapsedMilliseconds": 800, "maxAllocatedBytes": 201326592 }
+    }
+  }
+}

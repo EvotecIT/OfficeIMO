@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests.Pdf {
                 Assert.Contains(
                     page.Letters,
                     letter => letter.Value == glyph &&
-                              letter.FontName.Contains("RichHeaderFamily", StringComparison.OrdinalIgnoreCase));
+                              letter.FontName?.Contains("RichHeaderFamily", StringComparison.OrdinalIgnoreCase) == true);
             }
         }
 

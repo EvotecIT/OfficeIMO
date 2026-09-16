@@ -54,7 +54,10 @@ public sealed class ReaderOpmlDocBookModularTests {
             document, readerOptions: new ReaderOptions { MaxChars = 256 }).ToArray();
 
         Assert.True(chunks.Length > 1);
-        Assert.All(chunks, chunk => Assert.True(chunk.Markdown.Length <= 256));
+        Assert.All(chunks, chunk => {
+            Assert.NotNull(chunk.Markdown);
+            Assert.True(chunk.Markdown!.Length <= 256);
+        });
         string markdown = string.Concat(chunks.Select(chunk => chunk.Markdown));
         Assert.Contains("# Feed\n\n- Feed:", markdown, StringComparison.Ordinal);
         Assert.Contains(outline.XmlUrl, markdown, StringComparison.Ordinal);
@@ -70,7 +73,10 @@ public sealed class ReaderOpmlDocBookModularTests {
         ReaderChunk[] chunks = OpmlReaderAdapter.Read(
             document, readerOptions: new ReaderOptions { MaxChars = 2 }).ToArray();
 
-        Assert.All(chunks, chunk => Assert.True(chunk.Markdown.Length <= 2));
+        Assert.All(chunks, chunk => {
+            Assert.NotNull(chunk.Markdown);
+            Assert.True(chunk.Markdown!.Length <= 2);
+        });
         Assert.Contains(chunks, chunk => chunk.Text.Length == 0 && chunk.Markdown == "##");
         Assert.Contains(chunks, chunk => chunk.Text.Length == 0 && chunk.Markdown == "# ");
     }
@@ -189,7 +195,10 @@ public sealed class ReaderOpmlDocBookModularTests {
         ReaderChunk[] chunks = DocBookReaderAdapter.Read(
             DocBookDocument.Parse(source.ToString()), readerOptions: new ReaderOptions { MaxChars = 256 }).ToArray();
 
-        Assert.All(chunks, chunk => Assert.True(chunk.Markdown.Length <= 256));
+        Assert.All(chunks, chunk => {
+            Assert.NotNull(chunk.Markdown);
+            Assert.True(chunk.Markdown!.Length <= 256);
+        });
         var splitMarker = Assert.Single(chunks.GroupBy(chunk => chunk.Location.SourceBlockIndex), group =>
             group.Count() > 1 && group.All(chunk => chunk.Text.Length == 0) &&
             group.Skip(1).All(chunk => chunk.ContinuesPreviousChunk));
@@ -226,7 +235,10 @@ public sealed class ReaderOpmlDocBookModularTests {
             DocBookDocument.Parse(source), readerOptions: new ReaderOptions { MaxChars = 64 }).ToArray();
 
         Assert.True(chunks.Length > 1);
-        Assert.All(chunks, chunk => Assert.True(chunk.Markdown.Length <= 64));
+        Assert.All(chunks, chunk => {
+            Assert.NotNull(chunk.Markdown);
+            Assert.True(chunk.Markdown!.Length <= 64);
+        });
         Assert.Equal("site", string.Concat(chunks.Select(chunk => chunk.Text)));
         Assert.Equal("[site](" + destination + ")", string.Concat(chunks.Select(chunk => chunk.Markdown)));
     }
@@ -237,7 +249,7 @@ public sealed class ReaderOpmlDocBookModularTests {
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
         OfficeDocumentReadResult result = DocBookReaderAdapter.ReadDocument(stream);
-        string markdown = result.Markdown.Replace("\r\n", "\n");
+        string markdown = Assert.IsType<string>(result.Markdown).Replace("\r\n", "\n");
 
         Assert.Contains("# See [site](https://example.test)", markdown, StringComparison.Ordinal);
         Assert.Contains("\n\nBody", markdown, StringComparison.Ordinal);
@@ -262,7 +274,7 @@ public sealed class ReaderOpmlDocBookModularTests {
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
         OfficeDocumentReadResult result = DocBookReaderAdapter.ReadDocument(stream);
-        string markdown = result.Markdown.Replace("\r\n", "\n");
+        string markdown = Assert.IsType<string>(result.Markdown).Replace("\r\n", "\n");
 
         Assert.StartsWith("~~~\nbefore\n```\n# still code\nafter\n~~~", markdown, StringComparison.Ordinal);
         Assert.Equal("code", Assert.Single(result.Chunks).Location.SourceBlockKind);
@@ -277,7 +289,10 @@ public sealed class ReaderOpmlDocBookModularTests {
             DocBookDocument.Parse(source), readerOptions: new ReaderOptions { MaxChars = 64 }).ToArray();
 
         Assert.True(chunks.Length > 1);
-        Assert.All(chunks, chunk => Assert.True(chunk.Markdown.Length <= 64));
+        Assert.All(chunks, chunk => {
+            Assert.NotNull(chunk.Markdown);
+            Assert.True(chunk.Markdown!.Length <= 64);
+        });
         Assert.Equal(listing, string.Concat(chunks.Select(chunk => chunk.Text)));
         string fence = new string('`', 301);
         Assert.Equal(fence + "\n" + listing + "\n" + fence, string.Concat(chunks.Select(chunk => chunk.Markdown)));
@@ -312,7 +327,10 @@ public sealed class ReaderOpmlDocBookModularTests {
         ReaderChunk[] chunks = DocBookReaderAdapter.Read(
             document, readerOptions: new ReaderOptions { MaxChars = 1 }).ToArray();
 
-        Assert.All(chunks, chunk => Assert.True(chunk.Markdown.Length <= 1));
+        Assert.All(chunks, chunk => {
+            Assert.NotNull(chunk.Markdown);
+            Assert.True(chunk.Markdown!.Length <= 1);
+        });
         Assert.Equal("[\\]", string.Concat(chunks.Select(chunk => chunk.Text)));
         Assert.Equal(expectedMarkdown, string.Concat(chunks.Select(chunk => chunk.Markdown)));
     }
@@ -324,7 +342,7 @@ public sealed class ReaderOpmlDocBookModularTests {
         ReaderChunk chunk = Assert.Single(DocBookReaderAdapter.Read(DocBookDocument.Parse(source)));
 
         Assert.Equal("screen", chunk.Location.SourceBlockKind);
-        Assert.Equal("~~~\n# prompt\n```\nstill screen\n~~~", chunk.Markdown.Replace("\r\n", "\n"));
+        Assert.Equal("~~~\n# prompt\n```\nstill screen\n~~~", Assert.IsType<string>(chunk.Markdown).Replace("\r\n", "\n"));
     }
 
     [Fact]
@@ -336,7 +354,7 @@ public sealed class ReaderOpmlDocBookModularTests {
         ReaderChunk chunk = Assert.Single(result.Chunks);
 
         Assert.Equal("before target after", chunk.Text);
-        Assert.Equal("```\nbefore target after\n```", chunk.Markdown.Replace("\r\n", "\n"));
+        Assert.Equal("```\nbefore target after\n```", Assert.IsType<string>(chunk.Markdown).Replace("\r\n", "\n"));
         Assert.DoesNotContain("[target]", chunk.Markdown, StringComparison.Ordinal);
     }
 
@@ -393,7 +411,7 @@ public sealed class ReaderOpmlDocBookModularTests {
         Assert.Contains(chunks, chunk => chunk.Markdown == "     - Nested hundred" && chunk.Location.SourceBlockKind == "list-item");
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
-        string markdown = DocBookReaderAdapter.ReadDocument(stream).Markdown.Replace("\r\n", "\n");
+        string markdown = Assert.IsType<string>(DocBookReaderAdapter.ReadDocument(stream).Markdown).Replace("\r\n", "\n");
         Assert.Contains("- Alpha", markdown, StringComparison.Ordinal);
         Assert.Contains("  - Nested", markdown, StringComparison.Ordinal);
         Assert.Contains("3. Third", markdown, StringComparison.Ordinal);
@@ -715,7 +733,7 @@ public sealed class ReaderOpmlDocBookModularTests {
         OfficeDocumentAsset asset = Assert.Single(result.Assets);
 
         Assert.StartsWith("# Guide", result.Markdown, StringComparison.Ordinal);
-        Assert.Contains("\n\n# Details", result.Markdown.Replace("\r\n", "\n"), StringComparison.Ordinal);
+        Assert.Contains("\n\n# Details", Assert.IsType<string>(result.Markdown).Replace("\r\n", "\n"), StringComparison.Ordinal);
         Assert.DoesNotContain("## Guide", result.Markdown, StringComparison.Ordinal);
         Assert.Equal("Details / Values", table.Location!.HeadingPath);
         Assert.Equal("assets/figure.png", asset.SourceObjectId);

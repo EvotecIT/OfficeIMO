@@ -1,5 +1,3 @@
-// StyleCop: disable header requirement for enums in this project scope
-#pragma warning disable SA1633 // File should have header
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Specifies the type of connector used to link shapes.
@@ -15,4 +13,3 @@ namespace OfficeIMO.Visio {
         Dynamic
     }
 }
-#pragma warning restore SA1633 // File should have header

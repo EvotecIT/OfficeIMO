@@ -66,3 +66,15 @@ foreach (var warning in result.Report.Warnings) {
 ```
 
 `RasterScale` defaults to 2. If a page would exceed `MaximumRasterPixels`, the Drawing-owned limiter reduces its scale and reports `ONENOTE_PDF_RASTER_SCALE_LIMITED`. Embedded pictures that neither Drawing nor `PageRendering.ImageCodec` can decode are replaced visibly and reported as `DRAWING_RASTER_IMAGE_UNSUPPORTED`. Visual PDF is image-backed and does not provide selectable page text; use semantic PDF when search, selection, or reflow is more important than the original canvas layout.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Convert | 0 | 1 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.OneNote.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

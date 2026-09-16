@@ -179,6 +179,7 @@ internal static class OneNoteImageExportEngine {
         if (section == null) throw new ArgumentNullException(nameof(section));
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         OneNotePageReference[] pages = Select(OneNotePageTraversal.Flatten(section), options).ToArray();
+        var encodingBudget = new OfficeImageExportEncodingBudget(options.MaximumTotalEncodedBytes);
         OfficeImageExportBatchProcessor.ForEachOrdered(
             pages,
             options.MaximumDegreeOfParallelism,
@@ -188,7 +189,8 @@ internal static class OneNoteImageExportEngine {
                 options,
                 item.Page.Title,
                 item.SectionPath + "/page[" + item.Index + "]",
-                token),
+                token,
+                encodingBudget),
             consumer,
             cancellationToken,
             options);
@@ -213,6 +215,7 @@ internal static class OneNoteImageExportEngine {
         if (notebook == null) throw new ArgumentNullException(nameof(notebook));
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         OneNotePageReference[] pages = Select(OneNotePageTraversal.Flatten(notebook), options).ToArray();
+        var encodingBudget = new OfficeImageExportEncodingBudget(options.MaximumTotalEncodedBytes);
         OfficeImageExportBatchProcessor.ForEachOrdered(
             pages,
             options.MaximumDegreeOfParallelism,
@@ -222,7 +225,8 @@ internal static class OneNoteImageExportEngine {
                 options,
                 item.Page.Title,
                 notebook.Name + "/" + item.SectionPath + "/page[" + item.Index + "]",
-                token),
+                token,
+                encodingBudget),
             consumer,
             cancellationToken,
             options);

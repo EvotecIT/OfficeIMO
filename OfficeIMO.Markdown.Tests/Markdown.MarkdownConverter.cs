@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
 
             ms.Position = 0;
             using WordprocessingDocument docx = WordprocessingDocument.Open(ms, false);
-            RunFonts fonts = docx.MainDocumentPart!.Document.Body!.Descendants<RunFonts>().First();
+            RunFonts fonts = docx.MainDocumentPart!.Document!.Body!.Descendants<RunFonts>().First();
             Assert.Equal(WordFontResolver.Resolve("monospace"), fonts.Ascii);
         }
 
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
 
             ms.Position = 0;
             using WordprocessingDocument docx = WordprocessingDocument.Open(ms, false);
-            var hyperlink = docx.MainDocumentPart!.Document.Body!.Descendants<Hyperlink>().FirstOrDefault();
+            var hyperlink = docx.MainDocumentPart!.Document!.Body!.Descendants<Hyperlink>().FirstOrDefault();
             Assert.NotNull(hyperlink);
             var rel = docx.MainDocumentPart.HyperlinkRelationships.First();
             Assert.StartsWith("http://example.com", rel.Uri.ToString());

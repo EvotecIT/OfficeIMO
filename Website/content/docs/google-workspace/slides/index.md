@@ -21,8 +21,8 @@ GoogleSlidesTranslationPlan plan = deck.BuildGoogleSlidesPlan(options);
 GooglePresentationReference created = await deck.ExportToGoogleSlidesAsync(session, options);
 ```
 
-Text boxes, core run styles, hyperlinks, tables, pictures, basic shapes, slide size, solid backgrounds, and speaker notes remain editable. Complex slides containing charts, SmartArt, media, OLE, connectors, or unsupported objects render to a coherent slide PNG by default. `PreferNativeAndReport` instead skips unsupported elements and reports each loss.
+Supported text boxes, core run styles, external links, unmerged tables, uncropped PNG/JPEG/GIF pictures, common shapes, solid backgrounds, and speaker notes map to editable Slides objects. Export does not change the remote page size; it scales and centers source coordinates when the sizes differ. Complex slides containing merged tables, unsupported picture formats or geometry, charts, SmartArt, media, OLE, or connectors render to a coherent slide PNG by default. `PreferNativeAndReport` instead skips unsupported elements and reports each loss.
 
 Native import returns the Slides revision needed for guarded replacement. `DriveExport` converts to PPTX for broader fidelity. Existing replacement requires `ExpectedRevisionId`; `OverwriteLatest` is an explicit last-writer-wins mode. `TemplatePresentationId` copies a Drive presentation before applying the batch.
 
-Slides fetches inserted images from public URLs. The exporter creates short-lived Drive leases and removes their permissions and files in success and failure paths.
+Slides fetches inserted images from public URLs. The exporter creates temporary publicly readable Drive files and attempts deletion in success and failure paths. Deletion failures are recorded as `DRIVE.TEMPORARY_CONTENT.CLEANUP_FAILED` in the returned reference's report after a successful export; an undeleted file remains public and needs follow-up.

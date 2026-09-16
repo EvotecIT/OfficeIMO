@@ -1,5 +1,3 @@
-// StyleCop: disable header requirement for enums in this project scope
-#pragma warning disable SA1633 // File should have header
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Specifies arrowhead styles for connector ends.
@@ -13,4 +11,3 @@ namespace OfficeIMO.Visio {
         Triangle = 13
     }
 }
-#pragma warning restore SA1633 // File should have header

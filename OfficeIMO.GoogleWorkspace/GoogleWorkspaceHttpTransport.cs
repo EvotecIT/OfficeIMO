@@ -53,6 +53,9 @@ namespace OfficeIMO.GoogleWorkspace {
         private readonly Func<string, IReadOnlyCollection<string>, string>? _mutationCredentialVerifier;
         private bool _disposed;
 
+        /// <summary>Creates a transport for safe read operations from standalone session options.</summary>
+        /// <param name="options">HTTP, retry, quota, and diagnostic settings.</param>
+        /// <remarks>Mutations require the session-bound constructor so the transport can verify the acquired credential.</remarks>
         public GoogleWorkspaceHttpTransport(GoogleWorkspaceSessionOptions options)
             : this(options, null) { }
 
@@ -72,6 +75,8 @@ namespace OfficeIMO.GoogleWorkspace {
             }
         }
 
+        /// <summary>Serializes an optional payload as JSON, sends the request, and deserializes a successful JSON response.</summary>
+        /// <remarks>Use the source-generated metadata overload in trimmed or NativeAOT applications. Mutation requests enforce session identity, scope, revision, receipt, and data-loss policy.</remarks>
         [RequiresUnreferencedCode("Use the overload that accepts JsonTypeInfo<TResponse> in trimmed applications.")]
         [RequiresDynamicCode("Use the overload that accepts JsonTypeInfo<TResponse> in NativeAOT applications.")]
         public Task<TResponse> SendJsonAsync<TResponse>(
@@ -182,6 +187,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 potentialDataLoss);
         }
 
+        /// <summary>Sends content produced for each attempt and deserializes a successful JSON response.</summary>
+        /// <remarks>The content factory may be invoked again for retries. Use the source-generated metadata overload in trimmed or NativeAOT applications.</remarks>
         [RequiresUnreferencedCode("Use the overload that accepts JsonTypeInfo<TResponse> in trimmed applications.")]
         [RequiresDynamicCode("Use the overload that accepts JsonTypeInfo<TResponse> in NativeAOT applications.")]
         public Task<TResponse> SendAsync<TResponse>(
@@ -346,6 +353,8 @@ namespace OfficeIMO.GoogleWorkspace {
             }
         }
 
+        /// <summary>Sends a request and returns the successful response body as bytes.</summary>
+        /// <remarks>The optional size limit is enforced while streaming. Mutation requests enforce session identity, scope, revision, receipt, and data-loss policy.</remarks>
         public async Task<byte[]> SendBytesAsync(
             string accessToken,
             HttpMethod method,
@@ -620,6 +629,8 @@ namespace OfficeIMO.GoogleWorkspace {
             public int Count { get; }
         }
 
+        /// <summary>Sends a request and returns status, headers, media type, and body without JSON conversion.</summary>
+        /// <remarks>Additional success codes can be accepted explicitly. Diagnostic targets are sanitized unless an explicit safe label is supplied.</remarks>
         public Task<GoogleWorkspaceHttpResponse> SendRawAsync(
             string accessToken,
             HttpMethod method,
@@ -754,6 +765,7 @@ namespace OfficeIMO.GoogleWorkspace {
             }
         }
 
+        /// <summary>Disposes the internally created HTTP client; a caller-supplied client remains caller-owned.</summary>
         public void Dispose() {
             if (_disposed) {
                 return;
@@ -1098,6 +1110,7 @@ namespace OfficeIMO.GoogleWorkspace {
         }
     }
 
+    /// <summary>Buffered response data returned by <see cref="GoogleWorkspaceHttpTransport.SendRawAsync"/>.</summary>
     public sealed class GoogleWorkspaceHttpResponse {
         internal GoogleWorkspaceHttpResponse(
             HttpStatusCode statusCode,
@@ -1110,16 +1123,28 @@ namespace OfficeIMO.GoogleWorkspace {
             Headers = headers ?? throw new ArgumentNullException(nameof(headers));
         }
 
+        /// <summary>Gets the HTTP status code accepted by the transport.</summary>
         public HttpStatusCode StatusCode { get; }
+        /// <summary>Gets the buffered response body.</summary>
         public byte[] Body { get; }
+        /// <summary>Gets the declared response media type, when supplied.</summary>
         public string? MediaType { get; }
+        /// <summary>Gets response and content headers using case-insensitive names.</summary>
         public IReadOnlyDictionary<string, IReadOnlyList<string>> Headers { get; }
+        /// <summary>Gets the response body decoded as UTF-8 text.</summary>
         public string BodyText => Encoding.UTF8.GetString(Body);
 
+        /// <summary>Returns the first value for a response header.</summary>
+        /// <param name="name">Case-insensitive header name.</param>
+        /// <returns>The first value, or <see langword="null"/> when the header is absent.</returns>
         public string? GetHeader(string name) {
             return Headers.TryGetValue(name, out var values) ? values.FirstOrDefault() : null;
         }
 
+        /// <summary>Deserializes the response body as JSON using runtime metadata.</summary>
+        /// <typeparam name="T">Expected response type.</typeparam>
+        /// <returns>The deserialized value.</returns>
+        /// <exception cref="InvalidOperationException">The body cannot be deserialized to a non-null value.</exception>
         [RequiresUnreferencedCode("Use DeserializeJson(JsonTypeInfo<T>) in trimmed applications.")]
         [RequiresDynamicCode("Use DeserializeJson(JsonTypeInfo<T>) in NativeAOT applications.")]
         public T DeserializeJson<T>() {
@@ -1164,10 +1189,15 @@ namespace OfficeIMO.GoogleWorkspace {
             ResponseBody = responseBody;
         }
 
+        /// <summary>Gets the logical Google service that issued the request.</summary>
         public string ServiceName { get; }
+        /// <summary>Gets the HTTP method used for the failed request.</summary>
         public HttpMethod Method { get; }
+        /// <summary>Gets the sanitized request target used for diagnostics.</summary>
         public string RequestUri { get; }
+        /// <summary>Gets the non-success HTTP status code.</summary>
         public HttpStatusCode ResponseStatusCode { get; }
+        /// <summary>Gets the bounded response body returned with the error.</summary>
         public string ResponseBody { get; }
 
         internal static GoogleWorkspaceApiException Create(

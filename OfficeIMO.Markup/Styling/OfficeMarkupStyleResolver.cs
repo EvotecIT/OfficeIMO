@@ -2,6 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Markup;
 
+/// <summary>Resolves theme defaults, named styles, and per-block visual overrides.</summary>
 public sealed class OfficeMarkupStyleResolver {
     private readonly Dictionary<string, OfficeMarkupResolvedStyle> _styles;
 
@@ -9,6 +10,8 @@ public sealed class OfficeMarkupStyleResolver {
         _styles = styles;
     }
 
+    /// <summary>Creates a resolver using the document's current <c>theme</c> metadata value.</summary>
+    /// <remarks>The palette is selected at creation; later metadata changes do not update this resolver.</remarks>
     public static OfficeMarkupStyleResolver Create(OfficeMarkupDocument document) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
@@ -18,6 +21,8 @@ public sealed class OfficeMarkupStyleResolver {
         return new OfficeMarkupStyleResolver(styles);
     }
 
+    /// <summary>Resolves a block's built-in style or explicit style attribute, then applies its attributes.</summary>
+    /// <returns>A separate mutable style value, or null when no name or visual value was resolved.</returns>
     public OfficeMarkupResolvedStyle? Resolve(OfficeMarkupBlock block) {
         if (block == null) {
             return null;
@@ -39,6 +44,9 @@ public sealed class OfficeMarkupStyleResolver {
         }
     }
 
+    /// <summary>Resolves a named style and applies optional visual-attribute overrides.</summary>
+    /// <returns>A separate mutable style value, or null when no name or visual value was resolved.</returns>
+    /// <remarks>An unknown nonblank name is retained rather than rejected.</remarks>
     public OfficeMarkupResolvedStyle? Resolve(string? styleName, IDictionary<string, string>? attributes = null) {
         OfficeMarkupResolvedStyle? style = null;
         if (!string.IsNullOrWhiteSpace(styleName)) {

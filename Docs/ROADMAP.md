@@ -8,11 +8,6 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## Release-wide quality
 
-- [ ] Extend the generated Office compatibility catalog beyond the current Word, Excel, and PowerPoint legacy-format families into a package-neutral operation model for create, read, edit, preserve, inspect, convert, export, reject, and unsupported behavior.
-- [ ] Generate compatible package README sections, website capability pages, MCP discovery, and support matrices from that model wherever one source can truthfully own the claim.
-- [ ] Expand cross-producer fixture corpora with producer/version provenance and stable package or semantic diff policies.
-- [ ] Add reproducible correctness, file-size, elapsed-time, peak-memory, allocation, cancellation, and deterministic-output evidence for representative workloads on every supported operating system.
-- [ ] Route Word, Excel, PowerPoint, HTML, OneNote, and Visio raster exports through the shared bounded encoder. Enforce `MaximumTotalEncodedBytes` while encoding and propagate cancellation through compression, including composed worksheet page layers; verify each public export path with output-limit and cancellation cases.
 - [ ] Add an opt-in Arrow C Data Interface stream bridge in `OfficeIMO.Data.Arrow` only with explicit unmanaged-lifetime ownership, bounded record-batch callbacks, cancellation, importer round trips, and native-consumer evidence. Keep the current managed `DbDataReader` batching API dependency-isolated and do not expose raw pointers without a fail-safe release contract.
 - [ ] Extend typed loss classification and strict acceptance evidence across the remaining native format-projection owners. Sweep resource, font, pagination, SVG, and format-bridge diagnostics; preserve the specific loss category across composed routes and reject loss before publication. Source reports that expose only aggregate HasLoss need a common typed diagnostic contract before downstream policies can distinguish omissions from approximations.
 - [ ] Establish an all-page conversion consistency gate over the existing Drawing scene and format owners. Cover DOCX, XLSX, PPTX, HTML, PDF, Visio, OneNote, email, EPUB, ODT, ODS, and ODP to SVG, PNG, JPEG, TIFF, and WebP with identical page selection, layout profile, font bytes, shaping provider, dimensions, DPI, background, and resource policy. Compare direct raster output with independently rendered SVG and PDF, then compare all three against source-producer or labelled semantic evidence so matching outputs cannot hide a shared import loss. Gate text and object coverage, crop/rotation, clipping, gradients, alpha, images, page counts, and diagnostics; allow encoder-specific visual tolerances only after geometry and content pass.
@@ -249,10 +244,7 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 
 ## Electronic invoices
 
-- [ ] Extend `OfficeIMO.Invoicing` authoring and pinned validation to Factur-X MINIMUM, BASIC WL, BASIC and EXTENDED, with explicit specification releases and independent producer fixtures. Add national CIUS contracts only with their own syntax, rules and corpus evidence.
-- [ ] Expand loss-aware CII/UBL mappings for arbitrary tax-registration schemes, sales-order-only references, card network metadata and conflicting exemption or payment descriptions. Preserve source meaning or report the exact unsupported target data.
-- [ ] Add localized and multilingual invoice layouts, including long descriptions and mixed scripts, with representative fonts, visual inspection and exact XML/PDF agreement checks.
-- [ ] Benchmark XML read, write, rules validation and PDF generation as separate equivalent workloads; establish cross-platform elapsed and allocation budgets. Transport, tax-authority submission and accounting workflows remain separate product decisions.
+- [ ] Run the equivalent XML read, XML write, pinned-rules validation, and PDF-generation workloads on Windows and macOS target hosts. Retain elapsed and managed-allocation evidence for every operation, confirm or adjust the configured platform ceilings from those measurements, and keep the canonical XML and XML/PDF agreement gates identical to the qualified Linux run.
 
 ## Google Workspace
 
@@ -261,15 +253,12 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 ## Security and protected content
 
 - [ ] Expand provenance to another file family only after its OfficeIMO owner provides the required bounded read, preserve, write, reopen, and exact carrier-validation contract, then qualify path, byte/stream, CLI, and browser hosts separately. Keep BMFF/AVIF, audio, video, and other containers outside provenance until OfficeIMO genuinely supports the underlying format; do not create provenance-only parsers to inflate the advertised list.
-- [ ] Establish cross-platform elapsed, allocation, managed-peak, and output-size budgets for detached CMS verification of platform-produced and OfficeIMO-produced 1 KiB payloads. Preserve typed findings, certificate policy, and richer-structure fallback, and add Linux/macOS measurements before treating the lane as settled.
-- [ ] Reduce structural-provenance allocation beyond the current 1 MiB-manifest Windows baseline: SVG uses 9.11 MiB to inspect and 23.54 MiB to remove, structured text uses 3.67 MiB and 8.68 MiB, and ZIP uses 2.01 MiB and 8.12 MiB. Profile the remaining PNG CRC/JUMBF time, retain exact removal-output validation, and add Linux/macOS evidence for the same bounded inspect-and-selective-remove contract.
 - [ ] Add OCR-backed concealed-text assessment for raster images using bounded OCR regions plus pixel, geometry, and contrast evidence, with explicit safe-redaction policy. Never classify image metadata alone as visible or concealed text.
 - [ ] Add native SVG text-visibility inspection and exact cleanup across presentation attributes, computed CSS, clipping, opacity, geometry, paint order, and background resolution, with browser-rendered adversarial fixtures.
 - [ ] Add package-preserving concealed-HTML inspection and cleanup for MHTML and EPUB, including bounded MIME/resource handling, stylesheet resolution, signed-package mutation policy, and reopen validation.
 - [ ] Add legacy encrypted-DOC import, encrypted-XLS authoring, and additional legacy ODF encryption profiles only with external producer corpora, explicit password/key and resource policies, dependency-free format ownership, and fail-safe preservation evidence.
 - [ ] Materialize encrypted OneNote revisions only after the producer corpus, key-acquisition contract, dependency-chain semantics, and safe partial-result policy are defined. Until then, any encrypted current revision or dependency must fail closed without older-plaintext fallback.
 - [ ] Extend ODF and EPUB signature interoperability beyond the bounded OfficeIMO XML package-manifest profile only with independent producer corpora, explicit trust policy, mutation/invalidation rules, and deterministic validation evidence.
-- [ ] Link every non-intentional `NotSupported` protected-content catalog operation to an owning roadmap outcome, while keeping deliberate format and provider boundaries explicit rather than treating them as missing implementations.
 
 ## Document-format depth
 

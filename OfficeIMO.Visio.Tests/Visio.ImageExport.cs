@@ -10,6 +10,67 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class VisioImageExport {
+    [Fact]
+    public void RetainedPngApisHonorEncodedByteLimitForDocumentsAndPages() {
+        using var package = new MemoryStream();
+        VisioDocument document = VisioDocument.Create(package);
+        VisioPage page = document.AddPage("RetainedBounded").Size(2, 1);
+        page.AddRectangle(1, 0.5, 1.2, 0.5, "Bounded retained PNG export");
+        var options = new VisioPngSaveOptions {
+            MaximumTotalEncodedBytes = 8L,
+            Supersampling = 1
+        };
+
+        OfficeImageExportBatchLimitException pageToPng = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            page.ToPng(options));
+        OfficeImageExportBatchLimitException documentToPng = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            document.ToPng(options));
+        using var output = new MemoryStream();
+        OfficeImageExportBatchLimitException saveAsPng = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            document.SaveAsPng(output, options));
+
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), pageToPng.LimitName);
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), documentToPng.LimitName);
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), saveAsPng.LimitName);
+        Assert.Equal(0L, output.Length);
+    }
+
+    [Fact]
+    public void VisioPage_PublicRasterExportHonorsEncodedByteLimitAndCancellation() {
+        using var package = new MemoryStream();
+        VisioDocument document = VisioDocument.Create(package);
+        VisioPage page = document.AddPage("Bounded").Size(2, 1);
+        page.AddRectangle(1, 0.5, 1.2, 0.5, "Bounded Visio raster export");
+        var options = new VisioImageExportOptions {
+            MaximumTotalEncodedBytes = 8L,
+            Supersampling = 1
+        };
+
+        OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            page.ExportImage(OfficeImageExportFormat.Png, options));
+
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+        Assert.Throws<OperationCanceledException>(() =>
+            page.ToImage().AsPng().Export(new System.Threading.CancellationToken(canceled: true)));
+    }
+
+    [Fact]
+    public void DirectSvgExportHonorsEncodedByteLimitForPagesAndDocuments() {
+        using var package = new MemoryStream();
+        VisioDocument document = VisioDocument.Create(package);
+        VisioPage page = document.AddPage("BoundedSvg").Size(2, 1);
+        page.AddRectangle(1, 0.5, 1.2, 0.5, "Bounded Visio SVG export");
+        var options = new VisioImageExportOptions { MaximumTotalEncodedBytes = 8L };
+
+        OfficeImageExportBatchLimitException pageException = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            page.ExportImage(OfficeImageExportFormat.Svg, options));
+        OfficeImageExportBatchLimitException documentException = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            document.ExportImage(OfficeImageExportFormat.Svg, options));
+
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), pageException.LimitName);
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), documentException.LimitName);
+    }
+
     [Theory]
     [InlineData("clip-path='url(#left)'", "")]
     [InlineData("style='clip-path:url(#left)'", "")]

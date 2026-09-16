@@ -29,7 +29,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, group.ChildCount);
                 Assert.True(paragraph.IsShapeGroup);
                 Assert.False(paragraph.IsShape);
-                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot layout));
+                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? layout));
+                Assert.NotNull(layout);
                 Assert.Equal(WordDrawingPlacementKind.Inline, layout.Placement);
                 Assert.True(layout.IsGroup);
                 Assert.Equal(144D, layout.WidthPoints, 6);
@@ -59,7 +60,8 @@ namespace OfficeIMO.Tests {
                     new WordShapeGroupItem(WordShapeType.Chevron, 72, 0, 80, 40),
                     new WordShapeGroupItem(WordShapeType.Chevron, 144, 0, 80, 40)
                 }, 24, 48);
-                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot layout));
+                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? layout));
+                Assert.NotNull(layout);
                 Assert.Equal(WordDrawingPlacementKind.Anchored, layout.Placement);
                 Assert.Equal(24D, layout.HorizontalOffsetPoints!.Value, 6);
                 Assert.Equal(48D, layout.VerticalOffsetPoints!.Value, 6);
@@ -71,7 +73,8 @@ namespace OfficeIMO.Tests {
             using WordDocument reloaded = WordDocument.Load(filePath);
             WordShapeGroup imported = Assert.IsType<WordShapeGroup>(Assert.Single(reloaded.Paragraphs).ShapeGroup);
             Assert.Equal(3, imported.ChildCount);
-            Assert.True(imported.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot persisted));
+            Assert.True(imported.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? persisted));
+            Assert.NotNull(persisted);
             Assert.Equal(WordDrawingPlacementKind.Anchored, persisted.Placement);
             Assert.Equal(224D, persisted.WidthPoints, 6);
             Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2010)

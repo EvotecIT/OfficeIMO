@@ -6,7 +6,6 @@
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
-    <NoWarn>$(NoWarn);xUnit2012;xUnit2013;xUnit2029</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

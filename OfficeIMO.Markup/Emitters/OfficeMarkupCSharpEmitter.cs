@@ -4,6 +4,8 @@ namespace OfficeIMO.Markup;
 /// Emits starter C# code from the semantic OfficeIMO markup AST.
 /// </summary>
 public sealed partial class OfficeMarkupCSharpEmitter {
+    /// <summary>Emits starter C# for the document's presentation, workbook, or document profile.</summary>
+    /// <remarks>This is an editable code handoff, not a fidelity guarantee for every markup extension.</remarks>
     public string Emit(OfficeMarkupDocument document, OfficeMarkupEmitterOptions? options = null) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));

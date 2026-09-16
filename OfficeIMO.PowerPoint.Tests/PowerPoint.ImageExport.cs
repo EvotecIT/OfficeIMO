@@ -16,6 +16,34 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
+        public void PowerPointPresentation_BatchEncodingConsumesOneSharedByteBudget() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.AddSlide().AddTextBox("First slide");
+            presentation.AddSlide().AddTextBox("Second slide");
+            var baselineOptions = new PowerPointPresentationImageExportOptions {
+                MaximumDegreeOfParallelism = 1
+            };
+            IReadOnlyList<OfficeImageExportResult> baseline = presentation.ExportImages(
+                OfficeImageExportFormat.Png,
+                baselineOptions);
+            long completeBatchBytes = baseline.Sum(image => image.Bytes.LongLength);
+            long maximumBytes = baseline[0].Bytes.LongLength + 1L;
+
+            OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                presentation.ExportImages(
+                    OfficeImageExportFormat.Png,
+                    new PowerPointPresentationImageExportOptions {
+                        MaximumDegreeOfParallelism = 1,
+                        MaximumTotalEncodedBytes = maximumBytes
+                    }));
+
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+            Assert.Equal(maximumBytes, exception.Maximum);
+            Assert.True(exception.Actual < completeBatchBytes);
+        }
+
+        [Fact]
         public void FieldInlineRunMutationsPersistToThePresentationPackage() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
             try {

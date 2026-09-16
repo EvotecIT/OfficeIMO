@@ -4,6 +4,8 @@ namespace OfficeIMO.Markup;
 /// Emits starter PowerShell code from the semantic OfficeIMO markup AST.
 /// </summary>
 public sealed class OfficeMarkupPowerShellEmitter {
+    /// <summary>Emits starter PowerShell for the document's presentation, workbook, or document profile.</summary>
+    /// <remarks>When options are omitted, the output-path variable text is <c>$FilePath</c>. The result is a handoff for further authoring, not a complete fidelity guarantee.</remarks>
     public string Emit(OfficeMarkupDocument document, OfficeMarkupEmitterOptions? options = null) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));

@@ -144,13 +144,10 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// The property which puts a paragraph on the beginning of a next side without add a page break to the document
-        /// </summary>
-        /// <value>bool</value>
+        /// <summary>Gets or sets a directly authored page-break-before value; this does not resolve inherited paragraph styles.</summary>
         public bool PageBreakBefore {
             get {
-                return _paragraphProperties != null && _paragraphProperties.PageBreakBefore is not null;
+                return ReadParagraphOnOff(_paragraphProperties?.PageBreakBefore);
             }
             set {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
@@ -163,11 +160,11 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Keeps this paragraph on the same page as the following paragraph.
+        /// Gets or sets directly authored keep-with-next formatting without resolving paragraph styles.
         /// </summary>
         public bool KeepWithNext {
             get {
-                return _paragraphProperties != null && _paragraphProperties.KeepNext is not null;
+                return ReadParagraphOnOff(_paragraphProperties?.KeepNext);
             }
             set {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
@@ -180,11 +177,11 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Keeps all lines in this paragraph together on the same page.
+        /// Gets or sets directly authored keep-lines-together formatting without resolving paragraph styles.
         /// </summary>
         public bool KeepLinesTogether {
             get {
-                return _paragraphProperties != null && _paragraphProperties.KeepLines is not null;
+                return ReadParagraphOnOff(_paragraphProperties?.KeepLines);
             }
             set {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
@@ -197,7 +194,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Enables widow and orphan control for this paragraph.
+        /// Gets or sets directly authored widow and orphan control without resolving paragraph styles.
         /// </summary>
         public bool AvoidWidowAndOrphan {
             get {
@@ -312,11 +309,11 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Indicates that paragraph text should be displayed from right to left.
+        /// Gets or sets directly authored right-to-left layout without resolving paragraph styles.
         /// </summary>
         public bool BiDi {
             get {
-                return _paragraphProperties != null && _paragraphProperties.BiDi is not null;
+                return ReadParagraphOnOff(_paragraphProperties?.BiDi);
             }
             set {
                 if (_paragraphProperties == null) {
@@ -332,6 +329,13 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        private static bool ReadParagraphOnOff(OnOffType? value) =>
+            value?.Val?.Value ?? value is not null;
+
+        internal static bool HasPageBreakBefore(Paragraph paragraph) =>
+            ReadParagraphOnOff(paragraph.ParagraphProperties?.PageBreakBefore);
+
         /// <summary>
         /// Gets or sets the rule used to calculate line spacing for the paragraph.
         /// </summary>

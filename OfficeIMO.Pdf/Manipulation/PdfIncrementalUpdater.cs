@@ -372,10 +372,15 @@ internal static partial class PdfIncrementalUpdater {
             supported.Add("Annotations");
         }
 
-        bool canPrepareSignature =
-            signaturePreparationBlockers.Count == 0 &&
-            !hasSignatureContent &&
-            !security.HasDocMDPPermissions;
+        if (security.HasDocMDPPermissions && !CanAppendFormFieldsWithDocMDP(security, null)) {
+            signaturePreparationBlockers.Add("DocMDP");
+        } else if (blockedBySignatureFieldLock) {
+            signaturePreparationBlockers.Add("SignatureFieldLock");
+        } else if (hasSignatureContent) {
+            warnings.Add("SignedAdditionalSignature");
+        }
+
+        bool canPrepareSignature = signaturePreparationBlockers.Count == 0;
         if (canPrepareSignature) {
             supported.Add("SignaturePrepare");
         }

@@ -193,9 +193,11 @@ public sealed class PdfBridgeApiContracts {
         PdfReadOptions cloned = options.Clone().ReadOptions!;
         Assert.NotSame(options.ReadOptions, cloned);
         Assert.Equal(options.ReadOptions.PageSelection, cloned.PageSelection);
-        Assert.Equal(1, cloned.Pipeline.MaxPages);
+        Assert.NotNull(cloned.Pipeline);
+        Assert.NotNull(options.ReadOptions.Pipeline);
+        Assert.Equal(1, cloned.Pipeline!.MaxPages);
         cloned.Pipeline.MaxPages = 2;
-        Assert.Equal(1, options.ReadOptions.Pipeline.MaxPages);
+        Assert.Equal(1, options.ReadOptions.Pipeline!.MaxPages);
     }
 
     [Fact]

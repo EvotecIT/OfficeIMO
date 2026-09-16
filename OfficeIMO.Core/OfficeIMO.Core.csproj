@@ -25,7 +25,6 @@
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
     <EnableTrimmingPolyfills>true</EnableTrimmingPolyfills>
-    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

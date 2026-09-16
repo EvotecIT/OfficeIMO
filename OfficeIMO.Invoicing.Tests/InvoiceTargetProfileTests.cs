@@ -8,12 +8,12 @@ public class InvoiceTargetProfileTests {
         invoice.Seller.Identifiers.Add(new InvoiceIdentifier("seller-2"));
         invoice.Buyer.Identifiers.Add(new InvoiceIdentifier("buyer-1"));
         invoice.Buyer.Identifiers.Add(new InvoiceIdentifier("buyer-2"));
-        byte[] cii = InvoiceSerializer.Write(invoice);
+        byte[] cii = InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931());
         InvoiceReadResult read = InvoiceParser.Read(cii);
         Assert.True(read.HasCompleteMapping);
         Assert.Equal(2, read.Invoice.Buyer.Identifiers.Count);
-        Assert.Equal(cii, read.Write());
-        var ubl = new InvoiceXmlOptions(InvoiceSyntax.Ubl);
+        Assert.Equal(cii, read.Write(InvoiceTestContracts.En16931()));
+        var ubl = InvoiceTestContracts.En16931(InvoiceSyntax.Ubl);
         Assert.Contains(InvoiceSerializer.InspectTarget(invoice, ubl), d => d.Location == "Buyer.Identifiers");
         Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, ubl));
         InvoiceConversionResult conversion = InvoiceConverter.Convert(cii, ubl);
@@ -35,16 +35,16 @@ public class InvoiceTargetProfileTests {
     public void DirectDebitFieldsAreCheckedInTheirTargetProfile(InvoiceSyntax syntax, InvoiceProfile profile, bool german) {
         Invoice invoice = DebitInvoice();
         if (!german) { invoice.Seller.Address!.CountryCode = "FR"; invoice.Buyer.Address!.CountryCode = "FR"; }
-        var options = new InvoiceXmlOptions(syntax, profile);
+        var options = InvoiceTestContracts.For(syntax, profile);
         Assert.Empty(InvoiceSerializer.InspectTarget(invoice, options));
         for (int field = 0; field < 3; field++) {
-            SetDebitField(invoice.Payment!, field, null);
+            SetDebitField(invoice.Payments[0], field, null);
             bool required = profile != InvoiceProfile.En16931 && (field == 0 || profile == InvoiceProfile.XRechnung || german);
             var diagnostics = InvoiceSerializer.InspectTarget(invoice, options);
             Assert.Equal(required, diagnostics.Any(d => d.Severity == InvoiceDiagnosticSeverity.Error));
             if (required) Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, options));
             else Assert.True(InvoiceParser.Read(InvoiceSerializer.Write(invoice, options)).HasCompleteMapping);
-            SetDebitField(invoice.Payment!, field, field == 0 ? "mandate-1" : field == 1 ? "DE98ZZZ09999999999" : "DE89370400440532013000");
+            SetDebitField(invoice.Payments[0], field, field == 0 ? "mandate-1" : field == 1 ? "DE98ZZZ09999999999" : "DE89370400440532013000");
         }
     }
 
@@ -54,10 +54,10 @@ public class InvoiceTargetProfileTests {
     [InlineData(InvoiceSyntax.Ubl, InvoiceProfile.PeppolBis)]
     public void OtherDirectDebitCodeAlsoRequiresMandate(InvoiceSyntax syntax, InvoiceProfile profile) {
         Invoice invoice = DebitInvoice();
-        invoice.Payment!.MeansCode = "49";
-        invoice.Payment.MandateReference = null;
-        Assert.Contains(InvoiceSerializer.InspectTarget(invoice, new InvoiceXmlOptions(syntax, profile)), d => d.Location == "Payment.MandateReference");
-        Assert.Empty(InvoiceSerializer.InspectTarget(invoice, new InvoiceXmlOptions(syntax, InvoiceProfile.En16931)));
+        invoice.Payments[0].MeansCode = "49";
+        invoice.Payments[0].MandateReference = null;
+        Assert.Contains(InvoiceSerializer.InspectTarget(invoice, InvoiceTestContracts.For(syntax, profile)), d => d.Location == "Payments[0].MandateReference");
+        Assert.Empty(InvoiceSerializer.InspectTarget(invoice, InvoiceTestContracts.En16931(syntax)));
     }
 
     [Theory]
@@ -66,21 +66,22 @@ public class InvoiceTargetProfileTests {
     [InlineData(InvoiceSyntax.Ubl, InvoiceProfile.PeppolBis)]
     public void GermanSepaDirectDebitCannotIncludeOtherPaymentGroups(InvoiceSyntax syntax, InvoiceProfile profile) {
         Invoice invoice = DebitInvoice();
-        invoice.Payment!.Accounts.Add(new InvoiceBankAccount { Identifier = "DE89370400440532013000" });
-        invoice.Payment.CardNumber = "1234";
-        var diagnostics = InvoiceSerializer.InspectTarget(invoice, new InvoiceXmlOptions(syntax, profile));
-        Assert.Contains(diagnostics, d => d.Location == "Payment.Accounts");
-        Assert.Contains(diagnostics, d => d.Location == "Payment.CardNumber");
-        Assert.Empty(InvoiceSerializer.InspectTarget(invoice, new InvoiceXmlOptions(syntax, InvoiceProfile.En16931)));
+        invoice.Payments[0].Account = new InvoiceBankAccount { Identifier = "DE89370400440532013000" };
+        invoice.Payments[0].CardNumber = "1234";
+        if (syntax == InvoiceSyntax.Ubl) invoice.Payments[0].CardNetworkId = "VISA";
+        var diagnostics = InvoiceSerializer.InspectTarget(invoice, InvoiceTestContracts.For(syntax, profile));
+        Assert.Contains(diagnostics, d => d.Location == "Payments[0].Account");
+        Assert.Contains(diagnostics, d => d.Location == "Payments[0].CardNumber");
+        Assert.Empty(InvoiceSerializer.InspectTarget(invoice, InvoiceTestContracts.En16931(syntax)));
     }
 
     private static Invoice DebitInvoice() {
         Invoice invoice = InvoiceFixture.Create();
-        invoice.Payment!.Accounts.Clear();
-        invoice.Payment.MeansCode = "59";
-        invoice.Payment.MandateReference = "mandate-1";
-        invoice.Payment.CreditorIdentifier = "DE98ZZZ09999999999";
-        invoice.Payment.DebitedAccount = "DE89370400440532013000";
+        invoice.Payments[0].Account = null;
+        invoice.Payments[0].MeansCode = "59";
+        invoice.Payments[0].MandateReference = "mandate-1";
+        invoice.Payments[0].CreditorIdentifier = "DE98ZZZ09999999999";
+        invoice.Payments[0].DebitedAccount = "DE89370400440532013000";
         return invoice;
     }
 

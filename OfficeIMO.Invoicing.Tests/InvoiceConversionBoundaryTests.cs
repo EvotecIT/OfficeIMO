@@ -7,10 +7,10 @@ public class InvoiceConversionBoundaryTests {
     [InlineData("DE5112345678901")]
     public void InvalidSourceDebtorIbanCannotBeRecastAsAGenericUblAccount(string identifier) {
         Invoice invoice = InvoiceFixture.Create();
-        invoice.Payment!.MeansCode = "49";
-        invoice.Payment.DebitedAccount = "DE89370400440532013000";
-        string source = System.Text.Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice)).Replace(invoice.Payment.DebitedAccount, identifier);
-        InvoiceConversionResult result = InvoiceConverter.Convert(System.Text.Encoding.UTF8.GetBytes(source), new InvoiceXmlOptions(InvoiceSyntax.Ubl));
+        invoice.Payments[0].MeansCode = "49";
+        invoice.Payments[0].DebitedAccount = "DE89370400440532013000";
+        string source = System.Text.Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931())).Replace(invoice.Payments[0].DebitedAccount!, identifier);
+        InvoiceConversionResult result = InvoiceConverter.Convert(System.Text.Encoding.UTF8.GetBytes(source), InvoiceTestContracts.En16931(InvoiceSyntax.Ubl));
         Assert.False(result.Succeeded);
         Assert.Null(result.Xml);
         Assert.Contains(result.Diagnostics, d => d.Severity == InvoiceDiagnosticSeverity.Error);
@@ -21,7 +21,7 @@ public class InvoiceConversionBoundaryTests {
     [InlineData("<bad>")]
     [InlineData("<not-an-invoice />")]
     public void InvalidSourceReturnsDiagnosticsWithoutOutput(string source) {
-        InvoiceConversionResult result = InvoiceConverter.Convert(System.Text.Encoding.UTF8.GetBytes(source), new InvoiceXmlOptions());
+        InvoiceConversionResult result = InvoiceConverter.Convert(System.Text.Encoding.UTF8.GetBytes(source), InvoiceTestContracts.En16931());
         Assert.False(result.Succeeded);
         Assert.Null(result.Xml);
         Assert.Contains(result.Diagnostics, d => d.Code == "INV-CONVERSION-INPUT" && d.Severity == InvoiceDiagnosticSeverity.Error);
@@ -32,14 +32,14 @@ public class InvoiceConversionBoundaryTests {
     [InlineData("DE12345678901234567890")]
     public void GenericCreditorAccountRetainsItsIdentityAcrossBothSyntaxes(string identifier) {
         Invoice invoice = InvoiceFixture.Create();
-        invoice.Payment!.Accounts[0].Identifier = identifier;
-        invoice.Payment.Accounts[0].IsIban = false;
-        byte[] source = InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Cii));
-        InvoiceConversionResult ubl = InvoiceConverter.Convert(source, new InvoiceXmlOptions(InvoiceSyntax.Ubl));
+        invoice.Payments[0].Account!.Identifier = identifier;
+        invoice.Payments[0].Account!.IsIban = false;
+        byte[] source = InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(InvoiceSyntax.Cii));
+        InvoiceConversionResult ubl = InvoiceConverter.Convert(source, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl));
         Assert.True(ubl.Succeeded);
-        InvoiceConversionResult cii = InvoiceConverter.Convert(ubl.Xml!, new InvoiceXmlOptions(InvoiceSyntax.Cii));
+        InvoiceConversionResult cii = InvoiceConverter.Convert(ubl.Xml!, InvoiceTestContracts.En16931(InvoiceSyntax.Cii));
         Assert.True(cii.Succeeded);
-        InvoiceBankAccount account = InvoiceParser.Read(cii.Xml!).Invoice.Payment!.Accounts[0];
+        InvoiceBankAccount account = InvoiceParser.Read(cii.Xml!).Invoice.Payments[0].Account!;
         Assert.False(account.IsIban);
         Assert.Equal(identifier, account.Identifier);
     }
@@ -47,21 +47,21 @@ public class InvoiceConversionBoundaryTests {
     [Fact]
     public void ExplicitProprietaryAccountCannotLoseItsClassificationInUbl() {
         Invoice invoice = InvoiceFixture.Create();
-        invoice.Payment!.Accounts[0].IsIban = false;
-        InvoiceConversionResult result = InvoiceConverter.Convert(InvoiceSerializer.Write(invoice), new InvoiceXmlOptions(InvoiceSyntax.Ubl));
+        invoice.Payments[0].Account!.IsIban = false;
+        InvoiceConversionResult result = InvoiceConverter.Convert(InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931()), InvoiceTestContracts.En16931(InvoiceSyntax.Ubl));
         Assert.False(result.Succeeded);
         Assert.Null(result.Xml);
-        Assert.Contains(result.Diagnostics, d => d.Location == "Payment.Accounts[0]");
+        Assert.Contains(result.Diagnostics, d => d.Location == "Payments[0].Account");
     }
 
     [Fact]
     public void ValidDebitedIbanRoundTripsAcrossBothSyntaxes() {
         Invoice invoice = InvoiceFixture.Create();
-        invoice.Payment!.MeansCode = "49";
-        invoice.Payment.DebitedAccount = "DE89370400440532013000";
-        InvoiceConversionResult result = InvoiceConverter.Convert(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl)), new InvoiceXmlOptions());
+        invoice.Payments[0].MeansCode = "49";
+        invoice.Payments[0].DebitedAccount = "DE89370400440532013000";
+        InvoiceConversionResult result = InvoiceConverter.Convert(InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl)), InvoiceTestContracts.En16931());
         Assert.True(result.Succeeded);
-        Assert.Equal(invoice.Payment.DebitedAccount, InvoiceParser.Read(result.Xml!).Invoice.Payment!.DebitedAccount);
+        Assert.Equal(invoice.Payments[0].DebitedAccount, InvoiceParser.Read(result.Xml!).Invoice.Payments[0].DebitedAccount);
     }
 
     [Fact]
@@ -72,11 +72,11 @@ public class InvoiceConversionBoundaryTests {
         });
         for (int index = 0; index < 4; index++) invoice.Notes.Add(new InvoiceNote(new string('A', 1000000)));
         for (int index = 0; index < 30000; index++) invoice.Notes.Add(new InvoiceNote("N"));
-        byte[] source = InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl));
+        byte[] source = InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl));
         Assert.InRange(source.Length, 15 * 1024 * 1024, InvoiceProfileDeclaration.MaximumXmlBytes);
         Assert.True(InvoiceParser.Read(source).HasCompleteMapping);
-        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice));
-        InvoiceConversionResult result = InvoiceConverter.Convert(source, new InvoiceXmlOptions(InvoiceSyntax.Cii));
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931()));
+        InvoiceConversionResult result = InvoiceConverter.Convert(source, InvoiceTestContracts.En16931(InvoiceSyntax.Cii));
         Assert.False(result.Succeeded);
         Assert.Null(result.Xml);
         Assert.Contains(result.Diagnostics, d => d.Code == "INV-CONVERSION-OUTPUT" && d.Severity == InvoiceDiagnosticSeverity.Error);
@@ -87,16 +87,16 @@ public class InvoiceConversionBoundaryTests {
     [InlineData("DE12345678901234567890")]
     public void GenericUblDebitedAccountCannotBeRelabeledAsAnIban(string account) {
         Invoice invoice = InvoiceFixture.Create();
-        invoice.Payment!.MeansCode = "49";
-        invoice.Payment.DebitedAccount = account;
-        byte[] source = InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl));
+        invoice.Payments[0].MeansCode = "49";
+        invoice.Payments[0].DebitedAccount = account;
+        byte[] source = InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl));
         InvoiceReadResult read = InvoiceParser.Read(source);
         Assert.True(read.HasCompleteMapping);
-        Assert.Equal(account, read.Invoice.Payment!.DebitedAccount);
-        Assert.Equal(account, InvoiceParser.Read(read.Write()).Invoice.Payment!.DebitedAccount);
-        InvoiceConversionResult result = InvoiceConverter.Convert(source, new InvoiceXmlOptions(InvoiceSyntax.Cii));
+        Assert.Equal(account, read.Invoice.Payments[0].DebitedAccount);
+        Assert.Equal(account, InvoiceParser.Read(read.Write(InvoiceTestContracts.En16931(InvoiceSyntax.Ubl))).Invoice.Payments[0].DebitedAccount);
+        InvoiceConversionResult result = InvoiceConverter.Convert(source, InvoiceTestContracts.En16931(InvoiceSyntax.Cii));
         Assert.False(result.Succeeded);
         Assert.Null(result.Xml);
-        Assert.Contains(result.Diagnostics, d => d.Location == "Payment.DebitedAccount");
+        Assert.Contains(result.Diagnostics, d => d.Location == "Payments[0].DebitedAccount");
     }
 }

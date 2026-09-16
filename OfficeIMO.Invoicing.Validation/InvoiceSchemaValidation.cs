@@ -6,10 +6,11 @@ using System.Xml.Linq;
 namespace OfficeIMO.Invoicing.Validation;
 
 internal static class InvoiceSchemaValidation {
-    internal static List<InvoiceDiagnostic> Validate(byte[] xml, InvoiceRuleBundle bundle, InvoiceSyntax syntax, bool credit, CancellationToken cancellationToken) {
+    internal static List<InvoiceDiagnostic> Validate(byte[] xml, InvoiceRuleBundle bundle, InvoiceSpecificationRelease release, InvoiceProfile profile,
+        InvoiceSyntax syntax, bool credit, CancellationToken cancellationToken) {
         var resolver = new BundleResolver(bundle);
         var schemas = new XmlSchemaSet { XmlResolver = resolver };
-        string schemaPath = bundle.Schema(syntax, credit);
+        string schemaPath = bundle.Schema(release, profile, syntax, credit);
         using var schemaInput = new MemoryStream(bundle.File(schemaPath), false);
         using (XmlReader schemaReader = XmlReader.Create(schemaInput, InvoiceRuleBundle.XmlSettings(), "invoice-bundle:///" + schemaPath)) schemas.Add(null, schemaReader);
         schemas.Compile();

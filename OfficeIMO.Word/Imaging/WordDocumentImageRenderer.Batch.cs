@@ -23,6 +23,7 @@ namespace OfficeIMO.Word {
                 options.CancellationCheckpoint);
             (int firstPage, int count) = ResolveBatchPageRange(options, sectionPageCounts);
             int[] pages = Enumerable.Range(firstPage, count).ToArray();
+            var encodingBudget = new OfficeImageExportEncodingBudget(options.MaximumTotalEncodedBytes);
             OfficeImageExportBatchProcessor.ForEachOrdered(
                 pages,
                 options.MaximumDegreeOfParallelism,
@@ -35,7 +36,7 @@ namespace OfficeIMO.Word {
                         sectionPageCounts,
                         token);
                     token.ThrowIfCancellationRequested();
-                    return RenderSnapshot(snapshot, format, pageOptions, token);
+                    return RenderSnapshot(snapshot, format, pageOptions, token, encodingBudget);
                 },
                 consumer,
                 cancellationToken,

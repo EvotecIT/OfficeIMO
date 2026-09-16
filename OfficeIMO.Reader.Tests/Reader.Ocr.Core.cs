@@ -9,8 +9,8 @@ namespace OfficeIMO.Tests;
 public sealed class ReaderOcrCoreTests {
     [Fact]
     public void OcrContracts_AreNeutralAndReaderExecutionStaysInTheOptionalIntegration() {
-        Assert.Empty(typeof(IOcrEngine).Assembly.GetReferencedAssemblies()
-            .Where(reference => reference.Name?.StartsWith("OfficeIMO.", StringComparison.Ordinal) == true));
+        Assert.DoesNotContain(typeof(IOcrEngine).Assembly.GetReferencedAssemblies()
+, reference => reference.Name?.StartsWith("OfficeIMO.", StringComparison.Ordinal) == true);
         Assert.Null(typeof(OfficeDocumentReadResult).Assembly.GetType("OfficeIMO.Reader.IOfficeOcrEngine"));
         Assert.Equal("OfficeIMO.Reader.Ocr", typeof(OfficeDocumentOcrExecutionExtensions).Assembly.GetName().Name);
     }

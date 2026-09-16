@@ -1,10 +1,10 @@
 {
   "id":"OfficeIMO.ProtectedContent",
-  "schemaVersion":1,
+  "schemaVersion":2,
   "capabilities":[
     {
       "id":"ooxml-password",
-      "formatId":"DOCX/XLSX/PPTX",
+      "formatId":"DOCX/DOCM/XLSX/XLSM/PPTX/PPTM",
       "packageId":"OfficeIMO.Word / OfficeIMO.Excel / OfficeIMO.PowerPoint",
       "kind":"PasswordEncryption",
       "inspect":"Supported",
@@ -14,7 +14,8 @@
       "mutate":"Supported",
       "remove":"Supported",
       "api":"format load/save password APIs",
-      "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required."
+      "limitation":"Password encryption is format-owned; no OfficeIMO.Security dependency is required.",
+      "unsupportedOperations":[]
     },
     {
       "id":"doc-password",
@@ -28,7 +29,8 @@
       "mutate":"Blocked",
       "remove":"NotSupported",
       "api":"WordDocument.Load",
-      "limitation":"Legacy DOC encryption is detected only; encrypted content is not exposed."
+      "limitation":"Legacy DOC encryption is detected only; encrypted content is not exposed.",
+      "unsupportedOperations":[{"operation":"Open","disposition":"RoadmapTracked","rationale":"Legacy encrypted-DOC import","roadmapReference":"../../ROADMAP.md#security-and-protected-content"},{"operation":"Create","disposition":"IntentionalBoundary","rationale":"Encrypted legacy DOC authoring is outside the adopted roadmap outcome."},{"operation":"Remove","disposition":"IntentionalBoundary","rationale":"Protection removal requires a supported encrypted-DOC open path first."}]
     },
     {
       "id":"xls-password",
@@ -42,7 +44,8 @@
       "mutate":"NotSupported",
       "remove":"NotSupported",
       "api":"ExcelDocument.Load",
-      "limitation":"Encrypted legacy XLS read is supported; encrypted legacy authoring is not."
+      "limitation":"Encrypted legacy XLS read is supported; encrypted legacy authoring is not.",
+      "unsupportedOperations":[{"operation":"Create","disposition":"RoadmapTracked","rationale":"Encrypted-XLS authoring","roadmapReference":"../../ROADMAP.md#security-and-protected-content"},{"operation":"Mutate","disposition":"RoadmapTracked","rationale":"Encrypted-XLS authoring and round-trip","roadmapReference":"../../ROADMAP.md#security-and-protected-content"},{"operation":"Remove","disposition":"RoadmapTracked","rationale":"Encrypted-XLS authoring and explicit plaintext output","roadmapReference":"../../ROADMAP.md#security-and-protected-content"}]
     },
     {
       "id":"ppt-password",
@@ -56,7 +59,8 @@
       "mutate":"Supported",
       "remove":"Supported",
       "api":"PowerPointPresentation.Load / Save",
-      "limitation":"Legacy PPT RC4 password protection is format-owned."
+      "limitation":"Legacy PPT RC4 password protection is format-owned.",
+      "unsupportedOperations":[]
     },
     {
       "id":"pdf-password",
@@ -70,7 +74,8 @@
       "mutate":"Supported",
       "remove":"Supported",
       "api":"PdfDocument.Security",
-      "limitation":"Typed PDF security options and operation results report encryption policy."
+      "limitation":"Typed PDF security options and operation results report encryption policy.",
+      "unsupportedOperations":[]
     },
     {
       "id":"odf-password",
@@ -84,7 +89,8 @@
       "mutate":"Supported",
       "remove":"Supported",
       "api":"OdfLoadOptions.Password / OdfSaveOptions.Encryption",
-      "limitation":"AES-256-CBC with 10,000-10,000,000 PBKDF2-HMAC-SHA1 iterations, SHA-256 start key, and SHA-256/1K checksum; legacy Blowfish is rejected."
+      "limitation":"AES-256-CBC with 10,000-10,000,000 PBKDF2-HMAC-SHA1 iterations, SHA-256 start key, and SHA-256/1K checksum; legacy Blowfish is rejected.",
+      "unsupportedOperations":[]
     },
     {
       "id":"epub-font-obfuscation",
@@ -98,7 +104,8 @@
       "mutate":"NotApplicable",
       "remove":"NotApplicable",
       "api":"EpubDocument.Load",
-      "limitation":"IDPF and Adobe font obfuscation are removed in the read projection only when the package identity yields the required key; EPUB output is not mutated."
+      "limitation":"IDPF and Adobe font obfuscation are removed in the read projection only when the package identity yields the required key; EPUB output is not mutated.",
+      "unsupportedOperations":[{"operation":"Create","disposition":"IntentionalBoundary","rationale":"Font obfuscation authoring is outside the read-projection contract."}]
     },
     {
       "id":"smime-signature",
@@ -112,7 +119,8 @@
       "mutate":"Preserved",
       "remove":"NotApplicable",
       "api":"EmailSmime.Sign / Verify",
-      "limitation":"Email owns MIME serialization; an explicit IOfficeSecurityProvider owns CMS and certificate policy."
+      "limitation":"Email owns MIME serialization; an explicit IOfficeSecurityProvider owns CMS and certificate policy.",
+      "unsupportedOperations":[]
     },
     {
       "id":"smime-signature-msg-tnef",
@@ -126,7 +134,8 @@
       "mutate":"Preserved",
       "remove":"NotApplicable",
       "api":"EmailSmime.Verify",
-      "limitation":"Protected MSG/TNEF content can be inspected and verified after parsing; outbound signing creates RFC 5322/MIME bytes, not MSG or TNEF containers."
+      "limitation":"Protected MSG/TNEF content can be inspected and verified after parsing; outbound signing creates RFC 5322/MIME bytes, not MSG or TNEF containers.",
+      "unsupportedOperations":[{"operation":"Create","disposition":"IntentionalBoundary","rationale":"Outbound signing intentionally creates RFC 5322/MIME rather than MSG or TNEF containers."}]
     },
     {
       "id":"smime-envelope",
@@ -140,7 +149,8 @@
       "mutate":"Preserved",
       "remove":"NotApplicable",
       "api":"EmailSmime.Encrypt / Decrypt / SignAndEncrypt",
-      "limitation":"Certificate-recipient CMS encryption is provider-backed; protected source pass-through remains available without the provider."
+      "limitation":"Certificate-recipient CMS encryption is provider-backed; protected source pass-through remains available without the provider.",
+      "unsupportedOperations":[]
     },
     {
       "id":"smime-envelope-msg-tnef",
@@ -154,11 +164,12 @@
       "mutate":"Preserved",
       "remove":"NotApplicable",
       "api":"EmailSmime.Decrypt",
-      "limitation":"Protected MSG/TNEF content can be inspected and decrypted after parsing; outbound encryption creates RFC 5322/MIME bytes, not MSG or TNEF containers."
+      "limitation":"Protected MSG/TNEF content can be inspected and decrypted after parsing; outbound encryption creates RFC 5322/MIME bytes, not MSG or TNEF containers.",
+      "unsupportedOperations":[{"operation":"Create","disposition":"IntentionalBoundary","rationale":"Outbound encryption intentionally creates RFC 5322/MIME rather than MSG or TNEF containers."}]
     },
     {
       "id":"opc-package-signature",
-      "formatId":"DOCX/XLSX/PPTX/Visio",
+      "formatId":"DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
       "packageId":"format package + optional provider",
       "kind":"DigitalSignature",
       "inspect":"Supported",
@@ -168,7 +179,8 @@
       "mutate":"Blocked",
       "remove":"Supported",
       "api":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
-      "limitation":"Changed signed packages require explicit invalidation handling."
+      "limitation":"Changed signed packages require explicit invalidation handling.",
+      "unsupportedOperations":[]
     },
     {
       "id":"vba-signature",
@@ -182,7 +194,8 @@
       "mutate":"Blocked",
       "remove":"Supported",
       "api":"InspectVbaSignatures / SignVbaProject",
-      "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."
+      "limitation":"Managed legacy, agile, and V3 VBA signature profiles are corpus-bound.",
+      "unsupportedOperations":[]
     },
     {
       "id":"odf-package-signature",
@@ -196,7 +209,8 @@
       "mutate":"Blocked",
       "remove":"Supported",
       "api":"OdfDocument.SignPackage / ValidatePackageSignatures",
-      "limitation":"The bounded OfficeIMO XML manifest profile does not claim every producer-specific ODF signature profile."
+      "limitation":"The bounded OfficeIMO XML manifest profile does not claim every producer-specific ODF signature profile.",
+      "unsupportedOperations":[]
     },
     {
       "id":"epub-package-signature",
@@ -210,7 +224,8 @@
       "mutate":"Blocked",
       "remove":"Supported",
       "api":"EpubDocument.SignPackage / ValidatePackageSignatures",
-      "limitation":"The bounded OfficeIMO XML manifest profile does not claim arbitrary EPUB DRM or signature profiles."
+      "limitation":"The bounded OfficeIMO XML manifest profile does not claim arbitrary EPUB DRM or signature profiles.",
+      "unsupportedOperations":[]
     },
     {
       "id":"onenote-encrypted-revision",
@@ -224,7 +239,8 @@
       "mutate":"Blocked",
       "remove":"NotSupported",
       "api":"OneNoteSectionReader.Read",
-      "limitation":"An encrypted current revision or dependency fails closed; an older plaintext revision is never substituted."
+      "limitation":"An encrypted current revision or dependency fails closed; an older plaintext revision is never substituted.",
+      "unsupportedOperations":[{"operation":"Open","disposition":"RoadmapTracked","rationale":"Encrypted OneNote revision materialization","roadmapReference":"../../ROADMAP.md#security-and-protected-content"},{"operation":"Create","disposition":"IntentionalBoundary","rationale":"Encrypted OneNote authoring is outside the adopted materialization outcome."},{"operation":"Remove","disposition":"IntentionalBoundary","rationale":"Protection removal is outside the adopted materialization outcome."}]
     },
     {
       "id":"pst-password",
@@ -238,7 +254,8 @@
       "mutate":"Blocked",
       "remove":"NotSupported",
       "api":"EmailStoreSession.IsPstPasswordProtected",
-      "limitation":"PST password protection is a checksum-based access deterrent, not cryptographic encryption."
+      "limitation":"PST password protection is a checksum-based access deterrent, not cryptographic encryption.",
+      "unsupportedOperations":[{"operation":"Create","disposition":"IntentionalBoundary","rationale":"PST access-deterrence authoring is outside the protected-content writer contract."},{"operation":"Remove","disposition":"IntentionalBoundary","rationale":"PST access-deterrence removal is outside the protected-content writer contract."}]
     },
     {
       "id":"rtf-editing-restrictions",
@@ -252,7 +269,8 @@
       "mutate":"Supported",
       "remove":"Supported",
       "api":"RtfDocumentSettings.HasEditingProtection",
-      "limitation":"RTF protection flags restrict editing but do not encrypt content."
+      "limitation":"RTF protection flags restrict editing but do not encrypt content.",
+      "unsupportedOperations":[]
     }
   ]
 }

@@ -58,8 +58,8 @@ public sealed class Invoice {
     public IList<InvoiceLine> Lines { get; } = new List<InvoiceLine>();
     /// <summary>Document-level allowances and charges (BG-20/BG-21).</summary>
     public IList<InvoiceAllowanceCharge> AllowancesAndCharges { get; } = new List<InvoiceAllowanceCharge>();
-    /// <summary>Payment instructions (BG-16).</summary>
-    public InvoicePayment? Payment { get; set; }
+    /// <summary>Payment instruction occurrences (BG-16), retained independently so conflicting descriptions and references are not collapsed.</summary>
+    public IList<InvoicePayment> Payments { get; } = new List<InvoicePayment>();
     /// <summary>Payment terms (BT-20).</summary>
     public string? PaymentTerms { get; set; }
     /// <summary>Payment due date (BT-9).</summary>

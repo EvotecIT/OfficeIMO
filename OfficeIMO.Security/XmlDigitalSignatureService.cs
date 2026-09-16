@@ -336,7 +336,7 @@ internal static class XmlDigitalSignatureService {
     };
 
 #if NET8_0_OR_GREATER
-#pragma warning disable SYSLIB0021
+#pragma warning disable SYSLIB0021 // Managed hash types are rooted for SignedXml's URI-based dynamic activation.
     // SignedXml resolves algorithm URIs through CryptoConfig. The runtime cannot infer those dynamic
     // activations during trimming or NativeAOT, so the closed algorithm set accepted by this provider
     // must root the corresponding implementations in the owning library rather than in each application.
@@ -361,7 +361,7 @@ internal static class XmlDigitalSignatureService {
         AsymmetricAlgorithm? publicKey = certificate.GetRSAPublicKey();
         publicKey ??= certificate.GetECDsaPublicKey();
 #if NETSTANDARD2_0 || NETFRAMEWORK
-#pragma warning disable SYSLIB0027
+#pragma warning disable SYSLIB0027 // Legacy targets lack GetDSAPublicKey; this fallback preserves DSA verification support.
         publicKey ??= certificate.PublicKey.Key;
 #pragma warning restore SYSLIB0027
 #else

@@ -61,9 +61,19 @@ namespace OfficeIMO.Excel {
             CancellationToken cancellationToken = default) {
             if (consumer == null) throw new ArgumentNullException(nameof(consumer));
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
+            ExportImagesCore(format, consumer, resolved, cancellationToken, null);
+        }
+
+        internal void ExportImagesCore(
+            OfficeImageExportFormat format,
+            OfficeImageExportConsumer consumer,
+            ExcelWorksheetImageExportOptions resolved,
+            CancellationToken cancellationToken,
+            OfficeImageExportEncodingBudget? encodingBudget) {
             IReadOnlyList<WorksheetImageRangeResolution>? ranges = null;
             ExcelHeaderFooterSnapshot? headerFooterSnapshot = null;
             long headerFooterSourceImageBytes = 0L;
+            encodingBudget ??= new OfficeImageExportEncodingBudget(resolved.MaximumTotalEncodedBytes);
             OfficeImageExportBatchProcessor.RunWithPreflight(
                 resolved,
                 operationCancellationToken => {
@@ -93,7 +103,8 @@ namespace OfficeIMO.Excel {
                             sourceImageBudget,
                             index + 1,
                             resolvedRanges.Count,
-                            operationCancellationToken));
+                            operationCancellationToken,
+                            encodingBudget));
                     }
                 },
                 consumer,

@@ -5,16 +5,18 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 
-#pragma warning disable CS1591
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Severity assigned to workbook diagnostics and compliance findings.
     /// </summary>
     public enum ExcelFindingSeverity {
+        /// <summary>Informational observation that does not require correction.</summary>
         Info,
+        /// <summary>Potential compatibility, fidelity, or accessibility concern.</summary>
         Warning,
+        /// <summary>Invalid or unsafe workbook state.</summary>
         Error
-}
+    }
     /// <summary>
     /// A diagnostic issue discovered in an Excel workbook.
     /// </summary>
@@ -28,11 +30,17 @@ namespace OfficeIMO.Excel {
             RepairAction = repairAction;
         }
 
+        /// <summary>Gets the diagnostic category.</summary>
         public string Category { get; }
+        /// <summary>Gets the finding severity.</summary>
         public ExcelFindingSeverity Severity { get; }
+        /// <summary>Gets the human-readable explanation.</summary>
         public string Message { get; }
+        /// <summary>Gets the affected worksheet name, when applicable.</summary>
         public string? SheetName { get; }
+        /// <summary>Gets the affected cell or range address, when applicable.</summary>
         public string? Address { get; }
+        /// <summary>Gets a suggested repair action, when one is available.</summary>
         public string? RepairAction { get; }
     }
 
@@ -45,9 +53,13 @@ namespace OfficeIMO.Excel {
             RepairedIssueCount = repairedIssueCount;
         }
 
+        /// <summary>Gets issues discovered by the scan.</summary>
         public IReadOnlyList<ExcelWorkbookDiagnosticIssue> Issues { get; }
+        /// <summary>Gets the number of issues repaired before the diagnostic scan.</summary>
         public int RepairedIssueCount { get; }
+        /// <summary>Gets whether the report contains an error.</summary>
         public bool HasErrors => Issues.Any(issue => issue.Severity == ExcelFindingSeverity.Error);
+        /// <summary>Gets whether the report contains a warning.</summary>
         public bool HasWarnings => Issues.Any(issue => issue.Severity == ExcelFindingSeverity.Warning);
     }
 
@@ -55,12 +67,19 @@ namespace OfficeIMO.Excel {
     /// Options for workbook diagnostic scans and safe repairs.
     /// </summary>
     public sealed class ExcelWorkbookDoctorOptions {
+        /// <summary>Gets or sets whether to run Open XML schema validation.</summary>
         public bool ValidateOpenXml { get; set; } = true;
+        /// <summary>Gets or sets whether to check duplicate and broken defined names.</summary>
         public bool CheckDefinedNames { get; set; } = true;
+        /// <summary>Gets or sets whether to check external and volatile formulas.</summary>
         public bool CheckFormulas { get; set; } = true;
+        /// <summary>Gets or sets whether to check table naming.</summary>
         public bool CheckTables { get; set; } = true;
+        /// <summary>Gets or sets whether to check embedded drawing content.</summary>
         public bool CheckDrawings { get; set; } = true;
+        /// <summary>Gets or sets whether to inspect data-model and external-query parts.</summary>
         public bool CheckConnections { get; set; } = true;
+        /// <summary>Gets or sets whether invalid defined names are removed before scanning.</summary>
         public bool RepairDefinedNames { get; set; }
     }
 
@@ -78,12 +97,19 @@ namespace OfficeIMO.Excel {
             IsVolatile = isVolatile;
         }
 
+        /// <summary>Gets the containing worksheet name.</summary>
         public string SheetName { get; }
+        /// <summary>Gets the formula cell address.</summary>
         public string Address { get; }
+        /// <summary>Gets the formula text without a leading equals sign.</summary>
         public string Formula { get; }
+        /// <summary>Gets distinct cell and range references found in the formula.</summary>
         public IReadOnlyList<string> References { get; }
+        /// <summary>Gets distinct function names found in the formula.</summary>
         public IReadOnlyList<string> Functions { get; }
+        /// <summary>Gets whether the formula text contains an opening bracket, which can indicate an external workbook or a structured table reference.</summary>
         public bool HasExternalReference { get; }
+        /// <summary>Gets whether the formula uses a known volatile function.</summary>
         public bool IsVolatile { get; }
     }
 
@@ -95,9 +121,13 @@ namespace OfficeIMO.Excel {
             Formulas = formulas;
         }
 
+        /// <summary>Gets analyzed formulas in workbook order.</summary>
         public IReadOnlyList<ExcelFormulaInfo> Formulas { get; }
+        /// <summary>Gets the total number of formulas.</summary>
         public int FormulaCount => Formulas.Count;
+        /// <summary>Gets the number of formulas using known volatile functions.</summary>
         public int VolatileFormulaCount => Formulas.Count(formula => formula.IsVolatile);
+        /// <summary>Gets the number of formulas whose text contains an opening bracket, including external-workbook and structured table references.</summary>
         public int ExternalReferenceCount => Formulas.Count(formula => formula.HasExternalReference);
     }
 
@@ -113,10 +143,15 @@ namespace OfficeIMO.Excel {
             BuiltIn = builtIn;
         }
 
+        /// <summary>Gets the defined name.</summary>
         public string Name { get; }
+        /// <summary>Gets the formula or range reference assigned to the name.</summary>
         public string Reference { get; }
+        /// <summary>Gets the worksheet scope, or <see langword="null"/> for workbook scope.</summary>
         public string? SheetName { get; }
+        /// <summary>Gets whether Excel hides the name from normal user interfaces.</summary>
         public bool Hidden { get; }
+        /// <summary>Gets whether the name uses Excel's built-in <c>_xlnm.</c> prefix.</summary>
         public bool BuiltIn { get; }
     }
 
@@ -133,11 +168,17 @@ namespace OfficeIMO.Excel {
             RightValue = rightValue;
         }
 
+        /// <summary>Gets the difference category.</summary>
         public string Category { get; }
+        /// <summary>Gets the human-readable difference description.</summary>
         public string Message { get; }
+        /// <summary>Gets the affected worksheet name, when applicable.</summary>
         public string? SheetName { get; }
+        /// <summary>Gets the affected cell or range address, when applicable.</summary>
         public string? Address { get; }
+        /// <summary>Gets the formula or visible value from the left workbook.</summary>
         public string? LeftValue { get; }
+        /// <summary>Gets the formula or visible value from the right workbook.</summary>
         public string? RightValue { get; }
     }
 
@@ -149,7 +190,10 @@ namespace OfficeIMO.Excel {
             Differences = differences;
         }
 
+        /// <summary>Gets structural and cell differences up to the requested limit.</summary>
         public IReadOnlyList<ExcelWorkbookDifference> Differences { get; }
+        /// <summary>Gets whether the comparison recorded no differences.</summary>
+        /// <remarks>With a positive difference limit, this represents equality only across the compared sheet presence, used ranges, formulas, and visible cell text.</remarks>
         public bool AreEqual => Differences.Count == 0;
     }
 
@@ -165,10 +209,15 @@ namespace OfficeIMO.Excel {
             Address = address;
         }
 
+        /// <summary>Gets the accessibility category.</summary>
         public string Category { get; }
+        /// <summary>Gets the finding severity.</summary>
         public ExcelFindingSeverity Severity { get; }
+        /// <summary>Gets the human-readable explanation.</summary>
         public string Message { get; }
+        /// <summary>Gets the affected worksheet name, when applicable.</summary>
         public string? SheetName { get; }
+        /// <summary>Gets the affected cell or range address, when applicable.</summary>
         public string? Address { get; }
     }
 
@@ -180,7 +229,9 @@ namespace OfficeIMO.Excel {
             Findings = findings;
         }
 
+        /// <summary>Gets accessibility and compliance findings.</summary>
         public IReadOnlyList<ExcelAccessibilityFinding> Findings { get; }
+        /// <summary>Gets whether the report contains a warning or error.</summary>
         public bool HasWarnings => Findings.Any(finding => finding.Severity != ExcelFindingSeverity.Info);
     }
 
@@ -196,10 +247,15 @@ namespace OfficeIMO.Excel {
             Recommendation = recommendation;
         }
 
+        /// <summary>Gets the workbook's worksheet count.</summary>
         public int WorksheetCount { get; }
+        /// <summary>Gets the number of materialized cells observed in the inspection snapshot.</summary>
         public int EstimatedCellCount { get; }
+        /// <summary>Gets whether direct DataSet fast-save state is active.</summary>
         public bool HasDirectDataSetFastSaveState { get; }
+        /// <summary>Gets whether a direct DataSet import is deferred until save.</summary>
         public bool HasDeferredDirectDataSetImport { get; }
+        /// <summary>Gets workflow guidance based on workbook size and current direct-write state.</summary>
         public string Recommendation { get; }
     }
 
@@ -215,11 +271,17 @@ namespace OfficeIMO.Excel {
             Details = details;
         }
 
+        /// <summary>Gets the number of workbook connection parts.</summary>
         public int ConnectionPartCount { get; }
+        /// <summary>Gets the number of query-table parts.</summary>
         public int QueryTablePartCount { get; }
+        /// <summary>Gets the number of data-model parts.</summary>
         public int ModelPartCount { get; }
+        /// <summary>Gets the number of external-link parts.</summary>
         public int ExternalLinkPartCount { get; }
+        /// <summary>Gets distinct package-part URIs associated with discovered data sources.</summary>
         public IReadOnlyList<string> Details { get; }
+        /// <summary>Gets whether the workbook contains connections, queries, a data model, or external links.</summary>
         public bool HasDataModelOrQueries => ConnectionPartCount > 0 || QueryTablePartCount > 0 || ModelPartCount > 0 || ExternalLinkPartCount > 0;
     }
 
@@ -258,7 +320,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Analyzes formulas for references, external links, and volatile functions.
+        /// Analyzes formulas for references, opening brackets that may indicate special references, and volatile functions.
         /// </summary>
         public ExcelFormulaAnalysisReport AnalyzeFormulas() {
             var formulas = new List<ExcelFormulaInfo>();
@@ -350,6 +412,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Compares this workbook with another workbook by sheets, dimensions, formulas, and visible cell text.
         /// </summary>
+        /// <param name="other">Workbook to compare with this workbook.</param>
+        /// <param name="maxDifferences">Maximum number of differences to record. A nonpositive value records no differences.</param>
+        /// <returns>A report containing differences up to the requested limit.</returns>
         public ExcelWorkbookDiffReport CompareWorkbook(ExcelDocument other, int maxDifferences = 200) {
             if (other == null) throw new ArgumentNullException(nameof(other));
             var differences = new List<ExcelWorkbookDifference>();
@@ -453,7 +518,7 @@ namespace OfficeIMO.Excel {
         private void AddFormulaDiagnostics(ICollection<ExcelWorkbookDiagnosticIssue> issues) {
             foreach (ExcelFormulaInfo formula in AnalyzeFormulas().Formulas) {
                 if (formula.HasExternalReference) {
-                    issues.Add(new ExcelWorkbookDiagnosticIssue("Formula", ExcelFindingSeverity.Warning, "Formula references an external workbook.", formula.SheetName, formula.Address, "Review external links before automated refresh or distribution."));
+                    issues.Add(new ExcelWorkbookDiagnosticIssue("Formula", ExcelFindingSeverity.Warning, "Formula text contains an opening bracket, which can indicate an external workbook or a structured table reference.", formula.SheetName, formula.Address, "Review the formula before automated refresh or distribution."));
                 }
                 if (formula.IsVolatile) {
                     issues.Add(new ExcelWorkbookDiagnosticIssue("Formula", ExcelFindingSeverity.Info, "Formula uses a volatile function.", formula.SheetName, formula.Address));
@@ -553,4 +618,3 @@ namespace OfficeIMO.Excel {
         }
     }
 }
-#pragma warning restore CS1591

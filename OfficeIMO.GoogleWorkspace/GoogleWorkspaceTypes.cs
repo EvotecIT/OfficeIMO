@@ -3,6 +3,10 @@ namespace OfficeIMO.GoogleWorkspace {
     /// Abstraction over the mechanism that acquires Google access tokens.
     /// </summary>
     public interface IGoogleWorkspaceCredentialSource {
+        /// <summary>Acquires an access token and its available scope evidence for the requested operation.</summary>
+        /// <param name="scopes">OAuth scopes required by the pending operation.</param>
+        /// <param name="cancellationToken">Token used to cancel acquisition.</param>
+        /// <returns>A task that produces the acquired token and its scope and identity evidence. Callers must verify that the evidence covers their required scopes.</returns>
         Task<GoogleWorkspaceAccessToken> AcquireAccessTokenAsync(
             IEnumerable<string> scopes,
             CancellationToken cancellationToken = default);
@@ -16,6 +20,9 @@ namespace OfficeIMO.GoogleWorkspace {
     /// are policy inputs, not credential evidence.
     /// </remarks>
     public sealed class GoogleWorkspaceCredentialBinding {
+        /// <summary>Creates verified credential evidence for an account and its granted scopes.</summary>
+        /// <param name="account">Provider-verified account identity.</param>
+        /// <param name="scopes">Provider-verified granted OAuth scopes.</param>
         public GoogleWorkspaceCredentialBinding(string account, IReadOnlyList<string> scopes) {
             if (string.IsNullOrWhiteSpace(account)) throw new ArgumentException("A verified account identity is required.", nameof(account));
             Account = account.Trim();
@@ -28,7 +35,9 @@ namespace OfficeIMO.GoogleWorkspace {
             if (Scopes.Count == 0) throw new ArgumentException("At least one verified scope is required.", nameof(scopes));
         }
 
+        /// <summary>Gets the normalized provider-verified account identity.</summary>
         public string Account { get; }
+        /// <summary>Gets the nonempty, distinct granted scopes in ordinal order.</summary>
         public IReadOnlyList<string> Scopes { get; }
     }
 
@@ -87,13 +96,19 @@ namespace OfficeIMO.GoogleWorkspace {
                 credentialBinding.Account, credentialBinding);
         }
 
+        /// <summary>Gets the OAuth bearer token.</summary>
         public string AccessToken { get; }
+        /// <summary>Gets the instant after which the token must not be used.</summary>
         public DateTimeOffset ExpiresAt { get; }
+        /// <summary>Gets the normalized OAuth scopes bound to the token by its source.</summary>
         public IReadOnlyList<string> Scopes { get; }
         /// <summary>Gets the credential-source account label, when supplied. Use <see cref="CredentialBinding"/> for verified evidence.</summary>
         public string? Account { get; }
         /// <summary>Gets provider-verified account and scope evidence, when supplied by the credential source.</summary>
         public GoogleWorkspaceCredentialBinding? CredentialBinding { get; }
+        /// <summary>Determines whether the token has expired at the supplied instant.</summary>
+        /// <param name="now">Instant to compare with <see cref="ExpiresAt"/>.</param>
+        /// <returns><see langword="true"/> when <paramref name="now"/> is at or after the expiry instant.</returns>
         public bool IsExpired(DateTimeOffset now) => now >= ExpiresAt;
     }
 
@@ -101,9 +116,13 @@ namespace OfficeIMO.GoogleWorkspace {
     /// Describes the Drive target location for created or updated files.
     /// </summary>
     public sealed class GoogleDriveFileLocation {
+        /// <summary>Gets or sets the shared-drive identifier, or leaves it unspecified to use the session default and then My Drive when no default exists.</summary>
         public string? DriveId { get; set; }
+        /// <summary>Gets or sets the parent folder identifier for newly created files.</summary>
         public string? FolderId { get; set; }
+        /// <summary>Gets or sets the identifier of an existing file to update instead of creating one.</summary>
         public string? ExistingFileId { get; set; }
+        /// <summary>Gets or sets whether Drive requests include shared-drive support flags. The default is <see langword="true"/>.</summary>
         public bool SharedDriveAware { get; set; } = true;
     }
 
@@ -111,10 +130,15 @@ namespace OfficeIMO.GoogleWorkspace {
     /// Common Drive metadata returned by Google Workspace exporters.
     /// </summary>
     public class GoogleDriveFileReference {
+        /// <summary>Gets or sets the Google Drive file identifier.</summary>
         public string? FileId { get; set; }
+        /// <summary>Gets or sets the display name returned by Google Drive.</summary>
         public string? Name { get; set; }
+        /// <summary>Gets or sets the browser URL for viewing the file.</summary>
         public string? WebViewLink { get; set; }
+        /// <summary>Gets or sets the file's Google Drive MIME type.</summary>
         public string? MimeType { get; set; }
+        /// <summary>Gets or sets the resolved Drive location used for the operation.</summary>
         public GoogleDriveFileLocation? Location { get; set; }
     }
 }
