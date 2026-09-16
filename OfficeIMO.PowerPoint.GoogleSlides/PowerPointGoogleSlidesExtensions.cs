@@ -4,7 +4,8 @@ using OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.GoogleSlides {
     /// <summary>Convenience entry points for Slides planning, export, and import.</summary>
     public static class PowerPointGoogleSlidesExtensions {
-        /// <summary>Reports presentation export choices without rendering fallback images or contacting Google.</summary>
+        /// <summary>Reports presentation export choices without rendering whole-slide fallback images or contacting Google.</summary>
+        /// <remarks>Planning may still read source picture and background image bytes.</remarks>
         public static GoogleSlidesTranslationPlan BuildGoogleSlidesPlan(this PowerPointPresentation presentation, GoogleSlidesSaveOptions? options = null) => new GoogleSlidesExporter().BuildPlan(presentation, options);
         /// <summary>Prepares an export batch, rendering complex-slide images locally when selected.</summary>
         public static GoogleSlidesBatch BuildGoogleSlidesBatch(this PowerPointPresentation presentation, GoogleSlidesSaveOptions? options = null) => new GoogleSlidesExporter().BuildBatch(presentation, options);

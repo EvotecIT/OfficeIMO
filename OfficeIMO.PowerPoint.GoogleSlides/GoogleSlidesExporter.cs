@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         private const int RequestsPerBatch = 250;
 
         /// <summary>Reports native, rasterized, and unsupported content without contacting Google.</summary>
-        /// <remarks>Unlike <see cref="BuildBatch"/>, this does not render whole-slide image bytes.</remarks>
+        /// <remarks>Unlike <see cref="BuildBatch"/>, this does not render whole-slide fallback images. It may still read source picture and background image bytes.</remarks>
         public GoogleSlidesTranslationPlan BuildPlan(PowerPointPresentation presentation, GoogleSlidesSaveOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             return GoogleSlidesBatchCompiler.BuildPlan(presentation, options ?? new GoogleSlidesSaveOptions());

@@ -172,7 +172,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         internal void Add(GoogleSlidesElement element) => _elements.Add(element);
     }
 
-    /// <summary>Slides page size, selected elements, and fidelity plan for one export.</summary>
+    /// <summary>Source presentation page size, selected elements, and fidelity plan for one export.</summary>
     public sealed class GoogleSlidesBatch {
         private readonly List<GoogleSlidesSlide> _slides = new List<GoogleSlidesSlide>();
         internal GoogleSlidesBatch(string title, double width, double height, GoogleSlidesTranslationPlan plan) {
@@ -180,9 +180,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         }
         /// <summary>Gets the selected presentation title.</summary>
         public string Title { get; }
-        /// <summary>Gets the presentation width in points.</summary>
+        /// <summary>Gets the source PowerPoint page width in points; export scales it if the Google target size differs.</summary>
         public double WidthPoints { get; }
-        /// <summary>Gets the presentation height in points.</summary>
+        /// <summary>Gets the source PowerPoint page height in points; export scales it if the Google target size differs.</summary>
         public double HeightPoints { get; }
         /// <summary>Gets counts and fidelity notices produced while constructing the batch.</summary>
         public GoogleSlidesTranslationPlan Plan { get; }

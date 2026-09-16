@@ -11,6 +11,10 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### Google Slides sync checkpoints
+
+`GoogleSlidesDiffPlanner.CreateCheckpoint` now records a hash-format version and uses culture-invariant numeric fingerprints. Previously persisted `GoogleSlidesSyncCheckpoint` values without that version cannot be safely compared after upgrading; `BuildAsync` rejects them before contacting Google. Compare the source and remote presentation without the old checkpoint, reconcile any differences, then create and persist a new checkpoint with the observed revision and Drive version only when the two are synchronized. Do not mark old hashes as the new format.
+
 ### Provenance format ownership
 
 `OfficeIMO.Workflows` now accepts provenance requests only for extensions registered to a named OfficeIMO format owner, and it verifies that the file contents match that structural format. This keeps path, byte, command-line, and browser claims aligned with formats OfficeIMO can genuinely reopen and preserve.
