@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Approval register</title>
+  <link rel="icon" href="data:,">
+  <style>
+    body { font: 16px Arial, sans-serif; margin: 24px; color: #183153; }
+    main { max-width: 560px; margin: 0 auto; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { border: 1px solid #cad4df; padding: 8px; }
+    button { padding: 8px 12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Approval register</h1>
+    <table><caption>Quarterly review</caption><tr><th>Item</th><th>State</th></tr>
+      <tr><td>North region</td><td id="state">Pending</td></tr></table>
+    <button type="button" onclick="document.getElementById('state').textContent='Approved'">Approve</button>
+  </main>
+</body>
+</html>

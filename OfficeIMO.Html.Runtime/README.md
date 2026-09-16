@@ -10,6 +10,9 @@ The [React 18 application acceptance](../Build/Project/Evidence/2026-09-16/html-
 shows one pinned fetch, interaction, capture, screen, print and screen-to-page
 workflow on Windows, Linux and macOS. It does not establish general framework
 or browser compatibility.
+For one entry point that runs structured actions, closes the live page, and
+renders selected document outputs from its retained capture, use the optional
+[application rendering package](../OfficeIMO.Html.Runtime.Rendering/README.md).
 
 Build or publish `OfficeIMO.Html.Runtime.Worker` and deploy its complete output
 directory, including `OfficeIMO.Html.Runtime.Worker.manifest.json`. Supply its

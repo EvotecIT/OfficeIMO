@@ -11,10 +11,12 @@
     <Content Include="Fixtures/ReactBuild/index.html;Fixtures/ReactBuild/style.css;Fixtures/ReactBuild/data.json;Fixtures/ReactBuild/dist/*" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Fixtures/ObservedReport/*" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Fixtures/StandaloneApplication/*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Fixtures/LegacyApplication/*" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
+    <ProjectReference Include="../OfficeIMO.Html.Runtime.Rendering/OfficeIMO.Html.Runtime.Rendering.csproj" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime.Conformance/OfficeIMO.Html.Runtime.Conformance.csproj" />
     <ProjectReference Include="../OfficeIMO.AI/OfficeIMO.AI.csproj" />
     <ProjectReference Include="../OfficeIMO.AI.Html/OfficeIMO.AI.Html.csproj" />
