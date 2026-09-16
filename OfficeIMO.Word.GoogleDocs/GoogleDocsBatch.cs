@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             Snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
         }
 
-        /// <summary>Gets the target Google document title.</summary>
+        /// <summary>Gets the title used when creating a Google document; replacement keeps the existing title.</summary>
         public string Title { get; }
         /// <summary>Gets counts and fidelity classification for the source.</summary>
         public GoogleDocsTranslationPlan Plan { get; }

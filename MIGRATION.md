@@ -17,7 +17,7 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ### Google Docs sync checkpoints
 
-`GoogleDocsDiffPlanner.CreateCheckpoint` now records a hash-format version and uses culture-invariant numeric fingerprints. Previously persisted `GoogleDocsSyncCheckpoint` values without that version cannot be safely compared after upgrading; `BuildAsync` rejects them before contacting Google. Compare the source and remote document without the old checkpoint, reconcile any differences, then create and persist a new checkpoint with the observed revision and Drive version only when the two are synchronized. Do not mark old hashes as the new format.
+`GoogleDocsDiffPlanner.CreateCheckpoint` now records a hash-format version and uses culture- and runtime-independent numeric fingerprints. Previously persisted `GoogleDocsSyncCheckpoint` values without a format version cannot be safely compared after upgrading; `BuildAsync` rejects them before contacting Google. Compare the source and remote document without the old checkpoint, reconcile any differences, then create and persist a new checkpoint with the observed revision and Drive version only when the two are synchronized. Do not mark old hashes as the new format.
 
 ### Provenance format ownership
 

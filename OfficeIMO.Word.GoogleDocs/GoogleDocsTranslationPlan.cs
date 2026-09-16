@@ -14,47 +14,47 @@ namespace OfficeIMO.Word.GoogleDocs {
         public TranslationReport Report { get; }
         /// <summary>Gets the number of source sections examined.</summary>
         public int SectionCount { get; internal set; }
-        /// <summary>Gets the number of source paragraphs examined.</summary>
+        /// <summary>Gets the number of top-level body paragraphs in the source; paragraphs inside tables, headers, and footers are not included.</summary>
         public int ParagraphCount { get; internal set; }
-        /// <summary>Gets the number of source tables examined.</summary>
+        /// <summary>Gets the number of top-level source tables; nested tables are counted separately.</summary>
         public int TableCount { get; internal set; }
-        /// <summary>Gets the number of nested source tables.</summary>
+        /// <summary>Gets the additional nested source tables beyond the top-level table count.</summary>
         public int NestedTableCount { get; internal set; }
-        /// <summary>Gets the number of source lists examined.</summary>
+        /// <summary>Gets the number of source lists in the document's list collection.</summary>
         public int ListCount { get; internal set; }
-        /// <summary>Gets the number of source images examined.</summary>
+        /// <summary>Gets the number of source images in the document image collection.</summary>
         public int ImageCount { get; internal set; }
-        /// <summary>Gets the number of source charts examined.</summary>
+        /// <summary>Gets the number of source charts in the document chart collection.</summary>
         public int ChartCount { get; internal set; }
-        /// <summary>Gets the number of source comments examined.</summary>
+        /// <summary>Gets the number of source comments in the document comment collection.</summary>
         public int CommentCount { get; internal set; }
-        /// <summary>Gets the number of source footnotes examined.</summary>
+        /// <summary>Gets the number of source footnotes in the document footnote collection.</summary>
         public int FootnoteCount { get; internal set; }
-        /// <summary>Gets the number of source headers examined.</summary>
+        /// <summary>Gets the number of configured default, even, and first-page header variants across sections.</summary>
         public int HeaderCount { get; internal set; }
-        /// <summary>Gets the number of source footers examined.</summary>
+        /// <summary>Gets the number of configured default, even, and first-page footer variants across sections.</summary>
         public int FooterCount { get; internal set; }
-        /// <summary>Gets the number of source watermarks examined.</summary>
+        /// <summary>Gets the number of source watermarks in the document watermark collection.</summary>
         public int WatermarkCount { get; internal set; }
-        /// <summary>Gets the number of SmartArt objects examined.</summary>
+        /// <summary>Gets the number of source SmartArt objects in the document collection.</summary>
         public int SmartArtCount { get; internal set; }
-        /// <summary>Gets the number of source shapes examined.</summary>
+        /// <summary>Gets the number of source shapes in the document shape collection.</summary>
         public int ShapeCount { get; internal set; }
-        /// <summary>Gets the number of text boxes examined.</summary>
+        /// <summary>Gets the number of source text boxes in the document text-box collection.</summary>
         public int TextBoxCount { get; internal set; }
-        /// <summary>Gets the number of embedded objects examined.</summary>
+        /// <summary>Gets the number of source embedded objects in the document collection.</summary>
         public int EmbeddedObjectCount { get; internal set; }
-        /// <summary>Gets the number of structured document tags examined.</summary>
+        /// <summary>Gets the number of source structured document tags in the document collection.</summary>
         public int StructuredDocumentTagCount { get; internal set; }
-        /// <summary>Gets the number of check-box controls examined.</summary>
+        /// <summary>Gets the number of source check-box controls in the document collection.</summary>
         public int CheckBoxCount { get; internal set; }
-        /// <summary>Gets the number of date-picker controls examined.</summary>
+        /// <summary>Gets the number of source date-picker controls in the document collection.</summary>
         public int DatePickerCount { get; internal set; }
-        /// <summary>Gets the number of drop-down-list controls examined.</summary>
+        /// <summary>Gets the number of source drop-down-list controls in the document collection.</summary>
         public int DropDownListCount { get; internal set; }
-        /// <summary>Gets the number of combo-box controls examined.</summary>
+        /// <summary>Gets the number of source combo-box controls in the document collection.</summary>
         public int ComboBoxCount { get; internal set; }
-        /// <summary>Gets the number of equations examined.</summary>
+        /// <summary>Gets the number of equations exposed by the source paragraph-equation collection.</summary>
         public int EquationCount { get; internal set; }
         /// <summary>Gets whether source sections need position-aware replay in Docs.</summary>
         public bool RequiresIndexAwareSections { get; internal set; }

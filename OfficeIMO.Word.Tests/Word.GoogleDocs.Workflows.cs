@@ -492,7 +492,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsDiffPlanner_RejectsUnversionedCheckpointBeforeRemoteRead() {
+        public async Task Test_GoogleDocsDiffPlanner_RejectsOlderCheckpointFormatsBeforeRemoteRead() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsLegacyCheckpoint.docx");
             try {
                 using var document = WordDocument.Create(filePath);
@@ -506,10 +506,12 @@ namespace OfficeIMO.Tests {
                 }));
                 var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
-                InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                    GoogleDocsDiffPlanner.BuildAsync(document, "doc-legacy", session, legacyCheckpoint));
-
-                Assert.Contains("CreateCheckpoint", error.Message);
+                foreach (int version in new[] { 0, 2 }) {
+                    legacyCheckpoint.HashFormatVersion = version;
+                    InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                        GoogleDocsDiffPlanner.BuildAsync(document, "doc-legacy", session, legacyCheckpoint));
+                    Assert.Contains("CreateCheckpoint", error.Message);
+                }
                 Assert.Equal(0, requests);
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
@@ -533,7 +535,7 @@ namespace OfficeIMO.Tests {
                     CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
                     GoogleDocsSyncCheckpoint switched = GoogleDocsDiffPlanner.CreateCheckpoint(document);
 
-                    Assert.Equal(2, baseline.HashFormatVersion);
+                    Assert.Equal(1, baseline.HashFormatVersion);
                     Assert.Equal(baseline.HashFormatVersion, switched.HashFormatVersion);
                     Assert.Equal(baseline.ContentHashes.Count, switched.ContentHashes.Count);
                     foreach (KeyValuePair<string, string> pair in baseline.ContentHashes) {
@@ -800,7 +802,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_GoogleDocsDiffPlanner_DetectsIndependentConflict() {
-            var checkpoint = new GoogleDocsSyncCheckpoint { HashFormatVersion = 2 };
+            var checkpoint = new GoogleDocsSyncCheckpoint { HashFormatVersion = 1 };
             checkpoint.ContentHashes["section/0/paragraph/0"] = "base";
             IReadOnlyList<GoogleDocsDiffItem> items = GoogleDocsDiffPlanner.Compare(
                 new Dictionary<string, string> { ["section/0/paragraph/0"] = "local" },
