@@ -8,7 +8,7 @@ captured report renders after the worker exits. React is a test input, not an
 OfficeIMO runtime dependency.
 
 The source and license provenance are recorded with the
-[fixture](../../../../OfficeIMO.Html.Runtime.Tests/Fixtures/React18/README.md).
+[fixture](../../../../../OfficeIMO.Html.Runtime.Tests/Fixtures/React18/README.md).
 Run the complete acceptance path with:
 
 ```sh
