@@ -120,7 +120,8 @@ internal static class OfficeJpeg2000Header {
         int end,
         CancellationToken cancellationToken) {
         int contentLength = end - start;
-        if (contentLength < 12 || contentLength % 4 != 0 || Read32(bytes, start) != 0x6A703220) return false;
+        if (contentLength < 12 || contentLength % 4 != 0 ||
+            Read32(bytes, start) != 0x6A703220 || Read32(bytes, start + 4) != 0) return false;
         bool declaresJp2Compatibility = false;
         for (int offset = start + 8; offset < end; offset += 4) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -252,6 +253,7 @@ internal static class OfficeJpeg2000Header {
             start + 4 + length,
             end,
             (int)tileCountValue,
+            components,
             cancellationToken)) return false;
         componentPrecisions = parsedComponentPrecisions;
         return true;
@@ -283,6 +285,7 @@ internal static class OfficeJpeg2000Header {
         int markerOffset,
         int end,
         int tileCount,
+        int components,
         CancellationToken cancellationToken) {
         if (end - markerOffset < 16 || bytes[end - 2] != 0xFF || bytes[end - 1] != 0xD9) return false;
 
@@ -300,6 +303,7 @@ internal static class OfficeJpeg2000Header {
                         bytes,
                         segmentOffset,
                         end - 2,
+                        components,
                         out mainDecompositionLevels)) return false;
                 hasCodingStyleDefault = true;
             } else if (marker == 0x5C) {
@@ -371,6 +375,7 @@ internal static class OfficeJpeg2000Header {
                             bytes,
                             tileSegmentOffset,
                             tilePartEnd,
+                            components,
                             out tileDecompositionLevels[tileIndex])) return false;
                     hasTileCodingStyleDefault = true;
                 } else if (tileMarker == 0x5C) {
@@ -408,6 +413,7 @@ internal static class OfficeJpeg2000Header {
         byte[] bytes,
         int markerOffset,
         int limit,
+        int components,
         out int decompositionLevels) {
         decompositionLevels = 0;
         if (limit - markerOffset < 14 || !IsMarker(bytes, markerOffset, 0x52)) return false;
@@ -421,6 +427,7 @@ internal static class OfficeJpeg2000Header {
             bytes[content + 1] > 4 ||
             Read16(bytes, content + 2) == 0 ||
             bytes[content + 4] > 1 ||
+            (components < 3 && bytes[content + 4] != 0) ||
             levels > 32 ||
             bytes[content + 6] > 8 ||
             bytes[content + 7] > 8 ||

@@ -27,7 +27,9 @@ public sealed class PdfTableExtractionScopeReport {
         int outlineCount,
         int attachmentCount,
         bool hasTaggedContent,
-        bool analysisTruncated) {
+        bool analysisTruncated,
+        bool hasSourceSecurityState = false,
+        int pageLabelCount = 0) {
         SourcePageCount = sourcePageCount;
         PagesWithTables = pagesWithTables;
         DetectedTableCount = detectedTableCount;
@@ -51,6 +53,8 @@ public sealed class PdfTableExtractionScopeReport {
         AttachmentCount = attachmentCount;
         HasTaggedContent = hasTaggedContent;
         AnalysisTruncated = analysisTruncated;
+        HasSourceSecurityState = hasSourceSecurityState;
+        PageLabelCount = pageLabelCount;
     }
 
     /// <summary>Number of logical source pages inspected.</summary>
@@ -134,6 +138,12 @@ public sealed class PdfTableExtractionScopeReport {
     /// <summary>Whether the source has a tagged PDF structure tree that table-only output does not preserve.</summary>
     public bool HasTaggedContent { get; }
 
+    /// <summary>Whether source encryption, signatures, permissions, or revision state cannot be carried into table output.</summary>
+    public bool HasSourceSecurityState { get; }
+
+    /// <summary>Number of selected-source page-label rules not carried into table output.</summary>
+    public int PageLabelCount { get; }
+
     /// <summary>
     /// True when bounded text/table correlation stopped before every visible text block could be classified.
     /// Exact omission counts describe only blocks classified before the limit was reached.
@@ -157,6 +167,8 @@ public sealed class PdfTableExtractionScopeReport {
         OutlineCount > 0 ||
         AttachmentCount > 0 ||
         HasTaggedContent ||
+        HasSourceSecurityState ||
+        PageLabelCount > 0 ||
         PagesWithOptionalContent > 0 ||
         InteractiveMediaAnnotationCount > 0;
 }

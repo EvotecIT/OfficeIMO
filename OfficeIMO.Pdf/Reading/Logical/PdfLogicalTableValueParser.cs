@@ -162,7 +162,22 @@ public static class PdfLogicalTableValueParser {
             sign = positiveSign;
             return true;
         }
+        if (value.Length > 0 && TryReadEquivalentSign(value[0], out bool negativePrefix)) {
+            unsignedValue = value.Substring(1).TrimStart();
+            sign = negativePrefix ? negativeSign : positiveSign;
+            return true;
+        }
+        if (value.Length > 0 && TryReadEquivalentSign(value[value.Length - 1], out bool negativeSuffix)) {
+            unsignedValue = value.Substring(0, value.Length - 1).TrimEnd();
+            sign = negativeSuffix ? negativeSign : positiveSign;
+            return true;
+        }
         return false;
+    }
+
+    private static bool TryReadEquivalentSign(char value, out bool negative) {
+        negative = value is '-' or '\u2212' or '\uFE63' or '\uFF0D';
+        return negative || value is '+' or '\uFE62' or '\uFF0B';
     }
 
     /// <summary>Parses a clock time using invariant culture unless an explicit culture is supplied.</summary>

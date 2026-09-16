@@ -501,6 +501,76 @@ public class PdfTableStreamExportContracts {
         }
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void TableOnlyReportsUnpreservedSourceSecurityAndPageLabels(bool encrypted, bool labelled) {
+        var options = new PdfOptions { IncludePageLabels = labelled, PageLabelPrefix = "INV-" };
+        if (encrypted) options.SetEncryption(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" });
+        byte[] bytes = PdfDocument.Create(options)
+            .Table(new[] { new[] { "Item", "Amount" }, new[] { "Service", "25.00" } })
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocument.Load(bytes,
+            encrypted ? new PdfLoadOptions { Password = "owner" } : null).Read();
+        PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+        Assert.Equal(encrypted, scope.HasSourceSecurityState);
+        Assert.Equal(labelled ? 1 : 0, scope.PageLabelCount);
+
+        PdfExcelTableImportResult excel = logical.ImportTablesToExcelDocumentResult();
+        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult();
+        using (excel.Value)
+        using (powerPoint.Value) {
+            // The synthetic table can already report other content loss; assert these
+            // source-level omissions independently of that baseline.
+            if (encrypted || labelled) {
+                Assert.True(excel.HasLoss);
+                Assert.True(powerPoint.HasLoss);
+                Assert.True(powerPoint.Report.HasOmittedPageContent);
+            }
+            if (encrypted) Assert.Contains(powerPoint.Warnings,
+                static warning => warning.Code == "PdfSourceSecurityNotReconstructed" &&
+                                  warning.LossKind == OfficeConversionLossKind.Omission);
+            if (labelled) Assert.Contains(powerPoint.Warnings,
+                static warning => warning.Code == "PdfPageLabelsNotReconstructed" &&
+                                  warning.LossKind == OfficeConversionLossKind.Omission);
+        }
+        if (!encrypted && !labelled) return;
+
+        string code = encrypted ? "PdfSourceSecurityNotReconstructed" : "PdfPageLabelsNotReconstructed";
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfHtmlConversionResult html = logical.ToHtmlResult();
+        PdfPowerPointConversionResult editable = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        using (word.Value)
+        using (editable.Value) {
+            Assert.Contains(word.Report.Warnings, warning => warning.Code == code &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(html.Report.Warnings, warning => warning.Code == code &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(editable.Warnings, warning => warning.Code == code &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
+
+        PdfDocument opened = PdfDocument.Load(bytes,
+            encrypted ? new PdfLoadOptions { Password = "owner" } : null);
+        PdfWordConversionResult visualWord = opened.ToWordDocumentResult(PdfToWordOptions.CreateVisualPages());
+        PdfPowerPointConversionResult visualPowerPoint = opened.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateVisualPages());
+        PdfPowerPointConversionResult hybridPowerPoint = opened.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateHybrid());
+        using (visualWord.Value)
+        using (visualPowerPoint.Value)
+        using (hybridPowerPoint.Value) {
+            Assert.Contains(visualWord.Report.Warnings, warning => warning.Code == code &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(visualPowerPoint.Warnings, warning => warning.Code == code &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(hybridPowerPoint.Warnings, warning => warning.Code == code &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
+    }
+
     [Fact]
     public async Task TableConversionAsyncWrites_HonorPreCanceledTokens() {
         PdfDocumentReadResult logical = CreateLogicalDocument();
@@ -1176,8 +1246,10 @@ public class PdfTableStreamExportContracts {
         timer.Stop();
 
         Assert.Equal(0, vectorPrimitiveCount);
+        // Allow shared CI scheduling and first-use JIT variance while still
+        // catching unbounded repeated form/pattern expansion.
         Assert.True(
-            timer.Elapsed < TimeSpan.FromSeconds(5),
+            timer.Elapsed < TimeSpan.FromSeconds(15),
             "Repeated inherited-pattern form parsing exceeded the bounded contract: " +
             timer.Elapsed +
             ".");

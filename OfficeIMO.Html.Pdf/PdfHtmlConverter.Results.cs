@@ -204,6 +204,18 @@ public static partial class PdfHtmlConverterExtensions {
                 OfficeConversionLossKind.Omission);
         }
 
+        if (document.HasSecurityState) {
+            AddWarning(options, "PdfSourceSecurityNotReconstructed",
+                "PDF encryption, signature, permission, or revision state was not carried into HTML output.",
+                PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+        }
+        if (document.PageLabels.Count > 0 &&
+            document.PageLabels.Any(label => pages.Any(page => page.PageNumber >= label.StartPageNumber))) {
+            AddWarning(options, "PdfPageLabelsNotReconstructed",
+                "PDF page-label rules were not carried into HTML output.",
+                PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+        }
+
         if (document.SourceFidelityFacts.HasTaggedContent) {
             AddWarning(
                 options,

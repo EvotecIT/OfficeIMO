@@ -232,6 +232,8 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             SourceScope.OutlineCount > 0 ||
             SourceScope.AttachmentCount > 0 ||
             SourceScope.HasTaggedContent ||
+            SourceScope.HasSourceSecurityState ||
+            SourceScope.PageLabelCount > 0 ||
             hasFailedVisualPages && failedVisualScope.HasOmittedPageContent;
         var warnings = new List<OfficeIMO.Pdf.PdfConversionWarning>(CreateProjectionWarnings(
             SourceScope,
@@ -326,6 +328,11 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             sourceInfo.AttachmentCount, "embedded attachments");
         AddDocumentOmissionWarning(warnings, "PdfTaggedStructureNotReconstructed", "Tagged structure",
             sourceInfo.HasTaggedContent ? 1 : 0, "tagged accessibility structure");
+        AddDocumentOmissionWarning(warnings, "PdfSourceSecurityNotReconstructed", "Document security",
+            sourceInfo.HasSecurityState ? 1 : 0, "encryption, signature, permission, or revision state");
+        AddDocumentOmissionWarning(warnings, "PdfPageLabelsNotReconstructed", "Page labels",
+            CountSelectedPageLabelRules(sourceInfo.PageLabels, visualPages),
+            "page-label rules");
         AddDocumentOmissionWarning(warnings, "PdfOptionalContentGroupsFlattened", "Optional content",
             Math.Max(sourceInfo.OptionalContentGroupCount, sourceInfo.HasOptionalContent ? 1 : 0),
             "optional-content layer controls");
@@ -355,6 +362,18 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         }
         AddRendererWarnings(warnings, visualPages);
         return warnings.AsReadOnly();
+    }
+
+    private static int CountSelectedPageLabelRules(
+        IReadOnlyList<OfficeIMO.Pdf.PdfPageLabel> labels,
+        IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages) {
+        int count = 0;
+        for (int index = 0; index < labels.Count; index++) {
+            int first = labels[index].StartPageNumber;
+            int afterLast = index + 1 < labels.Count ? labels[index + 1].StartPageNumber : int.MaxValue;
+            if (visualPages.Any(page => page.PageNumber >= first && page.PageNumber < afterLast)) count++;
+        }
+        return count;
     }
 
     private static void AddRendererWarnings(
@@ -437,6 +456,10 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             scope.AttachmentCount, "embedded attachments");
         AddDocumentOmissionWarning(warnings, "PdfTaggedStructureNotReconstructed", "Tagged structure",
             scope.HasTaggedContent ? 1 : 0, "tagged accessibility structure");
+        AddDocumentOmissionWarning(warnings, "PdfSourceSecurityNotReconstructed", "Document security",
+            scope.HasSourceSecurityState ? 1 : 0, "encryption, signature, permission, or revision state");
+        AddDocumentOmissionWarning(warnings, "PdfPageLabelsNotReconstructed", "Page labels",
+            scope.PageLabelCount, "page-label rules");
         AddProjectionWarning(warnings, "PdfAnnotationsNotEditable", "Annotations", scope.AnnotationCount,
             failedVisualScope?.AnnotationCount ?? scope.AnnotationCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
             description: "annotations", visualOnlyLossKind: OfficeConversionLossKind.Approximation);

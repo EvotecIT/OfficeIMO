@@ -22,6 +22,16 @@ internal static partial class PdfWordConverter {
             else ReportDisabledMetadata(source.Reader.Metadata(), options);
             PdfCore.PdfDocumentInfo sourceInfo = source.Inspect(null, token);
             ReportAttachmentsNotReconstructed(sourceInfo.AttachmentCount, options);
+            if (sourceInfo.HasSecurityState) {
+                AddWarning(options, "PdfSourceSecurityNotReconstructed", "Document/Security",
+                    "PDF encryption, signature, permission, or revision state is not carried into the visual Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            if (sourceInfo.PageLabels.Any(label => pages.Any(page => page.PageNumber >= label.StartPageNumber))) {
+                AddWarning(options, "PdfPageLabelsNotReconstructed", "Document/PageLabels",
+                    "PDF page-label rules are not carried into the visual Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
             if (sourceInfo.HasTaggedContent) {
                 AddWarning(options, "PdfTaggedStructureNotReconstructed", "Document/StructTreeRoot",
                     "PDF tagged accessibility structure is not copied into the visual Word document.",

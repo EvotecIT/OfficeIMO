@@ -393,6 +393,12 @@ public sealed class PdfLogicalTableValueAnalysisTests {
     [InlineData("$1,234.00-", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
     [InlineData("1,234.00-$", -1234D, PdfLogicalCurrencyAffixPosition.Suffix, false)]
     [InlineData("1,234.00 USD-", -1234D, PdfLogicalCurrencyAffixPosition.Suffix, true)]
+    [InlineData("\u2212$1,234.00", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("\uFE63$1,234.00", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("\uFF0D$1,234.00", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("$\u22121,234.00", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("1,234.00 USD\u2212", -1234D, PdfLogicalCurrencyAffixPosition.Suffix, true)]
+    [InlineData("\uFF0B$1,234.00", 1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
     public void TryParseCurrency_RecognizesSignedAndAccountingAffixes(
         string value,
         double expected,
@@ -430,6 +436,14 @@ public sealed class PdfLogicalTableValueAnalysisTests {
         Assert.Equal(PdfLogicalTableValueKind.Currency, profile.Kind);
         Assert.Equal("$", profile.CurrencyToken);
         Assert.Equal(PdfLogicalCurrencyAffixPosition.Prefix, profile.CurrencyAffixPosition);
+    }
+
+    [Theory]
+    [InlineData("\u2212$\u22121,234.00")]
+    [InlineData("\uFF0B$+1,234.00")]
+    public void TryParseCurrency_RejectsRepeatedEquivalentSigns(string value) {
+        Assert.False(PdfLogicalTableValueParser.TryParseCurrency(
+            value, System.Globalization.CultureInfo.InvariantCulture, out _, out _));
     }
 
     [Fact]

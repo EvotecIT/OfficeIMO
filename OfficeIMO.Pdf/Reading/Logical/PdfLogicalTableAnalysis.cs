@@ -180,7 +180,9 @@ public static class PdfLogicalTableAnalysis {
             CountOutlines(document.Outlines),
             document.SourceFidelityFacts.AttachmentCount,
             document.SourceFidelityFacts.HasTaggedContent,
-            maximumComparisons);
+            maximumComparisons,
+            hasSourceSecurityState: document.HasSecurityState,
+            pageLabelCount: document.PageLabels.Count);
     }
 
     /// <summary>
@@ -228,7 +230,9 @@ public static class PdfLogicalTableAnalysis {
         int outlineCount,
         int attachmentCount,
         bool hasTaggedContent,
-        int maximumComparisons) {
+        int maximumComparisons,
+        bool hasSourceSecurityState = false,
+        int pageLabelCount = 0) {
 #pragma warning disable CA1512 // ThrowIfNegative is unavailable on netstandard2.0 and net472.
         if (maximumComparisons < 0) throw new ArgumentOutOfRangeException(nameof(maximumComparisons));
 #pragma warning restore CA1512
@@ -304,7 +308,9 @@ public static class PdfLogicalTableAnalysis {
             outlineCount,
             attachmentCount,
             hasTaggedContent,
-            analysisTruncated);
+            analysisTruncated,
+            hasSourceSecurityState,
+            pageLabelCount);
     }
 
     private static int CountOutlines(IReadOnlyList<PdfOutlineItem> outlines) {

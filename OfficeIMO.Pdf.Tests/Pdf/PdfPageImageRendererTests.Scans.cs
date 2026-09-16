@@ -192,6 +192,19 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Theory]
+    [InlineData(1)]
+    [InlineData(65535)]
+    public void ImageValidationRejectsJp2WithNonbaselineFileTypeMinorVersion(int minorVersion) {
+        byte[] payload = ReadScanJpx("rgb");
+        payload[24] = (byte)(minorVersion >> 24);
+        payload[25] = (byte)(minorVersion >> 16);
+        payload[26] = (byte)(minorVersion >> 8);
+        payload[27] = (byte)minorVersion;
+
+        Assert.False(OfficeImageReader.TryValidateContent(payload, "scan.jp2", out _));
+    }
+
+    [Theory]
     [InlineData(10, 38)] // Component precision is limited to 38 bits (encoded as precision minus one).
     [InlineData(11, 6)] // Compression type must be JPEG 2000 (7).
     [InlineData(12, 2)] // Unknown-colourspace flag is boolean.
@@ -396,6 +409,24 @@ public partial class PdfPageImageRendererTests {
         rawCodestream[codingStyle + 4 + fieldOffset] = (byte)invalidValue;
 
         Assert.False(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2c", out _));
+    }
+
+    [Fact]
+    public void ImageValidationRejectsComponentTransformInOneComponentCodestream() {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        var bytes = payload.Skip(codestream).ToList();
+        Assert.Equal(47, (bytes[4] << 8) | bytes[5]);
+        bytes.RemoveRange(45, 6); // Keep one SIZ component specification.
+        bytes[5] = 41;
+        bytes[40] = 0;
+        bytes[41] = 1;
+        byte[] oneComponent = bytes.ToArray();
+        int codingStyle = FindMarker(oneComponent, 0xFF, 0x52);
+        oneComponent[codingStyle + 8] = 0;
+        Assert.True(OfficeImageReader.TryValidateContent(oneComponent, "scan.j2c", out _));
+        oneComponent[codingStyle + 8] = 1;
+        Assert.False(OfficeImageReader.TryValidateContent(oneComponent, "scan.j2c", out _));
     }
 
     [Theory]

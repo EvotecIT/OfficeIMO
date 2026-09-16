@@ -150,6 +150,16 @@ namespace OfficeIMO.Word.Pdf {
                     new Dictionary<string, string> { ["OutlineCount"] = source.Outlines.Count.ToString(CultureInfo.InvariantCulture) });
             }
             ReportAttachmentsNotReconstructed(source.SourceFidelityFacts.AttachmentCount, options);
+            if (source.HasSecurityState) {
+                AddWarning(options, "PdfSourceSecurityNotReconstructed", "Document/Security",
+                    "PDF encryption, signature, permission, or revision state is not carried into the Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            if (source.PageLabels.Count > 0) {
+                AddWarning(options, "PdfPageLabelsNotReconstructed", "Document/PageLabels",
+                    "PDF page-label rules are not carried into the Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
             if (source.SourceFidelityFacts.HasTaggedContent) {
                 AddWarning(
                     options,
