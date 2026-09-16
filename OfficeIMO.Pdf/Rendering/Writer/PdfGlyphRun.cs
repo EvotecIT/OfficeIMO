@@ -20,7 +20,9 @@ internal sealed class PdfGlyphRun {
     public int TotalAdvanceWidth1000 {
         get {
             int total = 0;
-            for (int i = 0; i < Glyphs.Count; i++) total += Glyphs[i].AdvanceWidth1000;
+            for (int i = 0; i < Glyphs.Count; i++) {
+                total = checked(total + Glyphs[i].AdvanceWidth1000);
+            }
             return total;
         }
     }
@@ -223,7 +225,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
                     font.RecordGlyphUsage(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
                 }
 
-                totalWidth += font.GetGlyphWidth1000(ligatureGlyphId);
+                totalWidth = checked(totalWidth + font.GetGlyphWidth1000(ligatureGlyphId));
                 index += ligatureLength;
                 continue;
             }
@@ -245,7 +247,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
                 font.RecordGlyphUsage(glyphId, scalar);
             }
 
-            totalWidth += font.GetGlyphWidth1000(glyphId);
+            totalWidth = checked(totalWidth + font.GetGlyphWidth1000(glyphId));
         }
 
         return totalWidth;

@@ -9,6 +9,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private readonly ushort[] _advanceWidths;
     private readonly Dictionary<int, int> _cmap;
     private readonly Dictionary<string, TableRecord> _tables;
+    private readonly SubsetFontFingerprint _subsetFontFingerprint;
     private readonly SortedSet<int> _usedGlyphIds = new();
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
     private readonly object _usageLock = new();
@@ -27,6 +28,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         StemV = stemV;
         _advanceWidths = advanceWidths;
         _cmap = cmap;
+        _subsetFontFingerprint = SubsetFontFingerprint.Create(_data);
     }
 
     private PdfTrueTypeFontProgram(PdfTrueTypeFontProgram source) {
@@ -43,6 +45,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         StemV = source.StemV;
         _advanceWidths = source._advanceWidths;
         _cmap = source._cmap;
+        _subsetFontFingerprint = source._subsetFontFingerprint;
     }
 
     internal PdfTrueTypeFontProgram ForkForDocument() => new(this);
