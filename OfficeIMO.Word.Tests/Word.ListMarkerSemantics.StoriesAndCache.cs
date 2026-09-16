@@ -81,4 +81,21 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.False(item.IsListItem);
         Assert.DoesNotContain(item, WordDocumentTraversal.BuildListMarkers(document).Keys);
     }
+
+    [Fact]
+    public void ReplacingAbstractDefinitionInvalidatesStyleLinkedListMembership() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        list.Numbering.Levels[0].OpenXmlElement.Append(new ParagraphStyleIdInLevel { Val = "Issue2510ReplaceDefinition" });
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style { Type = StyleValues.Paragraph, StyleId = "Issue2510ReplaceDefinition" });
+        WordParagraph item = document.AddParagraph("Linked item");
+        item._paragraph.ParagraphProperties = new ParagraphProperties(new ParagraphStyleId { Val = "Issue2510ReplaceDefinition" });
+
+        Assert.True(item.IsListItem);
+        list.ConvertToBulleted();
+        Assert.False(item.IsListItem);
+        Assert.DoesNotContain(item, WordDocumentTraversal.BuildListMarkers(document).Keys);
+    }
 }

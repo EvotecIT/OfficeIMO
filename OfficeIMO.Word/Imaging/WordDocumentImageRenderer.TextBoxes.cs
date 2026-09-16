@@ -226,6 +226,13 @@ namespace OfficeIMO.Word {
 
             List<OfficeRichTextRun> richRuns = CreateTextBoxRichTextRuns(textBox, colorScheme, listMarkers,
                 Math.Max(1D, width - padding.Horizontal), context, diagnostics);
+            if (textBox.Content != null) {
+                foreach (var fragment in EnumerateTextBoxParagraphFragments(textBox.Document, textBox.Content)) {
+                    if (fragment.IncludeMarker) {
+                        ReportPictureBulletFallback(CreateListMarker(textBox.Document, fragment.Paragraph, listMarkers), diagnostics);
+                    }
+                }
+            }
             bool hasListMarkers = textBox.Content != null && EnumerateTextBoxParagraphFragments(textBox.Document, textBox.Content)
                 .Any(fragment => fragment.IncludeMarker &&
                     CreateListMarker(textBox.Document, fragment.Paragraph, listMarkers).HasValue);

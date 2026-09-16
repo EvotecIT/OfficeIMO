@@ -671,6 +671,55 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void StyledHeaderFooterZones_PreserveFormattingAndPageVariants() {
+            byte[] bytes = PdfDocument.Create(new PdfOptions {
+                    HeaderFont = PdfStandardFont.Helvetica,
+                    FooterFont = PdfStandardFont.Helvetica
+                })
+                .Header(header => header
+                    .StyledZones(left => left.Run(PdfTextRun.Bolded("OddStyled", fontSize: 14)), null, null)
+                    .FirstPageStyledZones(left => left.Run(PdfTextRun.Bolded("FirstStyled", fontSize: 17)).Text("-").CurrentPage(), null, null)
+                    .EvenPagesStyledZones(left => left.Run(PdfTextRun.Italicized("EvenStyled", fontSize: 15)).Text("-").CurrentPage(), null, null))
+                .Footer(footer => footer
+                    .StyledZones(null, null, right => right.Run(PdfTextRun.Bolded("OddFooter", fontSize: 13)))
+                    .FirstPageStyledZones(null, null, right => right.Run(PdfTextRun.Bolded("FirstFooter", fontSize: 16)))
+                    .EvenPagesStyledZones(null, null, right => right.Run(PdfTextRun.Italicized("EvenFooter", fontSize: 12))))
+                .Paragraph(p => p.Text("First styled-zone page."))
+                .PageBreak()
+                .Paragraph(p => p.Text("Even styled-zone page."))
+                .PageBreak()
+                .Paragraph(p => p.Text("Odd styled-zone page."))
+                .ToBytes();
+
+            PdfReadDocument pdf = PdfReadDocument.Open(bytes);
+            PdfTextSpan[] first = pdf.Pages[0].GetTextSpans().ToArray();
+            PdfTextSpan[] even = pdf.Pages[1].GetTextSpans().ToArray();
+            PdfTextSpan[] odd = pdf.Pages[2].GetTextSpans().ToArray();
+
+            PdfTextSpan firstHeader = Assert.Single(first, span => span.Text == "FirstStyled");
+            PdfTextSpan firstFooter = Assert.Single(first, span => span.Text == "FirstFooter");
+            Assert.True(firstHeader.IsBold);
+            Assert.True(firstFooter.IsBold);
+            Assert.InRange(firstHeader.FontSize, 16.5D, 17.5D);
+            Assert.InRange(firstFooter.FontSize, 15.5D, 16.5D);
+            Assert.Contains(first, span => span.Text == "1");
+
+            PdfTextSpan evenHeader = Assert.Single(even, span => span.Text == "EvenStyled");
+            PdfTextSpan evenFooter = Assert.Single(even, span => span.Text == "EvenFooter");
+            Assert.True(evenHeader.IsItalic);
+            Assert.True(evenFooter.IsItalic);
+            Assert.InRange(evenHeader.FontSize, 14.5D, 15.5D);
+            Assert.Contains(even, span => span.Text == "2");
+
+            PdfTextSpan oddHeader = Assert.Single(odd, span => span.Text == "OddStyled");
+            PdfTextSpan oddFooter = Assert.Single(odd, span => span.Text == "OddFooter");
+            Assert.True(oddHeader.IsBold);
+            Assert.True(oddFooter.IsBold);
+            Assert.InRange(oddHeader.FontSize, 13.5D, 14.5D);
+            Assert.DoesNotContain(odd, span => span.Text.Contains("FirstStyled", StringComparison.Ordinal) || span.Text.Contains("EvenStyled", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void HeaderFooterImages_RenderInsideMarginAreasWithoutImplicitFooterText() {
             byte[] png = CreateMinimalRgbPng();
             var doc = PdfDocument.Create(new PdfOptions {

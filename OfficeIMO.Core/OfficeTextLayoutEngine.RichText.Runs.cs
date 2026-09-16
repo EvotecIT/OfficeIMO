@@ -79,16 +79,30 @@ public static partial class OfficeTextLayoutEngine {
     private static double MeasureMaxUnwrappedRichTextWidth(
         IReadOnlyList<OfficeRichTextRun> runs,
         Func<string?, double, string?, OfficeFontStyle, double> measure,
+        OfficeTextParagraphIndent paragraphIndent,
         CancellationToken cancellationToken) {
-        double current = 0D;
+        OfficeTextParagraphIndent currentParagraphIndent = runs.Count > 0
+            ? runs[0].ParagraphIndent ?? paragraphIndent
+            : paragraphIndent;
+        double current = ResolveLineOffset(currentParagraphIndent, firstVisualLine: true);
         double max = 0D;
+        bool atParagraphStart = true;
         foreach (RichTextToken token in CreateRichTextTokens(runs, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (token.HardBreak) {
                 max = Math.Max(max, current);
-                current = 0D;
+                currentParagraphIndent = token.Run.ParagraphIndent ?? paragraphIndent;
+                current = ResolveLineOffset(currentParagraphIndent, firstVisualLine: true);
+                atParagraphStart = true;
                 continue;
             }
+
+            if (atParagraphStart && token.Run.ParagraphIndent is { } runIndent) {
+                currentParagraphIndent = runIndent;
+                current = ResolveLineOffset(currentParagraphIndent, firstVisualLine: true);
+            }
+
+            atParagraphStart = false;
 
             current += Measure(token.Text, token.Run.EffectiveFontSize, token.Run.FontFamily, token.Run.FontStyle, measure);
         }

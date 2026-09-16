@@ -316,6 +316,7 @@ public sealed partial class PdfDocument {
             AddPageText(diagnostics, seenPageText, options.GetHeaderFormatForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber);
             AddSegments(diagnostics, seenPageText, options.GetHeaderSegmentsForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber);
             AddZones(diagnostics, seenPageText, options.GetHeaderZonesForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber);
+            AddZoneSegments(diagnostics, seenPageText, options.GetHeaderZoneSegmentsForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber);
         }
 
         if (options.HasFooterTextContentForPage(pageNumber)) {
@@ -323,6 +324,7 @@ public sealed partial class PdfDocument {
             AddPageText(diagnostics, seenPageText, options.GetFooterFormatForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber);
             AddSegments(diagnostics, seenPageText, options.GetFooterSegmentsForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber);
             AddZones(diagnostics, seenPageText, options.GetFooterZonesForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber);
+            AddZoneSegments(diagnostics, seenPageText, options.GetFooterZoneSegmentsForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber);
         }
     }
 
@@ -347,6 +349,13 @@ public sealed partial class PdfDocument {
         AddPageText(diagnostics, seenPageText, zones.Left, options, font, fontFamily, source, AppendLocation(locationPrefix, "Left"), pageNumber);
         AddPageText(diagnostics, seenPageText, zones.Center, options, font, fontFamily, source, AppendLocation(locationPrefix, "Center"), pageNumber);
         AddPageText(diagnostics, seenPageText, zones.Right, options, font, fontFamily, source, AppendLocation(locationPrefix, "Right"), pageNumber);
+    }
+
+    private static void AddZoneSegments(List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, PdfPageTextZoneSegments? zones, PdfOptions options, PdfStandardFont font, string? fontFamily, string source, string locationPrefix, int pageNumber) {
+        if (zones == null) return;
+        AddSegments(diagnostics, seenPageText, zones.Left, options, font, fontFamily, source, AppendLocation(locationPrefix, "Left"), pageNumber);
+        AddSegments(diagnostics, seenPageText, zones.Center, options, font, fontFamily, source, AppendLocation(locationPrefix, "Center"), pageNumber);
+        AddSegments(diagnostics, seenPageText, zones.Right, options, font, fontFamily, source, AppendLocation(locationPrefix, "Right"), pageNumber);
     }
 
     private static void AddText(List<PdfTextEncodingDiagnostic> diagnostics, string? text, PdfOptions options, PdfStandardFont font, string source, string location, int? pageNumber = null, int? tableRowIndex = null, int? tableColumnIndex = null, string? fieldName = null) {

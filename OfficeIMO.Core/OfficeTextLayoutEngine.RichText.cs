@@ -217,20 +217,24 @@ public static partial class OfficeTextLayoutEngine {
         IReadOnlyList<OfficeRichTextRun> normalizedRuns =
             NormalizeRichTextRuns(runs, out bool inputTruncated, cancellationToken);
         double width = NormalizeNonNegative(maxWidth);
+        OfficeTextParagraphIndent effectiveParagraphIndent = paragraphIndent ?? OfficeTextParagraphIndent.Empty;
         if (shrinkToFit && shrinkToHeight) {
             normalizedRuns = FitRichTextRunsToFrame(normalizedRuns, width, maxHeight,
                 lineHeightFactor, measure, wrap, minimumFontSize,
-                paragraphIndent ?? OfficeTextParagraphIndent.Empty, cancellationToken, measurePaint);
+                effectiveParagraphIndent, cancellationToken, measurePaint, out double appliedScale);
+            effectiveParagraphIndent = effectiveParagraphIndent.Scale(appliedScale);
         } else if (shrinkToFit && !wrap) {
             double unwrappedWidth = MeasureMaxUnwrappedRichTextWidth(
                 normalizedRuns,
                 measure,
+                effectiveParagraphIndent,
                 cancellationToken);
             if (unwrappedWidth > width) {
                 double maxFontSize = ResolveMaxRichTextFontSize(normalizedRuns);
                 double minFontSize = Math.Min(maxFontSize, Math.Max(1D, NormalizePositive(minimumFontSize, 1D)));
                 double scale = Math.Max(minFontSize / Math.Max(maxFontSize, 1D), width / Math.Max(unwrappedWidth, 1D));
                 normalizedRuns = ScaleRichTextRuns(normalizedRuns, scale, cancellationToken);
+                effectiveParagraphIndent = effectiveParagraphIndent.Scale(scale);
             }
         }
 
@@ -242,7 +246,7 @@ public static partial class OfficeTextLayoutEngine {
             measure,
             wrap,
             overflowBehavior,
-            paragraphIndent ?? OfficeTextParagraphIndent.Empty,
+            effectiveParagraphIndent,
             inputTruncated,
             cancellationToken);
     }

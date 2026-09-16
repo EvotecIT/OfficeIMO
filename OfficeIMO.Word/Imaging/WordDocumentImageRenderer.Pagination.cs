@@ -25,6 +25,7 @@ namespace OfficeIMO.Word {
             context.Y += spacing.Before;
             if (context.IsTargetPage) {
                 AddParagraphFrame(paragraph, context, textLayout, height, colorScheme);
+                ReportPictureBulletFallback(listMarker, diagnostics);
                 if (listMarker.HasValue && !string.IsNullOrEmpty(listMarker.Value.Marker)) {
                     WordImageListMarker marker = listMarker.Value;
                     context.Drawing.AddText(
@@ -141,6 +142,7 @@ namespace OfficeIMO.Word {
                 WordImageTextLayout textLayout = ResolveTextLayout(context, currentMarker, paragraph);
                 double sliceHeight = Math.Max(lineHeight, lineCount * lineHeight);
                 if (context.IsTargetPage) {
+                    ReportPictureBulletFallback(currentMarker, diagnostics);
                     AddTextRunSlice(paragraph, lines, lineIndex, lineCount, font, lineHeight, textLayout, currentMarker, colorScheme, context);
                     renderedOnTargetPage = true;
                 }
@@ -241,6 +243,7 @@ namespace OfficeIMO.Word {
                 WordImageListMarker? currentMarker = lineIndex == 0 ? listMarker : null;
                 WordImageTextLayout textLayout = ResolveTextLayout(context, currentMarker, paragraph);
                 if (context.IsTargetPage) {
+                    ReportPictureBulletFallback(currentMarker, diagnostics);
                     AddRichTextRunSlice(paragraph, lines, lineIndex, lineCount, lineHeight, sliceHeight, textLayout, currentMarker, colorScheme, context);
                     renderedOnTargetPage = true;
                 }

@@ -150,12 +150,6 @@ namespace OfficeIMO.Word {
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>();
-            if (options.IncludeDocumentContent) {
-                foreach (int pictureBulletId in WordDocumentTraversal.GetPictureBulletFallbackIds(document)) {
-                    AddDiagnostic(diagnostics, WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback,
-                        "Picture bullet " + pictureBulletId + " is represented by a text bullet in image and SVG output.");
-                }
-            }
             List<WordDocumentVisualFragment> fragments = new List<WordDocumentVisualFragment>();
             OfficeDrawing drawing = CreateDrawing(
                 document,
@@ -594,6 +588,7 @@ namespace OfficeIMO.Word {
             context.Y += spacing.Before;
             if (context.IsTargetPage) {
                 AddParagraphFrame(paragraphs[0], context, textLayout, height, colorScheme);
+                ReportPictureBulletFallback(listMarker, diagnostics);
                 if (listMarker.HasValue && !string.IsNullOrEmpty(listMarker.Value.Marker)) {
                     WordImageListMarker marker = listMarker.Value;
                     context.Drawing.AddText(
@@ -959,6 +954,17 @@ namespace OfficeIMO.Word {
                 code,
                 message,
                 string.IsNullOrWhiteSpace(source) ? "Word document" : source));
+        }
+
+        private static void ReportPictureBulletFallback(WordImageListMarker? marker, List<OfficeImageExportDiagnostic> diagnostics) {
+            if (marker?.PictureBulletId is not int pictureBulletId) return;
+            ReportPictureBulletFallback(pictureBulletId, diagnostics);
+        }
+
+        private static void ReportPictureBulletFallback(int pictureBulletId, List<OfficeImageExportDiagnostic> diagnostics) {
+            string markerText = "Picture bullet " + pictureBulletId + " is represented by a text bullet in image and SVG output.";
+            if (diagnostics.Exists(item => item.Code == WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback && item.Message == markerText)) return;
+            AddDiagnostic(diagnostics, WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback, markerText);
         }
 
         private readonly struct WordImagePageContext {

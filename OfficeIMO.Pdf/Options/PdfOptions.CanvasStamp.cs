@@ -41,6 +41,12 @@ public sealed partial class PdfOptions {
         clone._evenPageFooterLeftFormat = null;
         clone._evenPageFooterCenterFormat = null;
         clone._evenPageFooterRightFormat = null;
+        clone._headerZoneSegments = null;
+        clone._firstPageHeaderZoneSegments = null;
+        clone._evenPageHeaderZoneSegments = null;
+        clone._footerZoneSegments = null;
+        clone._firstPageFooterZoneSegments = null;
+        clone._evenPageFooterZoneSegments = null;
         clone._headerImages = null;
         clone._firstPageHeaderImages = null;
         clone._evenPageHeaderImages = null;

@@ -145,8 +145,6 @@ namespace OfficeIMO.Word {
                     contentWidth,
                     context.CancellationToken);
                 if (ShouldSplitTableCellAsRichText(paragraphRuns, hasListMarkers, colorScheme)) {
-                    bool hasMarkerlessList = paragraphRuns.Any(runs =>
-                        CreateTableCellListMarker(runs, listMarkers) is { Marker.Length: 0 });
                     List<OfficeRichTextRun> richRuns = CreateSplitTableCellRichRuns(paragraphRuns, colorScheme, listMarkers, context, diagnostics);
                     if (richRuns.Count == 0) {
                         IReadOnlyList<SplitTableCellContentEntry> contentOrder = CreateSplitTableCellContentOrder(cell, context, contentWidth, 0);
@@ -170,8 +168,8 @@ namespace OfficeIMO.Word {
                         IReadOnlyList<OfficeRichTextLine> lines;
                         IReadOnlyList<double>? lineIndents = null;
                         IReadOnlyList<SplitTableCellContentEntry> contentOrder;
-                        if (hasMarkerlessList) {
-                            (lines, lineIndents, contentOrder) = LayoutMarkerlessSplitTableCellParagraphs(
+                        if (hasListMarkers) {
+                            (lines, lineIndents, contentOrder) = LayoutListSplitTableCellParagraphs(
                                 cell, colorScheme, listMarkers, context, diagnostics, contentWidth);
                         } else {
                             OfficeRichTextBlockLayout richLayout = OfficeTextLayoutEngine.LayoutRichTextBlock(
@@ -749,6 +747,10 @@ namespace OfficeIMO.Word {
                         return false;
                     }
 
+                    if (textStart == entry.Index && entry.PictureBulletId is int pictureBulletId && context.IsTargetPage) {
+                        ReportPictureBulletFallback(pictureBulletId, diagnostics);
+                    }
+
                     double textTop = contentTop > top + _padding.Top + 0.000001D ? contentTop - _padding.Top : top;
                     double sliceHeight = 0D;
                     for (int i = textStart; i < textEnd; i++) {
@@ -850,10 +852,11 @@ namespace OfficeIMO.Word {
         }
 
         private readonly struct SplitTableCellContentEntry {
-            private SplitTableCellContentEntry(SplitTableCellContentKind kind, int index, int lineCount = 0) {
+            private SplitTableCellContentEntry(SplitTableCellContentKind kind, int index, int lineCount = 0, int? pictureBulletId = null) {
                 Kind = kind;
                 Index = index;
                 LineCount = lineCount;
+                PictureBulletId = pictureBulletId;
             }
 
             internal SplitTableCellContentKind Kind { get; }
@@ -861,6 +864,8 @@ namespace OfficeIMO.Word {
             internal int Index { get; }
 
             internal int LineCount { get; }
+
+            internal int? PictureBulletId { get; }
 
             internal int LineEnd => Index + LineCount;
 
@@ -870,8 +875,8 @@ namespace OfficeIMO.Word {
             internal static SplitTableCellContentEntry CreateNestedTable(int index) =>
                 new(SplitTableCellContentKind.NestedTable, index);
 
-            internal static SplitTableCellContentEntry CreateText(int index, int lineCount) =>
-                new(SplitTableCellContentKind.Text, index, lineCount);
+            internal static SplitTableCellContentEntry CreateText(int index, int lineCount, int? pictureBulletId = null) =>
+                new(SplitTableCellContentKind.Text, index, lineCount, pictureBulletId);
         }
 
         private readonly struct SplitTableCellImage {

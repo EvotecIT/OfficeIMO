@@ -27,6 +27,26 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Contains(expected, text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void PdfHeaderListMarkerPreservesMarkerSpecificFormatting() {
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000", 18);
+        list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
+        WordParagraph header = document.Header!.Default!.AddParagraph("HeaderStyledMarker");
+        header.FontSize = 9;
+        AttachToList(header, list.NumberId);
+        document.AddParagraph("Body");
+
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
+        PdfTextSpan content = Assert.Single(spans, span => span.Text.Contains("HeaderStyledMarker", StringComparison.Ordinal));
+        Assert.InRange(marker.FontSize, 17.5D, 18.5D);
+        Assert.True(marker.IsBold);
+        Assert.Equal(OfficeColor.FromRgb(255, 0, 0), marker.Color);
+        Assert.InRange(content.FontSize, 8.5D, 9.5D);
+    }
+
     [Theory]
     [InlineData(WordListLevelSuffix.Nothing, "*ImageSuffix")]
     [InlineData(WordListLevelSuffix.Space, "* ImageSuffix")]
@@ -61,6 +81,59 @@ public sealed partial class WordListMarkerSemanticsTests {
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Contains(document.ExportImage(OfficeImageExportFormat.Svg).Diagnostics, diagnostic =>
             diagnostic.Code == WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback);
+    }
+
+    [Fact]
+    public void PictureBulletFallbackDiagnosticIsLimitedToTheRenderedPage() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Plain first page");
+        document.AddPageBreak();
+        using var image = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg"));
+        WordList list = document.AddPictureBulletList(image, "Kulek.jpg");
+        list.AddItem("Picture item on page two");
+
+        WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 0 });
+        WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1 });
+        Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback);
+        Assert.Contains(secondPage.Diagnostics, diagnostic => diagnostic.Code == WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback);
+    }
+
+    [Fact]
+    public void PictureBulletFallbackInSplitTableRowIsReportedOnlyOnTheConsumingPage() {
+        using WordDocument document = WordDocument.Create();
+        WordSection section = document.Sections[0];
+        section.PageSettings.Width = 5000U;
+        section.PageSettings.Height = 3000U;
+        section.SetMargins(WordMargin.Narrow);
+        using var image = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg"));
+        WordList list = document.AddPictureBulletList(image, "Kulek.jpg");
+        WordTable table = document.AddTable(1, 1);
+        table.WidthType = WordTableWidthUnit.Dxa;
+        table.Width = 3600;
+        table.ColumnWidthType = WordTableWidthUnit.Dxa;
+        table.ColumnWidth = new List<int> { 3600 };
+        WordTableCell cell = table.Rows[0].Cells[0];
+        cell.Paragraphs[0].Text = "PlainCell01 with enough content to occupy a line in a split table row.";
+        for (int index = 2; index <= 6; index++) {
+            cell.AddParagraph("PlainCell" + index.ToString("00") + " with enough content to occupy a line in a split table row.");
+        }
+        WordParagraph pictureItem = cell.AddParagraph("PictureCell07 on the later table-row fragment.");
+        AttachToList(pictureItem, list.NumberId);
+
+        WordDocumentVisualSnapshot[] pages = Enumerable.Range(0, 10)
+            .Select(pageIndex => document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = pageIndex }))
+            .ToArray();
+        int picturePageIndex = Array.FindIndex(pages, page => page.Drawing.Elements.OfType<OfficeDrawingRichText>().Any(text =>
+            text.PlainText.Contains("PictureCell07", StringComparison.Ordinal)));
+        Assert.True(picturePageIndex > 0,
+            "Expected the picture-bullet paragraph on a later split-row page. " +
+            string.Join(" || ", pages.Select((page, pageIndex) => pageIndex + ":" +
+                string.Join(" | ", page.Drawing.Elements.OfType<OfficeDrawingRichText>().Select(text => text.PlainText)))));
+        for (int pageIndex = 0; pageIndex < pages.Length; pageIndex++) {
+            bool hasDiagnostic = pages[pageIndex].Diagnostics.Any(diagnostic =>
+                diagnostic.Code == WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback);
+            Assert.Equal(pageIndex == picturePageIndex, hasDiagnostic);
+        }
     }
 
     [Fact]

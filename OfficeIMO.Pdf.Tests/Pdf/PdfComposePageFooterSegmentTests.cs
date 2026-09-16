@@ -76,6 +76,12 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.Throws<ArgumentException>(() =>
                 PdfDocument.Create().Compose(c => c.Page(page => page.Footer(footer => footer.EvenPagesZones(null, null, null)))));
+
+            Assert.Throws<ArgumentException>(() =>
+                PdfDocument.Create().Compose(c => c.Page(page => page.Header(header => header.StyledZones(null, null, null)))));
+
+            Assert.Throws<ArgumentException>(() =>
+                PdfDocument.Create().Compose(c => c.Page(page => page.Footer(footer => footer.FirstPageStyledZones(null, null, null)))));
         }
 
         [Fact]

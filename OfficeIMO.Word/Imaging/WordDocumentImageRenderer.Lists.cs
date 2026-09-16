@@ -38,7 +38,8 @@ namespace OfficeIMO.Word {
                 markerFont,
                 markerColor,
                 markerAlignment,
-                WordDocumentTraversal.ResolveTextListMarkerSuffix(info?.LevelSuffix));
+                WordDocumentTraversal.ResolveTextListMarkerSuffix(info?.LevelSuffix),
+                info?.PictureBulletId);
         }
 
         private static WordParagraph? GetFirstTextRun(WordDocument document, Paragraph paragraph) {
@@ -144,7 +145,8 @@ namespace OfficeIMO.Word {
                 OfficeFontInfo font,
                 OfficeColor color,
                 OfficeTextAlignment alignment,
-                string suffix) {
+                string suffix,
+                int? pictureBulletId) {
                 Marker = marker;
                 Level = level;
                 LeftIndentPoints = leftIndentPoints;
@@ -153,6 +155,7 @@ namespace OfficeIMO.Word {
                 Color = color;
                 Alignment = alignment;
                 Suffix = suffix;
+                PictureBulletId = pictureBulletId;
             }
 
             internal string Marker { get; }
@@ -170,6 +173,8 @@ namespace OfficeIMO.Word {
             internal OfficeTextAlignment Alignment { get; }
 
             internal string Suffix { get; }
+
+            internal int? PictureBulletId { get; }
         }
 
         private readonly struct WordImageTextLayout {

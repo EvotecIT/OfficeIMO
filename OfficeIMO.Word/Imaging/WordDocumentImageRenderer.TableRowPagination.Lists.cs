@@ -8,11 +8,11 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
         /// <summary>
-        /// Lays out split-row text between image and table blocks so a markerless list level's
-        /// indent applies to every wrapped line without changing the order of those blocks.
+        /// Lays out list paragraphs in split rows independently so marker indentation, picture-marker
+        /// diagnostics, and non-text content remain associated with the fragment that consumes them.
         /// </summary>
         private static (IReadOnlyList<OfficeRichTextLine> Lines, IReadOnlyList<double> LineIndents,
-            IReadOnlyList<SplitTableCellContentEntry> ContentOrder) LayoutMarkerlessSplitTableCellParagraphs(
+            IReadOnlyList<SplitTableCellContentEntry> ContentOrder) LayoutListSplitTableCellParagraphs(
             WordTableCell cell,
             A.ColorScheme? colorScheme,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
@@ -44,8 +44,10 @@ namespace OfficeIMO.Word {
                 void FlushTextSegment() {
                     List<OfficeRichTextRun> richRuns = CreateRichTextRuns(segmentRuns, colorScheme, context, diagnostics);
                     segmentRuns.Clear();
+                    int? pictureBulletId = null;
                     if (markerPending && listMarker is { Marker.Length: > 0 } visible) {
                         richRuns.Insert(0, CreateListMarkerRichTextRun(visible));
+                        pictureBulletId = visible.PictureBulletId;
                         markerPending = false;
                     }
                     if (richRuns.Count == 0) return;
@@ -64,7 +66,7 @@ namespace OfficeIMO.Word {
                         overflowBehavior: OfficeTextOverflowBehavior.Clip,
                         paragraphIndent: null,
                         cancellationToken: context.CancellationToken);
-                    contentOrder.Add(SplitTableCellContentEntry.CreateText(lines.Count, layout.Lines.Count));
+                    contentOrder.Add(SplitTableCellContentEntry.CreateText(lines.Count, layout.Lines.Count, pictureBulletId));
                     lines.AddRange(layout.Lines);
                     indents.AddRange(Enumerable.Repeat(indent, layout.Lines.Count));
                 }

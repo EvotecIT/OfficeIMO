@@ -29,6 +29,23 @@ public class DrawingRichTextParagraphIndentTests {
     }
 
     [Fact]
+    public void UnwrappedShrinkToFitIncludesAndScalesParagraphIndentation() {
+        var runs = new[] {
+            new OfficeRichTextRun("123456789", 10D, OfficeColor.Black)
+                .WithParagraphIndent(OfficeTextParagraphIndent.FirstLine(20D))
+        };
+        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(runs,
+            100D, 30D, 1.2D, (value, size, _) => (value?.Length ?? 0) * size,
+            wrap: false, shrinkToFit: true, minimumFontSize: 1D, overflowBehavior: OfficeTextOverflowBehavior.Clip);
+
+        OfficeRichTextLine line = Assert.Single(layout.Lines);
+        Assert.InRange(line.OffsetX, 18D, 18.3D);
+        Assert.InRange(Assert.Single(line.Segments).FontSize, 9D, 9.2D);
+        Assert.InRange(layout.Width, 99.9D, 100.01D);
+        Assert.False(layout.Clipped);
+    }
+
+    [Fact]
     public void MixedParagraphIndentsSurviveDrawingCloneAndLayout() {
         var runs = new[] {
             new OfficeRichTextRun("Plain\n", 12D, OfficeColor.Black),

@@ -729,19 +729,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfTextRun CreateNativeCellListMarkerRun(string marker, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
             NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-            WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
-            if (info == null) return CreateNativeCellTextRun(marker + " ", paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap);
-
-            return new PdfCore.PdfTextRun(
-                marker + ResolveNativeInlineListMarkerSuffix(info.Value.LevelSuffix),
-                bold: info.Value.MarkerBold ?? textStyle.Bold,
-                color: ParseNativeColor(info.Value.MarkerColorHex) ?? textStyle.Color,
-                italic: info.Value.MarkerItalic ?? textStyle.Italic,
-                fontSize: info.Value.MarkerFontSize ?? textStyle.FontSize,
-                font: ResolveNativeListMarkerFont(info.Value, marker, textStyle),
-                fontFamily: nativeFontMap != null
-                    ? ResolveNativeListMarkerFontFamily(info.Value, marker, textStyle, nativeFontMap)
-                    : textStyle.FontFamily);
+            return CreateNativeListMarkerTextRun(marker, paragraph, textStyle, nativeFontMap);
         }
 
         private static PdfCore.PdfTextRun CreateNativeCellLinkRun(string text, WordParagraph paragraph, WordHyperLink hyperlink, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) {

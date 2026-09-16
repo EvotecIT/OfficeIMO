@@ -32,6 +32,12 @@ public sealed partial class PdfOptions {
     private string? _evenPageFooterLeftFormat;
     private string? _evenPageFooterCenterFormat;
     private string? _evenPageFooterRightFormat;
+    private PdfPageTextZoneSegments? _headerZoneSegments;
+    private PdfPageTextZoneSegments? _firstPageHeaderZoneSegments;
+    private PdfPageTextZoneSegments? _evenPageHeaderZoneSegments;
+    private PdfPageTextZoneSegments? _footerZoneSegments;
+    private PdfPageTextZoneSegments? _firstPageFooterZoneSegments;
+    private PdfPageTextZoneSegments? _evenPageFooterZoneSegments;
     private System.Collections.Generic.List<PdfHeaderFooterImage>? _headerImages;
     private System.Collections.Generic.List<PdfHeaderFooterImage>? _firstPageHeaderImages;
     private System.Collections.Generic.List<PdfHeaderFooterImage>? _evenPageHeaderImages;
