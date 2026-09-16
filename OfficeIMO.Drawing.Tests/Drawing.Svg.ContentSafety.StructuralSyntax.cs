@@ -137,6 +137,40 @@ public sealed class SvgContentSafetyStructuralSyntaxTests {
         Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ReferencedSymbolOverflowCannotHideEarlierTextFromInspection() {
+        byte[] svg = Svg(
+            "<text x='120' y='35'>symbol-covered payload</text>" +
+            "<defs><symbol id='cover' viewBox='0 0 100 60' overflow='visible'>" +
+            "<rect x='110' y='0' width='110' height='60' fill='white'/></symbol></defs>" +
+            "<use href='#cover' width='100' height='60'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "symbol-covered payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.NonPrimaryContent, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UseShadowTreeInheritanceCannotHideEarlierTextFromInspection() {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='400' height='120' viewBox='0 0 400 120'>" +
+            "<text x='245' y='35'>use-covered payload</text>" +
+            "<defs><rect id='cover' transform='inherit' x='0' y='0' width='110' height='60' fill='white'/></defs>" +
+            "<use href='#cover' transform='translate(120,0)'/></svg>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "use-covered payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.NonPrimaryContent, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("none")]
     [InlineData("initial")]
@@ -177,6 +211,25 @@ public sealed class SvgContentSafetyStructuralSyntaxTests {
 
         Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
         Assert.Contains("line-height", finding.Evidence, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("4ch")]
+    [InlineData("4ex")]
+    [InlineData("50%")]
+    [InlineData("super")]
+    [InlineData("sub")]
+    public void FontMetricDependentBaselineShiftIsReportOnly(string baselineShift) {
+        byte[] svg = Svg(
+            "<text x='10' y='100' font-size='20'><tspan baseline-shift='" + baselineShift +
+            "'>metric-shift payload</tspan></text>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "metric-shift payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("baseline-shift", finding.Evidence, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

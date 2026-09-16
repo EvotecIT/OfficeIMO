@@ -83,7 +83,7 @@ public static partial class OfficeSvgDrawingReader {
 
         const string incompletePaintEvidence =
             "Paint outside the bounded native paint projection makes the model incomplete and can change browser paint behind or over this text, so cleanup is report-only.";
-        bool incompleteNativePaintProjection = HasKnownIncompleteSvgPaintProjection(computedRoot);
+        bool incompleteNativePaintProjection = HasKnownIncompleteSvgPaintProjection(document.Root, computedRoot);
         int comparisons = 0;
         bool comparisonLimitReached = false;
         foreach (SvgContentSafetyCandidate candidate in candidates) {
@@ -637,11 +637,6 @@ public static partial class OfficeSvgDrawingReader {
         SvgUnmodeledTextGeometryProperties.Contains(name, StringComparer.Ordinal);
 
     private static bool TryFindUnsupportedSvgBaselineGeometry(XElement element, out string propertyName) {
-        string? baselineShift = ReadPresentationProperty(element, "baseline-shift");
-        if (!string.IsNullOrWhiteSpace(baselineShift) && !IsValidBaselineShiftValue(baselineShift!.Trim())) {
-            propertyName = "baseline-shift";
-            return true;
-        }
         string? lineHeight = ReadPresentationProperty(element, "line-height");
         if (!string.IsNullOrWhiteSpace(lineHeight) &&
             !IsSvgCssWideKeyword(lineHeight!) &&
@@ -649,8 +644,24 @@ public static partial class OfficeSvgDrawingReader {
             propertyName = "line-height";
             return true;
         }
+        string? baselineShift = ReadPresentationProperty(element, "baseline-shift");
+        if (!string.IsNullOrWhiteSpace(baselineShift) &&
+            (!IsValidBaselineShiftValue(baselineShift!.Trim()) ||
+             IsMetricDependentSvgBaselineShift(baselineShift))) {
+            propertyName = "baseline-shift";
+            return true;
+        }
         propertyName = string.Empty;
         return false;
+    }
+
+    private static bool IsMetricDependentSvgBaselineShift(string value) {
+        string normalized = TrimSvgCssWhitespace(value);
+        return normalized.Equals("super", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Equals("sub", StringComparison.OrdinalIgnoreCase) ||
+            normalized.EndsWith("%", StringComparison.Ordinal) ||
+            normalized.EndsWith("ex", StringComparison.OrdinalIgnoreCase) ||
+            normalized.EndsWith("ch", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TryFindUnmodeledSvgTextGeometryProperty(XElement element, out string name) {

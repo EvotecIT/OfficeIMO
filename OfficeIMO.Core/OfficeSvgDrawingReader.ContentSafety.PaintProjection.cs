@@ -6,17 +6,19 @@ using System.Xml.Linq;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeSvgDrawingReader {
-    private static bool HasKnownIncompleteSvgPaintProjection(XElement root) {
+    private static bool HasKnownIncompleteSvgPaintProjection(XElement sourceRoot, XElement root) {
         XNamespace svgNamespace = root.Name.Namespace;
+        if (HasSvgUseShadowStyleProjectionRisk(sourceRoot)) return true;
         if (HasAmbiguousSvgPaintServerDefinitions(root, svgNamespace)) return true;
         var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
         return root.DescendantsAndSelf().Any(element => {
             if (element.Attribute(XNamespace.Xml + "base") != null) return true;
             if (!IsNativeSvgElement(element, svgNamespace)) return false;
             string localName = element.Name.LocalName;
-            // Native nested viewport rendering clips even when browser paint may escape the
-            // viewport and cover an earlier, otherwise unrelated text candidate.
-            if (localName.Equals("svg", StringComparison.Ordinal) && element.Parent != null) {
+            // Native nested SVG and referenced symbol rendering clip even when browser paint
+            // may escape their viewport and cover an earlier, unrelated text candidate.
+            if (localName.Equals("symbol", StringComparison.Ordinal) ||
+                localName.Equals("svg", StringComparison.Ordinal) && element.Parent != null) {
                 string? overflow = ReadPresentationProperty(element, "overflow");
                 if (!string.IsNullOrWhiteSpace(overflow) &&
                     !TrimSvgCssWhitespace(overflow!).Equals("hidden", StringComparison.OrdinalIgnoreCase)) return true;
@@ -63,6 +65,27 @@ public static partial class OfficeSvgDrawingReader {
                 height <= 0D ||
                 !TryParsePreserveAspectRatio(element.Attribute("preserveAspectRatio")?.Value, out _, out _);
         });
+    }
+
+    private static bool HasSvgUseShadowStyleProjectionRisk(XElement root) {
+        XNamespace svgNamespace = root.Name.Namespace;
+        if (!root.DescendantsAndSelf().Any(element =>
+                IsNativeSvgElement(element, svgNamespace) &&
+                element.Name.LocalName.Equals("use", StringComparison.Ordinal))) return false;
+
+        // The computed source tree is not the use shadow tree: inherited values, custom
+        // properties, and selector matches can change when the referenced subtree is cloned.
+        return root.DescendantsAndSelf().Any(element =>
+            IsNativeSvgElement(element, svgNamespace) &&
+            (element.Name.LocalName.Equals("style", StringComparison.Ordinal) && element.Value.Length > 0 ||
+             element.Attributes().Any(attribute =>
+                 attribute.Name.NamespaceName.Length == 0 &&
+                 (attribute.Name.LocalName.Equals("style", StringComparison.Ordinal) &&
+                      (attribute.Value.IndexOf("inherit", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                       attribute.Value.IndexOf("var(", StringComparison.OrdinalIgnoreCase) >= 0) ||
+                  attribute.Value.Trim().Equals("inherit", StringComparison.OrdinalIgnoreCase) ||
+                  IsSvgPresentationPropertyName(attribute.Name.LocalName) &&
+                      attribute.Value.IndexOf("var(", StringComparison.OrdinalIgnoreCase) >= 0))));
     }
 
     private static bool HasUnsupportedSvgShapeGeometry(XElement element, string localName) => localName switch {
