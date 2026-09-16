@@ -249,6 +249,9 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 ## Google Workspace
 
 - [ ] Extend the shared declared- and unknown-length transport evidence to Linux/macOS, then measure Drive resumable upload/download and checkpoint persistence separately from network latency. Reduce the remaining Windows unknown-length elapsed cost while preserving response limits, cancellation, retry, safety policy, diagnostics, mutation ambiguity, cleared pooled storage, and exact payload bytes, and set absolute budgets for each transport contract.
+- [ ] Make Google Docs equation preflight inspect table cells and header/footer stories as well as top-level body paragraphs, so unsupported-feature policy catches every equation that export cannot preserve.
+- [ ] Preserve every positioned image in a Word run during Google Docs export, or report each omitted image before writing.
+- [ ] Preserve nested Word tables and multiple or precisely ranged bookmarks during Google Docs export, or report the lost structures before writing.
 
 ## Security and protected content
 
