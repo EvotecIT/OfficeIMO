@@ -31,6 +31,21 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlTableCentersDeclaredBorderBoxAndUsesHeaderDefaultUnderInheritedNormalWeight() {
+        const string html = "<body style='margin:0;font-weight:normal'>"
+            + "<table id='report' style='width:240px;padding:10px;margin:0 auto;background:red'>"
+            + "<tr><th>Header</th></tr></table></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape table = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "table#report" && shape.Shape.FillColor == OfficeColor.Red);
+        HtmlRenderText header = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Header");
+        Assert.Equal(30D, table.X, 3);
+        Assert.True((header.Font.Style & OfficeFontStyle.Bold) != 0);
+    }
+
+    [Fact]
     public void HtmlTables_RejectRowsAndColumnsBeforeAllocatingLayoutTracks() {
         var rowOptions = new HtmlRenderOptions { MaxTableRows = 1 };
         HtmlDomLimitException rowException = Assert.Throws<HtmlDomLimitException>(() =>

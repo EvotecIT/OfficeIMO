@@ -14,7 +14,7 @@ internal static class HtmlRenderingRepresentativeCorpus {
             "invoice",
             HtmlRenderMode.Continuous,
             LoadHtml("invoice"),
-            new[] { "Invoice INV-1042", "Ada Lovelace", "$702.00", "PDF fidelity review" },
+            new[] { "Invoice", "INV-", "1042", "Ada Lovelace", "$702.00", "PDF fidelity review" },
             linkUri: "https://example.test/invoices/1042",
             minimumVisualCount: 20,
             minimumHeadingCount: 3,

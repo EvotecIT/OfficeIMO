@@ -134,7 +134,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (inlineHeight > 0D) {
                         adjoiningMargins.Clear();
                     }
-                    childStyle = ResolveNormalFlowHorizontalAutoMargins(childStyle, width);
+                    childStyle = ResolveNormalFlowHorizontalAutoMargins(element, childStyle, width);
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
                     HtmlRenderFlowBlock childBlock = LayoutElement(
                         element,
@@ -723,11 +723,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(1D, width);
     }
 
-    private HtmlRenderBoxStyle ResolveNormalFlowHorizontalAutoMargins(HtmlRenderBoxStyle style, double containingWidth) {
+    private HtmlRenderBoxStyle ResolveNormalFlowHorizontalAutoMargins(IElement element, HtmlRenderBoxStyle style, double containingWidth) {
         if (!style.MarginLeftAuto && !style.MarginRightAuto) return style;
 
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
-        double boxWidth = ResolveBoxWidth(availableWidth, style);
+        double boxWidth = IsReplacedImageElement(element)
+            ? ResolveReplacedImageBoxWidth(element, style)
+            : ResolveBoxWidth(availableWidth, style);
+        if (element.LocalName.Equals("table", StringComparison.OrdinalIgnoreCase)
+            && style.ExplicitWidth.HasValue && !style.BorderBox) {
+            // A table's declared width is its border box; LayoutTable uses the same adjustment.
+            boxWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
+        }
         double freeSpace = Math.Max(0D, containingWidth - style.MarginLeft - style.MarginRight - boxWidth);
         if (freeSpace <= 0D) return style;
 

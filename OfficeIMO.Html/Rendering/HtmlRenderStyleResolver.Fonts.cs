@@ -8,7 +8,12 @@ internal sealed partial class HtmlRenderStyleResolver {
         string tag,
         HtmlComputedStyle computed,
         OfficeFontFaceDescriptor inherited) {
-        int weight = ResolveRequestedFontWeight(tag, computed.GetValue("font-weight"), inherited.Weight);
+        // User-agent bold defaults apply after implicit inheritance, but an authored
+        // font-weight on the element still overrides the default.
+        string weightValue = computed.IsImplicitlyInheritedValue("font-weight")
+            ? string.Empty
+            : computed.GetValue("font-weight");
+        int weight = ResolveRequestedFontWeight(tag, weightValue, inherited.Weight);
         double stretch = ResolveRequestedFontStretch(computed.GetValue("font-stretch"), inherited.StretchPercent);
         ResolveRequestedFontSlant(
             tag,

@@ -1,6 +1,7 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Tests.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
@@ -19,6 +20,31 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderShape box = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Source == "div#box" && shape.Shape.FillColor == OfficeColor.Red);
         Assert.Equal(expectedX, box.X, 3);
+    }
+
+    [Fact]
+    public void StaticRendererCentersIntrinsicBlockImageWithAutoMargins() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(40, 20));
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<body style='margin:0'><img src='" + image + "' style='display:block;margin:0 auto'></body>",
+            new HtmlRenderOptions { ViewportWidth = 100D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderImage visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
+        Assert.Equal(30D, visual.X, 3);
+    }
+
+    [Fact]
+    public void StaticRendererUsesSelectedPictureSourceWhenCenteringUndecodableImage() {
+        string fallback = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(40, 20));
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<body style='margin:0'><picture style='display:block'><source srcset='data:image/png;base64,AQID 1x'>"
+            + "<img id='picture' src='" + fallback + "' style='display:block;margin:0 auto'></picture></body>",
+            new HtmlRenderOptions { ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderImage image = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(),
+            visual => visual.Source == "img#picture");
+        Assert.Equal(50D, image.X, 3);
+        Assert.Equal(300D, image.Width, 3);
     }
 
     public static IEnumerable<object[]> HtmlRenderingRepresentativeCorpusScenarioIds => HtmlRenderingRepresentativeCorpus.All
@@ -63,6 +89,25 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(body.Font.Size * 2D, heading.Font.Size, 3);
         Assert.True((heading.Font.Style & OfficeFontStyle.Bold) != 0);
         Assert.True((strong.Font.Style & OfficeFontStyle.Bold) != 0);
+    }
+
+    [Fact]
+    public void StaticRendererAppliesBoldElementDefaultsAfterImplicitNormalInheritance() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<body style='font-weight:normal'><h1>Default heading</h1><h2 style='font-weight:normal'>Plain heading</h2>"
+            + "<p><strong>Default emphasis</strong><b>Default bold</b><strong style='font-weight:normal'>Plain emphasis</strong></p></body>",
+            new HtmlRenderOptions { ViewportWidth = 640D });
+        HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene))
+            .OfType<HtmlRenderText>().ToArray();
+
+        foreach (string value in new[] { "Default heading", "Default emphasis", "Default bold" }) {
+            HtmlRenderText visual = Assert.Single(text, item => item.Text == value);
+            Assert.True((visual.Font.Style & OfficeFontStyle.Bold) != 0);
+        }
+        foreach (string value in new[] { "Plain heading", "Plain emphasis" }) {
+            HtmlRenderText visual = Assert.Single(text, item => item.Text == value);
+            Assert.True((visual.Font.Style & OfficeFontStyle.Bold) == 0);
+        }
     }
 
     [Fact]

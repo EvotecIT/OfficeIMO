@@ -8,9 +8,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         byte[]? bytes;
         OfficeImageInfo? imageInfo;
         if (!TryReadInlineSvgSource(element, out bytes, out imageInfo)) {
-            TryResolveImageSource(
-                element.GetAttribute("src"),
-                HtmlRenderStyleResolver.DescribeSource(element),
+            bytes = null;
+            imageInfo = null;
+            string sourceDescription = HtmlRenderStyleResolver.DescribeSource(element);
+            IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidatesForRendering(
+                element, _baseUri, _resourceUrlPolicy, _options);
+            foreach (string candidate in candidates) {
+                if (TryResolveImageSource(candidate, sourceDescription, out bytes, out _, out imageInfo, reportDiagnostics: false)) break;
+            }
+            if (bytes == null) TryResolveImageSource(
+                candidates.FirstOrDefault() ?? element.GetAttribute("src"),
+                sourceDescription,
                 out bytes,
                 out _,
                 out imageInfo,
