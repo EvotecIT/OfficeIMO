@@ -675,9 +675,21 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IReadOnlyList<WordParagraph> GetNativeTextBoxParagraphs(WordTextBox textBox) {
-            IReadOnlyList<WordParagraph> directParagraphs = textBox.Paragraphs;
-            if (HasNativeRenderableTextBoxText(directParagraphs)) {
-                return directParagraphs.GroupBy(paragraph => paragraph._paragraph).Select(group => group.First()).ToList();
+            W.TextBoxContent? content = textBox.Content;
+            IReadOnlyList<WordParagraph> directParagraphs = content == null
+                ? Array.Empty<WordParagraph>()
+                : content.Descendants<W.Paragraph>()
+                    .Where(paragraph => ReferenceEquals(paragraph.Ancestors<W.TextBoxContent>().FirstOrDefault(), content))
+                    .Select(paragraph => {
+                        W.Run? firstRun = paragraph.Descendants<W.Run>()
+                            .FirstOrDefault(run => ReferenceEquals(run.Ancestors<W.Paragraph>().FirstOrDefault(), paragraph));
+                        return firstRun == null
+                            ? new WordParagraph(textBox.Document, paragraph)
+                            : new WordParagraph(textBox.Document, paragraph, firstRun);
+                    })
+                    .ToList();
+            if (HasNativeRenderableTextBoxText(directParagraphs) || directParagraphs.Any(paragraph => paragraph.IsListItem)) {
+                return directParagraphs;
             }
 
             IReadOnlyList<WordParagraph> elementParagraphs = CollapseNativeParagraphElements(textBox.Elements)

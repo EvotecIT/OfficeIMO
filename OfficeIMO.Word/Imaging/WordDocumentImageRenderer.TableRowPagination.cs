@@ -145,6 +145,8 @@ namespace OfficeIMO.Word {
                     contentWidth,
                     context.CancellationToken);
                 if (ShouldSplitTableCellAsRichText(paragraphRuns, hasListMarkers, colorScheme)) {
+                    bool hasMarkerlessList = paragraphRuns.Any(runs =>
+                        CreateTableCellListMarker(runs, listMarkers) is { Marker.Length: 0 });
                     List<OfficeRichTextRun> richRuns = CreateSplitTableCellRichRuns(paragraphRuns, colorScheme, listMarkers, context, diagnostics);
                     if (richRuns.Count == 0) {
                         IReadOnlyList<SplitTableCellContentEntry> contentOrder = CreateSplitTableCellContentOrder(cell, context, contentWidth, 0);
@@ -165,26 +167,35 @@ namespace OfficeIMO.Word {
                     } else {
                         double maxFontSize = richRuns.Max(run => run.FontSize);
                         double lineHeight = Math.Max(maxFontSize * 1.25D, 12D);
-                        OfficeRichTextBlockLayout richLayout = OfficeTextLayoutEngine.LayoutRichTextBlock(
-                            richRuns,
-                            contentWidth,
-                            double.MaxValue,
-                            Math.Max(1D, lineHeight / Math.Max(1D, maxFontSize)),
-                            CreateRichTextMeasure(context.CancellationToken),
-                            wrap: true,
-                            shrinkToFit: false,
-                            minimumFontSize: Math.Min(6D, maxFontSize),
-                            overflowBehavior: OfficeTextOverflowBehavior.Clip,
-                            paragraphIndent: null,
-                            cancellationToken: context.CancellationToken);
-                        IReadOnlyList<SplitTableCellContentEntry> contentOrder = CreateSplitTableCellContentOrder(cell, context, contentWidth, richLayout.Lines.Count);
+                        IReadOnlyList<OfficeRichTextLine> lines;
+                        IReadOnlyList<double>? lineIndents = null;
+                        if (hasMarkerlessList) {
+                            (lines, lineIndents) = LayoutMarkerlessSplitTableCellParagraphs(
+                                paragraphRuns, colorScheme, listMarkers, context, diagnostics, contentWidth);
+                        } else {
+                            OfficeRichTextBlockLayout richLayout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                                richRuns,
+                                contentWidth,
+                                double.MaxValue,
+                                Math.Max(1D, lineHeight / Math.Max(1D, maxFontSize)),
+                                CreateRichTextMeasure(context.CancellationToken),
+                                wrap: true,
+                                shrinkToFit: false,
+                                minimumFontSize: Math.Min(6D, maxFontSize),
+                                overflowBehavior: OfficeTextOverflowBehavior.Clip,
+                                paragraphIndent: null,
+                                cancellationToken: context.CancellationToken);
+                            lines = richLayout.Lines;
+                        }
+                        IReadOnlyList<SplitTableCellContentEntry> contentOrder = CreateSplitTableCellContentOrder(cell, context, contentWidth, lines.Count);
                         cells.Add(SplitTableCellLayout.CreateRich(
                             cellLeftOffset,
                             cellWidth,
                             images,
                             nestedTables,
                             contentOrder,
-                            richLayout.Lines,
+                            lines,
+                            lineIndents,
                             MapTextAlignment(paragraph?.ParagraphAlignment),
                             lineHeight,
                             padding,
@@ -390,16 +401,7 @@ namespace OfficeIMO.Word {
 
                 WordImageListMarker? listMarker = CreateTableCellListMarker(runs, listMarkers);
                 if (listMarker.HasValue && !string.IsNullOrEmpty(listMarker.Value.Marker)) {
-                    WordImageListMarker marker = listMarker.Value;
-                    richRuns.Add(new OfficeRichTextRun(
-                        marker.Marker + " ",
-                        marker.Font.Size,
-                        marker.Color,
-                        marker.Font.IsBold,
-                        marker.Font.IsItalic,
-                        marker.Font.IsUnderline,
-                        marker.Font.FamilyName,
-                        marker.Font.IsStrikethrough));
+                    richRuns.Add(CreateListMarkerRichTextRun(listMarker.Value));
                 }
 
                 richRuns.AddRange(CreateRichTextRuns(runs, colorScheme, context, diagnostics));
@@ -432,6 +434,7 @@ namespace OfficeIMO.Word {
             private readonly IReadOnlyList<SplitTableCellContentEntry> _contentOrder;
             private readonly List<string>? _plainLines;
             private readonly IReadOnlyList<OfficeRichTextLine>? _richLines;
+            private readonly IReadOnlyList<double>? _richLineIndents;
             private readonly OfficeFontInfo? _font;
             private readonly OfficeColor _textColor;
             private readonly OfficeTextAlignment _alignment;
@@ -451,6 +454,7 @@ namespace OfficeIMO.Word {
                 IReadOnlyList<SplitTableCellContentEntry> contentOrder,
                 List<string>? plainLines,
                 IReadOnlyList<OfficeRichTextLine>? richLines,
+                IReadOnlyList<double>? richLineIndents,
                 OfficeFontInfo? font,
                 OfficeColor textColor,
                 OfficeTextAlignment alignment,
@@ -465,6 +469,7 @@ namespace OfficeIMO.Word {
                 _contentOrder = contentOrder;
                 _plainLines = plainLines;
                 _richLines = richLines;
+                _richLineIndents = richLineIndents;
                 _font = font;
                 _textColor = textColor;
                 _alignment = alignment;
@@ -488,7 +493,7 @@ namespace OfficeIMO.Word {
                 OfficeTextPadding padding,
                 OfficeColor fillColor,
                 OfficeBorderBox borders) =>
-                new SplitTableCellLayout(leftOffset, width, images, nestedTables, contentOrder, lines, null, font, textColor, alignment, lineHeight, padding, fillColor, borders);
+                new SplitTableCellLayout(leftOffset, width, images, nestedTables, contentOrder, lines, null, null, font, textColor, alignment, lineHeight, padding, fillColor, borders);
 
             internal static SplitTableCellLayout CreateRich(
                 double leftOffset,
@@ -497,12 +502,13 @@ namespace OfficeIMO.Word {
                 IReadOnlyList<SplitTableCellNestedTable> nestedTables,
                 IReadOnlyList<SplitTableCellContentEntry> contentOrder,
                 IReadOnlyList<OfficeRichTextLine> lines,
+                IReadOnlyList<double>? lineIndents,
                 OfficeTextAlignment alignment,
                 double lineHeight,
                 OfficeTextPadding padding,
                 OfficeColor fillColor,
                 OfficeBorderBox borders) =>
-                new SplitTableCellLayout(leftOffset, width, images, nestedTables, contentOrder, null, lines, null, OfficeColor.Black, alignment, lineHeight, padding, fillColor, borders);
+                new SplitTableCellLayout(leftOffset, width, images, nestedTables, contentOrder, null, lines, lineIndents, null, OfficeColor.Black, alignment, lineHeight, padding, fillColor, borders);
 
             internal bool HasRemainingContent => _imageIndex < ImageCount || _nestedTableIndex < NestedTableCount || _lineIndex < LineCount;
 
@@ -749,7 +755,25 @@ namespace OfficeIMO.Word {
                     }
 
                     double textHeight = Math.Max(1D, sliceHeight + _padding.Top + _padding.Bottom);
-                    if (_richLines != null) {
+                    if (_richLines != null && _richLineIndents != null) {
+                        double lineTop = contentTop;
+                        for (int i = textStart; i < textEnd; i++) {
+                            double indent = _richLineIndents[i];
+                            double currentLineHeight = GetLineHeight(i);
+                            drawing.AddRichText(
+                                CreateRichTextRunsFromLines(_richLines, i, 1),
+                                left + indent,
+                                lineTop,
+                                Math.Max(1D, _width - indent),
+                                currentLineHeight,
+                                _alignment,
+                                _lineHeight,
+                                OfficeTextVerticalAlignment.Top,
+                                wrapText: false,
+                                padding: new OfficeTextPadding(_padding.Left, 0D, _padding.Right, 0D));
+                            lineTop += currentLineHeight;
+                        }
+                    } else if (_richLines != null) {
                         drawing.AddRichText(
                             CreateRichTextRunsFromLines(_richLines, textStart, textLineCount),
                             left,

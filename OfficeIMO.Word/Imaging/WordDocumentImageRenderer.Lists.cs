@@ -79,6 +79,12 @@ namespace OfficeIMO.Word {
             }
         }
 
+        private static OfficeRichTextRun CreateListMarkerRichTextRun(WordImageListMarker marker) =>
+            new OfficeRichTextRun(
+                marker.Marker + " ", marker.Font.Size, marker.Color,
+                marker.Font.IsBold, marker.Font.IsItalic, marker.Font.IsUnderline,
+                marker.Font.FamilyName, marker.Font.IsStrikethrough);
+
         private static WordImageTextLayout ResolveTextLayout(WordImageFlowContext context, WordImageListMarker? listMarker, WordParagraph? paragraph) {
             WordTextFlowFrame textFrame = context.ResolveTextFlowFrame();
             if (!listMarker.HasValue) {

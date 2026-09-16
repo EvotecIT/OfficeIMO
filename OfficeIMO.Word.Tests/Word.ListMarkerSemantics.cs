@@ -141,6 +141,23 @@ public sealed class WordListMarkerSemanticsTests {
     }
 
     [Fact]
+    public void NumberingVisitsTextBoxesAnchoredInsideTableCells() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        WordTable table = document.AddTable(1, 1);
+        WordTextBox box = table.Rows[0].Cells[0].Paragraphs[0].AddTextBox("Inside cell box", WordImageTextWrapping.Square);
+        WordParagraph inside = box.Paragraphs[0];
+        AttachToList(inside, list.NumberId);
+        WordParagraph after = document.AddParagraph("After cell box");
+        AttachToList(after, list.NumberId);
+
+        var markers = WordDocumentTraversal.BuildListMarkers(document);
+        Assert.Equal("1.", markers[inside].Marker);
+        Assert.Equal("2.", markers[after].Marker);
+    }
+
+    [Fact]
     public void HeaderTextBoxNumberingFollowsHeaderAnchorOrder() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
@@ -200,6 +217,49 @@ public sealed class WordListMarkerSemanticsTests {
         Assert.Equal(1, pdfText.Split(new[] { "2." }, StringSplitOptions.None).Length - 1);
         Assert.Equal(1, pdfText.Split(new[] { "continued" }, StringSplitOptions.None).Length - 1);
         Assert.Equal(1, pdfText.Split(new[] { "Second box line" }, StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
+    public void EmptyTextBoxListParagraphsStillAdvanceAndRenderNumbering() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        WordTextBox box = document.AddTextBox("First line");
+        WordParagraph first = box.Paragraphs[0];
+        AttachToList(first, list.NumberId);
+        Paragraph emptyElement = new Paragraph(new ParagraphProperties(new NumberingProperties(
+            new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId })));
+        box.Content!.Append(emptyElement);
+        Paragraph thirdElement = new Paragraph(new Run(new Text("Third line")));
+        box.Content.Append(thirdElement);
+        WordParagraph third = box.Paragraphs.Last();
+        AttachToList(third, list.NumberId);
+
+        var markers = WordDocumentTraversal.BuildListMarkers(document);
+        Assert.Equal("1.", markers[first].Marker);
+        Assert.Equal("2.", markers[new WordParagraph(document, emptyElement)].Marker);
+        Assert.Equal("3.", markers[third].Marker);
+        string pdfText = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        Assert.Contains("1.", pdfText, StringComparison.Ordinal);
+        Assert.Contains("2.", pdfText, StringComparison.Ordinal);
+        Assert.Contains("3.", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ImageExportIncludesFormattedTextBoxListMarkers() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomBulletList('◆', "Arial", "FF0000");
+        WordTextBox box = document.AddTextBox("Image box item");
+        AttachToList(box.Paragraphs[0], list.NumberId);
+
+        var snapshot = document.CreateVisualSnapshot();
+        OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(),
+            text => text.PlainText.Contains("Image box item", StringComparison.Ordinal));
+        Assert.Contains("◆", richText.PlainText, StringComparison.Ordinal);
+        Assert.Contains(richText.Runs, run => run.Text.Contains("◆", StringComparison.Ordinal) &&
+            run.Color == OfficeColor.FromRgb(255, 0, 0));
+        string svg = Encoding.UTF8.GetString(document.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+        Assert.Contains("◆", svg, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -410,6 +470,26 @@ public sealed class WordListMarkerSemanticsTests {
     }
 
     [Fact]
+    public void RawOpenXmlNumberingEditsDoNotUseStaleStyleCatalogs() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style { Type = StyleValues.Paragraph, StyleId = "Issue2510RawLink" });
+        WordParagraph item = document.AddParagraph("Raw linked item");
+        item._paragraph.ParagraphProperties = new ParagraphProperties(new ParagraphStyleId { Val = "Issue2510RawLink" });
+        Assert.False(item.IsListItem);
+
+        var package = document.OpenXmlDocument;
+        Level level = package.MainDocumentPart!.NumberingDefinitionsPart!.Numbering
+            .Elements<AbstractNum>().Single(abstractNum => abstractNum.AbstractNumberId?.Value == list.Numbering.AbstractNumberId)
+            .Elements<Level>().Single();
+        level.Append(new ParagraphStyleIdInLevel { Val = "Issue2510RawLink" });
+        Assert.True(item.IsListItem);
+        Assert.Equal("1.", WordDocumentTraversal.BuildListMarkers(document)[item].Marker);
+    }
+
+    [Fact]
     public void StyleLinkedNumberingLevelOverridesStyleNumPrLevel() {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
@@ -532,6 +612,40 @@ public sealed class WordListMarkerSemanticsTests {
         double unmarkedX = Assert.Single(texts, text => text.Text == "Unmarked image line").X;
         Assert.True(unmarkedX > plainX + 45D);
         Assert.DoesNotContain(texts, text => text.Text.Length == 0);
+    }
+
+    [Fact]
+    public void MarkerlessItemsKeepTheirIndentInSplitTableRows() {
+        using WordDocument document = WordDocument.Create();
+        WordSection section = document.Sections[0];
+        section.PageSettings.Width = 5000U;
+        section.PageSettings.Height = 3000U;
+        section.SetMargins(WordMargin.Narrow);
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
+        list.Numbering.Levels[0].IndentationLeft = 1800;
+        list.Numbering.Levels[0].IndentationHanging = 360;
+        WordTable table = document.AddTable(1, 1);
+        table.WidthType = WordTableWidthUnit.Dxa;
+        table.Width = 3600;
+        table.ColumnWidthType = WordTableWidthUnit.Dxa;
+        table.ColumnWidth = new List<int> { 3600 };
+        WordTableCell cell = table.Rows[0].Cells[0];
+        cell.Paragraphs[0].Text = "Plain cell line";
+        for (int index = 1; index <= 14; index++) {
+            WordParagraph item = cell.AddParagraph("UnmarkedCell" + index.ToString("00") + " text in a split row");
+            AttachToList(item, list.NumberId);
+        }
+
+        var firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 0 });
+        var secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1 });
+        OfficeDrawingRichText plain = Assert.Single(firstPage.Drawing.Elements.OfType<OfficeDrawingRichText>(),
+            text => text.PlainText.Contains("Plain cell line", StringComparison.Ordinal));
+        var secondPageRichText = secondPage.Drawing.Elements.OfType<OfficeDrawingRichText>().ToArray();
+        Assert.True(secondPageRichText.Any(text => text.PlainText.StartsWith("Unmarked", StringComparison.Ordinal)),
+            string.Join(" | ", secondPageRichText.Select(text => text.PlainText)));
+        OfficeDrawingRichText unmarked = secondPageRichText.First(text => text.PlainText.StartsWith("Unmarked", StringComparison.Ordinal));
+        Assert.True(unmarked.X > plain.X + 45D);
     }
 
     [Fact]

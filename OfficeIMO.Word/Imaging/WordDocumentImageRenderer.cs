@@ -532,7 +532,7 @@ namespace OfficeIMO.Word {
                 if (textBox != null) {
                     added |= FlushTextRuns();
                     context.ClearParagraphSpacingState();
-                    added |= AddTextBox(textBox, context, diagnostics, colorScheme);
+                    added |= AddTextBox(textBox, context, diagnostics, colorScheme, listMarkers);
                     context.ClearParagraphSpacingState();
                     continue;
                 }

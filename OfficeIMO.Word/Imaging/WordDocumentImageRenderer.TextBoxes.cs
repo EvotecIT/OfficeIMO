@@ -13,9 +13,10 @@ namespace OfficeIMO.Word {
         private const double DefaultTextBoxWidthPoints = 180D;
         private const double DefaultTextBoxHeightPoints = 72D;
 
-        private static bool AddTextBox(WordTextBox textBox, WordImageFlowContext context, List<OfficeImageExportDiagnostic> diagnostics, A.ColorScheme? colorScheme) {
+        private static bool AddTextBox(WordTextBox textBox, WordImageFlowContext context, List<OfficeImageExportDiagnostic> diagnostics, A.ColorScheme? colorScheme,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             List<WordParagraph> paragraphs = textBox.Paragraphs;
-            string text = GetTextBoxText(textBox, paragraphs, context, diagnostics);
+            string text = GetTextBoxText(textBox, paragraphs, listMarkers, context, diagnostics);
             if (string.IsNullOrWhiteSpace(text)) {
                 text = string.Empty;
             }
@@ -31,7 +32,7 @@ namespace OfficeIMO.Word {
 
             Anchor? anchor = textBox.Anchor;
             if (anchor != null) {
-                return AddAnchoredTextBox(textBox, anchor, text, firstParagraph, font, lineHeight, padding, width, height, context, diagnostics, colorScheme);
+                return AddAnchoredTextBox(textBox, anchor, text, firstParagraph, font, lineHeight, padding, width, height, context, diagnostics, colorScheme, listMarkers);
             }
 
             width = Math.Min(width, context.ContentWidth);
@@ -40,7 +41,7 @@ namespace OfficeIMO.Word {
             }
 
             if (context.IsTargetPage) {
-                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, context.Left, context.Y, width, height, context, colorScheme, diagnostics);
+                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, context.Left, context.Y, width, height, context, colorScheme, diagnostics, listMarkers);
             }
 
             context.Y += height + ParagraphGapPoints;
@@ -59,7 +60,8 @@ namespace OfficeIMO.Word {
             double height,
             WordImageFlowContext context,
             List<OfficeImageExportDiagnostic> diagnostics,
-            A.ColorScheme? colorScheme) {
+            A.ColorScheme? colorScheme,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             width = Math.Min(width, context.ContentWidth);
             double left = ResolveHorizontalAnchorPosition(anchor.HorizontalPosition, context, width);
             double top = ResolveVerticalAnchorPosition(anchor.VerticalPosition, context, height);
@@ -72,7 +74,7 @@ namespace OfficeIMO.Word {
             }
 
             if (anchor.GetFirstChild<WrapTopBottom>() != null) {
-                return AddTopAndBottomAnchoredTextBox(textBox, anchor, text, firstParagraph, font, lineHeight, padding, width, height, context, diagnostics, colorScheme);
+                return AddTopAndBottomAnchoredTextBox(textBox, anchor, text, firstParagraph, font, lineHeight, padding, width, height, context, diagnostics, colorScheme, listMarkers);
             }
 
             double right = left + width;
@@ -87,7 +89,7 @@ namespace OfficeIMO.Word {
 
             WordTextBoxFrameTransform transform = GetTextBoxFrameTransform(textBox);
             if (context.IsTargetPage) {
-                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, left, top, width, height, context, colorScheme, diagnostics);
+                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, left, top, width, height, context, colorScheme, diagnostics, listMarkers);
             }
 
             bool hasSquareWrap = anchor.GetFirstChild<WrapSquare>() != null;
@@ -143,7 +145,8 @@ namespace OfficeIMO.Word {
             double height,
             WordImageFlowContext context,
             List<OfficeImageExportDiagnostic> diagnostics,
-            A.ColorScheme? colorScheme) {
+            A.ColorScheme? colorScheme,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             double left = ResolveHorizontalAnchorPosition(anchor.HorizontalPosition, context, width);
             double top = ResolveVerticalAnchorPosition(anchor.VerticalPosition, context, height);
             if (!IsFinite(left) || !IsFinite(top)) {
@@ -182,7 +185,7 @@ namespace OfficeIMO.Word {
             }
 
             if (context.IsTargetPage) {
-                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, left, top, width, height, context, colorScheme, diagnostics);
+                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, left, top, width, height, context, colorScheme, diagnostics, listMarkers);
             }
 
             context.Y = bottom + distanceFromBottom + ParagraphGapPoints;
@@ -202,7 +205,8 @@ namespace OfficeIMO.Word {
             double height,
             WordImageFlowContext context,
             A.ColorScheme? colorScheme,
-            List<OfficeImageExportDiagnostic> diagnostics) {
+            List<OfficeImageExportDiagnostic> diagnostics,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             OfficeShape frame = OfficeShape.Rectangle(width, height);
             ApplyTextBoxStyle(frame, textBox);
             WordTextBoxFrameTransform transform = GetTextBoxFrameTransform(textBox);
@@ -220,8 +224,10 @@ namespace OfficeIMO.Word {
             double rotationCenterX = left + (width / 2D);
             double rotationCenterY = top + (height / 2D);
 
-            List<OfficeRichTextRun> richRuns = CreateTextBoxRichTextRuns(textBox, colorScheme, context, diagnostics);
-            if (ShouldRenderTextBoxAsRichText(textBox, richRuns)) {
+            List<OfficeRichTextRun> richRuns = CreateTextBoxRichTextRuns(textBox, colorScheme, listMarkers, context, diagnostics);
+            bool hasListMarkers = textBox.Content?.ChildElements.OfType<W.Paragraph>()
+                .Any(paragraph => CreateListMarker(textBox.Document, paragraph, listMarkers) is { Marker.Length: > 0 }) == true;
+            if (hasListMarkers || ShouldRenderTextBoxAsRichText(textBox, richRuns)) {
                 double maxFontSize = richRuns.Max(run => run.FontSize);
                 double richLineHeight = Math.Max(maxFontSize * 1.25D, 12D);
                 if (drawBehindContent) {
@@ -407,6 +413,7 @@ namespace OfficeIMO.Word {
         private static string GetTextBoxText(
             WordTextBox textBox,
             IEnumerable<WordParagraph> fallbackRuns,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
             WordImageFlowContext? context = null,
             List<OfficeImageExportDiagnostic>? diagnostics = null) {
             DocumentFormat.OpenXml.Wordprocessing.TextBoxContent? content = textBox.Content;
@@ -417,9 +424,13 @@ namespace OfficeIMO.Word {
                         string resolvedText = string.Concat(
                             WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph, splitPaginationMarkers: true)
                                 .Select(run => ResolveImageExportText(run, context, diagnostics)));
-                        return string.IsNullOrEmpty(resolvedText)
+                        string paragraphText = string.IsNullOrEmpty(resolvedText)
                             ? NormalizeTextBoxParagraphText(paragraph.InnerText)
                             : NormalizeTextBoxParagraphText(resolvedText);
+                        WordImageListMarker? marker = CreateListMarker(textBox.Document, paragraph, listMarkers);
+                        return marker is { Marker.Length: > 0 } visible
+                            ? visible.Marker + " " + paragraphText
+                            : paragraphText;
                     })
                     .Where(text => !string.IsNullOrEmpty(text))
                     .ToList();
@@ -473,6 +484,7 @@ namespace OfficeIMO.Word {
         private static List<OfficeRichTextRun> CreateTextBoxRichTextRuns(
             WordTextBox textBox,
             A.ColorScheme? colorScheme,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
             WordImageFlowContext? context = null,
             List<OfficeImageExportDiagnostic>? diagnostics = null) {
             var richRuns = new List<OfficeRichTextRun>();
@@ -482,17 +494,22 @@ namespace OfficeIMO.Word {
             }
 
             foreach (DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph in content.ChildElements.OfType<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()) {
+                WordImageListMarker? marker = CreateListMarker(textBox.Document, paragraph, listMarkers);
                 List<(WordParagraph Run, string Text)> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph, splitPaginationMarkers: true)
                     .Select(run => (Run: run, Text: ResolveImageExportText(run, context, diagnostics)))
                     .Where(run => !string.IsNullOrEmpty(run.Text))
                     .ToList();
-                if (paragraphRuns.Count == 0) {
+                if (paragraphRuns.Count == 0 && !(marker is { Marker.Length: > 0 })) {
                     continue;
                 }
 
                 if (richRuns.Count > 0) {
-                    richRuns.Add(CreateRichTextRun(paragraphRuns[0].Run, colorScheme, Environment.NewLine));
+                    richRuns.Add(paragraphRuns.Count > 0
+                        ? CreateRichTextRun(paragraphRuns[0].Run, colorScheme, Environment.NewLine)
+                        : CreateRichTextRun(new WordParagraph(textBox.Document, paragraph), colorScheme, Environment.NewLine));
                 }
+
+                if (marker is { Marker.Length: > 0 } visible) richRuns.Add(CreateListMarkerRichTextRun(visible));
 
                 for (int runIndex = 0; runIndex < paragraphRuns.Count; runIndex++) {
                     (WordParagraph run, string text) = paragraphRuns[runIndex];

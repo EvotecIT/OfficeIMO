@@ -122,9 +122,13 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">Paragraph to inspect.</param>
         /// <returns>List info for the paragraph or null when paragraph isn't a list item.</returns>
         public static ListInfo? GetListInfo(WordParagraph paragraph) {
-            if (paragraph == null ||
-                !WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering,
-                    WordListNumberingResolver.CreateStyleCatalog(paragraph._document))) {
+            if (paragraph == null) return null;
+            NumberingProperties? direct = paragraph._paragraph?.ParagraphProperties?.NumberingProperties;
+            WordListNumberingResolver.StyleCatalog? styleCatalog = direct?.NumberingId?.Val?.Value > 0 &&
+                direct.NumberingLevelReference?.Val?.Value != null
+                ? null
+                : WordListNumberingResolver.CreateStyleCatalog(paragraph._document);
+            if (!WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering, styleCatalog)) {
                 return null;
             }
 
@@ -467,36 +471,27 @@ namespace OfficeIMO.Word {
 
         private static IEnumerable<WordParagraph> EnumerateListParagraphs(WordDocument document) {
             var seen = new HashSet<Paragraph>();
-            var boxesByAnchor = new Dictionary<Paragraph, List<WordTextBox>>();
-            void IndexTextBoxes(IEnumerable<WordTextBox> textBoxes) {
-                foreach (WordTextBox textBox in textBoxes) {
-                    if (textBox.AnchorParagraph is not Paragraph anchor) continue;
-                    if (!boxesByAnchor.TryGetValue(anchor, out List<WordTextBox>? boxes)) {
-                        boxes = new List<WordTextBox>();
-                        boxesByAnchor.Add(anchor, boxes);
-                    }
-                    boxes.Add(textBox);
-                }
-            }
 
-            IndexTextBoxes(document.TextBoxes);
-            foreach (WordSection section in document.Sections) {
-                foreach (WordHeaderFooter? headerFooter in new WordHeaderFooter?[] { section.Header.Default, section.Header.First, section.Header.Even, section.Footer.Default, section.Footer.First, section.Footer.Even }) {
-                    if (headerFooter != null) IndexTextBoxes(headerFooter.TextBoxes);
+            IEnumerable<WordParagraph> EnumerateParagraph(Paragraph paragraph) {
+                if (!seen.Add(paragraph)) yield break;
+                yield return new WordParagraph(document, paragraph);
+                foreach (Run run in paragraph.Descendants<Run>()) {
+                    if (!ReferenceEquals(run.Ancestors<Paragraph>().FirstOrDefault(), paragraph)) continue;
+                    WordTextBox? textBox = new WordParagraph(document, paragraph, run).TextBox;
+                    TextBoxContent? content = textBox?.Content;
+                    if (content == null) continue;
+                    foreach (Paragraph inner in content.Descendants<Paragraph>()) {
+                        if (!ReferenceEquals(inner.Ancestors<TextBoxContent>().FirstOrDefault(), content)) continue;
+                        foreach (WordParagraph item in EnumerateParagraph(inner)) yield return item;
+                    }
                 }
             }
 
             IEnumerable<WordParagraph> EnumerateStory(DocumentFormat.OpenXml.OpenXmlCompositeElement? root) {
                 if (root == null) yield break;
                 foreach (Paragraph paragraph in root.Descendants<Paragraph>()) {
-                    if (paragraph.Ancestors<TextBoxContent>().Any() || !seen.Add(paragraph)) continue;
-                    yield return new WordParagraph(document, paragraph);
-                    if (!boxesByAnchor.TryGetValue(paragraph, out List<WordTextBox>? boxes)) continue;
-                    foreach (WordTextBox box in boxes) {
-                        foreach (WordParagraph inner in box.Paragraphs) {
-                            if (inner._paragraph != null && seen.Add(inner._paragraph)) yield return inner;
-                        }
-                    }
+                    if (paragraph.Ancestors<TextBoxContent>().Any()) continue;
+                    foreach (WordParagraph item in EnumerateParagraph(paragraph)) yield return item;
                 }
             }
 

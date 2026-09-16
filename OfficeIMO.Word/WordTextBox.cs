@@ -512,8 +512,6 @@ namespace OfficeIMO.Word {
 
         internal TextBoxContent? Content => GetTextBoxContent();
 
-        internal Paragraph? AnchorParagraph => _wordParagraph._paragraph;
-
         internal ShapeProperties? DrawingShapeProperties =>
             _wordprocessingShape?.GetFirstChild<ShapeProperties>();
 

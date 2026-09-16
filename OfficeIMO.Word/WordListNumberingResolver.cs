@@ -83,6 +83,7 @@ internal static class WordListNumberingResolver {
     internal static StyleCatalog GetCachedStyleCatalog(WordDocument document) {
         MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
         if (mainPart == null) return new StyleCatalog(null);
+        if (document._openXmlDocumentAccessed) return new StyleCatalog(mainPart);
 
         CachedStyleCatalog cached = StyleCatalogs.GetValue(mainPart, _ => new CachedStyleCatalog());
         lock (cached) {
