@@ -12,6 +12,25 @@ namespace AngleSharp.Dom.Events
     [DomName("Event")]
     public class Event : EventArgs
     {
+        private Int32 _passiveListenerDepth;
+
+        /// <summary>Marks a synchronous passive listener, where cancellation is ignored.</summary>
+        public PassiveListenerScope BeginPassiveListener()
+        {
+            _passiveListenerDepth++;
+            return new PassiveListenerScope(this);
+        }
+
+        /// <summary>Restores event cancellation after a passive listener returns.</summary>
+        public readonly struct PassiveListenerScope : IDisposable
+        {
+            private readonly Event _event;
+
+            internal PassiveListenerScope(Event value) => _event = value;
+
+            public void Dispose() => _event._passiveListenerDepth--;
+        }
+
         #region Fields
 
         private EventFlags _flags;
@@ -275,7 +294,7 @@ namespace AngleSharp.Dom.Events
         [DomName("preventDefault")]
         public void Cancel()
         {
-            if (_cancelable)
+            if (_cancelable && _passiveListenerDepth == 0)
             {
                 _flags |= EventFlags.Canceled;
             }

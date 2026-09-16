@@ -37,7 +37,15 @@ foreach (string asset in new[] { "scripted-report.css", "scripted-report.js", "s
 await File.WriteAllTextAsync(Path.Combine(output, "report.md"), document.ToMarkdown());
 await File.WriteAllTextAsync(Path.Combine(output, "report.svg"), await document.ToSvgAsync(renderOptions));
 await File.WriteAllBytesAsync(Path.Combine(output, "report.png"), await document.ToPngAsync(renderOptions));
-byte[] pdf = await document.ToPdfBytesAsync(new HtmlToPdfOptions { ResourceResolver = resolver });
+byte[] pdf = await document.ToPdfBytesAsync(new HtmlToPdfOptions {
+    ResourceResolver = resolver,
+    ResourcePolicy = new PdfResourcePolicy {
+        AllowSystemFontEmbedding = true,
+        AllowDataUris = true,
+        AllowEmbeddedPackageResources = true,
+        AllowRemoteResourceResolution = true
+    }
+});
 await File.WriteAllBytesAsync(Path.Combine(output, "report.pdf"), pdf);
 if (!PdfReadDocument.Open(pdf).ExtractText().Contains("Total: 42")) throw new InvalidOperationException("The script-generated report is missing from the PDF.");
 Console.WriteLine($"Captured with {captured.ProviderId}. Wrote HTML, Markdown, SVG, PNG and searchable PDF to {output}.");

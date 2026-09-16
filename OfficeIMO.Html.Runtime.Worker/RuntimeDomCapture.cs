@@ -52,7 +52,7 @@ internal static class RuntimeDomCapture {
                     foreach (IAttr attribute in element.Attributes) {
                         token.ThrowIfCancellationRequested();
                         Count(attribute.Name); Count(attribute.Value); Count(attribute.NamespaceUri);
-                        node.Attributes.Add(new HtmlRuntimeWireAttribute { Name = attribute.Name, Value = attribute.Value, NamespaceUri = attribute.NamespaceUri ?? string.Empty });
+                        node.Attributes.Add(new HtmlRuntimeWireAttribute { Name = attribute.Name, Value = attribute.Value ?? string.Empty, NamespaceUri = attribute.NamespaceUri ?? string.Empty });
                     }
                     break;
                 case IDocumentType type:

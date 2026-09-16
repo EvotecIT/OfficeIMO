@@ -46,6 +46,10 @@ internal static class RuntimeWindowBindings {
             bool fixedAlias = name is "window" or "top";
             engine.Global.FastSetProperty(name, new PropertyDescriptor(engine.Global, !fixedAlias, true, !fixedAlias));
         }
+        // The retained DOM provider has no navigator service. A null navigator makes
+        // ordinary feature detection throw before applications can select a fallback.
+        var navigator = engine.Evaluate("Object.freeze({ userAgent: 'OfficeIMO.Html.Runtime' })");
+        engine.Global.FastSetProperty("navigator", new PropertyDescriptor(navigator, false, true, false));
         return normalize;
     }
 }

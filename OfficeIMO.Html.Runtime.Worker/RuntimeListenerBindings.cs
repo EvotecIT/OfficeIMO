@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using AngleSharp.Dom;
+using AngleSharp.Dom.Events;
 using Jint;
 using Jint.Native;
 using Jint.Native.Function;
@@ -24,19 +25,26 @@ internal sealed class RuntimeListenerBindings {
         var options = args.ElementAtOrDefault(2) ?? JsValue.Undefined;
         bool capture = Capture(options);
         bool once = false;
+        bool passive = false;
         if (options.IsObject()) {
             var value = options.AsObject();
             once = TypeConverter.ToBoolean(value.Get("once"));
+            passive = TypeConverter.ToBoolean(value.Get("passive"));
             var signal = value.Get("signal");
-            if (TypeConverter.ToBoolean(value.Get("passive")) || (!signal.IsNull() && !signal.IsUndefined()))
-                throw new HtmlScriptRuntimeException("Passive and signal-controlled event listeners are not supported by this runtime profile.");
+            if (!signal.IsNull() && !signal.IsUndefined())
+                throw new HtmlScriptRuntimeException("Signal-controlled event listeners are not supported by this runtime profile.");
         }
         var registrations = _targets.GetOrCreateValue(target);
         if (registrations.Any(item => item.Type == type && item.Capture == capture && ReferenceEquals(item.Callback, callback))) return JsValue.Undefined;
         var registration = new Registration(type, capture, callback);
         registration.Handler = (sender, ev) => {
             if (once) Remove(target, registrations, registration);
-            _engine.Invoke(callback, JsValue.FromObject(_engine, sender), new[] { JsValue.FromObject(_engine, ev) });
+            if (passive) {
+                using var scope = ev.BeginPassiveListener();
+                _engine.Invoke(callback, JsValue.FromObject(_engine, sender), new[] { JsValue.FromObject(_engine, ev) });
+            } else {
+                _engine.Invoke(callback, JsValue.FromObject(_engine, sender), new[] { JsValue.FromObject(_engine, ev) });
+            }
         };
         registrations.Add(registration);
         target.AddEventListener(type, registration.Handler, capture);

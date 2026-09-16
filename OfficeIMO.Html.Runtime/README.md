@@ -358,6 +358,11 @@ This independent snapshot writes an absolute base href; `capture.Document` retai
 the authored attributes and `capture.DocumentUrl` identifies the current route.
 The report example demonstrates this wiring. Capture does not wait for arbitrary outstanding
 loads; use an explicit condition that represents the application's readiness.
+PDF rendering also requires `PdfResourcePolicy.AllowRemoteResourceResolution = true`
+for HTTP(S)-identified capture assets served through `ResourceResolver`. Use an exact
+URL-to-response map from `capture.Resources`; this does not make OfficeIMO fetch
+network resources on its own. Without the policy setting, the PDF renderer
+deliberately ignores the stylesheet even when PNG rendering accepts the resolver.
 
 The initial profile targets .NET 8 and .NET 10 hosts and workers. It
 supports inline and external classic scripts, supplied post-load scripts, DOM changes, provider
@@ -539,8 +544,8 @@ Unhandled script, timer and listener errors, and promise rejections still unhand
 at a checked script-turn boundary, fail the session instead of returning a successful
 snapshot. Rejections handled in the same turn are allowed within
 `MaxPendingPromiseRejections`. Listener registration supports callback identity,
-object listeners, capture and `once`; passive and signal-controlled registrations
-are rejected. Event properties and inline attributes share session-owned registration
+object listeners, capture, `once`, and passive cancellation semantics;
+signal-controlled registrations are rejected. Event properties and inline attributes share session-owned registration
 for ordinary and collection-backed elements such as select. Replacing a handler
 preserves its listener position; clearing and assigning again creates a new position.
 Body/window handler aliases share the window target. Specialized error/beforeunload

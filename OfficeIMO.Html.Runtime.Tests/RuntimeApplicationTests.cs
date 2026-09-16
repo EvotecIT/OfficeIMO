@@ -9,6 +9,23 @@ public sealed class RuntimeApplicationTests {
         Path.Combine(AppContext.BaseDirectory, "RuntimeWorker", "OfficeIMO.Html.Runtime.Worker.dll"), AngleSharpDomServices.Instance);
 
     [Fact]
+    public async Task NavigatorFeatureDetectionUsesAnOwnedNonBrowserIdentity() {
+        await using var session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest());
+        var result = await session.EvaluateAsync("[window.navigator===navigator,navigator.userAgent,typeof navigator.scheduling]");
+        Assert.True(result[0].GetBoolean());
+        Assert.Equal("OfficeIMO.Html.Runtime", result[1].GetString());
+        Assert.Equal("undefined", result[2].GetString());
+    }
+
+    [Fact]
+    public async Task PassiveListenersCannotCancelTheirEventOrAnUnrelatedNestedEvent() {
+        await using var session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest { Html = "<button id='target'>Action</button>" });
+        await session.ExecuteAsync("window.results=[];const target=document.querySelector('#target');target.addEventListener('probe',event=>{event.preventDefault();results.push(event.defaultPrevented);const nested=new Event('nested',{cancelable:true});target.dispatchEvent(nested);results.push(nested.defaultPrevented)},{passive:true});target.addEventListener('nested',event=>event.preventDefault());const outer=new Event('probe',{cancelable:true});target.dispatchEvent(outer);results.push(outer.defaultPrevented)");
+        Assert.Equal(new[] { false, true, false },
+            (await session.EvaluateAsync("results")).EnumerateArray().Select(value => value.GetBoolean()));
+    }
+
+    [Fact]
     public async Task WindowGlobalsAndEventReceiversHaveOneIdentity() {
         await using var session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest {
             Html = "<script>var library={loaded:true};window.receivers=[];window.addEventListener('probe',function(e){receivers.push(this===window,e.target===window,e.currentTarget===window);});</script>"

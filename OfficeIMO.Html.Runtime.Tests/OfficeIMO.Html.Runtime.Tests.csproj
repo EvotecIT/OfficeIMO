@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="Fixtures/Preact/*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Fixtures/React18/*" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Fixtures/ObservedReport/*" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Fixtures/StandaloneApplication/*" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
