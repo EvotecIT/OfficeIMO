@@ -205,12 +205,9 @@ public static partial class OfficeSvgDrawingReader {
                 evidence = "SVG text-length adjustment can change browser glyph bounds and is therefore report-only.";
                 return true;
             }
-            XAttribute? unmodeledGeometry = current.Attributes().FirstOrDefault(attribute =>
-                attribute.Name.NamespaceName.Length == 0 &&
-                IsUnmodeledSvgTextGeometryAttribute(attribute.Name.LocalName));
-            if (unmodeledGeometry != null) {
-                evidence = "SVG text geometry uses the unmodeled " + unmodeledGeometry.Name.LocalName +
-                    " attribute and is therefore report-only.";
+            if (TryFindUnmodeledSvgTextGeometryProperty(current, out string unmodeledGeometry)) {
+                evidence = "SVG text geometry uses the unmodeled " + unmodeledGeometry +
+                    " property and is therefore report-only.";
                 return true;
             }
             string? transform = ReadPresentationProperty(current, "transform");

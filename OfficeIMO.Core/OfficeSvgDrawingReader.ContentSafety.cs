@@ -263,7 +263,10 @@ public static partial class OfficeSvgDrawingReader {
         bool acceptsViewBox = name is "svg" or "symbol" or "marker" or "pattern" or "view";
         bool acceptsPreserveAspectRatio = acceptsViewBox || name.Equals("image", StringComparison.Ordinal);
         XAttribute? viewBox = acceptsViewBox ? element.Attribute("viewBox") : null;
-        if (viewBox != null && ContainsNonSvgCssWhitespace(viewBox.Value)) return true;
+        if (viewBox != null &&
+            (ContainsNonSvgCssWhitespace(viewBox.Value) ||
+             !TryParseNumberList(viewBox.Value, out IReadOnlyList<double> values) ||
+             values.Count != 4)) return true;
         XAttribute? preserveAspectRatio = acceptsPreserveAspectRatio ? element.Attribute("preserveAspectRatio") : null;
         return preserveAspectRatio != null &&
             !TryParsePreserveAspectRatio(preserveAspectRatio.Value, out _, out _);

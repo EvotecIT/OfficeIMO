@@ -1562,27 +1562,59 @@ public static partial class OfficeSvgDrawingReader {
         limitExceeded = false;
         if (maximumValues <= 0 || string.IsNullOrWhiteSpace(value)) return false;
         int index = 0;
-        while (index < value!.Length) {
-            int separatorStart = index;
-            while (index < value.Length && (IsSvgNumberListWhitespace(value[index]) || value[index] == ',')) {
-                index++;
-                if (index - separatorStart > 128) {
-                    limitExceeded = true;
-                    return false;
-                }
+        int leadingWhitespaceStart = index;
+        while (index < value!.Length && IsSvgNumberListWhitespace(value[index])) {
+            index++;
+            if (index - leadingWhitespaceStart > 128) {
+                limitExceeded = true;
+                return false;
             }
-            if (index >= value.Length) break;
+        }
+        if (index >= value.Length || value[index] == ',') return false;
+        while (index < value.Length) {
             if (result.Count >= maximumValues) {
                 limitExceeded = true;
                 return false;
             }
             int start = index;
-            while (index < value.Length && !IsSvgNumberListWhitespace(value[index]) && value[index] != ',') {
+            if (value[index] == '+' || value[index] == '-') index++;
+            bool hasDigits = false;
+            while (index < value.Length && value[index] >= '0' && value[index] <= '9') {
+                hasDigits = true;
                 index++;
                 if (index - start > 128) {
                     limitExceeded = true;
                     return false;
                 }
+            }
+            if (index < value.Length && value[index] == '.') {
+                index++;
+                while (index < value.Length && value[index] >= '0' && value[index] <= '9') {
+                    hasDigits = true;
+                    index++;
+                    if (index - start > 128) {
+                        limitExceeded = true;
+                        return false;
+                    }
+                }
+            }
+            if (!hasDigits) return false;
+            if (index < value.Length && (value[index] == 'e' || value[index] == 'E')) {
+                index++;
+                if (index < value.Length && (value[index] == '+' || value[index] == '-')) index++;
+                int exponentStart = index;
+                while (index < value.Length && value[index] >= '0' && value[index] <= '9') {
+                    index++;
+                    if (index - start > 128) {
+                        limitExceeded = true;
+                        return false;
+                    }
+                }
+                if (index == exponentStart) return false;
+            }
+            if (index - start > 128) {
+                limitExceeded = true;
+                return false;
             }
             int length = index - start;
             if (length <= 0
@@ -1591,6 +1623,35 @@ public static partial class OfficeSvgDrawingReader {
                 || double.IsNaN(number)
                 || double.IsInfinity(number)) return false;
             result.Add(number);
+
+            int separatorStart = index;
+            bool hasWhitespaceSeparator = false;
+            while (index < value.Length && IsSvgNumberListWhitespace(value[index])) {
+                hasWhitespaceSeparator = true;
+                index++;
+                if (index - separatorStart > 128) {
+                    limitExceeded = true;
+                    return false;
+                }
+            }
+            if (index >= value.Length) return true;
+            if (value[index] == ',') {
+                index++;
+                while (index < value.Length && IsSvgNumberListWhitespace(value[index])) {
+                    index++;
+                    if (index - separatorStart > 128) {
+                        limitExceeded = true;
+                        return false;
+                    }
+                }
+                if (index >= value.Length || value[index] == ',') return false;
+            } else if (!hasWhitespaceSeparator && value[index] != '-') {
+                return false;
+            }
+            if (index - separatorStart > 128) {
+                limitExceeded = true;
+                return false;
+            }
         }
         return result.Count > 0;
     }
