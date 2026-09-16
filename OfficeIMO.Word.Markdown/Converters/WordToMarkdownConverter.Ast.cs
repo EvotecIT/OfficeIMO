@@ -169,7 +169,9 @@ namespace OfficeIMO.Word.Markdown {
             IReadOnlyDictionary<WordParagraph, (int Level, int Index)>? listIndices,
             bool hasCheckbox,
             bool checkboxChecked,
-            bool trimBoundaryWhitespace) {
+            bool trimBoundaryWhitespace,
+            int renderLevel) {
+            ValidateListLevel(listInfo.Level, options.MaxListNestingDepth);
             var paragraphBlocks = BuildParagraphBlocks(paragraph, options, hasCheckbox, checkboxChecked, allowQuoteHeuristic: false, trimBoundaryWhitespace: trimBoundaryWhitespace);
             paragraphBlocks = LiftLeadingPageBreakBlocks(addRootBlock, listStack, paragraphBlocks);
 
@@ -182,15 +184,22 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             if (!listInfo.MarkerVisible) {
-                // Markdown has no markerless list syntax. Preserve the content as paragraphs
-                // rather than inventing a bullet that was absent in the Word document.
-                listStack.Clear();
-                foreach (IMarkdownBlock block in paragraphBlocks) addRootBlock(block);
+                // Markdown has no markerless list syntax. Keep nested content under its
+                // visible parent instead of inventing a bullet or detaching the subtree.
+                int parentDepth = Math.Min(listInfo.Level, listStack.Count);
+                if (listStack.Count > parentDepth) {
+                    listStack.RemoveRange(parentDepth, listStack.Count - parentDepth);
+                }
+                PendingListFrame? parent = listStack.Count > 0 ? listStack[listStack.Count - 1] : null;
+                foreach (IMarkdownBlock block in paragraphBlocks) {
+                    if (parent?.LastItem != null) parent.LastItem.NestedBlocks.Add(block);
+                    else addRootBlock(block);
+                }
                 return;
             }
 
-            EnsureListFrame(addRootBlock, listStack, listInfo, GetListStartForCurrentItem(paragraph, listInfo, listIndices), options.MaxListNestingDepth);
-            var item = CreateListItem(paragraphBlocks, listInfo.Level, hasCheckbox, checkboxChecked);
+            EnsureListFrame(addRootBlock, listStack, listInfo, GetListStartForCurrentItem(paragraph, listInfo, listIndices), options.MaxListNestingDepth, renderLevel);
+            var item = CreateListItem(paragraphBlocks, renderLevel, hasCheckbox, checkboxChecked);
             listStack[listStack.Count - 1].AddItem(item);
         }
 
@@ -249,8 +258,8 @@ namespace OfficeIMO.Word.Markdown {
             return block is HorizontalRuleBlock;
         }
 
-        private static void EnsureListFrame(Action<IMarkdownBlock> addRootBlock, List<PendingListFrame> listStack, WordDocumentTraversal.ListInfo listInfo, int start, int maximumDepth) {
-            int boundedLevel = ValidateListLevel(listInfo.Level, maximumDepth);
+        private static void EnsureListFrame(Action<IMarkdownBlock> addRootBlock, List<PendingListFrame> listStack, WordDocumentTraversal.ListInfo listInfo, int start, int maximumDepth, int renderLevel) {
+            int boundedLevel = ValidateListLevel(renderLevel, maximumDepth);
 
             int targetDepth = boundedLevel + 1;
 
@@ -341,6 +350,7 @@ namespace OfficeIMO.Word.Markdown {
             bool trimBoundaryWhitespace,
             IReadOnlyDictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker>? listMarkers = null) {
             var listStack = new List<PendingListFrame>();
+            int? markerlessAncestorLevel = null;
 
             for (int i = 0; i < elements.Count; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -349,6 +359,7 @@ namespace OfficeIMO.Word.Markdown {
                 if (element is WordParagraph paragraph) {
                     if (paragraph.IsTextBox && paragraph.TextBox != null) {
                         listStack.Clear();
+                        markerlessAncestorLevel = null;
                         AppendBlocksFromElements(
                             paragraph.TextBox.Elements,
                             addRootBlock,
@@ -382,11 +393,22 @@ namespace OfficeIMO.Word.Markdown {
                         ? listMarkers.TryGetValue(paragraph, out var marker) ? marker.Info : null
                         : WordDocumentTraversal.GetListInfo(paragraph);
                     if (listInfo != null) {
-                        AddListParagraph(addRootBlock, listStack, paragraph, listInfo.Value, options, listIndices, hasCheckbox, checkboxChecked, trimBoundaryWhitespace);
+                        if (!listInfo.Value.MarkerVisible) {
+                            markerlessAncestorLevel = listInfo.Value.Level > 0 && listStack.Count > 0
+                                ? Math.Min(markerlessAncestorLevel ?? listInfo.Value.Level, listInfo.Value.Level)
+                                : null;
+                        }
+                        int renderLevel = listInfo.Value.Level;
+                        if (listInfo.Value.MarkerVisible && markerlessAncestorLevel.HasValue) {
+                            if (renderLevel > markerlessAncestorLevel.Value) renderLevel = markerlessAncestorLevel.Value;
+                            else markerlessAncestorLevel = null;
+                        }
+                        AddListParagraph(addRootBlock, listStack, paragraph, listInfo.Value, options, listIndices, hasCheckbox, checkboxChecked, trimBoundaryWhitespace, renderLevel);
                         continue;
                     }
 
                     listStack.Clear();
+                    markerlessAncestorLevel = null;
                     var paragraphBlocks = BuildParagraphBlocks(paragraph, options, hasCheckbox, checkboxChecked, allowQuoteHeuristic, trimBoundaryWhitespace);
                     foreach (var block in paragraphBlocks) {
                         addRootBlock(block);
@@ -399,6 +421,7 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 listStack.Clear();
+                markerlessAncestorLevel = null;
 
                 if (element is WordTableOfContent tableOfContent) {
                     addRootBlock(BuildTableOfContentsMarkerBlock(tableOfContent));

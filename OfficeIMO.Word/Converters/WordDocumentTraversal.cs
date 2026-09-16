@@ -401,13 +401,13 @@ namespace OfficeIMO.Word {
                         }
 
                         levelOverrides.TryGetValue(level.LevelIndex.Value, out Level? overrideLevel);
-                        ListLevelDefinition definition = CreateLevelDefinition(level.LevelIndex.Value, level, overrideLevel);
+                        ListLevelDefinition definition = CreateLevelDefinition(level.LevelIndex.Value, overrideLevel ?? level);
                         levels.Add(definition.Level, definition);
                     }
                 }
                 foreach (KeyValuePair<int, Level> levelOverride in levelOverrides) {
                     if (!levels.ContainsKey(levelOverride.Key)) {
-                        levels.Add(levelOverride.Key, CreateLevelDefinition(levelOverride.Key, abstractLevel: null, levelOverride.Value));
+                        levels.Add(levelOverride.Key, CreateLevelDefinition(levelOverride.Key, levelOverride.Value));
                     }
                 }
 
@@ -422,27 +422,27 @@ namespace OfficeIMO.Word {
             return result;
         }
 
-        private static ListLevelDefinition CreateLevelDefinition(int level, Level? abstractLevel, Level? overrideLevel) {
-            Indentation? abstractIndentation = abstractLevel?.GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
-            Indentation? overrideIndentation = overrideLevel?.GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
-            NumberingSymbolRunProperties? abstractMarkerProperties = abstractLevel?.GetFirstChild<NumberingSymbolRunProperties>();
-            NumberingSymbolRunProperties? overrideMarkerProperties = overrideLevel?.GetFirstChild<NumberingSymbolRunProperties>();
+        private static ListLevelDefinition CreateLevelDefinition(int level, Level effectiveLevel) {
+            // A full w:lvlOverride replaces the abstract level. A start-only override is
+            // applied separately, leaving this definition on the abstract level.
+            Indentation? indentation = effectiveLevel.GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
+            NumberingSymbolRunProperties? markerProperties = effectiveLevel.GetFirstChild<NumberingSymbolRunProperties>();
 
             return new ListLevelDefinition(
                 level: level,
-                start: overrideLevel?.StartNumberingValue?.Val?.Value ?? abstractLevel?.StartNumberingValue?.Val?.Value ?? 1,
-                numberFormat: overrideLevel?.NumberingFormat?.Val?.Value ?? abstractLevel?.NumberingFormat?.Val?.Value,
-                levelText: overrideLevel?.LevelText?.Val?.Value ?? abstractLevel?.LevelText?.Val?.Value,
-                leftIndentTwips: ParseOptionalInt32(overrideIndentation?.Left?.Value ?? abstractIndentation?.Left?.Value),
-                hangingIndentTwips: ParseOptionalInt32(overrideIndentation?.Hanging?.Value ?? abstractIndentation?.Hanging?.Value),
-                markerFontFamily: ResolveListMarkerFontFamily(overrideMarkerProperties) ?? ResolveListMarkerFontFamily(abstractMarkerProperties),
-                markerBold: ReadListMarkerOnOff(overrideMarkerProperties?.GetFirstChild<Bold>()) ?? ReadListMarkerOnOff(abstractMarkerProperties?.GetFirstChild<Bold>()),
-                markerItalic: ReadListMarkerOnOff(overrideMarkerProperties?.GetFirstChild<Italic>()) ?? ReadListMarkerOnOff(abstractMarkerProperties?.GetFirstChild<Italic>()),
-                markerColorHex: overrideMarkerProperties?.GetFirstChild<Color>()?.Val?.Value ?? abstractMarkerProperties?.GetFirstChild<Color>()?.Val?.Value,
-                markerFontSize: ResolveListMarkerFontSize(overrideMarkerProperties) ?? ResolveListMarkerFontSize(abstractMarkerProperties),
-                levelJustification: overrideLevel?.LevelJustification?.Val?.Value ?? abstractLevel?.LevelJustification?.Val?.Value,
-                levelSuffix: overrideLevel?.LevelSuffix?.Val?.Value ?? abstractLevel?.LevelSuffix?.Val?.Value,
-                pictureBulletId: overrideLevel?.GetFirstChild<LevelPictureBulletId>()?.Val?.Value ?? abstractLevel?.GetFirstChild<LevelPictureBulletId>()?.Val?.Value);
+                start: effectiveLevel.StartNumberingValue?.Val?.Value ?? 1,
+                numberFormat: effectiveLevel.NumberingFormat?.Val?.Value,
+                levelText: effectiveLevel.LevelText?.Val?.Value,
+                leftIndentTwips: ParseOptionalInt32(indentation?.Left?.Value),
+                hangingIndentTwips: ParseOptionalInt32(indentation?.Hanging?.Value),
+                markerFontFamily: ResolveListMarkerFontFamily(markerProperties),
+                markerBold: ReadListMarkerOnOff(markerProperties?.GetFirstChild<Bold>()),
+                markerItalic: ReadListMarkerOnOff(markerProperties?.GetFirstChild<Italic>()),
+                markerColorHex: markerProperties?.GetFirstChild<Color>()?.Val?.Value,
+                markerFontSize: ResolveListMarkerFontSize(markerProperties),
+                levelJustification: effectiveLevel.LevelJustification?.Val?.Value,
+                levelSuffix: effectiveLevel.LevelSuffix?.Val?.Value,
+                pictureBulletId: effectiveLevel.GetFirstChild<LevelPictureBulletId>()?.Val?.Value);
         }
 
         private static Dictionary<int, List<WordParagraph>> BuildListItemsByNumberId(WordDocument document, WordListNumberingResolver.StyleCatalog styleCatalog) {

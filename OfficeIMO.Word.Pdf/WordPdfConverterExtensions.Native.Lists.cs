@@ -247,6 +247,24 @@ namespace OfficeIMO.Word.Pdf {
             !string.IsNullOrWhiteSpace(paragraph.StyleId) &&
             !string.Equals(paragraph.StyleId, "ListParagraph", StringComparison.OrdinalIgnoreCase);
 
+        private static void ApplyNativeMarkerlessListIndent(WordParagraph paragraph, PdfCore.PdfParagraphStyle style) {
+            WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
+            if (info == null || info.Value.MarkerVisible) return;
+
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+            bool useParagraphStyleIndent = ShouldApplyNativeListParagraphStyleIndent(paragraph);
+            style.LeftIndent = paragraph.IndentationBeforePoints ??
+                (useParagraphStyleIndent ? styleDefaults.LeftIndent : null) ??
+                ConvertNativeTwipsToPoints(info.Value.LeftIndentTwips ?? ((info.Value.Level + 1) * 720)) ?? 0D;
+            double hangingIndent = paragraph.IndentationHangingPoints ??
+                (useParagraphStyleIndent ? GetNativeStyleHangingIndent(styleDefaults) : null) ??
+                ConvertNativeTwipsToPoints(info.Value.HangingIndentTwips ?? 360) ?? 0D;
+            style.FirstLineIndent = paragraph.IndentationHangingPoints.HasValue
+                ? -hangingIndent
+                : paragraph.IndentationFirstLinePoints ??
+                    (useParagraphStyleIndent ? styleDefaults.FirstLineIndent : null) ?? -hangingIndent;
+        }
+
         private static (double MarkerWidth, double MarkerGap) ResolveNativeListMarkerSpacing(W.LevelSuffixValues? levelSuffix, double markerTextWidth, double fontSize, double textIndent, double markerIndent) {
             if (levelSuffix == W.LevelSuffixValues.Nothing) {
                 return (markerTextWidth, 0D);

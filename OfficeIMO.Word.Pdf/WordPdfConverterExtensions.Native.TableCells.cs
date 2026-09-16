@@ -310,8 +310,9 @@ namespace OfficeIMO.Word.Pdf {
             for (int i = 0; i < cellParagraphs.Count; i++) {
                 WordParagraph paragraph = cellParagraphs[i];
                 List<PdfCore.PdfTextRun> paragraphRuns = CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap);
-                if (getMarker?.Invoke(paragraph) is { Marker.Length: > 0 } marker) {
-                    paragraphRuns.Insert(0, CreateNativeCellTextRun(marker.Marker + " ", paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap));
+                (int Level, string Marker)? listMarker = getMarker?.Invoke(paragraph);
+                if (listMarker is { Marker.Length: > 0 } marker) {
+                    paragraphRuns.Insert(0, CreateNativeCellListMarkerRun(marker.Marker, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap));
                 }
                 if (paragraphRuns.Count == 0) {
                     continue;
@@ -340,7 +341,7 @@ namespace OfficeIMO.Word.Pdf {
                     spacingAfter = 0D;
                 }
 
-                (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph, tableStyleDefaults);
+                (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph, tableStyleDefaults, listMarker.HasValue);
                 double? lineHeight = ResolveNativeTableCellParagraphLineHeight(
                     paragraph,
                     nativeDefaults,
@@ -378,11 +379,25 @@ namespace OfficeIMO.Word.Pdf {
         private static W.JustificationValues? ResolveNativeTableCellParagraphJustification(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults) =>
             paragraph.ParagraphAlignment.ToOpenXml() ?? GetNativeParagraphStyleDefaults(paragraph).Alignment ?? tableStyleDefaults.ParagraphAlignment;
 
-        private static (double Left, double Right, double FirstLine) ResolveNativeTableCellParagraphIndentation(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults) {
+        private static (double Left, double Right, double FirstLine) ResolveNativeTableCellParagraphIndentation(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, bool listItem) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             double leftIndent = paragraph.IndentationBeforePoints ?? styleDefaults.LeftIndent ?? tableStyleDefaults.ParagraphLeftIndent ?? 0D;
             double rightIndent = paragraph.IndentationAfterPoints ?? styleDefaults.RightIndent ?? tableStyleDefaults.ParagraphRightIndent ?? 0D;
             double firstLineIndent = paragraph.IndentationFirstLinePoints ?? styleDefaults.FirstLineIndent ?? tableStyleDefaults.ParagraphFirstLineIndent ?? 0D;
+            WordDocumentTraversal.ListInfo? listInfo = listItem ? WordDocumentTraversal.GetListInfo(paragraph) : null;
+            if (listInfo != null) {
+                bool useParagraphStyleIndent = ShouldApplyNativeListParagraphStyleIndent(paragraph);
+                leftIndent = paragraph.IndentationBeforePoints ??
+                    (useParagraphStyleIndent ? styleDefaults.LeftIndent : null) ??
+                    ConvertNativeTwipsToPoints(listInfo.Value.LeftIndentTwips ?? ((listInfo.Value.Level + 1) * 720)) ?? leftIndent;
+                double hangingIndent = paragraph.IndentationHangingPoints ??
+                    (useParagraphStyleIndent ? GetNativeStyleHangingIndent(styleDefaults) : null) ??
+                    ConvertNativeTwipsToPoints(listInfo.Value.HangingIndentTwips ?? 360) ?? 0D;
+                firstLineIndent = paragraph.IndentationHangingPoints.HasValue
+                    ? -hangingIndent
+                    : paragraph.IndentationFirstLinePoints ??
+                        (useParagraphStyleIndent ? styleDefaults.FirstLineIndent : null) ?? -hangingIndent;
+            }
             leftIndent = NormalizeNativeTableCellIndent(leftIndent);
             rightIndent = NormalizeNativeTableCellIndent(rightIndent);
             firstLineIndent = double.IsNaN(firstLineIndent) || double.IsInfinity(firstLineIndent) ? 0D : firstLineIndent;
@@ -710,6 +725,23 @@ namespace OfficeIMO.Word.Pdf {
                 fontFamily: style.FontFamily,
                 underlineStyle: style.UnderlineStyle,
                 strikeStyle: style.StrikeStyle);
+        }
+
+        private static PdfCore.PdfTextRun CreateNativeCellListMarkerRun(string marker, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
+            NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
+            WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
+            if (info == null) return CreateNativeCellTextRun(marker + " ", paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap);
+
+            return new PdfCore.PdfTextRun(
+                marker + " ",
+                bold: info.Value.MarkerBold ?? textStyle.Bold,
+                color: ParseNativeColor(info.Value.MarkerColorHex) ?? textStyle.Color,
+                italic: info.Value.MarkerItalic ?? textStyle.Italic,
+                fontSize: info.Value.MarkerFontSize ?? textStyle.FontSize,
+                font: ResolveNativeListMarkerFont(info.Value, marker, textStyle),
+                fontFamily: nativeFontMap != null
+                    ? ResolveNativeListMarkerFontFamily(info.Value, marker, textStyle, nativeFontMap)
+                    : textStyle.FontFamily);
         }
 
         private static PdfCore.PdfTextRun CreateNativeCellLinkRun(string text, WordParagraph paragraph, WordHyperLink hyperlink, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) {

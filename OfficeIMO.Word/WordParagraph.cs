@@ -186,12 +186,22 @@ namespace OfficeIMO.Word {
                     : null;
             }
             set {
-                var levelRef = _paragraphProperties?.NumberingProperties?.NumberingLevelReference;
-                if (levelRef != null) {
-                    levelRef.Val = value;
-                } else {
-                    // should throw?
+                if (!value.HasValue) {
+                    _paragraphProperties?.NumberingProperties?.NumberingLevelReference?.Remove();
+                    return;
                 }
+
+                if (!WordListNumberingResolver.TryResolve(this, out WordListNumberingResolver.ResolvedNumbering numbering)) {
+                    return;
+                }
+
+                _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                _paragraph.ParagraphProperties.NumberingProperties ??= new NumberingProperties();
+                NumberingProperties direct = _paragraph.ParagraphProperties.NumberingProperties;
+                direct.NumberingLevelReference ??= new NumberingLevelReference();
+                direct.NumberingLevelReference.Val = value.Value;
+                direct.NumberingId ??= new NumberingId();
+                direct.NumberingId.Val = numbering.NumberId;
             }
         }
 

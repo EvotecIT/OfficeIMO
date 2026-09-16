@@ -103,6 +103,7 @@ namespace OfficeIMO.Word.Pdf {
 
             PdfCore.PdfAlign objectAlign = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
+            if (marker is { Marker.Length: 0 }) ApplyNativeMarkerlessListIndent(paragraph, style);
             RenderNativeChart(pdf, paragraph.Chart, objectAlign, options, "body paragraph chart");
 
             if (paragraph.Shape != null) {

@@ -94,6 +94,47 @@ public sealed class WordListMarkerSemanticsTests {
         Assert.Contains("• Header marker", pdfText, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void PdfIncludesMarkersInsideHeaderTextBoxes() {
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordList list = document.AddCustomBulletList('◆', "Arial", "000000");
+        WordParagraph host = document.Header!.Default!.AddParagraph("Before ");
+        WordTextBox box = host.AddTextBox("Header box marker", WordImageTextWrapping.Square);
+        host.AddText(" After");
+        AttachToList(box.Paragraphs[0], list.NumberId);
+        document.AddParagraph("Body");
+
+        string pdfText = PdfReadDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false })).ExtractText();
+        Assert.Contains("Before ◆ Header box marker", pdfText, StringComparison.Ordinal);
+        Assert.Contains("After", pdfText, StringComparison.Ordinal);
+        Assert.True(pdfText.IndexOf("Header box marker", StringComparison.Ordinal) < pdfText.IndexOf("After", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void PdfTableMarkersUseLevelFormatting() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000");
+        WordListLevel level = list.Numbering.Levels[0];
+        level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()!.Append(new Bold(), new FontSize { Val = "36" });
+        level.IndentationLeft = 2160;
+        level.IndentationHanging = 360;
+        WordTable table = document.AddTable(1, 1);
+        table.Width = 7000;
+        WordTableCell cell = table.Rows[0].Cells[0];
+        cell.Width = 7000;
+        cell.Paragraphs[0].Text = "PlainCell";
+        AttachToList(cell.AddParagraph("CellStyle"), list.NumberId);
+
+        var spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans();
+        PdfTextSpan marker = Assert.Single(spans, span => span.Text.Contains("*", StringComparison.Ordinal));
+        PdfTextSpan plain = Assert.Single(spans, span => span.Text == "PlainCell");
+        Assert.True(marker.X > plain.X + 45D);
+        Assert.InRange(marker.FontSize, 17.5D, 18.5D);
+        Assert.True(marker.IsBold);
+        Assert.Equal(OfficeColor.FromRgb(255, 0, 0), marker.Color);
+    }
+
     private static void AttachToList(WordParagraph paragraph, int numberId) {
         paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
         paragraph._paragraph.ParagraphProperties.NumberingProperties = new NumberingProperties(
@@ -136,6 +177,28 @@ public sealed class WordListMarkerSemanticsTests {
     }
 
     [Fact]
+    public void FullLevelOverrideDoesNotInheritOmittedAbstractProperties() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomBulletList('\uf0b7', "Symbol", "FF0000");
+        WordParagraph item = list.AddItem("Override replacement");
+        Level abstractLevel = list.Numbering.Levels[0].OpenXmlElement;
+        abstractLevel.GetFirstChild<PreviousParagraphProperties>()!.GetFirstChild<Indentation>()!.Left = "1800";
+        Numbering numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+        NumberingInstance instance = numbering.Elements<NumberingInstance>()
+            .Single(candidate => candidate.NumberID?.Value == list.NumberId);
+        foreach (LevelOverride oldOverride in instance.Elements<LevelOverride>().ToArray()) oldOverride.Remove();
+        instance.Append(new LevelOverride(new Level(
+            new NumberingFormat { Val = NumberFormatValues.Bullet },
+            new LevelText { Val = "◆" }) { LevelIndex = 0 }) { LevelIndex = 0 });
+
+        WordDocumentTraversal.ListInfo info = WordDocumentTraversal.GetListInfo(item)!.Value;
+        Assert.Equal("◆", WordDocumentTraversal.BuildListMarkers(document)[item].Marker);
+        Assert.Null(info.MarkerFontFamily);
+        Assert.Null(info.MarkerColorHex);
+        Assert.Null(info.LeftIndentTwips);
+    }
+
+    [Fact]
     public void NumberingInheritedThroughStylesCanBeCancelledByDirectZeroId() {
         using WordDocument document = WordDocument.Create();
         WordList bullets = document.AddCustomBulletList('◆', "Arial", "000000");
@@ -164,6 +227,28 @@ public sealed class WordListMarkerSemanticsTests {
         Assert.False(cancelled.IsListItem);
         Assert.Null(WordDocumentTraversal.GetListInfo(cancelled));
         Assert.DoesNotContain(cancelled, WordDocumentTraversal.BuildListMarkers(document).Keys);
+    }
+
+    [Fact]
+    public void SettingInheritedListLevelCreatesAnEffectiveDirectOverride() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.BulletSolidRound));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(new StyleParagraphProperties(new NumberingProperties(
+            new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }))) {
+            Type = StyleValues.Paragraph, StyleId = "Issue2510SetterStyle"
+        });
+        WordParagraph item = document.AddParagraph("Changed level");
+        item._paragraph.ParagraphProperties = new ParagraphProperties(new ParagraphStyleId { Val = "Issue2510SetterStyle" });
+
+        item.ListItemLevel = 1;
+        Assert.Equal(1, item.ListItemLevel);
+        Assert.Equal(list.NumberId, item._paragraph.ParagraphProperties.NumberingProperties!.NumberingId!.Val!.Value);
+        Assert.False(WordDocumentTraversal.GetListInfo(item)!.Value.Ordered);
+        item.ListItemLevel = null;
+        Assert.Equal(0, item.ListItemLevel);
     }
 
     [Fact]
@@ -211,6 +296,15 @@ public sealed class WordListMarkerSemanticsTests {
         Assert.Equal("■", WordDocumentTraversal.BuildListMarkers(document)[item].Marker);
         Assert.Contains("- Linked square", document.ToMarkdown(), StringComparison.Ordinal);
         Assert.Contains("<ul", document.ToHtml(), StringComparison.OrdinalIgnoreCase);
+
+        Numbering numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+        NumberingInstance instance = numbering.Elements<NumberingInstance>()
+            .Single(candidate => candidate.NumberID?.Value == list.NumberId);
+        instance.Elements<LevelOverride>().Single(level => level.LevelIndex?.Value == 2).Remove();
+        instance.Append(new LevelOverride(new Level(
+            new NumberingFormat { Val = NumberFormatValues.Decimal },
+            new LevelText { Val = "%3." }) { LevelIndex = 2 }) { LevelIndex = 2 });
+        Assert.Equal(0, WordDocumentTraversal.GetListInfo(item)!.Value.Level);
     }
 
     [Fact]
@@ -238,6 +332,53 @@ public sealed class WordListMarkerSemanticsTests {
         Assert.DoesNotContain("- No marker", markdown, StringComparison.Ordinal);
         string html = document.ToHtml();
         Assert.Contains("list-style-type:none", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void MarkerlessMarkdownContentStaysWithItsParentListItem() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.BulletSolidRound));
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.BulletSolidRound));
+        list.AddItem("Parent", 0);
+        list.AddItem("Unmarked child", 1);
+        list.AddItem("Marked grandchild", 2);
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("Parent", markdown, StringComparison.Ordinal);
+        Assert.Contains("Unmarked child", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("- Unmarked child", markdown, StringComparison.Ordinal);
+        Assert.Contains("  Unmarked child", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain(markdown.Split('\n'), line => line.Trim() == "-");
+        Assert.Contains("  - Marked grandchild", markdown, StringComparison.Ordinal);
+        Assert.True(markdown.IndexOf("Unmarked child", StringComparison.Ordinal) < markdown.IndexOf("Marked grandchild", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void MarkerlessPdfItemsKeepNumberingLevelIndentation() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
+        list.Numbering.Levels[0].IndentationLeft = 2160;
+        list.Numbering.Levels[0].IndentationHanging = 360;
+        document.AddParagraph("PlainBody");
+        list.AddItem("UnmarkedBody");
+        WordTable table = document.AddTable(1, 1);
+        table.Width = 7000;
+        WordTableCell cell = table.Rows[0].Cells[0];
+        cell.Width = 7000;
+        cell.Paragraphs[0].Text = "PlainCell";
+        WordParagraph unmarkedCell = cell.AddParagraph("UnmarkedCell");
+        AttachToList(unmarkedCell, list.NumberId);
+
+        var spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans();
+        double plainBodyX = Assert.Single(spans, span => span.Text == "PlainBody").X;
+        double unmarkedBodyX = Assert.Single(spans, span => span.Text == "UnmarkedBody").X;
+        double plainCellX = Assert.Single(spans, span => span.Text == "PlainCell").X;
+        double unmarkedCellX = Assert.Single(spans, span => span.Text == "UnmarkedCell").X;
+        Assert.True(unmarkedBodyX > plainBodyX + 45D);
+        Assert.True(unmarkedCellX > plainCellX + 45D);
     }
 
     [Fact]

@@ -29,16 +29,20 @@ internal static class WordListNumberingResolver {
                 if (instance.NumberID?.Value is not int numberId ||
                     instance.AbstractNumId?.Val?.Value is not int abstractId ||
                     !abstracts.TryGetValue(abstractId, out AbstractNum? abstractNum)) continue;
-                foreach (Level level in abstractNum.Elements<Level>()) {
-                    if (level.LevelIndex?.Value is int index &&
-                        level.GetFirstChild<ParagraphStyleIdInLevel>()?.Val?.Value is string linkedStyle) {
+                Dictionary<int, Level> overrides = instance.Elements<LevelOverride>()
+                    .Where(levelOverride => levelOverride.LevelIndex?.Value != null && levelOverride.GetFirstChild<Level>() != null)
+                    .GroupBy(levelOverride => levelOverride.LevelIndex!.Value)
+                    .ToDictionary(group => group.Key, group => group.First().GetFirstChild<Level>()!);
+                foreach (Level abstractLevel in abstractNum.Elements<Level>()) {
+                    if (abstractLevel.LevelIndex?.Value is not int index) continue;
+                    Level level = overrides.TryGetValue(index, out Level? replacement) ? replacement : abstractLevel;
+                    if (level.GetFirstChild<ParagraphStyleIdInLevel>()?.Val?.Value is string linkedStyle) {
                         LinkedLevels[(numberId, linkedStyle)] = index;
                     }
                 }
-                foreach (LevelOverride levelOverride in instance.Elements<LevelOverride>()) {
-                    if (levelOverride.LevelIndex?.Value is int index &&
-                        levelOverride.GetFirstChild<Level>()?.GetFirstChild<ParagraphStyleIdInLevel>()?.Val?.Value is string linkedStyle) {
-                        LinkedLevels[(numberId, linkedStyle)] = index;
+                foreach (KeyValuePair<int, Level> levelOverride in overrides) {
+                    if (levelOverride.Value.GetFirstChild<ParagraphStyleIdInLevel>()?.Val?.Value is string linkedStyle) {
+                        LinkedLevels[(numberId, linkedStyle)] = levelOverride.Key;
                     }
                 }
             }
