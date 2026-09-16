@@ -42,7 +42,7 @@ Windows and macOS isolation remain open in [the product roadmap](../../../../../
 
 The [controlled OCI fixture run](hostile-fixtures/summary.json) used the same
 whole-pipeline image definition with ID
-`sha256:4c66556c56d5d689efa6268ac39e95e5d7fcb3f3cf7108af39fa37985b92d194`.
+`sha256:7f591ffa14b196be9fcd93471d430823bef663acd3a81974113285f4923ee031`.
 Malformed table markup with an inline script produced a [screen image](hostile-fixtures/malformed-markup/screen.png)
 and both PDFs; the image was visually inspected and both PDFs reopened as
 single-page A4 files. The responsive-picture case requested only its active
@@ -52,7 +52,13 @@ inactive-source and fallback resources, exposed the same device density to the
 application, and visibly rendered the selected blue image. The
 module-graph case requested its canonical root URL in round one and its relative
 dependency URL in round two, then rendered the dependency's exported text. The
-static-frame case requested its canonical iframe document URL in round one and
+scoped import-map case requested its root module, the `pkg/` prefix target, the
+scope-specific `theme` target and a dynamically imported relative module in
+four exact rounds. The deliberately absent global `theme` target was not
+requested. Top-level await completed before the retained
+[import-map screen](hostile-fixtures/import-map-graph/screen.png) and both PDF
+intents rendered `Scoped import map ready 42`. The static-frame case requested
+its canonical iframe document URL in round one and
 resolved the frame's relative stylesheet and external script from the
 document's final URL in round two. Root JavaScript observed the loaded nested
 document while its inline, external and event-attribute child scripts remained
@@ -68,11 +74,11 @@ and [cross-host](hostile-fixtures/acquisition-cross-host-redirect/screen.png)
 screen images and both PDF intents in separate network-disabled containers. A
 per-hop DNS change from a public address to loopback was rejected before the
 second connection, and a response declaring 4 MiB plus one byte was rejected
-before rendering. All six success-case screen images were visually inspected;
-all twelve PDFs reopened as single-page A4 files and contained their expected
+before rendering. All seven success-case screen images were visually inspected;
+all fourteen PDFs reopened as single-page A4 files and contained their expected
 outer-document text. The remaining fixtures rejected 129 distinct script URLs,
 stopped an oversized captured document, and interrupted a nonterminating
-script. All nine render runs and four acquisition cases reported the expected
+script. All ten render runs and four acquisition cases reported the expected
 result, and every started container was removed. These generated fixtures
 validate isolated static resource replay, controlled redirect acquisition and
 failure recovery. They do not qualify child-frame execution, frame-body

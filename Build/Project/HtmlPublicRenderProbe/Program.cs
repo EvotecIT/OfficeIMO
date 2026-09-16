@@ -59,6 +59,32 @@ var cases = new List<ProbeCase> {
             [ $"{fixtureOrigin}/app/main.js" ],
             [ $"{fixtureOrigin}/app/dep.js" ]
         ]),
+    new ProbeCase("import-map-graph", """
+        <!doctype html><style>body{font:16px sans-serif}#result{color:#0055aa}</style>
+        <script type="importmap">
+          {"imports":{"pkg/":"/vendor/pkg/","theme":"/vendor/global-theme.js"},
+           "scopes":{"/app/features/":{"theme":"/vendor/scoped-theme.js"}}}
+        </script>
+        <p id="result">Loading mapped module graph</p>
+        <script type="module" src="/app/features/main.js"></script>
+        """, "document.querySelector('#result')?.textContent === 'Scoped import map ready 42'", 8 * 1024 * 1024,
+        ExpectedVisibleText: "Scoped import map ready 42", ExpectBlueInk: true,
+        Resources: new Dictionary<string, ProbeResource>(StringComparer.Ordinal) {
+            [$"{fixtureOrigin}/app/features/main.js"] = new("""
+                import { add } from 'pkg/math.js';
+                import { label } from 'theme';
+                const details = await import('./details.js');
+                document.querySelector('#result').textContent = `${label} ${add(20, details.delta)}`;
+                """, "text/javascript"),
+            [$"{fixtureOrigin}/vendor/pkg/math.js"] = new("export const add = (left, right) => left + right;", "text/javascript"),
+            [$"{fixtureOrigin}/vendor/scoped-theme.js"] = new("export const label = 'Scoped import map ready';", "text/javascript"),
+            [$"{fixtureOrigin}/app/features/details.js"] = new("export const delta = 22;", "text/javascript")
+        }, ExpectedDiscoveryRounds: [
+            [ $"{fixtureOrigin}/app/features/main.js" ],
+            [ $"{fixtureOrigin}/vendor/pkg/math.js" ],
+            [ $"{fixtureOrigin}/vendor/scoped-theme.js" ],
+            [ $"{fixtureOrigin}/app/features/details.js" ]
+        ]),
     new ProbeCase("frame-document", """
         <!doctype html><style>body{font:16px sans-serif}#outer{color:#0055aa}</style>
         <p id="outer">Outer frame host ready</p>
