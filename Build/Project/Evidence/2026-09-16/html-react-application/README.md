@@ -5,7 +5,8 @@ inside the retained OfficeIMO runtime provider. An independently authored report
 app loads JSON with `fetch`, mounts with `createRoot`, changes hook state through
 accessible-name actions, and captures an immutable OfficeIMO document. The
 captured report renders after the worker exits. React is a test input, not an
-OfficeIMO runtime dependency.
+OfficeIMO runtime dependency. The cross-platform checks used source commit
+`7487c98ccaa25389ba3e18211b62dbd43eed1160` in clean dedicated checkouts.
 
 The source and license provenance are recorded with the
 [fixture](../../../../../OfficeIMO.Html.Runtime.Tests/Fixtures/React18/README.md).
@@ -38,6 +39,10 @@ pixel matches the stylesheet's `#f3f6fa`.
 | --- | --- | --- | --- |
 | Windows x64 | .NET 8 | 353/353 | Pass |
 | Windows x64 | .NET 10 | 353/353 | Pass |
+| Ubuntu 24.04.3 x64 | .NET 8 | Not run | Pass |
+| Ubuntu 24.04.3 x64 | .NET 10 | 353/353 | Pass |
+| macOS 27.0 arm64 | .NET 8 | Not run | Pass |
+| macOS 27.0 arm64 | .NET 10 | 353/353 | Pass |
 
 This qualifies the selected React 18 application workflow, not arbitrary React
 apps or websites. The fixture uses classic UMD scripts and no hydration,

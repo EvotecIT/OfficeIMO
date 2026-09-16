@@ -6,10 +6,14 @@ retained AngleSharp.Js DOM bindings and Jint; ordinary HTML parsing and conversi
 do not depend on it. The worker builds pinned source dependencies with mutation
 and engine-configuration hooks; see [DOM provider provenance](../OfficeIMO.Html.Runtime.AngleSharpDom/README.md)
 and [binding provenance](../OfficeIMO.Html.Runtime.AngleSharpJs/README.md).
+The [React 18 application acceptance](../Build/Project/Evidence/2026-09-16/html-react-application/README.md)
+shows one pinned fetch, interaction, capture, screen, print and screen-to-page
+workflow on Windows, Linux and macOS. It does not establish general framework
+or browser compatibility.
 
-Build or publish `OfficeIMO.Html.Runtime.Worker` and deploy its complete output,
-including `OfficeIMO.Html.Runtime.Worker.manifest.json`,
-directory. Supply its DLL path and the inert DOM services to the process provider:
+Build or publish `OfficeIMO.Html.Runtime.Worker` and deploy its complete output
+directory, including `OfficeIMO.Html.Runtime.Worker.manifest.json`. Supply its
+DLL path and the inert DOM services to the process provider:
 
 ```csharp
 using OfficeIMO.Html.Runtime;
