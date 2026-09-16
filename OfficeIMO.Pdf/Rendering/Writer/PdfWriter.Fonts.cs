@@ -202,10 +202,14 @@ internal static partial class PdfWriter {
                     deferProviderCoverable: options.TextShapingProviderSnapshot != null);
             }
 
-            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, fontProgram);
-            options.AddTextDiagnostics(diagnostics);
-            if (diagnostics.Count > 0) {
-                throw CreateTextEncodingException(diagnostics[0], nameof(text));
+            // Only run the allocating embedded-font diagnostic scan when a diagnostics report needs it;
+            // MeasureTextWidth already throws on a missing glyph, so validation is preserved regardless.
+            if (options.HasDiagnosticsReport) {
+                IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, fontProgram);
+                options.AddTextDiagnostics(diagnostics);
+                if (diagnostics.Count > 0) {
+                    throw CreateTextEncodingException(diagnostics[0], nameof(text));
+                }
             }
 
             return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
@@ -222,10 +226,14 @@ internal static partial class PdfWriter {
                     deferProviderCoverable: options.TextShapingProviderSnapshot != null);
             }
 
-            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, cffFontProgram);
-            options.AddTextDiagnostics(diagnostics);
-            if (diagnostics.Count > 0) {
-                throw CreateTextEncodingException(diagnostics[0], nameof(text));
+            // Only run the allocating embedded-font diagnostic scan when a diagnostics report needs it;
+            // MeasureTextWidth already throws on a missing glyph, so validation is preserved regardless.
+            if (options.HasDiagnosticsReport) {
+                IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, cffFontProgram);
+                options.AddTextDiagnostics(diagnostics);
+                if (diagnostics.Count > 0) {
+                    throw CreateTextEncodingException(diagnostics[0], nameof(text));
+                }
             }
 
             return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
@@ -259,10 +267,14 @@ internal static partial class PdfWriter {
                     deferProviderCoverable: options.TextShapingProviderSnapshot != null);
             }
 
-            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, fontProgram);
-            options.AddTextDiagnostics(diagnostics);
-            if (diagnostics.Count > 0) {
-                throw CreateTextEncodingException(diagnostics[0], nameof(text));
+            // Only run the allocating embedded-font diagnostic scan when a diagnostics report needs it;
+            // MeasureTextWidth already throws on a missing glyph, so validation is preserved regardless.
+            if (options.HasDiagnosticsReport) {
+                IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, fontProgram);
+                options.AddTextDiagnostics(diagnostics);
+                if (diagnostics.Count > 0) {
+                    throw CreateTextEncodingException(diagnostics[0], nameof(text));
+                }
             }
 
             return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
@@ -280,10 +292,14 @@ internal static partial class PdfWriter {
                     deferProviderCoverable: options.TextShapingProviderSnapshot != null);
             }
 
-            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, cffFontProgram);
-            options.AddTextDiagnostics(diagnostics);
-            if (diagnostics.Count > 0) {
-                throw CreateTextEncodingException(diagnostics[0], nameof(text));
+            // Only run the allocating embedded-font diagnostic scan when a diagnostics report needs it;
+            // MeasureTextWidth already throws on a missing glyph, so validation is preserved regardless.
+            if (options.HasDiagnosticsReport) {
+                IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, cffFontProgram);
+                options.AddTextDiagnostics(diagnostics);
+                if (diagnostics.Count > 0) {
+                    throw CreateTextEncodingException(diagnostics[0], nameof(text));
+                }
             }
 
             return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);

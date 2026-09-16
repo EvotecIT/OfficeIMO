@@ -33,16 +33,19 @@ internal sealed class PdfGlyphRun {
 
     private const string HexChars = "0123456789ABCDEF";
 
+    // GlyphId is a 16-bit TrueType/CFF index, so four nibbles match ToString("X4") without the
+    // per-glyph string allocation.
+    internal static void AppendGlyphHex(StringBuilder sb, int glyphId) {
+        sb.Append(HexChars[(glyphId >> 12) & 0xF]);
+        sb.Append(HexChars[(glyphId >> 8) & 0xF]);
+        sb.Append(HexChars[(glyphId >> 4) & 0xF]);
+        sb.Append(HexChars[glyphId & 0xF]);
+    }
+
     public string ToGlyphHex() {
         var sb = new StringBuilder(Glyphs.Count * 4);
         for (int i = 0; i < Glyphs.Count; i++) {
-            // GlyphId is a 16-bit TrueType/CFF index, so this matches ToString("X4") without the
-            // per-glyph string allocation.
-            int id = Glyphs[i].GlyphId;
-            sb.Append(HexChars[(id >> 12) & 0xF]);
-            sb.Append(HexChars[(id >> 8) & 0xF]);
-            sb.Append(HexChars[(id >> 4) & 0xF]);
-            sb.Append(HexChars[id & 0xF]);
+            AppendGlyphHex(sb, Glyphs[i].GlyphId);
         }
 
         return sb.ToString();
@@ -247,6 +250,56 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
 
         return totalWidth;
     }
+
+    // Emits the glyph hex show-string directly, skipping the per-run List<PdfGlyphInfo>. Scalar shaping
+    // never positions glyphs, so the emission path needs only this hex plus ActualText. Mirrors
+    // MeasureAdvanceWidth1000's loop (same usage recording, same missing-glyph throw); ForRendering never
+    // reports control characters, so that branch is not part of the contract and the hex equals
+    // ToGlyphHex over the same shaped glyphs.
+    public static string EncodeGlyphHex(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options, out string? actualText) {
+        Guard.NotNull(text, nameof(text));
+        Guard.NotNull(font, nameof(font));
+
+        var sb = new StringBuilder(text.Length * 4);
+        for (int index = 0; index < text.Length;) {
+            int scalarStart = index;
+            if (options.ShapingMode == PdfTextShapingMode.LatinLigatures &&
+                OfficeTextLigatures.TryGetLatinPresentationForm(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
+                font.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
+                ligatureGlyphId > 0) {
+                if (options.RecordGlyphUsage) {
+                    font.RecordGlyphUsage(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
+                }
+
+                PdfGlyphRun.AppendGlyphHex(sb, ligatureGlyphId);
+                index += ligatureLength;
+                continue;
+            }
+
+            int scalar = ReadScalar(text, ref index);
+            if (options.SkipLayoutControls && (scalar == '\n' || scalar == '\r' || scalar == '\t')) {
+                continue;
+            }
+
+            if (!font.TryGetGlyphId(scalar, out int glyphId) || glyphId <= 0) {
+                if (options.ThrowOnMissingGlyph) {
+                    throw PdfTrueTypeFontProgram.CreateUnsupportedGlyphException(text, scalarStart, scalar);
+                }
+
+                continue;
+            }
+
+            if (options.RecordGlyphUsage) {
+                font.RecordGlyphUsage(glyphId, scalar);
+            }
+
+            PdfGlyphRun.AppendGlyphHex(sb, glyphId);
+        }
+
+        actualText = OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft ? text : null;
+        return sb.ToString();
+    }
+
 
     private static string ResolveFontName(PdfTrueTypeFontProgram font, PdfTextShapingOptions options) =>
         string.IsNullOrWhiteSpace(options.FontName) ? font.FontName : options.FontName;

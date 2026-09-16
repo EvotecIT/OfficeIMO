@@ -576,47 +576,31 @@ internal static partial class PdfWriter {
         }
     }
 
+    private sealed class TableCellLayoutCache {
+        public int ColumnCount = -1;
+        public System.Collections.Generic.List<TableCellLayout>[]? ByRow;
+    }
+
+    // The cell-layout-by-row split is a pure function of (table, columnCount). GetTableCellLayouts is
+    // called O(passes x rows) times per table (autofit, flow metrics, rendering), and each call re-walked
+    // rows 0..rowIndex rebuilding the layout structs. Memoize the whole split per table so it is computed
+    // once; every caller only reads the returned lists (verified), so the cached instances are shareable.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TableBlock, TableCellLayoutCache> _tableCellLayoutCache = new();
+
     private static System.Collections.Generic.List<TableCellLayout> GetTableCellLayouts(TableBlock table, int rowIndex, int columnCount) {
-        var targetCells = new System.Collections.Generic.List<TableCellLayout>();
         if (rowIndex < 0 || rowIndex >= table.Cells.Count) {
-            return targetCells;
+            return new System.Collections.Generic.List<TableCellLayout>();
         }
 
-        var activeRowSpans = new int[columnCount];
-        for (int currentRow = 0; currentRow <= rowIndex; currentRow++) {
-            int column = 0;
-            var row = table.Cells[currentRow];
-            for (int cellIndex = 0; cellIndex < row.Count && column < columnCount; cellIndex++) {
-                while (column < columnCount && activeRowSpans[column] > 0) {
-                    column++;
-                }
-
-                if (column >= columnCount) {
-                    break;
-                }
-
-                PdfTableCell cell = row[cellIndex];
-                int columnSpan = System.Math.Min(cell.ColumnSpan, columnCount - column);
-                int rowSpan = System.Math.Min(cell.RowSpan, table.Cells.Count - currentRow);
-                if (currentRow == rowIndex) {
-                    targetCells.Add(new TableCellLayout(column, columnSpan, rowSpan, cell.Text, cell.Runs, cell.Paragraphs, cell.LinkUri, cell.LinkDestinationName, cell.LinkContents, cell.NamedDestinationName, cell.CheckBoxes, cell.FormFields, cell.Images, cell.NoWrap));
-                }
-
-                for (int c = column; c < column + columnSpan; c++) {
-                    activeRowSpans[c] = System.Math.Max(activeRowSpans[c], rowSpan);
-                }
-
-                column += columnSpan;
-            }
-
-            for (int c = 0; c < activeRowSpans.Length; c++) {
-                if (activeRowSpans[c] > 0) {
-                    activeRowSpans[c]--;
-                }
-            }
+        TableCellLayoutCache cache = _tableCellLayoutCache.GetValue(table, static _ => new TableCellLayoutCache());
+        System.Collections.Generic.List<TableCellLayout>[]? byRow = cache.ByRow;
+        if (byRow == null || cache.ColumnCount != columnCount) {
+            byRow = GetTableCellLayoutsByRow(table, columnCount);
+            cache.ByRow = byRow;
+            cache.ColumnCount = columnCount;
         }
 
-        return targetCells;
+        return byRow[rowIndex];
     }
 
     private static System.Collections.Generic.List<TableCellLayout>[] GetTableCellLayoutsByRow(TableBlock table, int columnCount) {

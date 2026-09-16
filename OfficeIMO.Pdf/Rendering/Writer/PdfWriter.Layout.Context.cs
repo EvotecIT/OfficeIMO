@@ -127,7 +127,9 @@ internal static partial class PdfWriter {
             currentPage.Content = pageContents.Store(sb.ToString());
             pages.Add(currentPage);
             currentPage = null;
-            sb = new StringBuilder();
+            // Reuse the buffer across pages (content already captured above) instead of re-growing a new
+            // StringBuilder per page.
+            sb.Clear();
             pageDirty = false;
         }
 
