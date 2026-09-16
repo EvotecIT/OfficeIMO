@@ -96,9 +96,7 @@ public static partial class OfficeRasterContentSafety {
             options: null,
             options.MaximumOutputBytes,
             cancellationToken);
-        IReadOnlyList<string> supportedMediaTypes = execution.Capabilities.SupportedMediaTypes ?? Array.Empty<string>();
-        if (supportedMediaTypes.Count > 0 &&
-            !supportedMediaTypes.Any(item => string.Equals(item?.Trim(), NormalizedMediaType, StringComparison.OrdinalIgnoreCase))) {
+        if (!execution.Capabilities.SupportsMediaType(NormalizedMediaType)) {
             throw new NotSupportedException("The configured OCR engine does not advertise support for normalized PNG input.");
         }
 

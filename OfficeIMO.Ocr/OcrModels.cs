@@ -30,6 +30,24 @@ public sealed class OcrEngineCapabilities {
     /// <summary>Whether the engine accepts explicit orientation-detection requests.</summary>
     public bool SupportsOrientationDetection { get; set; }
 
+    /// <summary>Gets whether the declared capabilities accept a media type, including subtype wildcards.</summary>
+    public bool SupportsMediaType(string? mediaType) {
+        IReadOnlyList<string> supported = SupportedMediaTypes ?? Array.Empty<string>();
+        if (supported.Count == 0) return true;
+        if (string.IsNullOrWhiteSpace(mediaType)) return false;
+        string requested = mediaType!.Trim();
+        foreach (string? item in supported) {
+            if (string.IsNullOrWhiteSpace(item)) continue;
+            string declared = item!.Trim();
+            if (string.Equals(declared, requested, StringComparison.OrdinalIgnoreCase)) return true;
+            if (declared.EndsWith("/*", StringComparison.Ordinal) &&
+                requested.StartsWith(declared.Substring(0, declared.Length - 1), StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /// <summary>Creates an independent capability snapshot.</summary>
     public OcrEngineCapabilities Clone() => new OcrEngineCapabilities {
         SupportedMediaTypes = (SupportedMediaTypes ?? Array.Empty<string>()).ToArray(),

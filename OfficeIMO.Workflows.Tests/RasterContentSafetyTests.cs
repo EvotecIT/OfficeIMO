@@ -333,6 +333,32 @@ public sealed partial class RasterContentSafetyTests {
     }
 
     [Fact]
+    public async Task InspectAcceptsAnEngineWithWildcardImageSupport() {
+        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
+        IOcrEngine engine = new DelegateOcrEngine(
+            "image-wildcard",
+            (_, _) => Task.FromResult(new OcrResult()),
+            new OcrEngineCapabilities {
+                SupportedMediaTypes = new[] { "image/*" },
+                SupportsConcurrentRequests = true
+            });
+
+        OfficeContentSafetyReport report = await OfficeRasterContentSafety.InspectAsync(image, engine);
+
+        Assert.Empty(report.Findings);
+    }
+
+    [Fact]
+    public async Task InspectRejectsMalformedUnicodeInCustomEngineIdentityBeforeRecognition() {
+        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
+        var engine = new MalformedIdOcrEngine();
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => OfficeRasterContentSafety.InspectAsync(image, engine));
+        Assert.False(engine.WasInvoked);
+    }
+
+    [Fact]
     public async Task InspectRejectsPngGammaThatTheDecoderCannotNormalize() {
         byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
         byte[] gamma = new byte[4];
@@ -770,6 +796,19 @@ public sealed partial class RasterContentSafetyTests {
                 SupportsConfidence = true,
                 SupportsConcurrentRequests = true
             });
+
+    private sealed class MalformedIdOcrEngine : IOcrEngine {
+        public string Id => "malformed-\uD800";
+        public OcrEngineCapabilities Capabilities { get; } = new();
+        internal bool WasInvoked { get; private set; }
+
+        public Task<OcrResult> RecognizeAsync(
+            OcrRequest request,
+            CancellationToken cancellationToken = default) {
+            WasInvoked = true;
+            return Task.FromResult(new OcrResult());
+        }
+    }
 
     private static OcrResult Result(
         string text,
