@@ -12,6 +12,9 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
+        private const double MaximumNativeHeaderFooterListOffsetPoints = 14_400D;
+        private const int MaximumNativeHeaderFooterListSpacingCharacters = 8_192;
+
         private static void ApplyNativeHeaderFooterPageNumberStyle(PdfCore.PdfPageBuilder page, params NativeHeaderFooterText?[] parts) {
             PdfCore.PdfPageNumberStyle? style = null;
             foreach (NativeHeaderFooterText? part in parts) {
@@ -619,8 +622,10 @@ namespace OfficeIMO.Word.Pdf {
             double hangingIndent = paragraph.IndentationHangingPoints ??
                 (useParagraphStyleIndent ? GetNativeStyleHangingIndent(styleDefaults) : null) ??
                 ConvertNativeTwipsToPoints(info.HangingIndentTwips ?? 360) ?? 0D;
-            textOffset = Math.Max(0D, textOffset);
-            return (Math.Max(0D, textOffset - Math.Max(0D, hangingIndent)), textOffset);
+            double markerOffset = Math.Max(0D, textOffset - Math.Max(0D, hangingIndent));
+            return (
+                Math.Min(MaximumNativeHeaderFooterListOffsetPoints, markerOffset),
+                Math.Min(MaximumNativeHeaderFooterListOffsetPoints, Math.Max(0D, textOffset)));
         }
 
         private static PdfCore.PdfTextRun CreateNativeHeaderFooterListMarkerTextRun(
@@ -633,30 +638,53 @@ namespace OfficeIMO.Word.Pdf {
             double textOffset) {
             PdfCore.PdfTextRun styledMarker = CreateNativeListMarkerTextRun(marker, paragraph, textStyle, nativeFontMap);
             double markerFontSize = styledMarker.FontSize ?? textStyle.FontSize ?? 12D;
-            string suffix = ResolveNativeHeaderFooterListMarkerSuffix(info.LevelSuffix, marker, markerFontSize, markerOffset, textOffset);
+            double markerWidth = EstimateNativeListMarkerWidth(marker, markerFontSize);
+            double markerColumnWidth = Math.Max(markerWidth, Math.Max(0D, textOffset - markerOffset));
+            double alignmentOffset = info.LevelJustification switch {
+                WordListLevelAlignment.Right => Math.Max(0D, markerColumnWidth - markerWidth),
+                WordListLevelAlignment.Center => Math.Max(0D, (markerColumnWidth - markerWidth) / 2D),
+                _ => 0D
+            };
+            double resolvedMarkerOffset = Math.Min(
+                MaximumNativeHeaderFooterListOffsetPoints,
+                markerOffset + alignmentOffset);
+            string suffix = ResolveNativeHeaderFooterListMarkerSuffix(
+                info.LevelSuffix,
+                info.LevelJustification,
+                marker,
+                markerFontSize,
+                resolvedMarkerOffset,
+                textOffset);
             return CloneNativeHeaderFooterTextRun(styledMarker, marker + suffix)
-                .WithHorizontalOffset(markerOffset);
+                .WithHorizontalOffset(resolvedMarkerOffset);
         }
 
         private static string ResolveNativeHeaderFooterListMarkerSuffix(
             WordListLevelSuffix? suffix,
+            WordListLevelAlignment? justification,
             string marker,
             double markerFontSize,
             double markerOffset,
             double textOffset) {
-            if (suffix == WordListLevelSuffix.Nothing) {
+            bool leftJustified = justification != WordListLevelAlignment.Right &&
+                                 justification != WordListLevelAlignment.Center;
+            if (leftJustified && suffix == WordListLevelSuffix.Nothing) {
                 return string.Empty;
             }
-            if (suffix == WordListLevelSuffix.Space) {
+            if (leftJustified && suffix == WordListLevelSuffix.Space) {
                 return " ";
             }
 
+            double spaceWidth = Math.Max(0.01D, EstimateNativeListMarkerWidth(" ", markerFontSize));
             double desiredGap = Math.Max(0D, textOffset - markerOffset - EstimateNativeListMarkerWidth(marker, markerFontSize));
-            if (desiredGap <= 0D) {
+            if (suffix == WordListLevelSuffix.Space) {
+                desiredGap += spaceWidth;
+            }
+            if (desiredGap <= spaceWidth * 0.001D) {
                 return string.Empty;
             }
-            double spaceWidth = Math.Max(0.01D, EstimateNativeListMarkerWidth(" ", markerFontSize));
-            return new string(' ', Math.Max(1, (int)Math.Ceiling(desiredGap / spaceWidth)));
+            int spaceCount = Math.Max(1, (int)Math.Ceiling(desiredGap / spaceWidth));
+            return new string(' ', Math.Min(MaximumNativeHeaderFooterListSpacingCharacters, spaceCount));
         }
 
         private static PdfCore.PdfTextRun CreateNativeHeaderFooterStyledTextRun(

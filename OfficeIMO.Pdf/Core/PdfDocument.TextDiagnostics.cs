@@ -340,9 +340,40 @@ public sealed partial class PdfDocument {
             }
 
             if (segment.Kind == FooterSegmentKind.Text) {
-                AddPageText(diagnostics, seenPageText, segment.Text, options, font, fontFamily, source, AppendLocation(locationPrefix, "Segment[" + segmentIndex.ToString(CultureInfo.InvariantCulture) + "]"), pageNumber);
+                string location = AppendLocation(locationPrefix, "Segment[" + segmentIndex.ToString(CultureInfo.InvariantCulture) + "]");
+                if (segment.StyledRun != null) {
+                    AddPageStyledRun(diagnostics, seenPageText, segment.StyledRun, options, font, fontFamily, source, location, pageNumber);
+                } else {
+                    AddPageText(diagnostics, seenPageText, segment.Text, options, font, fontFamily, source, location, pageNumber);
+                }
             }
         }
+    }
+
+    private static void AddPageStyledRun(List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, PdfTextRun run, PdfOptions options, PdfStandardFont font, string? fontFamily, string source, string location, int pageNumber) {
+        string effectiveFontFamily = run.FontFamily ?? fontFamily ?? string.Empty;
+        string key = source + "|StyledRun|" + (run.Font?.ToString() ?? font.ToString()) + "|" + effectiveFontFamily + "|" + run.Bold + "|" + run.Italic + "|" + run.Text;
+        if (!seenPageText.Add(key)) {
+            return;
+        }
+
+        var effectiveRun = new PdfTextRun(
+            run.Text,
+            bold: run.Bold,
+            underline: run.Underline,
+            color: run.Color,
+            italic: run.Italic,
+            strike: run.Strike,
+            fontSize: run.FontSize,
+            font: run.Font,
+            baseline: run.Baseline,
+            backgroundColor: run.BackgroundColor,
+            fontFamily: string.IsNullOrEmpty(effectiveFontFamily) ? null : effectiveFontFamily,
+            underlineStyle: run.UnderlineStyle,
+            strikeStyle: run.StrikeStyle,
+            decorationColor: run.DecorationColor)
+            .WithFeatureSettings(run.FeatureSettings);
+        AddRuns(diagnostics, new[] { effectiveRun }, options, font, source, location, pageNumber: pageNumber);
     }
 
     private static void AddZones(List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, (string? Left, string? Center, string? Right) zones, PdfOptions options, PdfStandardFont font, string? fontFamily, string source, string locationPrefix, int pageNumber) {

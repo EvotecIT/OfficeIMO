@@ -269,6 +269,60 @@ public sealed partial class WordListMarkerSemanticsTests {
             $"marker={marker.X}+{marker.Advance}, content={content.X}");
     }
 
+    [Theory]
+    [InlineData(WordListLevelAlignment.Right)]
+    [InlineData(WordListLevelAlignment.Center)]
+    public void PdfHeaderNumberingHonorsLevelJustification(WordListLevelAlignment alignment) {
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = 1800;
+        level.IndentationHanging = 720;
+        level.LevelJustification = alignment;
+        level.LevelSuffix = WordListLevelSuffix.Nothing;
+        NumberingSymbolRunProperties markerProperties = level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>() ??
+            level.OpenXmlElement.AppendChild(new NumberingSymbolRunProperties());
+        markerProperties.Append(new Bold(), new FontSize { Val = "36" });
+        WordParagraph nineItem = document.Header!.Default!.AddParagraph("HeaderNine");
+        nineItem.FontSize = 9;
+        AttachToList(nineItem, list.NumberId);
+        WordParagraph tenItem = document.Header.Default.AddParagraph("HeaderTen");
+        tenItem.FontSize = 9;
+        AttachToList(tenItem, list.NumberId);
+        document.AddParagraph("Body");
+
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan nine = Assert.Single(spans, span => span.Text == "9.");
+        PdfTextSpan ten = Assert.Single(spans, span => span.Text == "10.");
+        PdfTextSpan nineText = Assert.Single(spans, span => span.Text.Contains("HeaderNine", StringComparison.Ordinal));
+        PdfTextSpan tenText = Assert.Single(spans, span => span.Text.Contains("HeaderTen", StringComparison.Ordinal));
+        double expectedStartShift = alignment == WordListLevelAlignment.Right ? 10D : 5D;
+        Assert.InRange(nine.X - ten.X, expectedStartShift - 1D, expectedStartShift + 1D);
+        Assert.True(Math.Abs(nineText.X - tenText.X) <= 1D,
+            $"alignment={alignment}, nineText={nineText.X}, tenText={tenText.X}");
+    }
+
+    [Fact]
+    public void PdfHeaderExtremeListIndentUsesBoundedMarkerSpacing() {
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = int.MaxValue;
+        level.IndentationHanging = 0;
+        level.LevelSuffix = WordListLevelSuffix.Tab;
+        WordParagraph header = document.Header!.Default!.AddParagraph("ExtremeIndentHeader");
+        AttachToList(header, list.NumberId);
+        document.AddParagraph("Body");
+
+        byte[] pdf = document.ToPdfBytes();
+
+        Assert.InRange(pdf.Length, 1, 1_000_000);
+        Assert.Contains("ExtremeIndentHeader", PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void PdfHeaderTextBoxPreservesInnerMarkerStyle() {
         using WordDocument document = WordDocument.Create();

@@ -128,6 +128,27 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void StyledHeaderZonesAnalyzeEachSegmentsEffectiveFont() {
+            const string familyName = "Styled Header Diagnostic Family";
+            byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont('\u0105', ' ');
+            var options = new PdfOptions()
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, font));
+            PdfDocument document = PdfDocument.Create(options)
+                .Header(header => header.StyledZones(
+                    left => left.Run(new PdfTextRun("\u0105", fontFamily: familyName)),
+                    center => center.Text("\u0105"),
+                    right => right.Text("ASCII")))
+                .Paragraph(paragraph => paragraph.Text("Body"));
+
+            PdfTextEncodingDiagnostic diagnostic = Assert.Single(
+                document.AnalyzeTextEncoding(),
+                item => item.CodePoint == "U+0105");
+
+            Assert.Contains("Center", diagnostic.Location, StringComparison.Ordinal);
+            Assert.DoesNotContain("Left", diagnostic.Location, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void HeaderFooterRichText_RejectsInteractiveAndInlineRuns() {
             var link = PdfTextRun.Link("Link", "https://example.com");
             var inline = PdfTextRun.Inline(new PdfInlineBox(12, 8));
