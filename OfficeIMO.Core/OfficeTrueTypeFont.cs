@@ -197,6 +197,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     /// <param name="faceName">Preferred family, full, or PostScript face name; <see langword="null"/> accepts any suitable face.</param>
     /// <returns>The matching font, or <see langword="null"/> when the file cannot be read or no matching supported face exists.</returns>
     public static OfficeTrueTypeFont? TryLoad(string? path, int? collectionIndex, string? faceName) {
+        if (collectionIndex.HasValue && collectionIndex.Value < 0) return null;
         if (string.IsNullOrWhiteSpace(path)) return null;
         try {
             var fullPath = Path.GetFullPath(path);
@@ -238,6 +239,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     /// <param name="faceName">Preferred family, full, or PostScript face name; <see langword="null"/> accepts any suitable face.</param>
     /// <returns>The matching font, or <see langword="null"/> when the data is malformed, unsupported, or contains no matching face.</returns>
     public static OfficeTrueTypeFont? TryLoad(byte[] data, int? collectionIndex, string? faceName) {
+        if (collectionIndex.HasValue && collectionIndex.Value < 0) return null;
         try {
             if (data.Length < 12) return null;
             var scaler = ReadUInt32(data, 0);

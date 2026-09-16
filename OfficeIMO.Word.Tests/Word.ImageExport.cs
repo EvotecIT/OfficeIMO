@@ -4331,6 +4331,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_RendersInheritedEvenHeaderFooterOnSecondSectionPage() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection firstSection = document.Sections[0];
+            firstSection.PageSettings.PageSize = WordPageSize.A4;
+            firstSection.SetMargins(WordMargin.Narrow);
+            firstSection.AddParagraph("First section body");
+
+            WordSection secondSection = document.AddSection(WordSectionBreakType.NextPage);
+            firstSection.GetOrCreateHeader(WordHeaderFooterType.Even).AddParagraph("Inherited even header marker");
+            firstSection.GetOrCreateFooter(WordHeaderFooterType.Even).AddParagraph("Inherited even footer marker");
+            secondSection.AddPageNumbering(2);
+            secondSection.AddParagraph("Second section body");
+            Assert.Null(secondSection.Header.Even);
+            Assert.Null(secondSection.Footer.Even);
+            Assert.True(secondSection.DifferentOddAndEvenPages);
+            Assert.Same(firstSection.Header.Even, secondSection.ResolveEvenHeader());
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+
+            Assert.Contains(snapshot.Drawing.Elements, element =>
+                element is OfficeDrawingText text && text.Text == "Inherited even header marker");
+            Assert.Contains(snapshot.Drawing.Elements, element =>
+                element is OfficeDrawingText text && text.Text == "Inherited even footer marker");
+            Assert.Contains(snapshot.Drawing.Elements, element =>
+                element is OfficeDrawingText text && text.Text == "Second section body");
+        }
+
+        [Fact]
         public void WordDocument_RendersFirstHeaderFooterForExplicitSecondSectionFirstPageImageExport() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);

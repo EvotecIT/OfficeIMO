@@ -63,7 +63,7 @@ namespace OfficeIMO.Word {
         public int FooterCount { get; internal set; }
         /// <summary>Gets whether the first page uses distinct headers and footers.</summary>
         public bool DifferentFirstPage { get; internal set; }
-        /// <summary>Gets whether odd and even pages use distinct headers and footers.</summary>
+        /// <summary>Gets whether the section uses an explicit or inherited even-page header or footer while the document-wide odd/even setting is enabled.</summary>
         public bool DifferentOddAndEvenPages { get; internal set; }
         /// <summary>Gets the default header snapshot.</summary>
         public WordHeaderFooterSnapshot? DefaultHeader { get; internal set; }
@@ -108,7 +108,7 @@ namespace OfficeIMO.Word {
         public WordParagraphSnapshot() : base("paragraph") {
         }
 
-        /// <summary>Gets the paragraph's visible text.</summary>
+        /// <summary>Gets text extracted from the paragraph's runs, including text hidden by run formatting.</summary>
         public string Text { get; internal set; } = string.Empty;
         /// <summary>Gets the applied paragraph style identifier.</summary>
         public string? StyleId { get; internal set; }
@@ -150,15 +150,15 @@ namespace OfficeIMO.Word {
         public WordParagraphBorderSnapshot? TopBorder { get; internal set; }
         /// <summary>Gets the bottom paragraph border.</summary>
         public WordParagraphBorderSnapshot? BottomBorder { get; internal set; }
-        /// <summary>Gets whether the paragraph uses right-to-left layout.</summary>
+        /// <summary>Gets directly authored right-to-left layout without resolving paragraph styles.</summary>
         public bool IsRightToLeft { get; internal set; }
-        /// <summary>Gets whether the paragraph should remain with the following paragraph.</summary>
+        /// <summary>Gets directly authored keep-with-next formatting without resolving paragraph styles.</summary>
         public bool KeepWithNext { get; internal set; }
-        /// <summary>Gets whether all paragraph lines should remain on one page.</summary>
+        /// <summary>Gets directly authored keep-lines-together formatting without resolving paragraph styles.</summary>
         public bool KeepLinesTogether { get; internal set; }
-        /// <summary>Gets whether widow and orphan control is enabled.</summary>
+        /// <summary>Gets directly authored widow and orphan control without resolving paragraph styles.</summary>
         public bool AvoidWidowAndOrphan { get; internal set; }
-        /// <summary>Gets whether the paragraph starts on a new page.</summary>
+        /// <summary>Gets directly authored page-break-before formatting without resolving paragraph styles.</summary>
         public bool PageBreakBefore { get; internal set; }
         /// <summary>Gets the first bookmark name associated with the paragraph.</summary>
         public string? BookmarkName { get; internal set; }
@@ -180,11 +180,11 @@ namespace OfficeIMO.Word {
         }
     }
 
-    /// <summary>Visible text, character formatting, links, notes, and images for one Word run.</summary>
+    /// <summary>Extracted text, character formatting, links, notes, and images for one Word run.</summary>
     public sealed class WordRunSnapshot {
         internal IReadOnlyDictionary<int, WordBreakType>? NonTextBreaks { get; set; }
         internal IReadOnlyList<WordPositionedImageSnapshot> PositionedImages { get; set; } = Array.Empty<WordPositionedImageSnapshot>();
-        /// <summary>Gets visible run text.</summary>
+        /// <summary>Gets text extracted from the run, including text hidden by run formatting.</summary>
         public string Text { get; internal set; } = string.Empty;
         /// <summary>Gets whether bold formatting is authored directly on the run.</summary>
         public bool Bold { get; internal set; }

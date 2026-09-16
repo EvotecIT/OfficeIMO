@@ -192,7 +192,7 @@ namespace OfficeIMO.Word {
             int pageNumber = 1;
 
             foreach (Paragraph paragraph in EnumerateIndexSourceParagraphs(body, excludedBlock)) {
-                if (paragraph.ParagraphProperties?.PageBreakBefore != null) {
+                if (WordParagraph.HasPageBreakBefore(paragraph)) {
                     pageNumber++;
                 }
 

@@ -53,8 +53,8 @@ namespace OfficeIMO.Word {
                     DefaultFooter = BuildHeaderFooterSnapshot(section.Footer?.Default, "footer", "default", expansionContext),
                     FirstHeader = BuildHeaderFooterSnapshot(section.Header?.First, "header", "first", expansionContext),
                     FirstFooter = BuildHeaderFooterSnapshot(section.Footer?.First, "footer", "first", expansionContext),
-                    EvenHeader = BuildHeaderFooterSnapshot(section.Header?.Even, "header", "even", expansionContext),
-                    EvenFooter = BuildHeaderFooterSnapshot(section.Footer?.Even, "footer", "even", expansionContext),
+                    EvenHeader = BuildHeaderFooterSnapshot(section.ResolveEvenHeader(), "header", "even", expansionContext),
+                    EvenFooter = BuildHeaderFooterSnapshot(section.ResolveEvenFooter(), "footer", "even", expansionContext),
                 };
 
                 int order = 0;
