@@ -192,6 +192,54 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
         return new PdfGlyphRun(glyphs, diagnostics, actualText);
     }
 
+    // Total advance width (1000-em units) without materializing a glyph run. Mirrors ShapeText's loop
+    // (same ligature/scalar handling, same usage recording, same missing-glyph throw) but skips the
+    // glyph/diagnostic list allocation, so widths and font subsetting are unchanged. Used by the
+    // line-break measurement path, which only needs the width. ForRendering never reports control
+    // characters, so that (list-producing) branch is not part of the measurement contract.
+    public static int MeasureAdvanceWidth1000(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options) {
+        Guard.NotNull(text, nameof(text));
+        Guard.NotNull(font, nameof(font));
+
+        int totalWidth = 0;
+        for (int index = 0; index < text.Length;) {
+            int scalarStart = index;
+            if (options.ShapingMode == PdfTextShapingMode.LatinLigatures &&
+                OfficeTextLigatures.TryGetLatinPresentationForm(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
+                font.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
+                ligatureGlyphId > 0) {
+                if (options.RecordGlyphUsage) {
+                    font.RecordGlyphUsage(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
+                }
+
+                totalWidth += font.GetGlyphWidth1000(ligatureGlyphId);
+                index += ligatureLength;
+                continue;
+            }
+
+            int scalar = ReadScalar(text, ref index);
+            if (options.SkipLayoutControls && (scalar == '\n' || scalar == '\r' || scalar == '\t')) {
+                continue;
+            }
+
+            if (!font.TryGetGlyphId(scalar, out int glyphId) || glyphId <= 0) {
+                if (options.ThrowOnMissingGlyph) {
+                    throw PdfTrueTypeFontProgram.CreateUnsupportedGlyphException(text, scalarStart, scalar);
+                }
+
+                continue;
+            }
+
+            if (options.RecordGlyphUsage) {
+                font.RecordGlyphUsage(glyphId, scalar);
+            }
+
+            totalWidth += font.GetGlyphWidth1000(glyphId);
+        }
+
+        return totalWidth;
+    }
+
     private static string ResolveFontName(PdfTrueTypeFontProgram font, PdfTextShapingOptions options) =>
         string.IsNullOrWhiteSpace(options.FontName) ? font.FontName : options.FontName;
 
