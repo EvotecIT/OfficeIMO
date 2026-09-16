@@ -31,7 +31,9 @@ internal static partial class PdfWriter {
             IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
                 ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram)
                 : Array.Empty<PdfTextShapingDiagnostic>();
-            options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram));
+            if (options.HasDiagnosticsReport) {
+                options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram));
+            }
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, PdfTextShapingOptions.ForRendering(
                 fontProgram.FontName,
                 options.TextShapingModeSnapshot,
@@ -49,7 +51,9 @@ internal static partial class PdfWriter {
             IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
                 ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram)
                 : Array.Empty<PdfTextShapingDiagnostic>();
-            options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram));
+            if (options.HasDiagnosticsReport) {
+                options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram));
+            }
             PdfGlyphRun glyphRun = cffFontProgram.ShapeText(text, PdfTextShapingOptions.ForRendering(
                 cffFontProgram.FontName,
                 options.TextShapingModeSnapshot,

@@ -17,8 +17,19 @@ internal sealed class PdfGlyphRun {
     public IReadOnlyList<PdfTextEncodingDiagnostic> Diagnostics { get; }
     public string? ActualText { get; }
     public bool HasMissingGlyphs => Diagnostics.Count > 0;
-    public int TotalAdvanceWidth1000 => Glyphs.Sum(glyph => glyph.AdvanceWidth1000);
-    public bool HasPositioning => Glyphs.Any(glyph => glyph.HasPositioning);
+    public int TotalAdvanceWidth1000 {
+        get {
+            int total = 0;
+            for (int i = 0; i < Glyphs.Count; i++) total += Glyphs[i].AdvanceWidth1000;
+            return total;
+        }
+    }
+    public bool HasPositioning {
+        get {
+            for (int i = 0; i < Glyphs.Count; i++) if (Glyphs[i].HasPositioning) return true;
+            return false;
+        }
+    }
 
     public string ToGlyphHex() {
         var sb = new StringBuilder(Glyphs.Count * 4);
