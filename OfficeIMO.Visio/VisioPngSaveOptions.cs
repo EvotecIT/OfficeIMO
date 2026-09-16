@@ -80,6 +80,11 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public long MaximumRasterPixels { get; set; } = OfficeImageExportOptions.DefaultMaximumRasterPixels;
 
+        /// <summary>
+        /// Maximum number of encoded PNG bytes returned or written by the retained PNG API.
+        /// </summary>
+        public long MaximumTotalEncodedBytes { get; set; } = OfficeImageExportOptions.DefaultMaximumTotalEncodedBytes;
+
         /// <summary>Controls whether an oversized PNG request is safely reduced or rejected.</summary>
         public OfficeRasterOverflowBehavior RasterOverflowBehavior { get; set; } = OfficeRasterOverflowBehavior.ReduceScale;
 

@@ -233,18 +233,41 @@ public static partial class OfficePngWriter {
         return scanlines;
     }
 
-    private static void FilterFirstRowSub(byte[] rgba, int rowOffset, int stride, byte[] destination, int destinationOffset) {
+    private static void FilterFirstRowSub(
+        byte[] rgba,
+        int rowOffset,
+        int stride,
+        byte[] destination,
+        int destinationOffset,
+        System.Threading.CancellationToken cancellationToken = default,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         for (int index = 0; index < 4 && index < stride; index++) {
             destination[destinationOffset + index] = rgba[rowOffset + index];
         }
         for (int index = 4; index < stride; index++) {
+            if (((index - 4) & 4095) == 0) {
+                checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngFilteringBlock);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
             destination[destinationOffset + index] = unchecked((byte)(rgba[rowOffset + index] - rgba[rowOffset + index - 4]));
         }
     }
 
-    private static long FilterUp(byte[] rgba, int rowOffset, int previousRowOffset, int stride, byte[] destination, int destinationOffset) {
+    private static long FilterUp(
+        byte[] rgba,
+        int rowOffset,
+        int previousRowOffset,
+        int stride,
+        byte[] destination,
+        int destinationOffset,
+        System.Threading.CancellationToken cancellationToken = default,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         long score = 0L;
         for (int index = 0; index < stride; index++) {
+            if ((index & 4095) == 0) {
+                checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngFilteringBlock);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
             byte filtered = unchecked((byte)(rgba[rowOffset + index] - rgba[previousRowOffset + index]));
             destination[destinationOffset + index] = filtered;
             score += Math.Abs((int)(sbyte)filtered);
@@ -252,9 +275,20 @@ public static partial class OfficePngWriter {
         return score;
     }
 
-    private static long FilterPaeth(byte[] rgba, int rowOffset, int previousRowOffset, int stride, byte[] destination) {
+    private static long FilterPaeth(
+        byte[] rgba,
+        int rowOffset,
+        int previousRowOffset,
+        int stride,
+        byte[] destination,
+        System.Threading.CancellationToken cancellationToken = default,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         long score = 0L;
         for (int index = 0; index < stride; index++) {
+            if ((index & 4095) == 0) {
+                checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngFilteringBlock);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
             int left = index >= 4 ? rgba[rowOffset + index - 4] : 0;
             int above = rgba[previousRowOffset + index];
             int upperLeft = index >= 4 ? rgba[previousRowOffset + index - 4] : 0;
@@ -461,11 +495,20 @@ public static partial class OfficePngWriter {
         return (b << 16) | a;
     }
 
-    private static void UpdateAdler32(byte[] data, int offset, int count, ref uint a, ref uint b) {
+    private static void UpdateAdler32(
+        byte[] data,
+        int offset,
+        int count,
+        ref uint a,
+        ref uint b,
+        System.Threading.CancellationToken cancellationToken = default,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         const uint mod = 65521;
         const int maximumChunk = 5552;
         int remaining = count;
         while (remaining > 0) {
+            checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngFilteringBlock);
+            cancellationToken.ThrowIfCancellationRequested();
             int chunk = Math.Min(maximumChunk, remaining);
             int end = offset + chunk;
             while (offset < end) {

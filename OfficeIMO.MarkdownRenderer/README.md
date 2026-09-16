@@ -131,3 +131,15 @@ string updateScript = MarkdownRenderer.RenderUpdateScript(markdownText, options)
 - **OfficeIMO:** `OfficeIMO.Markdown` and `OfficeIMO.Markdown.Html` own parsing and HTML mapping; this package owns shells, presets, updates, and plug-in registration.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Convert | 1 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.MarkdownRenderer` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

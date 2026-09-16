@@ -133,7 +133,7 @@ public sealed class OfficeProtectionCapabilityCatalog {
     }
 
     private static OfficeProtectionCapability[] CreateCurrentRows() => new[] {
-        Row("ooxml-password", "DOCX/XLSX/PPTX", "OfficeIMO.Word / OfficeIMO.Excel / OfficeIMO.PowerPoint", OfficeProtectionKind.PasswordEncryption,
+        Row("ooxml-password", "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM", "OfficeIMO.Word / OfficeIMO.Excel / OfficeIMO.PowerPoint", OfficeProtectionKind.PasswordEncryption,
             S(), S(), S(), N(), S(), S(), "format load/save password APIs", "Password encryption is format-owned; no OfficeIMO.Security dependency is required."),
         Row("doc-password", "DOC", "OfficeIMO.Word", OfficeProtectionKind.PasswordEncryption,
             D(), NS(), NS(), N(), B(), NS(), "WordDocument.Load", "Legacy DOC encryption is detected only; encrypted content is not exposed.",
@@ -164,7 +164,7 @@ public sealed class OfficeProtectionCapabilityCatalog {
         Row("smime-envelope-msg-tnef", "MSG/TNEF S/MIME", "OfficeIMO.Email + optional provider", OfficeProtectionKind.RecipientEncryption,
             S(), S(), NS(), N(), P(), N(), "EmailSmime.Decrypt", "Protected MSG/TNEF content can be inspected and decrypted after parsing; outbound encryption creates RFC 5322/MIME bytes, not MSG or TNEF containers.",
             Boundary(OfficeProtectionOperation.Create, "Outbound encryption intentionally creates RFC 5322/MIME rather than MSG or TNEF containers.")),
-        Row("opc-package-signature", "DOCX/XLSX/PPTX/Visio", "format package + optional provider", OfficeProtectionKind.DigitalSignature,
+        Row("opc-package-signature", "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio", "format package + optional provider", OfficeProtectionKind.DigitalSignature,
             S(), N(), S(), S(), B(), S(), "InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures", "Changed signed packages require explicit invalidation handling."),
         Row("vba-signature", "DOCM/XLSM/XLSB/PPTM families", "format package + optional provider", OfficeProtectionKind.DigitalSignature,
             S(), N(), S(), S(), B(), S(), "InspectVbaSignatures / SignVbaProject", "Managed legacy, agile, and V3 VBA signature profiles are corpus-bound."),

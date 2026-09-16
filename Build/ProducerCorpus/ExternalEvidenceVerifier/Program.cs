@@ -36,8 +36,9 @@ static async Task<object[]> VerifyRtfAsync(JsonElement manifest, HttpClient clie
     foreach (JsonElement artifact in manifest.GetProperty("externalArtifacts").EnumerateArray()) {
         string id = artifact.GetProperty("id").GetString()!;
         string sourceUrl = artifact.GetProperty("sourceUrl").GetString()!;
-        byte[] bytes = await client.GetByteArrayAsync(sourceUrl).ConfigureAwait(false);
-        Require(bytes.LongLength == artifact.GetProperty("bytes").GetInt64(), id + " byte length changed");
+        long expectedBytes = artifact.GetProperty("bytes").GetInt64();
+        byte[] bytes = await DownloadBoundedAsync(client, sourceUrl, expectedBytes).ConfigureAwait(false);
+        Require(bytes.LongLength == expectedBytes, id + " byte length changed");
         Require(Hash(bytes) == artifact.GetProperty("sha256").GetString(), id + " SHA-256 changed");
 
         string header = Encoding.GetEncoding(1252).GetString(bytes, 0, Math.Min(1024, bytes.Length));
@@ -73,9 +74,12 @@ static async Task<object[]> VerifyOdfAsync(JsonElement manifest, HttpClient clie
     var output = new List<object>();
     foreach (JsonElement artifact in manifest.GetProperty("externalArtifacts").EnumerateArray()) {
         string id = artifact.GetProperty("id").GetString()!;
-        byte[] bytes = await client.GetByteArrayAsync(artifact.GetProperty("sourceUrl").GetString()!).ConfigureAwait(false);
         int minBytes = artifact.GetProperty("minBytes").GetInt32();
         int maxBytes = artifact.GetProperty("maxBytes").GetInt32();
+        byte[] bytes = await DownloadBoundedAsync(
+            client,
+            artifact.GetProperty("sourceUrl").GetString()!,
+            maxBytes).ConfigureAwait(false);
         Require(bytes.Length >= minBytes && bytes.Length <= maxBytes, id + " package size left its recorded range");
 
         var loadOptions = new OdfLoadOptions {
@@ -113,6 +117,36 @@ static async Task<object[]> VerifyOdfAsync(JsonElement manifest, HttpClient clie
         });
     }
     return output.ToArray();
+}
+
+static async Task<byte[]> DownloadBoundedAsync(HttpClient client, string sourceUrl, long maximumBytes) {
+    if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+    using HttpResponseMessage response = await client.GetAsync(
+        sourceUrl,
+        HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+    response.EnsureSuccessStatusCode();
+    long? declaredLength = response.Content.Headers.ContentLength;
+    if (declaredLength is long contentLength && contentLength > maximumBytes) {
+        throw new InvalidDataException(
+            $"External evidence at {sourceUrl} declares {contentLength} bytes, above the {maximumBytes}-byte ceiling.");
+    }
+
+    using Stream source = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+    using var destination = new MemoryStream(
+        declaredLength is > 0 and <= int.MaxValue ? (int)declaredLength.Value : 0);
+    var buffer = new byte[64 * 1024];
+    long total = 0L;
+    while (true) {
+        int read = await source.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+        if (read == 0) break;
+        total = checked(total + read);
+        if (total > maximumBytes) {
+            throw new InvalidDataException(
+                $"External evidence at {sourceUrl} exceeded the {maximumBytes}-byte ceiling while streaming.");
+        }
+        destination.Write(buffer, 0, read);
+    }
+    return destination.ToArray();
 }
 
 static (int ParagraphCount, string Hash) ReadOdfSemanticEvidence(byte[] bytes) {

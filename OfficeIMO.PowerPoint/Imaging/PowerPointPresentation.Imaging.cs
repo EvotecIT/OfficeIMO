@@ -31,12 +31,18 @@ namespace OfficeIMO.PowerPoint {
                 .Where(index => selectedSlideNumbers == null || selectedSlideNumbers.Contains(index + 1))
                 .Where(index => resolved.IncludeHiddenSlides || !Slides[index].Hidden)
                 .ToArray();
+            var encodingBudget = new OfficeImageExportEncodingBudget(resolved.MaximumTotalEncodedBytes);
             OfficeImageExportBatchProcessor.ForEachOrdered(
                 slideIndexes,
                 resolved.MaximumDegreeOfParallelism,
                 (slideIndex, _, token) => {
                     int slideNumber = slideIndex + 1;
-                    OfficeImageExportResult result = Slides[slideIndex].ExportImage(format, slideOptions, token);
+                    OfficeImageExportResult result = PowerPointSlideImageRenderer.Render(
+                        Slides[slideIndex],
+                        format,
+                        slideOptions,
+                        token,
+                        encodingBudget);
                     return new OfficeImageExportResult(
                         result.Format,
                         result.Width,

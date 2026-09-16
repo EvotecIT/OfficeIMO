@@ -51,6 +51,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_BatchEncodingConsumesOneSharedByteBudget() {
+            using WordDocument document = CreateThreePageDocument();
+            var baselineOptions = new WordImageExportOptions {
+                PageCount = 2,
+                MaximumDegreeOfParallelism = 1
+            };
+            IReadOnlyList<OfficeImageExportResult> baseline = document.ExportImages(
+                OfficeImageExportFormat.Png,
+                baselineOptions);
+            long completeBatchBytes = baseline.Sum(image => image.Bytes.LongLength);
+            long maximumBytes = baseline[0].Bytes.LongLength + 1L;
+
+            OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                document.ExportImages(
+                    OfficeImageExportFormat.Png,
+                    new WordImageExportOptions {
+                        PageCount = 2,
+                        MaximumDegreeOfParallelism = 1,
+                        MaximumTotalEncodedBytes = maximumBytes
+                    }));
+
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+            Assert.Equal(maximumBytes, exception.Maximum);
+            Assert.True(exception.Actual < completeBatchBytes);
+        }
+
+        [Fact]
         public void WordDocument_ImageExportProjectsNativeChartThroughSharedDrawingRenderer() {
             using WordDocument document = WordDocument.Create();
             WordChart chart = document.AddChart("Delivery status", false, 420, 240);

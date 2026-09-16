@@ -4,7 +4,7 @@
   "capabilities":[
     {
       "id":"ooxml-password",
-      "formatId":"DOCX/XLSX/PPTX",
+      "formatId":"DOCX/DOCM/XLSX/XLSM/PPTX/PPTM",
       "packageId":"OfficeIMO.Word / OfficeIMO.Excel / OfficeIMO.PowerPoint",
       "kind":"PasswordEncryption",
       "inspect":"Supported",
@@ -169,7 +169,7 @@
     },
     {
       "id":"opc-package-signature",
-      "formatId":"DOCX/XLSX/PPTX/Visio",
+      "formatId":"DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
       "packageId":"format package + optional provider",
       "kind":"DigitalSignature",
       "inspect":"Supported",

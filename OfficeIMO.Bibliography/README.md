@@ -89,3 +89,21 @@ See the [bibliography support matrix](../Docs/officeimo.bibliography-support-mat
 ## Dependencies
 
 `OfficeIMO.Bibliography` has no dependency on another OfficeIMO package. It uses `System.Text.Json` for CSL JSON and `System.Text.Encoding.CodePages` for declared legacy XML encodings on compatibility targets. It has no dependency on `OfficeIMO.Word`, the Open XML SDK, a TeX runtime, EndNote, or a network client.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 1 | 0 | 0 | 0 | 0 | 0 |
+| Read | 1 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 1 | 0 | 0 | 0 | 0 | 0 |
+| Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
+| Inspect | 1 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 1 | 0 | 0 | 0 | 0 | 0 |
+| Convert | 30 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Bibliography` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

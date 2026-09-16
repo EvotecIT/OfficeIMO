@@ -1,10 +1,10 @@
 ---
-title: "Word, Excel, and PowerPoint Format Compatibility"
-description: "Check OfficeIMO support for DOC, DOCX, XLS, XLSX, XLSB, PPT, PPTX, templates, slide shows, macros, conversion directions, preservation, and fidelity."
+title: "OfficeIMO Format and Operation Compatibility"
+description: "Check package-owned document operations and detailed Word, Excel, and PowerPoint format fidelity in one generated compatibility view."
 layout: compatibility
 slug: compatibility
 meta.social_card_badge: "Format compatibility"
-meta.social_card_metrics: "28|Office variants|package;137|Tracked behaviors|check;3|Format families|code"
+meta.social_card_metrics: "66|Package owners|package;1368|Operation outcomes|check;3|Detailed legacy families|code"
 ---
 
 ## Choose the result your workflow needs

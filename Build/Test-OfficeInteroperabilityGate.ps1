@@ -16,9 +16,15 @@ $projects = @{
     CompatibilityCatalog = Join-Path $repoRoot 'Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj'
     Drawing = Join-Path $repoRoot 'OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj'
     Excel = Join-Path $repoRoot 'OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj'
+    ExternalEvidence = Join-Path $repoRoot 'Build/ProducerCorpus/ExternalEvidenceVerifier/ExternalEvidenceVerifier.csproj'
+    OpenDocument = Join-Path $repoRoot 'OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj'
+    Pdf = Join-Path $repoRoot 'OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj'
     PowerPoint = Join-Path $repoRoot 'OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj'
+    Rtf = Join-Path $repoRoot 'OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj'
     Word = Join-Path $repoRoot 'OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj'
+    WordBenchmarks = Join-Path $repoRoot 'OfficeIMO.Word.Benchmarks/OfficeIMO.Word.Benchmarks.csproj'
 }
+$wordEvidenceManifestPath = Join-Path $repoRoot 'OfficeIMO.TestAssets/Documents/Word/EvidenceCorpus/corpus-manifest.json'
 
 function Test-CompatibilityCatalogArtifacts {
     Write-Host ""
@@ -46,6 +52,12 @@ function Test-CompatibilityCatalogArtifacts {
     } finally {
         Pop-Location
     }
+}
+
+function Test-CorpusEvidenceArtifacts {
+    Write-Host ""
+    Write-Host "== Cross-producer corpus evidence contracts ==" -ForegroundColor Cyan
+    & (Join-Path $repoRoot 'Build/CorpusEvidence/Build-CorpusEvidence.ps1') -Verify
 }
 
 foreach ($project in $projects.GetEnumerator()) {
@@ -100,6 +112,49 @@ function Invoke-InteroperabilityGateStep {
     Write-Host ("Completed {0} in {1:mm\:ss}." -f $Name, $elapsed) -ForegroundColor Green
 }
 
+function Invoke-WordEvidenceSourceTests {
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet('xunit', 'microsoft-office-xunit')]
+        [string] $Execution
+    )
+
+    $manifest = Get-Content -LiteralPath $wordEvidenceManifestPath -Raw | ConvertFrom-Json
+    $records = @($manifest.artifacts | Where-Object { $_.sourceExecution -eq $Execution })
+    foreach ($group in @($records | Group-Object sourceProject)) {
+        $project = [IO.Path]::GetFullPath((Join-Path $repoRoot ([string] $group.Name)))
+        $filter = @($group.Group | ForEach-Object { 'FullyQualifiedName~' + [string] $_.sourceTest }) -join '|'
+        Invoke-InteroperabilityGateStep `
+            -Name "Word evidence manifest source contracts ($Execution, $($group.Name))" `
+            -Project $project `
+            -Filter $filter
+    }
+}
+
+function Invoke-WordWorkflowBenchmarkValidation {
+    $arguments = @(
+        'run',
+        '--project', $projects.WordBenchmarks,
+        '--configuration', $Configuration,
+        '--framework', $Framework
+    )
+    if ($NoRestore) { $arguments += '--no-restore' }
+    if ($NoBuild) { $arguments += '--no-build' }
+    $arguments += @('--', 'validate-workflows')
+
+    Write-Host ""
+    Write-Host '== Word evidence manifest benchmark validation ==' -ForegroundColor Cyan
+    Push-Location $repoRoot
+    try {
+        & dotnet @arguments
+        if ($LASTEXITCODE -ne 0) {
+            throw "Word evidence manifest benchmark validation failed with exit code $LASTEXITCODE."
+        }
+    } finally {
+        Pop-Location
+    }
+}
+
 $excelLegacyCorpusFilter = @(
     'FullyQualifiedName=OfficeIMO.Tests.Excel.LegacyXls_Corpus_Fixtures_MatchApprovedImportReports',
     'FullyQualifiedName=OfficeIMO.Tests.Excel.LegacyXls_DiagnosticCorpus_Fixtures_MatchApprovedImportReports',
@@ -139,6 +194,7 @@ $wordAdvancedFilter = @(
 Write-Host "Office interoperability gate suite: $Suite" -ForegroundColor Yellow
 
 Test-CompatibilityCatalogArtifacts
+Test-CorpusEvidenceArtifacts
 
 if ($Suite -in @('Full', 'Corpus')) {
     Invoke-InteroperabilityGateStep `
@@ -146,15 +202,38 @@ if ($Suite -in @('Full', 'Corpus')) {
         -Project $projects.Excel `
         -Filter 'Category=OfficeInteroperability'
 
-    Invoke-InteroperabilityGateStep `
-        -Name 'Word corpus manifest identity and load contract' `
-        -Project $projects.Word `
-        -Filter 'Category=OfficeInteroperability'
+    Invoke-WordEvidenceSourceTests -Execution xunit
+    Invoke-WordWorkflowBenchmarkValidation
 
     Invoke-InteroperabilityGateStep `
         -Name 'PowerPoint corpus identity, preflight, conversion, and reopen contract' `
         -Project $projects.PowerPoint `
         -Filter 'Category=OfficeInteroperability'
+
+    Invoke-InteroperabilityGateStep `
+        -Name 'OpenDocument producer corpus package and semantic contract' `
+        -Project $projects.OpenDocument `
+        -Filter 'FullyQualifiedName~OpenDocumentProducerCorpusTests'
+
+    Invoke-InteroperabilityGateStep `
+        -Name 'RTF producer corpus parsing and deterministic-write contract' `
+        -Project $projects.Rtf `
+        -Filter 'FullyQualifiedName~RtfGoldenCorpusTests'
+
+    Invoke-InteroperabilityGateStep `
+        -Name 'PDF authoritative interoperability corpus contract' `
+        -Project $projects.Pdf `
+        -Filter 'FullyQualifiedName~PdfAuthoritativeInteroperabilityCorpusTests'
+
+    Write-Host ""
+    Write-Host "== External OpenDocument producer oracle ==" -ForegroundColor Cyan
+    & (Join-Path $repoRoot 'Build/Test-OpenDocumentExternalProducerEvidence.ps1') `
+        -Configuration $Configuration -Framework $Framework -NoRestore:$NoRestore -NoBuild:$NoBuild
+
+    Write-Host ""
+    Write-Host "== External RTF producer oracles ==" -ForegroundColor Cyan
+    & (Join-Path $repoRoot 'Build/Test-RtfExternalProducerEvidence.ps1') `
+        -Configuration $Configuration -Framework $Framework -NoRestore:$NoRestore -NoBuild:$NoBuild
 
     Invoke-InteroperabilityGateStep `
         -Name 'Legacy XLS approved import and projection-gap reports' `
@@ -208,10 +287,7 @@ if ($MicrosoftOffice) {
         $env:OFFICEIMO_RUN_LEGACY_XLS_COM_VALIDATION = '1'
         $env:OFFICEIMO_RUN_LEGACY_PPT_COM_VALIDATION = '1'
 
-        Invoke-InteroperabilityGateStep `
-            -Name 'Microsoft Word desktop source and generated conversion oracle' `
-            -Project $projects.Word `
-            -Filter 'Category=MicrosoftOfficeInteroperability'
+        Invoke-WordEvidenceSourceTests -Execution microsoft-office-xunit
 
         Invoke-InteroperabilityGateStep `
             -Name 'Microsoft Excel desktop corpus source and conversion oracle' `

@@ -22,6 +22,7 @@ namespace OfficeIMO.Excel {
             if (consumer == null) throw new ArgumentNullException(nameof(consumer));
             ExcelWorkbookImageExportOptions resolved = NormalizeWorkbookOptions(options);
             var plan = new List<ExcelWorksheetImageExportPlan>();
+            var encodingBudget = new OfficeImageExportEncodingBudget(resolved.MaximumTotalEncodedBytes);
             OfficeImageExportBatchProcessor.RunWithPreflight(
                 resolved,
                 operationCancellationToken => {
@@ -54,7 +55,7 @@ namespace OfficeIMO.Excel {
                 (accept, operationCancellationToken) => {
                     foreach (ExcelWorksheetImageExportPlan item in plan) {
                         operationCancellationToken.ThrowIfCancellationRequested();
-                        item.Sheet.ExportImages(format, accept, item.Options, operationCancellationToken);
+                        item.Sheet.ExportImagesCore(format, accept, item.Options, operationCancellationToken, encodingBudget);
                     }
                 },
                 consumer,

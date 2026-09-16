@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -42,22 +43,40 @@ public static class OfficeImageComposer {
         IEnumerable<OfficeImageLayer> layers,
         Action<OfficeRasterCanvas>? beforeLayers,
         Action<OfficeRasterCanvas>? afterLayers,
-        OfficeFontFaceCollection? fonts) {
+        OfficeFontFaceCollection? fonts) =>
+        ComposeRaster(width, height, backgroundColor, layers, beforeLayers, afterLayers, fonts, default);
+
+    /// <summary>
+    /// Composes raster layers using scoped fonts and observes cancellation throughout raster drawing.
+    /// </summary>
+    public static OfficeRasterImage ComposeRaster(
+        int width,
+        int height,
+        OfficeColor backgroundColor,
+        IEnumerable<OfficeImageLayer> layers,
+        Action<OfficeRasterCanvas>? beforeLayers,
+        Action<OfficeRasterCanvas>? afterLayers,
+        OfficeFontFaceCollection? fonts,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateOutputSize(width, height);
         if (layers == null) {
             throw new ArgumentNullException(nameof(layers));
         }
 
         OfficeRasterImage image = new OfficeRasterImage(width, height, backgroundColor);
-        var canvas = new OfficeRasterCanvas(image, fonts: fonts);
+        cancellationToken.ThrowIfCancellationRequested();
+        var canvas = new OfficeRasterCanvas(image, font: null, fonts: fonts, cancellationToken: cancellationToken);
         beforeLayers?.Invoke(canvas);
         foreach (OfficeImageLayer layer in layers) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (layer.RasterImage != null) {
                 canvas.DrawImage(layer.RasterImage, layer.X, layer.Y, layer.Width, layer.Height);
             }
         }
 
         afterLayers?.Invoke(canvas);
+        cancellationToken.ThrowIfCancellationRequested();
         return image;
     }
 
@@ -73,6 +92,32 @@ public static class OfficeImageComposer {
         Action<StringBuilder>? afterLayers = null) =>
         Encoding.UTF8.GetBytes(ComposeSvg(width, height, backgroundColor, layers, beforeLayers, afterLayers));
 
+    internal static byte[] ComposeSvgBytes(
+        int width,
+        int height,
+        OfficeColor backgroundColor,
+        IEnumerable<OfficeImageLayer> layers,
+        long maximumUtf8Bytes,
+        CancellationToken cancellationToken,
+        Action<StringBuilder>? beforeLayers = null,
+        Action<StringBuilder>? afterLayers = null) {
+        if (maximumUtf8Bytes < 1L) throw new ArgumentOutOfRangeException(nameof(maximumUtf8Bytes));
+        string svg = ComposeSvgCore(
+            width,
+            height,
+            backgroundColor,
+            layers,
+            beforeLayers,
+            afterLayers,
+            maximumUtf8Bytes,
+            cancellationToken);
+
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] bytes = Encoding.UTF8.GetBytes(svg);
+        cancellationToken.ThrowIfCancellationRequested();
+        return bytes;
+    }
+
     /// <summary>
     /// Composes SVG layers into a root SVG document.
     /// </summary>
@@ -82,28 +127,55 @@ public static class OfficeImageComposer {
         OfficeColor backgroundColor,
         IEnumerable<OfficeImageLayer> layers,
         Action<StringBuilder>? beforeLayers = null,
-        Action<StringBuilder>? afterLayers = null) {
+        Action<StringBuilder>? afterLayers = null) =>
+        ComposeSvgCore(
+            width,
+            height,
+            backgroundColor,
+            layers,
+            beforeLayers,
+            afterLayers,
+            maximumUtf8Bytes: null,
+            CancellationToken.None);
+
+    private static string ComposeSvgCore(
+        int width,
+        int height,
+        OfficeColor backgroundColor,
+        IEnumerable<OfficeImageLayer> layers,
+        Action<StringBuilder>? beforeLayers,
+        Action<StringBuilder>? afterLayers,
+        long? maximumUtf8Bytes,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateOutputSize(width, height);
         if (layers == null) {
             throw new ArgumentNullException(nameof(layers));
         }
 
         var builder = new StringBuilder();
-        builder.Append("<svg xmlns=\"http://www.w3.org/2000/svg\"")
+        OfficeSvgUtf8CompositionBudget? budget = maximumUtf8Bytes.HasValue
+            ? new OfficeSvgUtf8CompositionBudget(maximumUtf8Bytes.Value)
+            : null;
+        AppendSvgFragment(builder, budget, fragment => fragment
+            .Append("<svg xmlns=\"http://www.w3.org/2000/svg\"")
             .AppendNumberAttribute("width", width)
             .AppendNumberAttribute("height", height)
             .AppendAttribute("viewBox", "0 0 " + OfficeSvgFormatting.FormatNumber(width) + " " + OfficeSvgFormatting.FormatNumber(height))
-            .Append('>');
+            .Append('>'));
 
-        var backgroundAttributes = new StringBuilder();
-        backgroundAttributes.AppendPaintAttribute("fill", backgroundColor);
-        builder.AppendRectElement(0D, 0D, width, height, backgroundAttributes.ToString());
-        beforeLayers?.Invoke(builder);
+        AppendSvgFragment(builder, budget, fragment => {
+            var backgroundAttributes = new StringBuilder();
+            backgroundAttributes.AppendPaintAttribute("fill", backgroundColor);
+            fragment.AppendRectElement(0D, 0D, width, height, backgroundAttributes.ToString());
+        });
+        if (beforeLayers != null) AppendSvgFragment(builder, budget, beforeLayers);
         var svgLayers = new List<OfficeImageLayer>();
         var svgLayerIds = new List<HashSet<string>>();
         var seenIds = new HashSet<string>(StringComparer.Ordinal);
         var duplicateIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (OfficeImageLayer layer in layers) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (layer.SvgInnerContent != null) {
                 HashSet<string> ids = GetSvgIds(layer.SvgInnerContent);
                 foreach (string id in ids) {
@@ -119,6 +191,7 @@ public static class OfficeImageComposer {
 
         var reservedIds = new HashSet<string>(seenIds, StringComparer.Ordinal);
         for (int index = 0; index < svgLayers.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeImageLayer layer = svgLayers[index];
             string layerContent = layer.SvgInnerContent!;
             if (duplicateIds.Count > 0 && svgLayerIds[index].Overlaps(duplicateIds)) {
@@ -129,12 +202,28 @@ public static class OfficeImageComposer {
                     reservedIds);
             }
 
-            builder.AppendNestedSvg(layer.X, layer.Y, layer.Width, layer.Height, layerContent);
+            AppendSvgFragment(builder, budget, fragment =>
+                fragment.AppendNestedSvg(layer.X, layer.Y, layer.Width, layer.Height, layerContent));
         }
 
-        afterLayers?.Invoke(builder);
-        builder.Append("</svg>");
+        if (afterLayers != null) AppendSvgFragment(builder, budget, afterLayers);
+        AppendSvgFragment(builder, budget, fragment => fragment.Append("</svg>"));
+        cancellationToken.ThrowIfCancellationRequested();
         return builder.ToString();
+    }
+
+    private static void AppendSvgFragment(
+        StringBuilder destination,
+        OfficeSvgUtf8CompositionBudget? budget,
+        Action<StringBuilder> append) {
+        if (budget == null) {
+            append(destination);
+            return;
+        }
+
+        var fragment = new StringBuilder();
+        append(fragment);
+        budget.Append(destination, fragment.ToString());
     }
 
     private static void ValidateOutputSize(int width, int height) {

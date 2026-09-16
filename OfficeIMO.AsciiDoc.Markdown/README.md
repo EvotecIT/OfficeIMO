@@ -29,3 +29,15 @@ The adapter never participates in native AsciiDoc parsing or round-trip writing.
 - **OfficeIMO:** `OfficeIMO.AsciiDoc` and `OfficeIMO.Markdown`; the bridge owns typed mapping, canonical generation, and source-located diagnostics.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Convert | 0 | 2 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.AsciiDoc.Markdown` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

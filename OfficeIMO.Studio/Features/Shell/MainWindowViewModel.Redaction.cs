@@ -117,10 +117,10 @@ public sealed partial class MainWindowViewModel {
     private void InvalidateReviewedRedactions() {
         _redactionPlanGeneration++;
         _pendingRedactionPlan = null;
+        UpdateRedactionOverlays();
         PendingRedactionSummary = RedactionMarks.Count == 0 ? null : _localizer.FormatOrDefault(
             "Redaction.PendingSummary", "{0:N0} of {1:N0} marks selected. Review their impact before applying.",
             RedactionMarks.Count(mark => mark.IsIncluded), RedactionMarks.Count);
-        UpdateRedactionOverlays();
         OnPropertyChanged(nameof(CanReviewRedactions));
         OnPropertyChanged(nameof(CanApplyReviewedRedactions));
     }

@@ -10,15 +10,6 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 namespace OfficeIMO.Visio {
     internal static partial class VisioPngRenderer {
 
-        public static byte[] Render(VisioPage page, VisioPngSaveOptions options) =>
-            OfficeRasterImageEncoder.Encode(
-                RenderRaster(page, options),
-                OfficeImageExportFormat.Png,
-                new OfficeRasterEncodingOptions {
-                    DpiX = options.PixelsPerInch,
-                    DpiY = options.PixelsPerInch
-                });
-
         internal static OfficeRasterImage RenderRaster(VisioPage page, VisioPngSaveOptions options) {
             options.CancellationToken.ThrowIfCancellationRequested();
             if (options.PixelsPerInch <= 0D || double.IsNaN(options.PixelsPerInch) || double.IsInfinity(options.PixelsPerInch)) {

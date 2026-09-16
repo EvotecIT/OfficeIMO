@@ -100,3 +100,15 @@ Authoring uses `GoogleWorkspaceScopeCatalog.SlidesAuthoring` (`drive.file` and `
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
 
 See `GoogleSlidesFeatureSupportCatalog.Features` for the code-owned support matrix and the [complete OfficeIMO package map](../README.md) for related formats.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Convert | 2 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.PowerPoint.GoogleSlides` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

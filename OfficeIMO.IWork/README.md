@@ -88,3 +88,19 @@ See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master
 ## Target frameworks and dependencies
 
 `OfficeIMO.IWork` targets .NET Standard 2.0, .NET 8, .NET 10, and .NET Framework 4.7.2 on Windows. The source reader depends only on `OfficeIMO.Core`; its IWA, Snappy, protobuf-envelope, and package readers are first-party implementations. Destination projection is opt-in through `OfficeIMO.Word.IWork`, `OfficeIMO.Excel.IWork`, or `OfficeIMO.PowerPoint.IWork`.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 0 | 0 | 0 | 0 | 1 | 0 |
+| Read | 1 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 0 | 0 | 0 | 0 | 1 | 0 |
+| Preserve | 0 | 0 | 0 | 0 | 1 | 0 |
+| Inspect | 1 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.IWork` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

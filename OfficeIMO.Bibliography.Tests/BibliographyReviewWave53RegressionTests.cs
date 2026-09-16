@@ -40,7 +40,7 @@ public sealed class BibliographyReviewWave53RegressionTests {
     public void Bib_writers_observe_cancellation_inside_large_value_safety_scans(string owner) {
         string value = owner == "typed" ? new string('x', 64 * 1024 * 1024)
             : owner == "native-field" ? new string('\\', 64 * 1024 * 1024)
-            : "}" + new string('x', 64 * 1024 * 1024);
+            : new string('x', 64 * 1024 * 1024) + "}";
         var document = new BibliographyDocument(BibliographyFormat.BibLatex);
         if (owner == "native-entry") {
             document.NativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.BibLatex, "comment", value));

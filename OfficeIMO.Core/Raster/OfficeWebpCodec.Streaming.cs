@@ -31,13 +31,14 @@ public static partial class OfficeWebpCodec {
         Stream destination,
         double? dpiX,
         double? dpiY,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         bool writeResolution = dpiX.HasValue && dpiY.HasValue;
         if (writeResolution) {
             ValidateDpi(dpiX!.Value, nameof(dpiX));
             ValidateDpi(dpiY!.Value, nameof(dpiY));
         }
-        EncodeStreaming(image, destination, writeResolution, dpiX ?? 96D, dpiY ?? 96D, cancellationToken);
+        EncodeStreaming(image, destination, writeResolution, dpiX ?? 96D, dpiY ?? 96D, cancellationToken, checkpointObserver);
     }
 
 #if NET8_0_OR_GREATER
@@ -66,7 +67,8 @@ public static partial class OfficeWebpCodec {
         bool includeResolutionMetadata,
         double dpiX,
         double dpiY,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         OfficeRasterOutput.EnsureWritable(destination);
         cancellationToken.ThrowIfCancellationRequested();
@@ -139,7 +141,10 @@ public static partial class OfficeWebpCodec {
         WriteLiteralTree(writer, 256);
         WriteSingleSymbolTree(writer);
         for (int offset = 0; offset < pixels.Length; offset += 4) {
-            if ((offset & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if ((offset & 0x3FFF) == 0) {
+                checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.WebpCompressionBlock);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
             writer.WriteBits(ReverseByte(pixels[offset + 1]), 8);
             writer.WriteBits(ReverseByte(pixels[offset]), 8);
             writer.WriteBits(ReverseByte(pixels[offset + 2]), 8);

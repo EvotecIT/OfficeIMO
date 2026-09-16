@@ -30,6 +30,7 @@ public static partial class HtmlImageExportExtensions {
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = Normalize(options, 0);
+        var encodingBudget = new OfficeImageExportEncodingBudget(resolved.MaximumTotalEncodedBytes);
         HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
             HtmlRenderDocument rendered = HtmlRenderEngine.Render(
                 document,
@@ -38,7 +39,7 @@ public static partial class HtmlImageExportExtensions {
             OfficeImageExportBatchProcessor.ForEachOrdered(
                 rendered.Pages,
                 resolved.MaximumDegreeOfParallelism,
-                (page, _, token) => RenderPage(page, format, resolved, rendered.DiagnosticReport, token),
+                (page, _, token) => RenderPage(page, format, resolved, rendered.DiagnosticReport, token, encodingBudget),
                 consumer,
                 operationCancellationToken,
                 resolved);
@@ -80,6 +81,7 @@ public static partial class HtmlImageExportExtensions {
         CancellationToken cancellationToken = default) {
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         HtmlRenderOptions resolved = Normalize(options, 0);
+        var encodingBudget = new OfficeImageExportEncodingBudget(resolved.MaximumTotalEncodedBytes);
         HtmlRenderDocument? rendered = null;
         await OfficeImageExportBatchProcessor.RunAsyncWithPreflight(
             resolved,
@@ -100,7 +102,8 @@ public static partial class HtmlImageExportExtensions {
                         format,
                         resolved,
                         completed.DiagnosticReport,
-                        operationCancellationToken);
+                        operationCancellationToken,
+                        encodingBudget);
                     await accept(result, operationCancellationToken).ConfigureAwait(false);
                 }
             },
