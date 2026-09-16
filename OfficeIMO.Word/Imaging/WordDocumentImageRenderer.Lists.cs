@@ -7,7 +7,6 @@ namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
         private const double DefaultListLeftIndentPoints = 36D;
         private const double DefaultListHangingIndentPoints = 18D;
-        private const double ListMarkerGapPoints = 3D;
 
         private static WordImageListMarker? CreateListMarker(
             WordDocument document,
@@ -81,11 +80,32 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static OfficeRichTextRun CreateListMarkerRichTextRun(WordImageListMarker marker) =>
+        private static OfficeRichTextRun CreateListMarkerRichTextRun(WordImageListMarker marker, double? availableWidth = null) =>
             new OfficeRichTextRun(
-                marker.Marker + marker.Suffix, marker.Font.Size, marker.Color,
+                marker.Marker + ResolveRichTextListMarkerSuffix(marker, availableWidth), marker.Font.Size, marker.Color,
                 marker.Font.IsBold, marker.Font.IsItalic, marker.Font.IsUnderline,
                 marker.Font.FamilyName, marker.Font.IsStrikethrough);
+
+        private static string ResolveRichTextListMarkerSuffix(WordImageListMarker marker, double? availableWidth) {
+            if (marker.Suffix != "\t" || !availableWidth.HasValue) {
+                return marker.Suffix;
+            }
+
+            double textOffset = Math.Min(
+                Math.Max(0D, marker.LeftIndentPoints),
+                Math.Max(0D, availableWidth.Value - 1D));
+            double markerOffset = Math.Max(0D, textOffset - Math.Max(0D, marker.HangingIndentPoints));
+            OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(marker.Font);
+            OfficeTextMeasurementStyle markerStyle = measurer.CreateStyle(marker.Font, 72D);
+            double markerWidth = measurer.MeasureWidth(marker.Marker, markerStyle);
+            double spaceWidth = Math.Max(0.01D, measurer.MeasureWidth(" ", markerStyle));
+            double desiredGap = Math.Max(0D, textOffset - markerOffset - markerWidth);
+            if (desiredGap <= 0D) {
+                return string.Empty;
+            }
+            int spaces = Math.Max(1, (int)Math.Round(desiredGap / spaceWidth, MidpointRounding.AwayFromZero));
+            return new string(' ', spaces);
+        }
 
         private static WordImageTextLayout ResolveTextLayout(WordImageFlowContext context, WordImageListMarker? listMarker, WordParagraph? paragraph) {
             WordTextFlowFrame textFrame = context.ResolveTextFlowFrame();
@@ -99,9 +119,31 @@ namespace OfficeIMO.Word {
             double hangingIndent = Math.Max(0D, marker.HangingIndentPoints);
             double textOffset = Math.Min(Math.Max(DefaultListHangingIndentPoints, leftIndent), Math.Max(DefaultListHangingIndentPoints, textFrame.Width - 1D));
             double markerOffset = Math.Max(0D, textOffset - hangingIndent);
-            double markerWidth = Math.Max(1D, textOffset - markerOffset - ListMarkerGapPoints);
-            double textLeft = textFrame.Left + textOffset;
-            double textWidth = Math.Max(1D, textFrame.Width - textOffset);
+            OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(marker.Font);
+            OfficeTextMeasurementStyle markerStyle = measurer.CreateStyle(marker.Font, 72D);
+            double markerTextWidth = string.IsNullOrEmpty(marker.Marker)
+                ? 0D
+                : measurer.MeasureWidth(marker.Marker, markerStyle);
+            double resolvedTextOffset;
+            double markerWidth;
+            if (marker.Marker.Length == 0) {
+                markerWidth = 0D;
+                resolvedTextOffset = textOffset;
+            } else if (marker.Suffix.Length == 0) {
+                markerWidth = markerTextWidth;
+                resolvedTextOffset = markerOffset + markerTextWidth;
+            } else if (marker.Suffix == " ") {
+                markerWidth = markerTextWidth;
+                resolvedTextOffset = markerOffset + markerTextWidth + measurer.MeasureWidth(" ", markerStyle);
+            } else {
+                markerWidth = Math.Max(markerTextWidth, textOffset - markerOffset);
+                resolvedTextOffset = Math.Max(textOffset, markerOffset + markerTextWidth);
+            }
+
+            resolvedTextOffset = Math.Min(Math.Max(0D, resolvedTextOffset), Math.Max(0D, textFrame.Width - 1D));
+            markerWidth = Math.Max(1D, Math.Min(markerWidth, Math.Max(1D, textFrame.Width - markerOffset)));
+            double textLeft = textFrame.Left + resolvedTextOffset;
+            double textWidth = Math.Max(1D, textFrame.Width - resolvedTextOffset);
 
             return new WordImageTextLayout(textLeft, textWidth, textFrame.Left + markerOffset, markerWidth, OfficeTextPadding.Empty, OfficeTextParagraphIndent.Empty);
         }

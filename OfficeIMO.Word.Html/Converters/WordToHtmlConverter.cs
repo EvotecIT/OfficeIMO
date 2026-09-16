@@ -1276,6 +1276,17 @@ namespace OfficeIMO.Word.Html {
                 AppendRuns(li, paragraph);
             }
 
+            void AppendHeaderFooterParagraph(IElement parent, WordParagraph paragraph) {
+                WordDocumentTraversal.ListInfo? listInfo = GetCachedListInfo(paragraph);
+                if (listInfo != null) {
+                    AppendListParagraph(parent, paragraph, listInfo.Value, listStack, itemStack, listNumberStack);
+                    return;
+                }
+
+                CloseLists();
+                AppendParagraph(parent, paragraph);
+            }
+
             var processedParagraphs = new HashSet<WordParagraph>(ParagraphElementComparer.Instance);
             int sectionIndex = 0;
             foreach (var section in WordDocumentTraversal.EnumerateSections(document)) {
@@ -1285,7 +1296,7 @@ namespace OfficeIMO.Word.Html {
                     sectionParent = CreateSectionElement(htmlDoc, section, sectionIndex, sectionIndex == 0);
                     body.AppendChild(sectionParent);
                 }
-                AppendHeaderFooterRegions(htmlDoc, sectionParent, section, sectionIndex, true, (parent, paragraph) => AppendParagraph(parent, paragraph), (parent, table) => AppendTable(parent, table), options, cancellationToken);
+                AppendHeaderFooterRegions(htmlDoc, sectionParent, section, sectionIndex, true, AppendHeaderFooterParagraph, (parent, table) => AppendTable(parent, table), CloseLists, options, cancellationToken);
 
                 var elements = section.Elements;
                 if (elements == null || elements.Count == 0) {
@@ -1448,7 +1459,7 @@ namespace OfficeIMO.Word.Html {
                 }
                 if (options.ExportHeadersAndFooters) {
                     CloseLists();
-                    AppendHeaderFooterRegions(htmlDoc, sectionParent, section, sectionIndex, false, (parent, paragraph) => AppendParagraph(parent, paragraph), (parent, table) => AppendTable(parent, table), options, cancellationToken);
+                    AppendHeaderFooterRegions(htmlDoc, sectionParent, section, sectionIndex, false, AppendHeaderFooterParagraph, (parent, table) => AppendTable(parent, table), CloseLists, options, cancellationToken);
                 }
                 if (options.IncludeSectionMetadata) {
                     CloseLists();

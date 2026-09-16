@@ -455,7 +455,7 @@ namespace OfficeIMO.Tests {
                 document,
                 saveOptions,
                 nativeFontMap,
-                Array.Empty<string?>()
+                WordDocumentTraversal.BuildListMarkers(document)
             }));
 
             object[] args = { "serif", PdfStandardFont.Helvetica };

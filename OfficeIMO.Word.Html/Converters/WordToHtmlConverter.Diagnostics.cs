@@ -219,7 +219,12 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ReportKnownExportLimitations(WordDocument document, WordToHtmlOptions options, ExportInspection inspection) {
-            foreach (int pictureBulletId in WordDocumentTraversal.GetPictureBulletFallbackIds(document)) {
+            Dictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> resolvedMarkers =
+                WordDocumentTraversal.BuildResolvedListMarkers(document);
+            IEnumerable<WordDocumentTraversal.ResolvedListMarker> renderedMarkers = options.ExportHeadersAndFooters
+                ? resolvedMarkers.Values
+                : resolvedMarkers.Where(pair => pair.Key._paragraph.Ancestors<W.Body>().Any()).Select(pair => pair.Value);
+            foreach (int pictureBulletId in WordDocumentTraversal.GetPictureBulletFallbackIds(renderedMarkers)) {
                 AddExportDiagnostic(options, "PictureBulletTextFallback",
                     "Picture bullet " + pictureBulletId + " is represented by a text bullet in HTML output.",
                     OfficeConversionLossKind.Approximation);

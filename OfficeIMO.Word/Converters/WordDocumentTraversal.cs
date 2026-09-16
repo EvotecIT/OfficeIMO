@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
@@ -489,17 +490,17 @@ namespace OfficeIMO.Word {
         private static IEnumerable<IEnumerable<WordParagraph>> EnumerateListStories(WordDocument document) {
             var seen = new HashSet<Paragraph>();
 
-            IEnumerable<WordParagraph> EnumerateParagraph(Paragraph paragraph) {
-                if (!seen.Add(paragraph)) yield break;
-                yield return new WordParagraph(document, paragraph);
-                foreach (Run run in paragraph.Descendants<Run>()) {
-                    if (!ReferenceEquals(run.Ancestors<Paragraph>().FirstOrDefault(), paragraph)) continue;
-                    WordTextBox? textBox = new WordParagraph(document, paragraph, run).TextBox;
-                    TextBoxContent? content = textBox?.Content;
-                    if (content == null) continue;
-                    foreach (Paragraph inner in content.Descendants<Paragraph>()) {
-                        if (!ReferenceEquals(inner.Ancestors<TextBoxContent>().FirstOrDefault(), content)) continue;
-                        foreach (WordParagraph item in EnumerateParagraph(inner)) yield return item;
+            IEnumerable<WordParagraph> EnumerateParagraphTree(Paragraph rootParagraph) {
+                var pending = new Stack<Paragraph>();
+                pending.Push(rootParagraph);
+                while (pending.Count > 0) {
+                    Paragraph paragraph = pending.Pop();
+                    if (!seen.Add(paragraph)) continue;
+                    yield return new WordParagraph(document, paragraph);
+
+                    List<Paragraph> nestedParagraphs = EnumerateDirectTextBoxParagraphs(paragraph).ToList();
+                    for (int index = nestedParagraphs.Count - 1; index >= 0; index--) {
+                        pending.Push(nestedParagraphs[index]);
                     }
                 }
             }
@@ -508,7 +509,7 @@ namespace OfficeIMO.Word {
                 if (root == null) yield break;
                 foreach (Paragraph paragraph in root.Descendants<Paragraph>()) {
                     if (paragraph.Ancestors<TextBoxContent>().Any()) continue;
-                    foreach (WordParagraph item in EnumerateParagraph(paragraph)) yield return item;
+                    foreach (WordParagraph item in EnumerateParagraphTree(paragraph)) yield return item;
                 }
             }
 
@@ -518,6 +519,50 @@ namespace OfficeIMO.Word {
                     if (headerFooter == null) continue;
                     yield return EnumerateStory((DocumentFormat.OpenXml.OpenXmlCompositeElement?)headerFooter._header ?? headerFooter._footer);
                 }
+            }
+        }
+
+        private static IEnumerable<Paragraph> EnumerateDirectTextBoxParagraphs(Paragraph paragraph) {
+            foreach (TextBoxContent content in EnumerateOwnedTextBoxContents(paragraph)) {
+                var pending = new Stack<OpenXmlElement>();
+                PushChildrenInReverse(content, pending);
+                while (pending.Count > 0) {
+                    OpenXmlElement element = pending.Pop();
+                    if (element is TextBoxContent) {
+                        continue;
+                    }
+
+                    if (element is Paragraph nestedParagraph) {
+                        yield return nestedParagraph;
+                        continue;
+                    }
+
+                    PushChildrenInReverse(element, pending);
+                }
+            }
+        }
+
+        private static IEnumerable<TextBoxContent> EnumerateOwnedTextBoxContents(Paragraph paragraph) {
+            var pending = new Stack<OpenXmlElement>();
+            PushChildrenInReverse(paragraph, pending);
+            while (pending.Count > 0) {
+                OpenXmlElement element = pending.Pop();
+                if (element is TextBoxContent content) {
+                    yield return content;
+                    continue;
+                }
+
+                if (element is Paragraph) {
+                    continue;
+                }
+
+                PushChildrenInReverse(element, pending);
+            }
+        }
+
+        private static void PushChildrenInReverse(OpenXmlElement element, Stack<OpenXmlElement> pending) {
+            for (OpenXmlElement? child = element.LastChild; child != null; child = child.PreviousSibling()) {
+                pending.Push(child);
             }
         }
 

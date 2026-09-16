@@ -35,9 +35,16 @@ namespace OfficeIMO.Word {
                 WordImageListMarker? listMarker = listMarkers == null
                     ? null
                     : CreateListMarker(cell.Document, paragraph, listMarkers);
-                double indent = listMarker is { Marker.Length: 0 } marker
-                    ? Math.Min(Math.Max(0D, marker.LeftIndentPoints), Math.Max(0D, contentWidth - 1D))
+                double textOffset = listMarker.HasValue
+                    ? Math.Min(Math.Max(0D, listMarker.Value.LeftIndentPoints), Math.Max(0D, contentWidth - 1D))
                     : 0D;
+                double markerOffset = listMarker is { Marker.Length: > 0 } visibleMarker
+                    ? Math.Max(0D, textOffset - Math.Max(0D, visibleMarker.HangingIndentPoints))
+                    : textOffset;
+                double indent = markerOffset;
+                OfficeTextParagraphIndent paragraphIndent = listMarker is { Marker.Length: > 0 }
+                    ? OfficeTextParagraphIndent.Hanging(Math.Max(0D, textOffset - markerOffset))
+                    : OfficeTextParagraphIndent.Empty;
                 bool markerPending = listMarker is { Marker.Length: > 0 };
                 var segmentRuns = new List<WordParagraph>();
 
@@ -46,7 +53,7 @@ namespace OfficeIMO.Word {
                     segmentRuns.Clear();
                     int? pictureBulletId = null;
                     if (markerPending && listMarker is { Marker.Length: > 0 } visible) {
-                        richRuns.Insert(0, CreateListMarkerRichTextRun(visible));
+                        richRuns.Insert(0, CreateListMarkerRichTextRun(visible, contentWidth));
                         pictureBulletId = visible.PictureBulletId;
                         markerPending = false;
                     }
@@ -64,11 +71,11 @@ namespace OfficeIMO.Word {
                         shrinkToFit: false,
                         minimumFontSize: Math.Min(6D, maxFontSize),
                         overflowBehavior: OfficeTextOverflowBehavior.Clip,
-                        paragraphIndent: null,
+                        paragraphIndent: paragraphIndent,
                         cancellationToken: context.CancellationToken);
                     contentOrder.Add(SplitTableCellContentEntry.CreateText(lines.Count, layout.Lines.Count, pictureBulletId));
                     lines.AddRange(layout.Lines);
-                    indents.AddRange(Enumerable.Repeat(indent, layout.Lines.Count));
+                    indents.AddRange(layout.Lines.Select(line => indent + line.OffsetX));
                 }
 
                 foreach (WordParagraph run in WordSection.ConvertParagraphToWordParagraphs(cell.Document, paragraph, splitPaginationMarkers: true,

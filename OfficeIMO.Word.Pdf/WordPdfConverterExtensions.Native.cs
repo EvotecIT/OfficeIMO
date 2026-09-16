@@ -166,7 +166,10 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = resolvedMarkers.ToDictionary(
                 pair => pair.Key, pair => (pair.Value.Level, pair.Value.Marker), resolvedMarkers.Comparer);
             if (options != null) {
-                foreach (int pictureBulletId in WordDocumentTraversal.GetPictureBulletFallbackIds(resolvedMarkers.Values)) {
+                IEnumerable<WordDocumentTraversal.ResolvedListMarker> renderedMarkers = resolvedMarkers
+                    .Where(pair => IsNativeRenderedListStoryParagraph(document, pair.Key))
+                    .Select(pair => pair.Value);
+                foreach (int pictureBulletId in WordDocumentTraversal.GetPictureBulletFallbackIds(renderedMarkers)) {
                     AddNativeExportWarning(options, "NativePictureBulletTextFallback", "list marker",
                         "Picture bullet " + pictureBulletId.ToString(CultureInfo.InvariantCulture) + " is represented by a portable text bullet in PDF output.");
                 }
@@ -175,7 +178,7 @@ namespace OfficeIMO.Word.Pdf {
                     document,
                     options,
                     nativeFontMap,
-                    listMarkers.Values.Select(value => value.Marker)))
+                    listMarkers))
                 .Meta(
                     title: options?.Title ?? properties.Title,
                     author: options?.Author ?? properties.Creator,
@@ -190,17 +193,17 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<WordSection> sections = document.Sections;
             for (int sectionIndex = 0; sectionIndex < sections.Count;) {
                 cancellationToken.ThrowIfCancellationRequested();
-                int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options);
+                int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options, listMarkers);
                 WordSection firstSection = sections[sectionIndex];
                 PdfCore.PageSize sectionPageSize = GetNativePageSize(firstSection, options);
-                (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options);
+                (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers);
                 PdfCore.PageMargins sectionMargins = GetNativeMargins(firstSection, options, headerFooterMarginExpansion);
                 double sectionContentWidth = Math.Max(72D, sectionPageSize.Width - sectionMargins.Left - sectionMargins.Right);
                 pdf.Section(page => {
                     page.Size(sectionPageSize);
                     page.Margin(sectionMargins);
                     ConfigureNativePageNumbering(page, firstSection);
-                    ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap);
+                    ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap, listMarkers);
                     INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf, sectionPageSize));
 
                     for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
@@ -275,16 +278,57 @@ namespace OfficeIMO.Word.Pdf {
             return pdf;
         }
 
-        private static int GetNativePdfSectionGroupEnd(IReadOnlyList<WordSection> sections, int startIndex, WordToPdfOptions? options) {
+        private static bool IsNativeRenderedListStoryParagraph(WordDocument document, WordParagraph paragraph) {
+            if (IsNativeDescendantOf(paragraph._paragraph, document._wordprocessingDocument.MainDocumentPart?.Document?.Body)) {
+                return true;
+            }
+
+            foreach (WordSection section in document.Sections) {
+                if (IsNativeDescendantOf(paragraph._paragraph, section.Header?.Default?._header) ||
+                    IsNativeDescendantOf(paragraph._paragraph, section.Footer?.Default?._footer)) {
+                    return true;
+                }
+
+                if (section.DifferentFirstPage &&
+                    (IsNativeDescendantOf(paragraph._paragraph, section.Header?.First?._header) ||
+                     IsNativeDescendantOf(paragraph._paragraph, section.Footer?.First?._footer))) {
+                    return true;
+                }
+
+                if (section.DifferentOddAndEvenPages &&
+                    (IsNativeDescendantOf(paragraph._paragraph, section.Header?.Even?._header) ||
+                     IsNativeDescendantOf(paragraph._paragraph, section.Footer?.Even?._footer))) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsNativeDescendantOf(DocumentFormat.OpenXml.OpenXmlElement element, DocumentFormat.OpenXml.OpenXmlElement? ancestor) {
+            if (ancestor == null) {
+                return false;
+            }
+
+            for (DocumentFormat.OpenXml.OpenXmlElement? current = element.Parent; current != null; current = current.Parent) {
+                if (ReferenceEquals(current, ancestor)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static int GetNativePdfSectionGroupEnd(IReadOnlyList<WordSection> sections, int startIndex, WordToPdfOptions? options, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             int endIndex = startIndex + 1;
-            while (endIndex < sections.Count && CanMergeNativeContinuousSection(sections[endIndex - 1], sections[endIndex], options)) {
+            while (endIndex < sections.Count && CanMergeNativeContinuousSection(sections[endIndex - 1], sections[endIndex], options, listMarkers)) {
                 endIndex++;
             }
 
             return endIndex;
         }
 
-        private static bool CanMergeNativeContinuousSection(WordSection previous, WordSection current, WordToPdfOptions? options) {
+        private static bool CanMergeNativeContinuousSection(WordSection previous, WordSection current, WordToPdfOptions? options, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             if (GetNativeSectionBreakAfter(previous) != W.SectionMarkValues.Continuous) {
                 return false;
             }
@@ -297,8 +341,8 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            (double Header, double Footer) previousExpansion = GetNativeHeaderFooterMarginExpansion(previous, options);
-            (double Header, double Footer) currentExpansion = GetNativeHeaderFooterMarginExpansion(current, options);
+            (double Header, double Footer) previousExpansion = GetNativeHeaderFooterMarginExpansion(previous, options, listMarkers);
+            (double Header, double Footer) currentExpansion = GetNativeHeaderFooterMarginExpansion(current, options, listMarkers);
             if (!NativeMarginsEquivalent(GetNativeMargins(previous, options, previousExpansion), GetNativeMargins(current, options, currentExpansion))) {
                 return false;
             }

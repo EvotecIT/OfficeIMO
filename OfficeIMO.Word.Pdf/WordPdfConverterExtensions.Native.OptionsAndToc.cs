@@ -15,7 +15,7 @@ namespace OfficeIMO.Word.Pdf {
             WordDocument document,
             WordToPdfOptions? options,
             NativeFontMap nativeFontMap,
-            IEnumerable<string?> generatedListMarkers) {
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             WordSection? firstSection = document.Sections.FirstOrDefault();
             PdfCore.PdfOptions pdfOptions = options?.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
             pdfOptions.UseContentStreamCompressionByDefault();
@@ -38,7 +38,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             pdfOptions.PageSize = firstSection == null ? PdfCore.PageSizes.A4 : GetNativePageSize(firstSection, options);
-            pdfOptions.Margins = firstSection == null ? PdfCore.PageMargins.Uniform(72) : GetNativeMargins(firstSection, options);
+            pdfOptions.Margins = firstSection == null
+                ? PdfCore.PageMargins.Uniform(72)
+                : GetNativeMargins(firstSection, options, GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers));
             bool allowSystemFontEmbedding = options?.ResourcePolicy.AllowSystemFontEmbedding == true;
             bool allowDocumentFontEmbedding = allowSystemFontEmbedding &&
                                               options?.ResourcePolicy.AllowDocumentFontEmbedding == true;
@@ -68,7 +70,7 @@ namespace OfficeIMO.Word.Pdf {
 
             bool preserveConfiguredFontSlots = appliedNativeDefaultFont || hasConfiguredPdfOptions;
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterNativeDocumentFonts(document, pdfOptions, preserveConfiguredFontSlots, allowDocumentFontEmbedding, nativeFontMap);
-            ApplyNativeTextFallbacks(document, options, pdfOptions, registeredFontSlots, allowSystemFontEmbedding, generatedListMarkers);
+            ApplyNativeTextFallbacks(document, options, pdfOptions, registeredFontSlots, allowSystemFontEmbedding, listMarkers);
             pdfOptions.BackgroundColor = ParseNativeColor(document.Background?.Color);
             pdfOptions.CreateOutlineFromHeadings = true;
             ApplyNativeBiDiViewerPreferences(document, pdfOptions);
@@ -184,7 +186,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfOptions pdfOptions,
             HashSet<PdfCore.PdfStandardFont> reservedFontSlots,
             bool allowSystemFontEmbedding,
-            IEnumerable<string?> generatedListMarkers) {
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             if (options == null ||
                 !allowSystemFontEmbedding ||
                 options.TextFallbacks == PdfCore.PdfTextFallbackFeatures.None) {
@@ -195,7 +197,7 @@ namespace OfficeIMO.Word.Pdf {
             if (document.Charts.Count == 0 && document.SmartArts.Count == 0) {
                 fallbackFeatures = PdfCore.PdfTextDiagnostics.ResolveRequiredFallbackFeatures(
                     fallbackFeatures,
-                    EnumerateNativeDocumentFallbackText(document, generatedListMarkers));
+                    EnumerateNativeDocumentFallbackText(document, listMarkers));
             }
             if (fallbackFeatures == PdfCore.PdfTextFallbackFeatures.None) {
                 return;
@@ -222,13 +224,13 @@ namespace OfficeIMO.Word.Pdf {
 
         private static IEnumerable<string?> EnumerateNativeDocumentFallbackText(
             WordDocument document,
-            IEnumerable<string?> generatedListMarkers) {
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             yield return document._document.InnerText;
             yield return document._wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes?.InnerText;
             yield return document._wordprocessingDocument.MainDocumentPart?.EndnotesPart?.Endnotes?.InnerText;
 
-            foreach (string? marker in generatedListMarkers) {
-                yield return marker;
+            foreach ((int Level, string Marker) marker in listMarkers.Values) {
+                yield return marker.Marker;
             }
 
             foreach (WordSection section in document.Sections) {
@@ -240,7 +242,7 @@ namespace OfficeIMO.Word.Pdf {
                              section.Footer?.First,
                              section.Footer?.Even
                          }) {
-                    NativeHeaderFooterText? text = GetNativeHeaderFooterText(headerFooter);
+                    NativeHeaderFooterText? text = GetNativeHeaderFooterText(headerFooter, listMarkers);
                     yield return text?.Left;
                     yield return text?.Center;
                     yield return text?.Right;

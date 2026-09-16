@@ -457,23 +457,70 @@ namespace OfficeIMO.Word {
 
         private static IEnumerable<(W.Paragraph Paragraph, IReadOnlyList<WordParagraph> Runs, bool IncludeMarker)> EnumerateTextBoxParagraphFragments(
             WordDocument document, W.TextBoxContent content) {
-            foreach (W.Paragraph paragraph in content.ChildElements.OfType<W.Paragraph>()) {
-                var segmentRuns = new List<WordParagraph>();
-                bool includeMarker = true;
-                foreach (WordParagraph run in WordSection.ConvertParagraphToWordParagraphs(document, paragraph, splitPaginationMarkers: true)) {
+            var pending = new Stack<TextBoxParagraphFragmentFrame>();
+            PushTextBoxParagraphFrames(document, content, pending);
+            while (pending.Count > 0) {
+                TextBoxParagraphFragmentFrame frame = pending.Peek();
+                bool descended = false;
+                while (frame.RunIndex < frame.Runs.Count) {
+                    WordParagraph run = frame.Runs[frame.RunIndex++];
                     W.TextBoxContent? nestedContent = run.TextBox?.Content;
-                    if (nestedContent != null) {
-                        if (segmentRuns.Count > 0 || includeMarker) {
-                            yield return (paragraph, segmentRuns, includeMarker);
-                            segmentRuns = new List<WordParagraph>();
-                            includeMarker = false;
-                        }
-                        foreach (var fragment in EnumerateTextBoxParagraphFragments(document, nestedContent)) yield return fragment;
-                    } else {
-                        segmentRuns.Add(run);
+                    if (nestedContent == null) {
+                        frame.SegmentRuns.Add(run);
+                        continue;
                     }
+
+                    if (frame.SegmentRuns.Count > 0 || frame.IncludeMarker) {
+                        yield return (frame.Paragraph, frame.TakeSegmentRuns(), frame.IncludeMarker);
+                        frame.IncludeMarker = false;
+                    }
+
+                    PushTextBoxParagraphFrames(document, nestedContent, pending);
+                    descended = true;
+                    break;
                 }
-                if (segmentRuns.Count > 0 || includeMarker) yield return (paragraph, segmentRuns, includeMarker);
+
+                if (descended) {
+                    continue;
+                }
+
+                pending.Pop();
+                if (frame.SegmentRuns.Count > 0 || frame.IncludeMarker) {
+                    yield return (frame.Paragraph, frame.TakeSegmentRuns(), frame.IncludeMarker);
+                }
+            }
+        }
+
+        private static void PushTextBoxParagraphFrames(
+            WordDocument document,
+            W.TextBoxContent content,
+            Stack<TextBoxParagraphFragmentFrame> pending) {
+            List<W.Paragraph> paragraphs = content.ChildElements.OfType<W.Paragraph>().ToList();
+            for (int index = paragraphs.Count - 1; index >= 0; index--) {
+                pending.Push(new TextBoxParagraphFragmentFrame(document, paragraphs[index]));
+            }
+        }
+
+        private sealed class TextBoxParagraphFragmentFrame {
+            internal TextBoxParagraphFragmentFrame(WordDocument document, W.Paragraph paragraph) {
+                Paragraph = paragraph;
+                Runs = WordSection.ConvertParagraphToWordParagraphs(document, paragraph, splitPaginationMarkers: true).ToList();
+            }
+
+            internal W.Paragraph Paragraph { get; }
+
+            internal IReadOnlyList<WordParagraph> Runs { get; }
+
+            internal int RunIndex { get; set; }
+
+            internal bool IncludeMarker { get; set; } = true;
+
+            internal List<WordParagraph> SegmentRuns { get; private set; } = new List<WordParagraph>();
+
+            internal IReadOnlyList<WordParagraph> TakeSegmentRuns() {
+                List<WordParagraph> runs = SegmentRuns;
+                SegmentRuns = new List<WordParagraph>();
+                return runs;
             }
         }
 
@@ -553,7 +600,9 @@ namespace OfficeIMO.Word {
                 }
 
                 if (marker is { Marker.Length: > 0 } visible) richRuns.Add(
-                    richRuns.Count == 0 ? CreateListMarkerRichTextRun(visible).WithParagraphIndent(paragraphIndent) : CreateListMarkerRichTextRun(visible));
+                    richRuns.Count == 0
+                        ? CreateListMarkerRichTextRun(visible, availableWidth).WithParagraphIndent(paragraphIndent)
+                        : CreateListMarkerRichTextRun(visible, availableWidth));
 
                 for (int runIndex = 0; runIndex < paragraphRuns.Count; runIndex++) {
                     (WordParagraph run, string text) = paragraphRuns[runIndex];
