@@ -846,6 +846,38 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void TextDecorationMakesOcclusionCleanupReportOnly() {
+        byte[] svg = Svg(
+            "<text text-decoration='underline' font-family='OfficeIMO Shaping Test' font-size='20' " +
+            "x='10' y='35'>decorated payload</text>" +
+            "<rect x='0' y='0' width='220' height='50' fill='white'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "decorated payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.Other, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("decoration", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("none")]
+    [InlineData("initial")]
+    [InlineData("unset")]
+    public void InactiveTextDecorationDoesNotBlockPreciseCleanup(string decoration) {
+        byte[] svg = Svg(
+            "<text text-decoration='" + decoration + "' display='none' x='10' y='35'>inactive decoration</text>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "inactive decoration");
+
+        Assert.Equal(OfficeContentConcealmentKind.HiddenByProperty, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.RemoveText, finding.CleanupCapability);
+    }
+
+    [Fact]
     public void ThickStrokePreventsTinyTextCleanup() {
         byte[] svg = Svg(
             "<text font-size='1' fill='none' stroke='black' stroke-width='20' x='10' y='35'>outlined tiny payload</text>");

@@ -223,6 +223,14 @@ public static partial class OfficeSvgDrawingReader {
                 evidence = "SVG text-length adjustment can change browser glyph bounds and is therefore report-only.";
                 return true;
             }
+            string? textDecoration = ReadPresentationProperty(current, "text-decoration")?.Trim();
+            if (!string.IsNullOrWhiteSpace(textDecoration) &&
+                !textDecoration!.Equals("none", StringComparison.OrdinalIgnoreCase) &&
+                !textDecoration.Equals("initial", StringComparison.OrdinalIgnoreCase) &&
+                !textDecoration.Equals("unset", StringComparison.OrdinalIgnoreCase)) {
+                evidence = "SVG text decoration paints outside the bounded native glyph projection and is therefore report-only.";
+                return true;
+            }
             if (TryFindUnmodeledSvgTextGeometryProperty(current, out string unmodeledGeometry)) {
                 evidence = "SVG text geometry uses the unmodeled " + unmodeledGeometry +
                     " property and is therefore report-only.";
