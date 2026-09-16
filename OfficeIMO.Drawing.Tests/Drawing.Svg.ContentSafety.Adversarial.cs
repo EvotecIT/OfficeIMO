@@ -1254,6 +1254,69 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void RelativeRectangleCoordinateCannotAuthorizeVisualCleanup() {
+        byte[] svg = Svg(
+            "<text font-family='OfficeIMO Shaping Test' font-size='20' x='10' y='35'>A</text>" +
+            "<rect x='10em' width='220' height='120' fill='white'/>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        readerOptions.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, ManagedTextShapingTestAssets.CreateFont('A'));
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "A");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RelativeCircleRadiusKeepsOtherwiseVisibleTextReportOnly() {
+        byte[] svg = Svg(
+            "<text x='10' y='35'>relative-radius payload</text>" +
+            "<circle cx='110' cy='60' r='10em' fill='white'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "relative-radius payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FractionalGroupOpacityCannotAuthorizeVisualCleanup() {
+        byte[] svg = Svg(
+            "<text font-family='OfficeIMO Shaping Test' font-size='20' x='10' y='35'>A</text>" +
+            "<g opacity='.5'>" + string.Concat(Enumerable.Repeat("<rect width='220' height='120' fill='black'/>", 5)) + "</g>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        readerOptions.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, ManagedTextShapingTestAssets.CreateFont('A'));
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "A");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MaskedLaterPaintCannotAuthorizeVisualCleanup() {
+        byte[] svg = Svg(
+            "<defs><mask id='empty'/></defs>" +
+            "<text font-family='OfficeIMO Shaping Test' font-size='20' x='10' y='35'>A</text>" +
+            "<rect width='220' height='120' fill='white' mask='url(#empty)'/>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        readerOptions.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, ManagedTextShapingTestAssets.CreateFont('A'));
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "A");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ReferencedTrefRunMakesSourceTextLayoutCoupled() {
         byte[] svg = Svg(
             "<defs><text id='label'>visible</text></defs>" +
