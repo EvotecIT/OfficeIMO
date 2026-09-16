@@ -50,7 +50,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
     }
     /// <summary>Builds fingerprints and compares local and remote slide content.</summary>
     public static class GoogleSlidesDiffPlanner {
-        private const int CurrentHashFormatVersion = 3;
+        private const int CurrentHashFormatVersion = 1;
 
         /// <summary>Captures the source presentation's current content hashes and optional observed remote revision.</summary>
         /// <remarks>Persist the checkpoint only at a point where it accurately represents the synchronized baseline.</remarks>

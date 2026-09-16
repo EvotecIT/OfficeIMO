@@ -1219,7 +1219,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DiffPlanner_DetectsIndependentEdits() {
-            var checkpoint = new GoogleSlidesSyncCheckpoint { HashFormatVersion = 3 }; checkpoint.ContentHashes["slide/1"] = "base";
+            var checkpoint = new GoogleSlidesSyncCheckpoint { HashFormatVersion = 1 }; checkpoint.ContentHashes["slide/1"] = "base";
             List<GoogleSlidesDiffItem> items = GoogleSlidesDiffPlanner.Compare(new Dictionary<string, string> { ["slide/1"] = "local" }, new Dictionary<string, string> { ["slide/1"] = "remote" }, checkpoint);
             Assert.Equal(GoogleWorkspaceDiffKind.Conflict, Assert.Single(items).Kind);
         }
@@ -1299,7 +1299,7 @@ namespace OfficeIMO.Tests {
                 CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
                 GoogleSlidesSyncCheckpoint switched = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation);
 
-                Assert.Equal(3, baseline.HashFormatVersion);
+                Assert.Equal(1, baseline.HashFormatVersion);
                 Assert.Equal(baseline.HashFormatVersion, switched.HashFormatVersion);
                 Assert.Equal(baseline.ContentHashes.Count, switched.ContentHashes.Count);
                 foreach (KeyValuePair<string, string> pair in baseline.ContentHashes) {
@@ -1318,7 +1318,7 @@ namespace OfficeIMO.Tests {
 
             GoogleSlidesSyncCheckpoint checkpoint = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation);
 
-            Assert.Equal(3, checkpoint.HashFormatVersion);
+            Assert.Equal(1, checkpoint.HashFormatVersion);
             Assert.Equal("395504268C5C405FC435ED88ED9A50F37AC3472CADC5B5B062647085A77C37E5",
                 checkpoint.ContentHashes["presentation/size"]);
         }
