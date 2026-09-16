@@ -92,6 +92,29 @@ if (@($operationCatalog.capabilities).Count -eq 0) {
     throw 'The package-neutral operation catalog contains no capabilities.'
 }
 
+function Update-CompatibilitySocialCardMetrics {
+    param(
+        [Parameter(Mandatory)][string] $Path,
+        [Parameter(Mandatory)][string] $Metrics
+    )
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "Compatibility page was not found: $Path"
+    }
+    $content = [IO.File]::ReadAllText($Path)
+    $pattern = '(?m)^meta\.social_card_metrics:\s*"[^"]*"\s*$'
+    if ([regex]::Matches($content, $pattern).Count -ne 1) {
+        throw "Compatibility page must contain exactly one generated social-card metrics field: $Path"
+    }
+    $updated = [regex]::Replace(
+        $content,
+        $pattern,
+        'meta.social_card_metrics: "' + $Metrics + '"')
+    if (-not $updated.Equals($content, [StringComparison]::Ordinal)) {
+        [IO.File]::WriteAllText($Path, $updated, [Text.UTF8Encoding]::new($false))
+    }
+}
+
 $operationStateDefinitions = @(
     [ordered]@{ id = 'Supported'; label = 'Supported'; description = 'Implemented and backed by named evidence.' },
     [ordered]@{ id = 'Partial'; label = 'Partial'; description = 'A bounded subset is implemented with explicit limits.' },
@@ -363,6 +386,14 @@ $dataPath = Join-Path $siteRootPath 'data\office_capabilities.json'
 $staticPath = Join-Path $siteRootPath 'static\data\office-capabilities.json'
 Write-JsonFile -Path $dataPath -Value $catalog
 Write-JsonFile -Path $staticPath -Value $catalog
+$socialCardMetrics = '{0}|Package owners|package;{1}|Operation outcomes|check;{2}|Detailed legacy families|code' -f @(
+    [int] $catalog.summary.packageCount,
+    [int] $catalog.summary.operationCount,
+    [int] $catalog.summary.familyCount
+)
+Update-CompatibilitySocialCardMetrics `
+    -Path (Join-Path $siteRootPath 'content\pages\compatibility.md') `
+    -Metrics $socialCardMetrics
 
 $documentationCatalog = Read-JsonFile (Join-Path $siteRootPath 'data\documentation_catalog.json')
 $powerShellCatalog = Read-JsonFile (Join-Path $siteRootPath 'data\pswriteoffice_command_catalog.json')

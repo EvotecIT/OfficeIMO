@@ -99,9 +99,9 @@ public static partial class OfficeOperationCapabilityCatalog {
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Create,
                 capability.NewLegacyWrite, capability.FormatId, null, writableLegacyExtensions, "new-legacy-write");
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Edit,
-                capability.LegacyRoundTrip, capability.FormatId, null, legacyExtensions, "legacy-round-trip-edit");
+                capability.LegacyRoundTrip, capability.FormatId, null, writableLegacyExtensions, "legacy-round-trip-edit");
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Preserve,
-                capability.LegacyRoundTrip, capability.FormatId, null, legacyExtensions, "legacy-round-trip-preserve");
+                capability.LegacyRoundTrip, capability.FormatId, null, writableLegacyExtensions, "legacy-round-trip-preserve");
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Convert,
                 capability.ModernToLegacy, modernFormatId, capability.FormatId, modernToLegacyExtensions, "modern-to-legacy");
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Convert,

@@ -508,6 +508,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 14 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 10 | 0 | 0 | 0 | 0 | 3 |
 | Remove | 0 | 0 | 0 | 0 | 1 | 4 |
+| Convert | 12 | 0 | 0 | 0 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Email` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

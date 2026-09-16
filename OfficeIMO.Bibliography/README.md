@@ -103,6 +103,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
 | Inspect | 1 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 1 | 0 | 0 | 0 | 0 | 0 |
+| Convert | 30 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Bibliography` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

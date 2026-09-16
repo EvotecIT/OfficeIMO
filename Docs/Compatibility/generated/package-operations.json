@@ -185,6 +185,146 @@
       "limitation":"Includes, extensions, macros, complex attributes, custom processors, and unsupported inline or block syntax are not a full AsciiDoc implementation."
     },
     {
+      "id":"conversion:bibliography-biblatex-bibtex",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"BibLaTeX",
+      "targetFormatId":"BibTeX",
+      "capabilityId":"bibliography-biblatex-bibtex",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.BibLatex).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibTex })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".bib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-biblatex-csl-json",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"BibLaTeX",
+      "targetFormatId":"CSL JSON",
+      "capabilityId":"bibliography-biblatex-csl-json",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.BibLatex).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.CslJson })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".bib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-biblatex-endnote-xml",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"BibLaTeX",
+      "targetFormatId":"EndNote XML",
+      "capabilityId":"bibliography-biblatex-endnote-xml",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.BibLatex).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.EndNoteXml })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".bib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-biblatex-nbib",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"BibLaTeX",
+      "targetFormatId":"NBIB/MEDLINE",
+      "capabilityId":"bibliography-biblatex-nbib",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.BibLatex).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Nbib })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".bib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-biblatex-ris",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"BibLaTeX",
+      "targetFormatId":"RIS",
+      "capabilityId":"bibliography-biblatex-ris",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.BibLatex).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Ris })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".bib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-bibtex-biblatex",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"BibTeX",
+      "targetFormatId":"BibLaTeX",
+      "capabilityId":"bibliography-bibtex-biblatex",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.BibTex).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibLatex })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".bib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-bibtex-csl-json",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"BibTeX",
+      "targetFormatId":"CSL JSON",
+      "capabilityId":"bibliography-bibtex-csl-json",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.BibTex).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.CslJson })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".bib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-bibtex-endnote-xml",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"BibTeX",
+      "targetFormatId":"EndNote XML",
+      "capabilityId":"bibliography-bibtex-endnote-xml",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.BibTex).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.EndNoteXml })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".bib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-bibtex-nbib",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"BibTeX",
+      "targetFormatId":"NBIB/MEDLINE",
+      "capabilityId":"bibliography-bibtex-nbib",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.BibTex).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Nbib })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".bib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-bibtex-ris",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"BibTeX",
+      "targetFormatId":"RIS",
+      "capabilityId":"bibliography-bibtex-ris",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.BibTex).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Ris })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".bib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
       "id":"native:bibliography-native:create",
       "packageId":"OfficeIMO.Bibliography",
       "formatId":"Bibliography.Native",
@@ -267,6 +407,286 @@
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".bib",".json",".medline",".nbib",".ris",".xml"],
       "limitation":"Extensions identify supported bibliography codecs in this package context; generic .json and .xml files require bounded content detection and cross-format writes report loss explicitly."
+    },
+    {
+      "id":"conversion:bibliography-csl-json-biblatex",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"CSL JSON",
+      "targetFormatId":"BibLaTeX",
+      "capabilityId":"bibliography-csl-json-biblatex",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.CslJson).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibLatex })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".json"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-csl-json-bibtex",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"CSL JSON",
+      "targetFormatId":"BibTeX",
+      "capabilityId":"bibliography-csl-json-bibtex",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.CslJson).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibTex })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".json"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-csl-json-endnote-xml",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"CSL JSON",
+      "targetFormatId":"EndNote XML",
+      "capabilityId":"bibliography-csl-json-endnote-xml",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.CslJson).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.EndNoteXml })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".json"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-csl-json-nbib",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"CSL JSON",
+      "targetFormatId":"NBIB/MEDLINE",
+      "capabilityId":"bibliography-csl-json-nbib",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.CslJson).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Nbib })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".json"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-csl-json-ris",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"CSL JSON",
+      "targetFormatId":"RIS",
+      "capabilityId":"bibliography-csl-json-ris",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.CslJson).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Ris })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".json"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-endnote-xml-biblatex",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"EndNote XML",
+      "targetFormatId":"BibLaTeX",
+      "capabilityId":"bibliography-endnote-xml-biblatex",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.EndNoteXml).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibLatex })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".xml"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-endnote-xml-bibtex",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"EndNote XML",
+      "targetFormatId":"BibTeX",
+      "capabilityId":"bibliography-endnote-xml-bibtex",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.EndNoteXml).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibTex })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".xml"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-endnote-xml-csl-json",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"EndNote XML",
+      "targetFormatId":"CSL JSON",
+      "capabilityId":"bibliography-endnote-xml-csl-json",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.EndNoteXml).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.CslJson })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".xml"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-endnote-xml-nbib",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"EndNote XML",
+      "targetFormatId":"NBIB/MEDLINE",
+      "capabilityId":"bibliography-endnote-xml-nbib",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.EndNoteXml).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Nbib })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".xml"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-endnote-xml-ris",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"EndNote XML",
+      "targetFormatId":"RIS",
+      "capabilityId":"bibliography-endnote-xml-ris",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.EndNoteXml).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Ris })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".xml"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-nbib-biblatex",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"NBIB/MEDLINE",
+      "targetFormatId":"BibLaTeX",
+      "capabilityId":"bibliography-nbib-biblatex",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.Nbib).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibLatex })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".medline",".nbib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-nbib-bibtex",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"NBIB/MEDLINE",
+      "targetFormatId":"BibTeX",
+      "capabilityId":"bibliography-nbib-bibtex",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.Nbib).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibTex })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".medline",".nbib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-nbib-csl-json",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"NBIB/MEDLINE",
+      "targetFormatId":"CSL JSON",
+      "capabilityId":"bibliography-nbib-csl-json",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.Nbib).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.CslJson })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".medline",".nbib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-nbib-endnote-xml",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"NBIB/MEDLINE",
+      "targetFormatId":"EndNote XML",
+      "capabilityId":"bibliography-nbib-endnote-xml",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.Nbib).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.EndNoteXml })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".medline",".nbib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-nbib-ris",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"NBIB/MEDLINE",
+      "targetFormatId":"RIS",
+      "capabilityId":"bibliography-nbib-ris",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.Nbib).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Ris })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".medline",".nbib"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-ris-biblatex",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"RIS",
+      "targetFormatId":"BibLaTeX",
+      "capabilityId":"bibliography-ris-biblatex",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.Ris).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibLatex })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".ris"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-ris-bibtex",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"RIS",
+      "targetFormatId":"BibTeX",
+      "capabilityId":"bibliography-ris-bibtex",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.Ris).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibTex })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".ris"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-ris-csl-json",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"RIS",
+      "targetFormatId":"CSL JSON",
+      "capabilityId":"bibliography-ris-csl-json",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.Ris).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.CslJson })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".ris"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-ris-endnote-xml",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"RIS",
+      "targetFormatId":"EndNote XML",
+      "capabilityId":"bibliography-ris-endnote-xml",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.Ris).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.EndNoteXml })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".ris"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
+    },
+    {
+      "id":"conversion:bibliography-ris-nbib",
+      "packageId":"OfficeIMO.Bibliography",
+      "formatId":"RIS",
+      "targetFormatId":"NBIB/MEDLINE",
+      "capabilityId":"bibliography-ris-nbib",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"BibliographyDocument.Load(path, BibliographyFormat.Ris).Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Nbib })",
+      "evidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".ris"],
+      "limitation":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss."
     },
     {
       "id":"native:csv-native:create",
@@ -575,6 +995,48 @@
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".dbk",".docbook"],
       "limitation":"Validation covers the OfficeIMO common-structure profile rather than the complete external DTD, RELAX NG, Schematron, XInclude, or arbitrary extension schemas."
+    },
+    {
+      "id":"conversion:email-eml-msg",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"EML",
+      "targetFormatId":"MSG",
+      "capabilityId":"email-eml-msg",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load(path).Save(outputPath, EmailFileFormat.OutlookMsg)",
+      "evidence":"Cross-format EML, MSG, OFT, and TNEF fixtures verify typed message content, attachments, source selection, diagnostics, and explicit loss policy.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".eml",".mime"],
+      "limitation":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy."
+    },
+    {
+      "id":"conversion:email-eml-oft",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"EML",
+      "targetFormatId":"OFT",
+      "capabilityId":"email-eml-oft",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load(path).Save(outputPath, EmailFileFormat.OutlookTemplate)",
+      "evidence":"Cross-format EML, MSG, OFT, and TNEF fixtures verify typed message content, attachments, source selection, diagnostics, and explicit loss policy.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".eml",".mime"],
+      "limitation":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy."
+    },
+    {
+      "id":"conversion:email-eml-tnef",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"EML",
+      "targetFormatId":"TNEF",
+      "capabilityId":"email-eml-tnef",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load(path).Save(outputPath, EmailFileFormat.Tnef)",
+      "evidence":"Cross-format EML, MSG, OFT, and TNEF fixtures verify typed message content, attachments, source selection, diagnostics, and explicit loss policy.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".eml",".mime"],
+      "limitation":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy."
     },
     {
       "id":"protection:smime-envelope:email:create",
@@ -1557,6 +2019,48 @@
       "limitation":"PST creation writes a distinct destination. Mutation is a verified atomic rewrite of an existing Unicode PST; ANSI mutation, append, in-place NDB editing or repair, and password or encryption authoring are not supported. Opaque or unsupported semantics require explicit loss policy."
     },
     {
+      "id":"conversion:email-msg-eml",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"MSG",
+      "targetFormatId":"EML",
+      "capabilityId":"email-msg-eml",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load(path).Save(outputPath, EmailFileFormat.Eml)",
+      "evidence":"Cross-format EML, MSG, OFT, and TNEF fixtures verify typed message content, attachments, source selection, diagnostics, and explicit loss policy.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".msg"],
+      "limitation":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy."
+    },
+    {
+      "id":"conversion:email-msg-oft",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"MSG",
+      "targetFormatId":"OFT",
+      "capabilityId":"email-msg-oft",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load(path).Save(outputPath, EmailFileFormat.OutlookTemplate)",
+      "evidence":"Cross-format EML, MSG, OFT, and TNEF fixtures verify typed message content, attachments, source selection, diagnostics, and explicit loss policy.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".msg"],
+      "limitation":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy."
+    },
+    {
+      "id":"conversion:email-msg-tnef",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"MSG",
+      "targetFormatId":"TNEF",
+      "capabilityId":"email-msg-tnef",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load(path).Save(outputPath, EmailFileFormat.Tnef)",
+      "evidence":"Cross-format EML, MSG, OFT, and TNEF fixtures verify typed message content, attachments, source selection, diagnostics, and explicit loss policy.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".msg"],
+      "limitation":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy."
+    },
+    {
       "id":"protection:smime-envelope-msg-tnef:email:create",
       "packageId":"OfficeIMO.Email",
       "formatId":"MSG/TNEF S/MIME",
@@ -1725,6 +2229,48 @@
       "limitation":"Protected MSG/TNEF content can be inspected and verified after parsing; outbound signing creates RFC 5322/MIME bytes, not MSG or TNEF containers."
     },
     {
+      "id":"conversion:email-oft-eml",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"OFT",
+      "targetFormatId":"EML",
+      "capabilityId":"email-oft-eml",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load(path).Save(outputPath, EmailFileFormat.Eml)",
+      "evidence":"Cross-format EML, MSG, OFT, and TNEF fixtures verify typed message content, attachments, source selection, diagnostics, and explicit loss policy.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".oft"],
+      "limitation":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy."
+    },
+    {
+      "id":"conversion:email-oft-msg",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"OFT",
+      "targetFormatId":"MSG",
+      "capabilityId":"email-oft-msg",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load(path).Save(outputPath, EmailFileFormat.OutlookMsg)",
+      "evidence":"Cross-format EML, MSG, OFT, and TNEF fixtures verify typed message content, attachments, source selection, diagnostics, and explicit loss policy.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".oft"],
+      "limitation":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy."
+    },
+    {
+      "id":"conversion:email-oft-tnef",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"OFT",
+      "targetFormatId":"TNEF",
+      "capabilityId":"email-oft-tnef",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load(path).Save(outputPath, EmailFileFormat.Tnef)",
+      "evidence":"Cross-format EML, MSG, OFT, and TNEF fixtures verify typed message content, attachments, source selection, diagnostics, and explicit loss policy.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".oft"],
+      "limitation":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy."
+    },
+    {
       "id":"protection:pst-password:email:create",
       "packageId":"OfficeIMO.Email",
       "formatId":"PST",
@@ -1807,6 +2353,48 @@
       "sourceCatalog":"OfficeIMO.ProtectedContent",
       "extensions":[".pst"],
       "limitation":"PST password protection is a checksum-based access deterrent, not cryptographic encryption."
+    },
+    {
+      "id":"conversion:email-tnef-eml",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"TNEF",
+      "targetFormatId":"EML",
+      "capabilityId":"email-tnef-eml",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load(path).Save(outputPath, EmailFileFormat.Eml)",
+      "evidence":"Cross-format EML, MSG, OFT, and TNEF fixtures verify typed message content, attachments, source selection, diagnostics, and explicit loss policy.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".dat",".tnef"],
+      "limitation":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy."
+    },
+    {
+      "id":"conversion:email-tnef-msg",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"TNEF",
+      "targetFormatId":"MSG",
+      "capabilityId":"email-tnef-msg",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load(path).Save(outputPath, EmailFileFormat.OutlookMsg)",
+      "evidence":"Cross-format EML, MSG, OFT, and TNEF fixtures verify typed message content, attachments, source selection, diagnostics, and explicit loss policy.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".dat",".tnef"],
+      "limitation":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy."
+    },
+    {
+      "id":"conversion:email-tnef-oft",
+      "packageId":"OfficeIMO.Email",
+      "formatId":"TNEF",
+      "targetFormatId":"OFT",
+      "capabilityId":"email-tnef-oft",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"EmailDocument.Load(path).Save(outputPath, EmailFileFormat.OutlookTemplate)",
+      "evidence":"Cross-format EML, MSG, OFT, and TNEF fixtures verify typed message content, attachments, source selection, diagnostics, and explicit loss policy.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".dat",".tnef"],
+      "limitation":"Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy."
     },
     {
       "id":"conversion:email-jpeg",
@@ -4059,7 +4647,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Security.Encryption::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Supported encrypted XLS input can be loaded with a password. Cross-generation conversion reports that password protection is removed and blocks by default; first-party encrypted XLS authoring remains incomplete."
     },
     {
@@ -4073,7 +4661,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Analytics.Pivots::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Existing binary metadata is detected or preserved. Unsupported modern output either blocks or uses the omission-gated worksheet cell-raster fallback."
     },
     {
@@ -4087,7 +4675,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Analytics.Sparklines::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"BIFF8 has no native sparkline model. Visual modes render the complete worksheet into a palette-quantized cell raster; strict modes block."
     },
     {
@@ -4101,7 +4689,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Cells.RichText::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Common rich text is editable; unsupported phonetic and formatting variants are preserved or blocked."
     },
     {
@@ -4115,7 +4703,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Cells.Values::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4129,7 +4717,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Data.AutoFilterSort::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Supported BIFF8 filter forms are native; modern-only filters are preflight-blocked."
     },
     {
@@ -4143,7 +4731,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Data.ConditionalFormatting::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Classic rules are native; modern extension rules are approximated or blocked."
     },
     {
@@ -4157,7 +4745,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Data.Validation::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Supported rule and formula subsets are native."
     },
     {
@@ -4171,7 +4759,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Drawing.Charts::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Chart-sheet structure and supported chart visuals project through the editable model. Unsupported modern chart output either blocks or is rendered into a palette-quantized cell raster."
     },
     {
@@ -4185,7 +4773,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Drawing.ImagesShapes::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Supported legacy images project editably. Unsupported modern drawing content either blocks or is rendered into a palette-quantized cell raster; PreservationOnly can also retain the source carrier."
     },
     {
@@ -4199,7 +4787,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Embedded.OleActiveX::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Exact carrier retention is safe for unchanged or explicitly preservation-aware XLS flows; editable cross-format parity is not claimed."
     },
     {
@@ -4213,7 +4801,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Embedded.Vba::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Exact carrier retention is safe for unchanged or explicitly preservation-aware XLS flows; editable cross-format parity is not claimed."
     },
     {
@@ -4227,7 +4815,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Formatting.Styles::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Common BIFF8 style records are editable; non-representable Open XML styling blocks legacy output."
     },
     {
@@ -4241,7 +4829,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Formulas.Tokens::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"A broad tested token subset is native. Unsupported functions, token forms, and multi-cell array cases are diagnosed before output."
     },
     {
@@ -4255,7 +4843,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Lifecycle.File::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4269,7 +4857,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Lifecycle.Variants::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"All legacy variants are detected and reported. Native output is intentionally limited to XLS until each variant has a proven writer contract."
     },
     {
@@ -4283,7 +4871,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Metadata.Properties::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Supported scalar properties are native; unknown variants remain preservation-owned."
     },
     {
@@ -4297,7 +4885,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Names.DefinedNames::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4311,7 +4899,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Navigation.Hyperlinks::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4325,7 +4913,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Preservation.SourceCarrier::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Embedding is explicit because original bytes may contain macros, hidden sheets, or embedded payloads. PreservationOnly enables it automatically; callers can recover the verified payload through TryGetCompatibilitySourcePayload."
     },
     {
@@ -4339,7 +4927,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Preservation.UnknownRecords::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Exact carrier retention is safe for unchanged or explicitly preservation-aware XLS flows; editable cross-format parity is not claimed."
     },
     {
@@ -4353,7 +4941,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Print.PageSetup::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Supported printer settings and header/footer text are native; unsupported relationships are blocked."
     },
     {
@@ -4367,7 +4955,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Review.Comments::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4381,7 +4969,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Security.DigitalSignatures::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Exact carrier retention is safe for unchanged or explicitly preservation-aware XLS flows; editable cross-format parity is not claimed."
     },
     {
@@ -4395,7 +4983,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Security.Protection::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4409,7 +4997,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Structure.Geometry::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4423,7 +5011,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Structure.LegacySheetKinds::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Chart sheets project to chart-sheet parts. Macro, dialog, and unsupported sheet kinds remain explicit conversion findings."
     },
     {
@@ -4437,7 +5025,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Structure.Worksheets::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4451,7 +5039,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Security.Encryption::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Supported encrypted XLS input can be loaded with a password. Cross-generation conversion reports that password protection is removed and blocks by default; first-party encrypted XLS authoring remains incomplete."
     },
     {
@@ -4465,7 +5053,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Analytics.Pivots::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Existing binary metadata is detected or preserved. Unsupported modern output either blocks or uses the omission-gated worksheet cell-raster fallback."
     },
     {
@@ -4479,7 +5067,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Analytics.Sparklines::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"BIFF8 has no native sparkline model. Visual modes render the complete worksheet into a palette-quantized cell raster; strict modes block."
     },
     {
@@ -4493,7 +5081,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Cells.RichText::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Common rich text is editable; unsupported phonetic and formatting variants are preserved or blocked."
     },
     {
@@ -4507,7 +5095,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Cells.Values::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4521,7 +5109,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Data.AutoFilterSort::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Supported BIFF8 filter forms are native; modern-only filters are preflight-blocked."
     },
     {
@@ -4535,7 +5123,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Data.ConditionalFormatting::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Classic rules are native; modern extension rules are approximated or blocked."
     },
     {
@@ -4549,7 +5137,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Data.Validation::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Supported rule and formula subsets are native."
     },
     {
@@ -4563,7 +5151,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Drawing.Charts::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Chart-sheet structure and supported chart visuals project through the editable model. Unsupported modern chart output either blocks or is rendered into a palette-quantized cell raster."
     },
     {
@@ -4577,7 +5165,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Drawing.ImagesShapes::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Supported legacy images project editably. Unsupported modern drawing content either blocks or is rendered into a palette-quantized cell raster; PreservationOnly can also retain the source carrier."
     },
     {
@@ -4591,7 +5179,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Embedded.OleActiveX::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Exact carrier retention is safe for unchanged or explicitly preservation-aware XLS flows; editable cross-format parity is not claimed."
     },
     {
@@ -4605,7 +5193,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Embedded.Vba::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Exact carrier retention is safe for unchanged or explicitly preservation-aware XLS flows; editable cross-format parity is not claimed."
     },
     {
@@ -4619,7 +5207,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Formatting.Styles::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Common BIFF8 style records are editable; non-representable Open XML styling blocks legacy output."
     },
     {
@@ -4633,7 +5221,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Formulas.Tokens::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"A broad tested token subset is native. Unsupported functions, token forms, and multi-cell array cases are diagnosed before output."
     },
     {
@@ -4647,7 +5235,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Lifecycle.File::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4661,7 +5249,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Lifecycle.Variants::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"All legacy variants are detected and reported. Native output is intentionally limited to XLS until each variant has a proven writer contract."
     },
     {
@@ -4675,7 +5263,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Metadata.Properties::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Supported scalar properties are native; unknown variants remain preservation-owned."
     },
     {
@@ -4689,7 +5277,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Names.DefinedNames::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4703,7 +5291,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Navigation.Hyperlinks::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4717,7 +5305,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Preservation.SourceCarrier::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Embedding is explicit because original bytes may contain macros, hidden sheets, or embedded payloads. PreservationOnly enables it automatically; callers can recover the verified payload through TryGetCompatibilitySourcePayload."
     },
     {
@@ -4731,7 +5319,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Preservation.UnknownRecords::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Exact carrier retention is safe for unchanged or explicitly preservation-aware XLS flows; editable cross-format parity is not claimed."
     },
     {
@@ -4745,7 +5333,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Print.PageSetup::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Supported printer settings and header/footer text are native; unsupported relationships are blocked."
     },
     {
@@ -4759,7 +5347,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Review.Comments::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4773,7 +5361,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Security.DigitalSignatures::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Exact carrier retention is safe for unchanged or explicitly preservation-aware XLS flows; editable cross-format parity is not claimed."
     },
     {
@@ -4787,7 +5375,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Security.Protection::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4801,7 +5389,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Structure.Geometry::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -4815,7 +5403,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Structure.LegacySheetKinds::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":"Chart sheets project to chart-sheet parts. Macro, dialog, and unsupported sheet kinds remain explicit conversion findings."
     },
     {
@@ -4829,7 +5417,7 @@
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Xls.Structure.Worksheets::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
-      "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
+      "extensions":[".xls"],
       "limitation":""
     },
     {
@@ -6861,6 +7449,20 @@
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
       "limitation":"Interactive workbook behavior, charts, pivots, macros, and exact print layout are not represented in semantic HTML."
+    },
+    {
+      "id":"conversion:numbers-xlsx",
+      "packageId":"OfficeIMO.Excel.IWork",
+      "formatId":"Numbers",
+      "targetFormatId":"XLSX",
+      "capabilityId":"numbers-xlsx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"ExcelIWorkConverter.ConvertNumbersToExcelResult(path, readOptions, conversionOptions)",
+      "evidence":"Pinned Pages, Numbers, and Keynote fixtures verify bounded package inspection, typed projection, editable Office reconstruction, visual fallbacks, preserved records, and conversion reports.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".numbers"],
+      "limitation":"Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence."
     },
     {
       "id":"conversion:ods-xlsx",
@@ -11619,7 +12221,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.AccessibilityMetadata::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"OfficeArt object names and descriptions decode and project to native non-visual metadata for supported slide, master, layout, group, connector, picture, media, OLE, and converted static-visual shapes. Fresh PPT/POT/PPS writing and preservation-aware imported edits add, replace, or remove the native Unicode name and description properties while retaining unrelated OfficeArt properties. Modern accessibility titles and decorative state have no classic binary representation and are explicitly loss-blocked."
     },
     {
@@ -11633,7 +12235,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Actions::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"InteractiveInfoAtom click and mouse-over records decode to typed action metadata. Built-in slide-show jumps, macro names, program targets, named custom shows with show-and-return, animated-highlight state, stop-sound state, and referenced embedded sounds project and write natively, including preservation-aware add/edit/remove. Legacy OLE or media activation and visited-state behavior remain preserve-only; Open XML actions without an exact classic action are explicitly loss-blocked."
     },
     {
@@ -11647,7 +12249,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ActiveX::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"ExControlContainer metadata, ExObjRefAtom shape references, optional icon metafile, and compressed or uncompressed ExControlStg records decode to a typed neutral model with exact Office Forms storage bytes. No-op saves and unrelated supported binary edits retain the source records and storage exactly. Control authoring, property editing, and Open XML projection remain loss-blocked until the binary control state can be mapped without changing behavior."
     },
     {
@@ -11661,7 +12263,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Animations::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"The complete 28-byte AnimationInfoAtom decodes to the typed binary model, including flags, sound reference, delay, order, slide count, build type, classic effect and direction, after-effect, text subdivision, OLE verb, raw dim color, and reserved trailing bytes. Supported top-level shape animations project to editable PresentationML timing, write natively to PPT/POT/PPS, and can be added, replaced, or removed through preservation-aware incremental records with shared embedded sounds. Recognizable PPTX entrance animEffect/bldP sequences—including PowerPoint's visibility-set scaffold—convert to the exact classic subset. With-previous concurrency, exit/emphasis effects, motion paths, arbitrary property/color/scale/rotation/set/command behavior, media timing, custom after-effect trees, and other modern timing semantics are explicitly loss-blocked; inline sound overrides and imported group-child animation edits remain preservation-guarded until their owning media and group paths are implemented."
     },
     {
@@ -11675,7 +12277,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.AutoShapes::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"OfficeArt preset geometry with a DrawingML equivalent is projected as an editable native shape, including arrows, callouts, flowcharts, ribbons, stars, and action buttons. Fresh PPT/POT/PPS writing maps the canonical classic preset families back to native OfficeArt shape types. All eight signed adjustment slots are decoded without losing their shape-specific meaning; exact round-rectangle and donut adjustments project, author, and edit natively. Unmodified imported geometry is byte-preserved, and supported transform or style edits retain it. Other edited preset adjustments, custom geometry, text warps, and DrawingML-only presets are explicitly loss-blocked to prevent silent geometry changes."
     },
     {
@@ -11689,7 +12291,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Backgrounds::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"OfficeArt background shapes are distinguished from normal drawing content. Solid, no-fill, inherited, multi-stop linear/path gradient, texture, and picture backgrounds project to native Open XML fills on slides and all master types. Fresh PPT/POT/PPS writing emits explicit solid, no-fill, multi-stop linear, scaled, centered-path, and shape-path gradients plus stretched embedded raster or metafile picture backgrounds on slides, notes pages, main masters, notes masters, and handout masters. Picture backgrounds share the document BLIP catalog, deduplicate identical payloads, and materialize layout backgrounds onto each affected slide. The classic foreground/background opacity ramp preserves linearly interpolated gradient-stop opacity. Supported imported slide, notes-page, main-, title-, notes-, and handout-master background edits, including stretched picture additions, replacements, and removals, append preservation-aware records. Picture edits retain the original document and Pictures streams as exact prefixes, balance existing BLIP reference counts, and append deduplicated delayed BLIPs; ordinary PPTX-layout background edits materialize into every affected imported slide. Gradient focus, custom path rectangles, non-linear stop opacity, pattern fills, tiled or cropped pictures, picture effects, and exact texture semantics without a safe classic mapping are explicitly loss-blocked during conversion."
     },
     {
@@ -11703,7 +12305,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.BuiltInProperties::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"SummaryInformation and DocumentSummaryInformation project title, subject, creator, keywords, description, category, revision, edit/print/create/modified times, application, presentation format, slide/note/hidden counts, manager, and company to the normal package and application-property surfaces. Fresh PPT/POT/PPS writing emits Unicode property sets. Supported imported edits replace only the owning compound stream; unrelated binary edits retain unknown properties byte-for-byte, while a metadata edit that would discard an unknown property id or type is loss-blocked."
     },
     {
@@ -11717,7 +12319,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.BulletsAndNumbering::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Base character bullets project and write native enabled/disabled state, glyph, resolved font and color, relative or point size, level, and ruler indentation. PPT9 StyleTextProp9Atom and TextMasterStyle9Atom extensions decode and author all 41 classic automatic-numbering schemes with exact start values. PPT9 picture-bullet collections and references import and author with exact image bytes. Fresh files and append-only imported shape or supported main-master edits support bullet or numbering add, change, and removal while preserving unrelated programmable-tag data."
     },
     {
@@ -11731,7 +12333,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Charts::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Supported editable DrawingML charts convert explicitly to deterministic static PNG picture frames through the shared OfficeIMO chart renderer. Default saving is blocked by PPT-WRITE-CHART-CONVERTED until PowerPointSaveOptions.LossPolicy is Allow; converted files preserve chart bounds and visible data but not chart editability or the embedded workbook. Existing legacy Microsoft Graph objects remain preserve-only through the embedded-OLE lane; editable Graph import and direct native Graph authoring are explicitly outside the conversion contract and structural edits are loss-blocked."
     },
     {
@@ -11745,7 +12347,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ColorSchemes::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"All eight classic scheme colors decode and map consistently between binary background/text/shadow/title/fill/accent slots and Open XML Light1/Dark1/Accent4/Dark2/Light2/Accent1/Accent2/Accent3. Fresh PPT/POT/PPS writing emits a distinct native classic scheme for every referenced master plus slide and notes-page color overrides, and no-op imported saves preserve original scheme records. The DrawingML round-trip theme extension preserves PPTX Accent5, Accent6, hyperlink, and followed-hyperlink colors exactly while retaining the classic eight-color fallback. Imported main-, title-, notes-, handout-master, and existing slide or notes-page theme color edits append synchronized native classic and DrawingML scheme records; ordinary layout color overrides materialize into affected slides."
     },
     {
@@ -11759,7 +12361,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Comments::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"PowerPoint 2000-2003 PP10 comments decode with author, initials, text, index, UTC creation time, and master-unit position. Classic comments project editably, write natively to PPT/POT/PPS, and imported additions, edits, and removals append preservation-aware slide records without replacing unrelated PP10 tag data."
     },
     {
@@ -11773,7 +12375,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Connectors::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Straight, bent, and curved OfficeArt connectors are projected as native editable connection shapes. Fresh unattached connectors write native OfficeArt geometry, transforms, line styling, and arrowheads. Solver rules preserve imported start/end shape attachments and connection-site indexes, while supported top-level transform and style edits append preservation-aware records. Fresh or edited attachment rules are explicitly loss-blocked because emitting a different binary solver graph could silently change connectivity."
     },
     {
@@ -11787,7 +12389,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.CustomProperties::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"UserDefinedProperties dictionaries and text, Boolean, date/time, floating-point, signed/unsigned integer, and binary values project to the native Open XML custom-properties part and write to fresh PPT/POT/PPS files. Supported imported add/edit/remove operations rewrite only DocumentSummaryInformation; unrecognized property sections or variants remain byte-preserved for unrelated edits and loss-block metadata changes."
     },
     {
@@ -11801,7 +12403,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.CustomShows::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"NamedShows records decode to typed ordered slide-id sequences and project to native custom-show lists. Fresh PPT/POT/PPS writing and imported add/edit/remove preserve custom-show membership and identity incrementally. Custom-show actions, including show-and-return, project and round-trip natively."
     },
     {
@@ -11815,7 +12417,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.CustomXml::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"PowerPoint 97-2003 has no equivalent package-part representation."
     },
     {
@@ -11829,7 +12431,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.DigitalSignatures::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"The root _signatures stream and complete _xmlsignatures storage are detected and reported. Exact no-op saves preserve the signed package byte-for-byte. Edited binary saves block by default; callers can explicitly retain the invalidated carrier for preservation-aware edits or remove both carriers. Creating signatures and translating Open XML signatures into the binary formats are outside the writer contract."
     },
     {
@@ -11843,7 +12445,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.EmbeddedOle::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"ExOleEmbedContainer metadata, ExObjRefAtom shape references, and compressed or uncompressed ExOleObjStg records decode to an editable PowerPointOleObject with exact compound-storage bytes. Fresh PPT/POT/PPS writing emits native embedded-object metadata, storage, shape references, and embedded raster or metafile preview images through the shared BLIP catalog, including supported crop and picture effects. Imported geometry, ProgID, icon/content view, color-follow, and storage replacement use preservation-aware incremental records while untouched metadata, preview pictures, compound streams, and compressed source records remain exact. Malformed storage, unsupported related parts, linked previews, and non-representable preview metadata are loss-blocked rather than silently discarded."
     },
     {
@@ -11857,7 +12459,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.EmbeddedVideo::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"PowerPoint 97-2003 has path-based AVI and MCI movie objects but no native embedded-video payload representation; implicit extraction to an external path is deliberately loss-blocked."
     },
     {
@@ -11871,7 +12473,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Encryption::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Password-protected PPT/POT/PPS files decode and encode through the normal detached encrypted-load/save APIs. The Current User token, canonical single UserEdit and PersistDirectory records, CryptSession10Container, per-persist-object keys, and field-scoped Pictures transforms follow the binary PowerPoint encryption contract. SHA-1 RC4 CryptoAPI keys from 40 through 128 bits are supported. EncryptedSummary document properties are restored on import and encrypted by default on save; callers can explicitly retain clear-text properties for compatibility. RC4 CryptoAPI is provided only for legacy interoperability and is not a modern security choice. Cross-generation conversion reports that password protection is removed and blocks by default; callers must explicitly select a loss policy and re-encrypt the modern output when confidentiality must continue."
     },
     {
@@ -11885,7 +12487,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.FileLifecycle::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":""
     },
     {
@@ -11899,7 +12501,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.FileVariants::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":""
     },
     {
@@ -11913,7 +12515,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Groups::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Nested OfficeArt group hierarchies and child coordinate systems project as native editable Open XML groups. Fresh PPT/POT/PPS writing emits real nested group containers, group coordinate records, child anchors, and recursively cataloged pictures and interactions. Imported outer or child bounds, rotation, flips, visual style, supported geometry adjustments, and group-coordinate edits append preservation-aware records. Imported reparenting, child addition or removal, and explicit z-order changes remain loss-blocked."
     },
     {
@@ -11927,7 +12529,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.HeadersAndFooters::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Document slide defaults, notes/handout defaults, main-master and per-slide overrides decode with all six flags, date format ids, and fixed strings. Native Open XML master/layout settings project back to binary PPT/POT/PPS. Imported per-slide flag and text edits append preservation-aware records; edits to shared binary master/default scopes remain loss-blocked."
     },
     {
@@ -11941,7 +12543,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Hyperlinks::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"ExObjList, ExHyperlink, and PP9 ExHyperlink9 records decode to typed external and internal-slide targets plus screen tips. Shape and text click/hover interactions write to fresh PPT/POT/PPS files and support preservation-aware add/edit/remove, retargeting, slide reordering, and appended slides. Binary-only extension flags remain preserved when untouched. Target frames and richer Open XML hyperlink metadata without a classic representation are explicitly loss-blocked during conversion."
     },
     {
@@ -11955,7 +12557,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Layouts::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"All 14 SlideLayoutType values and their eight-slot placeholder signatures decode to typed metadata and distinct native Open XML layouts under the referenced master. Supported PPTX layouts write native binary hints for fresh and incrementally appended slides. Layout placeholder geometry, supported decorative shapes, backgrounds, and theme overrides are materialized into each owning binary slide when not overridden, preserving the visible layout despite the classic format having no independent PPTX-style layout persist object. Imported ordinary-layout type changes update each affected SlideAtom; newly added supported layout shapes and placeholders append native OfficeArt shape containers to every affected existing slide while retaining original shape records and drawing-cluster integrity. Imported layout background or theme edits likewise append one updated persist object per affected slide. Slide, title-layout, and notes-page master-shape visibility maps to schema-valid root attributes and native inheritance flags, including preservation-aware imported edits. Exact layouts projected from independent binary title-master persist objects support preservation-aware shape, theme, color-scheme, background, and visibility edits. Picture-bearing ordinary layouts without an owning slide, relationship-bearing layout additions, mutations or removals of pre-existing synthetic ordinary-layout shapes, and unsupported richer layout objects are explicitly loss-blocked."
     },
     {
@@ -11969,7 +12571,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.LinkedMedia::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"AVI, MCI movie, MIDI, linked WAV, and CD-audio containers decode to typed path, device-range, and playback metadata. Their source records and visible preview remain preservation-aware, while authoring and Open XML conversion are loss-blocked because external path, codec, and device semantics are not safely portable."
     },
     {
@@ -11983,7 +12585,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.LinkedOle::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"ExOleLinkContainer metadata, ExObjRefAtom shape references, automatic or manual update mode, optional icon metafile, and compressed or uncompressed ExOleObjStg cache records decode to a typed neutral model with exact compound-storage bytes. No-op saves and unrelated supported binary edits retain the source records and storage exactly. New linked-object authoring and projection to Open XML remain loss-blocked because the external moniker and cached native state cannot yet be mapped safely."
     },
     {
@@ -11997,7 +12599,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Masters::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Main and title master records, supported shapes, and title/body/other text styles through five levels are projected into native master/layout parts, including PPT9 automatic-numbering defaults. Fresh binary writing emits the referenced Open XML slide-master, notes-master, and handout-master topology; exact supported main-, notes-, and handout-master text, AutoShape, connector, group, and raster/metafile picture drawings; context-specific placeholder kinds; base and PPT9 title/body/other text-style atoms; referenced font-collection entries; and matching OfficeArt drawing-cluster counts. Imported supported main-master text-style edits append preservation-aware base and PPT9 records while retaining other text categories and unrelated programmable tags. Imported main-, title-, notes-, and handout-master position, size, and structurally plain text edits likewise append preservation-aware master persist objects. Binary title masters map to exact named layout parts and support preservation-aware shape, theme, color-scheme, background, and parent-master-shape visibility edits. Unsupported master objects, rich shape styling, interactions, transitions, timing, and unprojected later-version style fields are loss-blocked. Fresh authoring allocates slide-master, notes-master, slide, notes-page, and handout persist and drawing identifiers dynamically up to the binary format's persist-directory and OfficeArt limits. DocumentAtom notes and handout master references, schemes, shapes, placeholders, and connector rules project into native notesMaster and handoutMaster parts."
     },
     {
@@ -12011,7 +12613,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Media::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"ExWAVAudioEmbeddedContainer and ExMediaAtom records resolve document SoundCollection WAV payloads into editable PowerPointMedia audio shapes with exact bytes, duration, and geometry. Fresh PPT/POT/PPS authoring and PPTX conversion emit native media objects and deduplicate their sound data with transitions and actions. Imported position and size edits append preservation-aware records; payload replacement and loop, rewind, or narration edits remain loss-blocked."
     },
     {
@@ -12025,7 +12627,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.MetafilePictures::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Shared OfficeArt decoding extracts compressed and uncompressed WMF/EMF payloads for editable image projection. Fresh PPT/POT/PPS writing emits standards-compliant zlib-compressed OfficeArt metafile BLIPs in the delayed Pictures stream, including source bounds and render dimensions parsed from EMF or placeable-WMF headers. Imported geometry edits and no-op saves preserve source content; imported image replacement and non-placeable WMF authoring remain loss-blocked."
     },
     {
@@ -12039,7 +12641,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ModernComments::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"PowerPoint 97-2003 has no native threaded-comment model; conversion is explicitly loss-blocked."
     },
     {
@@ -12053,7 +12655,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ParagraphFormatting::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."
     },
     {
@@ -12067,7 +12669,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.PictureCrop::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"All four signed OfficeArt crop edges decode as 16.16 image fractions and project natively for slide, master, layout, and grouped pictures, including negative crop-out values. Fresh pictures and preservation-aware imported edits write the same crop properties. Brightness, contrast, grayscale, classic 50-percent bi-level, transparent-color, and whole-picture recolor state project as native DrawingML effects and write back through primary or tertiary OfficeArt properties. Arbitrary bi-level thresholds and other DrawingML effect sequences remain loss-blocked."
     },
     {
@@ -12081,7 +12683,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Placeholders::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"PlaceholderAtom position, all legacy kinds, full/half/quarter size, and vertical orientation project to native placeholder index/type/size/orientation on masters, generated layouts, and slides. Fresh main-, notes-, and handout-master drawings plus fresh or incrementally appended binary slides encode the corresponding context-specific placeholder kinds and fields. Supported identity, type, size, orientation, addition, and removal edits on imported slide and main-, title-, notes-, or handout-master placeholders append preservation-aware client-data and layout-signature updates; custom prompts and context-incompatible vertical kinds are loss-blocked. Object payloads are tracked by their separate capability rows."
     },
     {
@@ -12095,7 +12697,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.PlainText::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Unicode and byte text project editably, write natively for fresh PPT/POT/PPS files and appended slides, and support arbitrary-length preservation-aware edits. Text bodies with unprojected or malformed style structures are retained for unrelated edits and explicitly loss-blocked for text replacement."
     },
     {
@@ -12109,7 +12711,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Preservation.SourceCarrier::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Embedding is explicit because original presentations may contain macros, embedded objects, linked content, or hidden data. PreservationOnly enables it automatically; callers can recover the verified payload through TryGetCompatibilitySourcePayload."
     },
     {
@@ -12123,7 +12725,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.RasterPictures::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Shared OfficeArt decoding resolves embedded and delayed picture stores, normalizes DIB data to BMP, and projects referenced slide, master, layout, and grouped pictures as editable Open XML image parts. Fresh PPT/POT/PPS writing embeds PNG, JPEG, BMP/DIB, and TIFF BLIPs, deduplicates identical payloads with accurate reference counts, and writes top-level or grouped picture frames natively on slides plus main, notes, and handout masters; referenced ordinary-layout pictures materialize into each affected slide, while unused picture-bearing layouts are loss-blocked. Fresh pictures and imported slide pictures write supported transform, frame style, crop, brightness, contrast, grayscale, classic bi-level, transparent-color, recolor, protection-lock, and simple shadow properties. Imported image replacement, linked images, unsupported effect sequences or vector formats, and picture additions to exact imported binary title masters remain loss-blocked."
     },
     {
@@ -12137,7 +12739,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.RichNotes::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"NotesAtom inheritance, schemes, backgrounds, placeholders, rich text, supported drawings, pictures, groups, and connector rules project into native notesSlide parts. Fresh binary notes-page theme overrides, classic color fallbacks, and supported backgrounds write natively; imported theme, classic-color, background, and structurally plain body-text edits compose into preservation-aware records. Speaker-note text has its own fully native capability lane. Fresh arbitrary notes-page drawings and broader notes drawing or rich-format edits are explicitly loss-blocked rather than silently omitted."
     },
     {
@@ -12151,7 +12753,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.RichText::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"StyleTextPropAtom character runs and base TextMasterStyleAtom defaults project bold, italic, underline, point size, direct or mapped scheme color, baseline position, and document font-collection typefaces natively. TextSpecialInfoAtom runs project and write stable primary and alternate language LCIDs, no-proofing, spelling-error, and recheck state on text and paragraph-end markers. Fresh slide and master text plus appended slides write the same fields and add referenced document-font entries. Supported imported run formatting, language, proofing, and length edits append replacement style and special-info records while preserving unrelated records. Embedded font programs, later-version style extensions, smart tags, grammar-only flags, bidirectional analysis flags, transient LCIDs, mixed explicit no-language ranges, and legacy-only character effects remain preserve-only and are loss-blocked when an edit would replace them."
     },
     {
@@ -12165,7 +12767,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Sections::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"PowerPoint 97-2003 has no native section model."
     },
     {
@@ -12179,7 +12781,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ShapeEffects::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Enabled offset shadows project as native DrawingML outer shadows with resolved color, opacity, signed direction, distance, and available softness. Fresh shapes and supported imported edits write or clear one RGB outer shadow with opacity, distance, direction, and softness while preserving unrelated OfficeArt properties. Double, rich, shape, drawing-plane, emboss/engrave, scaled or skewed, rotating, group-level, glow, reflection, soft-edge, and multiple DrawingML effects without a classic equivalent are explicitly loss-blocked."
     },
     {
@@ -12193,7 +12795,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ShapeStyles::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Shared OfficeArt FOPT decoding projects explicit solid RGB and scheme fills plus linear, scaled, centered-path, shape-path, and title gradients with resolved endpoint or multi-stop colors, opacity ramps, and page-oriented angles. Fill visibility, per-shape hidden state, line width, preset dashes, joins, caps, arrowheads, and offset-shadow style also project natively. Fresh shapes and supported imported slide, group-child, and master edits write solid RGB or no-fill state, per-shape hidden state, fill and line opacity, outline width, dash, join, cap, and arrowhead type and dimensions natively while retaining unrelated source properties. Gradient authoring or editing, focused or custom-path gradients, theme-referenced colors, patterns, image fills, group defaults, and richer DrawingML style references without an exact classic mapping are explicitly loss-blocked."
     },
     {
@@ -12207,7 +12809,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ShapeTransforms::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Position, size, clockwise rotation, and horizontal or vertical mirroring are projected for mapped shapes, pictures, connectors, and nested groups. Fresh slide, master, and nested child shapes write native OfficeArt anchors, rotation, and flip flags. Imported slide, supported master, group, and child transform edits append incremental FSP, FOPT, anchor, child-anchor, and group-coordinate records while preserving unrelated rich properties. Reparenting and explicit z-order edits remain loss-blocked."
     },
     {
@@ -12221,7 +12823,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.SlideOrder::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":""
     },
     {
@@ -12235,7 +12837,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.SlideSize::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":""
     },
     {
@@ -12249,7 +12851,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.SlideVisibility::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":""
     },
     {
@@ -12263,7 +12865,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Slides::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":""
     },
     {
@@ -12277,7 +12879,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.SmartArt::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Readable SmartArt node data maps to the shared semantic process, hierarchy, or cycle diagram contract and converts explicitly to a deterministic static PNG picture frame. Unknown SmartArt layout categories use the process approximation while retaining node order. Default saving is blocked by PPT-WRITE-SMARTART-CONVERTED until PowerPointSaveOptions.LossPolicy is Allow; the converted visual preserves bounds and node text but not SmartArt structure or editability. Legacy binary diagram records are preserve-only; editable legacy diagram projection and direct native diagram authoring are explicitly loss-blocked."
     },
     {
@@ -12291,7 +12893,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.SpeakerNotes::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"SlideAtom notes identifiers resolve through NotesPersistAtom entries to typed NotesContainer pages. Plain note text projects editably, fresh PPT/POT/PPS writing emits native notes directories and persist objects, and structurally plain imported note edits append preservation-aware records. Length-changing edits to styled note bodies remain loss-blocked."
     },
     {
@@ -12305,7 +12907,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Tables::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"OfficeArt table groups project as editable DrawingML tables with semantic rows, columns, cell text, rich runs, hyperlinks, explicit RGB fills and borders, dimensions, and drawing order. Fresh PPT/POT/PPS writing and PPTX conversion emit native editable OfficeArt table groups rather than PNG fallbacks. Merged-cell writing and table-style features without an exact classic representation are explicitly loss-blocked; imported merged cells can still project when their native cell geometry exposes the complete grid."
     },
     {
@@ -12319,7 +12921,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.TextAutoFit::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Classic OfficeArt text insets, square or no wrapping, vertical anchoring, horizontal/vertical/vertical-270 flow, explicit no-autofit, and resize-shape-to-fit-text project, author, and edit natively. DrawingML shrink-text normal autofit, including font-scale and line-space-reduction options, has no lossless classic binary PowerPoint mapping and is explicitly loss-blocked during PPTX conversion."
     },
     {
@@ -12333,7 +12935,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Themes::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"PowerPoint 2007+ RoundTripTheme12Atom OPC packages and RoundTripColorMapping12Atom XML decode to a typed full-theme model and project to native theme or theme-override parts on main, title, notes, handout, slide, layout, and notes-page scopes. Fresh PPT/POT/PPS writing emits deterministic full DrawingML theme packages and color mappings, preserving all twelve colors, font schemes, fill/line/effect schemes, object defaults, and theme overrides; slide and notes-page color overrides also emit and select a synchronized classic eight-color fallback. Unmodified imported theme records are byte-preserved. Imported main-, title-, notes-, and handout-master theme edits plus edits to existing imported slide and notes-page theme overrides append preservation-aware persist objects while retaining unrelated source records and synchronizing changed classic fallback colors. Ordinary imported layout theme overrides materialize into every affected slide."
     },
     {
@@ -12347,7 +12949,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.TransitionAndActionSounds::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"SoundCollection, Sound, sound-name, extension, identifier, built-in identifier, and data-blob records decode to one shared typed sound library. Transition and shape/text click or hover references project through deduplicated Open XML audio relationships. Fresh writing and incremental add/replace edits retain stable identifiers and exact audio bytes. PPTX sources using non-WAV/AIFF audio or built-in=true without an unambiguous imported numeric ID are explicitly loss-blocked."
     },
     {
@@ -12361,7 +12963,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Transitions::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Every PowerPoint 97-2003 transition effect and valid direction projects to an exact editable PresentationML transition, including cut/fade-through-black variants, wheel spoke counts, and all directional effects. Fresh PPT/POT/PPS writing and preservation-aware imported edits encode the full classic effect table, all three legacy speeds, click advance, timed advance, and transition sound actions. Modern transitions without a binary equivalent are loss-blocked."
     },
     {
@@ -12375,7 +12977,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.UnknownRecordsAndStreams::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"No-op saves retain the exact package. Supported mapped slide, master, layout, text, drawing, interaction, notes, theme, property, OLE, VBA, and security-policy edits append a UserEdit or replace only the owning compound stream while preserving untouched records, storages, and streams. Any edit whose owning record family cannot be isolated safely is explicitly loss-blocked."
     },
     {
@@ -12389,7 +12991,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.VbaProjects::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"VBAInfoContainer references and compressed or uncompressed VbaProjectStg records decode to the normal Open XML VbaProjectPart. Fresh PPT/POT/PPS writing emits the native uncompressed structured-storage form. Unmodified imported projects retain their exact source record bytes; project replacement, addition, and removal use preservation-aware incremental persist records while retaining unrelated compound streams. Malformed projects and Open XML VBA projects with related signature or data parts remain loss-blocked."
     },
     {
@@ -12403,7 +13005,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.AccessibilityMetadata::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"OfficeArt object names and descriptions decode and project to native non-visual metadata for supported slide, master, layout, group, connector, picture, media, OLE, and converted static-visual shapes. Fresh PPT/POT/PPS writing and preservation-aware imported edits add, replace, or remove the native Unicode name and description properties while retaining unrelated OfficeArt properties. Modern accessibility titles and decorative state have no classic binary representation and are explicitly loss-blocked."
     },
     {
@@ -12417,7 +13019,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Actions::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"InteractiveInfoAtom click and mouse-over records decode to typed action metadata. Built-in slide-show jumps, macro names, program targets, named custom shows with show-and-return, animated-highlight state, stop-sound state, and referenced embedded sounds project and write natively, including preservation-aware add/edit/remove. Legacy OLE or media activation and visited-state behavior remain preserve-only; Open XML actions without an exact classic action are explicitly loss-blocked."
     },
     {
@@ -12431,7 +13033,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ActiveX::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"ExControlContainer metadata, ExObjRefAtom shape references, optional icon metafile, and compressed or uncompressed ExControlStg records decode to a typed neutral model with exact Office Forms storage bytes. No-op saves and unrelated supported binary edits retain the source records and storage exactly. Control authoring, property editing, and Open XML projection remain loss-blocked until the binary control state can be mapped without changing behavior."
     },
     {
@@ -12445,7 +13047,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Animations::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"The complete 28-byte AnimationInfoAtom decodes to the typed binary model, including flags, sound reference, delay, order, slide count, build type, classic effect and direction, after-effect, text subdivision, OLE verb, raw dim color, and reserved trailing bytes. Supported top-level shape animations project to editable PresentationML timing, write natively to PPT/POT/PPS, and can be added, replaced, or removed through preservation-aware incremental records with shared embedded sounds. Recognizable PPTX entrance animEffect/bldP sequences—including PowerPoint's visibility-set scaffold—convert to the exact classic subset. With-previous concurrency, exit/emphasis effects, motion paths, arbitrary property/color/scale/rotation/set/command behavior, media timing, custom after-effect trees, and other modern timing semantics are explicitly loss-blocked; inline sound overrides and imported group-child animation edits remain preservation-guarded until their owning media and group paths are implemented."
     },
     {
@@ -12459,7 +13061,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.AutoShapes::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"OfficeArt preset geometry with a DrawingML equivalent is projected as an editable native shape, including arrows, callouts, flowcharts, ribbons, stars, and action buttons. Fresh PPT/POT/PPS writing maps the canonical classic preset families back to native OfficeArt shape types. All eight signed adjustment slots are decoded without losing their shape-specific meaning; exact round-rectangle and donut adjustments project, author, and edit natively. Unmodified imported geometry is byte-preserved, and supported transform or style edits retain it. Other edited preset adjustments, custom geometry, text warps, and DrawingML-only presets are explicitly loss-blocked to prevent silent geometry changes."
     },
     {
@@ -12473,7 +13075,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Backgrounds::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"OfficeArt background shapes are distinguished from normal drawing content. Solid, no-fill, inherited, multi-stop linear/path gradient, texture, and picture backgrounds project to native Open XML fills on slides and all master types. Fresh PPT/POT/PPS writing emits explicit solid, no-fill, multi-stop linear, scaled, centered-path, and shape-path gradients plus stretched embedded raster or metafile picture backgrounds on slides, notes pages, main masters, notes masters, and handout masters. Picture backgrounds share the document BLIP catalog, deduplicate identical payloads, and materialize layout backgrounds onto each affected slide. The classic foreground/background opacity ramp preserves linearly interpolated gradient-stop opacity. Supported imported slide, notes-page, main-, title-, notes-, and handout-master background edits, including stretched picture additions, replacements, and removals, append preservation-aware records. Picture edits retain the original document and Pictures streams as exact prefixes, balance existing BLIP reference counts, and append deduplicated delayed BLIPs; ordinary PPTX-layout background edits materialize into every affected imported slide. Gradient focus, custom path rectangles, non-linear stop opacity, pattern fills, tiled or cropped pictures, picture effects, and exact texture semantics without a safe classic mapping are explicitly loss-blocked during conversion."
     },
     {
@@ -12487,7 +13089,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.BuiltInProperties::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"SummaryInformation and DocumentSummaryInformation project title, subject, creator, keywords, description, category, revision, edit/print/create/modified times, application, presentation format, slide/note/hidden counts, manager, and company to the normal package and application-property surfaces. Fresh PPT/POT/PPS writing emits Unicode property sets. Supported imported edits replace only the owning compound stream; unrelated binary edits retain unknown properties byte-for-byte, while a metadata edit that would discard an unknown property id or type is loss-blocked."
     },
     {
@@ -12501,7 +13103,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.BulletsAndNumbering::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Base character bullets project and write native enabled/disabled state, glyph, resolved font and color, relative or point size, level, and ruler indentation. PPT9 StyleTextProp9Atom and TextMasterStyle9Atom extensions decode and author all 41 classic automatic-numbering schemes with exact start values. PPT9 picture-bullet collections and references import and author with exact image bytes. Fresh files and append-only imported shape or supported main-master edits support bullet or numbering add, change, and removal while preserving unrelated programmable-tag data."
     },
     {
@@ -12515,7 +13117,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Charts::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Supported editable DrawingML charts convert explicitly to deterministic static PNG picture frames through the shared OfficeIMO chart renderer. Default saving is blocked by PPT-WRITE-CHART-CONVERTED until PowerPointSaveOptions.LossPolicy is Allow; converted files preserve chart bounds and visible data but not chart editability or the embedded workbook. Existing legacy Microsoft Graph objects remain preserve-only through the embedded-OLE lane; editable Graph import and direct native Graph authoring are explicitly outside the conversion contract and structural edits are loss-blocked."
     },
     {
@@ -12529,7 +13131,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ColorSchemes::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"All eight classic scheme colors decode and map consistently between binary background/text/shadow/title/fill/accent slots and Open XML Light1/Dark1/Accent4/Dark2/Light2/Accent1/Accent2/Accent3. Fresh PPT/POT/PPS writing emits a distinct native classic scheme for every referenced master plus slide and notes-page color overrides, and no-op imported saves preserve original scheme records. The DrawingML round-trip theme extension preserves PPTX Accent5, Accent6, hyperlink, and followed-hyperlink colors exactly while retaining the classic eight-color fallback. Imported main-, title-, notes-, handout-master, and existing slide or notes-page theme color edits append synchronized native classic and DrawingML scheme records; ordinary layout color overrides materialize into affected slides."
     },
     {
@@ -12543,7 +13145,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Comments::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"PowerPoint 2000-2003 PP10 comments decode with author, initials, text, index, UTC creation time, and master-unit position. Classic comments project editably, write natively to PPT/POT/PPS, and imported additions, edits, and removals append preservation-aware slide records without replacing unrelated PP10 tag data."
     },
     {
@@ -12557,7 +13159,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Connectors::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Straight, bent, and curved OfficeArt connectors are projected as native editable connection shapes. Fresh unattached connectors write native OfficeArt geometry, transforms, line styling, and arrowheads. Solver rules preserve imported start/end shape attachments and connection-site indexes, while supported top-level transform and style edits append preservation-aware records. Fresh or edited attachment rules are explicitly loss-blocked because emitting a different binary solver graph could silently change connectivity."
     },
     {
@@ -12571,7 +13173,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.CustomProperties::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"UserDefinedProperties dictionaries and text, Boolean, date/time, floating-point, signed/unsigned integer, and binary values project to the native Open XML custom-properties part and write to fresh PPT/POT/PPS files. Supported imported add/edit/remove operations rewrite only DocumentSummaryInformation; unrecognized property sections or variants remain byte-preserved for unrelated edits and loss-block metadata changes."
     },
     {
@@ -12585,7 +13187,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.CustomShows::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"NamedShows records decode to typed ordered slide-id sequences and project to native custom-show lists. Fresh PPT/POT/PPS writing and imported add/edit/remove preserve custom-show membership and identity incrementally. Custom-show actions, including show-and-return, project and round-trip natively."
     },
     {
@@ -12599,7 +13201,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.CustomXml::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"PowerPoint 97-2003 has no equivalent package-part representation."
     },
     {
@@ -12613,7 +13215,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.DigitalSignatures::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"The root _signatures stream and complete _xmlsignatures storage are detected and reported. Exact no-op saves preserve the signed package byte-for-byte. Edited binary saves block by default; callers can explicitly retain the invalidated carrier for preservation-aware edits or remove both carriers. Creating signatures and translating Open XML signatures into the binary formats are outside the writer contract."
     },
     {
@@ -12627,7 +13229,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.EmbeddedOle::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"ExOleEmbedContainer metadata, ExObjRefAtom shape references, and compressed or uncompressed ExOleObjStg records decode to an editable PowerPointOleObject with exact compound-storage bytes. Fresh PPT/POT/PPS writing emits native embedded-object metadata, storage, shape references, and embedded raster or metafile preview images through the shared BLIP catalog, including supported crop and picture effects. Imported geometry, ProgID, icon/content view, color-follow, and storage replacement use preservation-aware incremental records while untouched metadata, preview pictures, compound streams, and compressed source records remain exact. Malformed storage, unsupported related parts, linked previews, and non-representable preview metadata are loss-blocked rather than silently discarded."
     },
     {
@@ -12641,7 +13243,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.EmbeddedVideo::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"PowerPoint 97-2003 has path-based AVI and MCI movie objects but no native embedded-video payload representation; implicit extraction to an external path is deliberately loss-blocked."
     },
     {
@@ -12655,7 +13257,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Encryption::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Password-protected PPT/POT/PPS files decode and encode through the normal detached encrypted-load/save APIs. The Current User token, canonical single UserEdit and PersistDirectory records, CryptSession10Container, per-persist-object keys, and field-scoped Pictures transforms follow the binary PowerPoint encryption contract. SHA-1 RC4 CryptoAPI keys from 40 through 128 bits are supported. EncryptedSummary document properties are restored on import and encrypted by default on save; callers can explicitly retain clear-text properties for compatibility. RC4 CryptoAPI is provided only for legacy interoperability and is not a modern security choice. Cross-generation conversion reports that password protection is removed and blocks by default; callers must explicitly select a loss policy and re-encrypt the modern output when confidentiality must continue."
     },
     {
@@ -12669,7 +13271,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.FileLifecycle::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":""
     },
     {
@@ -12683,7 +13285,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.FileVariants::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":""
     },
     {
@@ -12697,7 +13299,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Groups::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Nested OfficeArt group hierarchies and child coordinate systems project as native editable Open XML groups. Fresh PPT/POT/PPS writing emits real nested group containers, group coordinate records, child anchors, and recursively cataloged pictures and interactions. Imported outer or child bounds, rotation, flips, visual style, supported geometry adjustments, and group-coordinate edits append preservation-aware records. Imported reparenting, child addition or removal, and explicit z-order changes remain loss-blocked."
     },
     {
@@ -12711,7 +13313,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.HeadersAndFooters::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Document slide defaults, notes/handout defaults, main-master and per-slide overrides decode with all six flags, date format ids, and fixed strings. Native Open XML master/layout settings project back to binary PPT/POT/PPS. Imported per-slide flag and text edits append preservation-aware records; edits to shared binary master/default scopes remain loss-blocked."
     },
     {
@@ -12725,7 +13327,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Hyperlinks::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"ExObjList, ExHyperlink, and PP9 ExHyperlink9 records decode to typed external and internal-slide targets plus screen tips. Shape and text click/hover interactions write to fresh PPT/POT/PPS files and support preservation-aware add/edit/remove, retargeting, slide reordering, and appended slides. Binary-only extension flags remain preserved when untouched. Target frames and richer Open XML hyperlink metadata without a classic representation are explicitly loss-blocked during conversion."
     },
     {
@@ -12739,7 +13341,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Layouts::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"All 14 SlideLayoutType values and their eight-slot placeholder signatures decode to typed metadata and distinct native Open XML layouts under the referenced master. Supported PPTX layouts write native binary hints for fresh and incrementally appended slides. Layout placeholder geometry, supported decorative shapes, backgrounds, and theme overrides are materialized into each owning binary slide when not overridden, preserving the visible layout despite the classic format having no independent PPTX-style layout persist object. Imported ordinary-layout type changes update each affected SlideAtom; newly added supported layout shapes and placeholders append native OfficeArt shape containers to every affected existing slide while retaining original shape records and drawing-cluster integrity. Imported layout background or theme edits likewise append one updated persist object per affected slide. Slide, title-layout, and notes-page master-shape visibility maps to schema-valid root attributes and native inheritance flags, including preservation-aware imported edits. Exact layouts projected from independent binary title-master persist objects support preservation-aware shape, theme, color-scheme, background, and visibility edits. Picture-bearing ordinary layouts without an owning slide, relationship-bearing layout additions, mutations or removals of pre-existing synthetic ordinary-layout shapes, and unsupported richer layout objects are explicitly loss-blocked."
     },
     {
@@ -12753,7 +13355,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.LinkedMedia::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"AVI, MCI movie, MIDI, linked WAV, and CD-audio containers decode to typed path, device-range, and playback metadata. Their source records and visible preview remain preservation-aware, while authoring and Open XML conversion are loss-blocked because external path, codec, and device semantics are not safely portable."
     },
     {
@@ -12767,7 +13369,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.LinkedOle::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"ExOleLinkContainer metadata, ExObjRefAtom shape references, automatic or manual update mode, optional icon metafile, and compressed or uncompressed ExOleObjStg cache records decode to a typed neutral model with exact compound-storage bytes. No-op saves and unrelated supported binary edits retain the source records and storage exactly. New linked-object authoring and projection to Open XML remain loss-blocked because the external moniker and cached native state cannot yet be mapped safely."
     },
     {
@@ -12781,7 +13383,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Masters::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Main and title master records, supported shapes, and title/body/other text styles through five levels are projected into native master/layout parts, including PPT9 automatic-numbering defaults. Fresh binary writing emits the referenced Open XML slide-master, notes-master, and handout-master topology; exact supported main-, notes-, and handout-master text, AutoShape, connector, group, and raster/metafile picture drawings; context-specific placeholder kinds; base and PPT9 title/body/other text-style atoms; referenced font-collection entries; and matching OfficeArt drawing-cluster counts. Imported supported main-master text-style edits append preservation-aware base and PPT9 records while retaining other text categories and unrelated programmable tags. Imported main-, title-, notes-, and handout-master position, size, and structurally plain text edits likewise append preservation-aware master persist objects. Binary title masters map to exact named layout parts and support preservation-aware shape, theme, color-scheme, background, and parent-master-shape visibility edits. Unsupported master objects, rich shape styling, interactions, transitions, timing, and unprojected later-version style fields are loss-blocked. Fresh authoring allocates slide-master, notes-master, slide, notes-page, and handout persist and drawing identifiers dynamically up to the binary format's persist-directory and OfficeArt limits. DocumentAtom notes and handout master references, schemes, shapes, placeholders, and connector rules project into native notesMaster and handoutMaster parts."
     },
     {
@@ -12795,7 +13397,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Media::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"ExWAVAudioEmbeddedContainer and ExMediaAtom records resolve document SoundCollection WAV payloads into editable PowerPointMedia audio shapes with exact bytes, duration, and geometry. Fresh PPT/POT/PPS authoring and PPTX conversion emit native media objects and deduplicate their sound data with transitions and actions. Imported position and size edits append preservation-aware records; payload replacement and loop, rewind, or narration edits remain loss-blocked."
     },
     {
@@ -12809,7 +13411,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.MetafilePictures::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Shared OfficeArt decoding extracts compressed and uncompressed WMF/EMF payloads for editable image projection. Fresh PPT/POT/PPS writing emits standards-compliant zlib-compressed OfficeArt metafile BLIPs in the delayed Pictures stream, including source bounds and render dimensions parsed from EMF or placeable-WMF headers. Imported geometry edits and no-op saves preserve source content; imported image replacement and non-placeable WMF authoring remain loss-blocked."
     },
     {
@@ -12823,7 +13425,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ModernComments::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"PowerPoint 97-2003 has no native threaded-comment model; conversion is explicitly loss-blocked."
     },
     {
@@ -12837,7 +13439,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ParagraphFormatting::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."
     },
     {
@@ -12851,7 +13453,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.PictureCrop::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"All four signed OfficeArt crop edges decode as 16.16 image fractions and project natively for slide, master, layout, and grouped pictures, including negative crop-out values. Fresh pictures and preservation-aware imported edits write the same crop properties. Brightness, contrast, grayscale, classic 50-percent bi-level, transparent-color, and whole-picture recolor state project as native DrawingML effects and write back through primary or tertiary OfficeArt properties. Arbitrary bi-level thresholds and other DrawingML effect sequences remain loss-blocked."
     },
     {
@@ -12865,7 +13467,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Placeholders::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"PlaceholderAtom position, all legacy kinds, full/half/quarter size, and vertical orientation project to native placeholder index/type/size/orientation on masters, generated layouts, and slides. Fresh main-, notes-, and handout-master drawings plus fresh or incrementally appended binary slides encode the corresponding context-specific placeholder kinds and fields. Supported identity, type, size, orientation, addition, and removal edits on imported slide and main-, title-, notes-, or handout-master placeholders append preservation-aware client-data and layout-signature updates; custom prompts and context-incompatible vertical kinds are loss-blocked. Object payloads are tracked by their separate capability rows."
     },
     {
@@ -12879,7 +13481,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.PlainText::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Unicode and byte text project editably, write natively for fresh PPT/POT/PPS files and appended slides, and support arbitrary-length preservation-aware edits. Text bodies with unprojected or malformed style structures are retained for unrelated edits and explicitly loss-blocked for text replacement."
     },
     {
@@ -12893,7 +13495,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Preservation.SourceCarrier::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Embedding is explicit because original presentations may contain macros, embedded objects, linked content, or hidden data. PreservationOnly enables it automatically; callers can recover the verified payload through TryGetCompatibilitySourcePayload."
     },
     {
@@ -12907,7 +13509,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.RasterPictures::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Shared OfficeArt decoding resolves embedded and delayed picture stores, normalizes DIB data to BMP, and projects referenced slide, master, layout, and grouped pictures as editable Open XML image parts. Fresh PPT/POT/PPS writing embeds PNG, JPEG, BMP/DIB, and TIFF BLIPs, deduplicates identical payloads with accurate reference counts, and writes top-level or grouped picture frames natively on slides plus main, notes, and handout masters; referenced ordinary-layout pictures materialize into each affected slide, while unused picture-bearing layouts are loss-blocked. Fresh pictures and imported slide pictures write supported transform, frame style, crop, brightness, contrast, grayscale, classic bi-level, transparent-color, recolor, protection-lock, and simple shadow properties. Imported image replacement, linked images, unsupported effect sequences or vector formats, and picture additions to exact imported binary title masters remain loss-blocked."
     },
     {
@@ -12921,7 +13523,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.RichNotes::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"NotesAtom inheritance, schemes, backgrounds, placeholders, rich text, supported drawings, pictures, groups, and connector rules project into native notesSlide parts. Fresh binary notes-page theme overrides, classic color fallbacks, and supported backgrounds write natively; imported theme, classic-color, background, and structurally plain body-text edits compose into preservation-aware records. Speaker-note text has its own fully native capability lane. Fresh arbitrary notes-page drawings and broader notes drawing or rich-format edits are explicitly loss-blocked rather than silently omitted."
     },
     {
@@ -12935,7 +13537,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.RichText::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"StyleTextPropAtom character runs and base TextMasterStyleAtom defaults project bold, italic, underline, point size, direct or mapped scheme color, baseline position, and document font-collection typefaces natively. TextSpecialInfoAtom runs project and write stable primary and alternate language LCIDs, no-proofing, spelling-error, and recheck state on text and paragraph-end markers. Fresh slide and master text plus appended slides write the same fields and add referenced document-font entries. Supported imported run formatting, language, proofing, and length edits append replacement style and special-info records while preserving unrelated records. Embedded font programs, later-version style extensions, smart tags, grammar-only flags, bidirectional analysis flags, transient LCIDs, mixed explicit no-language ranges, and legacy-only character effects remain preserve-only and are loss-blocked when an edit would replace them."
     },
     {
@@ -12949,7 +13551,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Sections::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"PowerPoint 97-2003 has no native section model."
     },
     {
@@ -12963,7 +13565,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ShapeEffects::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Enabled offset shadows project as native DrawingML outer shadows with resolved color, opacity, signed direction, distance, and available softness. Fresh shapes and supported imported edits write or clear one RGB outer shadow with opacity, distance, direction, and softness while preserving unrelated OfficeArt properties. Double, rich, shape, drawing-plane, emboss/engrave, scaled or skewed, rotating, group-level, glow, reflection, soft-edge, and multiple DrawingML effects without a classic equivalent are explicitly loss-blocked."
     },
     {
@@ -12977,7 +13579,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ShapeStyles::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Shared OfficeArt FOPT decoding projects explicit solid RGB and scheme fills plus linear, scaled, centered-path, shape-path, and title gradients with resolved endpoint or multi-stop colors, opacity ramps, and page-oriented angles. Fill visibility, per-shape hidden state, line width, preset dashes, joins, caps, arrowheads, and offset-shadow style also project natively. Fresh shapes and supported imported slide, group-child, and master edits write solid RGB or no-fill state, per-shape hidden state, fill and line opacity, outline width, dash, join, cap, and arrowhead type and dimensions natively while retaining unrelated source properties. Gradient authoring or editing, focused or custom-path gradients, theme-referenced colors, patterns, image fills, group defaults, and richer DrawingML style references without an exact classic mapping are explicitly loss-blocked."
     },
     {
@@ -12991,7 +13593,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ShapeTransforms::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Position, size, clockwise rotation, and horizontal or vertical mirroring are projected for mapped shapes, pictures, connectors, and nested groups. Fresh slide, master, and nested child shapes write native OfficeArt anchors, rotation, and flip flags. Imported slide, supported master, group, and child transform edits append incremental FSP, FOPT, anchor, child-anchor, and group-coordinate records while preserving unrelated rich properties. Reparenting and explicit z-order edits remain loss-blocked."
     },
     {
@@ -13005,7 +13607,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.SlideOrder::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":""
     },
     {
@@ -13019,7 +13621,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.SlideSize::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":""
     },
     {
@@ -13033,7 +13635,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.SlideVisibility::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":""
     },
     {
@@ -13047,7 +13649,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Slides::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":""
     },
     {
@@ -13061,7 +13663,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.SmartArt::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Readable SmartArt node data maps to the shared semantic process, hierarchy, or cycle diagram contract and converts explicitly to a deterministic static PNG picture frame. Unknown SmartArt layout categories use the process approximation while retaining node order. Default saving is blocked by PPT-WRITE-SMARTART-CONVERTED until PowerPointSaveOptions.LossPolicy is Allow; the converted visual preserves bounds and node text but not SmartArt structure or editability. Legacy binary diagram records are preserve-only; editable legacy diagram projection and direct native diagram authoring are explicitly loss-blocked."
     },
     {
@@ -13075,7 +13677,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.SpeakerNotes::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"SlideAtom notes identifiers resolve through NotesPersistAtom entries to typed NotesContainer pages. Plain note text projects editably, fresh PPT/POT/PPS writing emits native notes directories and persist objects, and structurally plain imported note edits append preservation-aware records. Length-changing edits to styled note bodies remain loss-blocked."
     },
     {
@@ -13089,7 +13691,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Tables::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"OfficeArt table groups project as editable DrawingML tables with semantic rows, columns, cell text, rich runs, hyperlinks, explicit RGB fills and borders, dimensions, and drawing order. Fresh PPT/POT/PPS writing and PPTX conversion emit native editable OfficeArt table groups rather than PNG fallbacks. Merged-cell writing and table-style features without an exact classic representation are explicitly loss-blocked; imported merged cells can still project when their native cell geometry exposes the complete grid."
     },
     {
@@ -13103,7 +13705,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.TextAutoFit::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Classic OfficeArt text insets, square or no wrapping, vertical anchoring, horizontal/vertical/vertical-270 flow, explicit no-autofit, and resize-shape-to-fit-text project, author, and edit natively. DrawingML shrink-text normal autofit, including font-scale and line-space-reduction options, has no lossless classic binary PowerPoint mapping and is explicitly loss-blocked during PPTX conversion."
     },
     {
@@ -13117,7 +13719,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Themes::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"PowerPoint 2007+ RoundTripTheme12Atom OPC packages and RoundTripColorMapping12Atom XML decode to a typed full-theme model and project to native theme or theme-override parts on main, title, notes, handout, slide, layout, and notes-page scopes. Fresh PPT/POT/PPS writing emits deterministic full DrawingML theme packages and color mappings, preserving all twelve colors, font schemes, fill/line/effect schemes, object defaults, and theme overrides; slide and notes-page color overrides also emit and select a synchronized classic eight-color fallback. Unmodified imported theme records are byte-preserved. Imported main-, title-, notes-, and handout-master theme edits plus edits to existing imported slide and notes-page theme overrides append preservation-aware persist objects while retaining unrelated source records and synchronizing changed classic fallback colors. Ordinary imported layout theme overrides materialize into every affected slide."
     },
     {
@@ -13131,7 +13733,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.TransitionAndActionSounds::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"SoundCollection, Sound, sound-name, extension, identifier, built-in identifier, and data-blob records decode to one shared typed sound library. Transition and shape/text click or hover references project through deduplicated Open XML audio relationships. Fresh writing and incremental add/replace edits retain stable identifiers and exact audio bytes. PPTX sources using non-WAV/AIFF audio or built-in=true without an unambiguous imported numeric ID are explicitly loss-blocked."
     },
     {
@@ -13145,7 +13747,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.Transitions::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"Every PowerPoint 97-2003 transition effect and valid direction projects to an exact editable PresentationML transition, including cut/fade-through-black variants, wheel spoke counts, and all directional effects. Fresh PPT/POT/PPS writing and preservation-aware imported edits encode the full classic effect table, all three legacy speeds, click advance, timed advance, and transition sound actions. Modern transitions without a binary equivalent are loss-blocked."
     },
     {
@@ -13159,7 +13761,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.UnknownRecordsAndStreams::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"No-op saves retain the exact package. Supported mapped slide, master, layout, text, drawing, interaction, notes, theme, property, OLE, VBA, and security-policy edits append a UserEdit or replace only the owning compound stream while preserving untouched records, storages, and streams. Any edit whose owning record family cannot be isolated safely is explicitly loss-blocked."
     },
     {
@@ -13173,7 +13775,7 @@
       "publicApi":"PowerPointCompatibilityCatalog.Current",
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.VbaProjects::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
-      "extensions":[".pot",".ppa",".pps",".ppt"],
+      "extensions":[".pot",".pps",".ppt"],
       "limitation":"VBAInfoContainer references and compressed or uncompressed VbaProjectStg records decode to the normal Open XML VbaProjectPart. Fresh PPT/POT/PPS writing emits the native uncompressed structured-storage form. Unmodified imported projects retain their exact source record bytes; project replacement, addition, and removal use preservation-aware incremental persist records while retaining unrelated compound streams. Malformed projects and Open XML VBA projects with related signature or data parts remain loss-blocked."
     },
     {
@@ -14015,6 +14617,20 @@
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
       "limitation":"The result is review HTML rather than a slide renderer; animations, media, SmartArt, and advanced effects are simplified."
+    },
+    {
+      "id":"conversion:keynote-pptx",
+      "packageId":"OfficeIMO.PowerPoint.IWork",
+      "formatId":"Keynote",
+      "targetFormatId":"PPTX",
+      "capabilityId":"keynote-pptx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path, readOptions, conversionOptions)",
+      "evidence":"Pinned Pages, Numbers, and Keynote fixtures verify bounded package inspection, typed projection, editable Office reconstruction, visual fallbacks, preserved records, and conversion reports.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".key"],
+      "limitation":"Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence."
     },
     {
       "id":"conversion:odp-pptx",
@@ -18341,6 +18957,20 @@
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".htm",".html",".txt"],
       "limitation":"CSS layout, scripts, complex web components, and constructs without a native destination equivalent are simplified or omitted."
+    },
+    {
+      "id":"conversion:pages-docx",
+      "packageId":"OfficeIMO.Word.IWork",
+      "formatId":"Pages",
+      "targetFormatId":"DOCX",
+      "capabilityId":"pages-docx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"WordIWorkConverter.ConvertPagesToWordResult(path, readOptions, conversionOptions)",
+      "evidence":"Pinned Pages, Numbers, and Keynote fixtures verify bounded package inspection, typed projection, editable Office reconstruction, visual fallbacks, preserved records, and conversion reports.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".pages"],
+      "limitation":"Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence."
     },
     {
       "id":"conversion:docx-markdown",

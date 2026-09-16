@@ -210,14 +210,32 @@ public sealed class OfficeOperationCapabilityCatalogTests {
     [InlineData(".pot", "OfficeIMO.PowerPoint")]
     [InlineData(".pps", "OfficeIMO.PowerPoint")]
     [InlineData(".ppa", "OfficeIMO.PowerPoint")]
-    public void LegacyVariantsPublishReadEditPreserveAndModernizationRows(string extension, string packageId) {
+    public void LegacyVariantsPublishReadAndModernizationRows(string extension, string packageId) {
         OfficeOperationCapability[] rows = OfficeOperationCapabilityCatalog.FindByExtension(extension)
             .Where(row => row.Id.StartsWith("legacy:", StringComparison.Ordinal) && row.PackageId == packageId)
             .ToArray();
 
-        Assert.All(new[] { OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Preserve }, operation =>
-            Assert.Contains(rows, row => row.Operation == operation));
+        Assert.Contains(rows, row => row.Operation == OfficeOperationKind.Read);
         Assert.Contains(rows, row => row.Operation == OfficeOperationKind.Convert && row.TargetFormatId != null);
+    }
+
+    [Theory]
+    [InlineData(".xls", true)]
+    [InlineData(".xlt", false)]
+    [InlineData(".xla", false)]
+    [InlineData(".xlm", false)]
+    [InlineData(".xlw", false)]
+    [InlineData(".ppt", true)]
+    [InlineData(".pot", true)]
+    [InlineData(".pps", true)]
+    [InlineData(".ppa", false)]
+    public void LegacyEditAndPreserveRowsExposeOnlyProvenWriterExtensions(string extension, bool expected) {
+        OfficeOperationCapability[] rows = OfficeOperationCapabilityCatalog.FindByExtension(extension)
+            .Where(row => row.Id.StartsWith("legacy:", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.All(new[] { OfficeOperationKind.Edit, OfficeOperationKind.Preserve }, operation =>
+            Assert.Equal(expected, rows.Any(row => row.Operation == operation)));
     }
 
     [Theory]
@@ -237,6 +255,30 @@ public sealed class OfficeOperationCapabilityCatalogTests {
                 row.Operation == OfficeOperationKind.Create);
 
         Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(".eml", "email-eml-msg", "OfficeIMO.Email", ".msg")]
+    [InlineData(".msg", "email-msg-eml", "OfficeIMO.Email", ".eml")]
+    [InlineData(".bib", "bibliography-bibtex-csl-json", "OfficeIMO.Bibliography", ".json")]
+    [InlineData(".medline", "bibliography-nbib-ris", "OfficeIMO.Bibliography", ".ris")]
+    [InlineData(".pages", "pages-docx", "OfficeIMO.Word.IWork", ".docx")]
+    [InlineData(".numbers", "numbers-xlsx", "OfficeIMO.Excel.IWork", ".xlsx")]
+    [InlineData(".key", "keynote-pptx", "OfficeIMO.PowerPoint.IWork", ".pptx")]
+    public void CrossFormatCodecAndAdapterRoutesRemainDiscoverable(
+        string sourceExtension,
+        string routeId,
+        string packageId,
+        string targetExtension) {
+        OfficeConversionCapability route = Assert.Single(
+            OfficeConversionCapabilityCatalog.FindBySourceExtension(sourceExtension),
+            candidate => candidate.Id == routeId);
+        Assert.Equal(packageId, route.PackageId);
+        Assert.Equal(targetExtension, route.TargetExtension);
+        Assert.Contains(
+            OfficeOperationCapabilityCatalog.FindByExtension(sourceExtension),
+            row => row.Operation == OfficeOperationKind.Convert &&
+                row.CapabilityId == routeId && row.PackageId == packageId);
     }
 
     [Fact]

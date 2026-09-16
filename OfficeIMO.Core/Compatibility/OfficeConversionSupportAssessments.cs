@@ -10,6 +10,21 @@ internal sealed record OfficeConversionSupportAssessment(
 internal static class OfficeConversionSupportAssessments {
     internal static OfficeConversionSupportAssessment Get(string routeId) {
         if (IsImageRoute(routeId, out string source)) return Image(source);
+        if (routeId.StartsWith("email-", StringComparison.Ordinal)) {
+            return Established(
+                "Cross-format EML, MSG, OFT, and TNEF fixtures verify typed message content, attachments, source selection, diagnostics, and explicit loss policy.",
+                "Signed or encrypted messages, opaque MAPI properties, recurrence and time-zone blobs, and Outlook-only item semantics can require preservation, approximation, or an explicitly accepted loss policy.");
+        }
+        if (routeId.StartsWith("bibliography-", StringComparison.Ordinal)) {
+            return Established(
+                "Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
+                "Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.");
+        }
+        if (routeId is "pages-docx" or "numbers-xlsx" or "keynote-pptx") {
+            return Targeted(
+                "Pinned Pages, Numbers, and Keynote fixtures verify bounded package inspection, typed projection, editable Office reconstruction, visual fallbacks, preserved records, and conversion reports.",
+                "Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence.");
+        }
         return routeId switch {
         "docx-pdf" => Advanced(
             "Realistic DOCX fixtures cover paragraphs, lists, tables, drawings, pagination, tagged output, portable fonts, and deterministic conversion reports.",

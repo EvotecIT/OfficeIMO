@@ -399,6 +399,24 @@ public sealed class AgentCommandTests {
     }
 
     [Theory]
+    [InlineData(".eml", "email-eml-msg")]
+    [InlineData(".bib", "bibliography-bibtex-csl-json")]
+    [InlineData(".pages", "pages-docx")]
+    [InlineData(".numbers", "numbers-xlsx")]
+    [InlineData(".key", "keynote-pptx")]
+    public void ConvertCapabilitiesExposeCodecAndIWorkAdapterRoutes(string extension, string routeId) {
+        var service = new OfficeImoAgentService();
+
+        AgentCapabilitiesResult result = service.Capabilities(
+            extension,
+            operation: "convert",
+            maxOutputCharacters: 12_000);
+
+        Assert.Contains(result.Conversions, route => route.Id == routeId);
+        Assert.Contains(result.Operations, row => row.CapabilityId == routeId);
+    }
+
+    [Theory]
     [InlineData(".docx", "inspect", "OfficeIMO.Word")]
     [InlineData(".pptx", "export", "OfficeIMO.PowerPoint")]
     [InlineData(".xls", "preserve", "OfficeIMO.Excel")]

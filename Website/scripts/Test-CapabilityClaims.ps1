@@ -225,21 +225,6 @@ foreach ($requiredLayoutEvidence in @(
     }
 }
 
-$compatibilityPage = Get-Content -LiteralPath (Join-Path $siteRootPath 'content\pages\compatibility.md') -Raw
-$expectedSocialCardMetrics = '{0}|Package owners|package;{1}|Operation outcomes|check;{2}|Detailed legacy families|code' -f @(
-    [int] $catalog.summary.packageCount,
-    [int] $catalog.summary.operationCount,
-    [int] $catalog.summary.familyCount
-)
-$socialCardMetrics = [regex]::Match(
-    $compatibilityPage,
-    '(?m)^meta\.social_card_metrics:\s*"(?<metrics>[^"]+)"\s*$'
-)
-if (-not $socialCardMetrics.Success -or
-    -not $socialCardMetrics.Groups['metrics'].Value.Equals($expectedSocialCardMetrics, [StringComparison]::Ordinal)) {
-    throw "Compatibility social-card metrics must match the generated catalog summary '$expectedSocialCardMetrics'."
-}
-
 $aotPath = Join-Path $siteRootPath 'static\data\aot-compatibility.json'
 if (-not (Test-Path -LiteralPath $aotPath -PathType Leaf)) {
     throw "NativeAOT capability evidence is missing: $aotPath"

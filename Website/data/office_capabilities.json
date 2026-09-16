@@ -15,8 +15,8 @@
     "familyCount": 3,
     "formatCount": 28,
     "capabilityCount": 137,
-    "packageCount": 63,
-    "operationCount": 1323
+    "packageCount": 66,
+    "operationCount": 1368
   },
   "fidelityStates": [
     {
@@ -1866,14 +1866,32 @@
     {
       "id": "OfficeIMO.Bibliography",
       "slug": "bibliography",
-      "capabilityCount": 6,
+      "capabilityCount": 36,
       "formats": [
-        "Bibliography.Native"
+        "BibLaTeX",
+        "Bibliography.Native",
+        "BibTeX",
+        "CSL JSON",
+        "EndNote XML",
+        "NBIB/MEDLINE",
+        "RIS"
       ],
       "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog",
         "OfficeIMO.NativeLifecycle"
       ],
       "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 30
+            }
+          ]
+        },
         {
           "id": "Create",
           "states": [
@@ -2176,7 +2194,7 @@
     {
       "id": "OfficeIMO.Email",
       "slug": "email",
-      "capabilityCount": 88,
+      "capabilityCount": 100,
       "formats": [
         "Email.AddressBook.Oab",
         "Email.Calendar",
@@ -2187,15 +2205,31 @@
         "Email.Store.Olm",
         "Email.Store.Ost",
         "Email.Store.Pst",
+        "EML",
         "EML / RFC 5322 MIME",
+        "MSG",
         "MSG/TNEF S/MIME",
-        "PST"
+        "OFT",
+        "PST",
+        "TNEF"
       ],
       "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog",
         "OfficeIMO.NativeLifecycle",
         "OfficeIMO.ProtectedContent"
       ],
       "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 12
+            }
+          ]
+        },
         {
           "id": "Create",
           "states": [
@@ -2795,6 +2829,31 @@
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
               "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Excel.IWork",
+      "slug": "excel-iwork",
+      "capabilityCount": 1,
+      "formats": [
+        "Numbers",
+        "XLSX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
             }
           ]
         }
@@ -4429,6 +4488,31 @@
       ]
     },
     {
+      "id": "OfficeIMO.PowerPoint.IWork",
+      "slug": "powerpoint-iwork",
+      "capabilityCount": 1,
+      "formats": [
+        "Keynote",
+        "PPTX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "OfficeIMO.PowerPoint.OpenDocument",
       "slug": "powerpoint-opendocument",
       "capabilityCount": 7,
@@ -5171,6 +5255,31 @@
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
               "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Word.IWork",
+      "slug": "word-iwork",
+      "capabilityCount": 1,
+      "formats": [
+        "DOCX",
+        "Pages"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
             }
           ]
         }
