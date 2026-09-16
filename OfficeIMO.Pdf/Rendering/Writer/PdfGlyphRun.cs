@@ -31,10 +31,18 @@ internal sealed class PdfGlyphRun {
         }
     }
 
+    private const string HexChars = "0123456789ABCDEF";
+
     public string ToGlyphHex() {
         var sb = new StringBuilder(Glyphs.Count * 4);
-        foreach (PdfGlyphInfo glyph in Glyphs) {
-            sb.Append(glyph.GlyphId.ToString("X4", System.Globalization.CultureInfo.InvariantCulture));
+        for (int i = 0; i < Glyphs.Count; i++) {
+            // GlyphId is a 16-bit TrueType/CFF index, so this matches ToString("X4") without the
+            // per-glyph string allocation.
+            int id = Glyphs[i].GlyphId;
+            sb.Append(HexChars[(id >> 12) & 0xF]);
+            sb.Append(HexChars[(id >> 8) & 0xF]);
+            sb.Append(HexChars[(id >> 4) & 0xF]);
+            sb.Append(HexChars[id & 0xF]);
         }
 
         return sb.ToString();

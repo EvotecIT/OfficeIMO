@@ -317,15 +317,29 @@ internal sealed class ContentStreamBuilder {
         }
     }
 
-    // Matrix coefficients multiply page coordinates; three decimals can move glyphs by tenths of a point.
-    private static string MatrixNumber(double value) =>
-        (Math.Abs(value) < 0.0000005D ? 0D : value).ToString("0.######", CultureInfo.InvariantCulture);
+    [ThreadStatic] private static char[]? _numberBuffer;
 
-    private static string F(double value) {
+    // Matrix coefficients multiply page coordinates; three decimals can move glyphs by tenths of a point.
+    private static ReadOnlySpan<char> MatrixNumber(double value) {
+        value = Math.Abs(value) < 0.0000005D ? 0D : value;
+        return FormatNumber(value, "0.######");
+    }
+
+    private static ReadOnlySpan<char> F(double value) {
         if (Math.Abs(value) < 0.0005D) {
             value = 0D;
         }
 
-        return value.ToString("0.###", CultureInfo.InvariantCulture);
+        return FormatNumber(value, "0.###");
+    }
+
+    // Formats into a reused per-thread buffer and returns a span. Every call site is _sb.Append(F(x)),
+    // which copies the span immediately, so the buffer can be overwritten by the next call; this avoids
+    // a throwaway string per formatted number.
+    private static ReadOnlySpan<char> FormatNumber(double value, string format) {
+        char[] buffer = _numberBuffer ??= new char[32];
+        return value.TryFormat(buffer, out int written, format, CultureInfo.InvariantCulture)
+            ? buffer.AsSpan(0, written)
+            : value.ToString(format, CultureInfo.InvariantCulture).AsSpan();
     }
 }
