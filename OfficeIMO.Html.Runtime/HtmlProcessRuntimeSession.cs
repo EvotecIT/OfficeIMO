@@ -8,6 +8,7 @@ namespace OfficeIMO.Html.Runtime;
 
 internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimePage {
     private readonly Process _process;
+    private readonly HtmlOciWorkerLease? _ociLease;
     private readonly HtmlScriptRequest _options;
     private readonly IHtmlDomServices _services;
     private readonly SemaphoreSlim _commands = new(1, 1);
@@ -25,6 +26,14 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimePage {
     private int _disposed;
 
     internal HtmlProcessRuntimeSession(string workerPath, string dotnetExecutable, IHtmlDomServices services, HtmlScriptRequest options,
+        string contextId, string pageId, HtmlRuntimeProviderDescriptor provider, HtmlRuntimeTraceOptions traceOptions, Action? disposedCallback)
+        : this(StartTrustedWorker(workerPath, dotnetExecutable), null, services, options, contextId, pageId, provider, traceOptions, disposedCallback) { }
+
+    internal HtmlProcessRuntimeSession(HtmlOciWorkerLease lease, IHtmlDomServices services, HtmlScriptRequest options,
+        string contextId, string pageId, HtmlRuntimeProviderDescriptor provider, HtmlRuntimeTraceOptions traceOptions, Action? disposedCallback)
+        : this(lease.Process, lease, services, options, contextId, pageId, provider, traceOptions, disposedCallback) { }
+
+    private HtmlProcessRuntimeSession(Process process, HtmlOciWorkerLease? ociLease, IHtmlDomServices services, HtmlScriptRequest options,
         string contextId, string pageId, HtmlRuntimeProviderDescriptor provider, HtmlRuntimeTraceOptions traceOptions, Action? disposedCallback) {
         _options = options;
         _services = services;
@@ -33,15 +42,20 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimePage {
         Provider = provider;
         _trace = new HtmlRuntimeTraceCollector(traceOptions);
         _disposedCallback = disposedCallback;
-        var start = new ProcessStartInfo(dotnetExecutable) { UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, StandardErrorEncoding = Encoding.UTF8 };
-        start.ArgumentList.Add(workerPath);
-        _process = new Process { StartInfo = start };
-        try { if (!_process.Start()) throw new HtmlScriptRuntimeException("The runtime worker could not start."); }
-        catch { _process.Dispose(); _stopped.Dispose(); throw; }
+        _process = process;
+        _ociLease = ociLease;
         _lifetime = new CancellationTokenSource(options.SessionTimeout);
         _lifetimeStop = _lifetime.Token.Register(Stop);
         _stderr = DrainErrorsAsync();
+    }
+
+    private static Process StartTrustedWorker(string workerPath, string dotnetExecutable) {
+        var start = new ProcessStartInfo(dotnetExecutable) { UseShellExecute = false, CreateNoWindow = true,
+            RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, StandardErrorEncoding = Encoding.UTF8 };
+        start.ArgumentList.Add(workerPath);
+        var process = new Process { StartInfo = start };
+        try { if (!process.Start()) throw new HtmlScriptRuntimeException("The runtime worker could not start."); return process; }
+        catch { process.Dispose(); throw; }
     }
 
     public string Id { get; }
@@ -188,6 +202,7 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimePage {
     private void Stop() {
         if (Interlocked.Exchange(ref _terminal, 1) != 0) return;
         _stopped.Cancel();
+        if (_ociLease != null) { _ociLease.Stop(); return; }
         try { if (!_process.HasExited) _process.Kill(entireProcessTree: true); }
         catch (InvalidOperationException) { /* Already exited. */ }
         catch (Win32Exception error) { _terminationError = error; }
@@ -207,7 +222,13 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimePage {
 
     private async Task WaitForTerminationAsync() {
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        try { await _process.WaitForExitAsync(deadline.Token).ConfigureAwait(false); }
+        try {
+            if (_ociLease != null) {
+                await Task.WhenAll(_process.WaitForExitAsync(deadline.Token), _ociLease.WaitForRemovalAsync()).ConfigureAwait(false);
+            } else {
+                await _process.WaitForExitAsync(deadline.Token).ConfigureAwait(false);
+            }
+        }
         catch (OperationCanceledException) { throw new HtmlScriptRuntimeException("The runtime worker could not be terminated: " + _terminationError?.Message); }
     }
 
@@ -226,9 +247,13 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimePage {
             _lifetimeStop.Dispose();
             _lifetime.Dispose();
             _stopped.Dispose();
-            _process.Dispose();
-            _commands.Release();
-            _disposedCallback?.Invoke();
+            try {
+                if (_ociLease != null) await _ociLease.DisposeAsync().ConfigureAwait(false);
+                else _process.Dispose();
+            } finally {
+                _commands.Release();
+                _disposedCallback?.Invoke();
+            }
         }
     }
 }

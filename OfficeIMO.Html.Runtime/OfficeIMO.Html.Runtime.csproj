@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="../OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Runtime.Worker" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.OciProbe" />
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>

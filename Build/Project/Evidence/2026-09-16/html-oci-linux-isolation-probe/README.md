@@ -38,3 +38,21 @@ policy, resource brokering, credentials and retained page provenance remain
 unimplemented for the public-site pilot. The existing trusted process
 provider and `WebApplicationV1` must continue to be used only with explicitly
 trusted content.
+
+## Lifecycle follow-up
+
+The branch now has an internal rootless-Podman worker lease and an opt-in
+[runner](../../../HtmlOciProbe/README.md). The lease creates a uniquely named
+container from a full SHA-256 image ID, checks Podman's reported rootless mode
+and the created container's configured limits, then attaches the existing
+worker protocol. Stopping a session also removes that exact container; create
+failure attempts removal by the preselected name. The runner passed normal
+capture, cancelled runaway-script cleanup, cleanup after a deliberately
+rejected post-create inspection, cleanup after that rejection plus an injected
+first-removal failure, and live-lease removal retry on the same Ubuntu/WSL2
+host. The Windows .NET 8 and .NET 10 runtime suites passed 362/362 after the
+session transport was changed.
+
+The lease remains internal. It has not been qualified as the public-content
+provider, and this Linux result does not satisfy the Windows/macOS, child
+process, resource-broker or corpus gates above.

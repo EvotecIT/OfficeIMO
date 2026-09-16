@@ -1,0 +1,5 @@
+FROM mcr.microsoft.com/dotnet/runtime@sha256:8a153b5889d796b6450295b383596b13308c24c230515f8a7770ce1b94e0c460
+WORKDIR /app
+COPY worker/ /app/
+USER 65532:65532
+ENTRYPOINT ["dotnet", "/app/OfficeIMO.Html.Runtime.Worker.dll"]
