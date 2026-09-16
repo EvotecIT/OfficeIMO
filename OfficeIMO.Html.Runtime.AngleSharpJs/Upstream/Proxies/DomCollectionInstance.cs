@@ -1,5 +1,6 @@
 namespace AngleSharp.Js
 {
+    using AngleSharp.Dom;
     using AngleSharp.Js.Cache;
     using Jint;
     using Jint.Native;
@@ -140,7 +141,7 @@ namespace AngleSharp.Js
             //  indexer must not be asked about one. WebIDL says the same: an object supporting
             //  indexed properties never serves an array-index name from its named getter. An
             //  element whose id is "5" is findable through a non-index name, never through 5.
-            if (IsArrayIndexName(property))
+            if (_value is INodeList || IsArrayIndexName(property))
             {
                 return PropertyDescriptor.Undefined;
             }

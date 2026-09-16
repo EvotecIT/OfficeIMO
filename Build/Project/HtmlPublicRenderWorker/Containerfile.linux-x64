@@ -1,0 +1,9 @@
+FROM mcr.microsoft.com/dotnet/runtime@sha256:8a153b5889d796b6450295b383596b13308c24c230515f8a7770ce1b94e0c460
+
+RUN apt-get update && apt-get install -y --no-install-recommends fontconfig fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY renderer/ /app/
+COPY worker/ /app/worker/
+USER 65532:65532
+ENTRYPOINT ["dotnet", "/app/OfficeIMO.Html.PublicRenderWorker.dll"]

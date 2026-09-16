@@ -1,0 +1,19 @@
+{
+  "errorKind": "HtmlScriptRuntimeException",
+  "error": "The isolated image does not contain the expected renderer and script worker builds.",
+  "imageId": "sha256:082e2355ecdbf0cb06f6ccc1a316eb676a3031bc964a4cbd82ca4bde0f54cbc1",
+  "containerName": "officeimo-html-961eb79c82ed4f04a9b74fd354191c46",
+  "containerRemoved": true,
+  "rendererSha256": "16a2d0fae65c63e55594b7039129c5068fcb93fa0ead7536163ad5b78b6abf62",
+  "workerSha256": "e8148226d2c685d970cf22eb1f991467491fc4789795b8780998ea50d02ddcf7",
+  "rendererFilesSha256": "2d894a9ec610901df74a1213b94f4df63fdc9fa72e5f7d8f81d248b3c4a24cb8",
+  "workerFilesSha256": "7a13b7234fc4344c8bcbf1285019fcf88b135a1580163fc13a3b6b9788e5b64a",
+  "trace": [
+    "Lifecycle:document-opened:success",
+    "Page:open:success",
+    "Capture:capture:success",
+    "Artifact:capture-manifest:generated"
+  ],
+  "documentSha256": "dd7c864327c116ea212a41a2e3b57ac85d11629c0d4639f9a71f1c4b15e4f90a",
+  "assets": 0
+}

@@ -30,6 +30,30 @@ public sealed class ScriptedDocumentTests {
         Path.Combine(AppContext.BaseDirectory, "RuntimeWorker", "OfficeIMO.Html.Runtime.Worker.dll"), AngleSharpDomServices.Instance);
 
     [Fact]
+    public async Task QuerySelectorAllReturnsStaticNodeListWithForEach() {
+        var capture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+            Html = "<p>one</p><p>two</p><input name='fieldName'>",
+            Scripts = new[] { """
+                const nodes = document.querySelectorAll('p');
+                if (!(nodes instanceof NodeList) || typeof NodeList.prototype.forEach !== 'function'
+                    || typeof nodes.namedItem !== 'undefined'
+                    || typeof document.children.forEach !== 'undefined') throw new Error('collection type mismatch');
+                if (document.querySelectorAll('input').fieldName !== undefined)
+                    throw new Error('selector list exposes named properties');
+                nodes.forEach((node, index, list) => {
+                    if (list !== nodes) throw new Error('wrong callback collection');
+                    node.setAttribute('data-index', String(index));
+                });
+                document.body.appendChild(document.createElement('p'));
+                if (nodes.length !== 2) throw new Error('selector list must be static');
+                """ }
+        });
+        Assert.Equal("0", capture.Document.QuerySelectorAll("p")[0].GetAttribute("data-index"));
+        Assert.Equal("1", capture.Document.QuerySelectorAll("p")[1].GetAttribute("data-index"));
+        Assert.Null(capture.Document.QuerySelectorAll("p")[2].GetAttribute("data-index"));
+    }
+
+    [Fact]
     public async Task RunsInlineEventsPromisesTimersAndSuppliedScriptsBeforeCapture() {
         var capture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
             Html = """

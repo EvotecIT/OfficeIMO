@@ -77,7 +77,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         _loop = _context.GetService<IEventLoop>() ?? throw new HtmlScriptRuntimeException("The provider did not create an event loop.");
         _context.AddEventListener("error", (_, error) => _errors.Report(error switch {
             AngleSharp.Dom.Events.ErrorEvent scriptError => scriptError.Message,
-            AngleSharp.Browser.Dom.Events.TrackEvent tracked => tracked.Error?.Message ?? "Script execution failed.",
+            AngleSharp.Browser.Dom.Events.TrackEvent tracked => tracked.Error?.GetBaseException().Message ?? "Script execution failed.",
             _ => "Script execution failed."
         }));
         _context.GetService<IHtmlParser>()!.Parsing += (_, args) => {

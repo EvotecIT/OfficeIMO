@@ -55,7 +55,7 @@ public static class QueryExtensions
     /// <param name="nodes">The nodes to take as source.</param>
     /// <param name="selectorText">A string containing one or more CSS selectors separated by commas.</param>
     /// <param name="scopeNode">The optional node to take as scope.</param>
-    /// <returns>A HTMLCollection with all elements that match the selection.</returns>
+    /// <returns>A static selector list retaining the HTMLCollection return signature for binary compatibility.</returns>
     public static IHtmlCollection<IElement> QuerySelectorAll(this INodeList nodes, String selectorText, INode? scopeNode = null) => QuerySelectorAll<INodeList>(nodes, selectorText, scopeNode);
 
     /// <summary>
@@ -76,10 +76,10 @@ public static class QueryExtensions
         {
             var result = new List<IElement>();
             nodes.QuerySelectorAll(sg, scope, result);
-            return new HtmlCollection<IElement>(result);
+            return new SelectorNodeList(result);
         }
 
-        return new HtmlCollection<IElement>(Array.Empty<IElement>());
+        return new SelectorNodeList(Array.Empty<IElement>());
     }
 
     /// <summary>

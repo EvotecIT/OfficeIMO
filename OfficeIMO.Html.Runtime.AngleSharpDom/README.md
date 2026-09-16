@@ -48,6 +48,10 @@ The local changes have these responsibilities:
 - Inline classic scripts inserted by the DOM or `document.write` execute on the
   active script stack. Parser reentry consumes inserted markup immediately, yields
   at an external parser-blocking script and resumes without reparsing the source.
+- `querySelectorAll()` retains AngleSharp's `IHtmlCollection<IElement>` method
+  signature for compatibility with its retained CSS assembly, but returns a
+  static selector list projected to script as `NodeList`. The retained JS bridge
+  supplies `NodeList.prototype.forEach`; ordinary HTML collections do not gain it.
 
 `IMutationMicrotaskScheduler`, `IDomMutationListener`, `IDomSynchronization`,
 `ISynchronousScriptingService` and `IScriptBlockingStyleSheetEvaluator` are narrow

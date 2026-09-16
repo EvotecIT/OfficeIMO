@@ -5,6 +5,8 @@ namespace OfficeIMO.Html.Runtime;
 [JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Default)]
 [JsonSerializable(typeof(HtmlRuntimeCommand))]
 [JsonSerializable(typeof(HtmlRuntimeResponse))]
+[JsonSerializable(typeof(HtmlPublicRenderRequest))]
+[JsonSerializable(typeof(HtmlPublicRenderResponse))]
 internal sealed partial class HtmlRuntimeProtocolJsonContext : JsonSerializerContext;
 
 [JsonSourceGenerationOptions(

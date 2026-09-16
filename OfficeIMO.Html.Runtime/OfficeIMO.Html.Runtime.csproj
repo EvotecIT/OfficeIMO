@@ -19,6 +19,10 @@
     <ProjectReference Include="../OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Runtime.Worker" />
     <InternalsVisibleTo Include="OfficeIMO.Html.OciProbe" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.Runtime.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.PublicFetchProbe" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.PublicPilot" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.PublicRenderWorker" />
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>
