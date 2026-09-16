@@ -21,6 +21,8 @@
     <ProjectReference Include="../../OfficeIMO.Email.Image/OfficeIMO.Email.Image.csproj" />
     <ProjectReference Include="../../OfficeIMO.Epub.Image/OfficeIMO.Epub.Image.csproj" />
     <PackageReference Include="PdfPig" Version="0.1.14" />
+    <Compile Include="../../OfficeIMO.TestAssets/PortableVisualFontAssets.cs" Link="Shared/PortableVisualFontAssets.cs" />
     <Compile Include="../../OfficeIMO.TestAssets/VisualBaselineTestSupport.cs" Link="Shared/VisualBaselineTestSupport.cs" />
+    <None Include="../../OfficeIMO.TestAssets/Fonts/*.ttf" Link="Fonts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

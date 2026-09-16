@@ -578,12 +578,9 @@ public static partial class OfficeImageReader {
         string normalized = value!.Trim().ToLowerInvariant();
         int unitStart = normalized.Length;
         while (unitStart > 0 && (char.IsLetter(normalized[unitStart - 1]) || normalized[unitStart - 1] == '%')) unitStart--;
-        string numberText = normalized.Substring(0, unitStart).Trim();
+        string numberText = normalized.Substring(0, unitStart);
         string unit = normalized.Substring(unitStart);
-        if (!double.TryParse(numberText, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
-            || double.IsNaN(number)
-            || double.IsInfinity(number)
-            || number <= 0D) return false;
+        if (!OfficeCssNumber.TryParse(numberText, out double number) || number <= 0D) return false;
 
         double multiplier;
         switch (unit) {

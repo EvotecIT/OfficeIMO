@@ -39,6 +39,7 @@
     <None Include="TestAssets\AdobeVFPrototype-Subset.otf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\RobotoFlex.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\NotoEmoji-VariableFont_wght.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\ContentSafety\svg-concealed-adversarial.svg" Link="TestAssets\svg-concealed-adversarial.svg" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

@@ -25,6 +25,9 @@ public readonly partial struct OfficeColor {
     private static bool TryParseCss(string? value, int depth, out OfficeColor color) {
         color = default;
         if (depth > 8 || string.IsNullOrWhiteSpace(value) || value!.Length > MaximumCssColorLength) return false;
+        foreach (char current in value!) {
+            if (char.IsWhiteSpace(current) && current is not (' ' or '\t' or '\r' or '\n' or '\f')) return false;
+        }
 
         string normalized = value.Trim();
         if (normalized[0] == '#') return TryParseHex(normalized, out color);
@@ -52,7 +55,7 @@ public readonly partial struct OfficeColor {
         name = string.Empty;
         arguments = string.Empty;
         int open = value.IndexOf('(');
-        if (open <= 0 || value[value.Length - 1] != ')') return false;
+        if (open <= 0 || char.IsWhiteSpace(value[open - 1]) || value[value.Length - 1] != ')') return false;
         int depth = 0;
         for (int index = open; index < value.Length; index++) {
             if (value[index] == '(') {
@@ -73,6 +76,9 @@ public readonly partial struct OfficeColor {
         color = default;
         if (!TrySplitFunctionArguments(arguments, out string[] channels, out string? alpha)
             || channels.Length != 3
+            || arguments.IndexOf(',') >= 0 &&
+                (channels[0].EndsWith("%", StringComparison.Ordinal) != channels[1].EndsWith("%", StringComparison.Ordinal) ||
+                 channels[0].EndsWith("%", StringComparison.Ordinal) != channels[2].EndsWith("%", StringComparison.Ordinal))
             || !TryRgbChannel(channels[0], out byte red)
             || !TryRgbChannel(channels[1], out byte green)
             || !TryRgbChannel(channels[2], out byte blue)
@@ -139,7 +145,9 @@ public readonly partial struct OfficeColor {
             channels = new[] { parts[0].Trim(), parts[1].Trim(), parts[2].Trim() };
             alpha = parts.Length == 4 ? parts[3].Trim() : null;
             return channels[0].Length > 0 && channels[1].Length > 0 && channels[2].Length > 0
-                && (alpha == null || alpha.Length > 0);
+                && (alpha == null || alpha.Length > 0)
+                && !Array.Exists(channels, IsMissingColorComponent)
+                && (alpha == null || !IsMissingColorComponent(alpha));
         }
 
         string[] slashParts = arguments.Split('/');
@@ -155,8 +163,7 @@ public readonly partial struct OfficeColor {
         channel = 0;
         if (IsMissingColorComponent(value)) return true;
         bool percentage = value.EndsWith("%", StringComparison.Ordinal);
-        string numberText = percentage ? value.Substring(0, value.Length - 1).Trim() : value.Trim();
-        if (!TryFiniteDouble(numberText, out double number)) return false;
+        if (!TryFiniteCssNumber(value, percentage, out double number)) return false;
         channel = ToByte(percentage ? number * 255D / 100D : number);
         return true;
     }
@@ -169,8 +176,7 @@ public readonly partial struct OfficeColor {
             return true;
         }
         bool percentage = value.EndsWith("%", StringComparison.Ordinal);
-        string numberText = percentage ? value.Substring(0, value.Length - 1).Trim() : value.Trim();
-        if (!TryFiniteDouble(numberText, out double number)) return false;
+        if (!TryFiniteCssNumber(value, percentage, out double number)) return false;
         alpha = ToByte((percentage ? number / 100D : number) * 255D);
         return true;
     }
@@ -181,16 +187,16 @@ public readonly partial struct OfficeColor {
         string normalized = value.Trim().ToLowerInvariant();
         double multiplier = 1D;
         if (normalized.EndsWith("grad", StringComparison.Ordinal)) {
-            normalized = normalized.Substring(0, normalized.Length - 4).Trim();
+            if (!TryStripCssNumericSuffix(normalized, 4, out normalized)) return false;
             multiplier = 0.9D;
         } else if (normalized.EndsWith("turn", StringComparison.Ordinal)) {
-            normalized = normalized.Substring(0, normalized.Length - 4).Trim();
+            if (!TryStripCssNumericSuffix(normalized, 4, out normalized)) return false;
             multiplier = 360D;
         } else if (normalized.EndsWith("rad", StringComparison.Ordinal)) {
-            normalized = normalized.Substring(0, normalized.Length - 3).Trim();
+            if (!TryStripCssNumericSuffix(normalized, 3, out normalized)) return false;
             multiplier = 180D / Math.PI;
         } else if (normalized.EndsWith("deg", StringComparison.Ordinal)) {
-            normalized = normalized.Substring(0, normalized.Length - 3).Trim();
+            if (!TryStripCssNumericSuffix(normalized, 3, out normalized)) return false;
         }
         if (!TryFiniteDouble(normalized, out double number)) return false;
         degrees = (number * multiplier) % 360D;
@@ -203,17 +209,30 @@ public readonly partial struct OfficeColor {
         if (IsMissingColorComponent(value)) return true;
         string normalized = value.Trim();
         if (!normalized.EndsWith("%", StringComparison.Ordinal)
-            || !TryFiniteDouble(normalized.Substring(0, normalized.Length - 1).Trim(), out double number)) {
+            || !TryFiniteCssNumber(normalized, percentage: true, out double number)) {
             return false;
         }
         fraction = Clamp(number, 0D, 100D) / 100D;
         return true;
     }
 
-    private static bool TryFiniteDouble(string value, out double number) =>
-        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out number)
-        && !double.IsNaN(number)
-        && !double.IsInfinity(number);
+    private static bool TryFiniteDouble(string value, out double number) => OfficeCssNumber.TryParse(value, out number);
+
+    private static bool TryFiniteCssNumber(string value, bool percentage, out double number) {
+        string normalized = value.Trim();
+        if (percentage && !TryStripCssNumericSuffix(normalized, 1, out normalized)) {
+            number = 0D;
+            return false;
+        }
+        return TryFiniteDouble(normalized, out number);
+    }
+
+    private static bool TryStripCssNumericSuffix(string value, int suffixLength, out string number) {
+        number = string.Empty;
+        if (value.Length <= suffixLength || char.IsWhiteSpace(value[value.Length - suffixLength - 1])) return false;
+        number = value.Substring(0, value.Length - suffixLength);
+        return true;
+    }
 
     private static bool IsMissingColorComponent(string value) =>
         string.Equals(value.Trim(), "none", StringComparison.OrdinalIgnoreCase);

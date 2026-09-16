@@ -56,6 +56,7 @@ public static partial class OfficeSvgDrawingReader {
                 bytes,
                 options,
                 allowUnresolvedViewport,
+                MaximumInputBytes,
                 out XElement root,
                 out int maximumElements,
                 out double maximumViewportDimension,
@@ -159,6 +160,7 @@ public static partial class OfficeSvgDrawingReader {
                 bytes,
                 options,
                 allowUnresolvedViewport: true,
+                maximumCharactersInDocument: MaximumInputBytes,
                 out XElement root,
                 out int maximumElements,
                 out _,
@@ -180,6 +182,7 @@ public static partial class OfficeSvgDrawingReader {
         byte[]? bytes,
         OfficeSvgDrawingReaderOptions? options,
         bool allowUnresolvedViewport,
+        long maximumCharactersInDocument,
         out XElement root,
         out int maximumElements,
         out double maximumViewportDimension,
@@ -195,7 +198,7 @@ public static partial class OfficeSvgDrawingReader {
         maximumViewportDimension = options?.MaximumViewportDimension ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportDimension;
         maximumViewportPixels = options?.MaximumViewportPixels ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportPixels;
         viewX = viewY = viewWidth = viewHeight = viewportWidth = viewportHeight = 0D;
-        if (bytes == null || bytes.Length == 0 || bytes.Length > MaximumInputBytes) return false;
+        if (bytes == null || bytes.Length == 0 || bytes.Length > MaximumInputBytes || maximumCharactersInDocument <= 0L) return false;
         if (maximumElements <= 0 || maximumElements > OfficeSvgDrawingReaderOptions.MaximumAllowedElements) return false;
         if (maximumViewportDimension <= 0D || maximumViewportDimension > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension ||
             maximumViewportPixels <= 0D || maximumViewportPixels > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels) return false;
@@ -204,7 +207,7 @@ public static partial class OfficeSvgDrawingReader {
             var settings = new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
-                MaxCharactersInDocument = MaximumInputBytes
+                MaxCharactersInDocument = Math.Min(MaximumInputBytes, maximumCharactersInDocument)
             };
             XDocument document;
             using (var stream = new MemoryStream(bytes, writable: false))
@@ -393,7 +396,7 @@ public static partial class OfficeSvgDrawingReader {
         var rasterWork = new SvgRasterWorkBudget(maximumViewportPixels, viewX, viewY,
             viewWidth, viewHeight, viewportWidth, viewportHeight, pixelScaleX, pixelScaleY,
             HasStylesheetNonScalingStrokeDeclaration(root));
-        var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
+        var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root, useProjectedIds: true));
         string? fill = ResolveInheritedSvgPaint(root, "fill", inherited: null);
         string? stroke = ResolveInheritedSvgPaint(root, "stroke", inherited: null);
         if (!TryResolveRasterStrokeStyle(root, SvgRasterStrokeStyle.Default, out SvgRasterStrokeStyle strokeStyle)) return true;
@@ -449,12 +452,12 @@ public static partial class OfficeSvgDrawingReader {
                 || name.Equals("linearGradient", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("radialGradient", StringComparison.OrdinalIgnoreCase);
             if (!isExpandedDefinition) continue;
-            string? id = ReadRasterElementId(element);
+            string? id = ReadRasterProjectedAttribute(element, "id")?.Trim();
             if (!string.IsNullOrEmpty(id)) expandedDefinitionIds.Add(id!);
         }
         return expandedDefinitionIds.Count > 0
             && (root.Descendants().Any(element =>
-                    element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase)
+                    element.Name.LocalName.Equals("style", StringComparison.Ordinal)
                     && ContainsLocalCssUrlReference(element.Value, expandedDefinitionIds))
                 || root.DescendantsAndSelf().Any(element =>
                     ContainsLocalCssCustomPropertyUrlReference(ReadRasterInlineStyleAttribute(element), expandedDefinitionIds)));
@@ -852,8 +855,13 @@ public static partial class OfficeSvgDrawingReader {
         double viewX,
         double viewY,
         ref int unsupported) {
-        string? value = element.Attribute("transform")?.Value;
+        string? value = ReadPresentationProperty(element, "transform");
         if (string.IsNullOrWhiteSpace(value)) return inherited;
+        if (IsSvgIdentityTransformValue(value!)) return inherited;
+        if (value!.Any(character => char.IsWhiteSpace(character) && !IsSvgCssWhitespace(character))) {
+            unsupported++;
+            return inherited;
+        }
         if (!OfficeSvgTransformParser.TryParse(value, out OfficeTransform parsed)) {
             unsupported++;
             return inherited;
@@ -868,6 +876,9 @@ public static partial class OfficeSvgDrawingReader {
         }
         return combined;
     }
+
+    private static bool IsSvgIdentityTransformValue(string value) =>
+        TrimSvgCssWhitespace(value).Equals("none", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsSupportedSvgTransform(OfficeTransform transform) =>
         Math.Abs(transform.M11) <= MaximumSvgTransformCoefficient &&
@@ -1367,10 +1378,21 @@ public static partial class OfficeSvgDrawingReader {
                 else style.BaselineShift = baselineShift;
                 break;
             case "display":
-                if (normalized.Equals("none", StringComparison.OrdinalIgnoreCase)) style.Visible = false;
+                string display = normalized.ToLowerInvariant();
+                if (display == "none") style.Displayed = false;
+                else if (display is not "inline" and not "block" and not "contents" and not "list-item" and
+                    not "inline-block" and not "table" and not "inline-table" and not "table-row" and
+                    not "table-cell" and not "flex" and not "inline-flex" and not "grid" and not "inline-grid" and
+                    not "inherit" and not "initial" and not "unset") unsupported++;
                 break;
             case "visibility":
-                if (normalized.Equals("hidden", StringComparison.OrdinalIgnoreCase) || normalized.Equals("collapse", StringComparison.OrdinalIgnoreCase)) style.Visible = false;
+                if (normalized.Equals("hidden", StringComparison.OrdinalIgnoreCase) || normalized.Equals("collapse", StringComparison.OrdinalIgnoreCase)) {
+                    style.VisibilityVisible = false;
+                } else if (normalized.Equals("visible", StringComparison.OrdinalIgnoreCase) ||
+                    normalized.Equals("initial", StringComparison.OrdinalIgnoreCase)) {
+                    style.VisibilityVisible = true;
+                } else if (!normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase) &&
+                    !normalized.Equals("unset", StringComparison.OrdinalIgnoreCase)) unsupported++;
                 break;
             case "transform":
             case "clip-path":
@@ -1459,11 +1481,14 @@ public static partial class OfficeSvgDrawingReader {
         if (string.IsNullOrWhiteSpace(text)) return false;
         string normalized = text!.Trim();
         percentage = normalized.EndsWith("%", StringComparison.Ordinal);
-        if (percentage) normalized = normalized.Substring(0, normalized.Length - 1).Trim();
-        else if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) normalized = normalized.Substring(0, normalized.Length - 2).Trim();
-        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
-            || double.IsNaN(parsed)
-            || double.IsInfinity(parsed)) return false;
+        if (percentage) {
+            if (HasSeparatedSvgNumericSuffix(normalized, 1)) return false;
+            normalized = normalized.Substring(0, normalized.Length - 1);
+        } else if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) {
+            if (HasSeparatedSvgNumericSuffix(normalized, 2)) return false;
+            normalized = normalized.Substring(0, normalized.Length - 2);
+        }
+        if (!OfficeCssNumber.TryParse(normalized, out double parsed)) return false;
         value = percentage ? parsed * extent / 100D : parsed;
         return !double.IsNaN(value) && !double.IsInfinity(value);
     }
@@ -1479,18 +1504,31 @@ public static partial class OfficeSvgDrawingReader {
         result = 0D;
         if (string.IsNullOrWhiteSpace(value)) return false;
         string text = value!.Trim();
-        if (text.EndsWith("px", StringComparison.OrdinalIgnoreCase)) text = text.Substring(0, text.Length - 2).Trim();
-        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
-            && !double.IsNaN(result)
-            && !double.IsInfinity(result);
+        if (text.EndsWith("px", StringComparison.OrdinalIgnoreCase)) {
+            if (HasSeparatedSvgNumericSuffix(text, 2)) return false;
+            text = text.Substring(0, text.Length - 2);
+        }
+        return OfficeCssNumber.TryParse(text, out result);
     }
 
-    private static bool TryUnit(string value, out double result) =>
-        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
-        && !double.IsNaN(result)
-        && !double.IsInfinity(result)
-        && result >= 0D
-        && result <= 1D;
+    private static bool TryUnit(string value, out double result) {
+        string normalized = value.Trim();
+        bool percentage = normalized.EndsWith("%", StringComparison.Ordinal);
+        if (percentage) {
+            if (HasSeparatedSvgNumericSuffix(normalized, 1)) {
+                result = 0D;
+                return false;
+            }
+            normalized = normalized.Substring(0, normalized.Length - 1);
+        }
+        if (!OfficeCssNumber.TryParse(normalized, out result)) return false;
+        if (percentage) result /= 100D;
+        result = Math.Max(0D, Math.Min(1D, result));
+        return true;
+    }
+
+    private static bool HasSeparatedSvgNumericSuffix(string value, int suffixLength) =>
+        value.Length <= suffixLength || char.IsWhiteSpace(value[value.Length - suffixLength - 1]);
 
     private static bool TryParseNumberList(string? value, out IReadOnlyList<double> values) =>
         TryParseNumberList(value, int.MaxValue, out values);
@@ -1515,9 +1553,9 @@ public static partial class OfficeSvgDrawingReader {
         result = 0D;
         string normalized = value.Trim();
         if (normalized.EndsWith("%", StringComparison.Ordinal)) {
-            normalized = normalized.Substring(0, normalized.Length - 1).Trim();
-            if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)
-                || double.IsNaN(percentage) || double.IsInfinity(percentage)
+            if (HasSeparatedSvgNumericSuffix(normalized, 1)) return false;
+            normalized = normalized.Substring(0, normalized.Length - 1);
+            if (!OfficeCssNumber.TryParse(normalized, out double percentage)
                 || double.IsNaN(percentageReference) || double.IsInfinity(percentageReference)) return false;
             result = percentage * percentageReference / 100D;
             return !double.IsNaN(result) && !double.IsInfinity(result);
@@ -1539,27 +1577,59 @@ public static partial class OfficeSvgDrawingReader {
         limitExceeded = false;
         if (maximumValues <= 0 || string.IsNullOrWhiteSpace(value)) return false;
         int index = 0;
-        while (index < value!.Length) {
-            int separatorStart = index;
-            while (index < value.Length && (char.IsWhiteSpace(value[index]) || value[index] == ',')) {
-                index++;
-                if (index - separatorStart > 128) {
-                    limitExceeded = true;
-                    return false;
-                }
+        int leadingWhitespaceStart = index;
+        while (index < value!.Length && IsSvgNumberListWhitespace(value[index])) {
+            index++;
+            if (index - leadingWhitespaceStart > 128) {
+                limitExceeded = true;
+                return false;
             }
-            if (index >= value.Length) break;
+        }
+        if (index >= value.Length || value[index] == ',') return false;
+        while (index < value.Length) {
             if (result.Count >= maximumValues) {
                 limitExceeded = true;
                 return false;
             }
             int start = index;
-            while (index < value.Length && !char.IsWhiteSpace(value[index]) && value[index] != ',') {
+            if (value[index] == '+' || value[index] == '-') index++;
+            bool hasDigits = false;
+            while (index < value.Length && value[index] >= '0' && value[index] <= '9') {
+                hasDigits = true;
                 index++;
                 if (index - start > 128) {
                     limitExceeded = true;
                     return false;
                 }
+            }
+            if (index < value.Length && value[index] == '.') {
+                index++;
+                while (index < value.Length && value[index] >= '0' && value[index] <= '9') {
+                    hasDigits = true;
+                    index++;
+                    if (index - start > 128) {
+                        limitExceeded = true;
+                        return false;
+                    }
+                }
+            }
+            if (!hasDigits) return false;
+            if (index < value.Length && (value[index] == 'e' || value[index] == 'E')) {
+                index++;
+                if (index < value.Length && (value[index] == '+' || value[index] == '-')) index++;
+                int exponentStart = index;
+                while (index < value.Length && value[index] >= '0' && value[index] <= '9') {
+                    index++;
+                    if (index - start > 128) {
+                        limitExceeded = true;
+                        return false;
+                    }
+                }
+                if (index == exponentStart) return false;
+            }
+            if (index - start > 128) {
+                limitExceeded = true;
+                return false;
             }
             int length = index - start;
             if (length <= 0
@@ -1568,9 +1638,41 @@ public static partial class OfficeSvgDrawingReader {
                 || double.IsNaN(number)
                 || double.IsInfinity(number)) return false;
             result.Add(number);
+
+            int separatorStart = index;
+            bool hasWhitespaceSeparator = false;
+            while (index < value.Length && IsSvgNumberListWhitespace(value[index])) {
+                hasWhitespaceSeparator = true;
+                index++;
+                if (index - separatorStart > 128) {
+                    limitExceeded = true;
+                    return false;
+                }
+            }
+            if (index >= value.Length) return true;
+            if (value[index] == ',') {
+                index++;
+                while (index < value.Length && IsSvgNumberListWhitespace(value[index])) {
+                    index++;
+                    if (index - separatorStart > 128) {
+                        limitExceeded = true;
+                        return false;
+                    }
+                }
+                if (index >= value.Length || value[index] == ',') return false;
+            } else if (!hasWhitespaceSeparator && value[index] != '-') {
+                return false;
+            }
+            if (index - separatorStart > 128) {
+                limitExceeded = true;
+                return false;
+            }
         }
         return result.Count > 0;
     }
+
+    private static bool IsSvgNumberListWhitespace(char character) =>
+        character is ' ' or '\t' or '\r' or '\n';
 
     private struct SvgPaintContext {
         internal OfficeColor Color;
@@ -1608,7 +1710,9 @@ public static partial class OfficeSvgDrawingReader {
         internal string? MarkerStart;
         internal string? MarkerMid;
         internal string? MarkerEnd;
-        internal bool Visible;
+        internal bool Displayed;
+        internal bool VisibilityVisible;
+        internal bool Visible => Displayed && VisibilityVisible;
 
         internal void SetFill(SvgResolvedPaint paint) {
             Fill = paint.Color;
@@ -1649,7 +1753,8 @@ public static partial class OfficeSvgDrawingReader {
             BaselineShift = default,
             WritingMode = SvgWritingMode.HorizontalTb,
             TextOrientation = SvgTextOrientation.Mixed,
-            Visible = true
+            Displayed = true,
+            VisibilityVisible = true
         };
     }
 
@@ -1723,10 +1828,8 @@ public static partial class OfficeSvgDrawingReader {
             return true;
         }
         if (normalized.EndsWith("%", StringComparison.Ordinal)
-            && double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
-                CultureInfo.InvariantCulture, out double percentage)
-            && !double.IsNaN(percentage)
-            && !double.IsInfinity(percentage)) {
+            && !HasSeparatedSvgNumericSuffix(normalized, 1)
+            && OfficeCssNumber.TryParse(normalized.Substring(0, normalized.Length - 1), out double percentage)) {
             shift = new SvgBaselineShift(percentage / 100D, SvgBaselineShiftBasis.LineHeight);
             return true;
         }
@@ -1755,9 +1858,12 @@ public static partial class OfficeSvgDrawingReader {
             return false;
         }
 
-        if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier)
-            || double.IsNaN(multiplier)
-            || double.IsInfinity(multiplier)) {
+        if (HasSeparatedSvgNumericSuffix(value, 2)) {
+            shift = default;
+            return false;
+        }
+
+        if (!OfficeCssNumber.TryParse(number, out double multiplier)) {
             shift = default;
             return false;
         }
@@ -1773,18 +1879,13 @@ public static partial class OfficeSvgDrawingReader {
             return true;
         }
         if (normalized.EndsWith("%", StringComparison.Ordinal)
-            && double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
-                CultureInfo.InvariantCulture, out double percentage)
-            && percentage >= 0D
-            && !double.IsNaN(percentage)
-            && !double.IsInfinity(percentage)) {
+            && !HasSeparatedSvgNumericSuffix(normalized, 1)
+            && OfficeCssNumber.TryParse(normalized.Substring(0, normalized.Length - 1), out double percentage)
+            && percentage >= 0D) {
             lineHeight = new SvgLineHeight(fontSize * percentage / 100D, relativeToFontSize: false);
             return true;
         }
-        if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier)
-            && multiplier >= 0D
-            && !double.IsNaN(multiplier)
-            && !double.IsInfinity(multiplier)) {
+        if (OfficeCssNumber.TryParse(normalized, out double multiplier) && multiplier >= 0D) {
             lineHeight = new SvgLineHeight(multiplier, relativeToFontSize: true);
             return true;
         }

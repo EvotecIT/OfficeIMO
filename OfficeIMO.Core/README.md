@@ -273,6 +273,26 @@ WordDocument.RemoveSelectedContent(
     new OfficeContentCleanupSelection(reviewed.Select(item => item.Id)));
 ```
 
+SVG uses the same report and selection contracts through the native drawing owner. The inspection resolves presentation attributes and the bounded stylesheet cascade, then uses the drawing renderer for clipping, compositing, paint-order, and background evidence. Visual comparison findings are report-only: a bounded native render cannot prove browser-equivalent shaping and paint. Exact cleanup remains available for supported source-local structural findings and reviewed Unicode code points. Text in reusable definitions, `use` or `tref` targets, conditional branches, unrecognized elements, and documents with scripts, event handlers, executable links, or animation also remains report-only because removing one source node can alter a different visible instance, renderer-selected branch, or runtime state.
+
+```csharp
+using OfficeIMO.Drawing;
+
+OfficeContentSafetyReport svgReport =
+    OfficeSvgDrawingReader.InspectContentSafety("diagram.svg");
+
+OfficeContentSafetyFinding[] concealedSvgText = svgReport.Findings
+    .Where(item => item.CleanupCapability == OfficeContentCleanupCapability.RemoveText)
+    .ToArray();
+
+OfficeSvgDrawingReader.RemoveSelectedContent(
+    "diagram.svg",
+    "diagram.cleaned.svg",
+    new OfficeContentCleanupSelection(concealedSvgText.Select(item => item.Id)));
+```
+
+Visual paint-order comparisons use explicit count and cumulative rendered-pixel budgets on `OfficeSvgDrawingReaderOptions`, plus fixed aggregate CSS-match and document-transformation ceilings. Callers can lower the public budgets for hostile-input services or set `MaximumContentSafetyVisualComparisons` to zero for structural-only inspection; the resulting report records that visual evidence was disabled. The safety inspection fails closed when declarations, values, selectors, at-rules, cascade keywords, or CSS work exceed the supported bounded subset, rather than using partial style evidence for removable findings. A changed UTF-8 cleanup result must also remain within the native SVG reader's hard input limit so reopen validation cannot be bypassed by encoding expansion.
+
 Cleanup is always selection-based and stale-evidence checked. The adapter reopens and reinspects the rewritten artifact; it does not provide a blanket “remove anything unusual” switch. See the [content safety support matrix](../Docs/officeimo.content-safety-support-matrix.md) for exact format coverage and renderer boundaries.
 
 Transformations can make an existing Content Credential invalid. `OfficeProvenanceLifecycle.FinalizeFile` makes the disposition explicit:

@@ -151,7 +151,7 @@ public static partial class OfficeSvgDrawingReader {
                     ? SvgGradientKind.Linear
                     : SvgGradientKind.Radial;
                 SvgGradientDefinition? inherited = null;
-                XAttribute? href = element.Attributes().FirstOrDefault(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase));
+                XAttribute? href = element.Attributes().FirstOrDefault(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal));
                 if (href != null) {
                     if (!TryReadLocalReference(href.Value, requireUrl: false, out string inheritedId)
                         || !_definitions.TryGetUnique(inheritedId, out XElement? inheritedElement)
@@ -265,7 +265,8 @@ public static partial class OfficeSvgDrawingReader {
         private static bool TryReadStops(XElement gradient, out IReadOnlyList<OfficeGradientStop>? stops) {
             stops = null;
             XElement[] elements = gradient.Elements()
-                .Where(element => element.Name.LocalName.Equals("stop", StringComparison.OrdinalIgnoreCase))
+                .Where(element => element.Name.Namespace == gradient.Name.Namespace &&
+                    element.Name.LocalName.Equals("stop", StringComparison.OrdinalIgnoreCase))
                 .ToArray();
             if (elements.Length == 0 || elements.Length > MaximumGradientStops) return false;
             if (!TryResolveCurrentColor(gradient, out OfficeColor inheritedCurrentColor)) return false;
@@ -366,11 +367,20 @@ public static partial class OfficeSvgDrawingReader {
             }
             string normalized = text!.Trim();
             bool percentage = normalized.EndsWith("%", StringComparison.Ordinal);
-            if (percentage) normalized = normalized.Substring(0, normalized.Length - 1).Trim();
-            else if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) normalized = normalized.Substring(0, normalized.Length - 2).Trim();
-            if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
-                || double.IsNaN(value)
-                || double.IsInfinity(value)) {
+            if (percentage) {
+                if (HasSeparatedSvgNumericSuffix(normalized, 1)) {
+                    coordinate = default;
+                    return false;
+                }
+                normalized = normalized.Substring(0, normalized.Length - 1);
+            } else if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) {
+                if (HasSeparatedSvgNumericSuffix(normalized, 2)) {
+                    coordinate = default;
+                    return false;
+                }
+                normalized = normalized.Substring(0, normalized.Length - 2);
+            }
+            if (!OfficeCssNumber.TryParse(normalized, out double value)) {
                 coordinate = default;
                 return false;
             }
@@ -382,10 +392,14 @@ public static partial class OfficeSvgDrawingReader {
         private static bool TryUnitOrPercentage(string text, bool clamp, out double value) {
             string normalized = text.Trim();
             bool percentage = normalized.EndsWith("%", StringComparison.Ordinal);
-            if (percentage) normalized = normalized.Substring(0, normalized.Length - 1).Trim();
-            if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
-                || double.IsNaN(value)
-                || double.IsInfinity(value)) return false;
+            if (percentage) {
+                if (HasSeparatedSvgNumericSuffix(normalized, 1)) {
+                    value = 0D;
+                    return false;
+                }
+                normalized = normalized.Substring(0, normalized.Length - 1);
+            }
+            if (!OfficeCssNumber.TryParse(normalized, out value)) return false;
             if (percentage) value /= 100D;
             if (clamp) value = value < 0D ? 0D : value > 1D ? 1D : value;
             return true;
@@ -393,11 +407,16 @@ public static partial class OfficeSvgDrawingReader {
 
         private static bool TryReadLocalReference(string text, bool requireUrl, out string id) {
             id = string.Empty;
-            string normalized = text.Trim();
             if (requireUrl) {
-                if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase) || !normalized.EndsWith(")", StringComparison.Ordinal)) return false;
-                normalized = normalized.Substring(4, normalized.Length - 5).Trim().Trim('\'', '"');
+                if (!TryReadSvgLocalUrlReference(text, out string reference)) return false;
+                try {
+                    id = Uri.UnescapeDataString(reference.Substring(1));
+                } catch (UriFormatException) {
+                    return false;
+                }
+                return id.Length > 0;
             }
+            string normalized = TrimSvgCssWhitespace(text);
             if (normalized.Length < 2 || normalized[0] != '#') return false;
             id = normalized.Substring(1);
             return id.Length > 0 && id.IndexOfAny(new[] { ' ', '\t', '\r', '\n', '#', '(', ')' }) < 0;

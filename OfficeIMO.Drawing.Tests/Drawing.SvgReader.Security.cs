@@ -250,16 +250,25 @@ public class DrawingSvgReaderSecurityTests {
         Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
     }
 
-    [Theory]
-    [InlineData("clip-path:u/**/rl(#c)")]
-    [InlineData("clip-path:url(/*comment*/#c)")]
-    public void SvgSafetyPredicateRejectsCommentNormalizedStylesheetReferences(string declaration) {
+    [Fact]
+    public void SvgSafetyPredicateRejectsCommentSeparatedStylesheetReferenceArguments() {
+        const string declaration = "clip-path:url(/*comment*/#c)";
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
             + "<style>.clipped { " + declaration + "; }</style>"
             + "<defs><clipPath id='c'><rect width='1' height='1'/></clipPath></defs>"
             + "<rect class='clipped' width='4' height='4'/></svg>";
 
         Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateDoesNotJoinIdentifierTokensAcrossComments() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<style>.clipped { clip-path:u/**/rl(#c); }</style>"
+            + "<defs><clipPath id='c'><rect width='1' height='1'/></clipPath></defs>"
+            + "<rect class='clipped' width='4' height='4'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
     }
 
     [Fact]

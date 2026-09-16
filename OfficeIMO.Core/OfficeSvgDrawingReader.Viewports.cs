@@ -135,15 +135,9 @@ public static partial class OfficeSvgDrawingReader {
 
         var scene = new OfficeDrawing(childViewWidth, childViewHeight);
         scene.Fonts.AddRange(drawing.Fonts);
-        OfficeTransform childTransform = ResolveTransform(
-            element,
-            OfficeTransform.Identity,
-            childViewX,
-            childViewY,
-            ref unsupported);
-        // The viewport element's own transform is applied to the viewport below. Do not apply it
-        // a second time to its local child coordinate system.
-        if (element.Attribute("transform") != null) childTransform = OfficeTransform.Identity;
+        // The caller already resolved the viewport element's own transform into the incoming
+        // viewport transform. Its local child coordinate system therefore always starts at identity.
+        OfficeTransform childTransform = OfficeTransform.Identity;
         style.DashPercentageReference = NormalizedSvgDiagonal(childViewWidth, childViewHeight);
         AddChildren(
             element, scene, style, paintServers, references, childTransform, childViewX, childViewY,

@@ -428,10 +428,13 @@ public static partial class OfficeSvgDrawingReader {
 
     private static string? ReadPresentationProperty(XElement element, string propertyName) {
         string? value = element.Attribute(propertyName)?.Value;
+        if (value != null && !HasSvgCssCommentInsideUnquotedUrl(value)) value = RemoveSvgCssComments(value);
         string? style = element.Attribute("style")?.Value;
         if (string.IsNullOrWhiteSpace(style)) return value;
         int selectedPriority = -1;
-        foreach (string declaration in style!.Split(';')) {
+        string styleText = style!;
+        string normalizedStyle = HasSvgCssCommentInsideUnquotedUrl(styleText) ? styleText : RemoveSvgCssComments(styleText);
+        foreach (string declaration in normalizedStyle.Split(';')) {
             int colon = declaration.IndexOf(':');
             if (colon <= 0 || !declaration.Substring(0, colon).Trim().Equals(propertyName, StringComparison.OrdinalIgnoreCase)) continue;
             string candidate = NormalizeInlineStyleValue(declaration.Substring(colon + 1), out int priority);

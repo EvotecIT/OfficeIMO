@@ -13,6 +13,7 @@ public static partial class OfficeSvgDrawingReader {
         SvgElementReferenceRegistry references,
         double viewX,
         double viewY,
+        SvgContentSafetyTextObserver? observer,
         ref int unsupported) {
         foreach (SvgTextPathLayout layout in layouts.OrderByDescending(item => item.FirstRun)) {
             int end = Math.Min(layout.EndRun, runs.Count);
@@ -36,7 +37,7 @@ public static partial class OfficeSvgDrawingReader {
                     runAdvance += glyphAdvance;
                     if (!path!.TryResolve(distance, out OfficePoint point, out double angleDegrees)) continue;
                     double glyphWidth = Math.Max(0.1D, glyphAdvance / source.GlyphScale);
-                    replacements.Add(new SvgTextRun(
+                    var replacement = new SvgTextRun(
                         glyphs[glyphIndex],
                         point.X - glyphWidth / 2D,
                         point.Y,
@@ -51,7 +52,9 @@ public static partial class OfficeSvgDrawingReader {
                         point.X,
                         point.Y) {
                         GlyphScale = source.GlyphScale
-                    });
+                    };
+                    replacements.Add(replacement);
+                    observer?.Transfer(source, replacement);
                 }
             }
 
@@ -255,11 +258,9 @@ public static partial class OfficeSvgDrawingReader {
         if (string.IsNullOrWhiteSpace(value)) return true;
         string normalized = value!.Trim();
         if (normalized.EndsWith("%", StringComparison.Ordinal)) {
+            if (HasSeparatedSvgNumericSuffix(normalized, 1)) return false;
             percentage = true;
-            return double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
-                       CultureInfo.InvariantCulture, out double percentValue)
-                   && !double.IsNaN(percentValue)
-                   && !double.IsInfinity(percentValue)
+            return OfficeCssNumber.TryParse(normalized.Substring(0, normalized.Length - 1), out double percentValue)
                    && (offset = totalLength * percentValue / 100D) == offset;
         }
         return TrySvgLength(normalized, out offset);

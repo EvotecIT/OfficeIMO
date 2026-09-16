@@ -9,16 +9,25 @@ public static partial class OfficeSvgDrawingReader {
         private readonly IReadOnlyDictionary<string, XElement> _definitions;
         private readonly ISet<string> _ambiguousIds;
 
-        private SvgDefinitionRegistry(IReadOnlyDictionary<string, XElement> definitions, ISet<string> ambiguousIds) {
+        private SvgDefinitionRegistry(
+            XNamespace nativeNamespace,
+            IReadOnlyDictionary<string, XElement> definitions,
+            ISet<string> ambiguousIds) {
+            NativeNamespace = nativeNamespace;
             _definitions = definitions;
             _ambiguousIds = ambiguousIds;
         }
 
-        internal static SvgDefinitionRegistry Create(XElement root) {
+        internal XNamespace NativeNamespace { get; }
+
+        internal static SvgDefinitionRegistry Create(XElement root, bool useProjectedIds = false) {
             var definitions = new Dictionary<string, XElement>(StringComparer.Ordinal);
             var ambiguousIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (XElement element in root.Descendants()) {
-                string? id = ReadRasterElementId(element);
+                if (!IsNativeSvgElement(element, root.Name.Namespace)) continue;
+                string? id = useProjectedIds
+                    ? ReadRasterProjectedAttribute(element, "id")
+                    : ReadRasterElementId(element);
                 if (string.IsNullOrEmpty(id)) continue;
                 if (definitions.ContainsKey(id!)) {
                     ambiguousIds.Add(id!);
@@ -26,7 +35,7 @@ public static partial class OfficeSvgDrawingReader {
                 }
                 definitions.Add(id!, element);
             }
-            return new SvgDefinitionRegistry(definitions, ambiguousIds);
+            return new SvgDefinitionRegistry(root.Name.Namespace, definitions, ambiguousIds);
         }
 
         internal bool TryGetUnique(string id, out XElement? element) {
@@ -36,7 +45,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static string? ReadRasterElementId(XElement element) {
-        string? id = ReadRasterProjectedAttribute(element, "id")?.Trim();
+        string? id = element.Attribute("id")?.Value;
         return string.IsNullOrEmpty(id) ? null : id;
     }
 
