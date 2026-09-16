@@ -22,6 +22,9 @@ public sealed class HtmlResourcePipelineOptions {
     /// <summary>Additional responsive image candidate cap per source set. Null adds no cap; a stricter shared limit still applies.</summary>
     public int? MaxResponsiveImageCandidates { get; set; } = HtmlConversionLimits.DefaultMaxResponsiveImageCandidates;
 
+    /// <summary>Additional character cap for one responsive image <c>sizes</c> value. A stricter shared limit still applies.</summary>
+    public int? MaxResponsiveImageSizesCharacters { get; set; } = HtmlConversionLimits.DefaultMaxResponsiveImageSizesCharacters;
+
     /// <summary>CSS media context used when deciding whether media-gated resources are active.</summary>
     public HtmlCssMediaContext MediaContext { get; set; } = HtmlCssMediaContext.Screen;
 
@@ -30,6 +33,12 @@ public sealed class HtmlResourcePipelineOptions {
 
     /// <summary>Optional media-query surface height in CSS pixels. When omitted, the context default is used.</summary>
     public double? MediaHeight { get; set; }
+
+    /// <summary>Target device-pixel density used to select one responsive image candidate.</summary>
+    public double DevicePixelRatio { get; set; } = 1D;
+
+    /// <summary>Root and initial font size used to resolve relative lengths in responsive image <c>sizes</c>.</summary>
+    public double DefaultFontSize { get; set; } = 16D;
 
     /// <summary>Static device and user-preference values used when deciding whether media-gated resources are active.</summary>
     public HtmlRenderMediaFeatures MediaFeatures { get; set; } = new HtmlRenderMediaFeatures();

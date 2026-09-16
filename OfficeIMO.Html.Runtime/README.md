@@ -162,6 +162,7 @@ await using var application = await runtime.OpenTrustedAsync(new HtmlScriptReque
     Html = startHtml,
     ViewportWidth = 1280,
     ViewportHeight = 720,
+    DevicePixelRatio = 2,
     Resources = new[] {
         HtmlRuntimeResource.FromText(
             new Uri("https://reports.example/details"),
@@ -176,6 +177,11 @@ await heading.WaitForTextAsync("Details", cancellationToken);
 await heading.ScrollIntoViewAsync(cancellationToken);
 await application.ReloadAsync(cancellationToken);
 ```
+
+`DevicePixelRatio` participates in `srcset` and `sizes` selection and is exposed to
+application scripts as `window.devicePixelRatio`. The runtime, offline resource
+discovery, captured-resource set, and OfficeIMO static outputs use the same selected
+candidate.
 
 `OpenTrustedAsync` loads the document and runs the supplied scripts. It leaves
 readiness to `WaitForAsync` or `CaptureAsync`. Evaluation returns a detached

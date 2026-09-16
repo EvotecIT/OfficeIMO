@@ -69,6 +69,26 @@ public sealed class RuntimeLayoutAutomationTests {
     }
 
     [Fact]
+    public async Task DevicePixelRatioDrivesScriptAndResolutionMediaQueries() {
+        const string html = """
+            <style>@media (min-resolution: 2dppx) { #target { display: none } }</style>
+            <button id="target">Target</button>
+            """;
+        HtmlScriptRequest oneX = Application(html);
+        await using (IHtmlRuntimeSession session = await Runtime().OpenTrustedAsync(oneX)) {
+            Assert.Equal(1D, (await session.EvaluateAsync("devicePixelRatio")).GetDouble());
+            Assert.True((await session.Locator("#target").InspectAsync()).IsVisible);
+        }
+
+        HtmlScriptRequest twoX = Application(html);
+        twoX.DevicePixelRatio = 2D;
+        await using (IHtmlRuntimeSession session = await Runtime().OpenTrustedAsync(twoX)) {
+            Assert.Equal(2D, (await session.EvaluateAsync("window.devicePixelRatio")).GetDouble());
+            Assert.False((await session.Locator("#target").InspectAsync()).IsVisible);
+        }
+    }
+
+    [Fact]
     public async Task LocatorScrollAndActionUseTheOwnedLayoutViewport() {
         const string html = """
             <style>

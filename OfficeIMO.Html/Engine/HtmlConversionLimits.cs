@@ -10,6 +10,7 @@ namespace OfficeIMO.Html;
 /// </remarks>
 public sealed class HtmlConversionLimits {
     internal const int DefaultMaxResponsiveImageCandidates = 64;
+    internal const int DefaultMaxResponsiveImageSizesCharacters = 64 * 1024;
 
     /// <summary>Creates conservative limits suitable for untrusted HTML ingestion.</summary>
     public static HtmlConversionLimits CreateUntrustedProfile() => new HtmlConversionLimits {
@@ -29,6 +30,7 @@ public sealed class HtmlConversionLimits {
         MaxCssSelectorsPerRule = 256,
         MaxSelectorEvaluations = 10_000_000L,
         MaxResponsiveImageCandidates = DefaultMaxResponsiveImageCandidates,
+        MaxResponsiveImageSizesCharacters = DefaultMaxResponsiveImageSizesCharacters,
         MaxSemanticMetadataCharacters = 1024 * 1024
     };
 
@@ -79,6 +81,9 @@ public sealed class HtmlConversionLimits {
     /// <summary>Maximum responsive image candidates per source set, or <c>null</c> for no candidate limit.</summary>
     public int? MaxResponsiveImageCandidates { get; set; }
 
+    /// <summary>Maximum UTF-16 characters parsed from one responsive image <c>sizes</c> value, or <c>null</c> for no limit.</summary>
+    public int? MaxResponsiveImageSizesCharacters { get; set; }
+
     /// <summary>Maximum characters accepted from one semantic metadata field.</summary>
     public int? MaxSemanticMetadataCharacters { get; set; }
 
@@ -98,6 +103,7 @@ public sealed class HtmlConversionLimits {
         MaxCssSelectorsPerRule = MaxCssSelectorsPerRule,
         MaxSelectorEvaluations = MaxSelectorEvaluations,
         MaxResponsiveImageCandidates = MaxResponsiveImageCandidates,
+        MaxResponsiveImageSizesCharacters = MaxResponsiveImageSizesCharacters,
         MaxSemanticMetadataCharacters = MaxSemanticMetadataCharacters
     };
 
@@ -122,6 +128,7 @@ public sealed class HtmlConversionLimits {
             MaxCssSelectorsPerRule = Minimum(left.MaxCssSelectorsPerRule, right.MaxCssSelectorsPerRule),
             MaxSelectorEvaluations = Minimum(left.MaxSelectorEvaluations, right.MaxSelectorEvaluations),
             MaxResponsiveImageCandidates = Minimum(left.MaxResponsiveImageCandidates, right.MaxResponsiveImageCandidates),
+            MaxResponsiveImageSizesCharacters = Minimum(left.MaxResponsiveImageSizesCharacters, right.MaxResponsiveImageSizesCharacters),
             MaxSemanticMetadataCharacters = Minimum(left.MaxSemanticMetadataCharacters, right.MaxSemanticMetadataCharacters)
         };
     }
@@ -141,6 +148,7 @@ public sealed class HtmlConversionLimits {
         ValidatePositive(MaxCssSelectorsPerRule, nameof(MaxCssSelectorsPerRule));
         ValidatePositive(MaxSelectorEvaluations, nameof(MaxSelectorEvaluations));
         ValidatePositive(MaxResponsiveImageCandidates, nameof(MaxResponsiveImageCandidates));
+        ValidatePositive(MaxResponsiveImageSizesCharacters, nameof(MaxResponsiveImageSizesCharacters));
         ValidatePositive(MaxSemanticMetadataCharacters, nameof(MaxSemanticMetadataCharacters));
     }
 

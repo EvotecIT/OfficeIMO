@@ -9,7 +9,7 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - URL policy evaluation and base URI resolution
 - owned document snapshots, node queries and edits, with replaceable parser and charset providers
 - DOM traversal facts and node/depth limit tracking
-- image source discovery for `img`, lazy-loading attributes, `srcset`, and `picture/source`
+- image source discovery and deterministic responsive candidate selection for `img`, lazy-loading attributes, `srcset`, `sizes`, and `picture/source`
 - image data URI parsing and media-type extension mapping
 - deterministic accessible-name, ARIA heading, EPUB structural-semantic, and logical quote/code/footnote projection
 - browser-free HTML layout for continuous and paged output
@@ -196,6 +196,35 @@ string review = OfficeHtmlDocumentShell.WrapBody(
 Set `EmitDocumentShell = false` to return a fragment. Adapter save options expose this object through `DocumentOutput`; their older title, language, theme, style, fragment, and newline properties remain synchronized aliases. Adapter-required body classes are retained and `BodyClass` values are appended with stable de-duplication. The shell is presentation only. Parsing, resource policy, layout interpretation, conversion diagnostics, and static execution boundaries remain owned by the managed HTML engine and the destination adapter.
 
 `HtmlTargetCapabilityContracts` describes conversion routes directionally. `HtmlToTarget` and `TargetToHtml` have independent entry points, result contracts, I/O boundaries, diagnostics, profiles, and feature classifications; a missing reverse route is represented by `TargetToHtml == null`. Catalog collections and finalized gallery or conversion results are defensive snapshots; mutable reports remain available only while callers or converters assemble a result.
+
+## Responsive image selection
+
+Use the DOM-independent selector when a crawler, resource broker, or another host
+needs the same candidate decision as the renderer:
+
+```csharp
+HtmlResponsiveImageSelection selected = HtmlResponsiveImageSelector.Select(
+    "small.webp 400w, medium.webp 800w, large.webp 1200w",
+    "(max-width: 600px) 100vw, 50vw",
+    defaultSource: "fallback.webp",
+    new HtmlResponsiveImageSelectionOptions {
+        ViewportWidth = 800,
+        ViewportHeight = 600,
+        DevicePixelRatio = 2
+    });
+
+string selectedUrl = selected.Candidate.Url; // medium.webp
+```
+
+The selector supports density descriptors and width descriptors normalized by a
+bounded `sizes` list. `MaxSizesCharacters` bounds direct selector calls, while
+`HtmlConversionLimits.MaxResponsiveImageSizesCharacters` applies the shared conversion
+boundary. It evaluates supported media conditions through the shared CSS
+media engine, resolves supported CSS lengths and math, keeps the first duplicate
+density, reports whether a default `src` supplied the selected candidate, and falls back
+to `100vw` when no supported size matches. Resource policy is applied before candidate
+selection. Static rendering derives device density from
+`HtmlRenderMediaFeatures.ResolutionDpi`.
 
 ## Direct HTML rendering
 

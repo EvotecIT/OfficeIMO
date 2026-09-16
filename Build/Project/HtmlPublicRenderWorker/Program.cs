@@ -24,10 +24,11 @@ try {
         Margins = HtmlRenderMargins.All(0D) };
     incoming.Page.ViewportWidth = rendering.ViewportWidth;
     incoming.Page.ViewportHeight = rendering.ViewportHeight ?? 720D;
+    rendering.MediaFeatures.ResolutionDpi = incoming.Page.DevicePixelRatio * HtmlRenderOptions.CssPixelsPerInch;
     HtmlScriptRequest page = incoming.Page.Snapshot();
     if (page.Profile != HtmlRuntimeProfile.WebApplicationV1 || page.ResourcePolicy.AllowNetwork)
         throw new NotSupportedException("The isolated renderer accepts only offline WebApplicationV1 input.");
-    var discovery = new HtmlApplicationResourceDiscovery();
+    var discovery = new HtmlApplicationResourceDiscovery(page.ViewportWidth, page.ViewportHeight, page.DevicePixelRatio);
     var supplied = page.Resources.ToList();
     string[] pending = discovery.DiscoverDocument(page.Html, page.DocumentUrl, supplied);
     IHtmlRuntimeHost host = new HtmlProcessRuntimeProvider(workerPath, AngleSharpDomServices.Instance);

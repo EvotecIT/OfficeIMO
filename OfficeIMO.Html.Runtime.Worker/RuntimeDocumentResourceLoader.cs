@@ -42,12 +42,14 @@ internal sealed class RuntimeDocumentResourceLoader(IBrowsingContext context, Ru
 
     private void SelectResponsiveImage(ResourceRequest request, AngleSharp.Dom.IElement element,
         AngleSharp.Dom.IDocument document) {
-        if (element is not IHtmlImageElement image ||
-            !string.Equals(image.ParentElement?.LocalName, "picture", StringComparison.OrdinalIgnoreCase)) return;
+        if (element is not IHtmlImageElement image) return;
         var renderOptions = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = runtimeOptions.ViewportWidth,
-            ViewportHeight = runtimeOptions.ViewportHeight
+            ViewportHeight = runtimeOptions.ViewportHeight,
+            MediaFeatures = new HtmlRenderMediaFeatures {
+                ResolutionDpi = runtimeOptions.DevicePixelRatio * HtmlRenderOptions.CssPixelsPerInch
+            }
         };
         string? selected = HtmlImageSourceResolver.ResolveImageSourceCandidatesForRendering(
             image, new Uri(RuntimeDocumentUrls.Base(document)), HtmlUrlPolicy.CreateWebResourceProfile(), renderOptions)

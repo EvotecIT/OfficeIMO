@@ -21,7 +21,7 @@ internal sealed class RuntimeViewport(IHtmlDocument document, HtmlScriptRequest 
         if (RuntimeFocusController.HiddenByMarkup(element))
             return new RuntimeElementLayout(false, false, false, null, _scrollX, _scrollY, 0D, 0D);
         HtmlInteractionLayoutResult measured = HtmlInteractionLayoutEngine.Measure(
-            document, element, Width, Height, _scrollX, _scrollY, options.MaxInputCharacters, options.MaxNodes, options.MaxDepth,
+            document, element, Width, Height, options.DevicePixelRatio, _scrollX, _scrollY, options.MaxInputCharacters, options.MaxNodes, options.MaxDepth,
             options.MaxStylesheetImportDepth, new Uri(RuntimeDocumentUrls.Base(document)), ResolveStylesheet, token);
         if (!measured.IsConnected || !measured.HasLayoutBox || measured.Bounds is not HtmlInteractionRect bounds)
             return new RuntimeElementLayout(false, measured.AcceptsPointerEvents, measured.ReceivesPointerAtCenter,

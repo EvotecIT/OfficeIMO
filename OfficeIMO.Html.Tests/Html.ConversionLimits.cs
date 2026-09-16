@@ -17,6 +17,7 @@ public sealed class HtmlConversionLimitTests {
         Assert.NotNull(untrusted.Limits.MaxCssTokens);
         Assert.NotNull(untrusted.Limits.MaxCssSyntaxNodes);
         Assert.Equal(64, untrusted.Limits.MaxResponsiveImageCandidates);
+        Assert.Equal(64 * 1024, untrusted.Limits.MaxResponsiveImageSizesCharacters);
 
         Assert.False(trusted.UrlPolicy.DisallowFileUrls);
         Assert.True(trusted.UrlPolicy.AllowDataUrls);
@@ -24,6 +25,7 @@ public sealed class HtmlConversionLimitTests {
         Assert.Null(trusted.Limits.MaxCssTokens);
         Assert.Null(trusted.Limits.MaxCssSyntaxNodes);
         Assert.Null(trusted.Limits.MaxResponsiveImageCandidates);
+        Assert.Null(trusted.Limits.MaxResponsiveImageSizesCharacters);
     }
 
     [Fact]

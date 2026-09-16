@@ -53,6 +53,40 @@ public sealed class RuntimeResourceTests {
     }
 
     [Fact]
+    public async Task ResponsiveImageLoadsOnlyTheCandidateSelectedForViewportAndDeviceDensity() {
+        Uri small = new(Origin, "small.svg");
+        Uri medium = new(Origin, "medium.svg");
+        Uri large = new(Origin, "large.svg");
+        Uri fallback = new(Origin, "fallback.svg");
+        string Svg(string color) => $"<svg xmlns='http://www.w3.org/2000/svg' width='2' height='2'><rect width='2' height='2' fill='{color}'/></svg>";
+        await using IHtmlRuntimeSession session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest {
+            Profile = HtmlRuntimeProfile.WebApplicationV1,
+            DocumentUrl = new Uri(Origin, "report"),
+            ViewportWidth = 800D,
+            ViewportHeight = 600D,
+            DevicePixelRatio = 2D,
+            Html = """
+                <img src="/fallback.svg"
+                     srcset="/small.svg 400w, /medium.svg 800w, /large.svg 1200w"
+                     sizes="(max-width:600px) 100vw, 50vw" alt="fixture">
+                """,
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(small, Svg("red"), "image/svg+xml"),
+                HtmlRuntimeResource.FromText(medium, Svg("blue"), "image/svg+xml"),
+                HtmlRuntimeResource.FromText(large, Svg("green"), "image/svg+xml"),
+                HtmlRuntimeResource.FromText(fallback, Svg("black"), "image/svg+xml")
+            }
+        });
+
+        Assert.True((await session.EvaluateAsync("devicePixelRatio === 2")).GetBoolean());
+        HtmlScriptCapture capture = await session.CaptureAsync();
+        Assert.Contains(capture.Resources, resource => resource.Url == medium);
+        Assert.DoesNotContain(capture.Resources, resource => resource.Url == small);
+        Assert.DoesNotContain(capture.Resources, resource => resource.Url == large);
+        Assert.DoesNotContain(capture.Resources, resource => resource.Url == fallback);
+    }
+
+    [Fact]
     public async Task SuppliedFrameLoadsWithChildScriptsInertAndWithoutFlatteningIntoTheRootCapture() {
         Uri frame = new(Origin, "frames/detail.html");
         Uri frameScript = new(Origin, "frames/frame.js");

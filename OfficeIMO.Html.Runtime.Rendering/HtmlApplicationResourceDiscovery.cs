@@ -25,6 +25,19 @@ internal sealed class HtmlApplicationResourceDiscovery {
         MediaHeight = 1122.5D
     };
 
+    internal HtmlApplicationResourceDiscovery(double viewportWidth = 816D, double viewportHeight = 720D,
+        double devicePixelRatio = 1D) {
+        if (!double.IsFinite(viewportWidth) || viewportWidth <= 0D) throw new ArgumentOutOfRangeException(nameof(viewportWidth));
+        if (!double.IsFinite(viewportHeight) || viewportHeight <= 0D) throw new ArgumentOutOfRangeException(nameof(viewportHeight));
+        if (!double.IsFinite(devicePixelRatio) || devicePixelRatio <= 0D) throw new ArgumentOutOfRangeException(nameof(devicePixelRatio));
+        _screenOptions.MediaWidth = viewportWidth;
+        _screenOptions.MediaHeight = viewportHeight;
+        _screenOptions.DevicePixelRatio = devicePixelRatio;
+        _screenOptions.MediaFeatures.ResolutionDpi = devicePixelRatio * HtmlRenderOptions.CssPixelsPerInch;
+        _printOptions.DevicePixelRatio = devicePixelRatio;
+        _printOptions.MediaFeatures.ResolutionDpi = devicePixelRatio * HtmlRenderOptions.CssPixelsPerInch;
+    }
+
     internal string[] DiscoverDocument(string html, Uri documentUrl, IReadOnlyList<HtmlRuntimeResource> supplied) {
         ArgumentNullException.ThrowIfNull(html);
         ArgumentNullException.ThrowIfNull(documentUrl);

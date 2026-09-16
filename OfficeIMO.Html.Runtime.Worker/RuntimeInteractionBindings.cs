@@ -11,7 +11,8 @@ using Jint.Runtime.Interop;
 namespace OfficeIMO.Html.Runtime.Worker;
 
 internal static class RuntimeInteractionBindings {
-    internal static void Install(Engine engine, IDocument document, RuntimeFocusController focus, RuntimeAutomation automation) {
+    internal static void Install(Engine engine, IDocument document, RuntimeFocusController focus, RuntimeAutomation automation,
+        double devicePixelRatio) {
         var htmlPrototype = engine.Global.Get("HTMLElement").AsObject().Get("prototype").AsObject();
         var focusMethod = new ClrFunction(engine, "focus", (receiver, _) => {
             focus.Focus(receiver.ToObject() as IHtmlElement ?? throw new ArgumentException("Focus requires an HTML element."));
@@ -50,7 +51,7 @@ internal static class RuntimeInteractionBindings {
                 prototype.FastSetProperty("click", new PropertyDescriptor(clickMethod, true, false, true));
         }
         InstallFormMethods(engine, automation);
-        InstallViewportMethods(engine, document, automation.Viewport);
+        InstallViewportMethods(engine, document, automation.Viewport, devicePixelRatio);
         // Script click and typed actions share activation, including cancellation and navigation.
         for (var prototype = JsValue.FromObject(engine, document).AsObject().Prototype; prototype != null; prototype = prototype.Prototype) {
             var descriptor = prototype.GetOwnProperty("activeElement");
@@ -87,10 +88,13 @@ internal static class RuntimeInteractionBindings {
         }), true, false, true));
     }
 
-    private static void InstallViewportMethods(Engine engine, IDocument document, RuntimeViewport viewport) {
-        if (!viewport.Enabled) return;
+    private static void InstallViewportMethods(Engine engine, IDocument document, RuntimeViewport viewport, double devicePixelRatio) {
         var nativeWindow = JsValue.FromObject(engine, document.DefaultView).AsObject();
-        foreach (ObjectInstance target in new[] { engine.Global, nativeWindow }) {
+        ObjectInstance[] targets = { engine.Global, nativeWindow };
+        foreach (ObjectInstance target in targets)
+            target.FastSetProperty("devicePixelRatio", Getter(engine, "devicePixelRatio", () => devicePixelRatio));
+        if (!viewport.Enabled) return;
+        foreach (ObjectInstance target in targets) {
             target.FastSetProperty("innerWidth", Getter(engine, "innerWidth", () => viewport.Width));
             target.FastSetProperty("innerHeight", Getter(engine, "innerHeight", () => viewport.Height));
             target.FastSetProperty("scrollX", Getter(engine, "scrollX", () => viewport.ScrollX));

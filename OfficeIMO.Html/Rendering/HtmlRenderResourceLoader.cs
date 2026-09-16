@@ -529,9 +529,12 @@ internal static class HtmlRenderResourceLoader {
             ResourceUrlPolicy = result.ResourcePolicy.Clone(),
             Limits = limits.Clone(),
             MaxResponsiveImageCandidates = options.ResponsiveImageCandidateLimit,
+            MaxResponsiveImageSizesCharacters = options.ResponsiveImageSizesCharacterLimit,
             MediaContext = options.MediaContext,
             MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
             MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,
+            DevicePixelRatio = options.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
+            DefaultFontSize = options.DefaultFontSize,
             MediaFeatures = options.MediaFeatures.Clone()
         };
         bool stop = false;

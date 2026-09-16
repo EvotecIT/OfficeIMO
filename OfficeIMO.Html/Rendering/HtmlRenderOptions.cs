@@ -263,6 +263,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxLayoutOperations = MaxLayoutOperations;
         target.MaxRunningStringCharacters = MaxRunningStringCharacters;
         target.ResponsiveImageCandidateLimit = ResponsiveImageCandidateLimit;
+        target.ResponsiveImageSizesCharacterLimit = ResponsiveImageSizesCharacterLimit;
         target.EnableEditableLayoutRegions = EnableEditableLayoutRegions;
         target.CssMediaContextOverride = CssMediaContextOverride;
         target.ClipContinuousSurfaceToViewport = ClipContinuousSurfaceToViewport;
@@ -273,6 +274,8 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         ResourceUrlPolicy ?? UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
 
     internal int? ResponsiveImageCandidateLimit { get; set; }
+
+    internal int? ResponsiveImageSizesCharacterLimit { get; set; }
 
     // Render requests decouple CSS media from continuous or paged geometry. Legacy callers
     // leave this unset and retain the historical continuous/screen and paged/print mapping.

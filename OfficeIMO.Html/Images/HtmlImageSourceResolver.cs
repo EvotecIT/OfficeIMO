@@ -59,6 +59,8 @@ public static partial class HtmlImageSourceResolver {
         var candidates = new CandidateAccumulator();
         if (element == null) return candidates.Items;
 
+        HtmlResponsiveImageSelectionOptions selectionOptions = CreateResponsiveSelectionOptions(options);
+
         bool selectedPictureSource = false;
         IElement? picture = element.ParentElement;
         if (picture != null && picture.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
@@ -77,10 +79,13 @@ public static partial class HtmlImageSourceResolver {
                     continue;
                 }
 
-                int candidateCount = 0;
                 int countBeforeSource = candidates.Items.Count;
-                AddResolvedSrcSetAttributes(candidates, child, baseUri, policy, options.ResponsiveImageCandidateLimit, ref candidateCount, SrcSetAttributes);
-                AddResolvedUrlAttributes(candidates, child, baseUri, policy, options.ResponsiveImageCandidateLimit, ref candidateCount, PictureSourceAttributes);
+                AddSelectedResolvedSrcSet(candidates, child, baseUri, policy, selectionOptions, defaultSource: null, SrcSetAttributes);
+                if (candidates.Items.Count == countBeforeSource) {
+                    int candidateCount = 0;
+                    AddResolvedUrlAttributes(candidates, child, baseUri, policy, options.ResponsiveImageCandidateLimit,
+                        ref candidateCount, PictureSourceAttributes);
+                }
                 if (candidates.Items.Count > countBeforeSource) {
                     selectedPictureSource = true;
                     break;
@@ -90,12 +95,48 @@ public static partial class HtmlImageSourceResolver {
 
         if (!selectedPictureSource) {
             AddResolvedUrlAttributes(candidates, element, baseUri, policy, LazySourceAttributes);
-            int responsiveCandidateCount = 0;
-            AddResolvedSrcSetAttributes(candidates, element, baseUri, policy, options.ResponsiveImageCandidateLimit, ref responsiveCandidateCount, SrcSetAttributes);
-            AddResolvedUrlAttributes(candidates, element, baseUri, policy, SourceAttributes);
+            if (candidates.Items.Count == 0) {
+                string? defaultSource = element.GetAttribute("src");
+                AddSelectedResolvedSrcSet(candidates, element, baseUri, policy, selectionOptions, defaultSource, SrcSetAttributes);
+                if (candidates.Items.Count == 0) AddResolvedUrlAttributes(candidates, element, baseUri, policy, SourceAttributes);
+            }
         }
 
         return candidates.Items;
+    }
+
+    private static HtmlResponsiveImageSelectionOptions CreateResponsiveSelectionOptions(HtmlRenderOptions options) {
+        double width = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
+        double height = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
+        return new HtmlResponsiveImageSelectionOptions {
+            ViewportWidth = width,
+            ViewportHeight = height,
+            DevicePixelRatio = options.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
+            MediaContext = options.MediaContext,
+            MediaFeatures = options.MediaFeatures,
+            DefaultFontSize = options.DefaultFontSize,
+            MaxCandidates = options.ResponsiveImageCandidateLimit,
+            MaxSizesCharacters = options.ResponsiveImageSizesCharacterLimit
+        };
+    }
+
+    private static bool AddSelectedResolvedSrcSet(CandidateAccumulator candidates, IElement element, Uri? baseUri,
+        HtmlUrlPolicy? policy, HtmlResponsiveImageSelectionOptions options, string? defaultSource,
+        params string[] attributeNames) {
+        foreach (string attributeName in attributeNames) {
+            string? raw = element.GetAttribute(attributeName);
+            if (string.IsNullOrWhiteSpace(raw)) continue;
+            var allowed = new List<HtmlSrcSetCandidate>();
+            foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(raw, options.MaxCandidates)) {
+                string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, policy);
+                if (!string.IsNullOrWhiteSpace(resolved)) allowed.Add(new HtmlSrcSetCandidate(resolved, candidate.Descriptor));
+            }
+            string resolvedDefault = HtmlUrlPolicyEvaluator.ResolveUrl(defaultSource, baseUri, policy);
+            HtmlResponsiveImageSelection selection = HtmlResponsiveImageSelector.Select(
+                allowed, element.GetAttribute("sizes"), resolvedDefault, options);
+            if (selection.HasValue) return candidates.Add(selection.Candidate.Url);
+        }
+        return false;
     }
 
     /// <summary>

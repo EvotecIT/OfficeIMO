@@ -163,6 +163,39 @@ public sealed class RuntimeApplicationDocumentWorkflowTests {
         Assert.Equal(directPng, background.Bytes);
     }
 
+    [Fact]
+    public async Task PageDeviceDensityIsInheritedByStaticWorkflowOutputs() {
+        Uri origin = new("https://legacy.officeimo.test/index.html");
+        Uri twoX = new(origin, "/two-x.svg");
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4'><rect width='4' height='4' fill='blue'/></svg>";
+        var page = new HtmlScriptRequest {
+            Profile = HtmlRuntimeProfile.WebApplicationV1,
+            DocumentUrl = origin,
+            ViewportWidth = 800D,
+            ViewportHeight = 600D,
+            DevicePixelRatio = 2D,
+            Html = "<img src='/fallback.svg' srcset='/two-x.svg 2x' width='24' height='24' alt='fixture'>",
+            Resources = new[] { HtmlRuntimeResource.FromText(twoX, svg, "image/svg+xml") }
+        };
+        IHtmlRuntimeHost host = new HtmlProcessRuntimeProvider(
+            Path.Combine(AppContext.BaseDirectory, "RuntimeWorker", "OfficeIMO.Html.Runtime.Worker.dll"),
+            AngleSharpDomServices.Instance);
+
+        HtmlApplicationDocumentResult result = await HtmlApplicationDocumentWorkflow.RunAsync(host,
+            new HtmlApplicationDocumentRequest {
+                Page = page,
+                RenderRequests = new[] {
+                    HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png,
+                        new HtmlRenderOptions { ViewportWidth = 800D, ViewportHeight = 600D })
+                }
+            });
+
+        Assert.Contains(result.Capture.Resources, resource => resource.Url == twoX);
+        Assert.Equal(192D, result.Outputs[0].Render.Request.Options.MediaFeatures.ResolutionDpi);
+        Assert.DoesNotContain(result.Outputs[0].Render.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+    }
+
     private static (HtmlScriptRequest Page, HtmlAutomationRequest[] Actions, string Ready, string ExpectedText) CreateCase(string id) => id switch {
         "vanilla" => VanillaCase(),
         "react-build" => ReactBuildCase(),

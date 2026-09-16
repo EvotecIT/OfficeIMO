@@ -100,7 +100,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             var viewport = new RuntimeViewport((IHtmlDocument)document, options, () => _activeCommandToken, _resources.Capture);
             _history = new RuntimeHistoryBindings(_engine, document, _loop, options, viewport, history, navigate);
             _automation = new RuntimeAutomation(document, options, _focus, _history, viewport, _engine, diagnostics);
-            RuntimeInteractionBindings.Install(_engine, document, _focus, _automation);
+            RuntimeInteractionBindings.Install(_engine, document, _focus, _automation, _options.DevicePixelRatio);
             RuntimeSelectBindings.Install(_engine);
             _fetch = new RuntimeFetchBindings(_engine, document, _loop, _resources, options, _errors);
         };

@@ -64,6 +64,10 @@ byte[] printPdf = result.Outputs[1].Pdf!.ToBytes();
 byte[] screenToPagePdf = result.Outputs[2].Pdf!.ToBytes();
 ```
 
+Every output in one application workflow inherits the page request's
+`DevicePixelRatio`. Runtime resource capture and static screen, print, and
+screen-to-page rendering therefore select responsive images at the same density.
+
 The host can be `HtmlProcessRuntimeProvider` or another provider advertising
 the requested profile, structured actions and operation tracing. The current
 process worker executes explicitly trusted content only; it is not an OS

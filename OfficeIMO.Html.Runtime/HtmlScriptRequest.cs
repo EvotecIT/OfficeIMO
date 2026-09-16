@@ -56,6 +56,8 @@ public sealed class HtmlScriptRequest {
     public double ViewportWidth { get; set; } = 1280D;
     /// <summary>Layout viewport height in CSS pixels for WebApplicationV1 inspection and actionability.</summary>
     public double ViewportHeight { get; set; } = 720D;
+    /// <summary>Device pixels per CSS pixel used by responsive images and exposed as <c>window.devicePixelRatio</c>.</summary>
+    public double DevicePixelRatio { get; set; } = 1D;
 
     /// <summary>Validates and returns a detached request suitable for a runtime provider to retain.</summary>
     public HtmlScriptRequest Snapshot() {
@@ -78,6 +80,8 @@ public sealed class HtmlScriptRequest {
             throw new ArgumentOutOfRangeException(nameof(ViewportWidth), "Viewport width must be a finite positive value.");
         if (!double.IsFinite(ViewportHeight) || ViewportHeight <= 0D)
             throw new ArgumentOutOfRangeException(nameof(ViewportHeight), "Viewport height must be a finite positive value.");
+        if (!double.IsFinite(DevicePixelRatio) || DevicePixelRatio <= 0D)
+            throw new ArgumentOutOfRangeException(nameof(DevicePixelRatio), "Device pixel ratio must be a finite positive value.");
         var scripts = Scripts.ToArray();
         long length = (long)Html.Length + ReadyExpression.Length;
         foreach (string script in scripts) {
@@ -105,7 +109,7 @@ public sealed class HtmlScriptRequest {
             MaxModuleIntegrityMetadataCharacters = MaxModuleIntegrityMetadataCharacters, MaxNavigations = MaxNavigations,
             MaxHistoryEntries = MaxHistoryEntries, MaxHistoryStateBytes = MaxHistoryStateBytes, MaxHistoryTotalStateBytes = MaxHistoryTotalStateBytes, MaxPendingHistoryTasks = MaxPendingHistoryTasks,
             MaxStylesheetImportDepth = MaxStylesheetImportDepth,
-            ViewportWidth = ViewportWidth, ViewportHeight = ViewportHeight };
+            ViewportWidth = ViewportWidth, ViewportHeight = ViewportHeight, DevicePixelRatio = DevicePixelRatio };
     }
 }
 

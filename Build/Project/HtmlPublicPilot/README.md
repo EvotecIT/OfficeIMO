@@ -37,7 +37,7 @@ connected IP addresses and SHA-256 hashes are recorded before rendering.
 Append `--resource=URL` for assets outside this discovery path. An external DNS
 name must be explicitly approved with `--host=DNS-name`; explicit resource
 URLs approve their own host. The generated OCI probe qualifies active,
-single-candidate responsive-picture source selection, a two-level relative
+multi-candidate responsive-picture selection by viewport, `sizes`, and device density, a two-level relative
 JavaScript module graph, and static frame-document loading with relative-resource
 discovery and inert child scripts. Child-frame execution realms, frame-body capture/rendering, wider
 module/import-map cases, non-GET requests and browser-wide dynamic loading are

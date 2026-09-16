@@ -45,6 +45,7 @@ public static class HtmlApplicationDocumentWorkflow {
             if (requested.Encoder == HtmlRenderEncoder.Pdf && options is not HtmlToPdfOptions) {
                 options = new HtmlToPdfOptions(options);
             }
+            options.MediaFeatures.ResolutionDpi = input.Page.DevicePixelRatio * HtmlRenderOptions.CssPixelsPerInch;
             options.BaseUri = capture.BaseUri;
             options.ResourceResolver = (resourceRequest, _) => Task.FromResult(resources.TryGetValue(
                 resourceRequest.Uri.AbsoluteUri, out HtmlRuntimeResource? resource)

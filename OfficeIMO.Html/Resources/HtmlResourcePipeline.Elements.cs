@@ -110,6 +110,23 @@ public static partial class HtmlResourcePipeline {
             return;
         }
 
+        if (options.MediaWidth.HasValue && options.MediaHeight.HasValue) {
+            foreach (string lazyAttribute in new[] { "data-src", "data-original", "data-original-src", "data-lazy-src" }) {
+                if (!HasNonEmptyAttribute(element, lazyAttribute)) continue;
+                AddAttribute(manifest, HtmlResourceKind.Image, element, lazyAttribute, baseUri, options);
+                return;
+            }
+            string? fallback = element.GetAttribute("src");
+            if (AddSrcSet(manifest, HtmlResourceKind.Image, element, "srcset", baseUri, options, fallback)
+                || AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-srcset", baseUri, options, fallback)
+                || AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-original-srcset", baseUri, options, fallback)
+                || AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-lazy-srcset", baseUri, options, fallback)) {
+                return;
+            }
+            AddAttribute(manifest, HtmlResourceKind.Image, element, "src", baseUri, options);
+            return;
+        }
+
         foreach (string attribute in new[] { "data-src", "data-original", "data-original-src", "data-lazy-src", "src" }) {
             AddAttribute(manifest, HtmlResourceKind.Image, element, attribute, baseUri, options);
         }
@@ -151,10 +168,11 @@ public static partial class HtmlResourcePipeline {
                     && HasPictureSourceCandidate(element)
                     && IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options)
                     && IsSupportedPictureSourceType(element.GetAttribute("type"))) {
-                    AddSrcSet(manifest, HtmlResourceKind.Image, element, "srcset", baseUri, options);
-                    AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-srcset", baseUri, options);
-                    AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-original-srcset", baseUri, options);
-                    AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-lazy-srcset", baseUri, options);
+                    if (!AddSrcSet(manifest, HtmlResourceKind.Image, element, "srcset", baseUri, options)
+                        && !AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-srcset", baseUri, options)
+                        && !AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-original-srcset", baseUri, options)) {
+                        AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-lazy-srcset", baseUri, options);
+                    }
                 }
 
                 break;
@@ -269,7 +287,15 @@ public static partial class HtmlResourcePipeline {
     private static bool HasAllowedPictureSourceCandidate(IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
         HtmlUrlPolicy resourcePolicy = GetResourceUrlPolicy(options);
         foreach (string attribute in new[] { "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset" }) {
-            foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(element.GetAttribute(attribute))) {
+            string? raw = element.GetAttribute(attribute);
+            if (options.MediaWidth.HasValue && options.MediaHeight.HasValue && !string.IsNullOrWhiteSpace(raw)) {
+                int? candidateLimit = HtmlConversionLimits.Minimum(options.MaxResponsiveImageCandidates,
+                    (options.Limits ?? HtmlConversionLimits.CreateUntrustedProfile()).MaxResponsiveImageCandidates);
+                if (TrySelectAllowedSrcSet(HtmlResourceKind.Image, element, attribute, "sizes", defaultSource: null,
+                    baseUri, options, candidateLimit, out _)) return true;
+                continue;
+            }
+            foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(raw)) {
                 if (IsAllowedResourceCandidate(HtmlResourceKind.Image, candidate.Url, baseUri, resourcePolicy)) {
                     return true;
                 }
@@ -315,10 +341,18 @@ public static partial class HtmlResourcePipeline {
             kind = HtmlResourceKind.Hyperlink;
         }
 
-        AddAttribute(manifest, kind, element, "href", baseUri, options);
         if (isPreload && kind == HtmlResourceKind.Image) {
-            AddSrcSet(manifest, HtmlResourceKind.Image, element, "imagesrcset", baseUri, options);
+            if (options.MediaWidth.HasValue && options.MediaHeight.HasValue
+                && AddSrcSet(manifest, HtmlResourceKind.Image, element, "imagesrcset", baseUri, options,
+                    defaultSource: null, sizesAttributeName: "imagesizes")) return;
+            AddAttribute(manifest, kind, element, "href", baseUri, options);
+            if (!options.MediaWidth.HasValue || !options.MediaHeight.HasValue) {
+                AddSrcSet(manifest, HtmlResourceKind.Image, element, "imagesrcset", baseUri, options,
+                    defaultSource: null, sizesAttributeName: "imagesizes");
+            }
+            return;
         }
+        AddAttribute(manifest, kind, element, "href", baseUri, options);
     }
 
     private static HashSet<string> GetRelTokens(string rel) {

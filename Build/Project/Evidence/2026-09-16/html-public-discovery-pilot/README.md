@@ -37,17 +37,19 @@ embedding a translucent gradient in the PDF; `oom-256m.json` retains that
 failure. The completed run used a verified 512 MiB container limit, one CPU,
 32 PIDs and the same no-network and read-only controls. The site has no
 skipped resources in this run. Browser-reference differences, richer hostile
-inputs, broader responsive-source and module-graph cases, cross-host redirects,
-and Windows and macOS isolation remain open in [the product roadmap](../../../../../Docs/ROADMAP.md).
+inputs, broader module and frame execution cases, dynamic request types, and
+Windows and macOS isolation remain open in [the product roadmap](../../../../../Docs/ROADMAP.md).
 
 The [controlled OCI fixture run](hostile-fixtures/summary.json) used the same
 whole-pipeline image definition with ID
-`sha256:e905e43d03abf3758f20ebecc15a57cb7e1b7910be841c9227d717b59bbe7b54`.
+`sha256:4c66556c56d5d689efa6268ac39e95e5d7fcb3f3cf7108af39fa37985b92d194`.
 Malformed table markup with an inline script produced a [screen image](hostile-fixtures/malformed-markup/screen.png)
 and both PDFs; the image was visually inspected and both PDFs reopened as
 single-page A4 files. The responsive-picture case requested only its active
-single-candidate wide SVG by canonical absolute URL, omitted the narrow and
-fallback resources, and visibly rendered the selected blue image. The
+`800w` SVG from a three-candidate set by canonical absolute URL at device pixel
+ratio 2 and a 400 CSS-pixel source size. It omitted the `400w`, `1200w`,
+inactive-source and fallback resources, exposed the same device density to the
+application, and visibly rendered the selected blue image. The
 module-graph case requested its canonical root URL in round one and its relative
 dependency URL in round two, then rendered the dependency's exported text. The
 static-frame case requested its canonical iframe document URL in round one and

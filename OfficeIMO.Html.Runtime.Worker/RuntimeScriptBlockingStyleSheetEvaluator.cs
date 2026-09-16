@@ -8,5 +8,8 @@ internal sealed class RuntimeScriptBlockingStyleSheetEvaluator(HtmlScriptRequest
         mediaText,
         HtmlCssMediaContext.Screen,
         request.ViewportWidth,
-        request.ViewportHeight);
+        request.ViewportHeight,
+        new HtmlRenderMediaFeatures {
+            ResolutionDpi = request.DevicePixelRatio * HtmlRenderOptions.CssPixelsPerInch
+        });
 }

@@ -37,17 +37,59 @@ public static partial class HtmlResourcePipeline {
         return slashCount % 2 == 1;
     }
 
-    private static void AddSrcSet(HtmlResourceManifest manifest, HtmlResourceKind kind, IElement element, string attributeName, Uri? baseUri, HtmlResourcePipelineOptions options) {
+    private static bool AddSrcSet(HtmlResourceManifest manifest, HtmlResourceKind kind, IElement element,
+        string attributeName, Uri? baseUri, HtmlResourcePipelineOptions options, string? defaultSource = null,
+        string sizesAttributeName = "sizes") {
         string? raw = element.GetAttribute(attributeName);
         if (string.IsNullOrWhiteSpace(raw)) {
-            return;
+            return false;
         }
 
         int? candidateLimit = HtmlConversionLimits.Minimum(options.MaxResponsiveImageCandidates,
             (options.Limits ?? HtmlConversionLimits.CreateUntrustedProfile()).MaxResponsiveImageCandidates);
+        if (options.MediaWidth.HasValue && options.MediaHeight.HasValue) {
+            if (TrySelectAllowedSrcSet(kind, element, attributeName, sizesAttributeName, defaultSource, baseUri,
+                options, candidateLimit, out HtmlResponsiveImageSelection selection)) {
+                AddRaw(manifest, kind, element, selection.UsesDefaultSource ? "src" : attributeName,
+                    selection.Candidate.Url, baseUri, options);
+                return true;
+            }
+            return false;
+        }
         foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(raw, candidateLimit)) {
             AddRaw(manifest, kind, element, attributeName, candidate.Url, baseUri, options);
         }
+        return true;
+    }
+
+    private static HtmlResponsiveImageSelectionOptions CreateResponsiveImageSelectionOptions(
+        HtmlResourcePipelineOptions options, int? candidateLimit) => new HtmlResponsiveImageSelectionOptions {
+            ViewportWidth = options.MediaWidth!.Value,
+            ViewportHeight = options.MediaHeight!.Value,
+            DevicePixelRatio = options.DevicePixelRatio,
+            MediaContext = options.MediaContext,
+            MediaFeatures = options.MediaFeatures,
+            DefaultFontSize = options.DefaultFontSize,
+            MaxCandidates = candidateLimit,
+            MaxSizesCharacters = HtmlConversionLimits.Minimum(options.MaxResponsiveImageSizesCharacters,
+                (options.Limits ?? HtmlConversionLimits.CreateUntrustedProfile()).MaxResponsiveImageSizesCharacters)
+        };
+
+    private static bool TrySelectAllowedSrcSet(HtmlResourceKind kind, IElement element, string attributeName,
+        string sizesAttributeName, string? defaultSource, Uri? baseUri, HtmlResourcePipelineOptions options,
+        int? candidateLimit, out HtmlResponsiveImageSelection selection) {
+        selection = default;
+        string? raw = element.GetAttribute(attributeName);
+        if (string.IsNullOrWhiteSpace(raw)) return false;
+        HtmlUrlPolicy policy = kind == HtmlResourceKind.Hyperlink ? options.UrlPolicy : GetResourceUrlPolicy(options);
+        var allowed = new List<HtmlSrcSetCandidate>();
+        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(raw, candidateLimit)) {
+            if (IsAllowedResourceCandidate(kind, candidate.Url, baseUri, policy)) allowed.Add(candidate);
+        }
+        string? allowedDefault = IsAllowedResourceCandidate(kind, defaultSource, baseUri, policy) ? defaultSource : null;
+        selection = HtmlResponsiveImageSelector.Select(allowed, element.GetAttribute(sizesAttributeName), allowedDefault,
+            CreateResponsiveImageSelectionOptions(options, candidateLimit));
+        return selection.HasValue;
     }
 
     private static void AddAttribute(HtmlResourceManifest manifest, HtmlResourceKind kind, IElement element, string attributeName, Uri? baseUri, HtmlResourcePipelineOptions options, bool skipFragmentOnly = false) {

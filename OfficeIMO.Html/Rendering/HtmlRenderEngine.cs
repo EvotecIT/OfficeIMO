@@ -141,6 +141,7 @@ public static class HtmlRenderEngine {
         HtmlConversionLimits limits,
         CancellationToken cancellationToken) {
         resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
+        resolved.ResponsiveImageSizesCharacterLimit = limits.MaxResponsiveImageSizesCharacters;
         HtmlRenderAdditionalStylesheetApplier.Apply(document, resolved.AdditionalStylesheets.ToList());
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
@@ -152,9 +153,12 @@ public static class HtmlRenderEngine {
             ResourceUrlPolicy = resolved.GetResourceUrlPolicy().Clone(),
             Limits = limits.Clone(),
             MaxResponsiveImageCandidates = resolved.ResponsiveImageCandidateLimit,
+            MaxResponsiveImageSizesCharacters = resolved.ResponsiveImageSizesCharacterLimit,
             MediaContext = resolved.MediaContext,
             MediaWidth = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageWidth : resolved.ViewportWidth,
             MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D,
+            DevicePixelRatio = resolved.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
+            DefaultFontSize = resolved.DefaultFontSize,
             MediaFeatures = resolved.MediaFeatures.Clone()
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
@@ -285,6 +289,7 @@ public static class HtmlRenderEngine {
         HtmlConversionLimits limits,
         CancellationToken cancellationToken) {
         resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
+        resolved.ResponsiveImageSizesCharacterLimit = limits.MaxResponsiveImageSizesCharacters;
         HtmlRenderAdditionalStylesheetApplier.Apply(document, resolved.AdditionalStylesheets.ToList());
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
@@ -296,9 +301,12 @@ public static class HtmlRenderEngine {
             ResourceUrlPolicy = resolved.GetResourceUrlPolicy().Clone(),
             Limits = limits.Clone(),
             MaxResponsiveImageCandidates = resolved.ResponsiveImageCandidateLimit,
+            MaxResponsiveImageSizesCharacters = resolved.ResponsiveImageSizesCharacterLimit,
             MediaContext = resolved.MediaContext,
             MediaWidth = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageWidth : resolved.ViewportWidth,
             MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D,
+            DevicePixelRatio = resolved.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
+            DefaultFontSize = resolved.DefaultFontSize,
             MediaFeatures = resolved.MediaFeatures.Clone()
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);

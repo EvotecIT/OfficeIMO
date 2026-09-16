@@ -99,6 +99,20 @@ public sealed class RuntimeApplicationResourceDiscoveryTests {
     }
 
     [Fact]
+    public void ResponsivePictureDiscoverySelectsOneWidthCandidateForTheDeviceDensity() {
+        var discovery = new HtmlApplicationResourceDiscovery(800D, 600D, 2D);
+        string[] urls = discovery.DiscoverDocument("""
+            <picture>
+              <source media="(max-width: 900px)" type="image/svg+xml" sizes="400px"
+                      srcset="/small.svg 400w, /medium.svg 800w, /large.svg 1200w">
+              <img src="/fallback.svg" alt="fixture">
+            </picture>
+            """, new Uri("https://example.test/report"), []);
+
+        Assert.Equal(new[] { "https://example.test/medium.svg" }, urls);
+    }
+
+    [Fact]
     public void FrameDocumentsAreDiscoveredAndTheirStaticResourcesUseTheFinalDocumentUrl() {
         var discovery = new HtmlApplicationResourceDiscovery();
         Uri page = new("https://example.test/reports/index.html");

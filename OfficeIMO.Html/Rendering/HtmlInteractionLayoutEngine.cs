@@ -13,6 +13,7 @@ internal static class HtmlInteractionLayoutEngine {
         IElement target,
         double viewportWidth,
         double viewportHeight,
+        double devicePixelRatio,
         double scrollX,
         double scrollY,
         int maximumCharacters,
@@ -33,9 +34,12 @@ internal static class HtmlInteractionLayoutEngine {
         IElement[] sourceElements = document.QuerySelectorAll("*").ToArray();
         int targetIndex = Array.IndexOf(sourceElements, target);
         if (targetIndex < 0) return HtmlInteractionLayoutResult.Detached;
+        var mediaFeatures = new HtmlRenderMediaFeatures {
+            ResolutionDpi = devicePixelRatio * HtmlRenderOptions.CssPixelsPerInch
+        };
         StylesheetSnapshot[] stylesheets = CaptureStylesheets(
             sourceElements, baseUri, stylesheetResolver, limits, viewportWidth, viewportHeight,
-            maximumStylesheetImportDepth, token);
+            mediaFeatures, maximumStylesheetImportDepth, token);
 
         string html = document.DocumentElement?.OuterHtml ?? string.Empty;
         if (html.Length > maximumCharacters) throw new ArgumentException("The live document exceeds the interaction layout input budget.");
@@ -46,7 +50,7 @@ internal static class HtmlInteractionLayoutEngine {
             NativeFormState.CopyTree(document.DocumentElement, importedRoot, token);
             IElement[] importedElements = new[] { importedRoot }.Concat(importedRoot.QuerySelectorAll("*")).ToArray();
             if (targetIndex < importedElements.Length) clonedTarget = importedElements[targetIndex];
-            HydrateStylesheets(clone, importedRoot, stylesheets, limits, viewportWidth, viewportHeight,
+            HydrateStylesheets(clone, importedRoot, stylesheets, limits, viewportWidth, viewportHeight, mediaFeatures,
                 maximumStylesheetImportDepth, stylesheetResolver, token);
             clone.ReplaceChild(importedRoot, clone.DocumentElement);
         }
@@ -58,6 +62,7 @@ internal static class HtmlInteractionLayoutEngine {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = viewportWidth,
             ViewportHeight = viewportHeight,
+            MediaFeatures = mediaFeatures,
             Margins = HtmlRenderMargins.All(0D),
             BaseUri = baseUri ?? (Uri.TryCreate(document.Url, UriKind.Absolute, out Uri? documentUrl) ? documentUrl : null),
             MaxHtmlNodes = maximumNodes,
@@ -105,6 +110,7 @@ internal static class HtmlInteractionLayoutEngine {
         HtmlConversionLimits limits,
         double viewportWidth,
         double viewportHeight,
+        HtmlRenderMediaFeatures mediaFeatures,
         int maximumImportDepth,
         CancellationToken token) {
         var snapshots = new List<StylesheetSnapshot>();
@@ -120,7 +126,7 @@ internal static class HtmlInteractionLayoutEngine {
             IStyleSheet? sheet = (element as ILinkStyle)?.Sheet;
             string? css = sheet is ICssStyleSheet cssSheet
                 ? stylesheetUri == null ? cssSheet.ToCss() : SerializeLiveStylesheet(
-                    cssSheet, stylesheetUri, limits, viewportWidth, viewportHeight,
+                    cssSheet, stylesheetUri, limits, viewportWidth, viewportHeight, mediaFeatures,
                     maximumImportDepth, 0, new HashSet<ICssStyleSheet>(), token)
                 : isInline ? element.TextContent ?? string.Empty
                 : stylesheetUri != null ? resolver?.Invoke(stylesheetUri) : null;
@@ -141,6 +147,7 @@ internal static class HtmlInteractionLayoutEngine {
         HtmlConversionLimits limits,
         double viewportWidth,
         double viewportHeight,
+        HtmlRenderMediaFeatures mediaFeatures,
         int maximumImportDepth,
         Func<Uri, string?>? resolver,
         CancellationToken token) {
@@ -162,7 +169,7 @@ internal static class HtmlInteractionLayoutEngine {
             string css = snapshot.StylesheetUri == null || resolver == null
                 ? snapshot.Css
                 : ExpandStylesheetImports(snapshot.Css, snapshot.StylesheetUri, resolver, limits,
-                    viewportWidth, viewportHeight, maximumImportDepth, 0,
+                    viewportWidth, viewportHeight, mediaFeatures, maximumImportDepth, 0,
                     new HashSet<string>(StringComparer.OrdinalIgnoreCase), budget, token);
             IHtmlStyleElement style = source as IHtmlStyleElement ?? (IHtmlStyleElement)document.CreateElement("style");
             style.TextContent = css;
@@ -178,6 +185,7 @@ internal static class HtmlInteractionLayoutEngine {
         HtmlConversionLimits limits,
         double viewportWidth,
         double viewportHeight,
+        HtmlRenderMediaFeatures mediaFeatures,
         int maximumDepth,
         int depth,
         HashSet<string> active,
@@ -190,9 +198,13 @@ internal static class HtmlInteractionLayoutEngine {
             var resourceOptions = new HtmlResourcePipelineOptions {
                 ResourceUrlPolicy = HtmlUrlPolicy.CreateWebResourceProfile(),
                 Limits = limits.Clone(),
+                MaxResponsiveImageCandidates = limits.MaxResponsiveImageCandidates,
+                MaxResponsiveImageSizesCharacters = limits.MaxResponsiveImageSizesCharacters,
                 MediaContext = HtmlCssMediaContext.Screen,
                 MediaWidth = viewportWidth,
-                MediaHeight = viewportHeight
+                MediaHeight = viewportHeight,
+                DevicePixelRatio = mediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
+                MediaFeatures = mediaFeatures
             };
             HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions);
             var builder = new System.Text.StringBuilder(analysis.Css);
@@ -207,7 +219,7 @@ internal static class HtmlInteractionLayoutEngine {
                     if (importedCss != null) {
                         budget.ReserveOrThrow(importedCss);
                         replacement = ExpandStylesheetImports(importedCss, importedUri, resolver, limits,
-                            viewportWidth, viewportHeight, maximumDepth, depth + 1, active, budget, token);
+                            viewportWidth, viewportHeight, mediaFeatures, maximumDepth, depth + 1, active, budget, token);
                     }
                 }
                 builder.Remove(import.Start, import.End - import.Start);
@@ -226,6 +238,7 @@ internal static class HtmlInteractionLayoutEngine {
         HtmlConversionLimits limits,
         double viewportWidth,
         double viewportHeight,
+        HtmlRenderMediaFeatures mediaFeatures,
         int maximumDepth,
         int depth,
         HashSet<ICssStyleSheet> active,
@@ -236,9 +249,13 @@ internal static class HtmlInteractionLayoutEngine {
             var resourceOptions = new HtmlResourcePipelineOptions {
                 ResourceUrlPolicy = HtmlUrlPolicy.CreateWebResourceProfile(),
                 Limits = limits.Clone(),
+                MaxResponsiveImageCandidates = limits.MaxResponsiveImageCandidates,
+                MaxResponsiveImageSizesCharacters = limits.MaxResponsiveImageSizesCharacters,
                 MediaContext = HtmlCssMediaContext.Screen,
                 MediaWidth = viewportWidth,
-                MediaHeight = viewportHeight
+                MediaHeight = viewportHeight,
+                DevicePixelRatio = mediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
+                MediaFeatures = mediaFeatures
             };
             foreach (ICssRule rule in sheet.Rules) {
                 token.ThrowIfCancellationRequested();
@@ -258,7 +275,7 @@ internal static class HtmlInteractionLayoutEngine {
                     : Uri.TryCreate(stylesheetUri, import.Href, out Uri? relative) ? relative : null;
                 if (importedUri == null || !importedUri.IsAbsoluteUri || importedSheet.IsDisabled) continue;
                 builder.AppendLine(SerializeLiveStylesheet(importedSheet, importedUri, limits,
-                    viewportWidth, viewportHeight, maximumDepth, depth + 1, active, token));
+                    viewportWidth, viewportHeight, mediaFeatures, maximumDepth, depth + 1, active, token));
             }
             return HtmlResourcePipeline.RebaseExternalStylesheetUrls(
                 builder.ToString(), stylesheetUri, HtmlUrlPolicy.CreateWebResourceProfile());

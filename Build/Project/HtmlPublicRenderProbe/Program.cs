@@ -33,19 +33,20 @@ var cases = new List<ProbeCase> {
         <!doctype html><style>body{font:16px sans-serif}</style>
         <p>Responsive source ready</p>
         <picture>
-          <source media="(max-width: 900px)" type="image/svg+xml" srcset="/responsive-wide.svg">
+          <source media="(max-width: 900px)" type="image/svg+xml" sizes="400px"
+                  srcset="/responsive-1x.svg 400w, /responsive-2x.svg 800w, /responsive-3x.svg 1200w">
           <source media="(min-width: 901px)" type="image/svg+xml" srcset="/responsive-narrow.svg">
           <img src="/responsive-fallback.svg" width="180" height="80" alt="responsive fixture">
         </picture>
         """, "document.readyState === 'complete'", 8 * 1024 * 1024,
         ExpectedVisibleText: "Responsive source ready", ExpectBlueInk: true,
         Resources: new Dictionary<string, ProbeResource>(StringComparer.Ordinal) {
-            [$"{fixtureOrigin}/responsive-wide.svg"] = new("""
+            [$"{fixtureOrigin}/responsive-2x.svg"] = new("""
                 <svg xmlns="http://www.w3.org/2000/svg" width="180" height="80" viewBox="0 0 180 80">
                   <rect width="180" height="80" fill="#0055aa"/>
                 </svg>
                 """, "image/svg+xml")
-        }, ExpectedDiscoveryRounds: [[ $"{fixtureOrigin}/responsive-wide.svg" ]]),
+        }, ExpectedDiscoveryRounds: [[ $"{fixtureOrigin}/responsive-2x.svg" ]], DevicePixelRatio: 2D),
     new ProbeCase("module-graph", """
         <!doctype html><style>body{font:16px sans-serif}#result{color:#0055aa}</style>
         <p id="result">Loading module graph</p><script type="module" src="/app/main.js"></script>
@@ -132,7 +133,8 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
             ReadyExpression = fixture.ReadyExpression,
             ResourcePolicy = new HtmlRuntimeResourcePolicy { AllowNetwork = false, MaxRequests = 64 },
             Timeout = TimeSpan.FromSeconds(3), SessionTimeout = TimeSpan.FromSeconds(12),
-            MaxOutputCharacters = fixture.MaxOutputCharacters
+            MaxOutputCharacters = fixture.MaxOutputCharacters,
+            DevicePixelRatio = fixture.DevicePixelRatio
         };
         await HtmlRuntimeProtocol.WriteAsync(process.StandardInput.BaseStream,
             new HtmlPublicRenderRequest { Page = page }, 24 * 1024 * 1024, deadline.Token);
@@ -264,7 +266,7 @@ internal sealed record ProbeResource(string Content, string ContentType);
 internal sealed record ProbeCase(string Name, string Html, string ReadyExpression, int MaxOutputCharacters,
     string? ExpectedErrorKind = null, string? ExpectedError = null, string? ExpectedVisibleText = null,
     bool ExpectBlueInk = false, IReadOnlyDictionary<string, ProbeResource>? Resources = null,
-    string[][]? ExpectedDiscoveryRounds = null, Uri? DocumentUrl = null);
+    string[][]? ExpectedDiscoveryRounds = null, Uri? DocumentUrl = null, double DevicePixelRatio = 1D);
 internal sealed record ProbeResult(string Name, bool Passed, string? ContainerName, bool ContainerRemoved,
     long ElapsedMilliseconds, string? ErrorKind, string? Error, string? CleanupError,
     string[][] DiscoveryRounds, string? CaptureManifest, string? ScreenSha256, string? PrintSha256,
