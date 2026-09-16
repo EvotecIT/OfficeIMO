@@ -382,6 +382,7 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool HasKnownIncompleteSvgPaintProjection(XElement root) {
         XNamespace svgNamespace = root.Name.Namespace;
+        if (HasAmbiguousSvgPaintServerDefinitions(root, svgNamespace)) return true;
         return root.DescendantsAndSelf().Any(element => {
             if (element.Attribute(XNamespace.Xml + "base") != null) return true;
             if (!IsNativeSvgElement(element, svgNamespace)) return false;
@@ -404,6 +405,18 @@ public static partial class OfficeSvgDrawingReader {
                 height <= 0D ||
                 !TryParsePreserveAspectRatio(element.Attribute("preserveAspectRatio")?.Value, out _, out _);
         });
+    }
+
+    private static bool HasAmbiguousSvgPaintServerDefinitions(XElement root, XNamespace svgNamespace) {
+        foreach (IGrouping<string, XElement> definitions in root.Descendants()
+                     .Where(element => IsNativeSvgElement(element, svgNamespace))
+                     .Select(element => new { Element = element, Id = ReadRasterElementId(element) })
+                     .Where(item => item.Id != null)
+                     .GroupBy(item => item.Id!, item => item.Element, StringComparer.Ordinal)) {
+            if (definitions.Skip(1).Any() && definitions.Any(element =>
+                    element.Name.LocalName is "linearGradient" or "radialGradient" or "pattern")) return true;
+        }
+        return false;
     }
 
     private static bool IsCaseMismatchedSvgPaintDefinitionName(string localName) =>
@@ -659,7 +672,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static readonly string[] SvgUnmodeledTextGeometryProperties = {
-        "alignment-baseline", "direction", "font-kerning", "font-size-adjust", "font-stretch", "font-variant",
+        "alignment-baseline", "direction", "font", "font-kerning", "font-size-adjust", "font-stretch", "font-variant",
         "glyph-orientation-horizontal", "glyph-orientation-vertical", "kerning", "letter-spacing",
         "lengthAdjust", "stroke-width", "textLength", "text-rendering", "unicode-bidi", "white-space",
         "transform-box", "transform-origin", "word-spacing"

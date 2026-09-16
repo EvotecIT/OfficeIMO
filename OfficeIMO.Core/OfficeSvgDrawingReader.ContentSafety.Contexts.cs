@@ -25,8 +25,18 @@ public static partial class OfficeSvgDrawingReader {
         childViewY = 0D;
         childViewWidth = parentViewWidth;
         childViewHeight = parentViewHeight;
-        double x = ReadViewportCoordinate(element, "x", parentViewX, parentViewWidth);
-        double y = ReadViewportCoordinate(element, "y", parentViewY, parentViewHeight);
+        double x = -parentViewX;
+        XAttribute? xAttribute = element.Attribute("x");
+        if (xAttribute != null) {
+            if (!TryViewportLength(xAttribute.Value, parentViewWidth, out double resolvedX, out _)) return false;
+            x = resolvedX - parentViewX;
+        }
+        double y = -parentViewY;
+        XAttribute? yAttribute = element.Attribute("y");
+        if (yAttribute != null) {
+            if (!TryViewportLength(yAttribute.Value, parentViewHeight, out double resolvedY, out _)) return false;
+            y = resolvedY - parentViewY;
+        }
         if (!TryNestedViewportLength(element.Attribute("width")?.Value, parentViewWidth, out double width)
             || !TryNestedViewportLength(element.Attribute("height")?.Value, parentViewHeight, out double height)
             || !IsSupportedSvgViewport(width, height, document.MaximumViewportDimension, document.MaximumViewportPixels)) {

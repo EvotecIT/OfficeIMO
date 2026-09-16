@@ -919,6 +919,45 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void FontShorthandGeometryCannotAuthorizeCleanup() {
+        byte[] svg = Svg(
+            "<text font='100px serif' transform='scale(.1)' x='10' y='35'>font shorthand visible</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "font shorthand visible");
+
+        Assert.Equal(OfficeContentConcealmentKind.TinyText, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("font", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UnsupportedNestedViewportOffsetFailsClosed() {
+        byte[] svg = Svg(
+            "<svg x='10em' width='100' height='100'><text x='10' y='35'>relative viewport text</text></svg>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
+    public void AmbiguousPaintServerReferenceCannotAuthorizeCleanup() {
+        byte[] svg = Svg(
+            "<defs>" +
+            "<linearGradient id='p'><stop offset='0' stop-color='red'/></linearGradient>" +
+            "<linearGradient id='p'><stop offset='0' stop-color='blue'/></linearGradient>" +
+            "</defs><text fill='url(#p)' x='10' y='35'>ambiguous paint visible</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "ambiguous paint visible");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
     public void AncestorGroupOpacityMakesVisualProjectionReportOnly() {
         byte[] svg = Svg(
             "<g opacity='.5'><text x='10' y='35'>group opacity payload</text>" +
