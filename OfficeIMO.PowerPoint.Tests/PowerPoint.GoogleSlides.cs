@@ -1,6 +1,7 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.GoogleSlides;
+using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -1218,9 +1219,45 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DiffPlanner_DetectsIndependentEdits() {
-            var checkpoint = new GoogleSlidesSyncCheckpoint(); checkpoint.ContentHashes["slide/1"] = "base";
+            var checkpoint = new GoogleSlidesSyncCheckpoint { HashFormatVersion = 1 }; checkpoint.ContentHashes["slide/1"] = "base";
             List<GoogleSlidesDiffItem> items = GoogleSlidesDiffPlanner.Compare(new Dictionary<string, string> { ["slide/1"] = "local" }, new Dictionary<string, string> { ["slide/1"] = "remote" }, checkpoint);
             Assert.Equal(GoogleWorkspaceDiffKind.Conflict, Assert.Single(items).Kind);
+        }
+
+        [Fact]
+        public async Task DiffPlanner_RejectsUnversionedCheckpointBeforeRemoteRead() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.AddSlide().AddTextBox("Unchanged");
+            var legacyCheckpoint = new GoogleSlidesSyncCheckpoint { RevisionId = "observed-revision" };
+            legacyCheckpoint.ContentHashes["presentation/size"] = "old-culture-dependent-hash";
+            int requests = 0;
+            using var httpClient = new HttpClient(new DelegateHandler(_ => {
+                requests++;
+                throw new InvalidOperationException("No remote request should be made for a legacy checkpoint.");
+            }));
+
+            InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                GoogleSlidesDiffPlanner.BuildAsync(presentation, "deck-legacy", Session(httpClient), legacyCheckpoint));
+
+            Assert.Contains("CreateCheckpoint", error.Message);
+            Assert.Equal(0, requests);
+        }
+
+        [Fact]
+        public async Task DiffPlanner_RejectsEarlierInvariantCheckpointBeforeRemoteRead() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.SlideSize.WidthEmus = 1270;
+            GoogleSlidesSyncCheckpoint prior = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation);
+            prior.HashFormatVersion = 2;
+            int requests = 0;
+            using var httpClient = new HttpClient(new DelegateHandler(_ => {
+                requests++;
+                throw new InvalidOperationException("No remote request should be made for an older hash format.");
+            }));
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                GoogleSlidesDiffPlanner.BuildAsync(presentation, "deck-old-format", Session(httpClient), prior));
+            Assert.Equal(0, requests);
         }
 
         [Fact]
@@ -1240,6 +1277,50 @@ namespace OfficeIMO.Tests {
 
             Assert.NotEqual(baseline, contentChanged);
             Assert.NotEqual(contentChanged, cropChanged);
+        }
+
+        [Fact]
+        public void DiffPlanner_CheckpointHashesAreStableAcrossCultures() {
+            byte[] imageBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.SetBackgroundGradient("112233", "445566", 45.5D);
+            PowerPointAutoShape shape = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 20.25D, 30.5D, 160.75D, 90.125D);
+            shape.Rotation = 22.5D;
+            shape.OutlineWidthPoints = 1.25D;
+            using var imageStream = new MemoryStream(imageBytes);
+            PowerPointPicture picture = slide.AddPicturePoints(imageStream, OfficeIMO.Drawing.OfficeImageFormat.Png, 10.5D, 20.25D, 40.75D, 30.5D);
+            picture.Crop(10, 5, 0, 0);
+
+            CultureInfo previousCulture = CultureInfo.CurrentCulture;
+            try {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+                GoogleSlidesSyncCheckpoint baseline = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation);
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+                GoogleSlidesSyncCheckpoint switched = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation);
+
+                Assert.Equal(1, baseline.HashFormatVersion);
+                Assert.Equal(baseline.HashFormatVersion, switched.HashFormatVersion);
+                Assert.Equal(baseline.ContentHashes.Count, switched.ContentHashes.Count);
+                foreach (KeyValuePair<string, string> pair in baseline.ContentHashes) {
+                    Assert.Equal(pair.Value, switched.ContentHashes[pair.Key]);
+                }
+            } finally {
+                CultureInfo.CurrentCulture = previousCulture;
+            }
+        }
+
+        [Fact]
+        public void DiffPlanner_CheckpointSizeHashIsPortableAcrossRuntimes() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.SlideSize.WidthEmus = 1234567;
+            presentation.SlideSize.HeightEmus = 2345678;
+
+            GoogleSlidesSyncCheckpoint checkpoint = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation);
+
+            Assert.Equal(1, checkpoint.HashFormatVersion);
+            Assert.Equal("395504268C5C405FC435ED88ED9A50F37AC3472CADC5B5B062647085A77C37E5",
+                checkpoint.ContentHashes["presentation/size"]);
         }
 
         [Fact]
@@ -1383,6 +1464,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SupportCatalog_IsExplicitAboutRasterAndDriveFallbacks() {
             Assert.Contains(GoogleSlidesFeatureSupportCatalog.Features, row => row.Feature == "Charts and SmartArt" && row.Export == GoogleSlidesFeatureSupportLevel.Rasterized);
+            Assert.Contains(GoogleSlidesFeatureSupportCatalog.Features, row => row.Feature == "Pictures" && row.Export == GoogleSlidesFeatureSupportLevel.Partial);
             Assert.Contains(GoogleSlidesFeatureSupportCatalog.Features, row => row.Import == GoogleSlidesFeatureSupportLevel.DriveFallback);
         }
 

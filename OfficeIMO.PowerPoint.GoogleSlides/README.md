@@ -85,7 +85,7 @@ Set `TemplatePresentationId` to copy a template before authoring. Template copy,
 - `DriveExport` exports Google Slides to PPTX and loads it through `OfficeIMO.PowerPoint`. This is the default and broadest-fidelity import.
 - `Native` reads Slides API objects directly. It imports slide size, text boxes and core styles, hyperlinks, tables, images, geometry, and speaker-note text, and returns the Slides revision needed for safe replacement.
 
-The Slides API fetches created images from a URL. Export therefore creates short-lived public Drive objects and removes their permissions and files after the batch, including failure paths. Do not grant permanent public access to source assets.
+The Slides API fetches created images from a URL. Export stages temporary publicly readable Drive files and attempts to delete them after the batch, including failure paths. Deletion can fail, and a file then remains public until it is removed. Inspect `GooglePresentationReference.Report` for `DRIVE.TEMPORARY_CONTENT.CLEANUP_FAILED` after a successful export and follow up on the named file. Do not grant permanent public access to source assets.
 
 ## Authentication and scopes
 

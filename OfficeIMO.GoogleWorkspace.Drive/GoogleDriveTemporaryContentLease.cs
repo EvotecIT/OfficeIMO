@@ -100,7 +100,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 report.Add(
                     TranslationSeverity.Info,
                     "TemporaryContent",
-                    "Created a short-lived public Drive object that must be cleaned after the target Google service fetches it.",
+                    "Created a temporary public Drive object with no automatic expiry; verify deletion after the target Google service fetches it.",
                     code: "DRIVE.TEMPORARY_CONTENT.PUBLIC_LEASE_CREATED",
                     action: TranslationAction.Preserve,
                     targetId: file.Id);

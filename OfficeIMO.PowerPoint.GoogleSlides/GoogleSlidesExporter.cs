@@ -5,19 +5,26 @@ using System.Globalization;
 using System.Text.Json.Nodes;
 
 namespace OfficeIMO.PowerPoint.GoogleSlides {
+    /// <summary>Converts OfficeIMO presentations into Slides batches and applies them through Google APIs.</summary>
     public sealed class GoogleSlidesExporter : IGoogleSlidesExporter {
         private const int RequestsPerBatch = 250;
 
+        /// <summary>Reports native, rasterized, and unsupported content without contacting Google.</summary>
+        /// <remarks>Unlike <see cref="BuildBatch"/>, this does not render whole-slide fallback images. It may still read source picture and background image bytes.</remarks>
         public GoogleSlidesTranslationPlan BuildPlan(PowerPointPresentation presentation, GoogleSlidesSaveOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             return GoogleSlidesBatchCompiler.BuildPlan(presentation, options ?? new GoogleSlidesSaveOptions());
         }
 
+        /// <summary>Prepares a Slides batch, including image bytes for complex-slide raster fallbacks.</summary>
+        /// <remarks>This does not contact Google but can render source slides locally.</remarks>
         public GoogleSlidesBatch BuildBatch(PowerPointPresentation presentation, GoogleSlidesSaveOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             return GoogleSlidesBatchCompiler.Build(presentation, options ?? new GoogleSlidesSaveOptions());
         }
 
+        /// <summary>Creates, copies a template, or replaces a Google presentation and returns its remote reference.</summary>
+        /// <remarks>Fidelity policy is checked before mutation. Replacing an existing presentation requires an observed revision unless overwrite-latest is explicitly selected. Temporary public image leases are deleted on a best-effort basis after the batch; failures are recorded in the translation report and a file can remain publicly readable until deletion succeeds.</remarks>
         public async Task<GooglePresentationReference> ExportAsync(PowerPointPresentation presentation, GoogleWorkspaceSession session, GoogleSlidesSaveOptions? options = null, CancellationToken cancellationToken = default) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             if (session == null) throw new ArgumentNullException(nameof(session));
