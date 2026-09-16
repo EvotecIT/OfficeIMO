@@ -1317,6 +1317,71 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void NonScalingStrokeKeepsVisualCleanupReportOnly() {
+        byte[] svg = Svg(
+            "<text x='10' y='35'>stroke-dependent payload</text>" +
+            "<rect x='1' y='1' width='10' height='10' transform='scale(20)' fill='none' " +
+            "stroke='black' stroke-width='2' vector-effect='non-scaling-stroke'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "stroke-dependent payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EncodedPaintFragmentCannotAuthorizeStructuralCleanup() {
+        byte[] svg = Svg(
+            "<defs><linearGradient id='p'><stop offset='0' stop-color='black'/></linearGradient></defs>" +
+            "<text fill='url(#%70)' x='10' y='35'>encoded paint payload</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "encoded paint payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("paint", finding.Evidence, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void EncodedGradientInheritanceCannotAuthorizeStructuralCleanup() {
+        byte[] svg = Svg(
+            "<defs><linearGradient id='q'><stop offset='0' stop-color='black'/></linearGradient>" +
+            "<linearGradient id='p' href='#%71'/></defs>" +
+            "<text fill='url(#p)' x='10' y='35'>inherited paint payload</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "inherited paint payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("<linearGradient id='p' gradientUnits='USERSPACEONUSE'><stop offset='0' stop-color='black'/></linearGradient>")]
+    [InlineData("<linearGradient id='p' spreadMethod='REPEAT'><stop offset='0' stop-color='black'/></linearGradient>")]
+    [InlineData("<pattern id='p' patternUnits='USERSPACEONUSE' width='10' height='10'><rect width='10' height='10'/></pattern>")]
+    [InlineData("<pattern id='p' patternContentUnits='OBJECTBOUNDINGBOX' width='10' height='10'><rect width='10' height='10'/></pattern>")]
+    public void CaseMismatchedPaintServerModeKeepsCleanupReportOnly(string definition) {
+        byte[] svg = Svg(
+            "<defs>" + definition + "</defs>" +
+            "<text x='10' y='35'>mode-dependent payload</text>" +
+            "<rect width='220' height='120' fill='url(#p)'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "mode-dependent payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ReferencedTrefRunMakesSourceTextLayoutCoupled() {
         byte[] svg = Svg(
             "<defs><text id='label'>visible</text></defs>" +

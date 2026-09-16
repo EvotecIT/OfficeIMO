@@ -126,7 +126,6 @@ public static partial class OfficeSvgDrawingReader {
 
             SvgContentSafetyConcealment? concealment = ClassifySvgStructuralConcealment(candidate, document, options);
             bool visualConcealment = false;
-            bool hostBackdropDependent = false;
             bool offCanvasBounds = false;
             bool zeroDimensionBounds = false;
             if (!concealment.HasValue && baselineRendered) {
@@ -144,13 +143,14 @@ public static partial class OfficeSvgDrawingReader {
                         visualConcealment = concealment.HasValue;
                         bool visualResolutionInsufficient = concealment.HasValue &&
                             !HasSufficientSvgVisualResolution(candidate, document, maximumRasterPixels);
-                        hostBackdropDependent = concealment.HasValue &&
+                        bool hostBackdropDependent = concealment.HasValue &&
                             comparison.HasTransparentBackdrop &&
                             concealment.Value.Kind is OfficeContentConcealmentKind.LowContrastText or OfficeContentConcealmentKind.Other;
                         bool visualFontMetricsEstimated = concealment.HasValue && candidate.UsesEstimatedFontMetrics;
-                        if (visualResolutionInsufficient || hostBackdropDependent || visualFontMetricsEstimated) {
+                        if (concealment.HasValue) {
                             SvgContentSafetyConcealment visualFinding = concealment!.Value;
-                            string evidence = visualFinding.Evidence;
+                            string evidence = visualFinding.Evidence +
+                                " Bounded native visual comparison cannot prove browser-equivalent glyph shaping and paint, so cleanup is report-only.";
                             if (visualResolutionInsufficient) {
                                 evidence += " The apportioned raster resolution cannot preserve at least four pixels across both resolved text-bound dimensions, so cleanup is report-only.";
                             }
@@ -220,9 +220,7 @@ public static partial class OfficeSvgDrawingReader {
                     targets,
                     candidate,
                     concealment.Value,
-                    contextDependent || incompleteNativePaintProjection || offCanvasBounds || zeroDimensionBounds || layoutCoupled || visualConcealment &&
-                        (baselineUnsupported > 0 || hostBackdropDependent || candidate.UsesEstimatedFontMetrics ||
-                         !HasSufficientSvgVisualResolution(candidate, document, maximumRasterPixels))
+                    contextDependent || incompleteNativePaintProjection || offCanvasBounds || zeroDimensionBounds || layoutCoupled || visualConcealment
                         ? OfficeContentCleanupCapability.ReportOnly
                         : OfficeContentCleanupCapability.RemoveText);
             } else if (contextDependent || incompleteNativePaintProjection) {

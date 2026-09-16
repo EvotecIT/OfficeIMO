@@ -15,6 +15,8 @@ public static partial class OfficeSvgDrawingReader {
             if (!IsNativeSvgElement(element, svgNamespace)) return false;
             string localName = element.Name.LocalName;
             if (IsCaseMismatchedSvgPaintDefinitionName(localName) ||
+                HasEncodedSvgPaintServerReference(element, localName) ||
+                HasUnsupportedSvgPaintServerMode(element, localName) ||
                 HasUnsupportedSvgShapeGeometry(element, localName) ||
                 HasUnisolatedSvgGroupOpacity(element, localName) ||
                 HasUnsupportedSvgPaintStyle(element)) return true;
@@ -111,8 +113,32 @@ public static partial class OfficeSvgDrawingReader {
         if (HasUnsupportedSvgPresentationPaint(ReadPresentationProperty(element, "fill")) ||
             HasUnsupportedSvgPresentationPaint(ReadPresentationProperty(element, "stroke"))) return true;
         string? blend = ReadPresentationProperty(element, "mix-blend-mode");
-        return !string.IsNullOrWhiteSpace(blend) &&
-            !TrimSvgCssWhitespace(blend!).Equals("normal", StringComparison.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(blend) &&
+            !TrimSvgCssWhitespace(blend!).Equals("normal", StringComparison.OrdinalIgnoreCase)) return true;
+        string? vectorEffect = ReadPresentationProperty(element, "vector-effect");
+        return !string.IsNullOrWhiteSpace(vectorEffect) &&
+            !TrimSvgCssWhitespace(vectorEffect!).Equals("none", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasUnsupportedSvgPaintServerMode(XElement element, string localName) => localName switch {
+        "linearGradient" or "radialGradient" =>
+            HasNonExactSvgEnum(element, "gradientUnits", "objectBoundingBox", "userSpaceOnUse") ||
+            HasNonExactSvgEnum(element, "spreadMethod", "pad", "reflect", "repeat"),
+        "pattern" =>
+            HasNonExactSvgEnum(element, "patternUnits", "objectBoundingBox", "userSpaceOnUse") ||
+            HasNonExactSvgEnum(element, "patternContentUnits", "objectBoundingBox", "userSpaceOnUse"),
+        _ => false
+    };
+
+    private static bool HasEncodedSvgPaintServerReference(XElement element, string localName) =>
+        localName is "linearGradient" or "radialGradient" or "pattern" &&
+        element.Attributes().Any(attribute =>
+            attribute.Name.LocalName.Equals("href", StringComparison.Ordinal) &&
+            attribute.Value.IndexOf('%') >= 0);
+
+    private static bool HasNonExactSvgEnum(XElement element, string name, params string[] validValues) {
+        string? value = element.Attribute(name)?.Value;
+        return value != null && !validValues.Contains(value, StringComparer.Ordinal);
     }
 
     private static bool HasActiveSvgPresentationProperty(XElement element, string propertyName) {

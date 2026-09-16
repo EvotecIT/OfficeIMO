@@ -88,8 +88,12 @@ public sealed class SvgContentSafetyTests {
 
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
 
-        Assert.Contains(report.Findings, item => item.Kind == OfficeContentConcealmentKind.LowContrastText &&
-            item.TextPreview == "white on white" && item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);
+        OfficeContentSafetyFinding visual = Assert.Single(report.Findings, item =>
+            item.Kind == OfficeContentConcealmentKind.LowContrastText && item.TextPreview == "white on white");
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, visual.CleanupCapability);
+        Assert.Contains("browser-equivalent glyph shaping and paint", visual.Evidence, StringComparison.Ordinal);
+        Assert.Throws<InvalidOperationException>(() => OfficeSvgDrawingReader.RemoveSelectedContent(
+            svg, new OfficeContentCleanupSelection(new[] { visual.Id }), readerOptions: readerOptions));
         Assert.Contains(report.Findings, item => item.TextPreview == "covered by later paint" &&
             (item.Kind == OfficeContentConcealmentKind.LowContrastText || item.Kind == OfficeContentConcealmentKind.Other));
     }

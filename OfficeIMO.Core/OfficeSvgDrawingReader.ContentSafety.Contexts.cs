@@ -394,6 +394,7 @@ public static partial class OfficeSvgDrawingReader {
         int close = FindSvgCssBlockEnd(normalized, 4, '(', ')');
         bool hasFallback = close >= 0 && close < normalized.Length - 1 &&
             TrimSvgCssWhitespace(normalized.Substring(close + 1)).Length > 0;
-        return hasFallback || !TryReadBoundedSvgLocalUrlReference(normalized, out _);
+        if (hasFallback || !TryReadBoundedSvgLocalUrlReference(normalized, out string reference)) return true;
+        return reference.IndexOf('%') >= 0;
     }
 }
