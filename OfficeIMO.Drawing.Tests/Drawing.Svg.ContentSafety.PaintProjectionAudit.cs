@@ -112,6 +112,10 @@ public sealed class SvgContentSafetyPaintProjectionAuditTests {
     [InlineData("<rect id='unused' fill='url(#missing)'/>")]
     [InlineData("<use href='#missing'/>")]
     [InlineData("<pattern id='unused' href='#missing'/>")]
+    [InlineData("<pattern id='unused' patternUnits='BOGUS'/>")]
+    [InlineData("<linearGradient id='unused' gradientUnits='BOGUS'/>")]
+    [InlineData("<rect width='1em' fill='CanvasText'/>")]
+    [InlineData("<linearGradient id='duplicate'/><linearGradient id='duplicate'/>")]
     public void UnusedDefinitionDoesNotDisableUnrelatedHiddenTextCleanup(string unused) {
         byte[] svg = Svg(
             "<defs>" + unused + "</defs>" +
@@ -122,6 +126,25 @@ public sealed class SvgContentSafetyPaintProjectionAuditTests {
             item => item.TextPreview == "hidden payload");
 
         Assert.Equal(OfficeContentCleanupCapability.RemoveText, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void IncompletePaintReportsOtherwiseVisibleTextEvenWithoutVisualComparisons() {
+        byte[] svg = Svg(
+            "<defs><radialGradient id='paint' spreadMethod='repeat'>" +
+            "<stop offset='0' stop-color='white'/><stop offset='1' stop-color='white'/>" +
+            "</radialGradient></defs>" +
+            "<text x='10' y='35'>browser-covered payload</text>" +
+            "<rect x='0' y='0' width='220' height='60' fill='url(#paint)'/>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "browser-covered payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Equal(OfficeContentConcealmentKind.NonPrimaryContent, finding.Kind);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
     }
 
     [Fact]

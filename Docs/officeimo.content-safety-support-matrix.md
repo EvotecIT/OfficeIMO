@@ -16,6 +16,8 @@ Every format adapter uses the shared `OfficeIMO.ContentSafety` contracts. Encode
 | `OfficeIMO.Rtf` | Native `\\v` hidden text, deleted revisions, tiny text, near-zero character scaling, resolved style/color contrast, notes, object fallbacks, alternate HTML encapsulation, and Unicode evidence | Exact semantic run, alternate-representation, or reviewed Unicode code-point removal—including inside alternate HTML—followed by a normalized native RTF rewrite | Cleanup is semantic, not byte-for-byte lossless; the rewritten RTF is reparsed and verified. |
 | `OfficeIMO.OpenDocument` | ODT/ODS/ODP native hidden fields including canonical `text:string-value`, concealed stored values/formulas, hidden slides/shapes/sheets/rows/columns/groups, zero geometry, drawing opacity, resolved font size and contrast, notes, annotations, descriptions, and Unicode evidence | Exact text segment, stored attribute, or reviewed Unicode code-point removal—including exact ranges inside stored attributes—through the preservation-aware package writer | Conditional formatting, formula-driven visibility, and every animation/render state are not executed. Encrypted-source cleanup is rejected. |
 
+For SVG, active paint-server references and active `use` instances make the native paint projection incomplete. The inspector reports otherwise unclassified text in those documents as informational and report-only, even when visual comparisons are disabled; it cannot infer that a browser would paint the text the same way. Unused definitions do not impose this restriction on unrelated text.
+
 ## Risk interpretation
 
 - `Informational` means the location is normally non-primary metadata or accessibility content.

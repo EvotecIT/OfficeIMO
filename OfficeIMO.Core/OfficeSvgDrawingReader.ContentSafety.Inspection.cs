@@ -229,7 +229,7 @@ public static partial class OfficeSvgDrawingReader {
                     : contextDependent
                         ? contextEvidence
                         : incompletePaintEvidence;
-                if (options.IncludeNonPrimaryContent) {
+                if (incompleteNativePaintProjection || options.IncludeNonPrimaryContent) {
                     AddSvgContentSafetyFinding(
                         builder,
                         targets,
