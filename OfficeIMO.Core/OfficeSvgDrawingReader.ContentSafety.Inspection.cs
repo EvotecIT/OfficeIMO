@@ -83,7 +83,7 @@ public static partial class OfficeSvgDrawingReader {
 
         const string incompletePaintEvidence =
             "Paint outside the bounded native paint projection makes the model incomplete and can change browser paint behind or over this text, so cleanup is report-only.";
-        bool incompleteNativePaintProjection = HasKnownIncompleteSvgPaintProjection(document.Root);
+        bool incompleteNativePaintProjection = HasKnownIncompleteSvgPaintProjection(computedRoot);
         int comparisons = 0;
         bool comparisonLimitReached = false;
         foreach (SvgContentSafetyCandidate candidate in candidates) {
@@ -377,12 +377,16 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool HasSvgLayoutCoupledText(SvgContentSafetyCandidate candidate) {
         XElement owner = FindSvgLogicalTextOwner(candidate.SourceText);
-        return owner.DescendantNodes().OfType<XText>().Count(text => !IsIgnorableSvgTextNode(text.Value)) > 1;
+        return owner.DescendantNodes().OfType<XText>().Count(text => !IsIgnorableSvgTextNode(text.Value)) > 1 ||
+            owner.Descendants().Any(element =>
+                element.Name.Namespace == owner.Name.Namespace &&
+                element.Name.LocalName.Equals("tref", StringComparison.Ordinal));
     }
 
     private static bool HasKnownIncompleteSvgPaintProjection(XElement root) {
         XNamespace svgNamespace = root.Name.Namespace;
         if (HasAmbiguousSvgPaintServerDefinitions(root, svgNamespace)) return true;
+        var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
         return root.DescendantsAndSelf().Any(element => {
             if (element.Attribute(XNamespace.Xml + "base") != null) return true;
             if (!IsNativeSvgElement(element, svgNamespace)) return false;
@@ -393,6 +397,19 @@ public static partial class OfficeSvgDrawingReader {
                 HasActiveSvgPresentationProperty(element, "marker-mid") ||
                 HasActiveSvgPresentationProperty(element, "marker-end")) return true;
             if (localName.Equals("textPath", StringComparison.Ordinal)) return true;
+            if (localName.Equals("use", StringComparison.Ordinal)) {
+                if (!TryOptionalUseLength(element, "x", out _) ||
+                    !TryOptionalUseLength(element, "y", out _)) return true;
+                if (references.TryEnter(element, out string referenceId, out XElement? target)) {
+                    try {
+                        if (target!.Name.LocalName.Equals("symbol", StringComparison.Ordinal) &&
+                            (!TrySymbolLength(element, target, "width", 1D, out _) ||
+                             !TrySymbolLength(element, target, "height", 1D, out _))) return true;
+                    } finally {
+                        references.Exit(referenceId);
+                    }
+                }
+            }
             if (element.Name.LocalName.Equals("foreignObject", StringComparison.Ordinal)) return true;
             if (element.Name.LocalName.Equals("pattern", StringComparison.Ordinal)) {
                 return element.Attribute("viewBox") != null ||
@@ -785,7 +802,9 @@ public static partial class OfficeSvgDrawingReader {
             string? candidate = ReadPresentationProperty(current, "visibility")?.Trim();
             if (string.IsNullOrWhiteSpace(candidate) || string.Equals(candidate, "inherit", StringComparison.OrdinalIgnoreCase)) continue;
             if (string.Equals(candidate, "initial", StringComparison.OrdinalIgnoreCase)) visibility = "visible";
-            else if (!string.Equals(candidate, "unset", StringComparison.OrdinalIgnoreCase)) visibility = candidate!;
+            else if (string.Equals(candidate, "visible", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(candidate, "hidden", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(candidate, "collapse", StringComparison.OrdinalIgnoreCase)) visibility = candidate!;
         }
         if (string.Equals(visibility, "hidden", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(visibility, "collapse", StringComparison.OrdinalIgnoreCase)) {

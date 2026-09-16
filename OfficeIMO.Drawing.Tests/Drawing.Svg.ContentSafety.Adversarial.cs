@@ -1137,6 +1137,26 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void StylesheetFilterRegionPaintKeepsVisualCleanupReportOnly() {
+        byte[] svg = Svg(
+            "<defs><filter id='shift'><feOffset dx='200'/></filter></defs>" +
+            "<style>rect { filter: url(#shift); }</style>" +
+            "<text font-family='OfficeIMO Shaping Test' font-size='20' x='10' y='35'>stylesheet filter visible</text>" +
+            "<rect x='-200' width='220' height='120' fill='white'/>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        readerOptions.Fonts.Add(
+            ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont("stylesheet filter visible".Distinct().Select(character => (int)character).ToArray()));
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "stylesheet filter visible");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void UnsupportedMarkerPaintKeepsCleanupReportOnly() {
         byte[] svg = Svg(
             "<defs><marker id='m' orient='0rad'><rect width='10' height='10' fill='white'/></marker></defs>" +
@@ -1201,6 +1221,63 @@ public sealed class SvgContentSafetyAdversarialTests {
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
 
         Assert.DoesNotContain(report.Findings, item => item.TextPreview == "literal id visible");
+    }
+
+    [Fact]
+    public void UnsupportedUsePaintKeepsTextReportOnly() {
+        byte[] svg = Svg(
+            "<defs><rect id='cover' width='220' height='120' fill='white'/></defs>" +
+            "<text x='10' y='35'>use-dependent payload</text>" +
+            "<use href='#cover' x='1em'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "use-dependent payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UnsupportedReferencedSymbolSizeKeepsTextReportOnly() {
+        byte[] svg = Svg(
+            "<defs><symbol id='cover' viewBox='0 0 220 120'><rect width='220' height='120' fill='white'/></symbol></defs>" +
+            "<text x='10' y='35'>symbol-dependent payload</text>" +
+            "<use href='#cover' width='100%' height='100%'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "symbol-dependent payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReferencedTrefRunMakesSourceTextLayoutCoupled() {
+        byte[] svg = Svg(
+            "<defs><text id='label'>visible</text></defs>" +
+            "<text x='10' y='35'><tspan opacity='0'>hidden</tspan><tref href='#label'/></text>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "hidden");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("glyph advances", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InvalidVisibilityPreservesInheritedHiddenState() {
+        byte[] svg = Svg(
+            "<g visibility='hidden'><text visibility='bogus' x='10' y='35'>inherited hidden payload</text></g>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "inherited hidden payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.HiddenByProperty, finding.Kind);
     }
 
     [Fact]
