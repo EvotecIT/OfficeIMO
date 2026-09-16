@@ -21,19 +21,51 @@ string rendererSha256 = Digest(await File.ReadAllBytesAsync(rendererPath));
 string workerSha256 = Digest(await File.ReadAllBytesAsync(workerPath));
 string rendererFilesSha256 = HtmlPublicArtifactDigest.DirectorySha256(Path.GetDirectoryName(rendererPath)!);
 string workerFilesSha256 = HtmlPublicArtifactDigest.DirectorySha256(Path.GetDirectoryName(workerPath)!);
+const string fixtureOrigin = "https://fixture.officeimo.invalid";
 var cases = new[] {
     new ProbeCase("malformed-markup", """
         <!doctype html><style>body{font:16px sans-serif}p{color:#0055aa}</style>
         <main><table><tr><td><p id=result>Before script
         <script>document.querySelector('#result').textContent='Recovered by script';</script>
-        """, "document.querySelector('#result')?.textContent === 'Recovered by script'", 8 * 1024 * 1024, null, null),
+        """, "document.querySelector('#result')?.textContent === 'Recovered by script'", 8 * 1024 * 1024,
+        ExpectedVisibleText: "Recovered by script", ExpectBlueInk: true),
+    new ProbeCase("responsive-picture", """
+        <!doctype html><style>body{font:16px sans-serif}</style>
+        <p>Responsive source ready</p>
+        <picture>
+          <source media="(max-width: 900px)" type="image/svg+xml" srcset="/responsive-wide.svg">
+          <source media="(min-width: 901px)" type="image/svg+xml" srcset="/responsive-narrow.svg">
+          <img src="/responsive-fallback.svg" width="180" height="80" alt="responsive fixture">
+        </picture>
+        """, "document.readyState === 'complete'", 8 * 1024 * 1024,
+        ExpectedVisibleText: "Responsive source ready", ExpectBlueInk: true,
+        Resources: new Dictionary<string, ProbeResource>(StringComparer.Ordinal) {
+            [$"{fixtureOrigin}/responsive-wide.svg"] = new("""
+                <svg xmlns="http://www.w3.org/2000/svg" width="180" height="80" viewBox="0 0 180 80">
+                  <rect width="180" height="80" fill="#0055aa"/>
+                </svg>
+                """, "image/svg+xml")
+        }, ExpectedDiscoveryRounds: [[ $"{fixtureOrigin}/responsive-wide.svg" ]]),
+    new ProbeCase("module-graph", """
+        <!doctype html><style>body{font:16px sans-serif}#result{color:#0055aa}</style>
+        <p id="result">Loading module graph</p><script type="module" src="/app/main.js"></script>
+        """, "document.querySelector('#result')?.textContent === 'Module graph ready'", 8 * 1024 * 1024,
+        ExpectedVisibleText: "Module graph ready", ExpectBlueInk: true,
+        Resources: new Dictionary<string, ProbeResource>(StringComparer.Ordinal) {
+            [$"{fixtureOrigin}/app/main.js"] = new("import { message } from './dep.js'; document.querySelector('#result').textContent = message;", "text/javascript"),
+            [$"{fixtureOrigin}/app/dep.js"] = new("export const message = 'Module graph ready';", "text/javascript")
+        }, ExpectedDiscoveryRounds: [
+            [ $"{fixtureOrigin}/app/main.js" ],
+            [ $"{fixtureOrigin}/app/dep.js" ]
+        ]),
     new ProbeCase("resource-fanout", "<!doctype html>" + string.Concat(Enumerable.Range(0, 129)
         .Select(index => $"<script src='/asset-{index}.js'></script>")), "true", 8 * 1024 * 1024,
-        "HtmlScriptRuntimeException", "The document exceeds the pilot's static resource discovery limit."),
+        ExpectedErrorKind: "HtmlScriptRuntimeException",
+        ExpectedError: "The document exceeds the pilot's static resource discovery limit."),
     new ProbeCase("capture-output-budget", "<p>" + new string('X', 4096) + "</p>", "true", 1024,
-        "HtmlScriptRuntimeException", "Captured data budget exceeded."),
+        ExpectedErrorKind: "HtmlScriptRuntimeException", ExpectedError: "Captured data budget exceeded."),
     new ProbeCase("runaway-script", "<script>while(true){}</script>", "true", 8 * 1024 * 1024,
-        "TimeoutException", "The runtime command exceeded its deadline.")
+        ExpectedErrorKind: "TimeoutException", ExpectedError: "The runtime command exceeded its deadline.")
 };
 var results = new List<ProbeResult>();
 foreach (ProbeCase fixture in cases) {
@@ -61,6 +93,7 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
     string? errorKind = null, errorMessage = null;
     string? cleanupError = null;
     HtmlPublicRenderResponse? final = null;
+    var discoveryRounds = new List<string[]>();
     var stopwatch = Stopwatch.StartNew();
     try {
         lease = await HtmlOciWorkerLease.StartAsync("podman", imageId, deadline.Token);
@@ -70,7 +103,7 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
         var page = new HtmlScriptRequest {
             Profile = HtmlRuntimeProfile.WebApplicationV1,
             Html = fixture.Html,
-            DocumentUrl = new Uri("https://fixture.officeimo.invalid/"),
+            DocumentUrl = new Uri(fixtureOrigin + "/"),
             ReadyExpression = fixture.ReadyExpression,
             ResourcePolicy = new HtmlRuntimeResourcePolicy { AllowNetwork = false, MaxRequests = 64 },
             Timeout = TimeSpan.FromSeconds(3), SessionTimeout = TimeSpan.FromSeconds(12),
@@ -99,13 +132,31 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
                 errorMessage = final.Error;
                 break;
             }
+            var batch = new List<HtmlRuntimeResource>();
+            var discoveryRound = new List<string>();
+            foreach (string candidate in response.DiscoveryUrls) {
+                if (!Uri.TryCreate(candidate, UriKind.Absolute, out Uri? resourceUrl))
+                    throw new IOException("The isolated renderer requested an invalid discovery URL: " + candidate);
+                if (!string.IsNullOrEmpty(resourceUrl.Fragment))
+                    throw new IOException("The isolated renderer requested a resource URL with a fragment: " + candidate);
+                string canonicalUrl = resourceUrl.AbsoluteUri;
+                discoveryRound.Add(canonicalUrl);
+                if (fixture.Resources == null || !fixture.Resources.TryGetValue(canonicalUrl, out ProbeResource? resource))
+                    throw new IOException("The isolated renderer requested an unexpected resource: " + candidate);
+                batch.Add(HtmlRuntimeResource.FromText(resourceUrl, resource.Content, resource.ContentType));
+            }
+            discoveryRounds.Add(discoveryRound.ToArray());
             await HtmlRuntimeProtocol.WriteAsync(process.StandardInput.BaseStream,
-                new HtmlPublicResourceBatch(), 24 * 1024 * 1024, deadline.Token);
+                new HtmlPublicResourceBatch { Resources = batch.ToArray() }, 24 * 1024 * 1024, deadline.Token);
         }
         process.StandardInput.Close();
         await process.WaitForExitAsync(deadline.Token);
         string stderrText = await stderr;
         if (process.ExitCode != 0) throw new IOException("The isolated renderer exited " + process.ExitCode + ": " + stderrText);
+        if (fixture.ExpectedDiscoveryRounds != null &&
+            !DiscoveryRoundsEqual(discoveryRounds, fixture.ExpectedDiscoveryRounds))
+            throw new IOException("The isolated renderer requested the wrong ordered discovery rounds: " +
+                JsonSerializer.Serialize(discoveryRounds));
         if (final is { Error: null, Screen: not null, Print: not null, ScreenToPage: not null }
             && fixture.ExpectedError == null) {
             if (!final.Screen.AsSpan().StartsWith(new byte[] { 137, 80, 78, 71 }) ||
@@ -114,12 +165,12 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
             if (final.CaptureUrl != page.DocumentUrl.AbsoluteUri ||
                 final.CaptureManifest is not { Length: 71 } manifest || !manifest.StartsWith("sha256:", StringComparison.Ordinal))
                 throw new IOException("The isolated renderer returned the wrong capture identity.");
-            const string expectedText = "Recovered by script";
-            if (!PdfReadDocument.Open(final.Print).ExtractText().Contains(expectedText, StringComparison.Ordinal) ||
-                !PdfReadDocument.Open(final.ScreenToPage).ExtractText().Contains(expectedText, StringComparison.Ordinal))
+            if (fixture.ExpectedVisibleText != null &&
+                (!PdfReadDocument.Open(final.Print).ExtractText().Contains(fixture.ExpectedVisibleText, StringComparison.Ordinal) ||
+                 !PdfReadDocument.Open(final.ScreenToPage).ExtractText().Contains(fixture.ExpectedVisibleText, StringComparison.Ordinal)))
                 throw new IOException("The rendered PDFs do not contain the script-produced visible text.");
-            if (!OfficePngReader.TryDecode(final.Screen, out OfficeRasterImage? raster) || raster == null ||
-                !ContainsBlueInk(raster.GetPixels()))
+            if (fixture.ExpectBlueInk && (!OfficePngReader.TryDecode(final.Screen, out OfficeRasterImage? raster) || raster == null ||
+                !ContainsBlueInk(raster.GetPixels())))
                 throw new IOException("The rendered PNG does not contain the styled visible text.");
             string caseDirectory = Path.Combine(outputDirectory, fixture.Name);
             Directory.CreateDirectory(caseDirectory);
@@ -145,7 +196,7 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
         ? final is { Error: null, Screen: not null, Print: not null, ScreenToPage: not null }
         : workerReportedError && errorKind == fixture.ExpectedErrorKind && errorMessage == fixture.ExpectedError);
     return new ProbeResult(fixture.Name, passed, containerName, removed, stopwatch.ElapsedMilliseconds,
-        errorKind, errorMessage, cleanupError, final?.CaptureManifest,
+        errorKind, errorMessage, cleanupError, discoveryRounds.ToArray(), final?.CaptureManifest,
         final?.Screen == null ? null : Digest(final.Screen),
         final?.Print == null ? null : Digest(final.Print),
         final?.ScreenToPage == null ? null : Digest(final.ScreenToPage));
@@ -160,6 +211,13 @@ void VerifyIdentity(HtmlPublicRenderResponse response) {
 }
 
 static string Digest(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
+
+static bool DiscoveryRoundsEqual(IReadOnlyList<string[]> actual, IReadOnlyList<string[]> expected) {
+    if (actual.Count != expected.Count) return false;
+    for (int index = 0; index < actual.Count; index++)
+        if (!actual[index].SequenceEqual(expected[index], StringComparer.Ordinal)) return false;
+    return true;
+}
 
 static bool ContainsBlueInk(byte[] rgba) {
     for (int offset = 0; offset < rgba.Length; offset += 4)
@@ -177,8 +235,12 @@ static async Task<string> DrainErrorAsync(Stream stream, CancellationToken token
     return Encoding.UTF8.GetString(prefix.ToArray());
 }
 
-internal sealed record ProbeCase(string Name, string Html, string ReadyExpression,
-    int MaxOutputCharacters, string? ExpectedErrorKind, string? ExpectedError);
+internal sealed record ProbeResource(string Content, string ContentType);
+internal sealed record ProbeCase(string Name, string Html, string ReadyExpression, int MaxOutputCharacters,
+    string? ExpectedErrorKind = null, string? ExpectedError = null, string? ExpectedVisibleText = null,
+    bool ExpectBlueInk = false, IReadOnlyDictionary<string, ProbeResource>? Resources = null,
+    string[][]? ExpectedDiscoveryRounds = null);
 internal sealed record ProbeResult(string Name, bool Passed, string? ContainerName, bool ContainerRemoved,
-    long ElapsedMilliseconds, string? ErrorKind, string? Error, string? CleanupError, string? CaptureManifest,
-    string? ScreenSha256, string? PrintSha256, string? ScreenToPageSha256);
+    long ElapsedMilliseconds, string? ErrorKind, string? Error, string? CleanupError,
+    string[][] DiscoveryRounds, string? CaptureManifest, string? ScreenSha256, string? PrintSha256,
+    string? ScreenToPageSha256);

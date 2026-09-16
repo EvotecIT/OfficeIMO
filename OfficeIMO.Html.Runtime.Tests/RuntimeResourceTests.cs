@@ -30,6 +30,29 @@ public sealed class RuntimeResourceTests {
     }
 
     [Fact]
+    public async Task PictureLoadsTheActiveViewportSourceWithoutRequestingItsFallback() {
+        Uri wide = new(Origin, "wide.svg");
+        Uri fallback = new(Origin, "fallback.svg");
+        var capture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = new Uri(Origin, "report"),
+            ViewportWidth = 816D,
+            ViewportHeight = 720D,
+            Html = """
+                <picture>
+                  <source media="(max-width:900px)" type="image/svg+xml" srcset="/wide.svg">
+                  <source media="(min-width:901px)" type="image/svg+xml" srcset="/narrow.svg">
+                  <img src="/fallback.svg" alt="fixture">
+                </picture>
+                """,
+            Resources = new[] { HtmlRuntimeResource.FromText(wide,
+                "<svg xmlns='http://www.w3.org/2000/svg' width='2' height='2'></svg>", "image/svg+xml") }
+        });
+
+        Assert.Contains(capture.Resources, resource => resource.Url == wide);
+        Assert.DoesNotContain(capture.Resources, resource => resource.Url == fallback);
+    }
+
+    [Fact]
     public async Task NetworkIsOptInAndAllowedOriginsAreCheckedBeforeRequests() {
         await using var server = new RuntimeHttpFixture((_, _) => Task.FromResult(RuntimeHttpFixture.Reply.Text("window.ready=true")));
         var disabled = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => Runtime().CaptureTrustedAsync(new HtmlScriptRequest {

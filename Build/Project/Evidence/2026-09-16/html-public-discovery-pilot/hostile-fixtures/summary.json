@@ -1,35 +1,78 @@
 {
-  "imageId": "sha256:c508fe79426d7354b945f5bab8a56330e2cf86d89faec8c1718fcab7623e65fe",
-  "rendererSha256": "85f7f478b445236827148b1bb55b9bda486081b8a2b1d88a1032b1ae65f48fde",
-  "workerSha256": "2949162fc2c9dd316e7a9e9bac121d9027622ffe2dda07cbf4ee1e86181df8e4",
-  "rendererFilesSha256": "100ac4288015bc3a9ef29049fcd077323996f9f7b85d1ae99f0f000317ce4014",
-  "workerFilesSha256": "495b086986028f3489b19593edbdeca756023681498af9e0dab46916f7791872",
-  "capturedAtUtc": "2026-09-16T14:48:02.3664116+00:00",
+  "imageId": "sha256:466b1e84e4c072e9de5d60982e8cb8c133017702c427dca505f953bb59277020",
+  "rendererSha256": "f2992dbbd1872c143dc40deb818b54f2e5f5ac2b69fc5bf85eb9b2b0c3ee47a4",
+  "workerSha256": "215133cecaf4e0b2974c0af45417bff6d49ab7ae51e3136fd3ef4975ddd0a548",
+  "rendererFilesSha256": "fe7e0af3274f8529f8d73da80a9cd6d00ddddcbd19624c2f1d83623e54d52bc8",
+  "workerFilesSha256": "71c5861249fc30ee3d916ce297deee01adb447c97b9a85924d0b9daa8653569c",
+  "capturedAtUtc": "2026-09-16T17:21:07.8915585+00:00",
   "isolationPolicy": "rootless-podman;seccomp;cgroups-cpu-memory-pids;network-none;read-only;uid-65532;cap-drop-all;no-new-privileges;no-mounts",
   "cases": [
     {
       "Name": "malformed-markup",
       "Passed": true,
-      "ContainerName": "officeimo-html-897a3695af8d4dc7a82ad159456024f9",
+      "ContainerName": "officeimo-html-c885a8168911431bbeddf6436f669776",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 27810,
+      "ElapsedMilliseconds": 28164,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,
+      "DiscoveryRounds": [],
       "CaptureManifest": "sha256:e4da52238bcc056e740795396802daa1af6db883d3df99024a8761ac299ac3f3",
       "ScreenSha256": "aeac7cc662ea283d86d6fe0786a2f633d54ef0febd69ff2f98ddbe5a8019dc8c",
       "PrintSha256": "58debf0fffee4ebab9fe442c55fbeb980875c5639aacac260e44841f8e427572",
       "ScreenToPageSha256": "8cdcebed4ab06f1eb4c4beef99a80241897c0212f856d6215e0e8fc6bd19561d"
     },
     {
+      "Name": "responsive-picture",
+      "Passed": true,
+      "ContainerName": "officeimo-html-c21a521fa1f34b0f84f8fe2a1c38f662",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 26638,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "https://fixture.officeimo.invalid/responsive-wide.svg"
+        ]
+      ],
+      "CaptureManifest": "sha256:bc491b34dbecdebf104f2ab1f9d74a65a3f7a75021723a4ed04a9d7b2e42251a",
+      "ScreenSha256": "f967c880125b0a000e891c8d10aaba90cefc2ec421622483b2e47bbefffae4d4",
+      "PrintSha256": "f674e5fe3aafcdf896fe30f39bac9604035c37a9bbd056ce6762e01fc6b58922",
+      "ScreenToPageSha256": "1dccdab76a82d66da9cacd1a5471420c881e122276c9b8d21af7bc55633f8081"
+    },
+    {
+      "Name": "module-graph",
+      "Passed": true,
+      "ContainerName": "officeimo-html-acc6683b75494182812b1b9eeefc97fd",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 27559,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "https://fixture.officeimo.invalid/app/main.js"
+        ],
+        [
+          "https://fixture.officeimo.invalid/app/dep.js"
+        ]
+      ],
+      "CaptureManifest": "sha256:c3875c460b9d0831bb76729c67957aed8bcc7b5cf05f152ea17a8713b638791c",
+      "ScreenSha256": "261dfd3ee7a7cf1d051c6a7aab0519adaffefa6e7017d1f228328c4c15fb8c2a",
+      "PrintSha256": "d566e810cdc8b6081475609537f7db0c95b34cfd6ad60acbf428eee2887f019b",
+      "ScreenToPageSha256": "2a2580305e884511c9a296ee1fe20abc358d550e6d4916b7333efe194440e552"
+    },
+    {
       "Name": "resource-fanout",
       "Passed": true,
-      "ContainerName": "officeimo-html-795697b698824b10bacc954e1a266aa8",
+      "ContainerName": "officeimo-html-0d852ae07e5040d298b61cad6ef762c2",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 25527,
+      "ElapsedMilliseconds": 24185,
       "ErrorKind": "HtmlScriptRuntimeException",
       "Error": "The document exceeds the pilot\u0027s static resource discovery limit.",
       "CleanupError": null,
+      "DiscoveryRounds": [],
       "CaptureManifest": null,
       "ScreenSha256": null,
       "PrintSha256": null,
@@ -38,12 +81,13 @@
     {
       "Name": "capture-output-budget",
       "Passed": true,
-      "ContainerName": "officeimo-html-41a8714a934f4f11ab99a42d6748d403",
+      "ContainerName": "officeimo-html-13807dc28f324302974e3ac8e66b00a4",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 26571,
+      "ElapsedMilliseconds": 25530,
       "ErrorKind": "HtmlScriptRuntimeException",
       "Error": "Captured data budget exceeded.",
       "CleanupError": null,
+      "DiscoveryRounds": [],
       "CaptureManifest": null,
       "ScreenSha256": null,
       "PrintSha256": null,
@@ -52,12 +96,13 @@
     {
       "Name": "runaway-script",
       "Passed": true,
-      "ContainerName": "officeimo-html-688d3f590a7e4bef84ffc8553b8d45ea",
+      "ContainerName": "officeimo-html-40f3bb4e39714f269d2e01b2576d6cf5",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 28532,
+      "ElapsedMilliseconds": 27968,
       "ErrorKind": "TimeoutException",
       "Error": "The runtime command exceeded its deadline.",
       "CleanupError": null,
+      "DiscoveryRounds": [],
       "CaptureManifest": null,
       "ScreenSha256": null,
       "PrintSha256": null,

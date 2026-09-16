@@ -65,7 +65,8 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             .With((AngleSharp.Css.IPseudoClassSelectorFactory)_focus.CreateSelectors())
             .With(new RuntimeResourceRequester(_resources, _errors))
             .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true, IsNavigationDisabled = true })
-            .WithOnly<IResourceLoader>(context => new RuntimeDocumentResourceLoader(context, _moduleSources, () => _modules?.ImportMap));
+            .WithOnly<IResourceLoader>(context => new RuntimeDocumentResourceLoader(
+                context, _moduleSources, () => _modules?.ImportMap, options));
         var scripting = configuration.Services.OfType<JsScriptingService>().Single();
         _scripting = new RuntimeScriptingService(scripting, () => _modules, options, _errors.Report);
         configuration = configuration.Without<IScriptingService>()

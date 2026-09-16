@@ -35,9 +35,11 @@ connected IP addresses and SHA-256 hashes are recorded before rendering.
 
 Append `--resource=URL` for assets outside this discovery path. An external DNS
 name must be explicitly approved with `--host=DNS-name`; explicit resource
-URLs approve their own host. Responsive source selection, frame documents,
-non-GET requests and browser-wide dynamic loading are not qualified by this
-pilot. Cookies and credentials are outside this profile.
+URLs approve their own host. The generated OCI probe qualifies active,
+single-candidate responsive-picture source selection and a two-level relative JavaScript module
+graph. Frame documents, wider module/import-map cases, non-GET requests and
+browser-wide dynamic loading are not qualified by this pilot. Cookies and
+credentials are outside this profile.
 
 The broker allows standard HTTP(S) ports and UTF-8 HTML, validates public IPv4
 answers before each direct connection, forbids proxy use and HTTPS downgrade,

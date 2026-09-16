@@ -20,6 +20,10 @@ try {
     HtmlPublicRenderRequest incoming = await HtmlRuntimeProtocol.ReadAsync<HtmlPublicRenderRequest>(
         input, 24 * 1024 * 1024, deadline.Token)
         ?? throw new HtmlScriptRuntimeException("The isolated render request is missing.");
+    var rendering = new HtmlToPdfOptions { ViewportWidth = 816D, ViewportHeight = 720D,
+        Margins = HtmlRenderMargins.All(0D) };
+    incoming.Page.ViewportWidth = rendering.ViewportWidth;
+    incoming.Page.ViewportHeight = rendering.ViewportHeight ?? 720D;
     HtmlScriptRequest page = incoming.Page.Snapshot();
     if (page.Profile != HtmlRuntimeProfile.WebApplicationV1 || page.ResourcePolicy.AllowNetwork)
         throw new NotSupportedException("The isolated renderer accepts only offline WebApplicationV1 input.");
@@ -27,8 +31,6 @@ try {
     var supplied = page.Resources.ToList();
     string[] pending = discovery.DiscoverDocument(page.Html, page.DocumentUrl, supplied);
     IHtmlRuntimeHost host = new HtmlProcessRuntimeProvider(workerPath, AngleSharpDomServices.Instance);
-    var rendering = new HtmlToPdfOptions { ViewportWidth = 816D, ViewportHeight = 720D,
-        Margins = HtmlRenderMargins.All(0D) };
     HtmlApplicationDocumentResult result;
     var missingAtRuntime = new HashSet<string>(StringComparer.Ordinal);
     for (int round = 0; ; ) {

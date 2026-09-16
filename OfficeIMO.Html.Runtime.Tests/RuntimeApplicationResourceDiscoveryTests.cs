@@ -83,4 +83,18 @@ public sealed class RuntimeApplicationResourceDiscoveryTests {
             "@media print { .invoice { background-image: url('../images/seal.png') } }", "text/css");
         Assert.Contains("https://example.test/images/seal.png", discovery.DiscoverStylesheets([stylesheet]));
     }
+
+    [Fact]
+    public void ResponsivePictureDiscoveryUsesOnlyTheActiveScreenAndPrintSource() {
+        var discovery = new HtmlApplicationResourceDiscovery();
+        string[] urls = discovery.DiscoverDocument("""
+            <picture>
+              <source media="(max-width: 900px)" type="image/svg+xml" srcset="/wide.svg">
+              <source media="(min-width: 901px)" type="image/svg+xml" srcset="/narrow.svg">
+              <img src="/fallback.svg" alt="fixture">
+            </picture>
+            """, new Uri("https://example.test/report"), []);
+
+        Assert.Equal(new[] { "https://example.test/wide.svg" }, urls);
+    }
 }

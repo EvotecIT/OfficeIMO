@@ -37,19 +37,26 @@ embedding a translucent gradient in the PDF; `oom-256m.json` retains that
 failure. The completed run used a verified 512 MiB container limit, one CPU,
 32 PIDs and the same no-network and read-only controls. The site has no
 skipped resources in this run. Browser-reference differences, richer hostile
-inputs, responsive sources, module graphs, cross-host redirects and Windows and
-macOS isolation remain open in [the product roadmap](../../../../../Docs/ROADMAP.md).
+inputs, broader responsive-source and module-graph cases, cross-host redirects,
+and Windows and macOS isolation remain open in [the product roadmap](../../../../../Docs/ROADMAP.md).
 
 The [controlled OCI fixture run](hostile-fixtures/summary.json) used the same
 whole-pipeline image definition with ID
-`sha256:c508fe79426d7354b945f5bab8a56330e2cf86d89faec8c1718fcab7623e65fe`.
+`sha256:466b1e84e4c072e9de5d60982e8cb8c133017702c427dca505f953bb59277020`.
 Malformed table markup with an inline script produced a [screen image](hostile-fixtures/malformed-markup/screen.png)
 and both PDFs; the image was visually inspected and both PDFs reopened as
-single-page A4 files. The other fixtures rejected 129 distinct script URLs,
-stopped an oversized captured document, and interrupted a nonterminating
-script. All four runs reported the expected result and confirmed exact
-container removal. These generated fixtures validate isolated failure recovery,
-not public-host redirects, DNS changes, or arbitrary-site compatibility.
+single-page A4 files. The responsive-picture case requested only its active
+single-candidate wide SVG by canonical absolute URL, omitted the narrow and
+fallback resources, and visibly rendered the selected blue image. The
+module-graph case requested its canonical root URL in round one and its relative
+dependency URL in round two, then rendered the dependency's exported text.
+Both new screen images were visually inspected; all four new PDFs reopened as
+single-page A4 files and contained the expected text. The remaining fixtures
+rejected 129 distinct script URLs, stopped an oversized captured document, and
+interrupted a nonterminating script. All six runs reported the expected result
+and confirmed exact container removal. These generated fixtures validate
+isolated resource replay and failure recovery, not public-host redirects, DNS
+changes, or arbitrary-site compatibility.
 
 The [controlled acquisition tests](../../../../../OfficeIMO.Html.Runtime.Tests/RuntimePublicResourceBrokerTests.cs)
 direct synthetic public DNS answers through a loopback test transport. They
