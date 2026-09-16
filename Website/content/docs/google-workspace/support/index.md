@@ -10,7 +10,7 @@ order: 80
 
 | Capability | Export | Import | Current boundary |
 |---|---|---|---|
-| Paragraphs, runs, headings, lists and hyperlinks | Native | Native | Native import projects core styles; Drive DOCX export remains the broad-fidelity fallback. |
+| Paragraphs, runs, headings, lists and hyperlinks | Partial | Partial | Export emits external URI links but does not apply internal-anchor navigation; core text and heading styles are native. Native import projects core text and heading styles, flattens list markers, and reports hyperlinks without reconstructing them. Drive-exported DOCX remains the broad-fidelity import choice. |
 | Tables and merged cells | Native | Partial | Export replays table structure and supported styling; native import projects simple cells. |
 | Headers, footers, footnotes and bookmarks | Native | DriveFallback | Native import reports these segments and directs callers to Drive-export import for exact placement. |
 | Document tabs | Native | Native | Reads are tab-aware; callers select one tab or deliberately replace/flatten every tab. |
