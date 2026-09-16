@@ -6,16 +6,20 @@ namespace OfficeIMO.Excel.GoogleSheets {
     /// Default Excel to Google Sheets exporter implementation.
     /// </summary>
     public sealed class GoogleSheetsExporter : IGoogleSheetsExporter {
+        /// <summary>Inspects source features and fidelity risks without contacting Google.</summary>
         public GoogleSheetsTranslationPlan BuildPlan(ExcelDocument document, GoogleSheetsSaveOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             return GoogleSheetsPlanBuilder.Build(document, options ?? new GoogleSheetsSaveOptions());
         }
 
+        /// <summary>Compiles source content into provider-neutral Sheets requests without contacting Google.</summary>
         public GoogleSheetsBatch BuildBatch(ExcelDocument document, GoogleSheetsSaveOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             return GoogleSheetsBatchCompiler.Build(document, options ?? new GoogleSheetsSaveOptions());
         }
 
+        /// <summary>Creates or replaces a Google spreadsheet after fidelity and replacement preflight.</summary>
+        /// <remarks>An existing spreadsheet requires the observed Drive version unless overwrite is explicitly selected. The version comparison is a preflight read, not an atomic write precondition.</remarks>
         public async Task<GoogleSpreadsheetReference> ExportAsync(
             ExcelDocument document,
             GoogleWorkspaceSession session,

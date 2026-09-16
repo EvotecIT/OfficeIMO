@@ -3,46 +3,71 @@ using System.Text;
 using OfficeIMO.GoogleWorkspace;
 
 namespace OfficeIMO.Excel.GoogleSheets {
+    /// <summary>One classified difference between an Excel source and a Google spreadsheet.</summary>
     public sealed class GoogleSheetsDiffItem {
+        /// <summary>Creates a difference with a semantic path and explanation.</summary>
         public GoogleSheetsDiffItem(GoogleWorkspaceDiffKind kind, string path, string message) {
             Kind = kind;
             Path = path;
             Message = message;
         }
+        /// <summary>Gets the local, remote, conflict, or lossy classification.</summary>
         public GoogleWorkspaceDiffKind Kind { get; }
+        /// <summary>Gets the semantic path of the changed content.</summary>
         public string Path { get; }
+        /// <summary>Gets the explanation for the classification.</summary>
         public string Message { get; }
     }
 
     /// <summary>Minimal checkpoint used to distinguish local and remote spreadsheet changes.</summary>
+    /// <remarks>Use <see cref="GoogleSheetsDiffPlanner.CreateCheckpoint"/> to establish a versioned baseline after synchronization.</remarks>
     public sealed class GoogleSheetsSyncCheckpoint {
+        /// <summary>Gets or sets the content-hash format version; zero denotes an unversioned legacy checkpoint.</summary>
+        /// <remarks>Unversioned checkpoints cannot be safely compared with culture-invariant hashes and are rejected.</remarks>
+        public int HashFormatVersion { get; set; }
+        /// <summary>Gets or sets the previously observed Drive version.</summary>
         public long? DriveVersion { get; set; }
+        /// <summary>Gets the mutable map of semantic paths to baseline content hashes.</summary>
         public IDictionary<string, string> ContentHashes { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
     }
 
-    /// <summary>Read-only plan produced before a synchronization or replacement apply.</summary>
+    /// <summary>Remote metadata, classified content differences, and native-import notices.</summary>
     public sealed class GoogleSheetsDiffPlan {
         internal GoogleSheetsDiffPlan(GoogleSpreadsheetReference remote, IReadOnlyList<GoogleSheetsDiffItem> items, TranslationReport report) {
             Remote = remote;
             Items = items;
             Report = report;
         }
+        /// <summary>Gets the remote spreadsheet reference observed during planning.</summary>
         public GoogleSpreadsheetReference Remote { get; }
+        /// <summary>Gets classified differences in semantic-path order, followed by import and version notices.</summary>
         public IReadOnlyList<GoogleSheetsDiffItem> Items { get; }
+        /// <summary>Gets fidelity notices from native remote import.</summary>
         public TranslationReport Report { get; }
+        /// <summary>Gets whether any path was classified as a conflict.</summary>
         public bool HasConflicts => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.Conflict);
+        /// <summary>Gets whether import warnings produced any lossy-action items.</summary>
         public bool HasLossyActions => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.LossyAction);
+        /// <summary>Gets whether the plan has neither conflicts nor report errors.</summary>
+        /// <remarks>This is advisory; it neither approves loss nor mutates the remote spreadsheet.</remarks>
         public bool CanApply => !HasConflicts && !Report.HasErrors;
     }
 
+    /// <summary>Builds source fingerprints and compares an Excel document with native Google Sheets data.</summary>
     public static class GoogleSheetsDiffPlanner {
+        private const int CurrentHashFormatVersion = 1;
+
+        /// <summary>Captures source content hashes and an optional observed remote Drive version.</summary>
+        /// <remarks>Persist the checkpoint only when it accurately represents a synchronized baseline.</remarks>
         public static GoogleSheetsSyncCheckpoint CreateCheckpoint(ExcelDocument document, long? driveVersion = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            var checkpoint = new GoogleSheetsSyncCheckpoint { DriveVersion = driveVersion };
+            var checkpoint = new GoogleSheetsSyncCheckpoint { HashFormatVersion = CurrentHashFormatVersion, DriveVersion = driveVersion };
             foreach (var pair in BuildHashes(document)) checkpoint.ContentHashes[pair.Key] = pair.Value;
             return checkpoint;
         }
 
+        /// <summary>Imports the remote spreadsheet natively and compares it with the source and optional baseline.</summary>
+        /// <remarks>Unversioned or unsupported checkpoints are rejected before contacting Google. Import warnings are classified as lossy actions. A changed Drive version is reported separately when old and current values are both available.</remarks>
         public static async Task<GoogleSheetsDiffPlan> BuildAsync(
             ExcelDocument source,
             string spreadsheetId,
@@ -50,6 +75,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             GoogleSheetsSyncCheckpoint? checkpoint = null,
             CancellationToken cancellationToken = default) {
             if (source == null) throw new ArgumentNullException(nameof(source));
+            ValidateCheckpoint(checkpoint);
             var importer = new GoogleSheetsImporter();
             GoogleSheetsImportResult imported = await importer.ImportAsync(
                 spreadsheetId,
@@ -81,6 +107,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             IReadOnlyDictionary<string, string> source,
             IReadOnlyDictionary<string, string> remote,
             GoogleSheetsSyncCheckpoint? checkpoint) {
+            ValidateCheckpoint(checkpoint);
             var result = new List<GoogleSheetsDiffItem>();
             foreach (string path in source.Keys.Concat(remote.Keys).Concat(checkpoint?.ContentHashes.Keys ?? Array.Empty<string>()).Distinct(StringComparer.Ordinal).OrderBy(path => path, StringComparer.Ordinal)) {
                 source.TryGetValue(path, out string? localHash);
@@ -101,6 +128,12 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return result;
         }
 
+        private static void ValidateCheckpoint(GoogleSheetsSyncCheckpoint? checkpoint) {
+            if (checkpoint != null && checkpoint.HashFormatVersion != CurrentHashFormatVersion) {
+                throw new InvalidOperationException("The Google Sheets checkpoint uses an unversioned or unsupported hash format. Reconcile the source with the remote spreadsheet, then establish a new synchronized baseline with CreateCheckpoint; do not relabel the old hashes.");
+            }
+        }
+
         private static IReadOnlyDictionary<string, string> BuildHashes(
             ExcelDocument document,
             ISet<string>? sourceSheetNames = null) {
@@ -110,23 +143,23 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 if (IsGeneratedChartDataSheet(sheet, sourceSheetNames)) continue;
                 ExcelSheet? sourceSheet = document.Sheets.FirstOrDefault(candidate =>
                     string.Equals(candidate.Name, sheet.Name, StringComparison.OrdinalIgnoreCase));
-                result[$"sheet/{sheet.Name}"] = Hash($"{sheet.Index}|{sheet.Hidden}|{sheet.RightToLeft}|{sheet.ShowGridlines}|{sheet.FrozenRowCount}|{sheet.FrozenColumnCount}|{sheet.TabColorArgb}");
+                result[$"sheet/{sheet.Name}"] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{sheet.Index}|{sheet.Hidden}|{sheet.RightToLeft}|{sheet.ShowGridlines}|{sheet.FrozenRowCount}|{sheet.FrozenColumnCount}|{sheet.TabColorArgb}"));
                 foreach (ExcelCellSnapshot cell in sheet.Cells) {
-                    result[$"sheet/{sheet.Name}/cell/{cell.Row}:{cell.Column}"] = Hash($"{cell.Value}|{cell.Formula}|{StyleFingerprint(cell.Style)}|{HyperlinkFingerprint(cell.Hyperlink)}|{RichTextFingerprint(cell.RichTextRuns)}|{cell.Comment?.Author}|{cell.Comment?.Text}");
+                    result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/cell/{cell.Row}:{cell.Column}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{cell.Value}|{cell.Formula}|{StyleFingerprint(cell.Style)}|{HyperlinkFingerprint(cell.Hyperlink)}|{RichTextFingerprint(cell.RichTextRuns)}|{cell.Comment?.Author}|{cell.Comment?.Text}"));
                 }
                 foreach (ExcelRowSnapshot row in sheet.Rows) {
-                    result[$"sheet/{sheet.Name}/row/{row.Index}"] = Hash($"{row.Height}|{row.Hidden}|{row.OutlineLevel}");
+                    result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/row/{row.Index}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{row.Height}|{row.Hidden}|{row.OutlineLevel}"));
                 }
                 foreach (ExcelColumnSnapshot column in sheet.Columns) {
-                    result[$"sheet/{sheet.Name}/column/{column.StartIndex}:{column.EndIndex}"] = Hash($"{column.Width}|{column.Hidden}|{column.OutlineLevel}");
+                    result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/column/{column.StartIndex}:{column.EndIndex}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{column.Width}|{column.Hidden}|{column.OutlineLevel}"));
                 }
                 for (int validationIndex = 0; validationIndex < sheet.Validations.Count; validationIndex++) {
                     ExcelDataValidationSnapshot validation = sheet.Validations[validationIndex];
-                    result[$"sheet/{sheet.Name}/validation/{validationIndex}"] = Hash(
+                    result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/validation/{validationIndex}")] = Hash(
                         $"{validation.Type}|{validation.Operator}|{validation.AllowBlank}|{validation.Formula1}|{validation.Formula2}|{string.Join("~", validation.A1Ranges)}");
                 }
                 foreach (ExcelMergedRangeSnapshot merge in sheet.MergedRanges) result[$"sheet/{sheet.Name}/merge/{merge.A1Range}"] = Hash(merge.A1Range);
-                foreach (ExcelTableSnapshot table in sheet.Tables) result[$"sheet/{sheet.Name}/table/{table.Name}"] = Hash($"{table.A1Range}|{table.StyleName}|{table.TotalsRowShown}");
+                foreach (ExcelTableSnapshot table in sheet.Tables) result[$"sheet/{sheet.Name}/table/{table.Name}"] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{table.A1Range}|{table.StyleName}|{table.TotalsRowShown}"));
                 AddConditionalFormatHashes(result, sheet.Name, sourceSheet);
                 AddFilterHashes(result, sheet);
             }
@@ -169,8 +202,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             int index = 0;
             foreach (ExcelConditionalFormattingInfo rule in sourceSheet.GetConditionalFormattingRules().OrderBy(rule => rule.Priority)) {
                 if (!GoogleSheetsBatchCompiler.TryMapConditionalRule(rule, out string conditionType, out IReadOnlyList<string> values)) continue;
-                string format = $"{rule.DifferentialFontBold == true}|{rule.DifferentialFontItalic == true}|{rule.DifferentialFontColorArgb}|{rule.DifferentialFillColorArgb}";
-                result[$"sheet/{sheetName}/conditionalFormat/{index++}"] = Hash(
+                string format = GoogleWorkspaceCheckpointFormat.Format($"{rule.DifferentialFontBold == true}|{rule.DifferentialFontItalic == true}|{rule.DifferentialFontColorArgb}|{rule.DifferentialFillColorArgb}");
+                result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheetName}/conditionalFormat/{index++}")] = Hash(
                     $"{rule.Range}|{conditionType}|{string.Join("~", values)}|{format}");
             }
         }
@@ -196,8 +229,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                             basic.Criteria));
                         break;
                     case GoogleSheetsAddFilterViewRequest view:
-                        result[$"sheet/{sheet.Name}/filter/view/{viewIndex++}"] = Hash(
-                            $"{view.Title}|{FilterFingerprint(view.A1Range, view.StartRowIndex, view.EndRowIndexExclusive, view.StartColumnIndex, view.EndColumnIndexExclusive, view.Criteria)}");
+                        result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/filter/view/{viewIndex++}")] = Hash(
+                            GoogleWorkspaceCheckpointFormat.Format($"{view.Title}|{FilterFingerprint(view.A1Range, view.StartRowIndex, view.EndRowIndexExclusive, view.StartColumnIndex, view.EndColumnIndexExclusive, view.Criteria)}"));
                         break;
                 }
             }
@@ -211,13 +244,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
             int endColumnIndexExclusive,
             IReadOnlyList<GoogleSheetsFilterColumnCriteria> criteria) {
             string criteriaFingerprint = string.Join("~", criteria.OrderBy(item => item.ColumnId).Select(item =>
-                $"{item.ColumnId}:{string.Join(",", item.HiddenValues)}:{item.Condition?.Type}:{string.Join(",", item.Condition?.Values ?? Array.Empty<string>())}"));
-            return $"{a1Range}|{startRowIndex}|{endRowIndexExclusive}|{startColumnIndex}|{endColumnIndexExclusive}|{criteriaFingerprint}";
+                GoogleWorkspaceCheckpointFormat.Format($"{item.ColumnId}:{string.Join(",", item.HiddenValues)}:{item.Condition?.Type}:{string.Join(",", item.Condition?.Values ?? Array.Empty<string>())}")));
+            return GoogleWorkspaceCheckpointFormat.Format($"{a1Range}|{startRowIndex}|{endRowIndexExclusive}|{startColumnIndex}|{endColumnIndexExclusive}|{criteriaFingerprint}");
         }
 
         private static string StyleFingerprint(ExcelCellStyleSnapshot? style) {
             if (style == null) return string.Empty;
-            return $"{style.NumberFormatId}|{style.NumberFormatCode}|{style.IsDateLike}|{style.Bold}|{style.Italic}|{style.Underline}|{style.Strikethrough}|{style.FontName}|{style.FontSize}|{style.FontColorArgb}|{style.FillColorArgb}|{BorderFingerprint(style.Border)}|{style.HorizontalAlignment}|{style.VerticalAlignment}|{style.WrapText}|{style.TextRotation}|{style.TextIndent}";
+            return GoogleWorkspaceCheckpointFormat.Format($"{style.NumberFormatId}|{style.NumberFormatCode}|{style.IsDateLike}|{style.Bold}|{style.Italic}|{style.Underline}|{style.Strikethrough}|{style.FontName}|{style.FontSize}|{style.FontColorArgb}|{style.FillColorArgb}|{BorderFingerprint(style.Border)}|{style.HorizontalAlignment}|{style.VerticalAlignment}|{style.WrapText}|{style.TextRotation}|{style.TextIndent}");
         }
 
         private static string BorderFingerprint(ExcelCellBorderSnapshot? border) {
@@ -232,7 +265,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             hyperlink == null ? string.Empty : $"{hyperlink.IsExternal}|{hyperlink.Target}";
 
         private static string RichTextFingerprint(IReadOnlyList<ExcelRichTextRun> runs) => string.Join("~", runs.Select(run =>
-            $"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strikethrough}|{run.FontName}|{run.FontSize}|{run.FontColor}"));
+            GoogleWorkspaceCheckpointFormat.Format($"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strikethrough}|{run.FontName}|{run.FontSize}|{run.FontColor}")));
 
         private static string Hash(string value) {
             using SHA256 sha = SHA256.Create();

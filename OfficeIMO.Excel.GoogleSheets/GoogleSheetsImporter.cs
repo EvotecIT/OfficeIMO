@@ -17,6 +17,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             "data(startRow,startColumn,rowData(values(userEnteredValue,effectiveValue,formattedValue,userEnteredFormat,textFormatRuns,note,dataValidation,pivotTable)),rowMetadata(hiddenByUser,pixelSize),columnMetadata(hiddenByUser,pixelSize))," +
             "merges,conditionalFormats,charts,tables,filterViews,basicFilter,rowGroups,columnGroups)";
 
+        /// <summary>Loads a Google spreadsheet and returns a caller-owned Excel document with source metadata.</summary>
+        /// <remarks>Drive-exported XLSX is the default mode; native mode projects selected Sheets objects and records fidelity notices.</remarks>
         public async Task<GoogleSheetsImportResult> ImportAsync(
             string spreadsheetId,
             GoogleWorkspaceSession session,
