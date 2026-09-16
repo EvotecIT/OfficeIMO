@@ -57,6 +57,32 @@ public sealed class SvgContentSafetyPaintProjectionAuditTests {
         Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("rgb(0 0 0 / 0 %)")]
+    [InlineData("rgb(0 0 0 / 0.)")]
+    public void InvalidCssColorCannotAuthorizeTransparentTextCleanup(string color) {
+        byte[] svg = Svg("<text fill='" + color + "' x='10' y='35'>visible color payload</text>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible color payload" &&
+            item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);
+    }
+
+    [Theory]
+    [InlineData("color-mix(in&#9;srgb, transparent, transparent)")]
+    [InlineData("color-mix(in srgb, red 0%, blue 0%)")]
+    public void ValidColorMixTransparencyIsClassifiedAsTransparentText(string color) {
+        byte[] svg = Svg("<text fill='" + color + "' x='10' y='35'>mixed color payload</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "mixed color payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.TransparentText, finding.Kind);
+    }
+
     [Fact]
     public void UnsupportedGradientStopColorCannotAuthorizeTransparentTextRemoval() {
         byte[] svg = Svg(

@@ -135,8 +135,9 @@ public readonly partial struct OfficeColor {
         if (parts.Count != 3) return false;
 
         string interpolation = parts[0].Trim().ToLowerInvariant();
-        if (!interpolation.StartsWith("in ", StringComparison.Ordinal)) return false;
-        string space = interpolation.Substring(3).Trim();
+        string[] interpolationTokens = SplitWhitespace(interpolation);
+        if (interpolationTokens.Length != 2 || interpolationTokens[0] != "in") return false;
+        string space = interpolationTokens[1];
         if (space != "srgb" && space != "srgb-linear" && space != "oklab") return false;
 
         if (!TryParseColorStop(parts[1], depth, out CssMixColor first, out double? firstPercentage)
@@ -199,7 +200,7 @@ public readonly partial struct OfficeColor {
         if (separator >= 0) {
             string suffix = candidate.Substring(separator).Trim();
             if (suffix.EndsWith("%", StringComparison.Ordinal)) {
-                if (!TryFiniteDouble(suffix.Substring(0, suffix.Length - 1).Trim(), out double number)
+                if (!TryFiniteCssNumber(suffix, percentage: true, out double number)
                     || number < 0D
                     || number > 100D) return false;
                 percentage = number;
@@ -313,7 +314,11 @@ public readonly partial struct OfficeColor {
         double first = firstPercentage ?? (secondPercentage.HasValue ? 100D - secondPercentage.Value : 50D);
         double second = secondPercentage ?? (firstPercentage.HasValue ? 100D - firstPercentage.Value : 50D);
         double total = first + second;
-        if (total <= 0D) return false;
+        if (total == 0D) {
+            firstWeight = secondWeight = 0.5D;
+            alphaMultiplier = 0D;
+            return true;
+        }
         firstWeight = first / total;
         secondWeight = second / total;
         if (total < 100D) alphaMultiplier = total / 100D;
@@ -394,8 +399,7 @@ public readonly partial struct OfficeColor {
         lightness = 0D;
         if (IsMissingColorComponent(value)) return true;
         bool percentage = value.EndsWith("%", StringComparison.Ordinal);
-        string numberText = percentage ? value.Substring(0, value.Length - 1).Trim() : value.Trim();
-        if (!TryFiniteDouble(numberText, out double number)) return false;
+        if (!TryFiniteCssNumber(value, percentage, out double number)) return false;
         lightness = perceptual
             ? Clamp(percentage ? number / 100D : number, 0D, 1D)
             : Clamp(number, 0D, 100D);
@@ -406,8 +410,7 @@ public readonly partial struct OfficeColor {
         axis = 0D;
         if (IsMissingColorComponent(value)) return true;
         bool percentage = value.EndsWith("%", StringComparison.Ordinal);
-        string numberText = percentage ? value.Substring(0, value.Length - 1).Trim() : value.Trim();
-        if (!TryFiniteDouble(numberText, out double number)) return false;
+        if (!TryFiniteCssNumber(value, percentage, out double number)) return false;
         double scale = perceptual ? 0.4D : 125D;
         axis = percentage ? Clamp(number * scale / 100D, -scale, scale) : number;
         return true;
@@ -417,8 +420,7 @@ public readonly partial struct OfficeColor {
         chroma = 0D;
         if (IsMissingColorComponent(value)) return true;
         bool percentage = value.EndsWith("%", StringComparison.Ordinal);
-        string numberText = percentage ? value.Substring(0, value.Length - 1).Trim() : value.Trim();
-        if (!TryFiniteDouble(numberText, out double number)) return false;
+        if (!TryFiniteCssNumber(value, percentage, out double number)) return false;
         double scale = perceptual ? 0.4D : 150D;
         chroma = percentage ? Clamp(number * scale / 100D, 0D, scale) : Math.Max(0D, number);
         return true;
@@ -428,8 +430,7 @@ public readonly partial struct OfficeColor {
         channel = 0D;
         if (IsMissingColorComponent(value)) return true;
         bool percentage = value.EndsWith("%", StringComparison.Ordinal);
-        string numberText = percentage ? value.Substring(0, value.Length - 1).Trim() : value.Trim();
-        if (!TryFiniteDouble(numberText, out double number)) return false;
+        if (!TryFiniteCssNumber(value, percentage, out double number)) return false;
         channel = percentage ? number / 100D : number;
         return true;
     }
