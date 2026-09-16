@@ -635,6 +635,22 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void NonOrthogonalTransformUsesTheFullAffineScaleForTinyText() {
+        byte[] svg = Svg(
+            "<text font-size='100' transform='matrix(.1,.1,.1,.1,0,0)' x='10' y='35'>sheared visible text</text>");
+        var options = new OfficeContentSafetyOptions { MaximumTinyFontSizePoints = 15D };
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(
+            svg,
+            options,
+            readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item =>
+            item.TextPreview == "sheared visible text" && item.Kind == OfficeContentConcealmentKind.TinyText);
+    }
+
+    [Fact]
     public void RootViewportScaleContributesToTinyTextClassification() {
         byte[] svg = Encoding.UTF8.GetBytes(
             "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 4000 4000'>" +

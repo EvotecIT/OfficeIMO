@@ -128,9 +128,7 @@ public static partial class OfficeSvgDrawingReader {
                     bounds.Right + strokeExtent,
                     bounds.Bottom + strokeExtent);
             }
-            double horizontalScale = Math.Sqrt(transform.M11 * transform.M11 + transform.M12 * transform.M12);
-            double verticalScale = Math.Sqrt(transform.M21 * transform.M21 + transform.M22 * transform.M22);
-            double maximumScale = Math.Max(horizontalScale, verticalScale);
+            double maximumScale = ResolveMaximumSvgAffineScale(transform);
             MaximumEffectiveFontSize = Math.Max(MaximumEffectiveFontSize, run.FontSize * maximumScale);
             if (!_hasBounds) {
                 _left = bounds.Left;
@@ -144,6 +142,16 @@ public static partial class OfficeSvgDrawingReader {
             _top = Math.Min(_top, bounds.Top);
             _right = Math.Max(_right, bounds.Right);
             _bottom = Math.Max(_bottom, bounds.Bottom);
+        }
+
+        private static double ResolveMaximumSvgAffineScale(OfficeTransform transform) {
+            double squaredFrobenius =
+                transform.M11 * transform.M11 + transform.M12 * transform.M12 +
+                transform.M21 * transform.M21 + transform.M22 * transform.M22;
+            double determinant = transform.M11 * transform.M22 - transform.M12 * transform.M21;
+            double discriminant = Math.Max(0D,
+                squaredFrobenius * squaredFrobenius - 4D * determinant * determinant);
+            return Math.Sqrt((squaredFrobenius + Math.Sqrt(discriminant)) / 2D);
         }
     }
 
