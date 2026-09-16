@@ -319,9 +319,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public string ChartType { get; set; } = string.Empty;
         /// <summary>Gets or sets the generated data worksheet name.</summary>
         public string DataSheetName { get; set; } = string.Empty;
-        /// <summary>Gets or sets the zero-based first data row.</summary>
+        /// <summary>Gets or sets the zero-based start row of the chart source range on the generated data sheet, including its header row.</summary>
         public int DataStartRowIndex { get; set; }
-        /// <summary>Gets or sets the number of data rows.</summary>
+        /// <summary>Gets or sets the number of rows in the chart source range, including its header row.</summary>
         public int DataRowCount { get; set; }
         /// <summary>Gets or sets the number of chart series.</summary>
         public int SeriesCount { get; set; }

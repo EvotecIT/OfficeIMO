@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public int HeaderFooterSheetCount { get; internal set; }
         /// <summary>Gets the number of sheets with header or footer images.</summary>
         public int HeaderFooterImageSheetCount { get; internal set; }
-        /// <summary>Gets the number of source defined names examined.</summary>
+        /// <summary>Gets zero because planning does not yet enumerate source defined names; zero does not imply that the workbook has no defined names.</summary>
         public int NamedRangeCount { get; internal set; }
         /// <summary>Gets whether any formula uses a function classified as unsupported.</summary>
         public bool HasFormulaTranslationRisk { get; internal set; }
