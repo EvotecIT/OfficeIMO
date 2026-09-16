@@ -37,12 +37,12 @@ embedding a translucent gradient in the PDF; `oom-256m.json` retains that
 failure. The completed run used a verified 512 MiB container limit, one CPU,
 32 PIDs and the same no-network and read-only controls. The site has no
 skipped resources in this run. Browser-reference differences, richer hostile
-inputs, broader module and frame execution cases, dynamic request types, and
+inputs, broader module and frame execution cases, XMLHttpRequest, non-GET dynamic requests, and
 Windows and macOS isolation remain open in [the product roadmap](../../../../../Docs/ROADMAP.md).
 
 The [controlled OCI fixture run](hostile-fixtures/summary.json) used the same
 whole-pipeline image definition with ID
-`sha256:7f591ffa14b196be9fcd93471d430823bef663acd3a81974113285f4923ee031`.
+`sha256:03d333ec47a439b5e7a606aa096fba785c3169443d78d9969329f79a1c081b13`.
 Malformed table markup with an inline script produced a [screen image](hostile-fixtures/malformed-markup/screen.png)
 and both PDFs; the image was visually inspected and both PDFs reopened as
 single-page A4 files. The responsive-picture case requested only its active
@@ -57,7 +57,12 @@ scope-specific `theme` target and a dynamically imported relative module in
 four exact rounds. The deliberately absent global `theme` target was not
 requested. Top-level await completed before the retained
 [import-map screen](hostile-fixtures/import-map-graph/screen.png) and both PDF
-intents rendered `Scoped import map ready 42`. The static-frame case requested
+intents rendered `Scoped import map ready 42`. The script-driven fetch case
+requested its relative JSON endpoint in one runtime-discovery round, preserved
+the `view=summary` query, removed the client-only fragment, decoded the response
+with `Response.json()` and waited for the promise chain before capture. The
+retained [dynamic-fetch screen](hostile-fixtures/dynamic-fetch-get/screen.png)
+and both PDF intents rendered `Dynamic fetch ready 42`. The static-frame case requested
 its canonical iframe document URL in round one and
 resolved the frame's relative stylesheet and external script from the
 document's final URL in round two. Root JavaScript observed the loaded nested
@@ -74,11 +79,11 @@ and [cross-host](hostile-fixtures/acquisition-cross-host-redirect/screen.png)
 screen images and both PDF intents in separate network-disabled containers. A
 per-hop DNS change from a public address to loopback was rejected before the
 second connection, and a response declaring 4 MiB plus one byte was rejected
-before rendering. All seven success-case screen images were visually inspected;
-all fourteen PDFs reopened as single-page A4 files and contained their expected
+before rendering. All eight success-case screen images were visually inspected;
+all sixteen PDFs reopened as single-page A4 files and contained their expected
 outer-document text. The remaining fixtures rejected 129 distinct script URLs,
 stopped an oversized captured document, and interrupted a nonterminating
-script. All ten render runs and four acquisition cases reported the expected
+script. All eleven render runs and four acquisition cases reported the expected
 result, and every started container was removed. These generated fixtures
 validate isolated static resource replay, controlled redirect acquisition and
 failure recovery. They do not qualify child-frame execution, frame-body

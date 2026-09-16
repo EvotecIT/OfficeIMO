@@ -1,10 +1,10 @@
 {
-  "imageId": "sha256:7f591ffa14b196be9fcd93471d430823bef663acd3a81974113285f4923ee031",
+  "imageId": "sha256:03d333ec47a439b5e7a606aa096fba785c3169443d78d9969329f79a1c081b13",
   "rendererSha256": "5f12009db175f65d2d793082c63cd9590a6a7c603202abacac2cd751777c58fe",
   "workerSha256": "3f44b6a776c5af56462d583681ff205ffdf4e7f46e97a898a42bca9cc84e68f4",
   "rendererFilesSha256": "e3cd5ab00c28b6144e87dbba87b3b619ea4466055cc2f4ba75d71622a3b3b744",
   "workerFilesSha256": "849defa5a147cff397a94a7d8ea372f1db1e9543d2ca7ab3df5db30638c982a6",
-  "capturedAtUtc": "2026-09-16T20:26:18.5189063+00:00",
+  "capturedAtUtc": "2026-09-16T20:45:57.7899294+00:00",
   "isolationPolicy": "rootless-podman;seccomp;cgroups-cpu-memory-pids;network-none;read-only;uid-65532;cap-drop-all;no-new-privileges;no-mounts",
   "acquisitionCases": [
     {
@@ -109,9 +109,9 @@
     {
       "Name": "malformed-markup",
       "Passed": true,
-      "ContainerName": "officeimo-html-67a15a462c654dcf8813d1a840da83d6",
+      "ContainerName": "officeimo-html-fe4fa8032ae24ccb82ce7e601cd4636b",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 35631,
+      "ElapsedMilliseconds": 27072,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,
@@ -124,9 +124,9 @@
     {
       "Name": "responsive-picture",
       "Passed": true,
-      "ContainerName": "officeimo-html-89b5ed9e6f494225b2c4b6787946ddfc",
+      "ContainerName": "officeimo-html-b15ab3694296496194a7bd1bd60ac248",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 31986,
+      "ElapsedMilliseconds": 27351,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,
@@ -143,9 +143,9 @@
     {
       "Name": "module-graph",
       "Passed": true,
-      "ContainerName": "officeimo-html-48a24b045f2b4cab8c8c2af31afcf051",
+      "ContainerName": "officeimo-html-7894d9707dce49a0bb559c5c87dc61de",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 29418,
+      "ElapsedMilliseconds": 28044,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,
@@ -165,9 +165,9 @@
     {
       "Name": "import-map-graph",
       "Passed": true,
-      "ContainerName": "officeimo-html-5e6e1dd2d6bc48cca06d0856837134b0",
+      "ContainerName": "officeimo-html-a300deb4880646f2a5587d1eb4ba0917",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 32511,
+      "ElapsedMilliseconds": 31099,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,
@@ -191,11 +191,30 @@
       "ScreenToPageSha256": "2b147ef0d17ddf44f9d11960217ebbed918b089491053a6b29a50c78a6b8d3b4"
     },
     {
+      "Name": "dynamic-fetch-get",
+      "Passed": true,
+      "ContainerName": "officeimo-html-03dfd476387d454f84ebecf166da04ea",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 28212,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "https://fixture.officeimo.invalid/api/report.json?view=summary"
+        ]
+      ],
+      "CaptureManifest": "sha256:6ea4755f39dcf71bc72440cec5f8024d1a518c56e3dc4e5ddb6ff8fe2f0d3196",
+      "ScreenSha256": "b13a545a7c16e3b5f4334126c95df7fdd1b8b140300b32c87b4c2b0fe071fdf7",
+      "PrintSha256": "9fe8c8dbb1f4e2581ce05036712cb73a87ff24ca3c9610d49eb3c2392d6d1582",
+      "ScreenToPageSha256": "809ea94f6a328de8d3702507dd8efbb016d37181eaea050d8ac16d650e5b086d"
+    },
+    {
       "Name": "frame-document",
       "Passed": true,
-      "ContainerName": "officeimo-html-1e24660de0434f27b50c31eccd60b36b",
+      "ContainerName": "officeimo-html-8ea2fd3adb4c4f459adf2710b78200bb",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 31184,
+      "ElapsedMilliseconds": 26703,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,
@@ -216,9 +235,9 @@
     {
       "Name": "resource-fanout",
       "Passed": true,
-      "ContainerName": "officeimo-html-85e0114f1c3d4a578395dd3ec0d1ccdf",
+      "ContainerName": "officeimo-html-6be71bd2558c49429fa5dfda7c88c8b9",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 27544,
+      "ElapsedMilliseconds": 24499,
       "ErrorKind": "HtmlScriptRuntimeException",
       "Error": "The document exceeds the pilot\u0027s static resource discovery limit.",
       "CleanupError": null,
@@ -231,9 +250,9 @@
     {
       "Name": "capture-output-budget",
       "Passed": true,
-      "ContainerName": "officeimo-html-ae2171803fd2447a864127d60e4989cd",
+      "ContainerName": "officeimo-html-340766a85baa431886fcc3b4faf574dd",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 29497,
+      "ElapsedMilliseconds": 26100,
       "ErrorKind": "HtmlScriptRuntimeException",
       "Error": "Captured data budget exceeded.",
       "CleanupError": null,
@@ -246,9 +265,9 @@
     {
       "Name": "runaway-script",
       "Passed": true,
-      "ContainerName": "officeimo-html-47879db48c3146759cb55897236323c2",
+      "ContainerName": "officeimo-html-34f497abc6d14649afc0d08a85d86195",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 37994,
+      "ElapsedMilliseconds": 28099,
       "ErrorKind": "TimeoutException",
       "Error": "The runtime command exceeded its deadline.",
       "CleanupError": null,
@@ -261,9 +280,9 @@
     {
       "Name": "acquisition-same-host-redirect",
       "Passed": true,
-      "ContainerName": "officeimo-html-f8661c02ebf743848a75571317d421f9",
+      "ContainerName": "officeimo-html-7838b23865eb46499bc88d3dee2dfdde",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 30412,
+      "ElapsedMilliseconds": 27732,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,
@@ -276,9 +295,9 @@
     {
       "Name": "acquisition-cross-host-redirect",
       "Passed": true,
-      "ContainerName": "officeimo-html-2412a7354eb343df984da2288b32daab",
+      "ContainerName": "officeimo-html-caad9ba3cdbf4dcd821854062ad7b03c",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 27499,
+      "ElapsedMilliseconds": 27914,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,

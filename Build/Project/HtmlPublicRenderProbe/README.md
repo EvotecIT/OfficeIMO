@@ -23,6 +23,7 @@ before container startup. The generated cases cover
 malformed markup that still renders all three outputs, active multi-candidate
 responsive-picture selection by viewport, `sizes`, and device density, a two-level JavaScript module graph,
 a scoped import-map graph with prefix mapping, top-level await and dynamic import,
+a script-driven relative `fetch()` GET with query preservation, fragment stripping and JSON decoding,
 a static frame document plus its relative stylesheet and script, 129 distinct
 external script URLs exceeding static discovery, a captured-document size limit, and a
 nonterminating script interrupted by its command deadline. Frame readiness proves

@@ -85,6 +85,19 @@ var cases = new List<ProbeCase> {
             [ $"{fixtureOrigin}/vendor/scoped-theme.js" ],
             [ $"{fixtureOrigin}/app/features/details.js" ]
         ]),
+    new ProbeCase("dynamic-fetch-get", """
+        <!doctype html><style>body{font:16px sans-serif}#result{color:#0055aa}</style>
+        <p id="result">Loading dynamic data</p>
+        <script>
+          fetch('/api/report.json?view=summary#client')
+            .then(response => response.json())
+            .then(data => document.querySelector('#result').textContent = `Dynamic fetch ready ${data.total}`);
+        </script>
+        """, "document.querySelector('#result')?.textContent === 'Dynamic fetch ready 42'", 8 * 1024 * 1024,
+        ExpectedVisibleText: "Dynamic fetch ready 42", ExpectBlueInk: true,
+        Resources: new Dictionary<string, ProbeResource>(StringComparer.Ordinal) {
+            [$"{fixtureOrigin}/api/report.json?view=summary"] = new("{\"total\":42}", "application/json")
+        }, ExpectedDiscoveryRounds: [[ $"{fixtureOrigin}/api/report.json?view=summary" ]]),
     new ProbeCase("frame-document", """
         <!doctype html><style>body{font:16px sans-serif}#outer{color:#0055aa}</style>
         <p id="outer">Outer frame host ready</p>

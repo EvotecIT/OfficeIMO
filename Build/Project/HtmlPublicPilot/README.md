@@ -39,9 +39,10 @@ name must be explicitly approved with `--host=DNS-name`; explicit resource
 URLs approve their own host. The generated OCI probe qualifies active,
 multi-candidate responsive-picture selection by viewport, `sizes`, and device density, a two-level relative
 JavaScript module graph, a scoped import-map graph with prefix mapping and dynamic import,
+script-driven relative `fetch()` GET replay with query preservation and fragment stripping,
 and static frame-document loading with relative-resource discovery and inert child scripts.
 Child-frame execution realms, frame-body capture/rendering, import attributes,
-non-GET requests and browser-wide dynamic loading are
+XMLHttpRequest, non-GET requests and browser-wide dynamic loading are
 not qualified by this pilot. Cookies and credentials are outside this profile.
 
 The broker allows standard HTTP(S) ports and UTF-8 HTML, validates public IPv4

@@ -338,6 +338,16 @@ public sealed class RuntimeFetchTests {
     }
 
     [Fact]
+    public async Task MissingFetchDiscoveryPreservesQueryAndStripsClientFragment() {
+        var failure = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+            Html = "<script>fetch('/api/report.json?view=summary#client');</script>", ReadyExpression = "false"
+        }));
+
+        Assert.Equal(new[] { new Uri("https://officeimo.invalid/api/report.json?view=summary") },
+            failure.MissingResourceUrls);
+    }
+
+    [Fact]
     public async Task LaterFatalMissingGetOutranksAnEarlierHandledMiss() {
         var failure = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
             Html = "<script>fetch('/optional').catch(() => {}).then(() => fetch('/required'));</script>",
