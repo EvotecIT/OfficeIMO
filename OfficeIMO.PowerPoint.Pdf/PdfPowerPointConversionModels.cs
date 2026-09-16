@@ -202,13 +202,13 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         Warnings = CreateProjectionWarnings(SourceScope, failedVisualScope: null, hasFailedVisualPages: false);
     }
 
-    internal PdfPowerPointConversionReport(IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages) {
+    internal PdfPowerPointConversionReport(IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages, bool hasTaggedContent) {
         Mode = PdfPowerPointImportMode.VisualPages;
         TableEntries = Array.Empty<PdfPowerPointTableImportEntry>();
         VisualPages = Array.AsReadOnly((visualPages ?? throw new ArgumentNullException(nameof(visualPages))).ToArray());
         EditablePages = Array.Empty<PdfPowerPointEditablePageEntry>();
-        _hasOmittedPageContent = false;
-        Warnings = CreateVisualPageWarnings(VisualPages);
+        _hasOmittedPageContent = hasTaggedContent;
+        Warnings = CreateVisualPageWarnings(VisualPages, hasTaggedContent);
     }
 
     internal PdfPowerPointConversionReport(
@@ -292,7 +292,8 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
                 diagnostic.SupportLevel != OfficeIMO.Pdf.PdfRenderSupportLevel.Supported));
 
     private static IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> CreateVisualPageWarnings(
-        IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages) {
+        IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages,
+        bool hasTaggedContent) {
         var warnings = new List<OfficeIMO.Pdf.PdfConversionWarning> {
             new(
                 "OfficeIMO.PowerPoint.Pdf",
@@ -306,6 +307,8 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
                     ["construct"] = "Visual page slides"
                 })
         };
+        AddDocumentOmissionWarning(warnings, "PdfTaggedStructureNotReconstructed", "Tagged structure",
+            hasTaggedContent ? 1 : 0, "tagged accessibility structure");
         AddRendererWarnings(warnings, visualPages);
         return warnings.AsReadOnly();
     }

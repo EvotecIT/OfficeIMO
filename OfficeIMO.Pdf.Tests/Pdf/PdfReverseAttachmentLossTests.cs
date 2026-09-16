@@ -40,6 +40,26 @@ public sealed class PdfReverseAttachmentLossTests {
         Assert.Contains(html.Report.Warnings, static warning =>
             warning.Code == "PdfTaggedStructureOmitted" &&
             warning.LossKind == OfficeConversionLossKind.Omission);
+
+        PdfToWordOptions visualWordOptions = PdfToWordOptions.CreateVisualPages();
+        visualWordOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) };
+        PdfWordConversionResult visualWord = opened.ToWordDocumentResult(visualWordOptions);
+        using (visualWord.Value) {
+            Assert.True(visualWord.HasLoss);
+            Assert.Contains(visualWord.Report.Warnings, static warning =>
+                warning.Code == "PdfTaggedStructureNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
+
+        PdfToPowerPointOptions visualPowerPointOptions = PdfToPowerPointOptions.CreateVisualPages();
+        visualPowerPointOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) };
+        PdfPowerPointConversionResult visualPowerPoint = opened.ToPowerPointPresentationResult(visualPowerPointOptions);
+        using (visualPowerPoint.Value) {
+            Assert.True(visualPowerPoint.Report.HasOmittedPageContent);
+            Assert.Contains(visualPowerPoint.Report.Warnings, static warning =>
+                warning.Code == "PdfTaggedStructureNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
     }
 
     [Fact]

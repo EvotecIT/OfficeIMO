@@ -18,7 +18,13 @@ internal static partial class PdfWordConverter {
         try {
             if (options.IncludeMetadata) CopyMetadata(source.Reader.Metadata(), target);
             else ReportDisabledMetadata(source.Reader.Metadata(), options);
-            ReportAttachmentsNotReconstructed(source.Inspect(null, token).AttachmentCount, options);
+            PdfCore.PdfDocumentInfo sourceInfo = source.Inspect(null, token);
+            ReportAttachmentsNotReconstructed(sourceInfo.AttachmentCount, options);
+            if (sourceInfo.HasTaggedContent) {
+                AddWarning(options, "PdfTaggedStructureNotReconstructed", "Document/StructTreeRoot",
+                    "PDF tagged accessibility structure is not copied into the visual Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
             AddWarning(options, "VisualPagesNotEditable", "Document",
                 "PDF pages are embedded as images. Text, links, and forms are not editable Word objects.",
                 PdfCore.PdfConversionWarningSeverity.Warning);
