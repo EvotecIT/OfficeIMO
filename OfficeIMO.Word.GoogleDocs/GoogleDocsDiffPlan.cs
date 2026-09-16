@@ -3,26 +3,38 @@ using System.Text;
 using OfficeIMO.GoogleWorkspace;
 
 namespace OfficeIMO.Word.GoogleDocs {
+    /// <summary>One classified difference between a Word source and Google document.</summary>
     public sealed class GoogleDocsDiffItem {
+        /// <summary>Creates a difference with a semantic path and explanation.</summary>
         public GoogleDocsDiffItem(GoogleWorkspaceDiffKind kind, string path, string message) {
             Kind = kind;
             Path = path;
             Message = message;
         }
 
+        /// <summary>Gets the local, remote, conflict, or lossy classification.</summary>
         public GoogleWorkspaceDiffKind Kind { get; }
+        /// <summary>Gets the semantic path of the changed content.</summary>
         public string Path { get; }
+        /// <summary>Gets the explanation for the classification.</summary>
         public string Message { get; }
     }
 
     /// <summary>Checkpoint used to distinguish independent OfficeIMO and Google Docs edits.</summary>
+    /// <remarks>Use <see cref="GoogleDocsDiffPlanner.CreateCheckpoint"/> to establish a versioned baseline after synchronization.</remarks>
     public sealed class GoogleDocsSyncCheckpoint {
+        /// <summary>Gets or sets the content-hash format version; zero denotes an unversioned legacy checkpoint.</summary>
+        /// <remarks>Unversioned checkpoints cannot be safely compared with culture-invariant hashes and are rejected.</remarks>
+        public int HashFormatVersion { get; set; }
+        /// <summary>Gets or sets the previously observed Docs revision identifier.</summary>
         public string? RevisionId { get; set; }
+        /// <summary>Gets or sets the previously observed Drive version.</summary>
         public long? DriveVersion { get; set; }
+        /// <summary>Gets the mutable map of semantic paths to baseline content hashes.</summary>
         public IDictionary<string, string> ContentHashes { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
     }
 
-    /// <summary>Read-only comparison produced before replacement or synchronization.</summary>
+    /// <summary>Remote metadata, classified content differences, and native-import notices.</summary>
     public sealed class GoogleDocsDiffPlan {
         internal GoogleDocsDiffPlan(GoogleDocumentReference remote, IReadOnlyList<GoogleDocsDiffItem> items, TranslationReport report) {
             Remote = remote;
@@ -30,22 +42,36 @@ namespace OfficeIMO.Word.GoogleDocs {
             Report = report;
         }
 
+        /// <summary>Gets the remote document reference observed during planning.</summary>
         public GoogleDocumentReference Remote { get; }
+        /// <summary>Gets classified differences in semantic-path order, followed by import and revision notices.</summary>
         public IReadOnlyList<GoogleDocsDiffItem> Items { get; }
+        /// <summary>Gets fidelity notices from native remote import.</summary>
         public TranslationReport Report { get; }
+        /// <summary>Gets whether any content path was classified as a conflict.</summary>
         public bool HasConflicts => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.Conflict);
+        /// <summary>Gets whether import warnings produced any lossy-action items.</summary>
         public bool HasLossyActions => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.LossyAction);
+        /// <summary>Gets whether the plan has neither conflicts nor report errors.</summary>
+        /// <remarks>This is advisory; it neither approves loss nor performs a replacement.</remarks>
         public bool CanApply => !HasConflicts && !Report.HasErrors;
     }
 
+    /// <summary>Builds source fingerprints and compares them with native Google Docs content.</summary>
     public static class GoogleDocsDiffPlanner {
+        private const int CurrentHashFormatVersion = 1;
+
+        /// <summary>Captures source content hashes and optional observed remote revisions.</summary>
+        /// <remarks>Persist the checkpoint only when it accurately represents a synchronized baseline.</remarks>
         public static GoogleDocsSyncCheckpoint CreateCheckpoint(WordDocument document, string? revisionId = null, long? driveVersion = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            var checkpoint = new GoogleDocsSyncCheckpoint { RevisionId = revisionId, DriveVersion = driveVersion };
+            var checkpoint = new GoogleDocsSyncCheckpoint { HashFormatVersion = CurrentHashFormatVersion, RevisionId = revisionId, DriveVersion = driveVersion };
             foreach (KeyValuePair<string, string> pair in BuildHashes(document)) checkpoint.ContentHashes[pair.Key] = pair.Value;
             return checkpoint;
         }
 
+        /// <summary>Imports and flattens remote tabs, then compares the result with the source and optional baseline.</summary>
+        /// <remarks>Unversioned or unsupported checkpoints are rejected before contacting Google. Import warnings are classified as lossy actions. Changed remote revision or Drive version is reported separately when both old and current values are available.</remarks>
         public static async Task<GoogleDocsDiffPlan> BuildAsync(
             WordDocument source,
             string documentId,
@@ -53,6 +79,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleDocsSyncCheckpoint? checkpoint = null,
             CancellationToken cancellationToken = default) {
             if (source == null) throw new ArgumentNullException(nameof(source));
+            ValidateCheckpoint(checkpoint);
             GoogleDocsImportResult imported = await new GoogleDocsImporter().ImportAsync(
                 documentId,
                 session,
@@ -79,6 +106,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             IReadOnlyDictionary<string, string> source,
             IReadOnlyDictionary<string, string> remote,
             GoogleDocsSyncCheckpoint? checkpoint) {
+            ValidateCheckpoint(checkpoint);
             var result = new List<GoogleDocsDiffItem>();
             IEnumerable<string> paths = source.Keys.Concat(remote.Keys).Concat(checkpoint?.ContentHashes.Keys ?? Array.Empty<string>())
                 .Distinct(StringComparer.Ordinal).OrderBy(path => path, StringComparer.Ordinal);
@@ -101,14 +129,20 @@ namespace OfficeIMO.Word.GoogleDocs {
             return result;
         }
 
+        private static void ValidateCheckpoint(GoogleDocsSyncCheckpoint? checkpoint) {
+            if (checkpoint != null && checkpoint.HashFormatVersion != CurrentHashFormatVersion) {
+                throw new InvalidOperationException("The Google Docs checkpoint uses an unversioned or unsupported hash format. Reconcile the source with the remote document, then establish a new synchronized baseline with CreateCheckpoint; do not relabel the old hashes.");
+            }
+        }
+
         private static IReadOnlyDictionary<string, string> BuildHashes(WordDocument document) {
             WordDocumentSnapshot snapshot = document.CreateInspectionSnapshot();
             var result = new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["document/properties"] = Hash($"{snapshot.Title}|{snapshot.Author}|{snapshot.Subject}|{snapshot.Keywords}"),
             };
             foreach (WordSectionSnapshot section in snapshot.Sections) {
-                string sectionPath = $"section/{section.Index}";
-                result[sectionPath] = Hash($"{section.SectionBreakType}|{section.Orientation}|{section.PageWidthPoints}|{section.PageHeightPoints}|{section.MarginTopPoints}|{section.MarginBottomPoints}|{section.MarginLeftPoints}|{section.MarginRightPoints}|{section.ColumnCount}");
+                string sectionPath = GoogleWorkspaceCheckpointFormat.Format($"section/{section.Index}");
+                result[sectionPath] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{section.SectionBreakType}|{section.Orientation}|{section.PageWidthPoints}|{section.PageHeightPoints}|{section.MarginTopPoints}|{section.MarginBottomPoints}|{section.MarginLeftPoints}|{section.MarginRightPoints}|{section.ColumnCount}"));
                 AddBlocks(result, sectionPath, section.Elements);
                 AddBlocks(result, sectionPath + "/header/default", section.DefaultHeader?.Elements);
                 AddBlocks(result, sectionPath + "/footer/default", section.DefaultFooter?.Elements);
@@ -125,16 +159,16 @@ namespace OfficeIMO.Word.GoogleDocs {
             if (blocks == null) return;
             for (int blockIndex = 0; blockIndex < blocks.Count; blockIndex++) {
                 WordBlockSnapshot block = blocks[blockIndex];
-                string path = $"{parent}/{block.Kind}/{blockIndex}";
+                string path = GoogleWorkspaceCheckpointFormat.Format($"{parent}/{block.Kind}/{blockIndex}");
                 if (block is WordParagraphSnapshot paragraph) {
                     result[path] = Hash(ParagraphFingerprint(paragraph));
                 } else if (block is WordTableSnapshot table) {
-                    result[path] = Hash($"{table.RowCount}|{table.ColumnCount}|{table.StyleName}|{table.Title}|{table.Description}");
+                    result[path] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{table.RowCount}|{table.ColumnCount}|{table.StyleName}|{table.Title}|{table.Description}"));
                     foreach (WordTableRowSnapshot row in table.Rows) {
                         foreach (WordTableCellSnapshot cell in row.Cells) {
-                            string cellPath = $"{path}/cell/{row.RowIndex}:{cell.ColumnIndex}";
+                            string cellPath = GoogleWorkspaceCheckpointFormat.Format($"{path}/cell/{row.RowIndex}:{cell.ColumnIndex}");
                             string paragraphs = string.Join("\n", cell.Paragraphs.Select(ParagraphFingerprint));
-                            result[cellPath] = Hash($"{cell.ColumnSpan}|{cell.RowSpan}|{cell.ShadingFillColorHex}|{TableCellBorderFingerprint(cell.LeftBorder)}|{TableCellBorderFingerprint(cell.RightBorder)}|{TableCellBorderFingerprint(cell.TopBorder)}|{TableCellBorderFingerprint(cell.BottomBorder)}|{paragraphs}");
+                            result[cellPath] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{cell.ColumnSpan}|{cell.RowSpan}|{cell.ShadingFillColorHex}|{TableCellBorderFingerprint(cell.LeftBorder)}|{TableCellBorderFingerprint(cell.RightBorder)}|{TableCellBorderFingerprint(cell.TopBorder)}|{TableCellBorderFingerprint(cell.BottomBorder)}|{paragraphs}"));
                         }
                     }
                 }
@@ -156,7 +190,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             var claimedReplyParents = new HashSet<string>(StringComparer.Ordinal);
             for (int commentIndex = 0; commentIndex < roots.Length; commentIndex++) {
                 CommentThreadEntry entry = roots[commentIndex];
-                string commentPath = $"comment/{commentIndex}";
+                string commentPath = GoogleWorkspaceCheckpointFormat.Format($"comment/{commentIndex}");
                 result[commentPath] = Hash(CommentFingerprint(entry));
                 IReadOnlyList<CommentThreadEntry> replies = !string.IsNullOrWhiteSpace(entry.ParaId)
                     && claimedReplyParents.Add(entry.ParaId!)
@@ -164,23 +198,23 @@ namespace OfficeIMO.Word.GoogleDocs {
                         ? groupedReplies
                         : Array.Empty<CommentThreadEntry>();
                 for (int replyIndex = 0; replyIndex < replies.Count; replyIndex++) {
-                    result[$"{commentPath}/reply/{replyIndex}"] = Hash(CommentFingerprint(replies[replyIndex]));
+                    result[GoogleWorkspaceCheckpointFormat.Format($"{commentPath}/reply/{replyIndex}")] = Hash(CommentFingerprint(replies[replyIndex]));
                 }
             }
         }
 
         private static string ParagraphFingerprint(WordParagraphSnapshot paragraph) {
             string runs = string.Join("~", paragraph.Runs.Select(RunFingerprint));
-            string tabs = string.Join("~", paragraph.TabStops.Select(tab => $"{tab.Alignment}|{tab.Leader}|{tab.PositionPoints}"));
-            return $"{paragraph.Text}|{paragraph.StyleId}|{paragraph.StyleName}|{paragraph.Alignment}|{paragraph.IsListItem}|{paragraph.IsOrderedList}|{paragraph.ListLevel}|{paragraph.ListStyleName}|{paragraph.IndentStartPoints}|{paragraph.IndentEndPoints}|{paragraph.IndentFirstLinePoints}|{paragraph.SpaceAbovePoints}|{paragraph.SpaceBelowPoints}|{paragraph.LineSpacingValue}|{paragraph.LineSpacingRule}|{paragraph.ShadingFillColorHex}|{ParagraphBorderFingerprint(paragraph.LeftBorder)}|{ParagraphBorderFingerprint(paragraph.RightBorder)}|{ParagraphBorderFingerprint(paragraph.TopBorder)}|{ParagraphBorderFingerprint(paragraph.BottomBorder)}|{paragraph.IsRightToLeft}|{paragraph.KeepWithNext}|{paragraph.KeepLinesTogether}|{paragraph.AvoidWidowAndOrphan}|{paragraph.PageBreakBefore}|{paragraph.BookmarkName}|{paragraph.BookmarkId}|{tabs}|{runs}";
+            string tabs = string.Join("~", paragraph.TabStops.Select(tab => GoogleWorkspaceCheckpointFormat.Format($"{tab.Alignment}|{tab.Leader}|{tab.PositionPoints}")));
+            return GoogleWorkspaceCheckpointFormat.Format($"{paragraph.Text}|{paragraph.StyleId}|{paragraph.StyleName}|{paragraph.Alignment}|{paragraph.IsListItem}|{paragraph.IsOrderedList}|{paragraph.ListLevel}|{paragraph.ListStyleName}|{paragraph.IndentStartPoints}|{paragraph.IndentEndPoints}|{paragraph.IndentFirstLinePoints}|{paragraph.SpaceAbovePoints}|{paragraph.SpaceBelowPoints}|{paragraph.LineSpacingValue}|{paragraph.LineSpacingRule}|{paragraph.ShadingFillColorHex}|{ParagraphBorderFingerprint(paragraph.LeftBorder)}|{ParagraphBorderFingerprint(paragraph.RightBorder)}|{ParagraphBorderFingerprint(paragraph.TopBorder)}|{ParagraphBorderFingerprint(paragraph.BottomBorder)}|{paragraph.IsRightToLeft}|{paragraph.KeepWithNext}|{paragraph.KeepLinesTogether}|{paragraph.AvoidWidowAndOrphan}|{paragraph.PageBreakBefore}|{paragraph.BookmarkName}|{paragraph.BookmarkId}|{tabs}|{runs}");
         }
 
         private static string RunFingerprint(WordRunSnapshot run) =>
-            $"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strike}|{run.FontFamily}|{run.FontSize}|{run.ColorHex}|{run.HighlightColor}|{run.VerticalTextAlignment}|{run.CapsStyle}|{run.HyperlinkUri}|{run.HyperlinkAnchor}|{InlineImageFingerprint(run.InlineImage)}";
+            GoogleWorkspaceCheckpointFormat.Format($"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strike}|{run.FontFamily}|{run.FontSize}|{run.ColorHex}|{run.HighlightColor}|{run.VerticalTextAlignment}|{run.CapsStyle}|{run.HyperlinkUri}|{run.HyperlinkAnchor}|{InlineImageFingerprint(run.InlineImage)}");
 
         private static string InlineImageFingerprint(WordInlineImageSnapshot? image) => image == null
             ? string.Empty
-            : $"{image.FileName}|{image.ContentType}|{Hash(image.Bytes ?? Array.Empty<byte>())}|{image.Description}|{image.Title}|{image.Width}|{image.Height}|{image.IsInline}|{image.WrapText}";
+            : GoogleWorkspaceCheckpointFormat.Format($"{image.FileName}|{image.ContentType}|{Hash(image.Bytes ?? Array.Empty<byte>())}|{image.Description}|{image.Title}|{image.Width}|{image.Height}|{image.IsInline}|{image.WrapText}");
 
         private static string CommentFingerprint(CommentThreadEntry entry) =>
             $"{entry.Comment.Author}|{entry.Comment.Initials}|{entry.Comment.Text}|{entry.IsResolved}";
@@ -202,11 +236,11 @@ namespace OfficeIMO.Word.GoogleDocs {
 
         private static string ParagraphBorderFingerprint(WordParagraphBorderSnapshot? border) => border == null
             ? string.Empty
-            : $"{border.Style}|{border.ColorHex}|{border.Size}|{border.Space}";
+            : GoogleWorkspaceCheckpointFormat.Format($"{border.Style}|{border.ColorHex}|{border.Size}|{border.Space}");
 
         private static string TableCellBorderFingerprint(WordTableCellBorderSnapshot? border) => border == null
             ? string.Empty
-            : $"{border.Style}|{border.ColorHex}|{border.Size}";
+            : GoogleWorkspaceCheckpointFormat.Format($"{border.Style}|{border.ColorHex}|{border.Size}");
 
         private static string Hash(string value) {
             using SHA256 sha = SHA256.Create();
