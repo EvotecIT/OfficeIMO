@@ -128,6 +128,7 @@ public static partial class OfficeSvgDrawingReader {
             bool visualConcealment = false;
             bool hostBackdropDependent = false;
             bool offCanvasBounds = false;
+            bool zeroDimensionBounds = false;
             if (!concealment.HasValue && baselineRendered) {
                 if (comparisons < maximumComparisons) {
                     comparisons++;
@@ -183,6 +184,16 @@ public static partial class OfficeSvgDrawingReader {
                 offCanvasBounds = true;
             }
 
+            if (concealment.HasValue && concealment.Value.Kind == OfficeContentConcealmentKind.ZeroDimension) {
+                SvgContentSafetyConcealment zeroDimension = concealment.Value;
+                concealment = new SvgContentSafetyConcealment(
+                    zeroDimension.Kind,
+                    zeroDimension.Evidence +
+                    " Bounded advance geometry does not prove the absence of glyph ink for zero-advance or combining glyphs, so cleanup is report-only.",
+                    zeroDimension.Risk);
+                zeroDimensionBounds = true;
+            }
+
             if (concealment.HasValue) {
                 bool layoutCoupled = HasSvgLayoutCoupledText(candidate);
                 if (contextDependent) {
@@ -209,7 +220,7 @@ public static partial class OfficeSvgDrawingReader {
                     targets,
                     candidate,
                     concealment.Value,
-                    contextDependent || incompleteNativePaintProjection || offCanvasBounds || layoutCoupled || visualConcealment &&
+                    contextDependent || incompleteNativePaintProjection || offCanvasBounds || zeroDimensionBounds || layoutCoupled || visualConcealment &&
                         (baselineUnsupported > 0 || hostBackdropDependent || candidate.UsesEstimatedFontMetrics ||
                          !HasSufficientSvgVisualResolution(candidate, document, maximumRasterPixels))
                         ? OfficeContentCleanupCapability.ReportOnly
@@ -372,6 +383,7 @@ public static partial class OfficeSvgDrawingReader {
     private static bool HasKnownIncompleteSvgPaintProjection(XElement root) {
         XNamespace svgNamespace = root.Name.Namespace;
         return root.DescendantsAndSelf().Any(element => {
+            if (element.Attribute(XNamespace.Xml + "base") != null) return true;
             if (!IsNativeSvgElement(element, svgNamespace)) return false;
             if (element.Name.LocalName.Equals("foreignObject", StringComparison.Ordinal)) return true;
             if (element.Name.LocalName.Equals("pattern", StringComparison.Ordinal)) {

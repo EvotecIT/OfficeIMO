@@ -394,10 +394,10 @@ public static partial class OfficeSvgDrawingReader {
 
         private static bool TryReadLocalReference(string text, bool requireUrl, out string id) {
             id = string.Empty;
-            string normalized = text.Trim();
+            string normalized = TrimSvgCssWhitespace(text);
             if (requireUrl) {
                 if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase) || !normalized.EndsWith(")", StringComparison.Ordinal)) return false;
-                normalized = normalized.Substring(4, normalized.Length - 5).Trim().Trim('\'', '"');
+                normalized = TrimSvgCssWhitespace(normalized.Substring(4, normalized.Length - 5)).Trim('\'', '"');
             }
             if (normalized.Length < 2 || normalized[0] != '#') return false;
             id = normalized.Substring(1);

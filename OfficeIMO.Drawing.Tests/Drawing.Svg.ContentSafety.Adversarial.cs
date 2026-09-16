@@ -403,6 +403,21 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void NonSvgWhitespaceDoesNotResolveLocalUseReference() {
+        byte[] svg = Svg(
+            "<defs><rect id='cover' width='220' height='120' fill='white'/></defs>" +
+            "<rect width='220' height='120' fill='white'/>" +
+            "<text font-family='OfficeIMO Shaping Test' font-size='20' x='10' y='35'>A</text>" +
+            "<use href='\u00A0#cover'/>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        readerOptions.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, ManagedTextShapingTestAssets.CreateFont('A'));
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "A");
+    }
+
+    [Fact]
     public void FilteredTinyTextCleanupIsReportOnly() {
         byte[] svg = Svg(
             "<defs><filter id='grow'><feMorphology operator='dilate' radius='10'/></filter></defs>" +
@@ -427,6 +442,23 @@ public sealed class SvgContentSafetyAdversarialTests {
 
         Assert.DoesNotContain(report.Findings, item =>
             item.TextPreview == "visible scaled text" && item.Kind == OfficeContentConcealmentKind.ZeroDimension);
+    }
+
+    [Fact]
+    public void AdvanceBoundsCannotAuthorizeZeroDimensionCleanup() {
+        byte[] svg = Svg(
+            "<text font-family='OfficeIMO Shaping Test' font-size='20' transform='scale(0,1)' x='10' y='35'>A</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+        readerOptions.Fonts.Add(
+            ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont('A'));
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "A" && item.Kind == OfficeContentConcealmentKind.ZeroDimension);
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("glyph ink", finding.Evidence, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -649,6 +681,22 @@ public sealed class SvgContentSafetyAdversarialTests {
 
         Assert.Equal(OfficeContentConcealmentKind.ClippedContent, finding.Kind);
         Assert.Equal(OfficeContentCleanupCapability.RemoveText, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void XmlBaseMakesFragmentClipCleanupReportOnly() {
+        byte[] svg = Svg(
+            "<defs><clipPath id='local-empty'/></defs>" +
+            "<g xml:base='external.svg'><text clip-path='url(#local-empty)' x='10' y='35'>base-sensitive clip</text></g>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "base-sensitive clip");
+
+        Assert.Equal(OfficeContentConcealmentKind.ClippedContent, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("xml:base", finding.Evidence, StringComparison.Ordinal);
     }
 
     [Fact]

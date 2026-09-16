@@ -154,7 +154,7 @@ public static partial class OfficeSvgDrawingReader {
 
         private static bool TryReadLocalElementReference(string text, out string id) {
             id = string.Empty;
-            string normalized = text.Trim();
+            string normalized = TrimSvgCssWhitespace(text);
             if (normalized.Length < 2 || normalized[0] != '#') return false;
             string encodedId = normalized.Substring(1);
             if (encodedId.Length == 0 || encodedId.IndexOfAny(new[] { ' ', '\t', '\r', '\n', '#', '(', ')' }) >= 0) return false;
@@ -169,9 +169,9 @@ public static partial class OfficeSvgDrawingReader {
         private static bool TryReadLocalUrlReference(string? text, out string id) {
             id = string.Empty;
             if (string.IsNullOrWhiteSpace(text)) return false;
-            string normalized = text!.Trim();
+            string normalized = TrimSvgCssWhitespace(text!);
             if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase) || normalized[normalized.Length - 1] != ')') return false;
-            string reference = normalized.Substring(4, normalized.Length - 5).Trim().Trim('\'', '"');
+            string reference = TrimSvgCssWhitespace(normalized.Substring(4, normalized.Length - 5)).Trim('\'', '"');
             return TryReadLocalElementReference(reference, out id);
         }
     }

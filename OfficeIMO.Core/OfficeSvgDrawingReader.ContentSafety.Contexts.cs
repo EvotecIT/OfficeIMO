@@ -143,7 +143,7 @@ public static partial class OfficeSvgDrawingReader {
                           attribute.Name.LocalName.Equals("href", StringComparison.Ordinal) &&
                          (attribute.Name.NamespaceName.Length == 0 ||
                           attribute.Name.NamespaceName.Equals("http://www.w3.org/1999/xlink", StringComparison.Ordinal)))) {
-                string value = href.Value.Trim();
+                string value = TrimSvgCssWhitespace(href.Value);
                 if (value.Length > 1 && value[0] == '#' &&
                     value.IndexOfAny(new[] { ' ', '\t', '\r', '\n', '#', '(', ')' }, 1) < 0) {
                     try {
@@ -210,6 +210,10 @@ public static partial class OfficeSvgDrawingReader {
         }
         foreach (XElement current in element.AncestorsAndSelf()) {
             string name = current.Name.LocalName.ToLowerInvariant();
+            if (current.Attribute(XNamespace.Xml + "base") != null) {
+                evidence = "SVG xml:base changes fragment-reference resolution outside the bounded native projection and is therefore report-only.";
+                return true;
+            }
             if (current != element) {
                 string? opacity = ReadPresentationProperty(current, "opacity")?.Trim();
                 if (!string.IsNullOrWhiteSpace(opacity) &&

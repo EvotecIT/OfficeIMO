@@ -2,6 +2,7 @@ using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.ContentSafety;
 using OfficeIMO.Drawing;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -72,12 +73,20 @@ public sealed class SvgContentSafetyTests {
     public void InspectContentSafetyResolvesBackgroundAndDocumentPaintOrder() {
         byte[] svg = Svg("""
             <rect width="220" height="120" fill="white" />
-            <text x="10" y="30" fill="white">white on white</text>
-            <text x="10" y="65" fill="black">covered by later paint</text>
+            <text font-family="OfficeIMO Shaping Test" x="10" y="30" fill="white">white on white</text>
+            <text font-family="OfficeIMO Shaping Test" x="10" y="65" fill="black">covered by later paint</text>
             <rect x="0" y="42" width="220" height="35" fill="black" />
             """);
+        int[] fontScalars = "white on whitecovered by later paint"
+            .Distinct()
+            .Select(character => (int)character)
+            .ToArray();
+        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        readerOptions.Fonts.Add(
+            ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont(fontScalars));
 
-        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
 
         Assert.Contains(report.Findings, item => item.Kind == OfficeContentConcealmentKind.LowContrastText &&
             item.TextPreview == "white on white" && item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);

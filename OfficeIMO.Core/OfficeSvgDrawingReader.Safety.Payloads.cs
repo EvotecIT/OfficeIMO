@@ -38,7 +38,8 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static bool IsWithinEmbeddedRasterImageLimits(XElement element) {
-        string? href = ReadRasterProjectedAttribute(element, "href")?.Trim();
+        string? href = ReadRasterProjectedAttribute(element, "href");
+        if (href != null) href = TrimSvgCssWhitespace(href);
         if (string.IsNullOrEmpty(href) || !href!.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return true;
         int comma = href.IndexOf(',');
         if (comma <= 5 || comma == href.Length - 1) return false;

@@ -50,6 +50,6 @@ public static partial class OfficeSvgDrawingReader {
             .ToArray();
         if (hrefAttributes.Length > 1) return true;
         string? href = hrefAttributes.FirstOrDefault()?.Value;
-        return !string.IsNullOrWhiteSpace(href) && href!.TrimStart().StartsWith("#", StringComparison.Ordinal);
+        return !string.IsNullOrWhiteSpace(href) && TrimSvgCssWhitespace(href!).StartsWith("#", StringComparison.Ordinal);
     }
 }
