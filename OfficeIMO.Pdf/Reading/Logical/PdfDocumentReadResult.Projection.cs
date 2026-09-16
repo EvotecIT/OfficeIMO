@@ -30,6 +30,9 @@ public sealed partial class PdfDocumentReadResult {
     }
 
     internal PdfDocumentReadResult WithPages(IReadOnlyList<PdfLogicalPage> pages) {
+        PdfDocumentSourceFidelityFacts sourceFidelityFacts = SourceFidelityFacts.ForPageNumbers(
+            pages.Select(static page => page.PageNumber).ToArray(),
+            SourcePageCount);
         return new PdfDocumentReadResult(
             Metadata,
             pages,
@@ -55,7 +58,7 @@ public sealed partial class PdfDocumentReadResult {
             CatalogPageLayout,
             CatalogVersion,
             CatalogLanguage,
-            SourceFidelityFacts,
+            sourceFidelityFacts,
             SourcePageCount,
             Profile);
     }

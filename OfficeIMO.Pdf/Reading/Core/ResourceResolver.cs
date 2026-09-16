@@ -1246,8 +1246,10 @@ internal static partial class ResourceResolver {
         string? transparencyMaskKind = GetTransparencyMaskKind(stream.Dictionary, objects);
         bool transparencyMaskResolved = false;
 
+        bool hasUnsupportedJpxColorSpaceDeclaration = colorSpaceObject != null &&
+            PdfObjectLookup.ResolveChain(objects, effectiveColorSpaceObject) is not PdfName;
         if (!hasMalformedFilterDeclaration && !hasSupportedOutputIntent &&
-            TryGetJpxPayload(stream, objects, colorSpace, maxDecodedStreamBytes, out byte[] jpxPayload, cancellationToken)) {
+            TryGetJpxPayload(stream, objects, colorSpace, hasUnsupportedJpxColorSpaceDeclaration, maxDecodedStreamBytes, out byte[] jpxPayload, cancellationToken)) {
             bytes = jpxPayload;
             OfficeIMO.Drawing.OfficeImageFormat format = OfficeIMO.Drawing.OfficeJpeg2000Header.IsJp2Container(jpxPayload)
                 ? OfficeIMO.Drawing.OfficeImageFormat.Jpeg2000

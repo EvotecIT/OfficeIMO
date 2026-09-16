@@ -179,6 +179,7 @@ public static class PdfLogicalTableAnalysis {
             document.SourceFidelityFacts.UnplacedFormFieldCount,
             CountOutlines(document.Outlines),
             document.SourceFidelityFacts.AttachmentCount,
+            document.SourceFidelityFacts.HasTaggedContent,
             maximumComparisons);
     }
 
@@ -211,6 +212,7 @@ public static class PdfLogicalTableAnalysis {
             unplacedFormFieldCount: 0,
             outlineCount: 0,
             attachmentCount: 0,
+            hasTaggedContent: false,
             maximumComparisons);
     }
 
@@ -225,6 +227,7 @@ public static class PdfLogicalTableAnalysis {
         int unplacedFormFieldCount,
         int outlineCount,
         int attachmentCount,
+        bool hasTaggedContent,
         int maximumComparisons) {
 #pragma warning disable CA1512 // ThrowIfNegative is unavailable on netstandard2.0 and net472.
         if (maximumComparisons < 0) throw new ArgumentOutOfRangeException(nameof(maximumComparisons));
@@ -300,6 +303,7 @@ public static class PdfLogicalTableAnalysis {
             unplacedFormFieldCount,
             outlineCount,
             attachmentCount,
+            hasTaggedContent,
             analysisTruncated);
     }
 

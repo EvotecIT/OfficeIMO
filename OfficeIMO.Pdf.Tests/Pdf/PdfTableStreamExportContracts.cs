@@ -718,6 +718,73 @@ public class PdfTableStreamExportContracts {
         PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(selected);
         Assert.Equal(0, scope.FormFieldCount);
         Assert.Equal(0, scope.UnplacedFormFieldCount);
+
+        PdfDocumentReadResult full = PdfDocumentReadResult.Load(withForm);
+        var firstPageOptions = PdfToPowerPointOptions.CreateEditableTables();
+        firstPageOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) };
+        PdfPowerPointConversionResult firstPagePowerPoint = full.ToPowerPointPresentationResult(firstPageOptions);
+        using (firstPagePowerPoint.Value) {
+            Assert.Equal(0, firstPagePowerPoint.Report.SourceScope!.FormFieldCount);
+            Assert.DoesNotContain(firstPagePowerPoint.Report.Warnings, static warning =>
+                warning.Code == "PdfFormsAndControlsNotEditable");
+        }
+
+        var secondPageOptions = PdfToPowerPointOptions.CreateEditableTables();
+        secondPageOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2) };
+        PdfPowerPointConversionResult secondPagePowerPoint = full.ToPowerPointPresentationResult(secondPageOptions);
+        using (secondPagePowerPoint.Value) {
+            Assert.Equal(1, secondPagePowerPoint.Report.SourceScope!.FormFieldCount);
+            Assert.True(secondPagePowerPoint.HasLoss);
+        }
+    }
+
+    [Fact]
+    public void TableConversionsReportOmittedTaggedStructureWithoutVisiblePageContent() {
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /MarkInfo << /Marked true >> /StructTreeRoot 5 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< /Type /StructTreeRoot /K [6 0 R] >>", "endobj",
+            "6 0 obj", "<< /Type /StructElem /S /P /P 5 0 R /K [] >>", "endobj",
+            "trailer", "<< /Root 1 0 R >>", "%%EOF"
+        }) + "\n");
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        Assert.NotNull(logical.TaggedContent);
+        PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+        Assert.True(scope.HasTaggedContent);
+        Assert.Equal(0, scope.NonTableTextBlockCount);
+        Assert.Equal(0, scope.FormContentCount);
+        Assert.True(scope.HasOmittedPageContent);
+
+        PdfExcelTableImportResult excel = logical.ImportTablesToExcelDocumentResult();
+        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableTables());
+        PdfPowerPointConversionResult editablePowerPoint = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult hybridPowerPoint = PdfDocument.Load(source).ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateHybrid());
+        using (excel.Value)
+        using (powerPoint.Value)
+        using (editablePowerPoint.Value)
+        using (hybridPowerPoint.Value) {
+            Assert.True(excel.HasLoss);
+            Assert.True(powerPoint.HasLoss);
+            Assert.True(editablePowerPoint.HasLoss);
+            Assert.True(hybridPowerPoint.HasLoss);
+            Assert.True(excel.Report.SourceScope.HasTaggedContent);
+            Assert.True(powerPoint.Report.SourceScope!.HasTaggedContent);
+            Assert.Contains(powerPoint.Report.Warnings, static warning =>
+                warning.Code == "PdfTaggedStructureNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(editablePowerPoint.Report.Warnings, static warning =>
+                warning.Code == "PdfTaggedStructureNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(hybridPowerPoint.Report.Warnings, static warning =>
+                warning.Code == "PdfTaggedStructureNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
     }
 
     [Fact]

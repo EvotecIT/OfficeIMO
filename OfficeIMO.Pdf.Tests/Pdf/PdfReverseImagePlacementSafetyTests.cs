@@ -1183,6 +1183,24 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         AssertJpeg2000PayloadNotEmbeddedAcrossEditableAdapters(logical);
     }
 
+    [Theory]
+    [InlineData("/ColorSpace null")]
+    [InlineData("/ColorSpace [/DeviceRGB]")]
+    [InlineData("/ColorSpace [/Indexed /DeviceRGB 1 <000000FFFFFF>]")]
+    public void Jpeg2000WithUnsupportedExplicitPdfColorSpaceIsNotEmbeddedAcrossEditableAdapters(string colorSpace) {
+        byte[] jpx = File.ReadAllBytes(Path.Combine(
+            AppContext.BaseDirectory, "Pdf", "Fixtures", "Interoperability", "Scans", "red-rgb.jp2"));
+        byte[] source = CreateRawImagePdf(
+            "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
+            imageBytes: jpx,
+            imageDefinition: colorSpace + " /BitsPerComponent 8 /Filter /JPXDecode");
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        PdfLogicalImage image = Assert.Single(Assert.Single(logical.Pages).Images);
+        Assert.False(image.SourceImage.IsImageFile);
+
+        AssertJpeg2000PayloadNotEmbeddedAcrossEditableAdapters(logical);
+    }
+
     [Fact]
     public void MalformedJp2ContainerIsNotEmbeddedAcrossEditableAdapters() {
         byte[] container = File.ReadAllBytes(Path.Combine(

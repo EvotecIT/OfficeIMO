@@ -26,6 +26,7 @@ public sealed class PdfTableExtractionScopeReport {
         int unplacedFormFieldCount,
         int outlineCount,
         int attachmentCount,
+        bool hasTaggedContent,
         bool analysisTruncated) {
         SourcePageCount = sourcePageCount;
         PagesWithTables = pagesWithTables;
@@ -48,6 +49,7 @@ public sealed class PdfTableExtractionScopeReport {
         UnplacedFormFieldCount = unplacedFormFieldCount;
         OutlineCount = outlineCount;
         AttachmentCount = attachmentCount;
+        HasTaggedContent = hasTaggedContent;
         AnalysisTruncated = analysisTruncated;
     }
 
@@ -129,6 +131,9 @@ public sealed class PdfTableExtractionScopeReport {
     /// <summary>Embedded document attachments outside table-only output.</summary>
     public int AttachmentCount { get; }
 
+    /// <summary>Whether the source has a tagged PDF structure tree that table-only output does not preserve.</summary>
+    public bool HasTaggedContent { get; }
+
     /// <summary>
     /// True when bounded text/table correlation stopped before every visible text block could be classified.
     /// Exact omission counts describe only blocks classified before the limit was reached.
@@ -151,6 +156,7 @@ public sealed class PdfTableExtractionScopeReport {
         DocumentActionCount > 0 ||
         OutlineCount > 0 ||
         AttachmentCount > 0 ||
+        HasTaggedContent ||
         PagesWithOptionalContent > 0 ||
         InteractiveMediaAnnotationCount > 0;
 }

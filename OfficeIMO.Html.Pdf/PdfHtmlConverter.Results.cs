@@ -203,6 +203,15 @@ public static partial class PdfHtmlConverterExtensions {
                 OfficeConversionLossKind.Omission);
         }
 
+        if (document.SourceFidelityFacts.HasTaggedContent) {
+            AddWarning(
+                options,
+                "PdfTaggedStructureOmitted",
+                "The source PDF's tagged accessibility structure tree was not recreated in HTML output.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
         ActionDiagnosticSummary actionSummary = BuildActionDiagnosticSummary(document, pages);
         var selectedPageNumbers = new HashSet<int>(pages.Select(static page => page.PageNumber));
         int omittedDocumentActionCount = document.SourceFidelityFacts.CatalogActionCount -

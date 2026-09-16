@@ -228,6 +228,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             SourceScope.HasAcroFormXfa ||
             SourceScope.OutlineCount > 0 ||
             SourceScope.AttachmentCount > 0 ||
+            SourceScope.HasTaggedContent ||
             hasFailedVisualPages && failedVisualScope.HasOmittedPageContent;
         var warnings = new List<OfficeIMO.Pdf.PdfConversionWarning>(CreateProjectionWarnings(
             SourceScope,
@@ -385,6 +386,8 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             scope.OutlineCount, "outline navigation entries");
         AddDocumentOmissionWarning(warnings, "PdfAttachmentsNotReconstructed", "Attachments",
             scope.AttachmentCount, "embedded attachments");
+        AddDocumentOmissionWarning(warnings, "PdfTaggedStructureNotReconstructed", "Tagged structure",
+            scope.HasTaggedContent ? 1 : 0, "tagged accessibility structure");
         AddProjectionWarning(warnings, "PdfAnnotationsNotEditable", "Annotations", scope.AnnotationCount,
             failedVisualScope?.AnnotationCount ?? scope.AnnotationCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
             description: "annotations");

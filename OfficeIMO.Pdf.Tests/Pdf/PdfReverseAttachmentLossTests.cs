@@ -33,6 +33,13 @@ public sealed class PdfReverseAttachmentLossTests {
                 warning.LossKind == OfficeConversionLossKind.Omission &&
                 int.Parse(warning.Details["StructureElementCount"], System.Globalization.CultureInfo.InvariantCulture) > 0);
         }
+
+        PdfHtmlConversionResult html = opened.ToHtmlResult(new PdfToHtmlOptions {
+            PageRanges = new[] { PdfPageRange.From(1, 1) }
+        });
+        Assert.Contains(html.Report.Warnings, static warning =>
+            warning.Code == "PdfTaggedStructureOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Fact]

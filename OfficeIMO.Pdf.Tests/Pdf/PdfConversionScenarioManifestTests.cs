@@ -1899,7 +1899,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(1, result.Summary.CatalogActionCount);
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, static warning =>
             warning.Code == "PdfDocumentActionsOmitted");
-        Assert.StartsWith("1 scoped ", warning.Message, StringComparison.Ordinal);
+        Assert.StartsWith("1 ", warning.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1917,7 +1917,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(1, result.Summary.CatalogActionCount);
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, static warning =>
             warning.Code == "PdfDocumentActionsOmitted");
-        Assert.StartsWith("1 scoped ", warning.Message, StringComparison.Ordinal);
+        Assert.StartsWith("1 ", warning.Message, StringComparison.Ordinal);
         Assert.True(result.HasLoss);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
     }

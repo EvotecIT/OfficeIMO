@@ -144,6 +144,7 @@ internal static class OfficeJpeg2000Header {
         int bitsPerComponent = -1;
         byte[]? variableComponentPrecisions = null;
         bool hasBitsPerComponentBox = false;
+        bool hasResolutionBox = false;
         bool hasBox = false;
         while (offset < end) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -188,7 +189,10 @@ internal static class OfficeJpeg2000Header {
                 variableComponentPrecisions = new byte[components];
                 System.Buffer.BlockCopy(bytes, start, variableComponentPrecisions, 0, components);
                 hasBitsPerComponentBox = true;
-            } else if (type != 0x72657320) { // res
+            } else if (type == 0x72657320) { // res: optional capture/display resolution superbox
+                if (hasResolutionBox || !TryValidateResolutionBox(bytes, start, boxEnd, cancellationToken)) return false;
+                hasResolutionBox = true;
+            } else {
                 return false; // Palette/channel remapping and extended headers are not pass-through safe.
             }
         }
@@ -248,6 +252,27 @@ internal static class OfficeJpeg2000Header {
             cancellationToken)) return false;
         componentPrecisions = parsedComponentPrecisions;
         return true;
+    }
+
+    private static bool TryValidateResolutionBox(byte[] bytes, int offset, int end, CancellationToken cancellationToken) {
+        bool hasCapture = false, hasDisplay = false;
+        while (offset < end) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!TryReadBox(bytes, ref offset, end, out uint type, out int start, out int boxEnd)) return false;
+            if (type == 0x72657363) { // resc
+                if (hasCapture) return false;
+                hasCapture = true;
+            } else if (type == 0x72657364) { // resd
+                if (hasDisplay) return false;
+                hasDisplay = true;
+            } else {
+                return false;
+            }
+            if (boxEnd - start != 10 ||
+                Read16(bytes, start) == 0 || Read16(bytes, start + 2) == 0 ||
+                Read16(bytes, start + 4) == 0 || Read16(bytes, start + 6) == 0) return false;
+        }
+        return hasCapture || hasDisplay;
     }
 
     private static bool HasCompleteCodestream(

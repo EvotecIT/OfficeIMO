@@ -213,6 +213,45 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Theory]
+    [InlineData("resc")]
+    [InlineData("resd")]
+    [InlineData("both")]
+    public void ImageValidationAcceptsCompleteJp2ResolutionSuperbox(string resolutionType) {
+        byte[] resolution = { 0, 1, 0, 1, 0, 1, 0, 1, 0, 0 };
+        byte[] children = resolutionType == "both"
+            ? CreateJp2Box("resc", resolution).Concat(CreateJp2Box("resd", resolution)).ToArray()
+            : CreateJp2Box(resolutionType, resolution);
+        byte[] payload = InsertJp2ResolutionBox(ReadScanJpx("rgb"),
+            CreateJp2Box("res ", children));
+
+        Assert.True(OfficeJpeg2000Header.TryValidateOpaquePayload(payload, out _, out _, out _));
+        Assert.True(OfficeImageReader.TryValidateContent(payload, "scan.jp2", out _));
+    }
+
+    [Fact]
+    public void ImageValidationRejectsMalformedJp2ResolutionSuperboxes() {
+        byte[] validResolution = { 0, 1, 0, 1, 0, 1, 0, 1, 0, 0 };
+        byte[] zeroDenominator = (byte[])validResolution.Clone();
+        zeroDenominator[3] = 0;
+        byte[] validChild = CreateJp2Box("resc", validResolution);
+        byte[] validBox = CreateJp2Box("res ", validChild);
+        byte[][] malformed = {
+            CreateJp2Box("res ", Array.Empty<byte>()),
+            CreateJp2Box("res ", CreateJp2Box("resc", validResolution.Take(9).ToArray())),
+            CreateJp2Box("res ", CreateJp2Box("resc", new byte[10])),
+            CreateJp2Box("res ", CreateJp2Box("resc", zeroDenominator)),
+            CreateJp2Box("res ", CreateJp2Box("junk", validResolution)),
+            CreateJp2Box("res ", validChild.Concat(validChild).ToArray()),
+            validBox.Concat(validBox).ToArray()
+        };
+        foreach (byte[] resolutionBox in malformed) {
+            byte[] payload = InsertJp2ResolutionBox(ReadScanJpx("rgb"), resolutionBox);
+            Assert.False(OfficeJpeg2000Header.TryValidateOpaquePayload(payload, out _, out _, out _));
+            Assert.False(OfficeImageReader.TryValidateContent(payload, "scan.jp2", out _));
+        }
+    }
+
+    [Theory]
     [InlineData(0x52)] // COD: coding-style default.
     [InlineData(0x5C)] // QCD: quantization default.
     public void ImageValidationRejectsJpeg2000CodestreamWithoutMandatoryMainHeaderMarker(int markerCode) {
@@ -433,6 +472,31 @@ public partial class PdfPageImageRendererTests {
 
     private static int ReadUInt32BigEndian(byte[] bytes, int offset) =>
         (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+
+    private static byte[] CreateJp2Box(string type, byte[] contents) {
+        Assert.Equal(4, type.Length);
+        byte[] box = new byte[8 + contents.Length];
+        WriteUInt32BigEndian(box, 0, box.Length);
+        System.Text.Encoding.ASCII.GetBytes(type, 0, 4, box, 4);
+        Buffer.BlockCopy(contents, 0, box, 8, contents.Length);
+        return box;
+    }
+
+    private static byte[] InsertJp2ResolutionBox(byte[] payload, byte[] resolutionBox) {
+        int headerType = FindMarker(payload, (byte)'j', (byte)'p', (byte)'2', (byte)'h');
+        int headerStart = headerType - 4;
+        int headerEnd = headerStart + ReadUInt32BigEndian(payload, headerStart);
+        byte[] updated = payload.Take(headerEnd).Concat(resolutionBox).Concat(payload.Skip(headerEnd)).ToArray();
+        WriteUInt32BigEndian(updated, headerStart, headerEnd - headerStart + resolutionBox.Length);
+        return updated;
+    }
+
+    private static void WriteUInt32BigEndian(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)(value >> 24);
+        bytes[offset + 1] = (byte)(value >> 16);
+        bytes[offset + 2] = (byte)(value >> 8);
+        bytes[offset + 3] = (byte)value;
+    }
 
     private static byte[] ReadScanJpx(string mode) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory,
         "Pdf", "Fixtures", "Interoperability", "Scans", "red-" + mode + ".jp2"));

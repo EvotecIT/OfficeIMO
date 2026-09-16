@@ -4,12 +4,13 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class ResourceResolver {
     private static bool TryGetJpxPayload(PdfStream stream, Dictionary<int, PdfIndirectObject> objects,
-        string colorSpace, int maximumBytes, out byte[] payload, CancellationToken cancellationToken = default) {
+        string colorSpace, bool hasUnsupportedColorSpaceDeclaration, int maximumBytes, out byte[] payload, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         payload = Array.Empty<byte>();
         // An RGBA codec can honor the codestream's own Gray/RGB samples. PDF-specific masks,
         // alternate color spaces, and output-intent conversion require sample-level normalization.
-        if (colorSpace is not ("" or "DeviceGray" or "G" or "DeviceRGB" or "RGB") ||
+        if (hasUnsupportedColorSpaceDeclaration ||
+            colorSpace is not ("" or "DeviceGray" or "G" or "DeviceRGB" or "RGB") ||
             GetTransparencyMaskKind(stream.Dictionary, objects) != null ||
             PdfImageMaskNormalizer.IsImageMask(stream, objects)) return false;
         if (stream.Dictionary.Items.TryGetValue("SMaskInData", out PdfObject? embeddedMask) &&
