@@ -58,28 +58,34 @@ namespace OfficeIMO.Word.Pdf {
                 List<ImportItem> items = BuildImportItems(page, options, navigation);
                 bool hasNavigationAnchor = navigation.HasAnchorsForPage(page.PageNumber);
                 bool hasPageOutputCandidate = items.Count > 0 || options.IncludeEmptyPages || hasNavigationAnchor;
+                WordParagraph? provisionalPageBreak = null;
+                WordSection? provisionalSection = null;
                 bool sourcePageSizeApplied = false;
                 if (emittedContent && options.PreservePageBreaks && hasPageOutputCandidate) {
                     if (options.PreserveSourcePageSize) {
-                        sourcePageSizeApplied = ConfigureEditablePageSection(target.AddSection(WordSectionBreakType.NextPage), page, options);
+                        provisionalSection = target.AddSection(WordSectionBreakType.NextPage);
+                        sourcePageSizeApplied = ConfigureEditablePageSection(provisionalSection, page, options);
                     } else {
-                        target.AddPageBreak();
+                        provisionalPageBreak = target.AddPageBreak();
                     }
                 } else if (!emittedContent && options.PreserveSourcePageSize && hasPageOutputCandidate) {
                     sourcePageSizeApplied = ConfigureEditablePageSection(target.Sections[0], page, options);
                 }
                 double typographyScale = GetEditableTypographyScale(page, sourcePageSizeApplied);
 
-                if (AddNavigationBookmarks(target, page, navigation)) {
-                    emittedContent = true;
-                }
+                bool pageEmitted = AddNavigationBookmarks(target, page, navigation);
 
                 if (items.Count == 0) {
                     if (options.IncludeEmptyPages) {
                         target.AddParagraph();
-                        emittedContent = true;
+                        pageEmitted = true;
                     }
 
+                    if (!pageEmitted) {
+                        provisionalPageBreak?.Remove();
+                        provisionalSection?.RemoveSection();
+                    }
+                    emittedContent |= pageEmitted;
                     continue;
                 }
 
@@ -115,8 +121,13 @@ namespace OfficeIMO.Word.Pdf {
                             break;
                     }
 
-                    emittedContent |= itemEmitted;
+                    pageEmitted |= itemEmitted;
                 }
+                if (!pageEmitted) {
+                    provisionalPageBreak?.Remove();
+                    provisionalSection?.RemoveSection();
+                }
+                emittedContent |= pageEmitted;
             }
 
             ReportNonReconstructedLinks(source, options, navigation);

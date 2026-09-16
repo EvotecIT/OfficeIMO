@@ -392,8 +392,10 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         PdfCore.PdfDocumentInfo sourceInfo = document.Inspect(options: null, cancellationToken);
+        PdfCore.PdfOptionalContentUsageSummary optionalContentUsage = document.InspectPagesForOptionalContentUsage(
+            entries.Select(static page => page.PageNumber).ToArray(), cancellationToken);
         return presentationOwner.Release(
-            new PdfPowerPointConversionResult(presentation, new PdfPowerPointConversionReport(entries, sourceInfo)));
+            new PdfPowerPointConversionResult(presentation, new PdfPowerPointConversionReport(entries, sourceInfo, optionalContentUsage)));
     }
 
     private static PdfPowerPointConversionResult ImportHybridPages(

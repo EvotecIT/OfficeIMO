@@ -52,10 +52,17 @@ internal static partial class PdfWordConverter {
                     "PDF outline navigation is not copied into the visual Word document.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
             }
-            if (sourceInfo.HasOptionalContent || sourceInfo.OptionalContentGroupCount > 0) {
+            PdfCore.PdfOptionalContentUsageSummary optionalContentUsage = source.InspectPagesForOptionalContentUsage(
+                pages.Select(static page => page.PageNumber).ToArray(), token);
+            if (optionalContentUsage.PagesWithUsage > 0) {
                 AddWarning(options, "PdfOptionalContentGroupsFlattened", "Document/OCProperties",
                     "PDF optional-content layer controls are flattened into visual Word page images.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            if (!optionalContentUsage.IsComplete && sourceInfo.HasOptionalContent) {
+                AddWarning(options, "PdfOptionalContentUsageInspectionInconclusive", "Document/OCProperties",
+                    "Optional-content usage could not be fully inspected for the selected PDF pages. Any selected layer controls are flattened into visual Word page images.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Approximation);
             }
             var selectedPageNumbers = new HashSet<int>(pages.Select(static page => page.PageNumber));
             foreach (PdfCore.PdfPageInfo sourcePage in sourceInfo.Pages) {

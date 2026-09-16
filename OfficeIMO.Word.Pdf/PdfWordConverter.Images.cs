@@ -129,9 +129,10 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
+            WordParagraph? imageParagraph = null;
             try {
                 using var stream = new MemoryStream(source.Bytes);
-                WordParagraph imageParagraph = document.AddParagraph();
+                imageParagraph = document.AddParagraph();
                 ApplySourceParagraphSpacing(imageParagraph, options);
                 string description = "Imported PDF image " + image.ResourceName + " from page " + image.PageNumber.ToString(CultureInfo.InvariantCulture);
                 WordImage embeddedImage;
@@ -185,6 +186,7 @@ namespace OfficeIMO.Word.Pdf {
                     });
                 return true;
             } catch (Exception ex) when (ex is ArgumentException || ex is InvalidDataException || ex is InvalidOperationException || ex is NotSupportedException) {
+                imageParagraph?.Remove();
                 AddImageSkippedWarning(image, "Word image embedding rejected the extracted PDF image payload: " + ex.Message);
                 return false;
             }

@@ -3,6 +3,8 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadPage {
     private static readonly System.Threading.AsyncLocal<Action?> HiddenOptionalContentInspectionObserver =
         new System.Threading.AsyncLocal<Action?>();
+    private static readonly System.Threading.AsyncLocal<Action?> OptionalContentUsageInspectionObserver =
+        new System.Threading.AsyncLocal<Action?>();
 
     internal static Action? HiddenOptionalContentInspectionObserverForTesting {
         get => HiddenOptionalContentInspectionObserver.Value;
@@ -26,8 +28,14 @@ public sealed partial class PdfReadPage {
         return GetOptionalContentVisibility(pageResources)?.HasUnsupportedViewUsageApplications == true;
     }
 
+    internal static Action? OptionalContentUsageInspectionObserverForTesting {
+        get => OptionalContentUsageInspectionObserver.Value;
+        set => OptionalContentUsageInspectionObserver.Value = value;
+    }
+
     internal bool HasOptionalContentUsage(System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
+        OptionalContentUsageInspectionObserverForTesting?.Invoke();
         if (HasEffectiveOptionalContentEntry(_pageDict)) return true;
 
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));

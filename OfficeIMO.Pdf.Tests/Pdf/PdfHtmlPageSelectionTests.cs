@@ -53,6 +53,68 @@ public sealed class PdfHtmlPageSelectionTests {
     }
 
     [Fact]
+    public void VisualWordAndPowerPoint_DoNotReportUnusedOptionalContentDefinitions() {
+        PdfDocument document = PdfDocument.Load(PdfOptionalContentSupport.BuildOptionalContentMetadataPdf());
+        PdfWordConversionResult word = document.ToWordDocumentResult(PdfToWordOptions.CreateVisualPages());
+        PdfPowerPointConversionResult powerPoint = document.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateVisualPages());
+        using (word.Value)
+        using (powerPoint.Value) {
+            Assert.DoesNotContain(word.Report.Warnings, static warning =>
+                warning.Code == "PdfOptionalContentGroupsFlattened");
+            Assert.DoesNotContain(powerPoint.Warnings, static warning =>
+                warning.Code == "PdfOptionalContentGroupsFlattened");
+        }
+    }
+
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(2, true)]
+    public void VisualWordAndPowerPoint_ReportOptionalContentOnlyForSelectedUsage(int pageNumber, bool expectedWarning) {
+        PdfDocument document = PdfDocument.Load(PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Unlayered page"))
+            .PageBreak()
+            .Layer("Selected layer", layer => layer.Paragraph(paragraph => paragraph.Text("Layered page")))
+            .ToBytes());
+        PdfToWordOptions wordOptions = PdfToWordOptions.CreateVisualPages();
+        wordOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(pageNumber) };
+        PdfToPowerPointOptions powerPointOptions = PdfToPowerPointOptions.CreateVisualPages();
+        powerPointOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(pageNumber) };
+        PdfWordConversionResult word = document.ToWordDocumentResult(wordOptions);
+        PdfPowerPointConversionResult powerPoint = document.ToPowerPointPresentationResult(powerPointOptions);
+        using (word.Value)
+        using (powerPoint.Value) {
+            Assert.Equal(expectedWarning, word.Report.Warnings.Any(static warning =>
+                warning.Code == "PdfOptionalContentGroupsFlattened"));
+            Assert.Equal(expectedWarning, powerPoint.Warnings.Any(static warning =>
+                warning.Code == "PdfOptionalContentGroupsFlattened"));
+        }
+    }
+
+    [Fact]
+    public void VisualWordAndPowerPoint_ReportInconclusiveOptionalContentInspectionWithoutFailingConversion() {
+        PdfDocument document = PdfDocument.Load(PdfDocument.Create()
+            .Layer("Selected layer", layer => layer.Paragraph(paragraph => paragraph.Text("Layered page")))
+            .ToBytes());
+        PdfReadPage.OptionalContentUsageInspectionObserverForTesting = static () =>
+            throw new InvalidDataException("Synthetic optional-content inspection failure.");
+        try {
+            PdfWordConversionResult word = document.ToWordDocumentResult(PdfToWordOptions.CreateVisualPages());
+            PdfPowerPointConversionResult powerPoint = document.ToPowerPointPresentationResult(
+                PdfToPowerPointOptions.CreateVisualPages());
+            using (word.Value)
+            using (powerPoint.Value) {
+                Assert.Contains(word.Report.Warnings, static warning =>
+                    warning.Code == "PdfOptionalContentUsageInspectionInconclusive");
+                Assert.Contains(powerPoint.Warnings, static warning =>
+                    warning.Code == "PdfOptionalContentUsageInspectionInconclusive");
+            }
+        } finally {
+            PdfReadPage.OptionalContentUsageInspectionObserverForTesting = null;
+        }
+    }
+
+    [Fact]
     public void HtmlExport_ReportsOptionalContentOnlyWhenSelectedPagesUseIt() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Unlayered page"))

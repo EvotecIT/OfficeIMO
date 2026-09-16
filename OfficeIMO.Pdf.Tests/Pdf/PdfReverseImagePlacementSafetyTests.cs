@@ -138,6 +138,30 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RejectedMiddleImageDoesNotCreateAnEmptyWordPage(bool preserveSourcePageSize) {
+        byte[] source = CreateThreePageRawJpeg2000Pdf();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        Assert.Equal(3, logical.Pages.Count);
+        Assert.Single(logical.Pages[1].Images);
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult(new PdfToWordOptions {
+            PreserveSourcePageSize = preserveSourcePageSize,
+            IncludeImagePlaceholders = false,
+            IncludeEmptyPages = false
+        });
+        using (word.Value) {
+            Assert.Contains(word.Value.Paragraphs, static paragraph => paragraph.Text.Contains("First page", StringComparison.Ordinal));
+            Assert.Contains(word.Value.Paragraphs, static paragraph => paragraph.Text.Contains("Third page", StringComparison.Ordinal));
+            Assert.Empty(word.Value.Images);
+            Assert.Equal(preserveSourcePageSize ? 2 : 1, word.Value.Sections.Count);
+            Assert.Equal(preserveSourcePageSize ? 0 : 1, word.Value.PageBreaks.Count);
+            Assert.Contains(word.Report.Warnings, static warning => warning.Code == "PdfImageEmbeddingSkipped");
+        }
+    }
+
     [Fact]
     public void UnplacedImageResourcesAreLossFreeInPositionedHtml() {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
@@ -1429,6 +1453,33 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         WriteAscii(output, "7 0 obj\n<< /Type /ExtGState " + outerGraphicsStateEntries + " >>\nendobj\n");
         WriteAscii(output, "8 0 obj\n<< /Type /ExtGState " + innerGraphicsStateEntries + " >>\nendobj\n");
         WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 9 >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] CreateThreePageRawJpeg2000Pdf() {
+        byte[] container = File.ReadAllBytes(Path.Combine(
+            AppContext.BaseDirectory, "Pdf", "Fixtures", "Interoperability", "Scans", "red-rgb.jp2"));
+        int codestream = Enumerable.Range(0, container.Length - 3).Single(index =>
+            container[index] == 0xFF && container[index + 1] == 0x4F &&
+            container[index + 2] == 0xFF && container[index + 3] == 0x51);
+        byte[] image = container.Skip(codestream).ToArray();
+        const string first = "BT /F1 12 Tf 10 100 Td (First page) Tj ET";
+        const string middle = "q 80 0 0 40 20 30 cm /Im1 Do Q";
+        const string third = "BT /F1 12 Tf 10 100 Td (Third page) Tj ET";
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 3 /Kids [3 0 R 4 0 R 5 0 R] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] /Resources << /Font << /F1 9 0 R >> >> /Contents 6 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] /Resources << /XObject << /Im1 10 0 R >> >> /Contents 7 0 R >>\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] /Resources << /Font << /F1 9 0 R >> >> /Contents 8 0 R >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Length " + first.Length + " >>\nstream\n" + first + "\nendstream\nendobj\n");
+        WriteAscii(output, "7 0 obj\n<< /Length " + middle.Length + " >>\nstream\n" + middle + "\nendstream\nendobj\n");
+        WriteAscii(output, "8 0 obj\n<< /Length " + third.Length + " >>\nstream\n" + third + "\nendstream\nendobj\n");
+        WriteAscii(output, "9 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
+        WriteAscii(output, "10 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /JPXDecode /Length " + image.Length + " >>\nstream\n");
+        output.Write(image, 0, image.Length);
+        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R /Size 11 >>\n%%EOF\n");
         return output.ToArray();
     }
 

@@ -204,12 +204,13 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
 
     internal PdfPowerPointConversionReport(
         IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages,
-        OfficeIMO.Pdf.PdfDocumentInfo sourceInfo) {
+        OfficeIMO.Pdf.PdfDocumentInfo sourceInfo,
+        OfficeIMO.Pdf.PdfOptionalContentUsageSummary optionalContentUsage) {
         Mode = PdfPowerPointImportMode.VisualPages;
         TableEntries = Array.Empty<PdfPowerPointTableImportEntry>();
         VisualPages = Array.AsReadOnly((visualPages ?? throw new ArgumentNullException(nameof(visualPages))).ToArray());
         EditablePages = Array.Empty<PdfPowerPointEditablePageEntry>();
-        Warnings = CreateVisualPageWarnings(VisualPages, sourceInfo ?? throw new ArgumentNullException(nameof(sourceInfo)));
+        Warnings = CreateVisualPageWarnings(VisualPages, sourceInfo ?? throw new ArgumentNullException(nameof(sourceInfo)), optionalContentUsage);
         _hasOmittedPageContent = Warnings.Any(static warning => warning.LossKind == OfficeConversionLossKind.Omission);
     }
 
@@ -298,7 +299,8 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
 
     private static IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> CreateVisualPageWarnings(
         IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages,
-        OfficeIMO.Pdf.PdfDocumentInfo sourceInfo) {
+        OfficeIMO.Pdf.PdfDocumentInfo sourceInfo,
+        OfficeIMO.Pdf.PdfOptionalContentUsageSummary optionalContentUsage) {
         var warnings = new List<OfficeIMO.Pdf.PdfConversionWarning> {
             new(
                 "OfficeIMO.PowerPoint.Pdf",
@@ -334,8 +336,17 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             CountSelectedPageLabelRules(sourceInfo.PageLabels, visualPages),
             "page-label rules");
         AddDocumentOmissionWarning(warnings, "PdfOptionalContentGroupsFlattened", "Optional content",
-            Math.Max(sourceInfo.OptionalContentGroupCount, sourceInfo.HasOptionalContent ? 1 : 0),
+            optionalContentUsage.PagesWithUsage,
             "optional-content layer controls");
+        if (!optionalContentUsage.IsComplete && sourceInfo.HasOptionalContent) {
+            warnings.Add(new OfficeIMO.Pdf.PdfConversionWarning(
+                "OfficeIMO.PowerPoint.Pdf",
+                "PdfOptionalContentUsageInspectionInconclusive",
+                "Optional content",
+                "Optional-content usage could not be fully inspected for the selected PDF pages. Any selected layer controls are flattened into visual PowerPoint page images.",
+                OfficeIMO.Pdf.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Approximation));
+        }
         var selectedPageNumbers = new HashSet<int>(visualPages.Select(static page => page.PageNumber));
         foreach (OfficeIMO.Pdf.PdfPageInfo page in sourceInfo.Pages) {
             if (!selectedPageNumbers.Contains(page.PageNumber)) continue;

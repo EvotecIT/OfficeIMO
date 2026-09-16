@@ -30,24 +30,27 @@ public sealed partial class PdfDocumentReadResult {
     }
 
     internal PdfDocumentReadResult WithPages(IReadOnlyList<PdfLogicalPage> pages) {
+        int[] selectedPageNumbers = pages.Select(static page => page.PageNumber).ToArray();
         PdfDocumentSourceFidelityFacts sourceFidelityFacts = SourceFidelityFacts.ForPageNumbers(
-            pages.Select(static page => page.PageNumber).ToArray(),
+            selectedPageNumbers,
             SourcePageCount);
+        bool useDocumentWideObjects = PdfPageRangeObjectFilter.ShouldUseDocumentWideObjects(
+            SourcePageCount, selectedPageNumbers);
         return new PdfDocumentReadResult(
             Metadata,
             pages,
-            Outlines,
-            PageLabels,
-            NamedDestinations,
-            CatalogActions,
-            Attachments,
-            OutputIntents,
-            XmpMetadata,
-            TaggedContent,
-            OptionalContent,
-            OpenAction,
+            useDocumentWideObjects ? Outlines : PdfPageRangeObjectFilter.FilterOutlinesByPageNumbers(Outlines, selectedPageNumbers),
+            useDocumentWideObjects ? PageLabels : PdfPageRangeObjectFilter.FilterPageLabelsByPageNumbers(PageLabels, selectedPageNumbers),
+            useDocumentWideObjects ? NamedDestinations : PdfPageRangeObjectFilter.FilterNamedDestinationsByPageNumbers(NamedDestinations, selectedPageNumbers),
+            useDocumentWideObjects ? CatalogActions : Array.Empty<PdfCatalogAction>(),
+            useDocumentWideObjects ? Attachments : Array.Empty<PdfAttachmentInfo>(),
+            useDocumentWideObjects ? OutputIntents : Array.Empty<PdfOutputIntentInfo>(),
+            useDocumentWideObjects ? XmpMetadata : null,
+            useDocumentWideObjects ? TaggedContent : null,
+            useDocumentWideObjects ? OptionalContent : null,
+            useDocumentWideObjects ? OpenAction : PdfPageRangeObjectFilter.FilterOpenActionByPageNumbers(OpenAction, selectedPageNumbers),
             ViewerPreferences,
-            FormFields,
+            useDocumentWideObjects ? FormFields : PdfPageRangeObjectFilter.FilterFormFieldsByPageNumbers(FormFields, selectedPageNumbers, preservePageDuplicates: false),
             AcroFormDefaultAppearance,
             AcroFormQuadding,
             AcroFormXfa,
