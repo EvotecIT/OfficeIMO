@@ -230,8 +230,8 @@ namespace OfficeIMO.Word {
 
         internal static string ResolveTextListMarkerSuffix(WordListLevelSuffix? suffix) => suffix switch {
             WordListLevelSuffix.Nothing => string.Empty,
-            WordListLevelSuffix.Tab => "\t",
-            _ => " "
+            WordListLevelSuffix.Space => " ",
+            _ => "\t"
         };
 
         /// <summary>

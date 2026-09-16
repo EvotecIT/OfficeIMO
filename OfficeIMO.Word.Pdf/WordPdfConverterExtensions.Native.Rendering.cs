@@ -611,7 +611,12 @@ namespace OfficeIMO.Word.Pdf {
             run.IsBreak && run.Break?.BreakType != WordBreakType.Page;
 
         private static WordTextBox? GetNativeParagraphTextBox(WordParagraph paragraph, out string? fallbackText) {
-            fallbackText = GetNativeParagraphTextBoxPlainText(paragraph);
+            WordTextBox? textBox = FindNativeParagraphTextBox(paragraph);
+            fallbackText = GetNativeTextBoxPlainText(paragraph, textBox);
+            return textBox;
+        }
+
+        private static WordTextBox? FindNativeParagraphTextBox(WordParagraph paragraph) {
             WordTextBox? textBox = paragraph.TextBox;
             if (textBox != null || paragraph._paragraph == null) {
                 return textBox;
@@ -628,20 +633,18 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string? GetNativeParagraphTextBoxPlainText(WordParagraph paragraph) {
-            if (paragraph._paragraph == null) {
+            return GetNativeTextBoxPlainText(paragraph, FindNativeParagraphTextBox(paragraph));
+        }
+
+        private static string? GetNativeTextBoxPlainText(WordParagraph paragraph, WordTextBox? textBox) {
+            if (textBox?.Content == null) {
                 return null;
             }
 
-            var parts = new List<string>();
-            foreach (Wps.TextBoxInfo2 textBoxInfo in paragraph._paragraph.Descendants<Wps.TextBoxInfo2>()) {
-                parts.AddRange(textBoxInfo.Descendants<W.Text>().Select(text => text.Text));
-            }
-
-            foreach (DocumentFormat.OpenXml.Vml.TextBox textBox in paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Vml.TextBox>()) {
-                parts.AddRange(textBox.Descendants<W.Text>().Select(text => text.Text));
-            }
-
-            string textBoxText = ResolveNativeBuiltInPropertyPlaceholders(paragraph._document, string.Concat(parts));
+            string textBoxText = ResolveNativeBuiltInPropertyPlaceholders(
+                paragraph._document,
+                string.Join("\n", GetNativeTextBoxParagraphs(textBox)
+                    .Select(inner => inner.Text.TrimEnd('\r', '\n'))));
             return string.IsNullOrWhiteSpace(textBoxText) ? null : textBoxText;
         }
 

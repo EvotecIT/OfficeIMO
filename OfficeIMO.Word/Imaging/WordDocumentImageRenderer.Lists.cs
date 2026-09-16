@@ -130,11 +130,13 @@ namespace OfficeIMO.Word {
                 markerWidth = 0D;
                 resolvedTextOffset = textOffset;
             } else if (marker.Suffix.Length == 0) {
-                markerWidth = markerTextWidth;
-                resolvedTextOffset = markerOffset + markerTextWidth;
+                bool useAlignedMarkerColumn = marker.Alignment != OfficeTextAlignment.Left;
+                markerWidth = useAlignedMarkerColumn ? Math.Max(markerTextWidth, textOffset - markerOffset) : markerTextWidth;
+                resolvedTextOffset = useAlignedMarkerColumn ? textOffset : markerOffset + markerTextWidth;
             } else if (marker.Suffix == " ") {
-                markerWidth = markerTextWidth;
-                resolvedTextOffset = markerOffset + markerTextWidth + measurer.MeasureWidth(" ", markerStyle);
+                bool useAlignedMarkerColumn = marker.Alignment != OfficeTextAlignment.Left;
+                markerWidth = useAlignedMarkerColumn ? Math.Max(markerTextWidth, textOffset - markerOffset) : markerTextWidth;
+                resolvedTextOffset = (useAlignedMarkerColumn ? textOffset : markerOffset + markerTextWidth) + measurer.MeasureWidth(" ", markerStyle);
             } else {
                 markerWidth = Math.Max(markerTextWidth, textOffset - markerOffset);
                 resolvedTextOffset = Math.Max(textOffset, markerOffset + markerTextWidth);

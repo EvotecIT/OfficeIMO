@@ -570,27 +570,23 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
             NativeFontMap? nativeFontMap) {
             var replacements = new List<NativeHeaderFooterStyledReplacement>();
-            var pending = new Stack<WordTextBox>();
-            pending.Push(textBox);
+            var pending = new Stack<IEnumerator<WordParagraph>>();
+            pending.Push(GetNativeTextBoxParagraphs(textBox).GetEnumerator());
             while (pending.Count > 0) {
-                WordTextBox current = pending.Pop();
-                IReadOnlyList<WordParagraph> paragraphs = GetNativeTextBoxParagraphs(current);
-                for (int index = paragraphs.Count - 1; index >= 0; index--) {
-                    WordTextBox? nested = GetNativeParagraphTextBox(paragraphs[index], out _);
-                    if (nested != null) {
-                        pending.Push(nested);
-                    }
+                IEnumerator<WordParagraph> current = pending.Peek();
+                if (!current.MoveNext()) {
+                    current.Dispose();
+                    pending.Pop();
+                    continue;
                 }
 
-                foreach (WordParagraph innerParagraph in paragraphs) {
-                    WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(innerParagraph);
-                    if (info == null ||
-                        !listMarkers.TryGetValue(innerParagraph, out var marker) ||
-                        string.IsNullOrEmpty(marker.Marker)) {
-                        continue;
-                    }
-
-                    string serializedPrefix = marker.Marker + ResolveNativeInlineListMarkerSuffix(info.Value.LevelSuffix);
+                WordParagraph innerParagraph = current.Current;
+                WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(innerParagraph);
+                if (info != null &&
+                    listMarkers.TryGetValue(innerParagraph, out var marker) &&
+                    !string.IsNullOrEmpty(marker.Marker)) {
+                    string serializedPrefix = NormalizeNativeDirectText(
+                        marker.Marker + ResolveNativeInlineListMarkerSuffix(info.Value.LevelSuffix));
                     NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(innerParagraph, nativeFontMap: nativeFontMap);
                     (double MarkerOffset, double TextOffset) offsets = ResolveNativeHeaderFooterListOffsets(innerParagraph, info.Value);
                     PdfCore.PdfTextRun styledMarker = CreateNativeHeaderFooterListMarkerTextRun(
@@ -602,6 +598,11 @@ namespace OfficeIMO.Word.Pdf {
                         offsets.MarkerOffset,
                         offsets.TextOffset);
                     replacements.Add(new NativeHeaderFooterStyledReplacement(serializedPrefix, styledMarker));
+                }
+
+                WordTextBox? nested = GetNativeParagraphTextBox(innerParagraph, out _);
+                if (nested != null) {
+                    pending.Push(GetNativeTextBoxParagraphs(nested).GetEnumerator());
                 }
             }
             return replacements;

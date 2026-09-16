@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
+using OfficeIMO.Word.Markdown;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word.Html;
 using Xunit;
@@ -9,6 +10,159 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class WordListMarkerSemanticsTests {
+    [Fact]
+    public void MarkdownPromotesChildrenOfTopLevelMarkerlessItemsWithoutPlaceholderMarkers() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.BulletSolidRound));
+        list.AddItem("Top level markerless", 0);
+        list.AddItem("Visible child", 1);
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("Top level markerless", markdown, StringComparison.Ordinal);
+        Assert.Contains("- Visible child", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain(markdown.Split('\n'), line => line.Trim() == "-");
+        Assert.DoesNotContain("  - Visible child", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DirectListLevelOutranksLinkedLevelWhenNumberIdIsInherited() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        for (int level = 0; level <= 3; level++) {
+            list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        }
+        list.Numbering.Levels[1].OpenXmlElement.Append(new ParagraphStyleIdInLevel { Val = "DirectLevelWins" });
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(new StyleParagraphProperties(new NumberingProperties(
+            new NumberingId { Val = list.NumberId }))) {
+            Type = StyleValues.Paragraph,
+            StyleId = "DirectLevelWins"
+        });
+        WordParagraph item = document.AddParagraph("Direct level three");
+        item._paragraph.ParagraphProperties = new ParagraphProperties(
+            new ParagraphStyleId { Val = "DirectLevelWins" },
+            new NumberingProperties(new NumberingLevelReference { Val = 3 }));
+
+        Assert.Equal(3, WordDocumentTraversal.GetListInfo(item)!.Value.Level);
+    }
+
+    [Fact]
+    public void OmittedNumberingSuffixUsesTabSemantics() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = 1800;
+        level.IndentationHanging = 360;
+        level.OpenXmlElement.GetFirstChild<LevelSuffix>()?.Remove();
+        WordParagraph item = document.AddParagraph("DefaultTabSuffix");
+        AttachToList(item, list.NumberId);
+
+        WordDocumentTraversal.ListInfo info = WordDocumentTraversal.GetListInfo(item)!.Value;
+        Assert.Null(info.LevelSuffix);
+        Assert.Equal("\t", WordDocumentTraversal.ResolveTextListMarkerSuffix(info.LevelSuffix));
+        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+        OfficeDrawingText marker = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "*");
+        OfficeDrawingText content = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "DefaultTabSuffix");
+        Assert.True(marker.Width > 10D, $"markerWidth={marker.Width}");
+        Assert.InRange(Math.Abs(content.X - (marker.X + marker.Width)), 0D, 0.01D);
+    }
+
+    [Fact]
+    public void ImageRightJustifiedNumberingSharesMarkerAndTextColumns() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = 1800;
+        level.IndentationHanging = 720;
+        level.LevelJustification = WordListLevelAlignment.Right;
+        level.LevelSuffix = WordListLevelSuffix.Nothing;
+        list.AddItem("Nine");
+        list.AddItem("Ten");
+
+        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+        OfficeDrawingText nine = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "9.");
+        OfficeDrawingText ten = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "10.");
+        OfficeDrawingText nineText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Nine");
+        OfficeDrawingText tenText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Ten");
+        Assert.Equal(OfficeTextAlignment.Right, nine.Alignment);
+        Assert.Equal(OfficeTextAlignment.Right, ten.Alignment);
+        Assert.InRange(Math.Abs((nine.X + nine.Width) - (ten.X + ten.Width)), 0D, 0.01D);
+        Assert.InRange(Math.Abs(nineText.X - tenText.X), 0D, 0.01D);
+    }
+
+    [Fact]
+    public void PdfTableRightJustifiedNumberingSharesMarkerAndTextColumns() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = 1800;
+        level.IndentationHanging = 720;
+        level.LevelJustification = WordListLevelAlignment.Right;
+        level.LevelSuffix = WordListLevelSuffix.Nothing;
+        WordTable table = document.AddTable(2, 1);
+        WordParagraph nineItem = table.Rows[0].Cells[0].Paragraphs[0];
+        nineItem.Text = "TableNine";
+        AttachToList(nineItem, list.NumberId);
+        WordParagraph tenItem = table.Rows[1].Cells[0].Paragraphs[0];
+        tenItem.Text = "TableTen";
+        AttachToList(tenItem, list.NumberId);
+
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan nine = Assert.Single(spans, span => span.Text == "9.");
+        PdfTextSpan ten = Assert.Single(spans, span => span.Text == "10.");
+        PdfTextSpan nineText = Assert.Single(spans, span => span.Text == "TableNine");
+        PdfTextSpan tenText = Assert.Single(spans, span => span.Text == "TableTen");
+        Assert.InRange(Math.Abs((nine.X + nine.Advance) - (ten.X + ten.Advance)), 0D, 1D);
+        Assert.InRange(Math.Abs(nineText.X - tenText.X), 0D, 1D);
+    }
+
+    [Fact]
+    public void PdfHeaderNestedTextBoxMarkerStylesFollowFlattenedTextOrder() {
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordList nestedList = document.AddCustomBulletList('*', "Arial", "FF0000", 18);
+        nestedList.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
+        WordList laterList = document.AddCustomBulletList('◆', "Arial", "0000FF", 10);
+        WordList outerList = document.AddCustomBulletList('•', "Arial", "000000", 9);
+        WordParagraph host = document.Header!.Default!.AddParagraph("Before ");
+        WordTextBox outer = host.AddTextBox("Outer styled", WordImageTextWrapping.Square);
+        host.AddText(" After");
+        AttachToList(outer.Paragraphs[0], outerList.NumberId);
+        WordTextBox nested = outer.Paragraphs[0].AddTextBox("Nested styled", WordImageTextWrapping.Square);
+        AttachToList(nested.Paragraphs[0], nestedList.NumberId);
+        outer.Content!.Append(new Paragraph(new Run(new Text("Later styled"))));
+        WordParagraph later = outer.Paragraphs.Last();
+        AttachToList(later, laterList.NumberId);
+        document.AddParagraph("Body");
+
+        Dictionary<WordParagraph, (int Level, string Marker)> markers = WordDocumentTraversal.BuildListMarkers(document);
+        Assert.True(markers.TryGetValue(nested.Paragraphs[0], out var nestedResolved),
+            string.Join(" | ", markers.Select(item => item.Key.Text + ":" + item.Value.Marker)));
+        Assert.Equal("*", nestedResolved.Marker);
+        Assert.True(markers.TryGetValue(later, out var laterResolved),
+            string.Join(" | ", markers.Select(item => item.Key.Text + ":" + item.Value.Marker)));
+        Assert.Equal("◆", laterResolved.Marker);
+
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        string renderedSpans = string.Join(" | ", spans.Select(span => $"'{span.Text}'/{span.FontSize}/{span.Color}"));
+        PdfTextSpan[] nestedMarkers = spans.Where(span => span.Text.Contains("*", StringComparison.Ordinal)).ToArray();
+        PdfTextSpan[] laterMarkers = spans.Where(span => span.Text.Contains("◆", StringComparison.Ordinal)).ToArray();
+        Assert.True(nestedMarkers.Length == 1, renderedSpans);
+        Assert.True(laterMarkers.Length == 1, renderedSpans);
+        PdfTextSpan nestedMarker = nestedMarkers[0];
+        PdfTextSpan laterMarker = laterMarkers[0];
+        Assert.InRange(nestedMarker.FontSize, 17.5D, 18.5D);
+        Assert.True(nestedMarker.IsBold);
+        Assert.Equal(OfficeColor.FromRgb(255, 0, 0), nestedMarker.Color);
+        Assert.InRange(laterMarker.FontSize, 9.5D, 10.5D);
+        Assert.Equal(OfficeColor.FromRgb(0, 0, 255), laterMarker.Color);
+        Assert.True(nestedMarker.Y > laterMarker.Y || nestedMarker.X < laterMarker.X);
+    }
+
     [Theory]
     [InlineData(false, false, false)]
     [InlineData(true, false, true)]
@@ -487,7 +641,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Theory]
     [InlineData(WordListLevelSuffix.Nothing, 0D, 1D)]
     [InlineData(WordListLevelSuffix.Space, 2D, 5D)]
-    [InlineData(WordListLevelSuffix.Tab, 20D, 40D)]
+    [InlineData(WordListLevelSuffix.Tab, 10D, 15D)]
     public void PdfTableCellListMarkerHonorsNumberingSuffix(WordListLevelSuffix suffix, double minimumGap, double maximumGap) {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomBulletList('*', "Arial", "000000");

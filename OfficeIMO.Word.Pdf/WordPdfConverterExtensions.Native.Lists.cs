@@ -278,16 +278,17 @@ namespace OfficeIMO.Word.Pdf {
             string marker,
             WordParagraph paragraph,
             NativeResolvedTextStyle textStyle,
-            NativeFontMap? nativeFontMap) {
+            NativeFontMap? nativeFontMap,
+            bool includeSuffix = true) {
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
             if (info == null) {
-                return new PdfCore.PdfTextRun(marker + " ", bold: textStyle.Bold, color: textStyle.Color,
+                return new PdfCore.PdfTextRun(marker + (includeSuffix ? " " : string.Empty), bold: textStyle.Bold, color: textStyle.Color,
                     italic: textStyle.Italic, fontSize: textStyle.FontSize, font: textStyle.Font,
                     fontFamily: textStyle.FontFamily);
             }
 
             return new PdfCore.PdfTextRun(
-                marker + ResolveNativeInlineListMarkerSuffix(info.Value.LevelSuffix),
+                marker + (includeSuffix ? ResolveNativeInlineListMarkerSuffix(info.Value.LevelSuffix) : string.Empty),
                 bold: info.Value.MarkerBold ?? textStyle.Bold,
                 color: ParseNativeColor(info.Value.MarkerColorHex) ?? textStyle.Color,
                 italic: info.Value.MarkerItalic ?? textStyle.Italic,

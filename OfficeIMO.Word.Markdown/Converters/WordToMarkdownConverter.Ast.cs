@@ -394,9 +394,7 @@ namespace OfficeIMO.Word.Markdown {
                         : WordDocumentTraversal.GetListInfo(paragraph);
                     if (listInfo != null) {
                         if (!listInfo.Value.MarkerVisible) {
-                            markerlessAncestorLevel = listInfo.Value.Level > 0 && listStack.Count > 0
-                                ? Math.Min(markerlessAncestorLevel ?? listInfo.Value.Level, listInfo.Value.Level)
-                                : null;
+                            markerlessAncestorLevel = Math.Min(markerlessAncestorLevel ?? listInfo.Value.Level, listInfo.Value.Level);
                         }
                         int renderLevel = listInfo.Value.Level;
                         if (listInfo.Value.MarkerVisible && markerlessAncestorLevel.HasValue) {

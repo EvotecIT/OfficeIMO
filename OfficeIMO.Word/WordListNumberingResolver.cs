@@ -136,6 +136,7 @@ internal static class WordListNumberingResolver {
         int? numberId = ReadNumberId(direct);
         int? level = ReadLevel(direct);
         bool hasDirectNumberId = numberId.HasValue;
+        bool hasDirectLevel = level.HasValue;
         if (numberId == 0) {
             return false;
         }
@@ -157,7 +158,7 @@ internal static class WordListNumberingResolver {
             }
             if (numberId > 0) {
                 int? linkedLevel = ResolveLinkedLevel(styleCatalog, numberId.Value, styleId);
-                if (!hasDirectNumberId && linkedLevel.HasValue) {
+                if (!hasDirectNumberId && !hasDirectLevel && linkedLevel.HasValue) {
                     level = linkedLevel.Value;
                 } else if (!level.HasValue) {
                     level = linkedLevel ?? ReadLevel(inherited);

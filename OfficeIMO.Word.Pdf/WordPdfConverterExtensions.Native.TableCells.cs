@@ -311,8 +311,9 @@ namespace OfficeIMO.Word.Pdf {
                 WordParagraph paragraph = cellParagraphs[i];
                 List<PdfCore.PdfTextRun> paragraphRuns = CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap);
                 (int Level, string Marker)? listMarker = getMarker?.Invoke(paragraph);
+                (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph, tableStyleDefaults, listMarker.HasValue);
                 if (listMarker is { Marker.Length: > 0 } marker) {
-                    paragraphRuns.Insert(0, CreateNativeCellListMarkerRun(marker.Marker, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap));
+                    paragraphRuns.InsertRange(0, CreateNativeCellListMarkerRuns(marker.Marker, paragraph, tableStyleDefaults, nativeDefaults, indentation.FirstLine, nativeFontMap));
                 }
                 if (paragraphRuns.Count == 0) {
                     continue;
@@ -341,7 +342,6 @@ namespace OfficeIMO.Word.Pdf {
                     spacingAfter = 0D;
                 }
 
-                (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph, tableStyleDefaults, listMarker.HasValue);
                 double? lineHeight = ResolveNativeTableCellParagraphLineHeight(
                     paragraph,
                     nativeDefaults,
@@ -727,9 +727,47 @@ namespace OfficeIMO.Word.Pdf {
                 strikeStyle: style.StrikeStyle);
         }
 
-        private static PdfCore.PdfTextRun CreateNativeCellListMarkerRun(string marker, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
+        private static IReadOnlyList<PdfCore.PdfTextRun> CreateNativeCellListMarkerRuns(string marker, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, double firstLineIndent, NativeFontMap? nativeFontMap) {
             NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-            return CreateNativeListMarkerTextRun(marker, paragraph, textStyle, nativeFontMap);
+            WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
+            if (info == null) {
+                return new[] { CreateNativeListMarkerTextRun(marker, paragraph, textStyle, nativeFontMap) };
+            }
+
+            PdfCore.PdfTextRun markerRun = CreateNativeListMarkerTextRun(marker, paragraph, textStyle, nativeFontMap, includeSuffix: false);
+            double markerFontSize = markerRun.FontSize ?? textStyle.FontSize ?? nativeDefaults.FontSize;
+            double markerWidth = EstimateNativeListMarkerWidth(marker, markerFontSize);
+            double markerColumnWidth = Math.Max(markerWidth, Math.Max(0D, -firstLineIndent));
+            double leadingOffset = info.Value.LevelJustification switch {
+                WordListLevelAlignment.Right => Math.Max(0D, markerColumnWidth - markerWidth),
+                WordListLevelAlignment.Center => Math.Max(0D, (markerColumnWidth - markerWidth) / 2D),
+                _ => 0D
+            };
+            double suffixWidth = info.Value.LevelSuffix == WordListLevelSuffix.Space
+                ? EstimateNativeListMarkerWidth(" ", markerFontSize)
+                : 0D;
+            double trailingOffset;
+            if (info.Value.LevelJustification == WordListLevelAlignment.Left) {
+                trailingOffset = info.Value.LevelSuffix switch {
+                    WordListLevelSuffix.Nothing => 0D,
+                    WordListLevelSuffix.Space => suffixWidth,
+                    _ => Math.Max(0D, markerColumnWidth - markerWidth)
+                };
+            } else {
+                trailingOffset = Math.Max(0D, markerColumnWidth - leadingOffset - markerWidth) + suffixWidth;
+            }
+
+            var result = new List<PdfCore.PdfTextRun>(3);
+            AddNativeCellListSpacer(result, leadingOffset);
+            result.Add(markerRun);
+            AddNativeCellListSpacer(result, trailingOffset);
+            return result;
+        }
+
+        private static void AddNativeCellListSpacer(List<PdfCore.PdfTextRun> runs, double width) {
+            if (width > 0.01D) {
+                runs.Add(PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineBox(width, 0.01D, borderWidth: 0D)));
+            }
         }
 
         private static PdfCore.PdfTextRun CreateNativeCellLinkRun(string text, WordParagraph paragraph, WordHyperLink hyperlink, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) {
