@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -241,13 +242,37 @@ public static partial class OfficeSvgDrawingReader {
         foreach (string name in new[] { "x", "y", "dx", "dy" }) {
             string? value = element.Attribute(name)?.Value;
             if (string.IsNullOrWhiteSpace(value)) continue;
+            if (HasMalformedSvgListSeparators(value!)) return true;
             string[] tokens = value!.Split(new[] { ' ', '\t', '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries);
             if (tokens.Length == 0 || tokens.Length > MaximumTextRuns) return true;
             foreach (string token in tokens) {
                 if (!TryViewportLength(token, 1D, out _, out _)) return true;
             }
         }
+        string? rotation = element.Attribute("rotate")?.Value;
+        if (!string.IsNullOrWhiteSpace(rotation)) {
+            if (HasMalformedSvgListSeparators(rotation!)) return true;
+            string[] tokens = rotation!.Split(new[] { ' ', '\t', '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries);
+            if (tokens.Length == 0 || tokens.Length > MaximumTextRuns) return true;
+            foreach (string token in tokens) {
+                if (!double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
+                    double.IsNaN(value) || double.IsInfinity(value)) return true;
+            }
+        }
         return false;
+    }
+
+    private static bool HasMalformedSvgListSeparators(string value) {
+        bool hasTokenSinceComma = false;
+        foreach (char character in value) {
+            if (character == ',') {
+                if (!hasTokenSinceComma) return true;
+                hasTokenSinceComma = false;
+            } else if (!IsSvgCssWhitespace(character)) {
+                hasTokenSinceComma = true;
+            }
+        }
+        return !hasTokenSinceComma;
     }
 
     private static bool IsInvalidSvgRootViewportAttribute(XAttribute attribute) {

@@ -388,9 +388,10 @@ public static partial class OfficeSvgDrawingReader {
             if (!IsNativeSvgElement(element, svgNamespace)) return false;
             string localName = element.Name.LocalName;
             if (IsCaseMismatchedSvgPaintDefinitionName(localName)) return true;
-            string? filter = ReadPresentationProperty(element, "filter");
-            if (!string.IsNullOrWhiteSpace(filter) &&
-                !TrimSvgCssWhitespace(filter!).Equals("none", StringComparison.OrdinalIgnoreCase)) return true;
+            if (HasActiveSvgPresentationProperty(element, "filter") ||
+                HasActiveSvgPresentationProperty(element, "marker-start") ||
+                HasActiveSvgPresentationProperty(element, "marker-mid") ||
+                HasActiveSvgPresentationProperty(element, "marker-end")) return true;
             if (element.Name.LocalName.Equals("foreignObject", StringComparison.Ordinal)) return true;
             if (element.Name.LocalName.Equals("pattern", StringComparison.Ordinal)) {
                 return element.Attribute("viewBox") != null ||
@@ -408,6 +409,12 @@ public static partial class OfficeSvgDrawingReader {
                 height <= 0D ||
                 !TryParsePreserveAspectRatio(element.Attribute("preserveAspectRatio")?.Value, out _, out _);
         });
+    }
+
+    private static bool HasActiveSvgPresentationProperty(XElement element, string propertyName) {
+        string? value = ReadPresentationProperty(element, propertyName);
+        return !string.IsNullOrWhiteSpace(value) &&
+            !TrimSvgCssWhitespace(value!).Equals("none", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool HasAmbiguousSvgPaintServerDefinitions(XElement root, XNamespace svgNamespace) {

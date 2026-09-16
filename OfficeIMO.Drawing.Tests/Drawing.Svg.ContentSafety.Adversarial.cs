@@ -1137,6 +1137,33 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void UnsupportedMarkerPaintKeepsCleanupReportOnly() {
+        byte[] svg = Svg(
+            "<defs><marker id='m' orient='0rad'><rect width='10' height='10' fill='white'/></marker></defs>" +
+            "<text display='none' x='10' y='35'>marker-context payload</text>" +
+            "<path d='M10 10 L20 10' marker-start='url(#m)'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "marker-context payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("x", ",10")]
+    [InlineData("y", "10,")]
+    [InlineData("dx", "10,,20")]
+    [InlineData("dy", "10, ,20")]
+    [InlineData("rotate", ",10")]
+    public void MalformedTextPositionListSeparatorsFailClosed(string attributeName, string value) {
+        byte[] svg = Svg($"<text {attributeName}='{value}'>malformed text position</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Fact]
     public void RootViewportScaleAppliesToVisualResolutionFloor() {
         byte[] svg = Encoding.UTF8.GetBytes(
             "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 1000 1000'>" +
