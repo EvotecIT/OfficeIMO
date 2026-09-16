@@ -7,7 +7,7 @@ namespace OfficeIMO.Word.GoogleDocs {
     public sealed class GoogleDocumentReference : GoogleDriveFileReference {
         /// <summary>Gets or sets the Docs document identifier.</summary>
         public string? DocumentId { get; set; }
-        /// <summary>Gets or sets the observed Docs revision identifier, when available.</summary>
+        /// <summary>Gets or sets the Docs revision observed by native import or export; Drive-export import leaves it null.</summary>
         public string? RevisionId { get; set; }
         /// <summary>Gets or sets the observed Drive version, when available.</summary>
         public long? DriveVersion { get; set; }

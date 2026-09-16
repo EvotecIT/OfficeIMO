@@ -8,7 +8,8 @@ namespace OfficeIMO.Word.GoogleDocs {
     public sealed class GoogleDocsSaveOptions {
         /// <summary>Gets or sets the Drive destination or existing document target.</summary>
         public GoogleDriveFileLocation Location { get; set; } = new GoogleDriveFileLocation();
-        /// <summary>Gets or sets an optional document title; blank uses the source title, file name, or <c>Document</c>.</summary>
+        /// <summary>Gets or sets the title when creating a document; blank uses the source title, file name, or <c>Document</c>.</summary>
+        /// <remarks>Replacing an existing document does not rename it.</remarks>
         public string? Title { get; set; }
         /// <summary>Gets or sets the policy checked against fidelity notices before mutation.</summary>
         public GoogleWorkspaceFidelityPolicy FidelityPolicy { get; set; } = new GoogleWorkspaceFidelityPolicy();

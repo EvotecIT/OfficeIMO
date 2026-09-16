@@ -1,6 +1,7 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.Word;
 using OfficeIMO.Word.GoogleDocs;
+using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -13,6 +14,7 @@ namespace OfficeIMO.Tests {
         public void Test_GoogleDocsFeatureSupportCatalog_IsCodeOwnedAndBidirectional() {
             Assert.NotEmpty(GoogleDocsFeatureSupportCatalog.Features);
             Assert.Contains(GoogleDocsFeatureSupportCatalog.Features, feature => feature.Feature == "Document tabs" && feature.Export == GoogleDocsFeatureSupportLevel.Native);
+            Assert.Contains(GoogleDocsFeatureSupportCatalog.Features, feature => feature.Feature.Contains("hyperlinks", StringComparison.Ordinal) && feature.Import == GoogleDocsFeatureSupportLevel.Partial);
             Assert.Contains(GoogleDocsFeatureSupportCatalog.Features, feature => feature.Import == GoogleDocsFeatureSupportLevel.DriveFallback);
             Assert.All(GoogleDocsFeatureSupportCatalog.Features, feature => Assert.False(string.IsNullOrWhiteSpace(feature.Notes)));
         }
@@ -490,6 +492,62 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_GoogleDocsDiffPlanner_RejectsUnversionedCheckpointBeforeRemoteRead() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsLegacyCheckpoint.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("Unchanged");
+                var legacyCheckpoint = new GoogleDocsSyncCheckpoint { RevisionId = "observed-revision" };
+                legacyCheckpoint.ContentHashes["section/0"] = "old-culture-dependent-hash";
+                int requests = 0;
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(_ => {
+                    requests++;
+                    throw new InvalidOperationException("No remote request should be made for a legacy checkpoint.");
+                }));
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                    GoogleDocsDiffPlanner.BuildAsync(document, "doc-legacy", session, legacyCheckpoint));
+
+                Assert.Contains("CreateCheckpoint", error.Message);
+                Assert.Equal(0, requests);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void Test_GoogleDocsCheckpoint_HashesAreStableAcrossCultures() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsCultureCheckpoint.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                WordParagraph paragraph = document.AddParagraph("Styled");
+                paragraph.IndentationBeforePoints = 12.75D;
+                using var imageStream = new MemoryStream(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
+                paragraph.AddImage(imageStream, "pixel.png", 10, 10);
+                Assert.Single(document.Images).Width = 15.5D;
+                CultureInfo previousCulture = CultureInfo.CurrentCulture;
+                try {
+                    CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+                    GoogleDocsSyncCheckpoint baseline = GoogleDocsDiffPlanner.CreateCheckpoint(document);
+                    CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+                    GoogleDocsSyncCheckpoint switched = GoogleDocsDiffPlanner.CreateCheckpoint(document);
+
+                    Assert.Equal(2, baseline.HashFormatVersion);
+                    Assert.Equal(baseline.HashFormatVersion, switched.HashFormatVersion);
+                    Assert.Equal(baseline.ContentHashes.Count, switched.ContentHashes.Count);
+                    foreach (KeyValuePair<string, string> pair in baseline.ContentHashes) {
+                        Assert.Equal(pair.Value, switched.ContentHashes[pair.Key]);
+                    }
+                } finally {
+                    CultureInfo.CurrentCulture = previousCulture;
+                }
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void Test_GoogleDocsCheckpoint_HashesExportedLayoutImagesCommentsAndTableRuns() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsSemanticCheckpoint.docx");
             try {
@@ -742,7 +800,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_GoogleDocsDiffPlanner_DetectsIndependentConflict() {
-            var checkpoint = new GoogleDocsSyncCheckpoint();
+            var checkpoint = new GoogleDocsSyncCheckpoint { HashFormatVersion = 2 };
             checkpoint.ContentHashes["section/0/paragraph/0"] = "base";
             IReadOnlyList<GoogleDocsDiffItem> items = GoogleDocsDiffPlanner.Compare(
                 new Dictionary<string, string> { ["section/0/paragraph/0"] = "local" },

@@ -43,15 +43,18 @@ namespace OfficeIMO.Word.GoogleDocs {
         public long MaxResponseBytes { get; set; } = DefaultMaxResponseBytes;
         /// <summary>Gets or sets the positive maximum number of tabs accepted by native import.</summary>
         public int MaxTabs { get; set; } = 100;
-        /// <summary>Gets or sets the positive maximum number of native structural elements projected.</summary>
+        /// <summary>Gets or sets the positive structural-element limit for body content across all returned tabs, including unselected tabs.</summary>
+        /// <remarks>Header, footer, and footnote segments are not counted here; <see cref="MaxResponseBytes"/> bounds the complete response.</remarks>
         public int MaxStructuralElements { get; set; } = 100_000;
         /// <summary>
-        /// Maximum aggregate rectangular table-cell projection. The same ceiling is also applied
-        /// independently to aggregate table rows so sparse tables cannot allocate unbounded
-        /// document rows.
+        /// Maximum aggregate rectangular table-cell projection in body content across all returned
+        /// tabs, including unselected tabs. The same ceiling independently bounds aggregate table rows
+        /// so sparse tables cannot allocate unbounded document rows.
         /// </summary>
+        /// <remarks>Header, footer, and footnote segments are not counted here; <see cref="MaxResponseBytes"/> bounds the complete response.</remarks>
         public int MaxTableCells { get; set; } = 1_000_000;
-        /// <summary>Gets or sets the positive limit on imported text characters.</summary>
+        /// <summary>Gets or sets the positive text-character limit for body content across all returned tabs, including unselected tabs.</summary>
+        /// <remarks>Header, footer, and footnote segments are not counted here; <see cref="MaxResponseBytes"/> bounds the complete response.</remarks>
         public long MaxTextCharacters { get; set; } = 10_000_000L;
     }
 
@@ -65,7 +68,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         }
         /// <summary>Gets the imported Word document, which the caller must dispose.</summary>
         public WordDocument Document { get; }
-        /// <summary>Gets remote document metadata and the observed revision.</summary>
+        /// <summary>Gets remote metadata; a Docs revision is observed only in native import mode, not Drive-export mode.</summary>
         public GoogleDocumentReference Source { get; }
         /// <summary>Gets fidelity and operation notices from import.</summary>
         public OfficeIMO.GoogleWorkspace.TranslationReport Report { get; }

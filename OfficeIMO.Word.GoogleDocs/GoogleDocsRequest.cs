@@ -322,9 +322,9 @@ namespace OfficeIMO.Word.GoogleDocs {
         public GoogleDocsTableCellBorder? TopBorder { get; set; }
         /// <summary>Gets or sets the bottom cell border.</summary>
         public GoogleDocsTableCellBorder? BottomBorder { get; set; }
-        /// <summary>Gets or sets whether the cell continues a horizontal merge.</summary>
+        /// <summary>Gets or sets whether the source cell participates in horizontal merge markup, including the anchor.</summary>
         public bool HasHorizontalMerge { get; set; }
-        /// <summary>Gets or sets whether the cell continues a vertical merge.</summary>
+        /// <summary>Gets or sets whether the source cell participates in vertical merge markup, including the anchor.</summary>
         public bool HasVerticalMerge { get; set; }
         /// <summary>Gets compiled paragraphs within the cell.</summary>
         public IReadOnlyList<GoogleDocsParagraph> Paragraphs => _paragraphs;
