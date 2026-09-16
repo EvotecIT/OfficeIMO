@@ -37,7 +37,8 @@ namespace OfficeIMO.Word {
                 ToPoints(info?.HangingIndentTwips, DefaultListHangingIndentPoints),
                 markerFont,
                 markerColor,
-                markerAlignment);
+                markerAlignment,
+                WordDocumentTraversal.ResolveTextListMarkerSuffix(info?.LevelSuffix));
         }
 
         private static WordParagraph? GetFirstTextRun(WordDocument document, Paragraph paragraph) {
@@ -81,7 +82,7 @@ namespace OfficeIMO.Word {
 
         private static OfficeRichTextRun CreateListMarkerRichTextRun(WordImageListMarker marker) =>
             new OfficeRichTextRun(
-                marker.Marker + " ", marker.Font.Size, marker.Color,
+                marker.Marker + marker.Suffix, marker.Font.Size, marker.Color,
                 marker.Font.IsBold, marker.Font.IsItalic, marker.Font.IsUnderline,
                 marker.Font.FamilyName, marker.Font.IsStrikethrough);
 
@@ -142,7 +143,8 @@ namespace OfficeIMO.Word {
                 double hangingIndentPoints,
                 OfficeFontInfo font,
                 OfficeColor color,
-                OfficeTextAlignment alignment) {
+                OfficeTextAlignment alignment,
+                string suffix) {
                 Marker = marker;
                 Level = level;
                 LeftIndentPoints = leftIndentPoints;
@@ -150,6 +152,7 @@ namespace OfficeIMO.Word {
                 Font = font;
                 Color = color;
                 Alignment = alignment;
+                Suffix = suffix;
             }
 
             internal string Marker { get; }
@@ -165,6 +168,8 @@ namespace OfficeIMO.Word {
             internal OfficeColor Color { get; }
 
             internal OfficeTextAlignment Alignment { get; }
+
+            internal string Suffix { get; }
         }
 
         private readonly struct WordImageTextLayout {

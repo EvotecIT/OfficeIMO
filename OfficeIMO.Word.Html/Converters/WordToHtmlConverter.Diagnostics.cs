@@ -219,6 +219,11 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ReportKnownExportLimitations(WordDocument document, WordToHtmlOptions options, ExportInspection inspection) {
+            foreach (int pictureBulletId in WordDocumentTraversal.GetPictureBulletFallbackIds(document)) {
+                AddExportDiagnostic(options, "PictureBulletTextFallback",
+                    "Picture bullet " + pictureBulletId + " is represented by a text bullet in HTML output.",
+                    OfficeConversionLossKind.Approximation);
+            }
             if (!options.EmitDocumentShell &&
                 (options.IncludeCustomProperties || options.AdditionalMetaTags.Count > 0 || options.AdditionalLinkTags.Count > 0)) {
                 AddExportDiagnostic(options, "DocumentHeadMetadataOmittedForFragment",

@@ -220,6 +220,19 @@ namespace OfficeIMO.Word {
             return result;
         }
 
+        internal static IReadOnlyList<int> GetPictureBulletFallbackIds(WordDocument document) =>
+            GetPictureBulletFallbackIds(BuildResolvedListMarkers(document).Values);
+
+        internal static IReadOnlyList<int> GetPictureBulletFallbackIds(IEnumerable<ResolvedListMarker> markers) =>
+            markers.Select(marker => marker.PictureBulletId)
+                .Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToArray();
+
+        internal static string ResolveTextListMarkerSuffix(WordListLevelSuffix? suffix) => suffix switch {
+            WordListLevelSuffix.Nothing => string.Empty,
+            WordListLevelSuffix.Tab => "\t",
+            _ => " "
+        };
+
         /// <summary>
         /// Builds portable marker details for all effective list paragraphs in the document.
         /// </summary>

@@ -270,6 +270,7 @@ public static partial class OfficeTextLayoutEngine {
             ? runs[0].ParagraphIndent ?? paragraphIndent
             : paragraphIndent;
         builder.SetOffset(ResolveLineOffset(currentParagraphIndent, firstVisualLine: true));
+        bool atParagraphStart = true;
         bool clipped = inputTruncated;
         bool processingStopped = false;
 
@@ -288,12 +289,20 @@ public static partial class OfficeTextLayoutEngine {
                 }
                 currentParagraphIndent = token.Run.ParagraphIndent ?? paragraphIndent;
                 builder.SetOffset(ResolveLineOffset(currentParagraphIndent, firstVisualLine: true));
+                atParagraphStart = true;
                 continue;
+            }
+
+            if (atParagraphStart && token.Run.ParagraphIndent is { } runIndent) {
+                currentParagraphIndent = runIndent;
+                builder.SetOffset(ResolveLineOffset(currentParagraphIndent, firstVisualLine: true));
             }
 
             if (token.IsWhitespace && builder.IsEmpty) {
                 continue;
             }
+
+            atParagraphStart = false;
 
             double tokenWidth = Measure(token.Text, token.Run.EffectiveFontSize, token.Run.FontFamily, token.Run.FontStyle, measure);
             double availableWidth = Math.Max(0D, width - builder.OffsetX);

@@ -5,6 +5,30 @@ namespace OfficeIMO.Tests;
 
 public class DrawingRichTextParagraphIndentTests {
     [Fact]
+    public void OriginalPublicConstructorRemainsAvailableToCompiledConsumers() {
+        Assert.NotNull(typeof(OfficeRichTextRun).GetConstructor(new[] {
+            typeof(string), typeof(double), typeof(OfficeColor), typeof(bool), typeof(bool), typeof(bool),
+            typeof(string), typeof(bool), typeof(OfficeColor?), typeof(OfficeTextDecorationStyle),
+            typeof(OfficeTextDecorationStyle), typeof(OfficeTextBaseline)
+        }));
+    }
+
+    [Fact]
+    public void IndentationOnTheRunAfterAHardBreakAppliesToThatParagraph() {
+        var runs = new[] {
+            new OfficeRichTextRun("Plain\n", 12D, OfficeColor.Black),
+            new OfficeRichTextRun("Indented content", 12D, OfficeColor.Black)
+                .WithParagraphIndent(new OfficeTextParagraphIndent(24D, 36D))
+        };
+        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(runs,
+            90D, 120D, 1.2D, (value, size, _) => (value?.Length ?? 0) * size * 0.5D, wrap: true);
+
+        Assert.Equal(0D, layout.Lines[0].OffsetX);
+        Assert.Equal(24D, layout.Lines[1].OffsetX);
+        Assert.Equal(36D, layout.Lines[2].OffsetX);
+    }
+
+    [Fact]
     public void MixedParagraphIndentsSurviveDrawingCloneAndLayout() {
         var runs = new[] {
             new OfficeRichTextRun("Plain\n", 12D, OfficeColor.Black),

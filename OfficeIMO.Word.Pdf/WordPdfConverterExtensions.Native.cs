@@ -166,9 +166,7 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = resolvedMarkers.ToDictionary(
                 pair => pair.Key, pair => (pair.Value.Level, pair.Value.Marker), resolvedMarkers.Comparer);
             if (options != null) {
-                foreach (int pictureBulletId in resolvedMarkers.Values
-                    .Select(marker => marker.PictureBulletId)
-                    .Where(id => id.HasValue).Select(id => id!.Value).Distinct()) {
+                foreach (int pictureBulletId in WordDocumentTraversal.GetPictureBulletFallbackIds(resolvedMarkers.Values)) {
                     AddNativeExportWarning(options, "NativePictureBulletTextFallback", "list marker",
                         "Picture bullet " + pictureBulletId.ToString(CultureInfo.InvariantCulture) + " is represented by a portable text bullet in PDF output.");
                 }

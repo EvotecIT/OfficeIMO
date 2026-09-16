@@ -3,11 +3,66 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
+using OfficeIMO.Word.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed partial class WordListMarkerSemanticsTests {
+    [Theory]
+    [InlineData(WordListLevelSuffix.Nothing, "*HeaderSuffix")]
+    [InlineData(WordListLevelSuffix.Space, "* HeaderSuffix")]
+    public void PdfHeaderListMarkerHonorsNumberingSuffix(WordListLevelSuffix suffix, string expected) {
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        Level level = list.Numbering.Levels[0].OpenXmlElement;
+        level.GetFirstChild<LevelSuffix>()?.Remove();
+        level.Append(new LevelSuffix { Val = suffix.ToOpenXml() });
+        WordParagraph header = document.Header!.Default!.AddParagraph("HeaderSuffix");
+        AttachToList(header, list.NumberId);
+        document.AddParagraph("Body");
+
+        string text = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        Assert.Contains(expected, text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(WordListLevelSuffix.Nothing, "*ImageSuffix")]
+    [InlineData(WordListLevelSuffix.Space, "* ImageSuffix")]
+    public void ImageTextBoxListMarkerHonorsNumberingSuffix(WordListLevelSuffix suffix, string expected) {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        Level level = list.Numbering.Levels[0].OpenXmlElement;
+        level.GetFirstChild<LevelSuffix>()?.Remove();
+        level.Append(new LevelSuffix { Val = suffix.ToOpenXml() });
+        WordTextBox box = document.AddTextBox("ImageSuffix");
+        AttachToList(box.Paragraphs[0], list.NumberId);
+
+        OfficeDrawingRichText rich = Assert.Single(document.CreateVisualSnapshot().Drawing.Elements
+            .OfType<OfficeDrawingRichText>(), item => item.PlainText.Contains("ImageSuffix", StringComparison.Ordinal));
+        Assert.Contains(expected, rich.PlainText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PictureBulletFallbackIsReportedByHtmlAndImageExports() {
+        using WordDocument document = WordDocument.Create();
+        using var image = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg"));
+        WordList list = document.AddPictureBulletList(image, "Kulek.jpg");
+        list.AddItem("Picture item");
+
+        var html = document.ToHtmlResult();
+        Assert.Contains(html.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "PictureBulletTextFallback" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+        Assert.Contains(snapshot.Diagnostics, diagnostic =>
+            diagnostic.Code == WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Contains(document.ExportImage(OfficeImageExportFormat.Svg).Diagnostics, diagnostic =>
+            diagnostic.Code == WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback);
+    }
+
     [Fact]
     public void TextBoxListIndentationIsKeptPerParagraphInPdfAndImageLayout() {
         using WordDocument document = WordDocument.Create();

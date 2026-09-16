@@ -431,7 +431,7 @@ namespace OfficeIMO.Word {
                             ? CreateListMarker(textBox.Document, fragment.Paragraph, listMarkers)
                             : null;
                         return marker is { Marker.Length: > 0 } visible
-                            ? visible.Marker + " " + paragraphText
+                            ? visible.Marker + visible.Suffix + paragraphText
                             : paragraphText;
                     })
                     .Where(text => !string.IsNullOrEmpty(text))

@@ -150,6 +150,12 @@ namespace OfficeIMO.Word {
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>();
+            if (options.IncludeDocumentContent) {
+                foreach (int pictureBulletId in WordDocumentTraversal.GetPictureBulletFallbackIds(document)) {
+                    AddDiagnostic(diagnostics, WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback,
+                        "Picture bullet " + pictureBulletId + " is represented by a text bullet in image and SVG output.");
+                }
+            }
             List<WordDocumentVisualFragment> fragments = new List<WordDocumentVisualFragment>();
             OfficeDrawing drawing = CreateDrawing(
                 document,

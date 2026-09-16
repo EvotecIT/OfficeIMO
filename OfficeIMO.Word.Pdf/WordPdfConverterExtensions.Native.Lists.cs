@@ -271,11 +271,8 @@ namespace OfficeIMO.Word.Pdf {
                     (useParagraphStyleIndent ? styleDefaults.FirstLineIndent : null) ?? -hangingIndent;
         }
 
-        private static string ResolveNativeInlineListMarkerSuffix(WordListLevelSuffix? suffix) => suffix switch {
-            WordListLevelSuffix.Nothing => string.Empty,
-            WordListLevelSuffix.Tab => "\t",
-            _ => " "
-        };
+        private static string ResolveNativeInlineListMarkerSuffix(WordListLevelSuffix? suffix) =>
+            WordDocumentTraversal.ResolveTextListMarkerSuffix(suffix);
 
         private static (double MarkerWidth, double MarkerGap) ResolveNativeListMarkerSpacing(W.LevelSuffixValues? levelSuffix, double markerTextWidth, double fontSize, double textIndent, double markerIndent) {
             if (levelSuffix == W.LevelSuffixValues.Nothing) {

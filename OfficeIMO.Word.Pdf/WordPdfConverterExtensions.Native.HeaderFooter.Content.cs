@@ -693,7 +693,7 @@ namespace OfficeIMO.Word.Pdf {
             if (!paragraph.IsListItem) return resolvedText;
             Dictionary<WordParagraph, (int Level, string Marker)> markers = WordDocumentTraversal.BuildListMarkers(paragraph._document);
             return markers.TryGetValue(paragraph, out var marker) && !string.IsNullOrEmpty(marker.Marker)
-                ? marker.Marker + " " + resolvedText
+                ? marker.Marker + ResolveNativeInlineListMarkerSuffix(WordDocumentTraversal.GetListInfo(paragraph)?.LevelSuffix) + resolvedText
                 : resolvedText;
         }
 
