@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.GoogleSheets;
+using System.Globalization;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -124,6 +125,42 @@ namespace OfficeIMO.Tests {
 
                 Assert.Contains("name/sheet/North/LocalData", checkpoint.ContentHashes.Keys);
                 Assert.Contains("name/sheet/South/LocalData", checkpoint.ContentHashes.Keys);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void Test_GoogleSheetsCheckpoint_HashesAreStableAcrossCultures() {
+            string path = Path.Combine(_directoryWithFiles, "GoogleSheetsCultureCheckpoint.xlsx");
+            try {
+                using var document = ExcelDocument.Create(path);
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, 0.1D);
+                sheet.SetRowHeight(1, 1.23D);
+                sheet.SetColumnWidth(1, 16.25D);
+                ExcelCellSnapshot cell = Assert.Single(Assert.Single(document.CreateInspectionSnapshot().Worksheets).Cells);
+                Assert.Equal("0.10000000000000001", Assert.IsType<double>(cell.Value).ToString("G17", CultureInfo.InvariantCulture));
+                CultureInfo previousCulture = CultureInfo.CurrentCulture;
+                try {
+                    CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+                    GoogleSheetsSyncCheckpoint baseline = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
+                    CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+                    GoogleSheetsSyncCheckpoint switched = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
+
+                    Assert.Equal(1, baseline.HashFormatVersion);
+                    Assert.Equal("54FDC6DAFE0DA0B1EE27C4ED657A18B346C80EF593E46AAC8C2F5EFC7C060852",
+                        baseline.ContentHashes["sheet/Data/row/1"]);
+                    Assert.Equal("FE912B2A926843BA76874EB9CEE27777B0EE1C80A63143C5B9C84D052AF05F47",
+                        baseline.ContentHashes["sheet/Data/cell/1:1"]);
+                    Assert.Equal(baseline.HashFormatVersion, switched.HashFormatVersion);
+                    Assert.Equal(baseline.ContentHashes.Count, switched.ContentHashes.Count);
+                    foreach (KeyValuePair<string, string> pair in baseline.ContentHashes) {
+                        Assert.Equal(pair.Value, switched.ContentHashes[pair.Key]);
+                    }
+                } finally {
+                    CultureInfo.CurrentCulture = previousCulture;
+                }
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }
