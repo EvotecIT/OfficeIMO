@@ -39,3 +39,14 @@ failure. The completed run used a verified 512 MiB container limit, one CPU,
 skipped resources in this run. Browser-reference differences, richer hostile
 inputs, responsive sources, module graphs, cross-host redirects and Windows and
 macOS isolation remain open in [the product roadmap](../../../../../Docs/ROADMAP.md).
+
+The [controlled OCI fixture run](hostile-fixtures/summary.json) used the same
+whole-pipeline image definition with ID
+`sha256:c508fe79426d7354b945f5bab8a56330e2cf86d89faec8c1718fcab7623e65fe`.
+Malformed table markup with an inline script produced a [screen image](hostile-fixtures/malformed-markup/screen.png)
+and both PDFs; the image was visually inspected and both PDFs reopened as
+single-page A4 files. The other fixtures rejected 129 distinct script URLs,
+stopped an oversized captured document, and interrupted a nonterminating
+script. All four runs reported the expected result and confirmed exact
+container removal. These generated fixtures validate isolated failure recovery,
+not public-host redirects, DNS changes, or arbitrary-site compatibility.
