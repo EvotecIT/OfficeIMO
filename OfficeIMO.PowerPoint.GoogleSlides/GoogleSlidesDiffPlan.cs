@@ -7,33 +7,55 @@ using DocumentFormat.OpenXml;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.GoogleSlides {
+    /// <summary>One classified difference between a PowerPoint source and Google presentation.</summary>
     public sealed class GoogleSlidesDiffItem {
+        /// <summary>Creates a difference with its classification, semantic path, and explanation.</summary>
         public GoogleSlidesDiffItem(GoogleWorkspaceDiffKind kind, string path, string message) { Kind = kind; Path = path; Message = message; }
+        /// <summary>Gets whether the change is local, remote, conflicting, or lossy.</summary>
         public GoogleWorkspaceDiffKind Kind { get; }
+        /// <summary>Gets the semantic path of the changed item.</summary>
         public string Path { get; }
+        /// <summary>Gets the human-readable reason for the classification.</summary>
         public string Message { get; }
     }
+    /// <summary>Caller-persisted revision and content fingerprints used as a three-way comparison baseline.</summary>
     public sealed class GoogleSlidesSyncCheckpoint {
+        /// <summary>Gets or sets the previously observed Slides revision identifier.</summary>
         public string? RevisionId { get; set; }
+        /// <summary>Gets or sets the previously observed Drive version.</summary>
         public long? DriveVersion { get; set; }
+        /// <summary>Gets the mutable map of semantic paths to source content hashes.</summary>
         public IDictionary<string, string> ContentHashes { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
     }
+    /// <summary>Remote metadata, classified content differences, and import notices.</summary>
     public sealed class GoogleSlidesDiffPlan {
         internal GoogleSlidesDiffPlan(GooglePresentationReference remote, IReadOnlyList<GoogleSlidesDiffItem> items, TranslationReport report) { Remote = remote; Items = items; Report = report; }
+        /// <summary>Gets the remote presentation reference observed during planning.</summary>
         public GooglePresentationReference Remote { get; }
+        /// <summary>Gets the classified differences in semantic-path order, followed by import and revision notices.</summary>
         public IReadOnlyList<GoogleSlidesDiffItem> Items { get; }
+        /// <summary>Gets fidelity notices produced while importing the remote presentation.</summary>
         public TranslationReport Report { get; }
+        /// <summary>Gets whether any content path was classified as a conflict.</summary>
         public bool HasConflicts => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.Conflict);
+        /// <summary>Gets whether remote import produced a lossy-action item.</summary>
         public bool HasLossyActions => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.LossyAction);
+        /// <summary>Gets whether the plan has neither conflicts nor report errors.</summary>
+        /// <remarks>This is advisory; it does not approve loss or perform a write.</remarks>
         public bool CanApply => !HasConflicts && !Report.HasErrors;
     }
+    /// <summary>Builds fingerprints and compares local and remote slide content.</summary>
     public static class GoogleSlidesDiffPlanner {
+        /// <summary>Captures the source presentation's current content hashes and optional observed remote revision.</summary>
+        /// <remarks>Persist the checkpoint only at a point where it accurately represents the synchronized baseline.</remarks>
         public static GoogleSlidesSyncCheckpoint CreateCheckpoint(PowerPointPresentation presentation, string? revisionId = null, long? driveVersion = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             var checkpoint = new GoogleSlidesSyncCheckpoint { RevisionId = revisionId, DriveVersion = driveVersion };
             foreach (KeyValuePair<string, string> pair in Hashes(presentation)) checkpoint.ContentHashes[pair.Key] = pair.Value;
             return checkpoint;
         }
+        /// <summary>Imports the remote presentation natively and compares it with the source and optional baseline.</summary>
+        /// <remarks>Import warnings are also classified as lossy actions. A changed remote revision or Drive version is reported as a remote change when both old and current values are available.</remarks>
         public static async Task<GoogleSlidesDiffPlan> BuildAsync(PowerPointPresentation source, string presentationId, GoogleWorkspaceSession session, GoogleSlidesSyncCheckpoint? checkpoint = null, CancellationToken cancellationToken = default) {
             GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync(presentationId, session, new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native }, cancellationToken).ConfigureAwait(false);
             using (imported.Presentation) {
