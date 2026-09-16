@@ -11,6 +11,28 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### PDF-to-Word editable layout defaults
+
+Editable PDF-to-Word conversion now preserves each source page's physical size, removes Word style spacing that would inflate explicitly positioned PDF text, and keeps supported axis-aligned images at their source page positions on unrotated, uncropped pages when their bounds fit the page. Other images remain in the document flow. These defaults improve dense business documents but can change pagination and image flow in applications that relied on the earlier Word defaults.
+
+To retain the earlier flowing layout, disable the three behaviors explicitly:
+
+```csharp
+var options = new PdfToWordOptions {
+    PreserveSourcePageSize = false,
+    PreserveCompactSourceSpacing = false,
+    PreserveImagePlacementPosition = false
+};
+```
+
+`PreserveImagePlacementSize` remains independent. Set it to `false` to use an image's natural pixel dimensions even when `PreserveImagePlacementPosition` keeps the image floating at its recovered page position.
+
+### Word image rotation uses DrawingML degrees
+
+`WordImage.Rotation` now maps one degree to the DrawingML-standard 60,000 angle units. Earlier versions used 10,000 units, so a requested rotation rendered at one sixth of the requested angle. Applications that compensated for that behavior must stop multiplying the intended angle by six. For example, replace `image.Rotation = 180` with `image.Rotation = 30` to keep a rendered 30-degree rotation.
+
+Documents written by the earlier setter contain the smaller physical angle and are now read as that actual angle. Assigning `null` continues to clear the image rotation for both inline and floating images.
+
 ### Google Slides sync checkpoints
 
 `GoogleSlidesDiffPlanner.CreateCheckpoint` now records a hash-format version and uses culture- and runtime-independent numeric fingerprints. Previously persisted `GoogleSlidesSyncCheckpoint` values without a format version cannot be safely compared after upgrading; `BuildAsync` rejects them before contacting Google. Compare the source and remote presentation without the old checkpoint, reconcile any differences, then create and persist a new checkpoint with the observed revision and Drive version only when the two are synchronized. Do not mark old hashes as the new format.
@@ -1756,7 +1778,7 @@ OfficeIMO 3.0 renamed its table-only PDF routes so they did not imply full-page 
 
 The PowerPoint names broaden again in 3.1 because the default route changes from table-only recovery to one visual slide per PDF page. Apply the 3.0-to-3.1 mappings after completing this section.
 
-For table-only recovery, `HasLoss` means a detected table was truncated by an import limit. `HasOmittedPageContent` means the source also contains non-table text, vectors, images, links, forms, annotations, or actions that the adapter does not import. Use `SourceScope` for the counts behind that decision. Choose Word or RTF semantic conversion, or a rendered-page route, when the goal is a broader page representation.
+For table-only recovery, `HasLoss` now covers both detected-table truncation and visible source-page content outside the imported tables. `RequireNoLoss()` therefore also throws when non-table text, vectors, visible images, links, forms, annotations, or actions would be omitted. Previously these adapters exposed that condition only through `HasOmittedPageContent`. Use `HasOmittedPageContent` and `SourceScope` when the application needs to distinguish omission from row truncation. Choose Word or RTF semantic conversion, or a rendered-page route, when the goal is a broader page representation.
 
 ### Word, Excel, and EPUB changes
 

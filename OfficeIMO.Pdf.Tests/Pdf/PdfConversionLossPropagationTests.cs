@@ -1,5 +1,9 @@
 using OfficeIMO.Pdf;
 using OfficeIMO.Drawing;
+using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Html.Pdf;
+using OfficeIMO.PowerPoint.Pdf;
+using OfficeIMO.Word.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -92,5 +96,72 @@ public sealed class PdfConversionLossPropagationTests {
             new PdfConversionWarning("renderer", "Fallback", "page:1", "Approximate layout").LossKind);
         Assert.Equal(OfficeConversionLossKind.Failure,
             new PdfConversionWarning("renderer", "Error", "page:1", "Cannot render", PdfConversionWarningSeverity.Error).LossKind);
+    }
+
+    [Fact]
+    public void ExcelTableOnlyProjectionTreatsOmittedPageContentAsLoss() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Invoice reference INV-1001"))
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+
+        PdfExcelTableImportResult result = logical.ImportTablesToExcelDocumentResult();
+        using (result.Value) {
+            Assert.Empty(result.Report.Entries);
+            Assert.True(result.Report.HasOmittedPageContent);
+            Assert.True(result.HasLoss);
+            Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        }
+    }
+
+    [Fact]
+    public void WordProjectionRetainsInformationalLossSemantics() {
+        var shared = new PdfConversionReport();
+        shared.Add(new PdfConversionWarning(
+            "OfficeIMO.Word.Pdf",
+            "PdfVisualOnlyObject",
+            "page:1",
+            "The object was retained only as a visual fallback.",
+            PdfConversionWarningSeverity.Information,
+            OfficeConversionLossKind.Approximation));
+
+        var report = new PdfWordConversionReport(shared);
+
+        Assert.True(report.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void SemanticHtmlReportsLayoutReconstructionAsTypedLoss() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Invoice reference INV-1001"))
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+
+        PdfHtmlConversionResult result = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+
+        Assert.True(result.Report.HasLoss);
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfSemanticLayoutReflowed" &&
+            warning.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+    }
+
+    [Fact]
+    public void EditablePowerPointReportsReconstructionAsTypedLoss() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Invoice reference INV-1001"))
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+
+        PdfPowerPointConversionResult result = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        using (result.Value) {
+            Assert.True(result.Report.HasLoss);
+            Assert.Contains(result.Report.Warnings, static warning =>
+                warning.Code == "PdfEditableContentReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Approximation);
+            Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        }
     }
 }

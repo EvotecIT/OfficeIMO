@@ -391,8 +391,11 @@ public static partial class PowerPointPdfConverterExtensions {
             slide.AddTextBox("No PDF pages were selected.");
         }
 
+        PdfCore.PdfDocumentInfo sourceInfo = document.Inspect(options: null, cancellationToken);
+        PdfCore.PdfOptionalContentUsageSummary optionalContentUsage = document.InspectPagesForOptionalContentUsage(
+            entries.Select(static page => page.PageNumber).ToArray(), cancellationToken);
         return presentationOwner.Release(
-            new PdfPowerPointConversionResult(presentation, new PdfPowerPointConversionReport(entries)));
+            new PdfPowerPointConversionResult(presentation, new PdfPowerPointConversionReport(entries, sourceInfo, optionalContentUsage)));
     }
 
     private static PdfPowerPointConversionResult ImportHybridPages(
@@ -820,10 +823,14 @@ public static partial class PowerPointPdfConverterExtensions {
             return false;
         }
 
+        bool horizontalProgression = PdfCore.PdfTableColumnGeometry.HasHorizontalProgression(
+            sourceTable.Columns,
+            static column => column.VisualBounds,
+            fallback: true);
         var values = new double[segment.ColumnCount];
         for (int columnIndex = 0; columnIndex < segment.ColumnCount; columnIndex++) {
             PdfCore.PdfLogicalTableColumn sourceColumn = sourceTable.Columns[segment.ColumnStartIndex + columnIndex];
-            double width = sourceColumn.To - sourceColumn.From;
+            double width = PdfCore.PdfTableColumnGeometry.GetProgressionLength(sourceColumn, horizontalProgression);
             if (double.IsNaN(width) || double.IsInfinity(width) || width <= 0) {
                 return false;
             }

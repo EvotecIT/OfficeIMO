@@ -19,7 +19,7 @@ internal static partial class TableDetector {
             if (current.Count > 0) {
                 PdfTextSpan previous = current[current.Count - 1];
                 double gap = span.X - (previous.X + Math.Max(0D, previous.Advance));
-                if (gap > Math.Max(18D, Math.Max(previous.FontSize, span.FontSize) * 2D)) {
+                if (gap > GetCellGapThreshold(previous, span)) {
                     cells.Add(ComposeCell(current, line.ReadingDirection));
                     current = new List<PdfTextSpan>();
                 }
@@ -33,6 +33,12 @@ internal static partial class TableDetector {
     private static string ComposeCell(List<PdfTextSpan> spans, PdfReadingDirection direction) => spans.Count == 0
         ? string.Empty
         : TextLayoutEngine.BuildLine(spans, new TextLayoutEngine.Options { ReadingDirection = direction }).Text.Trim();
+
+    private static double GetCellGapThreshold(PdfTextSpan previous, PdfTextSpan current) =>
+        Math.Max(18D, Math.Max(previous.FontSize, current.FontSize) * 2D);
+
+    private static double GetCompactCellGapThreshold(PdfTextSpan previous, PdfTextSpan current) =>
+        Math.Max(6D, Math.Max(previous.FontSize, current.FontSize) * 0.75D);
 
     private static bool HasExplicitBoundarySpace(PdfTextSpan previous, PdfTextSpan current) =>
         previous.LogicalTrailingSpace || current.LogicalLeadingSpace ||

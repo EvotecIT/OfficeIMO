@@ -43,6 +43,17 @@ public sealed class PdfMetadata {
     /// <summary>PDF/X conformance from <c>GTS_PDFXConformance</c> in the Info dictionary.</summary>
     public string? PdfXConformance { get; set; }
 
+    internal bool HasContent =>
+        !string.IsNullOrEmpty(Title) ||
+        !string.IsNullOrEmpty(Author) ||
+        !string.IsNullOrEmpty(Subject) ||
+        !string.IsNullOrEmpty(Keywords) ||
+        TrappingStatus.HasValue ||
+        CreationDate.HasValue ||
+        ModificationDate.HasValue ||
+        !string.IsNullOrEmpty(PdfXVersion) ||
+        !string.IsNullOrEmpty(PdfXConformance);
+
     internal void SetCreationDateFromSource(DateTimeOffset? value, string? raw, bool productionPrecise) {
         _creationDate = value;
         CreationDateRaw = value.HasValue ? raw : null;

@@ -30,6 +30,8 @@ public sealed class PdfImagePlacement {
         OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         OfficeBlendMode? blendMode = null,
         bool hasUnsupportedBlendMode = false,
+        bool hasUnsupportedPaintState = false,
+        bool hasUnsupportedImagePaintEffect = false,
         bool hasSoftMask = false,
         bool hasAuthoredRenderingIntent = false,
         PdfContentOrderKey? contentOrderKey = null,
@@ -63,6 +65,8 @@ public sealed class PdfImagePlacement {
         RenderingIntent = renderingIntent;
         BlendMode = blendMode;
         HasUnsupportedBlendMode = hasUnsupportedBlendMode;
+        HasUnsupportedPaintState = hasUnsupportedPaintState;
+        HasUnsupportedImagePaintEffect = hasUnsupportedImagePaintEffect;
         HasSoftMask = hasSoftMask;
         HasAuthoredRenderingIntent = hasAuthoredRenderingIntent;
         ContentOrderKey = contentOrderKey;
@@ -161,6 +165,12 @@ public sealed class PdfImagePlacement {
     /// <summary>True when the source declared a blend mode that could not be represented.</summary>
     public bool HasUnsupportedBlendMode { get; }
 
+    /// <summary>True when another authored graphics-state paint setting cannot be preserved by image restamping.</summary>
+    public bool HasUnsupportedPaintState { get; }
+
+    /// <summary>True when an authored graphics-state paint effect can alter or suppress the visible image pixels.</summary>
+    public bool HasUnsupportedImagePaintEffect { get; }
+
     /// <summary>True when a soft-mask graphics state applies to the placement.</summary>
     public bool HasSoftMask { get; }
 
@@ -194,6 +204,8 @@ public sealed class PdfImagePlacement {
             renderingIntent: RenderingIntent,
             blendMode: BlendMode,
             hasUnsupportedBlendMode: HasUnsupportedBlendMode,
+            hasUnsupportedPaintState: HasUnsupportedPaintState,
+            hasUnsupportedImagePaintEffect: HasUnsupportedImagePaintEffect,
             hasSoftMask: HasSoftMask,
             hasAuthoredRenderingIntent: HasAuthoredRenderingIntent,
             contentOrderKey: contentOrderKey,
@@ -215,6 +227,8 @@ public sealed class PdfImagePlacement {
             renderingIntent: RenderingIntent,
             blendMode: BlendMode,
             hasUnsupportedBlendMode: HasUnsupportedBlendMode,
+            hasUnsupportedPaintState: HasUnsupportedPaintState,
+            hasUnsupportedImagePaintEffect: HasUnsupportedImagePaintEffect,
             hasSoftMask: HasSoftMask,
             hasAuthoredRenderingIntent: HasAuthoredRenderingIntent,
             contentOrderKey: ContentOrderKey,
@@ -236,6 +250,8 @@ public sealed class PdfImagePlacement {
             renderingIntent: RenderingIntent,
             blendMode: BlendMode,
             hasUnsupportedBlendMode: HasUnsupportedBlendMode,
+            hasUnsupportedPaintState: HasUnsupportedPaintState,
+            hasUnsupportedImagePaintEffect: HasUnsupportedImagePaintEffect,
             hasSoftMask: HasSoftMask,
             hasAuthoredRenderingIntent: HasAuthoredRenderingIntent,
             contentOrderKey: ContentOrderKey,
@@ -273,6 +289,8 @@ public sealed class PdfImagePlacement {
             renderingIntent: RenderingIntent,
             blendMode: BlendMode,
             hasUnsupportedBlendMode: HasUnsupportedBlendMode,
+            hasUnsupportedPaintState: HasUnsupportedPaintState,
+            hasUnsupportedImagePaintEffect: HasUnsupportedImagePaintEffect,
             hasSoftMask: HasSoftMask,
             hasAuthoredRenderingIntent: HasAuthoredRenderingIntent,
             contentOrderKey: ContentOrderKey,

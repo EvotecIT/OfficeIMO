@@ -1833,7 +1833,9 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(0, positioned.Summary.RenderedUnsafeUriLinkCount);
         Assert.Equal(0, semantic.Summary.SkippedLinkCount);
         Assert.Equal(0, positioned.Summary.SkippedLinkCount);
-        Assert.False(semantic.Report.HasWarnings);
+        Assert.Contains(semantic.Report.Warnings, warning =>
+            warning.Code == "PdfSemanticLayoutReflowed" &&
+            warning.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Contains(positioned.Report.Warnings, warning => warning.Code == "PositionedFontSubstitution");
 
         var summary = new {
@@ -1881,7 +1883,73 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(1, result.Summary.RenderedUnsafeUriLinkCount);
         Assert.Equal(0, result.Summary.RenderedInternalDestinationLinkCount);
         Assert.Equal(0, result.Summary.SkippedLinkCount);
-        Assert.False(result.Report.HasWarnings);
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.True(result.HasLoss);
+    }
+
+    [Fact]
+    public void PdfToHtmlResult_CountsOpenActionDictionaryOnceInOmissionWarning() {
+        byte[] pdf = CreateOpenActionDictionaryPdf();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
+
+        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, new PdfToHtmlOptions());
+
+        Assert.True(result.Summary.HasOpenAction);
+        Assert.Equal(1, result.Summary.CatalogActionCount);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted");
+        Assert.StartsWith("1 ", warning.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfToHtmlResult_ReportsCatalogActionsWhenOnlySomePagesAreSelected() {
+        byte[] pdf = CreateCatalogAdditionalActionMultiPagePdf();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
+        var options = new PdfToHtmlOptions {
+            PageRanges = new[] { PdfCore.PdfPageRange.From(1, 1) }
+        };
+
+        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, options);
+
+        Assert.Equal(new[] { 1 }, result.Summary.PageNumbers);
+        Assert.True(result.Summary.HasCatalogActions);
+        Assert.Equal(1, result.Summary.CatalogActionCount);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted");
+        Assert.StartsWith("1 ", warning.Message, StringComparison.Ordinal);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+    }
+
+    [Fact]
+    public void PdfToHtmlResult_ReportsFilteredParentOutlineTargetAsLossWhileKeepingItsChild() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions { CreateOutlineFromHeadings = true })
+            .H1("Parent outline")
+            .Paragraph(paragraph => paragraph.Text("First page"))
+            .PageBreak()
+            .H2("Child outline")
+            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .ToBytes();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
+        var options = new PdfToHtmlOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeOutlines = true,
+            PageRanges = new[] { PdfCore.PdfPageRange.From(2, 2) }
+        };
+
+        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, options);
+
+        Assert.Equal(2, result.Summary.OutlineCount);
+        Assert.Equal(2, result.Summary.RenderedOutlineCount);
+        Assert.Contains("<span>Parent outline</span>", result.Value, StringComparison.Ordinal);
+        Assert.Contains(">Child outline</a>", result.Value, StringComparison.Ordinal);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, static warning =>
+            warning.Code == "PdfOutlinesOmitted");
+        Assert.StartsWith("1 PDF outline ", warning.Message, StringComparison.Ordinal);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
     }
 
     [Fact]
@@ -1902,7 +1970,8 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Contains("data-destination-bottom=\"20\"", result.Value, StringComparison.Ordinal);
         Assert.Contains("data-destination-right=\"90\"", result.Value, StringComparison.Ordinal);
         Assert.Contains("data-destination-top=\"144\"", result.Value, StringComparison.Ordinal);
-        Assert.Contains(">Jump to page two</a>", result.Value, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"Jump to page two\"", result.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain(">Jump to page two</a>", result.Value, StringComparison.Ordinal);
         Assert.Equal(1, result.Summary.LinkCount);
         Assert.Equal(1, result.Summary.RenderedLinkCount);
         Assert.Equal(0, result.Summary.RenderedSafeUriLinkCount);
@@ -1910,6 +1979,28 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(1, result.Summary.RenderedInternalDestinationLinkCount);
         Assert.Equal(0, result.Summary.SkippedLinkCount);
         Assert.False(result.Report.HasWarnings);
+    }
+
+    [Fact]
+    public void PdfToHtmlResult_ReportsInternalNavigationOutsideSelectedPagesAsLoss() {
+        byte[] pdf = CreateDirectDestinationLinkPdf();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
+        Assert.False(Assert.Single(logical.Pages[0].Annotations).HasAction);
+        var options = new PdfToHtmlOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true,
+            PageRanges = new[] { PdfCore.PdfPageRange.From(1, 1) }
+        };
+
+        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, options);
+
+        Assert.Contains("data-destination-page-number=\"2\"", result.Value, StringComparison.Ordinal);
+        Assert.Equal(new[] { 1 }, result.Summary.PageNumbers);
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
     }
 
     [Fact]
@@ -1955,6 +2046,14 @@ public sealed class PdfConversionScenarioManifestTests {
             Assert.Single(semanticWordPackage.MainDocumentPart!.ImageParts);
             Body body = semanticWordPackage.MainDocumentPart!.Document!.Body!;
             Assert.NotEmpty(body.Descendants<Table>());
+            DocumentFormat.OpenXml.Wordprocessing.Drawing imageDrawing = Assert.Single(
+                body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
+            Assert.NotNull(imageDrawing.Anchor);
+            Assert.Null(imageDrawing.Inline);
+            Assert.Equal(DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalRelativePositionValues.Page,
+                imageDrawing.Anchor!.HorizontalPosition?.RelativeFrom?.Value);
+            Assert.Equal(DocumentFormat.OpenXml.Drawing.Wordprocessing.VerticalRelativePositionValues.Page,
+                imageDrawing.Anchor.VerticalPosition?.RelativeFrom?.Value);
             Hyperlink internalLink = Assert.Single(body.Descendants<Hyperlink>(), link => !string.IsNullOrWhiteSpace(link.Anchor?.Value));
             string anchor = Assert.IsType<string>(internalLink.Anchor?.Value);
             Assert.StartsWith("OfficeIMO_Pdf_Dest_Details", anchor, StringComparison.Ordinal);
@@ -2220,6 +2319,29 @@ public sealed class PdfConversionScenarioManifestTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] CreateOpenActionDictionaryPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction 4 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /S /GoTo /D [3 0 R /Fit] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 5 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] CreatePdfToHtmlActiveContentProofPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
@@ -2271,7 +2393,7 @@ public sealed class PdfConversionScenarioManifestTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Annots [4 0 R] >>",
             "endobj",
             "4 0 obj",
-            "<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Jump to page two) /A << /S /GoTo /D [5 0 R /FitR 10 20 90 144] >> >>",
+            "<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Jump to page two) /Dest [5 0 R /FitR 10 20 90 144] >>",
             "endobj",
             "5 0 obj",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] >>",
@@ -2527,6 +2649,32 @@ public sealed class PdfConversionScenarioManifestTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 10 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateCatalogAdditionalActionMultiPagePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AA << /WC 5 0 R >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] >>",
+            "endobj",
+            "5 0 obj",
+            "<< /S /JavaScript /JS (app.alert('close')) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
             "%%EOF"
         }) + "\n";
 

@@ -5,6 +5,18 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfLogicalTableValueAnalysisTests {
     [Fact]
+    public void ValueKind_AddsCurrencyWithoutRenumberingExistingMembers() {
+        Assert.Equal(0, (int)PdfLogicalTableValueKind.Empty);
+        Assert.Equal(1, (int)PdfLogicalTableValueKind.Text);
+        Assert.Equal(2, (int)PdfLogicalTableValueKind.Number);
+        Assert.Equal(3, (int)PdfLogicalTableValueKind.Percentage);
+        Assert.Equal(4, (int)PdfLogicalTableValueKind.Boolean);
+        Assert.Equal(5, (int)PdfLogicalTableValueKind.DateTime);
+        Assert.Equal(6, (int)PdfLogicalTableValueKind.Time);
+        Assert.Equal(7, (int)PdfLogicalTableValueKind.Currency);
+    }
+
+    [Fact]
     public void Extract_ProfilesRichTableValueKindsForAllAdapters() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 760,
@@ -231,5 +243,237 @@ public sealed class PdfLogicalTableValueAnalysisTests {
         Assert.Equal(0.25M, arabic);
         Assert.True(PdfLogicalTableValueParser.TryParsePercentage("１００％", null, out decimal fullWidth));
         Assert.Equal(1M, fullWidth);
+    }
+
+    [Theory]
+    [InlineData("$5%")]
+    [InlineData("€10%")]
+    [InlineData("USD 12%")]
+    [InlineData("12 PLN%")]
+    public void TryParsePercentage_RejectsCurrencyAffixes(string source) {
+        Assert.False(PdfLogicalTableValueParser.TryParsePercentage(
+            source,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out _));
+    }
+
+    [Fact]
+    public void Analyze_KeepsCurrencyAffixedPercentValuesAsText() {
+        IReadOnlyList<IReadOnlyList<string>> rows = new[] {
+            (IReadOnlyList<string>) new[] { "$5%" },
+            new[] { "€10%" }
+        };
+
+        PdfLogicalTableValueProfile profile = Assert.Single(
+            PdfLogicalTableValueAnalysis.Analyze(new[] { "Rate" }, rows));
+
+        Assert.Equal(PdfLogicalTableValueKind.Text, profile.Kind);
+        Assert.Equal(1D, profile.Confidence);
+    }
+
+    [Fact]
+    public void Analyze_PreservesConsistentCurrencyAffixesAsTypedEvidence() {
+        IReadOnlyList<IReadOnlyList<string>> rows = new[] {
+            (IReadOnlyList<string>) new[] { "25.00 PLN", "$1,234.50" },
+            new[] { "75.25 PLN", "$2,345.75" }
+        };
+
+        IReadOnlyList<PdfLogicalTableValueProfile> profiles = PdfLogicalTableValueAnalysis.Analyze(
+            new[] { "ISO", "Symbol" },
+            rows,
+            new PdfLogicalTableValueAnalysisOptions {
+                NumericCulture = System.Globalization.CultureInfo.InvariantCulture
+            });
+
+        Assert.All(profiles, static profile => Assert.Equal(PdfLogicalTableValueKind.Currency, profile.Kind));
+        Assert.Equal(new[] { "PLN", "$" }, profiles.Select(static profile => profile.CurrencyToken));
+        Assert.Equal(
+            new PdfLogicalCurrencyAffixPosition?[] {
+                PdfLogicalCurrencyAffixPosition.Suffix,
+                PdfLogicalCurrencyAffixPosition.Prefix
+            },
+            profiles.Select(static profile => profile.CurrencyAffixPosition));
+        Assert.Equal(new bool?[] { true, false }, profiles.Select(static profile => profile.CurrencyAffixUsesSpacing));
+        Assert.True(PdfLogicalTableValueParser.TryParseCurrency(
+            "25.00 PLN",
+            System.Globalization.CultureInfo.InvariantCulture,
+            out decimal isoValue,
+            out string isoToken));
+        Assert.Equal(25M, isoValue);
+        Assert.Equal("PLN", isoToken);
+        Assert.True(PdfLogicalTableValueParser.TryParseCurrency(
+            "10,50 zł",
+            System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
+            out decimal localizedValue,
+            out string localizedToken));
+        Assert.Equal(10.50M, localizedValue);
+        Assert.Equal("zł", localizedToken);
+    }
+
+    [Theory]
+    [InlineData("XCG 100.00", PdfLogicalCurrencyAffixPosition.Prefix)]
+    [InlineData("100.00 XCG", PdfLogicalCurrencyAffixPosition.Suffix)]
+    public void TryParseCurrency_RecognizesTheCurrentCaribbeanGuilderCode(
+        string value,
+        PdfLogicalCurrencyAffixPosition expectedPosition) {
+        Assert.True(PdfLogicalTableValueParser.TryParseCurrency(
+            value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out decimal parsed,
+            out string token,
+            out PdfLogicalCurrencyAffixPosition position,
+            out bool usesSpacing));
+
+        Assert.Equal(100M, parsed);
+        Assert.Equal("XCG", token);
+        Assert.Equal(expectedPosition, position);
+        Assert.True(usesSpacing);
+    }
+
+    [Fact]
+    public void Analyze_KeepsMixedCurrencyAffixPlacementAsText() {
+        IReadOnlyList<IReadOnlyList<string>> rows = new[] {
+            (IReadOnlyList<string>) new[] { "$25.00" },
+            new[] { "75.00$" }
+        };
+
+        PdfLogicalTableValueProfile profile = Assert.Single(
+            PdfLogicalTableValueAnalysis.Analyze(new[] { "Amount" }, rows));
+
+        Assert.Equal(PdfLogicalTableValueKind.Text, profile.Kind);
+        Assert.Null(profile.CurrencyToken);
+        Assert.Null(profile.CurrencyAffixPosition);
+        Assert.Null(profile.CurrencyAffixUsesSpacing);
+    }
+
+    [Theory]
+    [InlineData("𞋿12.50", PdfLogicalCurrencyAffixPosition.Prefix)]
+    [InlineData("12.50𞋿", PdfLogicalCurrencyAffixPosition.Suffix)]
+    public void TryParseCurrency_PreservesSupplementaryUnicodeCurrencySymbols(
+        string value,
+        PdfLogicalCurrencyAffixPosition expectedPosition) {
+        Assert.True(PdfLogicalTableValueParser.TryParseCurrency(
+            value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out decimal parsed,
+            out string token,
+            out PdfLogicalCurrencyAffixPosition position,
+            out bool usesSpacing));
+
+        Assert.Equal(12.5M, parsed);
+        Assert.Equal("𞋿", token);
+        Assert.Equal(expectedPosition, position);
+        Assert.False(usesSpacing);
+    }
+
+    [Theory]
+    [InlineData("$12", 0)]
+    [InlineData("$12.5", 1)]
+    [InlineData("$12.500", 3)]
+    [InlineData("12.125 KWD", 3)]
+    public void TryParseCurrency_ReportsVisibleFractionalPrecision(string value, int expectedDecimalPlaces) {
+        Assert.True(PdfLogicalTableValueParser.TryParseCurrency(
+            value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out _,
+            out _,
+            out _,
+            out _,
+            out int decimalPlaces));
+
+        Assert.Equal(expectedDecimalPlaces, decimalPlaces);
+    }
+
+    [Theory]
+    [InlineData("-$1,234.00", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("($1,234.00)", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("-1,234.00 USD", -1234D, PdfLogicalCurrencyAffixPosition.Suffix, true)]
+    [InlineData("(1,234.00 USD)", -1234D, PdfLogicalCurrencyAffixPosition.Suffix, true)]
+    [InlineData("$-1,234.00", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("$1,234.00-", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("1,234.00-$", -1234D, PdfLogicalCurrencyAffixPosition.Suffix, false)]
+    [InlineData("1,234.00 USD-", -1234D, PdfLogicalCurrencyAffixPosition.Suffix, true)]
+    [InlineData("\u2212$1,234.00", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("\uFE63$1,234.00", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("\uFF0D$1,234.00", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("$\u22121,234.00", -1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    [InlineData("1,234.00 USD\u2212", -1234D, PdfLogicalCurrencyAffixPosition.Suffix, true)]
+    [InlineData("\uFF0B$1,234.00", 1234D, PdfLogicalCurrencyAffixPosition.Prefix, false)]
+    public void TryParseCurrency_RecognizesSignedAndAccountingAffixes(
+        string value,
+        double expected,
+        PdfLogicalCurrencyAffixPosition expectedPosition,
+        bool expectedSpacing) {
+        Assert.True(PdfLogicalTableValueParser.TryParseCurrency(
+            value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out decimal parsed,
+            out _,
+            out PdfLogicalCurrencyAffixPosition position,
+            out bool usesSpacing));
+
+        Assert.Equal((decimal)expected, parsed);
+        Assert.Equal(expectedPosition, position);
+        Assert.Equal(expectedSpacing, usesSpacing);
+    }
+
+    [Fact]
+    public void Analyze_KeepsSignedCurrencyColumnsTyped() {
+        IReadOnlyList<IReadOnlyList<string>> rows = new[] {
+            (IReadOnlyList<string>) new[] { "$1,234.00" },
+            new[] { "-$20.50" },
+            new[] { "($5.25)" },
+            new[] { "$6.75-" }
+        };
+
+        PdfLogicalTableValueProfile profile = Assert.Single(PdfLogicalTableValueAnalysis.Analyze(
+            new[] { "Amount" },
+            rows,
+            new PdfLogicalTableValueAnalysisOptions {
+                NumericCulture = System.Globalization.CultureInfo.InvariantCulture
+            }));
+
+        Assert.Equal(PdfLogicalTableValueKind.Currency, profile.Kind);
+        Assert.Equal("$", profile.CurrencyToken);
+        Assert.Equal(PdfLogicalCurrencyAffixPosition.Prefix, profile.CurrencyAffixPosition);
+    }
+
+    [Theory]
+    [InlineData("\u2212$\u22121,234.00")]
+    [InlineData("\uFF0B$+1,234.00")]
+    public void TryParseCurrency_RejectsRepeatedEquivalentSigns(string value) {
+        Assert.False(PdfLogicalTableValueParser.TryParseCurrency(
+            value, System.Globalization.CultureInfo.InvariantCulture, out _, out _));
+    }
+
+    [Fact]
+    public void TryParseCurrency_RecognizesCurrentBmpCurrencySymbolsAcrossTargets() {
+        Assert.True(PdfLogicalTableValueParser.TryParseCurrency(
+            "\u20C112.50",
+            System.Globalization.CultureInfo.InvariantCulture,
+            out decimal parsed,
+            out string token));
+
+        Assert.Equal(12.5M, parsed);
+        Assert.Equal("\u20C1", token);
+    }
+
+    [Theory]
+    [InlineData("123kg")]
+    [InlineData("123 ABC")]
+    [InlineData("123 ABCD")]
+    [InlineData("usd 123")]
+    [InlineData("ABC text")]
+    [InlineData("USD $5")]
+    [InlineData("$$5")]
+    [InlineData("$5 USD")]
+    [InlineData("USD 5 USD")]
+    [InlineData("$5$0")]
+    public void TryParseCurrency_RejectsUnitsAndUnstructuredText(string value) {
+        Assert.False(PdfLogicalTableValueParser.TryParseCurrency(
+            value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out _,
+            out _));
     }
 }

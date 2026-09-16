@@ -83,6 +83,20 @@ internal static class PdfPageRangeObjectFilter {
         return selectedOutlines.Count == 0 ? Array.Empty<PdfOutlineItem>() : selectedOutlines.AsReadOnly();
     }
 
+    internal static int CountOutlinesByPageNumbers(IReadOnlyList<PdfOutlineItem> outlines, int[] pageNumbers) {
+        if (outlines.Count == 0) {
+            return 0;
+        }
+
+        var selectedPageNumbers = new HashSet<int>(pageNumbers);
+        int count = 0;
+        for (int i = 0; i < outlines.Count; i++) {
+            count += CountOutlineByPageNumbers(outlines[i], selectedPageNumbers);
+        }
+
+        return count;
+    }
+
     internal static IReadOnlyList<PdfNamedDestination> FilterNamedDestinationsByPageNumbers(IReadOnlyList<PdfNamedDestination> namedDestinations, int[] pageNumbers) {
         if (namedDestinations.Count == 0) {
             return namedDestinations;
@@ -107,6 +121,26 @@ internal static class PdfPageRangeObjectFilter {
 
         var selectedPageNumbers = new HashSet<int>(pageNumbers);
         return selectedPageNumbers.Contains(openAction.PageNumber.Value) ? openAction : null;
+    }
+
+    internal static int CountDocumentActionsByPageNumbers(PdfDocumentInfo sourceInfo, int[] pageNumbers) {
+        PdfDocumentOpenAction? selectedOpenAction = FilterOpenActionByPageNumbers(sourceInfo.OpenAction, pageNumbers);
+        bool excludedReadableOpenAction = sourceInfo.OpenAction is not null && selectedOpenAction is null;
+        int openActionCatalogCount = sourceInfo.CatalogActions.Count(static action =>
+            string.Equals(action.Source, "OpenAction", StringComparison.Ordinal));
+        int count = Math.Max(
+            0,
+            sourceInfo.CatalogActionCount - (excludedReadableOpenAction ? openActionCatalogCount : 0));
+        if (selectedOpenAction is not null && !sourceInfo.CatalogActions.Any(static action =>
+                string.Equals(action.Source, "OpenAction", StringComparison.Ordinal) && !action.IsChainedAction)) {
+            count++;
+        }
+
+        if (count == 0 && sourceInfo.OpenAction is null && sourceInfo.HasOpenActions) {
+            count = 1;
+        }
+
+        return count;
     }
 
     internal static IReadOnlyList<PdfFormField> FilterFormFieldsByPageNumbers(IReadOnlyList<PdfFormField> formFields, int[] pageNumbers, bool preservePageDuplicates) {
@@ -233,5 +267,15 @@ internal static class PdfPageRangeObjectFilter {
             keepOwnDestination ? outline.DestinationBottom : null,
             keepOwnDestination ? outline.DestinationRight : null,
             keepOwnDestination ? outline.DestinationZoom : null);
+    }
+
+    private static int CountOutlineByPageNumbers(PdfOutlineItem outline, HashSet<int> selectedPageNumbers) {
+        int childCount = 0;
+        for (int i = 0; i < outline.Children.Count; i++) {
+            childCount += CountOutlineByPageNumbers(outline.Children[i], selectedPageNumbers);
+        }
+
+        bool keepOwnDestination = !outline.PageNumber.HasValue || selectedPageNumbers.Contains(outline.PageNumber.Value);
+        return keepOwnDestination || childCount > 0 ? childCount + 1 : 0;
     }
 }

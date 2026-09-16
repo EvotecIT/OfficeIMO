@@ -1512,6 +1512,38 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtmlResult_ReportsIncludedFormWidgetsAsStaticApproximations() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .TextField("Approval", width: 120, value: "Ready")
+            .ToBytes();
+
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf)
+            .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+
+        Assert.Contains("class=\"pdf-form-widget\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfFormWidgetsFlattened" &&
+            warning.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_ReportsOptionalContentAsFlattened() {
+        byte[] pdf = CreateOptionalContentPdf();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
+        Assert.Equal(1, logical.OptionalContentGroupCount);
+
+        PdfHtmlConversionResult result = logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfOptionalContentGroupsFlattened" &&
+            warning.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+    }
+
+    [Fact]
     public void Pdf_ToHtmlResult_SnapshotsConversionReportWhenOptionsAreReused() {
         byte[] imagePdf = CreateImageSamplePdf();
         byte[] textPdf = CreateLogicalSamplePdf();
@@ -1857,9 +1889,117 @@ public sealed class HtmlPdfTests {
         Assert.Equal(1, result.Summary.SelectedPageActionCount);
         Assert.Equal(3, result.Summary.AnnotationActionCount);
         Assert.Equal(3, result.Summary.SelectedAnnotationActionCount);
+        Assert.True(result.HasLoss);
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
         Assert.DoesNotContain("app.alert", result.Value, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("tool.exe", result.Value, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("https://example.com/submit", result.Value, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_PartialPageRangeReportsOmittedDocumentWideCatalogActions() {
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult
+            .Load(CreateTwoPageCatalogActionPdf())
+            .ToHtmlResult(new PdfToHtmlOptions {
+                Profile = PdfHtmlProfile.Semantic,
+                PageRanges = new[] { PdfCore.PdfPageRange.From(1, 1) }
+            });
+
+        Assert.Equal(2, result.Summary.SourcePageCount);
+        Assert.Equal(new[] { 1 }, result.Summary.PageNumbers);
+        Assert.True(result.Summary.HasCatalogActions);
+        Assert.Equal(1, result.Summary.CatalogActionCount);
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_OpenedPdfPartialPageRangeReportsOmittedCatalogActions() {
+        PdfHtmlConversionResult result = PdfCore.PdfDocument.Load(CreateTwoPageCatalogActionPdf())
+            .ToHtmlResult(new PdfToHtmlOptions {
+                Profile = PdfHtmlProfile.Semantic,
+                PageRanges = new[] { PdfCore.PdfPageRange.From(1, 1) }
+            });
+
+        Assert.Equal(new[] { 1 }, result.Summary.PageNumbers);
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_ReportsSupplementalActionsStrippedFromRenderedLink() {
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult
+            .Load(CreateLinkWithSupplementalActionsPdf())
+            .ToHtmlResult(new PdfToHtmlOptions {
+                Profile = PdfHtmlProfile.PositionedReview,
+                IncludeLinkAnnotations = true
+            });
+
+        Assert.Contains("href=\"https://example.com/preserved\"", result.Value, StringComparison.Ordinal);
+        Assert.Equal(3, result.Summary.SelectedAnnotationActionCount);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted");
+        Assert.StartsWith("2 ", warning.Message, StringComparison.Ordinal);
+        Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.DoesNotContain("app.alert", result.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("tool.exe", result.Value, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Pdf_ToPositionedHtml_ScalesFallbackTextByPageUserUnit() {
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult
+            .Load(CreateInvisibleTextUserUnitPdf())
+            .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+
+        Assert.Contains("style=\"width:320pt;height:320pt;\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-text\" style=\"left:40pt;top:120pt;width:", result.Value, StringComparison.Ordinal);
+        Assert.Contains(";font-size:20pt;\">OCR text</div>", result.Value, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToPositionedHtml_ScalesSubUnitImageAndLinkBeforeApplyingMinimumSize() {
+        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 160,
+                PageHeight = 160,
+                MarginLeft = 0,
+                MarginRight = 0,
+                MarginTop = 0,
+                MarginBottom = 0
+            })
+            .Canvas(canvas => canvas.Image(
+                PdfPngTestImages.CreateRgbPng(1, 1),
+                20D,
+                30D,
+                0.5D,
+                0.25D))
+            .ToBytes();
+        source = WithUserUnit(source, 10D);
+
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(source)
+            .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+
+        Assert.Contains("style=\"width:1600pt;height:1600pt;\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("width:5pt;height:2.5pt;", result.Value, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-image-placeholder\"", result.Value, StringComparison.Ordinal);
+
+        const string linkUri = "https://example.com/sub-unit";
+        var linkOptions = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        linkOptions.IncludeLinkAnnotations = true;
+        PdfHtmlConversionResult linkResult = PdfCore.PdfDocumentReadResult.Load(CreateSubUnitUserUnitLinkPdf(linkUri))
+            .ToHtmlResult(linkOptions);
+
+        Assert.Contains("class=\"pdf-link\"", linkResult.Value, StringComparison.Ordinal);
+        Assert.Contains("width:5pt;height:2.5pt\"", linkResult.Value, StringComparison.Ordinal);
+        Assert.Contains("href=\"" + linkUri + "\"", linkResult.Value, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1929,6 +2069,36 @@ public sealed class HtmlPdfTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateOptionalContentPdf() {
+        const string content = "/OC /InvoiceLayer BDC EMC";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [5 0 R] /D << /ON [5 0 R] /Order [5 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Properties << /InvoiceLayer 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + content.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            content,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /OCG /Name (Invoice details) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
             "%%EOF"
         }) + "\n";
 
@@ -2008,6 +2178,138 @@ public sealed class HtmlPdfTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 10 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateTwoPageCatalogActionPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Names [(Catalog) 7 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >> stream",
+            "",
+            "endstream endobj",
+            "5 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 6 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Length 0 >> stream",
+            "",
+            "endstream endobj",
+            "7 0 obj",
+            "<< /S /JavaScript /JS (app.alert('catalog')) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateLinkWithSupplementalActionsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /Annots [5 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Preserved link) /A << /S /URI /URI (https://example.com/preserved) /Next 6 0 R >> /AA << /E 7 0 R >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /S /JavaScript /JS (app.alert('chained')) >>",
+            "endobj",
+            "7 0 obj",
+            "<< /S /Launch /F (tool.exe) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateInvisibleTextUserUnitPdf() {
+        const string content = "BT /F1 10 Tf 3 Tr 20 100 Td (OCR text) Tj ET\n";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] /UserUnit 2 /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            content.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] WithUserUnit(byte[] source, double userUnit) =>
+        PdfCore.PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfCore.PdfIndirectObject page = Assert.Single(objects.Values, static item =>
+                item.Value is PdfCore.PdfDictionary dictionary &&
+                string.Equals(dictionary.Get<PdfCore.PdfName>("Type")?.Name, "Page", StringComparison.Ordinal));
+            Assert.IsType<PdfCore.PdfDictionary>(page.Value).Items["UserUnit"] = new PdfCore.PdfNumber(userUnit);
+            return security.InfoObjectNumber;
+        });
+
+    private static byte[] CreateSubUnitUserUnitLinkPdf(string uri) {
+        string escapedUri = uri.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] /UserUnit 10 /Annots [4 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            $"<< /Type /Annot /Subtype /Link /Rect [20 30 20.5 30.25] /A << /S /URI /URI ({escapedUri}) >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 5 >>",
             "%%EOF"
         }) + "\n";
 

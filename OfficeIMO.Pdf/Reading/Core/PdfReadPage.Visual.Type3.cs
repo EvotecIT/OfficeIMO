@@ -381,7 +381,7 @@ public sealed partial class PdfReadPage {
             (!imageDictionary.Items.TryGetValue("ColorSpace", out PdfObject? maskColorSpaceObject) ||
              ResolveEffectObject(maskColorSpaceObject) is PdfNull) &&
             HasValidType3ImageMaskDecode(imageDictionary);
-        if (imageDictionary == null) return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal);
+        if (imageDictionary == null) return !string.Equals(image.MimeType, "image/jpeg", StringComparison.Ordinal);
         return !HasType3IccBasedColorSpace(imageDictionary, resources) &&
             HasValidType3IndexedColorSpaceDeclaration(imageDictionary, resources, placement.InlineImageStream != null) &&
             ResourceResolver.CanProjectImageColorSpace(
@@ -398,7 +398,7 @@ public sealed partial class PdfReadPage {
                 _objects,
                 pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
                 pageContentBudget?.ColorFunctionResolutionContext) &&
-            (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
+            (!string.Equals(image.MimeType, "image/jpeg", StringComparison.Ordinal) ||
              ResourceResolver.CanPassThroughDctDecode(
                  imageDictionary,
                  resources,
@@ -407,7 +407,7 @@ public sealed partial class PdfReadPage {
     }
 
     private bool HasMatchingType3DctDimensions(PdfExtractedImage image, PdfDictionary imageDictionary, PdfDictionary? resources) {
-        if (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal)) return true;
+        if (!string.Equals(image.MimeType, "image/jpeg", StringComparison.Ordinal)) return true;
         return OfficeImageReader.TryValidateContent(image.Bytes, ".jpg", out OfficeImageInfo validated) &&
             (!OfficeImageOrientationNormalizer.TryRead(image.Bytes, out OfficeImageOrientation orientation) ||
              orientation == OfficeImageOrientation.Normal) &&
@@ -810,7 +810,7 @@ public sealed partial class PdfReadPage {
                 null);
 
         var patternDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
-        AddVisualPrimitive(patternDrawing, localPaintBounds, new PdfTextClippingBudget());
+        AddVisualPrimitive(patternDrawing, localPaintBounds, new PdfTextClippingBudget(), allowRedundantPageClipRemoval: false);
         if (patternDrawing.Elements.Count == 0) return Type3PatternImageMaskDrawingResult.Unsupported;
 
         var maskDrawing = new OfficeDrawing(fitted.Width, fitted.Height);

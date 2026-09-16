@@ -125,6 +125,7 @@ public class PowerPointPdfTableImportTests {
 
         PdfPowerPointEditablePageEntry page = Assert.Single(result.Report.EditablePages);
         Assert.True(page.ShapeCount >= 1);
+        Assert.Equal(0, page.OmittedVectorCount);
         using var presentation = new MemoryStream();
         using (result.Value) result.Value.Save(presentation);
         using PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false);
@@ -133,6 +134,41 @@ public class PowerPointPdfTableImportTests {
         Assert.Contains(
             slide.Slide.Descendants<A.PresetGeometry>(),
             geometry => geometry.Preset?.Value == A.ShapeTypeValues.Rectangle);
+    }
+
+    [Fact]
+    public void LogicalEditableContentReportsRepresentableVectorsAsOmittedWithoutRenderer() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 300,
+                PageBackgroundShapes = new[] {
+                    PdfCore.PdfPageBackgroundShape.Rectangle(
+                        40,
+                        210,
+                        120,
+                        36,
+                        fill: PdfCore.PdfColor.FromRgb(219, 234, 254),
+                        stroke: PdfCore.PdfColor.FromRgb(37, 99, 235),
+                        strokeWidth: 1)
+                }
+            })
+            .Paragraph(paragraph => paragraph.Text("Logical-only vector"))
+            .ToBytes();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
+        PdfCore.PdfLogicalPage sourcePage = Assert.Single(logical.Pages);
+        Assert.True(sourcePage.VectorPrimitiveCount > 0);
+
+        PdfPowerPointConversionResult result = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+
+        using (result.Value) {
+            PdfPowerPointEditablePageEntry page = Assert.Single(result.Report.EditablePages);
+            Assert.Equal(0, page.ShapeCount);
+            Assert.Equal(sourcePage.VectorPrimitiveCount, page.OmittedVectorCount);
+            Assert.Contains(result.Warnings, static warning =>
+                warning.Code == "PdfVectorsNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
     }
 
     [Theory]
@@ -338,7 +374,15 @@ public class PowerPointPdfTableImportTests {
 
     [Fact]
     public void PdfDocument_ToPowerPointPresentation_EditableContinuationTablesStayInsideSlide() {
-        byte[] pdf = PdfCore.PdfDocument.Create()
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 3600D,
+                PageHeight = 1800D,
+                MarginLeft = 36D,
+                MarginRight = 36D,
+                MarginTop = 36D,
+                MarginBottom = 36D,
+                DefaultFontSize = 10D
+            })
             .Table(new[] {
                 new[] { "Metric", "Value" },
                 new[] { "One", "1" },
@@ -357,12 +401,15 @@ public class PowerPointPdfTableImportTests {
             Assert.True(result.Value.Slides.Count > 1);
             double slideWidth = result.Value.SlideSize.WidthPoints;
             double slideHeight = result.Value.SlideSize.HeightPoints;
+            int primaryFontSize = Assert.Single(result.Value.Slides[0].Tables).GetCell(0, 0).FontSize ?? 0;
+            Assert.InRange(primaryFontSize, 1, 3);
             foreach (OfficeIMO.PowerPoint.PowerPointSlide slide in result.Value.Slides.Skip(1)) {
                 OfficeIMO.PowerPoint.PowerPointTable table = Assert.Single(slide.Tables);
                 Assert.InRange(table.LeftPoints, 0D, slideWidth);
                 Assert.InRange(table.TopPoints, 0D, slideHeight);
                 Assert.True(table.LeftPoints + table.WidthPoints <= slideWidth + 0.01D);
                 Assert.True(table.TopPoints + table.HeightPoints <= slideHeight + 0.01D);
+                Assert.InRange(table.GetCell(0, 0).FontSize ?? 0, 10, 18);
             }
         }
     }
@@ -412,6 +459,63 @@ public class PowerPointPdfTableImportTests {
         SlidePart slide = Assert.Single(package.PresentationPart!.SlideParts);
         Assert.Single(slide.Slide.Descendants<DocumentFormat.OpenXml.Presentation.Picture>());
         Assert.Single(slide.Slide.Descendants<A.Table>());
+    }
+
+    [Fact]
+    public void PdfDocument_ToPowerPointPresentation_ReportsDocumentActionsAsOmittedFromHybridAndEditableOutput() {
+        var pdfOptions = new PdfCore.PdfOptions {
+            PageWidth = 420,
+            PageHeight = 360,
+            MarginLeft = 36,
+            MarginRight = 36,
+            MarginTop = 36,
+            MarginBottom = 36,
+            DefaultFontSize = 10
+        }.SetOpenAction(1, destinationMode: PdfCore.PdfOpenActionDestinationMode.Fit);
+        byte[] tablePdf = PdfCore.PdfDocument.Create(pdfOptions)
+            .Table(new[] {
+                new[] { "Code", "Qty" },
+                new[] { "A-100", "2" },
+                new[] { "B-200", "14" }
+            })
+            .ToBytes();
+        byte[] pdf = PdfCore.PdfDocument.Load(tablePdf)
+            .JavaScript.AddOrReplace("Initialize", "app.alert('open');")
+            .ToBytes();
+
+        PdfPowerPointConversionResult hybrid = PdfCore.PdfDocument.Load(pdf)
+            .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateHybrid());
+        using (hybrid.Value) {
+            Assert.True(Assert.Single(hybrid.Report.VisualPages).Succeeded);
+            Assert.Equal(2, hybrid.Report.SourceScope!.DocumentActionCount);
+            Assert.True(hybrid.Report.HasOmittedPageContent);
+            Assert.True(hybrid.Report.HasLoss);
+            PdfCore.PdfConversionWarning warning = Assert.Single(hybrid.Warnings, static warning =>
+                warning.Code == "PdfDocumentActionsNotReconstructed");
+            Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
+            Assert.Equal("2", warning.Details["Count"]);
+            Assert.Equal("Omitted", warning.Details["Disposition"]);
+            Assert.Throws<InvalidOperationException>(() => hybrid.RequireNoLoss());
+        }
+
+        PdfPowerPointConversionResult editable = PdfCore.PdfDocumentReadResult.Load(pdf)
+            .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateEditableContent());
+        using (editable.Value) {
+            Assert.Contains(editable.Warnings, static warning =>
+                warning.Code == "PdfDocumentActionsNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.True(editable.Report.HasLoss);
+            Assert.Throws<InvalidOperationException>(() => editable.RequireNoLoss());
+        }
+
+        PdfPowerPointConversionResult visual = PdfCore.PdfDocument.Load(pdf)
+            .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateVisualPages());
+        using (visual.Value) {
+            Assert.True(visual.Report.HasOmittedPageContent);
+            Assert.Contains(visual.Warnings, static warning =>
+                warning.Code == "PdfDocumentActionsNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
     }
 
     [Fact]
@@ -736,10 +840,20 @@ public class PowerPointPdfTableImportTests {
             imageCount: 1,
             linkCount: 0,
             formWidgetCount: 0,
+            formFieldCount: 0,
+            hasAcroFormXfa: false,
             annotationCount: 0,
             pageActionCount: 0,
-            optionalContentGroupCount: 0,
+            catalogActionCount: 0,
+            hasOpenAction: false,
+            documentActionCount: 0,
+            optionalContentGroupCount: 1,
+            pagesWithOptionalContent: 1,
             interactiveMediaAnnotationCount: 0,
+            unplacedFormFieldCount: 0,
+            outlineCount: 0,
+            attachmentCount: 0,
+            hasTaggedContent: false,
             analysisTruncated: false);
         var failedScope = new PdfCore.PdfTableExtractionScopeReport(
             sourcePageCount: 1,
@@ -750,10 +864,20 @@ public class PowerPointPdfTableImportTests {
             imageCount: 0,
             linkCount: 0,
             formWidgetCount: 0,
+            formFieldCount: 0,
+            hasAcroFormXfa: false,
             annotationCount: 0,
             pageActionCount: 0,
+            catalogActionCount: 0,
+            hasOpenAction: false,
+            documentActionCount: 0,
             optionalContentGroupCount: 0,
+            pagesWithOptionalContent: 0,
             interactiveMediaAnnotationCount: 0,
+            unplacedFormFieldCount: 0,
+            outlineCount: 0,
+            attachmentCount: 0,
+            hasTaggedContent: false,
             analysisTruncated: false);
         var report = new PdfPowerPointConversionReport(
             Array.Empty<PdfPowerPointTableImportEntry>(),
@@ -765,11 +889,118 @@ public class PowerPointPdfTableImportTests {
             failedScope);
 
         Assert.False(report.HasOmittedPageContent);
+        PdfCore.PdfConversionWarning groupWarning = Assert.Single(
+            report.Warnings,
+            static warning => warning.Code == "PdfGroupsNotEditable");
+        Assert.Equal(PdfCore.PdfConversionWarningSeverity.Information, groupWarning.Severity);
+        Assert.Equal("VisualOnly", groupWarning.Details["Disposition"]);
         PdfCore.PdfConversionWarning imageWarning = Assert.Single(
             report.Warnings,
             static warning => warning.Code == "PdfImagesNotEditable");
         Assert.Equal(PdfCore.PdfConversionWarningSeverity.Information, imageWarning.Severity);
         Assert.Equal("VisualOnly", imageWarning.Details["Disposition"]);
+    }
+
+    [Theory]
+    [InlineData(1, 0, "PdfPageActionsNotReconstructed", OfficeConversionLossKind.Omission, true)]
+    [InlineData(0, 1, "PdfGroupsNotEditable", OfficeConversionLossKind.Approximation, false)]
+    [InlineData(0, 0, "PdfNavigationNotEditable", OfficeConversionLossKind.Approximation, false)]
+    [InlineData(0, 0, "PdfFormsAndControlsNotEditable", OfficeConversionLossKind.Approximation, false)]
+    [InlineData(0, 0, "PdfAnnotationsNotEditable", OfficeConversionLossKind.Approximation, false)]
+    [InlineData(0, 0, "PdfAnimationsNotEditable", OfficeConversionLossKind.Approximation, false)]
+    public void PdfPowerPointConversionReport_HybridReportsNonvisualPageFactsAsLoss(
+        int pageActionCount,
+        int optionalContentPageCount,
+        string warningCode,
+        OfficeConversionLossKind lossKind,
+        bool hasOmittedPageContent) {
+        var successfulRender = new PdfCore.PdfPageRenderResult(
+            1, PdfCore.PdfPageRenderFormat.Png, new byte[] { 1 }, 1, 1, TimeSpan.Zero,
+            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>());
+        var scope = new PdfCore.PdfTableExtractionScopeReport(
+            sourcePageCount: 1, pagesWithTables: 1, detectedTableCount: 1,
+            nonTableTextBlockCount: 0, vectorPrimitiveCount: 0, imageCount: 0,
+            linkCount: warningCode == "PdfNavigationNotEditable" ? 1 : 0,
+            formWidgetCount: warningCode == "PdfFormsAndControlsNotEditable" ? 1 : 0,
+            formFieldCount: 0, hasAcroFormXfa: false,
+            annotationCount: warningCode == "PdfAnnotationsNotEditable" ? 1 : 0,
+            pageActionCount: pageActionCount,
+            catalogActionCount: 0, hasOpenAction: false, documentActionCount: 0,
+            optionalContentGroupCount: optionalContentPageCount,
+            pagesWithOptionalContent: optionalContentPageCount,
+            interactiveMediaAnnotationCount: warningCode == "PdfAnimationsNotEditable" ? 1 : 0,
+            unplacedFormFieldCount: 0,
+            outlineCount: 0, attachmentCount: 0, hasTaggedContent: false,
+            analysisTruncated: false);
+        var report = new PdfPowerPointConversionReport(
+            Array.Empty<PdfPowerPointTableImportEntry>(),
+            new[] { new PdfPowerPointVisualPageEntry(successfulRender, slideIndex: 0) },
+            scope, scope);
+
+        Assert.True(report.HasLoss);
+        Assert.Equal(hasOmittedPageContent, report.HasOmittedPageContent);
+        PdfCore.PdfConversionWarning warning = Assert.Single(report.Warnings,
+            item => item.Code == warningCode);
+        Assert.Equal(lossKind, warning.LossKind);
+        if (warningCode == "PdfGroupsNotEditable") Assert.Equal("VisualOnly", warning.Details["Disposition"]);
+    }
+
+    [Fact]
+    public void PdfPowerPointConversionReport_ClassifiesOmittedEditableTableContentAsOmission() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Text outside a table"))
+            .ToBytes();
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
+            .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateEditableTables());
+        using (result.Value) {
+            PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings,
+                static item => item.Code == "PdfTextNotEditable");
+            Assert.Equal("Omitted", warning.Details["Disposition"]);
+            Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
+            Assert.True(result.HasOmittedPageContent);
+        }
+    }
+
+    [Fact]
+    public void PdfPowerPointConversionReport_ClassifiesPartiallyOmittedHybridContentAsOmission() {
+        var successfulRender = new PdfCore.PdfPageRenderResult(
+            1, PdfCore.PdfPageRenderFormat.Png, new byte[] { 1 }, 1, 1, TimeSpan.Zero,
+            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>());
+        var failedRender = new PdfCore.PdfPageRenderResult(
+            2, PdfCore.PdfPageRenderFormat.Png, null, 0, 0, TimeSpan.Zero,
+            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>(), new[] { "render failed" });
+        var sourceScope = new PdfCore.PdfTableExtractionScopeReport(
+            sourcePageCount: 2, pagesWithTables: 0, detectedTableCount: 0,
+            nonTableTextBlockCount: 2, vectorPrimitiveCount: 0, imageCount: 0,
+            linkCount: 0, formWidgetCount: 0, formFieldCount: 0, hasAcroFormXfa: false,
+            annotationCount: 0, pageActionCount: 0, catalogActionCount: 0,
+            hasOpenAction: false, documentActionCount: 0, optionalContentGroupCount: 0,
+            pagesWithOptionalContent: 0, interactiveMediaAnnotationCount: 0,
+            unplacedFormFieldCount: 0, outlineCount: 0, attachmentCount: 0,
+            hasTaggedContent: false, analysisTruncated: false);
+        var failedScope = new PdfCore.PdfTableExtractionScopeReport(
+            sourcePageCount: 1, pagesWithTables: 0, detectedTableCount: 0,
+            nonTableTextBlockCount: 1, vectorPrimitiveCount: 0, imageCount: 0,
+            linkCount: 0, formWidgetCount: 0, formFieldCount: 0, hasAcroFormXfa: false,
+            annotationCount: 0, pageActionCount: 0, catalogActionCount: 0,
+            hasOpenAction: false, documentActionCount: 0, optionalContentGroupCount: 0,
+            pagesWithOptionalContent: 0, interactiveMediaAnnotationCount: 0,
+            unplacedFormFieldCount: 0, outlineCount: 0, attachmentCount: 0,
+            hasTaggedContent: false, analysisTruncated: false);
+        var report = new PdfPowerPointConversionReport(
+            Array.Empty<PdfPowerPointTableImportEntry>(),
+            new[] {
+                new PdfPowerPointVisualPageEntry(successfulRender, slideIndex: 0),
+                new PdfPowerPointVisualPageEntry(failedRender, slideIndex: 1)
+            },
+            sourceScope,
+            failedScope);
+
+        PdfCore.PdfConversionWarning warning = Assert.Single(report.Warnings,
+            static item => item.Code == "PdfTextNotEditable");
+        Assert.Equal("PartiallyOmitted", warning.Details["Disposition"]);
+        Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
+        Assert.True(report.HasOmittedPageContent);
     }
 
     [Fact]
@@ -831,6 +1062,136 @@ public class PowerPointPdfTableImportTests {
         Assert.True(columnWidths[1] > columnWidths[0]);
         Assert.True(columnWidths[1] > columnWidths[2]);
         Assert.Contains(ReadAllText(package), text => text == "PDF page 1, table 1");
+    }
+
+    [Fact]
+    public void PdfDocument_ToPowerPointPresentation_VisualReportsFailedPagePixelsAsOmitted() {
+        byte[] pdf = PdfCore.PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Invoice"))
+            .ToBytes();
+        var options = PdfToPowerPointOptions.CreateVisualPages();
+        options.MaxPixelsPerPage = 10;
+
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf).ToPowerPointPresentationResult(options);
+        using (result.Value) {
+            Assert.False(Assert.Single(result.Report.VisualPages).Succeeded);
+            Assert.True(result.Report.HasOmittedPageContent);
+            Assert.Contains(result.Report.Warnings, static warning =>
+                warning.Code == "PdfVisualPageRenderFailed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission &&
+                warning.Details["Disposition"] == "Omitted");
+        }
+    }
+
+    [Fact]
+    public void PdfDocument_ToPowerPointPresentation_VisualScopesOutlineWarningsToSelectedPages() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions { CreateOutlineFromHeadings = true })
+            .Paragraph(paragraph => paragraph.Text("Selected first page"))
+            .PageBreak()
+            .H1("Excluded second-page outline")
+            .ToBytes();
+        PdfCore.PdfDocument opened = PdfCore.PdfDocument.Load(pdf);
+        PdfCore.PdfDocumentInfo sourceInfo = opened.Inspect();
+        Assert.Single(sourceInfo.Outlines);
+        Assert.Equal(2, sourceInfo.Outlines[0].PageNumber);
+        var options = PdfToPowerPointOptions.CreateVisualPages();
+        options.ReadOptions = new PdfCore.PdfReadOptions {
+            PageSelection = PdfCore.PdfPageSelection.From(1)
+        };
+
+        PdfPowerPointConversionResult result = opened.ToPowerPointPresentationResult(options);
+
+        using (result.Value) {
+            Assert.Equal(1, Assert.Single(result.Report.VisualPages).PageNumber);
+            Assert.DoesNotContain(result.Warnings, static warning =>
+                warning.Code == "PdfOutlinesNotReconstructed");
+        }
+    }
+
+    [Fact]
+    public void PdfEditableContent_PreservesTypographyAcrossUserUnitScaling() {
+        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Paragraph(paragraph => paragraph.Text("Standalone marker"))
+            .Table(new[] {
+                new[] { "Code", "Qty" },
+                new[] { "A-100", "2" }
+            }, style: new PdfCore.PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 150, 80 },
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+
+        PdfPowerPointConversionResult baseline = LoadTables(source).ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult scaled = LoadTables(WithUserUnit(source, 2D)).ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+
+        using (baseline.Value)
+        using (scaled.Value) {
+            OfficeIMO.PowerPoint.PowerPointSlide baselineSlide = Assert.Single(baseline.Value.Slides);
+            OfficeIMO.PowerPoint.PowerPointSlide scaledSlide = Assert.Single(scaled.Value.Slides);
+            int? baselineTableFontSize = Assert.Single(baselineSlide.Tables).GetCell(0, 0).FontSize;
+            int? scaledTableFontSize = Assert.Single(scaledSlide.Tables).GetCell(0, 0).FontSize;
+            double? baselineTextFontSize = Assert.Single(
+                baselineSlide.TextBoxes,
+                static textBox => textBox.Text == "Standalone marker").Paragraphs[0].Runs[0].FontSizePoints;
+            double? scaledTextFontSize = Assert.Single(
+                scaledSlide.TextBoxes,
+                static textBox => textBox.Text == "Standalone marker").Paragraphs[0].Runs[0].FontSizePoints;
+
+            Assert.Equal(baselineTableFontSize, scaledTableFontSize);
+            Assert.Equal(baselineTextFontSize, scaledTextFontSize);
+        }
+    }
+
+    [Fact]
+    public void PdfEditableContent_PreservesTableTypographyAboveEighteenPoints() {
+        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 24
+            })
+            .Table(new[] {
+                new[] { "Metric", "Value" },
+                new[] { "Large", "24 pt" }
+            }, style: new PdfCore.PdfTableStyle {
+                FontSize = 24,
+                HeaderFontSize = 24,
+                ColumnWidthPoints = new List<double?> { 150, 100 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        PdfPowerPointConversionResult result = LoadTables(source).ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        byte[] serialized;
+        int tableFontSize;
+        using (result.Value) {
+            OfficeIMO.PowerPoint.PowerPointSlide slide = Assert.Single(result.Value.Slides);
+            tableFontSize = Assert.Single(slide.Tables).GetCell(0, 0).FontSize ?? 0;
+            Assert.True(tableFontSize > 18);
+            serialized = result.Value.ToBytes();
+        }
+
+        using OfficeIMO.PowerPoint.PowerPointPresentation reopened =
+            OfficeIMO.PowerPoint.PowerPointPresentation.Load(new MemoryStream(serialized));
+        OfficeIMO.PowerPoint.PowerPointSlide reopenedSlide = Assert.Single(reopened.Slides);
+        int reopenedTableFontSize = Assert.Single(reopenedSlide.Tables).GetCell(0, 0).FontSize ?? 0;
+        Assert.True(reopenedTableFontSize > 18);
+        Assert.Equal(tableFontSize, reopenedTableFontSize);
     }
 
     [Fact]
@@ -1064,6 +1425,15 @@ public class PowerPointPdfTableImportTests {
             ? PdfCore.PdfDocumentReadResult.Load(pdf, layout)
             : PdfCore.PdfDocumentReadResult.LoadPageRanges(pdf, layout, ranges);
     }
+
+    private static byte[] WithUserUnit(byte[] source, double userUnit) =>
+        PdfCore.PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfCore.PdfIndirectObject page = Assert.Single(objects.Values, static item =>
+                item.Value is PdfCore.PdfDictionary dictionary &&
+                string.Equals(dictionary.Get<PdfCore.PdfName>("Type")?.Name, "Page", StringComparison.Ordinal));
+            Assert.IsType<PdfCore.PdfDictionary>(page.Value).Items["UserUnit"] = new PdfCore.PdfNumber(userUnit);
+            return security.InfoObjectNumber;
+        });
 
     private static A.Table GetSingleTable(PresentationDocument package) {
         return Assert.Single(package.PresentationPart!.SlideParts.SelectMany(part => part.Slide.Descendants<A.Table>()));

@@ -4,12 +4,13 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class ResourceResolver {
     private static bool TryGetJpxPayload(PdfStream stream, Dictionary<int, PdfIndirectObject> objects,
-        string colorSpace, int maximumBytes, out byte[] payload, CancellationToken cancellationToken = default) {
+        string colorSpace, bool hasUnsupportedColorSpaceDeclaration, int maximumBytes, out byte[] payload, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         payload = Array.Empty<byte>();
         // An RGBA codec can honor the codestream's own Gray/RGB samples. PDF-specific masks,
         // alternate color spaces, and output-intent conversion require sample-level normalization.
-        if (colorSpace is not ("" or "DeviceGray" or "G" or "DeviceRGB" or "RGB") ||
+        if (hasUnsupportedColorSpaceDeclaration ||
+            colorSpace is not ("" or "DeviceGray" or "G" or "DeviceRGB" or "RGB") ||
             GetTransparencyMaskKind(stream.Dictionary, objects) != null ||
             PdfImageMaskNormalizer.IsImageMask(stream, objects)) return false;
         if (stream.Dictionary.Items.TryGetValue("SMaskInData", out PdfObject? embeddedMask) &&
@@ -39,7 +40,12 @@ internal static partial class ResourceResolver {
             payload = Filters.StreamDecoder.DecodeRequired(prefix, stream.Data, objects, maximumBytes, cancellationToken);
             // SMaskInData=0 (including absence) requires ignoring encoded alpha. Until sample-level
             // normalization is available, only prove opaque Gray/RGB headers safe for pass-through.
-            if (!OfficeIMO.Drawing.OfficeJpeg2000Header.TryGetOpaqueDimensions(payload, out int components, out int width, out int height) ||
+            if (!OfficeIMO.Drawing.OfficeJpeg2000Header.TryValidateOpaquePayload(
+                    payload,
+                    cancellationToken,
+                    out int components,
+                    out int width,
+                    out int height) ||
                 stream.Dictionary.Get<PdfNumber>("Width")?.Value != width ||
                 stream.Dictionary.Get<PdfNumber>("Height")?.Value != height || (long)width * height * 4L > maximumBytes) return false;
             return colorSpace == "" || (components == 1 ? colorSpace is "DeviceGray" or "G" : colorSpace is "DeviceRGB" or "RGB");

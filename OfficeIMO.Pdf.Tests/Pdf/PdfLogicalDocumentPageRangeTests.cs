@@ -1,5 +1,6 @@
 using System.Text;
 using OfficeIMO.Pdf;
+using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -144,6 +145,44 @@ public partial class PdfDocumentReadResultTests {
         Assert.Equal(2, full.PageLabels.Count);
         Assert.Equal(new[] { 0, 2 }, full.PageLabels.Select(label => label.StartPageIndex).ToArray());
         Assert.Equal(new[] { 10, 3 }, full.PageLabels.Select(label => label.StartNumber!.Value).ToArray());
+    }
+
+    [Fact]
+    public void LogicalPowerPointSelection_ReportsOnlyEffectivePageLabels() {
+        PdfDocumentReadResult full = PdfDocumentReadResult.Load(BuildThreePageLabelPdf(labelOnlyThirdPage: true));
+        Assert.Equal(2, Assert.Single(full.PageLabels).StartPageIndex);
+
+        PdfToPowerPointOptions firstOptions = PdfToPowerPointOptions.CreateEditableTables();
+        firstOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) };
+        PdfPowerPointConversionResult first = full.ToPowerPointPresentationResult(firstOptions);
+        using (first.Value) {
+            Assert.Equal(0, first.Report.SourceScope!.PageLabelCount);
+            Assert.DoesNotContain(first.Warnings, static warning => warning.Code == "PdfPageLabelsNotReconstructed");
+        }
+
+        PdfToPowerPointOptions thirdOptions = PdfToPowerPointOptions.CreateEditableTables();
+        thirdOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(3) };
+        PdfPowerPointConversionResult third = full.ToPowerPointPresentationResult(thirdOptions);
+        using (third.Value) {
+            Assert.Equal(1, third.Report.SourceScope!.PageLabelCount);
+            Assert.Contains(third.Warnings, static warning => warning.Code == "PdfPageLabelsNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
+    }
+
+    [Fact]
+    public void LogicalProjection_FiltersPageBoundDocumentObjectsLikeReadTimeSelection() {
+        byte[] pdf = BuildThreePageLogicalPdf();
+        PdfDocumentReadResult full = PdfDocumentReadResult.Load(pdf);
+        PdfDocumentReadResult projected = full.ProjectPages(PdfPageSelection.From(1), nameof(PdfPageSelection));
+        PdfDocumentReadResult selectedAtRead = PdfDocumentReadResult.LoadPageRanges(pdf, PdfPageRange.From(1, 1));
+
+        Assert.Equal(selectedAtRead.Outlines.Count, projected.Outlines.Count);
+        Assert.Equal(selectedAtRead.NamedDestinations.Select(static item => item.Name),
+            projected.NamedDestinations.Select(static item => item.Name));
+        Assert.Equal(selectedAtRead.FormFields.Count, projected.FormFields.Count);
+        Assert.Equal(selectedAtRead.CatalogActions.Count, projected.CatalogActions.Count);
+        Assert.Equal(selectedAtRead.Attachments.Count, projected.Attachments.Count);
     }
 
     [Fact]

@@ -1246,11 +1246,16 @@ internal static partial class ResourceResolver {
         string? transparencyMaskKind = GetTransparencyMaskKind(stream.Dictionary, objects);
         bool transparencyMaskResolved = false;
 
+        bool hasUnsupportedJpxColorSpaceDeclaration = colorSpaceObject != null &&
+            PdfObjectLookup.ResolveChain(objects, effectiveColorSpaceObject) is not PdfName;
         if (!hasMalformedFilterDeclaration && !hasSupportedOutputIntent &&
-            TryGetJpxPayload(stream, objects, colorSpace, maxDecodedStreamBytes, out byte[] jpxPayload, cancellationToken)) {
+            TryGetJpxPayload(stream, objects, colorSpace, hasUnsupportedJpxColorSpaceDeclaration, maxDecodedStreamBytes, out byte[] jpxPayload, cancellationToken)) {
             bytes = jpxPayload;
-            extension = "jp2";
-            mimeType = "image/jp2";
+            OfficeIMO.Drawing.OfficeImageFormat format = OfficeIMO.Drawing.OfficeJpeg2000Header.IsJp2Container(jpxPayload)
+                ? OfficeIMO.Drawing.OfficeImageFormat.Jpeg2000
+                : OfficeIMO.Drawing.OfficeImageFormat.Jpeg2000Codestream;
+            extension = OfficeIMO.Drawing.OfficeImageInfo.GetDefaultExtension(format).TrimStart('.');
+            mimeType = OfficeIMO.Drawing.OfficeImageInfo.GetMimeType(format);
             isImageFile = true;
         } else if (!hasMalformedFilterDeclaration &&
             isImageMask &&
@@ -1314,6 +1319,18 @@ internal static partial class ResourceResolver {
                 maxDecodedStreamBytes);
         }
 
+        bool hasDecodeEntry = stream.Dictionary.Items.TryGetValue("Decode", out PdfObject? decodeObject);
+        PdfObject? resolvedDecode = PdfObjectLookup.ResolveChain(objects, decodeObject);
+        bool hasExplicitDecode = resolvedDecode is PdfArray;
+        bool hasMalformedDecode = hasDecodeEntry && resolvedDecode is not (PdfArray or PdfNull);
+        int decodeComponentCount = GetDeclaredDeviceColorCount(colorSpace);
+        bool hasUnsafePassThroughDecode = hasMalformedDecode ||
+            hasExplicitDecode && (decodeComponentCount == 0 ||
+             !PdfImageDecodeTransform.IsIdentityColorDecodeOrAbsent(
+                 stream.Dictionary,
+                 decodeComponentCount,
+                 objects));
+
         return new PdfExtractedImage(
             pageNumber,
             resourceName,
@@ -1333,12 +1350,27 @@ internal static partial class ResourceResolver {
             isImageMask,
             imageMaskColor ?? OfficeColor.Black,
             renderingIntent,
-            hasExplicitDecode: stream.Dictionary.Items.ContainsKey("Decode"),
-            hasDecodeParameters: stream.Dictionary.Items.ContainsKey("DecodeParms") || stream.Dictionary.Items.ContainsKey("DP"),
+            hasExplicitDecode: hasExplicitDecode,
+            hasDecodeParameters: HasResolvedDecodeParametersEntry(stream.Dictionary, objects),
             interpolate: stream.Dictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) &&
                 ResolveObject(interpolateObject, objects) is PdfBoolean { Value: true },
             hasAuthoredRenderingIntent: hasAuthoredRenderingIntent || inheritedHasAuthoredRenderingIntent,
-            requiresScanDecode: HasScanFilter(filterObj, objects));
+            requiresScanDecode: HasScanFilter(filterObj, objects),
+            hasUnsafePassThroughDecode: hasUnsafePassThroughDecode);
+    }
+
+    private static bool HasResolvedDecodeParametersEntry(
+        PdfDictionary dictionary,
+        Dictionary<int, PdfIndirectObject> objects) {
+        PdfObject? value = dictionary.Items.TryGetValue("DecodeParms", out PdfObject? fullName)
+            ? fullName
+            : dictionary.Items.TryGetValue("DP", out PdfObject? abbreviation)
+                ? abbreviation
+                : null;
+        PdfObject? resolved = PdfObjectLookup.ResolveChain(objects, value);
+        if (resolved is PdfDictionary) return true;
+        if (resolved is not PdfArray array) return false;
+        return array.Items.Any(item => PdfObjectLookup.ResolveChain(objects, item) is PdfDictionary);
     }
 
     private static bool HasScanFilter(PdfObject? filters, Dictionary<int, PdfIndirectObject> objects) {
