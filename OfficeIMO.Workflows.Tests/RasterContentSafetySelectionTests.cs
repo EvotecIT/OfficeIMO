@@ -1,0 +1,198 @@
+using OfficeIMO.ContentSafety;
+using OfficeIMO.Drawing;
+using OfficeIMO.Ocr;
+using OfficeIMO.Workflows;
+
+namespace OfficeIMO.Workflows.Tests;
+
+public sealed partial class RasterContentSafetyTests {
+    [Fact]
+    public async Task RedactionRejectsPaddingThatOverlapsUnselectedVisibleText() {
+        var raster = new OfficeRasterImage(32, 16, OfficeColor.White);
+        for (int y = 4; y < 10; y++) {
+            for (int x = 3; x < 13; x++) raster.SetPixel(x, y, OfficeColor.FromRgb(248, 248, 248));
+            for (int x = 16; x < 24; x++) raster.SetPixel(x, y, OfficeColor.Black);
+        }
+        byte[] image = OfficePngWriter.Encode(raster);
+        IOcrEngine engine = CreateEngine(_ => new OcrResult {
+            Text = "concealed visible",
+            Spans = new[] {
+                Span(0, "concealed", new OcrRegion { X = 3, Y = 4, Width = 10, Height = 6 }, 0.99D),
+                Span(1, "visible", new OcrRegion { X = 16, Y = 4, Width = 8, Height = 6 }, 0.99D)
+            }
+        });
+        var options = new OfficeRasterContentSafetyOptions {
+            EnableOpaqueRectangleRedaction = true,
+            RedactionPaddingPixels = 4
+        };
+        OfficeContentSafetyFinding finding = Assert.Single(
+            (await OfficeRasterContentSafety.InspectAsync(image, engine, options)).Findings);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            OfficeRasterContentSafety.RedactSelectedContentAsync(
+                image,
+                engine,
+                new OfficeContentCleanupSelection(new[] { finding.Id }),
+                options));
+    }
+
+    [Fact]
+    public async Task RedactionRejectsAnOverlappingConcealedSpanThatWasNotSelected() {
+        byte[] image = CreateImage(40, 20, OfficeColor.White,
+            new PixelBox(5, 6, 24, 6), OfficeColor.FromRgb(248, 248, 248));
+        IOcrEngine engine = CreateEngine(_ => new OcrResult {
+            Text = "concealed line",
+            Spans = new[] {
+                Span(0, "concealed", new OcrRegion { X = 5, Y = 6, Width = 12, Height = 6 }, 0.99D),
+                Span(1, "concealed line", new OcrRegion { X = 5, Y = 6, Width = 24, Height = 6 }, 0.99D,
+                    OcrTextSpanLevel.Line)
+            }
+        });
+        var options = new OfficeRasterContentSafetyOptions {
+            EnableOpaqueRectangleRedaction = true,
+            RedactionPaddingPixels = 0
+        };
+        OfficeContentSafetyReport report = await OfficeRasterContentSafety.InspectAsync(image, engine, options);
+        Assert.Equal(2, report.Findings.Count);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            OfficeRasterContentSafety.RedactSelectedContentAsync(
+                image,
+                engine,
+                new OfficeContentCleanupSelection(new[] { report.Findings[0].Id }),
+                options));
+    }
+
+    [Theory]
+    [InlineData(OcrDiagnosticSeverity.Error, true)]
+    [InlineData(OcrDiagnosticSeverity.Warning, false)]
+    public async Task RedactionRejectsFailedPostInspectionDiagnostics(
+        OcrDiagnosticSeverity severity,
+        bool isRecoverable) {
+        byte[] image = CreateImage(30, 16, OfficeColor.White,
+            new PixelBox(3, 4, 20, 6), OfficeColor.FromRgb(248, 248, 248));
+        int calls = 0;
+        IOcrEngine engine = CreateEngine(_ => calls++ < 2
+            ? Result("concealed", new OcrRegion { X = 3, Y = 4, Width = 20, Height = 6 }, 0.99D)
+            : new OcrResult {
+                Diagnostics = new[] {
+                    new OcrDiagnostic {
+                        Severity = severity,
+                        Code = "recognition-failed",
+                        Message = "Recognition did not complete.",
+                        IsRecoverable = isRecoverable
+                    }
+                }
+            });
+        var options = new OfficeRasterContentSafetyOptions { EnableOpaqueRectangleRedaction = true };
+        OfficeContentSafetyFinding finding = Assert.Single(
+            (await OfficeRasterContentSafety.InspectAsync(image, engine, options)).Findings);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            OfficeRasterContentSafety.RedactSelectedContentAsync(
+                image,
+                engine,
+                new OfficeContentCleanupSelection(new[] { finding.Id }),
+                options));
+    }
+
+    [Fact]
+    public async Task RedactionBoundsRegionIntersectionComparisons() {
+        var raster = new OfficeRasterImage(40, 20, OfficeColor.White);
+        for (int y = 5; y < 11; y++) {
+            for (int x = 2; x < 10; x++) raster.SetPixel(x, y, OfficeColor.FromRgb(248, 248, 248));
+            for (int x = 20; x < 26; x++) raster.SetPixel(x, y, OfficeColor.Black);
+            for (int x = 30; x < 36; x++) raster.SetPixel(x, y, OfficeColor.Black);
+        }
+        byte[] image = OfficePngWriter.Encode(raster);
+        IOcrEngine engine = CreateEngine(_ => new OcrResult {
+            Text = "concealed visible visible",
+            Spans = new[] {
+                Span(0, "concealed", new OcrRegion { X = 2, Y = 5, Width = 8, Height = 6 }, 0.99D),
+                Span(1, "visible", new OcrRegion { X = 20, Y = 5, Width = 6, Height = 6 }, 0.99D),
+                Span(2, "visible", new OcrRegion { X = 30, Y = 5, Width = 6, Height = 6 }, 0.99D)
+            }
+        });
+        var options = new OfficeRasterContentSafetyOptions {
+            EnableOpaqueRectangleRedaction = true,
+            MaximumRegionComparisons = 1,
+            RedactionPaddingPixels = 0
+        };
+        OfficeContentSafetyFinding finding = Assert.Single(
+            (await OfficeRasterContentSafety.InspectAsync(image, engine, options)).Findings);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            OfficeRasterContentSafety.RedactSelectedContentAsync(
+                image,
+                engine,
+                new OfficeContentCleanupSelection(new[] { finding.Id }),
+                options));
+    }
+
+    [Fact]
+    public async Task RedactionSharesRegionComparisonBudgetWithPostInspection() {
+        var raster = new OfficeRasterImage(40, 20, OfficeColor.White);
+        for (int y = 5; y < 11; y++) {
+            for (int x = 2; x < 10; x++) raster.SetPixel(x, y, OfficeColor.FromRgb(248, 248, 248));
+            for (int x = 25; x < 33; x++) raster.SetPixel(x, y, OfficeColor.Black);
+        }
+        byte[] image = OfficePngWriter.Encode(raster);
+        int calls = 0;
+        IOcrEngine engine = CreateEngine(_ => calls++ < 2
+            ? new OcrResult {
+                Text = "concealed visible",
+                Spans = new[] {
+                    Span(0, "concealed", new OcrRegion { X = 2, Y = 5, Width = 8, Height = 6 }, 0.99D),
+                    Span(1, "visible", new OcrRegion { X = 25, Y = 5, Width = 8, Height = 6 }, 0.99D)
+                }
+            }
+            : Result("visible", new OcrRegion { X = 25, Y = 5, Width = 8, Height = 6 }, 0.99D));
+        var options = new OfficeRasterContentSafetyOptions {
+            EnableOpaqueRectangleRedaction = true,
+            MaximumRegionComparisons = 1,
+            RedactionPaddingPixels = 0
+        };
+        OfficeContentSafetyFinding finding = Assert.Single(
+            (await OfficeRasterContentSafety.InspectAsync(image, engine, options)).Findings);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            OfficeRasterContentSafety.RedactSelectedContentAsync(
+                image,
+                engine,
+                new OfficeContentCleanupSelection(new[] { finding.Id }),
+                options));
+    }
+
+    [Fact]
+    public async Task RedactionWithEveryRecognizedSpanSelectedNeedsNoPreComparisonBudget() {
+        byte[] image = CreateImage(40, 20, OfficeColor.White,
+            new PixelBox(5, 6, 24, 6), OfficeColor.FromRgb(248, 248, 248));
+        int calls = 0;
+        IOcrEngine engine = CreateEngine(_ => calls++ < 2
+            ? new OcrResult {
+                Text = "concealed line",
+                Spans = new[] {
+                    Span(0, "concealed", new OcrRegion { X = 5, Y = 6, Width = 12, Height = 6 }, 0.99D),
+                    Span(1, "concealed line", new OcrRegion { X = 5, Y = 6, Width = 24, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Line)
+                }
+            }
+            : new OcrResult());
+        var options = new OfficeRasterContentSafetyOptions {
+            EnableOpaqueRectangleRedaction = true,
+            MaximumRegionComparisons = 1,
+            RedactionPaddingPixels = 0
+        };
+        OfficeContentSafetyReport report = await OfficeRasterContentSafety.InspectAsync(image, engine, options);
+        Assert.Equal(2, report.Findings.Count);
+
+        OfficeContentCleanupResult cleanup = await OfficeRasterContentSafety.RedactSelectedContentAsync(
+            image,
+            engine,
+            new OfficeContentCleanupSelection(report.Findings.Select(finding => finding.Id).ToArray()),
+            options);
+
+        Assert.True(cleanup.Changed);
+        Assert.Equal(2, cleanup.Changes.Count);
+    }
+}

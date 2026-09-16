@@ -414,7 +414,7 @@ internal static class OfficeImageMetadataInspector {
     }
 
     private static bool IsUnappliedTiffColorTag(int tag) =>
-        tag == 301 || tag == 318 || tag == 319 || tag == 529 || tag == 532 || tag == 42240;
+        tag == 301 || tag == 318 || tag == 319 || tag == 529 || tag == 532 || tag == 34675 || tag == 42240;
 
     private static void MarkResolution(OfficeImageMetadataSnapshot snapshot, bool isPhysical) {
         snapshot.Kinds |= OfficeImageMetadataKinds.Resolution;

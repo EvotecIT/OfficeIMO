@@ -7,7 +7,7 @@ using System.Text;
 
 namespace OfficeIMO.Workflows.Tests;
 
-public sealed class RasterContentSafetyTests {
+public sealed partial class RasterContentSafetyTests {
     [Fact]
     public async Task InspectFindsLowContrastInstructionOnlyFromBoundedOcrPixels() {
         byte[] image = CreateImage(40, 20, OfficeColor.FromRgb(240, 240, 240),
@@ -260,6 +260,15 @@ public sealed class RasterContentSafetyTests {
     public async Task InspectRejectsUncalibratedExifColorSpace() {
         byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
         byte[] colorManaged = InsertPngChunkBefore(image, "IDAT", "eXIf", CreateExifColorSpace(ushort.MaxValue));
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            OfficeRasterContentSafety.InspectAsync(colorManaged, CreateEngine(_ => new OcrResult())));
+    }
+
+    [Fact]
+    public async Task InspectRejectsExifCarriedIccProfile() {
+        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
+        byte[] colorManaged = InsertPngChunkBefore(image, "IDAT", "eXIf", CreateExifIccProfile());
 
         await Assert.ThrowsAsync<InvalidDataException>(() =>
             OfficeRasterContentSafety.InspectAsync(colorManaged, CreateEngine(_ => new OcrResult())));
@@ -686,6 +695,20 @@ public sealed class RasterContentSafetyTests {
         BinaryPrimitives.WriteUInt16LittleEndian(exif.AsSpan(30, 2), 3);
         BinaryPrimitives.WriteUInt32LittleEndian(exif.AsSpan(32, 4), 1);
         BinaryPrimitives.WriteUInt16LittleEndian(exif.AsSpan(36, 2), colorSpace);
+        return exif;
+    }
+
+    private static byte[] CreateExifIccProfile() {
+        var exif = new byte[26];
+        exif[0] = (byte)'I';
+        exif[1] = (byte)'I';
+        BinaryPrimitives.WriteUInt16LittleEndian(exif.AsSpan(2, 2), 42);
+        BinaryPrimitives.WriteUInt32LittleEndian(exif.AsSpan(4, 4), 8);
+        BinaryPrimitives.WriteUInt16LittleEndian(exif.AsSpan(8, 2), 1);
+        BinaryPrimitives.WriteUInt16LittleEndian(exif.AsSpan(10, 2), 34675);
+        BinaryPrimitives.WriteUInt16LittleEndian(exif.AsSpan(12, 2), 7);
+        BinaryPrimitives.WriteUInt32LittleEndian(exif.AsSpan(14, 4), 4);
+        Encoding.ASCII.GetBytes("acsp", exif.AsSpan(18, 4));
         return exif;
     }
 

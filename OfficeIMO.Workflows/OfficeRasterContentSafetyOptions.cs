@@ -20,6 +20,12 @@ public sealed class OfficeRasterContentSafetyOptions {
     /// </summary>
     public long MaximumPixelAnalysisWork { get; set; } = 64_000_000L;
 
+    /// <summary>
+    /// Maximum cumulative OCR-region intersection comparisons during selected-region redaction.
+    /// Defaults to one million.
+    /// </summary>
+    public long MaximumRegionComparisons { get; set; } = 1_000_000L;
+
     /// <summary>Pixel height at or below which a recognized span is treated as tiny. Defaults to three pixels.</summary>
     public int MaximumTinyTextHeightPixels { get; set; } = 3;
 
@@ -77,6 +83,9 @@ public sealed class OfficeRasterContentSafetyOptions {
         if (MaximumPixelAnalysisWork <= 0L || MaximumPixelAnalysisWork > 1_000_000_000L) {
             throw new ArgumentOutOfRangeException(nameof(MaximumPixelAnalysisWork));
         }
+        if (MaximumRegionComparisons <= 0L || MaximumRegionComparisons > 100_000_000L) {
+            throw new ArgumentOutOfRangeException(nameof(MaximumRegionComparisons));
+        }
         if (MaximumTinyTextHeightPixels < 0 || MaximumTinyTextHeightPixels > 1024) {
             throw new ArgumentOutOfRangeException(nameof(MaximumTinyTextHeightPixels));
         }
@@ -103,6 +112,7 @@ public sealed class OfficeRasterContentSafetyOptions {
             MaximumDecodedPixels,
             MaximumOcrSpans,
             MaximumPixelAnalysisWork,
+            MaximumRegionComparisons,
             MaximumTinyTextHeightPixels,
             MaximumConcealedAlpha,
             OcrTimeout,
@@ -119,6 +129,7 @@ public sealed class OfficeRasterContentSafetyOptions {
             long maximumDecodedPixels,
             int maximumOcrSpans,
             long maximumPixelAnalysisWork,
+            long maximumRegionComparisons,
             int maximumTinyTextHeightPixels,
             byte maximumConcealedAlpha,
             TimeSpan ocrTimeout,
@@ -131,6 +142,7 @@ public sealed class OfficeRasterContentSafetyOptions {
             MaximumDecodedPixels = maximumDecodedPixels;
             MaximumOcrSpans = maximumOcrSpans;
             MaximumPixelAnalysisWork = maximumPixelAnalysisWork;
+            MaximumRegionComparisons = maximumRegionComparisons;
             MaximumTinyTextHeightPixels = maximumTinyTextHeightPixels;
             MaximumConcealedAlpha = maximumConcealedAlpha;
             OcrTimeout = ocrTimeout;
@@ -145,6 +157,7 @@ public sealed class OfficeRasterContentSafetyOptions {
         internal long MaximumDecodedPixels { get; }
         internal int MaximumOcrSpans { get; }
         internal long MaximumPixelAnalysisWork { get; }
+        internal long MaximumRegionComparisons { get; }
         internal int MaximumTinyTextHeightPixels { get; }
         internal byte MaximumConcealedAlpha { get; }
         internal TimeSpan OcrTimeout { get; }

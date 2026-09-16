@@ -24,6 +24,11 @@ public static partial class OfficeRasterContentSafety {
             throw new InvalidDataException("The OCR result exceeds the configured diagnostic limit.");
         }
         ValidateOcrOutputCharacters(result, rawSpans, rawDiagnostics, options);
+        if (rawDiagnostics.Any(diagnostic => diagnostic != null &&
+            (!diagnostic.IsRecoverable || diagnostic.Severity == OcrDiagnosticSeverity.Error))) {
+            throw new InvalidDataException(
+                "OCR reported an error or non-recoverable diagnostic, so recognition could not be accepted.");
+        }
         if (rawSpans.Any(span => span != null && !string.IsNullOrWhiteSpace(span.Text) &&
             !IsSupportedSpanLevel(span.Level))) {
             throw new InvalidDataException("OCR text spans must use line, word, or character granularity.");
@@ -59,7 +64,8 @@ public static partial class OfficeRasterContentSafety {
             }
             remainingPixelWork -= contrastRegion.Area;
             PixelEvidence pixels = InspectPixels(image, region, contrastRegion, cancellationToken);
-            recognizedTargets.Add(new RasterTarget(region));
+            var target = new RasterTarget(region);
+            recognizedTargets.Add(target);
             if (!TryClassify(region, pixels, options, out OfficeContentConcealmentKind kind, out string mechanism)) {
                 visibleSpans++;
                 continue;
@@ -96,7 +102,7 @@ public static partial class OfficeRasterContentSafety {
                 span.Text,
                 capability,
                 inspectTextIntegrityEvidence: false);
-            targets[finding.Id] = new RasterTarget(region);
+            targets[finding.Id] = target;
         }
 
         foreach (OcrDiagnostic diagnostic in rawDiagnostics) {

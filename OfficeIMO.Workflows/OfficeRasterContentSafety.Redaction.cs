@@ -52,7 +52,13 @@ public static partial class OfficeRasterContentSafety {
         }
 
         var changedRegions = new List<PixelRegion>(selectedTargets.Count);
+        var selectedTargetSet = new HashSet<RasterTarget>(selectedTargets);
+        RasterTarget[] unselectedTargets = beforeState.RecognizedTargets
+            .Where(target => !selectedTargetSet.Contains(target))
+            .ToArray();
         long remainingRedactionWork = snapshot.MaximumPixelAnalysisWork;
+        long remainingRegionComparisons = snapshot.MaximumRegionComparisons;
+        int regionComparisonCount = 0;
         for (int index = 0; index < selectedTargets.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             PixelRegion expanded = Expand(
@@ -60,6 +66,16 @@ public static partial class OfficeRasterContentSafety {
                 snapshot.RedactionPaddingPixels,
                 beforeState.Image.Width,
                 beforeState.Image.Height);
+            foreach (RasterTarget target in unselectedTargets) {
+                ChargeRegionComparison(
+                    ref remainingRegionComparisons,
+                    ref regionComparisonCount,
+                    cancellationToken);
+                if (expanded.Intersects(target.Region)) {
+                    throw new InvalidOperationException(
+                        "A selected raster redaction region overlaps recognized text that was not selected.");
+                }
+            }
             long regionWork = checked(expanded.Area * 2L);
             if (regionWork > remainingRedactionWork) {
                 throw new InvalidDataException("Raster redaction work exceeds the configured pixel-analysis limit.");
@@ -90,6 +106,10 @@ public static partial class OfficeRasterContentSafety {
         for (int selectedIndex = 0; selectedIndex < selectedTargets.Count; selectedIndex++) {
             PixelRegion changedRegion = changedRegions[selectedIndex];
             foreach (RasterTarget afterTarget in afterState.RecognizedTargets) {
+                ChargeRegionComparison(
+                    ref remainingRegionComparisons,
+                    ref regionComparisonCount,
+                    cancellationToken);
                 if (!changedRegion.Intersects(afterTarget.Region)) continue;
                 throw new InvalidDataException(
                     "OCR still recognized text inside a changed redaction region; output was not accepted.");
@@ -103,6 +123,17 @@ public static partial class OfficeRasterContentSafety {
                 OfficeContentCleanupCapability.RedactRegion))
             .ToArray();
         return new OfficeContentCleanupResult(output, beforeState.Report, afterState.Report, changes);
+    }
+
+    private static void ChargeRegionComparison(
+        ref long remaining,
+        ref int comparisonCount,
+        CancellationToken cancellationToken) {
+        if (remaining <= 0L) {
+            throw new InvalidDataException("Raster redaction geometry comparisons exceed the configured limit.");
+        }
+        remaining--;
+        if ((comparisonCount++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
     }
 
     private static PixelRegion Expand(PixelRegion region, int padding, int width, int height) =>
