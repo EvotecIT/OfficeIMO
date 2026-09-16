@@ -487,7 +487,7 @@ public static class OfficeConversionCapabilityCatalog {
                     source.Extensions,
                     target.Extension,
                     "OfficeIMO.Bibliography",
-                    "BibliographyDocument.Load(path, BibliographyFormat." + source.EnumValue + ").Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat." + target.EnumValue + " })",
+                    "BibliographyDocument.Load(path, BibliographyFormat." + source.EnumValue + ").Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat." + target.EnumValue + " })",
                     "Convert " + source.Label + " citation data to " + target.Label + " with a deterministic fidelity report.",
                     OfficeConversionFidelityKind.Editable,
                     "BibliographyWriteResult"));

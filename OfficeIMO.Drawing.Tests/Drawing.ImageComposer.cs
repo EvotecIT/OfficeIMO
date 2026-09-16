@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using Xunit;
@@ -65,6 +66,31 @@ namespace OfficeIMO.Tests {
             Assert.Contains("id=\"officeimo-layer-2-officeimo-gradient-1\"", svg);
             Assert.Contains("fill=\"url(#officeimo-layer-2-officeimo-gradient-1)\"", svg);
             Assert.DoesNotContain("id=\"officeimo-gradient-1\"", svg);
+        }
+
+        [Fact]
+        public void OfficeImageComposer_BoundsRepeatedSvgFragmentsDuringComposition() {
+            OfficeImageLayer[] layers = Enumerable.Range(0, 100)
+                .Select(index => OfficeImageLayer.FromSvgInner(
+                    "<text>" + index + "-\u754c</text>",
+                    0,
+                    index,
+                    20,
+                    1))
+                .ToArray();
+
+            OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                OfficeImageComposer.ComposeSvgBytes(
+                    20,
+                    100,
+                    OfficeColor.White,
+                    layers,
+                    maximumUtf8Bytes: 1_024L,
+                    cancellationToken: CancellationToken.None));
+
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+            Assert.Equal(1_024L, exception.Maximum);
+            Assert.True(exception.Actual > exception.Maximum);
         }
 
         [Fact]

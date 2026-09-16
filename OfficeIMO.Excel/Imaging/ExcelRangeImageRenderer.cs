@@ -235,23 +235,23 @@ namespace OfficeIMO.Excel {
             int width = ScaledWidth(snapshot, options);
             int height = ScaledHeight(snapshot, options);
             double scale = options.Scale;
-            int? maximumCharacters = maximumUtf8Bytes.HasValue
-                ? maximumUtf8Bytes.Value > int.MaxValue
-                    ? int.MaxValue
-                    : (int)maximumUtf8Bytes.Value
+            var builder = new StringBuilder();
+            OfficeSvgUtf8CompositionBudget? budget = maximumUtf8Bytes.HasValue
+                ? new OfficeSvgUtf8CompositionBudget(maximumUtf8Bytes.Value)
                 : null;
-            StringBuilder builder = maximumCharacters.HasValue
-                ? new StringBuilder(Math.Min(256, maximumCharacters.Value), maximumCharacters.Value)
-                : new StringBuilder();
-            builder.Append("<svg xmlns=\"http://www.w3.org/2000/svg\"");
-            builder.AppendNumberAttribute("width", width)
+            AppendSvgFragment(builder, budget, fragment => fragment
+                .Append("<svg xmlns=\"http://www.w3.org/2000/svg\"")
+                .AppendNumberAttribute("width", width)
                 .AppendNumberAttribute("height", height)
                 .AppendAttribute("viewBox", "0 0 " + Number(width) + " " + Number(height))
-                .Append('>');
-            OfficeDrawingSvgExporter.AppendEmbeddedFonts(builder, options.Fonts, cancellationToken);
-            var backgroundAttributes = new StringBuilder();
-            backgroundAttributes.AppendPaintAttribute("fill", options.BackgroundColor);
-            builder.AppendRectElement(0D, 0D, width, height, backgroundAttributes.ToString());
+                .Append('>'));
+            AppendSvgFragment(builder, budget, fragment =>
+                OfficeDrawingSvgExporter.AppendEmbeddedFonts(fragment, options.Fonts, cancellationToken));
+            AppendSvgFragment(builder, budget, fragment => {
+                var backgroundAttributes = new StringBuilder();
+                backgroundAttributes.AppendPaintAttribute("fill", options.BackgroundColor);
+                fragment.AppendRectElement(0D, 0D, width, height, backgroundAttributes.ToString());
+            });
             var textMeasurer = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null,
                 options.Fonts, options.TextShapingProvider, options.TextShapingLanguage,
                 cancellationToken: cancellationToken);
@@ -269,21 +269,23 @@ namespace OfficeIMO.Excel {
                 double y = cell.Y * scale;
                 double w = cell.Width * scale;
                 double h = cell.Height * scale;
-                AppendSvgCellFill(builder, cell, snapshot, options, scale, diagnostics);
-                if (dataBars.TryGetValue(Key(cell.Row, cell.Column), out ExcelVisualConditionalDataBar? dataBar)) {
-                    AppendSvgDataBar(builder, dataBar, scale);
-                }
+                AppendSvgFragment(builder, budget, fragment => {
+                    AppendSvgCellFill(fragment, cell, snapshot, options, scale, diagnostics);
+                    if (dataBars.TryGetValue(Key(cell.Row, cell.Column), out ExcelVisualConditionalDataBar? dataBar)) {
+                        AppendSvgDataBar(fragment, dataBar, scale);
+                    }
 
-                if (options.ShowGridlines) {
-                    var gridlineAttributes = new StringBuilder();
-                    gridlineAttributes
-                        .AppendAttribute("fill", "none")
-                        .AppendPaintAttribute("stroke", options.GridlineColor)
-                        .AppendNumberAttribute("stroke-width", Math.Max(1D, scale));
-                    builder.AppendRectElement(x, y, w, h, gridlineAttributes.ToString());
-                }
+                    if (options.ShowGridlines) {
+                        var gridlineAttributes = new StringBuilder();
+                        gridlineAttributes
+                            .AppendAttribute("fill", "none")
+                            .AppendPaintAttribute("stroke", options.GridlineColor)
+                            .AppendNumberAttribute("stroke-width", Math.Max(1D, scale));
+                        fragment.AppendRectElement(x, y, w, h, gridlineAttributes.ToString());
+                    }
 
-                AppendSvgBorders(builder, cell, scale);
+                    AppendSvgBorders(fragment, cell, scale);
+                });
             }
 
             foreach (ExcelVisualCell cell in snapshot.Cells) {
@@ -292,27 +294,32 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                AppendSvgCellText(builder, cell, snapshot, options, textMeasurer, cellsByAddress, dataBars, conditionalIcons, diagnostics);
+                AppendSvgFragment(builder, budget, fragment =>
+                    AppendSvgCellText(fragment, cell, snapshot, options, textMeasurer, cellsByAddress, dataBars, conditionalIcons, diagnostics));
             }
 
-            AppendSvgConditionalIcons(builder, snapshot, options, cancellationToken);
-            AppendSvgSparklines(builder, snapshot, options, cancellationToken);
-            AppendSvgCommentIndicators(builder, snapshot, options, cancellationToken);
-            AppendSvgDrawingLayers(builder, snapshot, options, diagnostics, textMeasurer, cancellationToken);
+            AppendSvgConditionalIcons(builder, snapshot, options, cancellationToken, budget);
+            AppendSvgSparklines(builder, snapshot, options, cancellationToken, budget);
+            AppendSvgCommentIndicators(builder, snapshot, options, cancellationToken, budget);
+            AppendSvgDrawingLayers(builder, snapshot, options, diagnostics, textMeasurer, cancellationToken, budget);
 
-            builder.Append("</svg>");
+            AppendSvgFragment(builder, budget, fragment => fragment.Append("</svg>"));
             cancellationToken.ThrowIfCancellationRequested();
-            string svg = builder.ToString();
-            if (maximumUtf8Bytes.HasValue) {
-                long byteCount = Encoding.UTF8.GetByteCount(svg);
-                if (byteCount > maximumUtf8Bytes.Value) {
-                    throw new OfficeImageExportBatchLimitException(
-                        nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes),
-                        byteCount,
-                        maximumUtf8Bytes.Value);
-                }
+            return builder.ToString();
+        }
+
+        private static void AppendSvgFragment(
+            StringBuilder destination,
+            OfficeSvgUtf8CompositionBudget? budget,
+            Action<StringBuilder> append) {
+            if (budget == null) {
+                append(destination);
+                return;
             }
-            return svg;
+
+            var fragment = new StringBuilder();
+            append(fragment);
+            budget.Append(destination, fragment.ToString());
         }
 
         private static void DrawDataBar(OfficeRasterCanvas canvas, ExcelVisualConditionalDataBar dataBar, double scale) {

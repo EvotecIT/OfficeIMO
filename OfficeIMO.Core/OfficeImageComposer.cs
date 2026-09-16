@@ -102,33 +102,17 @@ public static class OfficeImageComposer {
         Action<StringBuilder>? beforeLayers = null,
         Action<StringBuilder>? afterLayers = null) {
         if (maximumUtf8Bytes < 1L) throw new ArgumentOutOfRangeException(nameof(maximumUtf8Bytes));
-        int maximumCharacters = maximumUtf8Bytes > int.MaxValue
-            ? int.MaxValue
-            : (int)maximumUtf8Bytes;
-        string svg;
-        try {
-            svg = ComposeSvgCore(
-                width,
-                height,
-                backgroundColor,
-                layers,
-                beforeLayers,
-                afterLayers,
-                maximumCharacters,
-                cancellationToken);
-        } catch (ArgumentOutOfRangeException) {
-            throw CreateSvgLimitException(maximumUtf8Bytes);
-        }
+        string svg = ComposeSvgCore(
+            width,
+            height,
+            backgroundColor,
+            layers,
+            beforeLayers,
+            afterLayers,
+            maximumUtf8Bytes,
+            cancellationToken);
 
         cancellationToken.ThrowIfCancellationRequested();
-        long byteCount = Encoding.UTF8.GetByteCount(svg);
-        if (byteCount > maximumUtf8Bytes) {
-            throw new OfficeImageExportBatchLimitException(
-                nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes),
-                byteCount,
-                maximumUtf8Bytes);
-        }
-
         byte[] bytes = Encoding.UTF8.GetBytes(svg);
         cancellationToken.ThrowIfCancellationRequested();
         return bytes;
@@ -151,7 +135,7 @@ public static class OfficeImageComposer {
             layers,
             beforeLayers,
             afterLayers,
-            maximumCharacters: null,
+            maximumUtf8Bytes: null,
             CancellationToken.None);
 
     private static string ComposeSvgCore(
@@ -161,7 +145,7 @@ public static class OfficeImageComposer {
         IEnumerable<OfficeImageLayer> layers,
         Action<StringBuilder>? beforeLayers,
         Action<StringBuilder>? afterLayers,
-        int? maximumCharacters,
+        long? maximumUtf8Bytes,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         ValidateOutputSize(width, height);
@@ -169,19 +153,23 @@ public static class OfficeImageComposer {
             throw new ArgumentNullException(nameof(layers));
         }
 
-        var builder = maximumCharacters.HasValue
-            ? new StringBuilder(Math.Min(256, maximumCharacters.Value), maximumCharacters.Value)
-            : new StringBuilder();
-        builder.Append("<svg xmlns=\"http://www.w3.org/2000/svg\"")
+        var builder = new StringBuilder();
+        OfficeSvgUtf8CompositionBudget? budget = maximumUtf8Bytes.HasValue
+            ? new OfficeSvgUtf8CompositionBudget(maximumUtf8Bytes.Value)
+            : null;
+        AppendSvgFragment(builder, budget, fragment => fragment
+            .Append("<svg xmlns=\"http://www.w3.org/2000/svg\"")
             .AppendNumberAttribute("width", width)
             .AppendNumberAttribute("height", height)
             .AppendAttribute("viewBox", "0 0 " + OfficeSvgFormatting.FormatNumber(width) + " " + OfficeSvgFormatting.FormatNumber(height))
-            .Append('>');
+            .Append('>'));
 
-        var backgroundAttributes = new StringBuilder();
-        backgroundAttributes.AppendPaintAttribute("fill", backgroundColor);
-        builder.AppendRectElement(0D, 0D, width, height, backgroundAttributes.ToString());
-        beforeLayers?.Invoke(builder);
+        AppendSvgFragment(builder, budget, fragment => {
+            var backgroundAttributes = new StringBuilder();
+            backgroundAttributes.AppendPaintAttribute("fill", backgroundColor);
+            fragment.AppendRectElement(0D, 0D, width, height, backgroundAttributes.ToString());
+        });
+        if (beforeLayers != null) AppendSvgFragment(builder, budget, beforeLayers);
         var svgLayers = new List<OfficeImageLayer>();
         var svgLayerIds = new List<HashSet<string>>();
         var seenIds = new HashSet<string>(StringComparer.Ordinal);
@@ -214,20 +202,29 @@ public static class OfficeImageComposer {
                     reservedIds);
             }
 
-            builder.AppendNestedSvg(layer.X, layer.Y, layer.Width, layer.Height, layerContent);
+            AppendSvgFragment(builder, budget, fragment =>
+                fragment.AppendNestedSvg(layer.X, layer.Y, layer.Width, layer.Height, layerContent));
         }
 
-        afterLayers?.Invoke(builder);
-        builder.Append("</svg>");
+        if (afterLayers != null) AppendSvgFragment(builder, budget, afterLayers);
+        AppendSvgFragment(builder, budget, fragment => fragment.Append("</svg>"));
         cancellationToken.ThrowIfCancellationRequested();
         return builder.ToString();
     }
 
-    private static OfficeImageExportBatchLimitException CreateSvgLimitException(long maximumUtf8Bytes) =>
-        new OfficeImageExportBatchLimitException(
-            nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes),
-            maximumUtf8Bytes == long.MaxValue ? long.MaxValue : maximumUtf8Bytes + 1L,
-            maximumUtf8Bytes);
+    private static void AppendSvgFragment(
+        StringBuilder destination,
+        OfficeSvgUtf8CompositionBudget? budget,
+        Action<StringBuilder> append) {
+        if (budget == null) {
+            append(destination);
+            return;
+        }
+
+        var fragment = new StringBuilder();
+        append(fragment);
+        budget.Append(destination, fragment.ToString());
+    }
 
     private static void ValidateOutputSize(int width, int height) {
         if (width <= 0) {

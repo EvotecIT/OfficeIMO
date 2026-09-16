@@ -91,6 +91,9 @@ public static partial class OfficeOperationCapabilityCatalog {
             string[] writableLegacyExtensions = isLegacyCapability
                 ? WritableLegacyExtensions(packageId, legacyExtensions)
                 : legacyExtensions;
+            string[] preservableLegacyExtensions = isLegacyCapability
+                ? PreservableLegacyExtensions(packageId, writableLegacyExtensions, legacyExtensions)
+                : legacyExtensions;
             string[] modernToLegacyExtensions = modernExtensions
                 .Where(extension => !canonicalLegacyExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
                 .ToArray();
@@ -101,7 +104,7 @@ public static partial class OfficeOperationCapabilityCatalog {
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Edit,
                 capability.LegacyRoundTrip, capability.FormatId, null, writableLegacyExtensions, "legacy-round-trip-edit");
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Preserve,
-                capability.LegacyRoundTrip, capability.FormatId, null, writableLegacyExtensions, "legacy-round-trip-preserve");
+                capability.LegacyRoundTrip, capability.FormatId, null, preservableLegacyExtensions, "legacy-round-trip-preserve");
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Convert,
                 capability.ModernToLegacy, modernFormatId, capability.FormatId, modernToLegacyExtensions, "modern-to-legacy");
             AddLegacyRow(rows, catalog, capability, packageId, publicApi, OfficeOperationKind.Convert,
@@ -116,6 +119,22 @@ public static partial class OfficeOperationCapabilityCatalog {
             _ => extensions.ToArray()
         };
         return extensions.Where(extension => writable.Contains(extension, StringComparer.OrdinalIgnoreCase)).ToArray();
+    }
+
+    private static string[] PreservableLegacyExtensions(
+        string packageId,
+        IEnumerable<string> writableExtensions,
+        IEnumerable<string> sourceExtensions) {
+        IEnumerable<string> preservable = writableExtensions;
+        if (string.Equals(packageId, "OfficeIMO.PowerPoint", StringComparison.Ordinal)) {
+            preservable = preservable.Concat(sourceExtensions.Where(extension =>
+                string.Equals(extension, ".ppa", StringComparison.OrdinalIgnoreCase)));
+        }
+
+        return preservable
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(static extension => extension, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private static void AddLegacyRow(

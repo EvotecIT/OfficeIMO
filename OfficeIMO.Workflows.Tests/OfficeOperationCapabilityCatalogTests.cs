@@ -229,13 +229,30 @@ public sealed class OfficeOperationCapabilityCatalogTests {
     [InlineData(".pot", true)]
     [InlineData(".pps", true)]
     [InlineData(".ppa", false)]
-    public void LegacyEditAndPreserveRowsExposeOnlyProvenWriterExtensions(string extension, bool expected) {
+    public void LegacyEditRowsExposeOnlyProvenWriterExtensions(string extension, bool expected) {
         OfficeOperationCapability[] rows = OfficeOperationCapabilityCatalog.FindByExtension(extension)
             .Where(row => row.Id.StartsWith("legacy:", StringComparison.Ordinal))
             .ToArray();
 
-        Assert.All(new[] { OfficeOperationKind.Edit, OfficeOperationKind.Preserve }, operation =>
-            Assert.Equal(expected, rows.Any(row => row.Operation == operation)));
+        Assert.Equal(expected, rows.Any(row => row.Operation == OfficeOperationKind.Edit));
+    }
+
+    [Theory]
+    [InlineData(".xls", true)]
+    [InlineData(".xlt", false)]
+    [InlineData(".xla", false)]
+    [InlineData(".xlm", false)]
+    [InlineData(".xlw", false)]
+    [InlineData(".ppt", true)]
+    [InlineData(".pot", true)]
+    [InlineData(".pps", true)]
+    [InlineData(".ppa", true)]
+    public void LegacyPreserveRowsExposeOnlySourceRoundTripExtensions(string extension, bool expected) {
+        OfficeOperationCapability[] rows = OfficeOperationCapabilityCatalog.FindByExtension(extension)
+            .Where(row => row.Id.StartsWith("legacy:", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.Equal(expected, rows.Any(row => row.Operation == OfficeOperationKind.Preserve));
     }
 
     [Theory]
@@ -275,6 +292,9 @@ public sealed class OfficeOperationCapabilityCatalogTests {
             candidate => candidate.Id == routeId);
         Assert.Equal(packageId, route.PackageId);
         Assert.Equal(targetExtension, route.TargetExtension);
+        if (routeId.StartsWith("bibliography-", StringComparison.Ordinal)) {
+            Assert.Contains(".Document.Save(", route.Api, StringComparison.Ordinal);
+        }
         Assert.Contains(
             OfficeOperationCapabilityCatalog.FindByExtension(sourceExtension),
             row => row.Operation == OfficeOperationKind.Convert &&

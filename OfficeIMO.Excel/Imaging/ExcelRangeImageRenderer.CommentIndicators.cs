@@ -35,7 +35,8 @@ namespace OfficeIMO.Excel {
             StringBuilder builder,
             ExcelRangeVisualSnapshot snapshot,
             ExcelImageExportOptions options,
-            System.Threading.CancellationToken cancellationToken) {
+            System.Threading.CancellationToken cancellationToken,
+            OfficeSvgUtf8CompositionBudget? budget) {
             double scale = options.Scale;
             foreach (ExcelVisualCommentIndicator indicator in snapshot.CommentIndicators) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -48,7 +49,7 @@ namespace OfficeIMO.Excel {
                     new OfficePoint(right, top),
                     new OfficePoint(right, top + size)
                 };
-                builder.AppendPolygonElement(points, color);
+                AppendSvgFragment(builder, budget, fragment => fragment.AppendPolygonElement(points, color));
             }
         }
 
