@@ -50,7 +50,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
     }
     /// <summary>Builds fingerprints and compares local and remote slide content.</summary>
     public static class GoogleSlidesDiffPlanner {
-        private const int CurrentHashFormatVersion = 2;
+        private const int CurrentHashFormatVersion = 3;
 
         /// <summary>Captures the source presentation's current content hashes and optional observed remote revision.</summary>
         /// <remarks>Persist the checkpoint only at a point where it accurately represents the synchronized baseline.</remarks>
@@ -93,10 +93,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             }
         }
         private static IReadOnlyDictionary<string, string> Hashes(PowerPointPresentation presentation) {
-            var result = new Dictionary<string, string>(StringComparer.Ordinal) { ["presentation/size"] = Hash(FormattableString.Invariant($"{presentation.SlideSize.WidthPoints}|{presentation.SlideSize.HeightPoints}")) };
+            var result = new Dictionary<string, string>(StringComparer.Ordinal) { ["presentation/size"] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{presentation.SlideSize.WidthPoints}|{presentation.SlideSize.HeightPoints}")) };
             for (int index = 0; index < presentation.Slides.Count; index++) {
-                PowerPointSlide slide = presentation.Slides[index]; string root = FormattableString.Invariant($"slide/{index + 1}");
-                PowerPointSlideBackground background = slide.GetBackground(); result[root] = Hash(FormattableString.Invariant($"{slide.Hidden}|{BackgroundFingerprint(background)}"));
+                PowerPointSlide slide = presentation.Slides[index]; string root = GoogleWorkspaceCheckpointFormat.Format($"slide/{index + 1}");
+                PowerPointSlideBackground background = slide.GetBackground(); result[root] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{slide.Hidden}|{BackgroundFingerprint(background)}"));
                 foreach (PowerPointShape shape in slide.Shapes.OrderBy(shape => shape.DrawingOrder)) {
                     string text = shape is PowerPointTextBox box ? ProjectedText(box.Paragraphs, box.TextBody?.ListStyle, box.MasterTextStyle)
                         : shape is PowerPointTable table ? string.Join("|", table.RowItems.SelectMany((row, rowIndex) => row.Cells.Select((cell, columnIndex) =>
@@ -110,10 +110,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     };
                     string textStyle = TextStyleFingerprint(shape);
                     string picture = shape is PowerPointPicture image
-                        ? FormattableString.Invariant($"{image.ContentType}|{Hash(image.GetImageBytes())}|{image.CropLeftRatio}|{image.CropTopRatio}|{image.CropRightRatio}|{image.CropBottomRatio}")
+                        ? GoogleWorkspaceCheckpointFormat.Format($"{image.ContentType}|{Hash(image.GetImageBytes())}|{image.CropLeftRatio}|{image.CropTopRatio}|{image.CropRightRatio}|{image.CropBottomRatio}")
                         : string.Empty;
-                    string shapeStyle = FormattableString.Invariant($"{shape.FillColor}|{shape.FillTransparency}|{shape.OutlineColor}|{shape.OutlineWidthPoints}");
-                    result[FormattableString.Invariant($"{root}/element/{shape.DrawingOrder}")] = Hash(FormattableString.Invariant($"{shape.ShapeContentType}|{shape.Name}|{shape.LeftPoints}|{shape.TopPoints}|{shape.WidthPoints}|{shape.HeightPoints}|{shape.Rotation}|{shape.HorizontalFlip}|{shape.VerticalFlip}|{geometry}|{text}|{textStyle}|{picture}|{shapeStyle}"));
+                    string shapeStyle = GoogleWorkspaceCheckpointFormat.Format($"{shape.FillColor}|{shape.FillTransparency}|{shape.OutlineColor}|{shape.OutlineWidthPoints}");
+                    result[GoogleWorkspaceCheckpointFormat.Format($"{root}/element/{shape.DrawingOrder}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{shape.ShapeContentType}|{shape.Name}|{shape.LeftPoints}|{shape.TopPoints}|{shape.WidthPoints}|{shape.HeightPoints}|{shape.Rotation}|{shape.HorizontalFlip}|{shape.VerticalFlip}|{geometry}|{text}|{textStyle}|{picture}|{shapeStyle}"));
                 }
                 if (slide.Notes.TryGetExistingText(out string notes)) result[root + "/notes"] = Hash(notes);
             }
@@ -182,12 +182,12 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         private static OpenXmlCompositeElement? ResolveTableMasterTextStyle(PowerPointTableCell cell) =>
             cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.TextStyles?.OtherStyle;
         private static void AppendFingerprintValue(StringBuilder target, object? value) {
-            string text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+            string text = GoogleWorkspaceCheckpointFormat.Format($"{value}");
             target.Append(text.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(text).Append('|');
         }
         private static string BackgroundFingerprint(PowerPointSlideBackground background) => background.Kind switch {
-            PowerPointSlideBackgroundKind.Image => FormattableString.Invariant($"{background.Kind}|{Hash(background.ImageBytes ?? Array.Empty<byte>())}|{background.ImageContentType}|{background.ImageCropLeft}|{background.ImageCropTop}|{background.ImageCropRight}|{background.ImageCropBottom}"),
-            PowerPointSlideBackgroundKind.LinearGradient => FormattableString.Invariant($"{background.Kind}|{background.GradientStartColor}|{background.GradientEndColor}|{background.GradientAngleDegrees}"),
+            PowerPointSlideBackgroundKind.Image => GoogleWorkspaceCheckpointFormat.Format($"{background.Kind}|{Hash(background.ImageBytes ?? Array.Empty<byte>())}|{background.ImageContentType}|{background.ImageCropLeft}|{background.ImageCropTop}|{background.ImageCropRight}|{background.ImageCropBottom}"),
+            PowerPointSlideBackgroundKind.LinearGradient => GoogleWorkspaceCheckpointFormat.Format($"{background.Kind}|{background.GradientStartColor}|{background.GradientEndColor}|{background.GradientAngleDegrees}"),
             PowerPointSlideBackgroundKind.Unsupported => $"{background.Kind}|{background.UnsupportedReason}",
             _ => $"{background.Kind}|{background.Color}",
         };

@@ -1219,7 +1219,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DiffPlanner_DetectsIndependentEdits() {
-            var checkpoint = new GoogleSlidesSyncCheckpoint { HashFormatVersion = 2 }; checkpoint.ContentHashes["slide/1"] = "base";
+            var checkpoint = new GoogleSlidesSyncCheckpoint { HashFormatVersion = 3 }; checkpoint.ContentHashes["slide/1"] = "base";
             List<GoogleSlidesDiffItem> items = GoogleSlidesDiffPlanner.Compare(new Dictionary<string, string> { ["slide/1"] = "local" }, new Dictionary<string, string> { ["slide/1"] = "remote" }, checkpoint);
             Assert.Equal(GoogleWorkspaceDiffKind.Conflict, Assert.Single(items).Kind);
         }
@@ -1240,6 +1240,23 @@ namespace OfficeIMO.Tests {
                 GoogleSlidesDiffPlanner.BuildAsync(presentation, "deck-legacy", Session(httpClient), legacyCheckpoint));
 
             Assert.Contains("CreateCheckpoint", error.Message);
+            Assert.Equal(0, requests);
+        }
+
+        [Fact]
+        public async Task DiffPlanner_RejectsEarlierInvariantCheckpointBeforeRemoteRead() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.SlideSize.WidthEmus = 1270;
+            GoogleSlidesSyncCheckpoint prior = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation);
+            prior.HashFormatVersion = 2;
+            int requests = 0;
+            using var httpClient = new HttpClient(new DelegateHandler(_ => {
+                requests++;
+                throw new InvalidOperationException("No remote request should be made for an older hash format.");
+            }));
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                GoogleSlidesDiffPlanner.BuildAsync(presentation, "deck-old-format", Session(httpClient), prior));
             Assert.Equal(0, requests);
         }
 
@@ -1282,7 +1299,7 @@ namespace OfficeIMO.Tests {
                 CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
                 GoogleSlidesSyncCheckpoint switched = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation);
 
-                Assert.Equal(2, baseline.HashFormatVersion);
+                Assert.Equal(3, baseline.HashFormatVersion);
                 Assert.Equal(baseline.HashFormatVersion, switched.HashFormatVersion);
                 Assert.Equal(baseline.ContentHashes.Count, switched.ContentHashes.Count);
                 foreach (KeyValuePair<string, string> pair in baseline.ContentHashes) {
@@ -1291,6 +1308,19 @@ namespace OfficeIMO.Tests {
             } finally {
                 CultureInfo.CurrentCulture = previousCulture;
             }
+        }
+
+        [Fact]
+        public void DiffPlanner_CheckpointSizeHashIsPortableAcrossRuntimes() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.SlideSize.WidthEmus = 1234567;
+            presentation.SlideSize.HeightEmus = 2345678;
+
+            GoogleSlidesSyncCheckpoint checkpoint = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation);
+
+            Assert.Equal(3, checkpoint.HashFormatVersion);
+            Assert.Equal("395504268C5C405FC435ED88ED9A50F37AC3472CADC5B5B062647085A77C37E5",
+                checkpoint.ContentHashes["presentation/size"]);
         }
 
         [Fact]
