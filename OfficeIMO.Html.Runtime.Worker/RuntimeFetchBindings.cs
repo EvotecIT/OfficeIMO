@@ -38,10 +38,20 @@ internal sealed class RuntimeFetchBindings : IDisposable {
         var report = JsValue.FromObject(engine, (Action<string>)errors.Report);
         var exports = engine.Invoke(factory, new[] { start, cancel, encode, decode, report, JsValue.FromObject(engine, options.ResourcePolicy.MaxRequestBytes) }).AsObject();
         var window = JsValue.FromObject(engine, document.DefaultView).AsObject();
-        foreach (var property in exports.GetOwnProperties()) {
-            var descriptor = new PropertyDescriptor(property.Value.Value, true, false, true);
-            engine.Global.FastSetProperty(property.Key, descriptor);
-            window.FastSetProperty(property.Key, descriptor);
+        Install(exports);
+        using var xhrStream = typeof(RuntimeFetchBindings).Assembly.GetManifestResourceStream("OfficeIMO.RuntimeXmlHttpRequestBootstrap.js")!;
+        using var xhrReader = new StreamReader(xhrStream);
+        JsValue xhrFactory = engine.Evaluate(xhrReader.ReadToEnd());
+        var xhrExports = engine.Invoke(xhrFactory, new[] { exports.Get("fetch"), exports.Get("Headers"),
+            exports.Get("AbortController"), report }).AsObject();
+        Install(xhrExports);
+
+        void Install(Jint.Native.Object.ObjectInstance values) {
+            foreach (var property in values.GetOwnProperties()) {
+                var descriptor = new PropertyDescriptor(property.Value.Value, true, false, true);
+                engine.Global.FastSetProperty(property.Key, descriptor);
+                window.FastSetProperty(property.Key, descriptor);
+            }
         }
     }
 

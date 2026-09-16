@@ -49,6 +49,249 @@ public sealed class RuntimeFetchTests {
     }
 
     [Fact]
+    public async Task XmlHttpRequestUsesSharedTransportAndBufferedLifecycle() {
+        await using var server = new RuntimeHttpFixture((_, _) => Task.FromResult(RuntimeHttpFixture.Reply.Text(
+            "{\"total\":42}", "application/json", headers: "X-Report: monthly\r\nSet-Cookie: private=value\r\n")));
+        var result = await RunAsync("""
+            return await new Promise((resolve,reject)=>{
+              const xhr=new XMLHttpRequest(), events=[];
+              for(const name of ['readystatechange','loadstart','load','error','loadend'])
+                xhr.addEventListener(name,()=>events.push(name+(name==='readystatechange'?':'+xhr.readyState:'')));
+              xhr.open('GET','/api/report?view=summary#client');
+              xhr.responseType='json';
+              xhr.setRequestHeader('X-Trace','42');
+              xhr.onerror=()=>reject(new Error('unexpected XMLHttpRequest error'));
+              xhr.onloadend=()=>{
+                let responseTextError; try { void xhr.responseText; } catch(e) { responseTextError=e.name; }
+                resolve({global:window.XMLHttpRequest===XMLHttpRequest,constants:[xhr.UNSENT,XMLHttpRequest.DONE],
+                  events,status:xhr.status,statusText:xhr.statusText,url:xhr.responseURL,total:xhr.response.total,
+                  report:xhr.getResponseHeader('X-Report'),cookie:xhr.getResponseHeader('Set-Cookie'),
+                  all:xhr.getAllResponseHeaders(),responseTextError});
+              };
+              xhr.send();
+            });
+            """, new HtmlScriptRequest { DocumentUrl = server.Origin, ResourcePolicy = new() { AllowNetwork = true } });
+
+        Assert.True(result.GetProperty("global").GetBoolean());
+        Assert.Equal(new[] { 0, 4 }, result.GetProperty("constants").EnumerateArray().Select(value => value.GetInt32()));
+        Assert.Equal(new[] { "readystatechange:1", "loadstart", "readystatechange:2", "readystatechange:3", "readystatechange:4", "load", "loadend" },
+            result.GetProperty("events").EnumerateArray().Select(value => value.GetString()));
+        Assert.Equal(200, result.GetProperty("status").GetInt32());
+        Assert.Equal("Test", result.GetProperty("statusText").GetString());
+        Assert.Equal(new Uri(server.Origin, "api/report?view=summary").AbsoluteUri, result.GetProperty("url").GetString());
+        Assert.Equal(42, result.GetProperty("total").GetInt32());
+        Assert.Equal("monthly", result.GetProperty("report").GetString());
+        Assert.Equal(JsonValueKind.Null, result.GetProperty("cookie").ValueKind);
+        Assert.Contains("x-report: monthly", result.GetProperty("all").GetString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("set-cookie", result.GetProperty("all").GetString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("InvalidStateError", result.GetProperty("responseTextError").GetString());
+        RuntimeHttpFixture.ReceivedRequest request = Assert.Single(server.Received);
+        Assert.Equal("GET", request.Method);
+        Assert.Equal("/api/report?view=summary", request.Path);
+        Assert.Equal("42", request.Headers["X-Trace"]);
+    }
+
+    [Fact]
+    public async Task XmlHttpRequestAbortAndUnsupportedModesRemainBounded() {
+        var result = await RunAsync("""
+            let synchronous,credentials,timeout;
+            try { new XMLHttpRequest().open('GET','/',false); } catch(e) { synchronous=e.name; }
+            try { const xhr=new XMLHttpRequest(); xhr.withCredentials=true; } catch(e) { credentials=e.name; }
+            try { const xhr=new XMLHttpRequest(); xhr.timeout=1; } catch(e) { timeout=e.name; }
+            const aborted=await new Promise(resolve=>{
+              const xhr=new XMLHttpRequest(), events=[];
+              for(const name of ['readystatechange','loadstart','abort','loadend'])
+                xhr.addEventListener(name,()=>events.push(name+(name==='readystatechange'?':'+xhr.readyState:'')));
+              xhr.open('GET','/slow');
+              xhr.onloadend=()=>resolve({events,state:xhr.readyState,status:xhr.status});
+              xhr.send(); xhr.abort();
+            });
+            return {synchronous,credentials,timeout,aborted};
+            """);
+
+        Assert.Equal("NotSupportedError", result.GetProperty("synchronous").GetString());
+        Assert.Equal("NotSupportedError", result.GetProperty("credentials").GetString());
+        Assert.Equal("NotSupportedError", result.GetProperty("timeout").GetString());
+        JsonElement aborted = result.GetProperty("aborted");
+        Assert.Equal(new[] { "readystatechange:1", "loadstart", "readystatechange:4", "abort", "loadend" },
+            aborted.GetProperty("events").EnumerateArray().Select(value => value.GetString()));
+        Assert.Equal(4, aborted.GetProperty("state").GetInt32());
+        Assert.Equal(0, aborted.GetProperty("status").GetInt32());
+    }
+
+    [Fact]
+    public async Task XmlHttpRequestPostsBinaryAndReturnsAnArrayBuffer() {
+        await using var server = new RuntimeHttpFixture((_, _) => Task.FromResult(
+            new RuntimeHttpFixture.Reply(new byte[] { 1, 0, 255, 7 }, "application/octet-stream")));
+        var result = await RunAsync("""
+            return await new Promise((resolve,reject)=>{
+              const xhr=new XMLHttpRequest();
+              xhr.open('POST','/binary');
+              xhr.responseType='arraybuffer';
+              xhr.setRequestHeader('Content-Type','application/octet-stream');
+              xhr.onload=()=>resolve({status:xhr.status,bytes:Array.from(new Uint8Array(xhr.response))});
+              xhr.onerror=()=>reject(new Error('unexpected XMLHttpRequest error'));
+              xhr.send(new Uint8Array([9,8,7]));
+            });
+            """, new HtmlScriptRequest { DocumentUrl = server.Origin, ResourcePolicy = new() { AllowNetwork = true } });
+
+        Assert.Equal(200, result.GetProperty("status").GetInt32());
+        Assert.Equal(new[] { 1, 0, 255, 7 }, result.GetProperty("bytes").EnumerateArray().Select(value => value.GetInt32()));
+        RuntimeHttpFixture.ReceivedRequest request = Assert.Single(server.Received);
+        Assert.Equal("POST", request.Method);
+        Assert.Equal(new byte[] { 9, 8, 7 }, request.Body);
+        Assert.Equal("application/octet-stream", request.Headers["Content-Type"]);
+    }
+
+    [Fact]
+    public async Task XmlHttpRequestPolicyFailureDispatchesErrorAndLoadEnd() {
+        var result = await RunAsync("""
+            return await new Promise(resolve=>{
+              const xhr=new XMLHttpRequest(), events=[];
+              for(const name of ['readystatechange','loadstart','load','error','loadend'])
+                xhr.addEventListener(name,()=>events.push(name+(name==='readystatechange'?':'+xhr.readyState:'')));
+              xhr.open('GET','file:///private');
+              xhr.onloadend=()=>resolve({events,status:xhr.status,url:xhr.responseURL,text:xhr.responseText});
+              xhr.send();
+            });
+            """);
+
+        Assert.Equal(new[] { "readystatechange:1", "loadstart", "readystatechange:4", "error", "loadend" },
+            result.GetProperty("events").EnumerateArray().Select(value => value.GetString()));
+        Assert.Equal(0, result.GetProperty("status").GetInt32());
+        Assert.Equal("", result.GetProperty("url").GetString());
+        Assert.Equal("", result.GetProperty("text").GetString());
+    }
+
+    [Fact]
+    public async Task XmlHttpRequestSuppliedGetParticipatesInReadinessAndCapture() {
+        Uri dataUrl = new(Origin, "legacy/report.json");
+        HtmlScriptCapture capture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = Origin,
+            Html = """
+                <p id="result">Loading</p>
+                <script>
+                  const xhr=new XMLHttpRequest();
+                  xhr.open('GET','/legacy/report.json');
+                  xhr.responseType='json';
+                  xhr.onload=()=>document.querySelector('#result').textContent='Legacy total '+xhr.response.total;
+                  xhr.send();
+                </script>
+                """,
+            ReadyExpression = "document.querySelector('#result')?.textContent === 'Legacy total 42'",
+            Resources = new[] { HtmlRuntimeResource.FromText(dataUrl, "{\"total\":42}", "application/json") }
+        });
+
+        Assert.Contains("Legacy total 42", capture.Document.Body!.TextContent, StringComparison.Ordinal);
+        HtmlRuntimeResource retained = Assert.Single(capture.Resources);
+        Assert.Equal(dataUrl, retained.Url);
+        Assert.Equal("application/json", retained.ContentType);
+    }
+
+    [Fact]
+    public async Task XmlHttpRequestReentrantLifecyclePreservesReplacementRequests() {
+        await using var server = new RuntimeHttpFixture((path, _) => Task.FromResult(
+            RuntimeHttpFixture.Reply.Text(path, "text/plain")));
+        var result = await RunAsync("""
+            const noSend=await new Promise(resolve=>{
+              const xhr=new XMLHttpRequest();
+              xhr.open('GET','/original-not-sent');
+              xhr.onloadstart=()=>{
+                xhr.open('GET','/replacement-not-sent');
+                setTimeout(()=>resolve({state:xhr.readyState,status:xhr.status}),0);
+              };
+              xhr.send();
+            });
+            const loading=await new Promise((resolve,reject)=>{
+              const xhr=new XMLHttpRequest(); let replaced=false,loads=0,loadEnds=0;
+              xhr.addEventListener('load',()=>loads++);
+              xhr.addEventListener('loadend',()=>{
+                loadEnds++;
+                if(replaced) resolve({state:xhr.readyState,text:xhr.responseText,loads,loadEnds});
+              });
+              xhr.onreadystatechange=()=>{
+                if(xhr.readyState===xhr.LOADING && !replaced){
+                  replaced=true;
+                  xhr.open('GET','/second');
+                  xhr.send();
+                }
+              };
+              xhr.onerror=()=>reject(new Error('unexpected XMLHttpRequest error'));
+              xhr.open('GET','/first');
+              xhr.send();
+            });
+            const aborted=await new Promise((resolve,reject)=>{
+              const xhr=new XMLHttpRequest();
+              xhr.onabort=()=>{
+                xhr.open('GET','/after-abort');
+                xhr.onload=()=>resolve({state:xhr.readyState,text:xhr.responseText,status:xhr.status});
+                xhr.onerror=()=>reject(new Error('replacement XMLHttpRequest failed'));
+                xhr.send();
+              };
+              xhr.open('GET','/aborted');
+              xhr.send();
+              xhr.abort();
+            });
+            return {noSend,loading,aborted};
+            """, new HtmlScriptRequest { DocumentUrl = server.Origin, ResourcePolicy = new() { AllowNetwork = true } });
+
+        Assert.Equal(1, result.GetProperty("noSend").GetProperty("state").GetInt32());
+        Assert.Equal(0, result.GetProperty("noSend").GetProperty("status").GetInt32());
+        JsonElement loading = result.GetProperty("loading");
+        Assert.Equal(4, loading.GetProperty("state").GetInt32());
+        Assert.Equal("/second", loading.GetProperty("text").GetString());
+        Assert.Equal(1, loading.GetProperty("loads").GetInt32());
+        Assert.Equal(1, loading.GetProperty("loadEnds").GetInt32());
+        JsonElement aborted = result.GetProperty("aborted");
+        Assert.Equal(4, aborted.GetProperty("state").GetInt32());
+        Assert.Equal("/after-abort", aborted.GetProperty("text").GetString());
+        Assert.Equal(200, aborted.GetProperty("status").GetInt32());
+        string[] requests = server.Requests.ToArray();
+        Assert.DoesNotContain("/original-not-sent", requests);
+        Assert.DoesNotContain("/replacement-not-sent", requests);
+        Assert.Contains("/first", requests);
+        Assert.Contains("/second", requests);
+        Assert.Contains("/after-abort", requests);
+    }
+
+    [Fact]
+    public async Task XmlHttpRequestResponseTypeSurvivesOpenAndTextIsVisibleWhileLoading() {
+        await using var server = new RuntimeHttpFixture((path, _) => Task.FromResult(path == "/json"
+            ? RuntimeHttpFixture.Reply.Text("{\"total\":42}", "application/json")
+            : RuntimeHttpFixture.Reply.Text("plain", "text/plain")));
+        var result = await RunAsync("""
+            const json=await new Promise((resolve,reject)=>{
+              const xhr=new XMLHttpRequest();
+              xhr.responseType='json';
+              xhr.open('GET','/json');
+              xhr.onload=()=>resolve({type:xhr.responseType,total:xhr.response.total});
+              xhr.onerror=()=>reject(new Error('unexpected XMLHttpRequest error'));
+              xhr.send();
+            });
+            const text=await new Promise((resolve,reject)=>{
+              const xhr=new XMLHttpRequest(); let during;
+              xhr.open('GET','/text');
+              xhr.onreadystatechange=()=>{
+                if(xhr.readyState===xhr.HEADERS_RECEIVED) xhr.responseType='text';
+                if(xhr.readyState===xhr.LOADING) during={response:xhr.response,responseText:xhr.responseText};
+              };
+              xhr.onload=()=>resolve({during,response:xhr.response,responseText:xhr.responseText});
+              xhr.onerror=()=>reject(new Error('unexpected XMLHttpRequest error'));
+              xhr.send();
+            });
+            return {json,text};
+            """, new HtmlScriptRequest { DocumentUrl = server.Origin, ResourcePolicy = new() { AllowNetwork = true } });
+
+        Assert.Equal("json", result.GetProperty("json").GetProperty("type").GetString());
+        Assert.Equal(42, result.GetProperty("json").GetProperty("total").GetInt32());
+        JsonElement text = result.GetProperty("text");
+        Assert.Equal("plain", text.GetProperty("during").GetProperty("response").GetString());
+        Assert.Equal("plain", text.GetProperty("during").GetProperty("responseText").GetString());
+        Assert.Equal("plain", text.GetProperty("response").GetString());
+        Assert.Equal("plain", text.GetProperty("responseText").GetString());
+    }
+
+    [Fact]
     public async Task HttpErrorsAreResponsesAndNetworkErrorsCanRenderAnApplicationErrorState() {
         await using var server = new RuntimeHttpFixture((_, _) => Task.FromResult(RuntimeHttpFixture.Reply.Text("missing", "text/plain", 404)));
         var result = await RunAsync("""

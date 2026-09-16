@@ -362,6 +362,15 @@ response streams, Blob/FormData bodies, no-cors/manual redirects, credentialed
 cross-origin requests and compressed responses are outside this profile.
 Unsupported fetch options are rejected instead of silently changing their meaning.
 
+Asynchronous `XMLHttpRequest` uses this same transport, origin checks and cumulative
+budgets. It supports the bounded fetch methods, request headers and bodies, buffered
+text, JSON and ArrayBuffer responses, response headers, the standard ready-state
+constants, `readystatechange`, `loadstart`, `load`, `error`, `abort` and `loadend`,
+and `abort()`. HTTP error statuses complete through `load`; policy and transport
+failures complete through `error`. Synchronous requests, credentials, cookies,
+streaming and upload progress, MIME overrides and a separate per-request XHR timeout
+are unsupported. The runtime resource deadline remains authoritative.
+
 `capture.Resources` retains immutable loaded responses, including their requested
 and final URLs. Use these responses with OfficeIMO's existing
 `HtmlRenderResourceResolver` to render after the worker exits without fetching
