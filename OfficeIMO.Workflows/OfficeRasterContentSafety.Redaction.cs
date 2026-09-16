@@ -27,7 +27,8 @@ public static partial class OfficeRasterContentSafety {
 
         OfficeContentSafetyInputGuard.ValidateBytes(imageBytes, snapshot.Inspection);
         byte[] input = (byte[])imageBytes.Clone();
-        AnalysisState beforeState = await InspectCoreAsync(input, engine, snapshot, cancellationToken)
+        OcrEngineExecution execution = OcrEngineRunner.CreateExecution(engine);
+        AnalysisState beforeState = await InspectCoreAsync(input, execution, snapshot, cancellationToken)
             .ConfigureAwait(false);
         IReadOnlyList<OfficeContentSafetyFinding> selected =
             OfficeContentSafetyBuilder.ResolveSelection(beforeState.Report, selection);
@@ -50,20 +51,30 @@ public static partial class OfficeRasterContentSafety {
             selectedTargets.Add(target);
         }
 
-        OfficeRasterImage redacted = OfficeRasterImage.FromRgba32(
-            beforeState.Image.Width,
-            beforeState.Image.Height,
-            beforeState.Image.GetPixels());
         var changedRegions = new List<PixelRegion>(selectedTargets.Count);
+        long remainingRedactionWork = snapshot.MaximumPixelAnalysisWork;
         for (int index = 0; index < selectedTargets.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             PixelRegion expanded = Expand(
                 selectedTargets[index].Region,
                 snapshot.RedactionPaddingPixels,
-                redacted.Width,
-                redacted.Height);
-            Fill(redacted, expanded, snapshot.RedactionColor, cancellationToken);
+                beforeState.Image.Width,
+                beforeState.Image.Height);
+            long regionWork = checked(expanded.Area * 2L);
+            if (regionWork > remainingRedactionWork) {
+                throw new InvalidDataException("Raster redaction work exceeds the configured pixel-analysis limit.");
+            }
+            remainingRedactionWork -= regionWork;
             changedRegions.Add(expanded);
+        }
+
+        OfficeRasterImage redacted = OfficeRasterImage.FromRgba32(
+            beforeState.Image.Width,
+            beforeState.Image.Height,
+            beforeState.Image.PixelBuffer);
+        foreach (PixelRegion region in changedRegions) {
+            cancellationToken.ThrowIfCancellationRequested();
+            Fill(redacted, region, snapshot.RedactionColor, cancellationToken);
         }
 
         byte[] output = OfficeRasterImageEncoder.Encode(
@@ -74,7 +85,7 @@ public static partial class OfficeRasterContentSafety {
             cancellationToken);
         VerifyRedactionOutput(output, redacted, changedRegions, snapshot, cancellationToken);
 
-        AnalysisState afterState = await InspectCoreAsync(output, engine, snapshot, cancellationToken)
+        AnalysisState afterState = await InspectCoreAsync(output, execution, snapshot, cancellationToken)
             .ConfigureAwait(false);
         for (int selectedIndex = 0; selectedIndex < selectedTargets.Count; selectedIndex++) {
             PixelRegion changedRegion = changedRegions[selectedIndex];

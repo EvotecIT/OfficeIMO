@@ -1,9 +1,9 @@
-using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
 using OfficeIMO.ContentSafety;
 using OfficeIMO.Drawing;
 using OfficeIMO.Ocr;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace OfficeIMO.Workflows;
 
@@ -16,9 +16,14 @@ public static partial class OfficeRasterContentSafety {
         CancellationToken cancellationToken) {
         if (result == null) throw new InvalidDataException("The OCR engine returned no result.");
         IReadOnlyList<OcrTextSpan> rawSpans = result.Spans ?? Array.Empty<OcrTextSpan>();
+        IReadOnlyList<OcrDiagnostic> rawDiagnostics = result.Diagnostics ?? Array.Empty<OcrDiagnostic>();
         if (rawSpans.Count > options.MaximumOcrSpans) {
             throw new InvalidDataException("The OCR result exceeds the configured span limit.");
         }
+        if (rawDiagnostics.Count > options.MaximumOcrSpans) {
+            throw new InvalidDataException("The OCR result exceeds the configured diagnostic limit.");
+        }
+        ValidateOcrOutputCharacters(result, rawSpans, rawDiagnostics, options);
         if (rawSpans.Any(span => span != null && !string.IsNullOrWhiteSpace(span.Text) &&
             !IsSupportedSpanLevel(span.Level))) {
             throw new InvalidDataException("OCR text spans must use line, word, or character granularity.");
@@ -36,14 +41,6 @@ public static partial class OfficeRasterContentSafety {
         if (spans.Length == 0 && !string.IsNullOrWhiteSpace(result.Text)) {
             throw new InvalidDataException(
                 "OCR returned text without bounded line, word, or character geometry; concealment cannot be assessed.");
-        }
-
-        long totalCharacters = 0L;
-        foreach (OcrTextSpan span in spans) {
-            totalCharacters = checked(totalCharacters + (span.Text?.Length ?? 0));
-            if (totalCharacters > options.Inspection.MaxCharacters) {
-                throw new InvalidDataException("OCR text exceeds the configured character limit.");
-            }
         }
 
         var builder = new OfficeContentSafetyBuilder(ReportFormat, options.Inspection);
@@ -102,7 +99,7 @@ public static partial class OfficeRasterContentSafety {
             targets[finding.Id] = new RasterTarget(region);
         }
 
-        foreach (OcrDiagnostic diagnostic in result.Diagnostics ?? Array.Empty<OcrDiagnostic>()) {
+        foreach (OcrDiagnostic diagnostic in rawDiagnostics) {
             if (diagnostic == null) continue;
             builder.AddDiagnostic(
                 "OCR provider '" + SanitizeIdentifier(engineId) + "' reported " +
@@ -114,6 +111,51 @@ public static partial class OfficeRasterContentSafety {
             " bounded line, word, or character spans; " +
             visibleSpans.ToString(CultureInfo.InvariantCulture) + " had no bounded concealment evidence.");
         return new AnalysisState(image, builder.Build(), targets, recognizedTargets.AsReadOnly());
+    }
+
+    private static void ValidateOcrOutputCharacters(
+        OcrResult result,
+        IReadOnlyList<OcrTextSpan> spans,
+        IReadOnlyList<OcrDiagnostic> diagnostics,
+        OfficeRasterContentSafetyOptions.Snapshot options) {
+        long totalCharacters = 0L;
+        int totalAttributes = 0;
+        AddCharacters(result.Text);
+        AddCharacters(result.Language);
+        AddCharacters(result.Provider);
+        AddCharacters(result.Model);
+        AddCharacters(result.Orientation?.Script);
+        foreach (OcrTextSpan? span in spans) {
+            if (span == null) continue;
+            AddCharacters(span.Text);
+            AddCharacters(span.Language);
+            AddCharacters(span.BlockId);
+            AddCharacters(span.ParagraphId);
+            AddCharacters(span.LineId);
+        }
+        foreach (OcrDiagnostic? diagnostic in diagnostics) {
+            if (diagnostic == null) continue;
+            AddCharacters(diagnostic.Code);
+            AddCharacters(diagnostic.Message);
+            AddCharacters(diagnostic.Source);
+            IReadOnlyDictionary<string, string> attributes = diagnostic.Attributes ??
+                new Dictionary<string, string>(StringComparer.Ordinal);
+            totalAttributes = checked(totalAttributes + attributes.Count);
+            if (totalAttributes > options.MaximumOcrSpans) {
+                throw new InvalidDataException("The OCR result exceeds the configured diagnostic-attribute limit.");
+            }
+            foreach (KeyValuePair<string, string> attribute in attributes) {
+                AddCharacters(attribute.Key);
+                AddCharacters(attribute.Value);
+            }
+        }
+
+        void AddCharacters(string? value) {
+            totalCharacters = checked(totalCharacters + (value?.Length ?? 0));
+            if (totalCharacters > options.Inspection.MaxCharacters) {
+                throw new InvalidDataException("OCR output exceeds the configured character limit.");
+            }
+        }
     }
 
     private static bool IsSupportedSpanLevel(OcrTextSpanLevel level) =>

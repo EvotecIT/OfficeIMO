@@ -1,9 +1,9 @@
-using System.Buffers.Binary;
-using System.Text;
 using OfficeIMO.ContentSafety;
 using OfficeIMO.Drawing;
 using OfficeIMO.Ocr;
 using OfficeIMO.Workflows;
+using System.Buffers.Binary;
+using System.Text;
 
 namespace OfficeIMO.Workflows.Tests;
 
@@ -278,6 +278,29 @@ public sealed class RasterContentSafetyTests {
             () => OfficeRasterContentSafety.InspectAsync(image, engine, options));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InspectBoundsAllProviderTextBeforeFiltering(bool oversizedWhitespaceSpan) {
+        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
+        string oversized = new('x', 65);
+        IOcrEngine engine = CreateEngine(_ => new OcrResult {
+            Text = oversizedWhitespaceSpan ? "bounded" : oversized,
+            Spans = oversizedWhitespaceSpan
+                ? new[] {
+                    Span(0, "bounded", new OcrRegion { X = 2, Y = 2, Width = 8, Height = 4 }, 0.99D),
+                    new OcrTextSpan { Level = OcrTextSpanLevel.Word, Text = new string(' ', 65) }
+                }
+                : new[] { Span(0, "x", new OcrRegion { X = 2, Y = 2, Width = 8, Height = 4 }, 0.99D) }
+        });
+        var options = new OfficeRasterContentSafetyOptions {
+            Inspection = new OfficeContentSafetyOptions { MaxCharacters = 64 }
+        };
+
+        await Assert.ThrowsAsync<InvalidDataException>(
+            () => OfficeRasterContentSafety.InspectAsync(image, engine, options));
+    }
+
     [Fact]
     public async Task InspectObservesCancellationDuringAnUltraWidePixelScan() {
         const int width = 1_000_000;
@@ -357,6 +380,60 @@ public sealed class RasterContentSafetyTests {
                 engine,
                 new OfficeContentCleanupSelection(new[] { finding.Id }),
                 options));
+    }
+
+    [Fact]
+    public async Task RedactionBoundsExpandedRegionWorkBeforeMutation() {
+        byte[] image = CreateImage(30, 16, OfficeColor.FromRgb(240, 240, 240),
+            new PixelBox(3, 4, 20, 6), OfficeColor.FromRgb(238, 238, 238));
+        IOcrEngine engine = CreateEngine(_ => Result(
+            "concealed",
+            new OcrRegion { X = 3, Y = 4, Width = 20, Height = 6 },
+            confidence: 0.99D));
+        var options = new OfficeRasterContentSafetyOptions {
+            EnableOpaqueRectangleRedaction = true,
+            MaximumPixelAnalysisWork = 300,
+            RedactionPaddingPixels = 10
+        };
+        OfficeContentSafetyFinding finding = Assert.Single(
+            (await OfficeRasterContentSafety.InspectAsync(image, engine, options)).Findings);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            OfficeRasterContentSafety.RedactSelectedContentAsync(
+                image,
+                engine,
+                new OfficeContentCleanupSelection(new[] { finding.Id }),
+                options));
+    }
+
+    [Fact]
+    public async Task RedactionReusesOneEngineExecutionForBothInspections() {
+        byte[] image = CreateImage(40, 20, OfficeColor.FromRgb(240, 240, 240),
+            new PixelBox(5, 6, 24, 6), OfficeColor.FromRgb(235, 235, 235));
+        var options = new OfficeRasterContentSafetyOptions {
+            EnableOpaqueRectangleRedaction = true,
+            RedactionColor = OfficeColor.Black
+        };
+        Func<OcrRequest, OcrResult> recognize = request => {
+            Assert.True(OfficeRasterImageDecoder.TryDecode(request.Payload, out OfficeRasterImage? normalized));
+            return normalized!.GetPixel(5, 6) == OfficeColor.Black
+                ? new OcrResult()
+                : Result("concealed", new OcrRegion { X = 5, Y = 6, Width = 24, Height = 6 }, 0.99D);
+        };
+        OfficeContentSafetyFinding finding = Assert.Single(
+            (await OfficeRasterContentSafety.InspectAsync(image, CreateEngine(recognize, "counted"), options)).Findings);
+        var counted = new CountingOcrEngine("counted", recognize);
+
+        OfficeContentCleanupResult cleanup = await OfficeRasterContentSafety.RedactSelectedContentAsync(
+            image,
+            counted,
+            new OfficeContentCleanupSelection(new[] { finding.Id }),
+            options);
+
+        Assert.True(cleanup.Changed);
+        Assert.Equal(1, counted.IdReads);
+        Assert.Equal(1, counted.CapabilityReads);
+        Assert.Equal(2, counted.RecognitionCalls);
     }
 
     [Fact]
@@ -633,4 +710,46 @@ public sealed class RasterContentSafetyTests {
     }
 
     private readonly record struct PixelBox(int X, int Y, int Width, int Height);
+
+    private sealed class CountingOcrEngine : IOcrEngine {
+        private readonly string _id;
+        private readonly Func<OcrRequest, OcrResult> _recognize;
+        private readonly OcrEngineCapabilities _capabilities = new() {
+            SupportedMediaTypes = new[] { "image/png" },
+            SupportsWordSpans = true,
+            SupportsConfidence = true,
+            SupportsConcurrentRequests = true
+        };
+
+        internal CountingOcrEngine(string id, Func<OcrRequest, OcrResult> recognize) {
+            _id = id;
+            _recognize = recognize;
+        }
+
+        internal int IdReads { get; private set; }
+        internal int CapabilityReads { get; private set; }
+        internal int RecognitionCalls { get; private set; }
+
+        public string Id {
+            get {
+                IdReads++;
+                return _id;
+            }
+        }
+
+        public OcrEngineCapabilities Capabilities {
+            get {
+                CapabilityReads++;
+                return _capabilities.Clone();
+            }
+        }
+
+        public Task<OcrResult> RecognizeAsync(
+            OcrRequest request,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            RecognitionCalls++;
+            return Task.FromResult(_recognize(request));
+        }
+    }
 }

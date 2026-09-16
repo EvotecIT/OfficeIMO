@@ -14,7 +14,10 @@ public sealed class OfficeRasterContentSafetyOptions {
     /// <summary>Maximum OCR spans accepted from the provider. Defaults to 4,096.</summary>
     public int MaximumOcrSpans { get; set; } = 4096;
 
-    /// <summary>Maximum cumulative pixels inspected across OCR regions. Defaults to 64 million.</summary>
+    /// <summary>
+    /// Maximum cumulative region-pixel work accepted during inspection or selected-region redaction.
+    /// Defaults to 64 million.
+    /// </summary>
     public long MaximumPixelAnalysisWork { get; set; } = 64_000_000L;
 
     /// <summary>Pixel height at or below which a recognized span is treated as tiny. Defaults to three pixels.</summary>

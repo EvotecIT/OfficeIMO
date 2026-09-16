@@ -24,7 +24,8 @@ public static partial class OfficeRasterContentSafety {
             (options ?? new OfficeRasterContentSafetyOptions()).Capture();
         OfficeContentSafetyInputGuard.ValidateBytes(imageBytes, snapshot.Inspection);
         byte[] input = (byte[])imageBytes.Clone();
-        AnalysisState state = await InspectCoreAsync(input, engine, snapshot, cancellationToken)
+        OcrEngineExecution execution = OcrEngineRunner.CreateExecution(engine);
+        AnalysisState state = await InspectCoreAsync(input, execution, snapshot, cancellationToken)
             .ConfigureAwait(false);
         return state.Report;
     }
@@ -41,9 +42,10 @@ public static partial class OfficeRasterContentSafety {
         OfficeRasterContentSafetyOptions effective = options ?? new OfficeRasterContentSafetyOptions();
         OfficeRasterContentSafetyOptions.Snapshot snapshot = effective.Capture();
         byte[] input = OfficeContentSafetyInputGuard.ReadAllBytes(filePath, snapshot.Inspection);
+        OcrEngineExecution execution = OcrEngineRunner.CreateExecution(engine);
         AnalysisState state = await InspectCoreAsync(
                 input,
-                engine,
+                execution,
                 snapshot,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -52,7 +54,7 @@ public static partial class OfficeRasterContentSafety {
 
     private static async Task<AnalysisState> InspectCoreAsync(
         byte[] input,
-        IOcrEngine engine,
+        OcrEngineExecution execution,
         OfficeRasterContentSafetyOptions.Snapshot options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -89,7 +91,6 @@ public static partial class OfficeRasterContentSafety {
             options: null,
             options.MaximumOutputBytes,
             cancellationToken);
-        OcrEngineExecution execution = OcrEngineRunner.CreateExecution(engine);
         IReadOnlyList<string> supportedMediaTypes = execution.Capabilities.SupportedMediaTypes ?? Array.Empty<string>();
         if (supportedMediaTypes.Count > 0 &&
             !supportedMediaTypes.Any(item => string.Equals(item?.Trim(), NormalizedMediaType, StringComparison.OrdinalIgnoreCase))) {
