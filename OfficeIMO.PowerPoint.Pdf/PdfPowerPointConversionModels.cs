@@ -407,7 +407,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         AddProjectionWarning(warnings, "PdfNavigationNotEditable", "Navigation", scope.LinkCount,
             failedVisualScope?.LinkCount ?? scope.LinkCount,
             hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
-            description: "links");
+            description: "links", visualOnlyLossKind: OfficeConversionLossKind.Approximation);
         AddDocumentOmissionWarning(warnings, "PdfPageActionsNotReconstructed", "Page actions",
             scope.PageActionCount, "page open and close actions");
         if (scope.DocumentActionCount > 0) {
@@ -427,7 +427,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         }
         AddProjectionWarning(warnings, "PdfFormsAndControlsNotEditable", "Forms", scope.FormWidgetCount,
             failedVisualScope?.FormWidgetCount ?? scope.FormWidgetCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
-            description: "forms and interactive controls");
+            description: "forms and interactive controls", visualOnlyLossKind: OfficeConversionLossKind.Approximation);
         AddDocumentOmissionWarning(warnings, "PdfFormDefinitionsNotReconstructed", "Form definitions",
             scope.UnplacedFormFieldCount + (scope.HasAcroFormXfa ? 1 : 0),
             "form definitions not attached to a page and XFA content");
@@ -439,7 +439,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             scope.HasTaggedContent ? 1 : 0, "tagged accessibility structure");
         AddProjectionWarning(warnings, "PdfAnnotationsNotEditable", "Annotations", scope.AnnotationCount,
             failedVisualScope?.AnnotationCount ?? scope.AnnotationCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
-            description: "annotations");
+            description: "annotations", visualOnlyLossKind: OfficeConversionLossKind.Approximation);
         AddProjectionWarning(warnings, "PdfGroupsNotEditable", "Groups", scope.PagesWithOptionalContent,
             failedVisualScope?.PagesWithOptionalContent ?? scope.PagesWithOptionalContent,
             hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
@@ -447,7 +447,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         AddProjectionWarning(warnings, "PdfAnimationsNotEditable", "Animations", scope.InteractiveMediaAnnotationCount,
             failedVisualScope?.InteractiveMediaAnnotationCount ?? scope.InteractiveMediaAnnotationCount,
             hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
-            description: "interactive media and animations");
+            description: "interactive media and animations", visualOnlyLossKind: OfficeConversionLossKind.Approximation);
         if (scope.AnalysisTruncated) {
             ProjectionDisposition disposition = failedVisualScope == null
                 ? ProjectionDisposition.Omitted
@@ -496,7 +496,10 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             "OfficeIMO.PowerPoint.Pdf",
             code,
             source,
-            "PDF " + description + " are not reconstructed as editable PowerPoint objects; " + GetDispositionMessage(disposition) + ".",
+            "PDF " + description + " are not reconstructed as editable PowerPoint objects; " + GetDispositionMessage(disposition) + "." +
+                (disposition == ProjectionDisposition.VisualOnly && visualOnlyLossKind != OfficeConversionLossKind.None
+                    ? " The page image does not retain their interaction, metadata, alternate states, or time-dependent behavior."
+                    : string.Empty),
             disposition == ProjectionDisposition.VisualOnly
                 ? OfficeIMO.Pdf.PdfConversionWarningSeverity.Information
                 : OfficeIMO.Pdf.PdfConversionWarningSeverity.Warning,

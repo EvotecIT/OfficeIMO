@@ -869,6 +869,10 @@ public class PowerPointPdfTableImportTests {
     [Theory]
     [InlineData(1, 0, "PdfPageActionsNotReconstructed", OfficeConversionLossKind.Omission, true)]
     [InlineData(0, 1, "PdfGroupsNotEditable", OfficeConversionLossKind.Approximation, false)]
+    [InlineData(0, 0, "PdfNavigationNotEditable", OfficeConversionLossKind.Approximation, false)]
+    [InlineData(0, 0, "PdfFormsAndControlsNotEditable", OfficeConversionLossKind.Approximation, false)]
+    [InlineData(0, 0, "PdfAnnotationsNotEditable", OfficeConversionLossKind.Approximation, false)]
+    [InlineData(0, 0, "PdfAnimationsNotEditable", OfficeConversionLossKind.Approximation, false)]
     public void PdfPowerPointConversionReport_HybridReportsNonvisualPageFactsAsLoss(
         int pageActionCount,
         int optionalContentPageCount,
@@ -881,12 +885,16 @@ public class PowerPointPdfTableImportTests {
         var scope = new PdfCore.PdfTableExtractionScopeReport(
             sourcePageCount: 1, pagesWithTables: 1, detectedTableCount: 1,
             nonTableTextBlockCount: 0, vectorPrimitiveCount: 0, imageCount: 0,
-            linkCount: 0, formWidgetCount: 0, formFieldCount: 0, hasAcroFormXfa: false,
-            annotationCount: 0, pageActionCount: pageActionCount,
+            linkCount: warningCode == "PdfNavigationNotEditable" ? 1 : 0,
+            formWidgetCount: warningCode == "PdfFormsAndControlsNotEditable" ? 1 : 0,
+            formFieldCount: 0, hasAcroFormXfa: false,
+            annotationCount: warningCode == "PdfAnnotationsNotEditable" ? 1 : 0,
+            pageActionCount: pageActionCount,
             catalogActionCount: 0, hasOpenAction: false, documentActionCount: 0,
             optionalContentGroupCount: optionalContentPageCount,
             pagesWithOptionalContent: optionalContentPageCount,
-            interactiveMediaAnnotationCount: 0, unplacedFormFieldCount: 0,
+            interactiveMediaAnnotationCount: warningCode == "PdfAnimationsNotEditable" ? 1 : 0,
+            unplacedFormFieldCount: 0,
             outlineCount: 0, attachmentCount: 0, hasTaggedContent: false,
             analysisTruncated: false);
         var report = new PdfPowerPointConversionReport(
