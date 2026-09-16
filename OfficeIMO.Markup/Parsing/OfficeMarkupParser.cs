@@ -27,6 +27,8 @@ public static partial class OfficeMarkupParser {
     };
     private static readonly string[] MermaidLanguages = { "mermaid" };
 
+    /// <summary>Parses front matter, Markdown, and Office directives into a semantic document and diagnostics.</summary>
+    /// <remarks>Null input is treated as empty text. Front-matter profile metadata can override the option's fallback profile; validation runs unless disabled in the options.</remarks>
     public static OfficeMarkupParseResult Parse(string markup, OfficeMarkupParserOptions? options = null) {
         options ??= new OfficeMarkupParserOptions();
         var source = (markup ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
