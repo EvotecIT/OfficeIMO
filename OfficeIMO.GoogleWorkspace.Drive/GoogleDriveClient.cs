@@ -18,9 +18,18 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         /// Creates an option set for an authoring workflow that only reads files created or opened by the app.
         /// </summary>
         public static GoogleDriveClientOptions ForFileAuthoring() {
+            return ForFileAuthoring(supportsAllDrives: true);
+        }
+
+        /// <summary>
+        /// Creates an option set for an authoring workflow that only reads files created or opened by the app.
+        /// </summary>
+        /// <param name="supportsAllDrives">Whether generated Drive requests declare shared-drive support.</param>
+        public static GoogleDriveClientOptions ForFileAuthoring(bool supportsAllDrives) {
             return new GoogleDriveClientOptions {
                 ReadScopes = new[] { GoogleWorkspaceScopeCatalog.DriveFile },
                 WriteScopes = new[] { GoogleWorkspaceScopeCatalog.DriveFile },
+                SupportsAllDrives = supportsAllDrives,
             };
         }
     }

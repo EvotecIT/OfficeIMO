@@ -47,7 +47,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordCellMerge? HorizontalMerge {
             get {
-                return CurrentTableCellProperties?.HorizontalMerge?.Val?.Value.ToOfficeEnum();
+                var horizontalMerge = CurrentTableCellProperties?.HorizontalMerge;
+                if (horizontalMerge == null) {
+                    return null;
+                }
+
+                return horizontalMerge.Val?.Value.ToOfficeEnum() ?? WordCellMerge.Continue;
             }
             set {
                 AddTableCellProperties();
@@ -66,7 +71,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordCellMerge? VerticalMerge {
             get {
-                return CurrentTableCellProperties?.VerticalMerge?.Val?.Value.ToOfficeEnum();
+                var verticalMerge = CurrentTableCellProperties?.VerticalMerge;
+                if (verticalMerge == null) {
+                    return null;
+                }
+
+                return verticalMerge.Val?.Value.ToOfficeEnum() ?? WordCellMerge.Continue;
             }
             set {
                 AddTableCellProperties();
@@ -102,68 +112,14 @@ namespace OfficeIMO.Word {
         /// Gets the number of logical columns occupied by this cell.
         /// </summary>
         public int ColumnSpan {
-            get {
-                int? gridSpan = CurrentTableCellProperties?.GetFirstChild<GridSpan>()?.Val?.Value;
-                if (gridSpan.HasValue && gridSpan.Value > 1) {
-                    return gridSpan.Value;
-                }
-
-                if (HorizontalMerge != WordCellMerge.Restart) {
-                    return 1;
-                }
-
-                List<WordTableCell> cells = Parent.Cells;
-                int columnIndex = cells.FindIndex(cell => ReferenceEquals(cell._tableCell, _tableCell));
-                if (columnIndex < 0) {
-                    return 1;
-                }
-
-                int span = 1;
-                for (int index = columnIndex + 1; index < cells.Count; index++) {
-                    if (cells[index].HorizontalMerge != WordCellMerge.Continue) {
-                        break;
-                    }
-
-                    span++;
-                }
-
-                return span;
-            }
+            get => WordTableCellSpanResolver.GetColumnSpan(this);
         }
 
         /// <summary>
         /// Gets the number of logical rows occupied by this cell.
         /// </summary>
         public int RowSpan {
-            get {
-                if (VerticalMerge != WordCellMerge.Restart) {
-                    return 1;
-                }
-
-                List<WordTableRow> rows = ParentTable.Rows;
-                int rowIndex = rows.FindIndex(row => ReferenceEquals(row._tableRow, Parent._tableRow));
-                if (rowIndex < 0) {
-                    return 1;
-                }
-
-                List<WordTableCell> cells = Parent.Cells;
-                int columnIndex = cells.FindIndex(cell => ReferenceEquals(cell._tableCell, _tableCell));
-                if (columnIndex < 0) {
-                    return 1;
-                }
-
-                int span = 1;
-                for (int index = rowIndex + 1; index < rows.Count; index++) {
-                    List<WordTableCell> rowCells = rows[index].Cells;
-                    if (columnIndex >= rowCells.Count || rowCells[columnIndex].VerticalMerge != WordCellMerge.Continue) {
-                        break;
-                    }
-
-                    span++;
-                }
-
-                return span;
-            }
+            get => WordTableCellSpanResolver.GetRowSpan(this);
         }
 
         /// <summary>

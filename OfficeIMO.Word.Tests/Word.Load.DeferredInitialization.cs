@@ -83,6 +83,27 @@ public sealed class WordLoadDeferredInitializationTests {
         Assert.False(document.Sections[0].DifferentOddAndEvenPages);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void DifferentOddAndEvenPagesRecognizesOneDistinctEvenStory(bool removeHeaderReference) {
+        using var stream = CreateMinimalDocument();
+        using WordDocument document = WordDocument.Load(stream);
+        WordSection section = document.Sections[0];
+        section.DifferentOddAndEvenPages = true;
+
+        if (removeHeaderReference) {
+            Assert.Single(section._sectionProperties.Elements<HeaderReference>(), reference =>
+                reference.Type?.Value == HeaderFooterValues.Even).Remove();
+        } else {
+            Assert.Single(section._sectionProperties.Elements<FooterReference>(), reference =>
+                reference.Type?.Value == HeaderFooterValues.Even).Remove();
+        }
+
+        Assert.True(section.DifferentOddAndEvenPages);
+        Assert.True(Assert.Single(document.CreateInspectionSnapshot().Sections).DifferentOddAndEvenPages);
+    }
+
     [Fact]
     public void BackgroundImageEditCreatesMissingSettingsPartBeforeEditing() {
         using var stream = CreateMinimalDocument();

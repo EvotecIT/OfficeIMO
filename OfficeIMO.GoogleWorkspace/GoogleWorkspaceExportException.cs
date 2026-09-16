@@ -5,7 +5,7 @@ namespace OfficeIMO.GoogleWorkspace {
     public enum GoogleWorkspaceFailureKind {
         /// <summary>OAuth token acquisition or validation failed.</summary>
         TokenAcquisition = 0,
-        /// <summary>Service-account domain-wide delegation was rejected.</summary>
+        /// <summary>Token acquisition failed with evidence that points to service-account domain-wide delegation.</summary>
         DomainWideDelegation = 1,
         /// <summary>A Google API request failed.</summary>
         ApiRequest = 2,
@@ -260,7 +260,8 @@ namespace OfficeIMO.GoogleWorkspace {
         }
 
         private static bool IsDomainWideDelegationFailure(GoogleWorkspaceSession session, Exception exception) {
-            if (!session.Options.UseDomainWideDelegation) {
+            if (!session.Options.UseDomainWideDelegation
+                || string.IsNullOrWhiteSpace(session.Options.SubjectUser)) {
                 return false;
             }
 
@@ -269,8 +270,6 @@ namespace OfficeIMO.GoogleWorkspace {
                 || diagnostic.Contains("domain-wide delegation", StringComparison.OrdinalIgnoreCase)
                 || diagnostic.Contains("domain wide delegation", StringComparison.OrdinalIgnoreCase)
                 || diagnostic.Contains("delegation denied", StringComparison.OrdinalIgnoreCase)
-                || diagnostic.Contains("delegation", StringComparison.OrdinalIgnoreCase)
-                || diagnostic.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase)
                 || diagnostic.Contains("not a valid email", StringComparison.OrdinalIgnoreCase);
         }
 

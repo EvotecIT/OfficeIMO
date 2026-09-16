@@ -3,7 +3,7 @@ namespace OfficeIMO.GoogleWorkspace {
     /// Requested behavior for a source feature without a native target equivalent.
     /// </summary>
     public enum UnsupportedFeatureMode {
-        /// <summary>Report an error and reject the operation.</summary>
+        /// <summary>Report an error; the configured preflight policy determines whether it blocks mutation.</summary>
         Error = 0,
         /// <summary>Report a warning and omit the feature.</summary>
         WarnAndSkip = 1,

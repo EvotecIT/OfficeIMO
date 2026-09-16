@@ -879,7 +879,7 @@ namespace OfficeIMO.Word {
                 var footerReference = WordHeadersAndFooters.GetFooterReference(this._document, this, HeaderFooterValues.Even);
 
                 var settings = _wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart?.Settings?.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
-                if (headerReference == true && footerReference == true && settings != null) {
+                if ((headerReference == true || footerReference == true) && settings != null) {
                     return true;
                 }
 

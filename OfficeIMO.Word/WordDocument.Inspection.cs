@@ -323,8 +323,8 @@ namespace OfficeIMO.Word {
                     var cell = row.Cells[columnIndex];
                     var cellSnapshot = new WordTableCellSnapshot {
                         ColumnIndex = columnIndex,
-                        ColumnSpan = ResolveColumnSpan(cell, row, columnIndex),
-                        RowSpan = ResolveRowSpan(table, rowIndex, columnIndex),
+                        ColumnSpan = cell.ColumnSpan,
+                        RowSpan = cell.RowSpan,
                         ShadingFillColorHex = NormalizeColorHex(cell.ShadingFillColorHex),
                         LeftBorder = BuildBorderSnapshot(
                             NormalizeOpenXmlEnumValue(cell.Borders.LeftStyle),
@@ -531,60 +531,6 @@ namespace OfficeIMO.Word {
                 null => null,
                 _ => true,
             };
-        }
-
-        private static int ResolveColumnSpan(WordTableCell cell, WordTableRow row, int columnIndex) {
-            var gridSpan = cell._tableCellProperties?.GetFirstChild<GridSpan>()?.Val?.Value;
-            if (gridSpan.HasValue && gridSpan.Value > 1) {
-                return gridSpan.Value;
-            }
-
-            if (cell.HorizontalMerge == WordCellMerge.Restart) {
-                int span = 1;
-                for (int index = columnIndex + 1; index < row.Cells.Count; index++) {
-                    if (row.Cells[index].HorizontalMerge == WordCellMerge.Continue) {
-                        span++;
-                        continue;
-                    }
-
-                    break;
-                }
-
-                return span;
-            }
-
-            return 1;
-        }
-
-        private static int ResolveRowSpan(WordTable table, int rowIndex, int columnIndex) {
-            if (rowIndex < 0 || rowIndex >= table.Rows.Count) {
-                return 1;
-            }
-
-            if (columnIndex < 0 || columnIndex >= table.Rows[rowIndex].Cells.Count) {
-                return 1;
-            }
-
-            var cell = table.Rows[rowIndex].Cells[columnIndex];
-            if (cell.VerticalMerge != WordCellMerge.Restart) {
-                return 1;
-            }
-
-            int span = 1;
-            for (int index = rowIndex + 1; index < table.Rows.Count; index++) {
-                if (columnIndex >= table.Rows[index].Cells.Count) {
-                    break;
-                }
-
-                if (table.Rows[index].Cells[columnIndex].VerticalMerge == WordCellMerge.Continue) {
-                    span++;
-                    continue;
-                }
-
-                break;
-            }
-
-            return span;
         }
 
         private static string? NormalizeOpenXmlEnumValue(object? value) {

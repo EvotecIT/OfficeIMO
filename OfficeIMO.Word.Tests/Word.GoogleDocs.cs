@@ -103,6 +103,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordInspectionSnapshot_ResolvesVerticalMergesByLogicalColumn() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordInspectionLogicalRowSpan.docx");
+
+            using var document = WordDocument.Create(filePath);
+            WordTable table = document.AddTable(2, 4);
+            WordTableCell leadingCell = table.Rows[0].Cells[0];
+            leadingCell._tableCell.TableCellProperties ??= new TableCellProperties();
+            leadingCell._tableCell.TableCellProperties.GridSpan = new GridSpan { Val = 2 };
+            table.Rows[0].Cells[1]._tableCell.Remove();
+
+            WordTableCell restartCell = table.Rows[0].Cells[1];
+            restartCell.VerticalMerge = WordCellMerge.Restart;
+            table.Rows[1].Cells[2].VerticalMerge = WordCellMerge.Continue;
+
+            Assert.Equal(2, restartCell.RowSpan);
+
+            WordTableSnapshot snapshot = Assert.Single(
+                Assert.Single(document.CreateInspectionSnapshot().Sections).Elements.OfType<WordTableSnapshot>());
+            Assert.Equal(2, snapshot.Rows[0].Cells[1].RowSpan);
+        }
+
+        [Fact]
+        public void Test_WordInspectionSnapshot_RecognizesDefaultValuedMergeContinuationsAndGridBefore() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordInspectionDefaultMergeValues.docx");
+
+            using var document = WordDocument.Create(filePath);
+            WordTable verticalTable = document.AddTable(2, 2);
+            WordTableCell verticalRestart = verticalTable.Rows[0].Cells[1];
+            verticalRestart.VerticalMerge = WordCellMerge.Restart;
+            verticalTable.Rows[1]._tableRow.TableRowProperties ??= new TableRowProperties();
+            verticalTable.Rows[1]._tableRow.TableRowProperties.Append(new GridBefore { Val = 1 });
+            WordTableCell verticalContinuation = verticalTable.Rows[1].Cells[0];
+            verticalContinuation._tableCell.TableCellProperties ??= new TableCellProperties();
+            verticalContinuation._tableCell.TableCellProperties.VerticalMerge = new VerticalMerge();
+            verticalTable.Rows[1].Cells[1]._tableCell.Remove();
+
+            WordTable horizontalTable = document.AddTable(1, 3);
+            WordTableCell horizontalRestart = horizontalTable.Rows[0].Cells[0];
+            horizontalRestart.HorizontalMerge = WordCellMerge.Restart;
+            WordTableCell horizontalContinuation = horizontalTable.Rows[0].Cells[1];
+            horizontalContinuation._tableCell.TableCellProperties ??= new TableCellProperties();
+            horizontalContinuation._tableCell.TableCellProperties.HorizontalMerge = new HorizontalMerge();
+
+            Assert.Equal(WordCellMerge.Continue, verticalContinuation.VerticalMerge);
+            Assert.Equal(2, verticalRestart.RowSpan);
+            Assert.Equal(WordCellMerge.Continue, horizontalContinuation.HorizontalMerge);
+            Assert.Equal(2, horizontalRestart.ColumnSpan);
+
+            WordTableSnapshot[] snapshots = Assert.Single(document.CreateInspectionSnapshot().Sections)
+                .Elements.OfType<WordTableSnapshot>().ToArray();
+            Assert.Equal(2, snapshots[0].Rows[0].Cells[1].RowSpan);
+            Assert.Equal(2, snapshots[1].Rows[0].Cells[0].ColumnSpan);
+        }
+
+        [Fact]
         public void Test_GoogleDocsBatchCompiler_EmitsParagraphAndTableRequests() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsBatch.docx");
             string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
@@ -2790,8 +2845,13 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = BuildGoogleDocsHighlightDocument(filePath);
                 int drivePatchAttempts = 0;
+                var driveRequestUris = new List<Uri>();
 
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                    if (request.RequestUri!.Host == "www.googleapis.com") {
+                        driveRequestUris.Add(request.RequestUri);
+                    }
+
                     if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents") {
                         return Task.FromResult(CreateJsonResponse("{\"documentId\":\"doc-retry-drive\",\"title\":\"Retry Drive Export\"}"));
                     }
@@ -2835,13 +2895,15 @@ namespace OfficeIMO.Tests {
                     Title = "Retry Drive Export",
                     Location = new GoogleDriveFileLocation {
                         FolderId = "folder123",
-                        SharedDriveAware = true,
+                        SharedDriveAware = false,
                     }
                 });
 
                 Assert.Equal("doc-retry-drive", result.DocumentId);
                 Assert.Equal(2, drivePatchAttempts);
                 Assert.Equal("folder123", result.Location?.FolderId);
+                Assert.NotEmpty(driveRequestUris);
+                Assert.All(driveRequestUris, uri => Assert.Contains("supportsAllDrives=false", uri.Query, StringComparison.Ordinal));
                 Assert.Contains(result.Report.Notices, n => n.Feature == "ApiRetries" && n.Message.Contains("https://www.googleapis.com/drive/v3/files/doc-retry-drive", StringComparison.Ordinal));
             } finally {
                 if (File.Exists(filePath)) {
