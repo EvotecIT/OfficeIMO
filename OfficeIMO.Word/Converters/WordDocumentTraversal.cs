@@ -123,7 +123,8 @@ namespace OfficeIMO.Word {
         /// <returns>List info for the paragraph or null when paragraph isn't a list item.</returns>
         public static ListInfo? GetListInfo(WordParagraph paragraph) {
             if (paragraph == null ||
-                !WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering)) {
+                !WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering,
+                    WordListNumberingResolver.CreateStyleCatalog(paragraph._document))) {
                 return null;
             }
 
@@ -466,23 +467,47 @@ namespace OfficeIMO.Word {
 
         private static IEnumerable<WordParagraph> EnumerateListParagraphs(WordDocument document) {
             var seen = new HashSet<Paragraph>();
-            foreach (WordParagraph paragraph in document.EnumerateAllParagraphs()) {
-                if (paragraph._paragraph != null && seen.Add(paragraph._paragraph)) yield return paragraph;
-            }
-
-            foreach (WordTextBox textBox in document.TextBoxes) {
-                foreach (WordParagraph paragraph in textBox.Paragraphs) {
-                    if (paragraph._paragraph != null && seen.Add(paragraph._paragraph)) yield return paragraph;
+            var boxesByAnchor = new Dictionary<Paragraph, List<WordTextBox>>();
+            void IndexTextBoxes(IEnumerable<WordTextBox> textBoxes) {
+                foreach (WordTextBox textBox in textBoxes) {
+                    if (textBox.AnchorParagraph is not Paragraph anchor) continue;
+                    if (!boxesByAnchor.TryGetValue(anchor, out List<WordTextBox>? boxes)) {
+                        boxes = new List<WordTextBox>();
+                        boxesByAnchor.Add(anchor, boxes);
+                    }
+                    boxes.Add(textBox);
                 }
             }
 
+            IndexTextBoxes(document.TextBoxes);
+            foreach (WordSection section in document.Sections) {
+                foreach (WordHeaderFooter? headerFooter in new WordHeaderFooter?[] { section.Header.Default, section.Header.First, section.Header.Even, section.Footer.Default, section.Footer.First, section.Footer.Even }) {
+                    if (headerFooter != null) IndexTextBoxes(headerFooter.TextBoxes);
+                }
+            }
+
+            IEnumerable<WordParagraph> EnumerateStory(DocumentFormat.OpenXml.OpenXmlCompositeElement? root) {
+                if (root == null) yield break;
+                foreach (Paragraph paragraph in root.Descendants<Paragraph>()) {
+                    if (paragraph.Ancestors<TextBoxContent>().Any() || !seen.Add(paragraph)) continue;
+                    yield return new WordParagraph(document, paragraph);
+                    if (!boxesByAnchor.TryGetValue(paragraph, out List<WordTextBox>? boxes)) continue;
+                    foreach (WordTextBox box in boxes) {
+                        foreach (WordParagraph inner in box.Paragraphs) {
+                            if (inner._paragraph != null && seen.Add(inner._paragraph)) yield return inner;
+                        }
+                    }
+                }
+            }
+
+            foreach (WordParagraph paragraph in EnumerateStory(document._wordprocessingDocument.MainDocumentPart?.Document?.Body)) {
+                yield return paragraph;
+            }
             foreach (WordSection section in document.Sections) {
                 foreach (WordHeaderFooter? headerFooter in new WordHeaderFooter?[] { section.Header.Default, section.Header.First, section.Header.Even, section.Footer.Default, section.Footer.First, section.Footer.Even }) {
                     if (headerFooter == null) continue;
-                    foreach (WordTextBox textBox in headerFooter.TextBoxes) {
-                        foreach (WordParagraph paragraph in textBox.Paragraphs) {
-                            if (paragraph._paragraph != null && seen.Add(paragraph._paragraph)) yield return paragraph;
-                        }
+                    foreach (WordParagraph paragraph in EnumerateStory((DocumentFormat.OpenXml.OpenXmlCompositeElement?)headerFooter._header ?? headerFooter._footer)) {
+                        yield return paragraph;
                     }
                 }
             }

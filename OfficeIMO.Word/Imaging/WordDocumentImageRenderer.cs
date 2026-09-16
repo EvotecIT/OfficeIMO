@@ -588,7 +588,7 @@ namespace OfficeIMO.Word {
             context.Y += spacing.Before;
             if (context.IsTargetPage) {
                 AddParagraphFrame(paragraphs[0], context, textLayout, height, colorScheme);
-                if (listMarker.HasValue) {
+                if (listMarker.HasValue && !string.IsNullOrEmpty(listMarker.Value.Marker)) {
                     WordImageListMarker marker = listMarker.Value;
                     context.Drawing.AddText(
                         marker.Marker,

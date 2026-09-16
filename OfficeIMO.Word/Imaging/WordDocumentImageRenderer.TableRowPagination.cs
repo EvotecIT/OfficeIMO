@@ -389,7 +389,7 @@ namespace OfficeIMO.Word {
                 }
 
                 WordImageListMarker? listMarker = CreateTableCellListMarker(runs, listMarkers);
-                if (listMarker.HasValue) {
+                if (listMarker.HasValue && !string.IsNullOrEmpty(listMarker.Value.Marker)) {
                     WordImageListMarker marker = listMarker.Value;
                     richRuns.Add(new OfficeRichTextRun(
                         marker.Marker + " ",

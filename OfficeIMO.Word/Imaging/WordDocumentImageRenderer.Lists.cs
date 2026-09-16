@@ -14,8 +14,7 @@ namespace OfficeIMO.Word {
             Paragraph paragraph,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             WordParagraph paragraphReference = new WordParagraph(document, paragraph);
-            if (!listMarkers.TryGetValue(paragraphReference, out (int Level, string Marker) marker) ||
-                string.IsNullOrWhiteSpace(marker.Marker)) {
+            if (!listMarkers.TryGetValue(paragraphReference, out (int Level, string Marker) marker)) {
                 return null;
             }
 

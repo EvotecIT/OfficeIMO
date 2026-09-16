@@ -112,6 +112,97 @@ public sealed class WordListMarkerSemanticsTests {
     }
 
     [Fact]
+    public void NumberingVisitsTextBoxesAndTableCellsAtTheirAnchors() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        WordParagraph before = document.AddParagraph("Before box");
+        AttachToList(before, list.NumberId);
+        WordTextBox box = document.AddParagraph("Box host").AddTextBox("Inside box", WordImageTextWrapping.Square);
+        WordParagraph inside = box.Paragraphs[0];
+        AttachToList(inside, list.NumberId);
+        WordTable table = document.AddTable(1, 1);
+        WordParagraph inCell = table.Rows[0].Cells[0].Paragraphs[0];
+        inCell.Text = "Inside table";
+        AttachToList(inCell, list.NumberId);
+        WordParagraph after = document.AddParagraph("After table");
+        AttachToList(after, list.NumberId);
+
+        var markers = WordDocumentTraversal.BuildListMarkers(document);
+        Assert.Equal("1.", markers[before].Marker);
+        Assert.Equal("2.", markers[inside].Marker);
+        Assert.Equal("3.", markers[inCell].Marker);
+        Assert.Equal("4.", markers[after].Marker);
+        string pdfText = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        Assert.Contains("1. Before box", pdfText, StringComparison.Ordinal);
+        Assert.Contains("2. Inside box", pdfText, StringComparison.Ordinal);
+        Assert.Contains("3. Inside table", pdfText, StringComparison.Ordinal);
+        Assert.Contains("4. After table", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HeaderTextBoxNumberingFollowsHeaderAnchorOrder() {
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        WordParagraph before = document.Header!.Default!.AddParagraph("Before");
+        AttachToList(before, list.NumberId);
+        WordTextBox box = document.Header.Default.AddParagraph("Host").AddTextBox("Inside", WordImageTextWrapping.Square);
+        WordParagraph inside = box.Paragraphs[0];
+        AttachToList(inside, list.NumberId);
+        WordParagraph after = document.Header.Default.AddParagraph("After");
+        AttachToList(after, list.NumberId);
+
+        var markers = WordDocumentTraversal.BuildListMarkers(document);
+        Assert.Equal("1.", markers[before].Marker);
+        Assert.Equal("2.", markers[inside].Marker);
+        Assert.Equal("3.", markers[after].Marker);
+    }
+
+    [Fact]
+    public void PdfTextBoxMarkersUseLevelFormatting() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000");
+        list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()!
+            .Append(new Bold(), new FontSize { Val = "36" });
+        WordTextBox box = document.AddTextBox("Styled box");
+        AttachToList(box.Paragraphs[0], list.NumberId);
+
+        var spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans();
+        PdfTextSpan marker = Assert.Single(spans, span => span.Text.Contains("*", StringComparison.Ordinal));
+        Assert.InRange(marker.FontSize, 17.5D, 18.5D);
+        Assert.True(marker.IsBold);
+        Assert.Equal(OfficeColor.FromRgb(255, 0, 0), marker.Color);
+    }
+
+    [Fact]
+    public void TextBoxListParagraphsKeepTheirOwnNumberingAndRenderOnce() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        WordTextBox box = document.AddTextBox("First box line ");
+        Paragraph firstElement = box.Content!.Elements<Paragraph>().First();
+        firstElement.Append(new Run(new Text("continued")));
+        Paragraph secondElement = new Paragraph(new Run(new Text("Second box line")));
+        box.Content.Append(secondElement);
+        WordParagraph first = box.Paragraphs.First();
+        WordParagraph second = box.Paragraphs.Last();
+        AttachToList(first, list.NumberId);
+        AttachToList(second, list.NumberId);
+
+        Assert.NotSame(first._paragraph, second._paragraph);
+        var markers = WordDocumentTraversal.BuildListMarkers(document);
+        Assert.Equal("1.", markers[first].Marker);
+        Assert.Equal("2.", markers[second].Marker);
+        string pdfText = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        Assert.Equal(1, pdfText.Split(new[] { "1." }, StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, pdfText.Split(new[] { "2." }, StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, pdfText.Split(new[] { "continued" }, StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, pdfText.Split(new[] { "Second box line" }, StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
     public void PdfTableMarkersUseLevelFormatting() {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomBulletList('*', "Arial", "FF0000");
@@ -275,6 +366,50 @@ public sealed class WordListMarkerSemanticsTests {
     }
 
     [Fact]
+    public void NumberingLevelLinkedStyleNeedsNoStyleNumberingProperties() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        list.Numbering.Levels[0].OpenXmlElement.Append(new ParagraphStyleIdInLevel { Val = "Issue2510OnlyLevelLinked" });
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style { Type = StyleValues.Paragraph, StyleId = "Issue2510OnlyLevelLinked" });
+        WordParagraph linked = document.AddParagraph("Level linked");
+        linked._paragraph.ParagraphProperties = new ParagraphProperties(new ParagraphStyleId { Val = "Issue2510OnlyLevelLinked" });
+        WordParagraph cancelled = document.AddParagraph("Cancelled");
+        cancelled._paragraph.ParagraphProperties = new ParagraphProperties(
+            new ParagraphStyleId { Val = "Issue2510OnlyLevelLinked" },
+            new NumberingProperties(new NumberingId { Val = 0 }));
+
+        Assert.True(linked.IsListItem);
+        Assert.Equal(list.NumberId, linked._listNumberId);
+        Assert.Equal("1.", WordDocumentTraversal.BuildListMarkers(document)[linked].Marker);
+        Assert.False(cancelled.IsListItem);
+    }
+
+    [Fact]
+    public void ListStyleCatalogIsReusedUntilDocumentStructureChanges() {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph plain = document.AddParagraph("Plain");
+        WordListNumberingResolver.StyleCatalog first = WordListNumberingResolver.GetCachedStyleCatalog(document);
+        Assert.False(plain.IsListItem);
+        Assert.Same(first, WordListNumberingResolver.GetCachedStyleCatalog(document));
+
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        WordListNumberingResolver.StyleCatalog afterNumbering = WordListNumberingResolver.GetCachedStyleCatalog(document);
+        Assert.NotSame(first, afterNumbering);
+        Assert.Same(afterNumbering, WordListNumberingResolver.GetCachedStyleCatalog(document));
+
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.BulletSolidRound));
+        WordListNumberingResolver.StyleCatalog afterLevel = WordListNumberingResolver.GetCachedStyleCatalog(document);
+        Assert.NotSame(afterNumbering, afterLevel);
+
+        document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+            .Append(new Style { Type = StyleValues.Paragraph, StyleId = "Issue2510NewStyle" });
+        Assert.NotSame(afterLevel, WordListNumberingResolver.GetCachedStyleCatalog(document));
+    }
+
+    [Fact]
     public void StyleLinkedNumberingLevelOverridesStyleNumPrLevel() {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
@@ -379,6 +514,24 @@ public sealed class WordListMarkerSemanticsTests {
         double unmarkedCellX = Assert.Single(spans, span => span.Text == "UnmarkedCell").X;
         Assert.True(unmarkedBodyX > plainBodyX + 45D);
         Assert.True(unmarkedCellX > plainCellX + 45D);
+    }
+
+    [Fact]
+    public void MarkerlessImageItemsKeepNumberingLevelIndentation() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
+        list.Numbering.Levels[0].IndentationLeft = 2160;
+        list.Numbering.Levels[0].IndentationHanging = 360;
+        document.AddParagraph("Plain image line");
+        list.AddItem("Unmarked image line");
+
+        OfficeDrawingText[] texts = document.CreateVisualSnapshot().Drawing.Elements
+            .OfType<OfficeDrawingText>().ToArray();
+        double plainX = Assert.Single(texts, text => text.Text == "Plain image line").X;
+        double unmarkedX = Assert.Single(texts, text => text.Text == "Unmarked image line").X;
+        Assert.True(unmarkedX > plainX + 45D);
+        Assert.DoesNotContain(texts, text => text.Text.Length == 0);
     }
 
     [Fact]

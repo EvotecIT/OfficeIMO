@@ -150,6 +150,7 @@ namespace OfficeIMO.Word {
             UpdateLevelText(wordListLevel);
             // add the level to the abstractNum
             _abstractNum.Append(wordListLevel._level);
+            WordListNumberingResolver.InvalidateNumbering(_abstractNum.Ancestors<Numbering>().FirstOrDefault());
         }
 
         /// <summary>
@@ -163,6 +164,7 @@ namespace OfficeIMO.Word {
             level.LevelIndex = GetNextLevelIndex;
             // add the level to the abstractNum
             _abstractNum.Append(level);
+            WordListNumberingResolver.InvalidateNumbering(_abstractNum.Ancestors<Numbering>().FirstOrDefault());
         }
 
         /// <summary>
@@ -170,6 +172,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void RemoveAllLevels() {
             _abstractNum.RemoveAllChildren<Level>();
+            WordListNumberingResolver.InvalidateNumbering(_abstractNum.Ancestors<Numbering>().FirstOrDefault());
         }
     }
 }

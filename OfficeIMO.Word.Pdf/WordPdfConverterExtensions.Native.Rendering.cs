@@ -471,7 +471,20 @@ namespace OfficeIMO.Word.Pdf {
             }
             if (marker != null && !string.IsNullOrEmpty(marker.Value.Marker)) {
                 builder.Text(new string(' ', Math.Max(0, marker.Value.Level - 1) * 2));
+                WordDocumentTraversal.ListInfo? markerInfo = WordDocumentTraversal.GetListInfo(paragraph);
+                if (markerInfo.HasValue) {
+                    NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
+                    ApplyNativeTextStyle(builder, textStyle);
+                    builder.Bold(markerInfo.Value.MarkerBold ?? textStyle.Bold);
+                    builder.Italic(markerInfo.Value.MarkerItalic ?? textStyle.Italic);
+                    if (markerInfo.Value.MarkerFontSize.HasValue) builder.FontSize(markerInfo.Value.MarkerFontSize.Value);
+                    if (ParseNativeColor(markerInfo.Value.MarkerColorHex) is { } markerColor) builder.Color(markerColor);
+                    string? markerFontFamily = ResolveNativeListMarkerFontFamily(markerInfo.Value, marker.Value.Marker, textStyle, nativeFontMap);
+                    if (!string.IsNullOrWhiteSpace(markerFontFamily)) builder.FontFamily(markerFontFamily!);
+                    else if (ResolveNativeListMarkerFont(markerInfo.Value, marker.Value.Marker, textStyle) is { } markerFont) builder.Font(markerFont);
+                }
                 builder.Text(marker.Value.Marker);
+                if (markerInfo.HasValue) ResetNativeTextStyle(builder);
                 builder.Text(" ");
             }
 
@@ -664,13 +677,13 @@ namespace OfficeIMO.Word.Pdf {
         private static IReadOnlyList<WordParagraph> GetNativeTextBoxParagraphs(WordTextBox textBox) {
             IReadOnlyList<WordParagraph> directParagraphs = textBox.Paragraphs;
             if (HasNativeRenderableTextBoxText(directParagraphs)) {
-                return directParagraphs;
+                return directParagraphs.GroupBy(paragraph => paragraph._paragraph).Select(group => group.First()).ToList();
             }
 
             IReadOnlyList<WordParagraph> elementParagraphs = CollapseNativeParagraphElements(textBox.Elements)
                 .OfType<WordParagraph>()
                 .ToList();
-            return elementParagraphs;
+            return elementParagraphs.GroupBy(paragraph => paragraph._paragraph).Select(group => group.First()).ToList();
         }
 
         private static bool HasNativeRenderableTextBoxText(IEnumerable<WordParagraph> paragraphs) {

@@ -89,12 +89,8 @@ namespace OfficeIMO.Word {
                     return new List<WordParagraph>();
                 }
 
-                if (_textBoxInfo2 != null) {
-                    return content.Descendants<Run>().Select(run => new WordParagraph(_document, _paragraph!, run)).ToList();
-                }
-
                 return content.Descendants<Run>()
-                    .Select(run => new WordParagraph(_document, run.Ancestors<Paragraph>().FirstOrDefault()!, run))
+                    .Select(run => new WordParagraph(_document, run.Ancestors<Paragraph>().First(), run))
                     .ToList();
             }
         }
@@ -515,6 +511,8 @@ namespace OfficeIMO.Word {
         internal WordDocument Document => _document;
 
         internal TextBoxContent? Content => GetTextBoxContent();
+
+        internal Paragraph? AnchorParagraph => _wordParagraph._paragraph;
 
         internal ShapeProperties? DrawingShapeProperties =>
             _wordprocessingShape?.GetFirstChild<ShapeProperties>();
