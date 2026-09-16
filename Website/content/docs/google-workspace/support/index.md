@@ -42,11 +42,11 @@ order: 80
 
 | Capability | Export | Import | Current boundary |
 |---|---|---|---|
-| Slides, ordering, size and solid backgrounds | Native | Native | Deterministic page IDs are scoped to one apply and are not synchronization identities. |
-| Text boxes, core run styles and hyperlinks | Native | Native | The first native style run is used as the editable baseline; Drive PPTX import preserves richer run structure. |
-| Tables | Native | Native | Core geometry and cell text are native; advanced borders, merges, and themes use the Drive fallback. |
-| Pictures | Native | Native | Export uses short-lived public Drive leases because Slides fetches images by URL. |
-| Basic shapes | Native | Partial | Common geometry maps natively; exact custom geometry is rendered when complex-slide fallback is enabled. |
+| Slides, ordering, size and solid backgrounds | Partial | Native | Export scales and centers source coordinates when the Google page size differs; Slides does not expose page-size updates. Deterministic page IDs are scoped to one apply and are not synchronization identities. |
+| Text boxes, run typography and hyperlinks | Native | Native | Font family, size, color, bold, italic, single underline, strike, small caps, superscript and subscript map natively. All-caps is materialized; Office-only underline and double-strike variants use their closest Google appearance. |
+| Tables | Partial | Partial | Unmerged table geometry and cell text map natively; merged cells trigger whole-slide fallback by default, while advanced borders and themes are not fully projected. Drive-exported PPTX remains the broad import fallback. |
+| Pictures | Partial | Partial | Uncropped PNG, JPEG, and GIF pictures export as native image objects through temporary public Drive leases; cleanup is attempted after export and failures are reported. Cropped or unsupported-format pictures render with whole-slide fallback by default, or are skipped under PreferNativeAndReport. Native import skips an image it cannot download and reports a warning; callers can separately choose Drive-exported PPTX import for broader fidelity. |
+| Basic shapes | Partial | Partial | Common geometry maps natively; unsupported custom geometry uses whole-slide fallback by default or is skipped under PreferNativeAndReport. |
 | Speaker notes | Native | Native | Only the speaker-notes BODY placeholder is writable in the Slides API. |
 | Charts and SmartArt | Rasterized | DriveFallback | PowerPoint charts are not equivalent to linked Google Sheets charts; complex slides use renderer-owned PNG fallback. |
 | Video and audio | Rasterized | DriveFallback | Media is rendered; no matching editable source-link contract is currently defined. |

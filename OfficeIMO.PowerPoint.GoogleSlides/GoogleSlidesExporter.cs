@@ -24,7 +24,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         }
 
         /// <summary>Creates, copies a template, or replaces a Google presentation and returns its remote reference.</summary>
-        /// <remarks>Fidelity policy is checked before mutation. Replacing an existing presentation requires an observed revision unless overwrite-latest is explicitly selected; temporary image leases are cleaned up after the batch.</remarks>
+        /// <remarks>Fidelity policy is checked before mutation. Replacing an existing presentation requires an observed revision unless overwrite-latest is explicitly selected. Temporary public image leases are deleted on a best-effort basis after the batch; failures are recorded in the translation report and a file can remain publicly readable until deletion succeeds.</remarks>
         public async Task<GooglePresentationReference> ExportAsync(PowerPointPresentation presentation, GoogleWorkspaceSession session, GoogleSlidesSaveOptions? options = null, CancellationToken cancellationToken = default) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             if (session == null) throw new ArgumentNullException(nameof(session));
