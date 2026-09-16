@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
     /// <summary>Action selected when a formula cannot be translated reliably.</summary>
     public enum GoogleSheetsUnsupportedFormulaMode {
-        /// <summary>Report an error and stop export during preflight.</summary>
+        /// <summary>Report an error for unsupported formulas; whether it blocks export depends on the fidelity preflight mode and accepted diagnostic codes.</summary>
         Error = 0,
         /// <summary>Preserve the formula text and record a warning.</summary>
         PreserveWithWarning = 1,

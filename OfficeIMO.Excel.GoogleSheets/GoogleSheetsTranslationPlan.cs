@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public int FormulaCount { get; internal set; }
         /// <summary>Gets the number of formula cells using unsupported functions.</summary>
         public int UnsupportedFormulaCount { get; internal set; }
-        /// <summary>Gets whether source print-layout features have no equivalent.</summary>
+        /// <summary>Gets whether planning detected header/footer text or page-variant settings at risk of loss. Image placeholders are reported separately; other print-layout features are not inspected by this flag.</summary>
         public bool HasPrintLayoutRisk { get; internal set; }
     }
 }

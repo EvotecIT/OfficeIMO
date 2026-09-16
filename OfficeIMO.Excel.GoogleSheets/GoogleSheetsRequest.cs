@@ -508,7 +508,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public string? VerticalAlignment { get; set; }
         /// <summary>Gets or sets whether text wraps within the cell.</summary>
         public bool WrapText { get; set; }
-        /// <summary>Gets or sets text rotation in degrees.</summary>
+        /// <summary>Gets or sets the source Excel text-rotation encoding: 0-90 represents positive degrees, 91-180 maps to negative degrees, and 255 means stacked vertical text.</summary>
         public int? TextRotation { get; set; }
         /// <summary>Gets or sets source text indentation.</summary>
         public uint? TextIndent { get; set; }
