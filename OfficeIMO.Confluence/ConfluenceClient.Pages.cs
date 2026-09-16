@@ -8,11 +8,13 @@ namespace OfficeIMO.Confluence;
 public sealed partial class ConfluenceClient : IDisposable {
     private readonly ConfluenceHttpTransport _transport;
 
+    /// <summary>Creates a client that sends requests using the supplied session.</summary>
     public ConfluenceClient(ConfluenceSession session) {
         Session = session ?? throw new ArgumentNullException(nameof(session));
         _transport = new ConfluenceHttpTransport(session);
     }
 
+    /// <summary>Gets the session supplied to this client.</summary>
     public ConfluenceSession Session { get; }
 
     /// <summary>Reads a page with the requested body representation.</summary>
@@ -93,6 +95,7 @@ public sealed partial class ConfluenceClient : IDisposable {
         return new ConfluencePageWritePlan("DELETE", relativeUri, string.Empty);
     }
 
+    /// <summary>Releases the client's resources without disposing a caller-supplied HTTP client.</summary>
     public void Dispose() => _transport.Dispose();
 
     private static string BuildPageQuery(ConfluencePageQuery query) {

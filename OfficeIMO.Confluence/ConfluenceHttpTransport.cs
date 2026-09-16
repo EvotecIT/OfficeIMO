@@ -21,9 +21,13 @@ public sealed class ConfluenceApiException : Exception {
         ResponseBody = responseBody;
     }
 
+    /// <summary>Gets the unsuccessful HTTP status returned by Confluence.</summary>
     public HttpStatusCode StatusCode { get; }
+    /// <summary>Gets the HTTP method used for the failed request.</summary>
     public string RequestMethod { get; }
+    /// <summary>Gets the resolved URI of the failed request.</summary>
     public Uri RequestUri { get; }
+    /// <summary>Gets the full response body decoded as UTF-8; the exception message may abbreviate it.</summary>
     public string ResponseBody { get; }
 
     private static string BuildMessage(HttpStatusCode statusCode, string method, Uri requestUri, string responseBody) {

@@ -7,7 +7,9 @@ namespace OfficeIMO.Confluence;
 
 /// <summary>Behavior when a managed section marker pair does not exist.</summary>
 public enum ConfluenceMissingSectionBehavior {
+    /// <summary>Throw when neither marker of the requested section exists.</summary>
     Fail,
+    /// <summary>Append a new marked section when neither marker exists.</summary>
     Append,
 }
 
@@ -22,12 +24,19 @@ public sealed class ConfluenceManagedSectionResult {
         UpdatedSha256 = ComputeHash(updatedBody);
     }
 
+    /// <summary>Gets the identifier of the section that was replaced or appended.</summary>
     public string SectionId { get; }
+    /// <summary>Gets the page-body text supplied to the operation.</summary>
     public string OriginalBody { get; }
+    /// <summary>Gets the page-body text after applying the section replacement.</summary>
     public string UpdatedBody { get; }
+    /// <summary>Gets whether a missing marker pair was appended; this does not create a remote page.</summary>
     public bool WasCreated { get; }
+    /// <summary>Gets whether the original and updated bodies differ by ordinal comparison.</summary>
     public bool Changed => !string.Equals(OriginalBody, UpdatedBody, StringComparison.Ordinal);
+    /// <summary>Gets the lowercase SHA-256 hex digest of the original body encoded as UTF-8.</summary>
     public string OriginalSha256 { get; }
+    /// <summary>Gets the lowercase SHA-256 hex digest of the updated body encoded as UTF-8.</summary>
     public string UpdatedSha256 { get; }
 
     private static string ComputeHash(string value) {
@@ -60,11 +69,18 @@ public sealed class ConfluenceManagedSectionResult {
     }
 }
 
-/// <summary>Safely replaces content between stable OfficeIMO markers while preserving the rest of the page.</summary>
+/// <summary>Builds page-body text with a named section delimited by OfficeIMO markers.</summary>
 public static class ConfluenceManagedSection {
     private static readonly Regex SectionIdPattern = new Regex("^[A-Za-z0-9._-]{1,100}$", RegexOptions.CultureInvariant);
     private const string MarkerPrefix = "<!-- officeimo:section:";
 
+    /// <summary>Replaces a marked section, or appends it when allowed, without contacting Confluence.</summary>
+    /// <param name="existingBody">Current page-body text; a null value is treated as empty.</param>
+    /// <param name="sectionId">Marker identifier: 1-100 ASCII letters, digits, dots, underscores, or hyphens.</param>
+    /// <param name="replacement">New content between the markers; a null value is treated as empty.</param>
+    /// <param name="missingBehavior">Whether to fail or append when both markers are absent.</param>
+    /// <returns>The original and updated bodies, creation flag, and SHA-256 digests.</returns>
+    /// <remarks>Unmatched, reversed, or duplicate markers always cause an error. Replacement content cannot contain an OfficeIMO section marker.</remarks>
     public static ConfluenceManagedSectionResult Apply(
         string existingBody,
         string sectionId,
@@ -97,7 +113,9 @@ public static class ConfluenceManagedSection {
         return new ConfluenceManagedSectionResult(sectionId, existingBody, updated, created: false);
     }
 
+    /// <summary>Builds the opening HTML comment marker for a validated section identifier.</summary>
     public static string StartMarker(string sectionId) { ValidateSectionId(sectionId); return MarkerPrefix + sectionId + ":start -->"; }
+    /// <summary>Builds the closing HTML comment marker for a validated section identifier.</summary>
     public static string EndMarker(string sectionId) { ValidateSectionId(sectionId); return MarkerPrefix + sectionId + ":end -->"; }
 
     private static void ValidateSectionId(string sectionId) {

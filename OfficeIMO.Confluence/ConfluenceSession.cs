@@ -9,11 +9,17 @@ public sealed class ConfluenceSessionOptions {
     /// <c>https://api.atlassian.com/ex/confluence/{cloudId}/</c> while <see cref="SiteUri"/> remains the human-facing site.
     /// </summary>
     public string? CloudId { get; set; }
+    /// <summary>Gets or sets the application label used in the request User-Agent; blank values fall back to <c>OfficeIMO</c>.</summary>
     public string ApplicationName { get; set; } = "OfficeIMO";
+    /// <summary>Gets or sets an optional caller-owned HTTP client, which ConfluenceClient does not dispose.</summary>
     public HttpClient? HttpClient { get; set; }
+    /// <summary>Gets or sets the positive timeout for each HTTP attempt, excluding retry delays.</summary>
     public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(100);
+    /// <summary>Gets or sets the maximum number of additional attempts for retryable reads; writes are not retried.</summary>
     public int MaxRetryCount { get; set; } = 3;
+    /// <summary>Gets or sets the non-negative initial delay used for exponential read retries.</summary>
     public TimeSpan RetryBaseDelay { get; set; } = TimeSpan.FromMilliseconds(250);
+    /// <summary>Gets or sets the non-negative cap on retry delays, including a server Retry-After value.</summary>
     public TimeSpan RetryMaxDelay { get; set; } = TimeSpan.FromSeconds(8);
 }
 
@@ -21,6 +27,8 @@ public sealed class ConfluenceSessionOptions {
 public sealed class ConfluenceSession {
     private readonly ConfluenceSessionOptions _options;
 
+    /// <summary>Creates a session after validating and copying the supplied options.</summary>
+    /// <remarks>The credential source and any supplied <see cref="ConfluenceSessionOptions.HttpClient"/> remain caller-owned.</remarks>
     public ConfluenceSession(IConfluenceCredentialSource credentialSource, ConfluenceSessionOptions options) {
         CredentialSource = credentialSource ?? throw new ArgumentNullException(nameof(credentialSource));
         if (options == null) throw new ArgumentNullException(nameof(options));
@@ -39,6 +47,7 @@ public sealed class ConfluenceSession {
             : new Uri("https://api.atlassian.com/ex/confluence/" + Uri.EscapeDataString(_options.CloudId!) + "/", UriKind.Absolute);
     }
 
+    /// <summary>Gets the caller-provided source applied to every outgoing request.</summary>
     public IConfluenceCredentialSource CredentialSource { get; }
     /// <summary>Returns a defensive copy of the validated session options.</summary>
     public ConfluenceSessionOptions Options => Clone(_options);
