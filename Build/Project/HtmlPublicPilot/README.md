@@ -28,7 +28,7 @@ The output directory must be new. The host does not parse page markup or CSS.
 Inside isolation, the renderer discovers HTML scripts, stylesheets, images,
 fonts and frame documents, then follows frame-static resources, stylesheet
 imports and selected CSS URLs. If execution
-requests an unsupplied GET resource, the worker can ask the host to fetch it and
+requests an unsupplied bodyless, headerless GET resource, the worker can ask the host to fetch it and
 restart the offline capture. Every request passes through the same bounded host
 broker; rejected hosts and URLs are recorded as skipped resources. Discovery is
 limited to 16 rounds and 24 supplied assets. The acquired bytes, redirects,
@@ -40,9 +40,10 @@ URLs approve their own host. The generated OCI probe qualifies active,
 multi-candidate responsive-picture selection by viewport, `sizes`, and device density, a two-level relative
 JavaScript module graph, a scoped import-map graph with prefix mapping and dynamic import,
 script-driven relative `fetch()` GET replay with query preservation and fragment stripping,
+script-driven asynchronous headerless `XMLHttpRequest` GET replay through the same bounded transport,
 and static frame-document loading with relative-resource discovery and inert child scripts.
 Child-frame execution realms, frame-body capture/rendering, import attributes,
-XMLHttpRequest, non-GET requests and browser-wide dynamic loading are
+XMLHttpRequest with request headers or beyond bodyless GET, non-GET requests and browser-wide dynamic loading are
 not qualified by this pilot. Cookies and credentials are outside this profile.
 
 The broker allows standard HTTP(S) ports and UTF-8 HTML, validates public IPv4

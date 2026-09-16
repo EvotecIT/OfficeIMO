@@ -144,9 +144,10 @@ internal sealed class RuntimeResourceLoader : IDisposable {
             return new HtmlRuntimeResource(url, method == "HEAD" ? Array.Empty<byte>() : supplied.Buffer, supplied.ContentType, supplied.StatusCode, new Uri(HtmlRuntimeResourcePolicy.Key(supplied.FinalUrl)), supplied.RedirectCount, suppliedHeaders, supplied.StatusText);
         }
         if (!_policy.AllowNetwork) {
-            if (method == "GET" && body == null) _diagnostics.RecordMissingResource(url);
+            bool replayable = method == "GET" && body == null && headers.Count == 0;
+            if (replayable) _diagnostics.RecordMissingResource(url);
             _diagnostics.Record(HtmlRuntimeEventKind.Policy, "network-access", "blocked", DateTimeOffset.UtcNow,
-                url: url, method: method, decision: "network-disabled");
+                url: url, method: method, decision: replayable ? "network-disabled-replayable-get" : "network-disabled");
             throw new HtmlScriptRuntimeException(MissingResourceMessage);
         }
         _diagnostics.Record(HtmlRuntimeEventKind.Policy, "network-access", "allowed", DateTimeOffset.UtcNow,

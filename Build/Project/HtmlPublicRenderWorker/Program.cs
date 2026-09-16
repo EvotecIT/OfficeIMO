@@ -66,12 +66,24 @@ try {
             result = await HtmlApplicationDocumentWorkflow.RunAsync(host,
                 new HtmlApplicationDocumentRequest {
                     Page = page,
+                    Context = new HtmlRuntimeContextOptions {
+                        Trace = new HtmlRuntimeTraceOptions { IncludeUrls = true }
+                    },
                     RenderRequests = new[] {
                         HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, rendering),
                         HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, rendering),
                         HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf, rendering)
                     }
                 }, deadline.Token);
+            if (result.Trace.IsTruncated)
+                throw new HtmlScriptRuntimeException("Resource discovery trace exceeded its event limit.");
+            pending = result.Trace.Events
+                .Where(entry => entry.Kind == HtmlRuntimeEventKind.Policy && entry.Operation == "network-access" &&
+                    entry.Status == "blocked" && entry.Decision == "network-disabled-replayable-get" &&
+                    entry.Method == "GET" && entry.Url != null)
+                .Select(entry => HtmlRuntimeResourcePolicy.Key(entry.Url!))
+                .Where(missingAtRuntime.Add).ToArray();
+            if (pending.Length != 0) continue;
             break;
         } catch (HtmlScriptRuntimeException error) when (error.MissingResourceUrls.Count != 0) {
             pending = error.MissingResourceUrls.Select(HtmlRuntimeResourcePolicy.Key)

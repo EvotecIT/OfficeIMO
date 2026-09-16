@@ -98,6 +98,38 @@ var cases = new List<ProbeCase> {
         Resources: new Dictionary<string, ProbeResource>(StringComparer.Ordinal) {
             [$"{fixtureOrigin}/api/report.json?view=summary"] = new("{\"total\":42}", "application/json")
         }, ExpectedDiscoveryRounds: [[ $"{fixtureOrigin}/api/report.json?view=summary" ]]),
+    new ProbeCase("dynamic-xhr-get", """
+        <!doctype html><style>body{font:16px sans-serif}#result{color:#0055aa}</style>
+        <p id="result">Loading XHR data</p>
+        <script>
+          const request = new XMLHttpRequest();
+          request.open('GET', '/api/xhr-report.json?view=summary#client');
+          request.responseType = 'json';
+          request.onload = () => document.querySelector('#result').textContent = `XHR ready ${request.response.total}`;
+          request.onerror = () => document.querySelector('#result').textContent = 'XHR acquisition pending';
+          request.onloadend = () => document.body.dataset.xhrSettled = 'yes';
+          request.send();
+        </script>
+        """, "document.body.dataset.xhrSettled === 'yes'", 8 * 1024 * 1024,
+        ExpectedVisibleText: "XHR ready 42", ExpectBlueInk: true,
+        Resources: new Dictionary<string, ProbeResource>(StringComparer.Ordinal) {
+            [$"{fixtureOrigin}/api/xhr-report.json?view=summary"] = new("{\"total\":42}", "application/json")
+        }, ExpectedDiscoveryRounds: [[ $"{fixtureOrigin}/api/xhr-report.json?view=summary" ]]),
+    new ProbeCase("dynamic-xhr-headered-get-blocked", """
+        <!doctype html><style>body{font:16px sans-serif}#result{color:#0055aa}</style>
+        <p id="result">Loading header-varying XHR</p>
+        <script>
+          const request = new XMLHttpRequest();
+          request.open('GET', '/api/header-varying.json');
+          request.setRequestHeader('X-Variant', 'private');
+          request.onload = () => document.querySelector('#result').textContent = 'Headered XHR was replayed';
+          request.onerror = () => document.querySelector('#result').textContent = 'Headered XHR remained offline';
+          request.onloadend = () => document.body.dataset.xhrSettled = 'yes';
+          request.send();
+        </script>
+        """, "document.body.dataset.xhrSettled === 'yes'", 8 * 1024 * 1024,
+        ExpectedVisibleText: "Headered XHR remained offline", ExpectBlueInk: true,
+        ExpectedDiscoveryRounds: []),
     new ProbeCase("frame-document", """
         <!doctype html><style>body{font:16px sans-serif}#outer{color:#0055aa}</style>
         <p id="outer">Outer frame host ready</p>

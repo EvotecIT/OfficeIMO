@@ -189,6 +189,37 @@ public sealed class RuntimeFetchTests {
     }
 
     [Fact]
+    public async Task XmlHttpRequestReplayEligibilityRequiresAHeaderlessGet() {
+        await using IHtmlRuntimeContext context = await Runtime().CreateContextAsync(new HtmlRuntimeContextOptions {
+            Trace = new HtmlRuntimeTraceOptions { IncludeUrls = true }
+        });
+        await using IHtmlRuntimePage page = await context.OpenPageAsync(new HtmlScriptRequest {
+            DocumentUrl = Origin,
+            Html = """
+                <script>
+                  window.xhrDone=0;
+                  for(const [path,header] of [['/headerless',false],['/headered',true]]) {
+                    const xhr=new XMLHttpRequest();
+                    xhr.open('GET',path);
+                    if(header) xhr.setRequestHeader('X-Variant','private');
+                    xhr.onloadend=()=>window.xhrDone++;
+                    xhr.send();
+                  }
+                </script>
+                """,
+            ReadyExpression = "window.xhrDone===2"
+        });
+
+        await page.CaptureAsync();
+        HtmlRuntimeEvent[] decisions = page.GetTrace().Events.Where(item =>
+            item.Kind == HtmlRuntimeEventKind.Policy && item.Operation == "network-access" && item.Method == "GET").ToArray();
+        Assert.Contains(decisions, item => item.Url == new Uri(Origin, "headerless") &&
+            item.Decision == "network-disabled-replayable-get");
+        Assert.Contains(decisions, item => item.Url == new Uri(Origin, "headered") &&
+            item.Decision == "network-disabled");
+    }
+
+    [Fact]
     public async Task XmlHttpRequestReentrantLifecyclePreservesReplacementRequests() {
         await using var server = new RuntimeHttpFixture((path, _) => Task.FromResult(
             RuntimeHttpFixture.Reply.Text(path, "text/plain")));
@@ -588,6 +619,16 @@ public sealed class RuntimeFetchTests {
 
         Assert.Equal(new[] { new Uri("https://officeimo.invalid/api/report.json?view=summary") },
             failure.MissingResourceUrls);
+    }
+
+    [Fact]
+    public async Task HeaderedMissingFetchIsNotAdvertisedForUrlOnlyReplay() {
+        var failure = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+            Html = "<script>fetch('/vary',{headers:{'X-Variant':'private'}});</script>", ReadyExpression = "false"
+        }));
+
+        Assert.Contains("network loading is disabled", failure.Message);
+        Assert.Empty(failure.MissingResourceUrls);
     }
 
     [Fact]

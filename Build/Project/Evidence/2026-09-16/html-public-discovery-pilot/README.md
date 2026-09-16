@@ -37,12 +37,13 @@ embedding a translucent gradient in the PDF; `oom-256m.json` retains that
 failure. The completed run used a verified 512 MiB container limit, one CPU,
 32 PIDs and the same no-network and read-only controls. The site has no
 skipped resources in this run. Browser-reference differences, richer hostile
-inputs, broader module and frame execution cases, XMLHttpRequest, non-GET dynamic requests, and
-Windows and macOS isolation remain open in [the product roadmap](../../../../../Docs/ROADMAP.md).
+inputs, broader module and frame execution cases, XMLHttpRequest with request
+headers or beyond bodyless GET, non-GET dynamic requests, and Windows and macOS
+isolation remain open in [the product roadmap](../../../../../Docs/ROADMAP.md).
 
 The [controlled OCI fixture run](hostile-fixtures/summary.json) used the same
 whole-pipeline image definition with ID
-`sha256:03d333ec47a439b5e7a606aa096fba785c3169443d78d9969329f79a1c081b13`.
+`sha256:d62bf153be9b4cce4d91669703debac00072a2115f81a0726bdf01da3b97a35f`.
 Malformed table markup with an inline script produced a [screen image](hostile-fixtures/malformed-markup/screen.png)
 and both PDFs; the image was visually inspected and both PDFs reopened as
 single-page A4 files. The responsive-picture case requested only its active
@@ -62,7 +63,16 @@ requested its relative JSON endpoint in one runtime-discovery round, preserved
 the `view=summary` query, removed the client-only fragment, decoded the response
 with `Response.json()` and waited for the promise chain before capture. The
 retained [dynamic-fetch screen](hostile-fixtures/dynamic-fetch-get/screen.png)
-and both PDF intents rendered `Dynamic fetch ready 42`. The static-frame case requested
+and both PDF intents rendered `Dynamic fetch ready 42`. The asynchronous XHR
+case settled its handled offline error, exposed the missing bodyless headerless
+GET through the bounded runtime trace, requested the canonical JSON URL in one discovery
+round, preserved the query, removed the client-only fragment and replayed the
+same application with supplied bytes. Its retained
+[XHR screen](hostile-fixtures/dynamic-xhr-get/screen.png) and both PDF intents
+rendered `XHR ready 42`. A paired XHR with the custom `X-Variant` request header
+produced zero discovery rounds and retained its offline error path; its
+[screen](hostile-fixtures/dynamic-xhr-headered-get-blocked/screen.png) and both
+PDF intents rendered `Headered XHR remained offline`. The static-frame case requested
 its canonical iframe document URL in round one and
 resolved the frame's relative stylesheet and external script from the
 document's final URL in round two. Root JavaScript observed the loaded nested
@@ -79,11 +89,11 @@ and [cross-host](hostile-fixtures/acquisition-cross-host-redirect/screen.png)
 screen images and both PDF intents in separate network-disabled containers. A
 per-hop DNS change from a public address to loopback was rejected before the
 second connection, and a response declaring 4 MiB plus one byte was rejected
-before rendering. All eight success-case screen images were visually inspected;
-all sixteen PDFs reopened as single-page A4 files and contained their expected
+before rendering. All ten success-case screen images were visually inspected;
+all twenty PDFs reopened as single-page A4 files and contained their expected
 outer-document text. The remaining fixtures rejected 129 distinct script URLs,
 stopped an oversized captured document, and interrupted a nonterminating
-script. All eleven render runs and four acquisition cases reported the expected
+script. All thirteen render runs and four acquisition cases reported the expected
 result, and every started container was removed. These generated fixtures
 validate isolated static resource replay, controlled redirect acquisition and
 failure recovery. They do not qualify child-frame execution, frame-body
