@@ -86,7 +86,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
     /// <summary>Completed file metadata plus final durable transfer checkpoint.</summary>
     public sealed class GoogleDriveResumableUploadResult {
         internal GoogleDriveResumableUploadResult(GoogleDriveFile file, GoogleDriveResumableUploadCheckpoint checkpoint) { File = file; Checkpoint = checkpoint; }
+        /// <summary>Gets metadata for the completed Drive file.</summary>
         public GoogleDriveFile File { get; }
+        /// <summary>Gets the final checkpoint confirming the complete source length.</summary>
         public GoogleDriveResumableUploadCheckpoint Checkpoint { get; }
     }
 

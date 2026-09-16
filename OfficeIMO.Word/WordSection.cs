@@ -871,19 +871,20 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether odd and even pages use separate headers and footers.
+        /// Gets whether this section has an explicit or inherited even-page header or footer while the
+        /// document-wide odd/even header and footer setting is enabled. Setting the value to
+        /// <see langword="true"/> creates even-page references for this section and enables that setting;
+        /// setting it to <see langword="false"/> disables the document-wide setting.
         /// </summary>
         public bool DifferentOddAndEvenPages {
             get {
-                var headerReference = WordHeadersAndFooters.GetHeaderReference(this._document, this, HeaderFooterValues.Even);
-                var footerReference = WordHeadersAndFooters.GetFooterReference(this._document, this, HeaderFooterValues.Even);
+                EvenAndOddHeaders? setting = _wordprocessingDocument.MainDocumentPart?
+                    .DocumentSettingsPart?
+                    .Settings?
+                    .GetFirstChild<EvenAndOddHeaders>();
+                if (!(setting?.Val?.Value ?? setting is not null)) return false;
 
-                var settings = _wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart?.Settings?.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
-                if (headerReference == true && footerReference == true && settings != null) {
-                    return true;
-                }
-
-                return false;
+                return ResolveEvenHeader() != null || ResolveEvenFooter() != null;
 
             }
             set {
@@ -901,10 +902,28 @@ namespace OfficeIMO.Word {
                 WordHeadersAndFooters.AddFooterReference(this._document, this, HeaderFooterValues.Even);
 
                 Settings settings = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!;
-                if (settings.GetFirstChild<EvenAndOddHeaders>() == null) {
-                    settings.Append(new EvenAndOddHeaders());
-                }
+                EvenAndOddHeaders? setting = settings.GetFirstChild<EvenAndOddHeaders>();
+                if (setting == null) settings.Append(new EvenAndOddHeaders());
+                else setting.Val = true;
             }
+        }
+
+        internal WordHeader? ResolveEvenHeader() {
+            for (int index = GetSectionOrdinal(); index >= 0; index--) {
+                WordSection section = _document.Sections[index];
+                if (WordHeadersAndFooters.GetHeaderReference(_document, section, HeaderFooterValues.Even) &&
+                    section.Header?.Even is WordHeader header) return header;
+            }
+            return null;
+        }
+
+        internal WordFooter? ResolveEvenFooter() {
+            for (int index = GetSectionOrdinal(); index >= 0; index--) {
+                WordSection section = _document.Sections[index];
+                if (WordHeadersAndFooters.GetFooterReference(_document, section, HeaderFooterValues.Even) &&
+                    section.Footer?.Even is WordFooter footer) return footer;
+            }
+            return null;
         }
 
         /// <summary>

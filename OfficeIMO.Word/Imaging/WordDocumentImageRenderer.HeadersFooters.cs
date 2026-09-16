@@ -150,8 +150,8 @@ namespace OfficeIMO.Word {
 
             if (IsEvenPageNumber(pageNumberValue) &&
                 section.DifferentOddAndEvenPages &&
-                section.Header.Even != null) {
-                return section.Header.Even;
+                section.ResolveEvenHeader() is WordHeader evenHeader) {
+                return evenHeader;
             }
 
             return section.Header.Default;
@@ -164,8 +164,8 @@ namespace OfficeIMO.Word {
 
             if (IsEvenPageNumber(pageNumberValue) &&
                 section.DifferentOddAndEvenPages &&
-                section.Footer.Even != null) {
-                return section.Footer.Even;
+                section.ResolveEvenFooter() is WordFooter evenFooter) {
+                return evenFooter;
             }
 
             return section.Footer.Default;

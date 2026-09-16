@@ -16,6 +16,16 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(GoogleWorkspaceScopeCatalog.DriveFile, Assert.Single(options.ReadScopes));
             Assert.Equal(GoogleWorkspaceScopeCatalog.DriveFile, Assert.Single(options.WriteScopes));
+            Assert.True(options.SupportsAllDrives);
+        }
+
+        [Fact]
+        public void Test_DriveClientOptions_FileAuthoringHonorsSharedDrivePreference() {
+            GoogleDriveClientOptions options = GoogleDriveClientOptions.ForFileAuthoring(supportsAllDrives: false);
+
+            Assert.Equal(GoogleWorkspaceScopeCatalog.DriveFile, Assert.Single(options.ReadScopes));
+            Assert.Equal(GoogleWorkspaceScopeCatalog.DriveFile, Assert.Single(options.WriteScopes));
+            Assert.False(options.SupportsAllDrives);
         }
 
         [Fact]

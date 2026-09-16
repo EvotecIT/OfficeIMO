@@ -83,6 +83,114 @@ public sealed class WordLoadDeferredInitializationTests {
         Assert.False(document.Sections[0].DifferentOddAndEvenPages);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void DifferentOddAndEvenPagesRecognizesOneDistinctEvenStory(bool removeHeaderReference) {
+        using var stream = CreateMinimalDocument();
+        using WordDocument document = WordDocument.Load(stream);
+        WordSection section = document.Sections[0];
+        section.DifferentOddAndEvenPages = true;
+
+        if (removeHeaderReference) {
+            Assert.Single(section._sectionProperties.Elements<HeaderReference>(), reference =>
+                reference.Type?.Value == HeaderFooterValues.Even).Remove();
+        } else {
+            Assert.Single(section._sectionProperties.Elements<FooterReference>(), reference =>
+                reference.Type?.Value == HeaderFooterValues.Even).Remove();
+        }
+
+        Assert.True(section.DifferentOddAndEvenPages);
+        Assert.True(Assert.Single(document.CreateInspectionSnapshot().Sections).DifferentOddAndEvenPages);
+    }
+
+    [Fact]
+    public void DifferentOddAndEvenPagesRecognizesInheritedEvenStories() {
+        using var stream = CreateMinimalDocument();
+        using WordDocument document = WordDocument.Load(stream);
+        WordSection firstSection = document.Sections[0];
+        firstSection.DifferentOddAndEvenPages = true;
+        firstSection.Header.Even!.AddParagraph("Inherited even header");
+        firstSection.Footer.Even!.AddParagraph("Inherited even footer");
+
+        WordSection inheritedSection = document.AddSection();
+
+        Assert.DoesNotContain(inheritedSection._sectionProperties.Elements<HeaderReference>(), reference =>
+            reference.Type?.Value == HeaderFooterValues.Even);
+        Assert.DoesNotContain(inheritedSection._sectionProperties.Elements<FooterReference>(), reference =>
+            reference.Type?.Value == HeaderFooterValues.Even);
+        Assert.True(inheritedSection.DifferentOddAndEvenPages);
+        WordSectionSnapshot inheritedSnapshot = document.CreateInspectionSnapshot().Sections[1];
+        Assert.True(inheritedSnapshot.DifferentOddAndEvenPages);
+        Assert.Equal("Inherited even header", Assert.Single(inheritedSnapshot.EvenHeader!.Paragraphs).Text);
+        Assert.Equal("Inherited even footer", Assert.Single(inheritedSnapshot.EvenFooter!.Paragraphs).Text);
+
+        EvenAndOddHeaders setting = document._wordprocessingDocument.MainDocumentPart!
+            .DocumentSettingsPart!
+            .Settings!
+            .GetFirstChild<EvenAndOddHeaders>()!;
+        setting.Val = false;
+
+        Assert.False(firstSection.DifferentOddAndEvenPages);
+        Assert.False(inheritedSection.DifferentOddAndEvenPages);
+        WordSectionSnapshot disabledSnapshot = document.CreateInspectionSnapshot().Sections[1];
+        Assert.False(disabledSnapshot.DifferentOddAndEvenPages);
+        Assert.Equal("Inherited even header", Assert.Single(disabledSnapshot.EvenHeader!.Paragraphs).Text);
+        Assert.Equal("Inherited even footer", Assert.Single(disabledSnapshot.EvenFooter!.Paragraphs).Text);
+
+        firstSection.DifferentOddAndEvenPages = true;
+        Assert.True(setting.Val!.Value);
+        Assert.True(inheritedSection.DifferentOddAndEvenPages);
+
+        using var reloadedStream = new MemoryStream(document.ToBytes(), writable: false);
+        using WordDocument reloaded = WordDocument.Load(reloadedStream);
+        Assert.True(reloaded.Sections[1].DifferentOddAndEvenPages);
+        Assert.Equal("Inherited even header", Assert.Single(
+            reloaded.CreateInspectionSnapshot().Sections[1].EvenHeader!.Paragraphs).Text);
+    }
+
+    [Fact]
+    public void ParagraphOnOffPropertiesHonorExplicitFalseValues() {
+        using var stream = CreateMinimalDocument();
+        using WordDocument document = WordDocument.Load(stream);
+        WordParagraph paragraph = Assert.Single(document.Paragraphs);
+        ParagraphProperties properties = paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
+        properties.PageBreakBefore = new PageBreakBefore { Val = false };
+        properties.KeepNext = new KeepNext { Val = false };
+        properties.KeepLines = new KeepLines { Val = false };
+        properties.WidowControl = new WidowControl { Val = false };
+        properties.BiDi = new BiDi { Val = false };
+
+        Assert.False(paragraph.PageBreakBefore);
+        Assert.False(paragraph.KeepWithNext);
+        Assert.False(paragraph.KeepLinesTogether);
+        Assert.False(paragraph.AvoidWidowAndOrphan);
+        Assert.False(paragraph.BiDi);
+
+        WordParagraphSnapshot snapshot = Assert.IsType<WordParagraphSnapshot>(
+            Assert.Single(Assert.Single(document.CreateInspectionSnapshot().Sections).Elements));
+        Assert.False(snapshot.PageBreakBefore);
+        Assert.False(snapshot.KeepWithNext);
+        Assert.False(snapshot.KeepLinesTogether);
+        Assert.False(snapshot.AvoidWidowAndOrphan);
+        Assert.False(snapshot.IsRightToLeft);
+    }
+
+    [Fact]
+    public void InspectionSnapshotPreservesTextHiddenByRunFormatting() {
+        using var stream = CreateMinimalDocument();
+        using WordDocument document = WordDocument.Load(stream);
+        WordParagraph paragraph = Assert.Single(document.Paragraphs);
+        Run run = Assert.Single(paragraph._paragraph.Elements<Run>());
+        run.RunProperties = new RunProperties(new Vanish());
+
+        WordParagraphSnapshot snapshot = Assert.IsType<WordParagraphSnapshot>(
+            Assert.Single(Assert.Single(document.CreateInspectionSnapshot().Sections).Elements));
+
+        Assert.Equal("Minimal document", snapshot.Text);
+        Assert.Equal("Minimal document", Assert.Single(snapshot.Runs).Text);
+    }
+
     [Fact]
     public void BackgroundImageEditCreatesMissingSettingsPartBeforeEditing() {
         using var stream = CreateMinimalDocument();

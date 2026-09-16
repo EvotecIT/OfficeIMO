@@ -3,11 +3,17 @@ namespace OfficeIMO.GoogleWorkspace {
     /// Describes the high-level category of a Google Workspace export failure.
     /// </summary>
     public enum GoogleWorkspaceFailureKind {
+        /// <summary>OAuth token acquisition or validation failed.</summary>
         TokenAcquisition = 0,
+        /// <summary>Token acquisition failed with evidence that points to service-account domain-wide delegation.</summary>
         DomainWideDelegation = 1,
+        /// <summary>A Google API request failed.</summary>
         ApiRequest = 2,
+        /// <summary>A Google API request exceeded its configured timeout.</summary>
         RequestTimeout = 3,
+        /// <summary>The caller canceled the operation.</summary>
         Canceled = 4,
+        /// <summary>A mutation may have committed remotely but no conclusive response was received.</summary>
         AmbiguousMutation = 5,
     }
 
@@ -15,6 +21,11 @@ namespace OfficeIMO.GoogleWorkspace {
     /// Export failure that preserves the translation report collected before the operation failed.
     /// </summary>
     public sealed class GoogleWorkspaceExportException : Exception {
+        /// <summary>Creates an export failure with its structured category and accumulated translation report.</summary>
+        /// <param name="message">Human-readable failure description.</param>
+        /// <param name="failureKind">High-level failure category.</param>
+        /// <param name="report">Translation report available when the operation failed.</param>
+        /// <param name="innerException">Underlying authentication, transport, or API exception.</param>
         public GoogleWorkspaceExportException(
             string message,
             GoogleWorkspaceFailureKind failureKind,
@@ -25,7 +36,9 @@ namespace OfficeIMO.GoogleWorkspace {
             Report = report ?? throw new ArgumentNullException(nameof(report));
         }
 
+        /// <summary>Gets the high-level failure category.</summary>
         public GoogleWorkspaceFailureKind FailureKind { get; }
+        /// <summary>Gets the translation report available when the operation failed.</summary>
         public TranslationReport Report { get; }
     }
 
@@ -33,6 +46,10 @@ namespace OfficeIMO.GoogleWorkspace {
     /// Export cancellation that preserves the translation report collected before cancellation.
     /// </summary>
     public sealed class GoogleWorkspaceExportCanceledException : OperationCanceledException {
+        /// <summary>Creates a cancellation failure while preserving the caller's cancellation token.</summary>
+        /// <param name="message">Human-readable cancellation description.</param>
+        /// <param name="report">Translation report available when cancellation was observed.</param>
+        /// <param name="innerException">Original cancellation exception.</param>
         public GoogleWorkspaceExportCanceledException(
             string message,
             TranslationReport report,
@@ -41,11 +58,21 @@ namespace OfficeIMO.GoogleWorkspace {
             Report = report ?? throw new ArgumentNullException(nameof(report));
         }
 
+        /// <summary>Gets the fixed <see cref="GoogleWorkspaceFailureKind.Canceled"/> category.</summary>
         public GoogleWorkspaceFailureKind FailureKind => GoogleWorkspaceFailureKind.Canceled;
+        /// <summary>Gets the translation report available when cancellation was observed.</summary>
         public TranslationReport Report { get; }
     }
 
+    /// <summary>Creates consistent structured exceptions and diagnostics for Workspace export failures.</summary>
     public static class GoogleWorkspaceFailureDiagnostics {
+        /// <summary>Classifies a credential failure, records it in the report, and returns an export exception.</summary>
+        /// <param name="operationName">User-facing name of the export operation.</param>
+        /// <param name="scopes">OAuth scopes requested from the credential source.</param>
+        /// <param name="session">Session whose credential policy was applied.</param>
+        /// <param name="report">Report to receive the failure diagnostic.</param>
+        /// <param name="exception">Underlying credential exception.</param>
+        /// <returns>A domain-delegation or token-acquisition export exception.</returns>
         public static GoogleWorkspaceExportException CreateTokenAcquisitionFailure(
             string operationName,
             IReadOnlyList<string> scopes,
@@ -101,6 +128,12 @@ namespace OfficeIMO.GoogleWorkspace {
                 exception);
         }
 
+        /// <summary>Records a general Google API failure and returns its structured export exception.</summary>
+        /// <param name="operationName">User-facing name of the export operation.</param>
+        /// <param name="sessionOptions">Session diagnostic settings, when available.</param>
+        /// <param name="report">Report to receive the failure diagnostic.</param>
+        /// <param name="exception">Underlying API or transport exception.</param>
+        /// <returns>An API-request export exception.</returns>
         public static GoogleWorkspaceExportException CreateApiFailure(
             string operationName,
             GoogleWorkspaceSessionOptions? sessionOptions,
@@ -128,6 +161,12 @@ namespace OfficeIMO.GoogleWorkspace {
                 exception);
         }
 
+        /// <summary>Records a request timeout and returns its structured export exception.</summary>
+        /// <param name="operationName">User-facing name of the export operation.</param>
+        /// <param name="sessionOptions">Session diagnostic settings, when available.</param>
+        /// <param name="report">Report to receive the timeout diagnostic.</param>
+        /// <param name="exception">Timeout exception raised by the request.</param>
+        /// <returns>A request-timeout export exception.</returns>
         public static GoogleWorkspaceExportException CreateRequestTimeoutFailure(
             string operationName,
             GoogleWorkspaceSessionOptions? sessionOptions,
@@ -188,6 +227,12 @@ namespace OfficeIMO.GoogleWorkspace {
                 exception);
         }
 
+        /// <summary>Records caller cancellation and returns an exception that preserves the original cancellation token.</summary>
+        /// <param name="operationName">User-facing name of the export operation.</param>
+        /// <param name="sessionOptions">Session diagnostic settings, when available.</param>
+        /// <param name="report">Report to receive the cancellation diagnostic.</param>
+        /// <param name="exception">Original cancellation exception.</param>
+        /// <returns>A structured cancellation exception.</returns>
         public static GoogleWorkspaceExportCanceledException CreateCanceledFailure(
             string operationName,
             GoogleWorkspaceSessionOptions? sessionOptions,
@@ -215,7 +260,8 @@ namespace OfficeIMO.GoogleWorkspace {
         }
 
         private static bool IsDomainWideDelegationFailure(GoogleWorkspaceSession session, Exception exception) {
-            if (!session.Options.UseDomainWideDelegation) {
+            if (!session.Options.UseDomainWideDelegation
+                || string.IsNullOrWhiteSpace(session.Options.SubjectUser)) {
                 return false;
             }
 
@@ -224,8 +270,6 @@ namespace OfficeIMO.GoogleWorkspace {
                 || diagnostic.Contains("domain-wide delegation", StringComparison.OrdinalIgnoreCase)
                 || diagnostic.Contains("domain wide delegation", StringComparison.OrdinalIgnoreCase)
                 || diagnostic.Contains("delegation denied", StringComparison.OrdinalIgnoreCase)
-                || diagnostic.Contains("delegation", StringComparison.OrdinalIgnoreCase)
-                || diagnostic.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase)
                 || diagnostic.Contains("not a valid email", StringComparison.OrdinalIgnoreCase);
         }
 

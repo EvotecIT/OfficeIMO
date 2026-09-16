@@ -71,6 +71,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TableOfContent_RefreshEntriesIgnoresExplicitlyDisabledPageBreakBefore() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocRefreshEntriesDisabledPageBreak.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent toc = document.AddTableOfContent(minLevel: 1, maxLevel: 1);
+                document.AddParagraph("First").SetStyle(WordParagraphStyles.Heading1);
+                WordParagraph second = document.AddParagraph("Second").SetStyle(WordParagraphStyles.Heading1);
+                second._paragraph.ParagraphProperties ??= new ParagraphProperties();
+                second._paragraph.ParagraphProperties.PageBreakBefore = new PageBreakBefore { Val = false };
+
+                WordTableOfContentRefreshReport report = toc.RefreshEntries();
+
+                Assert.Equal(new[] { "First", "Second" }, report.Entries.Select(entry => entry.Text).ToArray());
+                Assert.Equal(new[] { 1, 1 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
+            }
+        }
+
+        [Fact]
         public void Test_TableOfContent_RefreshEntriesReplacesExistingEntriesAndHonorsLevelRange() {
             string filePath = Path.Combine(_directoryWithFiles, "TocRefreshEntriesReplace.docx");
 

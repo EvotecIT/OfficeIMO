@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
 
             using (var transport = new GoogleWorkspaceHttpTransport(session)) {
-            using (var driveClient = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring())) {
+            using (var driveClient = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring(effectiveLocation.SharedDriveAware))) {
             try {
                 await ValidateDrivePlacementAsync(
                     driveClient,

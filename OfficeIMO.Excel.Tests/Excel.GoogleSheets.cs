@@ -1673,7 +1673,7 @@ namespace OfficeIMO.Tests {
                     Title = "Move Export",
                     Location = new GoogleDriveFileLocation {
                         FolderId = "folder123",
-                        SharedDriveAware = true,
+                        SharedDriveAware = false,
                     }
                 });
 
@@ -1683,6 +1683,9 @@ namespace OfficeIMO.Tests {
                 var patchRequest = Assert.Single(recordedRequests, r => r.Method == "PATCH");
                 Assert.Contains("addParents=folder123", patchRequest.Uri.Query);
                 Assert.Contains("removeParents=oldParent", patchRequest.Uri.Query);
+                Assert.All(
+                    recordedRequests.Where(request => request.Uri.Host == "www.googleapis.com"),
+                    request => Assert.Contains("supportsAllDrives=false", request.Uri.Query, StringComparison.Ordinal));
                 Assert.DoesNotContain(result.Report.Notices, n => n.Feature == "DrivePlacement" && n.Severity >= OfficeIMO.GoogleWorkspace.TranslationSeverity.Warning);
             } finally {
                 if (File.Exists(filePath)) {

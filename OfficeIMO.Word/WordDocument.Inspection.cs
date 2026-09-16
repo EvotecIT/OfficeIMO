@@ -1,4 +1,3 @@
-#pragma warning disable CS1591 // Inspection API documentation debt is confined to this file; new Word APIs remain checked.
 
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -16,6 +15,8 @@ namespace OfficeIMO.Word {
             internal IReadOnlyDictionary<string, string?> ParagraphStyleNames { get; }
         }
 
+        /// <summary>Creates an independent snapshot of document metadata, sections, stories, paragraphs, tables, notes, and images.</summary>
+        /// <returns>A snapshot suitable for inspection or serialization without retaining live Open XML elements.</returns>
         public WordDocumentSnapshot CreateInspectionSnapshot() {
             var expansionContext = new InspectionExpansionContext(BuildParagraphStyleNameLookup());
             var snapshot = new WordDocumentSnapshot {
@@ -52,8 +53,8 @@ namespace OfficeIMO.Word {
                     DefaultFooter = BuildHeaderFooterSnapshot(section.Footer?.Default, "footer", "default", expansionContext),
                     FirstHeader = BuildHeaderFooterSnapshot(section.Header?.First, "header", "first", expansionContext),
                     FirstFooter = BuildHeaderFooterSnapshot(section.Footer?.First, "footer", "first", expansionContext),
-                    EvenHeader = BuildHeaderFooterSnapshot(section.Header?.Even, "header", "even", expansionContext),
-                    EvenFooter = BuildHeaderFooterSnapshot(section.Footer?.Even, "footer", "even", expansionContext),
+                    EvenHeader = BuildHeaderFooterSnapshot(section.ResolveEvenHeader(), "header", "even", expansionContext),
+                    EvenFooter = BuildHeaderFooterSnapshot(section.ResolveEvenFooter(), "footer", "even", expansionContext),
                 };
 
                 int order = 0;
@@ -322,8 +323,8 @@ namespace OfficeIMO.Word {
                     var cell = row.Cells[columnIndex];
                     var cellSnapshot = new WordTableCellSnapshot {
                         ColumnIndex = columnIndex,
-                        ColumnSpan = ResolveColumnSpan(cell, row, columnIndex),
-                        RowSpan = ResolveRowSpan(table, rowIndex, columnIndex),
+                        ColumnSpan = cell.ColumnSpan,
+                        RowSpan = cell.RowSpan,
                         ShadingFillColorHex = NormalizeColorHex(cell.ShadingFillColorHex),
                         LeftBorder = BuildBorderSnapshot(
                             NormalizeOpenXmlEnumValue(cell.Borders.LeftStyle),
@@ -532,60 +533,6 @@ namespace OfficeIMO.Word {
             };
         }
 
-        private static int ResolveColumnSpan(WordTableCell cell, WordTableRow row, int columnIndex) {
-            var gridSpan = cell._tableCellProperties?.GetFirstChild<GridSpan>()?.Val?.Value;
-            if (gridSpan.HasValue && gridSpan.Value > 1) {
-                return gridSpan.Value;
-            }
-
-            if (cell.HorizontalMerge == WordCellMerge.Restart) {
-                int span = 1;
-                for (int index = columnIndex + 1; index < row.Cells.Count; index++) {
-                    if (row.Cells[index].HorizontalMerge == WordCellMerge.Continue) {
-                        span++;
-                        continue;
-                    }
-
-                    break;
-                }
-
-                return span;
-            }
-
-            return 1;
-        }
-
-        private static int ResolveRowSpan(WordTable table, int rowIndex, int columnIndex) {
-            if (rowIndex < 0 || rowIndex >= table.Rows.Count) {
-                return 1;
-            }
-
-            if (columnIndex < 0 || columnIndex >= table.Rows[rowIndex].Cells.Count) {
-                return 1;
-            }
-
-            var cell = table.Rows[rowIndex].Cells[columnIndex];
-            if (cell.VerticalMerge != WordCellMerge.Restart) {
-                return 1;
-            }
-
-            int span = 1;
-            for (int index = rowIndex + 1; index < table.Rows.Count; index++) {
-                if (columnIndex >= table.Rows[index].Cells.Count) {
-                    break;
-                }
-
-                if (table.Rows[index].Cells[columnIndex].VerticalMerge == WordCellMerge.Continue) {
-                    span++;
-                    continue;
-                }
-
-                break;
-            }
-
-            return span;
-        }
-
         private static string? NormalizeOpenXmlEnumValue(object? value) {
             if (value == null) {
                 return null;
@@ -631,4 +578,3 @@ namespace OfficeIMO.Word {
         }
     }
 }
-#pragma warning restore CS1591

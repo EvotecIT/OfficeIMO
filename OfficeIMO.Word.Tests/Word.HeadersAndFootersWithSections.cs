@@ -600,7 +600,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].DifferentOddAndEvenPages == true);
                 Assert.True(document.Sections[1].DifferentFirstPage == false);
 
-                Assert.True(document.Sections[2].DifferentOddAndEvenPages == false);
+                Assert.True(document.Sections[2].DifferentOddAndEvenPages == true);
                 Assert.True(document.Sections[2].DifferentFirstPage == true);
 
                 Assert.True(document.Sections[3].DifferentOddAndEvenPages == true);
@@ -616,7 +616,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].DifferentOddAndEvenPages == true);
                 Assert.True(document.Sections[1].DifferentFirstPage == false);
 
-                Assert.True(document.Sections[2].DifferentOddAndEvenPages == false);
+                Assert.True(document.Sections[2].DifferentOddAndEvenPages == true);
                 Assert.True(document.Sections[2].DifferentFirstPage == true);
 
                 Assert.True(document.Sections[3].DifferentOddAndEvenPages == true);

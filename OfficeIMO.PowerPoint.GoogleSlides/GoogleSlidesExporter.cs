@@ -27,7 +27,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             GoogleDriveFileLocation location = session.ResolveLocationDefaults(effective.Location);
             GoogleWorkspaceAccessToken token = await session.AcquireAccessTokenAsync(GoogleWorkspaceScopeCatalog.SlidesAuthoring, cancellationToken).ConfigureAwait(false);
             using var transport = new GoogleWorkspaceHttpTransport(session);
-            using var drive = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring());
+            using var drive = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring(location.SharedDriveAware));
             var leases = new List<GoogleDriveTemporaryContentLease>();
             string? presentationId = null;
             try {

@@ -162,7 +162,7 @@ namespace OfficeIMO.Word {
         private static int CountExplicitPageAdvances(OpenXmlElement element) {
             int count = 0;
             foreach (Paragraph paragraph in EnumerateParagraphs(element)) {
-                if (paragraph.ParagraphProperties?.PageBreakBefore != null) {
+                if (WordParagraph.HasPageBreakBefore(paragraph)) {
                     count++;
                 }
 
