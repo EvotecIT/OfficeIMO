@@ -64,7 +64,7 @@ public sealed class WordListMarkerSemanticsTests {
         document.SaveAsPdfResult(output);
         byte[] pdf = output.ToArray();
         string text = PdfReadDocument.Open(pdf).ExtractText();
-        Assert.Equal(2, text.Split("Test", StringSplitOptions.None).Length - 1);
+        Assert.Equal(2, text.Split(new[] { "Test" }, StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("\uf0b7", text, StringComparison.Ordinal);
         Assert.Contains("•", text, StringComparison.Ordinal);
     }
@@ -164,6 +164,29 @@ public sealed class WordListMarkerSemanticsTests {
         Assert.False(cancelled.IsListItem);
         Assert.Null(WordDocumentTraversal.GetListInfo(cancelled));
         Assert.DoesNotContain(cancelled, WordDocumentTraversal.BuildListMarkers(document).Keys);
+    }
+
+    [Fact]
+    public void HtmlPreservesDefaultStyleNumberingOnPlainParagraphs() {
+        using WordDocument document = WordDocument.Create();
+        WordList bullets = document.AddCustomBulletList('◆', "Arial", "000000");
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        Style defaultStyle = styles.Elements<Style>()
+            .Single(style => style.Type?.Value == StyleValues.Paragraph && style.Default?.Value == true);
+        defaultStyle.StyleParagraphProperties ??= new StyleParagraphProperties();
+        defaultStyle.StyleParagraphProperties.NumberingProperties = new NumberingProperties(
+            new NumberingLevelReference { Val = 0 }, new NumberingId { Val = bullets.NumberId });
+
+        WordParagraph item = document.AddParagraph("Default style bullet");
+        item._paragraph.ParagraphProperties?.Remove();
+
+        Assert.True(item.IsListItem);
+        Assert.Null(item._paragraph.ParagraphProperties);
+        string html = document.ToHtml();
+        Assert.Contains("<ul", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<li", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Default style bullet", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<p>Default style bullet</p>", html, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

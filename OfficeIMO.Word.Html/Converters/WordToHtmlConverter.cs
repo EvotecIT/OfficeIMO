@@ -709,6 +709,11 @@ namespace OfficeIMO.Word.Html {
                     return false;
                 }
 
+                // A paragraph without pPr can still inherit numbering from the default style.
+                if (GetCachedListInfo(para) != null) {
+                    return false;
+                }
+
                 Paragraph paragraph = para._paragraph;
                 if (paragraph.ParagraphProperties?.HasChildren == true) {
                     return false;
