@@ -23,7 +23,7 @@ public static partial class OfficeRasterContentSafety {
         if (rawDiagnostics.Count > options.MaximumOcrSpans) {
             throw new InvalidDataException("The OCR result exceeds the configured diagnostic limit.");
         }
-        ValidateOcrOutputCharacters(result, rawSpans, rawDiagnostics, options);
+        ValidateOcrOutputCharacters(result, rawSpans, rawDiagnostics, options, cancellationToken);
         if (rawDiagnostics.Any(diagnostic => diagnostic != null &&
             (!diagnostic.IsRecoverable || diagnostic.Severity == OcrDiagnosticSeverity.Error))) {
             throw new InvalidDataException(
@@ -147,9 +147,7 @@ public static partial class OfficeRasterContentSafety {
             ref remainingRegionComparisons,
             ref regionComparisonCount,
             cancellationToken);
-        string flattened = string.Join(
-            " ",
-            targets.Where(target => !aggregateLines.Contains(target)).Select(target => target.Text));
+        string flattened = FlattenTargetText(targets, aggregateLines, cancellationToken);
         if (string.Equals(
                 NormalizeWhitespace(aggregateText, cancellationToken),
                 NormalizeWhitespace(flattened, cancellationToken),
@@ -177,6 +175,26 @@ public static partial class OfficeRasterContentSafety {
             StringComparison.Ordinal);
     }
 
+    private static string FlattenTargetText(
+        IReadOnlyList<RasterTarget> targets,
+        IReadOnlySet<RasterTarget> aggregateLines,
+        CancellationToken cancellationToken) {
+        var flattened = new StringBuilder();
+        RasterTarget? previous = null;
+        for (int index = 0; index < targets.Count; index++) {
+            if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
+            RasterTarget target = targets[index];
+            if (aggregateLines.Contains(target)) continue;
+            if (previous != null &&
+                (previous.Level != OcrTextSpanLevel.Character || target.Level != OcrTextSpanLevel.Character)) {
+                flattened.Append(' ');
+            }
+            flattened.Append(target.Text);
+            previous = target;
+        }
+        return flattened.ToString();
+    }
+
     private static string NormalizeWhitespace(string value, CancellationToken cancellationToken) {
         var normalized = new StringBuilder(value.Length);
         bool pendingSpace = false;
@@ -198,7 +216,8 @@ public static partial class OfficeRasterContentSafety {
         OcrResult result,
         IReadOnlyList<OcrTextSpan> spans,
         IReadOnlyList<OcrDiagnostic> diagnostics,
-        OfficeRasterContentSafetyOptions.Snapshot options) {
+        OfficeRasterContentSafetyOptions.Snapshot options,
+        CancellationToken cancellationToken) {
         long totalCharacters = 0L;
         int totalAttributes = 0;
         AddCharacters(result.Text);
@@ -235,6 +254,19 @@ public static partial class OfficeRasterContentSafety {
             totalCharacters = checked(totalCharacters + (value?.Length ?? 0));
             if (totalCharacters > options.Inspection.MaxCharacters) {
                 throw new InvalidDataException("OCR output exceeds the configured character limit.");
+            }
+            if (value == null) return;
+            for (int index = 0; index < value.Length; index++) {
+                if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                char character = value[index];
+                if (char.IsHighSurrogate(character)) {
+                    if (index + 1 >= value.Length || !char.IsLowSurrogate(value[index + 1])) {
+                        throw new InvalidDataException("OCR output contains malformed Unicode text.");
+                    }
+                    index++;
+                } else if (char.IsLowSurrogate(character)) {
+                    throw new InvalidDataException("OCR output contains malformed Unicode text.");
+                }
             }
         }
     }

@@ -212,6 +212,40 @@ public sealed partial class RasterContentSafetyTests {
     }
 
     [Fact]
+    public async Task InspectReconstructsMixedCharacterAndWordSpansWithoutSplittingCharacters() {
+        byte[] image = CreateImage(24, 10, OfficeColor.White, null, null);
+        IOcrEngine engine = CreateEngine(_ => new OcrResult {
+            Text = "Hi there",
+            Spans = new[] {
+                Span(0, "H", new OcrRegion { X = 2, Y = 2, Width = 1, Height = 4 }, 0.99D,
+                    OcrTextSpanLevel.Character),
+                Span(1, "i", new OcrRegion { X = 3, Y = 2, Width = 1, Height = 4 }, 0.99D,
+                    OcrTextSpanLevel.Character),
+                Span(2, "there", new OcrRegion { X = 8, Y = 2, Width = 8, Height = 4 }, 0.99D)
+            }
+        });
+
+        OfficeContentSafetyReport report = await OfficeRasterContentSafety.InspectAsync(image, engine);
+
+        Assert.Equal(3, report.Findings.Count);
+    }
+
+    [Fact]
+    public async Task InspectRejectsMalformedUnicodeBeforeFindingIdentityIsDerived() {
+        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
+        const string malformed = "\uD800";
+        IOcrEngine engine = CreateEngine(_ => new OcrResult {
+            Text = malformed,
+            Spans = new[] {
+                Span(0, malformed, new OcrRegion { X = 2, Y = 2, Width = 8, Height = 4 }, 0.99D)
+            }
+        });
+
+        await Assert.ThrowsAsync<InvalidDataException>(
+            () => OfficeRasterContentSafety.InspectAsync(image, engine));
+    }
+
+    [Fact]
     public async Task InspectRejectsAnEngineThatDoesNotAcceptNormalizedPng() {
         byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
         IOcrEngine engine = new DelegateOcrEngine(
