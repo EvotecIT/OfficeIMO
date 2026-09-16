@@ -41,7 +41,10 @@ public static partial class OfficeRasterContentSafety {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeRasterContentSafetyOptions effective = options ?? new OfficeRasterContentSafetyOptions();
         OfficeRasterContentSafetyOptions.Snapshot snapshot = effective.Capture();
-        byte[] input = OfficeContentSafetyInputGuard.ReadAllBytes(filePath, snapshot.Inspection);
+        byte[] input = OfficeContentSafetyInputGuard.ReadAllBytes(
+            filePath,
+            snapshot.Inspection,
+            cancellationToken);
         OcrEngineExecution execution = OcrEngineRunner.CreateExecution(engine);
         AnalysisState state = await InspectCoreAsync(
                 input,
@@ -77,7 +80,7 @@ public static partial class OfficeRasterContentSafety {
             cancellationToken);
         if (metadata.HasColorRenderingMetadata) {
             throw new InvalidDataException(
-                "Raster content-safety inspection rejects color profiles and PNG gamma or chromaticity metadata because the managed decoder does not color-normalize them to sRGB.");
+                "Raster content-safety inspection rejects color profiles and non-sRGB PNG color-rendering metadata because the managed decoder does not color-normalize them to sRGB.");
         }
         if ((metadata.Kinds & OfficeImageMetadataKinds.Orientation) != 0 &&
             decodeInfo.Format != OfficeImageFormat.Jpeg && decodeInfo.Format != OfficeImageFormat.Tiff) {
@@ -137,11 +140,19 @@ public static partial class OfficeRasterContentSafety {
     }
 
     private sealed class RasterTarget {
-        internal RasterTarget(PixelRegion region) {
+        internal RasterTarget(OcrTextSpan span, PixelRegion region) {
             Region = region;
+            Level = span.Level;
+            LineId = span.LineId;
+            Sequence = span.Sequence;
+            Text = span.Text ?? string.Empty;
         }
 
         internal PixelRegion Region { get; }
+        internal OcrTextSpanLevel Level { get; }
+        internal string? LineId { get; }
+        internal int Sequence { get; }
+        internal string Text { get; }
     }
 
     private readonly struct PixelRegion {
@@ -162,5 +173,8 @@ public static partial class OfficeRasterContentSafety {
 
         internal bool Intersects(PixelRegion other) =>
             Left < other.Right && Right > other.Left && Top < other.Bottom && Bottom > other.Top;
+
+        internal bool Contains(PixelRegion other) =>
+            Left <= other.Left && Top <= other.Top && Right >= other.Right && Bottom >= other.Bottom;
     }
 }

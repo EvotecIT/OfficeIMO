@@ -174,6 +174,11 @@ internal static class OfficeImageMetadataInspector {
 
     private static void InspectPng(byte[] data, OfficeImageMetadataSnapshot snapshot, CancellationToken cancellationToken) {
         int offset = 8;
+        bool hasStandardRgb = false;
+        bool hasGamma = false;
+        bool hasStandardGamma = false;
+        bool hasChromaticities = false;
+        bool hasStandardChromaticities = false;
         while (offset <= data.Length - 12) {
             cancellationToken.ThrowIfCancellationRequested();
             int length = ReadBigEndian(data, offset);
@@ -184,7 +189,15 @@ internal static class OfficeImageMetadataInspector {
             } else if (type == "iCCP") {
                 snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
                 snapshot.HasColorRenderingMetadata = true;
-            } else if (type == "gAMA" || type == "cHRM" || type == "cICP") snapshot.HasColorRenderingMetadata = true;
+            } else if (type == "gAMA") {
+                hasGamma = true;
+                hasStandardGamma = length == 4 && ReadUInt32Unsigned(data, offset + 8, little: false) == 45455U;
+            } else if (type == "cHRM") {
+                hasChromaticities = true;
+                hasStandardChromaticities = length == 32 &&
+                    OfficePngContainerValidator.HasStandardRgbChromaticities(data, offset + 8);
+            } else if (type == "sRGB") hasStandardRgb = true;
+            else if (type == "cICP") snapshot.HasColorRenderingMetadata = true;
             else if (type == "pHYs") {
                 bool physical = length == 9 && data[offset + 16] == 1;
                 MarkResolution(snapshot, physical);
@@ -200,6 +213,10 @@ internal static class OfficeImageMetadataInspector {
                            data, offset + 8, length, "XML:com.adobe.xmp")) snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
             else if (type == "tEXt" || type == "zTXt" || type == "iTXt") snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
             offset = checked(offset + 12 + length);
+        }
+        if (hasGamma && (!hasStandardRgb || !hasStandardGamma) ||
+            hasChromaticities && (!hasStandardRgb || !hasStandardChromaticities)) {
+            snapshot.HasColorRenderingMetadata = true;
         }
     }
 

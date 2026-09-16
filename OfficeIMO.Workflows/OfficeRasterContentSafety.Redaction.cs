@@ -1,6 +1,7 @@
 using OfficeIMO.ContentSafety;
 using OfficeIMO.Drawing;
 using OfficeIMO.Ocr;
+using System.Text;
 
 namespace OfficeIMO.Workflows;
 
@@ -59,6 +60,11 @@ public static partial class OfficeRasterContentSafety {
         long remainingRedactionWork = snapshot.MaximumPixelAnalysisWork;
         long remainingRegionComparisons = snapshot.MaximumRegionComparisons;
         int regionComparisonCount = 0;
+        HashSet<RasterTarget> beforeAggregateLines = ResolveAggregateLineTargets(
+            beforeState.RecognizedTargets,
+            ref remainingRegionComparisons,
+            ref regionComparisonCount,
+            cancellationToken);
         for (int index = 0; index < selectedTargets.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             PixelRegion expanded = Expand(
@@ -71,6 +77,7 @@ public static partial class OfficeRasterContentSafety {
                     ref remainingRegionComparisons,
                     ref regionComparisonCount,
                     cancellationToken);
+                if (beforeAggregateLines.Contains(target)) continue;
                 if (expanded.Intersects(target.Region)) {
                     throw new InvalidOperationException(
                         "A selected raster redaction region overlaps recognized text that was not selected.");
@@ -103,6 +110,11 @@ public static partial class OfficeRasterContentSafety {
 
         AnalysisState afterState = await InspectCoreAsync(output, execution, snapshot, cancellationToken)
             .ConfigureAwait(false);
+        HashSet<RasterTarget> afterAggregateLines = ResolveAggregateLineTargets(
+            afterState.RecognizedTargets,
+            ref remainingRegionComparisons,
+            ref regionComparisonCount,
+            cancellationToken);
         for (int selectedIndex = 0; selectedIndex < selectedTargets.Count; selectedIndex++) {
             PixelRegion changedRegion = changedRegions[selectedIndex];
             foreach (RasterTarget afterTarget in afterState.RecognizedTargets) {
@@ -110,6 +122,7 @@ public static partial class OfficeRasterContentSafety {
                     ref remainingRegionComparisons,
                     ref regionComparisonCount,
                     cancellationToken);
+                if (afterAggregateLines.Contains(afterTarget)) continue;
                 if (!changedRegion.Intersects(afterTarget.Region)) continue;
                 throw new InvalidDataException(
                     "OCR still recognized text inside a changed redaction region; output was not accepted.");
@@ -123,6 +136,98 @@ public static partial class OfficeRasterContentSafety {
                 OfficeContentCleanupCapability.RedactRegion))
             .ToArray();
         return new OfficeContentCleanupResult(output, beforeState.Report, afterState.Report, changes);
+    }
+
+    private static Dictionary<string, IReadOnlyList<RasterTarget>> IndexFinerTargetsByLine(
+        IReadOnlyList<RasterTarget> targets) {
+        var mutable = new Dictionary<string, List<RasterTarget>>(StringComparer.Ordinal);
+        foreach (RasterTarget target in targets) {
+            if (target.Level == OcrTextSpanLevel.Line || string.IsNullOrWhiteSpace(target.LineId)) continue;
+            if (!mutable.TryGetValue(target.LineId!, out List<RasterTarget>? children)) {
+                children = new List<RasterTarget>();
+                mutable[target.LineId!] = children;
+            }
+            children.Add(target);
+        }
+        return mutable.ToDictionary(
+            pair => pair.Key,
+            pair => (IReadOnlyList<RasterTarget>)pair.Value.AsReadOnly(),
+            StringComparer.Ordinal);
+    }
+
+    private static HashSet<RasterTarget> ResolveAggregateLineTargets(
+        IReadOnlyList<RasterTarget> targets,
+        ref long remainingRegionComparisons,
+        ref int regionComparisonCount,
+        CancellationToken cancellationToken) {
+        Dictionary<string, IReadOnlyList<RasterTarget>> childrenByLine = IndexFinerTargetsByLine(targets);
+        var aggregates = new HashSet<RasterTarget>();
+        foreach (RasterTarget candidate in targets) {
+            if (candidate.Level != OcrTextSpanLevel.Line ||
+                string.IsNullOrWhiteSpace(candidate.LineId) ||
+                !childrenByLine.TryGetValue(candidate.LineId!, out IReadOnlyList<RasterTarget>? children)) {
+                continue;
+            }
+            if (IsLineFullyRepresentedByChildren(
+                    candidate,
+                    children,
+                    ref remainingRegionComparisons,
+                    ref regionComparisonCount,
+                    cancellationToken)) {
+                aggregates.Add(candidate);
+            }
+        }
+        return aggregates;
+    }
+
+    private static bool IsLineFullyRepresentedByChildren(
+        RasterTarget line,
+        IReadOnlyList<RasterTarget> children,
+        ref long remainingRegionComparisons,
+        ref int regionComparisonCount,
+        CancellationToken cancellationToken) {
+        var words = new List<RasterTarget>();
+        var characters = new List<RasterTarget>();
+        foreach (RasterTarget child in children) {
+            ChargeRegionComparison(
+                ref remainingRegionComparisons,
+                ref regionComparisonCount,
+                cancellationToken);
+            if (!line.Region.Contains(child.Region)) continue;
+            if (child.Level == OcrTextSpanLevel.Word) words.Add(child);
+            else if (child.Level == OcrTextSpanLevel.Character) characters.Add(child);
+        }
+        return HasEquivalentText(line.Text, words, " ") ||
+            HasEquivalentText(line.Text, characters, string.Empty);
+    }
+
+    private static bool HasEquivalentText(
+        string lineText,
+        IReadOnlyList<RasterTarget> children,
+        string separator) {
+        if (children.Count == 0) return false;
+        string childText = string.Join(
+            separator,
+            children.OrderBy(child => child.Sequence).Select(child => child.Text));
+        return string.Equals(
+            NormalizeWhitespace(lineText),
+            NormalizeWhitespace(childText),
+            StringComparison.Ordinal);
+    }
+
+    private static string NormalizeWhitespace(string value) {
+        var normalized = new StringBuilder(value.Length);
+        bool pendingSpace = false;
+        foreach (char character in value) {
+            if (char.IsWhiteSpace(character)) {
+                pendingSpace = normalized.Length > 0;
+                continue;
+            }
+            if (pendingSpace) normalized.Append(' ');
+            normalized.Append(character);
+            pendingSpace = false;
+        }
+        return normalized.ToString();
     }
 
     private static void ChargeRegionComparison(

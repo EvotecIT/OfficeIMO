@@ -224,6 +224,35 @@ public sealed partial class RasterContentSafetyTests {
     }
 
     [Fact]
+    public async Task InspectAcceptsCanonicalSrgbGammaAndChromaticities() {
+        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
+        byte[] gamma = new byte[4];
+        BinaryPrimitives.WriteUInt32BigEndian(gamma, 45455U);
+        byte[] chromaticities = new byte[32];
+        int[] coordinates = { 31270, 32900, 64000, 33000, 30000, 60000, 15000, 6000 };
+        for (int index = 0; index < coordinates.Length; index++) {
+            BinaryPrimitives.WriteInt32BigEndian(
+                chromaticities.AsSpan(index * sizeof(int), sizeof(int)),
+                coordinates[index]);
+        }
+        byte[] standardRgb = InsertPngChunkBefore(
+            InsertPngChunkBefore(
+                InsertPngChunkBefore(image, "IDAT", "gAMA", gamma),
+                "IDAT",
+                "cHRM",
+                chromaticities),
+            "IDAT",
+            "sRGB",
+            new byte[] { 0 });
+
+        OfficeContentSafetyReport report = await OfficeRasterContentSafety.InspectAsync(
+            standardRgb,
+            CreateEngine(_ => new OcrResult()));
+
+        Assert.Empty(report.Findings);
+    }
+
+    [Fact]
     public async Task InspectRejectsPngCicpThatTheDecoderCannotNormalize() {
         byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
         byte[] colorManaged = InsertPngChunkBefore(
@@ -607,12 +636,14 @@ public sealed partial class RasterContentSafetyTests {
         string text,
         OcrRegion region,
         double confidence,
-        OcrTextSpanLevel level = OcrTextSpanLevel.Word) => new() {
+        OcrTextSpanLevel level = OcrTextSpanLevel.Word,
+        string? lineId = null) => new() {
             Sequence = sequence,
             Level = level,
             Text = text,
             Confidence = confidence,
             PageNumber = 1,
+            LineId = lineId,
             Region = region,
             CoordinateUnit = OcrCoordinateUnit.Pixels
         };

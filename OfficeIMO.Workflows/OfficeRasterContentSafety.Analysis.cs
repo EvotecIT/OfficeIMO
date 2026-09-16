@@ -64,7 +64,7 @@ public static partial class OfficeRasterContentSafety {
             }
             remainingPixelWork -= contrastRegion.Area;
             PixelEvidence pixels = InspectPixels(image, region, contrastRegion, cancellationToken);
-            var target = new RasterTarget(region);
+            var target = new RasterTarget(span, region);
             recognizedTargets.Add(target);
             if (!TryClassify(region, pixels, options, out OfficeContentConcealmentKind kind, out string mechanism)) {
                 visibleSpans++;

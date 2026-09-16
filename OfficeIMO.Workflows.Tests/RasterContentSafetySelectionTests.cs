@@ -43,9 +43,10 @@ public sealed partial class RasterContentSafetyTests {
         IOcrEngine engine = CreateEngine(_ => new OcrResult {
             Text = "concealed line",
             Spans = new[] {
-                Span(0, "concealed", new OcrRegion { X = 5, Y = 6, Width = 12, Height = 6 }, 0.99D),
+                Span(0, "concealed", new OcrRegion { X = 5, Y = 6, Width = 12, Height = 6 }, 0.99D,
+                    OcrTextSpanLevel.Word, "1:1:1:1"),
                 Span(1, "concealed line", new OcrRegion { X = 5, Y = 6, Width = 24, Height = 6 }, 0.99D,
-                    OcrTextSpanLevel.Line)
+                    OcrTextSpanLevel.Line, "1:1:1:1")
             }
         });
         var options = new OfficeRasterContentSafetyOptions {
@@ -61,6 +62,59 @@ public sealed partial class RasterContentSafetyTests {
                 engine,
                 new OfficeContentCleanupSelection(new[] { report.Findings[0].Id }),
                 options));
+    }
+
+    [Fact]
+    public async Task RedactionUsesFinerLineChildrenInsteadOfAggregateLineBounds() {
+        var raster = new OfficeRasterImage(40, 20, OfficeColor.White);
+        for (int y = 6; y < 12; y++) {
+            for (int x = 2; x < 9; x++) raster.SetPixel(x, y, OfficeColor.Black);
+            for (int x = 14; x < 21; x++) raster.SetPixel(x, y, OfficeColor.FromRgb(248, 248, 248));
+            for (int x = 28; x < 35; x++) raster.SetPixel(x, y, OfficeColor.Black);
+        }
+        byte[] image = OfficePngWriter.Encode(raster);
+        const string lineId = "1:1:1:1";
+        int calls = 0;
+        IOcrEngine engine = CreateEngine(_ => calls++ < 2
+            ? new OcrResult {
+                Text = "left concealed right",
+                Spans = new[] {
+                    Span(0, "left concealed right", new OcrRegion { X = 2, Y = 6, Width = 33, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Line, lineId),
+                    Span(1, "left", new OcrRegion { X = 2, Y = 6, Width = 7, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Word, lineId),
+                    Span(2, "concealed", new OcrRegion { X = 14, Y = 6, Width = 7, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Word, lineId),
+                    Span(3, "right", new OcrRegion { X = 28, Y = 6, Width = 7, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Word, lineId)
+                }
+            }
+            : new OcrResult {
+                Text = "left right",
+                Spans = new[] {
+                    Span(0, "left right", new OcrRegion { X = 2, Y = 6, Width = 33, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Line, lineId),
+                    Span(1, "left", new OcrRegion { X = 2, Y = 6, Width = 7, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Word, lineId),
+                    Span(2, "right", new OcrRegion { X = 28, Y = 6, Width = 7, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Word, lineId)
+                }
+            });
+        var options = new OfficeRasterContentSafetyOptions {
+            EnableOpaqueRectangleRedaction = true,
+            RedactionPaddingPixels = 0
+        };
+        OfficeContentSafetyFinding finding = Assert.Single(
+            (await OfficeRasterContentSafety.InspectAsync(image, engine, options)).Findings);
+
+        OfficeContentCleanupResult cleanup = await OfficeRasterContentSafety.RedactSelectedContentAsync(
+            image,
+            engine,
+            new OfficeContentCleanupSelection(new[] { finding.Id }),
+            options);
+
+        Assert.True(cleanup.Changed);
+        Assert.Single(cleanup.Changes);
     }
 
     [Theory]

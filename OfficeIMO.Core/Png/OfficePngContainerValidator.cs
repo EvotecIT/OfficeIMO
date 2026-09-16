@@ -412,7 +412,7 @@ internal static class OfficePngContainerValidator {
         return true;
     }
 
-    private static bool HasStandardRgbChromaticities(byte[] bytes, int offset) {
+    internal static bool HasStandardRgbChromaticities(byte[] bytes, int offset) {
         int[] expected = { 31270, 32900, 64000, 33000, 30000, 60000, 15000, 6000 };
         for (int index = 0; index < expected.Length; index++) {
             if (ReadBigEndianUInt32(bytes, offset + index * 4) != expected[index]) return false;
