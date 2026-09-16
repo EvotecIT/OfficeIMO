@@ -866,6 +866,42 @@ public class PowerPointPdfTableImportTests {
         Assert.Equal("VisualOnly", imageWarning.Details["Disposition"]);
     }
 
+    [Theory]
+    [InlineData(1, 0, "PdfPageActionsNotReconstructed", OfficeConversionLossKind.Omission, true)]
+    [InlineData(0, 1, "PdfGroupsNotEditable", OfficeConversionLossKind.Approximation, false)]
+    public void PdfPowerPointConversionReport_HybridReportsNonvisualPageFactsAsLoss(
+        int pageActionCount,
+        int optionalContentPageCount,
+        string warningCode,
+        OfficeConversionLossKind lossKind,
+        bool hasOmittedPageContent) {
+        var successfulRender = new PdfCore.PdfPageRenderResult(
+            1, PdfCore.PdfPageRenderFormat.Png, new byte[] { 1 }, 1, 1, TimeSpan.Zero,
+            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>());
+        var scope = new PdfCore.PdfTableExtractionScopeReport(
+            sourcePageCount: 1, pagesWithTables: 1, detectedTableCount: 1,
+            nonTableTextBlockCount: 0, vectorPrimitiveCount: 0, imageCount: 0,
+            linkCount: 0, formWidgetCount: 0, formFieldCount: 0, hasAcroFormXfa: false,
+            annotationCount: 0, pageActionCount: pageActionCount,
+            catalogActionCount: 0, hasOpenAction: false, documentActionCount: 0,
+            optionalContentGroupCount: optionalContentPageCount,
+            pagesWithOptionalContent: optionalContentPageCount,
+            interactiveMediaAnnotationCount: 0, unplacedFormFieldCount: 0,
+            outlineCount: 0, attachmentCount: 0, hasTaggedContent: false,
+            analysisTruncated: false);
+        var report = new PdfPowerPointConversionReport(
+            Array.Empty<PdfPowerPointTableImportEntry>(),
+            new[] { new PdfPowerPointVisualPageEntry(successfulRender, slideIndex: 0) },
+            scope, scope);
+
+        Assert.True(report.HasLoss);
+        Assert.Equal(hasOmittedPageContent, report.HasOmittedPageContent);
+        PdfCore.PdfConversionWarning warning = Assert.Single(report.Warnings,
+            item => item.Code == warningCode);
+        Assert.Equal(lossKind, warning.LossKind);
+        if (warningCode == "PdfGroupsNotEditable") Assert.Equal("VisualOnly", warning.Details["Disposition"]);
+    }
+
     [Fact]
     public void PdfTables_SaveTablesAsPowerPoint_ImportsDetectedTablesAsPowerPointTables() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {

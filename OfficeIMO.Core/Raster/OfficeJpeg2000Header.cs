@@ -221,6 +221,9 @@ internal static class OfficeJpeg2000Header {
         componentPrecisions = System.Array.Empty<byte>();
         cancellationToken.ThrowIfCancellationRequested();
         if (end - start < 42 || Read32(bytes, start) != 0xFF4FFF51) return false; // SOC, SIZ
+        // Only baseline Part 1 codestreams are admitted by this opaque validator.
+        // Nonzero Rsiz declares profile restrictions or decoder capabilities that are not checked here.
+        if (Read16(bytes, start + 6) != 0) return false;
         components = Read16(bytes, start + 40);
         int length = Read16(bytes, start + 4);
         if (components is not (1 or 3) || length != 38 + components * 3 || length > end - start - 4) return false;

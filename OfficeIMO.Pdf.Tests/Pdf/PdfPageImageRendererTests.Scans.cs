@@ -152,6 +152,26 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal("image/jp2", container.MimeType);
     }
 
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(false, 65535)]
+    [InlineData(true, 1)]
+    [InlineData(true, 65535)]
+    public void ImageValidationRejectsNonBaselineJpeg2000Capabilities(bool rawCodestream, int capabilities) {
+        byte[] container = ReadScanJpx("rgb");
+        int marker = Enumerable.Range(0, container.Length - 3).Single(index =>
+            container[index] == 255 && container[index + 1] == 79 &&
+            container[index + 2] == 255 && container[index + 3] == 81);
+        byte[] payload = rawCodestream ? container.Skip(marker).ToArray() : container;
+        int sizeMarker = rawCodestream ? 0 : marker;
+        Assert.Equal(0, (payload[sizeMarker + 6] << 8) | payload[sizeMarker + 7]);
+        payload[sizeMarker + 6] = (byte)(capabilities >> 8);
+        payload[sizeMarker + 7] = (byte)capabilities;
+
+        Assert.False(OfficeImageReader.TryValidateContent(payload,
+            rawCodestream ? "scan.j2c" : "scan.jp2", out _));
+    }
+
     [Fact]
     public void ImageValidationRejectsJp2WithoutMandatoryFileTypeBox() {
         byte[] payload = ReadScanJpx("rgb");

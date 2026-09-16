@@ -226,6 +226,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         if (failedVisualScope == null) throw new ArgumentNullException(nameof(failedVisualScope));
         bool hasFailedVisualPages = VisualPages.Any(static page => !page.Succeeded);
         _hasOmittedPageContent = SourceScope.DocumentActionCount > 0 ||
+            SourceScope.PageActionCount > 0 ||
             SourceScope.UnplacedFormFieldCount > 0 ||
             SourceScope.HasAcroFormXfa ||
             SourceScope.OutlineCount > 0 ||
@@ -403,10 +404,12 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         AddProjectionWarning(warnings, "PdfVectorsNotEditable", "Vectors", scope.VectorPrimitiveCount,
             failedVisualScope?.VectorPrimitiveCount ?? scope.VectorPrimitiveCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
             description: "vector primitives");
-        AddProjectionWarning(warnings, "PdfNavigationNotEditable", "Navigation", scope.LinkCount + scope.PageActionCount,
-            (failedVisualScope?.LinkCount ?? scope.LinkCount) + (failedVisualScope?.PageActionCount ?? scope.PageActionCount),
+        AddProjectionWarning(warnings, "PdfNavigationNotEditable", "Navigation", scope.LinkCount,
+            failedVisualScope?.LinkCount ?? scope.LinkCount,
             hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
-            description: "links and page actions");
+            description: "links");
+        AddDocumentOmissionWarning(warnings, "PdfPageActionsNotReconstructed", "Page actions",
+            scope.PageActionCount, "page open and close actions");
         if (scope.DocumentActionCount > 0) {
             warnings.Add(new OfficeIMO.Pdf.PdfConversionWarning(
                 "OfficeIMO.PowerPoint.Pdf",
@@ -440,7 +443,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         AddProjectionWarning(warnings, "PdfGroupsNotEditable", "Groups", scope.PagesWithOptionalContent,
             failedVisualScope?.PagesWithOptionalContent ?? scope.PagesWithOptionalContent,
             hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
-            description: "pages using optional content");
+            description: "pages using optional content", visualOnlyLossKind: OfficeConversionLossKind.Approximation);
         AddProjectionWarning(warnings, "PdfAnimationsNotEditable", "Animations", scope.InteractiveMediaAnnotationCount,
             failedVisualScope?.InteractiveMediaAnnotationCount ?? scope.InteractiveMediaAnnotationCount,
             hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
@@ -480,7 +483,8 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         bool hasVisualLayer,
         bool hasFailedVisualPages,
         bool pageCorrelationAvailable,
-        string description) {
+        string description,
+        OfficeConversionLossKind visualOnlyLossKind = OfficeConversionLossKind.None) {
         if (count <= 0) return;
         ProjectionDisposition disposition = ResolveDisposition(
             count,
@@ -496,6 +500,9 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             disposition == ProjectionDisposition.VisualOnly
                 ? OfficeIMO.Pdf.PdfConversionWarningSeverity.Information
                 : OfficeIMO.Pdf.PdfConversionWarningSeverity.Warning,
+            disposition == ProjectionDisposition.VisualOnly
+                ? visualOnlyLossKind
+                : OfficeConversionLossKind.Approximation,
             details: new Dictionary<string, string> {
                 ["Count"] = count.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["Disposition"] = GetDispositionValue(disposition)
