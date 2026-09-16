@@ -97,7 +97,15 @@ namespace OfficeIMO.Word.Pdf {
 
             WordTextBox? textBox = GetNativeParagraphTextBox(paragraph, out string? textBoxFallbackText);
             if (textBox != null) {
-                RenderNativeTextBox(pdf, textBox, marker, getMarker, footnoteNumbersById, options, nativeDefaults, nativeFontMap, textBoxFallbackText);
+                if (marker is { Marker.Length: > 0 }) {
+                    PdfCore.PdfParagraphStyle markerStyle = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
+                    ApplyNativeInlineListIndent(paragraph, markerStyle);
+                    markerStyle.SpacingAfter = 0D;
+                    pdf.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, marker,
+                        Array.Empty<WordParagraph>(), false, string.Empty, Array.Empty<int>(), options, nativeDefaults, nativeFontMap),
+                        ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: markerStyle);
+                }
+                RenderNativeTextBox(pdf, textBox, getMarker, footnoteNumbersById, options, nativeDefaults, nativeFontMap, textBoxFallbackText);
                 return;
             }
 
@@ -485,7 +493,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
                 builder.Text(marker.Value.Marker);
                 if (markerInfo.HasValue) ResetNativeTextStyle(builder);
-                builder.Text(" ");
+                builder.Text(ResolveNativeInlineListMarkerSuffix(markerInfo?.LevelSuffix));
             }
 
             IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
@@ -637,14 +645,11 @@ namespace OfficeIMO.Word.Pdf {
             return string.IsNullOrWhiteSpace(textBoxText) ? null : textBoxText;
         }
 
-        private static void RenderNativeTextBox(INativePdfFlow pdf, WordTextBox textBox, (int Level, string Marker)? outerMarker, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, string? fallbackText = null) {
+        private static void RenderNativeTextBox(INativePdfFlow pdf, WordTextBox textBox, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, string? fallbackText = null) {
             IReadOnlyList<WordParagraph> paragraphs = GetNativeTextBoxParagraphs(textBox);
             if (paragraphs.Count == 0 && !string.IsNullOrWhiteSpace(fallbackText)) {
                 PdfCore.PdfPanelStyle fallbackStyle = CreateNativeTextBoxPanelStyle(textBox);
-                pdf.PanelParagraph(builder => {
-                    if (outerMarker is { Marker.Length: > 0 } marker) builder.Text(marker.Marker + " ");
-                    builder.Text(NormalizeNativeDirectText(fallbackText));
-                }, fallbackStyle, PdfCore.PdfAlign.Left);
+                pdf.PanelParagraph(builder => builder.Text(NormalizeNativeDirectText(fallbackText)), fallbackStyle, PdfCore.PdfAlign.Left);
                 return;
             }
 
@@ -653,14 +658,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             PdfCore.PdfPanelStyle style = CreateNativeTextBoxPanelStyle(textBox);
-            PdfCore.PdfAlign defaultTextAlign = MapNativeTextBoxTextAlign(paragraphs);
-            pdf.PanelParagraph(builder => {
+            pdf.Panel(contentBuilder => {
                 for (int index = 0; index < paragraphs.Count; index++) {
                     WordParagraph paragraph = paragraphs[index];
-                    if (index > 0) {
-                        builder.LineBreak();
-                    }
-
                     List<WordParagraph> runs = GetNativeRuns(paragraph);
                     bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
                     string content = hasEquationContent
@@ -669,9 +669,15 @@ namespace OfficeIMO.Word.Pdf {
                     bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
                     string renderContent = hasRenderableRuns || ShouldRenderNativeDirectText(paragraph, runs, content) ? content : string.Empty;
                     List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, Array.Empty<int>(), footnoteNumbersById);
-                    AddNativeParagraphContent(builder, paragraph, getMarker(paragraph) ?? (index == 0 ? outerMarker : null), runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap);
+                    PdfCore.PdfParagraphStyle paragraphStyle = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
+                    if (getMarker(paragraph) != null) ApplyNativeInlineListIndent(paragraph, paragraphStyle);
+                    paragraphStyle.SpacingBefore = 0D;
+                    paragraphStyle.SpacingAfter = 0D;
+                    contentBuilder.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, getMarker(paragraph),
+                        runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap),
+                        ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: paragraphStyle);
                 }
-            }, style, defaultTextAlign);
+            }, style);
         }
 
         private static IReadOnlyList<WordParagraph> GetNativeTextBoxParagraphs(WordTextBox textBox) {
@@ -741,16 +747,6 @@ namespace OfficeIMO.Word.Pdf {
                 default:
                     return PdfCore.PdfAlign.Left;
             }
-        }
-
-        private static PdfCore.PdfAlign MapNativeTextBoxTextAlign(IReadOnlyList<WordParagraph> paragraphs) {
-            foreach (WordParagraph paragraph in paragraphs) {
-                if (!string.IsNullOrEmpty(paragraph.Text)) {
-                    return ResolveNativeParagraphAlign(paragraph);
-                }
-            }
-
-            return PdfCore.PdfAlign.Left;
         }
 
         private static void RenderNativeHeading(INativePdfFlow pdf, int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle, NativeFontMap nativeFontMap, string? linkUri = null, string? linkDestinationName = null, string? linkContents = null) {

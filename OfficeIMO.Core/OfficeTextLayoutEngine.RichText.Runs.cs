@@ -37,7 +37,8 @@ public static partial class OfficeTextLayoutEngine {
                 run.BackgroundColor,
                 run.UnderlineStyle,
                 run.StrikethroughStyle,
-                run.Baseline) { LinkUri = run.LinkUri });
+                run.Baseline,
+                run.ParagraphIndent) { LinkUri = run.LinkUri });
             remainingCharacters -= Math.Min(remainingCharacters, run.Text?.Length ?? 0);
             processedRuns = i + 1;
         }
@@ -68,7 +69,8 @@ public static partial class OfficeTextLayoutEngine {
                 run.BackgroundColor,
                 run.UnderlineStyle,
                 run.StrikethroughStyle,
-                run.Baseline) { LinkUri = run.LinkUri });
+                run.Baseline,
+                factor > 0D ? run.ParagraphIndent?.Scale(factor) : null) { LinkUri = run.LinkUri });
         }
 
         return scaled;

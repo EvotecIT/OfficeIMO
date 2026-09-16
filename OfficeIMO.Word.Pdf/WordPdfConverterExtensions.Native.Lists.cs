@@ -250,6 +250,12 @@ namespace OfficeIMO.Word.Pdf {
         private static void ApplyNativeMarkerlessListIndent(WordParagraph paragraph, PdfCore.PdfParagraphStyle style) {
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
             if (info == null || info.Value.MarkerVisible) return;
+            ApplyNativeInlineListIndent(paragraph, style);
+        }
+
+        private static void ApplyNativeInlineListIndent(WordParagraph paragraph, PdfCore.PdfParagraphStyle style) {
+            WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
+            if (info == null) return;
 
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             bool useParagraphStyleIndent = ShouldApplyNativeListParagraphStyleIndent(paragraph);
@@ -264,6 +270,12 @@ namespace OfficeIMO.Word.Pdf {
                 : paragraph.IndentationFirstLinePoints ??
                     (useParagraphStyleIndent ? styleDefaults.FirstLineIndent : null) ?? -hangingIndent;
         }
+
+        private static string ResolveNativeInlineListMarkerSuffix(WordListLevelSuffix? suffix) => suffix switch {
+            WordListLevelSuffix.Nothing => string.Empty,
+            WordListLevelSuffix.Tab => "\t",
+            _ => " "
+        };
 
         private static (double MarkerWidth, double MarkerGap) ResolveNativeListMarkerSpacing(W.LevelSuffixValues? levelSuffix, double markerTextWidth, double fontSize, double textIndent, double markerIndent) {
             if (levelSuffix == W.LevelSuffixValues.Nothing) {

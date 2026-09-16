@@ -464,7 +464,8 @@ public static class OfficeCalloutRenderer {
                 run.BackgroundColor,
                 run.UnderlineStyle,
                 run.StrikethroughStyle,
-                run.Baseline));
+                run.Baseline,
+                run.ParagraphIndent?.Scale(scale)));
         }
 
         return scaled.AsReadOnly();

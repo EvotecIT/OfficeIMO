@@ -224,11 +224,12 @@ namespace OfficeIMO.Word {
             double rotationCenterX = left + (width / 2D);
             double rotationCenterY = top + (height / 2D);
 
-            List<OfficeRichTextRun> richRuns = CreateTextBoxRichTextRuns(textBox, colorScheme, listMarkers, context, diagnostics);
+            List<OfficeRichTextRun> richRuns = CreateTextBoxRichTextRuns(textBox, colorScheme, listMarkers,
+                Math.Max(1D, width - padding.Horizontal), context, diagnostics);
             bool hasListMarkers = textBox.Content != null && EnumerateTextBoxParagraphFragments(textBox.Document, textBox.Content)
                 .Any(fragment => fragment.IncludeMarker &&
-                    CreateListMarker(textBox.Document, fragment.Paragraph, listMarkers) is { Marker.Length: > 0 });
-            if (hasListMarkers || ShouldRenderTextBoxAsRichText(textBox, richRuns)) {
+                    CreateListMarker(textBox.Document, fragment.Paragraph, listMarkers).HasValue);
+            if (richRuns.Count > 0 && (hasListMarkers || ShouldRenderTextBoxAsRichText(textBox, richRuns))) {
                 double maxFontSize = richRuns.Max(run => run.FontSize);
                 double richLineHeight = Math.Max(maxFontSize * 1.25D, 12D);
                 if (drawBehindContent) {
@@ -508,6 +509,7 @@ namespace OfficeIMO.Word {
             WordTextBox textBox,
             A.ColorScheme? colorScheme,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
+            double availableWidth,
             WordImageFlowContext? context = null,
             List<OfficeImageExportDiagnostic>? diagnostics = null) {
             var richRuns = new List<OfficeRichTextRun>();
@@ -521,24 +523,35 @@ namespace OfficeIMO.Word {
                     ? CreateListMarker(textBox.Document, fragment.Paragraph, listMarkers)
                     : null;
                 List<(WordParagraph Run, string Text)> paragraphRuns = fragment.Runs
-                    .Select(run => (Run: run, Text: ResolveImageExportText(run, context, diagnostics)))
+                    .Select(run => (Run: run, Text: NormalizeTextBoxParagraphText(ResolveImageExportText(run, context, diagnostics))))
                     .Where(run => !string.IsNullOrEmpty(run.Text))
                     .ToList();
                 if (paragraphRuns.Count == 0 && !(marker is { Marker.Length: > 0 })) {
                     continue;
                 }
 
-                if (richRuns.Count > 0) {
-                    richRuns.Add(paragraphRuns.Count > 0
-                        ? CreateRichTextRun(paragraphRuns[0].Run, colorScheme, Environment.NewLine)
-                        : CreateRichTextRun(new WordParagraph(textBox.Document, fragment.Paragraph), colorScheme, Environment.NewLine));
+                OfficeTextParagraphIndent paragraphIndent = OfficeTextParagraphIndent.Empty;
+                if (marker.HasValue) {
+                    double textOffset = Math.Min(Math.Max(0D, marker.Value.LeftIndentPoints), Math.Max(0D, availableWidth - 1D));
+                    double markerOffset = marker.Value.Marker.Length > 0
+                        ? Math.Max(0D, textOffset - Math.Max(0D, marker.Value.HangingIndentPoints))
+                        : textOffset;
+                    paragraphIndent = new OfficeTextParagraphIndent(markerOffset, textOffset);
                 }
 
-                if (marker is { Marker.Length: > 0 } visible) richRuns.Add(CreateListMarkerRichTextRun(visible));
+                if (richRuns.Count > 0) {
+                    richRuns.Add(paragraphRuns.Count > 0
+                        ? CreateRichTextRun(paragraphRuns[0].Run, colorScheme, Environment.NewLine).WithParagraphIndent(paragraphIndent)
+                        : CreateRichTextRun(new WordParagraph(textBox.Document, fragment.Paragraph), colorScheme, Environment.NewLine).WithParagraphIndent(paragraphIndent));
+                }
+
+                if (marker is { Marker.Length: > 0 } visible) richRuns.Add(
+                    richRuns.Count == 0 ? CreateListMarkerRichTextRun(visible).WithParagraphIndent(paragraphIndent) : CreateListMarkerRichTextRun(visible));
 
                 for (int runIndex = 0; runIndex < paragraphRuns.Count; runIndex++) {
                     (WordParagraph run, string text) = paragraphRuns[runIndex];
-                    richRuns.Add(CreateRichTextRun(run, colorScheme, text));
+                    OfficeRichTextRun richRun = CreateRichTextRun(run, colorScheme, text);
+                    richRuns.Add(richRuns.Count == 0 ? richRun.WithParagraphIndent(paragraphIndent) : richRun);
                 }
             }
 

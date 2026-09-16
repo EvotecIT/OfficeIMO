@@ -733,7 +733,7 @@ namespace OfficeIMO.Word.Pdf {
             if (info == null) return CreateNativeCellTextRun(marker + " ", paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap);
 
             return new PdfCore.PdfTextRun(
-                marker + " ",
+                marker + ResolveNativeInlineListMarkerSuffix(info.Value.LevelSuffix),
                 bold: info.Value.MarkerBold ?? textStyle.Bold,
                 color: ParseNativeColor(info.Value.MarkerColorHex) ?? textStyle.Color,
                 italic: info.Value.MarkerItalic ?? textStyle.Italic,

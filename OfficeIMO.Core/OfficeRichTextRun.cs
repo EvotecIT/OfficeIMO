@@ -30,7 +30,8 @@ public sealed class OfficeRichTextRun {
     /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
     /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
     /// <param name="baseline">Vertical baseline placement.</param>
-    public OfficeRichTextRun(string? text, double fontSize, OfficeColor color, bool bold = false, bool italic = false, bool underline = false, string? fontFamily = null, bool strikethrough = false, OfficeColor? backgroundColor = null, OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None, OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None, OfficeTextBaseline baseline = OfficeTextBaseline.Normal) {
+    /// <param name="paragraphIndent">Optional indentation for the paragraph beginning at this run.</param>
+    public OfficeRichTextRun(string? text, double fontSize, OfficeColor color, bool bold = false, bool italic = false, bool underline = false, string? fontFamily = null, bool strikethrough = false, OfficeColor? backgroundColor = null, OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None, OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None, OfficeTextBaseline baseline = OfficeTextBaseline.Normal, OfficeTextParagraphIndent? paragraphIndent = null) {
         if (underlineStyle < OfficeTextDecorationStyle.None || underlineStyle > OfficeTextDecorationStyle.Wavy) {
             throw new System.ArgumentOutOfRangeException(nameof(underlineStyle));
         }
@@ -54,6 +55,7 @@ public sealed class OfficeRichTextRun {
         Baseline = baseline;
         FontFamily = string.IsNullOrWhiteSpace(fontFamily) ? "Arial, sans-serif" : fontFamily!;
         BackgroundColor = backgroundColor;
+        ParagraphIndent = paragraphIndent;
     }
 
     /// <summary>
@@ -113,6 +115,14 @@ public sealed class OfficeRichTextRun {
     /// </summary>
     public OfficeColor? BackgroundColor { get; }
 
+    /// <summary>Optional first-line and continuation offsets for the paragraph beginning at this run.</summary>
+    public OfficeTextParagraphIndent? ParagraphIndent { get; }
+
+    /// <summary>Creates a styled copy that starts a paragraph with its own indentation.</summary>
+    public OfficeRichTextRun WithParagraphIndent(OfficeTextParagraphIndent paragraphIndent) =>
+        new OfficeRichTextRun(Text, FontSize, Color, Bold, Italic, Underline, FontFamily, Strikethrough,
+            BackgroundColor, UnderlineStyle, StrikethroughStyle, Baseline, paragraphIndent) { LinkUri = LinkUri };
+
     /// <summary>Creates a copy with transformed text casing while preserving all drawing styles.</summary>
     public OfficeRichTextRun WithTextCase(OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) =>
         new OfficeRichTextRun(
@@ -127,5 +137,6 @@ public sealed class OfficeRichTextRun {
             BackgroundColor,
             UnderlineStyle,
             StrikethroughStyle,
-            Baseline);
+            Baseline,
+            ParagraphIndent) { LinkUri = LinkUri };
 }
