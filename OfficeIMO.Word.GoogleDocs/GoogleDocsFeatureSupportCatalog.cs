@@ -1,15 +1,21 @@
 namespace OfficeIMO.Word.GoogleDocs {
     /// <summary>Support level for one Word/Google Docs translation capability.</summary>
     public enum GoogleDocsFeatureSupportLevel {
+        /// <summary>Represented as native editable content.</summary>
         Native = 0,
+        /// <summary>Retained in a simpler target representation.</summary>
         Flattened = 1,
+        /// <summary>Only the documented subset maps directly.</summary>
         Partial = 2,
+        /// <summary>Recovered through Drive-exported DOCX rather than native projection.</summary>
         DriveFallback = 3,
+        /// <summary>No supported direct translation is provided.</summary>
         Unsupported = 4,
     }
 
     /// <summary>Code-owned support-matrix row used by documentation and preflight tooling.</summary>
     public sealed class GoogleDocsFeatureSupport {
+        /// <summary>Creates a feature row with direction-specific support and limitations.</summary>
         public GoogleDocsFeatureSupport(string feature, GoogleDocsFeatureSupportLevel export, GoogleDocsFeatureSupportLevel import, string notes) {
             Feature = feature;
             Export = export;
@@ -17,9 +23,13 @@ namespace OfficeIMO.Word.GoogleDocs {
             Notes = notes;
         }
 
+        /// <summary>Gets the feature group described by this row.</summary>
         public string Feature { get; }
+        /// <summary>Gets its support level when exporting to Google Docs.</summary>
         public GoogleDocsFeatureSupportLevel Export { get; }
+        /// <summary>Gets its support level when importing into OfficeIMO.</summary>
         public GoogleDocsFeatureSupportLevel Import { get; }
+        /// <summary>Gets feature-specific behavior and limitations.</summary>
         public string Notes { get; }
     }
 
@@ -38,6 +48,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             new GoogleDocsFeatureSupport("Equations, watermarks and content controls", GoogleDocsFeatureSupportLevel.Unsupported, GoogleDocsFeatureSupportLevel.DriveFallback, "These features are diagnosed explicitly and are not silently inferred."),
         };
 
+        /// <summary>Gets the current feature groups and direction-specific support levels.</summary>
         public static IReadOnlyList<GoogleDocsFeatureSupport> Features => FeaturesValue;
     }
 }

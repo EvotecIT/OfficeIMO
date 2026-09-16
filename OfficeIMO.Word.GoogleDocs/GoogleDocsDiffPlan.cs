@@ -3,26 +3,34 @@ using System.Text;
 using OfficeIMO.GoogleWorkspace;
 
 namespace OfficeIMO.Word.GoogleDocs {
+    /// <summary>One classified difference between a Word source and Google document.</summary>
     public sealed class GoogleDocsDiffItem {
+        /// <summary>Creates a difference with a semantic path and explanation.</summary>
         public GoogleDocsDiffItem(GoogleWorkspaceDiffKind kind, string path, string message) {
             Kind = kind;
             Path = path;
             Message = message;
         }
 
+        /// <summary>Gets the local, remote, conflict, or lossy classification.</summary>
         public GoogleWorkspaceDiffKind Kind { get; }
+        /// <summary>Gets the semantic path of the changed content.</summary>
         public string Path { get; }
+        /// <summary>Gets the explanation for the classification.</summary>
         public string Message { get; }
     }
 
     /// <summary>Checkpoint used to distinguish independent OfficeIMO and Google Docs edits.</summary>
     public sealed class GoogleDocsSyncCheckpoint {
+        /// <summary>Gets or sets the previously observed Docs revision identifier.</summary>
         public string? RevisionId { get; set; }
+        /// <summary>Gets or sets the previously observed Drive version.</summary>
         public long? DriveVersion { get; set; }
+        /// <summary>Gets the mutable map of semantic paths to baseline content hashes.</summary>
         public IDictionary<string, string> ContentHashes { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
     }
 
-    /// <summary>Read-only comparison produced before replacement or synchronization.</summary>
+    /// <summary>Remote metadata, classified content differences, and native-import notices.</summary>
     public sealed class GoogleDocsDiffPlan {
         internal GoogleDocsDiffPlan(GoogleDocumentReference remote, IReadOnlyList<GoogleDocsDiffItem> items, TranslationReport report) {
             Remote = remote;
@@ -30,15 +38,25 @@ namespace OfficeIMO.Word.GoogleDocs {
             Report = report;
         }
 
+        /// <summary>Gets the remote document reference observed during planning.</summary>
         public GoogleDocumentReference Remote { get; }
+        /// <summary>Gets classified differences in semantic-path order, followed by import and revision notices.</summary>
         public IReadOnlyList<GoogleDocsDiffItem> Items { get; }
+        /// <summary>Gets fidelity notices from native remote import.</summary>
         public TranslationReport Report { get; }
+        /// <summary>Gets whether any content path was classified as a conflict.</summary>
         public bool HasConflicts => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.Conflict);
+        /// <summary>Gets whether import warnings produced any lossy-action items.</summary>
         public bool HasLossyActions => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.LossyAction);
+        /// <summary>Gets whether the plan has neither conflicts nor report errors.</summary>
+        /// <remarks>This is advisory; it neither approves loss nor performs a replacement.</remarks>
         public bool CanApply => !HasConflicts && !Report.HasErrors;
     }
 
+    /// <summary>Builds source fingerprints and compares them with native Google Docs content.</summary>
     public static class GoogleDocsDiffPlanner {
+        /// <summary>Captures source content hashes and optional observed remote revisions.</summary>
+        /// <remarks>Persist the checkpoint only when it accurately represents a synchronized baseline.</remarks>
         public static GoogleDocsSyncCheckpoint CreateCheckpoint(WordDocument document, string? revisionId = null, long? driveVersion = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             var checkpoint = new GoogleDocsSyncCheckpoint { RevisionId = revisionId, DriveVersion = driveVersion };
@@ -46,6 +64,8 @@ namespace OfficeIMO.Word.GoogleDocs {
             return checkpoint;
         }
 
+        /// <summary>Imports and flattens remote tabs, then compares the result with the source and optional baseline.</summary>
+        /// <remarks>Import warnings are classified as lossy actions. Changed remote revision or Drive version is reported separately when both old and current values are available.</remarks>
         public static async Task<GoogleDocsDiffPlan> BuildAsync(
             WordDocument source,
             string documentId,

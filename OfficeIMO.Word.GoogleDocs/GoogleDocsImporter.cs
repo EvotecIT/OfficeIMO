@@ -7,6 +7,8 @@ using System.Text;
 namespace OfficeIMO.Word.GoogleDocs {
     /// <summary>Imports Google documents through Drive conversion or a tab-aware native projection.</summary>
     public sealed class GoogleDocsImporter : IGoogleDocsImporter {
+        /// <summary>Loads a Google document and returns a caller-owned Word document with source metadata.</summary>
+        /// <remarks>Drive-exported DOCX is the default; native mode projects supported Docs content and records fidelity notices.</remarks>
         public async Task<GoogleDocsImportResult> ImportAsync(
             string documentId,
             GoogleWorkspaceSession session,
