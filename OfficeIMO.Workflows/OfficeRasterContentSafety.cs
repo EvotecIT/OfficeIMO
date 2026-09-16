@@ -20,6 +20,7 @@ public static partial class OfficeRasterContentSafety {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(imageBytes);
         ArgumentNullException.ThrowIfNull(engine);
+        cancellationToken.ThrowIfCancellationRequested();
         OfficeRasterContentSafetyOptions.Snapshot snapshot =
             (options ?? new OfficeRasterContentSafetyOptions()).Capture();
         OfficeContentSafetyInputGuard.ValidateBytes(imageBytes, snapshot.Inspection);
@@ -44,7 +45,8 @@ public static partial class OfficeRasterContentSafety {
         byte[] input = OfficeContentSafetyInputGuard.ReadAllBytes(
             filePath,
             snapshot.Inspection,
-            cancellationToken);
+            inspectZipPackage: false,
+            cancellationToken: cancellationToken);
         OcrEngineExecution execution = OcrEngineRunner.CreateExecution(engine);
         AnalysisState state = await InspectCoreAsync(
                 input,

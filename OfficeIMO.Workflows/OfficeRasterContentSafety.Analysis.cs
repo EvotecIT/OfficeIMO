@@ -104,6 +104,11 @@ public static partial class OfficeRasterContentSafety {
                 inspectTextIntegrityEvidence: false);
             targets[finding.Id] = target;
         }
+        ValidateAggregateTextCoverage(
+            result.Text,
+            recognizedTargets,
+            options,
+            cancellationToken);
 
         foreach (OcrDiagnostic diagnostic in rawDiagnostics) {
             if (diagnostic == null) continue;
@@ -117,6 +122,76 @@ public static partial class OfficeRasterContentSafety {
             " bounded line, word, or character spans; " +
             visibleSpans.ToString(CultureInfo.InvariantCulture) + " had no bounded concealment evidence.");
         return new AnalysisState(image, builder.Build(), targets, recognizedTargets.AsReadOnly());
+    }
+
+    private static void ValidateAggregateTextCoverage(
+        string? aggregateText,
+        IReadOnlyList<RasterTarget> targets,
+        OfficeRasterContentSafetyOptions.Snapshot options,
+        CancellationToken cancellationToken) {
+        if (string.IsNullOrWhiteSpace(aggregateText)) return;
+        if (HasEquivalentTargetText(aggregateText, targets, OcrTextSpanLevel.Line, " ", cancellationToken) ||
+            HasEquivalentTargetText(aggregateText, targets, OcrTextSpanLevel.Word, " ", cancellationToken) ||
+            HasEquivalentTargetText(
+                aggregateText,
+                targets,
+                OcrTextSpanLevel.Character,
+                string.Empty,
+                cancellationToken)) {
+            return;
+        }
+        long remainingRegionComparisons = options.MaximumRegionComparisons;
+        int regionComparisonCount = 0;
+        HashSet<RasterTarget> aggregateLines = ResolveAggregateLineTargets(
+            targets,
+            ref remainingRegionComparisons,
+            ref regionComparisonCount,
+            cancellationToken);
+        string flattened = string.Join(
+            " ",
+            targets.Where(target => !aggregateLines.Contains(target)).Select(target => target.Text));
+        if (string.Equals(
+                NormalizeWhitespace(aggregateText, cancellationToken),
+                NormalizeWhitespace(flattened, cancellationToken),
+                StringComparison.Ordinal)) {
+            return;
+        }
+        throw new InvalidDataException(
+            "OCR aggregate text is not fully represented by accepted bounded text spans.");
+    }
+
+    private static bool HasEquivalentTargetText(
+        string aggregateText,
+        IReadOnlyList<RasterTarget> targets,
+        OcrTextSpanLevel level,
+        string separator,
+        CancellationToken cancellationToken) {
+        string[] text = targets
+            .Where(target => target.Level == level)
+            .OrderBy(target => target.Sequence)
+            .Select(target => target.Text)
+            .ToArray();
+        return text.Length > 0 && string.Equals(
+            NormalizeWhitespace(aggregateText, cancellationToken),
+            NormalizeWhitespace(string.Join(separator, text), cancellationToken),
+            StringComparison.Ordinal);
+    }
+
+    private static string NormalizeWhitespace(string value, CancellationToken cancellationToken) {
+        var normalized = new StringBuilder(value.Length);
+        bool pendingSpace = false;
+        for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            char character = value[index];
+            if (char.IsWhiteSpace(character)) {
+                pendingSpace = normalized.Length > 0;
+                continue;
+            }
+            if (pendingSpace) normalized.Append(' ');
+            normalized.Append(character);
+            pendingSpace = false;
+        }
+        return normalized.ToString();
     }
 
     private static void ValidateOcrOutputCharacters(

@@ -198,6 +198,20 @@ public sealed partial class RasterContentSafetyTests {
     }
 
     [Fact]
+    public async Task InspectRejectsAggregateTextNotRepresentedByBoundedSpans() {
+        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
+        IOcrEngine engine = CreateEngine(_ => new OcrResult {
+            Text = "bounded hidden",
+            Spans = new[] {
+                Span(0, "bounded", new OcrRegion { X = 2, Y = 2, Width = 8, Height = 4 }, 0.99D)
+            }
+        });
+
+        await Assert.ThrowsAsync<InvalidDataException>(
+            () => OfficeRasterContentSafety.InspectAsync(image, engine));
+    }
+
+    [Fact]
     public async Task InspectRejectsAnEngineThatDoesNotAcceptNormalizedPng() {
         byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
         IOcrEngine engine = new DelegateOcrEngine(
@@ -357,6 +371,36 @@ public sealed partial class RasterContentSafetyTests {
             OfficeRasterContentSafety.InspectAsync(image, engine, cancellationToken: cancellation.Token));
         Assert.NotNull(cancellationTask);
         await cancellationTask!;
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ByteArrayOperationsHonorCancellationBeforeEngineSnapshot(bool redact) {
+        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
+        var engine = new CountingOcrEngine("canceled", _ => new OcrResult());
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        if (redact) {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                OfficeRasterContentSafety.RedactSelectedContentAsync(
+                    image,
+                    engine,
+                    new OfficeContentCleanupSelection(Array.Empty<string>()),
+                    new OfficeRasterContentSafetyOptions { EnableOpaqueRectangleRedaction = true },
+                    cancellation.Token));
+        } else {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                OfficeRasterContentSafety.InspectAsync(
+                    image,
+                    engine,
+                    cancellationToken: cancellation.Token));
+        }
+
+        Assert.Equal(0, engine.IdReads);
+        Assert.Equal(0, engine.CapabilityReads);
+        Assert.Equal(0, engine.RecognitionCalls);
     }
 
     [Fact]

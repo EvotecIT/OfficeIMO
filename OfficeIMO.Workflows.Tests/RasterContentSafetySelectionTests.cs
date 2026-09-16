@@ -151,6 +151,38 @@ public sealed partial class RasterContentSafetyTests {
     }
 
     [Fact]
+    public async Task RedactionRejectsPostInspectionAggregateTextOutsideBoundedSpans() {
+        var raster = new OfficeRasterImage(40, 20, OfficeColor.White);
+        for (int y = 5; y < 11; y++) {
+            for (int x = 2; x < 10; x++) raster.SetPixel(x, y, OfficeColor.FromRgb(248, 248, 248));
+            for (int x = 25; x < 33; x++) raster.SetPixel(x, y, OfficeColor.Black);
+        }
+        byte[] image = OfficePngWriter.Encode(raster);
+        int calls = 0;
+        IOcrEngine engine = CreateEngine(_ => calls++ < 2
+            ? Result("concealed", new OcrRegion { X = 2, Y = 5, Width = 8, Height = 6 }, 0.99D)
+            : new OcrResult {
+                Text = "concealed visible",
+                Spans = new[] {
+                    Span(0, "visible", new OcrRegion { X = 25, Y = 5, Width = 8, Height = 6 }, 0.99D)
+                }
+            });
+        var options = new OfficeRasterContentSafetyOptions {
+            EnableOpaqueRectangleRedaction = true,
+            RedactionPaddingPixels = 0
+        };
+        OfficeContentSafetyFinding finding = Assert.Single(
+            (await OfficeRasterContentSafety.InspectAsync(image, engine, options)).Findings);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            OfficeRasterContentSafety.RedactSelectedContentAsync(
+                image,
+                engine,
+                new OfficeContentCleanupSelection(new[] { finding.Id }),
+                options));
+    }
+
+    [Fact]
     public async Task RedactionBoundsRegionIntersectionComparisons() {
         var raster = new OfficeRasterImage(40, 20, OfficeColor.White);
         for (int y = 5; y < 11; y++) {

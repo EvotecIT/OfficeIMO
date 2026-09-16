@@ -1,7 +1,6 @@
 using OfficeIMO.ContentSafety;
 using OfficeIMO.Drawing;
 using OfficeIMO.Ocr;
-using System.Text;
 
 namespace OfficeIMO.Workflows;
 
@@ -20,6 +19,7 @@ public static partial class OfficeRasterContentSafety {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(selection);
         ArgumentNullException.ThrowIfNull(options);
+        cancellationToken.ThrowIfCancellationRequested();
         OfficeRasterContentSafetyOptions.Snapshot snapshot = options.Capture();
         if (!snapshot.EnableOpaqueRectangleRedaction) {
             throw new InvalidOperationException(
@@ -197,37 +197,23 @@ public static partial class OfficeRasterContentSafety {
             if (child.Level == OcrTextSpanLevel.Word) words.Add(child);
             else if (child.Level == OcrTextSpanLevel.Character) characters.Add(child);
         }
-        return HasEquivalentText(line.Text, words, " ") ||
-            HasEquivalentText(line.Text, characters, string.Empty);
+        return HasEquivalentText(line.Text, words, " ", cancellationToken) ||
+            HasEquivalentText(line.Text, characters, string.Empty, cancellationToken);
     }
 
     private static bool HasEquivalentText(
         string lineText,
         IReadOnlyList<RasterTarget> children,
-        string separator) {
+        string separator,
+        CancellationToken cancellationToken) {
         if (children.Count == 0) return false;
         string childText = string.Join(
             separator,
             children.OrderBy(child => child.Sequence).Select(child => child.Text));
         return string.Equals(
-            NormalizeWhitespace(lineText),
-            NormalizeWhitespace(childText),
+            NormalizeWhitespace(lineText, cancellationToken),
+            NormalizeWhitespace(childText, cancellationToken),
             StringComparison.Ordinal);
-    }
-
-    private static string NormalizeWhitespace(string value) {
-        var normalized = new StringBuilder(value.Length);
-        bool pendingSpace = false;
-        foreach (char character in value) {
-            if (char.IsWhiteSpace(character)) {
-                pendingSpace = normalized.Length > 0;
-                continue;
-            }
-            if (pendingSpace) normalized.Append(' ');
-            normalized.Append(character);
-            pendingSpace = false;
-        }
-        return normalized.ToString();
     }
 
     private static void ChargeRegionComparison(
@@ -235,7 +221,7 @@ public static partial class OfficeRasterContentSafety {
         ref int comparisonCount,
         CancellationToken cancellationToken) {
         if (remaining <= 0L) {
-            throw new InvalidDataException("Raster redaction geometry comparisons exceed the configured limit.");
+            throw new InvalidDataException("Raster OCR geometry comparisons exceed the configured limit.");
         }
         remaining--;
         if ((comparisonCount++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();

@@ -10,7 +10,7 @@ namespace OfficeIMO.ContentSafety;
 public static class OfficeContentSafetyInputGuard {
     /// <summary>Reads a file only after validating its encoded length and, when applicable, ZIP package metadata.</summary>
     public static byte[] ReadAllBytes(string filePath, OfficeContentSafetyOptions options, bool inspectZipPackage = false) =>
-        ReadAllBytes(filePath, options, CancellationToken.None, inspectZipPackage);
+        ReadAllBytes(filePath, options, inspectZipPackage, CancellationToken.None);
 
     /// <summary>
     /// Reads a file only after validating its encoded length and, when applicable, ZIP package metadata,
@@ -19,8 +19,8 @@ public static class OfficeContentSafetyInputGuard {
     public static byte[] ReadAllBytes(
         string filePath,
         OfficeContentSafetyOptions options,
-        CancellationToken cancellationToken,
-        bool inspectZipPackage = false) {
+        bool inspectZipPackage,
+        CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         if (options == null) throw new ArgumentNullException(nameof(options));
         cancellationToken.ThrowIfCancellationRequested();
