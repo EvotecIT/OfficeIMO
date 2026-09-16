@@ -247,6 +247,22 @@ public sealed class SvgContentSafetyCssBoundaryTests {
     }
 
     [Fact]
+    public void UnsupportedCompoundClipMakesProjectionReportOnly() {
+        byte[] svg = Svg(
+            "<defs><clipPath id='compound'>" +
+            "<rect x='150' width='10' height='10'/><rect x='180' width='10' height='10'/>" +
+            "</clipPath></defs>" +
+            "<text clip-path='url(#compound)' x='10' y='35'>compound clip payload</text>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "compound clip payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.NonPrimaryContent, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
     public void TextUnderUnknownContainerIsReportOnly() {
         byte[] svg = Svg(
             "<unknown><text display='none' x='10' y='35'>unknown container payload</text></unknown>");
@@ -254,6 +270,20 @@ public sealed class SvgContentSafetyCssBoundaryTests {
         OfficeContentSafetyFinding finding = Assert.Single(
             OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
             item => item.TextPreview == "unknown container payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.NonPrimaryContent, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void NativeTextUnderForeignContainerIsReportOnly() {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' xmlns:app='urn:example' width='220' height='120' viewBox='0 0 220 120'>" +
+            "<app:container><text display='none' x='10' y='35'>foreign container payload</text></app:container></svg>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "foreign container payload");
 
         Assert.Equal(OfficeContentConcealmentKind.NonPrimaryContent, finding.Kind);
         Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);

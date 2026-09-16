@@ -73,12 +73,14 @@ public static partial class OfficeSvgDrawingReader {
             return true;
         }
         XElement? unsupportedAncestor = candidate.ComputedElement.Ancestors().FirstOrDefault(element =>
-            element.Name.Namespace == candidate.ComputedElement.Name.Namespace &&
+            element.Name.Namespace != candidate.ComputedElement.Name.Namespace ||
             !IsSupportedSvgTextAncestor(element.Name.LocalName));
         if (unsupportedAncestor != null) {
+            bool foreignNamespace = unsupportedAncestor.Name.Namespace != candidate.ComputedElement.Name.Namespace;
             concealment = new SvgContentSafetyConcealment(
                 OfficeContentConcealmentKind.NonPrimaryContent,
-                "SVG text is nested under the unrecognized " + unsupportedAncestor.Name.LocalName +
+                "SVG text is nested under a " + (foreignNamespace ? "foreign-namespace " : "unrecognized ") +
+                unsupportedAncestor.Name.LocalName +
                 " container and is report-only because that ancestor is outside the bounded native paint model.",
                 OfficeContentSafetyRisk.Informational);
             cleanupCapability = OfficeContentCleanupCapability.ReportOnly;
@@ -240,6 +242,11 @@ public static partial class OfficeSvgDrawingReader {
                 evidence = "SVG clip-path syntax is outside the bounded local URL grammar and is therefore report-only.";
                 return true;
             }
+            if (!string.IsNullOrWhiteSpace(clipPath) &&
+                !clipPath!.Equals("none", StringComparison.OrdinalIgnoreCase) &&
+                TryDescribeUnsupportedSvgClipProjection(current, clipPath, out evidence)) {
+                return true;
+            }
             XAttribute? fontSize = current.Attribute("font-size");
             if (fontSize != null && !IsSvgCssWideKeyword(fontSize.Value) &&
                 fontSize.Value.IndexOf("var(", StringComparison.OrdinalIgnoreCase) < 0 &&
@@ -304,6 +311,48 @@ public static partial class OfficeSvgDrawingReader {
         }
         evidence = string.Empty;
         return false;
+    }
+
+    private static bool TryDescribeUnsupportedSvgClipProjection(
+        XElement element,
+        string clipPath,
+        out string evidence) {
+        evidence = string.Empty;
+        if (!TryReadBoundedSvgLocalUrlReference(clipPath, out string reference)) return false;
+        string id;
+        try {
+            id = Uri.UnescapeDataString(reference.Substring(1));
+        } catch (UriFormatException) {
+            evidence = "SVG clip-path reference encoding is outside the bounded native clip model and is therefore report-only.";
+            return true;
+        }
+        XElement root = element.AncestorsAndSelf().Last();
+        XElement[] definitions = root.DescendantsAndSelf().Where(candidate =>
+            candidate.Name.Namespace == root.Name.Namespace &&
+            candidate.Name.LocalName.Equals("clipPath", StringComparison.Ordinal) &&
+            string.Equals(candidate.Attribute("id")?.Value, id, StringComparison.Ordinal)).Take(2).ToArray();
+        if (definitions.Length == 0) return false;
+        if (definitions.Length > 1) {
+            evidence = "SVG clip-path does not resolve to one native definition and is therefore report-only.";
+            return true;
+        }
+        XElement definition = definitions[0];
+        string? nestedClip = ReadPresentationProperty(definition, "clip-path")?.Trim();
+        string? units = definition.Attribute("clipPathUnits")?.Value;
+        XElement[] geometry = definition.Elements().Where(child =>
+            child.Name.Namespace == root.Name.Namespace &&
+            child.Name.LocalName is not "title" and not "desc" and not "metadata").Take(2).ToArray();
+        string? childClip = geometry.Length == 1 ? ReadPresentationProperty(geometry[0], "clip-path")?.Trim() : null;
+        bool unsupported =
+            (!string.IsNullOrWhiteSpace(nestedClip) && !nestedClip!.Equals("none", StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrWhiteSpace(units) && !units!.Equals("userSpaceOnUse", StringComparison.Ordinal)) ||
+            geometry.Length > 1 ||
+            (geometry.Length == 1 &&
+             (geometry[0].Name.LocalName is not "rect" and not "circle" and not "ellipse" and not "polygon" and not "path" ||
+              !string.IsNullOrWhiteSpace(childClip) && !childClip!.Equals("none", StringComparison.OrdinalIgnoreCase)));
+        if (!unsupported) return false;
+        evidence = "SVG clip-path uses compound or otherwise unmodeled clip geometry and is therefore report-only.";
+        return true;
     }
 
     private static bool HasSharedSvgTextPositioning(XElement logicalOwner) {
