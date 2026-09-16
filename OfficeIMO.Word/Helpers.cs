@@ -115,6 +115,10 @@ namespace OfficeIMO.Word {
 
         private static ImageCharacteristics GetImageCharacteristicsCore(Stream imageStream, string? fileName) {
             if (OfficeImageReader.TryIdentify(imageStream, fileName, out var imageInfo)) {
+                if (imageInfo.Format == OfficeImageFormat.Jpeg2000 &&
+                    !OfficeImageReader.TryValidateContent(imageStream, fileName, out imageInfo)) {
+                    throw new InvalidDataException("The JPEG 2000 stream is incomplete or malformed.");
+                }
                 return new ImageCharacteristics(imageInfo.Width, imageInfo.Height, EnsureSupportedImageFormat(imageInfo.Format));
             }
 

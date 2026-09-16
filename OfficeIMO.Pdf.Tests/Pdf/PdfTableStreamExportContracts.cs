@@ -825,6 +825,43 @@ public class PdfTableStreamExportContracts {
     }
 
     [Fact]
+    public void SelectedPageConversionsDoNotReportOpenActionTargetingExcludedPage() {
+        byte[] source = PdfDocument.Create(new PdfOptions().SetOpenAction(pageNumber: 2))
+            .Paragraph(paragraph => paragraph.Text("First page"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .ToBytes();
+        PdfDocument opened = PdfDocument.Load(source);
+        PdfDocumentReadResult full = opened.Read();
+        Assert.True(PdfLogicalTableAnalysis.AnalyzeExtractionScope(full).DocumentActionCount > 0);
+
+        PdfDocumentReadResult selected = opened.Read(new PdfReadOptions {
+            PageSelection = PdfPageSelection.From(1)
+        });
+        Assert.Null(selected.OpenAction);
+        Assert.Equal(0, PdfLogicalTableAnalysis.AnalyzeExtractionScope(selected).DocumentActionCount);
+
+        PdfWordConversionResult word = opened.ToWordDocumentResult(new PdfToWordOptions {
+            ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) }
+        });
+        PdfDocumentReadResult projected = full.ProjectPages(PdfPageSelection.From(1), "selection");
+        Assert.Equal(0, PdfLogicalTableAnalysis.AnalyzeExtractionScope(projected).DocumentActionCount);
+        PdfWordConversionResult projectedWord = projected.ToWordDocumentResult(new PdfToWordOptions());
+        PdfHtmlConversionResult html = opened.ToHtmlResult(new PdfToHtmlOptions {
+            PageRanges = new[] { PdfPageRange.From(1, 1) }
+        });
+        using (word.Value)
+        using (projectedWord.Value) {
+            Assert.DoesNotContain(word.Report.Warnings, static warning =>
+                warning.Code == "PdfCatalogActionsNotReconstructed");
+            Assert.DoesNotContain(projectedWord.Report.Warnings, static warning =>
+                warning.Code == "PdfCatalogActionsNotReconstructed");
+        }
+        Assert.DoesNotContain(html.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted");
+    }
+
+    [Fact]
     public void TableConversionsReportOmittedTaggedStructureWithoutVisiblePageContent() {
         byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
@@ -945,6 +982,41 @@ public class PdfTableStreamExportContracts {
                 warning.Code == "PdfMetadataNotImported" &&
                 warning.LossKind == OfficeConversionLossKind.Omission);
         }
+    }
+
+    [Fact]
+    public void WordAndHtmlReportUnsupportedInfoAndXmpMetadata() {
+        PdfDocumentReadResult infoMetadata = PdfDocumentReadResult.Load(PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Metadata source"))
+            .ToBytes());
+        infoMetadata.Metadata.CreationDate = new DateTimeOffset(2026, 9, 16, 0, 0, 0, TimeSpan.Zero);
+        PdfWordConversionResult word = infoMetadata.ToWordDocumentResult(new PdfToWordOptions());
+        PdfHtmlConversionResult html = infoMetadata.ToHtmlResult(new PdfToHtmlOptions());
+        using (word.Value) {
+            Assert.Contains(word.Report.Warnings, static warning =>
+                warning.Code == "PdfMetadataNotImported" &&
+                warning.LossKind == OfficeConversionLossKind.Omission &&
+                warning.Details["UnsupportedPropertyCount"] == "1");
+        }
+        Assert.Contains(html.Report.Warnings, static warning =>
+            warning.Code == "PdfMetadataOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+
+        byte[] xmpSource = PdfDocument.Create(new PdfOptions().SetPdfAIdentification(3, "B"))
+            .Paragraph(paragraph => paragraph.Text("XMP source"))
+            .ToBytes();
+        PdfDocumentReadResult xmp = PdfDocumentReadResult.Load(xmpSource);
+        Assert.NotNull(xmp.XmpMetadata);
+        PdfWordConversionResult xmpWord = xmp.ToWordDocumentResult(new PdfToWordOptions());
+        PdfHtmlConversionResult xmpHtml = xmp.ToHtmlResult(new PdfToHtmlOptions());
+        using (xmpWord.Value) {
+            Assert.Contains(xmpWord.Report.Warnings, static warning =>
+                warning.Code == "PdfMetadataNotImported" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
+        Assert.Contains(xmpHtml.Report.Warnings, static warning =>
+            warning.Code == "PdfMetadataOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Fact]

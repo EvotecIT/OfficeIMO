@@ -18,9 +18,10 @@ internal static partial class PdfWordConverter {
         if (pages.Count == 0) throw new InvalidOperationException("Select at least one PDF page for visual Word conversion.");
         WordDocument target = WordDocument.Create();
         try {
-            if (options.IncludeMetadata) CopyMetadata(source.Reader.Metadata(), target);
-            else ReportDisabledMetadata(source.Reader.Metadata(), options);
             PdfCore.PdfDocumentInfo sourceInfo = source.Inspect(null, token);
+            PdfCore.PdfMetadata sourceMetadata = source.Reader.Metadata();
+            if (options.IncludeMetadata) CopyMetadata(sourceMetadata, target);
+            ReportMetadataFidelity(sourceMetadata, sourceInfo.HasXmpMetadata, options);
             ReportAttachmentsNotReconstructed(sourceInfo.AttachmentCount, options);
             if (sourceInfo.HasSecurityState) {
                 AddWarning(options, "PdfSourceSecurityNotReconstructed", "Document/Security",

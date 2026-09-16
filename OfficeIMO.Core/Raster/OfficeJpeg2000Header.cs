@@ -105,7 +105,9 @@ internal static class OfficeJpeg2000Header {
                         out height,
                         out componentPrecisions)) return false;
                 codestream = true;
-            } else if (type != 0x66726565 && type != 0x786D6C20 && type != 0x75756964) {
+            } else if (type == 0x75756964) { // uuid
+                if (end - start < 16) return false;
+            } else if (type != 0x66726565 && type != 0x786D6C20) {
                 // Extended JPX composition/channel metadata is outside this opaque subset.
                 return false;
             }

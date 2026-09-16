@@ -49,7 +49,7 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfDocumentReadResult document,
         IReadOnlyList<PdfCore.PdfLogicalPage> pages,
         PdfToHtmlOptions options) {
-        ReportMetadataFidelity(document.Metadata, options);
+        ReportMetadataFidelity(document.Metadata, document.SourceFidelityFacts.HasXmpMetadata, options);
         int textBlockCount = 0;
         int tableCount = 0;
         int imageCount = 0;
@@ -243,7 +243,10 @@ public static partial class PdfHtmlConverterExtensions {
         }
     }
 
-    private static void ReportMetadataFidelity(PdfCore.PdfMetadata metadata, PdfToHtmlOptions options) {
+    private static void ReportMetadataFidelity(
+        PdfCore.PdfMetadata metadata,
+        bool hasXmpMetadata,
+        PdfToHtmlOptions options) {
         // The semantic body section retains all four fields even without a document shell.
         bool hasMetadataSection = options.Profile == PdfHtmlProfile.Semantic && options.IncludeMetadata;
         bool hasMetadataHead = options.EmitDocumentShell && options.IncludeMetadata;
@@ -254,10 +257,16 @@ public static partial class PdfHtmlConverterExtensions {
             if (!string.IsNullOrWhiteSpace(metadata.Subject)) omittedCount++;
             if (!string.IsNullOrWhiteSpace(metadata.Keywords)) omittedCount++;
         }
+        if (metadata.CreationDate.HasValue) omittedCount++;
+        if (metadata.ModificationDate.HasValue) omittedCount++;
+        if (metadata.TrappingStatus.HasValue) omittedCount++;
+        if (!string.IsNullOrWhiteSpace(metadata.PdfXVersion)) omittedCount++;
+        if (!string.IsNullOrWhiteSpace(metadata.PdfXConformance)) omittedCount++;
+        if (hasXmpMetadata) omittedCount++;
         if (omittedCount == 0) return;
         AddWarning(options, "PdfMetadataOmitted",
             omittedCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
-            " PDF title, author, subject, or keyword metadata fields were omitted from HTML output.",
+            " PDF metadata fields or XMP packets were omitted from HTML output.",
             PdfCore.PdfConversionWarningSeverity.Warning,
             OfficeConversionLossKind.Omission);
     }

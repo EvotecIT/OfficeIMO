@@ -204,6 +204,20 @@ public partial class PdfPageImageRendererTests {
         Assert.False(OfficeImageReader.TryValidateContent(payload, "scan.jp2", out _));
     }
 
+    [Fact]
+    public void ImageValidationRejectsJp2WithUndersizedUuidBox() {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestreamType = FindMarker(payload, (byte)'j', (byte)'p', (byte)'2', (byte)'c');
+        int codestreamBox = codestreamType - 4;
+        byte[] malformed = payload.Take(codestreamBox)
+            .Concat(CreateJp2Box("uuid", new byte[15]))
+            .Concat(payload.Skip(codestreamBox))
+            .ToArray();
+
+        Assert.False(OfficeJpeg2000Header.TryValidateOpaquePayload(malformed, out _, out _, out _));
+        Assert.False(OfficeImageReader.TryValidateContent(malformed, "scan.jp2", out _));
+    }
+
     [Theory]
     [InlineData(10, 38)] // Component precision is limited to 38 bits (encoded as precision minus one).
     [InlineData(11, 6)] // Compression type must be JPEG 2000 (7).

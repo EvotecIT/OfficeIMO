@@ -38,7 +38,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ReportDocumentReconstructionBoundaries(PdfCore.PdfDocumentReadResult source, PdfToWordOptions options) {
-            ReportDisabledMetadata(source.Metadata, options);
+            ReportMetadataFidelity(source.Metadata, source.SourceFidelityFacts.HasXmpMetadata, options);
             bool importsText = options.ImportHeadings || options.ImportParagraphs || options.ImportLists;
             bool reconstructsEditableContent = source.Pages.Any(page =>
                 (importsText && page.TextBlocks.Count > 0) ||
@@ -289,22 +289,39 @@ namespace OfficeIMO.Word.Pdf {
         }
 
 
-        private static void ReportDisabledMetadata(PdfCore.PdfMetadata source, PdfToWordOptions options) {
-            if (options.IncludeMetadata) return;
-            int count = 0;
-            if (!string.IsNullOrWhiteSpace(source.Title)) count++;
-            if (!string.IsNullOrWhiteSpace(source.Author)) count++;
-            if (!string.IsNullOrWhiteSpace(source.Subject)) count++;
-            if (!string.IsNullOrWhiteSpace(source.Keywords)) count++;
+        private static void ReportMetadataFidelity(
+            PdfCore.PdfMetadata source,
+            bool hasXmpMetadata,
+            PdfToWordOptions options) {
+            int copiedFieldOmissionCount = 0;
+            if (!options.IncludeMetadata) {
+                if (!string.IsNullOrWhiteSpace(source.Title)) copiedFieldOmissionCount++;
+                if (!string.IsNullOrWhiteSpace(source.Author)) copiedFieldOmissionCount++;
+                if (!string.IsNullOrWhiteSpace(source.Subject)) copiedFieldOmissionCount++;
+                if (!string.IsNullOrWhiteSpace(source.Keywords)) copiedFieldOmissionCount++;
+            }
+            int unsupportedFieldCount = 0;
+            if (source.CreationDate.HasValue) unsupportedFieldCount++;
+            if (source.ModificationDate.HasValue) unsupportedFieldCount++;
+            if (source.TrappingStatus.HasValue) unsupportedFieldCount++;
+            if (!string.IsNullOrWhiteSpace(source.PdfXVersion)) unsupportedFieldCount++;
+            if (!string.IsNullOrWhiteSpace(source.PdfXConformance)) unsupportedFieldCount++;
+            if (hasXmpMetadata) unsupportedFieldCount++;
+            int count = copiedFieldOmissionCount + unsupportedFieldCount;
             if (count == 0) return;
             AddWarning(
                 options,
                 "PdfMetadataNotImported",
                 "Document/Metadata",
-                "PDF title, author, subject, and keyword metadata was not copied because IncludeMetadata is false.",
+                options.IncludeMetadata
+                    ? "PDF metadata outside Word's title, author, subject, and keyword fields was not reconstructed."
+                    : "PDF metadata was not copied because IncludeMetadata is false or the source fields have no supported Word mapping.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
                 OfficeConversionLossKind.Omission,
-                new Dictionary<string, string> { ["PropertyCount"] = count.ToString(CultureInfo.InvariantCulture) });
+                new Dictionary<string, string> {
+                    ["PropertyCount"] = count.ToString(CultureInfo.InvariantCulture),
+                    ["UnsupportedPropertyCount"] = unsupportedFieldCount.ToString(CultureInfo.InvariantCulture)
+                });
         }
 
         private static void AddWarning(
