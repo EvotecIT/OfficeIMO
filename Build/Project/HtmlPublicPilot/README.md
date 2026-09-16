@@ -25,8 +25,9 @@ dotnet run --project Build/Project/HtmlPublicPilot/OfficeIMO.Html.PublicPilot.cs
 ```
 
 The output directory must be new. The host does not parse page markup or CSS.
-Inside isolation, the renderer discovers HTML scripts, stylesheets, images and
-fonts, then follows stylesheet imports and selected CSS URLs. If execution
+Inside isolation, the renderer discovers HTML scripts, stylesheets, images,
+fonts and frame documents, then follows frame-static resources, stylesheet
+imports and selected CSS URLs. If execution
 requests an unsupplied GET resource, the worker can ask the host to fetch it and
 restart the offline capture. Every request passes through the same bounded host
 broker; rejected hosts and URLs are recorded as skipped resources. Discovery is
@@ -36,10 +37,11 @@ connected IP addresses and SHA-256 hashes are recorded before rendering.
 Append `--resource=URL` for assets outside this discovery path. An external DNS
 name must be explicitly approved with `--host=DNS-name`; explicit resource
 URLs approve their own host. The generated OCI probe qualifies active,
-single-candidate responsive-picture source selection and a two-level relative JavaScript module
-graph. Frame documents, wider module/import-map cases, non-GET requests and
-browser-wide dynamic loading are not qualified by this pilot. Cookies and
-credentials are outside this profile.
+single-candidate responsive-picture source selection, a two-level relative
+JavaScript module graph, and static frame-document loading with relative-resource
+discovery and inert child scripts. Child-frame execution realms, frame-body capture/rendering, wider
+module/import-map cases, non-GET requests and browser-wide dynamic loading are
+not qualified by this pilot. Cookies and credentials are outside this profile.
 
 The broker allows standard HTTP(S) ports and UTF-8 HTML, validates public IPv4
 answers before each direct connection, forbids proxy use and HTTPS downgrade,

@@ -58,7 +58,7 @@ try {
                 .Where(origin => origin.GetLeftPart(UriPartial.Authority) != page.DocumentUrl.GetLeftPart(UriPartial.Authority))
                 .DistinctBy(origin => origin.AbsoluteUri, StringComparer.OrdinalIgnoreCase).ToArray();
             page = page.Snapshot();
-            pending = discovery.DiscoverStylesheets(batch.Resources);
+            pending = discovery.DiscoverResources(batch.Resources);
             continue;
         }
         try {

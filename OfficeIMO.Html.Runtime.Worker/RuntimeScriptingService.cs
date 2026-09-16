@@ -46,6 +46,7 @@ internal sealed class RuntimeScriptingService(JsScriptingService scripting, Func
     public bool SupportsType(string type) => ((IScriptingService)scripting).SupportsType(type);
 
     public object EvaluateScript(IDocument document, string source, string type, string sourceUrl) {
+        if (document.Context.Parent != null) return null!;
         if (type?.Equals("importmap", StringComparison.OrdinalIgnoreCase) == true) {
             modules().ImportMap.Load(source, new Uri(RuntimeDocumentUrls.Base(document)));
             return null!;
@@ -58,6 +59,7 @@ internal sealed class RuntimeScriptingService(JsScriptingService scripting, Func
     }
 
     public async Task EvaluateScriptAsync(IResponse response, ScriptOptions options, CancellationToken cancel) {
+        if (options.Document.Context.Parent != null) return;
         bool isModule = string.Equals(options.PreparedType, "module", StringComparison.OrdinalIgnoreCase);
         if (!isModule) {
             using var reader = new StreamReader(response.Content, options.Encoding ?? Encoding.UTF8, true);

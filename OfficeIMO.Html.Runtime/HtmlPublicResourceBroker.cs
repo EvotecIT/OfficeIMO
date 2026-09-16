@@ -131,10 +131,10 @@ internal sealed class HtmlPublicResourceBroker {
         return true;
     }
 
-    internal static string DecodeUtf8Html(HtmlRuntimeResource resource) {
+    internal static string DecodeUtf8Html(HtmlRuntimeResource resource, bool allowXhtml = true) {
         string mediaType = resource.ContentType.Split(';', 2)[0].Trim();
         if (!mediaType.Equals("text/html", StringComparison.OrdinalIgnoreCase)
-            && !mediaType.Equals("application/xhtml+xml", StringComparison.OrdinalIgnoreCase))
+            && (!allowXhtml || !mediaType.Equals("application/xhtml+xml", StringComparison.OrdinalIgnoreCase)))
             throw new HtmlScriptRuntimeException("The public document is not HTML.");
         string[] parameters = resource.ContentType.Split(';');
         foreach (string parameter in parameters.Skip(1)) {

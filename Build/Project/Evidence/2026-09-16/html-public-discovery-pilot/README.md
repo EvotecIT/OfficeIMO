@@ -42,21 +42,30 @@ and Windows and macOS isolation remain open in [the product roadmap](../../../..
 
 The [controlled OCI fixture run](hostile-fixtures/summary.json) used the same
 whole-pipeline image definition with ID
-`sha256:466b1e84e4c072e9de5d60982e8cb8c133017702c427dca505f953bb59277020`.
+`sha256:3aa6fe3bb7c25e35f211922019f6434bf6ca4459fce7caf84625709fed25412b`.
 Malformed table markup with an inline script produced a [screen image](hostile-fixtures/malformed-markup/screen.png)
 and both PDFs; the image was visually inspected and both PDFs reopened as
 single-page A4 files. The responsive-picture case requested only its active
 single-candidate wide SVG by canonical absolute URL, omitted the narrow and
 fallback resources, and visibly rendered the selected blue image. The
 module-graph case requested its canonical root URL in round one and its relative
-dependency URL in round two, then rendered the dependency's exported text.
-Both new screen images were visually inspected; all four new PDFs reopened as
-single-page A4 files and contained the expected text. The remaining fixtures
-rejected 129 distinct script URLs, stopped an oversized captured document, and
-interrupted a nonterminating script. All six runs reported the expected result
-and confirmed exact container removal. These generated fixtures validate
-isolated resource replay and failure recovery, not public-host redirects, DNS
-changes, or arbitrary-site compatibility.
+dependency URL in round two, then rendered the dependency's exported text. The
+static-frame case requested its canonical iframe document URL in round one and
+resolved the frame's relative stylesheet and external script from the
+document's final URL in round two. Root JavaScript observed the loaded nested
+document while its inline, external and event-attribute child scripts remained
+inert; the retained
+[frame screen](hostile-fixtures/frame-document/screen.png) and both PDFs contain
+only the outer-document text, matching the current boundary that does not create
+child-frame execution realms or project frame bodies into captures and rendered output.
+All four success-case screen images were visually inspected; all eight PDFs
+reopened as single-page A4 files and contained their expected outer-document
+text. The remaining fixtures rejected 129 distinct script URLs, stopped an
+oversized captured document, and interrupted a nonterminating script. All seven
+runs reported the expected result and confirmed exact container removal. These
+generated fixtures validate isolated static resource replay and failure
+recovery, not child-frame execution, frame-body rendering, public-host
+redirects, DNS changes, or arbitrary-site compatibility.
 
 The [controlled acquisition tests](../../../../../OfficeIMO.Html.Runtime.Tests/RuntimePublicResourceBrokerTests.cs)
 direct synthetic public DNS answers through a loopback test transport. They

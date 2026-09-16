@@ -58,6 +58,26 @@ var cases = new[] {
             [ $"{fixtureOrigin}/app/main.js" ],
             [ $"{fixtureOrigin}/app/dep.js" ]
         ]),
+    new ProbeCase("frame-document", """
+        <!doctype html><style>body{font:16px sans-serif}#outer{color:#0055aa}</style>
+        <p id="outer">Outer frame host ready</p>
+        <iframe src="/frame/detail.html"></iframe>
+        """, "document.querySelector('iframe')?.contentDocument?.querySelector('#inside')?.textContent === 'Frame document ready' && !document.body.dataset.childEvent && !document.body.dataset.childInline && !document.body.dataset.childExternal",
+        8 * 1024 * 1024, ExpectedVisibleText: "Outer frame host ready", ExpectBlueInk: true,
+        Resources: new Dictionary<string, ProbeResource>(StringComparer.Ordinal) {
+            [$"{fixtureOrigin}/frame/detail.html"] = new("""
+                <!doctype html><link rel="stylesheet" href="frame.css">
+                <body onload="parent.document.body.dataset.childEvent='ran'">
+                <p id="inside">Frame document ready</p>
+                <script>document.querySelector('#inside').textContent='inline ran';parent.document.body.dataset.childInline='ran'</script>
+                <script src="frame.js"></script>
+                """, "text/html; charset=utf-8"),
+            [$"{fixtureOrigin}/frame/frame.css"] = new("#inside{color:#0055aa}", "text/css"),
+            [$"{fixtureOrigin}/frame/frame.js"] = new("document.querySelector('#inside').textContent='external ran';parent.document.body.dataset.childExternal='ran'", "text/javascript")
+        }, ExpectedDiscoveryRounds: [
+            [ $"{fixtureOrigin}/frame/detail.html" ],
+            [ $"{fixtureOrigin}/frame/frame.css", $"{fixtureOrigin}/frame/frame.js" ]
+        ]),
     new ProbeCase("resource-fanout", "<!doctype html>" + string.Concat(Enumerable.Range(0, 129)
         .Select(index => $"<script src='/asset-{index}.js'></script>")), "true", 8 * 1024 * 1024,
         ExpectedErrorKind: "HtmlScriptRuntimeException",

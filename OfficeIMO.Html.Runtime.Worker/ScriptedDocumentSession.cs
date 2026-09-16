@@ -70,10 +70,11 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         var scripting = configuration.Services.OfType<JsScriptingService>().Single();
         _scripting = new RuntimeScriptingService(scripting, () => _modules, options, _errors.Report);
         configuration = configuration.Without<IScriptingService>()
-            .With(scripting).With(_scripting);
+            .With(_scripting);
         var scriptObservers = configuration.Services.OfType<IAttributeObserver>().Where(observer => observer.GetType().Assembly == typeof(JsScriptingService).Assembly).ToArray();
         // Replace only the script observer; retain CSS and native DOM attribute observers.
-        configuration = configuration.Without(scriptObservers).With(new RuntimeEventAttributeObserver(host => _engine ?? scripting.GetOrCreateJint(host.Owner!)));
+        configuration = configuration.Without(scriptObservers).With(new RuntimeEventAttributeObserver(host =>
+            host.Owner?.Context.Parent == null ? _engine ?? scripting.GetOrCreateJint(host.Owner) : null));
         _context = BrowsingContext.New(configuration);
         _loop = _context.GetService<IEventLoop>() ?? throw new HtmlScriptRuntimeException("The provider did not create an event loop.");
         _context.AddEventListener("error", (_, error) => _errors.Report(error switch {
@@ -86,7 +87,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             // or wrap its prototypes again and lose existing listener registrations.
             if (_engine != null) return;
             var document = ((HtmlParseEvent)args).Document;
-            _engine = _context.GetService<JsScriptingService>()!.GetOrCreateJint(document);
+            _engine = scripting.GetOrCreateJint(document);
             _errors.Attach(_engine);
             ((RuntimeEventLoop)_loop).InitializeMicrotasks(_engine);
             _scripting.Initialize(_engine);

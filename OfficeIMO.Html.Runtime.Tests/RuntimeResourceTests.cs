@@ -53,6 +53,37 @@ public sealed class RuntimeResourceTests {
     }
 
     [Fact]
+    public async Task SuppliedFrameLoadsWithChildScriptsInertAndWithoutFlatteningIntoTheRootCapture() {
+        Uri frame = new(Origin, "frames/detail.html");
+        Uri frameScript = new(Origin, "frames/frame.js");
+        await using var session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = new Uri(Origin, "reports/index.html"),
+            Html = "<main><p>Outer</p><iframe src='../frames/detail.html'></iframe></main>",
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(frame, """
+                    <body onload="parent.document.body.dataset.childEvent='ran'">
+                    <p id="inside">Frame ready</p>
+                    <script>document.querySelector('#inside').textContent='inline ran';parent.document.body.dataset.childInline='ran'</script>
+                    <script src="frame.js"></script>
+                    """, "text/html; charset=utf-8"),
+                HtmlRuntimeResource.FromText(frameScript,
+                    "document.querySelector('#inside').textContent='external ran';parent.document.body.dataset.childExternal='ran'",
+                    "text/javascript")
+            }
+        });
+
+        await session.WaitForAsync(
+            "document.querySelector('iframe')?.contentDocument?.querySelector('#inside')?.textContent === 'Frame ready' && !document.body.dataset.childEvent && !document.body.dataset.childInline && !document.body.dataset.childExternal");
+        HtmlScriptCapture capture = await session.CaptureAsync();
+
+        Assert.Contains(capture.Resources, resource => resource.Url == frame);
+        Assert.Contains(capture.Resources, resource => resource.Url == frameScript);
+        Assert.Equal("Outer", capture.Document.QuerySelector("main > p")!.TextContent);
+        Assert.Null(capture.Document.QuerySelector("#inside"));
+        Assert.Equal("../frames/detail.html", capture.Document.QuerySelector("iframe")!.GetAttribute("src"));
+    }
+
+    [Fact]
     public async Task NetworkIsOptInAndAllowedOriginsAreCheckedBeforeRequests() {
         await using var server = new RuntimeHttpFixture((_, _) => Task.FromResult(RuntimeHttpFixture.Reply.Text("window.ready=true")));
         var disabled = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => Runtime().CaptureTrustedAsync(new HtmlScriptRequest {

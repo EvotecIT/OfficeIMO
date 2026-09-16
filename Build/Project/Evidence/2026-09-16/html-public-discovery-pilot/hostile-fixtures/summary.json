@@ -1,18 +1,18 @@
 {
-  "imageId": "sha256:466b1e84e4c072e9de5d60982e8cb8c133017702c427dca505f953bb59277020",
-  "rendererSha256": "f2992dbbd1872c143dc40deb818b54f2e5f5ac2b69fc5bf85eb9b2b0c3ee47a4",
-  "workerSha256": "215133cecaf4e0b2974c0af45417bff6d49ab7ae51e3136fd3ef4975ddd0a548",
-  "rendererFilesSha256": "fe7e0af3274f8529f8d73da80a9cd6d00ddddcbd19624c2f1d83623e54d52bc8",
-  "workerFilesSha256": "71c5861249fc30ee3d916ce297deee01adb447c97b9a85924d0b9daa8653569c",
-  "capturedAtUtc": "2026-09-16T17:21:07.8915585+00:00",
+  "imageId": "sha256:3aa6fe3bb7c25e35f211922019f6434bf6ca4459fce7caf84625709fed25412b",
+  "rendererSha256": "4aae27a380436786d65f9d83929a9564055662214bc3a508005e0ea41402939c",
+  "workerSha256": "d38e9b530d5b1cb8fa991064d0fda163432b4e769fdc1707677aea038511672d",
+  "rendererFilesSha256": "4e45e82407a903987e76763c1a6e85568252a899b4424c9895728669608ab40c",
+  "workerFilesSha256": "a0ecdcef1d23f06af3e8e70c3ab1e1610c74df468bd3500c2dc89a0e7a6c1129",
+  "capturedAtUtc": "2026-09-16T18:09:18.4340045+00:00",
   "isolationPolicy": "rootless-podman;seccomp;cgroups-cpu-memory-pids;network-none;read-only;uid-65532;cap-drop-all;no-new-privileges;no-mounts",
   "cases": [
     {
       "Name": "malformed-markup",
       "Passed": true,
-      "ContainerName": "officeimo-html-c885a8168911431bbeddf6436f669776",
+      "ContainerName": "officeimo-html-82b88ea112654ecf9469b66893050900",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 28164,
+      "ElapsedMilliseconds": 28756,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,
@@ -25,9 +25,9 @@
     {
       "Name": "responsive-picture",
       "Passed": true,
-      "ContainerName": "officeimo-html-c21a521fa1f34b0f84f8fe2a1c38f662",
+      "ContainerName": "officeimo-html-076f735bcc7840f3a2d99061a526e5e2",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 26638,
+      "ElapsedMilliseconds": 28195,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,
@@ -44,9 +44,9 @@
     {
       "Name": "module-graph",
       "Passed": true,
-      "ContainerName": "officeimo-html-acc6683b75494182812b1b9eeefc97fd",
+      "ContainerName": "officeimo-html-33e51a9be6cd412fa11738ff778bf764",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 27559,
+      "ElapsedMilliseconds": 28632,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,
@@ -64,11 +64,34 @@
       "ScreenToPageSha256": "2a2580305e884511c9a296ee1fe20abc358d550e6d4916b7333efe194440e552"
     },
     {
+      "Name": "frame-document",
+      "Passed": true,
+      "ContainerName": "officeimo-html-58aec0e58e1f433580f1e44bd9b0ed0c",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 27715,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "https://fixture.officeimo.invalid/frame/detail.html"
+        ],
+        [
+          "https://fixture.officeimo.invalid/frame/frame.css",
+          "https://fixture.officeimo.invalid/frame/frame.js"
+        ]
+      ],
+      "CaptureManifest": "sha256:e4bd26dfed153c133cc95624d33c29e5948e298100f53d539a49dc9c6b4e05a6",
+      "ScreenSha256": "6942683b326a2e5b376e1b3c0731e373636949b047e2e592b20d50c7d56f6fa4",
+      "PrintSha256": "8fca0a2d965ac94daee1ae5cbfc5bd4abaad7e36ef1ec761a8bea0821b6936c3",
+      "ScreenToPageSha256": "2d0b61083d6db3a443655a7f3046ce0653757eb33b0f39a4adfac801f953f7a7"
+    },
+    {
       "Name": "resource-fanout",
       "Passed": true,
-      "ContainerName": "officeimo-html-0d852ae07e5040d298b61cad6ef762c2",
+      "ContainerName": "officeimo-html-00cb05fd37fc45b38e7e5e5a67a1a01f",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 24185,
+      "ElapsedMilliseconds": 25523,
       "ErrorKind": "HtmlScriptRuntimeException",
       "Error": "The document exceeds the pilot\u0027s static resource discovery limit.",
       "CleanupError": null,
@@ -81,9 +104,9 @@
     {
       "Name": "capture-output-budget",
       "Passed": true,
-      "ContainerName": "officeimo-html-13807dc28f324302974e3ac8e66b00a4",
+      "ContainerName": "officeimo-html-446b894522ad44dfa20503ee59929692",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 25530,
+      "ElapsedMilliseconds": 27088,
       "ErrorKind": "HtmlScriptRuntimeException",
       "Error": "Captured data budget exceeded.",
       "CleanupError": null,
@@ -96,9 +119,9 @@
     {
       "Name": "runaway-script",
       "Passed": true,
-      "ContainerName": "officeimo-html-40f3bb4e39714f269d2e01b2576d6cf5",
+      "ContainerName": "officeimo-html-381091bf247f44ebafa29152bfe63931",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 27968,
+      "ElapsedMilliseconds": 28804,
       "ErrorKind": "TimeoutException",
       "Error": "The runtime command exceeded its deadline.",
       "CleanupError": null,
