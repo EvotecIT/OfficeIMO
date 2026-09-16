@@ -52,7 +52,9 @@ public enum OfficeContentCleanupCapability {
     /// <summary>The adapter can remove the exact text payload while retaining its owner.</summary>
     RemoveText,
     /// <summary>The adapter can remove the exact owning element, run, cell, shape, or metadata value.</summary>
-    RemoveElement
+    RemoveElement,
+    /// <summary>The adapter can irreversibly cover an exact bounded raster region under an explicit redaction policy.</summary>
+    RedactRegion
 }
 
 /// <summary>Bounds concealment and indirect prompt-injection inspection.</summary>

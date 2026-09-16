@@ -1,0 +1,165 @@
+using OfficeIMO.ContentSafety;
+using OfficeIMO.Drawing;
+using OfficeIMO.Ocr;
+
+namespace OfficeIMO.Workflows;
+
+/// <summary>OCR-backed concealed-text inspection and explicit rectangular redaction for bounded raster images.</summary>
+public static partial class OfficeRasterContentSafety {
+    private const string ReportFormat = "Raster Image";
+    private const string NormalizedMediaType = "image/png";
+
+    /// <summary>
+    /// Inspects a single-frame raster image using caller-owned OCR and pixel evidence.
+    /// Metadata and provider text without bounded geometry never become concealment findings.
+    /// </summary>
+    public static async Task<OfficeContentSafetyReport> InspectAsync(
+        byte[] imageBytes,
+        IOcrEngine engine,
+        OfficeRasterContentSafetyOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(imageBytes);
+        ArgumentNullException.ThrowIfNull(engine);
+        OfficeRasterContentSafetyOptions.Snapshot snapshot =
+            (options ?? new OfficeRasterContentSafetyOptions()).Capture();
+        OfficeContentSafetyInputGuard.ValidateBytes(imageBytes, snapshot.Inspection);
+        byte[] input = (byte[])imageBytes.Clone();
+        AnalysisState state = await InspectCoreAsync(input, engine, snapshot, cancellationToken)
+            .ConfigureAwait(false);
+        return state.Report;
+    }
+
+    /// <summary>Reads and inspects one bounded raster file.</summary>
+    public static async Task<OfficeContentSafetyReport> InspectAsync(
+        string filePath,
+        IOcrEngine engine,
+        OfficeRasterContentSafetyOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("An image path is required.", nameof(filePath));
+        ArgumentNullException.ThrowIfNull(engine);
+        cancellationToken.ThrowIfCancellationRequested();
+        OfficeRasterContentSafetyOptions effective = options ?? new OfficeRasterContentSafetyOptions();
+        OfficeRasterContentSafetyOptions.Snapshot snapshot = effective.Capture();
+        byte[] input = OfficeContentSafetyInputGuard.ReadAllBytes(filePath, snapshot.Inspection);
+        AnalysisState state = await InspectCoreAsync(
+                input,
+                engine,
+                snapshot,
+                cancellationToken)
+            .ConfigureAwait(false);
+        return state.Report;
+    }
+
+    private static async Task<AnalysisState> InspectCoreAsync(
+        byte[] input,
+        IOcrEngine engine,
+        OfficeRasterContentSafetyOptions.Snapshot options,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        OfficeContentSafetyInputGuard.ValidateBytes(input, options.Inspection);
+        var decodeOptions = new OfficeRasterDecodeOptions {
+            MaximumEncodedBytes = checked((int)Math.Min(options.Inspection.MaxInputBytes, 128L * 1024L * 1024L)),
+            MaximumDecodedPixels = options.MaximumDecodedPixels,
+            FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames,
+            CancellationToken = cancellationToken
+        };
+        if (!OfficeRasterImageDecoder.TryDecode(input, decodeOptions, out OfficeRasterImage? image, out OfficeRasterDecodeInfo decodeInfo) || image == null) {
+            throw new InvalidDataException(decodeInfo.Diagnostic ??
+                "The raster image could not be decoded within the configured limits.");
+        }
+
+        OfficeImageMetadataSnapshot metadata = OfficeImageMetadataInspector.Inspect(
+            input,
+            decodeInfo.Format,
+            checked(input.LongLength + image.PixelBuffer.LongLength + 48L),
+            cancellationToken);
+        if (metadata.HasColorRenderingMetadata) {
+            throw new InvalidDataException(
+                "Raster content-safety inspection rejects color profiles and PNG gamma or chromaticity metadata because the managed decoder does not color-normalize them to sRGB.");
+        }
+        if ((metadata.Kinds & OfficeImageMetadataKinds.Orientation) != 0 &&
+            decodeInfo.Format != OfficeImageFormat.Jpeg && decodeInfo.Format != OfficeImageFormat.Tiff) {
+            throw new InvalidDataException(
+                "Raster content-safety inspection rejects embedded orientation that the managed decoder cannot visibly normalize.");
+        }
+
+        byte[] normalized = OfficeRasterImageEncoder.Encode(
+            image,
+            OfficeImageExportFormat.Png,
+            options: null,
+            options.MaximumOutputBytes,
+            cancellationToken);
+        OcrEngineExecution execution = OcrEngineRunner.CreateExecution(engine);
+        IReadOnlyList<string> supportedMediaTypes = execution.Capabilities.SupportedMediaTypes ?? Array.Empty<string>();
+        if (supportedMediaTypes.Count > 0 &&
+            !supportedMediaTypes.Any(item => string.Equals(item?.Trim(), NormalizedMediaType, StringComparison.OrdinalIgnoreCase))) {
+            throw new NotSupportedException("The configured OCR engine does not advertise support for normalized PNG input.");
+        }
+
+        var request = new OcrRequest {
+            Operation = OcrOperation.RecognizeText,
+            Payload = normalized,
+            MediaType = NormalizedMediaType,
+            FileName = "officeimo-content-safety.png",
+            SourceId = "raster-content-safety",
+            SourceName = "normalized-raster",
+            CandidateId = "frame-1",
+            CandidateKind = "raster-frame",
+            PageNumber = 1,
+            PixelWidth = image.Width,
+            PixelHeight = image.Height,
+            Region = new OcrRegion { X = 0D, Y = 0D, Width = image.Width, Height = image.Height },
+            RegionCoordinateUnit = OcrCoordinateUnit.Pixels
+        };
+        OcrResult result = await execution.RecognizeAsync(request, options.OcrTimeout, cancellationToken)
+            .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Analyze(image, result, execution.Id, options, cancellationToken);
+    }
+
+    private sealed class AnalysisState {
+        internal AnalysisState(
+            OfficeRasterImage image,
+            OfficeContentSafetyReport report,
+            IReadOnlyDictionary<string, RasterTarget> targets,
+            IReadOnlyList<RasterTarget> recognizedTargets) {
+            Image = image;
+            Report = report;
+            Targets = targets;
+            RecognizedTargets = recognizedTargets;
+        }
+
+        internal OfficeRasterImage Image { get; }
+        internal OfficeContentSafetyReport Report { get; }
+        internal IReadOnlyDictionary<string, RasterTarget> Targets { get; }
+        internal IReadOnlyList<RasterTarget> RecognizedTargets { get; }
+    }
+
+    private sealed class RasterTarget {
+        internal RasterTarget(PixelRegion region) {
+            Region = region;
+        }
+
+        internal PixelRegion Region { get; }
+    }
+
+    private readonly struct PixelRegion {
+        internal PixelRegion(int left, int top, int right, int bottom) {
+            Left = left;
+            Top = top;
+            Right = right;
+            Bottom = bottom;
+        }
+
+        internal int Left { get; }
+        internal int Top { get; }
+        internal int Right { get; }
+        internal int Bottom { get; }
+        internal int Width => Right - Left;
+        internal int Height => Bottom - Top;
+        internal long Area => (long)Width * Height;
+
+        internal bool Intersects(PixelRegion other) =>
+            Left < other.Right && Right > other.Left && Top < other.Bottom && Bottom > other.Top;
+    }
+}

@@ -66,6 +66,45 @@ When working from an OfficeIMO source checkout, reference the workflow project d
 <ProjectReference Include="..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
 ```
 
+## Inspect concealed text in raster images
+
+`OfficeRasterContentSafety` combines a caller-supplied `IOcrEngine` with decoded pixel evidence. It accepts one static raster image, normalizes it to a metadata-free PNG, and assesses every OCR line, word, or character span that includes bounded pixel or normalized geometry. Image metadata and unbounded provider text do not become visibility findings.
+
+```csharp
+using OfficeIMO.ContentSafety;
+using OfficeIMO.Ocr;
+using OfficeIMO.Workflows;
+
+IOcrEngine engine = GetConfiguredOcrEngine();
+byte[] source = File.ReadAllBytes("review.png");
+
+var options = new OfficeRasterContentSafetyOptions {
+    EnableOpaqueRectangleRedaction = true,
+    MinimumOcrConfidenceForRedaction = 0.9
+};
+
+OfficeContentSafetyReport report = await OfficeRasterContentSafety.InspectAsync(
+    source,
+    engine,
+    options,
+    cancellationToken);
+
+string[] approvedIds = report.Findings
+    .Where(finding => finding.CleanupCapability == OfficeContentCleanupCapability.RedactRegion)
+    .Select(finding => finding.Id)
+    .ToArray();
+
+OfficeContentCleanupResult result = await OfficeRasterContentSafety.RedactSelectedContentAsync(
+    source,
+    engine,
+    new OfficeContentCleanupSelection(approvedIds),
+    options,
+    cancellationToken);
+File.WriteAllBytes("review-redacted.png", result.Output);
+```
+
+The inspector reports nearly transparent, tiny, and low-contrast OCR regions using bounded geometry and conservative pixel evidence. Redaction is deliberately disabled by default. When enabled, only sufficiently confident, currently matching findings can be selected; the workflow covers their bounded regions with the configured opaque color, emits a single-frame PNG derivative, reopens it, verifies every output pixel, and reruns OCR inspection. This is destructive rectangular coverage, not semantic image editing. Multi-frame images, unsupported geometry, oversized input or analysis work, color-rendering metadata that the managed decoder cannot normalize to sRGB, unsupported embedded orientation, and outputs where OCR still recognizes any text in a changed region all fail closed.
+
 ## Save a prepared scan copy
 
 `ScanCleanup` creates a separate PDF containing the prepared page pixels. It uses the same page selection, region crop, perspective correction, and tonal settings as `OfficeIMO.Pdf.Ocr` preview. The source is protected from replacement. Native text, forms, links, signatures, and attachments are omitted from the raster copy, so callers must acknowledge that output contract.
