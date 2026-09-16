@@ -22,7 +22,7 @@ string workerSha256 = Digest(await File.ReadAllBytesAsync(workerPath));
 string rendererFilesSha256 = HtmlPublicArtifactDigest.DirectorySha256(Path.GetDirectoryName(rendererPath)!);
 string workerFilesSha256 = HtmlPublicArtifactDigest.DirectorySha256(Path.GetDirectoryName(workerPath)!);
 const string fixtureOrigin = "https://fixture.officeimo.invalid";
-var cases = new[] {
+var cases = new List<ProbeCase> {
     new ProbeCase("malformed-markup", """
         <!doctype html><style>body{font:16px sans-serif}p{color:#0055aa}</style>
         <main><table><tr><td><p id=result>Before script
@@ -87,6 +87,8 @@ var cases = new[] {
     new ProbeCase("runaway-script", "<script>while(true){}</script>", "true", 8 * 1024 * 1024,
         ExpectedErrorKind: "TimeoutException", ExpectedError: "The runtime command exceeded its deadline.")
 };
+ControlledAcquisitionCorpus acquisition = await ControlledAcquisitionCorpus.CreateAsync();
+cases.AddRange(acquisition.RenderCases);
 var results = new List<ProbeResult>();
 foreach (ProbeCase fixture in cases) {
     ProbeResult result = await RunCaseAsync(fixture);
@@ -98,10 +100,13 @@ await File.WriteAllTextAsync(Path.Combine(outputDirectory, "summary.json"), Json
     imageId, rendererSha256, workerSha256, rendererFilesSha256, workerFilesSha256,
     capturedAtUtc = DateTimeOffset.UtcNow, isolationPolicy =
         "rootless-podman;seccomp;cgroups-cpu-memory-pids;network-none;read-only;uid-65532;cap-drop-all;no-new-privileges;no-mounts",
+    acquisitionCases = acquisition.Results,
     cases = results
 }, new JsonSerializerOptions { WriteIndented = true }));
-if (results.Any(result => !result.Passed)) throw new InvalidOperationException("The isolated renderer hostile-input probe failed; inspect summary.json.");
-Console.WriteLine("Isolated renderer hostile-input probe passed: " + results.Count + " cases.");
+if (acquisition.Results.Any(result => !result.Passed) || results.Any(result => !result.Passed))
+    throw new InvalidOperationException("The isolated renderer probe failed; inspect summary.json.");
+Console.WriteLine("Isolated renderer probe passed: " + results.Count + " render cases and " +
+    acquisition.Results.Count + " acquisition cases.");
 
 async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
     using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(60));
@@ -123,7 +128,7 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
         var page = new HtmlScriptRequest {
             Profile = HtmlRuntimeProfile.WebApplicationV1,
             Html = fixture.Html,
-            DocumentUrl = new Uri(fixtureOrigin + "/"),
+            DocumentUrl = fixture.DocumentUrl ?? new Uri(fixtureOrigin + "/"),
             ReadyExpression = fixture.ReadyExpression,
             ResourcePolicy = new HtmlRuntimeResourcePolicy { AllowNetwork = false, MaxRequests = 64 },
             Timeout = TimeSpan.FromSeconds(3), SessionTimeout = TimeSpan.FromSeconds(12),
@@ -259,7 +264,7 @@ internal sealed record ProbeResource(string Content, string ContentType);
 internal sealed record ProbeCase(string Name, string Html, string ReadyExpression, int MaxOutputCharacters,
     string? ExpectedErrorKind = null, string? ExpectedError = null, string? ExpectedVisibleText = null,
     bool ExpectBlueInk = false, IReadOnlyDictionary<string, ProbeResource>? Resources = null,
-    string[][]? ExpectedDiscoveryRounds = null);
+    string[][]? ExpectedDiscoveryRounds = null, Uri? DocumentUrl = null);
 internal sealed record ProbeResult(string Name, bool Passed, string? ContainerName, bool ContainerRemoved,
     long ElapsedMilliseconds, string? ErrorKind, string? Error, string? CleanupError,
     string[][] DiscoveryRounds, string? CaptureManifest, string? ScreenSha256, string? PrintSha256,

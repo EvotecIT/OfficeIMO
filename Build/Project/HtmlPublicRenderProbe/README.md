@@ -17,12 +17,13 @@ dotnet run --project Build/Project/HtmlPublicRenderProbe/OfficeIMO.Html.PublicRe
   /tmp/officeimo-public-pilot/fixture-output
 ```
 
-The output directory must be new. Each case starts a separate verified
-container and checks removal after completion. The generated cases cover
+The output directory must be new. Each render case starts a separate verified
+container and checks removal after completion; acquisition rejection cases stop
+before container startup. The generated cases cover
 malformed markup that still renders all three outputs, active single-candidate
 responsive-picture source selection, a two-level JavaScript module graph, a
-static frame document plus its relative stylesheet and script, 129 distinct external script
-URLs exceeding static discovery, a captured-document size limit, and a
+static frame document plus its relative stylesheet and script, 129 distinct
+external script URLs exceeding static discovery, a captured-document size limit, and a
 nonterminating script interrupted by its command deadline. Frame readiness proves
 nested document loading and proves inline, external and event-attribute scripts
 remain inert. Child-frame execution realms and frame-body capture/rendering are
@@ -31,6 +32,14 @@ records the image and published-file digests, ordered discovery rounds with
 canonical absolute resource URLs, each outcome, elapsed time, and container
 removal. The module fixture requires the root module in the first round and its
 relative dependency in the second. Successful cases also write
-a PNG and both PDFs for visual and independent PDF inspection. This is controlled fixture evidence;
-public acquisition, redirects, DNS changes, and cross-platform containment
-need separate tests.
+a PNG and both PDFs for visual and independent PDF inspection.
+
+The same run uses the host broker with synthetic public DNS answers and a
+loopback transport to acquire same-host and explicitly approved cross-host
+redirect documents before rendering them in separate network-disabled
+containers. It also proves that a per-hop public-to-loopback DNS change and an
+oversized declared response are rejected before container startup. The summary
+records requested and final URLs, resolutions, validated connection endpoints,
+HTTP redirect hops and fixture requests. This is controlled fixture evidence;
+mutable public DNS, live public-host redirects and cross-platform containment
+need separate qualification.

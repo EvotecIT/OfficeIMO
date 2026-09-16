@@ -42,7 +42,7 @@ and Windows and macOS isolation remain open in [the product roadmap](../../../..
 
 The [controlled OCI fixture run](hostile-fixtures/summary.json) used the same
 whole-pipeline image definition with ID
-`sha256:3aa6fe3bb7c25e35f211922019f6434bf6ca4459fce7caf84625709fed25412b`.
+`sha256:e905e43d03abf3758f20ebecc15a57cb7e1b7910be841c9227d717b59bbe7b54`.
 Malformed table markup with an inline script produced a [screen image](hostile-fixtures/malformed-markup/screen.png)
 and both PDFs; the image was visually inspected and both PDFs reopened as
 single-page A4 files. The responsive-picture case requested only its active
@@ -58,19 +58,30 @@ inert; the retained
 [frame screen](hostile-fixtures/frame-document/screen.png) and both PDFs contain
 only the outer-document text, matching the current boundary that does not create
 child-frame execution realms or project frame bodies into captures and rendered output.
-All four success-case screen images were visually inspected; all eight PDFs
-reopened as single-page A4 files and contained their expected outer-document
-text. The remaining fixtures rejected 129 distinct script URLs, stopped an
-oversized captured document, and interrupted a nonterminating script. All seven
-runs reported the expected result and confirmed exact container removal. These
-generated fixtures validate isolated static resource replay and failure
-recovery, not child-frame execution, frame-body rendering, public-host
-redirects, DNS changes, or arbitrary-site compatibility.
+The controlled acquisition lane followed one same-host redirect and one
+explicitly approved cross-host redirect, retaining the requested and final URLs,
+each resolution, connected address, HTTP hop and server request. The acquired
+documents then produced the retained [same-host](hostile-fixtures/acquisition-same-host-redirect/screen.png)
+and [cross-host](hostile-fixtures/acquisition-cross-host-redirect/screen.png)
+screen images and both PDF intents in separate network-disabled containers. A
+per-hop DNS change from a public address to loopback was rejected before the
+second connection, and a response declaring 4 MiB plus one byte was rejected
+before rendering. All six success-case screen images were visually inspected;
+all twelve PDFs reopened as single-page A4 files and contained their expected
+outer-document text. The remaining fixtures rejected 129 distinct script URLs,
+stopped an oversized captured document, and interrupted a nonterminating
+script. All nine render runs and four acquisition cases reported the expected
+result, and every started container was removed. These generated fixtures
+validate isolated static resource replay, controlled redirect acquisition and
+failure recovery. They do not qualify child-frame execution, frame-body
+rendering, mutable public DNS, live public-host redirects or arbitrary-site
+compatibility.
 
 The [controlled acquisition tests](../../../../../OfficeIMO.Html.Runtime.Tests/RuntimePublicResourceBrokerTests.cs)
 direct synthetic public DNS answers through a loopback test transport. They
 prove same-host and explicitly approved cross-host redirect provenance,
 per-hop DNS revalidation, rejection before an unapproved second connection,
 and declared-response byte limits without depending on mutable public DNS.
-These checks cover host-side acquisition; the redirect and DNS-change cases
-still need to pass through the complete OCI capture and rendering pipeline.
+The retained controlled corpus carries the accepted redirect documents through
+the complete OCI capture and rendering pipeline and records the rebinding and
+oversized-response rejections before container startup.

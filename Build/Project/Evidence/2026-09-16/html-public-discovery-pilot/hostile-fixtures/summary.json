@@ -1,18 +1,117 @@
 {
-  "imageId": "sha256:3aa6fe3bb7c25e35f211922019f6434bf6ca4459fce7caf84625709fed25412b",
+  "imageId": "sha256:e905e43d03abf3758f20ebecc15a57cb7e1b7910be841c9227d717b59bbe7b54",
   "rendererSha256": "4aae27a380436786d65f9d83929a9564055662214bc3a508005e0ea41402939c",
   "workerSha256": "d38e9b530d5b1cb8fa991064d0fda163432b4e769fdc1707677aea038511672d",
   "rendererFilesSha256": "4e45e82407a903987e76763c1a6e85568252a899b4424c9895728669608ab40c",
   "workerFilesSha256": "a0ecdcef1d23f06af3e8e70c3ab1e1610c74df468bd3500c2dc89a0e7a6c1129",
-  "capturedAtUtc": "2026-09-16T18:09:18.4340045+00:00",
+  "capturedAtUtc": "2026-09-16T19:00:03.150353+00:00",
   "isolationPolicy": "rootless-podman;seccomp;cgroups-cpu-memory-pids;network-none;read-only;uid-65532;cap-drop-all;no-new-privileges;no-mounts",
+  "acquisitionCases": [
+    {
+      "Name": "acquisition-same-host-redirect",
+      "Passed": true,
+      "RequestedUrl": "http://page.example.test/start",
+      "FinalUrl": "http://page.example.test/final",
+      "ConnectedAddress": "93.184.216.34",
+      "Redirects": [
+        {
+          "From": "http://page.example.test/start",
+          "To": "http://page.example.test/final",
+          "StatusCode": 302,
+          "ConnectedAddress": "93.184.216.34"
+        }
+      ],
+      "Resolutions": [
+        "page.example.test=93.184.216.34",
+        "page.example.test=93.184.216.34"
+      ],
+      "Connections": [
+        "93.184.216.34:80",
+        "93.184.216.34:80"
+      ],
+      "ServerRequests": [
+        "http://page.example.test/start",
+        "http://page.example.test/final"
+      ],
+      "ErrorKind": null,
+      "Error": null
+    },
+    {
+      "Name": "acquisition-cross-host-redirect",
+      "Passed": true,
+      "RequestedUrl": "http://page.example.test/start",
+      "FinalUrl": "http://assets.example.test/final",
+      "ConnectedAddress": "1.1.1.1",
+      "Redirects": [
+        {
+          "From": "http://page.example.test/start",
+          "To": "http://assets.example.test/final",
+          "StatusCode": 302,
+          "ConnectedAddress": "93.184.216.34"
+        }
+      ],
+      "Resolutions": [
+        "page.example.test=93.184.216.34",
+        "assets.example.test=1.1.1.1"
+      ],
+      "Connections": [
+        "93.184.216.34:80",
+        "1.1.1.1:80"
+      ],
+      "ServerRequests": [
+        "http://page.example.test/start",
+        "http://assets.example.test/final"
+      ],
+      "ErrorKind": null,
+      "Error": null
+    },
+    {
+      "Name": "acquisition-dns-rebinding-rejected",
+      "Passed": true,
+      "RequestedUrl": "http://page.example.test/start",
+      "FinalUrl": null,
+      "ConnectedAddress": null,
+      "Redirects": [],
+      "Resolutions": [
+        "page.example.test=93.184.216.34",
+        "page.example.test=127.0.0.1"
+      ],
+      "Connections": [
+        "93.184.216.34:80"
+      ],
+      "ServerRequests": [
+        "http://page.example.test/start"
+      ],
+      "ErrorKind": "HttpRequestException",
+      "Error": "The public resource resolved to an unsupported or non-public address. (page.example.test:80)"
+    },
+    {
+      "Name": "acquisition-oversized-response-rejected",
+      "Passed": true,
+      "RequestedUrl": "http://page.example.test/large",
+      "FinalUrl": null,
+      "ConnectedAddress": null,
+      "Redirects": [],
+      "Resolutions": [
+        "page.example.test=93.184.216.34"
+      ],
+      "Connections": [
+        "93.184.216.34:80"
+      ],
+      "ServerRequests": [
+        "http://page.example.test/large"
+      ],
+      "ErrorKind": "HtmlScriptRuntimeException",
+      "Error": "The public resource exceeds its byte budget."
+    }
+  ],
   "cases": [
     {
       "Name": "malformed-markup",
       "Passed": true,
-      "ContainerName": "officeimo-html-82b88ea112654ecf9469b66893050900",
+      "ContainerName": "officeimo-html-91f567529f1948f0a19003ca69ccf738",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 28756,
+      "ElapsedMilliseconds": 27273,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,
@@ -25,9 +124,9 @@
     {
       "Name": "responsive-picture",
       "Passed": true,
-      "ContainerName": "officeimo-html-076f735bcc7840f3a2d99061a526e5e2",
+      "ContainerName": "officeimo-html-9bc605494f5d4f70a6dc961ae98b22e5",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 28195,
+      "ElapsedMilliseconds": 26751,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,
@@ -44,9 +143,9 @@
     {
       "Name": "module-graph",
       "Passed": true,
-      "ContainerName": "officeimo-html-33e51a9be6cd412fa11738ff778bf764",
+      "ContainerName": "officeimo-html-2f87f04f503d42fd8476fcdb954b9ae4",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 28632,
+      "ElapsedMilliseconds": 29248,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,
@@ -66,9 +165,9 @@
     {
       "Name": "frame-document",
       "Passed": true,
-      "ContainerName": "officeimo-html-58aec0e58e1f433580f1e44bd9b0ed0c",
+      "ContainerName": "officeimo-html-0be185071c0a41c484d63f5bcb10a846",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 27715,
+      "ElapsedMilliseconds": 27220,
       "ErrorKind": null,
       "Error": null,
       "CleanupError": null,
@@ -89,9 +188,9 @@
     {
       "Name": "resource-fanout",
       "Passed": true,
-      "ContainerName": "officeimo-html-00cb05fd37fc45b38e7e5e5a67a1a01f",
+      "ContainerName": "officeimo-html-050ddd51e4eb4419b03557b055f61ec1",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 25523,
+      "ElapsedMilliseconds": 25212,
       "ErrorKind": "HtmlScriptRuntimeException",
       "Error": "The document exceeds the pilot\u0027s static resource discovery limit.",
       "CleanupError": null,
@@ -104,9 +203,9 @@
     {
       "Name": "capture-output-budget",
       "Passed": true,
-      "ContainerName": "officeimo-html-446b894522ad44dfa20503ee59929692",
+      "ContainerName": "officeimo-html-1fa27d07f3f94a88a157cc5017cff152",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 27088,
+      "ElapsedMilliseconds": 26216,
       "ErrorKind": "HtmlScriptRuntimeException",
       "Error": "Captured data budget exceeded.",
       "CleanupError": null,
@@ -119,9 +218,9 @@
     {
       "Name": "runaway-script",
       "Passed": true,
-      "ContainerName": "officeimo-html-381091bf247f44ebafa29152bfe63931",
+      "ContainerName": "officeimo-html-95346f97ec954fd7a03542a72446ec78",
       "ContainerRemoved": true,
-      "ElapsedMilliseconds": 28804,
+      "ElapsedMilliseconds": 30654,
       "ErrorKind": "TimeoutException",
       "Error": "The runtime command exceeded its deadline.",
       "CleanupError": null,
@@ -130,6 +229,36 @@
       "ScreenSha256": null,
       "PrintSha256": null,
       "ScreenToPageSha256": null
+    },
+    {
+      "Name": "acquisition-same-host-redirect",
+      "Passed": true,
+      "ContainerName": "officeimo-html-ca3b0e050e1941ca9cf786a039bd2608",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 28985,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [],
+      "CaptureManifest": "sha256:c4e464e150031f8c5aeef97831a6d0af3fc0b62ea67b381e3a8c5aefb7eba980",
+      "ScreenSha256": "9c1baea9ae2f7a799cac45a8aa0814c20599cbc6806c25a8a509348d4f419309",
+      "PrintSha256": "71e49f6a3bcca9f82998f7bc437bd288d9dadd745a2bd36ca8ad745d99fe0d05",
+      "ScreenToPageSha256": "90a4a08f1969a691f600b1b4e5a7ca0e2c23c98dcc13e71f6f9404c32e549f38"
+    },
+    {
+      "Name": "acquisition-cross-host-redirect",
+      "Passed": true,
+      "ContainerName": "officeimo-html-0a5c7e251d7b4e7a93c9c0538459b58b",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 32922,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [],
+      "CaptureManifest": "sha256:326acfc898fe922061b87fff61e4347d67ca58bb40488ed05b2b5a7a1f8c6247",
+      "ScreenSha256": "887580ddcb46f9118a6bfd18f84af3017ad0231b00712602fa03e0a457a58118",
+      "PrintSha256": "dd2f5d58ba4e2adc9c66c3bd7b5fda67273378b2716b76da02a8ffc78d9300be",
+      "ScreenToPageSha256": "f059baeebf8f4d0216d9abb21528b95bd783dd8c1f6becbf1fce9adb1a7ba203"
     }
   ]
 }
