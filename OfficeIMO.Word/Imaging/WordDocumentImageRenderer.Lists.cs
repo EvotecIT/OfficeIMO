@@ -81,10 +81,53 @@ namespace OfficeIMO.Word {
         }
 
         private static OfficeRichTextRun CreateListMarkerRichTextRun(WordImageListMarker marker, double? availableWidth = null) =>
+            CreateListMarkerRichTextRun(marker, marker.Marker + ResolveRichTextListMarkerSuffix(marker, availableWidth));
+
+        private static OfficeRichTextRun CreateListMarkerRichTextRun(WordImageListMarker marker, string text) =>
             new OfficeRichTextRun(
-                marker.Marker + ResolveRichTextListMarkerSuffix(marker, availableWidth), marker.Font.Size, marker.Color,
+                text, marker.Font.Size, marker.Color,
                 marker.Font.IsBold, marker.Font.IsItalic, marker.Font.IsUnderline,
                 marker.Font.FamilyName, marker.Font.IsStrikethrough);
+
+        private static IReadOnlyList<OfficeRichTextRun> CreateAlignedListMarkerRichTextRuns(WordImageListMarker marker, double availableWidth) {
+            if (marker.Alignment == OfficeTextAlignment.Left) {
+                return new[] { CreateListMarkerRichTextRun(marker, availableWidth) };
+            }
+
+            (double _, double trailingWidth, double spaceWidth) = ResolveListMarkerAlignmentSpacing(marker, availableWidth);
+            var runs = new List<OfficeRichTextRun>(2) {
+                CreateListMarkerRichTextRun(marker, marker.Marker)
+            };
+            if (trailingWidth > 0.01D) runs.Add(CreateListMarkerSpacingRichTextRun(marker, trailingWidth, spaceWidth));
+            return runs;
+        }
+
+        private static (double LeadingWidth, double TrailingWidth, double SpaceWidth) ResolveListMarkerAlignmentSpacing(WordImageListMarker marker, double availableWidth) {
+            double textOffset = Math.Min(Math.Max(0D, marker.LeftIndentPoints), Math.Max(0D, availableWidth - 1D));
+            double markerOffset = Math.Max(0D, textOffset - Math.Max(0D, marker.HangingIndentPoints));
+            OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(marker.Font);
+            OfficeTextMeasurementStyle markerStyle = measurer.CreateStyle(marker.Font, 72D);
+            double markerWidth = measurer.MeasureWidth(marker.Marker, markerStyle);
+            double markerColumnWidth = Math.Max(markerWidth, textOffset - markerOffset);
+            double leadingWidth = marker.Alignment == OfficeTextAlignment.Right
+                ? Math.Max(0D, markerColumnWidth - markerWidth)
+                : Math.Max(0D, (markerColumnWidth - markerWidth) / 2D);
+            double spaceWidth = Math.Max(0.01D, measurer.MeasureWidth(" ", markerStyle));
+            double suffixWidth = marker.Suffix == " " ? spaceWidth : 0D;
+            double trailingWidth = Math.Max(0D, markerColumnWidth - leadingWidth - markerWidth) + suffixWidth;
+            return (leadingWidth, trailingWidth, spaceWidth);
+        }
+
+        private static OfficeRichTextRun CreateListMarkerSpacingRichTextRun(WordImageListMarker marker, double width, double spaceWidth) {
+            int spaces = Math.Max(1, (int)Math.Ceiling(width / spaceWidth));
+            spaces = Math.Min(8_192, spaces);
+            double fontSize = Math.Max(1D, marker.Font.Size * width / (spaces * spaceWidth));
+            var font = new OfficeFontInfo(marker.Font.FamilyName, fontSize, marker.Font.Style);
+            return new OfficeRichTextRun(
+                new string(' ', spaces), font.Size, marker.Color,
+                font.IsBold, font.IsItalic, font.IsUnderline,
+                font.FamilyName, font.IsStrikethrough);
+        }
 
         private static string ResolveRichTextListMarkerSuffix(WordImageListMarker marker, double? availableWidth) {
             if (marker.Suffix != "\t" || !availableWidth.HasValue) {
@@ -117,7 +160,7 @@ namespace OfficeIMO.Word {
             WordImageListMarker marker = listMarker.Value;
             double leftIndent = Math.Max(0D, marker.LeftIndentPoints);
             double hangingIndent = Math.Max(0D, marker.HangingIndentPoints);
-            double textOffset = Math.Min(Math.Max(DefaultListHangingIndentPoints, leftIndent), Math.Max(DefaultListHangingIndentPoints, textFrame.Width - 1D));
+            double textOffset = Math.Min(leftIndent, Math.Max(0D, textFrame.Width - 1D));
             double markerOffset = Math.Max(0D, textOffset - hangingIndent);
             OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(marker.Font);
             OfficeTextMeasurementStyle markerStyle = measurer.CreateStyle(marker.Font, 72D);

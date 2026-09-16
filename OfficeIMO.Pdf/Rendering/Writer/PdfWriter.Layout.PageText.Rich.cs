@@ -131,13 +131,15 @@ internal static partial class PdfWriter {
                         ? Math.Max(0D, lineBoxWidth.Value - lineWidth)
                         : 0D
                 : 0D;
-            double cursorX = x + dx + GetPageTextLineHorizontalOffset(line);
+            double cursorX = x + dx;
 
             foreach (PdfTextRun run in line) {
                 string text = run.Text ?? string.Empty;
                 if (text.Length == 0) {
                     continue;
                 }
+
+                cursorX += run.HorizontalOffset;
 
                 PdfStandardFont runFont = ResolvePageTextRunFont(run, baseFont);
                 PdfNamedFontFace? namedFont = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolvedNamedFont)

@@ -377,6 +377,54 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Contains(expected, rich.PlainText, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(WordListLevelAlignment.Right)]
+    [InlineData(WordListLevelAlignment.Center)]
+    public void TextBoxNumberingHonorsLevelJustificationInPdfAndImage(WordListLevelAlignment alignment) {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = 1800;
+        level.IndentationHanging = 720;
+        level.LevelJustification = alignment;
+        level.LevelSuffix = WordListLevelSuffix.Nothing;
+        NumberingSymbolRunProperties markerProperties = level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>() ??
+            level.OpenXmlElement.AppendChild(new NumberingSymbolRunProperties());
+        markerProperties.Append(new Bold(), new FontSize { Val = "36" });
+        WordTextBox box = document.AddTextBox("TextBoxNine");
+        box.WidthCentimeters = 12D;
+        box.Content!.Append(new Paragraph(new Run(new Text("TextBoxTen"))));
+        AttachToList(box.Paragraphs[0], list.NumberId);
+        AttachToList(box.Paragraphs[1], list.NumberId);
+
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan pdfNine = Assert.Single(spans, span => span.Text == "9.");
+        PdfTextSpan pdfTen = Assert.Single(spans, span => span.Text == "10.");
+        PdfTextSpan pdfNineText = Assert.Single(spans, span => span.Text.Contains("TextBoxNine", StringComparison.Ordinal));
+        PdfTextSpan pdfTenText = Assert.Single(spans, span => span.Text.Contains("TextBoxTen", StringComparison.Ordinal));
+        double expectedStartShift = alignment == WordListLevelAlignment.Right ? 10D : 5D;
+        Assert.InRange(pdfNine.X - pdfTen.X, expectedStartShift - 1D, expectedStartShift + 1D);
+        Assert.InRange(Math.Abs(pdfNineText.X - pdfTenText.X), 0D, 1D);
+
+        OfficeDrawingRichText rich = Assert.Single(document.CreateVisualSnapshot().Drawing.Elements
+            .OfType<OfficeDrawingRichText>(), item => item.PlainText.Contains("TextBoxNine", StringComparison.Ordinal));
+        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(
+            rich.Runs, rich.Width - rich.Padding.Horizontal, rich.Height - rich.Padding.Vertical, 1.25D,
+            MeasureRichTextWidth, wrap: true);
+        OfficeRichTextLine nineLine = Assert.Single(layout.Lines, line => line.Segments.Any(segment => segment.Text.Contains("TextBoxNine", StringComparison.Ordinal)));
+        OfficeRichTextLine tenLine = Assert.Single(layout.Lines, line => line.Segments.Any(segment => segment.Text.Contains("TextBoxTen", StringComparison.Ordinal)));
+        (double NineX, double NineWidth) = GetRichTextTokenBounds(nineLine, "9.");
+        (double TenX, double TenWidth) = GetRichTextTokenBounds(tenLine, "10.");
+        double nineAnchor = alignment == WordListLevelAlignment.Right ? NineX + NineWidth : NineX + NineWidth / 2D;
+        double tenAnchor = alignment == WordListLevelAlignment.Right ? TenX + TenWidth : TenX + TenWidth / 2D;
+        Assert.True(Math.Abs(nineAnchor - tenAnchor) <= 2D,
+            $"alignment={alignment}, nine={NineX}+{NineWidth}, ten={TenX}+{TenWidth}, runs={string.Join(" | ", rich.Runs.Select(run => $"'{run.Text}'/{run.ParagraphIndent?.FirstLineOffset}"))}");
+        Assert.InRange(Math.Abs(
+            GetRichTextTokenBounds(nineLine, "TextBoxNine").X -
+            GetRichTextTokenBounds(tenLine, "TextBoxTen").X), 0D, 2D);
+    }
+
     [Fact]
     public void ImageBodyListMarkerHonorsNumberingSuffixSpacing() {
         double nothingGap = RenderImageBodyListMarkerOffset(WordListLevelSuffix.Nothing);
@@ -432,6 +480,23 @@ public sealed partial class WordListMarkerSemanticsTests {
 
         Assert.InRange(Math.Abs(nothingX - tabX), 0D, 0.01D);
         Assert.InRange(Math.Abs(spaceX - tabX), 0D, 0.01D);
+    }
+
+    [Fact]
+    public void ImageMarkerlessListPreservesExplicitZeroIndent() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("PlainZeroReference");
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
+        list.Numbering.Levels[0].IndentationLeft = 0;
+        list.Numbering.Levels[0].IndentationHanging = 0;
+        WordParagraph item = document.AddParagraph("MarkerlessZero");
+        AttachToList(item, list.NumberId);
+
+        OfficeDrawingText[] texts = document.CreateVisualSnapshot().Drawing.Elements.OfType<OfficeDrawingText>().ToArray();
+        double referenceX = Assert.Single(texts, text => text.Text == "PlainZeroReference").X;
+        double markerlessX = Assert.Single(texts, text => text.Text == "MarkerlessZero").X;
+        Assert.InRange(Math.Abs(referenceX - markerlessX), 0D, 0.01D);
     }
 
     [Fact]
@@ -622,6 +687,49 @@ public sealed partial class WordListMarkerSemanticsTests {
     }
 
     [Fact]
+    public void ImageSplitTableRowKeepsPostImageListTextAtContinuationIndent() {
+        using WordDocument document = WordDocument.Create();
+        WordSection section = document.Sections[0];
+        section.PageSettings.Width = 5000U;
+        section.PageSettings.Height = 2400U;
+        section.SetMargins(WordMargin.Narrow);
+        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        list.Numbering.Levels[0].IndentationLeft = 1800;
+        list.Numbering.Levels[0].IndentationHanging = 720;
+        list.Numbering.Levels[0].LevelSuffix = WordListLevelSuffix.Tab;
+        WordTable table = document.AddTable(1, 1);
+        table.WidthType = WordTableWidthUnit.Dxa;
+        table.Width = 3600;
+        table.ColumnWidthType = WordTableWidthUnit.Dxa;
+        table.ColumnWidth = new List<int> { 3600 };
+        WordTableCell cell = table.Rows[0].Cells[0];
+        WordParagraph item = cell.Paragraphs[0];
+        item.Text = string.Empty;
+        item.AddText("BeforeInlineImage");
+        item.AddText(string.Empty).InsertImage(
+            Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), 12, 12,
+            WordImageTextWrapping.InLineWithText, "Inline continuation marker");
+        item.AddText("AfterInlineImage");
+        AttachToList(item, list.NumberId);
+        for (int index = 0; index < 18; index++) {
+            cell.AddParagraph("Following row content " + index.ToString("00"));
+        }
+
+        var rendered = new List<OfficeDrawingRichText>();
+        for (int pageIndex = 0; pageIndex < 6; pageIndex++) {
+            rendered.AddRange(document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = pageIndex })
+                .Drawing.Elements.OfType<OfficeDrawingRichText>());
+        }
+
+        string renderedText = string.Join(" | ", rendered.Select(text => $"'{text.PlainText}'@{text.X}"));
+        OfficeDrawingRichText marker = Assert.Single(rendered, text => text.PlainText.StartsWith("*", StringComparison.Ordinal));
+        OfficeDrawingRichText before = Assert.Single(rendered, text => text.PlainText.StartsWith("Before", StringComparison.Ordinal));
+        OfficeDrawingRichText after = Assert.Single(rendered, text => text.PlainText.StartsWith("After", StringComparison.Ordinal));
+        Assert.InRange(Math.Abs(before.X - after.X), 0D, 0.01D);
+        Assert.True(after.X > marker.X + 25D, $"marker={marker.X}, before={before.X}, after={after.X}; {renderedText}");
+    }
+
+    [Fact]
     public void TextBoxListIndentationIsKeptPerParagraphInPdfAndImageLayout() {
         using WordDocument document = WordDocument.Create();
         WordList bulletList = document.AddCustomBulletList('◆', "Arial", "000000");
@@ -741,5 +849,30 @@ public sealed partial class WordListMarkerSemanticsTests {
 
         return Assert.Single(document.CreateVisualSnapshot().Drawing.Elements.OfType<OfficeDrawingText>(),
             text => text.Text == "MarkerlessBody").X;
+    }
+
+    private static double MeasureRichTextWidth(string? text, double fontSize, string? fontFamily, OfficeFontStyle style) {
+        var font = new OfficeFontInfo(fontFamily ?? OfficeFontInfo.Default.FamilyName, fontSize, style);
+        OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(font);
+        return measurer.MeasureWidth(text, measurer.CreateStyle(font, 72D));
+    }
+
+    private static (double X, double Width) GetRichTextTokenBounds(OfficeRichTextLine line, string token) {
+        double cursor = line.OffsetX;
+        foreach (OfficeRichTextSegment segment in line.Segments) {
+            int tokenIndex = segment.Text.IndexOf(token, StringComparison.Ordinal);
+            if (tokenIndex >= 0) {
+                OfficeFontStyle style = OfficeFontStyle.Regular;
+                if (segment.Bold) style |= OfficeFontStyle.Bold;
+                if (segment.Italic) style |= OfficeFontStyle.Italic;
+                double prefixWidth = MeasureRichTextWidth(segment.Text.Substring(0, tokenIndex), segment.FontSize, segment.FontFamily, style);
+                double tokenWidth = MeasureRichTextWidth(token, segment.FontSize, segment.FontFamily, style);
+                return (cursor + prefixWidth, tokenWidth);
+            }
+
+            cursor += segment.Width;
+        }
+
+        throw new Xunit.Sdk.XunitException("Token was not present in the rich-text line: " + token);
     }
 }

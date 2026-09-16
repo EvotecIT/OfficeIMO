@@ -41,7 +41,6 @@ namespace OfficeIMO.Word {
                 double markerOffset = listMarker is { Marker.Length: > 0 } visibleMarker
                     ? Math.Max(0D, textOffset - Math.Max(0D, visibleMarker.HangingIndentPoints))
                     : textOffset;
-                double indent = markerOffset;
                 OfficeTextParagraphIndent paragraphIndent = listMarker is { Marker.Length: > 0 }
                     ? OfficeTextParagraphIndent.Hanging(Math.Max(0D, textOffset - markerOffset))
                     : OfficeTextParagraphIndent.Empty;
@@ -52,18 +51,23 @@ namespace OfficeIMO.Word {
                     List<OfficeRichTextRun> richRuns = CreateRichTextRuns(segmentRuns, colorScheme, context, diagnostics);
                     segmentRuns.Clear();
                     int? pictureBulletId = null;
-                    if (markerPending && listMarker is { Marker.Length: > 0 } visible) {
+                    bool includesMarker = markerPending && listMarker is { Marker.Length: > 0 };
+                    if (includesMarker && listMarker is { Marker.Length: > 0 } visible) {
                         richRuns.Insert(0, CreateListMarkerRichTextRun(visible, contentWidth));
                         pictureBulletId = visible.PictureBulletId;
                         markerPending = false;
                     }
                     if (richRuns.Count == 0) return;
 
+                    double segmentIndent = includesMarker ? markerOffset : textOffset;
+                    OfficeTextParagraphIndent segmentParagraphIndent = includesMarker
+                        ? paragraphIndent
+                        : OfficeTextParagraphIndent.Empty;
                     double maxFontSize = richRuns.Max(run => run.FontSize);
                     double lineHeight = Math.Max(maxFontSize * 1.25D, 12D);
                     OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
                         richRuns,
-                        Math.Max(1D, contentWidth - indent),
+                        Math.Max(1D, contentWidth - segmentIndent),
                         double.MaxValue,
                         Math.Max(1D, lineHeight / Math.Max(1D, maxFontSize)),
                         CreateRichTextMeasure(context.CancellationToken),
@@ -71,11 +75,11 @@ namespace OfficeIMO.Word {
                         shrinkToFit: false,
                         minimumFontSize: Math.Min(6D, maxFontSize),
                         overflowBehavior: OfficeTextOverflowBehavior.Clip,
-                        paragraphIndent: paragraphIndent,
+                        paragraphIndent: segmentParagraphIndent,
                         cancellationToken: context.CancellationToken);
                     contentOrder.Add(SplitTableCellContentEntry.CreateText(lines.Count, layout.Lines.Count, pictureBulletId));
                     lines.AddRange(layout.Lines);
-                    indents.AddRange(layout.Lines.Select(line => indent + line.OffsetX));
+                    indents.AddRange(layout.Lines.Select(line => segmentIndent + line.OffsetX));
                 }
 
                 foreach (WordParagraph run in WordSection.ConvertParagraphToWordParagraphs(cell.Document, paragraph, splitPaginationMarkers: true,

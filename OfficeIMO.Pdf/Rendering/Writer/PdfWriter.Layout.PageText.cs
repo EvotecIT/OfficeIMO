@@ -630,8 +630,9 @@ internal static partial class PdfWriter {
     }
 
     private static double MeasurePageTextLineRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions opts) {
-        double width = GetPageTextLineHorizontalOffset(runs);
+        double width = 0D;
         foreach (PdfTextRun run in runs) {
+            width += run.HorizontalOffset;
             PdfNamedFontFace? namedFont = opts.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolvedNamedFont)
                 ? resolvedNamedFont
                 : null;
@@ -639,14 +640,6 @@ internal static partial class PdfWriter {
         }
 
         return width;
-    }
-
-    private static double GetPageTextLineHorizontalOffset(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs) {
-        double offset = 0D;
-        foreach (PdfTextRun run in runs) {
-            offset = Math.Max(offset, run.HorizontalOffset);
-        }
-        return offset;
     }
 
     private static System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<PdfTextRun>> BuildPageTextLineRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs) {
@@ -729,18 +722,18 @@ internal static partial class PdfWriter {
                     dx = Math.Max(0D, lineBoxWidth.Value - lineWidth);
                 }
             }
-            double horizontalOffset = GetPageTextLineHorizontalOffset(line);
-
             if (lineIndex > 0 && Math.Abs(currentTextRise) > 0.0001D) {
                 content.TextRise(0D);
                 currentTextRise = 0D;
             }
-            content.TextMatrix(x + dx + horizontalOffset, baselines[lineIndex]);
+            double cursorX = x + dx;
             foreach (PdfTextRun run in line) {
                 string text = run.Text ?? string.Empty;
                 if (text.Length == 0) {
                     continue;
                 }
+
+                cursorX += run.HorizontalOffset;
 
                 PdfStandardFont runFont = ResolvePageTextRunFont(run, baseFont);
                 PdfNamedFontFace? namedFont = opts.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolvedNamedFont)
@@ -756,8 +749,10 @@ internal static partial class PdfWriter {
                     currentTextRise = textRise;
                 }
                 content
+                    .TextMatrix(cursorX, baselines[lineIndex])
                     .FillColor(ResolvePageTextColor(run.Color ?? color, opts))
                     .ShowText(EncodeTextShowCommand(text, runFont, namedFont, opts), runFontSize);
+                cursorX += MeasureRichText(text, runFont, namedFont, requestedFontSize, run.Baseline, opts);
             }
         }
 

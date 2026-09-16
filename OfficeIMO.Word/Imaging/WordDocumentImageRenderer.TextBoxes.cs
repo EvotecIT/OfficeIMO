@@ -590,6 +590,9 @@ namespace OfficeIMO.Word {
                     double markerOffset = marker.Value.Marker.Length > 0
                         ? Math.Max(0D, textOffset - Math.Max(0D, marker.Value.HangingIndentPoints))
                         : textOffset;
+                    if (marker.Value.Marker.Length > 0 && marker.Value.Alignment != OfficeTextAlignment.Left) {
+                        markerOffset += ResolveListMarkerAlignmentSpacing(marker.Value, availableWidth).LeadingWidth;
+                    }
                     paragraphIndent = new OfficeTextParagraphIndent(markerOffset, textOffset);
                 }
 
@@ -599,10 +602,15 @@ namespace OfficeIMO.Word {
                         : CreateRichTextRun(new WordParagraph(textBox.Document, fragment.Paragraph), colorScheme, Environment.NewLine).WithParagraphIndent(paragraphIndent));
                 }
 
-                if (marker is { Marker.Length: > 0 } visible) richRuns.Add(
-                    richRuns.Count == 0
-                        ? CreateListMarkerRichTextRun(visible, availableWidth).WithParagraphIndent(paragraphIndent)
-                        : CreateListMarkerRichTextRun(visible, availableWidth));
+                if (marker is { Marker.Length: > 0 } visible) {
+                    bool applyParagraphIndent = richRuns.Count == 0;
+                    foreach (OfficeRichTextRun markerRun in CreateAlignedListMarkerRichTextRuns(visible, availableWidth)) {
+                        richRuns.Add(applyParagraphIndent
+                            ? markerRun.WithParagraphIndent(paragraphIndent)
+                            : markerRun);
+                        applyParagraphIndent = false;
+                    }
+                }
 
                 for (int runIndex = 0; runIndex < paragraphRuns.Count; runIndex++) {
                     (WordParagraph run, string text) = paragraphRuns[runIndex];
