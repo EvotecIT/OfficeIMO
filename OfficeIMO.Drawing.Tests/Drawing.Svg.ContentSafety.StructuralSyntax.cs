@@ -65,6 +65,21 @@ public sealed class SvgContentSafetyStructuralSyntaxTests {
     }
 
     [Theory]
+    [InlineData("<ellipse rx='-1' ry='10'/>")]
+    [InlineData("<ellipse rx='10' ry='-1'/>")]
+    public void InvalidNegativeEllipseRadiusFallsBackToTheOtherRadius(string geometry) {
+        byte[] svg = Svg("<defs><clipPath id='round'>" + geometry + "</clipPath></defs>" +
+            "<text clip-path='url(#round)' x='10' y='35'>negative radius payload</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "negative radius payload" &&
+            item.Kind == OfficeContentConcealmentKind.ClippedContent &&
+            item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);
+    }
+
+    [Theory]
     [InlineData("opacity='0 %'")]
     [InlineData("fill-opacity='0 %'")]
     [InlineData("stroke-opacity='0 %'")]
@@ -86,6 +101,52 @@ public sealed class SvgContentSafetyStructuralSyntaxTests {
 
         Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible font payload" &&
             item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);
+    }
+
+    [Theory]
+    [InlineData("opacity='0.'")]
+    [InlineData("opacity='0.px'")]
+    [InlineData("fill-opacity='0.'")]
+    public void InvalidNumericTokenCannotAuthorizeTransparentTextCleanup(string attribute) {
+        byte[] svg = Svg("<text " + attribute + " x='10' y='35'>visible numeric payload</text>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible numeric payload" &&
+            item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);
+    }
+
+    [Theory]
+    [InlineData("opacity:0.")]
+    [InlineData("opacity:0.%")]
+    [InlineData("fill-opacity:0.")]
+    public void InvalidNumericCssDeclarationFailsClosed(string declaration) {
+        byte[] svg = Svg("<text style='" + declaration + "' x='10' y='35'>visible CSS numeric payload</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Theory]
+    [InlineData("1.px")]
+    [InlineData("1e+px")]
+    public void InvalidFontNumericTokenCannotAuthorizeTinyTextCleanup(string size) {
+        byte[] svg = Svg("<text font-size='" + size + "' x='10' y='35'>visible font payload</text>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible font payload" &&
+            item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);
+    }
+
+    [Theory]
+    [InlineData("10 px")]
+    [InlineData("10.px")]
+    [InlineData("1e+px")]
+    public void InvalidRootWidthCannotProjectAViewportForCleanup(string width) {
+        byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='" + width +
+            "' height='120' viewBox='0 0 220 120'><text font-size='1' x='10' y='35'>visible viewport payload</text></svg>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
     }
 
     [Theory]

@@ -380,9 +380,7 @@ public static partial class OfficeSvgDrawingReader {
                 }
                 normalized = normalized.Substring(0, normalized.Length - 2);
             }
-            if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
-                || double.IsNaN(value)
-                || double.IsInfinity(value)) {
+            if (!OfficeCssNumber.TryParse(normalized, out double value)) {
                 coordinate = default;
                 return false;
             }
@@ -401,9 +399,7 @@ public static partial class OfficeSvgDrawingReader {
                 }
                 normalized = normalized.Substring(0, normalized.Length - 1);
             }
-            if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
-                || double.IsNaN(value)
-                || double.IsInfinity(value)) return false;
+            if (!OfficeCssNumber.TryParse(normalized, out value)) return false;
             if (percentage) value /= 100D;
             if (clamp) value = value < 0D ? 0D : value > 1D ? 1D : value;
             return true;

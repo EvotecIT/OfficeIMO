@@ -220,9 +220,7 @@ public static partial class OfficeSvgDrawingReader {
             if (HasSeparatedSvgNumericSuffix(normalized, 1)) return false;
             normalized = normalized.Substring(0, normalized.Length - 1);
         }
-        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
-            || double.IsNaN(value)
-            || double.IsInfinity(value)) return false;
+        if (!OfficeCssNumber.TryParse(normalized, out value)) return false;
         if (percentage) value /= 100D;
         return true;
     }

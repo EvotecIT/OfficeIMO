@@ -260,10 +260,7 @@ public static partial class OfficeSvgDrawingReader {
         if (normalized.EndsWith("%", StringComparison.Ordinal)) {
             if (HasSeparatedSvgNumericSuffix(normalized, 1)) return false;
             percentage = true;
-            return double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
-                       CultureInfo.InvariantCulture, out double percentValue)
-                   && !double.IsNaN(percentValue)
-                   && !double.IsInfinity(percentValue)
+            return OfficeCssNumber.TryParse(normalized.Substring(0, normalized.Length - 1), out double percentValue)
                    && (offset = totalLength * percentValue / 100D) == offset;
         }
         return TrySvgLength(normalized, out offset);

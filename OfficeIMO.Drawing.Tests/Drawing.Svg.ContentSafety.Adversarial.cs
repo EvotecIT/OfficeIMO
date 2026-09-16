@@ -1506,6 +1506,27 @@ public sealed class SvgContentSafetyAdversarialTests {
         Assert.Contains("http://www.w3.org/2000/09/xmldsig#", cleaned, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void XmlSignature2MarkupUsesTheExistingSignatureMutationPolicy() {
+        const string xmlDsig2 = "http://www.w3.org/2010/xmldsig2#";
+        byte[] svg = Svg("<text display='none' x='10' y='35'>signed hidden text</text>" +
+            "<ds:Signature xmlns:ds='http://www.w3.org/2000/09/xmldsig#' xmlns:dsig2='" + xmlDsig2 + "'>" +
+            "<ds:SignedInfo><ds:Reference><ds:Transforms><ds:Transform Algorithm='" + xmlDsig2 +
+            "transform'><dsig2:Selection Algorithm='" + xmlDsig2 + "xml' URI='#x'/></ds:Transform>" +
+            "</ds:Transforms></ds:Reference></ds:SignedInfo></ds:Signature>");
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "signed hidden text");
+        var selection = new OfficeContentCleanupSelection(new[] { finding.Id });
+
+        Assert.Throws<InvalidOperationException>(() => OfficeSvgDrawingReader.RemoveSelectedContent(svg, selection));
+        OfficeContentCleanupResult result = OfficeSvgDrawingReader.RemoveSelectedContent(svg, selection,
+            new OfficeContentCleanupOptions {
+                SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+            });
+        Assert.DoesNotContain("<ds:Signature", Encoding.UTF8.GetString(result.Output), StringComparison.Ordinal);
+    }
+
     private static byte[] SignedSvg() => Svg(
         "<text display='none' x='10' y='35'>signed hidden text</text>" +
         "<ds:Signature xmlns:ds='http://www.w3.org/2000/09/xmldsig#'><ds:SignedInfo/></ds:Signature>");

@@ -216,33 +216,7 @@ public readonly partial struct OfficeColor {
         return true;
     }
 
-    private static bool TryFiniteDouble(string value, out double number) {
-        number = 0D;
-        int index = 0;
-        if (index < value.Length && value[index] is '+' or '-') index++;
-        int integerStart = index;
-        while (index < value.Length && value[index] >= '0' && value[index] <= '9') index++;
-        bool hasInteger = index > integerStart;
-        if (index < value.Length && value[index] == '.') {
-            index++;
-            int fractionStart = index;
-            while (index < value.Length && value[index] >= '0' && value[index] <= '9') index++;
-            if (index == fractionStart) return false;
-        } else if (!hasInteger) {
-            return false;
-        }
-        if (index < value.Length && value[index] is 'e' or 'E') {
-            index++;
-            if (index < value.Length && value[index] is '+' or '-') index++;
-            int exponentStart = index;
-            while (index < value.Length && value[index] >= '0' && value[index] <= '9') index++;
-            if (index == exponentStart) return false;
-        }
-        return index == value.Length
-            && double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out number)
-            && !double.IsNaN(number)
-            && !double.IsInfinity(number);
-    }
+    private static bool TryFiniteDouble(string value, out double number) => OfficeCssNumber.TryParse(value, out number);
 
     private static bool TryFiniteCssNumber(string value, bool percentage, out double number) {
         string normalized = value.Trim();

@@ -483,9 +483,7 @@ public static partial class OfficeSvgDrawingReader {
         string normalized = value.Trim();
         if (!normalized.EndsWith("%", StringComparison.Ordinal) ||
             HasSeparatedSvgNumericSuffix(normalized, 1) ||
-            !double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
-                CultureInfo.InvariantCulture, out double percentage) ||
-            double.IsNaN(percentage) || double.IsInfinity(percentage)) return value;
+            !OfficeCssNumber.TryParse(normalized.Substring(0, normalized.Length - 1), out double percentage)) return value;
         return Math.Max(0D, Math.Min(1D, percentage / 100D)).ToString("R", CultureInfo.InvariantCulture);
     }
 
@@ -567,11 +565,7 @@ public static partial class OfficeSvgDrawingReader {
         string normalized = value.Trim();
         if (!normalized.EndsWith("%", StringComparison.Ordinal) ||
             HasSeparatedSvgNumericSuffix(normalized, 1)) return false;
-        return double.TryParse(
-            normalized.Substring(0, normalized.Length - 1),
-            NumberStyles.Float,
-            CultureInfo.InvariantCulture,
-            out double percentage) && !double.IsNaN(percentage) && !double.IsInfinity(percentage);
+        return OfficeCssNumber.TryParse(normalized.Substring(0, normalized.Length - 1), out _);
     }
 
     private static bool IsSvgLocalReferenceOrNone(string value) {

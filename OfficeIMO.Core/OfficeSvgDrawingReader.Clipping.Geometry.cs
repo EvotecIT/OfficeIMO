@@ -17,13 +17,23 @@ public static partial class OfficeSvgDrawingReader {
             if (IsAutoOrMissing(name)) return absentIsZero;
             return TryViewportLength(authored, reference, out double value, out _) && value <= 0D;
         }
+        bool IsEllipseAuto(string name, double reference) {
+            if (IsAutoOrMissing(name)) return true;
+            string? authored = ReadPresentationProperty(element, name);
+            // SVG ignores an illegal negative ellipse radius; its used value falls back to auto.
+            return TryViewportLength(authored, reference, out double value, out _) && value < 0D;
+        }
+        bool IsEllipseZero(string name, double reference) {
+            if (IsEllipseAuto(name, reference)) return false;
+            return TryViewportLength(ReadPresentationProperty(element, name), reference, out double value, out _) && value == 0D;
+        }
         return element.Name.LocalName switch {
             "rect" => IsNonPositive("width", width, absentIsZero: true) ||
                       IsNonPositive("height", height, absentIsZero: true),
             "circle" => IsNonPositive("r", NormalizedSvgDiagonal(width, height), absentIsZero: true),
-            "ellipse" => IsNonPositive("rx", width, absentIsZero: false) ||
-                         IsNonPositive("ry", height, absentIsZero: false) ||
-                         (IsAutoOrMissing("rx") && IsAutoOrMissing("ry")),
+            "ellipse" => IsEllipseZero("rx", width) ||
+                         IsEllipseZero("ry", height) ||
+                         (IsEllipseAuto("rx", width) && IsEllipseAuto("ry", height)),
             "line" => true,
             "path" => IsEmptySvgClipPath(element),
             "polygon" => string.IsNullOrWhiteSpace(element.Attribute("points")?.Value),

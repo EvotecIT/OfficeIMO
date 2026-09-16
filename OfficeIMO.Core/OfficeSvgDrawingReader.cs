@@ -1488,9 +1488,7 @@ public static partial class OfficeSvgDrawingReader {
             if (HasSeparatedSvgNumericSuffix(normalized, 2)) return false;
             normalized = normalized.Substring(0, normalized.Length - 2);
         }
-        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
-            || double.IsNaN(parsed)
-            || double.IsInfinity(parsed)) return false;
+        if (!OfficeCssNumber.TryParse(normalized, out double parsed)) return false;
         value = percentage ? parsed * extent / 100D : parsed;
         return !double.IsNaN(value) && !double.IsInfinity(value);
     }
@@ -1510,9 +1508,7 @@ public static partial class OfficeSvgDrawingReader {
             if (HasSeparatedSvgNumericSuffix(text, 2)) return false;
             text = text.Substring(0, text.Length - 2);
         }
-        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
-            && !double.IsNaN(result)
-            && !double.IsInfinity(result);
+        return OfficeCssNumber.TryParse(text, out result);
     }
 
     private static bool TryUnit(string value, out double result) {
@@ -1525,9 +1521,7 @@ public static partial class OfficeSvgDrawingReader {
             }
             normalized = normalized.Substring(0, normalized.Length - 1);
         }
-        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
-            || double.IsNaN(result)
-            || double.IsInfinity(result)) return false;
+        if (!OfficeCssNumber.TryParse(normalized, out result)) return false;
         if (percentage) result /= 100D;
         result = Math.Max(0D, Math.Min(1D, result));
         return true;
@@ -1561,8 +1555,7 @@ public static partial class OfficeSvgDrawingReader {
         if (normalized.EndsWith("%", StringComparison.Ordinal)) {
             if (HasSeparatedSvgNumericSuffix(normalized, 1)) return false;
             normalized = normalized.Substring(0, normalized.Length - 1);
-            if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)
-                || double.IsNaN(percentage) || double.IsInfinity(percentage)
+            if (!OfficeCssNumber.TryParse(normalized, out double percentage)
                 || double.IsNaN(percentageReference) || double.IsInfinity(percentageReference)) return false;
             result = percentage * percentageReference / 100D;
             return !double.IsNaN(result) && !double.IsInfinity(result);
@@ -1836,10 +1829,7 @@ public static partial class OfficeSvgDrawingReader {
         }
         if (normalized.EndsWith("%", StringComparison.Ordinal)
             && !HasSeparatedSvgNumericSuffix(normalized, 1)
-            && double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
-                CultureInfo.InvariantCulture, out double percentage)
-            && !double.IsNaN(percentage)
-            && !double.IsInfinity(percentage)) {
+            && OfficeCssNumber.TryParse(normalized.Substring(0, normalized.Length - 1), out double percentage)) {
             shift = new SvgBaselineShift(percentage / 100D, SvgBaselineShiftBasis.LineHeight);
             return true;
         }
@@ -1873,9 +1863,7 @@ public static partial class OfficeSvgDrawingReader {
             return false;
         }
 
-        if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier)
-            || double.IsNaN(multiplier)
-            || double.IsInfinity(multiplier)) {
+        if (!OfficeCssNumber.TryParse(number, out double multiplier)) {
             shift = default;
             return false;
         }
@@ -1892,18 +1880,12 @@ public static partial class OfficeSvgDrawingReader {
         }
         if (normalized.EndsWith("%", StringComparison.Ordinal)
             && !HasSeparatedSvgNumericSuffix(normalized, 1)
-            && double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
-                CultureInfo.InvariantCulture, out double percentage)
-            && percentage >= 0D
-            && !double.IsNaN(percentage)
-            && !double.IsInfinity(percentage)) {
+            && OfficeCssNumber.TryParse(normalized.Substring(0, normalized.Length - 1), out double percentage)
+            && percentage >= 0D) {
             lineHeight = new SvgLineHeight(fontSize * percentage / 100D, relativeToFontSize: false);
             return true;
         }
-        if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier)
-            && multiplier >= 0D
-            && !double.IsNaN(multiplier)
-            && !double.IsInfinity(multiplier)) {
+        if (OfficeCssNumber.TryParse(normalized, out double multiplier) && multiplier >= 0D) {
             lineHeight = new SvgLineHeight(multiplier, relativeToFontSize: true);
             return true;
         }
