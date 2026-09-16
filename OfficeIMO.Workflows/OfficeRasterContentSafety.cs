@@ -148,6 +148,7 @@ public static partial class OfficeRasterContentSafety {
             LineId = span.LineId;
             Sequence = span.Sequence;
             Text = span.Text ?? string.Empty;
+            Confidence = span.Confidence;
         }
 
         internal PixelRegion Region { get; }
@@ -155,6 +156,7 @@ public static partial class OfficeRasterContentSafety {
         internal string? LineId { get; }
         internal int Sequence { get; }
         internal string Text { get; }
+        internal double? Confidence { get; }
     }
 
     private readonly struct PixelRegion {

@@ -29,7 +29,7 @@ public static partial class OfficeRasterContentSafety {
             throw new InvalidDataException(
                 "OCR reported an error or non-recoverable diagnostic, so recognition could not be accepted.");
         }
-        if (rawSpans.Any(span => span != null && !string.IsNullOrWhiteSpace(span.Text) &&
+        if (rawSpans.Any(span => span != null && !string.IsNullOrEmpty(span.Text) &&
             !IsSupportedSpanLevel(span.Level))) {
             throw new InvalidDataException("OCR text spans must use line, word, or character granularity.");
         }
@@ -37,7 +37,8 @@ public static partial class OfficeRasterContentSafety {
         OcrTextSpan[] spans = rawSpans
             .Select((span, index) => new { Span = span, Index = index })
             .Where(item => item.Span != null && IsSupportedSpanLevel(item.Span.Level) &&
-                !string.IsNullOrWhiteSpace(item.Span.Text))
+                !string.IsNullOrEmpty(item.Span.Text) &&
+                (!string.IsNullOrWhiteSpace(item.Span.Text) || item.Span.Level == OcrTextSpanLevel.Character))
             .OrderBy(item => item.Span.Sequence)
             .ThenBy(item => item.Span.Level)
             .ThenBy(item => item.Index)
@@ -51,6 +52,7 @@ public static partial class OfficeRasterContentSafety {
         var builder = new OfficeContentSafetyBuilder(ReportFormat, options.Inspection);
         var targets = new Dictionary<string, RasterTarget>(StringComparer.Ordinal);
         var recognizedTargets = new List<RasterTarget>(spans.Length);
+        var concealedTargets = new List<RasterConcealment>();
         long remainingPixelWork = options.MaximumPixelAnalysisWork;
         int visibleSpans = 0;
         for (int index = 0; index < spans.Length; index++) {
@@ -77,38 +79,55 @@ public static partial class OfficeRasterContentSafety {
             OfficeContentCleanupCapability capability = canRedact
                 ? OfficeContentCleanupCapability.RedactRegion
                 : OfficeContentCleanupCapability.ReportOnly;
-            string location = "Frame[1]/Ocr[" + EngineLocationIdentity(engineId) + "]/" + span.Level +
-                "[" + (index + 1).ToString(CultureInfo.InvariantCulture) + "]@" +
-                region.Left.ToString(CultureInfo.InvariantCulture) + "," +
-                region.Top.ToString(CultureInfo.InvariantCulture) + "," +
-                region.Width.ToString(CultureInfo.InvariantCulture) + "," +
-                region.Height.ToString(CultureInfo.InvariantCulture);
-            string evidence = mechanism + " OCR provider '" + SanitizeIdentifier(engineId) + "' returned a bounded " +
-                span.Level.ToString().ToLowerInvariant() + " region at " +
-                region.Left.ToString(CultureInfo.InvariantCulture) + "," +
-                region.Top.ToString(CultureInfo.InvariantCulture) + " with size " +
-                region.Width.ToString(CultureInfo.InvariantCulture) + "x" +
-                region.Height.ToString(CultureInfo.InvariantCulture) + " pixels. " +
-                "The region plus its one-pixel perimeter has maximum pixel contrast " + pixels.MaximumContrast.ToString("0.###", CultureInfo.InvariantCulture) +
-                " and maximum alpha is " + pixels.MaximumAlpha.ToString(CultureInfo.InvariantCulture) + "/255." +
-                (span.Confidence.HasValue
-                    ? " OCR confidence is " + span.Confidence.Value.ToString("0.###", CultureInfo.InvariantCulture) + "."
-                    : " OCR confidence was not supplied, so cleanup remains report-only.");
-            OfficeContentSafetyFinding finding = builder.Add(
+            concealedTargets.Add(new RasterConcealment(
+                target,
+                index,
                 kind,
-                OfficeContentSafetyRisk.ContextDependent,
-                location,
-                evidence,
-                span.Text,
-                capability,
-                inspectTextIntegrityEvidence: false);
-            targets[finding.Id] = target;
+                mechanism,
+                pixels,
+                capability));
         }
         ValidateAggregateTextCoverage(
             result.Text,
             recognizedTargets,
             options,
             cancellationToken);
+        IReadOnlyDictionary<RasterTarget, IReadOnlyList<string>> instructionSignals =
+            ResolveConcealedInstructionSignals(recognizedTargets, concealedTargets, cancellationToken);
+        foreach (RasterConcealment concealed in concealedTargets) {
+            cancellationToken.ThrowIfCancellationRequested();
+            RasterTarget target = concealed.Target;
+            if (string.IsNullOrWhiteSpace(target.Text)) continue;
+            string location = "Frame[1]/Ocr[" + EngineLocationIdentity(engineId) + "]/" + target.Level +
+                "[" + (concealed.Index + 1).ToString(CultureInfo.InvariantCulture) + "]@" +
+                target.Region.Left.ToString(CultureInfo.InvariantCulture) + "," +
+                target.Region.Top.ToString(CultureInfo.InvariantCulture) + "," +
+                target.Region.Width.ToString(CultureInfo.InvariantCulture) + "," +
+                target.Region.Height.ToString(CultureInfo.InvariantCulture);
+            string evidence = concealed.Mechanism + " OCR provider '" + SanitizeIdentifier(engineId) + "' returned a bounded " +
+                target.Level.ToString().ToLowerInvariant() + " region at " +
+                target.Region.Left.ToString(CultureInfo.InvariantCulture) + "," +
+                target.Region.Top.ToString(CultureInfo.InvariantCulture) + " with size " +
+                target.Region.Width.ToString(CultureInfo.InvariantCulture) + "x" +
+                target.Region.Height.ToString(CultureInfo.InvariantCulture) + " pixels. " +
+                "The region plus its one-pixel perimeter has maximum pixel contrast " + concealed.Pixels.MaximumContrast.ToString("0.###", CultureInfo.InvariantCulture) +
+                " and maximum alpha is " + concealed.Pixels.MaximumAlpha.ToString(CultureInfo.InvariantCulture) + "/255." +
+                (target.Confidence.HasValue
+                    ? " OCR confidence is " + target.Confidence.Value.ToString("0.###", CultureInfo.InvariantCulture) + "."
+                    : " OCR confidence was not supplied, so cleanup remains report-only.");
+            OfficeContentSafetyFinding finding = builder.AddWithInstructionSignals(
+                concealed.Kind,
+                OfficeContentSafetyRisk.ContextDependent,
+                location,
+                evidence,
+                target.Text,
+                instructionSignals.TryGetValue(target, out IReadOnlyList<string>? signals)
+                    ? signals
+                    : Array.Empty<string>(),
+                concealed.Capability,
+                inspectTextIntegrityEvidence: false);
+            targets[finding.Id] = target;
+        }
 
         foreach (OcrDiagnostic diagnostic in rawDiagnostics) {
             if (diagnostic == null) continue;
@@ -122,6 +141,72 @@ public static partial class OfficeRasterContentSafety {
             " bounded line, word, or character spans; " +
             visibleSpans.ToString(CultureInfo.InvariantCulture) + " had no bounded concealment evidence.");
         return new AnalysisState(image, builder.Build(), targets, recognizedTargets.AsReadOnly());
+    }
+
+    private static IReadOnlyDictionary<RasterTarget, IReadOnlyList<string>> ResolveConcealedInstructionSignals(
+        IReadOnlyList<RasterTarget> targets,
+        IReadOnlyList<RasterConcealment> concealments,
+        CancellationToken cancellationToken) {
+        var concealed = new HashSet<RasterTarget>(concealments.Select(item => item.Target));
+        var signals = new Dictionary<RasterTarget, IReadOnlyList<string>>();
+        AddLevelSignals(OcrTextSpanLevel.Line, " ");
+        AddLevelSignals(OcrTextSpanLevel.Word, " ");
+        AddLevelSignals(OcrTextSpanLevel.Character, string.Empty);
+        AddMixedSignals();
+        return signals;
+
+        void AddLevelSignals(OcrTextSpanLevel level, string separator) {
+            var run = new List<RasterTarget>();
+            foreach (RasterTarget target in targets) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (target.Level != level) continue;
+                if (!concealed.Contains(target)) {
+                    Flush(run, separator);
+                    continue;
+                }
+                run.Add(target);
+            }
+            Flush(run, separator);
+        }
+
+        void AddMixedSignals() {
+            var run = new List<RasterTarget>();
+            foreach (RasterTarget target in targets) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!concealed.Contains(target)) {
+                    FlushMixed(run);
+                    continue;
+                }
+                run.Add(target);
+            }
+            FlushMixed(run);
+        }
+
+        void Flush(List<RasterTarget> run, string separator) {
+            if (run.Count == 0) return;
+            string text = string.Join(separator, run.Select(item => item.Text));
+            Register(run, OfficeContentInstructionDetector.Detect(text));
+            run.Clear();
+        }
+
+        void FlushMixed(List<RasterTarget> run) {
+            if (run.Count == 0) return;
+            Register(run, OfficeContentInstructionDetector.Detect(
+                FlattenTargetText(run, new HashSet<RasterTarget>(), cancellationToken)));
+            run.Clear();
+        }
+
+        void Register(IReadOnlyList<RasterTarget> run, IReadOnlyList<string> detected) {
+            if (detected.Count == 0) return;
+            foreach (RasterTarget target in run) {
+                if (string.IsNullOrWhiteSpace(target.Text)) continue;
+                if (signals.TryGetValue(target, out IReadOnlyList<string>? existing)) {
+                    signals[target] = existing.Concat(detected).Distinct(StringComparer.Ordinal).ToArray();
+                } else {
+                    signals[target] = detected;
+                }
+            }
+        }
     }
 
     private static void ValidateAggregateTextCoverage(
@@ -420,5 +505,29 @@ public static partial class OfficeRasterContentSafety {
 
         internal double MaximumContrast { get; }
         internal byte MaximumAlpha { get; }
+    }
+
+    private sealed class RasterConcealment {
+        internal RasterConcealment(
+            RasterTarget target,
+            int index,
+            OfficeContentConcealmentKind kind,
+            string mechanism,
+            PixelEvidence pixels,
+            OfficeContentCleanupCapability capability) {
+            Target = target;
+            Index = index;
+            Kind = kind;
+            Mechanism = mechanism;
+            Pixels = pixels;
+            Capability = capability;
+        }
+
+        internal RasterTarget Target { get; }
+        internal int Index { get; }
+        internal OfficeContentConcealmentKind Kind { get; }
+        internal string Mechanism { get; }
+        internal PixelEvidence Pixels { get; }
+        internal OfficeContentCleanupCapability Capability { get; }
     }
 }

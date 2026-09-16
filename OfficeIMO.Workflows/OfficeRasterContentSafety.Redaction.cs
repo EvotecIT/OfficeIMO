@@ -276,7 +276,7 @@ public static partial class OfficeRasterContentSafety {
             throw new InvalidDataException("The redacted PNG changed the source dimensions.");
         }
         byte[] pixels = reopened.PixelBuffer;
-        if (!pixels.AsSpan().SequenceEqual(expected.PixelBuffer)) {
+        if (!PixelBuffersEqual(pixels, expected.PixelBuffer, cancellationToken)) {
             throw new InvalidDataException("The reopened PNG did not preserve the exact normalized redaction pixels.");
         }
         foreach (PixelRegion region in changedRegions) {
@@ -294,5 +294,20 @@ public static partial class OfficeRasterContentSafety {
                 }
             }
         }
+    }
+
+    internal static bool PixelBuffersEqual(
+        byte[] actual,
+        byte[] expected,
+        CancellationToken cancellationToken) {
+        if (actual.Length != expected.Length) return false;
+        const int chunkSize = 64 * 1024;
+        for (int offset = 0; offset < actual.Length; offset += chunkSize) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunkSize, actual.Length - offset);
+            if (!actual.AsSpan(offset, count).SequenceEqual(expected.AsSpan(offset, count))) return false;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return true;
     }
 }
