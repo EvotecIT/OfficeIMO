@@ -11,13 +11,13 @@ order: 80
 | Capability | Export | Import | Current boundary |
 |---|---|---|---|
 | Paragraphs, runs, headings, lists and hyperlinks | Partial | Partial | Export emits external URI links but does not apply internal-anchor navigation; core text and heading styles are native. Native import projects core text and heading styles, flattens list markers, and reports hyperlinks without reconstructing them. Drive-exported DOCX remains the broad-fidelity import choice. |
-| Tables and merged cells | Native | Partial | Export replays table structure and supported styling; native import projects simple cells. |
-| Headers, footers, footnotes and bookmarks | Native | DriveFallback | Native import reports these segments and directs callers to Drive-export import for exact placement. |
-| Document tabs | Native | Native | Reads are tab-aware; callers select one tab or deliberately replace/flatten every tab. |
+| Tables and merged cells | Partial | Partial | Export creates editable tables and supported cell merges, but nested tables inside cells are not represented by the Word inspection snapshot. Native import projects simple cells. |
+| Headers, footers, footnotes and bookmarks | Partial | DriveFallback | Export creates default header/footer segments, supported footnotes, and bookmarks natively; first-page and even-page header/footer variants are skipped, and footnotes inside header/footer segments are not emitted. Native import reports segments without reconstructing their placement; use Drive-exported DOCX for broader import fidelity. |
+| Document tabs | Partial | Flattened | Creation writes to the default tab; replacement targets the first or selected tab, or explicitly replaces every tab. Export does not create a Word-authored tab hierarchy. Native import selects one tab or combines multiple tabs with headings in one Word document, without preserving tab structure. |
 | Comments | Flattened | DriveFallback | Word comments become unanchored Drive comments with author context and replies. |
 | Inline images | Partial | DriveFallback | Export supports placeholders or explicit temporary public Drive leases; Drive export preserves imported binaries. |
-| Page and section layout | Partial | DriveFallback | Supported page size, margins, headers and footers are native; columns and Word-only pagination are reported. |
-| All-caps and tab leaders | Flattened | DriveFallback | All-caps is materialized in text and tab leaders are emitted as characters so appearance survives. |
+| Page and section layout | Partial | DriveFallback | The first section's paper size becomes document-wide; later sections can retain orientation and margins, but not a different paper size. Columns, Word-only pagination, and unsupported header/footer variants are reported. |
+| All-caps and tab leaders | Flattened | DriveFallback | All-caps is materialized in text; tab leaders become fill characters rather than editable tab-leader metadata. |
 | Charts, SmartArt, floating content and embedded objects | Unsupported | DriveFallback | Caller fidelity policy controls fail/skip behavior; Drive DOCX import is the broad read fallback. |
 | Equations, watermarks and content controls | Unsupported | DriveFallback | These features are diagnosed explicitly and are not silently inferred. |
 

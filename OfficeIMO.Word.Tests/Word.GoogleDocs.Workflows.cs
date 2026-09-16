@@ -13,7 +13,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_GoogleDocsFeatureSupportCatalog_IsCodeOwnedAndBidirectional() {
             Assert.NotEmpty(GoogleDocsFeatureSupportCatalog.Features);
-            Assert.Contains(GoogleDocsFeatureSupportCatalog.Features, feature => feature.Feature == "Document tabs" && feature.Export == GoogleDocsFeatureSupportLevel.Native);
+            Assert.Contains(GoogleDocsFeatureSupportCatalog.Features, feature => feature.Feature == "Document tabs"
+                && feature.Export == GoogleDocsFeatureSupportLevel.Partial
+                && feature.Import == GoogleDocsFeatureSupportLevel.Flattened);
             Assert.Contains(GoogleDocsFeatureSupportCatalog.Features, feature => feature.Feature.Contains("hyperlinks", StringComparison.Ordinal) && feature.Import == GoogleDocsFeatureSupportLevel.Partial);
             Assert.Contains(GoogleDocsFeatureSupportCatalog.Features, feature => feature.Import == GoogleDocsFeatureSupportLevel.DriveFallback);
             Assert.All(GoogleDocsFeatureSupportCatalog.Features, feature => Assert.False(string.IsNullOrWhiteSpace(feature.Notes)));
