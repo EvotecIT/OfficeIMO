@@ -598,7 +598,8 @@ public static partial class OfficeSvgDrawingReader {
             char quote = inner[0];
             if (inner.Length < 2 || inner[inner.Length - 1] != quote) return false;
             inner = inner.Substring(1, inner.Length - 2);
-            if (inner.IndexOf(quote) >= 0 || inner.IndexOf('\\') >= 0) return false;
+            if (inner.IndexOf(quote) >= 0 || inner.IndexOf('\\') >= 0 ||
+                inner.IndexOf('\n') >= 0 || inner.IndexOf('\r') >= 0 || inner.IndexOf('\f') >= 0) return false;
         } else {
             foreach (char character in inner) {
                 if (IsSvgCssWhitespace(character) || character == '\'' || character == '"' ||

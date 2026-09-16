@@ -211,6 +211,28 @@ public sealed class SvgContentSafetyStructuralSyntaxTests {
     }
 
     [Theory]
+    [InlineData("&#xA;")]
+    [InlineData("&#xD;")]
+    public void LineBreakInQuotedLocalUrlCannotAuthorizeClippedTextRemoval(string lineBreak) {
+        byte[] svg = Svg("<defs><clipPath id='empty" + lineBreak + "junk'/></defs>" +
+            "<text clip-path=\"url('#empty" + lineBreak + "junk')\" x='10' y='35'>line-break URL payload</text>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "line-break URL payload" &&
+            item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);
+    }
+
+    [Theory]
+    [InlineData("<text style='clip-path:url(&quot;#empty&#xA;junk&quot;)' x='10' y='35'>line-break URL payload</text>")]
+    [InlineData("<style>text{clip-path:url(&quot;#empty&#xD;junk&quot;)}</style><text x='10' y='35'>line-break URL payload</text>")]
+    public void LineBreakInQuotedCssLocalUrlsFailsClosed(string text) {
+        byte[] svg = Svg("<defs><clipPath id='empty&#xA;junk'/><clipPath id='empty&#xD;junk'/></defs>" + text);
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Theory]
     [InlineData("<text style='clip-path:url(&quot;#v\\69 s&quot;)' x='10' y='35'>escaped URL payload</text>")]
     [InlineData("<style>text{clip-path:url(&quot;#v\\69 s&quot;)}</style><text x='10' y='35'>escaped URL payload</text>")]
     public void CssEscapesInQuotedLocalUrlsFailClosed(string text) {
