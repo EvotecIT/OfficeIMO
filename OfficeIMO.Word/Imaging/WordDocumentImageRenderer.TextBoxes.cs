@@ -225,8 +225,9 @@ namespace OfficeIMO.Word {
             double rotationCenterY = top + (height / 2D);
 
             List<OfficeRichTextRun> richRuns = CreateTextBoxRichTextRuns(textBox, colorScheme, listMarkers, context, diagnostics);
-            bool hasListMarkers = textBox.Content?.ChildElements.OfType<W.Paragraph>()
-                .Any(paragraph => CreateListMarker(textBox.Document, paragraph, listMarkers) is { Marker.Length: > 0 }) == true;
+            bool hasListMarkers = textBox.Content != null && EnumerateTextBoxParagraphFragments(textBox.Document, textBox.Content)
+                .Any(fragment => fragment.IncludeMarker &&
+                    CreateListMarker(textBox.Document, fragment.Paragraph, listMarkers) is { Marker.Length: > 0 });
             if (hasListMarkers || ShouldRenderTextBoxAsRichText(textBox, richRuns)) {
                 double maxFontSize = richRuns.Max(run => run.FontSize);
                 double richLineHeight = Math.Max(maxFontSize * 1.25D, 12D);
@@ -418,16 +419,16 @@ namespace OfficeIMO.Word {
             List<OfficeImageExportDiagnostic>? diagnostics = null) {
             DocumentFormat.OpenXml.Wordprocessing.TextBoxContent? content = textBox.Content;
             if (content != null) {
-                List<string> paragraphText = content.ChildElements
-                    .OfType<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()
-                    .Select(paragraph => {
+                List<string> paragraphText = EnumerateTextBoxParagraphFragments(textBox.Document, content)
+                    .Select(fragment => {
                         string resolvedText = string.Concat(
-                            WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph, splitPaginationMarkers: true)
-                                .Select(run => ResolveImageExportText(run, context, diagnostics)));
+                            fragment.Runs.Select(run => ResolveImageExportText(run, context, diagnostics)));
                         string paragraphText = string.IsNullOrEmpty(resolvedText)
-                            ? NormalizeTextBoxParagraphText(paragraph.InnerText)
+                            ? string.Empty
                             : NormalizeTextBoxParagraphText(resolvedText);
-                        WordImageListMarker? marker = CreateListMarker(textBox.Document, paragraph, listMarkers);
+                        WordImageListMarker? marker = fragment.IncludeMarker
+                            ? CreateListMarker(textBox.Document, fragment.Paragraph, listMarkers)
+                            : null;
                         return marker is { Marker.Length: > 0 } visible
                             ? visible.Marker + " " + paragraphText
                             : paragraphText;
@@ -444,6 +445,28 @@ namespace OfficeIMO.Word {
                 .Where(text => !string.IsNullOrEmpty(text))
                 .ToList();
             return string.Join(Environment.NewLine, parts);
+        }
+
+        private static IEnumerable<(W.Paragraph Paragraph, IReadOnlyList<WordParagraph> Runs, bool IncludeMarker)> EnumerateTextBoxParagraphFragments(
+            WordDocument document, W.TextBoxContent content) {
+            foreach (W.Paragraph paragraph in content.ChildElements.OfType<W.Paragraph>()) {
+                var segmentRuns = new List<WordParagraph>();
+                bool includeMarker = true;
+                foreach (WordParagraph run in WordSection.ConvertParagraphToWordParagraphs(document, paragraph, splitPaginationMarkers: true)) {
+                    W.TextBoxContent? nestedContent = run.TextBox?.Content;
+                    if (nestedContent != null) {
+                        if (segmentRuns.Count > 0 || includeMarker) {
+                            yield return (paragraph, segmentRuns, includeMarker);
+                            segmentRuns = new List<WordParagraph>();
+                            includeMarker = false;
+                        }
+                        foreach (var fragment in EnumerateTextBoxParagraphFragments(document, nestedContent)) yield return fragment;
+                    } else {
+                        segmentRuns.Add(run);
+                    }
+                }
+                if (segmentRuns.Count > 0 || includeMarker) yield return (paragraph, segmentRuns, includeMarker);
+            }
         }
 
         private static string NormalizeTextBoxParagraphText(string text) =>
@@ -493,9 +516,11 @@ namespace OfficeIMO.Word {
                 return richRuns;
             }
 
-            foreach (DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph in content.ChildElements.OfType<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()) {
-                WordImageListMarker? marker = CreateListMarker(textBox.Document, paragraph, listMarkers);
-                List<(WordParagraph Run, string Text)> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph, splitPaginationMarkers: true)
+            foreach (var fragment in EnumerateTextBoxParagraphFragments(textBox.Document, content)) {
+                WordImageListMarker? marker = fragment.IncludeMarker
+                    ? CreateListMarker(textBox.Document, fragment.Paragraph, listMarkers)
+                    : null;
+                List<(WordParagraph Run, string Text)> paragraphRuns = fragment.Runs
                     .Select(run => (Run: run, Text: ResolveImageExportText(run, context, diagnostics)))
                     .Where(run => !string.IsNullOrEmpty(run.Text))
                     .ToList();
@@ -506,7 +531,7 @@ namespace OfficeIMO.Word {
                 if (richRuns.Count > 0) {
                     richRuns.Add(paragraphRuns.Count > 0
                         ? CreateRichTextRun(paragraphRuns[0].Run, colorScheme, Environment.NewLine)
-                        : CreateRichTextRun(new WordParagraph(textBox.Document, paragraph), colorScheme, Environment.NewLine));
+                        : CreateRichTextRun(new WordParagraph(textBox.Document, fragment.Paragraph), colorScheme, Environment.NewLine));
                 }
 
                 if (marker is { Marker.Length: > 0 } visible) richRuns.Add(CreateListMarkerRichTextRun(visible));

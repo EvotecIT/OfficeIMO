@@ -169,9 +169,10 @@ namespace OfficeIMO.Word {
                         double lineHeight = Math.Max(maxFontSize * 1.25D, 12D);
                         IReadOnlyList<OfficeRichTextLine> lines;
                         IReadOnlyList<double>? lineIndents = null;
+                        IReadOnlyList<SplitTableCellContentEntry> contentOrder;
                         if (hasMarkerlessList) {
-                            (lines, lineIndents) = LayoutMarkerlessSplitTableCellParagraphs(
-                                paragraphRuns, colorScheme, listMarkers, context, diagnostics, contentWidth);
+                            (lines, lineIndents, contentOrder) = LayoutMarkerlessSplitTableCellParagraphs(
+                                cell, colorScheme, listMarkers, context, diagnostics, contentWidth);
                         } else {
                             OfficeRichTextBlockLayout richLayout = OfficeTextLayoutEngine.LayoutRichTextBlock(
                                 richRuns,
@@ -186,8 +187,8 @@ namespace OfficeIMO.Word {
                                 paragraphIndent: null,
                                 cancellationToken: context.CancellationToken);
                             lines = richLayout.Lines;
+                            contentOrder = CreateSplitTableCellContentOrder(cell, context, contentWidth, lines.Count);
                         }
-                        IReadOnlyList<SplitTableCellContentEntry> contentOrder = CreateSplitTableCellContentOrder(cell, context, contentWidth, lines.Count);
                         cells.Add(SplitTableCellLayout.CreateRich(
                             cellLeftOffset,
                             cellWidth,

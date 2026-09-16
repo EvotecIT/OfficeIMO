@@ -158,6 +158,11 @@ public sealed class WordListMarkerSemanticsTests {
     }
 
     [Fact]
+    public void DetachedParagraphHasNoListInfo() {
+        Assert.Null(WordDocumentTraversal.GetListInfo(new WordParagraph()));
+    }
+
+    [Fact]
     public void HeaderTextBoxNumberingFollowsHeaderAnchorOrder() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
@@ -260,6 +265,23 @@ public sealed class WordListMarkerSemanticsTests {
             run.Color == OfficeColor.FromRgb(255, 0, 0));
         string svg = Encoding.UTF8.GetString(document.ExportImage(OfficeImageExportFormat.Svg).Bytes);
         Assert.Contains("◆", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ImageExportIncludesNestedTextBoxListMarkersOnce() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomBulletList('◆', "Arial", "FF0000");
+        WordTextBox outer = document.AddTextBox("Outer box");
+        WordTextBox nested = outer.Paragraphs[0].AddTextBox("Nested item", WordImageTextWrapping.Square);
+        AttachToList(nested.Paragraphs[0], list.NumberId);
+
+        var snapshot = document.CreateVisualSnapshot();
+        OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(),
+            text => text.PlainText.Contains("Nested item", StringComparison.Ordinal));
+        Assert.Contains("◆", richText.PlainText, StringComparison.Ordinal);
+        Assert.Equal(1, richText.PlainText.Split(new[] { "Nested item" }, StringSplitOptions.None).Length - 1);
+        Assert.Contains(richText.Runs, run => run.Text.Contains("◆", StringComparison.Ordinal) &&
+            run.Color == OfficeColor.FromRgb(255, 0, 0));
     }
 
     [Fact]
@@ -646,6 +668,61 @@ public sealed class WordListMarkerSemanticsTests {
             string.Join(" | ", secondPageRichText.Select(text => text.PlainText)));
         OfficeDrawingRichText unmarked = secondPageRichText.First(text => text.PlainText.StartsWith("Unmarked", StringComparison.Ordinal));
         Assert.True(unmarked.X > plain.X + 45D);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MarkerlessSplitTableTextStaysBeforeNonTextContent(bool useImage) {
+        using WordDocument document = WordDocument.Create();
+        WordSection section = document.Sections[0];
+        section.PageSettings.Width = 5000U;
+        section.PageSettings.Height = 3000U;
+        section.SetMargins(WordMargin.Narrow);
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
+        list.Numbering.Levels[0].IndentationLeft = 1800;
+        WordTable outer = document.AddTable(1, 1);
+        outer.WidthType = WordTableWidthUnit.Dxa;
+        outer.Width = 3600;
+        outer.ColumnWidthType = WordTableWidthUnit.Dxa;
+        outer.ColumnWidth = new List<int> { 3600 };
+        WordTableCell cell = outer.Rows[0].Cells[0];
+        WordParagraph before = cell.Paragraphs[0];
+        before.Text = "BeforeNested " + string.Join(" ", Enumerable.Repeat("wrapped", 8));
+        AttachToList(before, list.NumberId);
+        if (useImage) {
+            cell.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"),
+                20, 20, description: "Ordered image");
+        } else {
+            WordTable nested = cell.AddTable(1, 1);
+            nested.Rows[0].Cells[0].Paragraphs[0].Text = "Nested block";
+        }
+        for (int index = 0; index < 15; index++) cell.AddParagraph("Following line " + index);
+
+        var beforeLines = new List<(int Page, double Bottom)>();
+        (int Page, double Y)? nestedPosition = null;
+        for (int page = 0; page < 4 && nestedPosition == null; page++) {
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = page });
+            beforeLines.AddRange(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>()
+                .Where(text => text.PlainText.Contains("Before", StringComparison.Ordinal) ||
+                    text.PlainText.Contains("wrapped", StringComparison.Ordinal))
+                .Select(text => (page, text.Y + text.Height)));
+            if (useImage) {
+                OfficeDrawingImage? image = snapshot.Drawing.Images.FirstOrDefault(item => item.AlternativeText == "Ordered image");
+                if (image != null) nestedPosition = (page, image.Projection.GetDestinationBounds().Top);
+            } else {
+                OfficeDrawingText? nestedText = snapshot.Drawing.Elements.OfType<OfficeDrawingText>()
+                    .FirstOrDefault(text => text.Text.Contains("Nested block", StringComparison.Ordinal));
+                if (nestedText != null) nestedPosition = (page, nestedText.Y);
+            }
+        }
+        Assert.NotEmpty(beforeLines);
+        Assert.True(nestedPosition.HasValue, "The non-text block was not rendered on the first four pages.");
+        Assert.All(beforeLines, beforeLine => Assert.True(
+            beforeLine.Page < nestedPosition.Value.Page ||
+            beforeLine.Page == nestedPosition.Value.Page && beforeLine.Bottom <= nestedPosition.Value.Y,
+            $"before={beforeLine}, nested={nestedPosition}"));
     }
 
     [Fact]

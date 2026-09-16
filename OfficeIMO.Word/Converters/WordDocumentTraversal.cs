@@ -122,7 +122,7 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">Paragraph to inspect.</param>
         /// <returns>List info for the paragraph or null when paragraph isn't a list item.</returns>
         public static ListInfo? GetListInfo(WordParagraph paragraph) {
-            if (paragraph == null) return null;
+            if (paragraph?._paragraph == null || paragraph._document == null) return null;
             NumberingProperties? direct = paragraph._paragraph?.ParagraphProperties?.NumberingProperties;
             WordListNumberingResolver.StyleCatalog? styleCatalog = direct?.NumberingId?.Val?.Value > 0 &&
                 direct.NumberingLevelReference?.Val?.Value != null
