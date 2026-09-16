@@ -25,6 +25,7 @@ public static class AdfConverter {
     }
 
     /// <summary>Converts an ADF document to an HTML fragment through OfficeIMO.Markdown.</summary>
+    /// <remarks>The report always includes a warning for the intermediate Markdown projection, even if no other fidelity issue is found.</remarks>
     public static AdfConversionResult<string> ToHtml(
         AdfDocument document,
         HtmlOptions? htmlOptions = null,
@@ -54,6 +55,7 @@ public static class AdfConverter {
     }
 
     /// <summary>Converts HTML to ADF through OfficeIMO.Html and OfficeIMO.Markdown.Html.</summary>
+    /// <remarks>The report always includes a warning for the intermediate Markdown projection.</remarks>
     public static AdfConversionResult<AdfDocument> FromHtml(string html, HtmlToMarkdownOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
         MarkdownDoc markdown = HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);

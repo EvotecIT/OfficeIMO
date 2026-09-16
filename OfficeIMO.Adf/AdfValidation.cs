@@ -2,8 +2,11 @@ namespace OfficeIMO.Adf;
 
 /// <summary>Severity of an ADF validation issue.</summary>
 public enum AdfValidationSeverity {
+    /// <summary>Records validation information without affecting validity.</summary>
     Information,
+    /// <summary>Records a concern that does not by itself invalidate the document.</summary>
     Warning,
+    /// <summary>Records a structural error that makes the validation result invalid.</summary>
     Error,
 }
 
@@ -16,16 +19,27 @@ public sealed class AdfValidationIssue {
         Severity = severity;
     }
 
+    /// <summary>Gets the identifier of the validation rule that produced this issue.</summary>
     public string Code { get; }
+
+    /// <summary>Gets the JSON-style path to the affected document value.</summary>
     public string Path { get; }
+
+    /// <summary>Gets the human-readable reason for the issue.</summary>
     public string Message { get; }
+
+    /// <summary>Gets the issue severity used to determine whether validation succeeded.</summary>
     public AdfValidationSeverity Severity { get; }
 }
 
 /// <summary>Result of validating an ADF document.</summary>
 public sealed class AdfValidationResult {
     internal AdfValidationResult(IReadOnlyList<AdfValidationIssue> issues) => Issues = issues;
+    /// <summary>Gets the issues found while validating the document, including non-fatal warnings.</summary>
     public IReadOnlyList<AdfValidationIssue> Issues { get; }
+
+    /// <summary>Gets whether the issue list contains no <see cref="AdfValidationSeverity.Error"/> entries.</summary>
+    /// <remarks>Unknown node and mark types may produce warnings while this value remains <see langword="true"/>.</remarks>
     public bool IsValid => !Issues.Any(issue => issue.Severity == AdfValidationSeverity.Error);
 }
 
