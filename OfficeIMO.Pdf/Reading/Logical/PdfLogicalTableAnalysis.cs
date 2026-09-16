@@ -182,7 +182,8 @@ public static class PdfLogicalTableAnalysis {
             document.SourceFidelityFacts.HasTaggedContent,
             maximumComparisons,
             hasSourceSecurityState: document.HasSecurityState,
-            pageLabelCount: document.PageLabels.Count);
+            pageLabelCount: document.PageLabels.Count,
+            hasDocumentMetadata: document.SourceFidelityFacts.HasDocumentMetadata);
     }
 
     /// <summary>
@@ -232,7 +233,8 @@ public static class PdfLogicalTableAnalysis {
         bool hasTaggedContent,
         int maximumComparisons,
         bool hasSourceSecurityState = false,
-        int pageLabelCount = 0) {
+        int pageLabelCount = 0,
+        bool hasDocumentMetadata = false) {
 #pragma warning disable CA1512 // ThrowIfNegative is unavailable on netstandard2.0 and net472.
         if (maximumComparisons < 0) throw new ArgumentOutOfRangeException(nameof(maximumComparisons));
 #pragma warning restore CA1512
@@ -310,7 +312,8 @@ public static class PdfLogicalTableAnalysis {
             hasTaggedContent,
             analysisTruncated,
             hasSourceSecurityState,
-            pageLabelCount);
+            pageLabelCount,
+            hasDocumentMetadata);
     }
 
     private static int CountOutlines(IReadOnlyList<PdfOutlineItem> outlines) {

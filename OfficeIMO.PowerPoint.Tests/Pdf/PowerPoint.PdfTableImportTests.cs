@@ -911,6 +911,64 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
+    public void PdfPowerPointConversionReport_ClassifiesOmittedEditableTableContentAsOmission() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Text outside a table"))
+            .ToBytes();
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
+            .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateEditableTables());
+        using (result.Value) {
+            PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings,
+                static item => item.Code == "PdfTextNotEditable");
+            Assert.Equal("Omitted", warning.Details["Disposition"]);
+            Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
+            Assert.True(result.HasOmittedPageContent);
+        }
+    }
+
+    [Fact]
+    public void PdfPowerPointConversionReport_ClassifiesPartiallyOmittedHybridContentAsOmission() {
+        var successfulRender = new PdfCore.PdfPageRenderResult(
+            1, PdfCore.PdfPageRenderFormat.Png, new byte[] { 1 }, 1, 1, TimeSpan.Zero,
+            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>());
+        var failedRender = new PdfCore.PdfPageRenderResult(
+            2, PdfCore.PdfPageRenderFormat.Png, null, 0, 0, TimeSpan.Zero,
+            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>(), new[] { "render failed" });
+        var sourceScope = new PdfCore.PdfTableExtractionScopeReport(
+            sourcePageCount: 2, pagesWithTables: 0, detectedTableCount: 0,
+            nonTableTextBlockCount: 2, vectorPrimitiveCount: 0, imageCount: 0,
+            linkCount: 0, formWidgetCount: 0, formFieldCount: 0, hasAcroFormXfa: false,
+            annotationCount: 0, pageActionCount: 0, catalogActionCount: 0,
+            hasOpenAction: false, documentActionCount: 0, optionalContentGroupCount: 0,
+            pagesWithOptionalContent: 0, interactiveMediaAnnotationCount: 0,
+            unplacedFormFieldCount: 0, outlineCount: 0, attachmentCount: 0,
+            hasTaggedContent: false, analysisTruncated: false);
+        var failedScope = new PdfCore.PdfTableExtractionScopeReport(
+            sourcePageCount: 1, pagesWithTables: 0, detectedTableCount: 0,
+            nonTableTextBlockCount: 1, vectorPrimitiveCount: 0, imageCount: 0,
+            linkCount: 0, formWidgetCount: 0, formFieldCount: 0, hasAcroFormXfa: false,
+            annotationCount: 0, pageActionCount: 0, catalogActionCount: 0,
+            hasOpenAction: false, documentActionCount: 0, optionalContentGroupCount: 0,
+            pagesWithOptionalContent: 0, interactiveMediaAnnotationCount: 0,
+            unplacedFormFieldCount: 0, outlineCount: 0, attachmentCount: 0,
+            hasTaggedContent: false, analysisTruncated: false);
+        var report = new PdfPowerPointConversionReport(
+            Array.Empty<PdfPowerPointTableImportEntry>(),
+            new[] {
+                new PdfPowerPointVisualPageEntry(successfulRender, slideIndex: 0),
+                new PdfPowerPointVisualPageEntry(failedRender, slideIndex: 1)
+            },
+            sourceScope,
+            failedScope);
+
+        PdfCore.PdfConversionWarning warning = Assert.Single(report.Warnings,
+            static item => item.Code == "PdfTextNotEditable");
+        Assert.Equal("PartiallyOmitted", warning.Details["Disposition"]);
+        Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
+        Assert.True(report.HasOmittedPageContent);
+    }
+
+    [Fact]
     public void PdfTables_SaveTablesAsPowerPoint_ImportsDetectedTablesAsPowerPointTables() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,

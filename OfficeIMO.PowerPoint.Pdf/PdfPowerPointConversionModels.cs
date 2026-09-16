@@ -235,6 +235,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             SourceScope.HasTaggedContent ||
             SourceScope.HasSourceSecurityState ||
             SourceScope.PageLabelCount > 0 ||
+            SourceScope.HasDocumentMetadata ||
             hasFailedVisualPages && failedVisualScope.HasOmittedPageContent;
         var warnings = new List<OfficeIMO.Pdf.PdfConversionWarning>(CreateProjectionWarnings(
             SourceScope,
@@ -335,6 +336,9 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         AddDocumentOmissionWarning(warnings, "PdfPageLabelsNotReconstructed", "Page labels",
             CountSelectedPageLabelRules(sourceInfo.PageLabels, visualPages),
             "page-label rules");
+        AddDocumentOmissionWarning(warnings, "PdfMetadataNotReconstructed", "Document metadata",
+            sourceInfo.Metadata.HasContent || sourceInfo.HasXmpMetadata ? 1 : 0,
+            "document metadata");
         AddDocumentOmissionWarning(warnings, "PdfOptionalContentGroupsFlattened", "Optional content",
             optionalContentUsage.PagesWithUsage,
             "optional-content layer controls");
@@ -471,6 +475,8 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             scope.HasSourceSecurityState ? 1 : 0, "encryption, signature, permission, or revision state");
         AddDocumentOmissionWarning(warnings, "PdfPageLabelsNotReconstructed", "Page labels",
             scope.PageLabelCount, "page-label rules");
+        AddDocumentOmissionWarning(warnings, "PdfMetadataNotReconstructed", "Document metadata",
+            scope.HasDocumentMetadata ? 1 : 0, "document metadata");
         AddProjectionWarning(warnings, "PdfAnnotationsNotEditable", "Annotations", scope.AnnotationCount,
             failedVisualScope?.AnnotationCount ?? scope.AnnotationCount, hasVisualLayer, hasFailedVisualPages, pageCorrelationAvailable: true,
             description: "annotations", visualOnlyLossKind: OfficeConversionLossKind.Approximation);
@@ -498,6 +504,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
                 disposition == ProjectionDisposition.VisualOnly
                     ? OfficeIMO.Pdf.PdfConversionWarningSeverity.Information
                     : OfficeIMO.Pdf.PdfConversionWarningSeverity.Warning,
+                GetProjectionLossKind(disposition, OfficeConversionLossKind.Approximation),
                 details: new Dictionary<string, string> {
                     ["Disposition"] = GetDispositionValue(disposition)
                 }));
@@ -537,9 +544,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             disposition == ProjectionDisposition.VisualOnly
                 ? OfficeIMO.Pdf.PdfConversionWarningSeverity.Information
                 : OfficeIMO.Pdf.PdfConversionWarningSeverity.Warning,
-            disposition == ProjectionDisposition.VisualOnly
-                ? visualOnlyLossKind
-                : OfficeConversionLossKind.Approximation,
+            GetProjectionLossKind(disposition, visualOnlyLossKind),
             details: new Dictionary<string, string> {
                 ["Count"] = count.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["Disposition"] = GetDispositionValue(disposition)
@@ -594,6 +599,14 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         ProjectionDisposition.PartiallyOmitted => "PartiallyOmitted",
         _ => "Unknown"
     };
+
+    private static OfficeConversionLossKind GetProjectionLossKind(
+        ProjectionDisposition disposition,
+        OfficeConversionLossKind visualOnlyLossKind) => disposition switch {
+            ProjectionDisposition.VisualOnly => visualOnlyLossKind,
+            ProjectionDisposition.Omitted or ProjectionDisposition.PartiallyOmitted => OfficeConversionLossKind.Omission,
+            _ => OfficeConversionLossKind.Approximation
+        };
 
     private enum ProjectionDisposition {
         VisualOnly,

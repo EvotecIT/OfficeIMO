@@ -430,6 +430,24 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Theory]
+    [InlineData(46)] // Second component XRsiz differs from the first component.
+    [InlineData(47)] // Second component YRsiz differs from the first component.
+    public void ImageValidationRejectsComponentTransformWithMismatchedSampling(int samplingOffset) {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        byte[] rawCodestream = payload.Skip(codestream).ToArray();
+        int codingStyle = FindMarker(rawCodestream, 0xFF, 0x52);
+        rawCodestream[codingStyle + 8] = 1;
+        Assert.True(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2c", out _));
+        Assert.Equal(1, rawCodestream[samplingOffset]);
+        rawCodestream[samplingOffset] = 2;
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(rawCodestream, "scan.j2c", out _));
+        Assert.False(OfficeJpeg2000Header.TryValidateOpaquePayload(rawCodestream, out _, out _, out _));
+        Assert.False(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2c", out _));
+    }
+
+    [Theory]
     [InlineData(0, 0x43)] // Quantization style 3 is reserved.
     public void ImageValidationRejectsJpeg2000CodestreamWithInvalidQuantizationDefaultField(
         int fieldOffset,
@@ -503,6 +521,26 @@ public partial class PdfPageImageRendererTests {
         rawCodestream[tilePart + tilePartFieldOffset] = (byte)invalidValue;
 
         Assert.True(OfficeImageReader.TryIdentifyByContent(rawCodestream, "scan.j2c", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2c", out _));
+    }
+
+    [Theory]
+    [InlineData(0x90)] // A nested SOT marker cannot begin inside bounded packet data.
+    [InlineData(0x93)] // A nested SOD marker cannot begin inside bounded packet data.
+    [InlineData(0xD9)] // EOC before the declared tile-part end terminates the codestream prematurely.
+    public void ImageValidationRejectsPrematureMarkersInsideBoundedPacketData(int markerCode) {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        byte[] rawCodestream = payload.Skip(codestream).ToArray();
+        Assert.True(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2c", out _));
+        int tilePart = FindMarker(rawCodestream, 0xFF, 0x90);
+        int startOfData = FindMarker(rawCodestream, 0xFF, 0x93);
+        int tilePartEnd = tilePart + ReadUInt32BigEndian(rawCodestream, tilePart + 6);
+        Assert.True(startOfData + 4 <= tilePartEnd);
+        rawCodestream[startOfData + 2] = 0xFF;
+        rawCodestream[startOfData + 3] = (byte)markerCode;
+
+        Assert.False(OfficeJpeg2000Header.TryValidateOpaquePayload(rawCodestream, out _, out _, out _));
         Assert.False(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2c", out _));
     }
 

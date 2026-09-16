@@ -948,6 +948,44 @@ public class PdfTableStreamExportContracts {
     }
 
     [Fact]
+    public void TableAndPowerPointConversionsReportOmittedDocumentMetadata() {
+        PdfDocument opened = PdfDocument.Load(PdfDocument.Create()
+                .Paragraph(paragraph => paragraph.Text("Invoice metadata source"))
+                .ToBytes())
+            .UpdateMetadata(title: "Invoice", author: "Accounts payable");
+        PdfDocumentReadResult logical = opened.Read();
+        PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+        Assert.True(scope.HasDocumentMetadata);
+        Assert.True(scope.HasOmittedPageContent);
+
+        PdfExcelTableImportResult excel = logical.ImportTablesToExcelDocumentResult();
+        PdfPowerPointConversionResult tables = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableTables());
+        PdfPowerPointConversionResult editable = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult hybrid = opened.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateHybrid());
+        PdfPowerPointConversionResult visual = opened.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateVisualPages());
+        using (excel.Value)
+        using (tables.Value)
+        using (editable.Value)
+        using (hybrid.Value)
+        using (visual.Value) {
+            Assert.True(excel.HasLoss);
+            Assert.Throws<InvalidOperationException>(() => excel.RequireNoLoss());
+            Assert.All(new[] { tables, editable, hybrid, visual }, static result => {
+                Assert.True(result.HasLoss);
+                Assert.True(result.HasOmittedPageContent);
+                Assert.Contains(result.Warnings, static warning =>
+                    warning.Code == "PdfMetadataNotReconstructed" &&
+                    warning.LossKind == OfficeConversionLossKind.Omission);
+                Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+            });
+        }
+    }
+
+    [Fact]
     public void LogicalPowerPointEditableContent_CountsEachOmittedVectorOnce() {
         byte[] source = PdfDocument.Create()
             .Rectangle(

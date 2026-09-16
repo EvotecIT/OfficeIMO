@@ -242,10 +242,17 @@ internal static class OfficeJpeg2000Header {
         ulong tileCountValue = tilesAcross * tilesDown;
         if (tileCountValue == 0 || tileCountValue > ushort.MaxValue) return false;
         var parsedComponentPrecisions = new byte[components];
+        byte firstHorizontalSampling = bytes[start + 43];
+        byte firstVerticalSampling = bytes[start + 44];
+        bool transformComponentsHaveMatchingSampling = true;
         for (int i = 0; i < components; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             int component = start + 42 + i * 3;
             if ((bytes[component] & 127) > 15 || bytes[component + 1] == 0 || bytes[component + 2] == 0) return false;
+            if (i < 3 && (bytes[component + 1] != firstHorizontalSampling ||
+                          bytes[component + 2] != firstVerticalSampling)) {
+                transformComponentsHaveMatchingSampling = false;
+            }
             parsedComponentPrecisions[i] = bytes[component];
         }
         if (requireCompleteCodestream && !HasCompleteCodestream(
@@ -254,6 +261,7 @@ internal static class OfficeJpeg2000Header {
             end,
             (int)tileCountValue,
             components,
+            transformComponentsHaveMatchingSampling,
             cancellationToken)) return false;
         componentPrecisions = parsedComponentPrecisions;
         return true;
@@ -286,6 +294,7 @@ internal static class OfficeJpeg2000Header {
         int end,
         int tileCount,
         int components,
+        bool transformComponentsHaveMatchingSampling,
         CancellationToken cancellationToken) {
         if (end - markerOffset < 16 || bytes[end - 2] != 0xFF || bytes[end - 1] != 0xD9) return false;
 
@@ -294,6 +303,7 @@ internal static class OfficeJpeg2000Header {
         bool hasQuantizationDefault = false;
         int mainDecompositionLevels = 0;
         int? mainQuantizationLevels = null;
+        byte mainPacketMarkerFlags = 0;
         while (offset < end - 2 && !IsMarker(bytes, offset, 0x90)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!TryGetMarkerCode(bytes, offset, end - 2, out byte marker, out int segmentOffset)) return false;
@@ -304,7 +314,9 @@ internal static class OfficeJpeg2000Header {
                         segmentOffset,
                         end - 2,
                         components,
-                        out mainDecompositionLevels)) return false;
+                        transformComponentsHaveMatchingSampling,
+                        out mainDecompositionLevels,
+                        out mainPacketMarkerFlags)) return false;
                 hasCodingStyleDefault = true;
             } else if (marker == 0x5C) {
                 if (hasQuantizationDefault || !TryValidateQuantizationDefault(
@@ -327,9 +339,11 @@ internal static class OfficeJpeg2000Header {
         var seenTiles = new bool[tileCount];
         var tileDecompositionLevels = new int[tileCount];
         var tileQuantizationLevels = new int?[tileCount];
+        var tilePacketMarkerFlags = new byte[tileCount];
         for (int tileIndex = 0; tileIndex < tileCount; tileIndex++) {
             tileDecompositionLevels[tileIndex] = mainDecompositionLevels;
             tileQuantizationLevels[tileIndex] = mainQuantizationLevels;
+            tilePacketMarkerFlags[tileIndex] = mainPacketMarkerFlags;
         }
         while (offset < end - 2) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -376,7 +390,9 @@ internal static class OfficeJpeg2000Header {
                             tileSegmentOffset,
                             tilePartEnd,
                             components,
-                            out tileDecompositionLevels[tileIndex])) return false;
+                            transformComponentsHaveMatchingSampling,
+                            out tileDecompositionLevels[tileIndex],
+                            out tilePacketMarkerFlags[tileIndex])) return false;
                     hasTileCodingStyleDefault = true;
                 } else if (tileMarker == 0x5C) {
                     if (hasTileQuantizationDefault || !TryValidateQuantizationDefault(
@@ -394,6 +410,12 @@ internal static class OfficeJpeg2000Header {
                     tileDecompositionLevels[tileIndex],
                     tileQuantizationLevels[tileIndex])) return false;
             if (!IsMarker(bytes, tileHeaderOffset, 0x93) || tileHeaderOffset + 2 >= tilePartEnd) return false;
+            if (!HasValidPacketDataMarkers(
+                    bytes,
+                    tileHeaderOffset + 2,
+                    tilePartEnd,
+                    tilePacketMarkerFlags[tileIndex],
+                    cancellationToken)) return false;
 
             foundTilePart = true;
             offset = tilePartEnd;
@@ -414,8 +436,11 @@ internal static class OfficeJpeg2000Header {
         int markerOffset,
         int limit,
         int components,
-        out int decompositionLevels) {
+        bool transformComponentsHaveMatchingSampling,
+        out int decompositionLevels,
+        out byte packetMarkerFlags) {
         decompositionLevels = 0;
+        packetMarkerFlags = 0;
         if (limit - markerOffset < 14 || !IsMarker(bytes, markerOffset, 0x52)) return false;
         int length = Read16(bytes, markerOffset + 2);
         if (length < 12 || length > limit - markerOffset - 2) return false;
@@ -428,6 +453,7 @@ internal static class OfficeJpeg2000Header {
             Read16(bytes, content + 2) == 0 ||
             bytes[content + 4] > 1 ||
             (components < 3 && bytes[content + 4] != 0) ||
+            (!transformComponentsHaveMatchingSampling && bytes[content + 4] != 0) ||
             levels > 32 ||
             bytes[content + 6] > 8 ||
             bytes[content + 7] > 8 ||
@@ -437,6 +463,42 @@ internal static class OfficeJpeg2000Header {
         int precinctBytes = (codingStyle & 0x01) != 0 ? levels + 1 : 0;
         if (length != 12 + precinctBytes) return false;
         decompositionLevels = levels;
+        packetMarkerFlags = (byte)(codingStyle & 0x06);
+        return true;
+    }
+
+    private static bool HasValidPacketDataMarkers(
+        byte[] bytes,
+        int start,
+        int end,
+        byte packetMarkerFlags,
+        CancellationToken cancellationToken) {
+        bool allowStartOfPacket = (packetMarkerFlags & 0x02) != 0;
+        bool allowEndOfPacketHeader = (packetMarkerFlags & 0x04) != 0;
+        int offset = start;
+        while (offset < end) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (bytes[offset] != 0xFF) {
+                offset++;
+                continue;
+            }
+            if (offset + 1 >= end) return false;
+            byte marker = bytes[offset + 1];
+            if (marker <= 0x8F) {
+                offset += 2;
+                continue;
+            }
+            if (marker == 0x91 && allowStartOfPacket) {
+                if (offset + 6 > end || Read16(bytes, offset + 2) != 4) return false;
+                offset += 6;
+                continue;
+            }
+            if (marker == 0x92 && allowEndOfPacketHeader) {
+                offset += 2;
+                continue;
+            }
+            return false;
+        }
         return true;
     }
 

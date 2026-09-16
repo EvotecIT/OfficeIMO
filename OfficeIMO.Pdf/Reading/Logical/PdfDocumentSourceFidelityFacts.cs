@@ -19,6 +19,7 @@ internal readonly struct PdfDocumentSourceFidelityFacts {
         RelevantFormFieldCount = CountRelevantFormFields(_formFields, selectedPageNumbers, document.Pages.Count);
         OptionalContentGroupCount = document.OptionalContent?.Groups.Count ?? 0;
         HasTaggedContent = document.TaggedContent != null;
+        HasDocumentMetadata = document.UncheckedMetadata.HasContent || document.UncheckedXmpMetadata != null;
         StructureElementCount = document.TaggedContent?.StructureElementCount ?? 0;
         MarkedContentReferenceCount = document.TaggedContent?.MarkedContentReferenceCount ?? 0;
     }
@@ -34,6 +35,7 @@ internal readonly struct PdfDocumentSourceFidelityFacts {
         RelevantFormFieldCount = relevantFormFieldCount;
         OptionalContentGroupCount = source.OptionalContentGroupCount;
         HasTaggedContent = source.HasTaggedContent;
+        HasDocumentMetadata = source.HasDocumentMetadata;
         StructureElementCount = source.StructureElementCount;
         MarkedContentReferenceCount = source.MarkedContentReferenceCount;
     }
@@ -56,6 +58,7 @@ internal readonly struct PdfDocumentSourceFidelityFacts {
     internal int RelevantFormFieldCount { get; }
     internal int OptionalContentGroupCount { get; }
     internal bool HasTaggedContent { get; }
+    internal bool HasDocumentMetadata { get; }
     internal int StructureElementCount { get; }
     internal int MarkedContentReferenceCount { get; }
 
