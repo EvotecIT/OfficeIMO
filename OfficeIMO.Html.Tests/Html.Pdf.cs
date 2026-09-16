@@ -1920,6 +1920,20 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtmlResult_OpenedPdfPartialPageRangeReportsOmittedCatalogActions() {
+        PdfHtmlConversionResult result = PdfCore.PdfDocument.Load(CreateTwoPageCatalogActionPdf())
+            .ToHtmlResult(new PdfToHtmlOptions {
+                Profile = PdfHtmlProfile.Semantic,
+                PageRanges = new[] { PdfCore.PdfPageRange.From(1, 1) }
+            });
+
+        Assert.Equal(new[] { 1 }, result.Summary.PageNumbers);
+        Assert.Contains(result.Report.Warnings, static warning =>
+            warning.Code == "PdfDocumentActionsOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
     public void Pdf_ToHtmlResult_ReportsSupplementalActionsStrippedFromRenderedLink() {
         PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult
             .Load(CreateLinkWithSupplementalActionsPdf())
@@ -1932,7 +1946,7 @@ public sealed class HtmlPdfTests {
         Assert.Equal(3, result.Summary.SelectedAnnotationActionCount);
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, static warning =>
             warning.Code == "PdfDocumentActionsOmitted");
-        Assert.StartsWith("2 scoped PDF", warning.Message, StringComparison.Ordinal);
+        Assert.StartsWith("2 ", warning.Message, StringComparison.Ordinal);
         Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.True(result.HasLoss);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());

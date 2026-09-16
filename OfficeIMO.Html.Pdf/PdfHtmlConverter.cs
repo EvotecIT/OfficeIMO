@@ -1019,10 +1019,8 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         PdfCore.PdfExtractedImage sourceImage = image.SourceImage;
-        if (!sourceImage.IsImageFile || string.IsNullOrWhiteSpace(sourceImage.MimeType) ||
-            string.Equals(sourceImage.MimeType, "image/j2c", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(sourceImage.FileExtension?.TrimStart('.'), "j2c", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(sourceImage.FileExtension?.TrimStart('.'), "j2k", StringComparison.OrdinalIgnoreCase)) {
+        if (!sourceImage.IsImageFile ||
+            !OfficeIMO.Drawing.OfficeImageInfo.IsBrowserPreviewSafeContentType(sourceImage.MimeType)) {
             AddWarning(
                 options,
                 "ImageDataUnavailable",

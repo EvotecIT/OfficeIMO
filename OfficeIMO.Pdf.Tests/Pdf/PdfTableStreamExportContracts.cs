@@ -662,6 +662,78 @@ public class PdfTableStreamExportContracts {
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SelectedPageConversionsReportUnplacedDocumentFormDefinitions(bool unplacedWidget) {
+        byte[] source = BuildDocumentLevelFormPdf(useXfa: false, unplacedWidget: unplacedWidget, twoPages: true);
+        PdfDocument opened = PdfDocument.Load(source);
+        PdfDocumentReadResult selected = opened.Read(new PdfReadOptions {
+            PageSelection = PdfPageSelection.From(1)
+        });
+        Assert.Empty(selected.FormFields);
+        PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(selected);
+        Assert.Equal(1, scope.FormFieldCount);
+        Assert.Equal(1, scope.UnplacedFormFieldCount);
+
+        PdfWordConversionResult word = opened.ToWordDocumentResult(new PdfToWordOptions {
+            ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) }
+        });
+        using (word.Value) {
+            Assert.Contains(word.Report.Warnings, static warning =>
+                warning.Code == "PdfFormDefinitionsNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission &&
+                warning.Details["UnplacedFieldCount"] == "1");
+        }
+
+        PdfHtmlConversionResult html = opened.ToHtmlResult(new PdfToHtmlOptions {
+            PageRanges = new[] { PdfPageRange.From(1, 1) }
+        });
+        Assert.Contains(html.Report.Warnings, static warning =>
+            warning.Code == "PdfFormDefinitionsOmitted" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
+    public void SelectedPageTableScopeDoesNotCountFormsOnlyOnOtherPages() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First page"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .ToBytes();
+        byte[] withForm = PdfAcroFormEditor.Edit(source, edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "SecondPageOnly",
+            Kind = PdfFormFieldCreationKind.Text,
+            PageNumber = 2,
+            X = 72,
+            Y = 500,
+            Width = 180,
+            Height = 24
+        })).ToBytes();
+        PdfDocumentReadResult selected = PdfDocument.Load(withForm).Read(new PdfReadOptions {
+            PageSelection = PdfPageSelection.From(1)
+        });
+
+        Assert.Empty(selected.FormFields);
+        PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(selected);
+        Assert.Equal(0, scope.FormFieldCount);
+        Assert.Equal(0, scope.UnplacedFormFieldCount);
+    }
+
+    [Fact]
+    public void SelectedPageTableScopeCountsMixedPlacedAndUnplacedFieldOnce() {
+        byte[] source = BuildDocumentLevelFormPdf(useXfa: false, twoPages: true, mixedWidgets: true);
+        PdfDocumentReadResult selected = PdfDocument.Load(source).Read(new PdfReadOptions {
+            PageSelection = PdfPageSelection.From(1)
+        });
+
+        PdfFormField field = Assert.Single(selected.FormFields);
+        Assert.False(field.HasUnplacedContent);
+        PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(selected);
+        Assert.Equal(1, scope.FormFieldCount);
+        Assert.Equal(1, scope.UnplacedFormFieldCount);
+    }
+
     [Fact]
     public void TableScopeIncludesDocumentOutlinesAndAttachments() {
         byte[] source = PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true })
@@ -1195,15 +1267,18 @@ public class PdfTableStreamExportContracts {
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildDocumentLevelFormPdf(bool useXfa, bool unplacedWidget = false) {
+    private static byte[] BuildDocumentLevelFormPdf(bool useXfa, bool unplacedWidget = false, bool twoPages = false, bool mixedWidgets = false) {
         string acroForm = useXfa
             ? "<< /Fields [] /XFA (unsupported-packet) >>"
             : "<< /Fields [6 0 R] >>";
         string field = useXfa
             ? string.Empty
             : "6 0 obj\n<< /FT /Tx /T (InvoiceReference) /V (INV-1001)" +
-              (unplacedWidget ? " /Kids [7 0 R]" : string.Empty) + " >>\nendobj\n";
-        string widget = unplacedWidget
+              (mixedWidgets ? " /Kids [7 0 R 10 0 R]" : unplacedWidget ? " /Kids [7 0 R]" : string.Empty) + " >>\nendobj\n";
+        string widget = mixedWidgets
+            ? "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /P 3 0 R /Rect [20 20 120 40] >>\nendobj\n" +
+              "10 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 50 120 70] >>\nendobj\n"
+            : unplacedWidget
             ? "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 120 40] >>\nendobj\n"
             : string.Empty;
         string pdf = string.Join("\n", new[] {
@@ -1212,10 +1287,14 @@ public class PdfTableStreamExportContracts {
             "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
             "endobj",
             "2 0 obj",
-            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            twoPages
+                ? "<< /Type /Pages /Count 2 /Kids [3 0 R 8 0 R] >>"
+                : "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "endobj",
             "3 0 obj",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 4 0 R >>",
+            mixedWidgets
+                ? "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 4 0 R /Annots [7 0 R] >>"
+                : "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 4 0 R >>",
             "endobj",
             "4 0 obj",
             "<< /Length 0 >>",
@@ -1228,6 +1307,9 @@ public class PdfTableStreamExportContracts {
             "endobj",
             field,
             widget,
+            twoPages
+                ? "8 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 9 0 R >>\nendobj\n9 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj"
+                : string.Empty,
             "trailer",
             "<< /Root 1 0 R >>",
             "%%EOF"

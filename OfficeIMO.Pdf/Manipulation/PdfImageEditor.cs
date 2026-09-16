@@ -179,8 +179,11 @@ internal static partial class PdfImageEditor {
         if (image.Interpolate) {
             throw new NotSupportedException("Moving this image is not supported because its interpolation setting cannot be preserved during restamping.");
         }
-        bool isJpeg = string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal);
-        bool isJpeg2000 = string.Equals(image.Filter, "JPXDecode", StringComparison.Ordinal);
+        // The extracted payload type identifies pass-through JPEG/JPX even when the source
+        // uses a prefix filter chain; Filter is only a lossy display string.
+        bool isJpeg = string.Equals(image.MimeType, "image/jpeg", StringComparison.Ordinal);
+        bool isJpeg2000 = string.Equals(image.MimeType, "image/jp2", StringComparison.Ordinal) ||
+            string.Equals(image.MimeType, "image/j2c", StringComparison.Ordinal);
         if ((isJpeg || isJpeg2000) && image.HasUnsafePassThroughDecode) {
             throw new NotSupportedException("Moving this encoded image is not supported because its PDF Decode semantics would be lost during restamping.");
         }

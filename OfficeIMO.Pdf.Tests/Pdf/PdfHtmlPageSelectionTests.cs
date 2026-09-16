@@ -88,7 +88,8 @@ public sealed class PdfHtmlPageSelectionTests {
         Assert.DoesNotContain(firstPageWord.Report.Warnings, static warning =>
             warning.Code == "PdfOptionalContentGroupsFlattened");
         Assert.Contains(secondPageWord.Report.Warnings, static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened");
+            warning.Code == "PdfOptionalContentGroupsFlattened" &&
+            warning.Details["GroupCount"] == "1");
     }
 
     [Fact]

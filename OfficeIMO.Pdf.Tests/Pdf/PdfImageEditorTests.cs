@@ -304,6 +304,39 @@ public class PdfImageEditorTests {
         Assert.Contains("Decode", exception.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MoveHandlesDecodeAfterPrefixFilterAccordingToExtractedPayload(bool jpeg2000) {
+        byte[] imageBytes = jpeg2000
+            ? File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Pdf", "Fixtures", "Interoperability", "Scans", "red-rgb.jp2"))
+            : OfficeIMO.Drawing.OfficeJpegCodec.Encode(
+                OfficeIMO.Drawing.OfficeRasterImage.FromRgba32(1, 1, new byte[] { 255, 0, 0, 255 }),
+                new OfficeIMO.Drawing.OfficeJpegEncodeOptions { Quality = 100, Subsampling = OfficeIMO.Drawing.OfficeJpegSubsampling.Y444 });
+        byte[] asciiHex = Encoding.ASCII.GetBytes(BitConverter.ToString(imageBytes).Replace("-", "") + ">");
+        string encodedFilter = jpeg2000 ? "JPXDecode" : "DCTDecode";
+        PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            imageBytes: asciiHex,
+            imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter [/ASCIIHexDecode /" + encodedFilter + "] /Decode [1 0 1 0 1 0]"));
+        PdfExtractedImage image = Assert.Single(document.Reader.Images());
+        Assert.True(image.IsImageFile);
+        Assert.True(image.HasUnsafePassThroughDecode);
+        Assert.Equal("ASCIIHexDecode," + encodedFilter, image.Filter);
+
+        if (jpeg2000) {
+            Assert.Equal("image/jp2", image.MimeType);
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                document.Images.Move(Assert.Single(document.Images.Placements()), 10D, 0D));
+            Assert.Contains("Decode", exception.Message, StringComparison.Ordinal);
+        } else {
+            Assert.Equal("image/png", image.MimeType);
+            PdfImageEditResult result = document.Images.Move(
+                Assert.Single(document.Images.Placements()), 10D, 0D);
+            Assert.Single(result.Document.Images.Placements());
+        }
+    }
+
     [Fact]
     public void MoveRejectsSourceInterpolationThatRestampingCannotPreserve() {
         PdfDocument document = PdfDocument.Load(BuildRawImagePdf(

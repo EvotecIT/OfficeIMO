@@ -1127,7 +1127,9 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.Equal(OfficeIMO.Drawing.OfficeImageFormat.Jpeg2000, OfficeIMO.Drawing.OfficeImageReader.Identify(jpx).Format);
 
         PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
-        Assert.Contains("data:image/jp2;base64,", html.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain("data:image/jp2;base64,", html.Value, StringComparison.Ordinal);
+        Assert.Contains(html.Report.Warnings, static warning =>
+            warning.Code == "ImageDataUnavailable" && warning.LossKind == OfficeConversionLossKind.Omission);
         Assert.DoesNotContain(html.Report.Warnings, static warning => warning.Code == "ImageDecodeNotSafelyEditable");
 
         PdfWordConversionResult word = logical.ToWordDocumentResult();
@@ -1223,7 +1225,9 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.False(image.SourceImage.HasUnsafePassThroughDecode);
 
         PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
-        Assert.Contains("data:image/jp2;base64,", html.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain("data:image/jp2;base64,", html.Value, StringComparison.Ordinal);
+        Assert.Contains(html.Report.Warnings, static warning =>
+            warning.Code == "ImageDataUnavailable" && warning.LossKind == OfficeConversionLossKind.Omission);
         Assert.DoesNotContain(html.Report.Warnings, static warning => warning.Code == "ImageDecodeNotSafelyEditable");
 
         PdfWordConversionResult word = logical.ToWordDocumentResult();

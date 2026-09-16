@@ -55,6 +55,7 @@ public sealed partial class PdfDocumentReadResult {
             CatalogPageLayout,
             CatalogVersion,
             CatalogLanguage,
+            SourceFidelityFacts,
             SourcePageCount,
             Profile);
     }

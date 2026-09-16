@@ -146,7 +146,7 @@ public static partial class PdfHtmlConverterExtensions {
             }
         }
 
-        int unplacedFormFieldCount = document.FormFields.Count(static field => field.HasUnplacedContent);
+        int unplacedFormFieldCount = document.SourceFidelityFacts.UnplacedFormFieldCount;
         if (unplacedFormFieldCount > 0) {
             AddWarning(
                 options,
@@ -193,19 +193,29 @@ public static partial class PdfHtmlConverterExtensions {
                 OfficeConversionLossKind.Omission);
         }
 
+        if (document.SourceFidelityFacts.AttachmentCount > 0) {
+            AddWarning(
+                options,
+                "PdfAttachmentsOmitted",
+                document.SourceFidelityFacts.AttachmentCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " PDF embedded files were not represented in HTML output.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
         ActionDiagnosticSummary actionSummary = BuildActionDiagnosticSummary(document, pages);
         var selectedPageNumbers = new HashSet<int>(pages.Select(static page => page.PageNumber));
-        int omittedDocumentActionCount = actionSummary.CatalogActionCount -
-            actionSummary.DuplicatedOpenActionCatalogCount +
+        int omittedDocumentActionCount = document.SourceFidelityFacts.CatalogActionCount -
+            (document.SourceFidelityFacts.HasOpenAction && document.SourceFidelityFacts.CatalogContainsOpenAction ? 1 : 0) +
             actionSummary.SelectedPageActionCount +
             CountOmittedAnnotationActions(pages, selectedPageNumbers, options.IncludeLinkAnnotations) +
-            (actionSummary.HasOpenAction ? 1 : 0);
+            (document.SourceFidelityFacts.HasOpenAction ? 1 : 0);
         if (omittedDocumentActionCount > 0) {
             AddWarning(
                 options,
                 "PdfDocumentActionsOmitted",
                 omittedDocumentActionCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
-                " scoped PDF open, catalog, page, or annotation actions were stripped from HTML output.",
+                " PDF open, catalog, selected-page, or annotation actions were stripped from HTML output.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
                 OfficeConversionLossKind.Omission);
         }
@@ -356,16 +366,9 @@ public static partial class PdfHtmlConverterExtensions {
         int selectedAnnotationActionCount = 0;
         int pageActionCount = document.PageActionCount;
         int annotationActionCount = CountAnnotationActions(document.Pages);
-        int duplicatedOpenActionCatalogCount = 0;
-        if (catalogActionCount > 0 && HasScopedOpenAction(document.OpenAction, pages)) {
-            duplicatedOpenActionCatalogCount = document.CatalogActions.Count(static action =>
-                string.Equals(action.Source, "OpenAction", StringComparison.Ordinal) &&
-                !action.IsChainedAction);
-        }
         var summary = new ActionDiagnosticSummary {
             HasOpenAction = HasScopedOpenAction(document.OpenAction, pages),
             CatalogActionCount = catalogActionCount,
-            DuplicatedOpenActionCatalogCount = duplicatedOpenActionCatalogCount,
             PageActionCount = pageActionCount,
             AnnotationActionCount = annotationActionCount
         };
@@ -579,8 +582,6 @@ public static partial class PdfHtmlConverterExtensions {
         public int ImportDataActionCount { get; private set; }
 
         public int CatalogActionCount { get; set; }
-
-        public int DuplicatedOpenActionCatalogCount { get; set; }
 
         public int PageActionCount { get; set; }
 

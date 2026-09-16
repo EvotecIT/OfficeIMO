@@ -65,9 +65,11 @@ public sealed class PdfHtmlPageAppearanceTests {
         var result = pdf.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
 
         Assert.DoesNotContain("pdf-page-appearance", result.Value);
-        Assert.Contains("data:image/jp2;base64,", result.Value);
+        Assert.DoesNotContain("data:image/jp2;base64,", result.Value);
         Assert.Equal(1, result.Summary.ImagePlaceholderCount);
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "PageAppearanceImageFallback");
+        Assert.Contains(result.Report.Warnings, warning =>
+            warning.Code == "ImageDataUnavailable" && warning.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Fact]

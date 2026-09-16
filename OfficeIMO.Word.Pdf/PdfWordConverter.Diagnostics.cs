@@ -122,7 +122,7 @@ namespace OfficeIMO.Word.Pdf {
                     "TableCount",
                     source.Pages.Sum(static page => page.Tables.Count));
             }
-            int documentOnlyFormCount = source.FormFields.Count(static field => field.HasUnplacedContent) +
+            int documentOnlyFormCount = source.SourceFidelityFacts.UnplacedFormFieldCount +
                 (source.HasAcroFormXfa ? 1 : 0);
             if (documentOnlyFormCount > 0) {
                 AddWarning(
@@ -134,8 +134,8 @@ namespace OfficeIMO.Word.Pdf {
                     OfficeConversionLossKind.Omission,
                     new Dictionary<string, string> {
                         ["Count"] = documentOnlyFormCount.ToString(CultureInfo.InvariantCulture),
-                        ["FieldWithoutWidgetCount"] = source.FormFields.Count(static field => field.Widgets.Count == 0).ToString(CultureInfo.InvariantCulture),
-                        ["UnplacedFieldCount"] = source.FormFields.Count(static field => field.HasUnplacedContent).ToString(CultureInfo.InvariantCulture),
+                        ["FieldWithoutWidgetCount"] = source.SourceFidelityFacts.FieldWithoutWidgetCount.ToString(CultureInfo.InvariantCulture),
+                        ["UnplacedFieldCount"] = source.SourceFidelityFacts.UnplacedFormFieldCount.ToString(CultureInfo.InvariantCulture),
                         ["HasAcroFormXfa"] = source.HasAcroFormXfa ? "true" : "false"
                     });
             }
@@ -149,7 +149,8 @@ namespace OfficeIMO.Word.Pdf {
                     OfficeConversionLossKind.Omission,
                     new Dictionary<string, string> { ["OutlineCount"] = source.Outlines.Count.ToString(CultureInfo.InvariantCulture) });
             }
-            if (source.TaggedContent != null) {
+            ReportAttachmentsNotReconstructed(source.SourceFidelityFacts.AttachmentCount, options);
+            if (source.SourceFidelityFacts.HasTaggedContent) {
                 AddWarning(
                     options,
                     "PdfTaggedStructureNotReconstructed",
@@ -158,8 +159,8 @@ namespace OfficeIMO.Word.Pdf {
                     PdfCore.PdfConversionWarningSeverity.Warning,
                     OfficeConversionLossKind.Omission,
                     new Dictionary<string, string> {
-                        ["StructureElementCount"] = source.TaggedContent.StructureElementCount.ToString(CultureInfo.InvariantCulture),
-                        ["MarkedContentReferenceCount"] = source.TaggedContent.MarkedContentReferenceCount.ToString(CultureInfo.InvariantCulture)
+                        ["StructureElementCount"] = source.SourceFidelityFacts.StructureElementCount.ToString(CultureInfo.InvariantCulture),
+                        ["MarkedContentReferenceCount"] = source.SourceFidelityFacts.MarkedContentReferenceCount.ToString(CultureInfo.InvariantCulture)
                     });
             }
             int optionalContentPageCount = source.Pages.Count(static page => page.HasOptionalContentUsage);
@@ -172,11 +173,11 @@ namespace OfficeIMO.Word.Pdf {
                     PdfCore.PdfConversionWarningSeverity.Warning,
                     OfficeConversionLossKind.Omission,
                     new Dictionary<string, string> {
-                        ["GroupCount"] = source.OptionalContentGroupCount.ToString(CultureInfo.InvariantCulture),
+                        ["GroupCount"] = source.SourceFidelityFacts.OptionalContentGroupCount.ToString(CultureInfo.InvariantCulture),
                         ["PageCount"] = optionalContentPageCount.ToString(CultureInfo.InvariantCulture)
                     });
             }
-            if (source.CatalogActions.Count > 0 || source.OpenAction != null) {
+            if (source.SourceFidelityFacts.CatalogActionCount > 0 || source.SourceFidelityFacts.HasOpenAction) {
                 AddWarning(
                     options,
                     "PdfCatalogActionsNotReconstructed",
@@ -185,10 +186,22 @@ namespace OfficeIMO.Word.Pdf {
                     PdfCore.PdfConversionWarningSeverity.Warning,
                     OfficeConversionLossKind.Omission,
                     new Dictionary<string, string> {
-                        ["CatalogActionCount"] = source.CatalogActions.Count.ToString(CultureInfo.InvariantCulture),
-                        ["HasOpenAction"] = (source.OpenAction != null).ToString(CultureInfo.InvariantCulture)
+                        ["CatalogActionCount"] = source.SourceFidelityFacts.CatalogActionCount.ToString(CultureInfo.InvariantCulture),
+                        ["HasOpenAction"] = source.SourceFidelityFacts.HasOpenAction.ToString(CultureInfo.InvariantCulture)
                     });
             }
+        }
+
+        private static void ReportAttachmentsNotReconstructed(int count, PdfToWordOptions options) {
+            if (count <= 0) return;
+            AddWarning(
+                options,
+                "PdfAttachmentsNotReconstructed",
+                "Document/Attachments",
+                "PDF embedded files were not copied into the Word document.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission,
+                new Dictionary<string, string> { ["AttachmentCount"] = count.ToString(CultureInfo.InvariantCulture) });
         }
 
         private static void ReportDisabledSemanticFamily(

@@ -163,24 +163,22 @@ public static class PdfLogicalTableAnalysis {
         PdfDocumentReadResult document,
         int maximumComparisons) {
         Guard.NotNull(document, nameof(document));
-        bool hasOpenAction = document.HasReadableOpenAction;
-        int documentActionCount = document.CatalogActionCount;
-        if (hasOpenAction && !document.CatalogActions.Any(static action =>
-                string.Equals(action.Source, "OpenAction", StringComparison.Ordinal) &&
-                !action.IsChainedAction)) {
+        bool hasOpenAction = document.SourceFidelityFacts.HasOpenAction;
+        int documentActionCount = document.SourceFidelityFacts.CatalogActionCount;
+        if (hasOpenAction && !document.SourceFidelityFacts.CatalogContainsOpenAction) {
             documentActionCount++;
         }
         return AnalyzeExtractionScope(
             document.Pages,
-            document.FormFields.Count,
+            document.SourceFidelityFacts.RelevantFormFieldCount,
             document.HasAcroFormXfa,
-            document.OptionalContentGroupCount,
-            document.CatalogActionCount,
+            document.SourceFidelityFacts.OptionalContentGroupCount,
+            document.SourceFidelityFacts.CatalogActionCount,
             hasOpenAction,
             documentActionCount,
-            document.FormFields.Count(static field => field.HasUnplacedContent),
+            document.SourceFidelityFacts.UnplacedFormFieldCount,
             CountOutlines(document.Outlines),
-            document.AttachmentCount,
+            document.SourceFidelityFacts.AttachmentCount,
             maximumComparisons);
     }
 
