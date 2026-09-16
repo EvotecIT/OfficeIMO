@@ -11,8 +11,8 @@ public static partial class OfficeSvgDrawingReader {
         if (HasSvgUseShadowStyleProjectionRisk(sourceRoot)) return true;
         if (HasAmbiguousSvgPaintServerDefinitions(root, svgNamespace)) return true;
         SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
-        var references = new SvgElementReferenceRegistry(definitions);
         var paintServers = new SvgPaintServerRegistry(definitions);
+        ISet<XElement> activePaintElements = CollectSvgActivePaintElements(root, definitions);
         return root.DescendantsAndSelf().Any(element => {
             if (element.Attribute(XNamespace.Xml + "base") != null) return true;
             if (!IsNativeSvgElement(element, svgNamespace)) return false;
@@ -27,10 +27,10 @@ public static partial class OfficeSvgDrawingReader {
             }
             if (IsCaseMismatchedSvgPaintDefinitionName(localName) ||
                 HasEncodedSvgPaintServerReference(element, localName) ||
-                HasUnsupportedSvgPaintServerMode(element, localName) ||
+                HasUnsupportedSvgPaintServerMode(element, localName, activePaintElements.Contains(element)) ||
                 HasUnsupportedSvgShapeGeometry(element, localName) ||
                 HasUnisolatedSvgGroupOpacity(element, localName) ||
-                HasUnsupportedSvgPaintStyle(element, paintServers)) return true;
+                activePaintElements.Contains(element) && HasUnsupportedSvgPaintStyle(element, paintServers)) return true;
             if (HasActiveSvgPresentationProperty(element, "filter") ||
                 HasActiveSvgPresentationProperty(element, "mask") ||
                 HasActiveSvgPresentationProperty(element, "marker-start") ||
@@ -38,16 +38,9 @@ public static partial class OfficeSvgDrawingReader {
                 HasActiveSvgPresentationProperty(element, "marker-end")) return true;
             if (localName.Equals("textPath", StringComparison.Ordinal)) return true;
             if (localName.Equals("use", StringComparison.Ordinal)) {
-                if (!TryOptionalUseLength(element, "x", out _) ||
-                    !TryOptionalUseLength(element, "y", out _)) return true;
-                if (!references.TryEnter(element, out string referenceId, out XElement? target)) return true;
-                try {
-                    if (target!.Name.LocalName.Equals("symbol", StringComparison.Ordinal) &&
-                        (!TrySymbolLength(element, target, "width", 1D, out _) ||
-                         !TrySymbolLength(element, target, "height", 1D, out _))) return true;
-                } finally {
-                    references.Exit(referenceId);
-                }
+                // A local reference can recurse through another use beyond the native depth
+                // limit, or acquire inherited paint after cloning into its shadow tree.
+                return activePaintElements.Contains(element);
             }
             if (localName.Equals("foreignObject", StringComparison.Ordinal)) return true;
             if (localName.Equals("pattern", StringComparison.Ordinal)) {
@@ -66,6 +59,45 @@ public static partial class OfficeSvgDrawingReader {
                 height <= 0D ||
                 !TryParsePreserveAspectRatio(element.Attribute("preserveAspectRatio")?.Value, out _, out _);
         });
+    }
+
+    private static ISet<XElement> CollectSvgActivePaintElements(XElement root, SvgDefinitionRegistry definitions) {
+        var active = new HashSet<XElement>();
+        var pending = new Stack<XElement>();
+        pending.Push(root);
+        while (pending.Count > 0) {
+            XElement element = pending.Pop();
+            if (!active.Add(element)) continue;
+            foreach (string property in new[] { "fill", "stroke" }) {
+                string? value = ReadPresentationProperty(element, property);
+                if (value != null && TryReadBoundedSvgLocalUrlReference(value, out string reference)) {
+                    EnqueueSvgPaintReference(reference, definitions, active, pending);
+                }
+            }
+            foreach (XAttribute href in element.Attributes().Where(attribute =>
+                         attribute.Name.LocalName.Equals("href", StringComparison.Ordinal))) {
+                EnqueueSvgPaintReference(href.Value, definitions, active, pending);
+            }
+            foreach (XElement child in element.Elements()) {
+                if (child.Name.LocalName is not ("defs" or "symbol" or "pattern" or "linearGradient" or "radialGradient")) {
+                    pending.Push(child);
+                }
+            }
+        }
+        return active;
+    }
+
+    private static void EnqueueSvgPaintReference(
+        string reference,
+        SvgDefinitionRegistry definitions,
+        ISet<XElement> active,
+        Stack<XElement> pending) {
+        if (reference.Length < 2 || reference[0] != '#' || reference.IndexOf('%') >= 0 ||
+            !definitions.TryGetUnique(reference.Substring(1), out XElement? target)) return;
+        for (XElement? ancestor = target!.Parent; ancestor != null; ancestor = ancestor.Parent) {
+            active.Add(ancestor);
+        }
+        pending.Push(target);
     }
 
     private static bool HasSvgUseShadowStyleProjectionRisk(XElement root) {
@@ -145,8 +177,8 @@ public static partial class OfficeSvgDrawingReader {
         if (!string.IsNullOrWhiteSpace(color) &&
             !TrimSvgCssWhitespace(color!).Equals("currentColor", StringComparison.OrdinalIgnoreCase) &&
             !OfficeColor.TryParseCss(TrimSvgCssWhitespace(color!), out _)) return true;
-        if (HasUnsupportedSvgPresentationPaint(ReadPresentationProperty(element, "fill"), paintServers) ||
-            HasUnsupportedSvgPresentationPaint(ReadPresentationProperty(element, "stroke"), paintServers)) return true;
+        if (HasUnsupportedSvgPresentationPaint(ReadPresentationProperty(element, "fill"), requireCompleteNativeProjection: true) ||
+            HasUnsupportedSvgPresentationPaint(ReadPresentationProperty(element, "stroke"), requireCompleteNativeProjection: true)) return true;
         foreach (string name in new[] {
             "opacity", "fill-opacity", "stroke-opacity", "stroke-dasharray", "stroke-dashoffset",
             "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "fill-rule"
@@ -166,15 +198,15 @@ public static partial class OfficeSvgDrawingReader {
             !TrimSvgCssWhitespace(vectorEffect!).Equals("none", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool HasUnsupportedSvgPaintServerMode(XElement element, string localName) => localName switch {
+    private static bool HasUnsupportedSvgPaintServerMode(XElement element, string localName, bool active) => localName switch {
         "linearGradient" or "radialGradient" =>
             HasNonExactSvgEnum(element, "gradientUnits", "objectBoundingBox", "userSpaceOnUse") ||
             HasNonExactSvgEnum(element, "spreadMethod", "pad", "reflect", "repeat"),
         "pattern" =>
             HasNonExactSvgEnum(element, "patternUnits", "objectBoundingBox", "userSpaceOnUse") ||
             HasNonExactSvgEnum(element, "patternContentUnits", "objectBoundingBox", "userSpaceOnUse") ||
-            element.Attributes().Any(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal)) ||
-            HasUnsupportedSvgPatternGeometry(element),
+            active && (element.Attributes().Any(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal)) ||
+                HasUnsupportedSvgPatternGeometry(element)),
         _ => false
     };
 

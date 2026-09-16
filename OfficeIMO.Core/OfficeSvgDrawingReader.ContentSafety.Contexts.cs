@@ -394,7 +394,7 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool HasUnsupportedSvgPresentationPaint(
         string? value,
-        SvgPaintServerRegistry? paintServers = null) {
+        bool requireCompleteNativeProjection = false) {
         if (string.IsNullOrWhiteSpace(value)) return false;
         string normalized = TrimSvgCssWhitespace(value!);
         if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) {
@@ -408,7 +408,9 @@ public static partial class OfficeSvgDrawingReader {
         bool hasFallback = close >= 0 && close < normalized.Length - 1 &&
             TrimSvgCssWhitespace(normalized.Substring(close + 1)).Length > 0;
         if (hasFallback || !TryReadBoundedSvgLocalUrlReference(normalized, out string reference)) return true;
-        return reference.IndexOf('%') >= 0 ||
-            paintServers != null && !paintServers.TryResolve(normalized, out _);
+        // A resolved definition is not proof that it can paint this particular shape:
+        // native gradient expansion, radial transforms, and pattern tiling have further
+        // limits. Keep visual cleanup report-only whenever an active paint server is used.
+        return reference.IndexOf('%') >= 0 || requireCompleteNativeProjection;
     }
 }

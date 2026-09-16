@@ -74,6 +74,7 @@ public sealed class SvgContentSafetyPaintProjectionAuditTests {
     [Theory]
     [InlineData("<pattern id='paint' patternUnits='userSpaceOnUse' width='1em' height='20'><rect width='20' height='20' fill='white'/></pattern>")]
     [InlineData("<pattern id='template' width='20' height='20'><rect width='20' height='20' fill='white'/></pattern><pattern id='paint' href='#template'/>")]
+    [InlineData("<pattern id='paint' patternUnits='userSpaceOnUse' width='1000' height='1000'><rect width='1000' height='1000' fill='white'/></pattern>")]
     public void UnsupportedPatternGeometryOrTemplateCannotHideEarlierText(string pattern) {
         byte[] svg = Svg(
             "<text x='10' y='35'>pattern-covered payload</text>" +
@@ -86,6 +87,41 @@ public sealed class SvgContentSafetyPaintProjectionAuditTests {
 
         Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
         Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("repeat")]
+    [InlineData("reflect")]
+    public void RadialSpreadCannotHideEarlierText(string spread) {
+        byte[] svg = Svg(
+            "<text x='10' y='35'>radial-covered payload</text>" +
+            "<defs><radialGradient id='paint' spreadMethod='" + spread + "'>" +
+            "<stop offset='0' stop-color='white'/><stop offset='1' stop-color='white'/>" +
+            "</radialGradient></defs>" +
+            "<rect x='0' y='0' width='220' height='60' fill='url(#paint)'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "radial-covered payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("outside the bounded native paint projection", finding.Evidence, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("<rect id='unused' fill='url(#missing)'/>")]
+    [InlineData("<use href='#missing'/>")]
+    [InlineData("<pattern id='unused' href='#missing'/>")]
+    public void UnusedDefinitionDoesNotDisableUnrelatedHiddenTextCleanup(string unused) {
+        byte[] svg = Svg(
+            "<defs>" + unused + "</defs>" +
+            "<text display='none' x='10' y='35'>hidden payload</text>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "hidden payload");
+
+        Assert.Equal(OfficeContentCleanupCapability.RemoveText, finding.CleanupCapability);
     }
 
     [Fact]
