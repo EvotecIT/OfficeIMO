@@ -472,6 +472,15 @@ public class PowerPointPdfTableImportTests {
             Assert.True(editable.Report.HasLoss);
             Assert.Throws<InvalidOperationException>(() => editable.RequireNoLoss());
         }
+
+        PdfPowerPointConversionResult visual = PdfCore.PdfDocument.Load(pdf)
+            .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateVisualPages());
+        using (visual.Value) {
+            Assert.True(visual.Report.HasOmittedPageContent);
+            Assert.Contains(visual.Warnings, static warning =>
+                warning.Code == "PdfDocumentActionsNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
     }
 
     [Fact]
@@ -809,6 +818,7 @@ public class PowerPointPdfTableImportTests {
             unplacedFormFieldCount: 0,
             outlineCount: 0,
             attachmentCount: 0,
+            hasTaggedContent: false,
             analysisTruncated: false);
         var failedScope = new PdfCore.PdfTableExtractionScopeReport(
             sourcePageCount: 1,
@@ -832,6 +842,7 @@ public class PowerPointPdfTableImportTests {
             unplacedFormFieldCount: 0,
             outlineCount: 0,
             attachmentCount: 0,
+            hasTaggedContent: false,
             analysisTruncated: false);
         var report = new PdfPowerPointConversionReport(
             Array.Empty<PdfPowerPointTableImportEntry>(),
@@ -914,6 +925,24 @@ public class PowerPointPdfTableImportTests {
         Assert.True(columnWidths[1] > columnWidths[0]);
         Assert.True(columnWidths[1] > columnWidths[2]);
         Assert.Contains(ReadAllText(package), text => text == "PDF page 1, table 1");
+    }
+
+    [Fact]
+    public void PdfDocument_ToPowerPointPresentation_VisualReportsFailedPagePixelsAsOmitted() {
+        byte[] pdf = PdfCore.PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Invoice"))
+            .ToBytes();
+        var options = PdfToPowerPointOptions.CreateVisualPages();
+        options.MaxPixelsPerPage = 10;
+
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf).ToPowerPointPresentationResult(options);
+        using (result.Value) {
+            Assert.False(Assert.Single(result.Report.VisualPages).Succeeded);
+            Assert.True(result.Report.HasOmittedPageContent);
+            Assert.Contains(result.Report.Warnings, static warning =>
+                warning.Code == "PdfVisualPageRenderFailed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission &&
+                warning.Details["Disposition"] == "Omitted");
+        }
     }
 
     [Fact]

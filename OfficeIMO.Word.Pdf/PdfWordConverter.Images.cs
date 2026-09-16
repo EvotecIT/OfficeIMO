@@ -351,6 +351,9 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedPaintEffect => (
                     "PdfImagePaintEffectNotSafelyEditable",
                     "The raw PDF image was not embedded because its PDF paint effect cannot be reproduced safely as an editable Word picture."),
+                PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedTransform => (
+                    "PdfImageTransformNotSafelyEditable",
+                    "The raw PDF image was not embedded because its rotation or shear cannot be reproduced safely as an editable Word picture."),
                 PdfCore.PdfImagePlacementImportDisposition.OmitUnappliedDecode => (
                     "PdfImageDecodeNotSafelyEditable",
                     "The raw PDF image was not embedded because its PDF decode mapping is not represented by the extracted JPEG 2000 payload."),

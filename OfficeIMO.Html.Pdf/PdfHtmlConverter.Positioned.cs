@@ -199,6 +199,8 @@ public static partial class PdfHtmlConverterExtensions {
             PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement);
         ReportHtmlImagePlacementAssessment(image, assessment, options);
         if (assessment.IsSuppressed) return;
+        bool pageRotationUnsupported = assessment.CanImport && page.RotationDegrees % 360 != 0;
+        if (pageRotationUnsupported) ReportHtmlImagePageRotationOmission(image, options);
 
         options.EmittedImagePlaceholderCount++;
         PositionedPageGeometry geometry = PositionedPageGeometry.From(page);
@@ -220,13 +222,15 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(";height:");
         builder.Append(Points(Math.Max(1D, box.Height)));
         builder.Append(";\">");
-        if (assessment.CanImport && TryBuildEmbeddedImageDataUri(image, options, builder.MaxCapacity - builder.Length, out string? source)) {
+        if (assessment.CanImport && !pageRotationUnsupported &&
+            TryBuildEmbeddedImageDataUri(image, options, builder.MaxCapacity - builder.Length, out string? source)) {
             ReportHtmlImagePlacementAssessment(image, assessment, options, imageEmbedded: true);
             builder.Append("<img src=\"");
             builder.Append(HtmlAttribute(source!));
             builder.Append("\" alt=\"");
             builder.Append(HtmlAttribute("Image: " + image.ResourceName));
             builder.Append("\" style=\"width:100%;height:100%;object-fit:contain;display:block;");
+            AppendHtmlImageReflectionStyle(builder, placement);
             if (assessment.HasNonDefaultOpacity) {
                 builder.Append("opacity:");
                 builder.Append(FormatCssOpacity(assessment.Opacity));

@@ -635,6 +635,20 @@ public class PdfTableStreamExportContracts {
         PdfPowerPointConversionResult editablePowerPointResult = logical.ToPowerPointPresentationResult(
             PdfToPowerPointOptions.CreateEditableContent());
         PdfWordConversionResult wordResult = logical.ToWordDocumentResult(PdfToWordOptions.CreateTablesOnly());
+        PdfWordConversionResult visualWord = PdfDocument.Load(source).ToWordDocumentResult(
+            PdfToWordOptions.CreateVisualPages());
+        PdfPowerPointConversionResult visualPowerPoint = PdfDocument.Load(source).ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateVisualPages());
+        using (visualWord.Value)
+        using (visualPowerPoint.Value) {
+            Assert.True(visualPowerPoint.Report.HasOmittedPageContent);
+            Assert.Contains(visualWord.Report.Warnings, static warning =>
+                warning.Code == "PdfFormDefinitionsNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(visualPowerPoint.Report.Warnings, static warning =>
+                warning.Code == "PdfFormDefinitionsNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
         using (wordResult.Value)
         using (excelResult.Value)
         using (powerPointResult.Value)

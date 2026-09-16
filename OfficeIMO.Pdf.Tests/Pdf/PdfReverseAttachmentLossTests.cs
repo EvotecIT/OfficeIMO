@@ -143,5 +143,129 @@ public sealed class PdfReverseAttachmentLossTests {
             Assert.True(excel.HasLoss);
             Assert.True(powerPoint.HasLoss);
         }
+
+        PdfToPowerPointOptions visualOptions = PdfToPowerPointOptions.CreateVisualPages();
+        visualOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) };
+        PdfPowerPointConversionResult visual = opened.ToPowerPointPresentationResult(visualOptions);
+        using (visual.Value) {
+            Assert.True(visual.Report.HasOmittedPageContent);
+            Assert.Contains(visual.Report.Warnings, static warning =>
+                warning.Code == "PdfAttachmentsNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission &&
+                warning.Details["Count"] == "1");
+            Assert.Throws<InvalidOperationException>(() => visual.RequireNoLoss());
+        }
+    }
+
+    [Fact]
+    public void VisualWordAndPowerPointReportDocumentNavigationOmissions() {
+        PdfOptions options = new PdfOptions { CreateOutlineFromHeadings = true }
+            .SetOpenAction(1, destinationMode: PdfOpenActionDestinationMode.Fit);
+        byte[] source = PdfDocument.Create(options)
+            .H1("Invoice")
+            .ToBytes();
+        PdfDocument opened = PdfDocument.Load(source);
+
+        PdfWordConversionResult word = opened.ToWordDocumentResult(PdfToWordOptions.CreateVisualPages());
+        using (word.Value) {
+            Assert.Contains(word.Report.Warnings, static warning =>
+                warning.Code == "PdfCatalogActionsNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(word.Report.Warnings, static warning =>
+                warning.Code == "PdfOutlineHierarchyNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
+
+        PdfPowerPointConversionResult powerPoint = opened.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateVisualPages());
+        using (powerPoint.Value) {
+            Assert.True(powerPoint.Report.HasOmittedPageContent);
+            Assert.Contains(powerPoint.Report.Warnings, static warning =>
+                warning.Code == "PdfDocumentActionsNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(powerPoint.Report.Warnings, static warning =>
+                warning.Code == "PdfOutlinesNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
+    }
+
+    [Fact]
+    public void VisualPageReportsOnlySelectedPageInteractionsAsOmitted() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Link("First", "https://example.com/first"))
+            .TextAnnotation("First note")
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Link("Second", "https://example.com/second"))
+            .TextAnnotation("Second note")
+            .ToBytes();
+        PdfDocument opened = PdfDocument.Load(source);
+        Assert.All(opened.Inspect().Pages, static page => {
+            Assert.NotEmpty(page.LinkAnnotations);
+            Assert.NotEmpty(page.Annotations);
+        });
+
+        PdfToWordOptions wordOptions = PdfToWordOptions.CreateVisualPages();
+        wordOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2) };
+        PdfWordConversionResult word = opened.ToWordDocumentResult(wordOptions);
+        using (word.Value) {
+            Assert.Contains(word.Report.Warnings, static warning =>
+                warning.Code == "PdfLinksNotReconstructed" && warning.Source == "Page 2/Links" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(word.Report.Warnings, static warning =>
+                warning.Code == "PdfAnnotationsNotReconstructed" && warning.Source == "Page 2/Annotations" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.DoesNotContain(word.Report.Warnings, static warning => warning.Source.StartsWith("Page 1/", StringComparison.Ordinal));
+        }
+
+        PdfToPowerPointOptions powerPointOptions = PdfToPowerPointOptions.CreateVisualPages();
+        powerPointOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2) };
+        PdfPowerPointConversionResult powerPoint = opened.ToPowerPointPresentationResult(powerPointOptions);
+        using (powerPoint.Value) {
+            Assert.True(powerPoint.Report.HasOmittedPageContent);
+            Assert.Contains(powerPoint.Report.Warnings, static warning =>
+                warning.Code == "PdfLinksNotReconstructed" && warning.Source == "PDF page 2/Links" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(powerPoint.Report.Warnings, static warning =>
+                warning.Code == "PdfAnnotationsNotReconstructed" && warning.Source == "PDF page 2/Annotations" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.DoesNotContain(powerPoint.Report.Warnings, static warning => warning.Source.StartsWith("PDF page 1/", StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void VisualPageReportsUnsupportedLinkActionThatTypedLinkReaderSkips() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Link("Invoice link", "https://example.com/invoice"))
+            .ToBytes();
+        byte[] marker = Encoding.ASCII.GetBytes("/S /URI");
+        int actionOffset = -1;
+        for (int index = 0; index <= source.Length - marker.Length; index++) {
+            if (!source.AsSpan(index, marker.Length).SequenceEqual(marker)) continue;
+            actionOffset = index;
+            break;
+        }
+        Assert.True(actionOffset >= 0);
+        source[actionOffset + 4] = (byte)'F';
+        source[actionOffset + 5] = (byte)'o';
+        source[actionOffset + 6] = (byte)'o';
+        PdfDocument opened = PdfDocument.Load(source);
+        PdfPageInfo page = Assert.Single(opened.Inspect().Pages);
+        Assert.Empty(page.LinkAnnotations);
+        Assert.Contains(page.Annotations, static annotation => annotation.Subtype == "Link");
+
+        PdfWordConversionResult word = opened.ToWordDocumentResult(PdfToWordOptions.CreateVisualPages());
+        using (word.Value) {
+            Assert.Contains(word.Report.Warnings, static warning =>
+                warning.Code == "PdfLinksNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
+        PdfPowerPointConversionResult powerPoint = opened.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateVisualPages());
+        using (powerPoint.Value) {
+            Assert.True(powerPoint.Report.HasOmittedPageContent);
+            Assert.Contains(powerPoint.Report.Warnings, static warning =>
+                warning.Code == "PdfLinksNotReconstructed" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
+        }
     }
 }

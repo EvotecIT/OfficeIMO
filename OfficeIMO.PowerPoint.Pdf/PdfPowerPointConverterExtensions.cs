@@ -391,9 +391,9 @@ public static partial class PowerPointPdfConverterExtensions {
             slide.AddTextBox("No PDF pages were selected.");
         }
 
-        bool hasTaggedContent = document.Inspect(options: null, cancellationToken).HasTaggedContent;
+        PdfCore.PdfDocumentInfo sourceInfo = document.Inspect(options: null, cancellationToken);
         return presentationOwner.Release(
-            new PdfPowerPointConversionResult(presentation, new PdfPowerPointConversionReport(entries, hasTaggedContent)));
+            new PdfPowerPointConversionResult(presentation, new PdfPowerPointConversionReport(entries, sourceInfo)));
     }
 
     private static PdfPowerPointConversionResult ImportHybridPages(

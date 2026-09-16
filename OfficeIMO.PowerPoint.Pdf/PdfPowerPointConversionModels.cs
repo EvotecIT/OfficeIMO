@@ -202,13 +202,15 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         Warnings = CreateProjectionWarnings(SourceScope, failedVisualScope: null, hasFailedVisualPages: false);
     }
 
-    internal PdfPowerPointConversionReport(IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages, bool hasTaggedContent) {
+    internal PdfPowerPointConversionReport(
+        IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages,
+        OfficeIMO.Pdf.PdfDocumentInfo sourceInfo) {
         Mode = PdfPowerPointImportMode.VisualPages;
         TableEntries = Array.Empty<PdfPowerPointTableImportEntry>();
         VisualPages = Array.AsReadOnly((visualPages ?? throw new ArgumentNullException(nameof(visualPages))).ToArray());
         EditablePages = Array.Empty<PdfPowerPointEditablePageEntry>();
-        _hasOmittedPageContent = hasTaggedContent;
-        Warnings = CreateVisualPageWarnings(VisualPages, hasTaggedContent);
+        Warnings = CreateVisualPageWarnings(VisualPages, sourceInfo ?? throw new ArgumentNullException(nameof(sourceInfo)));
+        _hasOmittedPageContent = Warnings.Any(static warning => warning.LossKind == OfficeConversionLossKind.Omission);
     }
 
     internal PdfPowerPointConversionReport(
@@ -293,7 +295,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
 
     private static IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> CreateVisualPageWarnings(
         IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages,
-        bool hasTaggedContent) {
+        OfficeIMO.Pdf.PdfDocumentInfo sourceInfo) {
         var warnings = new List<OfficeIMO.Pdf.PdfConversionWarning> {
             new(
                 "OfficeIMO.PowerPoint.Pdf",
@@ -307,8 +309,49 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
                     ["construct"] = "Visual page slides"
                 })
         };
+        int documentActionCount = sourceInfo.CatalogActionCount;
+        if (sourceInfo.OpenAction != null && !sourceInfo.CatalogActions.Any(static action =>
+                string.Equals(action.Source, "OpenAction", StringComparison.Ordinal) && !action.IsChainedAction)) {
+            documentActionCount++;
+        }
+        AddDocumentOmissionWarning(warnings, "PdfDocumentActionsNotReconstructed", "Document actions",
+            Math.Max(documentActionCount, sourceInfo.HasOpenActions ? 1 : 0), "document open and catalog actions");
+        AddDocumentOmissionWarning(warnings, "PdfFormDefinitionsNotReconstructed", "Form definitions",
+            sourceInfo.FormFields.Count(static field => field.HasUnplacedContent) + (sourceInfo.HasAcroFormXfa ? 1 : 0),
+            "form definitions not attached to a page and XFA content");
+        AddDocumentOmissionWarning(warnings, "PdfOutlinesNotReconstructed", "Outlines",
+            Math.Max(sourceInfo.Outlines.Count, sourceInfo.HasOutlines ? 1 : 0), "outline navigation hierarchies");
+        AddDocumentOmissionWarning(warnings, "PdfAttachmentsNotReconstructed", "Attachments",
+            sourceInfo.AttachmentCount, "embedded attachments");
         AddDocumentOmissionWarning(warnings, "PdfTaggedStructureNotReconstructed", "Tagged structure",
-            hasTaggedContent ? 1 : 0, "tagged accessibility structure");
+            sourceInfo.HasTaggedContent ? 1 : 0, "tagged accessibility structure");
+        AddDocumentOmissionWarning(warnings, "PdfOptionalContentGroupsFlattened", "Optional content",
+            Math.Max(sourceInfo.OptionalContentGroupCount, sourceInfo.HasOptionalContent ? 1 : 0),
+            "optional-content layer controls");
+        var selectedPageNumbers = new HashSet<int>(visualPages.Select(static page => page.PageNumber));
+        foreach (OfficeIMO.Pdf.PdfPageInfo page in sourceInfo.Pages) {
+            if (!selectedPageNumbers.Contains(page.PageNumber)) continue;
+            string source = "PDF page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            AddDocumentOmissionWarning(warnings, "PdfLinksNotReconstructed", source + "/Links",
+                Math.Max(page.LinkAnnotations.Count, page.Annotations.Count(static annotation =>
+                    string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase))), "interactive links");
+            AddDocumentOmissionWarning(warnings, "PdfFormWidgetsNotReconstructed", source + "/Forms",
+                Math.Max(page.FormWidgets.Count, page.Annotations.Count(static annotation =>
+                    string.Equals(annotation.Subtype, "Widget", StringComparison.OrdinalIgnoreCase))), "interactive form widgets");
+            AddDocumentOmissionWarning(warnings, "PdfAnnotationsNotReconstructed", source + "/Annotations",
+                page.Annotations.Count(static annotation =>
+                    !string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(annotation.Subtype, "Widget", StringComparison.OrdinalIgnoreCase)),
+                "non-link annotations");
+            AddDocumentOmissionWarning(warnings, "PdfPageActionsNotReconstructed", source + "/Actions",
+                page.PageActions.Count, "page actions");
+        }
+        foreach (PdfPowerPointVisualPageEntry page in visualPages) {
+            if (page.Succeeded) continue;
+            AddDocumentOmissionWarning(warnings, "PdfVisualPageRenderFailed",
+                "PDF page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                1, "page pixels after a failed render");
+        }
         AddRendererWarnings(warnings, visualPages);
         return warnings.AsReadOnly();
     }

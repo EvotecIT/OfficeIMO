@@ -278,6 +278,27 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
     }
 
+    [Theory]
+    [InlineData("q 0 40 -80 0 120 30 cm /Im1 Do Q\n")]
+    [InlineData("q 80 20 10 40 20 30 cm /Im1 Do Q\n")]
+    public void RotatedOrShearedImagePlacementsAreReportedInsteadOfEmbedded(string content) {
+        byte[] source = CreateRawImagePdf(content);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        PdfImagePlacement placement = Assert.Single(Assert.Single(page.Images).Placements);
+        Assert.False(placement.IsAxisAligned);
+
+        AssertRawImageOmittedAcrossEditableAdapters(logical,
+            "PdfImageTransformNotSafelyEditable", "ImageTransformNotSafelyEditable");
+
+        PdfHtmlConversionResult positioned = PdfDocument.Load(source)
+            .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        Assert.DoesNotContain("data:image/", positioned.Value, StringComparison.Ordinal);
+        Assert.Contains(positioned.Report.Warnings, static warning =>
+            warning.Code == "ImageTransformNotSafelyEditable" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
+    }
+
     [Fact]
     public void TextClippedImagePlacementsNeverEmbedRawPixelsAcrossEditableAdapters() {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateTextClippedRawImagePdf());
@@ -844,6 +865,35 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             OfficeIMO.PowerPoint.PowerPointPicture picture = Assert.Single(Assert.Single(reopened.Slides).Pictures);
             Assert.Equal(expectedHorizontalFlip, picture.HorizontalFlip);
             Assert.Equal(expectedVerticalFlip, picture.VerticalFlip);
+        }
+
+        string scale = "transform:scale(" + (expectedHorizontalFlip ? "-1" : "1") + "," +
+            (expectedVerticalFlip ? "-1" : "1") + ");";
+        PdfHtmlConversionResult semantic = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        Assert.Contains(scale, semantic.Value, StringComparison.Ordinal);
+        PdfHtmlConversionResult positioned = logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        Assert.Contains(scale, positioned.Value, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(90)]
+    [InlineData(180)]
+    [InlineData(270)]
+    public void HtmlOmitsRawImageWhenPageRotationCannotOrientPixels(int pageRotation) {
+        byte[] source = CreateRawImagePdf(
+            "q -80 0 0 40 100 30 cm /Im1 Do Q\n",
+            pageEntries: "/Rotate " + pageRotation.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+
+        foreach (PdfToHtmlOptions options in new[] {
+                     PdfToHtmlOptions.CreateSemanticProfile(),
+                     PdfToHtmlOptions.CreatePositionedReviewProfile()
+                 }) {
+            PdfHtmlConversionResult html = logical.ToHtmlResult(options);
+            Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
+            Assert.Contains(html.Report.Warnings, static warning =>
+                warning.Code == "ImagePageRotationNotSafelyEditable" &&
+                warning.LossKind == OfficeConversionLossKind.Omission);
         }
     }
 

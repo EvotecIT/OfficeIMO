@@ -11,6 +11,7 @@ internal enum PdfImagePlacementImportDisposition {
     OmitSoftMask,
     OmitUnsupportedBlendMode,
     OmitUnsupportedPaintEffect,
+    OmitUnsupportedTransform,
     OmitUnappliedDecode,
     OmitUnresolvedTransparencyMask
 }
@@ -126,6 +127,12 @@ internal static class PdfImagePlacementImportPolicy {
         if (placement.HasUnsupportedImagePaintEffect) {
             return new PdfImagePlacementImportAssessment(
                 PdfImagePlacementImportDisposition.OmitUnsupportedPaintEffect,
+                opacity,
+                blendMode);
+        }
+        if (!placement.IsAxisAligned || !IsFinite(placement.B) || !IsFinite(placement.C)) {
+            return new PdfImagePlacementImportAssessment(
+                PdfImagePlacementImportDisposition.OmitUnsupportedTransform,
                 opacity,
                 blendMode);
         }

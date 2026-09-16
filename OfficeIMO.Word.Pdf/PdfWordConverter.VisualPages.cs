@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 
@@ -24,6 +26,51 @@ internal static partial class PdfWordConverter {
                 AddWarning(options, "PdfTaggedStructureNotReconstructed", "Document/StructTreeRoot",
                     "PDF tagged accessibility structure is not copied into the visual Word document.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            if (sourceInfo.HasOpenActions || sourceInfo.CatalogActionCount > 0) {
+                AddWarning(options, "PdfCatalogActionsNotReconstructed", "Document/CatalogActions",
+                    "PDF document open and catalog actions are not copied into the visual Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            if (sourceInfo.FormFields.Any(static field => field.HasUnplacedContent) || sourceInfo.HasAcroFormXfa) {
+                AddWarning(options, "PdfFormDefinitionsNotReconstructed", "Document/Forms",
+                    "PDF form definitions not attached to a page and XFA content are not copied into the visual Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            if (sourceInfo.HasOutlines || sourceInfo.Outlines.Count > 0) {
+                AddWarning(options, "PdfOutlineHierarchyNotReconstructed", "Document/Outlines",
+                    "PDF outline navigation is not copied into the visual Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            if (sourceInfo.HasOptionalContent || sourceInfo.OptionalContentGroupCount > 0) {
+                AddWarning(options, "PdfOptionalContentGroupsFlattened", "Document/OCProperties",
+                    "PDF optional-content layer controls are flattened into visual Word page images.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            var selectedPageNumbers = new HashSet<int>(pages.Select(static page => page.PageNumber));
+            foreach (PdfCore.PdfPageInfo sourcePage in sourceInfo.Pages) {
+                if (!selectedPageNumbers.Contains(sourcePage.PageNumber)) continue;
+                string sourcePath = "Page " + sourcePage.PageNumber + "/";
+                if (sourcePage.LinkAnnotations.Count > 0 || sourcePage.Annotations.Any(static annotation =>
+                        string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase)))
+                    AddWarning(options, "PdfLinksNotReconstructed", sourcePath + "Links",
+                        "PDF interactive links are not reconstructed in the visual Word document.",
+                        PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+                if (sourcePage.FormWidgets.Count > 0 || sourcePage.Annotations.Any(static annotation =>
+                        string.Equals(annotation.Subtype, "Widget", StringComparison.OrdinalIgnoreCase)))
+                    AddWarning(options, "PdfFormWidgetsNotReconstructed", sourcePath + "Forms",
+                        "PDF interactive form widgets are not reconstructed in the visual Word document.",
+                        PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+                if (sourcePage.Annotations.Any(static annotation =>
+                        !string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(annotation.Subtype, "Widget", StringComparison.OrdinalIgnoreCase)))
+                    AddWarning(options, "PdfAnnotationsNotReconstructed", sourcePath + "Annotations",
+                        "PDF non-link annotations are not reconstructed in the visual Word document.",
+                        PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+                if (sourcePage.PageActions.Count > 0)
+                    AddWarning(options, "PdfPageActionsNotReconstructed", sourcePath + "Actions",
+                        "PDF page actions are not reconstructed in the visual Word document.",
+                        PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
             }
             AddWarning(options, "VisualPagesNotEditable", "Document",
                 "PDF pages are embedded as images. Text, links, and forms are not editable Word objects.",

@@ -437,6 +437,10 @@ public static partial class PowerPointPdfConverterExtensions {
                 AddEditableImageOmissionWarning(warnings, image, "PdfImagePaintEffectNotSafelyEditable",
                     "The raw PDF image was not embedded because its PDF paint effect cannot be reproduced safely as an editable PowerPoint picture.", details);
                 return;
+            case PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedTransform:
+                AddEditableImageOmissionWarning(warnings, image, "PdfImageTransformNotSafelyEditable",
+                    "The raw PDF image was not embedded because its rotation or shear cannot be reproduced safely as an editable PowerPoint picture.", details);
+                return;
             case PdfCore.PdfImagePlacementImportDisposition.OmitUnappliedDecode:
                 AddEditableImageOmissionWarning(warnings, image, "PdfImageDecodeNotSafelyEditable",
                     "The raw PDF image was not embedded because its PDF decode mapping is not represented by the extracted JPEG 2000 payload.", details);
