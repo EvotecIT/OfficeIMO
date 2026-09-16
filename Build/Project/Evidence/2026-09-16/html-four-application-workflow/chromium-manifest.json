@@ -1,0 +1,179 @@
+{
+  "browser": "Chromium 151.0.7922.34",
+  "playwright": "1.62.1",
+  "viewport": {
+    "width": 816,
+    "height": 900,
+    "deviceScaleFactor": 1
+  },
+  "cases": {
+    "vanilla": {
+      "state": {
+        "route": "/review",
+        "heading": "Review report",
+        "selection": "Quarterly / South",
+        "total": "Total: 25"
+      },
+      "served": [
+        {
+          "path": "/index.html",
+          "status": 200,
+          "sha256": "632d3fcd26f1e9ba0679b430e3f12ed4c29591700618bed572a554fdaa61ab73"
+        },
+        {
+          "path": "/app.css",
+          "status": 200,
+          "sha256": "f12f4bf5b052d136afe1dfac0cc8e59c9e40f9821c69378d0711f927a53e6af3"
+        },
+        {
+          "path": "/app.js",
+          "status": 200,
+          "sha256": "5ee235a2c4033ea8d4a1f5bf1282ed4d652c097c1e8758d2f1eb3a6bbe88ee27"
+        },
+        {
+          "path": "/theme.css",
+          "status": 200,
+          "sha256": "0deafb30202cb02a4e15863e65c90c74f59f63569943dc88ac60aed6cabc07ce"
+        },
+        {
+          "path": "/view.js",
+          "status": 200,
+          "sha256": "7961b373c0465b2cbe9860603f336e37057f98011a889d9500f5a613074c722d"
+        },
+        {
+          "path": "/data.json",
+          "status": 200,
+          "sha256": "ad7351d879d43dee84a3b082538d2653df4feb3fdaf1be8eb87f87a9941e0c4b"
+        },
+        {
+          "path": "/health.txt",
+          "status": 503,
+          "sha256": "6ed92e770aaa702a9020a7db027ab1193c27d7896fb124ce4321f1a57d9571fb"
+        },
+        {
+          "path": "/review",
+          "status": 200,
+          "sha256": "a91c2a17a2812f6fa221a6329510d2d2e7afa455c8b36a83416e3dd41f16a378"
+        },
+        {
+          "path": "/review.js",
+          "status": 200,
+          "sha256": "a9f5b969ae4ac47b3d33515796cd5b282300e4208701c4f69e9049a50331da86"
+        },
+        {
+          "path": "/app.css",
+          "status": 200,
+          "sha256": "f12f4bf5b052d136afe1dfac0cc8e59c9e40f9821c69378d0711f927a53e6af3"
+        },
+        {
+          "path": "/theme.css",
+          "status": 200,
+          "sha256": "0deafb30202cb02a4e15863e65c90c74f59f63569943dc88ac60aed6cabc07ce"
+        },
+        {
+          "path": "/view.js",
+          "status": 200,
+          "sha256": "7961b373c0465b2cbe9860603f336e37057f98011a889d9500f5a613074c722d"
+        },
+        {
+          "path": "/data.json",
+          "status": 200,
+          "sha256": "ad7351d879d43dee84a3b082538d2653df4feb3fdaf1be8eb87f87a9941e0c4b"
+        }
+      ],
+      "errors": []
+    },
+    "react-build": {
+      "state": {
+        "route": "/review",
+        "heading": "Review report",
+        "selection": "Quarterly / South",
+        "total": "Total: 21"
+      },
+      "served": [
+        {
+          "path": "/index.html",
+          "status": 200,
+          "sha256": "559b05f775fdd5b553bd4045a7fc5bdf3f6ea3ad218dd03ee255b81ea7bb416a"
+        },
+        {
+          "path": "/style.css",
+          "status": 200,
+          "sha256": "88a20a0b8fea47789108fc8f54603466b0a395206498cb2aeb54ff52224ec704"
+        },
+        {
+          "path": "/app.js",
+          "status": 200,
+          "sha256": "c61c4452acf7ac4b0ad1f755bc8d8648fb0dc4d34d29f30f00f42d029fd6e5aa"
+        },
+        {
+          "path": "/chunk-chunk-YDHNFGZD.js",
+          "status": 200,
+          "sha256": "6cabbc8d3b4c384f657366aaad563f3786eaf09d898be56685fe00607fa527fc"
+        },
+        {
+          "path": "/data.json",
+          "status": 200,
+          "sha256": "c372915751727a8990fa02909fc86f95fc1b19653e7dee45ecba5b4c5885ddbf"
+        },
+        {
+          "path": "/chunk-review-7VOCLQDE.js",
+          "status": 200,
+          "sha256": "bf9519f21a60e566bfac76fe55e10cce38b27a6ca1527e8fd1b771e7b18808eb"
+        }
+      ],
+      "errors": []
+    },
+    "preact": {
+      "state": {
+        "route": "/index.html",
+        "heading": "Application report",
+        "selection": "Report: Quarterly",
+        "total": "Total: 18"
+      },
+      "served": [
+        {
+          "path": "/index.html",
+          "status": 200,
+          "sha256": "b581dde3df30d70beb5b6dd6937ab286148e8cb0ae128c96fe4ae6ffa4cab6df"
+        },
+        {
+          "path": "/hooks.umd.js",
+          "status": 200,
+          "sha256": "5c29238e5dc99df306d7f7fff038591a397cfcfabb59f81fbdef43d670aa0566"
+        },
+        {
+          "path": "/preact.umd.js",
+          "status": 200,
+          "sha256": "134b77bc803fa38661dc1b1e44e96eb0bb6a1a00edbb96d34dcde421b2e80b06"
+        },
+        {
+          "path": "/report.js",
+          "status": 200,
+          "sha256": "d5e68723697ea1d79fc78ba7d5519480989aa556f1a84719c25c4c7049b54b23"
+        },
+        {
+          "path": "/data.json",
+          "status": 200,
+          "sha256": "d9858be5c53c809c042489e434892253f87f6219c45752ff275fae88ac14e9cf"
+        }
+      ],
+      "errors": []
+    },
+    "legacy": {
+      "state": {
+        "route": "/index.html",
+        "heading": "Approval register",
+        "state": "Approved"
+      },
+      "served": [
+        {
+          "path": "/index.html",
+          "status": 200,
+          "sha256": "9c613d501a407514ea13e179c75c0ab233a32b698a1f0f272900ab2d3fcd6933"
+        }
+      ],
+      "errors": []
+    }
+  }
+}

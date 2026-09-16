@@ -1,0 +1,11 @@
+{
+  "name": "officeimo-html-browser-reference",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "capture": "node capture.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

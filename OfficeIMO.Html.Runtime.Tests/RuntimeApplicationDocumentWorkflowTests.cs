@@ -57,6 +57,13 @@ public sealed class RuntimeApplicationDocumentWorkflowTests {
             Assert.Contains(result.Capture.Resources, resource => resource.Url.AbsolutePath.Contains("chunk-review-", StringComparison.Ordinal));
             Assert.Equal(OfficeColor.FromRgb(243, 246, 250), image!.GetPixel(0, 0));
         }
+        if (Environment.GetEnvironmentVariable("OFFICEIMO_APPLICATION_EVIDENCE_DIR") is { Length: > 0 } evidenceRoot) {
+            string folder = Path.Combine(evidenceRoot, caseId);
+            Directory.CreateDirectory(folder);
+            File.WriteAllBytes(Path.Combine(folder, "officeimo-screen.png"), png);
+            File.WriteAllBytes(Path.Combine(folder, "officeimo-print.pdf"), result.Outputs[1].Pdf!.ToBytes());
+            File.WriteAllBytes(Path.Combine(folder, "officeimo-screen-to-page.pdf"), result.Outputs[2].Pdf!.ToBytes());
+        }
     }
 
     [Fact]

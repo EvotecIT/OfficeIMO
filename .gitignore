@@ -291,6 +291,7 @@ FakesAssemblies/
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
 node_modules/
+OfficeIMO.Html.Runtime.Tests/BrowserReference/output/
 
 # Visual Studio 6 build log
 *.plg
