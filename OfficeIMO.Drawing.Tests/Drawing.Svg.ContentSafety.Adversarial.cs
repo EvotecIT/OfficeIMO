@@ -414,7 +414,8 @@ public sealed class SvgContentSafetyAdversarialTests {
 
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
 
-        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "A");
+        Assert.Contains(report.Findings, item => item.TextPreview == "A" &&
+            item.CleanupCapability == OfficeContentCleanupCapability.ReportOnly);
     }
 
     [Fact]
@@ -1220,7 +1221,8 @@ public sealed class SvgContentSafetyAdversarialTests {
 
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions);
 
-        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "literal id visible");
+        Assert.Contains(report.Findings, item => item.TextPreview == "literal id visible" &&
+            item.CleanupCapability == OfficeContentCleanupCapability.ReportOnly);
     }
 
     [Fact]

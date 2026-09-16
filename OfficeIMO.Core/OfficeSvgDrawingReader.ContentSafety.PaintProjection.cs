@@ -10,14 +10,16 @@ public static partial class OfficeSvgDrawingReader {
         XNamespace svgNamespace = root.Name.Namespace;
         if (HasSvgUseShadowStyleProjectionRisk(sourceRoot)) return true;
         if (HasAmbiguousSvgPaintServerDefinitions(root, svgNamespace)) return true;
-        var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
+        SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
+        var references = new SvgElementReferenceRegistry(definitions);
+        var paintServers = new SvgPaintServerRegistry(definitions);
         return root.DescendantsAndSelf().Any(element => {
             if (element.Attribute(XNamespace.Xml + "base") != null) return true;
             if (!IsNativeSvgElement(element, svgNamespace)) return false;
             string localName = element.Name.LocalName;
-            // Native nested SVG and referenced symbol rendering clip even when browser paint
-            // may escape their viewport and cover an earlier, unrelated text candidate.
-            if (localName.Equals("symbol", StringComparison.Ordinal) ||
+            // Native viewport and tile rendering can clip paint which a browser may expose
+            // outside a nested SVG, referenced symbol, or pattern tile.
+            if (localName is "symbol" or "pattern" ||
                 localName.Equals("svg", StringComparison.Ordinal) && element.Parent != null) {
                 string? overflow = ReadPresentationProperty(element, "overflow");
                 if (!string.IsNullOrWhiteSpace(overflow) &&
@@ -28,7 +30,7 @@ public static partial class OfficeSvgDrawingReader {
                 HasUnsupportedSvgPaintServerMode(element, localName) ||
                 HasUnsupportedSvgShapeGeometry(element, localName) ||
                 HasUnisolatedSvgGroupOpacity(element, localName) ||
-                HasUnsupportedSvgPaintStyle(element)) return true;
+                HasUnsupportedSvgPaintStyle(element, paintServers)) return true;
             if (HasActiveSvgPresentationProperty(element, "filter") ||
                 HasActiveSvgPresentationProperty(element, "mask") ||
                 HasActiveSvgPresentationProperty(element, "marker-start") ||
@@ -38,14 +40,13 @@ public static partial class OfficeSvgDrawingReader {
             if (localName.Equals("use", StringComparison.Ordinal)) {
                 if (!TryOptionalUseLength(element, "x", out _) ||
                     !TryOptionalUseLength(element, "y", out _)) return true;
-                if (references.TryEnter(element, out string referenceId, out XElement? target)) {
-                    try {
-                        if (target!.Name.LocalName.Equals("symbol", StringComparison.Ordinal) &&
-                            (!TrySymbolLength(element, target, "width", 1D, out _) ||
-                             !TrySymbolLength(element, target, "height", 1D, out _))) return true;
-                    } finally {
-                        references.Exit(referenceId);
-                    }
+                if (!references.TryEnter(element, out string referenceId, out XElement? target)) return true;
+                try {
+                    if (target!.Name.LocalName.Equals("symbol", StringComparison.Ordinal) &&
+                        (!TrySymbolLength(element, target, "width", 1D, out _) ||
+                         !TrySymbolLength(element, target, "height", 1D, out _))) return true;
+                } finally {
+                    references.Exit(referenceId);
                 }
             }
             if (localName.Equals("foreignObject", StringComparison.Ordinal)) return true;
@@ -136,12 +137,27 @@ public static partial class OfficeSvgDrawingReader {
         return !TryUnit(value!, out double opacity) || opacity > 0D && opacity < 1D;
     }
 
-    private static bool HasUnsupportedSvgPaintStyle(XElement element) {
+    private static bool HasUnsupportedSvgPaintStyle(XElement element, SvgPaintServerRegistry paintServers) {
         string? strokeWidth = ReadPresentationProperty(element, "stroke-width");
         if (!string.IsNullOrWhiteSpace(strokeWidth) &&
             (!TrySvgLength(strokeWidth, out double width) || width < 0D)) return true;
-        if (HasUnsupportedSvgPresentationPaint(ReadPresentationProperty(element, "fill")) ||
-            HasUnsupportedSvgPresentationPaint(ReadPresentationProperty(element, "stroke"))) return true;
+        string? color = ReadPresentationProperty(element, "color");
+        if (!string.IsNullOrWhiteSpace(color) &&
+            !TrimSvgCssWhitespace(color!).Equals("currentColor", StringComparison.OrdinalIgnoreCase) &&
+            !OfficeColor.TryParseCss(TrimSvgCssWhitespace(color!), out _)) return true;
+        if (HasUnsupportedSvgPresentationPaint(ReadPresentationProperty(element, "fill"), paintServers) ||
+            HasUnsupportedSvgPresentationPaint(ReadPresentationProperty(element, "stroke"), paintServers)) return true;
+        foreach (string name in new[] {
+            "opacity", "fill-opacity", "stroke-opacity", "stroke-dasharray", "stroke-dashoffset",
+            "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "fill-rule"
+        }) {
+            string? value = ReadPresentationProperty(element, name);
+            if (string.IsNullOrWhiteSpace(value)) continue;
+            SvgPaintContext validation = SvgPaintContext.Default;
+            int unsupported = 0;
+            ApplyProperty(name, value, paintServers, ref validation, ref unsupported);
+            if (unsupported != 0) return true;
+        }
         string? blend = ReadPresentationProperty(element, "mix-blend-mode");
         if (!string.IsNullOrWhiteSpace(blend) &&
             !TrimSvgCssWhitespace(blend!).Equals("normal", StringComparison.OrdinalIgnoreCase)) return true;
@@ -156,9 +172,24 @@ public static partial class OfficeSvgDrawingReader {
             HasNonExactSvgEnum(element, "spreadMethod", "pad", "reflect", "repeat"),
         "pattern" =>
             HasNonExactSvgEnum(element, "patternUnits", "objectBoundingBox", "userSpaceOnUse") ||
-            HasNonExactSvgEnum(element, "patternContentUnits", "objectBoundingBox", "userSpaceOnUse"),
+            HasNonExactSvgEnum(element, "patternContentUnits", "objectBoundingBox", "userSpaceOnUse") ||
+            element.Attributes().Any(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal)) ||
+            HasUnsupportedSvgPatternGeometry(element),
         _ => false
     };
+
+    private static bool HasUnsupportedSvgPatternGeometry(XElement pattern) {
+        bool userSpace = string.Equals(pattern.Attribute("patternUnits")?.Value, "userSpaceOnUse", StringComparison.Ordinal);
+        foreach (string name in new[] { "x", "y", "width", "height" }) {
+            string? value = pattern.Attribute(name)?.Value;
+            if (value == null) continue;
+            if (ContainsNonSvgCssWhitespace(value) ||
+                (userSpace
+                    ? !TryViewportLength(value, 1D, out _, out _)
+                    : !TryPatternBoxFraction(value, 0D, out _))) return true;
+        }
+        return false;
+    }
 
     private static bool HasEncodedSvgPaintServerReference(XElement element, string localName) =>
         localName is "linearGradient" or "radialGradient" or "pattern" &&

@@ -392,14 +392,23 @@ public static partial class OfficeSvgDrawingReader {
             }));
     }
 
-    private static bool HasUnsupportedSvgPresentationPaint(string? value) {
+    private static bool HasUnsupportedSvgPresentationPaint(
+        string? value,
+        SvgPaintServerRegistry? paintServers = null) {
         if (string.IsNullOrWhiteSpace(value)) return false;
         string normalized = TrimSvgCssWhitespace(value!);
-        if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) return false;
+        if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) {
+            if (normalized.Equals("none", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("currentColor", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("context-fill", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("context-stroke", StringComparison.OrdinalIgnoreCase)) return false;
+            return !OfficeColor.TryParseCss(normalized, out _);
+        }
         int close = FindSvgCssBlockEnd(normalized, 4, '(', ')');
         bool hasFallback = close >= 0 && close < normalized.Length - 1 &&
             TrimSvgCssWhitespace(normalized.Substring(close + 1)).Length > 0;
         if (hasFallback || !TryReadBoundedSvgLocalUrlReference(normalized, out string reference)) return true;
-        return reference.IndexOf('%') >= 0;
+        return reference.IndexOf('%') >= 0 ||
+            paintServers != null && !paintServers.TryResolve(normalized, out _);
     }
 }

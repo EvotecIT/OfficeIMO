@@ -481,7 +481,8 @@ public sealed class SvgContentSafetyTests {
 
         OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
 
-        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "foreign id does not clip");
+        Assert.Contains(report.Findings, item => item.TextPreview == "foreign id does not clip" &&
+            item.CleanupCapability == OfficeContentCleanupCapability.ReportOnly);
         Assert.Contains(report.Findings, item => item.TextPreview == "foreign clip child payload");
         Assert.Contains(report.Findings, item => item.TextPreview == "foreign gradient stop payload");
     }
