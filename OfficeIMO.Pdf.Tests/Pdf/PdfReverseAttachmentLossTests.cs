@@ -268,4 +268,66 @@ public sealed class PdfReverseAttachmentLossTests {
                 warning.LossKind == OfficeConversionLossKind.Omission);
         }
     }
+
+    [Theory]
+    [InlineData(PdfHtmlProfile.Semantic, true, true, 0)]
+    [InlineData(PdfHtmlProfile.Semantic, true, false, 0)]
+    [InlineData(PdfHtmlProfile.Semantic, false, true, 3)]
+    [InlineData(PdfHtmlProfile.Semantic, false, false, 4)]
+    [InlineData(PdfHtmlProfile.PositionedReview, true, true, 0)]
+    [InlineData(PdfHtmlProfile.PositionedReview, true, false, 4)]
+    [InlineData(PdfHtmlProfile.PositionedReview, false, true, 3)]
+    [InlineData(PdfHtmlProfile.PositionedReview, false, false, 4)]
+    public void HtmlReportsOnlyMetadataFieldsActuallyOmitted(
+        PdfHtmlProfile profile,
+        bool includeMetadata,
+        bool emitDocumentShell,
+        int omittedFieldCount) {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Invoice"))
+            .ToBytes();
+        PdfDocument document = PdfDocument.Load(source).UpdateMetadata(
+            title: "Invoice title", author: "Invoice author", subject: "Invoice subject", keywords: "invoice");
+        var options = new PdfToHtmlOptions {
+            Profile = profile,
+            IncludeMetadata = includeMetadata,
+            EmitDocumentShell = emitDocumentShell
+        };
+
+        PdfHtmlConversionResult result = document.ToHtmlResult(options);
+        PdfConversionWarning[] warnings = result.Report.Warnings
+            .Where(static item => item.Code == "PdfMetadataOmitted").ToArray();
+        if (omittedFieldCount == 0) {
+            Assert.Empty(warnings);
+        } else {
+            PdfConversionWarning warning = Assert.Single(warnings);
+            Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
+            Assert.StartsWith(omittedFieldCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " PDF ",
+                warning.Message, StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData(PdfHtmlProfile.Semantic)]
+    [InlineData(PdfHtmlProfile.PositionedReview)]
+    public void HtmlRequireNoLossRejectsDisabledMetadata(PdfHtmlProfile profile) {
+        PdfDocument source = PdfDocument.Load(PdfDocument.Create()
+                .Paragraph(paragraph => paragraph.Text("Invoice"))
+                .ToBytes())
+            .UpdateMetadata(author: "Invoice author");
+        PdfHtmlConversionResult retained = source.ToHtmlResult(new PdfToHtmlOptions {
+            Profile = profile,
+            IncludeMetadata = true
+        });
+        Assert.DoesNotContain(retained.Report.Warnings, static warning => warning.Code == "PdfMetadataOmitted");
+
+        PdfHtmlConversionResult omitted = source.ToHtmlResult(new PdfToHtmlOptions {
+            Profile = profile,
+            IncludeMetadata = false
+        });
+        Assert.True(omitted.HasLoss);
+        Assert.Contains(omitted.Report.Warnings, static warning =>
+            warning.Code == "PdfMetadataOmitted" && warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Throws<InvalidOperationException>(() => omitted.RequireNoLoss());
+    }
 }

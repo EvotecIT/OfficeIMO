@@ -49,6 +49,7 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfDocumentReadResult document,
         IReadOnlyList<PdfCore.PdfLogicalPage> pages,
         PdfToHtmlOptions options) {
+        ReportMetadataFidelity(document.Metadata, options);
         int textBlockCount = 0;
         int tableCount = 0;
         int imageCount = 0;
@@ -228,6 +229,25 @@ public static partial class PdfHtmlConverterExtensions {
                 PdfCore.PdfConversionWarningSeverity.Warning,
                 OfficeConversionLossKind.Omission);
         }
+    }
+
+    private static void ReportMetadataFidelity(PdfCore.PdfMetadata metadata, PdfToHtmlOptions options) {
+        // The semantic body section retains all four fields even without a document shell.
+        bool hasMetadataSection = options.Profile == PdfHtmlProfile.Semantic && options.IncludeMetadata;
+        bool hasMetadataHead = options.EmitDocumentShell && options.IncludeMetadata;
+        int omittedCount = 0;
+        if (!hasMetadataSection && !options.EmitDocumentShell && !string.IsNullOrWhiteSpace(metadata.Title)) omittedCount++;
+        if (!hasMetadataSection && !hasMetadataHead) {
+            if (!string.IsNullOrWhiteSpace(metadata.Author)) omittedCount++;
+            if (!string.IsNullOrWhiteSpace(metadata.Subject)) omittedCount++;
+            if (!string.IsNullOrWhiteSpace(metadata.Keywords)) omittedCount++;
+        }
+        if (omittedCount == 0) return;
+        AddWarning(options, "PdfMetadataOmitted",
+            omittedCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " PDF title, author, subject, or keyword metadata fields were omitted from HTML output.",
+            PdfCore.PdfConversionWarningSeverity.Warning,
+            OfficeConversionLossKind.Omission);
     }
 
     private static bool IsOutputBuilderCapacityException(Exception exception) =>
