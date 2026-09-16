@@ -169,9 +169,7 @@ public static partial class OfficeSvgDrawingReader {
         private static bool TryReadLocalUrlReference(string? text, out string id) {
             id = string.Empty;
             if (string.IsNullOrWhiteSpace(text)) return false;
-            string normalized = TrimSvgCssWhitespace(text!);
-            if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase) || normalized[normalized.Length - 1] != ')') return false;
-            string reference = TrimSvgCssWhitespace(normalized.Substring(4, normalized.Length - 5)).Trim('\'', '"');
+            if (!TryReadSvgLocalUrlReference(text!, out string reference)) return false;
             return TryReadLocalElementReference(reference, out id);
         }
     }

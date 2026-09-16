@@ -314,11 +314,7 @@ public readonly partial struct OfficeColor {
         double first = firstPercentage ?? (secondPercentage.HasValue ? 100D - secondPercentage.Value : 50D);
         double second = secondPercentage ?? (firstPercentage.HasValue ? 100D - firstPercentage.Value : 50D);
         double total = first + second;
-        if (total == 0D) {
-            firstWeight = secondWeight = 0.5D;
-            alphaMultiplier = 0D;
-            return true;
-        }
+        if (total == 0D) return false;
         firstWeight = first / total;
         secondWeight = second / total;
         if (total < 100D) alphaMultiplier = total / 100D;

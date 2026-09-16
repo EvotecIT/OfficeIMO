@@ -150,6 +150,92 @@ public sealed class SvgContentSafetyStructuralSyntaxTests {
     }
 
     [Theory]
+    [InlineData("display='/**/none'")]
+    [InlineData("style='display:/**/none'")]
+    [InlineData("style='display:none/**/'")]
+    public void CssCommentsInPresentationValuesPreserveHiddenSemantics(string attribute) {
+        byte[] svg = Svg("<text " + attribute + " x='10' y='35'>comment-hidden payload</text>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "comment-hidden payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.HiddenByProperty, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.RemoveText, finding.CleanupCapability);
+    }
+
+    [Theory]
+    [InlineData("display='none/*\\*/'")]
+    [InlineData("display='none/*&#xA0;*/'")]
+    public void PresentationCommentContentsDoNotTriggerRawSyntaxPreflight(string attribute) {
+        byte[] svg = Svg("<text " + attribute + " x='10' y='35'>comment-content payload</text>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "comment-content payload");
+
+        Assert.Equal(OfficeContentConcealmentKind.HiddenByProperty, finding.Kind);
+        Assert.Equal(OfficeContentCleanupCapability.RemoveText, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void CssCommentsDoNotJoinPresentationIdentifierTokens() {
+        byte[] svg = Svg("<text display='n/**/one' x='10' y='35'>comment-visible payload</text>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "comment-visible payload" &&
+            item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);
+    }
+
+    [Fact]
+    public void UnsupportedCommentSeparatedInlineIdentifierFailsClosed() {
+        byte[] svg = Svg("<text style='display:n/**/one' x='10' y='35'>comment-visible payload</text>");
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Theory]
+    [InlineData("url(#empty garbage)")]
+    [InlineData("url(#empty(garbage))")]
+    [InlineData("url('#empty)")]
+    public void InvalidLocalUrlTokenCannotAuthorizeClippedTextRemoval(string clipPath) {
+        byte[] svg = Svg("<defs><clipPath id='empty garbage'/>" +
+            "<clipPath id='empty(garbage)'/><clipPath id='empty'/></defs>" +
+            "<text clip-path=\"" + clipPath + "\" x='10' y='35'>visible URL payload</text>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible URL payload" &&
+            item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);
+    }
+
+    [Theory]
+    [InlineData("<text style='clip-path:url(&quot;#v\\69 s&quot;)' x='10' y='35'>escaped URL payload</text>")]
+    [InlineData("<style>text{clip-path:url(&quot;#v\\69 s&quot;)}</style><text x='10' y='35'>escaped URL payload</text>")]
+    public void CssEscapesInQuotedLocalUrlsFailClosed(string text) {
+        byte[] svg = Svg("<defs><clipPath id='v\\69 s'/><clipPath id='vis'><rect width='20' height='20'/></clipPath></defs>" + text);
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Theory]
+    [InlineData("<text clip-path='url(/**/#empty)' x='10' y='35'>URL comment payload</text>")]
+    [InlineData("<text clip-path='url(#empty /**/)' x='10' y='35'>URL comment payload</text>")]
+    [InlineData("<text style='clip-path:url(/**/#empty)' x='10' y='35'>URL comment payload</text>")]
+    [InlineData("<text style='clip-path:url(#empty /**/)' x='10' y='35'>URL comment payload</text>")]
+    [InlineData("<style>text{clip-path:url(/**/#empty)}</style><text x='10' y='35'>URL comment payload</text>")]
+    [InlineData("<style>text{clip-path:url(#empty /**/)}</style><text x='10' y='35'>URL comment payload</text>")]
+    [InlineData("<text clip-path='/* &quot; */url(/**/#empty)' x='10' y='35'>URL comment payload</text>")]
+    [InlineData("<text style='clip-path:/* &quot; */url(/**/#empty)' x='10' y='35'>URL comment payload</text>")]
+    [InlineData("<style>text{clip-path:/* &quot; */url(/**/#empty)}</style><text x='10' y='35'>URL comment payload</text>")]
+    public void CommentsInsideUnquotedUrlTokensFailClosed(string text) {
+        byte[] svg = Svg("<defs><clipPath id='empty'/></defs>" + text);
+
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(svg));
+    }
+
+    [Theory]
     [InlineData("opacity:0 %")]
     [InlineData("fill-opacity:0 %")]
     public void SeparatedPercentageInInlineStyleFailsClosed(string declaration) {

@@ -71,7 +71,6 @@ public sealed class SvgContentSafetyPaintProjectionAuditTests {
 
     [Theory]
     [InlineData("color-mix(in&#9;srgb, transparent, transparent)")]
-    [InlineData("color-mix(in srgb, red 0%, blue 0%)")]
     public void ValidColorMixTransparencyIsClassifiedAsTransparentText(string color) {
         byte[] svg = Svg("<text fill='" + color + "' x='10' y='35'>mixed color payload</text>");
         var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
@@ -81,6 +80,16 @@ public sealed class SvgContentSafetyPaintProjectionAuditTests {
             item => item.TextPreview == "mixed color payload");
 
         Assert.Equal(OfficeContentConcealmentKind.TransparentText, finding.Kind);
+    }
+
+    [Fact]
+    public void ZeroWeightColorMixCannotAuthorizeTransparentTextRemoval() {
+        byte[] svg = Svg("<text fill='color-mix(in srgb, red 0%, blue 0%)' x='10' y='35'>visible mix payload</text>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.DoesNotContain(report.Findings, item => item.TextPreview == "visible mix payload" &&
+            item.CleanupCapability == OfficeContentCleanupCapability.RemoveText);
     }
 
     [Fact]

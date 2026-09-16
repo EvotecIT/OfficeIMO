@@ -173,7 +173,7 @@ public static partial class OfficeSvgDrawingReader {
                     attribute.Name.NamespaceName.Length == 0 &&
                     attribute.Name.LocalName.Equals(attribute.Name.LocalName.ToLowerInvariant(), StringComparison.Ordinal) &&
                     IsSvgPresentationPropertyName(attribute.Name.LocalName) &&
-                    IsUnsupportedSvgCssWideKeyword(attribute.Value)))) {
+                    IsUnsupportedSvgCssWideKeyword(RemoveSvgCssComments(attribute.Value))))) {
             throw new InvalidDataException("The SVG uses unsupported revert cascade semantics in a presentation attribute.");
         }
         if (root.DescendantsAndSelf().Where(element => IsNativeSvgElement(element, svgNamespace)).Any(element =>
@@ -181,7 +181,15 @@ public static partial class OfficeSvgDrawingReader {
                     attribute.Name.NamespaceName.Length == 0 &&
                     attribute.Name.LocalName.Equals(attribute.Name.LocalName.ToLowerInvariant(), StringComparison.Ordinal) &&
                     IsSvgPresentationPropertyName(attribute.Name.LocalName) &&
-                    attribute.Value.IndexOf('\\') >= 0))) {
+                    HasSvgCssCommentInsideUnquotedUrl(attribute.Value)))) {
+            throw new InvalidDataException("The SVG uses a CSS comment inside an unquoted URL token outside the bounded native CSS subset.");
+        }
+        if (root.DescendantsAndSelf().Where(element => IsNativeSvgElement(element, svgNamespace)).Any(element =>
+                element.Attributes().Any(attribute =>
+                    attribute.Name.NamespaceName.Length == 0 &&
+                    attribute.Name.LocalName.Equals(attribute.Name.LocalName.ToLowerInvariant(), StringComparison.Ordinal) &&
+                    IsSvgPresentationPropertyName(attribute.Name.LocalName) &&
+                    RemoveSvgCssComments(attribute.Value).IndexOf('\\') >= 0))) {
             throw new InvalidDataException("The SVG uses escaped presentation-attribute syntax outside the bounded native CSS subset.");
         }
         if (root.DescendantsAndSelf().Where(element => IsNativeSvgElement(element, svgNamespace)).Any(element =>
@@ -189,7 +197,7 @@ public static partial class OfficeSvgDrawingReader {
                     attribute.Name.NamespaceName.Length == 0 &&
                     attribute.Name.LocalName.Equals(attribute.Name.LocalName.ToLowerInvariant(), StringComparison.Ordinal) &&
                     IsSvgPresentationPropertyName(attribute.Name.LocalName) &&
-                    ContainsNonSvgCssWhitespace(attribute.Value)))) {
+                    ContainsNonSvgCssWhitespace(RemoveSvgCssComments(attribute.Value))))) {
             throw new InvalidDataException("The SVG uses non-CSS whitespace in a presentation attribute outside the bounded native CSS subset.");
         }
         if (root.DescendantsAndSelf().Where(element => IsNativeSvgElement(element, svgNamespace)).Any(element =>
@@ -197,7 +205,7 @@ public static partial class OfficeSvgDrawingReader {
                     attribute.Name.NamespaceName.Length == 0 &&
                     attribute.Name.LocalName.Equals(attribute.Name.LocalName.ToLowerInvariant(), StringComparison.Ordinal) &&
                     IsSvgPresentationPropertyName(attribute.Name.LocalName) &&
-                    ContainsUnsupportedSvgCssMathFunction(attribute.Value)))) {
+                    ContainsUnsupportedSvgCssMathFunction(RemoveSvgCssComments(attribute.Value))))) {
             throw new InvalidDataException("The SVG uses CSS math functions outside the bounded native presentation-attribute subset.");
         }
         if (root.DescendantsAndSelf().Where(element => IsNativeSvgElement(element, svgNamespace))

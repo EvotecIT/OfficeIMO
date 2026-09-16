@@ -727,23 +727,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static bool TryReadBoundedSvgLocalUrlReference(string value, out string reference) {
-        reference = string.Empty;
-        string normalized = value.Trim();
-        if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase) ||
-            !normalized.EndsWith(")", StringComparison.Ordinal)) return false;
-        string inner = normalized.Substring(4, normalized.Length - 5).Trim();
-        if (inner.Length == 0) return false;
-        if (inner[0] is '\'' or '"') {
-            char quote = inner[0];
-            if (inner.Length < 2 || inner[inner.Length - 1] != quote) return false;
-            inner = inner.Substring(1, inner.Length - 2).Trim();
-        } else if (inner[inner.Length - 1] is '\'' or '"') {
-            return false;
-        }
-        if (inner.IndexOfAny(new[] { '\'', '"' }) >= 0 ||
-            !inner.StartsWith("#", StringComparison.Ordinal) || inner.Length == 1) return false;
-        reference = inner;
-        return true;
+        return TryReadSvgLocalUrlReference(value, out reference);
     }
 
     private static bool TryFindSvgHiddenProperty(XElement element, out string evidence) {

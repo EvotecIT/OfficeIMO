@@ -43,9 +43,8 @@ public sealed class DrawingCssColorTests {
     }
 
     [Fact]
-    public void OfficeColor_ZeroWeightColorMixIsTransparent() {
-        Assert.True(OfficeColor.TryParseCss("color-mix(in srgb, red 0%, blue 0%)", out OfficeColor color));
-        Assert.Equal((byte)0, color.A);
+    public void OfficeColor_RejectsZeroWeightColorMix() {
+        Assert.False(OfficeColor.TryParseCss("color-mix(in srgb, red 0%, blue 0%)", out _));
     }
 
     [Theory]

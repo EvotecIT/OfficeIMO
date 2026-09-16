@@ -407,11 +407,16 @@ public static partial class OfficeSvgDrawingReader {
 
         private static bool TryReadLocalReference(string text, bool requireUrl, out string id) {
             id = string.Empty;
-            string normalized = TrimSvgCssWhitespace(text);
             if (requireUrl) {
-                if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase) || !normalized.EndsWith(")", StringComparison.Ordinal)) return false;
-                normalized = TrimSvgCssWhitespace(normalized.Substring(4, normalized.Length - 5)).Trim('\'', '"');
+                if (!TryReadSvgLocalUrlReference(text, out string reference)) return false;
+                try {
+                    id = Uri.UnescapeDataString(reference.Substring(1));
+                } catch (UriFormatException) {
+                    return false;
+                }
+                return id.Length > 0;
             }
+            string normalized = TrimSvgCssWhitespace(text);
             if (normalized.Length < 2 || normalized[0] != '#') return false;
             id = normalized.Substring(1);
             return id.Length > 0 && id.IndexOfAny(new[] { ' ', '\t', '\r', '\n', '#', '(', ')' }) < 0;

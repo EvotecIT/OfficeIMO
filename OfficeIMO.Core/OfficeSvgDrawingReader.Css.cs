@@ -33,6 +33,11 @@ public static partial class OfficeSvgDrawingReader {
                 complete = false;
                 break;
             }
+            if (HasSvgCssCommentInsideUnquotedUrl(style.Value)) {
+                unsupported++;
+                complete = false;
+                continue;
+            }
             if (!ParseSvgCssRules(RemoveSvgCssComments(style.Value), rules, ref declarations, ref unsupported)) {
                 complete = false;
             }
@@ -95,12 +100,21 @@ public static partial class OfficeSvgDrawingReader {
                 }
             }
             int inlineOrder = rules.Count + 1;
-            bool hadInlineStyle = !string.IsNullOrWhiteSpace(selectorElement.Attribute("style")?.Value);
+            string? inlineStyle = selectorElement.Attribute("style")?.Value;
+            bool hadInlineStyle = !string.IsNullOrWhiteSpace(inlineStyle);
             int inlineDeclarations = 0;
-            IReadOnlyList<SvgCssDeclaration> parsedInline = ParseSvgCssDeclarations(
-                selectorElement.Attribute("style")?.Value,
-                ref inlineDeclarations,
-                out bool inlineComplete);
+            bool inlineUrlComment = inlineStyle != null && HasSvgCssCommentInsideUnquotedUrl(inlineStyle);
+            IReadOnlyList<SvgCssDeclaration> parsedInline;
+            bool inlineComplete;
+            if (inlineUrlComment) {
+                parsedInline = Array.Empty<SvgCssDeclaration>();
+                inlineComplete = false;
+            } else {
+                parsedInline = ParseSvgCssDeclarations(
+                    inlineStyle == null ? null : RemoveSvgCssComments(inlineStyle),
+                    ref inlineDeclarations,
+                    out inlineComplete);
+            }
             if (!inlineComplete) {
                 unsupported++;
                 complete = false;
@@ -570,11 +584,30 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool IsSvgLocalReferenceOrNone(string value) {
         if (value.Equals("none", StringComparison.OrdinalIgnoreCase)) return true;
-        string normalized = value.Trim();
+        return TryReadSvgLocalUrlReference(value, out _);
+    }
+
+    private static bool TryReadSvgLocalUrlReference(string value, out string reference) {
+        reference = string.Empty;
+        string normalized = TrimSvgCssWhitespace(value);
         if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase) ||
             !normalized.EndsWith(")", StringComparison.Ordinal)) return false;
-        string reference = normalized.Substring(4, normalized.Length - 5).Trim().Trim('\'', '"');
-        return reference.Length > 1 && reference[0] == '#';
+        string inner = TrimSvgCssWhitespace(normalized.Substring(4, normalized.Length - 5));
+        if (inner.Length == 0) return false;
+        if (inner[0] == '\'' || inner[0] == '"') {
+            char quote = inner[0];
+            if (inner.Length < 2 || inner[inner.Length - 1] != quote) return false;
+            inner = inner.Substring(1, inner.Length - 2);
+            if (inner.IndexOf(quote) >= 0 || inner.IndexOf('\\') >= 0) return false;
+        } else {
+            foreach (char character in inner) {
+                if (IsSvgCssWhitespace(character) || character == '\'' || character == '"' ||
+                    character == '(' || character == ')' || character == '\\' || char.IsControl(character)) return false;
+            }
+        }
+        if (!inner.StartsWith("#", StringComparison.Ordinal) || inner.Length == 1) return false;
+        reference = inner;
+        return true;
     }
 
     private static bool TryResolveSvgCssVariables(
@@ -729,6 +762,37 @@ public static partial class OfficeSvgDrawingReader {
             } else result.Append(current);
         }
         return result.ToString();
+    }
+
+    private static bool HasSvgCssCommentInsideUnquotedUrl(string css) {
+        char quote = '\0';
+        for (int index = 0; index + 3 < css.Length; index++) {
+            char current = css[index];
+            if (quote != '\0') {
+                if (current == quote && !IsEscapedSvgCssCharacter(css, index)) quote = '\0';
+                continue;
+            }
+            if (index + 1 < css.Length && current == '/' && css[index + 1] == '*') {
+                int close = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
+                if (close < 0) return false;
+                index = close + 1;
+                continue;
+            }
+            if (current == '\'' || current == '"') {
+                quote = current;
+                continue;
+            }
+            if (!css.Substring(index, 4).Equals("url(", StringComparison.OrdinalIgnoreCase) ||
+                index > 0 && (char.IsLetterOrDigit(css[index - 1]) || css[index - 1] == '-' || css[index - 1] == '_')) continue;
+            int cursor = index + 4;
+            while (cursor < css.Length && IsSvgCssWhitespace(css[cursor])) cursor++;
+            if (cursor < css.Length && (css[cursor] == '\'' || css[cursor] == '"')) continue;
+            while (cursor < css.Length && css[cursor] != ')') {
+                if (cursor + 1 < css.Length && css[cursor] == '/' && css[cursor + 1] == '*') return true;
+                cursor++;
+            }
+        }
+        return false;
     }
 
     private static bool IsEscapedSvgCssCharacter(string text, int index) {
