@@ -13,7 +13,7 @@ namespace OfficeIMO.Word {
         public readonly struct ListInfo {
             /// <summary>Initializes a list descriptor using the original public constructor shape.</summary>
             public ListInfo(int level, bool ordered, int start, WordNumberFormat? format, string? text, int? leftIndentTwips, int? hangingIndentTwips)
-                : this(level, ordered, start, format, text, leftIndentTwips, hangingIndentTwips, null, null, null, null, null, null) {
+                : this(level, ordered, markerVisible: true, start, format, text, leftIndentTwips, hangingIndentTwips, null, null, null, null, null, null, null, pictureBulletId: null) {
             }
 
             /// <summary>
@@ -33,12 +33,13 @@ namespace OfficeIMO.Word {
             /// <param name="levelJustification">Marker justification from the numbering level, when defined.</param>
             /// <param name="levelSuffix">Marker suffix from the numbering level, when defined.</param>
             public ListInfo(int level, bool ordered, int start, WordNumberFormat? format, string? text, int? leftIndentTwips = null, int? hangingIndentTwips = null, string? markerFontFamily = null, bool? markerBold = null, bool? markerItalic = null, string? markerColorHex = null, WordListLevelAlignment? levelJustification = null, WordListLevelSuffix? levelSuffix = null)
-                : this(level, ordered, start, format, text, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize: null, levelJustification, levelSuffix) {
+                : this(level, ordered, markerVisible: true, start, format, text, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize: null, levelJustification, levelSuffix, pictureBulletId: null) {
             }
 
-            internal ListInfo(int level, bool ordered, int start, WordNumberFormat? format, string? text, int? leftIndentTwips, int? hangingIndentTwips, string? markerFontFamily, bool? markerBold, bool? markerItalic, string? markerColorHex, double? markerFontSize, WordListLevelAlignment? levelJustification, WordListLevelSuffix? levelSuffix) {
+            internal ListInfo(int level, bool ordered, bool markerVisible, int start, WordNumberFormat? format, string? text, int? leftIndentTwips, int? hangingIndentTwips, string? markerFontFamily, bool? markerBold, bool? markerItalic, string? markerColorHex, double? markerFontSize, WordListLevelAlignment? levelJustification, WordListLevelSuffix? levelSuffix, int? pictureBulletId) {
                 Level = level;
                 Ordered = ordered;
+                MarkerVisible = markerVisible;
                 Start = start;
                 NumberFormat = format;
                 LevelText = text;
@@ -51,12 +52,15 @@ namespace OfficeIMO.Word {
                 MarkerFontSize = markerFontSize;
                 LevelJustification = levelJustification;
                 LevelSuffix = levelSuffix;
+                PictureBulletId = pictureBulletId;
             }
 
             /// <summary>Zero-based nesting level.</summary>
             public int Level { get; }
             /// <summary>Indicates whether numbering is used.</summary>
             public bool Ordered { get; }
+            /// <summary>Indicates whether the effective numbering level displays a marker.</summary>
+            public bool MarkerVisible { get; }
             /// <summary>Starting index for the list.</summary>
             public int Start { get; }
             /// <summary>Numbering format applied to the list.</summary>
@@ -81,6 +85,26 @@ namespace OfficeIMO.Word {
             public WordListLevelAlignment? LevelJustification { get; }
             /// <summary>Marker suffix from the numbering level, when defined.</summary>
             public WordListLevelSuffix? LevelSuffix { get; }
+            /// <summary>Picture-bullet identifier from the effective numbering level, when defined.</summary>
+            public int? PictureBulletId { get; }
+        }
+
+        /// <summary>
+        /// Describes a list marker after Word numbering semantics and legacy symbol-font
+        /// characters have been projected to portable Unicode text.
+        /// </summary>
+        internal readonly struct ResolvedListMarker {
+            internal ResolvedListMarker(int level, string marker, bool useTextFont, int? pictureBulletId) {
+                Level = level;
+                Marker = marker;
+                UseTextFont = useTextFont;
+                PictureBulletId = pictureBulletId;
+            }
+
+            internal int Level { get; }
+            internal string Marker { get; }
+            internal bool UseTextFont { get; }
+            internal int? PictureBulletId { get; }
         }
 
         /// <summary>
@@ -96,20 +120,29 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">Paragraph to inspect.</param>
         /// <returns>List info for the paragraph or null when paragraph isn't a list item.</returns>
         public static ListInfo? GetListInfo(WordParagraph paragraph) {
-            if (paragraph == null || !paragraph.IsListItem) {
+            if (paragraph == null ||
+                !WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering)) {
                 return null;
             }
 
             Dictionary<int, ListNumberingDefinition> definitions = BuildListNumberingDefinitions(paragraph._document);
-            return GetListInfo(paragraph, definitions);
+            return GetListInfo(paragraph, numbering, definitions);
         }
 
         private static ListInfo? GetListInfo(WordParagraph paragraph, IReadOnlyDictionary<int, ListNumberingDefinition> definitions) {
-            if (paragraph == null || !paragraph.IsListItem) {
+            if (paragraph == null ||
+                !WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering)) {
                 return null;
             }
 
-            int level = paragraph.ListItemLevel ?? 0;
+            return GetListInfo(paragraph, numbering, definitions);
+        }
+
+        private static ListInfo? GetListInfo(
+            WordParagraph paragraph,
+            WordListNumberingResolver.ResolvedNumbering numbering,
+            IReadOnlyDictionary<int, ListNumberingDefinition> definitions) {
+            int level = numbering.Level;
             int? overrideStart = null;
             int start = 1;
             WordNumberFormat? numberFormat = null;
@@ -123,12 +156,10 @@ namespace OfficeIMO.Word {
             double? markerFontSize = null;
             WordListLevelAlignment? levelJustification = null;
             WordListLevelSuffix? levelSuffix = null;
+            int? pictureBulletId = null;
 
-            int? numberId = paragraph._listNumberId;
             ListNumberingDefinition? definition = null;
-            if (numberId.HasValue) {
-                definitions.TryGetValue(numberId.Value, out definition);
-            }
+            definitions.TryGetValue(numbering.NumberId, out definition);
             if (definition != null &&
                 definition.StartOverrides.TryGetValue(level, out int overrideValue) &&
                 (!definition.OverridesAreDefault || overrideValue != 1)) {
@@ -151,14 +182,18 @@ namespace OfficeIMO.Word {
                 markerFontSize = levelDefinition.MarkerFontSize;
                 levelJustification = levelDefinition.LevelJustification.ToOfficeEnum();
                 levelSuffix = levelDefinition.LevelSuffix.ToOfficeEnum();
+                pictureBulletId = levelDefinition.PictureBulletId;
             }
 
-            bool ordered = definition?.Style switch {
-                WordListStyle.Bulleted => false,
-                WordListStyle.BulletedChars => false,
-                _ => true,
-            };
-            return new ListInfo(level, ordered, start, numberFormat, levelText, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize, levelJustification, levelSuffix);
+            bool markerVisible = pictureBulletId.HasValue || numberFormat != WordNumberFormat.None;
+            bool ordered = pictureBulletId.HasValue ? false : numberFormat.HasValue
+                ? numberFormat.Value != WordNumberFormat.Bullet && numberFormat.Value != WordNumberFormat.None
+                : definition?.Style switch {
+                    WordListStyle.Bulleted => false,
+                    WordListStyle.BulletedChars => false,
+                    _ => true,
+                };
+            return new ListInfo(level, ordered, markerVisible, start, numberFormat, levelText, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize, levelJustification, levelSuffix, pictureBulletId);
         }
 
         private static int? ParseOptionalInt32(string? value) {
@@ -169,7 +204,20 @@ namespace OfficeIMO.Word {
         /// Builds a lookup of list markers for all paragraphs in the document.
         /// </summary>
         public static Dictionary<WordParagraph, (int Level, string Marker)> BuildListMarkers(WordDocument document) {
-            Dictionary<WordParagraph, (int, string)> result = new(ParagraphReferenceComparer.Instance);
+            Dictionary<WordParagraph, ResolvedListMarker> resolved = BuildResolvedListMarkers(document);
+            var result = new Dictionary<WordParagraph, (int, string)>(ParagraphReferenceComparer.Instance);
+            foreach (KeyValuePair<WordParagraph, ResolvedListMarker> item in resolved) {
+                result[item.Key] = (item.Value.Level, item.Value.Marker);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Builds portable marker details for all effective list paragraphs in the document.
+        /// </summary>
+        internal static Dictionary<WordParagraph, ResolvedListMarker> BuildResolvedListMarkers(WordDocument document) {
+            Dictionary<WordParagraph, ResolvedListMarker> result = new(ParagraphReferenceComparer.Instance);
             Dictionary<int, ListNumberingDefinition> definitions = BuildListNumberingDefinitions(document);
             Dictionary<int, List<WordParagraph>> itemsByNumberId = BuildListItemsByNumberId(document);
 
@@ -206,15 +254,54 @@ namespace OfficeIMO.Word {
                     int currentIndex = indices[level];
                     indices[level] = currentIndex + 1;
 
-                    string marker = info.Value.Ordered
-                        ? BuildMarker(level, currentIndex, indices, formats, info.Value.LevelText)
-                        : (info.Value.LevelText ?? "•");
+                    string rawMarker;
+                    if (!info.Value.MarkerVisible) {
+                        rawMarker = string.Empty;
+                    } else if (info.Value.PictureBulletId.HasValue) {
+                        rawMarker = "•";
+                    } else {
+                        rawMarker = info.Value.Ordered
+                            ? BuildMarker(level, currentIndex, indices, formats, info.Value.LevelText)
+                            : (info.Value.LevelText ?? "•");
+                    }
 
-                    result[item] = (level, marker);
+                    (string marker, bool useTextFont) = NormalizeListMarker(rawMarker, info.Value.MarkerFontFamily);
+                    result[item] = new ResolvedListMarker(level, marker, useTextFont, info.Value.PictureBulletId);
                 }
             }
 
             return result;
+        }
+
+        private static (string Marker, bool UseTextFont) NormalizeListMarker(string marker, string? fontFamily) {
+            string trimmed = marker.Trim();
+            if (trimmed.Length == 0) {
+                return (string.Empty, false);
+            }
+
+            if (string.Equals(fontFamily, "Symbol", StringComparison.OrdinalIgnoreCase)) {
+                return trimmed switch {
+                    "\uf0b7" => ("•", true),
+                    "\u00b7" => ("•", true),
+                    _ => (marker, false)
+                };
+            }
+
+            if (string.Equals(fontFamily, "Wingdings", StringComparison.OrdinalIgnoreCase)) {
+                return trimmed switch {
+                    "\uf0a7" => ("▪", true),
+                    _ => (marker, false)
+                };
+            }
+
+            return (marker, false);
+        }
+
+        internal static bool ShouldUseTextFontForMarker(ListInfo? info, string marker) {
+            if (info == null) return false;
+            if (info.Value.PictureBulletId.HasValue) return true;
+            (string normalized, bool useTextFont) = NormalizeListMarker(info.Value.LevelText ?? string.Empty, info.Value.MarkerFontFamily);
+            return useTextFont && string.Equals(normalized, marker, StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -290,10 +377,15 @@ namespace OfficeIMO.Word {
                     });
 
                 var startOverrides = new Dictionary<int, int>();
+                var levelOverrides = new Dictionary<int, Level>();
                 foreach (LevelOverride levelOverride in overrides) {
                     StartOverrideNumberingValue? start = levelOverride.GetFirstChild<StartOverrideNumberingValue>();
                     if (levelOverride.LevelIndex?.HasValue == true && start?.Val?.HasValue == true && !startOverrides.ContainsKey(levelOverride.LevelIndex.Value)) {
                         startOverrides.Add(levelOverride.LevelIndex.Value, start.Val.Value);
+                    }
+                    Level? overrideLevel = levelOverride.GetFirstChild<Level>();
+                    if (levelOverride.LevelIndex?.HasValue == true && overrideLevel != null && !levelOverrides.ContainsKey(levelOverride.LevelIndex.Value)) {
+                        levelOverrides.Add(levelOverride.LevelIndex.Value, overrideLevel);
                     }
                 }
 
@@ -304,23 +396,14 @@ namespace OfficeIMO.Word {
                             continue;
                         }
 
-                        var indentation = level.GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
-                        NumberingSymbolRunProperties? markerProperties = level.GetFirstChild<NumberingSymbolRunProperties>();
-                        var definition = new ListLevelDefinition(
-                            level: level.LevelIndex.Value,
-                            start: level.StartNumberingValue?.Val?.Value ?? 1,
-                            numberFormat: level.NumberingFormat?.Val?.Value,
-                            levelText: level.LevelText?.Val?.Value,
-                            leftIndentTwips: ParseOptionalInt32(indentation?.Left?.Value),
-                            hangingIndentTwips: ParseOptionalInt32(indentation?.Hanging?.Value),
-                            markerFontFamily: ResolveListMarkerFontFamily(markerProperties),
-                            markerBold: ReadListMarkerOnOff(markerProperties?.GetFirstChild<Bold>()),
-                            markerItalic: ReadListMarkerOnOff(markerProperties?.GetFirstChild<Italic>()),
-                            markerColorHex: markerProperties?.GetFirstChild<Color>()?.Val?.Value,
-                            markerFontSize: ResolveListMarkerFontSize(markerProperties),
-                            levelJustification: level.LevelJustification?.Val?.Value,
-                            levelSuffix: level.LevelSuffix?.Val?.Value);
+                        levelOverrides.TryGetValue(level.LevelIndex.Value, out Level? overrideLevel);
+                        ListLevelDefinition definition = CreateLevelDefinition(level.LevelIndex.Value, level, overrideLevel);
                         levels.Add(definition.Level, definition);
+                    }
+                }
+                foreach (KeyValuePair<int, Level> levelOverride in levelOverrides) {
+                    if (!levels.ContainsKey(levelOverride.Key)) {
+                        levels.Add(levelOverride.Key, CreateLevelDefinition(levelOverride.Key, abstractLevel: null, levelOverride.Value));
                     }
                 }
 
@@ -335,14 +418,37 @@ namespace OfficeIMO.Word {
             return result;
         }
 
+        private static ListLevelDefinition CreateLevelDefinition(int level, Level? abstractLevel, Level? overrideLevel) {
+            Indentation? abstractIndentation = abstractLevel?.GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
+            Indentation? overrideIndentation = overrideLevel?.GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
+            NumberingSymbolRunProperties? abstractMarkerProperties = abstractLevel?.GetFirstChild<NumberingSymbolRunProperties>();
+            NumberingSymbolRunProperties? overrideMarkerProperties = overrideLevel?.GetFirstChild<NumberingSymbolRunProperties>();
+
+            return new ListLevelDefinition(
+                level: level,
+                start: overrideLevel?.StartNumberingValue?.Val?.Value ?? abstractLevel?.StartNumberingValue?.Val?.Value ?? 1,
+                numberFormat: overrideLevel?.NumberingFormat?.Val?.Value ?? abstractLevel?.NumberingFormat?.Val?.Value,
+                levelText: overrideLevel?.LevelText?.Val?.Value ?? abstractLevel?.LevelText?.Val?.Value,
+                leftIndentTwips: ParseOptionalInt32(overrideIndentation?.Left?.Value ?? abstractIndentation?.Left?.Value),
+                hangingIndentTwips: ParseOptionalInt32(overrideIndentation?.Hanging?.Value ?? abstractIndentation?.Hanging?.Value),
+                markerFontFamily: ResolveListMarkerFontFamily(overrideMarkerProperties) ?? ResolveListMarkerFontFamily(abstractMarkerProperties),
+                markerBold: ReadListMarkerOnOff(overrideMarkerProperties?.GetFirstChild<Bold>()) ?? ReadListMarkerOnOff(abstractMarkerProperties?.GetFirstChild<Bold>()),
+                markerItalic: ReadListMarkerOnOff(overrideMarkerProperties?.GetFirstChild<Italic>()) ?? ReadListMarkerOnOff(abstractMarkerProperties?.GetFirstChild<Italic>()),
+                markerColorHex: overrideMarkerProperties?.GetFirstChild<Color>()?.Val?.Value ?? abstractMarkerProperties?.GetFirstChild<Color>()?.Val?.Value,
+                markerFontSize: ResolveListMarkerFontSize(overrideMarkerProperties) ?? ResolveListMarkerFontSize(abstractMarkerProperties),
+                levelJustification: overrideLevel?.LevelJustification?.Val?.Value ?? abstractLevel?.LevelJustification?.Val?.Value,
+                levelSuffix: overrideLevel?.LevelSuffix?.Val?.Value ?? abstractLevel?.LevelSuffix?.Val?.Value,
+                pictureBulletId: overrideLevel?.GetFirstChild<LevelPictureBulletId>()?.Val?.Value ?? abstractLevel?.GetFirstChild<LevelPictureBulletId>()?.Val?.Value);
+        }
+
         private static Dictionary<int, List<WordParagraph>> BuildListItemsByNumberId(WordDocument document) {
             var result = new Dictionary<int, List<WordParagraph>>();
-            foreach (WordParagraph paragraph in document.EnumerateAllParagraphs()) {
-                if (!paragraph.IsListItem || paragraph._listNumberId == null) {
+            foreach (WordParagraph paragraph in EnumerateListParagraphs(document)) {
+                if (!WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering)) {
                     continue;
                 }
 
-                int numberId = paragraph._listNumberId.Value;
+                int numberId = numbering.NumberId;
                 if (!result.TryGetValue(numberId, out List<WordParagraph>? items)) {
                     items = new List<WordParagraph>();
                     result[numberId] = items;
@@ -352,6 +458,30 @@ namespace OfficeIMO.Word {
             }
 
             return result;
+        }
+
+        private static IEnumerable<WordParagraph> EnumerateListParagraphs(WordDocument document) {
+            var seen = new HashSet<Paragraph>();
+            foreach (WordParagraph paragraph in document.EnumerateAllParagraphs()) {
+                if (paragraph._paragraph != null && seen.Add(paragraph._paragraph)) yield return paragraph;
+            }
+
+            foreach (WordTextBox textBox in document.TextBoxes) {
+                foreach (WordParagraph paragraph in textBox.Paragraphs) {
+                    if (paragraph._paragraph != null && seen.Add(paragraph._paragraph)) yield return paragraph;
+                }
+            }
+
+            foreach (WordSection section in document.Sections) {
+                foreach (WordHeaderFooter? headerFooter in new WordHeaderFooter?[] { section.Header.Default, section.Header.First, section.Header.Even, section.Footer.Default, section.Footer.First, section.Footer.Even }) {
+                    if (headerFooter == null) continue;
+                    foreach (WordTextBox textBox in headerFooter.TextBoxes) {
+                        foreach (WordParagraph paragraph in textBox.Paragraphs) {
+                            if (paragraph._paragraph != null && seen.Add(paragraph._paragraph)) yield return paragraph;
+                        }
+                    }
+                }
+            }
         }
 
         private sealed class ListNumberingDefinition {
@@ -389,7 +519,8 @@ namespace OfficeIMO.Word {
                 string? markerColorHex,
                 double? markerFontSize,
                 LevelJustificationValues? levelJustification,
-                LevelSuffixValues? levelSuffix) {
+                LevelSuffixValues? levelSuffix,
+                int? pictureBulletId) {
                 Level = level;
                 Start = start;
                 NumberFormat = numberFormat;
@@ -403,6 +534,7 @@ namespace OfficeIMO.Word {
                 MarkerFontSize = markerFontSize;
                 LevelJustification = levelJustification;
                 LevelSuffix = levelSuffix;
+                PictureBulletId = pictureBulletId;
             }
 
             internal int Level { get; }
@@ -418,6 +550,7 @@ namespace OfficeIMO.Word {
             internal double? MarkerFontSize { get; }
             internal LevelJustificationValues? LevelJustification { get; }
             internal LevelSuffixValues? LevelSuffix { get; }
+            internal int? PictureBulletId { get; }
         }
 
         private static double? ResolveListMarkerFontSize(NumberingSymbolRunProperties? markerProperties) {

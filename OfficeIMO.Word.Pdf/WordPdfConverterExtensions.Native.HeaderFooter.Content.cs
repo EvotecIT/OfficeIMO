@@ -628,16 +628,16 @@ namespace OfficeIMO.Word.Pdf {
         private static string? GetNativeHeaderFooterParagraphText(WordParagraph paragraph, out PdfCore.PdfPageNumberStyle? pageNumberStyle, out NativeHeaderFooterZone? zoneOverride) {
             zoneOverride = null;
             if (TryBuildNativeHeaderFooterParagraphText(paragraph, out string? mixedText, out pageNumberStyle)) {
-                return AppendNativeHeaderFooterSupplementalText(mixedText, paragraph);
+                return PrependNativeHeaderFooterListMarker(paragraph, AppendNativeHeaderFooterSupplementalText(mixedText, paragraph));
             }
 
             if (TryGetNativeHeaderFooterFieldToken(paragraph, out string? fieldToken, out pageNumberStyle)) {
-                return AppendNativeHeaderFooterSupplementalText(fieldToken, paragraph);
+                return PrependNativeHeaderFooterListMarker(paragraph, AppendNativeHeaderFooterSupplementalText(fieldToken, paragraph));
             }
 
             pageNumberStyle = null;
             if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph)) {
-                return AppendNativeHeaderFooterSupplementalText(ApplyNativeTextTransform(paragraph.Hyperlink.Text, paragraph), paragraph);
+                return PrependNativeHeaderFooterListMarker(paragraph, AppendNativeHeaderFooterSupplementalText(ApplyNativeTextTransform(paragraph.Hyperlink.Text, paragraph), paragraph));
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
@@ -646,7 +646,7 @@ namespace OfficeIMO.Word.Pdf {
                 : IsNativeHiddenTextRun(paragraph) ? string.Empty : ApplyNativeTextTransform(paragraph.Text, paragraph);
             text = AppendNativeHeaderFooterSupplementalText(text, paragraph);
             if (!string.IsNullOrWhiteSpace(text)) {
-                return text;
+                return PrependNativeHeaderFooterListMarker(paragraph, text);
             }
 
             string? textBoxText = GetNativeParagraphTextBoxPlainText(paragraph);
@@ -656,7 +656,15 @@ namespace OfficeIMO.Word.Pdf {
 
             WordTextBox? textBox = GetNativeParagraphTextBox(paragraph, out _);
             zoneOverride = MapNativeTextBoxHeaderFooterZone(textBox?.HorizontalAlignment ?? WordTextBoxHorizontalAlignment.Center);
-            return textBoxText;
+            return PrependNativeHeaderFooterListMarker(paragraph, textBoxText);
+        }
+
+        private static string? PrependNativeHeaderFooterListMarker(WordParagraph paragraph, string? text) {
+            if (!paragraph.IsListItem || string.IsNullOrWhiteSpace(text)) return text;
+            Dictionary<WordParagraph, (int Level, string Marker)> markers = WordDocumentTraversal.BuildListMarkers(paragraph._document);
+            return markers.TryGetValue(paragraph, out var marker) && !string.IsNullOrEmpty(marker.Marker)
+                ? marker.Marker + " " + text
+                : text;
         }
 
         private static string? AppendNativeHeaderFooterSupplementalText(string? text, WordParagraph paragraph) {

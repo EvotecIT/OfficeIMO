@@ -83,7 +83,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
-            if (info == null || marker.Level != info.Value.Level || listIndex.Level != info.Value.Level) {
+            if (info == null || !info.Value.MarkerVisible || marker.Level != info.Value.Level || listIndex.Level != info.Value.Level) {
                 return false;
             }
 
@@ -351,9 +351,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool ShouldUseNativeListTextFontForNormalizedMarker(WordDocumentTraversal.ListInfo info, string marker) {
-            return string.Equals(marker, "•", StringComparison.Ordinal) &&
-                   !string.IsNullOrWhiteSpace(info.MarkerFontFamily) &&
-                   string.Equals(NormalizeNativeFontFamily(info.MarkerFontFamily!), "symbol", StringComparison.OrdinalIgnoreCase);
+            return WordDocumentTraversal.ShouldUseTextFontForMarker(info, marker);
         }
 
         private static PdfCore.PdfAlign? MapNativeListMarkerAlign(W.LevelJustificationValues? value) {

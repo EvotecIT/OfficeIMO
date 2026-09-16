@@ -523,13 +523,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            return paragraph.ListStyle switch {
-                WordListStyle.Bulleted => false,
-                WordListStyle.BulletedChars => false,
-                WordListStyle.Custom => null,
-                null => null,
-                _ => true,
-            };
+            return WordDocumentTraversal.GetListInfo(paragraph)?.Ordered;
         }
 
         private static int ResolveColumnSpan(WordTableCell cell, WordTableRow row, int columnIndex) {

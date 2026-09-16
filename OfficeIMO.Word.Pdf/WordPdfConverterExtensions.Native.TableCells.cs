@@ -302,7 +302,7 @@ namespace OfficeIMO.Word.Pdf {
             return CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, NativeTableStyleDefaults.Empty);
         }
 
-        private static NativeCellText CreateNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null) {
+        private static NativeCellText CreateNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null, Func<WordParagraph, (int Level, string Marker)?>? getMarker = null) {
             var runs = new List<PdfCore.PdfTextRun>();
             var paragraphs = new List<PdfCore.PdfTableCellParagraph>();
             double? pendingSpacingAfter = null;
@@ -310,6 +310,9 @@ namespace OfficeIMO.Word.Pdf {
             for (int i = 0; i < cellParagraphs.Count; i++) {
                 WordParagraph paragraph = cellParagraphs[i];
                 List<PdfCore.PdfTextRun> paragraphRuns = CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap);
+                if (getMarker?.Invoke(paragraph) is { Marker.Length: > 0 } marker) {
+                    paragraphRuns.Insert(0, CreateNativeCellTextRun(marker.Marker + " ", paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap));
+                }
                 if (paragraphRuns.Count == 0) {
                     continue;
                 }

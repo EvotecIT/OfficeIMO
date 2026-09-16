@@ -346,6 +346,14 @@ namespace OfficeIMO.Word {
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         public WordListLevel(WordListLevelKind simplifiedListNumbers) {
             switch (simplifiedListNumbers) {
+                case WordListLevelKind.None:
+                    _level = new Level() {
+                        LevelIndex = 0,
+                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
+                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.None },
+                        LevelText = new LevelText() { Val = string.Empty }
+                    };
+                    break;
                 case WordListLevelKind.Bullet:
                     _level = new Level() {
                         LevelIndex = 0,
@@ -730,8 +738,6 @@ namespace OfficeIMO.Word {
                             Indentation = new Indentation() { Left = "720", Hanging = "360" }
                         }
                     };
-                    break;
-                case WordListLevelKind.None:
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(simplifiedListNumbers), simplifiedListNumbers, null);

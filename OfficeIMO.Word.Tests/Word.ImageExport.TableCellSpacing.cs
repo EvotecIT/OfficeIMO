@@ -136,8 +136,8 @@ namespace OfficeIMO.Tests {
             OfficeDrawingText bulletMarker = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(text => text.Y == bulletText.Y && text.X < bulletText.X);
-            Assert.False(string.IsNullOrWhiteSpace(bulletMarker.Text));
-            Assert.Equal("Symbol", bulletMarker.Font.FamilyName);
+            Assert.Equal("•", bulletMarker.Text);
+            Assert.Equal(bulletText.Font.FamilyName, bulletMarker.Font.FamilyName);
 
             OfficeDrawingText numberText = SingleText(snapshot, "Cell number");
             OfficeDrawingText numberMarker = snapshot.Drawing.Elements

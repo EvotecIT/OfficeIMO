@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(orderedInfo.Value.Ordered);
 
                 var markers = WordDocumentTraversal.BuildListMarkers(document);
-                Assert.Equal("·", markers[bulletItem].Marker);
+                Assert.Equal("•", markers[bulletItem].Marker);
                 Assert.Equal("1.", markers[orderedItem].Marker);
             }
         }

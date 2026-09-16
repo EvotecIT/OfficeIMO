@@ -22,7 +22,7 @@ namespace OfficeIMO.Word {
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraphReference);
             WordParagraph? firstRun = GetFirstTextRun(document, paragraph);
             OfficeFontInfo baseFont = firstRun == null ? OfficeFontInfo.Default : CreateFont(firstRun);
-            OfficeFontInfo markerFont = CreateListMarkerFont(info, baseFont);
+            OfficeFontInfo markerFont = CreateListMarkerFont(info, baseFont, WordDocumentTraversal.ShouldUseTextFontForMarker(info, marker.Marker));
             var colorScheme = GetDocumentColorScheme(document);
             OfficeColor markerColor = ResolveListMarkerColor(info, ResolveParagraphTextColor(firstRun, colorScheme));
             OfficeTextAlignment markerAlignment = info?.LevelJustification == WordListLevelAlignment.Right
@@ -51,7 +51,7 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        private static OfficeFontInfo CreateListMarkerFont(WordDocumentTraversal.ListInfo? info, OfficeFontInfo baseFont) {
+        private static OfficeFontInfo CreateListMarkerFont(WordDocumentTraversal.ListInfo? info, OfficeFontInfo baseFont, bool useTextFont) {
             OfficeFontStyle style = OfficeFontStyle.Regular;
             if (info?.MarkerBold ?? baseFont.IsBold) {
                 style |= OfficeFontStyle.Bold;
@@ -62,7 +62,7 @@ namespace OfficeIMO.Word {
             }
 
             return new OfficeFontInfo(
-                string.IsNullOrWhiteSpace(info?.MarkerFontFamily) ? baseFont.FamilyName : info!.Value.MarkerFontFamily!,
+                useTextFont || string.IsNullOrWhiteSpace(info?.MarkerFontFamily) ? baseFont.FamilyName : info!.Value.MarkerFontFamily!,
                 info?.MarkerFontSize ?? baseFont.Size,
                 style);
         }

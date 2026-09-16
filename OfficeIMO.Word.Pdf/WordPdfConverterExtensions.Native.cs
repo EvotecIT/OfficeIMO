@@ -159,7 +159,17 @@ namespace OfficeIMO.Word.Pdf {
             ResetNativeStyleLookupCache(document);
             WordBuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
             var nativeFontMap = new NativeFontMap(options?.Report);
-            Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = WordDocumentTraversal.BuildListMarkers(document);
+            Dictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> resolvedMarkers = WordDocumentTraversal.BuildResolvedListMarkers(document);
+            Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = resolvedMarkers.ToDictionary(
+                pair => pair.Key, pair => (pair.Value.Level, pair.Value.Marker), resolvedMarkers.Comparer);
+            if (options != null) {
+                foreach (int pictureBulletId in resolvedMarkers.Values
+                    .Select(marker => marker.PictureBulletId)
+                    .Where(id => id.HasValue).Select(id => id!.Value).Distinct()) {
+                    AddNativeExportWarning(options, "NativePictureBulletTextFallback", "list marker",
+                        "Picture bullet " + pictureBulletId.ToString(CultureInfo.InvariantCulture) + " is represented by a portable text bullet in PDF output.");
+                }
+            }
             PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(CreateNativeOptions(
                     document,
                     options,
