@@ -299,6 +299,29 @@ Freeze time and disable unrelated animations in reproducibility tests; separatel
 
 Any future untrusted-script profile must execute in an isolated worker with OS-enforced bounds. Interpreter constraints supplement process isolation; they are not the isolation boundary. Host objects are explicit capabilities and never expose arbitrary CLR access. Browser origins, cross-origin resource rules, credentials and navigation require dedicated security tests.
 
+The public-page pilot has a separate admission path and provider identity. It may
+reuse the owned host/page/action/capture contracts and the application-to-document
+workflow, but it must never call the trusted worker launcher for public scripts.
+Before admitting a page, the host must verify an isolation mechanism on the
+current OS and return a report containing the mechanism, worker and policy
+identities, enforced memory/CPU/process limits, filesystem and network scope,
+and termination outcome. An unavailable or failed check rejects the job; there
+is no best-effort fallback to `WebApplicationV1`.
+
+For the first corpus, the host acquires bounded HTTP(S) input and resources and
+passes immutable bytes to a worker with no direct network access. The acquisition
+broker owns DNS/IP and redirect checks, response-size and time limits, origin
+policy, content hashes and retained-source provenance. The worker can request
+only broker-authorized resources; until that request channel is qualified, a
+pilot page is limited to resources captured before execution. Credentials,
+cookies and persistent storage are excluded from the first public profile.
+Probe the isolation boundary with denied file reads and writes, denied network
+calls, process spawning, memory pressure, CPU loops and cancellation before a
+real public URL can enter the corpus. Each output names its exact page, inputs,
+unsupported APIs and isolation report. The chosen OS mechanism is replaceable
+behind the worker-launch boundary; its presence alone does not imply broad
+browser compatibility.
+
 Removing a third-party JavaScript engine is a later language-runtime project covering parsing, evaluation, modules, promises, built-ins, memory management, internationalization and performance. Start with an interpreter only if the stage has its own funded scope and Test262 acceptance. A JIT is not required to begin; its absence also does not establish adequate performance for real applications. The static product must remain useful and independently releasable throughout.
 
 ### Programmatic browser control and agent integration
