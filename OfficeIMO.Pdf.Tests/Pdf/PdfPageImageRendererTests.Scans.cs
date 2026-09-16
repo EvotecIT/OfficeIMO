@@ -558,6 +558,25 @@ public partial class PdfPageImageRendererTests {
         Assert.False(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2c", out _));
     }
 
+    [Theory]
+    [InlineData(0x80)]
+    [InlineData(0x8F)]
+    public void ImageValidationRejectsPacketBytesWithSetStuffingBit(int stuffedByte) {
+        byte[] payload = ReadScanJpx("rgb");
+        int codestream = FindMarker(payload, 0xFF, 0x4F, 0xFF, 0x51);
+        byte[] rawCodestream = payload.Skip(codestream).ToArray();
+        Assert.True(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2c", out _));
+        int tilePart = FindMarker(rawCodestream, 0xFF, 0x90);
+        int startOfData = FindMarker(rawCodestream, 0xFF, 0x93);
+        int tilePartEnd = tilePart + ReadUInt32BigEndian(rawCodestream, tilePart + 6);
+        Assert.True(startOfData + 4 <= tilePartEnd);
+        rawCodestream[startOfData + 2] = 0xFF;
+        rawCodestream[startOfData + 3] = (byte)stuffedByte;
+
+        Assert.False(OfficeJpeg2000Header.TryValidateOpaquePayload(rawCodestream, out _, out _, out _));
+        Assert.False(OfficeImageReader.TryValidateContent(rawCodestream, "scan.j2c", out _));
+    }
+
     [Fact]
     public void Jpeg2000ValidationHonorsCancellation() {
         byte[] payload = ReadScanJpx("rgb");

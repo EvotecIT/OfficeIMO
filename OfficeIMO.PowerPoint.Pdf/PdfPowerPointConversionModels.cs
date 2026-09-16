@@ -326,7 +326,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             sourceInfo.FormFields.Count(static field => field.HasUnplacedContent) + (sourceInfo.HasAcroFormXfa ? 1 : 0),
             "form definitions not attached to a page and XFA content");
         AddDocumentOmissionWarning(warnings, "PdfOutlinesNotReconstructed", "Outlines",
-            Math.Max(sourceInfo.Outlines.Count, sourceInfo.HasOutlines ? 1 : 0), "outline navigation hierarchies");
+            CountSelectedOutlineEntries(sourceInfo, visualPages), "outline navigation hierarchies");
         AddDocumentOmissionWarning(warnings, "PdfAttachmentsNotReconstructed", "Attachments",
             sourceInfo.AttachmentCount, "embedded attachments");
         AddDocumentOmissionWarning(warnings, "PdfTaggedStructureNotReconstructed", "Tagged structure",
@@ -389,6 +389,15 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
             if (visualPages.Any(page => page.PageNumber >= first && page.PageNumber < afterLast)) count++;
         }
         return count;
+    }
+
+    private static int CountSelectedOutlineEntries(
+        OfficeIMO.Pdf.PdfDocumentInfo sourceInfo,
+        IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages) {
+        int count = OfficeIMO.Pdf.PdfPageRangeObjectFilter.CountOutlinesByPageNumbers(
+            sourceInfo.Outlines,
+            visualPages.Select(static page => page.PageNumber).ToArray());
+        return count == 0 && sourceInfo.Outlines.Count == 0 && sourceInfo.HasOutlines ? 1 : count;
     }
 
     private static void AddRendererWarnings(

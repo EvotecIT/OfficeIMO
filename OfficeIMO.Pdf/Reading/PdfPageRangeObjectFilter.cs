@@ -83,6 +83,20 @@ internal static class PdfPageRangeObjectFilter {
         return selectedOutlines.Count == 0 ? Array.Empty<PdfOutlineItem>() : selectedOutlines.AsReadOnly();
     }
 
+    internal static int CountOutlinesByPageNumbers(IReadOnlyList<PdfOutlineItem> outlines, int[] pageNumbers) {
+        if (outlines.Count == 0) {
+            return 0;
+        }
+
+        var selectedPageNumbers = new HashSet<int>(pageNumbers);
+        int count = 0;
+        for (int i = 0; i < outlines.Count; i++) {
+            count += CountOutlineByPageNumbers(outlines[i], selectedPageNumbers);
+        }
+
+        return count;
+    }
+
     internal static IReadOnlyList<PdfNamedDestination> FilterNamedDestinationsByPageNumbers(IReadOnlyList<PdfNamedDestination> namedDestinations, int[] pageNumbers) {
         if (namedDestinations.Count == 0) {
             return namedDestinations;
@@ -233,5 +247,15 @@ internal static class PdfPageRangeObjectFilter {
             keepOwnDestination ? outline.DestinationBottom : null,
             keepOwnDestination ? outline.DestinationRight : null,
             keepOwnDestination ? outline.DestinationZoom : null);
+    }
+
+    private static int CountOutlineByPageNumbers(PdfOutlineItem outline, HashSet<int> selectedPageNumbers) {
+        int childCount = 0;
+        for (int i = 0; i < outline.Children.Count; i++) {
+            childCount += CountOutlineByPageNumbers(outline.Children[i], selectedPageNumbers);
+        }
+
+        bool keepOwnDestination = !outline.PageNumber.HasValue || selectedPageNumbers.Contains(outline.PageNumber.Value);
+        return keepOwnDestination || childCount > 0 ? childCount + 1 : 0;
     }
 }

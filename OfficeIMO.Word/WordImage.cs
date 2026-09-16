@@ -523,43 +523,32 @@ namespace OfficeIMO.Word {
             set {
                 if (_Image.Inline != null) {
                     var picture = _Image.Inline.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                    if (picture != null) {
-                        var shape = picture.ShapeProperties;
-                        if (shape == null) {
-                            shape = new ShapeProperties();
-                            picture.ShapeProperties = shape;
-                        }
-
-                        var transform = shape.Transform2D;
-                        if (transform == null) {
-                            transform = new A.Transform2D();
-                            shape.Transform2D = transform;
-                        }
-
-                        transform.Rotation = value == null ? null : checked(value.Value * DrawingAngleUnitsPerDegree);
-                    }
+                    SetPictureRotation(picture, value);
                 } else if (_Image.Anchor != null) {
                     var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
                     if (anchorGraphic?.GraphicData != null) {
                         var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                        if (picture != null) {
-                            var shape = picture.ShapeProperties;
-                            if (shape == null) {
-                                shape = new ShapeProperties();
-                                picture.ShapeProperties = shape;
-                            }
-
-                            var transform = shape.Transform2D;
-                            if (transform == null) {
-                                transform = new A.Transform2D();
-                                shape.Transform2D = transform;
-                            }
-
-                            transform.Rotation = value == null ? null : checked(value.Value * DrawingAngleUnitsPerDegree);
-                        }
+                        SetPictureRotation(picture, value);
                     }
                 }
             }
+        }
+
+        private static void SetPictureRotation(
+            DocumentFormat.OpenXml.Drawing.Pictures.Picture? picture,
+            int? value) {
+            if (picture == null) return;
+            A.Transform2D? transform = picture.ShapeProperties?.Transform2D;
+            if (!value.HasValue) {
+                if (transform != null) transform.Rotation = null;
+                return;
+            }
+
+            ShapeProperties shape = picture.ShapeProperties ?? new ShapeProperties();
+            if (picture.ShapeProperties == null) picture.ShapeProperties = shape;
+            transform ??= new A.Transform2D();
+            if (shape.Transform2D == null) shape.Transform2D = transform;
+            transform.Rotation = checked(value.Value * DrawingAngleUnitsPerDegree);
         }
 
         private DocumentFormat.OpenXml.Drawing.Pictures.Picture? GetPicture() {

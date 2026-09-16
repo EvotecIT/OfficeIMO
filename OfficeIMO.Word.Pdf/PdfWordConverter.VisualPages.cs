@@ -19,6 +19,8 @@ internal static partial class PdfWordConverter {
         WordDocument target = WordDocument.Create();
         try {
             PdfCore.PdfDocumentInfo sourceInfo = source.Inspect(null, token);
+            int[] selectedPageNumbers = pages.Select(static page => page.PageNumber).ToArray();
+            var selectedPageNumberSet = new HashSet<int>(selectedPageNumbers);
             PdfCore.PdfMetadata sourceMetadata = source.Reader.Metadata();
             if (options.IncludeMetadata) CopyMetadata(sourceMetadata, target);
             ReportMetadataFidelity(sourceMetadata, sourceInfo.HasXmpMetadata, options);
@@ -48,13 +50,15 @@ internal static partial class PdfWordConverter {
                     "PDF form definitions not attached to a page and XFA content are not copied into the visual Word document.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
             }
-            if (sourceInfo.HasOutlines || sourceInfo.Outlines.Count > 0) {
+            int selectedOutlineCount = PdfCore.PdfPageRangeObjectFilter.CountOutlinesByPageNumbers(
+                sourceInfo.Outlines, selectedPageNumbers);
+            if (selectedOutlineCount > 0 || sourceInfo.Outlines.Count == 0 && sourceInfo.HasOutlines) {
                 AddWarning(options, "PdfOutlineHierarchyNotReconstructed", "Document/Outlines",
                     "PDF outline navigation is not copied into the visual Word document.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
             }
             PdfCore.PdfOptionalContentUsageSummary optionalContentUsage = source.InspectPagesForOptionalContentUsage(
-                pages.Select(static page => page.PageNumber).ToArray(), token);
+                selectedPageNumbers, token);
             if (optionalContentUsage.PagesWithUsage > 0) {
                 AddWarning(options, "PdfOptionalContentGroupsFlattened", "Document/OCProperties",
                     "PDF optional-content layer controls are flattened into visual Word page images.",
@@ -65,9 +69,8 @@ internal static partial class PdfWordConverter {
                     "Optional-content usage could not be fully inspected for the selected PDF pages. Any selected layer controls are flattened into visual Word page images.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Approximation);
             }
-            var selectedPageNumbers = new HashSet<int>(pages.Select(static page => page.PageNumber));
             foreach (PdfCore.PdfPageInfo sourcePage in sourceInfo.Pages) {
-                if (!selectedPageNumbers.Contains(sourcePage.PageNumber)) continue;
+                if (!selectedPageNumberSet.Contains(sourcePage.PageNumber)) continue;
                 string sourcePath = "Page " + sourcePage.PageNumber + "/";
                 if (sourcePage.LinkAnnotations.Count > 0 || sourcePage.Annotations.Any(static annotation =>
                         string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase)))

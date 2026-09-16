@@ -486,7 +486,7 @@ internal static class OfficeJpeg2000Header {
             }
             if (offset + 1 >= end) return false;
             byte marker = bytes[offset + 1];
-            if (marker <= 0x8F) {
+            if (marker <= 0x7F) {
                 offset += 2;
                 continue;
             }

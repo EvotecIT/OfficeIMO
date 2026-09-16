@@ -1048,6 +1048,31 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
+    public void PdfDocument_ToPowerPointPresentation_VisualScopesOutlineWarningsToSelectedPages() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions { CreateOutlineFromHeadings = true })
+            .Paragraph(paragraph => paragraph.Text("Selected first page"))
+            .PageBreak()
+            .H1("Excluded second-page outline")
+            .ToBytes();
+        PdfCore.PdfDocument opened = PdfCore.PdfDocument.Load(pdf);
+        PdfCore.PdfDocumentInfo sourceInfo = opened.Inspect();
+        Assert.Single(sourceInfo.Outlines);
+        Assert.Equal(2, sourceInfo.Outlines[0].PageNumber);
+        var options = PdfToPowerPointOptions.CreateVisualPages();
+        options.ReadOptions = new PdfCore.PdfReadOptions {
+            PageSelection = PdfCore.PdfPageSelection.From(1)
+        };
+
+        PdfPowerPointConversionResult result = opened.ToPowerPointPresentationResult(options);
+
+        using (result.Value) {
+            Assert.Equal(1, Assert.Single(result.Report.VisualPages).PageNumber);
+            Assert.DoesNotContain(result.Warnings, static warning =>
+                warning.Code == "PdfOutlinesNotReconstructed");
+        }
+    }
+
+    [Fact]
     public void PdfEditableContent_PreservesTypographyAcrossUserUnitScaling() {
         byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,

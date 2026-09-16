@@ -27,6 +27,12 @@ var options = new PdfToWordOptions {
 
 `PreserveImagePlacementSize` remains independent. Set it to `false` to use an image's natural pixel dimensions even when `PreserveImagePlacementPosition` keeps the image floating at its recovered page position.
 
+### Word image rotation uses DrawingML degrees
+
+`WordImage.Rotation` now maps one degree to the DrawingML-standard 60,000 angle units. Earlier versions used 10,000 units, so a requested rotation rendered at one sixth of the requested angle. Applications that compensated for that behavior must stop multiplying the intended angle by six. For example, replace `image.Rotation = 180` with `image.Rotation = 30` to keep a rendered 30-degree rotation.
+
+Documents written by the earlier setter contain the smaller physical angle and are now read as that actual angle. Assigning `null` continues to clear the image rotation for both inline and floating images.
+
 ### Google Slides sync checkpoints
 
 `GoogleSlidesDiffPlanner.CreateCheckpoint` now records a hash-format version and uses culture- and runtime-independent numeric fingerprints. Previously persisted `GoogleSlidesSyncCheckpoint` values without a format version cannot be safely compared after upgrading; `BuildAsync` rejects them before contacting Google. Compare the source and remote presentation without the old checkpoint, reconcile any differences, then create and persist a new checkpoint with the observed revision and Drive version only when the two are synchronized. Do not mark old hashes as the new format.

@@ -1040,6 +1040,32 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
+    public void FloatingImageInterleavedWithOverlappingTextReportsApproximation() {
+        byte[] source = CreateDocument()
+            .Canvas(canvas => canvas
+                .Text("Background invoice text", 30D, 50D, 100D, 24D, fontSize: 14D)
+                .Image(Png, 20D, 30D, 120D, 80D)
+                .Text("Foreground invoice text", 30D, 50D, 100D, 24D, fontSize: 14D))
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        PdfImagePlacement placement = Assert.Single(Assert.Single(page.Images).Placements);
+        PdfTextSpan[] textSpans = page.TextBlocks.SelectMany(static block => block.Spans).ToArray();
+        Assert.Contains(textSpans, text => text.PaintOrder < placement.PaintOrder);
+        Assert.Contains(textSpans, text => text.PaintOrder > placement.PaintOrder);
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        using (word.Value) {
+            Assert.Equal(
+                OfficeIMO.Word.WordImageTextWrapping.BehindText,
+                Assert.Single(word.Value.Images).WrapText);
+            Assert.Contains(word.Report.Warnings, static warning =>
+                warning.Code == "PdfImageTextPaintOrderApproximated" &&
+                warning.LossKind == OfficeConversionLossKind.Approximation);
+        }
+    }
+
+    [Fact]
     public void NonDefaultImageOpacityIsMappedAcrossEditableAdapters() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas.Effect(

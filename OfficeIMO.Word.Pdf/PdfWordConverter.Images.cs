@@ -144,9 +144,27 @@ namespace OfficeIMO.Word.Pdf {
                         placement.Y,
                         placement.X + placement.Width,
                         placement.Y + placement.Height);
-                    WordImageTextWrapping wrapping = HasOverlappingTextPaintedAfter(page, placement)
+                    GetOverlappingTextPaintOrder(
+                        page,
+                        placement,
+                        out bool hasOverlappingTextBefore,
+                        out bool hasOverlappingTextAfter);
+                    WordImageTextWrapping wrapping = hasOverlappingTextAfter
                         ? WordImageTextWrapping.BehindText
                         : WordImageTextWrapping.InFrontOfText;
+                    if (hasOverlappingTextBefore && hasOverlappingTextAfter) {
+                        AddWarning(
+                            options,
+                            "PdfImageTextPaintOrderApproximated",
+                            "Page " + image.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image",
+                            "The PDF image is painted between overlapping text spans. Word can place a floating image only in front of or behind the complete text layer, so the original interleaving was approximated.",
+                            PdfCore.PdfConversionWarningSeverity.Warning,
+                            OfficeConversionLossKind.Approximation,
+                            new Dictionary<string, string> {
+                                ["ResourceName"] = image.ResourceName,
+                                ["ImagePaintOrder"] = placement.PaintOrder.ToString(CultureInfo.InvariantCulture)
+                            });
+                    }
                     embeddedImage = imageParagraph.InsertImage(
                         stream,
                         fileName,
@@ -221,9 +239,13 @@ namespace OfficeIMO.Word.Pdf {
             return baseZOrder + (uint)Math.Min(rank, (long)uint.MaxValue - baseZOrder);
         }
 
-        private static bool HasOverlappingTextPaintedAfter(
+        private static void GetOverlappingTextPaintOrder(
             PdfCore.PdfLogicalPage page,
-            PdfCore.PdfImagePlacement placement) {
+            PdfCore.PdfImagePlacement placement,
+            out bool hasBefore,
+            out bool hasAfter) {
+            hasBefore = false;
+            hasAfter = false;
             double imageLeft = placement.X;
             double imageRight = placement.X + placement.Width;
             double imageBottom = placement.Y;
@@ -232,7 +254,7 @@ namespace OfficeIMO.Word.Pdf {
                 IReadOnlyList<PdfCore.PdfTextSpan> spans = page.TextBlocks[blockIndex].Spans;
                 for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
                     PdfCore.PdfTextSpan span = spans[spanIndex];
-                    if (!span.IsVisible || span.PaintOrder <= placement.PaintOrder || string.IsNullOrEmpty(span.Text)) {
+                    if (!span.IsVisible || string.IsNullOrEmpty(span.Text)) {
                         continue;
                     }
 
@@ -263,11 +285,15 @@ namespace OfficeIMO.Word.Pdf {
                     double textTop = Math.Max(Math.Max(startTopY, startBottomY), Math.Max(endTopY, endBottomY));
                     if (textRight > imageLeft && textLeft < imageRight &&
                         textTop > imageBottom && textBottom < imageTop) {
-                        return true;
+                        if (span.PaintOrder > placement.PaintOrder) {
+                            hasAfter = true;
+                        } else {
+                            hasBefore = true;
+                        }
+                        if (hasBefore && hasAfter) return;
                     }
                 }
             }
-            return false;
         }
 
         private static void ApplyImagePlacementEffects(

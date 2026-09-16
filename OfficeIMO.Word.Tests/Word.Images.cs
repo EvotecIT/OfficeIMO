@@ -38,6 +38,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordImage_RotationNullClearsInlineAndFloatingTransforms() {
+            string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            using WordDocument document = WordDocument.Create();
+            WordImage inline = document.AddParagraph().InsertImage(imagePath, 50, 50);
+            WordImage floating = document.AddParagraph().InsertImage(
+                imagePath,
+                50,
+                50,
+                WordImageTextWrapping.InFrontOfText);
+
+            inline.Rotation = 30;
+            floating.Rotation = 45;
+            Assert.Equal(30, inline.Rotation);
+            Assert.Equal(45, floating.Rotation);
+
+            inline.Rotation = null;
+            floating.Rotation = null;
+            Assert.Null(inline.Rotation);
+            Assert.Null(floating.Rotation);
+
+            using var stream = new MemoryStream(document.ToBytes());
+            using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
+            Assert.All(
+                package.MainDocumentPart!.Document.Descendants<Transform2D>(),
+                static transform => Assert.Null(transform.Rotation));
+        }
+
+        [Fact]
         public void Test_CreatingWordDocumentWithImages() {
             var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithImages.docx");
             using var document = WordDocument.Create(filePath);
