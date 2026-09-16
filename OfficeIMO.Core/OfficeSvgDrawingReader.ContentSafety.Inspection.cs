@@ -385,6 +385,8 @@ public static partial class OfficeSvgDrawingReader {
         return root.DescendantsAndSelf().Any(element => {
             if (element.Attribute(XNamespace.Xml + "base") != null) return true;
             if (!IsNativeSvgElement(element, svgNamespace)) return false;
+            string localName = element.Name.LocalName;
+            if (IsCaseMismatchedSvgPaintDefinitionName(localName)) return true;
             if (element.Name.LocalName.Equals("foreignObject", StringComparison.Ordinal)) return true;
             if (element.Name.LocalName.Equals("pattern", StringComparison.Ordinal)) {
                 return element.Attribute("viewBox") != null ||
@@ -403,6 +405,16 @@ public static partial class OfficeSvgDrawingReader {
                 !TryParsePreserveAspectRatio(element.Attribute("preserveAspectRatio")?.Value, out _, out _);
         });
     }
+
+    private static bool IsCaseMismatchedSvgPaintDefinitionName(string localName) =>
+        (localName.Equals("linearGradient", StringComparison.OrdinalIgnoreCase) &&
+         !localName.Equals("linearGradient", StringComparison.Ordinal)) ||
+        (localName.Equals("radialGradient", StringComparison.OrdinalIgnoreCase) &&
+         !localName.Equals("radialGradient", StringComparison.Ordinal)) ||
+        (localName.Equals("pattern", StringComparison.OrdinalIgnoreCase) &&
+         !localName.Equals("pattern", StringComparison.Ordinal)) ||
+        (localName.Equals("stop", StringComparison.OrdinalIgnoreCase) &&
+         !localName.Equals("stop", StringComparison.Ordinal));
 
     private static string BuildSvgContentSafetyLocation(XElement element, int textIndex) {
         var segments = new Stack<string>();

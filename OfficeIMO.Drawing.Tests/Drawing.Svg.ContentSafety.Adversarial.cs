@@ -879,6 +879,46 @@ public sealed class SvgContentSafetyAdversarialTests {
     }
 
     [Fact]
+    public void OrdinaryCssPropertyNamesRemainCaseInsensitiveInTheCascade() {
+        byte[] svg = Svg(
+            "<style>.x{DISPLAY:block}text{display:none}</style>" +
+            "<text class='x' x='10' y='35'>case-insensitive cascade visible</text>");
+
+        OfficeContentSafetyReport report = OfficeSvgDrawingReader.InspectContentSafety(svg);
+
+        Assert.DoesNotContain(report.Findings, item =>
+            item.TextPreview == "case-insensitive cascade visible");
+    }
+
+    [Fact]
+    public void MalformedPresentationPaintUrlCannotAuthorizeCleanup() {
+        byte[] svg = Svg("<text fill=\"url('#missing)\" x='10' y='35'>malformed paint visible</text>");
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 0 };
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg, readerOptions: readerOptions).Findings,
+            item => item.TextPreview == "malformed paint visible");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains("paint", finding.Evidence, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CaseMismatchedPaintServerDefinitionCannotAuthorizeCleanup() {
+        byte[] svg = Svg(
+            "<defs><PATTERN id='p' patternUnits='userSpaceOnUse' width='20' height='20'>" +
+            "<rect width='20' height='20' fill='white'/></PATTERN></defs>" +
+            "<text x='10' y='35'>case-sensitive paint server visible</text>" +
+            "<rect width='220' height='120' fill='url(#p)'/>");
+
+        OfficeContentSafetyFinding finding = Assert.Single(
+            OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
+            item => item.TextPreview == "case-sensitive paint server visible");
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
     public void AncestorGroupOpacityMakesVisualProjectionReportOnly() {
         byte[] svg = Svg(
             "<g opacity='.5'><text x='10' y='35'>group opacity payload</text>" +

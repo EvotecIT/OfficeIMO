@@ -266,9 +266,9 @@ public static partial class OfficeSvgDrawingReader {
                 evidence = "SVG text uses font-size syntax outside the bounded native layout subset and is therefore report-only.";
                 return true;
             }
-            if (HasSvgFallbackPaint(current.Attribute("fill")?.Value) ||
-                HasSvgFallbackPaint(current.Attribute("stroke")?.Value)) {
-                evidence = "SVG text uses fallback paint syntax outside the bounded native paint subset and is therefore report-only.";
+            if (HasUnsupportedSvgPresentationPaint(current.Attribute("fill")?.Value) ||
+                HasUnsupportedSvgPresentationPaint(current.Attribute("stroke")?.Value)) {
+                evidence = "SVG text uses fallback or malformed paint syntax outside the bounded native paint subset and is therefore report-only.";
                 return true;
             }
             string? filter = ReadPresentationProperty(current, "filter")?.Trim();
@@ -377,12 +377,13 @@ public static partial class OfficeSvgDrawingReader {
             }));
     }
 
-    private static bool HasSvgFallbackPaint(string? value) {
+    private static bool HasUnsupportedSvgPresentationPaint(string? value) {
         if (string.IsNullOrWhiteSpace(value)) return false;
-        string normalized = value!.Trim();
+        string normalized = TrimSvgCssWhitespace(value!);
         if (!normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) return false;
         int close = FindSvgCssBlockEnd(normalized, 4, '(', ')');
-        return close >= 0 && close < normalized.Length - 1 &&
-            normalized.Substring(close + 1).Trim().Length > 0;
+        bool hasFallback = close >= 0 && close < normalized.Length - 1 &&
+            TrimSvgCssWhitespace(normalized.Substring(close + 1)).Length > 0;
+        return hasFallback || !TryReadBoundedSvgLocalUrlReference(normalized, out _);
     }
 }
