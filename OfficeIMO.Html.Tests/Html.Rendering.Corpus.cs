@@ -7,6 +7,20 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("margin:0 auto", 30D)]
+    [InlineData("margin-left:auto;margin-right:0", 60D)]
+    [InlineData("margin-left:0;margin-right:auto", 0D)]
+    public void StaticRendererResolvesNormalFlowBlockAutoMargins(string margins, double expectedX) {
+        string html = "<body style='margin:0'><div id='box' style='width:240px;height:20px;background:red;" + margins + "'></div></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape box = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#box" && shape.Shape.FillColor == OfficeColor.Red);
+        Assert.Equal(expectedX, box.X, 3);
+    }
+
     public static IEnumerable<object[]> HtmlRenderingRepresentativeCorpusScenarioIds => HtmlRenderingRepresentativeCorpus.All
         .Select(item => new object[] { item.Id });
 

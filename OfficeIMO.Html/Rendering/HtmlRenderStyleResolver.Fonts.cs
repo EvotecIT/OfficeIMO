@@ -23,7 +23,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         string normalized = value.Trim().ToLowerInvariant();
         if (normalized.Length == 0) {
             bool heading = tag.Length == 2 && tag[0] == 'h' && tag[1] >= '1' && tag[1] <= '6';
-            return heading || tag == "b" || tag == "strong" ? 700 : inherited;
+            return heading || tag == "th" || tag == "b" || tag == "strong" ? 700 : inherited;
         }
         if (normalized == "normal") return 400;
         if (normalized == "bold") return 700;

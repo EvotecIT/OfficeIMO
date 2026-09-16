@@ -190,7 +190,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             BaselineOffset = baselineOffset,
             Color = color,
             DecorationColor = ResolveColor(element, computed.GetValue("text-decoration-color"), color, pseudoElement, "text-decoration-color"),
-            Alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
+            Alignment = tag == "caption" && (string.IsNullOrWhiteSpace(computed.GetValue("text-align")) || computed.IsImplicitlyInheritedValue("text-align"))
+                ? OfficeTextAlignment.Center
+                : ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
             LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
             LetterSpacing = ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
             WordSpacing = ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),

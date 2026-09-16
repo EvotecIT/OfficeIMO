@@ -98,3 +98,4 @@ OfficeIMO.TestAssets/Documents/Html/Qualification/H4/** text eol=lf -diff
 OfficeIMO.Invoicing.Validation/Compiler/*.xsl -text -diff
 OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/*.xml -text -diff
 OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/LICENSE.txt -text -diff
+OfficeIMO.Html.Runtime.Tests/Fixtures/ReactBuild/dist/*.js -text -diff

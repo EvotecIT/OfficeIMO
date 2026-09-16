@@ -134,6 +134,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (inlineHeight > 0D) {
                         adjoiningMargins.Clear();
                     }
+                    childStyle = ResolveNormalFlowHorizontalAutoMargins(childStyle, width);
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
                     HtmlRenderFlowBlock childBlock = LayoutElement(
                         element,
@@ -720,6 +721,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.MaxWidth.HasValue) width = Math.Min(width, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         if (style.MinWidth.HasValue) width = Math.Max(width, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         return Math.Max(1D, width);
+    }
+
+    private HtmlRenderBoxStyle ResolveNormalFlowHorizontalAutoMargins(HtmlRenderBoxStyle style, double containingWidth) {
+        if (!style.MarginLeftAuto && !style.MarginRightAuto) return style;
+
+        double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
+        double boxWidth = ResolveBoxWidth(availableWidth, style);
+        double freeSpace = Math.Max(0D, containingWidth - style.MarginLeft - style.MarginRight - boxWidth);
+        if (freeSpace <= 0D) return style;
+
+        var resolved = style.Clone();
+        if (style.MarginLeftAuto && style.MarginRightAuto) {
+            resolved.MarginLeft += freeSpace / 2D;
+            resolved.MarginRight += freeSpace / 2D;
+        } else if (style.MarginLeftAuto) {
+            resolved.MarginLeft += freeSpace;
+        } else {
+            resolved.MarginRight += freeSpace;
+        }
+        return resolved;
     }
 
     private static double ResolveBoxHeight(double contentHeight, double boxWidth, HtmlRenderBoxStyle style) {

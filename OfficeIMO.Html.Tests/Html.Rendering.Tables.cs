@@ -10,6 +10,27 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlTables_ApplyBrowserCaptionAndHeaderDefaultsWithoutOverridingAuthoredStyles() {
+        const string prefix = "<body style='margin:0'><table style='width:240px;margin:0'>";
+        const string suffix = "</table></body>";
+        HtmlRenderDocument defaults = HtmlRenderTestDriver.Render(prefix
+            + "<caption>Report caption</caption><tr><th>Region heading</th></tr>" + suffix,
+            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderDocument authored = HtmlRenderTestDriver.Render(prefix
+            + "<caption style='text-align:left'>Report caption</caption><tr><th style='font-weight:normal'>Region heading</th></tr>" + suffix,
+            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderText defaultCaption = Assert.Single(defaults.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Report caption");
+        HtmlRenderText authoredCaption = Assert.Single(authored.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Report caption");
+        HtmlRenderText defaultHeader = Assert.Single(defaults.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Region heading");
+        HtmlRenderText authoredHeader = Assert.Single(authored.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Region heading");
+
+        Assert.True(defaultCaption.X > authoredCaption.X + 20D);
+        Assert.True((defaultHeader.Font.Style & OfficeFontStyle.Bold) != 0);
+        Assert.True((authoredHeader.Font.Style & OfficeFontStyle.Bold) == 0);
+    }
+
+    [Fact]
     public void HtmlTables_RejectRowsAndColumnsBeforeAllocatingLayoutTracks() {
         var rowOptions = new HtmlRenderOptions { MaxTableRows = 1 };
         HtmlDomLimitException rowException = Assert.Throws<HtmlDomLimitException>(() =>
