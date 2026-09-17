@@ -171,9 +171,11 @@ public sealed class EmailMimeReaderTests {
             "Content-Disposition: attachment; filename*0*=utf-8''price-%E2%82; filename*1*=%AC.txt\r\n" +
             "Content-Transfer-Encoding: base64\r\n\r\nAQ==\r\n--x--\r\n";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
 
-        Assert.Equal("price-€.txt", Assert.Single(document.Attachments).FileName);
+        Assert.Equal("price-€.txt", Assert.Single(result.Document.Attachments).FileName);
+        Assert.DoesNotContain(result.Diagnostics,
+            diagnostic => diagnostic.Code == MimeValueParser.DuplicateSecurityParameterDiagnosticCode);
     }
 
     [Fact]

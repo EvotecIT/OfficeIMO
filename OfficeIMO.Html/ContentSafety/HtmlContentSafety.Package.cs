@@ -61,6 +61,8 @@ internal sealed class HtmlContentSafetyPackageCleanupResult {
 }
 
 public static partial class HtmlContentSafety {
+    private const string XhtmlNamespace = "http://www.w3.org/1999/xhtml";
+
     internal static async Task<OfficeContentSafetyReport> InspectPackagePartsAsync(
         string format,
         IReadOnlyList<HtmlContentSafetyPackagePart> parts,
@@ -343,6 +345,11 @@ public static partial class HtmlContentSafety {
 
         if (source is XElement element) {
             string namespaceUri = element.Name.NamespaceName;
+            if (namespaceUri == XhtmlNamespace
+                && element.Name.LocalName != element.Name.LocalName.ToLowerInvariant()) {
+                throw new InvalidDataException(
+                    "EPUB XHTML content-safety inspection requires canonical lowercase XHTML element names.");
+            }
             string? prefix = element.GetPrefixOfNamespace(element.Name.Namespace);
             OfficeIMO.Html.Dom.HtmlElement target = document.CreateElement(element.Name.LocalName, namespaceUri, prefix);
             foreach (XAttribute attribute in element.Attributes()) {
@@ -351,6 +358,12 @@ public static partial class HtmlContentSafety {
                 if (attribute.IsNamespaceDeclaration) {
                     name = attribute.Name.LocalName == "xmlns" ? "xmlns" : "xmlns:" + attribute.Name.LocalName;
                 } else {
+                    if (namespaceUri == XhtmlNamespace
+                        && string.IsNullOrEmpty(attribute.Name.NamespaceName)
+                        && attribute.Name.LocalName != attribute.Name.LocalName.ToLowerInvariant()) {
+                        throw new InvalidDataException(
+                            "EPUB XHTML content-safety inspection requires canonical lowercase unqualified XHTML attribute names.");
+                    }
                     string? attributePrefix = element.GetPrefixOfNamespace(attribute.Name.Namespace);
                     name = string.IsNullOrEmpty(attributePrefix)
                         ? attribute.Name.LocalName

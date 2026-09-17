@@ -123,12 +123,18 @@ public sealed partial class MhtmlDocument {
         EmailReaderOptions readerOptions = IntersectReaderOptions(mimeOptions ?? EmailReaderOptions.Default, options);
         using var stream = new MemoryStream(archiveBytes, writable: false);
         MhtmlDocument document = Load(stream, readerOptions, cancellationToken: cancellationToken);
+        if (!MimeTextCodec.IsSupportedTransferEncoding(document._mimeDocument.Body.HtmlTransferEncoding)
+            || document._mimeDocument.Body.HtmlMimeDecodingWasAmbiguous) {
+            throw new InvalidDataException(
+                "MHTML content-safety inspection requires the selected HTML root to use an unambiguous supported MIME encoding.");
+        }
         EmailDiagnostic? ambiguous = document.MimeDiagnostics.FirstOrDefault(diagnostic =>
             diagnostic.Code == MhtmlDiagnosticCodes.DuplicateContentId
             || diagnostic.Code == MhtmlDiagnosticCodes.DuplicateContentLocation
             || diagnostic.Code == MhtmlDiagnosticCodes.DuplicateResourceIdentity
             || diagnostic.Code == MhtmlDiagnosticCodes.InvalidContentLocation
             || diagnostic.Code == MimeHeaderParser.DuplicateSingletonHeaderDiagnosticCode
+            || diagnostic.Code == MimeValueParser.DuplicateSecurityParameterDiagnosticCode
             || diagnostic.Code == MimeParser.MultipleHtmlBodyDiagnosticCode);
         if (ambiguous != null) {
             throw new InvalidDataException(

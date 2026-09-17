@@ -253,7 +253,8 @@ public sealed partial class MhtmlDocument {
                     string.Equals(RemoveUriFragment(resolved).AbsoluteUri, absolute, StringComparison.OrdinalIgnoreCase)) return resource;
             }
             if (!string.IsNullOrWhiteSpace(resource.FileName) &&
-                string.Equals(resource.FileName, retrievalSource, StringComparison.OrdinalIgnoreCase)) return resource;
+                string.Equals(RemoveUriFragment(resource.FileName!), retrievalSource,
+                    StringComparison.OrdinalIgnoreCase)) return resource;
         }
         return null;
     }
@@ -336,9 +337,9 @@ public sealed partial class MhtmlDocument {
         var resolverIdentities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         if (!string.IsNullOrWhiteSpace(rootContentId)) contentIds.Add(rootContentId!);
         if (!string.IsNullOrWhiteSpace(rootContentLocation)
-            && Uri.TryCreate(baseUri, RemoveUriFragment(rootContentLocation!), out Uri? rootLocation)) {
+            && Uri.TryCreate(baseUri, RemoveUriFragment(rootContentLocation!), out _)) {
             string rawRootLocation = RemoveUriFragment(rootContentLocation!.Trim());
-            string absoluteRootLocation = RemoveUriFragment(rootLocation).AbsoluteUri;
+            string absoluteRootLocation = RemoveUriFragment(baseUri).AbsoluteUri;
             contentLocations.Add(absoluteRootLocation);
             resolverIdentities[rawRootLocation] = -1;
             resolverIdentities[absoluteRootLocation] = -1;
@@ -352,10 +353,11 @@ public sealed partial class MhtmlDocument {
                     location: "resource[" + index + "]"));
             }
             if (!string.IsNullOrWhiteSpace(resource.FileName)) {
-                string rawFileName = resource.FileName!.Trim();
+                string rawFileName = RemoveUriFragment(resource.FileName!.Trim());
                 RegisterResolverIdentity(rawFileName, index, resolverIdentities, diagnostics);
                 if (Uri.TryCreate(baseUri, rawFileName, out Uri? resolvedFileName)) {
-                    RegisterResolverIdentity(resolvedFileName.AbsoluteUri, index, resolverIdentities, diagnostics);
+                    RegisterResolverIdentity(RemoveUriFragment(resolvedFileName).AbsoluteUri, index,
+                        resolverIdentities, diagnostics);
                 }
             }
             if (!string.IsNullOrWhiteSpace(resource.ContentLocation)) {

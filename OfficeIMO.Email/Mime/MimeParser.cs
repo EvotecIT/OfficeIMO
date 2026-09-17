@@ -145,6 +145,7 @@ internal static class MimeParser {
         }
         bool skipAttachmentDecoding = !isBody && !state.Options.IncludeAttachmentContent && !embeddedMessage &&
             !semanticBodyPart;
+        int payloadDiagnosticStart = state.Diagnostics.Count;
         long decodedLength = MimeTextCodec.GetDecodedLength(data, offset, count, transferEncoding,
             skipAttachmentDecoding ? state.Diagnostics : null, skipAttachmentDecoding ? location : null);
         if (!isBody) {
@@ -184,6 +185,9 @@ internal static class MimeParser {
                     document.Body.HtmlContentLocation = contentLocation;
                     document.Body.IsHtmlRelatedRoot = isRelatedSibling && isPreferredRelatedBody;
                     document.Body.HtmlTransferEncoding = transferEncoding;
+                    document.Body.HtmlMimeDecodingWasAmbiguous = state.Diagnostics
+                        .Skip(payloadDiagnosticStart)
+                        .Any(IsAmbiguousBodyDecodingDiagnostic);
                     CopyHeaders(headers, document.Body.HtmlMimeHeaders);
                 }
             } else if (document.Body.Text == null) {
@@ -244,6 +248,14 @@ internal static class MimeParser {
             existing.IsProjectedSemanticContent)) document.MimeSemanticProjectionIsIncomplete = true;
         document.Attachments.Add(attachment);
     }
+
+    private static bool IsAmbiguousBodyDecodingDiagnostic(EmailDiagnostic diagnostic) =>
+        diagnostic.Code == "EMAIL_MIME_TRANSFER_ENCODING_UNKNOWN"
+        || diagnostic.Code == "EMAIL_MIME_BASE64_INVALID"
+        || diagnostic.Code == "EMAIL_MIME_BASE64_PADDING_RECOVERED"
+        || diagnostic.Code == "EMAIL_MIME_QUOTED_PRINTABLE_INVALID"
+        || diagnostic.Code == "EMAIL_MIME_CHARSET_UNSUPPORTED"
+        || diagnostic.Code == "EMAIL_MIME_CHARSET_GUESSED";
 
     private static bool HasUnpreservedSemanticPartHeaders(IEnumerable<EmailHeader> headers) =>
         headers.Any(header =>

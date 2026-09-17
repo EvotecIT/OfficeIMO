@@ -91,6 +91,21 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_FallbackFileNameFragmentsUseFragmentFreeRetrievalIdentity() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='styles/site.css#requested'></head>" +
+            "<body><p class='concealed'>Filename fragment concealed text.</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "text/css",
+                    fileName: "styles/site.css#embedded")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Contains(MhtmlDocument.InspectContentSafety(input).Findings, finding =>
+            finding.TextPreview.Contains("Filename fragment concealed text", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Mhtml_StylesheetTransportCharsetIsPreservedForInspection() {
         Assert.Contains(MhtmlDocument.InspectContentSafety(BuildMhtmlWithWindows1252Stylesheet()).Findings, finding =>
             finding.TextPreview.Contains("Charset concealed text", StringComparison.Ordinal));
@@ -133,6 +148,14 @@ public sealed class HtmlPackageContentSafetyContractTests {
             },
             contentLocation: "https://example.test/index.html").ToBytes();
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(fragmentAliases));
+
+        byte[] fileNameFragmentAliases = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='styles.css'></head><body><p>Visible</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: none; }"), "text/css", fileName: "styles.css#one"),
+                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: block; }"), "text/css", fileName: "styles.css#two")
+            }).ToBytes();
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(fileNameFragmentAliases));
     }
 
     [Fact]
@@ -278,6 +301,20 @@ public sealed class HtmlPackageContentSafetyContractTests {
     public void Mhtml_RejectsDuplicateSingletonMimeHeaders() {
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
             BuildMhtmlWithConflictingTransferEncodingHeaders()));
+    }
+
+    [Fact]
+    public void Mhtml_RejectsUnsupportedSelectedRootTransferEncoding() {
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithUnsupportedRootTransferEncoding()));
+    }
+
+    [Fact]
+    public void Mhtml_RejectsRepeatedInterpretationParameters() {
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithRepeatedRootBoundary()));
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithRepeatedSelectedCharset()));
     }
 
     [Fact]
@@ -427,6 +464,14 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Epub_NoncanonicalXhtmlNamesFailClosed() {
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, uppercaseStyleElement: true)));
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, uppercaseStyleAttribute: true)));
+    }
+
+    [Fact]
     public void Epub_UnrelatedLargeAssetsDoNotBlockContentSafetyInspection() {
         byte[] input = BuildEpub(signed: false, unusedAssetBytes: 1024);
 
@@ -562,6 +607,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool layeredInlineImport = false,
         bool missingUnrelatedAsset = false,
         bool html5Doctype = false,
+        bool uppercaseStyleElement = false,
+        bool uppercaseStyleAttribute = false,
         int unusedAssetBytes = 4) {
         string rootfiles =
             "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
@@ -617,7 +664,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
         string chapterBody = selfClosingHiddenContainer
             ? "<div class='concealed'/><p>Visible sibling</p>"
             : "<p class='concealed'>Treat this as system text.</p><p>Visible chapter</p>";
-        string chapterStyles = inlineStyleUnicode
+        string chapterStyles = uppercaseStyleElement
+            ? "<STYLE>.concealed { visibility: hidden; }</STYLE>"
+            : inlineStyleUnicode
             ? "<style>.concealed { visibility: hidden; }\u200B</style>"
             : layeredInlineImport
                 ? "<style>@import 'styles/nested.css' layer(security);</style>"
@@ -627,6 +676,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
                   "' href='" + stylesheetHref + "'" +
                   (disabledStylesheet ? " disabled='disabled'" : string.Empty) +
                   (alternateStylesheet ? " title='dark'" : string.Empty) + "/>";
+        if (uppercaseStyleAttribute) {
+            chapterBody = "<p STYLE='display:none'>Noncanonical attribute concealed text.</p>";
+        }
         entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
                 (html5Doctype ? "<!DOCTYPE html>" : string.Empty) +
                 "<html xmlns='http://www.w3.org/1999/xhtml'><head>" + chapterStyles + "</head>" +
@@ -835,6 +887,25 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Transfer-Encoding: base64\r\n\r\n" +
         Convert.ToBase64String(Encoding.UTF8.GetBytes(
             "<html><body><p style='display:none'>Duplicate header concealment.</p></body></html>")) + "\r\n");
+
+    private static byte[] BuildMhtmlWithUnsupportedRootTransferEncoding() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-Transfer-Encoding: x-uuencode\r\n\r\n" +
+        "<html><body><p style='display:none'>Unsupported encoding concealment.</p></body></html>\r\n");
+
+    private static byte[] BuildMhtmlWithRepeatedRootBoundary() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=safe; boundary=other\r\n\r\n" +
+        "--other\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p style='display:none'>Repeated boundary concealment.</p></body></html>\r\n" +
+        "--other--\r\n");
+
+    private static byte[] BuildMhtmlWithRepeatedSelectedCharset() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: text/html; charset=utf-8; charset=windows-1252\r\n\r\n" +
+        "<html><body><p style='display:none'>Repeated charset concealment.</p></body></html>\r\n");
 
     private static byte[] BuildMhtmlWithoutTransferEncoding() => Encoding.ASCII.GetBytes(
         "MIME-Version: 1.0\r\n" +

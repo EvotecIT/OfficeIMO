@@ -1,6 +1,14 @@
 namespace OfficeIMO.Email;
 
 internal static class MimeValueParser {
+    internal const string DuplicateSecurityParameterDiagnosticCode = "EMAIL_MIME_PARAMETER_DUPLICATE";
+    private static readonly HashSet<string> SecurityRelevantParameters = new HashSet<string>(
+        new[] {
+            "boundary", "charset", "start", "type", "protocol", "micalg", "smime-type",
+            "name", "filename", "format", "delsp", "method", "profile"
+        },
+        StringComparer.OrdinalIgnoreCase);
+
     internal static MimeValue Parse(string? input, string defaultValue, IList<EmailDiagnostic> diagnostics, string location) {
         if (string.IsNullOrWhiteSpace(input)) return new MimeValue(defaultValue);
         List<string> segments = Split(input!);
@@ -8,6 +16,9 @@ internal static class MimeValueParser {
         HashSet<string> extendedParameters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, SortedDictionary<int, ContinuationPart>> continuations =
             new Dictionary<string, SortedDictionary<int, ContinuationPart>>(StringComparer.OrdinalIgnoreCase);
+        var scalarParameters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var continuationSegments = new Dictionary<string, HashSet<int>>(StringComparer.OrdinalIgnoreCase);
+        var reportedDuplicates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         for (int i = 1; i < segments.Count; i++) {
             int equals = segments[i].IndexOf('=');
@@ -20,6 +31,15 @@ internal static class MimeValueParser {
             int star = baseName.LastIndexOf('*');
             if (star > 0 && int.TryParse(baseName.Substring(star + 1), NumberStyles.None, CultureInfo.InvariantCulture, out int part)) {
                 string continuationName = baseName.Substring(0, star);
+                if (SecurityRelevantParameters.Contains(continuationName)) {
+                    if (!continuationSegments.TryGetValue(continuationName, out HashSet<int>? seenParts)) {
+                        seenParts = new HashSet<int>();
+                        continuationSegments[continuationName] = seenParts;
+                    }
+                    if (scalarParameters.Contains(continuationName) || !seenParts.Add(part)) {
+                        ReportDuplicateSecurityParameter(continuationName, diagnostics, location, reportedDuplicates);
+                    }
+                }
                 SortedDictionary<int, ContinuationPart> values;
                 if (!continuations.TryGetValue(continuationName, out values!)) {
                     values = new SortedDictionary<int, ContinuationPart>();
@@ -27,6 +47,10 @@ internal static class MimeValueParser {
                 }
                 values[part] = new ContinuationPart(value, encoded);
             } else {
+                if (SecurityRelevantParameters.Contains(baseName)
+                    && (!scalarParameters.Add(baseName) || continuationSegments.ContainsKey(baseName))) {
+                    ReportDuplicateSecurityParameter(baseName, diagnostics, location, reportedDuplicates);
+                }
                 if (encoded) {
                     result.Parameters[baseName] = DecodeExtended(value, diagnostics, location);
                     extendedParameters.Add(baseName);
@@ -60,6 +84,19 @@ internal static class MimeValueParser {
             }
         }
         return result;
+    }
+
+    private static void ReportDuplicateSecurityParameter(
+        string name,
+        IList<EmailDiagnostic> diagnostics,
+        string location,
+        ISet<string> reported) {
+        if (!reported.Add(name)) return;
+        diagnostics.Add(new EmailDiagnostic(
+            DuplicateSecurityParameterDiagnosticCode,
+            string.Concat("MIME parameter '", name, "' is declared more than once."),
+            EmailDiagnosticSeverity.Warning,
+            location));
     }
 
     private static string DecodeExtended(string value, IList<EmailDiagnostic> diagnostics, string location) {

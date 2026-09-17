@@ -138,6 +138,16 @@ internal static class MimeTextCodec {
         return DecodeTransfer(bytes, 0, bytes.Length, decodedLength, transferEncoding, diagnostics, location);
     }
 
+    internal static bool IsSupportedTransferEncoding(string? transferEncoding) {
+        string normalized = (transferEncoding ?? string.Empty).Trim().ToLowerInvariant();
+        return normalized == ""
+            || normalized == "7bit"
+            || normalized == "8bit"
+            || normalized == "binary"
+            || normalized == "base64"
+            || normalized == "quoted-printable";
+    }
+
     internal static byte[] DecodeTransfer(byte[] bytes, int offset, int count, long decodedLength,
         string? transferEncoding, IList<EmailDiagnostic> diagnostics, string location) {
         string normalized = (transferEncoding ?? string.Empty).Trim().ToLowerInvariant();
