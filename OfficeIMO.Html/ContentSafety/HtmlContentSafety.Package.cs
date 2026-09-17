@@ -67,9 +67,16 @@ public static partial class HtmlContentSafety {
         effective.Validate();
         ValidateAggregatePackageText(parts, effective);
         var builder = new OfficeContentSafetyBuilder(format, effective);
+        var resourceBudget = new PackageResourceBudget(effective);
+        HtmlCssByteBudget cssBudget = CreatePackageCssBudget(effective);
         foreach (HtmlContentSafetyPackagePart part in parts) {
             cancellationToken.ThrowIfCancellationRequested();
-            PreparedPackagePart prepared = await PreparePackagePartAsync(part, effective, cancellationToken).ConfigureAwait(false);
+            PreparedPackagePart prepared = await PreparePackagePartAsync(
+                part,
+                effective,
+                resourceBudget,
+                cssBudget,
+                cancellationToken).ConfigureAwait(false);
             InspectDocument(prepared.Document, builder, targets: null, part.LocationPrefix, prepared.SyntheticStyles, prepared.Limits);
         }
         return builder.Build();
@@ -88,9 +95,16 @@ public static partial class HtmlContentSafety {
         var builder = new OfficeContentSafetyBuilder(format, effective);
         var preparedParts = new List<PreparedPackagePart>(parts.Count);
         var targets = new Dictionary<string, PackageCleanupTarget>(StringComparer.Ordinal);
+        var resourceBudget = new PackageResourceBudget(effective);
+        HtmlCssByteBudget cssBudget = CreatePackageCssBudget(effective);
         foreach (HtmlContentSafetyPackagePart part in parts) {
             cancellationToken.ThrowIfCancellationRequested();
-            PreparedPackagePart prepared = await PreparePackagePartAsync(part, effective, cancellationToken).ConfigureAwait(false);
+            PreparedPackagePart prepared = await PreparePackagePartAsync(
+                part,
+                effective,
+                resourceBudget,
+                cssBudget,
+                cancellationToken).ConfigureAwait(false);
             var partTargets = new Dictionary<string, HtmlCleanupTarget>(StringComparer.Ordinal);
             InspectDocument(prepared.Document, builder, partTargets, part.LocationPrefix, prepared.SyntheticStyles, prepared.Limits);
             foreach (KeyValuePair<string, HtmlCleanupTarget> target in partTargets) {
@@ -151,6 +165,8 @@ public static partial class HtmlContentSafety {
     private static async Task<PreparedPackagePart> PreparePackagePartAsync(
         HtmlContentSafetyPackagePart part,
         OfficeContentSafetyOptions safetyOptions,
+        PackageResourceBudget resourceBudget,
+        HtmlCssByteBudget cssBudget,
         CancellationToken cancellationToken) {
         OfficeContentSafetyInputGuard.ValidateText(part.Html, safetyOptions);
         cancellationToken.ThrowIfCancellationRequested();
@@ -167,6 +183,9 @@ public static partial class HtmlContentSafety {
             Limits = limits.Clone()
         });
         IHtmlDocument document = conversion.CreateSourceDocumentForConversion();
+        foreach (IElement style in document.QuerySelectorAll("style")) {
+            cssBudget.ReserveOrThrow(style.TextContent ?? string.Empty);
+        }
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = renderOptions.BaseUri,
             UrlPolicy = renderOptions.UrlPolicy.Clone(),
@@ -204,7 +223,7 @@ public static partial class HtmlContentSafety {
 
         var diagnostics = new HtmlDiagnosticReport();
         var existingStyles = new HashSet<IElement>(document.QuerySelectorAll("style"));
-        HtmlCssByteBudget cssBudget = HtmlRenderStylesheetApplier.CreateBudget(document, limits);
+        if (stylesheets.Resources.Count > 0) resourceBudget.Apply(renderOptions);
         HtmlResourceSession resources = await HtmlRenderResourceLoader.LoadAsync(
             stylesheets,
             renderOptions,
@@ -212,6 +231,7 @@ public static partial class HtmlContentSafety {
             limits,
             cancellationToken,
             cssBudget).ConfigureAwait(false);
+        resourceBudget.Reserve(resources);
 
         var acceptedStylesheets = new HashSet<string>(
             resources.Resources
@@ -230,6 +250,7 @@ public static partial class HtmlContentSafety {
         HtmlRenderStylesheetApplier.Apply(document, resources, renderOptions, limits, cssBudget, diagnostics);
         HtmlDiagnostic? unsafeDiagnostic = diagnostics.FirstOrDefault(item =>
             item.Severity == HtmlDiagnosticSeverity.Error
+            || item.Code == "StylesheetResourceRejectedByPolicy"
             || item.Code == HtmlRenderDiagnosticCodes.StylesheetEncodingUnsupported
             || item.Code == HtmlRenderDiagnosticCodes.StylesheetImportCycle
             || item.Code == HtmlRenderDiagnosticCodes.StylesheetImportDepthExceeded);
@@ -237,6 +258,13 @@ public static partial class HtmlContentSafety {
 
         var syntheticStyles = new HashSet<IElement>(document.QuerySelectorAll("style").Where(item => !existingStyles.Contains(item)));
         return new PreparedPackagePart(part, document, syntheticStyles, limits);
+    }
+
+    private static HtmlCssByteBudget CreatePackageCssBudget(OfficeContentSafetyOptions options) {
+        HtmlConversionLimits limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssBytes = Math.Min(limits.MaxCssBytes ?? long.MaxValue, options.MaxInputBytes);
+        limits.MaxTotalCssBytes = Math.Min(limits.MaxTotalCssBytes ?? long.MaxValue, options.MaxExpandedPackageBytes);
+        return new HtmlCssByteBudget(limits);
     }
 
     private static void ValidateAggregatePackageText(
@@ -291,5 +319,45 @@ public static partial class HtmlContentSafety {
 
         internal PreparedPackagePart Part { get; }
         internal HtmlCleanupTarget Target { get; }
+    }
+
+    private sealed class PackageResourceBudget {
+        private readonly long _maximumBytes;
+        private readonly int _maximumResources;
+        private long _acceptedBytes;
+        private int _acceptedResources;
+        private int _resolverRequests;
+
+        internal PackageResourceBudget(OfficeContentSafetyOptions options) {
+            _maximumBytes = options.MaxExpandedPackageBytes;
+            _maximumResources = options.MaxPackageEntries;
+        }
+
+        internal void Apply(HtmlRenderOptions options) {
+            long remainingBytes = _maximumBytes - _acceptedBytes;
+            int remainingResources = _maximumResources - _acceptedResources;
+            int remainingRequests = _maximumResources - _resolverRequests;
+            if (remainingBytes <= 0 || remainingResources <= 0 || remainingRequests <= 0) {
+                throw new InvalidDataException("Package stylesheet resources exceed the configured aggregate limits.");
+            }
+            options.MaxResourceBytes = Math.Min(options.MaxResourceBytes, remainingBytes);
+            options.MaxTotalResourceBytes = Math.Min(options.MaxTotalResourceBytes, remainingBytes);
+            options.MaxResourceCount = Math.Min(options.MaxResourceCount, remainingResources);
+            options.MaxResourceRequests = Math.Min(options.MaxResourceRequests, remainingRequests);
+            if (options.MaxResourceRequests < options.MaxResourceCount) {
+                options.MaxResourceCount = options.MaxResourceRequests;
+            }
+        }
+
+        internal void Reserve(HtmlResourceSession resources) {
+            _acceptedBytes = checked(_acceptedBytes + resources.AcceptedResourceBytes);
+            _acceptedResources = checked(_acceptedResources + resources.AcceptedResourceCount);
+            _resolverRequests = checked(_resolverRequests + resources.ResolverRequestCount);
+            if (_acceptedBytes > _maximumBytes
+                || _acceptedResources > _maximumResources
+                || _resolverRequests > _maximumResources) {
+                throw new InvalidDataException("Package stylesheet resources exceed the configured aggregate limits.");
+            }
+        }
     }
 }

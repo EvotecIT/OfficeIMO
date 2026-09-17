@@ -45,6 +45,13 @@ internal static class MimeParser {
             defaultContentType, state.Diagnostics, location);
         MimeValue disposition = MimeValueParser.Parse(MimeHeaderParser.GetValue(headers, "Content-Disposition"),
             string.Empty, state.Diagnostics, location);
+        EmailProtectionKind entityProtection = MimeProtectionProjection.Classify(
+            contentType.Value,
+            contentType.GetParameter("protocol") ?? string.Empty);
+        if (entityProtection != EmailProtectionKind.None && !document.Protection.IsProtected) {
+            document.Protection.Kind = entityProtection;
+            document.Protection.MessageClass = document.MessageClass;
+        }
         string? transferEncoding = MimeHeaderParser.GetValue(headers, "Content-Transfer-Encoding");
         string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
         string? contentId = MimeHeaderParser.GetValue(headers, "Content-ID");

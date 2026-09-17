@@ -55,7 +55,7 @@ internal static partial class EpubReader {
                 cancellationToken,
                 effective.MaxPackageBytes).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
-            return ReadBytes(bytes, effective);
+            return ReadBytes(bytes, effective, cancellationToken);
         } catch (EpubReadException) {
             throw;
         } catch (InvalidDataException exception) {
@@ -67,8 +67,12 @@ internal static partial class EpubReader {
         }
     }
 
-    internal static EpubDocument ReadBytes(byte[] bytes, EpubReadOptions? options = null) {
+    internal static EpubDocument ReadBytes(
+        byte[] bytes,
+        EpubReadOptions? options = null,
+        CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        cancellationToken.ThrowIfCancellationRequested();
         EpubReadOptions effective = Normalize(options);
         if (bytes.LongLength > effective.MaxPackageBytes) {
             throw CreateFatalReadException(
@@ -77,7 +81,7 @@ internal static partial class EpubReader {
         }
 
         try {
-            return ReadArchive(bytes, effective);
+            return ReadArchive(bytes, effective, cancellationToken);
         } catch (EpubReadException) {
             throw;
         } catch (InvalidDataException exception) {
@@ -89,26 +93,33 @@ internal static partial class EpubReader {
         }
     }
 
-    private static EpubDocument ReadArchive(byte[] bytes, EpubReadOptions effective) {
+    private static EpubDocument ReadArchive(
+        byte[] bytes,
+        EpubReadOptions effective,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         using var epubStream = new MemoryStream(bytes, writable: false);
         var diagnostics = new EpubDiagnosticCollector();
 
         using var archive = new ZipArchive(epubStream, ZipArchiveMode.Read, leaveOpen: true);
-        Dictionary<string, ZipArchiveEntry> entryIndex = BuildEntryIndex(archive, effective, diagnostics);
-        EpubPackage? package = TryReadPackage(entryIndex, effective, diagnostics, out IReadOnlyList<EpubRootfile> rootfiles);
-        IReadOnlyList<EpubEncryptionInfo> encryption = ReadEncryption(entryIndex, effective, diagnostics);
-        EpubSignatureInfo signatures = ReadSignatures(entryIndex, effective, diagnostics);
+        Dictionary<string, ZipArchiveEntry> entryIndex = BuildEntryIndex(archive, effective, diagnostics, cancellationToken);
+        EpubPackage? package = TryReadPackage(entryIndex, effective, diagnostics, out IReadOnlyList<EpubRootfile> rootfiles, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        IReadOnlyList<EpubEncryptionInfo> encryption = ReadEncryption(entryIndex, effective, diagnostics, cancellationToken);
+        EpubSignatureInfo signatures = ReadSignatures(entryIndex, effective, diagnostics, cancellationToken);
         Dictionary<string, EpubEncryptionInfo> encryptionByPath = encryption
             .GroupBy(static item => item.Path, StringComparer.Ordinal)
             .ToDictionary(static group => group.Key, static group => group.First(), StringComparer.Ordinal);
         EpubNavigationResult navigation = ReadNavigation(entryIndex, package, effective, diagnostics);
-        List<ChapterCandidate> candidates = BuildChapterCandidates(entryIndex, package, effective, diagnostics);
+        cancellationToken.ThrowIfCancellationRequested();
+        List<ChapterCandidate> candidates = BuildChapterCandidates(entryIndex, package, effective, diagnostics, cancellationToken);
 
         var chapters = new List<EpubChapter>();
         int emitted = 0;
         long totalRawHtmlBytes = 0;
 
         foreach (var candidate in candidates) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (emitted >= effective.MaxChapters) break;
             if (effective.MaxChapterBytes.HasValue && candidate.Entry.Length > effective.MaxChapterBytes.Value) {
                 string path = candidate.Path;
@@ -129,7 +140,7 @@ internal static partial class EpubReader {
                 continue;
             }
 
-            string markup = ReadEntryText(candidate.Entry, effective.MaxChapterBytes);
+            string markup = ReadEntryText(candidate.Entry, effective.MaxChapterBytes, cancellationToken);
             if (!TryReadChapterMarkup(markup, out ChapterMarkupInfo chapterMarkup)) {
                 diagnostics.Warning(
                     "epub.chapter.invalid-xhtml",
@@ -181,7 +192,8 @@ internal static partial class EpubReader {
             package,
             encryptionByPath,
             effective,
-            diagnostics);
+            diagnostics,
+            cancellationToken);
 
         if (package?.RenditionLayout == EpubRenditionLayout.PrePaginated || chapters.Any(static chapter => chapter.IsFixedLayout)) {
             diagnostics.Warning(
@@ -218,13 +230,15 @@ internal static partial class EpubReader {
         EpubPackage? package,
         IReadOnlyDictionary<string, EpubEncryptionInfo> encryptionByPath,
         EpubReadOptions options,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
         if (package == null || package.Manifest.Count == 0) return Array.Empty<EpubResource>();
         var resources = new List<EpubResource>(Math.Min(package.Manifest.Count, options.MaxResources));
         long totalPayloadBytes = 0;
         IEnumerable<ManifestItem> items = package.Manifest.Values;
         if (options.DeterministicOrder) items = items.OrderBy(static item => item.FullPath, StringComparer.Ordinal);
         foreach (ManifestItem item in items) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (resources.Count >= options.MaxResources) {
                 diagnostics.Warning(
                     "epub.resource.count-limit",
@@ -276,7 +290,7 @@ internal static partial class EpubReader {
                         $"Skipped payload for EPUB resource '{item.FullPath}' because MaxTotalResourceBytes ({options.MaxTotalResourceBytes}) was reached.",
                         item.FullPath);
                 } else {
-                    data = ReadEntryBytes(entry, options.MaxResourceBytes);
+                    data = ReadEntryBytes(entry, options.MaxResourceBytes, cancellationToken);
                     totalPayloadBytes = checked(totalPayloadBytes + data.LongLength);
                     if (resourceEncryption?.IsFontObfuscation == true) {
                         if (EpubFontObfuscation.TryDeobfuscate(data, resourceEncryption.Kind, package.ObfuscationIdentifier,

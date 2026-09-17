@@ -3,18 +3,21 @@ namespace OfficeIMO.Epub;
 #if NET8_0_OR_GREATER
 using System.Buffers;
 #endif
+using System.Threading;
 
 internal static partial class EpubReader {
     private static List<ChapterCandidate> BuildChapterCandidates(
         Dictionary<string, ZipArchiveEntry> entryIndex,
         EpubPackage? package,
         EpubReadOptions options,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
         var candidates = new List<ChapterCandidate>();
         var seenPaths = new HashSet<string>(StringComparer.Ordinal);
 
         if (package != null && options.PreferSpineOrder && package.Spine.Count > 0) {
             foreach (var spineItem in package.Spine.OrderBy(s => s.SpineIndex)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!options.IncludeNonLinearSpineItems && !spineItem.IsLinear) {
                     continue;
                 }
@@ -79,6 +82,7 @@ internal static partial class EpubReader {
 
             var manifestByPath = BuildManifestByPath(package);
             foreach (KeyValuePair<string, ZipArchiveEntry> indexedEntry in scanEntries) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string chapterPath = indexedEntry.Key;
                 if (seenPaths.Contains(chapterPath)) continue;
 
@@ -131,8 +135,11 @@ internal static partial class EpubReader {
         return ext == ".xhtml" || ext == ".html" || ext == ".htm";
     }
 
-    private static string ReadEntryText(ZipArchiveEntry entry, long? maxBytes) {
-        byte[] data = ReadEntryBytesExact(entry, maxBytes);
+    private static string ReadEntryText(
+        ZipArchiveEntry entry,
+        long? maxBytes,
+        CancellationToken cancellationToken = default) {
+        byte[] data = ReadEntryBytesExact(entry, maxBytes, cancellationToken);
         if (data.Length >= 4) {
             if (data[0] == 0x00 && data[1] == 0x00 && data[2] == 0xFE && data[3] == 0xFF) {
                 return BigEndianUtf32.GetString(data, 4, data.Length - 4);
@@ -155,11 +162,18 @@ internal static partial class EpubReader {
         return Encoding.UTF8.GetString(data);
     }
 
-    private static byte[] ReadEntryBytes(ZipArchiveEntry entry, long maxBytes) {
-        return ReadEntryBytesExact(entry, maxBytes);
+    private static byte[] ReadEntryBytes(
+        ZipArchiveEntry entry,
+        long maxBytes,
+        CancellationToken cancellationToken = default) {
+        return ReadEntryBytesExact(entry, maxBytes, cancellationToken);
     }
 
-    private static byte[] ReadEntryBytesExact(ZipArchiveEntry entry, long? maxBytes) {
+    private static byte[] ReadEntryBytesExact(
+        ZipArchiveEntry entry,
+        long? maxBytes,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (maxBytes.HasValue && entry.Length > maxBytes.Value) {
             throw new InvalidDataException($"EPUB entry '{entry.FullName}' exceeds the configured maximum size ({maxBytes.Value} bytes).");
         }
@@ -187,6 +201,7 @@ internal static partial class EpubReader {
         try {
             long total = 0;
             while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int read = entryStream.Read(buffer, 0, buffer.Length);
                 if (read == 0) break;
                 if (read > entry.Length - total) {

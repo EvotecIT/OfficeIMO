@@ -1,4 +1,5 @@
 using OfficeIMO.ContentSafety;
+using OfficeIMO.Email;
 using OfficeIMO.Epub;
 using OfficeIMO.Mhtml;
 using OfficeIMO.Provenance;
@@ -52,6 +53,52 @@ public sealed class HtmlPackageContentSafetyContractTests {
             contentLocation: "https://example.test/index.html").ToBytes();
 
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+
+        byte[] externalImport = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='site.css'></head><body><p>Visible</p></body></html>",
+            new[] { new MhtmlResource(Encoding.UTF8.GetBytes("@import 'https://example.invalid/conceal.css';"), "text/css", contentLocation: "site.css") },
+            contentLocation: "https://example.test/index.html").ToBytes();
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(externalImport));
+    }
+
+    [Fact]
+    public void Mhtml_AmbiguousResourceIdentitiesFailClosed() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='site.css'></head><body><p>Visible</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: none; }"), "text/css", contentLocation: "site.css"),
+                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: block; }"), "text/css", contentLocation: "site.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+    }
+
+    [Fact]
+    public void Mhtml_NestedSignedRootBlocksCleanup() {
+        byte[] input = BuildNestedSignedMhtml();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Signed concealed text", StringComparison.Ordinal));
+
+        Assert.Throws<InvalidOperationException>(() => MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id })));
+    }
+
+    [Fact]
+    public void Mhtml_CleanupRetainsOuterMessageMetadata() {
+        byte[] input = BuildMhtmlWithOuterMetadata();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Metadata preservation", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult cleaned = MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+        EmailDocument reopened = new EmailDocumentReader().Read(cleaned.Output).Document;
+
+        Assert.Equal("archive-123@example.test", reopened.MessageId);
+        Assert.Equal("sender@example.test", reopened.From?.Address);
+        Assert.Contains(reopened.Headers, header => header.Name == "X-Archive-Token" && header.Value == "retain-me");
     }
 
     [Fact]
@@ -144,6 +191,17 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             input,
             new OfficeContentSafetyOptions { MaxCharacters = 64 }));
+
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, multipleRootfiles: true)));
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, duplicateManifestId: true)));
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, duplicateEncryptionDeclaration: true)));
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, caseCollidingStylesheets: true)));
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, externalStylesheetImport: true)));
     }
 
     [Fact]
@@ -155,34 +213,66 @@ public sealed class HtmlPackageContentSafetyContractTests {
             cancellationToken: cancelled.Token));
     }
 
+    [Fact]
+    public void Epub_RepeatedStylesheetResolutionUsesOnePackageBudget() {
+        (byte[] package, long expandedBytes) = BuildEpubWithRepeatedStylesheet(chapterCount: 16, stylesheetBytes: 1024);
+
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            package,
+            new OfficeContentSafetyOptions {
+                MaxInputBytes = package.LongLength + 1024,
+                MaxExpandedPackageBytes = expandedBytes
+            }));
+    }
+
     private static byte[] BuildEpub(
         bool signed,
         bool duplicateChapter = false,
         bool includeStylesheet = true,
-        bool encryptedChapter = false) {
+        bool encryptedChapter = false,
+        bool multipleRootfiles = false,
+        bool duplicateManifestId = false,
+        bool duplicateEncryptionDeclaration = false,
+        bool caseCollidingStylesheets = false,
+        bool externalStylesheetImport = false) {
+        string rootfiles =
+            "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
+            (multipleRootfiles
+                ? "<rootfile full-path='SECOND/package.opf' media-type='application/oebps-package+xml'/>"
+                : string.Empty);
         var entries = new List<(string Name, byte[] Data)> {
             ("mimetype", Encoding.ASCII.GetBytes("application/epub+zip")),
             ("META-INF/container.xml", Encoding.UTF8.GetBytes(
                 "<container version='1.0' xmlns='urn:oasis:names:tc:opendocument:xmlns:container'>" +
-                "<rootfiles><rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/></rootfiles></container>"))
+                "<rootfiles>" + rootfiles + "</rootfiles></container>"))
         };
         if (signed) {
             entries.Add(("META-INF/signatures.xml", Encoding.UTF8.GetBytes(
                     "<signatures xmlns='http://www.idpf.org/2016/encryption#' xmlns:ds='http://www.w3.org/2000/09/xmldsig#'>" +
                     "<ds:Signature><ds:SignedInfo/></ds:Signature></signatures>")));
         }
-        if (encryptedChapter) {
+        if (encryptedChapter || duplicateEncryptionDeclaration) {
+            string declaration =
+                "<enc:EncryptedData><enc:EncryptionMethod Algorithm='urn:unsupported'/><enc:CipherData>" +
+                "<enc:CipherReference URI='EPUB/chapter.xhtml'/></enc:CipherData></enc:EncryptedData>";
             entries.Add(("META-INF/encryption.xml", Encoding.UTF8.GetBytes(
                     "<encryption xmlns='urn:oasis:names:tc:opendocument:xmlns:container' xmlns:enc='http://www.w3.org/2001/04/xmlenc#'>" +
-                    "<enc:EncryptedData><enc:EncryptionMethod Algorithm='urn:unsupported'/><enc:CipherData>" +
-                    "<enc:CipherReference URI='EPUB/chapter.xhtml'/></enc:CipherData></enc:EncryptedData></encryption>")));
+                    declaration + (duplicateEncryptionDeclaration ? declaration : string.Empty) + "</encryption>")));
         }
+        string duplicateManifest = duplicateManifestId
+            ? "<item id='chapter' href='other.xhtml' media-type='application/xhtml+xml'/>"
+            : string.Empty;
+        string caseCollisionManifest = caseCollidingStylesheets
+            ? "<item id='upper-style' href='styles/A.css' media-type='text/css'/>" +
+              "<item id='lower-style' href='styles/a.css' media-type='text/css'/>"
+            : string.Empty;
         entries.Add(("EPUB/package.opf", Encoding.UTF8.GetBytes(
                 "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest>" +
                 "<item id='chapter' href='chapter.xhtml' media-type='application/xhtml+xml'/>" +
                 "<item id='style' href='styles/site.css' media-type='text/css'/>" +
                 "<item id='nested-style' href='styles/nested.css' media-type='text/css'/>" +
                 "<item id='asset' href='assets/keep.bin' media-type='application/octet-stream'/>" +
+                duplicateManifest + caseCollisionManifest +
                 "</manifest><spine><itemref idref='chapter'/></spine></package>")));
         entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
                 "<html xmlns='http://www.w3.org/1999/xhtml'><head><link rel='stylesheet' href='styles/site.css'/></head>" +
@@ -191,12 +281,57 @@ public sealed class HtmlPackageContentSafetyContractTests {
             entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
                 "<html xmlns='http://www.w3.org/1999/xhtml'><body><p>Duplicate</p></body></html>")));
         }
+        if (duplicateManifestId) {
+            entries.Add(("EPUB/other.xhtml", Encoding.UTF8.GetBytes(
+                "<html xmlns='http://www.w3.org/1999/xhtml'><body><p>Other chapter</p></body></html>")));
+        }
         if (includeStylesheet) {
-            entries.Add(("EPUB/styles/site.css", Encoding.UTF8.GetBytes("@import 'nested.css';")));
+            entries.Add(("EPUB/styles/site.css", Encoding.UTF8.GetBytes(
+                externalStylesheetImport ? "@import 'https://example.invalid/conceal.css';" : "@import 'nested.css';")));
             entries.Add(("EPUB/styles/nested.css", Encoding.UTF8.GetBytes(".concealed { visibility: hidden; }")));
+        }
+        if (caseCollidingStylesheets) {
+            entries.Add(("EPUB/styles/A.css", Encoding.UTF8.GetBytes("p { display: block; }")));
+            entries.Add(("EPUB/styles/a.css", Encoding.UTF8.GetBytes("p { display: none; }")));
+        }
+        if (multipleRootfiles) {
+            entries.Add(("SECOND/package.opf", Encoding.UTF8.GetBytes(
+                "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest/></package>")));
         }
         entries.Add(("EPUB/assets/keep.bin", new byte[] { 9, 8, 7, 6 }));
 
+        return WriteStoredPackage(entries);
+    }
+
+    private static (byte[] Package, long ExpandedBytes) BuildEpubWithRepeatedStylesheet(
+        int chapterCount,
+        int stylesheetBytes) {
+        string manifest = string.Concat(Enumerable.Range(0, chapterCount).Select(index =>
+            "<item id='chapter" + index + "' href='chapter" + index + ".xhtml' media-type='application/xhtml+xml'/>"));
+        string spine = string.Concat(Enumerable.Range(0, chapterCount).Select(index =>
+            "<itemref idref='chapter" + index + "'/>"));
+        var entries = new List<(string Name, byte[] Data)> {
+            ("mimetype", Encoding.ASCII.GetBytes("application/epub+zip")),
+            ("META-INF/container.xml", Encoding.UTF8.GetBytes(
+                "<container version='1.0' xmlns='urn:oasis:names:tc:opendocument:xmlns:container'><rootfiles>" +
+                "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
+                "</rootfiles></container>")),
+            ("EPUB/package.opf", Encoding.UTF8.GetBytes(
+                "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest>" + manifest +
+                "<item id='style' href='site.css' media-type='text/css'/></manifest><spine>" + spine +
+                "</spine></package>"))
+        };
+        for (int index = 0; index < chapterCount; index++) {
+            entries.Add(("EPUB/chapter" + index + ".xhtml", Encoding.UTF8.GetBytes(
+                "<html xmlns='http://www.w3.org/1999/xhtml'><head><link rel='stylesheet' href='site.css'/></head>" +
+                "<body><p class='concealed'>Repeated stylesheet.</p></body></html>")));
+        }
+        string css = ".concealed{display:none;}/*" + new string('x', stylesheetBytes) + "*/";
+        entries.Add(("EPUB/site.css", Encoding.UTF8.GetBytes(css)));
+        return (WriteStoredPackage(entries), entries.Sum(entry => (long)entry.Data.Length));
+    }
+
+    private static byte[] WriteStoredPackage(IReadOnlyList<(string Name, byte[] Data)> entries) {
         DateTimeOffset timestamp = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
         OfficeProvenanceZipWriteEntry[] outputEntries = entries.Select(entry => new OfficeProvenanceZipWriteEntry(
             entry.Name,
@@ -211,6 +346,34 @@ public sealed class HtmlPackageContentSafetyContractTests {
             () => new MemoryStream(entry.Data, writable: false))).ToArray();
         return OfficeProvenanceZipWriter.Write(outputEntries, 1024 * 1024);
     }
+
+    private static byte[] BuildNestedSignedMhtml() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: multipart/signed; boundary=inner; protocol=\"application/pkcs7-signature\"\r\n\r\n" +
+        "--inner\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-Transfer-Encoding: 8bit\r\n\r\n" +
+        "<html><body><p style='display:none'>Signed concealed text.</p></body></html>\r\n" +
+        "--inner\r\n" +
+        "Content-Type: application/pkcs7-signature; name=smime.p7s\r\n" +
+        "Content-Transfer-Encoding: base64\r\n\r\nAA==\r\n" +
+        "--inner--\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithOuterMetadata() => Encoding.ASCII.GetBytes(
+        "From: sender@example.test\r\n" +
+        "Date: Tue, 01 Jan 2030 00:00:00 +0000\r\n" +
+        "Message-ID: <archive-123@example.test>\r\n" +
+        "X-Archive-Token: retain-me\r\n" +
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-Transfer-Encoding: 8bit\r\n\r\n" +
+        "<html><body><p style='display:none'>Metadata preservation.</p><p>Visible.</p></body></html>\r\n" +
+        "--outer--\r\n");
 
     private static byte[] ReadEntry(byte[] package, string path) {
         using var stream = new MemoryStream(package, writable: false);

@@ -1,14 +1,18 @@
 namespace OfficeIMO.Epub;
 
+using System.Threading;
+
 internal static partial class EpubReader {
     private static Dictionary<string, ZipArchiveEntry> BuildEntryIndex(
         ZipArchive archive,
         EpubReadOptions options,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
         var map = new Dictionary<string, ZipArchiveEntry>(StringComparer.Ordinal);
         long totalUncompressedBytes = 0;
         int entryCount = 0;
         foreach (var entry in archive.Entries) {
+            cancellationToken.ThrowIfCancellationRequested();
             entryCount++;
             if (entryCount > options.MaxArchiveEntries) {
                 throw CreateFatalReadException(
@@ -58,10 +62,12 @@ internal static partial class EpubReader {
         Dictionary<string, ZipArchiveEntry> entryIndex,
         EpubReadOptions options,
         EpubDiagnosticCollector diagnostics,
-        out IReadOnlyList<EpubRootfile> rootfiles) {
-        rootfiles = ReadRootfiles(entryIndex, options, diagnostics);
+        out IReadOnlyList<EpubRootfile> rootfiles,
+        CancellationToken cancellationToken) {
+        rootfiles = ReadRootfiles(entryIndex, options, diagnostics, cancellationToken);
         var attemptedPaths = new HashSet<string>(StringComparer.Ordinal);
         foreach (EpubRootfile rootfile in rootfiles) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!entryIndex.TryGetValue(rootfile.FullPath, out ZipArchiveEntry? opfEntry)) {
                 diagnostics.Warning(
                     "epub.package.rootfile-missing",
@@ -70,7 +76,7 @@ internal static partial class EpubReader {
                 continue;
             }
             attemptedPaths.Add(rootfile.FullPath);
-            EpubPackage? package = TryParsePackageEntry(opfEntry, rootfile.FullPath, options, diagnostics);
+            EpubPackage? package = TryParsePackageEntry(opfEntry, rootfile.FullPath, options, diagnostics, cancellationToken);
             if (package == null) continue;
 
             rootfile.IsSelected = true;
@@ -80,7 +86,8 @@ internal static partial class EpubReader {
         foreach (string opfPath in entryIndex.Keys
             .Where(path => path.EndsWith(".opf", StringComparison.OrdinalIgnoreCase) && !attemptedPaths.Contains(path))
             .OrderBy(static path => path, StringComparer.Ordinal)) {
-            EpubPackage? package = TryParsePackageEntry(entryIndex[opfPath], opfPath, options, diagnostics);
+            cancellationToken.ThrowIfCancellationRequested();
+            EpubPackage? package = TryParsePackageEntry(entryIndex[opfPath], opfPath, options, diagnostics, cancellationToken);
             if (package == null) continue;
 
             EpubRootfile? declared = rootfiles.FirstOrDefault(rootfile =>
@@ -103,7 +110,8 @@ internal static partial class EpubReader {
         ZipArchiveEntry opfEntry,
         string opfPath,
         EpubReadOptions options,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
         if (opfEntry.Length > options.MaxPackageMetadataBytes) {
             diagnostics.Warning(
                 "epub.package.metadata-size-limit",
@@ -112,7 +120,7 @@ internal static partial class EpubReader {
             return null;
         }
 
-        string opfContent = ReadEntryText(opfEntry, options.MaxPackageMetadataBytes);
+        string opfContent = ReadEntryText(opfEntry, options.MaxPackageMetadataBytes, cancellationToken);
         if (!TryParseXml(opfContent, out XDocument? opfDocument) || opfDocument == null) {
             diagnostics.Warning(
                 "epub.package.invalid-xml",
@@ -121,13 +129,14 @@ internal static partial class EpubReader {
             return null;
         }
 
-        return ParseOpf(opfDocument, opfPath, options, diagnostics);
+        return ParseOpf(opfDocument, opfPath, options, diagnostics, cancellationToken);
     }
 
     private static IReadOnlyList<EpubRootfile> ReadRootfiles(
         Dictionary<string, ZipArchiveEntry> entryIndex,
         EpubReadOptions options,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
         if (!entryIndex.TryGetValue("META-INF/container.xml", out var containerEntry)) {
             return Array.Empty<EpubRootfile>();
         }
@@ -140,7 +149,7 @@ internal static partial class EpubReader {
             return Array.Empty<EpubRootfile>();
         }
 
-        var containerContent = ReadEntryText(containerEntry, options.MaxPackageMetadataBytes);
+        var containerContent = ReadEntryText(containerEntry, options.MaxPackageMetadataBytes, cancellationToken);
         if (!TryParseXml(containerContent, out var containerDocument) || containerDocument == null) {
             diagnostics.Warning(
                 "epub.container.invalid-xml",
@@ -152,6 +161,7 @@ internal static partial class EpubReader {
         var results = new List<EpubRootfile>();
         var seenPaths = new HashSet<string>(StringComparer.Ordinal);
         foreach (var rootfile in containerDocument.Descendants().Where(e => IsName(e, "rootfile"))) {
+            cancellationToken.ThrowIfCancellationRequested();
             string declaredPath = GetAttribute(rootfile, "full-path");
             string candidate = RemoveFragmentAndQuery(declaredPath);
             if (!TryNormalizeArchiveEntryPath(candidate, out string fullPath)) {
@@ -194,7 +204,8 @@ internal static partial class EpubReader {
         XDocument opfDocument,
         string opfPath,
         EpubReadOptions options,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
         XElement? packageElement = opfDocument.Root;
         var package = new EpubPackage {
             OpfPath = opfPath,
@@ -205,7 +216,7 @@ internal static partial class EpubReader {
         bool declaredUniqueIdentifierResolved = false;
         var metadata = opfDocument.Descendants().FirstOrDefault(e => IsName(e, "metadata"));
         if (metadata != null) {
-            ReadMetadataEntries(metadata, package, options, diagnostics, opfPath);
+            ReadMetadataEntries(metadata, package, options, diagnostics, opfPath, cancellationToken);
             package.Title = TryGetFirstElementValue(metadata, "title");
             package.Creator = TryGetFirstElementValue(metadata, "creator");
             package.Language = TryGetFirstElementValue(metadata, "language");
@@ -243,6 +254,7 @@ internal static partial class EpubReader {
 
         var manifestItems = opfDocument.Descendants().Where(e => IsName(e, "item"));
         foreach (var item in manifestItems) {
+            cancellationToken.ThrowIfCancellationRequested();
             var id = GetAttribute(item, "id");
             var href = GetAttribute(item, "href");
             if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(href)) continue;
@@ -306,6 +318,7 @@ internal static partial class EpubReader {
 
             int index = 0;
             foreach (var itemRef in spine.Elements().Where(e => IsName(e, "itemref"))) {
+                cancellationToken.ThrowIfCancellationRequested();
                 index++;
                 var idRef = GetAttribute(itemRef, "idref");
                 if (string.IsNullOrWhiteSpace(idRef)) continue;
@@ -327,6 +340,7 @@ internal static partial class EpubReader {
         XElement? guide = opfDocument.Descendants().FirstOrDefault(element => IsName(element, "guide"));
         if (guide != null) {
             foreach (XElement reference in guide.Elements().Where(element => IsName(element, "reference"))) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (package.Guide.Count >= options.MaxNavigationItems) {
                     diagnostics.Warning(
                         "epub.navigation.item-count-limit",
@@ -362,8 +376,10 @@ internal static partial class EpubReader {
         EpubPackage package,
         EpubReadOptions options,
         EpubDiagnosticCollector diagnostics,
-        string opfPath) {
+        string opfPath,
+        CancellationToken cancellationToken) {
         foreach (XElement element in metadata.Elements()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (package.Metadata.Count >= options.MaxMetadataItems) {
                 diagnostics.Warning(
                     "epub.metadata.count-limit",

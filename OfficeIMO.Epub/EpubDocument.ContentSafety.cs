@@ -115,19 +115,18 @@ public sealed partial class EpubDocument {
         OfficeContentSafetyOptions options,
         EpubReadOptions? readOptions,
         CancellationToken cancellationToken) {
-        OfficeContentSafetyInputGuard.ValidateBytes(packageBytes, options, inspectZipPackage: true);
         cancellationToken.ThrowIfCancellationRequested();
+        OfficeContentSafetyInputGuard.ValidateBytes(packageBytes, options, inspectZipPackage: true);
         OfficeProvenanceZip.ValidateMimetypeEntry(packageBytes, "application/epub+zip", options.MaxPackageEntries);
         ValidateCanonicalEntryPaths(packageBytes, options.MaxPackageEntries, cancellationToken);
 
         EpubReadOptions effectiveReadOptions = CreateContentSafetyReadOptions(readOptions, options);
-        using var stream = new MemoryStream(packageBytes, writable: false);
-        EpubDocument document = Load(stream, effectiveReadOptions);
+        EpubDocument document = EpubReader.ReadBytes(packageBytes, effectiveReadOptions, cancellationToken);
         ThrowForIncompleteContentSafetyRead(document);
 
         EpubResource[] htmlResources = document.Resources.Where(IsHtmlResource).ToArray();
         if (htmlResources.Length == 0) throw new InvalidDataException("The EPUB manifest contains no local HTML or XHTML content documents.");
-        var resourcesByUri = new Dictionary<string, EpubResource>(StringComparer.OrdinalIgnoreCase);
+        var resourcesByUri = new Dictionary<string, EpubResource>(StringComparer.Ordinal);
         foreach (EpubResource resource in document.Resources.Where(item => !item.IsRemote && item.Data != null)) {
             resourcesByUri[CreatePackageUri(resource.Path).AbsoluteUri] = resource;
         }
@@ -161,9 +160,9 @@ public sealed partial class EpubDocument {
             MaxTotalUncompressedBytes = Math.Min(source.MaxTotalUncompressedBytes, safety.MaxExpandedPackageBytes),
             MaxPackageMetadataBytes = Math.Min(source.MaxPackageMetadataBytes, safety.MaxInputBytes),
             MaxMetadataItems = Math.Min(source.MaxMetadataItems, safety.MaxPackageEntries),
-            MaxNavigationItems = Math.Min(source.MaxNavigationItems, safety.MaxPackageEntries),
-            MaxNavigationDepth = source.MaxNavigationDepth,
-            MaxChapters = Math.Min(source.MaxChapters, safety.MaxPackageEntries),
+            MaxNavigationItems = 1,
+            MaxNavigationDepth = 1,
+            MaxChapters = 1,
             MaxChapterBytes = Math.Min(source.MaxChapterBytes ?? long.MaxValue, safety.MaxInputBytes),
             MaxTotalRawHtmlBytes = Math.Min(source.MaxTotalRawHtmlBytes, safety.MaxExpandedPackageBytes),
             IncludeRawHtml = false,
@@ -228,15 +227,26 @@ public sealed partial class EpubDocument {
             "epub.archive.unsafe-path",
             "epub.archive.duplicate-path",
             "epub.container.rootfile-fallback",
+            "epub.container.rootfile-path-invalid",
+            "epub.container.rootfile-duplicate",
+            "epub.container.rootfile-missing",
+            "epub.container.multiple-rootfiles",
             "epub.package.missing",
             "epub.package.metadata-size-limit",
+            "epub.package.invalid-xml",
+            "epub.manifest.invalid-path",
+            "epub.manifest.duplicate-id",
             "epub.resource.count-limit",
             "epub.resource.missing",
             "epub.resource.size-limit",
             "epub.resource.total-size-limit",
             "epub.resource.encrypted",
             "epub.encryption.invalid-xml",
-            "epub.encryption.metadata-size-limit"
+            "epub.encryption.metadata-size-limit",
+            "epub.encryption.resource-path-invalid",
+            "epub.encryption.duplicate-resource",
+            "epub.encryption.resource-missing",
+            "epub.encryption.unsupported"
         };
         EpubDiagnostic? blocking = document.Diagnostics.FirstOrDefault(item =>
             blockingPrefixes.Any(code => item.Code.Equals(code, StringComparison.Ordinal)));
@@ -253,6 +263,7 @@ public sealed partial class EpubDocument {
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
         if (archive.Entries.Count > maximumEntries) throw new InvalidDataException("The EPUB package exceeds the configured entry-count limit.");
         var seen = new HashSet<string>(StringComparer.Ordinal);
+        var caseFolded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (ZipArchiveEntry entry in archive.Entries) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!EpubReader.TryNormalizeArchiveEntryPath(entry.FullName, out string normalized)
@@ -260,6 +271,9 @@ public sealed partial class EpubDocument {
                 throw new InvalidDataException("EPUB package contains an unsafe or non-canonical entry path: " + entry.FullName);
             }
             if (!seen.Add(normalized)) throw new InvalidDataException("EPUB package contains a duplicate entry path: " + normalized);
+            if (!caseFolded.Add(normalized)) {
+                throw new InvalidDataException("EPUB package contains case-colliding entry paths that cannot be resolved unambiguously: " + normalized);
+            }
         }
     }
 

@@ -59,13 +59,8 @@ public sealed partial class MhtmlDocument {
                 "MHTML cleanup cannot mutate a signed or encrypted MIME wrapper. Verify and unwrap or decrypt it before cleanup.");
         }
 
-        var rewritten = new MhtmlDocument(
-            cleaned.Parts["root"],
-            document.Resources,
-            document.ContentLocation,
-            document.RootContentId,
-            document.Subject);
-        byte[] output = rewritten.ToBytes(new EmailWriterOptions(maxOutputBytes: options.Inspection.MaxExpandedPackageBytes));
+        document._mimeDocument.Body.Html = cleaned.Parts["root"];
+        byte[] output = document.ToBytes(new EmailWriterOptions(maxOutputBytes: options.Inspection.MaxExpandedPackageBytes));
         OfficeContentSafetyReport after = InspectContentSafety(output, options.Inspection, mimeOptions, cancellationToken);
         return new OfficeContentCleanupResult(output, cleaned.Before, after, cleaned.Changes);
     }
@@ -95,7 +90,17 @@ public sealed partial class MhtmlDocument {
         CancellationToken cancellationToken) {
         EmailReaderOptions readerOptions = IntersectReaderOptions(mimeOptions ?? EmailReaderOptions.Default, options);
         using var stream = new MemoryStream(archiveBytes, writable: false);
-        return Load(stream, readerOptions, cancellationToken: cancellationToken);
+        MhtmlDocument document = Load(stream, readerOptions, cancellationToken: cancellationToken);
+        EmailDiagnostic? ambiguous = document.MimeDiagnostics.FirstOrDefault(diagnostic =>
+            diagnostic.Code == MhtmlDiagnosticCodes.DuplicateContentId
+            || diagnostic.Code == MhtmlDiagnosticCodes.DuplicateContentLocation
+            || diagnostic.Code == MhtmlDiagnosticCodes.InvalidContentLocation);
+        if (ambiguous != null) {
+            throw new InvalidDataException(
+                "MHTML content-safety inspection requires unambiguous embedded resource identities. " +
+                ambiguous.Code + ": " + ambiguous.Message);
+        }
+        return document;
     }
 
     private static async Task<OfficeContentSafetyReport> InspectDocumentContentSafetyAsync(
