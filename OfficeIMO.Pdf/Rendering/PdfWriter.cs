@@ -1740,6 +1740,7 @@ internal static partial class PdfWriter {
         page.Images.Add(new PageImage {
             Data = image.DataSnapshot,
             Info = image.ImageInfo,
+            PreparedStream = image.PreparedStream,
             X = renderPlan.ImagePlacement.X,
             Y = renderPlan.ImagePlacement.Y,
             W = renderPlan.ImagePlacement.Width,
@@ -1760,6 +1761,7 @@ internal static partial class PdfWriter {
         page.Images.Add(new PageImage {
             Data = watermark.DataSnapshot,
             Info = watermark.ImageInfo,
+            PreparedStream = watermark.PreparedStream,
             X = x,
             Y = y,
             W = watermark.Width,

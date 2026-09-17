@@ -469,6 +469,7 @@ internal static partial class PdfWriter {
     private sealed class PageImage {
         public byte[] Data { get; set; } = System.Array.Empty<byte>();
         public OfficeImageInfo Info { get; set; } = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+        public PdfImageStream? PreparedStream { get; set; }
         public double X { get; set; }
         public double Y { get; set; }
         public double W { get; set; }

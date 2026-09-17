@@ -9,7 +9,7 @@ meta.primary_url: "/docs/pdf/"
 
 QuestPDF and OfficeIMO.Pdf both generate PDF files inside a .NET process without a hosted conversion service. QuestPDF combines a fluent layout API with operations on existing PDFs. OfficeIMO.Pdf combines authoring with native parsing, inspection, forms, annotations, attachments, signatures, compliance, extraction, redaction, optimization, and adapters from other OfficeIMO formats.
 
-QuestPDF facts were checked on 7 September 2026 against its official [document operations](https://www.questpdf.com/concepts/document-operations.html), [quick start](https://www.questpdf.com/quick-start.html), and [Community License](https://www.questpdf.com/license/community.html). Documented support is recorded below; an unverified operation is not a claim that a feature is absent.
+QuestPDF facts were checked on 17 September 2026 against its official [document operations](https://www.questpdf.com/concepts/document-operations.html), [quick start](https://www.questpdf.com/quick-start.html), and [controlling license](https://github.com/QuestPDF/QuestPDF/blob/main/LICENSE.md). Documented support is recorded below; an unverified operation is not a claim that a feature is absent.
 
 ## Compare the product shape
 
@@ -22,8 +22,8 @@ QuestPDF facts were checked on 7 September 2026 against its official [document o
 | Text inspection, forms, redaction, and signing | Focused APIs; [supported workflows and limits](/products/pdf/) | Not established by the sources reviewed here; evaluate each required operation |
 | Word, Excel, PowerPoint, HTML, and Markdown conversion | Focused OfficeIMO adapters with diagnostics | Outside the document-operations comparison |
 | Offline execution | Yes; optional providers have their own dependencies | Yes |
-| License | MIT | Community eligibility or a paid license |
-QuestPDF's Community License has eligibility conditions; organizations outside them need a paid license. Consult its [current pricing](https://www.questpdf.com/pricing.html) and controlling license when choosing a deployment.
+| License | MIT | Source-available Community eligibility or a paid license; current terms restrict competing general-purpose PDF products |
+QuestPDF's Community License has eligibility conditions; organizations outside them need a paid license, and both current grants include a competing-product restriction. Consult its [current pricing](https://www.questpdf.com/pricing.html) and controlling license when choosing a deployment.
 
 ## Choose QuestPDF when
 
@@ -43,6 +43,6 @@ QuestPDF's Community License has eligibility conditions; organizations outside t
 
 PDF layout depends on fonts, shaping, images, pagination, and viewer behavior. Keep visual baselines for representative output, inspect structural requirements, and test accessibility or compliance claims with the actual delivery profile. For input transformations, retain the source and write a new artifact until readback succeeds.
 
-Compare the committed [PDF generation and page-operation benchmarks](/benchmarks/) for an equivalent workload and environment. There is no universal performance ranking across all PDF tasks.
+Compare the committed [PDF generation and page-operation benchmarks](/benchmarks/) for an equivalent workload and environment. The public performance lane names and currently pins **QuestPDF 2026.5.0**, the last release covered by its embedded Community MIT License; it is historical, reproducible evidence rather than a claim about the current QuestPDF release. There is no universal performance ranking across all PDF tasks.
 
 Continue with the [OfficeIMO.Pdf documentation](/docs/pdf/), [PDF product page](/products/pdf/), or [conversion routes](/docs/pdf/conversion/).

@@ -21,6 +21,19 @@ internal static partial class PdfWriter {
         public int PixelWidth { get; set; }
         public int PixelHeight { get; set; }
         public PdfImageStream? SoftMask { get; set; }
+
+        /// <summary>
+        /// Creates a writable descriptor over the immutable prepared stream payloads.
+        /// PDF/X conversion may replace descriptor properties, so each write receives
+        /// its own object graph while reusing the already compressed byte arrays.
+        /// </summary>
+        internal PdfImageStream CloneForWrite() => new() {
+            Data = Data,
+            DictionarySuffix = DictionarySuffix,
+            PixelWidth = PixelWidth,
+            PixelHeight = PixelHeight,
+            SoftMask = SoftMask?.CloneForWrite()
+        };
     }
 
     internal static bool TryGetPngImageData(byte[] data, out PdfImageStream image, out string? unsupportedReason) {
@@ -793,6 +806,12 @@ internal static partial class PdfWriter {
     }
 
     private static bool TryBuildImageStream(PageImage img, out PdfImageStream image, out string? unsupportedReason) {
+        if (img.PreparedStream != null) {
+            image = img.PreparedStream.CloneForWrite();
+            unsupportedReason = null;
+            return true;
+        }
+
         return TryBuildImageStream(img.Data, img.Info, img.W, img.H, out image, out unsupportedReason);
     }
 
@@ -863,6 +882,51 @@ internal static partial class PdfWriter {
 
     internal static bool TryBuildImageStream(byte[] data, OfficeImageInfo info, double fallbackWidth, double fallbackHeight, out PdfImageStream image, out string? unsupportedReason) =>
         TryBuildImageStream(data, info, fallbackWidth, fallbackHeight, CancellationToken.None, out image, out unsupportedReason);
+
+    internal static bool TryBuildImageStream(
+        PdfDocument.PreparedImage prepared,
+        double fallbackWidth,
+        double fallbackHeight,
+        out PdfImageStream image,
+        out string? unsupportedReason) =>
+        TryBuildImageStream(prepared, fallbackWidth, fallbackHeight, CancellationToken.None, out image, out unsupportedReason);
+
+    internal static bool TryBuildImageStream(
+        PdfDocument.PreparedImage prepared,
+        double fallbackWidth,
+        double fallbackHeight,
+        CancellationToken cancellationToken,
+        out PdfImageStream image,
+        out string? unsupportedReason) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (prepared.PreparedStream != null) {
+            image = prepared.PreparedStream.CloneForWrite();
+            unsupportedReason = null;
+            return true;
+        }
+
+        return TryBuildImageStream(
+            prepared.Data,
+            prepared.Info,
+            fallbackWidth,
+            fallbackHeight,
+            cancellationToken,
+            out image,
+            out unsupportedReason);
+    }
+
+    internal static PdfImageStream CreatePreparedJpegStream(
+        byte[] data,
+        OfficeImageInfo info,
+        int componentCount) {
+        string colorSpace = componentCount == 1 ? "/DeviceGray" : "/DeviceRGB";
+        return new PdfImageStream {
+            Data = data,
+            PixelWidth = info.Width,
+            PixelHeight = info.Height,
+            DictionarySuffix = " /ColorSpace " + colorSpace + " /BitsPerComponent 8 /Filter /DCTDecode"
+        };
+    }
 
     internal static bool TryBuildImageStream(
         byte[] data,

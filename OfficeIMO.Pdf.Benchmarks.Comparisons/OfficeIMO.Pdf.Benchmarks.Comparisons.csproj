@@ -7,8 +7,21 @@
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
+    <QuestPdfBenchmarkVersion Condition="'$(QuestPdfBenchmarkVersion)' == ''">2026.5.0</QuestPdfBenchmarkVersion>
+    <QuestPdfInternalAuthorization Condition="'$(QuestPdfInternalAuthorization)' == ''">false</QuestPdfInternalAuthorization>
     <HtmlTinkerXProjectPath Condition="'$(HtmlTinkerXProjectPath)' == '' and '$(HTMLTINKERX_PROJECT_PATH)' != ''">$(HTMLTINKERX_PROJECT_PATH)</HtmlTinkerXProjectPath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="QuestPdfBenchmarkVersion" Value="$(QuestPdfBenchmarkVersion)" />
+    <AssemblyMetadata Include="QuestPdfInternalAuthorization" Value="$(QuestPdfInternalAuthorization)" />
+  </ItemGroup>
+
+  <Target Name="ValidateQuestPdfBenchmarkLicenseBoundary" BeforeTargets="CollectPackageReferences;ResolvePackageAssets">
+    <Error
+      Condition="'$(QuestPdfBenchmarkVersion)' != '2026.5.0' and '$(QuestPdfInternalAuthorization)' != 'true'"
+      Text="QuestPDF $(QuestPdfBenchmarkVersion) is not allowed in the public benchmark lane. Use the guarded internal runner after confirming authorization." />
+  </Target>
 
   <PropertyGroup Condition="'$(HtmlTinkerXProjectPath)' != ''">
     <DefineConstants>$(DefineConstants);HTMLTINKERX_SOURCE</DefineConstants>
@@ -27,7 +40,13 @@
     <PackageReference Include="PdfPig" Version="0.1.15" />
     <PackageReference Include="PDFsharp-MigraDoc" Version="6.2.4" />
     <PackageReference Include="PeachPDF" Version="0.9.12" />
-    <PackageReference Include="QuestPDF" Version="2026.7.2" />
+    <!--
+      2026.5.0 is the last QuestPDF release whose embedded Community license
+      grants eligible open-source projects the MIT license. Starting with
+      2026.6.0, QuestPDF's source-available license restricts use by competing
+      general-purpose PDF libraries. Keep this benchmark-only dependency pinned.
+    -->
+    <PackageReference Include="QuestPDF" Version="$(QuestPdfBenchmarkVersion)" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(HtmlTinkerXProjectPath)' != ''">
@@ -41,6 +60,8 @@
     <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Invoicing\OfficeIMO.Invoicing.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Invoicing.Pdf\OfficeIMO.Invoicing.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex\OfficeIMO.Latex.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex.Pdf\OfficeIMO.Latex.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
@@ -67,6 +88,12 @@
   <ItemGroup>
     <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-Regular.ttf"
           Link="Fonts\Carlito-Regular.ttf"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-Bold.ttf"
+          Link="Fonts\Carlito-Bold.ttf"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Assets\Brand\Evotec\evotec-logo-horizontal-gradient-2400.png"
+          Link="Brand\evotec-logo-horizontal-gradient-2400.png"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

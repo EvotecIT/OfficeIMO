@@ -43,7 +43,8 @@ public sealed partial class InvoicePdfLanguagePack {
         (InvoicePdfText.Account, "Account"), (InvoicePdfText.Mandate, "Mandate"),
         (InvoicePdfText.Creditor, "Creditor"), (InvoicePdfText.DebitedAccount, "Debited account"),
         (InvoicePdfText.Card, "Card"), (InvoicePdfText.Ending, "Ending"), (InvoicePdfText.Notes, "Notes"),
-        (InvoicePdfText.SupportingDocuments, "Supporting documents"));
+        (InvoicePdfText.SupportingDocuments, "Supporting documents"),
+        (InvoicePdfText.PaymentReference, "Payment reference"), (InvoicePdfText.Approvals, "Approvals"));
 
     private static readonly ReadOnlyDictionary<InvoicePdfText, string> GermanLabels = Translate(EnglishLabels,
         (InvoicePdfText.Invoice, "Rechnung"), (InvoicePdfText.CreditNote, "Gutschrift"),
@@ -82,7 +83,8 @@ public sealed partial class InvoicePdfLanguagePack {
         (InvoicePdfText.Account, "Konto"), (InvoicePdfText.Mandate, "Mandat"),
         (InvoicePdfText.Creditor, "Gläubiger"), (InvoicePdfText.DebitedAccount, "Belastetes Konto"),
         (InvoicePdfText.Card, "Karte"), (InvoicePdfText.Ending, "Endziffern"), (InvoicePdfText.Notes, "Hinweise"),
-        (InvoicePdfText.SupportingDocuments, "Belege"));
+        (InvoicePdfText.SupportingDocuments, "Belege"),
+        (InvoicePdfText.PaymentReference, "Zahlungsreferenz"), (InvoicePdfText.Approvals, "Freigaben"));
 
     private static readonly ReadOnlyDictionary<InvoicePdfText, string> PolishLabels = Translate(EnglishLabels,
         (InvoicePdfText.Invoice, "Faktura"), (InvoicePdfText.CreditNote, "Faktura korygująca"),
@@ -121,7 +123,8 @@ public sealed partial class InvoicePdfLanguagePack {
         (InvoicePdfText.Account, "Rachunek"), (InvoicePdfText.Mandate, "Mandat"),
         (InvoicePdfText.Creditor, "Wierzyciel"), (InvoicePdfText.DebitedAccount, "Obciążany rachunek"),
         (InvoicePdfText.Card, "Karta"), (InvoicePdfText.Ending, "Końcówka"), (InvoicePdfText.Notes, "Uwagi"),
-        (InvoicePdfText.SupportingDocuments, "Dokumenty dodatkowe"));
+        (InvoicePdfText.SupportingDocuments, "Dokumenty dodatkowe"),
+        (InvoicePdfText.PaymentReference, "Referencja płatności"), (InvoicePdfText.Approvals, "Akceptacje"));
 
     private static readonly ReadOnlyDictionary<InvoicePdfText, string> FrenchLabels = Translate(EnglishLabels,
         (InvoicePdfText.Invoice, "Facture"), (InvoicePdfText.CreditNote, "Avoir"),
@@ -160,7 +163,8 @@ public sealed partial class InvoicePdfLanguagePack {
         (InvoicePdfText.Account, "Compte"), (InvoicePdfText.Mandate, "Mandat"),
         (InvoicePdfText.Creditor, "Créancier"), (InvoicePdfText.DebitedAccount, "Compte débité"),
         (InvoicePdfText.Card, "Carte"), (InvoicePdfText.Ending, "Finissant par"), (InvoicePdfText.Notes, "Notes"),
-        (InvoicePdfText.SupportingDocuments, "Pièces justificatives"));
+        (InvoicePdfText.SupportingDocuments, "Pièces justificatives"),
+        (InvoicePdfText.PaymentReference, "Référence de paiement"), (InvoicePdfText.Approvals, "Approbations"));
 
     private static ReadOnlyDictionary<InvoicePdfText, string> Translate(
         IReadOnlyDictionary<InvoicePdfText, string> fallback,

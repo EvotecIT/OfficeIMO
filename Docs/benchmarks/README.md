@@ -440,7 +440,7 @@ contender ceiling without a runtime optimization in this slice.
 The opt-in `OfficeIMO.Pdf.Benchmarks.Comparisons` project measures validated
 PDF workflows at easy, medium, high, and real-document scale:
 
-- structured PDF generation with OfficeIMO, QuestPDF, MigraDoc/PDFsharp, and iText;
+- structured PDF generation with OfficeIMO, QuestPDF 2026.5.0, MigraDoc/PDFsharp, and iText;
 - identical-HTML rendering with OfficeIMO.Html.Pdf and PeachPDF;
 - full-document text extraction with OfficeIMO.Pdf, PdfPig, and iText over a
   five-producer synthetic corpus;
@@ -453,7 +453,9 @@ PDF workflows at easy, medium, high, and real-document scale:
 The comparison project is deliberately outside `OfficeIMO.sln`, so its
 third-party packages remain benchmark-only dependencies. See its README for the
 equivalence checks, corpus provenance, Word COM workflow, mutation-blocker
-interpretation, memory limits, and PowerForge runner commands.
+interpretation, memory limits, and PowerForge runner commands. QuestPDF performance
+evidence always names the exact package version; the public lane is pinned to the
+last MIT-compatible release and is not presented as a current QuestPDF measurement.
 
 `html-pdf-artifact-evidence/` contains the compact Windows and Linux High-scale
 artifact summaries for the identical-HTML lane. Each summary binds the four

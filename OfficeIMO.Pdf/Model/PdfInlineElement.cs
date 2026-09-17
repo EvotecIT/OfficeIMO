@@ -60,7 +60,14 @@ public sealed class PdfInlineImage : PdfInlineElement {
             AlternativeText = alternativeText
         };
         PdfDocument.ValidateImageFitDimensions(prepared.Info, fit, nameof(fit));
-        Block = new ImageBlock(prepared.Data, width, height, prepared.Info, style, useDataSnapshot: true);
+        Block = new ImageBlock(
+            prepared.Data,
+            width,
+            height,
+            prepared.Info,
+            style,
+            useDataSnapshot: true,
+            preparedStream: prepared.PreparedStream);
         Fit = fit;
     }
 }

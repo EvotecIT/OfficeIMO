@@ -46,7 +46,7 @@ internal static class QuestPdfGenerator {
             return;
         }
 
-        QuestPDF.Settings.License = LicenseType.Community;
+        QuestPdfBenchmarkPolicy.ConfigureLicense();
         using var font = new MemoryStream(PdfBenchmarkAssets.CarlitoRegular, writable: false);
         QuestPDF.Drawing.FontManager.RegisterFont(font);
     }

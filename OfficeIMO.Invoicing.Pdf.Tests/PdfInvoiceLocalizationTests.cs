@@ -9,11 +9,45 @@ namespace OfficeIMO.Invoicing.Pdf.Tests;
 public class PdfInvoiceLocalizationTests {
     [Fact]
     public void BuiltInLanguagePacksCoverEveryGeneratedLabel() {
-        foreach (string culture in new[] { "en-US", "de-DE", "pl-PL", "fr-FR" }) {
+        foreach (string culture in new[] { "en-US", "de-DE", "pl-PL", "fr-FR", "es-ES", "it-IT", "nl-NL", "pt-PT", "cs-CZ", "sk-SK" }) {
             InvoicePdfLanguagePack pack = InvoicePdfLanguagePack.ForCulture(culture);
             foreach (InvoicePdfText text in Enum.GetValues(typeof(InvoicePdfText)))
                 Assert.False(string.IsNullOrWhiteSpace(pack[text]));
         }
+    }
+
+    [Theory]
+    [InlineData("es-MX", "Factura", "Importe pendiente")]
+    [InlineData("it-CH", "Fattura", "Importo dovuto")]
+    [InlineData("nl-BE", "Factuur", "Te betalen")]
+    [InlineData("pt-BR", "Fatura", "Montante a pagar")]
+    [InlineData("cs-CZ", "Faktura", "Částka k úhradě")]
+    [InlineData("sk-SK", "Faktúra", "Suma na úhradu")]
+    public void AddedBuiltInLanguagesSelectByLanguageAndExposeTranslatedCoreLabels(
+        string culture, string invoice, string amountDue) {
+        InvoicePdfLanguagePack pack = InvoicePdfLanguagePack.ForCulture(culture);
+
+        Assert.Equal(invoice, pack[InvoicePdfText.Invoice]);
+        Assert.Equal(amountDue, pack[InvoicePdfText.AmountDue]);
+    }
+
+    [Theory]
+    [InlineData("es-ES", "Factura INV-2026-001", "Importe pendiente")]
+    [InlineData("it-IT", "Fattura INV-2026-001", "Importo dovuto")]
+    [InlineData("nl-NL", "Factuur INV-2026-001", "Te betalen")]
+    [InlineData("pt-PT", "Fatura INV-2026-001", "Montante a pagar")]
+    [InlineData("cs-CZ", "Faktura INV-2026-001", "Částka k úhradě")]
+    [InlineData("sk-SK", "Faktúra INV-2026-001", "Suma na úhradu")]
+    public void AddedBuiltInLanguagesRenderLocalizedInvoiceLabels(
+        string culture, string heading, string amountDue) {
+        InvoicePdfLayoutOptions layout = InvoicePdfLayoutOptions.ForCultures(culture);
+
+        byte[] pdf = PdfInvoiceDocument.Create(InvoiceFixture.Create(), Contract(), layout)
+            .ToPresentationPdfBytes(MultilingualOptions());
+        string text = PdfReadDocument.Open(pdf).ExtractText();
+
+        Assert.Contains(heading, text, StringComparison.Ordinal);
+        Assert.Contains(amountDue, text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -56,8 +90,8 @@ public class PdfInvoiceLocalizationTests {
 
     [Fact]
     public void CustomLanguagePackOverridesOwnedLabelsAndFallsBackForTheRest() {
-        InvoicePdfLanguagePack custom = InvoicePdfLanguagePack.Create("es-ES",
-            new Dictionary<InvoicePdfText, string> { [InvoicePdfText.Invoice] = "Factura" });
+        InvoicePdfLanguagePack custom = InvoicePdfLanguagePack.Create("sv-SE",
+            new Dictionary<InvoicePdfText, string> { [InvoicePdfText.Invoice] = "Faktura" });
         var layout = new InvoicePdfLayoutOptions();
         layout.Languages.Clear();
         layout.Languages.Add(custom);
@@ -65,7 +99,7 @@ public class PdfInvoiceLocalizationTests {
 
         byte[] pdf = PdfInvoiceDocument.Create(InvoiceFixture.Create(), Contract(), layout).ToPdfBytes(MultilingualOptions());
         string text = PdfReadDocument.Open(pdf).ExtractText();
-        Assert.Contains("Factura INV-2026-001", text, StringComparison.Ordinal);
+        Assert.Contains("Faktura INV-2026-001", text, StringComparison.Ordinal);
         Assert.Contains("Seller", text, StringComparison.Ordinal);
     }
 

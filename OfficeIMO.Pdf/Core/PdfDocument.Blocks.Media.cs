@@ -119,7 +119,16 @@ public sealed partial class PdfDocument {
             ValidateImageFitDimensions(prepared.Info, imageStyle.Fit, nameof(fit));
         }
 
-        AddBlock(new ImageBlock(prepared.Data, width, height, prepared.Info, imageStyle, linkUri, linkContents, useDataSnapshot: true));
+        AddBlock(new ImageBlock(
+            prepared.Data,
+            width,
+            height,
+            prepared.Info,
+            imageStyle,
+            linkUri,
+            linkContents,
+            useDataSnapshot: true,
+            preparedStream: prepared.PreparedStream));
         return this;
     }
 

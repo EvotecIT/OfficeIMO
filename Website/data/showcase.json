@@ -1144,6 +1144,99 @@
       "search_text": "Export application records to Excel Turn typed C# asset records into a filterable Excel table with the fluent API. Download the generated XLSX, rendered range, and complete source. Excel .NET C# walkthrough code sample An array of typed asset records"
     },
     {
+      "id": "pdf-branded-invoice",
+      "format": "PDF",
+      "format_id": "pdf",
+      "operations": [
+        "create",
+        "validate"
+      ],
+      "operation_tags": "create validate",
+      "tags": "dotnet csharp pdf invoice factur-x zugferd create validate",
+      "badge_tags": [
+        "Create",
+        "Validate"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/pdf-branded-invoice/preview.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Page 1 of a generated Evotec-branded PDF invoice",
+      "title": "A branded invoice with embedded CII",
+      "description": "Build a polished invoice from a typed C# model with a logo, rounded tables, payment details, approvals, downloadable PDF, embedded CII XML, and source.",
+      "input": "Typed invoice parties, line items, tax, payment, branding, and approval details",
+      "output": "Two-page PDF with embedded CII XML",
+      "proof": "The example generates the PDF and XML from one captured invoice. The runner reopens the PDF, checks its visible text, and renders both page previews with Poppler.",
+      "limit": "Seller identifiers, bank details, and the buyer are non-operational sample data. Approval blocks are visible content, not cryptographic signatures. The showcase does not claim Factur-X or PDF/A conformance without external validation of the exact artifact.",
+      "artifact_url": "/downloads/showcase/workflows/pdf-branded-invoice/example.pdf",
+      "artifact_label": "Download PDF",
+      "evidence_url": "/downloads/showcase/workflows/pdf-branded-invoice/preview.png",
+      "evidence_label": "Open invoice preview",
+      "source_url": "/downloads/showcase/workflows/pdf-branded-invoice/BrandedInvoice.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/BrandedInvoice.cs",
+      "guide_url": "/docs/pdf/authoring/",
+      "api_url": "/api/pdf/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-branded-invoice",
+      "downloads": [
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/pdf-branded-invoice/example.pdf"
+        },
+        {
+          "label": "CII XML",
+          "url": "/downloads/showcase/workflows/pdf-branded-invoice/example.xml"
+        },
+        {
+          "label": "PNG page 1",
+          "url": "/downloads/showcase/workflows/pdf-branded-invoice/preview.png"
+        },
+        {
+          "label": "PNG page 2",
+          "url": "/downloads/showcase/workflows/pdf-branded-invoice/page-2.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/pdf-branded-invoice/preview.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        },
+        {
+          "url": "/downloads/showcase/workflows/pdf-branded-invoice/page-2.png",
+          "label": "Page 2",
+          "width": 868,
+          "height": 1123
+        }
+      ],
+      "walkthrough_url": "/showcase/pdf-branded-invoice/",
+      "walkthrough": {
+        "use_case": "Generate a customer-facing invoice and its machine-readable CII representation from one typed model, while keeping branding and presentation settings separate from the business data.",
+        "steps": [
+          {
+            "title": "Build the invoice model",
+            "body": "Populate typed seller, buyer, line, tax, payment, reference, and note records, then calculate the declared totals from those values."
+          },
+          {
+            "title": "Apply the presentation",
+            "body": "Choose one or more built-in label cultures, select the modern theme, add the governed logo, and add visible prepared-by and approved-by details to the captured layout."
+          },
+          {
+            "title": "Write both representations",
+            "body": "Create one snapshot, write its exact CII XML, and render the PDF with that XML embedded as the alternative invoice representation."
+          }
+        ],
+        "adapt": "Replace the sample seller, bank, colors, logo, and approval records with your own data. Select from the ten built-in label languages or supply a custom language pack. Keep approval blocks as presentation unless your workflow also applies a real PDF digital signature.",
+        "related": [
+          "pdf-dispatch-note",
+          "pdf-statement",
+          "pdf-weekly-brief"
+        ]
+      },
+      "search_text": "A branded invoice with embedded CII Build a polished invoice from a typed C# model with a company logo, rounded cards and tables, payment details, visible approval blocks, and embedded CII XML. PDF .NET C# invoice walkthrough code sample"
+    },
+    {
       "id": "pdf-dispatch-note",
       "format": "PDF",
       "format_id": "pdf",
@@ -7250,6 +7343,50 @@
       "sourceRoot": "repository",
       "source": "OfficeIMO.Examples/Showcase/Workflows/ObjectExport.cs",
       "destination": "workflows/excel-object-export/ObjectExport.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "pdf-branded-invoice-example.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/pdf-branded-invoice/example.pdf",
+      "destination": "workflows/pdf-branded-invoice/example.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-branded-invoice",
+      "evidence": "The example generates the PDF and XML from one captured invoice. The runner reopens the PDF, checks its visible text, and renders both page previews with Poppler."
+    },
+    {
+      "id": "pdf-branded-invoice-example.xml",
+      "sourceRoot": "documents",
+      "source": "Workflows/pdf-branded-invoice/example.xml",
+      "destination": "workflows/pdf-branded-invoice/example.xml",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-branded-invoice",
+      "evidence": "Exact CII invoice bytes embedded in the generated PDF."
+    },
+    {
+      "id": "pdf-branded-invoice-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/pdf-branded-invoice/preview.png",
+      "destination": "workflows/pdf-branded-invoice/preview.png",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "Independent page 1 rasterization of the downloadable PDF.",
+      "previewSource": "Workflows/pdf-branded-invoice/example.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "pdf-branded-invoice-page-2.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/pdf-branded-invoice/page-2.png",
+      "destination": "workflows/pdf-branded-invoice/page-2.png",
+      "generator": "Poppler pdftocairo page 2 render of the generated PDF",
+      "evidence": "Independent page 2 rasterization of the downloadable PDF.",
+      "previewSource": "Workflows/pdf-branded-invoice/example.pdf",
+      "previewPage": 2
+    },
+    {
+      "id": "pdf-branded-invoice-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/BrandedInvoice.cs",
+      "destination": "workflows/pdf-branded-invoice/BrandedInvoice.cs.txt",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },

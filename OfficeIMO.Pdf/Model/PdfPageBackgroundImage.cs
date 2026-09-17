@@ -7,6 +7,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfPageBackgroundImage {
     private readonly OfficeImageInfo _info;
+    private readonly PdfWriter.PdfImageStream? _preparedStream;
     private byte[] _data;
     private double _opacity = 1D;
     private OfficeImageFit _fit = OfficeImageFit.Cover;
@@ -17,6 +18,7 @@ public sealed class PdfPageBackgroundImage {
         PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(data);
         _info = prepared.Info;
         _data = prepared.Data;
+        _preparedStream = prepared.PreparedStream;
     }
 
     /// <summary>How the image is fitted into the page box.</summary>
@@ -42,10 +44,16 @@ public sealed class PdfPageBackgroundImage {
 
     internal byte[] DataSnapshot => (byte[])_data.Clone();
     internal OfficeImageInfo ImageInfo => _info;
+    internal PdfWriter.PdfImageStream? PreparedStream => _preparedStream;
+
+    private PdfPageBackgroundImage(PdfPageBackgroundImage source) {
+        _info = source._info;
+        _data = (byte[])source._data.Clone();
+        _preparedStream = source._preparedStream;
+        _fit = source._fit;
+        _opacity = source._opacity;
+    }
 
     /// <summary>Creates a deep copy of this page background image.</summary>
-    public PdfPageBackgroundImage Clone() => new PdfPageBackgroundImage(_data) {
-        Fit = Fit,
-        Opacity = Opacity
-    };
+    public PdfPageBackgroundImage Clone() => new(this);
 }
