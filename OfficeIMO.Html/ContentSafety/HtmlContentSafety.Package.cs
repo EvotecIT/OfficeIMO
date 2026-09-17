@@ -1,0 +1,295 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using AngleSharp;
+using AngleSharp.Dom;
+using AngleSharp.Html;
+using AngleSharp.Html.Dom;
+using AngleSharp.Xhtml;
+using OfficeIMO.ContentSafety;
+
+namespace OfficeIMO.Html;
+
+internal sealed class HtmlContentSafetyPackagePart {
+    internal HtmlContentSafetyPackagePart(
+        string key,
+        string html,
+        string locationPrefix,
+        HtmlRenderOptions renderOptions,
+        bool serializeAsXhtml = false) {
+        Key = string.IsNullOrWhiteSpace(key) ? throw new ArgumentException("A package-part key is required.", nameof(key)) : key;
+        Html = html ?? throw new ArgumentNullException(nameof(html));
+        LocationPrefix = string.IsNullOrWhiteSpace(locationPrefix)
+            ? throw new ArgumentException("A package-part location prefix is required.", nameof(locationPrefix))
+            : locationPrefix;
+        RenderOptions = renderOptions?.Clone() ?? throw new ArgumentNullException(nameof(renderOptions));
+        SerializeAsXhtml = serializeAsXhtml;
+    }
+
+    internal string Key { get; }
+    internal string Html { get; }
+    internal string LocationPrefix { get; }
+    internal HtmlRenderOptions RenderOptions { get; }
+    internal bool SerializeAsXhtml { get; }
+}
+
+internal sealed class HtmlContentSafetyPackageCleanupResult {
+    internal HtmlContentSafetyPackageCleanupResult(
+        IReadOnlyDictionary<string, string> parts,
+        IReadOnlyCollection<string> changedParts,
+        OfficeContentSafetyReport before,
+        OfficeContentSafetyReport after,
+        IReadOnlyList<OfficeContentCleanupChange> changes) {
+        Parts = parts;
+        ChangedParts = changedParts;
+        Before = before;
+        After = after;
+        Changes = changes;
+    }
+
+    internal IReadOnlyDictionary<string, string> Parts { get; }
+    internal IReadOnlyCollection<string> ChangedParts { get; }
+    internal OfficeContentSafetyReport Before { get; }
+    internal OfficeContentSafetyReport After { get; }
+    internal IReadOnlyList<OfficeContentCleanupChange> Changes { get; }
+}
+
+public static partial class HtmlContentSafety {
+    internal static async Task<OfficeContentSafetyReport> InspectPackagePartsAsync(
+        string format,
+        IReadOnlyList<HtmlContentSafetyPackagePart> parts,
+        OfficeContentSafetyOptions? options,
+        CancellationToken cancellationToken) {
+        OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
+        effective.Validate();
+        ValidateAggregatePackageText(parts, effective);
+        var builder = new OfficeContentSafetyBuilder(format, effective);
+        foreach (HtmlContentSafetyPackagePart part in parts) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PreparedPackagePart prepared = await PreparePackagePartAsync(part, effective, cancellationToken).ConfigureAwait(false);
+            InspectDocument(prepared.Document, builder, targets: null, part.LocationPrefix, prepared.SyntheticStyles, prepared.Limits);
+        }
+        return builder.Build();
+    }
+
+    internal static async Task<HtmlContentSafetyPackageCleanupResult> RemoveSelectedPackagePartsAsync(
+        string format,
+        IReadOnlyList<HtmlContentSafetyPackagePart> parts,
+        OfficeContentCleanupSelection selection,
+        OfficeContentSafetyOptions? options,
+        CancellationToken cancellationToken) {
+        if (selection == null) throw new ArgumentNullException(nameof(selection));
+        OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
+        effective.Validate();
+        ValidateAggregatePackageText(parts, effective);
+        var builder = new OfficeContentSafetyBuilder(format, effective);
+        var preparedParts = new List<PreparedPackagePart>(parts.Count);
+        var targets = new Dictionary<string, PackageCleanupTarget>(StringComparer.Ordinal);
+        foreach (HtmlContentSafetyPackagePart part in parts) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PreparedPackagePart prepared = await PreparePackagePartAsync(part, effective, cancellationToken).ConfigureAwait(false);
+            var partTargets = new Dictionary<string, HtmlCleanupTarget>(StringComparer.Ordinal);
+            InspectDocument(prepared.Document, builder, partTargets, part.LocationPrefix, prepared.SyntheticStyles, prepared.Limits);
+            foreach (KeyValuePair<string, HtmlCleanupTarget> target in partTargets) {
+                targets[target.Key] = new PackageCleanupTarget(prepared, target.Value);
+            }
+            preparedParts.Add(prepared);
+        }
+
+        OfficeContentSafetyReport before = builder.Build();
+        IReadOnlyList<OfficeContentSafetyFinding> selected = OfficeContentSafetyBuilder.ResolveSelection(before, selection);
+        if (selected.Count == 0) {
+            var unchanged = parts.ToDictionary(part => part.Key, part => part.Html, StringComparer.Ordinal);
+            return new HtmlContentSafetyPackageCleanupResult(
+                unchanged,
+                Array.Empty<string>(),
+                before,
+                before,
+                Array.Empty<OfficeContentCleanupChange>());
+        }
+
+        foreach (IGrouping<PackageCleanupTarget, OfficeContentSafetyFinding> group in selected
+            .OrderByDescending(item => item.SourceTextOffset ?? -1)
+            .GroupBy(item => targets[item.Id])) {
+            group.Key.Part.Changed = true;
+            group.Key.Target.Remove();
+        }
+
+        var output = new Dictionary<string, string>(StringComparer.Ordinal);
+        var afterParts = new List<HtmlContentSafetyPackagePart>(parts.Count);
+        foreach (PreparedPackagePart prepared in preparedParts) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string html;
+            if (prepared.Changed) {
+                foreach (IElement style in prepared.SyntheticStyles) style.Remove();
+                html = prepared.Source.SerializeAsXhtml
+                    ? prepared.Document.ToHtml(XhtmlMarkupFormatter.Instance)
+                    : prepared.Document.ToHtml(HtmlMarkupFormatter.Instance);
+            } else {
+                html = prepared.Source.Html;
+            }
+            output.Add(prepared.Source.Key, html);
+            afterParts.Add(new HtmlContentSafetyPackagePart(
+                prepared.Source.Key,
+                html,
+                prepared.Source.LocationPrefix,
+                prepared.Source.RenderOptions,
+                prepared.Source.SerializeAsXhtml));
+        }
+
+        OfficeContentSafetyReport after = await InspectPackagePartsAsync(format, afterParts, effective, cancellationToken).ConfigureAwait(false);
+        OfficeContentCleanupChange[] changes = selected
+            .Select(item => new OfficeContentCleanupChange(item.Id, item.Location, item.CleanupCapability))
+            .ToArray();
+        string[] changedParts = preparedParts.Where(item => item.Changed).Select(item => item.Source.Key).ToArray();
+        return new HtmlContentSafetyPackageCleanupResult(output, changedParts, before, after, changes);
+    }
+
+    private static async Task<PreparedPackagePart> PreparePackagePartAsync(
+        HtmlContentSafetyPackagePart part,
+        OfficeContentSafetyOptions safetyOptions,
+        CancellationToken cancellationToken) {
+        OfficeContentSafetyInputGuard.ValidateText(part.Html, safetyOptions);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        HtmlRenderOptions renderOptions = part.RenderOptions.Clone();
+        ApplySafetyLimits(renderOptions, safetyOptions);
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxInputCharacters = Math.Min(limits.MaxInputCharacters ?? int.MaxValue, safetyOptions.MaxCharacters);
+        limits.MaxCssBytes = Math.Min(limits.MaxCssBytes ?? long.MaxValue, renderOptions.MaxResourceBytes);
+        limits.MaxTotalCssBytes = Math.Min(limits.MaxTotalCssBytes ?? long.MaxValue, renderOptions.MaxTotalResourceBytes);
+
+        HtmlConversionDocument conversion = HtmlConversionDocument.Parse(part.Html, new HtmlConversionDocumentOptions {
+            BaseUri = renderOptions.BaseUri,
+            Limits = limits.Clone()
+        });
+        IHtmlDocument document = conversion.CreateSourceDocumentForConversion();
+        var resourceOptions = new HtmlResourcePipelineOptions {
+            BaseUri = renderOptions.BaseUri,
+            UrlPolicy = renderOptions.UrlPolicy.Clone(),
+            ResourceUrlPolicy = renderOptions.ResourceUrlPolicy?.Clone(),
+            Limits = limits.Clone(),
+            MaxResponsiveImageCandidates = renderOptions.ResponsiveImageCandidateLimit,
+            MediaContext = renderOptions.MediaContext,
+            MediaWidth = renderOptions.ViewportWidth,
+            MediaHeight = renderOptions.ViewportHeight,
+            MediaFeatures = renderOptions.MediaFeatures.Clone()
+        };
+        HtmlResourceManifest discovered = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
+        var stylesheets = new HtmlResourceManifest();
+        foreach (HtmlResourceReference reference in discovered.Resources.Where(item => item.Kind == HtmlResourceKind.Stylesheet)) {
+            stylesheets.Add(reference);
+            if (!reference.IsAllowed) {
+                throw new InvalidDataException("A package stylesheet reference was rejected by the configured URL policy: " + reference.Source);
+            }
+            if (reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
+                throw new InvalidDataException("Linked data-URI stylesheets are not supported by package content-safety inspection.");
+            }
+        }
+
+        var requestedStylesheets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var requestSync = new object();
+        HtmlRenderResourceResolver? resolver = renderOptions.ResourceResolver;
+        if (resolver != null) {
+            renderOptions.ResourceResolver = async (request, token) => {
+                if (request.Kind == HtmlResourceKind.Stylesheet) {
+                    lock (requestSync) requestedStylesheets.Add(request.Uri.AbsoluteUri);
+                }
+                return await resolver(request, token).ConfigureAwait(false);
+            };
+        }
+
+        var diagnostics = new HtmlDiagnosticReport();
+        var existingStyles = new HashSet<IElement>(document.QuerySelectorAll("style"));
+        HtmlCssByteBudget cssBudget = HtmlRenderStylesheetApplier.CreateBudget(document, limits);
+        HtmlResourceSession resources = await HtmlRenderResourceLoader.LoadAsync(
+            stylesheets,
+            renderOptions,
+            diagnostics,
+            limits,
+            cancellationToken,
+            cssBudget).ConfigureAwait(false);
+
+        var acceptedStylesheets = new HashSet<string>(
+            resources.Resources
+                .Where(item => item.Kind == HtmlResourceKind.Stylesheet)
+                .Select(item => item.CanonicalSource),
+            StringComparer.OrdinalIgnoreCase);
+        string? missing;
+        lock (requestSync) missing = requestedStylesheets.FirstOrDefault(uri => !acceptedStylesheets.Contains(uri));
+        missing ??= stylesheets.Resources
+            .Where(item => item.IsAllowed && item.ResolvedSource.Length > 0)
+            .Select(item => item.ResolvedSource)
+            .FirstOrDefault(uri => !acceptedStylesheets.Contains(uri));
+        if (missing != null) throw new InvalidDataException("A package stylesheet could not be resolved: " + missing);
+        if (diagnostics.HasErrors) throw CreateStylesheetException(diagnostics);
+
+        HtmlRenderStylesheetApplier.Apply(document, resources, renderOptions, limits, cssBudget, diagnostics);
+        HtmlDiagnostic? unsafeDiagnostic = diagnostics.FirstOrDefault(item =>
+            item.Severity == HtmlDiagnosticSeverity.Error
+            || item.Code == HtmlRenderDiagnosticCodes.StylesheetEncodingUnsupported
+            || item.Code == HtmlRenderDiagnosticCodes.StylesheetImportCycle
+            || item.Code == HtmlRenderDiagnosticCodes.StylesheetImportDepthExceeded);
+        if (unsafeDiagnostic != null) throw CreateStylesheetException(diagnostics);
+
+        var syntheticStyles = new HashSet<IElement>(document.QuerySelectorAll("style").Where(item => !existingStyles.Contains(item)));
+        return new PreparedPackagePart(part, document, syntheticStyles, limits);
+    }
+
+    private static void ValidateAggregatePackageText(
+        IEnumerable<HtmlContentSafetyPackagePart> parts,
+        OfficeContentSafetyOptions options) {
+        long characters = 0;
+        foreach (HtmlContentSafetyPackagePart part in parts) {
+            if (part.Html.Length > options.MaxCharacters - characters) {
+                throw new InvalidDataException("The package exceeds the configured decoded-character limit.");
+            }
+            characters += part.Html.Length;
+        }
+    }
+
+    private static void ApplySafetyLimits(HtmlRenderOptions options, OfficeContentSafetyOptions safetyOptions) {
+        options.MaxInputCharacters = Math.Min(options.MaxInputCharacters, safetyOptions.MaxCharacters);
+        options.MaxResourceBytes = Math.Min(options.MaxResourceBytes, safetyOptions.MaxInputBytes);
+        options.MaxTotalResourceBytes = Math.Min(options.MaxTotalResourceBytes, safetyOptions.MaxExpandedPackageBytes);
+        options.MaxResourceCount = Math.Min(options.MaxResourceCount, safetyOptions.MaxPackageEntries);
+        options.MaxResourceRequests = Math.Min(options.MaxResourceRequests, safetyOptions.MaxPackageEntries);
+    }
+
+    private static InvalidDataException CreateStylesheetException(HtmlDiagnosticReport diagnostics) {
+        string detail = string.Join("; ", diagnostics.Diagnostics.Select(item => item.Code + ": " + item.Message));
+        return new InvalidDataException("Package stylesheet resolution was not complete and safe. " + detail);
+    }
+
+    private sealed class PreparedPackagePart {
+        internal PreparedPackagePart(
+            HtmlContentSafetyPackagePart source,
+            IHtmlDocument document,
+            ISet<IElement> syntheticStyles,
+            HtmlConversionLimits limits) {
+            Source = source;
+            Document = document;
+            SyntheticStyles = syntheticStyles;
+            Limits = limits;
+        }
+
+        internal HtmlContentSafetyPackagePart Source { get; }
+        internal IHtmlDocument Document { get; }
+        internal ISet<IElement> SyntheticStyles { get; }
+        internal HtmlConversionLimits Limits { get; }
+        internal bool Changed { get; set; }
+    }
+
+    private sealed class PackageCleanupTarget {
+        internal PackageCleanupTarget(PreparedPackagePart part, HtmlCleanupTarget target) {
+            Part = part;
+            Target = target;
+        }
+
+        internal PreparedPackagePart Part { get; }
+        internal HtmlCleanupTarget Target { get; }
+    }
+}

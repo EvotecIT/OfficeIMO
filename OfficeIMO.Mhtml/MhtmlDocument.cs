@@ -6,7 +6,7 @@ namespace OfficeIMO.Mhtml;
 /// <summary>
 /// Represents an MHTML web archive as an HTML document plus its decoded MIME related resources.
 /// </summary>
-public sealed class MhtmlDocument {
+public sealed partial class MhtmlDocument {
     private static readonly Uri FallbackBaseUri = new Uri("mhtml://archive/");
     private readonly EmailDocument _mimeDocument;
     private readonly IReadOnlyList<MhtmlResource> _resources;

@@ -35,6 +35,25 @@ archive.ConfigureRenderOptions(renderOptions, remote);
 
 The one-hop fetcher must not automatically follow redirects. OfficeIMO resolves each returned redirect location, enforces scheme, origin, and redirect-count policy, and only then invokes the fetcher for the next hop. This prevents disallowed redirect targets from being contacted before policy evaluation. Duplicate `Content-ID` and resolved `Content-Location` values are deterministic first-wins conditions reported through `MimeDiagnostics`; malformed MIME recovery and legacy charset diagnostics come from the shared bounded Email reader. Script execution remains unsupported.
 
+## Concealed-content inspection and cleanup
+
+`InspectContentSafety` applies the shared bounded HTML/CSS safety model to the root HTML part and resolves linked stylesheets only from embedded MIME resources. It never fetches network or file-system resources.
+
+```csharp
+using OfficeIMO.ContentSafety;
+using OfficeIMO.Mhtml;
+
+OfficeContentSafetyReport report = MhtmlDocument.InspectContentSafety("snapshot.mhtml");
+OfficeContentSafetyFinding finding = report.Findings.Single(item => item.Text.Contains("ignore previous", StringComparison.OrdinalIgnoreCase));
+
+OfficeContentCleanupResult cleaned = MhtmlDocument.RemoveSelectedContent(
+    "snapshot.mhtml",
+    "snapshot-clean.mhtml",
+    new OfficeContentCleanupSelection(new[] { finding.Id }));
+```
+
+Cleanup removes only the selected current findings, preserves embedded resources, writes a bounded deterministic archive, and reopens and reinspects the result. Missing, malformed, ambiguous, external, or over-budget stylesheet dependencies fail closed. An empty selection returns the original bytes. Mutation of a signed or encrypted MIME wrapper is rejected.
+
 MHTML intentionally connects the HTML engine to the Email MIME engine. Plain HTML and plain Email packages do not depend on this bridge.
 
 Dependency footprint: `OfficeIMO.Core`, `OfficeIMO.Html`, and `OfficeIMO.Email`.

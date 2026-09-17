@@ -40,7 +40,7 @@ foreach (string warning in book.Warnings) {
 EpubDocument book = EpubDocument.Load("signed.epub");
 
 if (book.HasSignatures) {
-    Console.WriteLine($"Signature elements: {book.Signatures.SignatureCount}");
+    Console.WriteLine($"Signature elements: {book.Signatures.XmlSignatureCount}");
     Console.WriteLine($"Well-formed signatures.xml: {book.Signatures.IsWellFormed}");
 }
 ```
@@ -79,6 +79,35 @@ foreach (EpubResource resource in book.Resources) {
 Manifest metadata is returned even when payload loading is disabled. Payload inclusion is opt-in and bounded per resource, in total, and by resource count; skipped payloads produce warnings.
 
 When `IncludeResourceData` is enabled, IDPF and Adobe font-obfuscated resources are deobfuscated only when the OPF package identity provides the required key. `EpubResource.WasDeobfuscated` identifies the resulting payload. If the identity is missing or malformed, `Data` remains unavailable and a structured diagnostic is returned; the reader does not expose still-obfuscated bytes as usable font data. This reversible standards-defined obfuscation is not DRM decryption.
+
+### Inspect and remove selected concealed HTML
+
+`InspectContentSafety` evaluates every local manifest HTML/XHTML resource with the shared bounded HTML/CSS safety model. Linked stylesheets and recursive `@import` rules resolve only inside the EPUB package.
+
+```csharp
+using OfficeIMO.ContentSafety;
+using OfficeIMO.Epub;
+
+OfficeContentSafetyReport report = EpubDocument.InspectContentSafety("book.epub");
+OfficeContentSafetyFinding finding = report.Findings.Single(item => item.Text.Contains("ignore previous", StringComparison.OrdinalIgnoreCase));
+
+OfficeContentCleanupResult cleaned = EpubDocument.RemoveSelectedContent(
+    "book.epub",
+    "book-clean.epub",
+    new OfficeContentCleanupSelection(new[] { finding.Id }));
+```
+
+Cleanup replaces only changed content documents, preserves unrelated ZIP entries and the required leading uncompressed `mimetype` entry, then reopens and reinspects the output. Missing, malformed, duplicate, encrypted, ambiguous, external, or over-budget content and stylesheet dependencies fail closed. An empty selection preserves the original bytes.
+
+Package signatures block mutation by default. A caller that accepts invalidation must request removal explicitly:
+
+```csharp
+var cleanupOptions = new OfficeContentCleanupOptions {
+    SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+};
+```
+
+That policy removes only `META-INF/signatures.xml`; it does not claim that a modified package remains signed.
 
 ### Resolve chapter-relative references
 
@@ -174,7 +203,7 @@ foreach (string warning in book.Warnings) {
 
 - This package owns reusable EPUB parsing primitives.
 - Reader integration belongs in `OfficeIMO.Reader.Epub`.
-- The content model is read-only. The provenance API provides only targeted carrier removal; it does not attempt CSS layout, scripting, DRM, or general package editing. IDPF and Adobe font deobfuscation is bounded reader behavior, not a general encryption API.
+- The content model is read-only. The provenance and content-safety APIs provide only targeted, reviewed removal; they do not provide general package authoring, browser layout, scripting, DRM, or general encrypted-resource support. IDPF and Adobe font deobfuscation is bounded reader behavior, not a general encryption API.
 
 ## Targets and license
 
@@ -185,7 +214,7 @@ foreach (string warning in book.Warnings) {
 ## Dependency footprint
 
 - **External:** None; no third-party EPUB engine.
-- **OfficeIMO:** `OfficeIMO.Core`. Container, OPF, spine, navigation, chapter, and resource parsing are first-party.
+- **OfficeIMO:** `OfficeIMO.Core` and `OfficeIMO.Html`. Container, OPF, spine, navigation, chapter, and resource parsing are first-party; the shared HTML owner supplies the bounded concealed-content and stylesheet model.
 - **Security:** `META-INF/signatures.xml` discovery is structural and provider-free. Creation and validation of the bounded OfficeIMO XML package-manifest profile accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

@@ -14,7 +14,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 /// <summary>Inspects machine-readable HTML that is concealed from an ordinary rendered view.</summary>
-public static class HtmlContentSafety {
+public static partial class HtmlContentSafety {
     /// <summary>Inspects HTML using OfficeIMO's computed CSS cascade.</summary>
     public static OfficeContentSafetyReport Inspect(string html, OfficeContentSafetyOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
@@ -22,7 +22,7 @@ public static class HtmlContentSafety {
         OfficeContentSafetyInputGuard.ValidateText(html, effective);
         HtmlConversionDocument conversion = HtmlConversionDocument.Parse(html);
         IHtmlDocument document = conversion.CreateSourceDocumentForConversion();
-        return InspectDocument(document, effective, targets: null);
+        return InspectDocument(document, effective, targets: null, conversion.Limits);
     }
 
     /// <summary>Inspects a UTF-8 HTML file.</summary>
@@ -44,7 +44,7 @@ public static class HtmlContentSafety {
         HtmlConversionDocument conversion = HtmlConversionDocument.Parse(html);
         IHtmlDocument document = conversion.CreateSourceDocumentForConversion();
         var targets = new Dictionary<string, HtmlCleanupTarget>(StringComparer.Ordinal);
-        OfficeContentSafetyReport before = InspectDocument(document, effective, targets);
+        OfficeContentSafetyReport before = InspectDocument(document, effective, targets, conversion.Limits);
         IReadOnlyList<OfficeContentSafetyFinding> selected = OfficeContentSafetyBuilder.ResolveSelection(before, selection);
         if (selected.Count == 0) return new OfficeContentCleanupResult(Encoding.UTF8.GetBytes(html), before, before, Array.Empty<OfficeContentCleanupChange>());
         foreach (IGrouping<HtmlCleanupTarget, OfficeContentSafetyFinding> group in selected
@@ -84,13 +84,26 @@ public static class HtmlContentSafety {
     private static OfficeContentSafetyReport InspectDocument(
         IHtmlDocument document,
         OfficeContentSafetyOptions? options,
-        IDictionary<string, HtmlCleanupTarget>? targets) {
+        IDictionary<string, HtmlCleanupTarget>? targets,
+        HtmlConversionLimits? limits = null) {
         var builder = new OfficeContentSafetyBuilder("HTML", options);
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document);
-        IElement? root = document.DocumentElement ?? document.Body;
-        if (root != null) Traverse(root, styles, builder, targets, ancestorConcealed: false);
-        InspectComments(document, builder, targets);
+        InspectDocument(document, builder, targets, locationPrefix: null, ignoredElements: null, limits);
         return builder.Build();
+    }
+
+    private static void InspectDocument(
+        IHtmlDocument document,
+        OfficeContentSafetyBuilder builder,
+        IDictionary<string, HtmlCleanupTarget>? targets,
+        string? locationPrefix,
+        ISet<IElement>? ignoredElements,
+        HtmlConversionLimits? limits = null) {
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = limits == null
+            ? HtmlComputedStyleEngine.Compute(document)
+            : HtmlComputedStyleEngine.Compute(document, HtmlCssMediaContext.Screen, limits);
+        IElement? root = document.DocumentElement ?? document.Body;
+        if (root != null) Traverse(root, styles, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements);
+        InspectComments(document, builder, targets, locationPrefix);
     }
 
     private static void Traverse(
@@ -98,8 +111,11 @@ public static class HtmlContentSafety {
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
         OfficeContentSafetyBuilder builder,
         IDictionary<string, HtmlCleanupTarget>? targets,
-        bool ancestorConcealed) {
-        string location = BuildLocation(element);
+        bool ancestorConcealed,
+        string? locationPrefix,
+        ISet<IElement>? ignoredElements) {
+        if (ignoredElements != null && ignoredElements.Contains(element)) return;
+        string location = PrefixLocation(locationPrefix, BuildLocation(element));
         styles.TryGetValue(element, out HtmlComputedStyle? style);
         InspectMachineOnlyAttributes(element, location, builder, targets);
 
@@ -176,7 +192,9 @@ public static class HtmlContentSafety {
             return;
         }
 
-        foreach (IElement child in element.Children) Traverse(child, styles, builder, targets, ancestorConcealed: false);
+        foreach (IElement child in element.Children) {
+            Traverse(child, styles, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements);
+        }
     }
 
     private static void InspectHtmlTextIntegrity(
@@ -349,7 +367,8 @@ public static class HtmlContentSafety {
     private static void InspectComments(
         IHtmlDocument document,
         OfficeContentSafetyBuilder builder,
-        IDictionary<string, HtmlCleanupTarget>? targets) {
+        IDictionary<string, HtmlCleanupTarget>? targets,
+        string? locationPrefix = null) {
         if (!builder.Options.IncludeNonPrimaryContent) return;
         IComment[] comments = document.Descendants<IComment>().ToArray();
         for (int index = 0; index < comments.Length; index++) {
@@ -358,7 +377,7 @@ public static class HtmlContentSafety {
             OfficeContentSafetyFinding finding = builder.Add(
                 OfficeContentConcealmentKind.NonPrimaryContent,
                 OfficeContentSafetyRisk.ContextDependent,
-                "HTML/comment()[" + (index + 1).ToString(CultureInfo.InvariantCulture) + "]",
+                PrefixLocation(locationPrefix, "HTML/comment()[" + (index + 1).ToString(CultureInfo.InvariantCulture) + "]"),
                 "An HTML comment is machine-readable source content but is not rendered.",
                 value,
                 OfficeContentCleanupCapability.RemoveElement);
@@ -377,6 +396,9 @@ public static class HtmlContentSafety {
         }
         return "HTML/" + string.Join("/", segments);
     }
+
+    private static string PrefixLocation(string? prefix, string location) =>
+        string.IsNullOrWhiteSpace(prefix) ? location : prefix!.TrimEnd('/') + "/" + location;
 
     private static bool TryParseBackgroundColor(HtmlComputedStyle style, out OfficeColor color) {
         if (TryParseCssColor(style.GetValue("background-color"), out color) && color.A > 0) return true;
