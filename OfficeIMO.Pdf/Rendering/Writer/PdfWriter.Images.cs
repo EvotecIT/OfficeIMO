@@ -21,6 +21,19 @@ internal static partial class PdfWriter {
         public int PixelWidth { get; set; }
         public int PixelHeight { get; set; }
         public PdfImageStream? SoftMask { get; set; }
+
+        /// <summary>
+        /// Creates a writable descriptor over the immutable prepared stream payloads.
+        /// PDF/X conversion may replace descriptor properties, so each write receives
+        /// its own object graph while reusing the already compressed byte arrays.
+        /// </summary>
+        internal PdfImageStream CloneForWrite() => new() {
+            Data = Data,
+            DictionarySuffix = DictionarySuffix,
+            PixelWidth = PixelWidth,
+            PixelHeight = PixelHeight,
+            SoftMask = SoftMask?.CloneForWrite()
+        };
     }
 
     internal static bool TryGetPngImageData(byte[] data, out PdfImageStream image, out string? unsupportedReason) {
@@ -793,6 +806,12 @@ internal static partial class PdfWriter {
     }
 
     private static bool TryBuildImageStream(PageImage img, out PdfImageStream image, out string? unsupportedReason) {
+        if (img.PreparedStream != null) {
+            image = img.PreparedStream.CloneForWrite();
+            unsupportedReason = null;
+            return true;
+        }
+
         return TryBuildImageStream(img.Data, img.Info, img.W, img.H, out image, out unsupportedReason);
     }
 

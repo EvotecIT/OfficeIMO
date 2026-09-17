@@ -1,4 +1,6 @@
 using OfficeIMO.Drawing;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Threading;
 
 namespace OfficeIMO.Pdf;
@@ -6,19 +8,34 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfDocument {
     private const string SupportedImageMessage =
         "PdfDocument.Image accepts JPEG and the raster formats decoded by OfficeIMO.Drawing. JPEG and writer-safe PNG payloads are embedded directly; other supported raster payloads are normalized to PNG once before PDF serialization.";
+    private static readonly ConditionalWeakTable<byte[], PreparedImageCacheEntry> PreparedImageCache = new();
+
+    private sealed class PreparedImageCacheEntry {
+        internal object Gate { get; } = new();
+        internal byte[]? SourceHash { get; set; }
+        internal PreparedImage Prepared { get; set; }
+        internal bool HasPrepared { get; set; }
+    }
 
     internal readonly struct PreparedImage {
-        internal PreparedImage(byte[] data, OfficeImageInfo info, OfficeImageFormat sourceFormat, bool wasTranscoded) {
+        internal PreparedImage(
+            byte[] data,
+            OfficeImageInfo info,
+            OfficeImageFormat sourceFormat,
+            bool wasTranscoded,
+            PdfWriter.PdfImageStream? preparedStream = null) {
             Data = data;
             Info = info;
             SourceFormat = sourceFormat;
             WasTranscoded = wasTranscoded;
+            PreparedStream = preparedStream;
         }
 
         internal byte[] Data { get; }
         internal OfficeImageInfo Info { get; }
         internal OfficeImageFormat SourceFormat { get; }
         internal bool WasTranscoded { get; }
+        internal PdfWriter.PdfImageStream? PreparedStream { get; }
     }
 
     /// <summary>
@@ -66,6 +83,29 @@ public sealed partial class PdfDocument {
     internal static PreparedImage PrepareImageBytes(byte[] data, CancellationToken cancellationToken) {
         Guard.NotNullOrEmpty(data, nameof(data));
         cancellationToken.ThrowIfCancellationRequested();
+        if (cancellationToken.CanBeCanceled) {
+            return PrepareImageBytesCore(data, cancellationToken);
+        }
+
+        PreparedImageCacheEntry entry = PreparedImageCache.GetValue(data, static _ => new PreparedImageCacheEntry());
+        byte[] sourceHash = ComputeImageSourceHash(data);
+
+        lock (entry.Gate) {
+            if (entry.HasPrepared &&
+                entry.SourceHash != null &&
+                System.Linq.Enumerable.SequenceEqual(entry.SourceHash, sourceHash)) {
+                return entry.Prepared;
+            }
+
+            PreparedImage prepared = PrepareImageBytesCore(data, cancellationToken);
+            entry.SourceHash = sourceHash;
+            entry.Prepared = prepared;
+            entry.HasPrepared = true;
+            return prepared;
+        }
+    }
+
+    private static PreparedImage PrepareImageBytesCore(byte[] data, CancellationToken cancellationToken) {
         if (!OfficeImageReader.TryIdentify(data, null, cancellationToken, out OfficeImageInfo sourceInfo)) {
             // Keep the established pass-through contract for JPEG streams whose dimensions are not
             // understood by the managed header reader. The PDF writer embeds JPEG data without
@@ -107,7 +147,8 @@ public sealed partial class PdfDocument {
                         CloneWithCancellation(data, cancellationToken),
                         new OfficeImageInfo(OfficeImageFormat.Png, pngImage.PixelWidth, pngImage.PixelHeight),
                         OfficeImageFormat.Png,
-                        wasTranscoded: false);
+                        wasTranscoded: false,
+                        pngImage);
                 }
 
                 string suffix = string.IsNullOrWhiteSpace(pngReason) ? string.Empty : " " + pngReason;
@@ -158,8 +199,13 @@ public sealed partial class PdfDocument {
         }
 
         if (sourceInfo.Format == OfficeImageFormat.Png) {
-            if (PdfWriter.TryGetPngImageData(data, cancellationToken, out _, out string? sourcePngReason)) {
-                return new PreparedImage(CloneWithCancellation(data, cancellationToken), sourceInfo, sourceInfo.Format, wasTranscoded: false);
+            if (PdfWriter.TryGetPngImageData(data, cancellationToken, out PdfWriter.PdfImageStream sourcePngImage, out string? sourcePngReason)) {
+                return new PreparedImage(
+                    CloneWithCancellation(data, cancellationToken),
+                    sourceInfo,
+                    sourceInfo.Format,
+                    wasTranscoded: false,
+                    sourcePngImage);
             }
 
             string suffix = string.IsNullOrWhiteSpace(sourcePngReason) ? string.Empty : " " + sourcePngReason;
@@ -201,7 +247,22 @@ public sealed partial class PdfDocument {
                     normalizedImage.PixelHeight,
                     sourceInfo.DpiX,
                     sourceInfo.DpiY);
-        return new PreparedImage(normalizedPng, normalizedInfo, sourceInfo.Format, wasTranscoded: true);
+        return new PreparedImage(
+            normalizedPng,
+            normalizedInfo,
+            sourceInfo.Format,
+            wasTranscoded: true,
+            normalizedImage);
+    }
+
+    private static byte[] ComputeImageSourceHash(byte[] data) {
+#if NET6_0_OR_GREATER
+        return SHA256.HashData(data);
+#else
+        using (SHA256 sha256 = SHA256.Create()) {
+            return sha256.ComputeHash(data);
+        }
+#endif
     }
 
     private static byte[] CloneWithCancellation(byte[] source, CancellationToken cancellationToken) {
