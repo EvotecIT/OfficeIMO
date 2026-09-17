@@ -419,7 +419,7 @@ internal static class MimeWriter {
         string? contentId = null, string? contentLocation = null, string? charset = null,
         string? transferEncoding = null, ICollection<EmailHeader>? preservedHeaders = null) {
         if (preservedHeaders != null && preservedHeaders.Count > 0) {
-            WritePreservedPartHeaders(output, preservedHeaders);
+            WritePreservedPartHeaders(output, preservedHeaders, omitPayloadDependentHeaders: true);
             WriteLine(output, string.Empty);
             byte[] encoded;
             try {
@@ -472,7 +472,7 @@ internal static class MimeWriter {
         string? fileName = attachment.FileName;
         bool preservePartHeaders = attachment.PreserveMimeHeadersOnWrite && attachment.MimeHeaders.Count > 0 && !embeddedMessage;
         if (preservePartHeaders) {
-            WritePreservedPartHeaders(output, attachment.MimeHeaders);
+            WritePreservedPartHeaders(output, attachment.MimeHeaders, omitPayloadDependentHeaders: false);
         } else {
             WriteLine(output, string.Concat("Content-Type: ", SanitizeToken(contentType),
                 FormatContentTypeParameters(attachment.ContentTypeParameters), FormatFileNameParameter("name", fileName)));
@@ -530,13 +530,24 @@ internal static class MimeWriter {
         }
     }
 
-    private static void WritePreservedPartHeaders(Stream output, IEnumerable<EmailHeader> headers) {
+    private static void WritePreservedPartHeaders(
+        Stream output,
+        IEnumerable<EmailHeader> headers,
+        bool omitPayloadDependentHeaders) {
         foreach (EmailHeader header in headers) {
             string name = MimeHeaderSafety.SanitizeName(header.Name);
+            if (omitPayloadDependentHeaders && IsPayloadDependentHeader(name)) continue;
             string value = MimeHeaderSafety.SanitizeValue(header.RawValue ?? header.Value);
             WriteLine(output, string.Concat(name, ": ", value));
         }
     }
+
+    private static bool IsPayloadDependentHeader(string name) =>
+        string.Equals(name, "Content-Length", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "Content-MD5", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "Content-Digest", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "Repr-Digest", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "Digest", StringComparison.OrdinalIgnoreCase);
 
     private static void WriteTransferEncodedPayload(Stream output, byte[] data, string? transferEncoding, int base64LineLength) {
         string normalized = (transferEncoding ?? string.Empty).Trim().ToLowerInvariant();

@@ -44,7 +44,7 @@ using OfficeIMO.ContentSafety;
 using OfficeIMO.Mhtml;
 
 OfficeContentSafetyReport report = MhtmlDocument.InspectContentSafety("snapshot.mhtml");
-OfficeContentSafetyFinding finding = report.Findings.Single(item => item.Text.Contains("ignore previous", StringComparison.OrdinalIgnoreCase));
+OfficeContentSafetyFinding finding = report.Findings.Single(item => item.TextPreview.Contains("ignore previous", StringComparison.OrdinalIgnoreCase));
 
 OfficeContentCleanupResult cleaned = MhtmlDocument.RemoveSelectedContent(
     "snapshot.mhtml",

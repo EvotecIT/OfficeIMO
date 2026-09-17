@@ -1,6 +1,7 @@
 namespace OfficeIMO.Email;
 
 internal static class MimeParser {
+    internal const string MultipleHtmlBodyDiagnosticCode = "EMAIL_MIME_HTML_BODY_MULTIPLE";
     internal static EmailDocument Parse(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
         CancellationToken cancellationToken, EmailProcessingBudget? budget = null) {
         MimeParserState state = new MimeParserState(options, diagnostics, cancellationToken, budget);
@@ -35,7 +36,8 @@ internal static class MimeParser {
     private static void ParseEntity(IReadOnlyList<EmailHeader> headers, byte[] data, int offset, int count,
         EmailDocument document, MimeParserState state, int mimeDepth, int nestedMessageDepth, string location,
         string defaultContentType = "text/plain", string? preferredBodyContentId = null,
-        bool isRelatedSibling = false, bool isDefaultRelatedRoot = false) {
+        bool isRelatedSibling = false, bool isDefaultRelatedRoot = false,
+        bool isBodyWrapperEntity = true) {
         if (mimeDepth > state.Options.MaxMimeDepth) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMimeDepth), mimeDepth, state.Options.MaxMimeDepth);
         }
@@ -45,13 +47,6 @@ internal static class MimeParser {
             defaultContentType, state.Diagnostics, location);
         MimeValue disposition = MimeValueParser.Parse(MimeHeaderParser.GetValue(headers, "Content-Disposition"),
             string.Empty, state.Diagnostics, location);
-        EmailProtectionKind entityProtection = MimeProtectionProjection.Classify(
-            contentType.Value,
-            contentType.GetParameter("protocol") ?? string.Empty);
-        if (entityProtection != EmailProtectionKind.None && !document.Protection.IsProtected) {
-            document.Protection.Kind = entityProtection;
-            document.Protection.MessageClass = document.MessageClass;
-        }
         string? transferEncoding = MimeHeaderParser.GetValue(headers, "Content-Transfer-Encoding");
         string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
         string? contentId = MimeHeaderParser.GetValue(headers, "Content-ID");
@@ -64,6 +59,14 @@ internal static class MimeParser {
             !string.IsNullOrWhiteSpace(contentLocation);
         bool attachmentDisposition = string.Equals(disposition.Value, "attachment", StringComparison.OrdinalIgnoreCase);
         bool inlineDisposition = string.Equals(disposition.Value, "inline", StringComparison.OrdinalIgnoreCase);
+        EmailProtectionKind entityProtection = MimeProtectionProjection.Classify(
+            contentType.Value,
+            contentType.GetParameter("protocol") ?? string.Empty);
+        if (isBodyWrapperEntity && !attachmentDisposition && string.IsNullOrWhiteSpace(fileName)
+            && entityProtection != EmailProtectionKind.None && !document.Protection.IsProtected) {
+            document.Protection.Kind = entityProtection;
+            document.Protection.MessageClass = document.MessageClass;
+        }
 
         if (contentType.Value.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase) &&
             !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
@@ -87,6 +90,7 @@ internal static class MimeParser {
                 ? "message/rfc822"
                 : "text/plain";
             bool isRelated = string.Equals(contentType.Value, "multipart/related", StringComparison.OrdinalIgnoreCase);
+            bool isAlternative = string.Equals(contentType.Value, "multipart/alternative", StringComparison.OrdinalIgnoreCase);
             string? childPreferredBodyContentId = isRelated
                 ? TrimAngleBrackets(contentType.GetParameter("start"))
                 : preferredBodyContentId;
@@ -101,12 +105,17 @@ internal static class MimeParser {
                 string? partPreferredBodyContentId = childPreferredBodyContentId;
                 bool partIsDefaultRelatedRoot = isRelated && i == 0 &&
                     string.IsNullOrWhiteSpace(childPreferredBodyContentId);
+                bool partContentIdMatchesPreferred = !string.IsNullOrWhiteSpace(childPreferredBodyContentId) &&
+                    string.Equals(TrimAngleBrackets(MimeHeaderParser.GetValue(partHeaders, "Content-ID")),
+                        childPreferredBodyContentId, StringComparison.OrdinalIgnoreCase);
                 if (isRelated && string.IsNullOrWhiteSpace(partPreferredBodyContentId) && i == 0) {
                     partPreferredBodyContentId = TrimAngleBrackets(MimeHeaderParser.GetValue(partHeaders, "Content-ID"));
                 }
+                bool partIsBodyWrapperEntity = isBodyWrapperEntity &&
+                    (isRelated ? partIsDefaultRelatedRoot || partContentIdMatchesPreferred : isAlternative || i == 0);
                 ParseEntity(partHeaders, data, partBodyOffset, Math.Max(0, partEnd - partBodyOffset),
                     document, state, mimeDepth + 1, nestedMessageDepth, partLocation, childDefaultContentType,
-                    partPreferredBodyContentId, isRelated, partIsDefaultRelatedRoot);
+                    partPreferredBodyContentId, isRelated, partIsDefaultRelatedRoot, partIsBodyWrapperEntity);
             }
             return;
         }
@@ -123,6 +132,13 @@ internal static class MimeParser {
                 : document.Body.Rtf == null;
         bool isBody = isBodyCandidate && bodySlotAvailable;
         bool additionalInlineBody = isBodyCandidate && !bodySlotAvailable;
+        if (additionalInlineBody && string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase)) {
+            state.Diagnostics.Add(new EmailDiagnostic(
+                MultipleHtmlBodyDiagnosticCode,
+                "The MIME body contains more than one viable HTML representation.",
+                EmailDiagnosticSeverity.Warning,
+                location));
+        }
         bool embeddedMessage = string.Equals(contentType.Value, "message/rfc822", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(contentType.Value, "message/global", StringComparison.OrdinalIgnoreCase);
         bool calendarContent = string.Equals(contentType.Value, "text/calendar", StringComparison.OrdinalIgnoreCase);

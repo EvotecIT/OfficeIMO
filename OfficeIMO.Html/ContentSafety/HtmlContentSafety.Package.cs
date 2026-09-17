@@ -4,12 +4,15 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
+using System.Xml.Linq;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html;
 using AngleSharp.Html.Dom;
 using AngleSharp.Xhtml;
 using OfficeIMO.ContentSafety;
+using OfficeIMO.Html.Providers;
 
 namespace OfficeIMO.Html;
 
@@ -178,11 +181,7 @@ public static partial class HtmlContentSafety {
         limits.MaxCssBytes = Math.Min(limits.MaxCssBytes ?? long.MaxValue, renderOptions.MaxResourceBytes);
         limits.MaxTotalCssBytes = Math.Min(limits.MaxTotalCssBytes ?? long.MaxValue, renderOptions.MaxTotalResourceBytes);
 
-        HtmlConversionDocument conversion = HtmlConversionDocument.Parse(part.Html, new HtmlConversionDocumentOptions {
-            BaseUri = renderOptions.BaseUri,
-            Limits = limits.Clone()
-        });
-        IHtmlDocument document = conversion.CreateSourceDocumentForConversion();
+        IHtmlDocument document = ParsePackageDocument(part, renderOptions.BaseUri, limits, safetyOptions, cancellationToken);
         foreach (IElement style in document.QuerySelectorAll("style")) {
             cssBudget.ReserveOrThrow(style.TextContent ?? string.Empty);
         }
@@ -258,6 +257,103 @@ public static partial class HtmlContentSafety {
 
         var syntheticStyles = new HashSet<IElement>(document.QuerySelectorAll("style").Where(item => !existingStyles.Contains(item)));
         return new PreparedPackagePart(part, document, syntheticStyles, limits);
+    }
+
+    private static IHtmlDocument ParsePackageDocument(
+        HtmlContentSafetyPackagePart part,
+        Uri? baseUri,
+        HtmlConversionLimits limits,
+        OfficeContentSafetyOptions safetyOptions,
+        CancellationToken cancellationToken) {
+        if (!part.SerializeAsXhtml) {
+            HtmlConversionDocument conversion = HtmlConversionDocument.Parse(part.Html, new HtmlConversionDocumentOptions {
+                BaseUri = baseUri,
+                Limits = limits.Clone()
+            });
+            return conversion.CreateSourceDocumentForConversion();
+        }
+
+        var settings = new XmlReaderSettings {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = safetyOptions.MaxCharacters
+        };
+        XDocument xml;
+        try {
+            using var text = new StringReader(part.Html);
+            using XmlReader reader = XmlReader.Create(text, settings);
+            xml = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        } catch (XmlException exception) {
+            throw new InvalidDataException("An EPUB XHTML content document is not well-formed XML.", exception);
+        }
+
+        XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+        if (xml.Root == null || xml.Root.Name.LocalName != "html" || xml.Root.Name.Namespace != xhtml) {
+            throw new InvalidDataException("An EPUB XHTML content document must have an html root in the XHTML namespace.");
+        }
+        if (xml.Nodes().Any(node => node is XDocumentType || node is XProcessingInstruction)
+            || xml.DescendantNodes().Any(node => node is XProcessingInstruction)) {
+            throw new InvalidDataException("EPUB XHTML content-safety inspection does not accept document types or processing instructions.");
+        }
+
+        var owned = new OfficeIMO.Html.Dom.HtmlDocument(
+            AngleSharpDomServices.Instance,
+            AngleSharpHtmlParser.Instance.Id);
+        int nodeCount = 0;
+        AppendXmlNode(xml.Root, owned, owned, limits, ref nodeCount, depth: 1, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return NativeDomBridge.GetNativeDocument(owned, cancellationToken);
+    }
+
+    private static void AppendXmlNode(
+        XNode source,
+        OfficeIMO.Html.Dom.HtmlDocument document,
+        OfficeIMO.Html.Dom.HtmlNode parent,
+        HtmlConversionLimits limits,
+        ref int nodeCount,
+        int depth,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        nodeCount = checked(nodeCount + 1);
+        if (limits.MaxHtmlNodes.HasValue && nodeCount > limits.MaxHtmlNodes.Value) {
+            throw new InvalidDataException("An EPUB XHTML content document exceeds the configured HTML node limit.");
+        }
+        if (limits.MaxHtmlDepth.HasValue && depth > limits.MaxHtmlDepth.Value) {
+            throw new InvalidDataException("An EPUB XHTML content document exceeds the configured HTML depth limit.");
+        }
+
+        if (source is XElement element) {
+            string namespaceUri = element.Name.NamespaceName;
+            string? prefix = element.GetPrefixOfNamespace(element.Name.Namespace);
+            OfficeIMO.Html.Dom.HtmlElement target = document.CreateElement(element.Name.LocalName, namespaceUri, prefix);
+            foreach (XAttribute attribute in element.Attributes()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                string name;
+                if (attribute.IsNamespaceDeclaration) {
+                    name = attribute.Name.LocalName == "xmlns" ? "xmlns" : "xmlns:" + attribute.Name.LocalName;
+                } else {
+                    string? attributePrefix = element.GetPrefixOfNamespace(attribute.Name.Namespace);
+                    name = string.IsNullOrEmpty(attributePrefix)
+                        ? attribute.Name.LocalName
+                        : attributePrefix + ":" + attribute.Name.LocalName;
+                }
+                target.SetAttribute(name, attribute.Value, attribute.Name.NamespaceName);
+            }
+            parent.AppendChild(target);
+            foreach (XNode child in element.Nodes()) {
+                AppendXmlNode(child, document, target, limits, ref nodeCount, depth + 1, cancellationToken);
+            }
+            return;
+        }
+        if (source is XText text) {
+            parent.AppendChild(document.CreateTextNode(text.Value));
+            return;
+        }
+        if (source is XComment comment) {
+            parent.AppendChild(document.CreateComment(comment.Value));
+            return;
+        }
+        throw new InvalidDataException("EPUB XHTML content-safety inspection encountered an unsupported XML node.");
     }
 
     private static HtmlCssByteBudget CreatePackageCssBudget(OfficeContentSafetyOptions options) {

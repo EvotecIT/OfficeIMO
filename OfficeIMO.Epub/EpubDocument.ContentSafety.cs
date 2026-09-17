@@ -194,8 +194,9 @@ public sealed partial class EpubDocument {
         };
         renderOptions.ResourceResolver = (request, token) => {
             token.ThrowIfCancellationRequested();
+            var lookupUri = new UriBuilder(request.Uri) { Fragment = string.Empty }.Uri;
             if (!request.Uri.Scheme.Equals("epub", StringComparison.OrdinalIgnoreCase)
-                || !resourcesByUri.TryGetValue(request.Uri.AbsoluteUri, out EpubResource? resource)
+                || !resourcesByUri.TryGetValue(lookupUri.AbsoluteUri, out EpubResource? resource)
                 || resource.Data == null) {
                 return Task.FromResult<HtmlResolvedResource?>(null);
             }

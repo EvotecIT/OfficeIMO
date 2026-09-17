@@ -89,7 +89,7 @@ using OfficeIMO.ContentSafety;
 using OfficeIMO.Epub;
 
 OfficeContentSafetyReport report = EpubDocument.InspectContentSafety("book.epub");
-OfficeContentSafetyFinding finding = report.Findings.Single(item => item.Text.Contains("ignore previous", StringComparison.OrdinalIgnoreCase));
+OfficeContentSafetyFinding finding = report.Findings.Single(item => item.TextPreview.Contains("ignore previous", StringComparison.OrdinalIgnoreCase));
 
 OfficeContentCleanupResult cleaned = EpubDocument.RemoveSelectedContent(
     "book.epub",

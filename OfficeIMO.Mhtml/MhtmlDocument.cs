@@ -343,7 +343,11 @@ public sealed partial class MhtmlDocument {
                     location: "resource[" + index + "]"));
             }
             if (!string.IsNullOrWhiteSpace(resource.FileName)) {
-                RegisterResolverIdentity(resource.FileName!.Trim(), index, resolverIdentities, diagnostics);
+                string rawFileName = resource.FileName!.Trim();
+                RegisterResolverIdentity(rawFileName, index, resolverIdentities, diagnostics);
+                if (Uri.TryCreate(baseUri, rawFileName, out Uri? resolvedFileName)) {
+                    RegisterResolverIdentity(resolvedFileName.AbsoluteUri, index, resolverIdentities, diagnostics);
+                }
             }
             if (!string.IsNullOrWhiteSpace(resource.ContentLocation)) {
                 string rawLocation = resource.ContentLocation!.Trim();

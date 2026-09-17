@@ -99,7 +99,8 @@ public sealed partial class MhtmlDocument {
             diagnostic.Code == MhtmlDiagnosticCodes.DuplicateContentId
             || diagnostic.Code == MhtmlDiagnosticCodes.DuplicateContentLocation
             || diagnostic.Code == MhtmlDiagnosticCodes.DuplicateResourceIdentity
-            || diagnostic.Code == MhtmlDiagnosticCodes.InvalidContentLocation);
+            || diagnostic.Code == MhtmlDiagnosticCodes.InvalidContentLocation
+            || diagnostic.Code == MimeParser.MultipleHtmlBodyDiagnosticCode);
         if (ambiguous != null) {
             throw new InvalidDataException(
                 "MHTML content-safety inspection requires unambiguous embedded resource identities. " +

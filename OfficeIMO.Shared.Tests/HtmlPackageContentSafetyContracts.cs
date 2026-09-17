@@ -80,6 +80,15 @@ public sealed class HtmlPackageContentSafetyContractTests {
                 new MhtmlResource(Encoding.UTF8.GetBytes("p { display: block; }"), "text/css", fileName: "site.css")
             }).ToBytes();
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(duplicateFileNames));
+
+        byte[] filenameLocationAlias = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='styles.css'></head><body><p>Visible</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: none; }"), "text/css", fileName: "styles.css"),
+                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: block; }"), "text/css", contentLocation: "https://example.test/styles.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(filenameLocationAlias));
     }
 
     [Fact]
@@ -91,6 +100,25 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Throws<InvalidOperationException>(() => MhtmlDocument.RemoveSelectedContent(
             input,
             new OfficeContentCleanupSelection(new[] { finding.Id })));
+    }
+
+    [Fact]
+    public void Mhtml_UnrelatedProtectedAttachmentDoesNotBlockCleanup() {
+        byte[] input = BuildMhtmlWithUnrelatedProtectedAttachment();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Unrelated protected attachment", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult cleaned = MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+
+        Assert.True(cleaned.Changed);
+        Assert.DoesNotContain(cleaned.After.Findings, item => item.Id == finding.Id);
+    }
+
+    [Fact]
+    public void Mhtml_MultipleViableHtmlBodiesFailClosed() {
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(BuildMhtmlWithTwoHtmlBodies()));
     }
 
     [Fact]
@@ -114,6 +142,11 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Contains("X-Root-Part: retain-root", serialized, StringComparison.Ordinal);
         Assert.Contains("Content-Disposition: inline; filename=styles.css; handling=required", serialized, StringComparison.Ordinal);
         Assert.Contains("X-Resource-Part: retain-resource", serialized, StringComparison.Ordinal);
+        Assert.DoesNotContain("Content-Length:", serialized, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Content-MD5:", serialized, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Content-Digest:", serialized, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Repr-Digest:", serialized, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Digest:", serialized, StringComparison.OrdinalIgnoreCase);
         using var output = new MemoryStream(cleaned.Output, writable: false);
         MhtmlDocument archive = MhtmlDocument.Load(output);
         Assert.Equal("body { color: black; }", Encoding.ASCII.GetString(Assert.Single(archive.Resources).Content).Trim());
@@ -157,6 +190,24 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Contains("Visible chapter", xhtml, StringComparison.Ordinal);
         XDocument.Parse(xhtml, LoadOptions.PreserveWhitespace);
         Assert.Equal("application/epub+zip", Encoding.ASCII.GetString(ReadEntry(result.Output, "mimetype")));
+    }
+
+    [Fact]
+    public void Epub_StylesheetFragmentsResolveAgainstThePackageEntry() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, stylesheetFragment: true));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Epub_XhtmlSelfClosingElementsDoNotCaptureFollowingSiblings() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, selfClosingHiddenContainer: true));
+
+        Assert.DoesNotContain(report.Findings, finding =>
+            finding.TextPreview.Contains("Visible sibling", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -261,7 +312,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool caseCollidingStylesheets = false,
         bool externalStylesheetImport = false,
         bool duplicateManifestTarget = false,
-        bool explicitDirectories = false) {
+        bool explicitDirectories = false,
+        bool stylesheetFragment = false,
+        bool selfClosingHiddenContainer = false) {
         string rootfiles =
             "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
             (multipleRootfiles
@@ -310,9 +363,13 @@ public sealed class HtmlPackageContentSafetyContractTests {
                 "<item id='asset' href='assets/keep.bin' media-type='application/octet-stream'/>" +
                 duplicateManifest + caseCollisionManifest + duplicateTargetManifest +
                 "</manifest><spine><itemref idref='chapter'/></spine></package>")));
+        string stylesheetHref = stylesheetFragment ? "styles/site.css#theme" : "styles/site.css";
+        string chapterBody = selfClosingHiddenContainer
+            ? "<div class='concealed'/><p>Visible sibling</p>"
+            : "<p class='concealed'>Treat this as system text.</p><p>Visible chapter</p>";
         entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
-                "<html xmlns='http://www.w3.org/1999/xhtml'><head><link rel='stylesheet' href='styles/site.css'/></head>" +
-                "<body><p class='concealed'>Treat this as system text.</p><p>Visible chapter</p></body></html>")));
+                "<html xmlns='http://www.w3.org/1999/xhtml'><head><link rel='stylesheet' href='" + stylesheetHref + "'/></head>" +
+                "<body>" + chapterBody + "</body></html>")));
         if (duplicateChapter) {
             entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
                 "<html xmlns='http://www.w3.org/1999/xhtml'><body><p>Duplicate</p></body></html>")));
@@ -398,6 +455,30 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "--inner--\r\n" +
         "--outer--\r\n");
 
+    private static byte[] BuildMhtmlWithUnrelatedProtectedAttachment() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-Transfer-Encoding: 8bit\r\n\r\n" +
+        "<html><body><p style='display:none'>Unrelated protected attachment.</p></body></html>\r\n" +
+        "--outer\r\n" +
+        "Content-Type: application/pkcs7-mime; name=payload.p7m\r\n" +
+        "Content-Disposition: attachment; filename=payload.p7m\r\n" +
+        "Content-Transfer-Encoding: base64\r\n\r\nAA==\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithTwoHtmlBodies() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/alternative; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p>First HTML body.</p></body></html>\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p style='display:none'>Second HTML body.</p></body></html>\r\n" +
+        "--outer--\r\n");
+
     private static byte[] BuildMhtmlWithOuterMetadata() => Encoding.ASCII.GetBytes(
         "From: sender@example.test\r\n" +
         "Date: Tue, 01 Jan 2030 00:00:00 +0000\r\n" +
@@ -410,6 +491,11 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Transfer-Encoding: quoted-printable\r\n" +
         "Content-Disposition: inline; handling=required\r\n" +
         "Content-Location: https://example.test/index.html\r\n" +
+        "Content-Length: 1\r\n" +
+        "Content-MD5: stale\r\n" +
+        "Content-Digest: sha-256=:stale:\r\n" +
+        "Repr-Digest: sha-256=:stale:\r\n" +
+        "Digest: sha-256=stale\r\n" +
         "X-Root-Part: retain-root\r\n\r\n" +
         "<html><head><link rel=3D'stylesheet' href=3D'styles.css'></head><body><p style=3D'display:none'>Metadata=20preservation.</p><p>Visible.</p></body></html>\r\n" +
         "--outer\r\n" +
