@@ -456,6 +456,35 @@ public sealed partial class RasterContentSafetyTests {
     }
 
     [Fact]
+    public async Task InspectAcceptsCanonicalSrgbPngCicp() {
+        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
+        byte[] canonicalSrgb = InsertPngChunkBefore(
+            image,
+            "IDAT",
+            "cICP",
+            new byte[] { 1, 13, 0, 1 });
+
+        OfficeContentSafetyReport report = await OfficeRasterContentSafety.InspectAsync(
+            canonicalSrgb,
+            CreateEngine(_ => new OcrResult()));
+
+        Assert.Empty(report.Findings);
+    }
+
+    [Fact]
+    public async Task InspectRejectsMalformedPngCicp() {
+        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
+        byte[] malformed = InsertPngChunkBefore(
+            image,
+            "IDAT",
+            "cICP",
+            new byte[] { 1, 13, 0 });
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            OfficeRasterContentSafety.InspectAsync(malformed, CreateEngine(_ => new OcrResult())));
+    }
+
+    [Fact]
     public async Task InspectRejectsJpegIccProfileThatTheDecoderCannotNormalize() {
         var raster = new OfficeRasterImage(20, 10, OfficeColor.White);
         byte[] colorManaged = OfficeJpegCodec.Encode(raster, new OfficeJpegEncodeOptions {

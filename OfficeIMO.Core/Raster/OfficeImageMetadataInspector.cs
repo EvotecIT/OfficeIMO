@@ -207,7 +207,14 @@ internal static partial class OfficeImageMetadataInspector {
                 hasStandardChromaticities = length == 32 &&
                     OfficePngContainerValidator.HasStandardRgbChromaticities(data, offset + 8);
             } else if (type == "sRGB") hasStandardRgb = true;
-            else if (type == "cICP") snapshot.HasColorRenderingMetadata = true;
+            else if (type == "cICP") {
+                bool canonicalSrgb = length == 4 &&
+                    data[offset + 8] == 1 &&
+                    data[offset + 9] == 13 &&
+                    data[offset + 10] == 0 &&
+                    data[offset + 11] == 1;
+                if (!canonicalSrgb) snapshot.HasColorRenderingMetadata = true;
+            }
             else if (type == "pHYs") {
                 bool physical = length == 9 && data[offset + 16] == 1;
                 MarkResolution(snapshot, physical);
