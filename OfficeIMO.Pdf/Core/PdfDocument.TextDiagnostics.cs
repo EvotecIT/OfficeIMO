@@ -316,6 +316,7 @@ public sealed partial class PdfDocument {
             AddPageText(diagnostics, seenPageText, options.GetHeaderFormatForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber);
             AddSegments(diagnostics, seenPageText, options.GetHeaderSegmentsForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber);
             AddZones(diagnostics, seenPageText, options.GetHeaderZonesForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber);
+            AddZoneSegments(diagnostics, seenPageText, options.GetHeaderZoneSegmentsForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber);
         }
 
         if (options.HasFooterTextContentForPage(pageNumber)) {
@@ -323,6 +324,7 @@ public sealed partial class PdfDocument {
             AddPageText(diagnostics, seenPageText, options.GetFooterFormatForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber);
             AddSegments(diagnostics, seenPageText, options.GetFooterSegmentsForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber);
             AddZones(diagnostics, seenPageText, options.GetFooterZonesForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber);
+            AddZoneSegments(diagnostics, seenPageText, options.GetFooterZoneSegmentsForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber);
         }
     }
 
@@ -338,15 +340,53 @@ public sealed partial class PdfDocument {
             }
 
             if (segment.Kind == FooterSegmentKind.Text) {
-                AddPageText(diagnostics, seenPageText, segment.Text, options, font, fontFamily, source, AppendLocation(locationPrefix, "Segment[" + segmentIndex.ToString(CultureInfo.InvariantCulture) + "]"), pageNumber);
+                string location = AppendLocation(locationPrefix, "Segment[" + segmentIndex.ToString(CultureInfo.InvariantCulture) + "]");
+                if (segment.StyledRun != null) {
+                    AddPageStyledRun(diagnostics, seenPageText, segment.StyledRun, options, font, fontFamily, source, location, pageNumber);
+                } else {
+                    AddPageText(diagnostics, seenPageText, segment.Text, options, font, fontFamily, source, location, pageNumber);
+                }
             }
         }
+    }
+
+    private static void AddPageStyledRun(List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, PdfTextRun run, PdfOptions options, PdfStandardFont font, string? fontFamily, string source, string location, int pageNumber) {
+        string effectiveFontFamily = run.FontFamily ?? fontFamily ?? string.Empty;
+        string key = source + "|StyledRun|" + (run.Font?.ToString() ?? font.ToString()) + "|" + effectiveFontFamily + "|" + run.Bold + "|" + run.Italic + "|" + run.Text;
+        if (!seenPageText.Add(key)) {
+            return;
+        }
+
+        var effectiveRun = new PdfTextRun(
+            run.Text,
+            bold: run.Bold,
+            underline: run.Underline,
+            color: run.Color,
+            italic: run.Italic,
+            strike: run.Strike,
+            fontSize: run.FontSize,
+            font: run.Font,
+            baseline: run.Baseline,
+            backgroundColor: run.BackgroundColor,
+            fontFamily: string.IsNullOrEmpty(effectiveFontFamily) ? null : effectiveFontFamily,
+            underlineStyle: run.UnderlineStyle,
+            strikeStyle: run.StrikeStyle,
+            decorationColor: run.DecorationColor)
+            .WithFeatureSettings(run.FeatureSettings);
+        AddRuns(diagnostics, new[] { effectiveRun }, options, font, source, location, pageNumber: pageNumber);
     }
 
     private static void AddZones(List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, (string? Left, string? Center, string? Right) zones, PdfOptions options, PdfStandardFont font, string? fontFamily, string source, string locationPrefix, int pageNumber) {
         AddPageText(diagnostics, seenPageText, zones.Left, options, font, fontFamily, source, AppendLocation(locationPrefix, "Left"), pageNumber);
         AddPageText(diagnostics, seenPageText, zones.Center, options, font, fontFamily, source, AppendLocation(locationPrefix, "Center"), pageNumber);
         AddPageText(diagnostics, seenPageText, zones.Right, options, font, fontFamily, source, AppendLocation(locationPrefix, "Right"), pageNumber);
+    }
+
+    private static void AddZoneSegments(List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, PdfPageTextZoneSegments? zones, PdfOptions options, PdfStandardFont font, string? fontFamily, string source, string locationPrefix, int pageNumber) {
+        if (zones == null) return;
+        AddSegments(diagnostics, seenPageText, zones.Left, options, font, fontFamily, source, AppendLocation(locationPrefix, "Left"), pageNumber);
+        AddSegments(diagnostics, seenPageText, zones.Center, options, font, fontFamily, source, AppendLocation(locationPrefix, "Center"), pageNumber);
+        AddSegments(diagnostics, seenPageText, zones.Right, options, font, fontFamily, source, AppendLocation(locationPrefix, "Right"), pageNumber);
     }
 
     private static void AddText(List<PdfTextEncodingDiagnostic> diagnostics, string? text, PdfOptions options, PdfStandardFont font, string source, string location, int? pageNumber = null, int? tableRowIndex = null, int? tableColumnIndex = null, string? fieldName = null) {

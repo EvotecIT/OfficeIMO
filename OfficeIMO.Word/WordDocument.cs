@@ -29,6 +29,7 @@ namespace OfficeIMO.Word {
         private bool _normalizeOpenOfficeRelationshipsOnSave = true;
         private WordStyleCatalogFingerprint? _styleCatalogFingerprint;
         private bool _disposed;
+        internal bool _openXmlDocumentAccessed;
         private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;
     }
 }

@@ -18,6 +18,7 @@ namespace OfficeIMO.Word.Html {
             bool headers,
             AppendWordParagraphHtml appendParagraph,
             AppendWordTableHtml appendTable,
+            Action resetParagraphFlow,
             WordToHtmlOptions options,
             CancellationToken cancellationToken) {
             if (!options.ExportHeadersAndFooters) {
@@ -25,13 +26,13 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (headers) {
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.Default, "header", "default", sectionIndex, appendParagraph, appendTable, options, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.First, "header", "first", sectionIndex, appendParagraph, appendTable, options, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.Even, "header", "even", sectionIndex, appendParagraph, appendTable, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.Default, "header", "default", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.First, "header", "first", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.Even, "header", "even", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
             } else {
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.Default, "footer", "default", sectionIndex, appendParagraph, appendTable, options, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.First, "footer", "first", sectionIndex, appendParagraph, appendTable, options, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.Even, "footer", "even", sectionIndex, appendParagraph, appendTable, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.Default, "footer", "default", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.First, "footer", "first", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.Even, "footer", "even", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
             }
         }
 
@@ -44,6 +45,7 @@ namespace OfficeIMO.Word.Html {
             int sectionIndex,
             AppendWordParagraphHtml appendParagraph,
             AppendWordTableHtml appendTable,
+            Action resetParagraphFlow,
             WordToHtmlOptions options,
             CancellationToken cancellationToken) {
             if (headerFooter == null || !HasRenderableHeaderFooterContent(headerFooter)) {
@@ -65,6 +67,7 @@ namespace OfficeIMO.Word.Html {
             SetOutputAttribute(element, "data-section-index", sectionIndex.ToString(CultureInfo.InvariantCulture), "HeaderFooter:section-index");
             SetOutputAttribute(element, "data-type", type, "HeaderFooter:type");
 
+            resetParagraphFlow();
             foreach (var child in headerFooter.Elements) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (child is WordParagraph paragraph) {
@@ -73,9 +76,11 @@ namespace OfficeIMO.Word.Html {
                     }
                     appendParagraph(element, paragraph);
                 } else if (child is WordTable table) {
+                    resetParagraphFlow();
                     appendTable(element, table);
                 }
             }
+            resetParagraphFlow();
 
             parent.AppendChild(element);
         }
@@ -96,6 +101,7 @@ namespace OfficeIMO.Word.Html {
 
         private static bool IsRenderableHeaderFooterParagraph(WordParagraph paragraph) =>
             !string.IsNullOrWhiteSpace(paragraph.Text) ||
+            paragraph.IsListItem ||
             paragraph.GetRuns().Any(run => run.IsImage || run.IsStructuredDocumentTag || run.IsCheckBox || run.IsDropDownList || run.IsComboBox || run.IsDatePicker);
     }
 }

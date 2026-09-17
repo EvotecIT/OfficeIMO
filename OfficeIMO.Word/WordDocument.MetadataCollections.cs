@@ -187,7 +187,14 @@ namespace OfficeIMO.Word {
         internal Document _document = null!;
 
         /// <summary>Gets the underlying Open XML package for advanced integration scenarios.</summary>
-        public WordprocessingDocument OpenXmlDocument => _wordprocessingDocument;
+        public WordprocessingDocument OpenXmlDocument {
+            get {
+                // Once the mutable package escapes, Open XML edits cannot be observed reliably.
+                // Resolve against current parts instead of reusing a derived numbering catalog.
+                _openXmlDocumentAccessed = true;
+                return _wordprocessingDocument;
+            }
+        }
 
 
         /// <summary>

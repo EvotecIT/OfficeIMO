@@ -18,6 +18,9 @@ namespace OfficeIMO.Word {
         /// <summary>Small-caps text was approximated using uppercase glyphs at one font size.</summary>
         public const string LimitedSmallCaps = "limited-word-small-caps";
 
+        /// <summary>A picture bullet was represented by a portable text bullet.</summary>
+        public const string LimitedPictureBulletTextFallback = "limited-word-picture-bullet-text-fallback";
+
         /// <summary>An unsupported body element was omitted.</summary>
         public const string UnsupportedBodyElement = "unsupported-word-body-element";
 

@@ -31,15 +31,37 @@ public sealed class PdfHeaderBuilder {
         _opts.SetHeaderZonesForCompose(left, center, right);
         return this;
     }
+    /// <summary>Renders independently styled left, center, and right header zones on one line.</summary>
+    public PdfHeaderBuilder StyledZones(System.Action<HeaderTextBuilder>? left, System.Action<HeaderTextBuilder>? center, System.Action<HeaderTextBuilder>? right) {
+        _opts.SetHeaderZoneSegmentsForCompose(BuildZone(left), BuildZone(center), BuildZone(right));
+        return this;
+    }
     /// <summary>Renders page-1-only left, center, and right header zones. Supports {page} and {pages}.</summary>
     public PdfHeaderBuilder FirstPageZones(string? left, string? center, string? right) {
         _opts.SetFirstPageHeaderZonesForCompose(left, center, right);
+        return this;
+    }
+    /// <summary>Renders independently styled page-1-only header zones.</summary>
+    public PdfHeaderBuilder FirstPageStyledZones(System.Action<HeaderTextBuilder>? left, System.Action<HeaderTextBuilder>? center, System.Action<HeaderTextBuilder>? right) {
+        _opts.SetFirstPageHeaderZoneSegmentsForCompose(BuildZone(left), BuildZone(center), BuildZone(right));
         return this;
     }
     /// <summary>Renders even-page-only left, center, and right header zones. Supports {page} and {pages}.</summary>
     public PdfHeaderBuilder EvenPagesZones(string? left, string? center, string? right) {
         _opts.SetEvenPageHeaderZonesForCompose(left, center, right);
         return this;
+    }
+    /// <summary>Renders independently styled even-page-only header zones.</summary>
+    public PdfHeaderBuilder EvenPagesStyledZones(System.Action<HeaderTextBuilder>? left, System.Action<HeaderTextBuilder>? center, System.Action<HeaderTextBuilder>? right) {
+        _opts.SetEvenPageHeaderZoneSegmentsForCompose(BuildZone(left), BuildZone(center), BuildZone(right));
+        return this;
+    }
+
+    private static System.Collections.Generic.List<FooterSegment>? BuildZone(System.Action<HeaderTextBuilder>? build) {
+        if (build == null) return null;
+        var segments = new System.Collections.Generic.List<FooterSegment>();
+        build(new HeaderTextBuilder(segments));
+        return segments;
     }
 
     /// <summary>Adds an image to the running header.</summary>

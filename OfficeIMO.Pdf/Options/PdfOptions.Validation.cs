@@ -130,6 +130,12 @@ public sealed partial class PdfOptions {
         ValidateFooterSegments(_footerSegments);
         ValidateFooterSegments(_firstPageFooterSegments);
         ValidateFooterSegments(_evenPageFooterSegments);
+        ValidateZoneSegments(_headerZoneSegments, "header");
+        ValidateZoneSegments(_firstPageHeaderZoneSegments, "header");
+        ValidateZoneSegments(_evenPageHeaderZoneSegments, "header");
+        ValidateZoneSegments(_footerZoneSegments, "footer");
+        ValidateZoneSegments(_firstPageFooterZoneSegments, "footer");
+        ValidateZoneSegments(_evenPageFooterZoneSegments, "footer");
         ValidateZoneString(_headerLeftFormat, "header");
         ValidateZoneString(_headerCenterFormat, "header");
         ValidateZoneString(_headerRightFormat, "header");
@@ -181,6 +187,13 @@ public sealed partial class PdfOptions {
         ValidateZoneString(left, "header/footer");
         ValidateZoneString(center, "header/footer");
         ValidateZoneString(right, "header/footer");
+    }
+
+    private static void ValidateZoneSegments(PdfPageTextZoneSegments? zones, string scope) {
+        if (zones == null) return;
+        ValidatePageTextSegments(zones.Left, scope);
+        ValidatePageTextSegments(zones.Center, scope);
+        ValidatePageTextSegments(zones.Right, scope);
     }
 
     private static void ValidateZoneString(string? value, string scope) {

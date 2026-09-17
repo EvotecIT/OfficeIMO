@@ -63,7 +63,7 @@ namespace OfficeIMO.Word.Pdf {
                         tableColumnCount,
                         visualHeaderRowCount,
                         footerStartRowIndex);
-                    NativeCellText cellText = CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, cellStyleDefaults, nativeFontMap);
+                    NativeCellText cellText = CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, cellStyleDefaults, nativeFontMap, getMarker);
                     IReadOnlyList<PdfCore.PdfTableCellCheckBox> checkBoxes = CreateNativeTableCellCheckBoxes(cell);
                     IReadOnlyList<PdfCore.PdfTableCellFormField> formFields = CreateNativeTableCellFormFields(cell);
                     IReadOnlyList<PdfCore.PdfTableCellImage> images = CreateNativeTableCellImages(cell);

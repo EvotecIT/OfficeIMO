@@ -1739,8 +1739,8 @@ namespace OfficeIMO.Tests {
                 .OfType<OfficeDrawingText>()
                 .Single(text => text.Y == bulletBody.Y && text.X < bulletBody.X);
             Assert.True(bulletMarker.X < bulletBody.X);
-            Assert.False(string.IsNullOrWhiteSpace(bulletMarker.Text));
-            Assert.Equal("Symbol", bulletMarker.Font.FamilyName);
+            Assert.Equal("•", bulletMarker.Text);
+            Assert.Equal(bulletBody.Font.FamilyName, bulletMarker.Font.FamilyName);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains(bulletMarker.Text, svgText, StringComparison.Ordinal);
@@ -3580,8 +3580,8 @@ namespace OfficeIMO.Tests {
             OfficeDrawingText headerMarker = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(text => text.Y == headerText.Y && text.X < headerText.X);
-            Assert.False(string.IsNullOrWhiteSpace(headerMarker.Text));
-            Assert.Equal("Symbol", headerMarker.Font.FamilyName);
+            Assert.Equal("•", headerMarker.Text);
+            Assert.Equal(headerText.Font.FamilyName, headerMarker.Font.FamilyName);
 
             OfficeDrawingText footerText = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Footer number");
             OfficeDrawingText footerMarker = snapshot.Drawing.Elements

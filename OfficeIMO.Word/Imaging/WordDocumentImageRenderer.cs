@@ -532,7 +532,7 @@ namespace OfficeIMO.Word {
                 if (textBox != null) {
                     added |= FlushTextRuns();
                     context.ClearParagraphSpacingState();
-                    added |= AddTextBox(textBox, context, diagnostics, colorScheme);
+                    added |= AddTextBox(textBox, context, diagnostics, colorScheme, listMarkers);
                     context.ClearParagraphSpacingState();
                     continue;
                 }
@@ -588,7 +588,8 @@ namespace OfficeIMO.Word {
             context.Y += spacing.Before;
             if (context.IsTargetPage) {
                 AddParagraphFrame(paragraphs[0], context, textLayout, height, colorScheme);
-                if (listMarker.HasValue) {
+                ReportPictureBulletFallback(listMarker, diagnostics);
+                if (listMarker.HasValue && !string.IsNullOrEmpty(listMarker.Value.Marker)) {
                     WordImageListMarker marker = listMarker.Value;
                     context.Drawing.AddText(
                         marker.Marker,
@@ -953,6 +954,17 @@ namespace OfficeIMO.Word {
                 code,
                 message,
                 string.IsNullOrWhiteSpace(source) ? "Word document" : source));
+        }
+
+        private static void ReportPictureBulletFallback(WordImageListMarker? marker, List<OfficeImageExportDiagnostic> diagnostics) {
+            if (marker?.PictureBulletId is not int pictureBulletId) return;
+            ReportPictureBulletFallback(pictureBulletId, diagnostics);
+        }
+
+        private static void ReportPictureBulletFallback(int pictureBulletId, List<OfficeImageExportDiagnostic> diagnostics) {
+            string markerText = "Picture bullet " + pictureBulletId + " is represented by a text bullet in image and SVG output.";
+            if (diagnostics.Exists(item => item.Code == WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback && item.Message == markerText)) return;
+            AddDiagnostic(diagnostics, WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback, markerText);
         }
 
         private readonly struct WordImagePageContext {

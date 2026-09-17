@@ -377,6 +377,7 @@ public partial class WordList : WordElement {
         newAbstract.AbstractNumberId = _abstractId;
         numbering.InsertAfter(newAbstract, oldAbstract);
         oldAbstract.Remove();
+        WordListNumberingResolver.InvalidateNumbering(numbering);
         numbering.Save();
     }
 

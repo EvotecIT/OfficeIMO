@@ -172,11 +172,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool IsListItem {
             get {
-                if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return WordListNumberingResolver.TryResolve(this, out _);
             }
         }
 
@@ -185,23 +181,35 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? ListItemLevel {
             get {
-                var val = _paragraphProperties?.NumberingProperties?.NumberingLevelReference?.Val;
-                return val?.Value;
+                return WordListNumberingResolver.TryResolve(this, out WordListNumberingResolver.ResolvedNumbering numbering)
+                    ? numbering.Level
+                    : null;
             }
             set {
-                var levelRef = _paragraphProperties?.NumberingProperties?.NumberingLevelReference;
-                if (levelRef != null) {
-                    levelRef.Val = value;
-                } else {
-                    // should throw?
+                if (!value.HasValue) {
+                    _paragraphProperties?.NumberingProperties?.NumberingLevelReference?.Remove();
+                    return;
                 }
+
+                if (!WordListNumberingResolver.TryResolve(this, out WordListNumberingResolver.ResolvedNumbering numbering)) {
+                    return;
+                }
+
+                _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                _paragraph.ParagraphProperties.NumberingProperties ??= new NumberingProperties();
+                NumberingProperties direct = _paragraph.ParagraphProperties.NumberingProperties;
+                direct.NumberingLevelReference ??= new NumberingLevelReference();
+                direct.NumberingLevelReference.Val = value.Value;
+                direct.NumberingId ??= new NumberingId();
+                direct.NumberingId.Val = numbering.NumberId;
             }
         }
 
         internal int? _listNumberId {
             get {
-                var val = _paragraphProperties?.NumberingProperties?.NumberingId?.Val;
-                return val?.Value;
+                return WordListNumberingResolver.TryResolve(this, out WordListNumberingResolver.ResolvedNumbering numbering)
+                    ? numbering.NumberId
+                    : null;
             }
         }
 

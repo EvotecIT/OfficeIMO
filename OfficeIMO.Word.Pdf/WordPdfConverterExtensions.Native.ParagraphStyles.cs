@@ -679,15 +679,26 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static (double Header, double Footer) GetNativeHeaderFooterMarginExpansion(WordSection section, WordToPdfOptions? options) {
+            Dictionary<WordParagraph, (int Level, string Marker)> listMarkers =
+                WordDocumentTraversal.BuildListMarkers(section._document);
+            return GetNativeHeaderFooterMarginExpansion(section, options, listMarkers);
+        }
+
+        private static (double Header, double Footer) GetNativeHeaderFooterMarginExpansion(
+            WordSection section,
+            WordToPdfOptions? options,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             if (options?.Margins != null) {
                 return (0D, 0D);
             }
 
             double headerExpansion = GetNativeHeaderFooterMarginExpansion(
+                listMarkers,
                 section.Header?.Default,
                 section.DifferentFirstPage ? section.Header?.First : null,
                 section.DifferentOddAndEvenPages ? section.Header?.Even : null);
             double footerExpansion = GetNativeFooterMarginExpansion(
+                listMarkers,
                 section.Footer?.Default,
                 section.DifferentFirstPage ? section.Footer?.First : null,
                 section.DifferentOddAndEvenPages ? section.Footer?.Even : null);
@@ -706,19 +717,19 @@ namespace OfficeIMO.Word.Pdf {
             return (headerExpansion, footerExpansion);
         }
 
-        private static double GetNativeHeaderFooterMarginExpansion(params WordHeaderFooter?[] variants) {
+        private static double GetNativeHeaderFooterMarginExpansion(IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, params WordHeaderFooter?[] variants) {
             int maxLines = 0;
             foreach (WordHeaderFooter? variant in variants) {
-                maxLines = Math.Max(maxLines, GetNativeHeaderFooterLineCount(variant));
+                maxLines = Math.Max(maxLines, GetNativeHeaderFooterLineCount(variant, listMarkers));
             }
 
             return GetNativeHeaderFooterMarginExpansion(maxLines, GetNativeHeaderFooterLineHeight(variants));
         }
 
-        private static double GetNativeFooterMarginExpansion(params WordHeaderFooter?[] variants) {
+        private static double GetNativeFooterMarginExpansion(IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, params WordHeaderFooter?[] variants) {
             int maxLines = 0;
             foreach (WordHeaderFooter? variant in variants) {
-                maxLines = Math.Max(maxLines, GetNativeHeaderFooterLineCount(variant));
+                maxLines = Math.Max(maxLines, GetNativeHeaderFooterLineCount(variant, listMarkers));
             }
 
             return GetNativeFooterMarginExpansion(maxLines, GetNativeHeaderFooterLineHeight(variants));
@@ -762,37 +773,37 @@ namespace OfficeIMO.Word.Pdf {
             return maxFontSize * 1.2D;
         }
 
-        private static int GetNativeHeaderFooterLineCount(WordHeaderFooter? headerFooter) {
+        private static int GetNativeHeaderFooterLineCount(WordHeaderFooter? headerFooter, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             if (headerFooter == null) {
                 return 0;
             }
 
-            int textLines = GetNativeHeaderFooterTextLineCount(GetNativeHeaderFooterText(headerFooter));
+            int textLines = GetNativeHeaderFooterTextLineCount(GetNativeHeaderFooterText(headerFooter, listMarkers));
             int structuralLines = 0;
             foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {
-                structuralLines += GetNativeHeaderFooterElementLineCount(element);
+                structuralLines += GetNativeHeaderFooterElementLineCount(element, listMarkers);
             }
 
             return Math.Max(textLines, structuralLines);
         }
 
-        private static int GetNativeHeaderFooterElementLineCount(WordElement element) {
+        private static int GetNativeHeaderFooterElementLineCount(WordElement element, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             return element switch {
-                WordParagraph paragraph => GetNativeHeaderFooterParagraphLineCount(paragraph),
-                WordTable table => GetNativeHeaderFooterTableLineCount(table),
+                WordParagraph paragraph => GetNativeHeaderFooterParagraphLineCount(paragraph, listMarkers),
+                WordTable table => GetNativeHeaderFooterTableLineCount(table, listMarkers),
                 WordHyperLink link when !string.IsNullOrWhiteSpace(link.Text) => 1,
                 _ => 0
             };
         }
 
-        private static int GetNativeHeaderFooterTableLineCount(WordTable table) {
+        private static int GetNativeHeaderFooterTableLineCount(WordTable table, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             int lineCount = 0;
             foreach (WordTableRow row in table.Rows) {
                 int rowLineCount = 0;
                 foreach (WordTableCell cell in row.Cells) {
                     int cellLineCount = 0;
                     foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
-                        cellLineCount += GetNativeHeaderFooterParagraphLineCount(paragraph);
+                        cellLineCount += GetNativeHeaderFooterParagraphLineCount(paragraph, listMarkers);
                     }
 
                     rowLineCount = Math.Max(rowLineCount, cellLineCount);
@@ -804,8 +815,8 @@ namespace OfficeIMO.Word.Pdf {
             return lineCount;
         }
 
-        private static int GetNativeHeaderFooterParagraphLineCount(WordParagraph paragraph) {
-            string? text = GetNativeHeaderFooterParagraphText(paragraph, out _);
+        private static int GetNativeHeaderFooterParagraphLineCount(WordParagraph paragraph, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
+            string? text = GetNativeHeaderFooterParagraphText(paragraph, listMarkers, out _);
             return Math.Max(1, CountNativeHeaderFooterLines(text));
         }
 

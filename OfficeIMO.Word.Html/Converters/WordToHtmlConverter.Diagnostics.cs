@@ -219,6 +219,16 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ReportKnownExportLimitations(WordDocument document, WordToHtmlOptions options, ExportInspection inspection) {
+            Dictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> resolvedMarkers =
+                WordDocumentTraversal.BuildResolvedListMarkers(document);
+            IEnumerable<WordDocumentTraversal.ResolvedListMarker> renderedMarkers = options.ExportHeadersAndFooters
+                ? resolvedMarkers.Values
+                : resolvedMarkers.Where(pair => pair.Key._paragraph.Ancestors<W.Body>().Any()).Select(pair => pair.Value);
+            foreach (int pictureBulletId in WordDocumentTraversal.GetPictureBulletFallbackIds(renderedMarkers)) {
+                AddExportDiagnostic(options, "PictureBulletTextFallback",
+                    "Picture bullet " + pictureBulletId + " is represented by a text bullet in HTML output.",
+                    OfficeConversionLossKind.Approximation);
+            }
             if (!options.EmitDocumentShell &&
                 (options.IncludeCustomProperties || options.AdditionalMetaTags.Count > 0 || options.AdditionalLinkTags.Count > 0)) {
                 AddExportDiagnostic(options, "DocumentHeadMetadataOmittedForFragment",

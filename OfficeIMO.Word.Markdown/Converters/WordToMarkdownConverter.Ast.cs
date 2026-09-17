@@ -50,6 +50,7 @@ namespace OfficeIMO.Word.Markdown {
             _visualFallbackResourceIndex = 0;
             _exportedImageFileNames.Clear();
             var listIndices = WordDocumentTraversal.BuildListIndices(document);
+            var listMarkers = WordDocumentTraversal.BuildResolvedListMarkers(document);
             int sectionIndex = 0;
             foreach (var section in WordDocumentTraversal.EnumerateSections(document)) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -71,7 +72,8 @@ namespace OfficeIMO.Word.Markdown {
                     listIndices,
                     cancellationToken,
                     allowQuoteHeuristic: true,
-                    trimBoundaryWhitespace: false);
+                    trimBoundaryWhitespace: false,
+                    listMarkers: listMarkers);
 
                 if (options.IncludeHeadersAndFootersAsSemanticBlocks) {
                     AppendFooterSemanticBlocks(markdown, section, options, cancellationToken, sectionIndex);
@@ -167,7 +169,9 @@ namespace OfficeIMO.Word.Markdown {
             IReadOnlyDictionary<WordParagraph, (int Level, int Index)>? listIndices,
             bool hasCheckbox,
             bool checkboxChecked,
-            bool trimBoundaryWhitespace) {
+            bool trimBoundaryWhitespace,
+            int renderLevel) {
+            ValidateListLevel(listInfo.Level, options.MaxListNestingDepth);
             var paragraphBlocks = BuildParagraphBlocks(paragraph, options, hasCheckbox, checkboxChecked, allowQuoteHeuristic: false, trimBoundaryWhitespace: trimBoundaryWhitespace);
             paragraphBlocks = LiftLeadingPageBreakBlocks(addRootBlock, listStack, paragraphBlocks);
 
@@ -179,8 +183,23 @@ namespace OfficeIMO.Word.Markdown {
                 paragraphBlocks = extendedBlocks;
             }
 
-            EnsureListFrame(addRootBlock, listStack, listInfo, GetListStartForCurrentItem(paragraph, listInfo, listIndices), options.MaxListNestingDepth);
-            var item = CreateListItem(paragraphBlocks, listInfo.Level, hasCheckbox, checkboxChecked);
+            if (!listInfo.MarkerVisible) {
+                // Markdown has no markerless list syntax. Keep nested content under its
+                // visible parent instead of inventing a bullet or detaching the subtree.
+                int parentDepth = Math.Min(listInfo.Level, listStack.Count);
+                if (listStack.Count > parentDepth) {
+                    listStack.RemoveRange(parentDepth, listStack.Count - parentDepth);
+                }
+                PendingListFrame? parent = listStack.Count > 0 ? listStack[listStack.Count - 1] : null;
+                foreach (IMarkdownBlock block in paragraphBlocks) {
+                    if (parent?.LastItem != null) parent.LastItem.NestedBlocks.Add(block);
+                    else addRootBlock(block);
+                }
+                return;
+            }
+
+            EnsureListFrame(addRootBlock, listStack, listInfo, GetListStartForCurrentItem(paragraph, listInfo, listIndices), options.MaxListNestingDepth, renderLevel);
+            var item = CreateListItem(paragraphBlocks, renderLevel, hasCheckbox, checkboxChecked);
             listStack[listStack.Count - 1].AddItem(item);
         }
 
@@ -239,8 +258,8 @@ namespace OfficeIMO.Word.Markdown {
             return block is HorizontalRuleBlock;
         }
 
-        private static void EnsureListFrame(Action<IMarkdownBlock> addRootBlock, List<PendingListFrame> listStack, WordDocumentTraversal.ListInfo listInfo, int start, int maximumDepth) {
-            int boundedLevel = ValidateListLevel(listInfo.Level, maximumDepth);
+        private static void EnsureListFrame(Action<IMarkdownBlock> addRootBlock, List<PendingListFrame> listStack, WordDocumentTraversal.ListInfo listInfo, int start, int maximumDepth, int renderLevel) {
+            int boundedLevel = ValidateListLevel(renderLevel, maximumDepth);
 
             int targetDepth = boundedLevel + 1;
 
@@ -328,8 +347,10 @@ namespace OfficeIMO.Word.Markdown {
             IReadOnlyDictionary<WordParagraph, (int Level, int Index)>? listIndices,
             CancellationToken cancellationToken,
             bool allowQuoteHeuristic,
-            bool trimBoundaryWhitespace) {
+            bool trimBoundaryWhitespace,
+            IReadOnlyDictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker>? listMarkers = null) {
             var listStack = new List<PendingListFrame>();
+            var markerlessAncestorLevels = new List<int>();
 
             for (int i = 0; i < elements.Count; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -338,6 +359,7 @@ namespace OfficeIMO.Word.Markdown {
                 if (element is WordParagraph paragraph) {
                     if (paragraph.IsTextBox && paragraph.TextBox != null) {
                         listStack.Clear();
+                        markerlessAncestorLevels.Clear();
                         AppendBlocksFromElements(
                             paragraph.TextBox.Elements,
                             addRootBlock,
@@ -345,7 +367,8 @@ namespace OfficeIMO.Word.Markdown {
                             listIndices,
                             cancellationToken,
                             allowQuoteHeuristic: allowQuoteHeuristic,
-                            trimBoundaryWhitespace: true);
+                            trimBoundaryWhitespace: true,
+                            listMarkers: listMarkers);
                         continue;
                     }
 
@@ -366,13 +389,23 @@ namespace OfficeIMO.Word.Markdown {
 
                     ResolveParagraphCheckboxState(paragraph, out bool hasCheckbox, out bool checkboxChecked);
 
-                    var listInfo = WordDocumentTraversal.GetListInfo(paragraph);
+                    WordDocumentTraversal.ListInfo? listInfo = listMarkers != null
+                        ? listMarkers.TryGetValue(paragraph, out var marker) ? marker.Info : null
+                        : WordDocumentTraversal.GetListInfo(paragraph);
                     if (listInfo != null) {
-                        AddListParagraph(addRootBlock, listStack, paragraph, listInfo.Value, options, listIndices, hasCheckbox, checkboxChecked, trimBoundaryWhitespace);
+                        markerlessAncestorLevels.RemoveAll(level => level >= listInfo.Value.Level);
+                        int renderLevel = listInfo.Value.Level;
+                        if (!listInfo.Value.MarkerVisible) {
+                            markerlessAncestorLevels.Add(listInfo.Value.Level);
+                        } else if (markerlessAncestorLevels.Count > 0) {
+                            renderLevel = Math.Max(0, renderLevel - markerlessAncestorLevels.Count);
+                        }
+                        AddListParagraph(addRootBlock, listStack, paragraph, listInfo.Value, options, listIndices, hasCheckbox, checkboxChecked, trimBoundaryWhitespace, renderLevel);
                         continue;
                     }
 
                     listStack.Clear();
+                    markerlessAncestorLevels.Clear();
                     var paragraphBlocks = BuildParagraphBlocks(paragraph, options, hasCheckbox, checkboxChecked, allowQuoteHeuristic, trimBoundaryWhitespace);
                     foreach (var block in paragraphBlocks) {
                         addRootBlock(block);
@@ -385,6 +418,7 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 listStack.Clear();
+                markerlessAncestorLevels.Clear();
 
                 if (element is WordTableOfContent tableOfContent) {
                     addRootBlock(BuildTableOfContentsMarkerBlock(tableOfContent));

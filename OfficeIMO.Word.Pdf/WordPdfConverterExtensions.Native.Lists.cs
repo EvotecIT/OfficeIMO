@@ -83,7 +83,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
-            if (info == null || marker.Level != info.Value.Level || listIndex.Level != info.Value.Level) {
+            if (info == null || !info.Value.MarkerVisible || marker.Level != info.Value.Level || listIndex.Level != info.Value.Level) {
                 return false;
             }
 
@@ -247,6 +247,58 @@ namespace OfficeIMO.Word.Pdf {
             !string.IsNullOrWhiteSpace(paragraph.StyleId) &&
             !string.Equals(paragraph.StyleId, "ListParagraph", StringComparison.OrdinalIgnoreCase);
 
+        private static void ApplyNativeMarkerlessListIndent(WordParagraph paragraph, PdfCore.PdfParagraphStyle style) {
+            WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
+            if (info == null || info.Value.MarkerVisible) return;
+            ApplyNativeInlineListIndent(paragraph, style);
+        }
+
+        private static void ApplyNativeInlineListIndent(WordParagraph paragraph, PdfCore.PdfParagraphStyle style) {
+            WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
+            if (info == null) return;
+
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+            bool useParagraphStyleIndent = ShouldApplyNativeListParagraphStyleIndent(paragraph);
+            style.LeftIndent = paragraph.IndentationBeforePoints ??
+                (useParagraphStyleIndent ? styleDefaults.LeftIndent : null) ??
+                ConvertNativeTwipsToPoints(info.Value.LeftIndentTwips ?? ((info.Value.Level + 1) * 720)) ?? 0D;
+            double hangingIndent = paragraph.IndentationHangingPoints ??
+                (useParagraphStyleIndent ? GetNativeStyleHangingIndent(styleDefaults) : null) ??
+                ConvertNativeTwipsToPoints(info.Value.HangingIndentTwips ?? 360) ?? 0D;
+            style.FirstLineIndent = paragraph.IndentationHangingPoints.HasValue
+                ? -hangingIndent
+                : paragraph.IndentationFirstLinePoints ??
+                    (useParagraphStyleIndent ? styleDefaults.FirstLineIndent : null) ?? -hangingIndent;
+        }
+
+        private static string ResolveNativeInlineListMarkerSuffix(WordListLevelSuffix? suffix) =>
+            WordDocumentTraversal.ResolveTextListMarkerSuffix(suffix);
+
+        private static PdfCore.PdfTextRun CreateNativeListMarkerTextRun(
+            string marker,
+            WordParagraph paragraph,
+            NativeResolvedTextStyle textStyle,
+            NativeFontMap? nativeFontMap,
+            bool includeSuffix = true) {
+            WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
+            if (info == null) {
+                return new PdfCore.PdfTextRun(marker + (includeSuffix ? " " : string.Empty), bold: textStyle.Bold, color: textStyle.Color,
+                    italic: textStyle.Italic, fontSize: textStyle.FontSize, font: textStyle.Font,
+                    fontFamily: textStyle.FontFamily);
+            }
+
+            return new PdfCore.PdfTextRun(
+                marker + (includeSuffix ? ResolveNativeInlineListMarkerSuffix(info.Value.LevelSuffix) : string.Empty),
+                bold: info.Value.MarkerBold ?? textStyle.Bold,
+                color: ParseNativeColor(info.Value.MarkerColorHex) ?? textStyle.Color,
+                italic: info.Value.MarkerItalic ?? textStyle.Italic,
+                fontSize: info.Value.MarkerFontSize ?? textStyle.FontSize,
+                font: ResolveNativeListMarkerFont(info.Value, marker, textStyle),
+                fontFamily: nativeFontMap != null
+                    ? ResolveNativeListMarkerFontFamily(info.Value, marker, textStyle, nativeFontMap)
+                    : textStyle.FontFamily);
+        }
+
         private static (double MarkerWidth, double MarkerGap) ResolveNativeListMarkerSpacing(W.LevelSuffixValues? levelSuffix, double markerTextWidth, double fontSize, double textIndent, double markerIndent) {
             if (levelSuffix == W.LevelSuffixValues.Nothing) {
                 return (markerTextWidth, 0D);
@@ -351,9 +403,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool ShouldUseNativeListTextFontForNormalizedMarker(WordDocumentTraversal.ListInfo info, string marker) {
-            return string.Equals(marker, "•", StringComparison.Ordinal) &&
-                   !string.IsNullOrWhiteSpace(info.MarkerFontFamily) &&
-                   string.Equals(NormalizeNativeFontFamily(info.MarkerFontFamily!), "symbol", StringComparison.OrdinalIgnoreCase);
+            return WordDocumentTraversal.ShouldUseTextFontForMarker(info, marker);
         }
 
         private static PdfCore.PdfAlign? MapNativeListMarkerAlign(W.LevelJustificationValues? value) {

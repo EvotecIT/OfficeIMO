@@ -1414,7 +1414,7 @@ namespace OfficeIMO.Tests {
                 document,
                 saveOptions,
                 nativeFontMap,
-                Array.Empty<string?>()
+                WordDocumentTraversal.BuildListMarkers(document)
             }));
 
             Assert.Equal(PdfStandardFont.TimesRoman, effective.DefaultFont);
@@ -1459,7 +1459,7 @@ namespace OfficeIMO.Tests {
                 document,
                 saveOptions,
                 nativeFontMap,
-                Array.Empty<string?>()
+                WordDocumentTraversal.BuildListMarkers(document)
             }));
 
             Assert.Equal(18D, effective.DefaultFontSize);
@@ -1567,7 +1567,7 @@ namespace OfficeIMO.Tests {
                 document,
                 saveOptions,
                 nativeFontMap,
-                Array.Empty<string?>()
+                WordDocumentTraversal.BuildListMarkers(document)
             }));
             MethodInfo getDefaults = converterType.GetMethod(
                 "GetNativeDocumentDefaults",
@@ -1657,7 +1657,7 @@ namespace OfficeIMO.Tests {
                 document,
                 saveOptions,
                 nativeFontMap,
-                Array.Empty<string?>()
+                WordDocumentTraversal.BuildListMarkers(document)
             }));
             MethodInfo resolveSingleLine = converterType.GetMethod(
                 "ResolveNativeWordSingleLineHeight",

@@ -128,6 +128,53 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void StyledHeaderRunHorizontalOffsetAppliesAtRunPosition() {
+            static (double BeforeX, double MarkerX) Render(double markerOffset) {
+                PdfTextRun marker = new PdfTextRun("Marker");
+                if (markerOffset > 0D) marker = marker.WithHorizontalOffset(markerOffset);
+                byte[] bytes = PdfDocument.Create()
+                    .Header(header => header.StyledZones(
+                        left => left.Text("Before").Run(marker).Text("After"),
+                        null,
+                        null))
+                    .Paragraph(paragraph => paragraph.Text("Body"))
+                    .ToBytes();
+                using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+                var letters = pdf.GetPage(1).Letters;
+                return (
+                    letters.First(letter => letter.Value == "B").StartBaseLine.X,
+                    letters.First(letter => letter.Value == "M").StartBaseLine.X);
+            }
+
+            (double baselineBefore, double baselineMarker) = Render(0D);
+            (double offsetBefore, double offsetMarker) = Render(36D);
+
+            Assert.InRange(Math.Abs(offsetBefore - baselineBefore), 0D, 0.01D);
+            Assert.InRange(offsetMarker - baselineMarker, 35.99D, 36.01D);
+        }
+
+        [Fact]
+        public void StyledHeaderZonesAnalyzeEachSegmentsEffectiveFont() {
+            const string familyName = "Styled Header Diagnostic Family";
+            byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont('\u0105', ' ');
+            var options = new PdfOptions()
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, font));
+            PdfDocument document = PdfDocument.Create(options)
+                .Header(header => header.StyledZones(
+                    left => left.Run(new PdfTextRun("\u0105", fontFamily: familyName)),
+                    center => center.Text("\u0105"),
+                    right => right.Text("ASCII")))
+                .Paragraph(paragraph => paragraph.Text("Body"));
+
+            PdfTextEncodingDiagnostic diagnostic = Assert.Single(
+                document.AnalyzeTextEncoding(),
+                item => item.CodePoint == "U+0105");
+
+            Assert.Contains("Center", diagnostic.Location, StringComparison.Ordinal);
+            Assert.DoesNotContain("Left", diagnostic.Location, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void HeaderFooterRichText_RejectsInteractiveAndInlineRuns() {
             var link = PdfTextRun.Link("Link", "https://example.com");
             var inline = PdfTextRun.Inline(new PdfInlineBox(12, 8));
