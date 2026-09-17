@@ -775,6 +775,7 @@ $executionPlan = @(
             Filter = $definition.Filter
             ComparisonId = $definition.ComparisonId
             CatalogComparisonId = $catalogComparisonId
+            ProvenanceWorkloadId = $catalogComparisonId
             CatalogEligible = $catalogEligibleByPolicy
             WillCatalog = $willCatalog
             Publish = [bool] $Publish -and $willCatalog
@@ -847,7 +848,7 @@ foreach ($name in $selected) {
     $artifactsPath = Join-Path $OutputRoot "$platform-$name-$RunMode-$stamp"
     New-Item -ItemType Directory -Force -Path $artifactsPath | Out-Null
     $provenanceMetadata = [ordered]@{
-        'benchmark.workload.id' = $definition.ComparisonId
+        'benchmark.workload.id' = $workloadPlan.ProvenanceWorkloadId
         'benchmark.workload.sourceCommit' = $gitSha
         'benchmark.workload.framework' = $Framework
     }

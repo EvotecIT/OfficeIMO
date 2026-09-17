@@ -34,8 +34,9 @@ $domainPlan = @(
 )
 if ($domainPlan.Count -ne 1 -or
     $domainPlan[0].CatalogComparisonId -ne 'pdf-structured-generation-net10.0-affinity-0xffff0000' -or
+    $domainPlan[0].ProvenanceWorkloadId -ne $domainPlan[0].CatalogComparisonId -or
     $domainPlan[0].AffinityMask -ne '0xFFFF0000') {
-    throw 'CPU-domain evidence does not receive a stable, non-colliding catalog identity.'
+    throw 'CPU-domain evidence does not receive one stable, non-colliding catalog and provenance identity.'
 }
 
 $internalQuestPdf = @(
