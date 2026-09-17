@@ -67,7 +67,7 @@ The modern theme is opt-in; existing layouts keep their established appearance.
 Approval blocks are printed identity and date fields. They are not PDF digital
 signatures and do not provide cryptographic proof. For a visible PDF without the
 CII attachment, such as a presentation-only comparison, call
-`ToPresentationPdfBytes`. Use `ToPdfBytes` for the hybrid Factur-X/ZUGFeRD output.
+`ToPresentationPdfBytes`. Presentation-only rendering rejects `PdfOptions` already configured for Factur-X/ZUGFeRD so it cannot silently retain an unrelated electronic-invoice attachment. Use `ToPdfBytes` for the hybrid Factur-X/ZUGFeRD output.
 
 Later edits to `invoice` cannot change the snapshot. `ToInvoice()` returns an
 independent editable model. Reuse the captured `Release` and `Profile` when

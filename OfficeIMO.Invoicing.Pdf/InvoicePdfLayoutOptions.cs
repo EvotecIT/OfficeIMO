@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Invoicing.Pdf;
@@ -13,6 +14,7 @@ public sealed class InvoicePdfLayoutOptions {
     private byte[]? _logoBytes;
     private double _logoWidth = 150D;
     private double _logoHeight = 30D;
+    private OfficeImageFit _logoFit = OfficeImageFit.Contain;
 
     /// <summary>Creates the compatibility layout: English labels with invariant numbers and ISO dates.</summary>
     public InvoicePdfLayoutOptions() => _languages.Add(InvoicePdfLanguagePack.ForCulture("en-US"));
@@ -44,6 +46,16 @@ public sealed class InvoicePdfLayoutOptions {
     public double LogoHeight {
         get => _logoHeight;
         set => _logoHeight = PositiveFinite(value, nameof(value));
+    }
+
+    /// <summary>How the logo fits its width and height box. Defaults to <see cref="OfficeImageFit.Contain"/> to preserve aspect ratio.</summary>
+    public OfficeImageFit LogoFit {
+        get => _logoFit;
+        set {
+            if (value != OfficeImageFit.Stretch && value != OfficeImageFit.Contain && value != OfficeImageFit.Cover)
+                throw new ArgumentOutOfRangeException(nameof(value));
+            _logoFit = value;
+        }
     }
 
     /// <summary>Alternate text for the logo when tagged PDF output is enabled.</summary>
@@ -105,6 +117,7 @@ public sealed class InvoicePdfLayoutOptions {
             LogoBytes = _logoBytes,
             LogoWidth = LogoWidth,
             LogoHeight = LogoHeight,
+            LogoFit = LogoFit,
             LogoAlternativeText = LogoAlternativeText
         };
         result._languages.Clear();

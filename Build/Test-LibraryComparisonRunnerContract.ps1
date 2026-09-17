@@ -68,6 +68,56 @@ if ($unrelated.Count -ne 1 -or $unrelated[0].Workload -ne 'csv') {
     throw 'An unrelated comparison workload still depends on HtmlTinkerX discovery.'
 }
 
+$affinityBeforePlan = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+        [System.Runtime.InteropServices.OSPlatform]::Windows)) {
+    [System.Diagnostics.Process]::GetCurrentProcess().ProcessorAffinity.ToInt64()
+} else {
+    $null
+}
+$affinityPlan = @(
+    & $runner -Workload csv -RunMode quick -AffinityMask 3 -PlanOnly
+)
+$affinityAfterPlan = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+        [System.Runtime.InteropServices.OSPlatform]::Windows)) {
+    [System.Diagnostics.Process]::GetCurrentProcess().ProcessorAffinity.ToInt64()
+} else {
+    $null
+}
+$expectedAffinityApplication = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+        [System.Runtime.InteropServices.OSPlatform]::Windows)) {
+    'inherited-parent-process'
+} else {
+    'benchmarkdotnet-command-line'
+}
+if ($affinityPlan.Count -ne 1 -or
+    $affinityPlan[0].AffinityMask -ne '0x3' -or
+    $affinityPlan[0].AffinityApplication -ne $expectedAffinityApplication -or
+    $affinityAfterPlan -ne $affinityBeforePlan) {
+    throw 'The benchmark plan does not report the platform-specific affinity application mechanism.'
+}
+if ($null -ne $affinityBeforePlan) {
+    $availableAffinity = [UInt64] $affinityBeforePlan
+    $singleProcessorMask = [UInt64] 1
+    while (($availableAffinity -band $singleProcessorMask) -eq 0) {
+        $singleProcessorMask = $singleProcessorMask -shl 1
+    }
+    $failedAsExpected = $false
+    try {
+        & $runner `
+            -Workload csv `
+            -RunMode quick `
+            -AffinityMask $singleProcessorMask `
+            -PowerForgeRoot (Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString('N'))) |
+            Out-Null
+    } catch {
+        $failedAsExpected = $true
+    }
+    $affinityAfterFailure = [System.Diagnostics.Process]::GetCurrentProcess().ProcessorAffinity.ToInt64()
+    if (-not $failedAsExpected -or $affinityAfterFailure -ne $affinityBeforePlan) {
+        throw 'The benchmark runner does not restore the invoking process affinity after a failed real run.'
+    }
+}
+
 $pdfStructuredRead = @(
     & $runner -Workload pdfstructuredread -RunMode quick -PlanOnly
 )

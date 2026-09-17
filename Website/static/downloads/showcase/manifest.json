@@ -1510,7 +1510,7 @@
       "id": "pdf-branded-invoice-example.pdf",
       "path": "/downloads/showcase/workflows/pdf-branded-invoice/example.pdf",
       "bytes": 214783,
-      "sha256": "76f8a77ce92f7f4f0dfeeaacdb25fd4ef6d44defaa92d3c76f87d413aa253d8a",
+      "sha256": "c33baa5c8d8795a4227c6e66cd7963e8c51a72c00926d065edd095005e0b8bcd",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-branded-invoice",
       "evidence": "The example generates the PDF and XML from one captured invoice. The runner reopens the PDF, checks its visible text, and renders both page previews with Poppler."
     },

@@ -8,7 +8,19 @@ public sealed partial class PdfInvoiceDocument {
             row.Style(new PdfRowStyle { Gap = 20D, SpacingAfter = 16D })
                 .PercentColumn(44D, column => {
                     if (_layout.LogoBytesSnapshot != null) {
-                        column.Image(_layout.LogoBytesSnapshot, _layout.LogoWidth, _layout.LogoHeight, _layout.LogoAlternativeText);
+                        column.Image(
+                            _layout.LogoBytesSnapshot,
+                            _layout.LogoWidth,
+                            _layout.LogoHeight,
+                            align: PdfAlign.Left,
+                            clipPath: null,
+                            fit: _layout.LogoFit,
+                            spacingBefore: null,
+                            spacingAfter: null,
+                            style: null,
+                            linkUri: null,
+                            linkContents: null,
+                            alternativeText: _layout.LogoAlternativeText);
                     } else {
                         column.H2(_invoice.Seller.Name, PdfAlign.Left, theme.Text);
                     }
@@ -128,7 +140,10 @@ public sealed partial class PdfInvoiceDocument {
         AddNonZero(InvoicePdfText.Rounding, _amounts.RoundingAmount);
         summary.Add(new[] { Label(InvoicePdfText.AmountDue), Money(_amounts.PayableAmount) });
 
-        int paymentSummaryLength = (_invoice.Payments.FirstOrDefault()?.Reference?.Length ?? 0) +
+        string paymentReference = _invoice.Payments
+            .Select(payment => payment.Reference)
+            .FirstOrDefault(reference => reference != null) ?? _invoice.Number;
+        int paymentSummaryLength = paymentReference.Length +
             (_invoice.PaymentTerms?.Length ?? 0);
         content.Row(row => row
             .Style(new PdfRowStyle {
@@ -140,7 +155,7 @@ public sealed partial class PdfInvoiceDocument {
                 column.PanelParagraph(p => p
                     .Bold(Label(InvoicePdfText.PaymentReference) + "\n", theme.Text)
                     .Color(theme.MutedText)
-                    .Text(_invoice.Payments.FirstOrDefault()?.Reference ?? _invoice.Number)
+                    .Text(paymentReference)
                     .Text(_invoice.PaymentTerms == null ? string.Empty : "\n" + _invoice.PaymentTerms),
                     CardStyle(theme));
             })

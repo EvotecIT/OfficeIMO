@@ -66,6 +66,18 @@ public sealed partial class PdfInvoiceDocument {
     }
 
     private byte[] RenderPdf(PdfOptions? options, bool embedInvoiceXml) {
+        if (!embedInvoiceXml && options != null &&
+            (options.ElectronicInvoiceMetadata != null ||
+             options.ComplianceProfile == PdfComplianceProfile.FacturX ||
+             options.ComplianceProfile == PdfComplianceProfile.Zugferd ||
+             options.EmbeddedFiles.Any(file => string.Equals(
+                 file.FileName,
+                 "factur-x.xml",
+                 StringComparison.OrdinalIgnoreCase)))) {
+            throw new ArgumentException(
+                "Presentation-only PDF options cannot contain Factur-X/ZUGFeRD metadata or compliance settings. Use ToPdfBytes to create a hybrid electronic invoice.",
+                nameof(options));
+        }
         PdfOptions configured = options?.Clone() ?? new PdfOptions();
         configured.UseTextFallbacks(PdfTextFallbackFeatures.MultilingualFonts);
         if (configured.TextShapingProvider == null) configured.UseManagedTextShaping();

@@ -95,19 +95,22 @@ if ($usesHtmlTinkerX -and -not [string]::IsNullOrWhiteSpace($HtmlTinkerXRoot)) {
     $htmlTinkerXSourceDirty = @(& git -C $htmlTinkerXSourceRoot status --porcelain --untracked-files=normal).Count -gt 0
 }
 $affinityLabel = if ($AffinityMask -ne 0) { '0x{0:X}' -f $AffinityMask } else { $null }
-$affinityApplication = $null
-if ($AffinityMask -ne 0 -and [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
-        [System.Runtime.InteropServices.OSPlatform]::Windows)) {
-    $benchmarkHost = [System.Diagnostics.Process]::GetCurrentProcess()
-    $benchmarkHost.ProcessorAffinity = [IntPtr]([long] $AffinityMask)
-    $observedAffinity = [UInt64] $benchmarkHost.ProcessorAffinity.ToInt64()
-    if ($observedAffinity -ne $AffinityMask) {
-        throw "Requested affinity mask $affinityLabel, but Windows applied $('0x{0:X}' -f $observedAffinity)."
-    }
-    # BenchmarkDotNet 0.15.x parses --affinity as a signed 32-bit value. Pin the
-    # coordinator instead so masks such as 0xFFFF0000 remain exact and are
+$isWindowsBenchmarkPlatform = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+    [System.Runtime.InteropServices.OSPlatform]::Windows)
+$affinityApplication = if ($AffinityMask -ne 0 -and $isWindowsBenchmarkPlatform) {
+    # BenchmarkDotNet 0.15.x parses --affinity as a signed 32-bit value. Real
+    # runs pin the coordinator so masks such as 0xFFFF0000 remain exact and are
     # inherited by restore, build, and benchmark worker processes.
-    $affinityApplication = 'inherited-parent-process'
+    'inherited-parent-process'
+} else {
+    $null
+}
+$effectiveAffinityApplication = if ($null -ne $affinityApplication) {
+    $affinityApplication
+} elseif ($AffinityMask -ne 0) {
+    'benchmarkdotnet-command-line'
+} else {
+    $null
 }
 $OutputRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
     $OutputRoot)
@@ -732,6 +735,8 @@ $executionPlan = @(
             WillCatalog = $willCatalog
             Publish = [bool] $Publish -and $willCatalog
             ExpectedCaseCount = @($definition.ExpectedCases).Count
+            AffinityMask = $affinityLabel
+            AffinityApplication = $effectiveAffinityApplication
         }
     }
 )
@@ -743,6 +748,19 @@ foreach ($item in $executionPlan) {
 if ($PlanOnly) {
     $executionPlan
     return
+}
+
+$benchmarkHost = $null
+$originalProcessorAffinity = $null
+try {
+if ($AffinityMask -ne 0 -and $isWindowsBenchmarkPlatform) {
+    $benchmarkHost = [System.Diagnostics.Process]::GetCurrentProcess()
+    $originalProcessorAffinity = $benchmarkHost.ProcessorAffinity
+    $benchmarkHost.ProcessorAffinity = [IntPtr]([long] $AffinityMask)
+    $observedAffinity = [UInt64] $benchmarkHost.ProcessorAffinity.ToInt64()
+    if ($observedAffinity -ne $AffinityMask) {
+        throw "Requested affinity mask $affinityLabel, but Windows applied $('0x{0:X}' -f $observedAffinity)."
+    }
 }
 
 if ([string]::IsNullOrWhiteSpace($PowerForgeRoot)) {
@@ -792,11 +810,7 @@ foreach ($name in $selected) {
     }
     if ($null -ne $affinityLabel) {
         $provenanceMetadata['benchmark.workload.affinityMask'] = $affinityLabel
-        $provenanceMetadata['benchmark.workload.affinityApplication'] = if ($null -ne $affinityApplication) {
-            $affinityApplication
-        } else {
-            'benchmarkdotnet-command-line'
-        }
+        $provenanceMetadata['benchmark.workload.affinityApplication'] = $effectiveAffinityApplication
     }
     if ($name -eq 'pdfhtml') {
         if ($null -ne $htmlTinkerXSourceCommit) {
@@ -982,7 +996,7 @@ $outputs = foreach ($measurement in $measurements) {
         RunMode = $RunMode
         Publish = $executionPlanByWorkload[$measurement.Workload].Publish
         AffinityMask = $affinityLabel
-        AffinityApplication = $affinityApplication
+        AffinityApplication = $effectiveAffinityApplication
         SourceCommit = $gitSha
         ArtifactsPath = $measurement.ArtifactsPath
         NormalizedResult = if ($measurement.CatalogEligible) {
@@ -996,3 +1010,11 @@ $outputs = foreach ($measurement in $measurements) {
 }
 
 $outputs
+} finally {
+    if ($null -ne $benchmarkHost -and $null -ne $originalProcessorAffinity) {
+        $benchmarkHost.ProcessorAffinity = $originalProcessorAffinity
+        if ($benchmarkHost.ProcessorAffinity.ToInt64() -ne $originalProcessorAffinity.ToInt64()) {
+            throw 'The benchmark runner could not restore the invoking process affinity.'
+        }
+    }
+}

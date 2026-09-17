@@ -1163,7 +1163,7 @@
       "image_height": 1123,
       "image_alt": "Page 1 of a generated Evotec-branded PDF invoice",
       "title": "A branded invoice with embedded CII",
-      "description": "Build a polished invoice from a typed C# model with a company logo, rounded cards and tables, payment details, and visible approval blocks. Download the PDF, its exact embedded CII XML, and the complete source.",
+      "description": "Build a polished invoice from a typed C# model with a logo, rounded tables, payment details, approvals, downloadable PDF, embedded CII XML, and source.",
       "input": "Typed invoice parties, line items, tax, payment, branding, and approval details",
       "output": "Two-page PDF with embedded CII XML",
       "proof": "The example generates the PDF and XML from one captured invoice. The runner reopens the PDF, checks its visible text, and renders both page previews with Poppler.",

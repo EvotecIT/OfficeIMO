@@ -1,5 +1,6 @@
 using OfficeIMO.Invoicing;
 using OfficeIMO.Invoicing.Tests;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Tests.Pdf;
 using Xunit;
@@ -18,6 +19,27 @@ public class PdfInvoiceDocumentTests {
         Assert.Empty(PdfDocument.Load(pdf).Attachments.Extract());
         Assert.Contains("Invoice INV-2026-001", text, StringComparison.Ordinal);
         Assert.Contains("119.00 EUR", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PresentationPdfRejectsElectronicInvoiceOptions() {
+        Invoice invoice = InvoiceFixture.Create();
+        PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract());
+        PdfOptions options = Options().UseFacturX(snapshot.ToXmlBytes());
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => snapshot.ToPresentationPdfBytes(options));
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains("ToPdfBytes", exception.Message, StringComparison.Ordinal);
+
+        options.ElectronicInvoiceMetadata = null;
+        Assert.Throws<ArgumentException>(() => snapshot.ToPresentationPdfBytes(options));
+
+        PdfOptions genericAttachment = Options().AddEmbeddedFile(
+            "FACTUR-X.XML",
+            snapshot.ToXmlBytes(),
+            "application/xml",
+            PdfAssociatedFileRelationship.Alternative);
+        Assert.Throws<ArgumentException>(() => snapshot.ToPresentationPdfBytes(genericAttachment));
     }
 
     [Fact]
@@ -43,6 +65,45 @@ public class PdfInvoiceDocumentTests {
         Assert.Contains("Finance", text, StringComparison.Ordinal);
         Assert.Contains("Referencja płatności", text, StringComparison.Ordinal);
         Assert.Contains("Akceptacje", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ModernPresentationUsesFirstAvailablePaymentReference() {
+        Invoice invoice = InvoiceFixture.Create();
+        InvoicePayment existing = invoice.Payments[0];
+        existing.Reference = "SECOND-PAYMENT-REFERENCE";
+        invoice.Payments.Insert(0, new InvoicePayment {
+            MeansCode = existing.MeansCode,
+            MeansText = existing.MeansText,
+            Account = existing.Account
+        });
+        var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
+        layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+
+        byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options());
+        string text = PdfReadDocument.Open(pdf).ExtractText();
+
+        Assert.Equal(3, text.Split(new[] { "SECOND-PAYMENT-REFERENCE" }, StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
+    public void ModernPresentationPreservesLogoAspectRatioByDefault() {
+        Invoice invoice = InvoiceFixture.Create();
+        var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
+        layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+        layout.LogoBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        layout.LogoWidth = 150D;
+        layout.LogoHeight = 30D;
+
+        Assert.Equal(OfficeImageFit.Contain, layout.LogoFit);
+        Assert.Throws<ArgumentOutOfRangeException>(() => layout.LogoFit = (OfficeImageFit)999);
+
+        byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options());
+        PdfImagePlacement placement = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetImagePlacements());
+
+        Assert.InRange(placement.Width, 29.99D, 30.01D);
+        Assert.InRange(placement.Height, 29.99D, 30.01D);
     }
 
     [Fact]
