@@ -139,14 +139,14 @@ public sealed partial class EpubDocument {
             if (resource.Encryption?.RequiresDecryption == true) {
                 throw new InvalidDataException("EPUB content document requires unsupported decryption: " + resource.Path);
             }
-            string html = OfficeContentSafetyInputGuard.DecodeText(bytes, options);
+            bool xhtml = IsXhtmlResource(resource);
+            string html = DecodeContentDocument(bytes, options, xhtml);
             var renderOptions = CreateEpubRenderOptions(
                 resource.Path,
                 packageBytes,
                 resourcesByUri,
                 effectiveReadOptions,
                 options);
-            bool xhtml = IsXhtmlResource(resource);
             parts.Add(new HtmlContentSafetyPackagePart(
                 resource.Path,
                 html,
@@ -155,6 +155,25 @@ public sealed partial class EpubDocument {
                 serializeAsXhtml: xhtml));
         }
         return new EpubContentSafetyPackage(document, parts);
+    }
+
+    private static string DecodeContentDocument(
+        byte[] bytes,
+        OfficeContentSafetyOptions options,
+        bool xhtml) {
+        if (xhtml) return OfficeContentSafetyInputGuard.DecodeText(bytes, options);
+        try {
+            using var source = new MemoryStream(bytes, writable: false);
+            Encoding encoding = HtmlTextEncodingResolver.Default.ResolveHtmlEncoding(source);
+            encoding = (Encoding)encoding.Clone();
+            encoding.DecoderFallback = DecoderFallback.ExceptionFallback;
+            using var reader = new StreamReader(source, encoding, detectEncodingFromByteOrderMarks: true);
+            string html = reader.ReadToEnd();
+            OfficeContentSafetyInputGuard.ValidateText(html, options);
+            return html;
+        } catch (DecoderFallbackException exception) {
+            throw new InvalidDataException("The EPUB HTML content document contains invalid encoded text.", exception);
+        }
     }
 
     private static EpubReadOptions CreateContentSafetyReadOptions(EpubReadOptions? source, OfficeContentSafetyOptions safety) {
@@ -346,10 +365,22 @@ public sealed partial class EpubDocument {
             encoding = new UnicodeEncoding(false, false, true);
             preamble = new byte[] { 0xFF, 0xFE };
         } else {
-            encoding = new UTF8Encoding(false, true);
+            using var stream = new MemoryStream(original, writable: false);
+            encoding = HtmlTextEncodingResolver.Default.ResolveHtmlEncoding(stream);
             preamble = Array.Empty<byte>();
         }
-        byte[] payload = encoding.GetBytes(text);
+        try {
+            encoding = (Encoding)encoding.Clone();
+            encoding.EncoderFallback = EncoderFallback.ExceptionFallback;
+        } catch (NotSupportedException exception) {
+            throw new InvalidDataException("The EPUB content document declared an encoding that cannot be preserved safely.", exception);
+        }
+        byte[] payload;
+        try {
+            payload = encoding.GetBytes(text);
+        } catch (EncoderFallbackException exception) {
+            throw new InvalidDataException("The EPUB content document encoding cannot represent the cleaned HTML.", exception);
+        }
         if (preamble.Length == 0) return payload;
         var result = new byte[preamble.Length + payload.Length];
         Buffer.BlockCopy(preamble, 0, result, 0, preamble.Length);

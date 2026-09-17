@@ -37,6 +37,10 @@ public sealed partial class MhtmlDocument {
         if (!IsMultipartRelated(_mimeDocument.Headers)) {
             throw new InvalidDataException("The artifact is an RFC message but its root is not multipart/related MHTML.");
         }
+        // The MIME projection can select an HTML body from a nested multipart/alternative and
+        // thereby lose the outer related-root marker. MHTML serialization must retain the
+        // validated top-level multipart/related contract even when no related resources exist.
+        _mimeDocument.Body.IsHtmlRelatedRoot = true;
 
         ContentLocation = NormalizeOptional(_mimeDocument.Body.HtmlContentLocation)
             ?? GetHeaderValue(_mimeDocument.Headers, "Snapshot-Content-Location")

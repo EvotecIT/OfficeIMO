@@ -295,7 +295,8 @@ public static partial class HtmlResourcePipeline {
         HashSet<string> relTokens = GetRelTokens(rel);
         bool isPreload = relTokens.Contains("preload");
         bool isStylesheet = relTokens.Contains("stylesheet");
-        if (isStylesheet && (element.HasAttribute("disabled") || relTokens.Contains("alternate"))) {
+        if (isStylesheet && (element.HasAttribute("disabled") || relTokens.Contains("alternate")
+                || !IsCssStylesheetType(element.GetAttribute("type")))) {
             return;
         }
         if ((isPreload || isStylesheet) && !IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options)) {
@@ -322,6 +323,13 @@ public static partial class HtmlResourcePipeline {
         if (isPreload && kind == HtmlResourceKind.Image) {
             AddSrcSet(manifest, HtmlResourceKind.Image, element, "imagesrcset", baseUri, options);
         }
+    }
+
+    internal static bool IsCssStylesheetType(string? type) {
+        if (string.IsNullOrWhiteSpace(type)) return true;
+        int parameterSeparator = type!.IndexOf(';');
+        string essence = (parameterSeparator < 0 ? type : type.Substring(0, parameterSeparator)).Trim();
+        return essence.Equals("text/css", StringComparison.OrdinalIgnoreCase);
     }
 
     private static HashSet<string> GetRelTokens(string rel) {

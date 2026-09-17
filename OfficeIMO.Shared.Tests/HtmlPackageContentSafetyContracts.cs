@@ -47,6 +47,23 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_CleanupPreservesRelatedWrapperAroundAlternativeRoot() {
+        byte[] input = BuildMhtmlWithAlternativeRootOnly();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Alternative concealed text", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult result = MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+
+        using var output = new MemoryStream(result.Output, writable: false);
+        MhtmlDocument reopened = MhtmlDocument.Load(output);
+        Assert.Contains("Visible alternative", reopened.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Alternative concealed text", reopened.Html, StringComparison.Ordinal);
+        Assert.Contains("multipart/related", Encoding.ASCII.GetString(result.Output), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Mhtml_MissingLinkedStylesheetFailsClosed() {
         byte[] input = new MhtmlDocument(
             "<html><head><link rel='stylesheet' href='missing.css'></head><body><p>Visible</p></body></html>",
@@ -125,6 +142,24 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(mhtml));
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, stylesheetIntegrity: true)));
+    }
+
+    [Fact]
+    public void PackageStylesheetsWithNonCssTypeHintsAreInactive() {
+        byte[] mhtml = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' type='text/plain' href='styles.css'></head>" +
+            "<body><p class='concealed'>Non-CSS MHTML text.</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "text/css",
+                    contentLocation: "styles.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.DoesNotContain(MhtmlDocument.InspectContentSafety(mhtml).Findings, finding =>
+            finding.TextPreview.Contains("Non-CSS MHTML text", StringComparison.Ordinal));
+        Assert.DoesNotContain(EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, nonCssStylesheetType: true)).Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -404,6 +439,23 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Epub_CleanupPreservesDeclaredLegacyHtmlEncoding() {
+        byte[] input = BuildLegacyEncodedHtmlEpub();
+        OfficeContentSafetyFinding finding = Assert.Single(EpubDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Legacy concealed text", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult result = EpubDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+
+        byte[] chapter = ReadEntry(result.Output, "EPUB/chapter.html");
+        Assert.Contains((byte)0xE9, chapter);
+        Assert.DoesNotContain("C3-A9", BitConverter.ToString(chapter), StringComparison.Ordinal);
+        Assert.Contains("windows-1252", Encoding.ASCII.GetString(chapter), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(result.After.Findings, item => item.Id == finding.Id);
+    }
+
+    [Fact]
     public void Epub_StylesheetFragmentsResolveAgainstThePackageEntry() {
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, stylesheetFragment: true));
@@ -656,6 +708,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool uppercaseStyleElement = false,
         bool uppercaseStyleAttribute = false,
         bool stylesheetIntegrity = false,
+        bool nonCssStylesheetType = false,
         int unusedAssetBytes = 4) {
         string rootfiles =
             "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
@@ -723,6 +776,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
                   "' href='" + stylesheetHref + "'" +
                   (disabledStylesheet ? " disabled='disabled'" : string.Empty) +
                   (stylesheetIntegrity ? " integrity='sha256-invalid'" : string.Empty) +
+                  (nonCssStylesheetType ? " type='text/plain'" : string.Empty) +
                   (alternateStylesheet ? " title='dark'" : string.Empty) + "/>";
         if (uppercaseStyleAttribute) {
             chapterBody = "<p STYLE='display:none'>Noncanonical attribute concealed text.</p>";
@@ -762,6 +816,25 @@ public sealed class HtmlPackageContentSafetyContractTests {
             entries.Add(("EPUB/assets/keep.bin", Enumerable.Repeat((byte)9, unusedAssetBytes).ToArray()));
         }
 
+        return WriteStoredPackage(entries);
+    }
+
+    private static byte[] BuildLegacyEncodedHtmlEpub() {
+        var entries = new List<(string Name, byte[] Data)> {
+            ("mimetype", Encoding.ASCII.GetBytes("application/epub+zip")),
+            ("META-INF/container.xml", Encoding.UTF8.GetBytes(
+                "<container version='1.0' xmlns='urn:oasis:names:tc:opendocument:xmlns:container'><rootfiles>" +
+                "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
+                "</rootfiles></container>")),
+            ("EPUB/package.opf", Encoding.UTF8.GetBytes(
+                "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest>" +
+                "<item id='chapter' href='chapter.html' media-type='text/html'/>" +
+                "</manifest><spine><itemref idref='chapter'/></spine></package>")),
+            ("EPUB/chapter.html", Encoding.ASCII.GetBytes(
+                "<!doctype html><html><head><meta charset='windows-1252'></head><body>" +
+                "<p style='display:none'>Legacy concealed text.</p><p>caf&#233;</p>" +
+                "</body></html>"))
+        };
         return WriteStoredPackage(entries);
     }
 
@@ -856,6 +929,21 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Type: application/pkcs7-mime; name=payload.p7m\r\n" +
         "Content-Disposition: attachment; filename=payload.p7m\r\n" +
         "Content-Transfer-Encoding: base64\r\n\r\nAA==\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithAlternativeRootOnly() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: multipart/alternative; boundary=inner\r\n\r\n" +
+        "--inner\r\n" +
+        "Content-Type: text/plain; charset=utf-8\r\n\r\n" +
+        "Visible alternative.\r\n" +
+        "--inner\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p style='display:none'>Alternative concealed text.</p>" +
+        "<p>Visible alternative.</p></body></html>\r\n" +
+        "--inner--\r\n" +
         "--outer--\r\n");
 
     private static byte[] BuildMhtmlWithProtectedNestedMessage() => Encoding.ASCII.GetBytes(

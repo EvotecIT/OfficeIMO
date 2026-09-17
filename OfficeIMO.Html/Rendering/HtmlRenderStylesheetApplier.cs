@@ -41,7 +41,8 @@ internal static class HtmlRenderStylesheetApplier {
             }
         }
         foreach (IElement link in document.QuerySelectorAll("link[href]")) {
-            if (!IsStylesheetLink(link) || link.HasAttribute("disabled") || IsAlternateStylesheetLink(link)) {
+            if (!IsStylesheetLink(link) || link.HasAttribute("disabled") || IsAlternateStylesheetLink(link)
+                || !HtmlResourcePipeline.IsCssStylesheetType(link.GetAttribute("type"))) {
                 continue;
             }
 
