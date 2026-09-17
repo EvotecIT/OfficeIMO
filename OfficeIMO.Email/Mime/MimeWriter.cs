@@ -472,7 +472,7 @@ internal static class MimeWriter {
         string? fileName = attachment.FileName;
         bool preservePartHeaders = attachment.PreserveMimeHeadersOnWrite && attachment.MimeHeaders.Count > 0 && !embeddedMessage;
         if (preservePartHeaders) {
-            WritePreservedPartHeaders(output, attachment.MimeHeaders, omitPayloadDependentHeaders: false);
+            WritePreservedPartHeaders(output, attachment.MimeHeaders, omitPayloadDependentHeaders: true);
         } else {
             WriteLine(output, string.Concat("Content-Type: ", SanitizeToken(contentType),
                 FormatContentTypeParameters(attachment.ContentTypeParameters), FormatFileNameParameter("name", fileName)));

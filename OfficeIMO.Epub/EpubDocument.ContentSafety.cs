@@ -207,7 +207,10 @@ public sealed partial class EpubDocument {
         };
         renderOptions.ResourceResolver = (request, token) => {
             token.ThrowIfCancellationRequested();
-            var lookupUri = new UriBuilder(request.Uri) { Fragment = string.Empty }.Uri;
+            var lookupUri = new UriBuilder(request.Uri) {
+                Fragment = string.Empty,
+                Query = string.Empty
+            }.Uri;
             if (!request.Uri.Scheme.Equals("epub", StringComparison.OrdinalIgnoreCase)
                 || !resourcesByUri.TryGetValue(lookupUri.AbsoluteUri, out EpubResource? resource)
                 || resource.Encryption?.RequiresDecryption == true) {

@@ -75,7 +75,7 @@ public sealed class HtmlResolvedResource {
     }
 
     private HtmlResolvedResource(byte[] bytes, string contentType, Uri? finalUri, int redirectCount, bool hasRedirectProvenance) {
-        if (bytes == null || bytes.Length == 0) throw new ArgumentException("Resolved resources require non-empty bytes.", nameof(bytes));
+        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         if (redirectCount < 0) throw new ArgumentOutOfRangeException(nameof(redirectCount));
         _bytes = (byte[])bytes.Clone();
         ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType.Trim();

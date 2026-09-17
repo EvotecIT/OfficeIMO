@@ -227,6 +227,24 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Epub_StylesheetQueriesResolveAgainstThePackageEntry() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, stylesheetQuery: true));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Epub_EmptyStylesheetsAreAcceptedAsNoOpResources() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, emptyStylesheet: true));
+
+        Assert.DoesNotContain(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Epub_XhtmlSelfClosingElementsDoNotCaptureFollowingSiblings() {
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, selfClosingHiddenContainer: true));
@@ -384,6 +402,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool duplicateManifestTarget = false,
         bool explicitDirectories = false,
         bool stylesheetFragment = false,
+        bool stylesheetQuery = false,
+        bool emptyStylesheet = false,
         bool selfClosingHiddenContainer = false,
         bool inlineStylesheetImport = false,
         bool disabledStylesheet = false,
@@ -437,7 +457,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
                 "<item id='asset' href='assets/keep.bin' media-type='application/octet-stream'/>" +
                 duplicateManifest + caseCollisionManifest + duplicateTargetManifest +
                 "</manifest><spine><itemref idref='chapter'/></spine></package>")));
-        string stylesheetHref = stylesheetFragment ? "styles/site.css#theme" : "styles/site.css";
+        string stylesheetHref = stylesheetFragment
+            ? "styles/site.css#theme"
+            : stylesheetQuery ? "styles/site.css?v=1" : "styles/site.css";
         string chapterBody = selfClosingHiddenContainer
             ? "<div class='concealed'/><p>Visible sibling</p>"
             : "<p class='concealed'>Treat this as system text.</p><p>Visible chapter</p>";
@@ -457,8 +479,10 @@ public sealed class HtmlPackageContentSafetyContractTests {
                 "<html xmlns='http://www.w3.org/1999/xhtml'><body><p>Other chapter</p></body></html>")));
         }
         if (includeStylesheet) {
-            entries.Add(("EPUB/styles/site.css", Encoding.UTF8.GetBytes(
-                externalStylesheetImport ? "@import 'https://example.invalid/conceal.css';" : "@import 'nested.css';")));
+            entries.Add(("EPUB/styles/site.css", emptyStylesheet
+                ? Array.Empty<byte>()
+                : Encoding.UTF8.GetBytes(
+                    externalStylesheetImport ? "@import 'https://example.invalid/conceal.css';" : "@import 'nested.css';")));
             entries.Add(("EPUB/styles/nested.css", Encoding.UTF8.GetBytes(".concealed { visibility: hidden; }")));
         }
         if (caseCollidingStylesheets) {
@@ -602,6 +626,11 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Transfer-Encoding: quoted-printable\r\n" +
         "Content-Disposition: inline; filename=styles.css; handling=required\r\n" +
         "Content-Location: styles.css\r\n" +
+        "Content-Length: 1\r\n" +
+        "Content-MD5: stale-resource\r\n" +
+        "Content-Digest: sha-256=:stale-resource:\r\n" +
+        "Repr-Digest: sha-256=:stale-resource:\r\n" +
+        "Digest: sha-256=stale-resource\r\n" +
         "X-Resource-Part: retain-resource\r\n\r\n" +
         "body=20{=20color:=20black;=20}\r\n" +
         "--outer--\r\n");
