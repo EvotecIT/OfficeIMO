@@ -550,7 +550,7 @@ internal static class HtmlRenderResourceLoader {
                 HtmlResourceReference reference = pendingResource.Reference;
                 if (!reference.IsAllowed || !IsLoadableKind(reference.Kind) || reference.ResolvedSource.Length == 0) continue;
                 if (reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
-                if (!seen.Add(reference.ResolvedSource)) continue;
+                if (!seen.Add(GetSeenKey(reference.Kind, reference.ResolvedSource))) continue;
                 if (!result.TryReserveRequest(reference)) {
                     stop = true;
                     break;
@@ -636,7 +636,7 @@ internal static class HtmlRenderResourceLoader {
                     if (stopAfterResource) stop = true;
                     continue;
                 }
-                seen.Add(resourceUri.AbsoluteUri);
+                seen.Add(GetSeenKey(reference.Kind, resourceUri.AbsoluteUri));
                 if (alreadyAccepted) continue;
                 if (reference.Kind == HtmlResourceKind.Stylesheet
                     && HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, resource.ContentType, out string css)) {
@@ -765,5 +765,8 @@ internal static class HtmlRenderResourceLoader {
 
     private static bool IsLoadableKind(HtmlResourceKind kind) =>
         kind == HtmlResourceKind.Image || kind == HtmlResourceKind.Stylesheet || kind == HtmlResourceKind.Font;
+
+    private static string GetSeenKey(HtmlResourceKind kind, string resolvedSource) =>
+        string.Concat(((int)kind).ToString(System.Globalization.CultureInfo.InvariantCulture), "\n", resolvedSource);
 
 }

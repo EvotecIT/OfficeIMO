@@ -19,17 +19,20 @@ internal sealed class HtmlExternalStylesheetAnalysis {
 }
 
 internal sealed class HtmlExternalStylesheetImport {
-    internal HtmlExternalStylesheetImport(int start, int end, HtmlResourceReference reference, bool isApplicable) {
+    internal HtmlExternalStylesheetImport(int start, int end, HtmlResourceReference reference, bool isApplicable,
+        bool hasLayerCondition) {
         Start = start;
         End = end;
         Reference = reference;
         IsApplicable = isApplicable;
+        HasLayerCondition = hasLayerCondition;
     }
 
     internal int Start { get; }
     internal int End { get; }
     internal HtmlResourceReference Reference { get; }
     internal bool IsApplicable { get; }
+    internal bool HasLayerCondition { get; }
 }
 
 public static partial class HtmlResourcePipeline {
@@ -97,7 +100,8 @@ public static partial class HtmlResourcePipeline {
                 import.Start,
                 import.End,
                 reference,
-                IsApplicableCssImport(import.ConditionText, options)));
+                IsApplicableCssImport(import.ConditionText, options),
+                HasCssImportLayerCondition(import.ConditionText)));
         }
 
         foreach (HtmlCssFontFaceDefinition definition in ExtractFontFaces(normalized, options)) {
@@ -145,5 +149,11 @@ public static partial class HtmlResourcePipeline {
         }
 
         return new HtmlExternalStylesheetAnalysis(normalized, imports.AsReadOnly(), fontResources.AsReadOnly(), imageResources.AsReadOnly());
+    }
+
+    private static bool HasCssImportLayerCondition(string conditionText) {
+        string remaining = conditionText.TrimStart();
+        return TryConsumeCssImportFunctionCondition(remaining, "layer", out _, out _)
+            || StartsWithCssIdentifier(remaining, "layer");
     }
 }

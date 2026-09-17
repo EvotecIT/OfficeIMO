@@ -56,6 +56,45 @@ public sealed class EmailContentSourceTests {
     }
 
     [Fact]
+    public void BoundaryCollisionSearchReadsASeekableAttachmentOnlyOnce() {
+        EmailDocument template = CreateBoundaryCollisionDocument();
+        template.Attachments.Add(new EmailAttachment {
+            FileName = "payload.bin",
+            ContentType = "application/octet-stream",
+            Content = Encoding.ASCII.GetBytes("placeholder")
+        });
+        string serialized = Encoding.ASCII.GetString(new EmailDocumentWriter().ToBytes(template, EmailFileFormat.Eml));
+        const string boundaryMarker = "boundary=\"";
+        int boundaryStart = serialized.IndexOf(boundaryMarker, StringComparison.Ordinal);
+        Assert.True(boundaryStart >= 0);
+        boundaryStart += boundaryMarker.Length;
+        int boundaryEnd = serialized.IndexOf('"', boundaryStart);
+        string prefix = serialized.Substring(boundaryStart, boundaryEnd - boundaryStart);
+
+        var payload = new StringBuilder();
+        payload.Append("--").Append(prefix).Append("\r\n");
+        for (int attempt = 1; attempt < 256; attempt++) {
+            payload.Append("--").Append(prefix).Append('_')
+                .Append(attempt.ToString("x2", System.Globalization.CultureInfo.InvariantCulture))
+                .Append("\r\n");
+        }
+        byte[] bytes = Encoding.ASCII.GetBytes(payload.ToString());
+        var source = new CountingSeekableContentSource(bytes);
+        EmailDocument document = CreateBoundaryCollisionDocument();
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "payload.bin",
+            ContentType = "application/octet-stream",
+            ContentSource = source,
+            Length = bytes.LongLength
+        });
+
+        Assert.Throws<InvalidDataException>(() =>
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml));
+        Assert.Equal(1, source.OpenCount);
+        Assert.Equal(bytes.LongLength, source.BytesRead);
+    }
+
+    [Fact]
     public async Task AttachmentCanOpenSourceSynchronouslyAndAsynchronously() {
         byte[] payload = new byte[] { 1, 2, 3 };
         var attachment = new EmailAttachment { ContentSource = new CountingContentSource(payload) };
@@ -298,6 +337,14 @@ public sealed class EmailContentSourceTests {
         return document;
     }
 
+    private static EmailDocument CreateBoundaryCollisionDocument() => new EmailDocument {
+        Format = EmailFileFormat.Eml,
+        Subject = "boundary collision scan",
+        Body = {
+            Html = "<html><body><p>Body</p></body></html>"
+        }
+    };
+
     private static byte[] ReadAll(Stream stream) {
         using var output = new MemoryStream();
         stream.CopyTo(output);
@@ -314,6 +361,34 @@ public sealed class EmailContentSourceTests {
             cancellationToken.ThrowIfCancellationRequested();
             OpenCount++;
             return Task.FromResult<Stream>(new MemoryStream(_content, writable: false));
+        }
+    }
+
+    private sealed class CountingSeekableContentSource : IEmailContentSource {
+        private readonly byte[] _content;
+        internal CountingSeekableContentSource(byte[] content) { _content = content; }
+        public long? Length => _content.LongLength;
+        internal int OpenCount { get; private set; }
+        internal long BytesRead { get; private set; }
+        public Stream OpenRead() {
+            OpenCount++;
+            return new CountingMemoryStream(_content, count => BytesRead += count);
+        }
+        public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(OpenRead());
+        }
+    }
+
+    private sealed class CountingMemoryStream : MemoryStream {
+        private readonly Action<int> _count;
+        internal CountingMemoryStream(byte[] content, Action<int> count) : base(content, writable: false) {
+            _count = count;
+        }
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            _count(read);
+            return read;
         }
     }
 

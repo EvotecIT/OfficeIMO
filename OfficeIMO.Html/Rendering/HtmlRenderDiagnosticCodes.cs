@@ -206,6 +206,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string StylesheetImportCycle = "HtmlRenderStylesheetImportCycle";
     /// <summary>Stylesheet imports exceeded the configured recursion depth.</summary>
     public const string StylesheetImportDepthExceeded = "HtmlRenderStylesheetImportDepthExceeded";
+    /// <summary>A layered stylesheet import could not be flattened without changing cascade semantics.</summary>
+    public const string StylesheetImportLayerUnsupported = "HtmlRenderStylesheetImportLayerUnsupported";
     /// <summary>Legacy diagnostic retained for source compatibility; stylesheet URL resources are active.</summary>
     public const string StylesheetUrlResourcesPending = "HtmlRenderStylesheetUrlResourcesPending";
     /// <summary>A repeated table header was suppressed because it left no safe body-row break.</summary>
@@ -319,6 +321,7 @@ public static class HtmlRenderDiagnosticCodes {
         StylesheetEncodingUnsupported,
         StylesheetImportCycle,
         StylesheetImportDepthExceeded,
+        StylesheetImportLayerUnsupported,
         StylesheetUrlResourcesPending,
         TableFooterRepeatSuppressed,
         TableHeaderRepeatSuppressed,

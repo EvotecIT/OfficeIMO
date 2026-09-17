@@ -284,7 +284,6 @@ public sealed partial class EpubDocument {
             "epub.manifest.duplicate-id",
             "epub.manifest.duplicate-target",
             "epub.resource.count-limit",
-            "epub.resource.missing",
             "epub.resource.size-limit",
             "epub.resource.total-size-limit",
             "epub.resource.encrypted",

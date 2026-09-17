@@ -150,7 +150,16 @@ internal static class HtmlRenderStylesheetApplier {
             HtmlExternalStylesheetImport import = analysis.Imports[index];
             string replacement = string.Empty;
             HtmlResourceReference reference = import.Reference;
-            if (import.IsApplicable
+            if (import.IsApplicable && import.HasLayerCondition) {
+                diagnostics.Add(
+                    ComponentName,
+                    HtmlRenderDiagnosticCodes.StylesheetImportLayerUnsupported,
+                    "A layered stylesheet import was not flattened because doing so would change cascade priority.",
+                    HtmlDiagnosticSeverity.Error,
+                    reference.Source,
+                    stylesheetUri.AbsoluteUri,
+                    OfficeConversionLossKind.Omission);
+            } else if (import.IsApplicable
                 && reference.IsAllowed
                 && !resources.WasStylesheetRejected(reference.Source, reference.ResolvedSource)
                 && resources.TryGet(reference.Source, reference.ResolvedSource, out HtmlResolvedResource importedResource)

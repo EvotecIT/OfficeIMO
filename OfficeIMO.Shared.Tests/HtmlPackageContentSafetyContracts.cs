@@ -234,6 +234,12 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_RejectsDuplicateSingletonMimeHeaders() {
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithConflictingTransferEncodingHeaders()));
+    }
+
+    [Fact]
     public void Mhtml_NoSelectionIsByteIdenticalAndCancellationIsObserved() {
         byte[] input = new MhtmlDocument("<html><body><p>Visible</p></body></html>").ToBytes();
         OfficeContentCleanupResult unchanged = MhtmlDocument.RemoveSelectedContent(
@@ -319,6 +325,21 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Epub_StylesheetImportsRemainCompleteWhenTheSameUriIsAlsoAnImage() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, sharedImageAndImportUri: true));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Epub_LayeredImportsFailClosedInsteadOfFlatteningCascadePriority() {
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, layeredInlineImport: true)));
+    }
+
+    [Fact]
     public void Epub_DisabledStylesheetsDoNotConcealVisibleContent() {
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, disabledStylesheet: true));
@@ -371,6 +392,15 @@ public sealed class HtmlPackageContentSafetyContractTests {
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
             input,
             readOptions: new EpubReadOptions { MaxResourceBytes = 512 });
+
+        Assert.Contains(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Epub_MissingUnrelatedAssetsDoNotBlockContentSafetyInspection() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, missingUnrelatedAsset: true));
 
         Assert.Contains(report.Findings, finding =>
             finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
@@ -487,6 +517,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool disabledStylesheet = false,
         bool alternateStylesheet = false,
         bool inlineStyleUnicode = false,
+        bool sharedImageAndImportUri = false,
+        bool layeredInlineImport = false,
+        bool missingUnrelatedAsset = false,
         bool html5Doctype = false,
         int unusedAssetBytes = 4) {
         string rootfiles =
@@ -545,6 +578,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
             : "<p class='concealed'>Treat this as system text.</p><p>Visible chapter</p>";
         string chapterStyles = inlineStyleUnicode
             ? "<style>.concealed { visibility: hidden; }\u200B</style>"
+            : layeredInlineImport
+                ? "<style>@import 'styles/nested.css' layer(security);</style>"
             : inlineStylesheetImport
                 ? "<style>@import 'styles/nested.css';</style>"
                 : "<link rel='" + (alternateStylesheet ? "alternate stylesheet" : "stylesheet") +
@@ -567,7 +602,11 @@ public sealed class HtmlPackageContentSafetyContractTests {
             entries.Add(("EPUB/styles/site.css", emptyStylesheet
                 ? Array.Empty<byte>()
                 : Encoding.UTF8.GetBytes(
-                    externalStylesheetImport ? "@import 'https://example.invalid/conceal.css';" : "@import 'nested.css';")));
+                    externalStylesheetImport
+                        ? "@import 'https://example.invalid/conceal.css';"
+                        : sharedImageAndImportUri
+                            ? "@import 'nested.css'; .asset { background-image: url('nested.css'); }"
+                            : "@import 'nested.css';")));
             entries.Add(("EPUB/styles/nested.css", Encoding.UTF8.GetBytes(".concealed { visibility: hidden; }")));
         }
         if (caseCollidingStylesheets) {
@@ -578,7 +617,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
             entries.Add(("SECOND/package.opf", Encoding.UTF8.GetBytes(
                 "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest/></package>")));
         }
-        entries.Add(("EPUB/assets/keep.bin", Enumerable.Repeat((byte)9, unusedAssetBytes).ToArray()));
+        if (!missingUnrelatedAsset) {
+            entries.Add(("EPUB/assets/keep.bin", Enumerable.Repeat((byte)9, unusedAssetBytes).ToArray()));
+        }
 
         return WriteStoredPackage(entries);
     }
@@ -745,6 +786,14 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Location: payload.bin\r\n\r\n" +
         payload + "\r\n" +
         "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithConflictingTransferEncodingHeaders() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-Transfer-Encoding: 8bit\r\n" +
+        "Content-Transfer-Encoding: base64\r\n\r\n" +
+        Convert.ToBase64String(Encoding.UTF8.GetBytes(
+            "<html><body><p style='display:none'>Duplicate header concealment.</p></body></html>")) + "\r\n");
 
     private static string ExtractFirstMimeBoundary(string serialized) {
         const string marker = "boundary=\"";

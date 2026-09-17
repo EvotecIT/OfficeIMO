@@ -1,6 +1,15 @@
 namespace OfficeIMO.Email;
 
 internal static class MimeHeaderParser {
+    internal const string DuplicateSingletonHeaderDiagnosticCode = "EMAIL_MIME_SINGLETON_HEADER_DUPLICATE";
+    private static readonly string[] SingletonContentHeaders = {
+        "Content-Type",
+        "Content-Transfer-Encoding",
+        "Content-Disposition",
+        "Content-ID",
+        "Content-Location"
+    };
+
     internal static int Parse(byte[] data, int offset, int count, EmailReaderOptions options,
         IList<EmailHeader> headers, IList<EmailDiagnostic> diagnostics, string location) {
         int end = offset + count;
@@ -76,6 +85,21 @@ internal static class MimeHeaderParser {
     internal static IEnumerable<string> GetRawValues(IEnumerable<EmailHeader> headers, string name) {
         return headers.Where(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase))
             .Select(item => item.RawValue ?? item.Value);
+    }
+
+    internal static void ReportDuplicateSingletonHeaders(
+        IReadOnlyList<EmailHeader> headers,
+        IList<EmailDiagnostic> diagnostics,
+        string location) {
+        foreach (string name in SingletonContentHeaders) {
+            int count = headers.Count(header => string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (count <= 1) continue;
+            diagnostics.Add(new EmailDiagnostic(
+                DuplicateSingletonHeaderDiagnosticCode,
+                string.Concat("MIME entity declares singleton header '", name, "' more than once."),
+                EmailDiagnosticSeverity.Warning,
+                location));
+        }
     }
 
     private static int FindHeaderEnd(byte[] data, int offset, int end, out int separatorLength) {

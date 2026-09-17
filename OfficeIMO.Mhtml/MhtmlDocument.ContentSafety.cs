@@ -128,10 +128,11 @@ public sealed partial class MhtmlDocument {
             || diagnostic.Code == MhtmlDiagnosticCodes.DuplicateContentLocation
             || diagnostic.Code == MhtmlDiagnosticCodes.DuplicateResourceIdentity
             || diagnostic.Code == MhtmlDiagnosticCodes.InvalidContentLocation
+            || diagnostic.Code == MimeHeaderParser.DuplicateSingletonHeaderDiagnosticCode
             || diagnostic.Code == MimeParser.MultipleHtmlBodyDiagnosticCode);
         if (ambiguous != null) {
             throw new InvalidDataException(
-                "MHTML content-safety inspection requires unambiguous embedded resource identities. " +
+                "MHTML content-safety inspection requires unambiguous MIME content headers and embedded resource identities. " +
                 ambiguous.Code + ": " + ambiguous.Message);
         }
         return document;

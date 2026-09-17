@@ -702,83 +702,118 @@ internal static class MimeWriter {
         Hash(ref hash, depth.ToString(CultureInfo.InvariantCulture));
         Hash(ref hash, kind);
         string prefix = string.Concat("=_OfficeIMO_", kind, "_", hash.ToString("x16", CultureInfo.InvariantCulture));
+        var collisions = new bool[256];
+        CollectBoundaryCollisions(document, prefix, state, collisions, new HashSet<EmailDocument>());
         for (int attempt = 0; attempt < 256; attempt++) {
-            string candidate = attempt == 0
+            if (collisions[attempt]) continue;
+            return attempt == 0
                 ? prefix
                 : string.Concat(prefix, "_", attempt.ToString("x2", CultureInfo.InvariantCulture));
-            if (!BoundaryCollides(document, candidate, state)) return candidate;
         }
         throw new InvalidDataException("A collision-free MIME boundary could not be generated for the message payload.");
     }
 
-    private static bool BoundaryCollides(EmailDocument document, string boundary, MimeWriterState state) =>
-        BoundaryCollides(document, boundary, state, new HashSet<EmailDocument>());
-
-    private static bool BoundaryCollides(
+    private static void CollectBoundaryCollisions(
         EmailDocument document,
-        string boundary,
+        string boundaryPrefix,
         MimeWriterState state,
+        bool[] collisions,
         ISet<EmailDocument> activeDocuments) {
         if (!activeDocuments.Add(document)) {
             throw new InvalidOperationException("The embedded-message graph contains a cycle.");
         }
         try {
-            string marker = "--" + boundary;
-            if (ContainsBoundaryMarker(document.Body.Text, marker)
-                || ContainsBoundaryMarker(document.Body.Html, marker)
-                || ContainsBoundaryMarker(document.Body.Rtf, marker)) {
-                return true;
-            }
-
-            byte[] markerBytes = Encoding.ASCII.GetBytes(marker);
+            byte[] markerPrefix = Encoding.ASCII.GetBytes("--" + boundaryPrefix);
+            CollectBoundaryCollisions(document.Body.Text, markerPrefix, collisions, state.Options.MaxOutputBytes);
+            CollectBoundaryCollisions(document.Body.Html, markerPrefix, collisions, state.Options.MaxOutputBytes);
+            CollectBoundaryCollisions(document.Body.Rtf, markerPrefix, collisions, state.Options.MaxOutputBytes);
             foreach (EmailAttachment attachment in document.Attachments) {
                 if (attachment.EmbeddedDocument != null) {
-                    if (BoundaryCollides(attachment.EmbeddedDocument, boundary, state, activeDocuments)) return true;
+                    CollectBoundaryCollisions(attachment.EmbeddedDocument, boundaryPrefix, state, collisions, activeDocuments);
                     continue;
                 }
                 if (attachment.Content != null) {
                     using var input = new MemoryStream(attachment.Content, writable: false);
-                    if (StreamContains(input, markerBytes, state.Options.MaxOutputBytes)) return true;
+                    CollectBoundaryCollisions(input, markerPrefix, collisions, state.Options.MaxOutputBytes);
                     continue;
                 }
                 if (attachment.ContentSource == null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) continue;
                 Stream prepared = state.PrepareAttachmentStream(attachment);
-                if (StreamContains(prepared, markerBytes, state.Options.MaxOutputBytes)) return true;
+                CollectBoundaryCollisions(prepared, markerPrefix, collisions, state.Options.MaxOutputBytes);
             }
-            return false;
         } finally {
             activeDocuments.Remove(document);
         }
     }
 
-    private static bool ContainsBoundaryMarker(string? value, string marker) =>
-        value?.IndexOf(marker, StringComparison.Ordinal) >= 0;
+    private static void CollectBoundaryCollisions(
+        string? value,
+        byte[] markerPrefix,
+        bool[] collisions,
+        long maximumInputBytes) {
+        if (string.IsNullOrEmpty(value)) return;
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes(value), writable: false);
+        CollectBoundaryCollisions(input, markerPrefix, collisions, maximumInputBytes);
+    }
 
-    private static bool StreamContains(Stream input, byte[] pattern, long maximumInputBytes) {
-        var prefix = new int[pattern.Length];
-        for (int index = 1, matched = 0; index < pattern.Length; index++) {
-            while (matched > 0 && pattern[index] != pattern[matched]) matched = prefix[matched - 1];
-            if (pattern[index] == pattern[matched]) matched++;
-            prefix[index] = matched;
+    private static void CollectBoundaryCollisions(
+        Stream input,
+        byte[] markerPrefix,
+        bool[] collisions,
+        long maximumInputBytes) {
+        var prefixTable = new int[markerPrefix.Length];
+        for (int index = 1, matched = 0; index < markerPrefix.Length; index++) {
+            while (matched > 0 && markerPrefix[index] != markerPrefix[matched]) matched = prefixTable[matched - 1];
+            if (markerPrefix[index] == markerPrefix[matched]) matched++;
+            prefixTable[index] = matched;
         }
 
         var buffer = new byte[81920];
+        var suffix = new byte[3];
         long total = 0;
         int current = 0;
+        int suffixLength = -1;
         while (true) {
             int read = input.Read(buffer, 0, buffer.Length);
-            if (read == 0) return false;
+            if (read == 0) return;
             total = checked(total + read);
             if (total > maximumInputBytes) {
                 throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), total, maximumInputBytes);
             }
             for (int index = 0; index < read; index++) {
-                while (current > 0 && buffer[index] != pattern[current]) current = prefix[current - 1];
-                if (buffer[index] == pattern[current]) current++;
-                if (current == pattern.Length) return true;
+                byte value = buffer[index];
+                if (suffixLength >= 0) {
+                    suffix[suffixLength++] = value;
+                    if (suffixLength == suffix.Length) {
+                        if (suffix[0] == (byte)'_'
+                            && TryParseLowerHexByte(suffix[1], suffix[2], out int attempt)
+                            && attempt > 0) {
+                            collisions[attempt] = true;
+                        }
+                        suffixLength = -1;
+                    }
+                }
+
+                while (current > 0 && value != markerPrefix[current]) current = prefixTable[current - 1];
+                if (value == markerPrefix[current]) current++;
+                if (current != markerPrefix.Length) continue;
+                collisions[0] = true;
+                suffixLength = 0;
+                current = prefixTable[current - 1];
             }
         }
     }
+
+    private static bool TryParseLowerHexByte(byte high, byte low, out int value) {
+        int highValue = LowerHexValue(high);
+        int lowValue = LowerHexValue(low);
+        value = highValue < 0 || lowValue < 0 ? 0 : (highValue << 4) | lowValue;
+        return highValue >= 0 && lowValue >= 0;
+    }
+
+    private static int LowerHexValue(byte value) =>
+        value >= (byte)'0' && value <= (byte)'9' ? value - (byte)'0' :
+        value >= (byte)'a' && value <= (byte)'f' ? value - (byte)'a' + 10 : -1;
 
     private static void Hash(ref ulong hash, string? value) {
         if (value == null) return;

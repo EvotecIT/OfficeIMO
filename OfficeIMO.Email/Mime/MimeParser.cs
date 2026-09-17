@@ -42,6 +42,7 @@ internal static class MimeParser {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMimeDepth), mimeDepth, state.Options.MaxMimeDepth);
         }
         state.CountPart();
+        MimeHeaderParser.ReportDuplicateSingletonHeaders(headers, state.Diagnostics, location);
 
         MimeValue contentType = MimeValueParser.Parse(MimeHeaderParser.GetValue(headers, "Content-Type"),
             defaultContentType, state.Diagnostics, location);

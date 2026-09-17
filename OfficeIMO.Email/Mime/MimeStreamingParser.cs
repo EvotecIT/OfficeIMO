@@ -66,6 +66,7 @@ internal sealed class MimeStreamingParser {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxPartCount), _analyzedPartCount,
                 _options.MaxPartCount);
         }
+        MimeHeaderParser.ReportDuplicateSingletonHeaders(headers, _diagnostics, location);
 
         MimeValue contentType = MimeValueParser.Parse(MimeHeaderParser.GetValue(headers, "Content-Type"),
             defaultContentType, _diagnostics, location);
