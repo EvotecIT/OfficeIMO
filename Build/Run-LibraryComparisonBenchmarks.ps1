@@ -893,8 +893,9 @@ foreach ($name in $selected) {
     if ($name -like 'word*') {
         $arguments += '-p:AcceptNPOIOSMFLicense=true'
     }
-    if ($InternalQuestPdf -and $name -in $questPdfWorkloads) {
+    if ($name -in $questPdfWorkloads) {
         $arguments += "-p:QuestPdfBenchmarkVersion=$effectiveQuestPdfVersion"
+        $arguments += "-p:QuestPdfInternalAuthorization=$($InternalQuestPdf.ToString().ToLowerInvariant())"
     }
     $arguments += @(
         '--',

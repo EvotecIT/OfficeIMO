@@ -10,8 +10,12 @@ $questPdfReference = @($comparisonProjectXml.Project.ItemGroup.PackageReference)
 $questPdfVersionProperty = @($comparisonProjectXml.SelectNodes('/Project/PropertyGroup/QuestPdfBenchmarkVersion')) |
     Where-Object { $_.GetAttribute('Condition') -eq "'`$(QuestPdfBenchmarkVersion)' == ''" } |
     Select-Object -First 1
+$questPdfBoundaryTarget = $comparisonProjectXml.SelectSingleNode(
+    "/Project/Target[@Name='ValidateQuestPdfBenchmarkLicenseBoundary']")
 if ($null -eq $questPdfReference -or [string] $questPdfReference.Version -ne '$(QuestPdfBenchmarkVersion)' -or
-    $null -eq $questPdfVersionProperty -or $questPdfVersionProperty.InnerText -ne '2026.5.0') {
+    $null -eq $questPdfVersionProperty -or $questPdfVersionProperty.InnerText -ne '2026.5.0' -or
+    $null -eq $questPdfBoundaryTarget -or
+    [string] $questPdfBoundaryTarget.Error.Condition -notmatch 'QuestPdfInternalAuthorization') {
     throw 'QuestPDF comparison workloads are not pinned to the last MIT-compatible package release.'
 }
 

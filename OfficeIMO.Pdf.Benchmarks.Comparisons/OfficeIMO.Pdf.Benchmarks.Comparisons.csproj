@@ -8,12 +8,20 @@
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
     <QuestPdfBenchmarkVersion Condition="'$(QuestPdfBenchmarkVersion)' == ''">2026.5.0</QuestPdfBenchmarkVersion>
+    <QuestPdfInternalAuthorization Condition="'$(QuestPdfInternalAuthorization)' == ''">false</QuestPdfInternalAuthorization>
     <HtmlTinkerXProjectPath Condition="'$(HtmlTinkerXProjectPath)' == '' and '$(HTMLTINKERX_PROJECT_PATH)' != ''">$(HTMLTINKERX_PROJECT_PATH)</HtmlTinkerXProjectPath>
   </PropertyGroup>
 
   <ItemGroup>
     <AssemblyMetadata Include="QuestPdfBenchmarkVersion" Value="$(QuestPdfBenchmarkVersion)" />
+    <AssemblyMetadata Include="QuestPdfInternalAuthorization" Value="$(QuestPdfInternalAuthorization)" />
   </ItemGroup>
+
+  <Target Name="ValidateQuestPdfBenchmarkLicenseBoundary" BeforeTargets="CollectPackageReferences;ResolvePackageAssets">
+    <Error
+      Condition="'$(QuestPdfBenchmarkVersion)' != '2026.5.0' and '$(QuestPdfInternalAuthorization)' != 'true'"
+      Text="QuestPDF $(QuestPdfBenchmarkVersion) is not allowed in the public benchmark lane. Use the guarded internal runner after confirming authorization." />
+  </Target>
 
   <PropertyGroup Condition="'$(HtmlTinkerXProjectPath)' != ''">
     <DefineConstants>$(DefineConstants);HTMLTINKERX_SOURCE</DefineConstants>

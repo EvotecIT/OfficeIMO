@@ -14,6 +14,13 @@ internal static class QuestPdfBenchmarkPolicy {
             .FirstOrDefault(static attribute => attribute.Key == "QuestPdfBenchmarkVersion")?.Value
         ?? PackageVersion;
 
+    internal static bool InternalAuthorization =>
+        bool.TryParse(
+            typeof(QuestPdfBenchmarkPolicy).Assembly
+                .GetCustomAttributes<AssemblyMetadataAttribute>()
+                .FirstOrDefault(static attribute => attribute.Key == "QuestPdfInternalAuthorization")?.Value,
+            out bool authorized) && authorized;
+
     internal static string LoadedAssemblyVersion =>
         typeof(IDocument).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
         ?? typeof(IDocument).Assembly.GetName().Version?.ToString()
@@ -32,6 +39,10 @@ internal static class QuestPdfBenchmarkPolicy {
 
     internal static void ConfigureLicense() {
         string configuredVersion = ConfiguredPackageVersion;
+        if (!string.Equals(configuredVersion, PackageVersion, StringComparison.Ordinal) && !InternalAuthorization) {
+            throw new InvalidOperationException(
+                $"QuestPDF {configuredVersion} requires the guarded internal benchmark authorization path.");
+        }
         if (!Version.TryParse(configuredVersion, out Version? expectedVersion)) {
             throw new InvalidOperationException($"QuestPDF benchmark package version '{configuredVersion}' is invalid.");
         }

@@ -285,7 +285,8 @@
   var platformButtons = root.querySelectorAll('[data-library-comparison-platform]');
   var modeButtons = root.querySelectorAll('[data-library-comparison-mode]');
   var affinityControl = root.querySelector('[data-library-comparison-affinity-control]');
-  var affinityButtons = root.querySelectorAll('[data-library-comparison-affinity]');
+  var affinityButtonsRoot = root.querySelector('[data-library-comparison-affinities]');
+  var affinityButtons = [];
   var selectedComparison = queryValue(
     'benchmark-workload',
     root.getAttribute('data-comparison-id'));
@@ -311,6 +312,26 @@
   function comparisonAffinity(value) {
     var match = String(value || '').match(/-affinity-(0x[0-9a-f]+)$/i);
     return match ? match[1].toLowerCase() : '';
+  }
+
+  function affinityLabel(value) {
+    return 'Affinity ' + value.toUpperCase();
+  }
+
+  function renderAffinityButtons(available) {
+    affinityButtonsRoot.innerHTML = '';
+    available.forEach(function (affinity) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.setAttribute('data-library-comparison-affinity', affinity);
+      button.textContent = affinityLabel(affinity);
+      button.addEventListener('click', function () {
+        selectedAffinity = affinity;
+        renderSelection();
+      });
+      affinityButtonsRoot.appendChild(button);
+    });
+    affinityButtons = affinityButtonsRoot.querySelectorAll('[data-library-comparison-affinity]');
   }
 
   function setQuery() {
@@ -445,11 +466,14 @@
     var candidates = matchingEntries(selectedComparison, selectedPlatform, selectedMode);
     var available = candidates.map(function (entry) {
       return comparisonAffinity(entry.comparisonId);
-    }).filter(Boolean);
+    }).filter(Boolean).filter(function (affinity, index, values) {
+      return values.indexOf(affinity) === index;
+    });
     affinityControl.hidden = available.length === 0;
     if (available.length && available.indexOf(selectedAffinity) === -1) {
       selectedAffinity = available[0];
     }
+    renderAffinityButtons(available);
   }
 
   function renderCoverage() {
@@ -682,13 +706,6 @@
       renderSelection();
     });
   });
-  Array.prototype.forEach.call(affinityButtons, function (button) {
-    button.addEventListener('click', function () {
-      selectedAffinity = button.getAttribute('data-library-comparison-affinity');
-      renderSelection();
-    });
-  });
-
   fetch(root.getAttribute('data-index-url'), { credentials: 'same-origin' })
     .then(function (response) {
       if (!response.ok) throw new Error('HTTP ' + response.status);

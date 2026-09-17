@@ -312,14 +312,15 @@ if ($scriptText -notmatch 'benchmark-workload' -or
     $scriptText -notmatch 'comparisonGroupName\(row\)' -or
     $scriptText -notmatch "queryValue\('benchmark-cpu', '0xffff'\)" -or
     $scriptText -notmatch 'comparisonAffinity\(candidate\.comparisonId\) === selectedAffinity' -or
+    $scriptText -notmatch 'function renderAffinityButtons\(available\)' -or
+    $scriptText -notmatch "button\.textContent = affinityLabel\(affinity\)" -or
     $scriptText -notmatch "\['namespace', 'type', 'fullname'\]" -or
     $scriptText -notmatch "split\('&'\)" -or
     $scriptText -notmatch 'csv-25k-datareader-write-net10\.0' -or
     $scriptText -notmatch 'xlsx-25k-datareader-write-net10\.0' -or
     $scriptText -match "scenario === 'OfficeIMO'" -or
     $pageHtml -notmatch 'Diagnostic results prove execution and validation only' -or
-    $pageHtml -notmatch 'data-library-comparison-affinity="0xffff"' -or
-    $pageHtml -notmatch 'data-library-comparison-affinity="0xffff0000"') {
+    $pageHtml -notmatch 'data-library-comparison-affinities') {
     throw 'Library comparison selector does not preserve shareable state, reject stale responses, and enforce evidence safety labels.'
 }
 
