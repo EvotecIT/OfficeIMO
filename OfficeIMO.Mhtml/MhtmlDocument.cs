@@ -326,10 +326,13 @@ public sealed partial class MhtmlDocument {
         var diagnostics = new List<EmailDiagnostic>();
         var contentIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var contentLocations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var resolverIdentities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         if (!string.IsNullOrWhiteSpace(rootContentId)) contentIds.Add(rootContentId!);
         if (!string.IsNullOrWhiteSpace(rootContentLocation)
-            && Uri.TryCreate(baseUri, rootContentLocation, out _)) {
+            && Uri.TryCreate(baseUri, rootContentLocation, out Uri? rootLocation)) {
             contentLocations.Add(baseUri.AbsoluteUri);
+            resolverIdentities[rootContentLocation!.Trim()] = -1;
+            resolverIdentities[rootLocation.AbsoluteUri] = -1;
         }
         for (int index = 0; index < resources.Count; index++) {
             MhtmlResource resource = resources[index];
@@ -339,22 +342,46 @@ public sealed partial class MhtmlDocument {
                     "Duplicate Content-ID was retained in archive order; the first resource is used for resolution.",
                     location: "resource[" + index + "]"));
             }
-            if (string.IsNullOrWhiteSpace(resource.ContentLocation)) continue;
-            if (!Uri.TryCreate(baseUri, resource.ContentLocation, out Uri? resolved)) {
-                diagnostics.Add(new EmailDiagnostic(
-                    MhtmlDiagnosticCodes.InvalidContentLocation,
-                    "Content-Location could not be resolved against the archive base URI.",
-                    location: "resource[" + index + "]"));
-                continue;
+            if (!string.IsNullOrWhiteSpace(resource.FileName)) {
+                RegisterResolverIdentity(resource.FileName!.Trim(), index, resolverIdentities, diagnostics);
             }
-            if (!contentLocations.Add(resolved.AbsoluteUri)) {
-                diagnostics.Add(new EmailDiagnostic(
-                    MhtmlDiagnosticCodes.DuplicateContentLocation,
-                    "Duplicate Content-Location was retained in archive order; the first resource is used for resolution.",
-                    location: "resource[" + index + "]"));
+            if (!string.IsNullOrWhiteSpace(resource.ContentLocation)) {
+                string rawLocation = resource.ContentLocation!.Trim();
+                RegisterResolverIdentity(rawLocation, index, resolverIdentities, diagnostics);
+                if (!Uri.TryCreate(baseUri, rawLocation, out Uri? resolved)) {
+                    diagnostics.Add(new EmailDiagnostic(
+                        MhtmlDiagnosticCodes.InvalidContentLocation,
+                        "Content-Location could not be resolved against the archive base URI.",
+                        location: "resource[" + index + "]"));
+                    continue;
+                }
+                RegisterResolverIdentity(resolved.AbsoluteUri, index, resolverIdentities, diagnostics);
+                if (!contentLocations.Add(resolved.AbsoluteUri)) {
+                    diagnostics.Add(new EmailDiagnostic(
+                        MhtmlDiagnosticCodes.DuplicateContentLocation,
+                        "Duplicate Content-Location was retained in archive order; the first resource is used for resolution.",
+                        location: "resource[" + index + "]"));
+                }
             }
         }
         return diagnostics;
+    }
+
+    private static void RegisterResolverIdentity(
+        string identity,
+        int resourceIndex,
+        Dictionary<string, int> identities,
+        List<EmailDiagnostic> diagnostics) {
+        if (identities.TryGetValue(identity, out int existingIndex)) {
+            if (existingIndex != resourceIndex) {
+                diagnostics.Add(new EmailDiagnostic(
+                    MhtmlDiagnosticCodes.DuplicateResourceIdentity,
+                    "A filename or Content-Location resolver identity selects more than one MIME part.",
+                    location: "resource[" + resourceIndex + "]"));
+            }
+            return;
+        }
+        identities.Add(identity, resourceIndex);
     }
 
     private static Uri ResolveBaseUri(string? contentLocation, Uri? sourceBaseUri) {

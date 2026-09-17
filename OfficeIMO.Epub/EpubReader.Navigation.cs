@@ -1,26 +1,29 @@
 namespace OfficeIMO.Epub;
 
 using System.Globalization;
+using System.Threading;
 
 internal static partial class EpubReader {
     private static EpubNavigationResult ReadNavigation(
         Dictionary<string, ZipArchiveEntry> entryIndex,
         EpubPackage? package,
         EpubReadOptions options,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var result = new EpubNavigationResult();
         if (package == null) return result;
 
         var limits = new NavigationLimitState();
         if (!string.IsNullOrWhiteSpace(package.NavDocumentPath)) {
-            TryReadNavigationDocument(entryIndex, package.NavDocumentPath!, result, options, limits, diagnostics);
+            TryReadNavigationDocument(entryIndex, package.NavDocumentPath!, result, options, limits, diagnostics, cancellationToken);
         }
 
         bool needNcxToc = result.TableOfContents.Count == 0;
         bool needNcxPageList = result.PageList.Count == 0;
         bool needNcxTitleFallback = !needNcxToc;
         if (needNcxTitleFallback) {
-            AddNavigationTitles(result.TableOfContents, result.TitleMap);
+            AddNavigationTitles(result.TableOfContents, result.TitleMap, cancellationToken);
         }
         if (!string.IsNullOrWhiteSpace(package.NcxPath) && (needNcxToc || needNcxPageList || needNcxTitleFallback)) {
             TryReadNcxDocument(
@@ -32,18 +35,20 @@ internal static partial class EpubReader {
                 includeTitleFallback: needNcxTitleFallback,
                 options,
                 limits,
-                diagnostics);
+                diagnostics,
+                cancellationToken);
         }
 
         if (result.Landmarks.Count == 0) {
             foreach (EpubNavigationItem guideItem in package.Guide) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!TryReserveNavigationItem(1, package.OpfPath, options, limits, diagnostics)) break;
                 result.Landmarks.Add(guideItem);
             }
         }
 
-        ValidateNavigationTargets(entryIndex, result, diagnostics);
-        AddNavigationTitles(result.TableOfContents, result.TitleMap);
+        ValidateNavigationTargets(entryIndex, result, diagnostics, cancellationToken);
+        AddNavigationTitles(result.TableOfContents, result.TitleMap, cancellationToken);
         return result;
     }
 
@@ -53,7 +58,9 @@ internal static partial class EpubReader {
         EpubNavigationResult result,
         EpubReadOptions options,
         NavigationLimitState limits,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!entryIndex.TryGetValue(navPath, out ZipArchiveEntry? navEntry)) {
             string code = Uri.TryCreate(navPath, UriKind.Absolute, out _)
                 ? "epub.navigation.remote"
@@ -75,7 +82,8 @@ internal static partial class EpubReader {
             return;
         }
 
-        string navContent = ReadEntryText(navEntry, options.MaxPackageMetadataBytes);
+        string navContent = ReadEntryText(navEntry, options.MaxPackageMetadataBytes, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         if (!TryParseXml(navContent, out XDocument? navDocument) || navDocument == null) {
             diagnostics.Warning(
                 "epub.navigation.invalid-xml",
@@ -83,6 +91,7 @@ internal static partial class EpubReader {
                 navPath);
             return;
         }
+        cancellationToken.ThrowIfCancellationRequested();
 
         string? baseHref = navDocument
             .Descendants()
@@ -91,6 +100,7 @@ internal static partial class EpubReader {
             .FirstOrDefault(static value => value != null);
 
         foreach (XElement nav in navDocument.Descendants().Where(element => IsName(element, "nav"))) {
+            cancellationToken.ThrowIfCancellationRequested();
             string type = GetAttribute(nav, "type");
             List<EpubNavigationItem>? destination = ContainsSpaceSeparatedToken(type, "toc")
                 ? result.TableOfContents
@@ -104,7 +114,7 @@ internal static partial class EpubReader {
             XElement? list = nav.Elements().FirstOrDefault(element => IsName(element, "ol"))
                 ?? nav.Descendants().FirstOrDefault(element => IsName(element, "ol"));
             if (list == null) continue;
-            destination.AddRange(ParseHtmlNavigationList(list, navPath, baseHref, 1, options, limits, diagnostics));
+            destination.AddRange(ParseHtmlNavigationList(list, navPath, baseHref, 1, options, limits, diagnostics, cancellationToken));
         }
     }
 
@@ -115,9 +125,11 @@ internal static partial class EpubReader {
         int depth,
         EpubReadOptions options,
         NavigationLimitState limits,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
         var items = new List<EpubNavigationItem>();
         foreach (XElement listItem in list.Elements().Where(element => IsName(element, "li"))) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!TryReserveNavigationItem(depth, navPath, options, limits, diagnostics)) break;
 
             XElement? anchor = listItem.Elements().FirstOrDefault(element => IsName(element, "a"));
@@ -139,7 +151,7 @@ internal static partial class EpubReader {
             XElement? childList = listItem.Elements().FirstOrDefault(element => IsName(element, "ol"));
             IReadOnlyList<EpubNavigationItem> children = childList == null
                 ? Array.Empty<EpubNavigationItem>()
-                : ParseHtmlNavigationList(childList, navPath, baseHref, depth + 1, options, limits, diagnostics);
+                : ParseHtmlNavigationList(childList, navPath, baseHref, depth + 1, options, limits, diagnostics, cancellationToken);
             if (label.Length == 0) label = target ?? string.Empty;
             items.Add(new EpubNavigationItem {
                 Source = EpubNavigationSource.Epub3Navigation,
@@ -164,7 +176,9 @@ internal static partial class EpubReader {
         bool includeTitleFallback,
         EpubReadOptions options,
         NavigationLimitState limits,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!entryIndex.TryGetValue(ncxPath, out ZipArchiveEntry? ncxEntry)) {
             string code = Uri.TryCreate(ncxPath, UriKind.Absolute, out _) ? "epub.ncx.remote" : "epub.ncx.missing";
             diagnostics.Warning(
@@ -184,7 +198,8 @@ internal static partial class EpubReader {
             return;
         }
 
-        string ncxContent = ReadEntryText(ncxEntry, options.MaxPackageMetadataBytes);
+        string ncxContent = ReadEntryText(ncxEntry, options.MaxPackageMetadataBytes, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         if (!TryParseXml(ncxContent, out XDocument? ncxDocument) || ncxDocument == null) {
             diagnostics.Warning(
                 "epub.ncx.invalid-xml",
@@ -192,6 +207,7 @@ internal static partial class EpubReader {
                 ncxPath);
             return;
         }
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (includeTableOfContents || includeTitleFallback) {
             XElement? navMap = ncxDocument.Descendants().FirstOrDefault(element => IsName(element, "navMap"));
@@ -203,11 +219,12 @@ internal static partial class EpubReader {
                     1,
                     options,
                     ncxLimits,
-                    diagnostics);
+                    diagnostics,
+                    cancellationToken);
                 if (includeTableOfContents) {
                     result.TableOfContents.AddRange(ncxItems);
                 } else {
-                    AddNavigationTitles(ncxItems, result.TitleMap);
+                    AddNavigationTitles(ncxItems, result.TitleMap, cancellationToken);
                 }
             }
         }
@@ -221,7 +238,8 @@ internal static partial class EpubReader {
                     1,
                     options,
                     limits,
-                    diagnostics));
+                    diagnostics,
+                    cancellationToken));
             }
         }
     }
@@ -232,9 +250,11 @@ internal static partial class EpubReader {
         int depth,
         EpubReadOptions options,
         NavigationLimitState limits,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
         var items = new List<EpubNavigationItem>();
         foreach (XElement element in source) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!TryReserveNavigationItem(depth, ncxPath, options, limits, diagnostics)) break;
 
             XElement? textElement = element.Elements()
@@ -264,7 +284,8 @@ internal static partial class EpubReader {
                 depth + 1,
                 options,
                 limits,
-                diagnostics);
+                diagnostics,
+                cancellationToken);
             if (label.Length == 0) label = NullIfWhiteSpace(GetAttribute(element, "value")) ?? target ?? string.Empty;
             items.Add(new EpubNavigationItem {
                 Source = EpubNavigationSource.Ncx,
@@ -335,32 +356,37 @@ internal static partial class EpubReader {
 
     private static void AddNavigationTitles(
         IEnumerable<EpubNavigationItem> items,
-        Dictionary<string, string> titleMap) {
+        Dictionary<string, string> titleMap,
+        CancellationToken cancellationToken) {
         foreach (EpubNavigationItem item in items) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!item.IsRemote && !string.IsNullOrWhiteSpace(item.Target) && !string.IsNullOrWhiteSpace(item.Label) &&
                 !titleMap.ContainsKey(item.Target!)) {
                 titleMap[item.Target!] = item.Label;
             }
-            AddNavigationTitles(item.Children, titleMap);
+            AddNavigationTitles(item.Children, titleMap, cancellationToken);
         }
     }
 
     private static void ValidateNavigationTargets(
         IReadOnlyDictionary<string, ZipArchiveEntry> entryIndex,
         EpubNavigationResult navigation,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
         var reported = new HashSet<string>(StringComparer.Ordinal);
-        ValidateNavigationTargets(entryIndex, navigation.TableOfContents, reported, diagnostics);
-        ValidateNavigationTargets(entryIndex, navigation.PageList, reported, diagnostics);
-        ValidateNavigationTargets(entryIndex, navigation.Landmarks, reported, diagnostics);
+        ValidateNavigationTargets(entryIndex, navigation.TableOfContents, reported, diagnostics, cancellationToken);
+        ValidateNavigationTargets(entryIndex, navigation.PageList, reported, diagnostics, cancellationToken);
+        ValidateNavigationTargets(entryIndex, navigation.Landmarks, reported, diagnostics, cancellationToken);
     }
 
     private static void ValidateNavigationTargets(
         IReadOnlyDictionary<string, ZipArchiveEntry> entryIndex,
         IEnumerable<EpubNavigationItem> items,
         HashSet<string> reported,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
         foreach (EpubNavigationItem item in items) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrWhiteSpace(item.Target)) {
                 string target = item.Target!;
                 if (item.IsRemote && reported.Add("remote\n" + target)) {
@@ -375,7 +401,7 @@ internal static partial class EpubReader {
                         target);
                 }
             }
-            ValidateNavigationTargets(entryIndex, item.Children, reported, diagnostics);
+            ValidateNavigationTargets(entryIndex, item.Children, reported, diagnostics, cancellationToken);
         }
     }
 }

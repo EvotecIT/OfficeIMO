@@ -236,6 +236,7 @@ public sealed partial class EpubDocument {
             "epub.package.invalid-xml",
             "epub.manifest.invalid-path",
             "epub.manifest.duplicate-id",
+            "epub.manifest.duplicate-target",
             "epub.resource.count-limit",
             "epub.resource.missing",
             "epub.resource.size-limit",
@@ -266,13 +267,17 @@ public sealed partial class EpubDocument {
         var caseFolded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (ZipArchiveEntry entry in archive.Entries) {
             cancellationToken.ThrowIfCancellationRequested();
+            bool isDirectory = entry.FullName.EndsWith("/", StringComparison.Ordinal);
             if (!EpubReader.TryNormalizeArchiveEntryPath(entry.FullName, out string normalized)
-                || !normalized.Equals(entry.FullName, StringComparison.Ordinal)) {
+                || !(isDirectory
+                    ? string.Concat(normalized, "/").Equals(entry.FullName, StringComparison.Ordinal)
+                    : normalized.Equals(entry.FullName, StringComparison.Ordinal))) {
                 throw new InvalidDataException("EPUB package contains an unsafe or non-canonical entry path: " + entry.FullName);
             }
-            if (!seen.Add(normalized)) throw new InvalidDataException("EPUB package contains a duplicate entry path: " + normalized);
-            if (!caseFolded.Add(normalized)) {
-                throw new InvalidDataException("EPUB package contains case-colliding entry paths that cannot be resolved unambiguously: " + normalized);
+            string identity = isDirectory ? string.Concat(normalized, "/") : normalized;
+            if (!seen.Add(identity)) throw new InvalidDataException("EPUB package contains a duplicate entry path: " + identity);
+            if (!caseFolded.Add(identity)) {
+                throw new InvalidDataException("EPUB package contains case-colliding entry paths that cannot be resolved unambiguously: " + identity);
             }
         }
     }

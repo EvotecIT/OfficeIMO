@@ -110,7 +110,7 @@ internal static partial class EpubReader {
         Dictionary<string, EpubEncryptionInfo> encryptionByPath = encryption
             .GroupBy(static item => item.Path, StringComparer.Ordinal)
             .ToDictionary(static group => group.Key, static group => group.First(), StringComparer.Ordinal);
-        EpubNavigationResult navigation = ReadNavigation(entryIndex, package, effective, diagnostics);
+        EpubNavigationResult navigation = ReadNavigation(entryIndex, package, effective, diagnostics, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         List<ChapterCandidate> candidates = BuildChapterCandidates(entryIndex, package, effective, diagnostics, cancellationToken);
 

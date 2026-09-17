@@ -60,6 +60,10 @@ public sealed partial class MhtmlDocument {
         }
 
         document._mimeDocument.Body.Html = cleaned.Parts["root"];
+        document._mimeDocument.Body.PreserveHtmlMimeHeadersOnWrite = true;
+        foreach (EmailAttachment attachment in document._mimeDocument.Attachments) {
+            attachment.PreserveMimeHeadersOnWrite = true;
+        }
         byte[] output = document.ToBytes(new EmailWriterOptions(maxOutputBytes: options.Inspection.MaxExpandedPackageBytes));
         OfficeContentSafetyReport after = InspectContentSafety(output, options.Inspection, mimeOptions, cancellationToken);
         return new OfficeContentCleanupResult(output, cleaned.Before, after, cleaned.Changes);
@@ -94,6 +98,7 @@ public sealed partial class MhtmlDocument {
         EmailDiagnostic? ambiguous = document.MimeDiagnostics.FirstOrDefault(diagnostic =>
             diagnostic.Code == MhtmlDiagnosticCodes.DuplicateContentId
             || diagnostic.Code == MhtmlDiagnosticCodes.DuplicateContentLocation
+            || diagnostic.Code == MhtmlDiagnosticCodes.DuplicateResourceIdentity
             || diagnostic.Code == MhtmlDiagnosticCodes.InvalidContentLocation);
         if (ambiguous != null) {
             throw new InvalidDataException(

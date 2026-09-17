@@ -72,6 +72,14 @@ public sealed class HtmlPackageContentSafetyContractTests {
             contentLocation: "https://example.test/index.html").ToBytes();
 
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+
+        byte[] duplicateFileNames = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='site.css'></head><body><p>Visible</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: none; }"), "text/css", fileName: "site.css"),
+                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: block; }"), "text/css", fileName: "site.css")
+            }).ToBytes();
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(duplicateFileNames));
     }
 
     [Fact]
@@ -99,6 +107,16 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Equal("archive-123@example.test", reopened.MessageId);
         Assert.Equal("sender@example.test", reopened.From?.Address);
         Assert.Contains(reopened.Headers, header => header.Name == "X-Archive-Token" && header.Value == "retain-me");
+        string serialized = Encoding.ASCII.GetString(cleaned.Output);
+        Assert.Contains("Content-Type: text/html; charset=windows-1252; profile=archive", serialized, StringComparison.Ordinal);
+        Assert.Contains("Content-Transfer-Encoding: quoted-printable", serialized, StringComparison.Ordinal);
+        Assert.Contains("Content-Disposition: inline; handling=required", serialized, StringComparison.Ordinal);
+        Assert.Contains("X-Root-Part: retain-root", serialized, StringComparison.Ordinal);
+        Assert.Contains("Content-Disposition: inline; filename=styles.css; handling=required", serialized, StringComparison.Ordinal);
+        Assert.Contains("X-Resource-Part: retain-resource", serialized, StringComparison.Ordinal);
+        using var output = new MemoryStream(cleaned.Output, writable: false);
+        MhtmlDocument archive = MhtmlDocument.Load(output);
+        Assert.Equal("body { color: black; }", Encoding.ASCII.GetString(Assert.Single(archive.Resources).Content).Trim());
     }
 
     [Fact]
@@ -197,11 +215,18 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, duplicateManifestId: true)));
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, duplicateManifestTarget: true)));
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, duplicateEncryptionDeclaration: true)));
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, caseCollidingStylesheets: true)));
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, externalStylesheetImport: true)));
+
+        OfficeContentSafetyReport withDirectories = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, explicitDirectories: true));
+        Assert.Contains(withDirectories.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -234,7 +259,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool duplicateManifestId = false,
         bool duplicateEncryptionDeclaration = false,
         bool caseCollidingStylesheets = false,
-        bool externalStylesheetImport = false) {
+        bool externalStylesheetImport = false,
+        bool duplicateManifestTarget = false,
+        bool explicitDirectories = false) {
         string rootfiles =
             "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
             (multipleRootfiles
@@ -246,6 +273,12 @@ public sealed class HtmlPackageContentSafetyContractTests {
                 "<container version='1.0' xmlns='urn:oasis:names:tc:opendocument:xmlns:container'>" +
                 "<rootfiles>" + rootfiles + "</rootfiles></container>"))
         };
+        if (explicitDirectories) {
+            entries.Add(("META-INF/", Array.Empty<byte>()));
+            entries.Add(("EPUB/", Array.Empty<byte>()));
+            entries.Add(("EPUB/styles/", Array.Empty<byte>()));
+            entries.Add(("EPUB/assets/", Array.Empty<byte>()));
+        }
         if (signed) {
             entries.Add(("META-INF/signatures.xml", Encoding.UTF8.GetBytes(
                     "<signatures xmlns='http://www.idpf.org/2016/encryption#' xmlns:ds='http://www.w3.org/2000/09/xmldsig#'>" +
@@ -266,13 +299,16 @@ public sealed class HtmlPackageContentSafetyContractTests {
             ? "<item id='upper-style' href='styles/A.css' media-type='text/css'/>" +
               "<item id='lower-style' href='styles/a.css' media-type='text/css'/>"
             : string.Empty;
+        string duplicateTargetManifest = duplicateManifestTarget
+            ? "<item id='chapter-copy' href='./chapter.xhtml' media-type='application/xhtml+xml'/>"
+            : string.Empty;
         entries.Add(("EPUB/package.opf", Encoding.UTF8.GetBytes(
                 "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest>" +
                 "<item id='chapter' href='chapter.xhtml' media-type='application/xhtml+xml'/>" +
                 "<item id='style' href='styles/site.css' media-type='text/css'/>" +
                 "<item id='nested-style' href='styles/nested.css' media-type='text/css'/>" +
                 "<item id='asset' href='assets/keep.bin' media-type='application/octet-stream'/>" +
-                duplicateManifest + caseCollisionManifest +
+                duplicateManifest + caseCollisionManifest + duplicateTargetManifest +
                 "</manifest><spine><itemref idref='chapter'/></spine></package>")));
         entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
                 "<html xmlns='http://www.w3.org/1999/xhtml'><head><link rel='stylesheet' href='styles/site.css'/></head>" +
@@ -370,9 +406,19 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "MIME-Version: 1.0\r\n" +
         "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
         "--outer\r\n" +
-        "Content-Type: text/html; charset=utf-8\r\n" +
-        "Content-Transfer-Encoding: 8bit\r\n\r\n" +
-        "<html><body><p style='display:none'>Metadata preservation.</p><p>Visible.</p></body></html>\r\n" +
+        "Content-Type: text/html; charset=windows-1252; profile=archive\r\n" +
+        "Content-Transfer-Encoding: quoted-printable\r\n" +
+        "Content-Disposition: inline; handling=required\r\n" +
+        "Content-Location: https://example.test/index.html\r\n" +
+        "X-Root-Part: retain-root\r\n\r\n" +
+        "<html><head><link rel=3D'stylesheet' href=3D'styles.css'></head><body><p style=3D'display:none'>Metadata=20preservation.</p><p>Visible.</p></body></html>\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/css; charset=us-ascii; name=styles.css\r\n" +
+        "Content-Transfer-Encoding: quoted-printable\r\n" +
+        "Content-Disposition: inline; filename=styles.css; handling=required\r\n" +
+        "Content-Location: styles.css\r\n" +
+        "X-Resource-Part: retain-resource\r\n\r\n" +
+        "body=20{=20color:=20black;=20}\r\n" +
         "--outer--\r\n");
 
     private static byte[] ReadEntry(byte[] package, string path) {

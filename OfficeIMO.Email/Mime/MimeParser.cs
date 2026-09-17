@@ -169,6 +169,8 @@ internal static class MimeParser {
                     document.Body.HtmlContentId = TrimAngleBrackets(contentId);
                     document.Body.HtmlContentLocation = contentLocation;
                     document.Body.IsHtmlRelatedRoot = isRelatedSibling && isPreferredRelatedBody;
+                    document.Body.HtmlTransferEncoding = transferEncoding;
+                    CopyHeaders(headers, document.Body.HtmlMimeHeaders);
                 }
             } else if (document.Body.Text == null) {
                 document.Body.Text = text;
@@ -264,7 +266,15 @@ internal static class MimeParser {
                 attachment.ContentTypeParameters[parameter.Key] = parameter.Value;
             }
         }
+        attachment.MimeTransferEncoding = MimeHeaderParser.GetValue(headers, "Content-Transfer-Encoding");
+        CopyHeaders(headers, attachment.MimeHeaders);
         return attachment;
+    }
+
+    private static void CopyHeaders(IEnumerable<EmailHeader> source, IList<EmailHeader> destination) {
+        foreach (EmailHeader header in source) {
+            destination.Add(new EmailHeader(header.Name, header.Value, header.RawValue));
+        }
     }
 
     internal static void PopulateEnvelope(EmailDocument document, IReadOnlyList<EmailHeader> headers,

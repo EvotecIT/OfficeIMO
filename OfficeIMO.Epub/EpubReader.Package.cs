@@ -252,6 +252,7 @@ internal static partial class EpubReader {
                 opfPath);
         }
 
+        var manifestTargets = new HashSet<string>(StringComparer.Ordinal);
         var manifestItems = opfDocument.Descendants().Where(e => IsName(e, "item"));
         foreach (var item in manifestItems) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -293,6 +294,12 @@ internal static partial class EpubReader {
                 diagnostics.Warning(
                     "epub.manifest.duplicate-id",
                     $"EPUB manifest contains duplicate id '{id}'. The last declaration is used.",
+                    opfPath);
+            }
+            if (!isRemote && !manifestTargets.Add(fullPath)) {
+                diagnostics.Warning(
+                    "epub.manifest.duplicate-target",
+                    $"EPUB manifest resolves more than one item to archive path '{fullPath}'.",
                     opfPath);
             }
             package.Manifest[id] = model;
