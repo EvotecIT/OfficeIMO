@@ -162,9 +162,16 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum DOM nodes accepted by one inline SVG <c>foreignObject</c> HTML viewport.</summary>
     public int MaxSvgForeignObjectHtmlNodes { get; set; } = 1000;
 
+    /// <summary>Maximum nested iframe <c>srcdoc</c> viewports rendered into one output.</summary>
+    public int MaxFrameDepth { get; set; } = 8;
+
     // Propagated only by the managed SVG-to-HTML ownership bridge so recursive image payloads
     // cannot restart the public depth budget from zero.
     internal int SvgForeignObjectDepth { get; set; }
+
+    // Propagated only by the static iframe renderer so nested srcdoc documents cannot
+    // restart the public frame-depth budget from zero.
+    internal int FrameDepth { get; set; }
 
     /// <summary>Maximum color stops accepted in one CSS gradient.</summary>
     public int MaxGradientStops { get; set; } = 64;
@@ -253,6 +260,8 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxSvgForeignObjectDepth = MaxSvgForeignObjectDepth;
         target.MaxSvgForeignObjectHtmlNodes = MaxSvgForeignObjectHtmlNodes;
         target.SvgForeignObjectDepth = SvgForeignObjectDepth;
+        target.MaxFrameDepth = MaxFrameDepth;
+        target.FrameDepth = FrameDepth;
         target.MaxGradientStops = MaxGradientStops;
         target.ConicGradientQualitySegments = ConicGradientQualitySegments;
         target.MaxGridTracks = MaxGridTracks;
@@ -361,6 +370,12 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         if (MaxSvgForeignObjectHtmlNodes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxSvgForeignObjectHtmlNodes), "Maximum SVG foreign-object HTML node count must be positive.");
+        }
+
+        if (MaxFrameDepth <= 0 || MaxFrameDepth > HtmlConversionInputGuard.MaxSrcDocDepth
+            || FrameDepth < 0 || FrameDepth > MaxFrameDepth) {
+            throw new ArgumentOutOfRangeException(nameof(MaxFrameDepth),
+                $"Frame nesting limits must be positive, no greater than {HtmlConversionInputGuard.MaxSrcDocDepth}, and internally consistent.");
         }
 
         if (MaxGradientStops < 2) {

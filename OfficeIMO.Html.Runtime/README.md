@@ -139,7 +139,7 @@ fields. `MaxEvents` and `MaxDetailCharacters` bound retained evidence, and
 Every capture includes a deterministic schema-1 `ArtifactManifest`. Its
 `document.html` digest covers the exact UTF-8 bytes of the `documentHtml`
 projection emitted by `HtmlRuntimeJson.Serialize(capture)`. The content-addressed
-ID covers that captured HTML and the ordered retained resource
+ID covers that captured HTML, separately captured frame documents, and the ordered retained resource
 content while entry names deliberately omit resource URLs. Repeated capture of
 the same content produces the same ID. `HtmlRuntimeJson.Serialize` exports
 provider descriptors, observations, action results, traces, artifact manifests,
@@ -182,6 +182,20 @@ await application.ReloadAsync(cancellationToken);
 application scripts as `window.devicePixelRatio`. The runtime, offline resource
 discovery, captured-resource set, and OfficeIMO static outputs use the same selected
 candidate.
+
+Same-origin iframe documents are exposed through `HtmlScriptCapture.Frames`
+without flattening them into the root `Document`. Each `HtmlFrameCapture` names
+the containing iframe by its owned `NodeId`, retains the child document URL and
+effective base URI, document mode and complete serialized document, and can contain
+further frame captures in containing-document order. Node and output-text
+budgets apply cumulatively to the root and every captured frame. Frames with an
+opaque sandbox origin and cross-origin frames are not exposed. Child scripts are
+currently inert; child execution realms remain outside this profile.
+
+Use `CreateStandaloneDocument()` when only the root snapshot is needed. Use
+`CreateRenderDocument()` to create an independent clone that projects the captured
+frame tree into iframe `srcdoc` values for OfficeIMO static rendering. Neither
+operation changes the captured root or child documents.
 
 `OpenTrustedAsync` loads the document and runs the supplied scripts. It leaves
 readiness to `WaitForAsync` or `CaptureAsync`. Evaluation returns a detached

@@ -190,7 +190,8 @@ public static class HtmlRenderEngine {
             resources,
             pageRules,
             fonts,
-            cancellationToken).Render();
+            limits: limits,
+            cancellationToken: cancellationToken).Render();
         return CompleteRender(rendered, resolved);
     }
 
@@ -324,7 +325,8 @@ public static class HtmlRenderEngine {
         resolved.Validate();
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts, cancellationToken).Render();
+        HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts,
+            limits: limits, cancellationToken: cancellationToken).Render();
         return CompleteRender(rendered, resolved);
     }
 

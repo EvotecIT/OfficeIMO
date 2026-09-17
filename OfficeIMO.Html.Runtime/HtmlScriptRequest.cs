@@ -124,15 +124,28 @@ public interface IHtmlScriptRuntimeProvider {
 /// <summary>A completed scripted-document capture. Subsequent inspection and conversion are inert.</summary>
 public sealed partial class HtmlScriptCapture {
     /// <summary>Creates a capture from an independent frozen document supplied by a runtime provider.</summary>
-    public HtmlScriptCapture(HtmlDocument document, string providerId, Uri? documentUrl = null, IReadOnlyList<HtmlRuntimeResource>? resources = null, Uri? baseUri = null) {
+    public HtmlScriptCapture(HtmlDocument document, string providerId, Uri? documentUrl = null, IReadOnlyList<HtmlRuntimeResource>? resources = null, Uri? baseUri = null)
+        : this(document, providerId, documentUrl, resources, baseUri, Array.Empty<HtmlFrameCapture>()) { }
+
+    /// <summary>Creates a capture with separately retained same-origin frame documents.</summary>
+    public HtmlScriptCapture(
+        HtmlDocument document,
+        string providerId,
+        Uri? documentUrl,
+        IReadOnlyList<HtmlRuntimeResource>? resources,
+        Uri? baseUri,
+        IReadOnlyList<HtmlFrameCapture> frames) {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        ArgumentNullException.ThrowIfNull(frames);
         if (!document.IsReadOnly) throw new ArgumentException("A captured document must be frozen.", nameof(document));
         Document = document;
         ProviderId = providerId;
         DocumentUrl = HtmlRuntimeResourcePolicy.ValidateUrl(documentUrl ?? new Uri("https://officeimo.invalid/"));
         BaseUri = ResolveBaseUri(document,DocumentUrl,baseUri);
         Resources = Array.AsReadOnly((resources ?? Array.Empty<HtmlRuntimeResource>()).ToArray());
+        Frames = Array.AsReadOnly(frames.ToArray());
+        HtmlFrameCapture.ValidateChildren(document, Frames);
         ArtifactManifest = HtmlRuntimeArtifactManifest.Create(this);
     }
     /// <summary>Frozen owned document, including structural DOM mutations and template contents.</summary>
@@ -145,6 +158,8 @@ public sealed partial class HtmlScriptCapture {
     public Uri BaseUri { get; }
     /// <summary>Immutable resource responses loaded before capture, for offline inspection or render resolution.</summary>
     public IReadOnlyList<HtmlRuntimeResource> Resources { get; }
+    /// <summary>Same-origin child frame documents captured separately from the root DOM.</summary>
+    public IReadOnlyList<HtmlFrameCapture> Frames { get; }
     /// <summary>Deterministic content manifest for the frozen document and retained resources.</summary>
     public HtmlRuntimeArtifactManifest ArtifactManifest { get; }
 }

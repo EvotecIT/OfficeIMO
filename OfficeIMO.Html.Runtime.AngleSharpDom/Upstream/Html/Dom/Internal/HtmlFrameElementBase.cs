@@ -93,25 +93,34 @@ namespace AngleSharp.Html.Dom
 
             if ((source != null && source != Owner.DocumentUri) || content != null)
             {
+                var security = GetSecuritySettings();
+                if (_context is null || _context.Security != security)
+                {
+                    _context = NewChildContext(security);
+                }
                 var url = this.HyperReference(source!);
                 this.Process(_request, url!);
             }
         }
 
+        internal virtual Sandboxes GetSecuritySettings() => Sandboxes.None;
+
         #endregion
 
         #region Helpers
 
-        private IBrowsingContext NewChildContext()
+        private IBrowsingContext NewChildContext() => NewChildContext(GetSecuritySettings());
+
+        private IBrowsingContext NewChildContext(Sandboxes security)
         {
             var childContext = default(IBrowsingContext);
             if (Context is BrowsingContext context)
             {
-                childContext  = context.CreateChild(Name, Sandboxes.None, true);
+                childContext  = context.CreateChild(Name, security, true);
             }
             else
             {
-                childContext  = Context.CreateChild(Name, Sandboxes.None);
+                childContext  = Context.CreateChild(Name, security);
             }
             Owner.AttachReference(childContext);
             return childContext;

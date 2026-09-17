@@ -12,13 +12,28 @@ internal sealed class HtmlRuntimeWireDocument {
     public Uri DocumentUrl { get; set; } = new("https://officeimo.invalid/");
     public Uri? BaseUri { get; set; }
     public List<HtmlRuntimeResource> Resources { get; set; } = new();
+    public List<HtmlRuntimeWireFrame> Frames { get; set; } = new();
 
-    internal HtmlDocument Materialize(IHtmlDomServices services, HtmlScriptRequest request, CancellationToken token) {
-        if (Nodes == null || Nodes.Count > request.MaxNodes) throw new HtmlScriptRuntimeException("Captured node budget exceeded.");
-        var document = new HtmlDocument(services, ProviderId, Mode);
+    internal HtmlDocument Materialize(IHtmlDomServices services, HtmlScriptRequest request, CancellationToken token, out IReadOnlyList<HtmlFrameCapture> frames) {
+        int nodeCount = 0;
+        HtmlDocument document = MaterializeDocument(this, services, request, token, ref nodeCount, out frames);
+        return document;
+    }
+
+    private static HtmlDocument MaterializeDocument(
+        HtmlRuntimeWireDocument wire,
+        IHtmlDomServices services,
+        HtmlScriptRequest request,
+        CancellationToken token,
+        ref int nodeCount,
+        out IReadOnlyList<HtmlFrameCapture> frames) {
+        if (wire.Nodes == null || wire.Frames == null || wire.Nodes.Count > request.MaxNodes - nodeCount)
+            throw new HtmlScriptRuntimeException("Captured node budget exceeded.");
+        nodeCount += wire.Nodes.Count;
+        var document = new HtmlDocument(services, wire.ProviderId, wire.Mode);
         var nodes = new List<HtmlNode> { document };
         var depths = new List<int> { 0 };
-        foreach (HtmlRuntimeWireNode entry in Nodes) {
+        foreach (HtmlRuntimeWireNode entry in wire.Nodes) {
             token.ThrowIfCancellationRequested();
             if (entry == null || entry.Parent < 0 || entry.Parent >= nodes.Count) throw new HtmlScriptRuntimeException("Invalid capture parent.");
             HtmlNode parent = nodes[entry.Parent];
@@ -50,8 +65,29 @@ internal sealed class HtmlRuntimeWireDocument {
             depths.Add(depth);
         }
         token.ThrowIfCancellationRequested();
-        return document.Freeze();
+        document.Freeze();
+        var materializedFrames = new List<HtmlFrameCapture>(wire.Frames.Count);
+        foreach (HtmlRuntimeWireFrame wireFrame in wire.Frames) {
+            token.ThrowIfCancellationRequested();
+            if (wireFrame == null || wireFrame.Document == null)
+                throw new HtmlScriptRuntimeException("Invalid captured frame.");
+            HtmlDocument child = MaterializeDocument(wireFrame.Document, services, request, token, ref nodeCount, out IReadOnlyList<HtmlFrameCapture> children);
+            materializedFrames.Add(new HtmlFrameCapture(
+                wireFrame.FrameElementNodeId,
+                child,
+                wireFrame.Document.DocumentUrl,
+                wireFrame.Document.BaseUri ?? wireFrame.Document.DocumentUrl,
+                children));
+        }
+        frames = Array.AsReadOnly(materializedFrames.ToArray());
+        HtmlFrameCapture.ValidateChildren(document, frames);
+        return document;
     }
+}
+
+internal sealed class HtmlRuntimeWireFrame {
+    public int FrameElementNodeId { get; set; }
+    public HtmlRuntimeWireDocument? Document { get; set; }
 }
 
 internal sealed class HtmlRuntimeWireNode {

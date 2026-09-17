@@ -20,6 +20,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Uri? _baseUri;
     private readonly HtmlUrlPolicy _resourceUrlPolicy;
     private readonly CancellationToken _cancellationToken;
+    private readonly HtmlConversionLimits _limits;
+    private readonly int _initialLogicalTextOrder;
+    private readonly int _initialSemanticNodeId;
     private IElement? _surfaceRootElement;
     private HtmlRenderBoxStyle? _surfaceRootStyle;
     private IElement? _viewportOverflowElement;
@@ -28,8 +31,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private int _positionedSourceOrder;
     private int _nextLogicalTextOrder;
     private int _nextSemanticNodeId;
-    private long _backgroundImageTileCount;
-    private long _layoutOperationCount;
+    private readonly HtmlRenderOperationBudget _operationBudget;
+    private readonly bool _ownsOperationBudget;
     private readonly List<PositionedElementRequest> _fixedPositionedElements = new List<PositionedElementRequest>();
     private readonly List<PositionedElementRequest> _rootPositionedElements = new List<PositionedElementRequest>();
     private readonly Dictionary<IElement, List<PositionedElementRequest>> _localPositionedElements = new Dictionary<IElement, List<PositionedElementRequest>>();
@@ -98,10 +101,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private int? _activeSubgridRowLineCount;
     private double _activeSubgridRowGap;
 
-    internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlResourceSession? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null, CancellationToken cancellationToken = default) {
+    internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlResourceSession? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null, HtmlConversionLimits? limits = null, int logicalTextOrderStart = 0, int semanticNodeIdStart = 0, HtmlRenderOperationBudget? operationBudget = null, CancellationToken cancellationToken = default) {
         _cancellationToken = cancellationToken;
         _cancellationToken.ThrowIfCancellationRequested();
         _document = document;
+        _limits = (limits ?? HtmlConversionLimits.CreateUntrustedProfile()).Clone();
+        _initialLogicalTextOrder = Math.Max(0, logicalTextOrderStart);
+        _initialSemanticNodeId = Math.Max(0, semanticNodeIdStart);
+        _operationBudget = operationBudget ?? new HtmlRenderOperationBudget();
+        _ownsOperationBudget = operationBudget == null;
         _computedStyles = computedStyles;
         int documentOrder = 0;
         foreach (IElement element in document.QuerySelectorAll("*")) {
@@ -394,10 +402,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _viewportOverflowStyle = null;
         _paintOrder = 0;
         _positionedSourceOrder = 0;
-        _nextLogicalTextOrder = 0;
-        _nextSemanticNodeId = 0;
-        _backgroundImageTileCount = 0;
-        _layoutOperationCount = 0;
+        _nextLogicalTextOrder = _initialLogicalTextOrder;
+        _nextSemanticNodeId = _initialSemanticNodeId;
+        if (_ownsOperationBudget) _operationBudget.Reset();
         _fixedPositionedElements.Clear();
         _rootPositionedElements.Clear();
         _localPositionedElements.Clear();

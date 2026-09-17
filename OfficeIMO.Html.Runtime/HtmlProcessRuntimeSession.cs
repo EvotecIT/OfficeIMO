@@ -114,7 +114,8 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimePage {
                 document.Resources.Any(resource => resource == null || resource.Length > _options.ResourcePolicy.MaxResourceBytes) ||
                 document.Resources.Sum(resource => resource.Length) > _options.ResourcePolicy.MaxTotalBytes)
                 throw new HtmlScriptRuntimeException("Captured resources exceed their budget.");
-            return new HtmlScriptCapture(document.Materialize(_services, _options, token), document.ProviderId, document.DocumentUrl, document.Resources, document.BaseUri);
+            HtmlDocument materialized = document.Materialize(_services, _options, token, out IReadOnlyList<HtmlFrameCapture> frames);
+            return new HtmlScriptCapture(materialized, document.ProviderId, document.DocumentUrl, document.Resources, document.BaseUri, frames);
         }, cancellationToken);
 
     private HtmlRuntimeCommand Command(string kind, string script) {

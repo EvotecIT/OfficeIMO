@@ -1,5 +1,6 @@
 namespace AngleSharp.Html.Dom
 {
+    using AngleSharp.Browser;
     using AngleSharp.Dom;
     using AngleSharp.Text;
     using System;
@@ -100,6 +101,12 @@ namespace AngleSharp.Html.Dom
         internal void UpdateSandbox(String value)
         {
             _sandbox?.Update(value);
+        }
+
+        internal override Sandboxes GetSecuritySettings()
+        {
+            var sandbox = this.GetOwnAttribute(AttributeNames.Sandbox);
+            return sandbox is null ? Sandboxes.None : sandbox.ParseSecuritySettings(IsFullscreenAllowed);
         }
 
         #endregion

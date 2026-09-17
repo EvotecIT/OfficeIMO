@@ -1,5 +1,6 @@
 using OfficeIMO.Html.Runtime;
 using OfficeIMO.Html.Providers;
+using OfficeIMO.Html.Dom;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -95,6 +96,7 @@ public sealed class RuntimeResourceTests {
             Html = "<main><p>Outer</p><iframe src='../frames/detail.html'></iframe></main>",
             Resources = new[] {
                 HtmlRuntimeResource.FromText(frame, """
+                    <!doctype html>
                     <body onload="parent.document.body.dataset.childEvent='ran'">
                     <p id="inside">Frame ready</p>
                     <script>document.querySelector('#inside').textContent='inline ran';parent.document.body.dataset.childInline='ran'</script>
@@ -114,7 +116,154 @@ public sealed class RuntimeResourceTests {
         Assert.Contains(capture.Resources, resource => resource.Url == frameScript);
         Assert.Equal("Outer", capture.Document.QuerySelector("main > p")!.TextContent);
         Assert.Null(capture.Document.QuerySelector("#inside"));
-        Assert.Equal("../frames/detail.html", capture.Document.QuerySelector("iframe")!.GetAttribute("src"));
+        HtmlElement iframe = capture.Document.QuerySelector("iframe")!;
+        Assert.Equal("../frames/detail.html", iframe.GetAttribute("src"));
+        HtmlFrameCapture capturedFrame = Assert.Single(capture.Frames);
+        Assert.Equal(iframe.NodeId, capturedFrame.FrameElementNodeId);
+        Assert.Equal(frame, capturedFrame.DocumentUrl);
+        Assert.Equal(frame, capturedFrame.BaseUri);
+        Assert.Equal(HtmlDocumentMode.Standards, capturedFrame.Document.Mode);
+        Assert.Equal("Frame ready", capturedFrame.Document.QuerySelector("#inside")!.TextContent);
+        Assert.Empty(capturedFrame.Frames);
+        HtmlRuntimeArtifactEntry frameEntry = Assert.Single(capture.ArtifactManifest.Entries,
+            entry => entry.Name == "frame-0001/document.html");
+        Assert.Equal(System.Text.Encoding.UTF8.GetByteCount(capturedFrame.Document.OuterHtml), frameEntry.ByteCount);
+        string json = HtmlRuntimeJson.Serialize(capture);
+        Assert.Contains("Frame ready", json, StringComparison.Ordinal);
+        using (System.Text.Json.JsonDocument payload = System.Text.Json.JsonDocument.Parse(json)) {
+            System.Text.Json.JsonElement framePayload = payload.RootElement.GetProperty("frames")[0];
+            Assert.Contains("<!DOCTYPE html>", framePayload.GetProperty("documentHtml").GetString(), StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("Standards", framePayload.GetProperty("documentMode").GetString());
+        }
+
+        HtmlDocument renderDocument = capture.CreateRenderDocument();
+        Assert.Null(capture.Document.QuerySelector("iframe")!.GetAttribute("srcdoc"));
+        string srcdoc = renderDocument.QuerySelector("iframe")!.GetAttribute("srcdoc")!;
+        Assert.Contains("<!DOCTYPE html>", srcdoc, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Frame ready", srcdoc, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task NestedSameOriginFramesRemainASeparateBoundedCaptureTree() {
+        Uri firstUrl = new(Origin, "frames/first.html");
+        Uri secondUrl = new(Origin, "frames/nested/second.html");
+        HtmlScriptCapture capture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = new Uri(Origin, "index.html"),
+            Html = "<iframe src='/frames/first.html'></iframe>",
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(firstUrl,
+                    "<p id='first'>First frame</p><iframe src='nested/second.html'></iframe>",
+                    "text/html; charset=utf-8"),
+                HtmlRuntimeResource.FromText(secondUrl,
+                    "<p id='second'>Second frame</p>",
+                    "text/html; charset=utf-8")
+            },
+            ReadyExpression = "document.querySelector('iframe')?.contentDocument?.querySelector('iframe')?.contentDocument?.querySelector('#second')?.textContent==='Second frame'"
+        });
+
+        HtmlFrameCapture first = Assert.Single(capture.Frames);
+        HtmlFrameCapture second = Assert.Single(first.Frames);
+        Assert.Equal("First frame", first.Document.QuerySelector("#first")!.TextContent);
+        Assert.Equal("Second frame", second.Document.QuerySelector("#second")!.TextContent);
+        Assert.Contains("Second frame", capture.CreateRenderDocument().QuerySelector("iframe")!.GetAttribute("srcdoc"), StringComparison.Ordinal);
+        Assert.Equal(3, capture.ArtifactManifest.Entries.Count(entry => entry.Name.EndsWith("document.html", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task CapturedFramesFollowContainingDocumentPreorder() {
+        Uri firstUrl = new(Origin, "first.html");
+        Uri secondUrl = new(Origin, "second.html");
+        HtmlScriptCapture capture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = new Uri(Origin, "index.html"),
+            Html = "<div><iframe id='first' src='/first.html'></iframe></div><iframe id='second' src='/second.html'></iframe>",
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(firstUrl, "<p>First</p>", "text/html; charset=utf-8"),
+                HtmlRuntimeResource.FromText(secondUrl, "<p>Second</p>", "text/html; charset=utf-8")
+            },
+            ReadyExpression = "document.querySelector('#first')?.contentDocument?.querySelector('p')?.textContent==='First' && document.querySelector('#second')?.contentDocument?.querySelector('p')?.textContent==='Second'"
+        });
+
+        Assert.Equal(new[] {
+            capture.Document.QuerySelector("#first")!.NodeId,
+            capture.Document.QuerySelector("#second")!.NodeId
+        }, capture.Frames.Select(frame => frame.FrameElementNodeId));
+        Assert.Equal(new[] { firstUrl, secondUrl }, capture.Frames.Select(frame => frame.DocumentUrl));
+    }
+
+    [Fact]
+    public async Task SandboxedAndCrossOriginFrameBodiesAreNotExposedByCapture() {
+        Uri sameOriginFrame = new(Origin, "sandboxed.html");
+        Uri externalOrigin = new("https://frames.example/");
+        Uri externalFrame = new(externalOrigin, "external.html");
+        HtmlScriptCapture capture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = new Uri(Origin, "index.html"),
+            Html = "<iframe sandbox src='/sandboxed.html'></iframe><iframe src='https://frames.example/external.html'></iframe>",
+            ResourcePolicy = new HtmlRuntimeResourcePolicy { AllowedOrigins = new[] { externalOrigin } },
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(sameOriginFrame, "<p>Sandboxed</p>", "text/html; charset=utf-8"),
+                HtmlRuntimeResource.FromText(externalFrame, "<p>External</p>", "text/html; charset=utf-8")
+            }
+        });
+
+        Assert.Empty(capture.Frames);
+        Assert.DoesNotContain("Sandboxed", capture.CreateRenderDocument().DocumentElement!.OuterHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("External", capture.CreateRenderDocument().DocumentElement!.OuterHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RemovingSandboxAfterNavigationDoesNotExposeTheOpaqueFrame() {
+        Uri frameUrl = new(Origin, "sandboxed-mutation.html");
+        await using IHtmlRuntimeSession session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = new Uri(Origin, "index.html"),
+            Html = "<iframe sandbox src='/sandboxed-mutation.html'></iframe>",
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(frameUrl, "<p>Opaque child</p>", "text/html; charset=utf-8")
+            }
+        });
+        await session.WaitForAsync(
+            "document.querySelector('iframe')?.contentDocument?.querySelector('p')?.textContent==='Opaque child'");
+
+        await session.EvaluateAsync("document.querySelector('iframe').removeAttribute('sandbox')");
+        HtmlScriptCapture capture = await session.CaptureAsync();
+
+        Assert.Empty(capture.Frames);
+        Assert.DoesNotContain("Opaque child", capture.CreateRenderDocument().OuterHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task FrameDocumentsShareTheRootCaptureNodeBudget() {
+        Uri frame = new(Origin, "large-frame.html");
+        string body = string.Concat(Enumerable.Range(0, 24).Select(index => $"<p>{index}</p>"));
+        HtmlScriptRuntimeException error = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() =>
+            Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+                DocumentUrl = new Uri(Origin, "index.html"),
+                Html = "<iframe src='/large-frame.html'></iframe>",
+                Resources = new[] { HtmlRuntimeResource.FromText(frame, body, "text/html; charset=utf-8") },
+                MaxNodes = 20
+            }));
+
+        Assert.Contains("node budget", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task FrameCaptureRejectsNestingBeyondItsSupportedDepth() {
+        var resources = new List<HtmlRuntimeResource>();
+        for (int index = 0; index < 9; index++) {
+            string html = index == 8
+                ? "<p>Deepest frame</p>"
+                : $"<iframe src='/frame-{index + 1}.html'></iframe>";
+            resources.Add(HtmlRuntimeResource.FromText(
+                new Uri(Origin, $"frame-{index}.html"), html, "text/html; charset=utf-8"));
+        }
+
+        HtmlScriptRuntimeException error = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() =>
+            Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+                DocumentUrl = new Uri(Origin, "index.html"),
+                Html = "<iframe src='/frame-0.html'></iframe>",
+                Resources = resources
+            }));
+
+        Assert.Contains("frame depth budget", error.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -259,7 +259,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 horizontal.Step,
                 vertical.Step);
             long tileCount = pattern.EstimatedTileCount;
-            if (tileCount > 0L && tileCount <= _options.MaxBackgroundImageTiles - _backgroundImageTileCount) {
+            if (_operationBudget.TryReserveBackgroundImageTiles(tileCount, _options.MaxBackgroundImageTiles)) {
                 if (svgDrawing != null) {
                     AddBackgroundDrawingPattern(layerVisuals, svgDrawing, pattern, _options.MaxBackgroundImageTiles, layerVisualSource);
                 } else {
@@ -271,7 +271,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         layerVisuals.Count,
                         layerVisualSource));
                 }
-                _backgroundImageTileCount += tileCount;
             } else if (tileCount > 0L) {
                 _diagnostics.Add(
                     ComponentName,

@@ -67,6 +67,10 @@ byte[] screenToPagePdf = result.Outputs[2].Pdf!.ToBytes();
 Every output in one application workflow inherits the page request's
 `DevicePixelRatio`. Runtime resource capture and static screen, print, and
 screen-to-page rendering therefore select responsive images at the same density.
+Same-origin captured frame bodies are also projected automatically. The static
+renderer lays each child document out in its iframe viewport, applies the selected
+screen or print media context, clips overflow, and keeps child text searchable in
+PDF output. Root and child capture snapshots remain separate and immutable.
 
 The host can be `HtmlProcessRuntimeProvider` or another provider advertising
 the requested profile, structured actions and operation tracing. The current

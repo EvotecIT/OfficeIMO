@@ -131,11 +131,11 @@ var cases = new List<ProbeCase> {
         ExpectedVisibleText: "Headered XHR remained offline", ExpectBlueInk: true,
         ExpectedDiscoveryRounds: []),
     new ProbeCase("frame-document", """
-        <!doctype html><style>body{font:16px sans-serif}#outer{color:#0055aa}</style>
+        <!doctype html><style>body{font:16px sans-serif}#outer{color:#222}</style>
         <p id="outer">Outer frame host ready</p>
         <iframe src="/frame/detail.html"></iframe>
         """, "document.querySelector('iframe')?.contentDocument?.querySelector('#inside')?.textContent === 'Frame document ready' && !document.body.dataset.childEvent && !document.body.dataset.childInline && !document.body.dataset.childExternal",
-        8 * 1024 * 1024, ExpectedVisibleText: "Outer frame host ready", ExpectBlueInk: true,
+        8 * 1024 * 1024, ExpectedVisibleText: "Frame document ready", ExpectMagentaArea: true,
         Resources: new Dictionary<string, ProbeResource>(StringComparer.Ordinal) {
             [$"{fixtureOrigin}/frame/detail.html"] = new("""
                 <!doctype html><link rel="stylesheet" href="frame.css">
@@ -144,7 +144,7 @@ var cases = new List<ProbeCase> {
                 <script>document.querySelector('#inside').textContent='inline ran';parent.document.body.dataset.childInline='ran'</script>
                 <script src="frame.js"></script>
                 """, "text/html; charset=utf-8"),
-            [$"{fixtureOrigin}/frame/frame.css"] = new("#inside{color:#0055aa}", "text/css"),
+            [$"{fixtureOrigin}/frame/frame.css"] = new("body{margin:0;background:#d1007f}#inside{color:white}", "text/css"),
             [$"{fixtureOrigin}/frame/frame.js"] = new("document.querySelector('#inside').textContent='external ran';parent.document.body.dataset.childExternal='ran'", "text/javascript")
         }, ExpectedDiscoveryRounds: [
             [ $"{fixtureOrigin}/frame/detail.html" ],
@@ -270,6 +270,9 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
             if (fixture.ExpectBlueInk && (!OfficePngReader.TryDecode(final.Screen, out OfficeRasterImage? raster) || raster == null ||
                 !ContainsBlueInk(raster.GetPixels())))
                 throw new IOException("The rendered PNG does not contain the styled visible text.");
+            if (fixture.ExpectMagentaArea && (!OfficePngReader.TryDecode(final.Screen, out OfficeRasterImage? frameRaster) || frameRaster == null ||
+                !ContainsMagentaArea(frameRaster.GetPixels())))
+                throw new IOException("The rendered PNG does not contain the child-frame stylesheet background.");
             string caseDirectory = Path.Combine(outputDirectory, fixture.Name);
             Directory.CreateDirectory(caseDirectory);
             await File.WriteAllBytesAsync(Path.Combine(caseDirectory, "screen.png"), final.Screen);
@@ -324,6 +327,15 @@ static bool ContainsBlueInk(byte[] rgba) {
     return false;
 }
 
+static bool ContainsMagentaArea(byte[] rgba) {
+    int pixels = 0;
+    for (int offset = 0; offset < rgba.Length; offset += 4) {
+        if (rgba[offset] > 160 && rgba[offset + 1] < 80 && rgba[offset + 2] > 80 && rgba[offset + 3] > 200
+            && ++pixels >= 100) return true;
+    }
+    return false;
+}
+
 static async Task<string> DrainErrorAsync(Stream stream, CancellationToken token) {
     using var prefix = new MemoryStream();
     var buffer = new byte[4096];
@@ -336,7 +348,7 @@ static async Task<string> DrainErrorAsync(Stream stream, CancellationToken token
 internal sealed record ProbeResource(string Content, string ContentType);
 internal sealed record ProbeCase(string Name, string Html, string ReadyExpression, int MaxOutputCharacters,
     string? ExpectedErrorKind = null, string? ExpectedError = null, string? ExpectedVisibleText = null,
-    bool ExpectBlueInk = false, IReadOnlyDictionary<string, ProbeResource>? Resources = null,
+    bool ExpectBlueInk = false, bool ExpectMagentaArea = false, IReadOnlyDictionary<string, ProbeResource>? Resources = null,
     string[][]? ExpectedDiscoveryRounds = null, Uri? DocumentUrl = null, double DevicePixelRatio = 1D);
 internal sealed record ProbeResult(string Name, bool Passed, string? ContainerName, bool ContainerRemoved,
     long ElapsedMilliseconds, string? ErrorKind, string? Error, string? CleanupError,

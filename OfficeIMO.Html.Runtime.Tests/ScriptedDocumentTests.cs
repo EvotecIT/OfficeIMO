@@ -20,6 +20,19 @@ public sealed class ScriptedDocumentTests {
         Assert.Throws<ArgumentException>(() => new HtmlScriptCapture(mutable, "example"));
     }
 
+    [Fact]
+    public void CaptureRetainsTheOriginalFiveParameterConstructorSignature() {
+        Type[] signature = {
+            typeof(HtmlDocument),
+            typeof(string),
+            typeof(Uri),
+            typeof(IReadOnlyList<HtmlRuntimeResource>),
+            typeof(Uri)
+        };
+
+        Assert.NotNull(typeof(HtmlScriptCapture).GetConstructor(signature));
+    }
+
     private sealed class ExampleProvider : IHtmlScriptRuntimeProvider {
         public Task<IHtmlRuntimeSession> OpenTrustedAsync(HtmlScriptRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<HtmlScriptCapture> CaptureTrustedAsync(HtmlScriptRequest request, CancellationToken cancellationToken = default) =>

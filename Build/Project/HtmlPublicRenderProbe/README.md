@@ -28,8 +28,9 @@ a static frame document plus its relative stylesheet and script, 129 distinct
 external script URLs exceeding static discovery, a captured-document size limit, and a
 nonterminating script interrupted by its command deadline. Frame readiness proves
 nested document loading and proves inline, external and event-attribute scripts
-remain inert. Child-frame execution realms and frame-body capture/rendering are
-outside this fixture contract. `summary.json`
+remain inert. The frame case also requires the captured child body and its
+stylesheet to remain searchable in both PDF modes after static rendering.
+Child-frame execution realms are outside this fixture contract. `summary.json`
 records the image and published-file digests, ordered discovery rounds with
 canonical absolute resource URLs, each outcome, elapsed time, and container
 removal. The module fixture requires the root module in the first round and its

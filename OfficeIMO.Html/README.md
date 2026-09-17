@@ -347,6 +347,16 @@ OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, 
 
 The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All`, `HtmlRenderProfileContracts.All`, or the generated support matrix for the exact declared subset.
 
+Iframe `srcdoc` content is laid out as an independent replaced viewport with the
+browser default 300 by 150 CSS-pixel intrinsic size, overridden by CSS or `width`
+and `height` attributes. The child uses the selected screen or print media context,
+keeps its own base URI and styles, clips overflow at the iframe content box, and
+retains searchable text in PDF output. `MaxFrameDepth` defaults to eight and may be
+lowered for stricter workloads. Layout-operation and repeated-background tile limits
+apply cumulatively to the root and all rendered frame viewports. Static rendering does not fetch an iframe `src`;
+the runtime application workflow supplies captured same-origin frame bodies through
+an isolated render clone.
+
 Paged tables use the same layout and retained scene for PDF, SVG, and raster output. Auto layout considers cell text, replaced images, column spans, and fixed-width visible descendants without feeding percentage widths back into intrinsic track sizing. Rowspans suppress unsafe page boundaries. `break-inside: avoid` on rows and row groups, `break-before` and `break-after` on rows, and aligned line breaks inside oversized multi-cell rows participate in pagination. `thead`/`tfoot` use their CSS table-group defaults; any row group can opt into or out of repetition with `display: table-header-group`, `table-footer-group`, or `table-row-group`. Repeated fragments retain the original table, row, and cell structure identity for tagged PDF. When an avoided or otherwise atomic row is taller than an empty page, the paginator makes bounded progress and reports `HtmlRenderForcedFragment` against the table source.
 
 The PDF adapter uses the shared scene's resolved superscript/subscript scale and vertical offset,

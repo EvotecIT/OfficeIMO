@@ -257,19 +257,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ChargeLayoutOperations(long count, string source) {
-        if (count < 0L || _layoutOperationCount > _options.MaxLayoutOperations - count) {
-            _layoutOperationCount = (long)_options.MaxLayoutOperations + 1L;
-        } else {
-            _layoutOperationCount += count;
-        }
-        if (_layoutOperationCount > _options.MaxLayoutOperations) {
-            throw new HtmlDomLimitException(
-                HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded,
-                "HTML layout exceeded the configured operation limit at " + source + ".",
-                nameof(HtmlRenderOptions.MaxLayoutOperations),
-                _layoutOperationCount,
-                _options.MaxLayoutOperations);
-        }
+        _operationBudget.ChargeLayoutOperations(count, _options.MaxLayoutOperations, source);
     }
 
     private HtmlRenderFlowBlock LayoutElement(

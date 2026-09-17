@@ -31,6 +31,7 @@ public sealed class HtmlRuntimeArtifactManifest {
     internal static HtmlRuntimeArtifactManifest Create(HtmlScriptCapture capture) {
         byte[] document = Encoding.UTF8.GetBytes(DocumentHtml(capture));
         var entries = new List<HtmlRuntimeArtifactEntry> { Entry("document.html", "text/html; charset=utf-8", document) };
+        AddFrames(entries, capture.Frames, string.Empty);
         int index = 0;
         foreach (HtmlRuntimeResource resource in capture.Resources
                      .OrderBy(item => HtmlRuntimeResourcePolicy.Key(item.Url), StringComparer.Ordinal)) {
@@ -45,6 +46,21 @@ public sealed class HtmlRuntimeArtifactManifest {
 
     internal static string DocumentHtml(HtmlScriptCapture capture) =>
         capture.Document.DocumentElement?.OuterHtml ?? string.Empty;
+
+    internal static string FrameDocumentHtml(HtmlFrameCapture frame) => frame.Document.OuterHtml;
+
+    private static void AddFrames(
+        ICollection<HtmlRuntimeArtifactEntry> entries,
+        IReadOnlyList<HtmlFrameCapture> frames,
+        string parent) {
+        for (int index = 0; index < frames.Count; index++) {
+            HtmlFrameCapture frame = frames[index];
+            string name = parent + $"frame-{index + 1:D4}";
+            byte[] document = Encoding.UTF8.GetBytes(FrameDocumentHtml(frame));
+            entries.Add(Entry(name + "/document.html", "text/html; charset=utf-8", document));
+            AddFrames(entries, frame.Frames, name + "/");
+        }
+    }
 
     private static HtmlRuntimeArtifactEntry Entry(string name, string contentType, byte[] content) => new() {
         Name = name,

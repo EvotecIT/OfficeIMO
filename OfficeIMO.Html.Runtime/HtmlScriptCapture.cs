@@ -9,7 +9,21 @@ public sealed partial class HtmlScriptCapture {
     /// after route changes. The authored <see cref="Document"/> remains unchanged.
     /// </summary>
     public HtmlDocument CreateStandaloneDocument() {
-        var clone=Document.CloneAttached();
+        return CreateStandaloneDocument(Document, BaseUri);
+    }
+
+    /// <summary>
+    /// Creates a standalone render snapshot and projects captured child documents into their
+    /// corresponding iframe <c>srcdoc</c> attributes. The captured root and child documents remain unchanged.
+    /// </summary>
+    public HtmlDocument CreateRenderDocument() {
+        HtmlDocument clone = CreateStandaloneDocument(Document, BaseUri, freeze: false);
+        ProjectFrames(clone, Frames);
+        return clone.Freeze();
+    }
+
+    private static HtmlDocument CreateStandaloneDocument(HtmlDocument document, Uri baseUri, bool freeze = true) {
+        var clone=document.CloneAttached();
         var element=FindBase(clone);
         if(element==null) {
             var root=clone.DocumentElement;
@@ -19,8 +33,19 @@ public sealed partial class HtmlScriptCapture {
             if(head==null) {head=clone.CreateElement("head");Prepend(root,head);}
             element=clone.CreateElement("base");Prepend(head,element);
         }
-        element.SetAttribute("href",BaseUri.AbsoluteUri);
-        return clone.Freeze();
+        element.SetAttribute("href",baseUri.AbsoluteUri);
+        return freeze ? clone.Freeze() : clone;
+    }
+
+    private static void ProjectFrames(HtmlDocument containingDocument, IReadOnlyList<HtmlFrameCapture> frames) {
+        foreach (HtmlFrameCapture frame in frames) {
+            if (containingDocument.GetNode(frame.FrameElementNodeId) is not HtmlElement iframe)
+                throw new InvalidOperationException("The render snapshot no longer contains its captured iframe.");
+            HtmlDocument child = CreateStandaloneDocument(frame.Document, frame.BaseUri, freeze: false);
+            ProjectFrames(child, frame.Frames);
+            string html = child.OuterHtml;
+            iframe.SetAttribute("srcdoc", html);
+        }
     }
 
     private static HtmlElement? FindBase(HtmlDocument document) => document.Descendants().OfType<HtmlElement>()

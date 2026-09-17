@@ -35,7 +35,7 @@ public static class HtmlApplicationDocumentWorkflow {
             }
         }
 
-        HtmlConversionDocument document = HtmlConversionDocument.FromDocument(capture.CreateStandaloneDocument(),
+        HtmlConversionDocument document = HtmlConversionDocument.FromDocument(capture.CreateRenderDocument(),
             new HtmlConversionDocumentOptions { BaseUri = capture.BaseUri });
         IReadOnlyDictionary<string, HtmlRuntimeResource> resources = RetainRenderResources(input.Page, capture.Resources);
         var outputs = new List<HtmlApplicationRenderOutput>(input.RenderRequests.Count);

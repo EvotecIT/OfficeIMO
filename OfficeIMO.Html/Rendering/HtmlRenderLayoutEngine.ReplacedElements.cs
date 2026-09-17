@@ -5,6 +5,12 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolveReplacedImageBoxWidth(IElement element, HtmlRenderBoxStyle style) {
+        if (IsInlineFrameElement(element)) {
+            ReplacedContentSize frameSize = ResolveReplacedContentSize(style, 300D, 150D, hasIntrinsicSize: true);
+            double frameWidth = frameSize.Width + style.HorizontalInsets;
+            EnsureReplacedBoxSize(frameWidth, frameSize.Height + style.VerticalInsets);
+            return frameWidth;
+        }
         byte[]? bytes;
         OfficeImageInfo? imageInfo;
         if (!TryReadInlineSvgSource(element, out bytes, out imageInfo)) {

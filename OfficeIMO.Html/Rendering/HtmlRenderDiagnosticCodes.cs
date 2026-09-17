@@ -86,6 +86,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string CounterRepresentationLimitExceeded = "HtmlRenderCounterRepresentationLimitExceeded";
     /// <summary>A replaced-element sizing or object-placement value used a deterministic fallback.</summary>
     public const string ReplacedElementValueUnsupported = "HtmlRenderReplacedElementValueUnsupported";
+    /// <summary>Nested iframe rendering exceeded the configured depth limit.</summary>
+    public const string FrameDepthLimitExceeded = "HtmlRenderFrameDepthLimitExceeded";
     /// <summary>A positioned inset could not be resolved by the current length model.</summary>
     public const string PositionInsetUnsupported = "HtmlRenderPositionInsetUnsupported";
     /// <summary>A positioned layout mode used the documented normal-flow fallback.</summary>
@@ -262,6 +264,7 @@ public static class HtmlRenderDiagnosticCodes {
         GridTrackLimitExceeded,
         GridValueUnsupported,
         ReplacedElementValueUnsupported,
+        FrameDepthLimitExceeded,
         OverflowClipMarginValueUnsupported,
         OverflowScrollSnapshot,
         OverflowValueUnsupported,

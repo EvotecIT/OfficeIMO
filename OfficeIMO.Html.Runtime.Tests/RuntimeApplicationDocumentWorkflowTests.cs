@@ -11,6 +11,119 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class RuntimeApplicationDocumentWorkflowTests {
+    [Fact]
+    public void StaticRendererProjectsAuthoredSrcdocIntoAClippedFrameViewport() {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse("""
+            <main>Before <iframe width="220" height="80" srcdoc="<p id='inside'>Static frame body</p>"></iframe> After</main>
+            """);
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, new HtmlRenderOptions {
+            ViewportWidth = 600D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Contains("Static frame body", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals), visual =>
+            visual is HtmlRenderClipGroup { ClipWidth: 220D, ClipHeight: 80D }
+            && visual.Source?.EndsWith(":frame-viewport", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void StaticRendererDiagnosesAFrameBeyondTheConfiguredDepth() {
+        string nested = "<p>Nested frame</p>";
+        nested = $"<iframe srcdoc=\"{System.Net.WebUtility.HtmlEncode(nested)}\"></iframe>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            $"<iframe srcdoc=\"{System.Net.WebUtility.HtmlEncode(nested)}\"></iframe>");
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, new HtmlRenderOptions {
+            MaxFrameDepth = 1
+        });
+
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.FrameDepthLimitExceeded
+            && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.DoesNotContain("Nested frame", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SiblingFramesShareTheOperationWideBackgroundTileBudget() {
+        string svg = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'><rect width='1' height='1' fill='red'/></svg>"));
+        string child = $"<div style=\"width:2px;height:2px;background:url(data:image/svg+xml;base64,{svg}) 0 0/1px 1px repeat\"></div>";
+        string encoded = System.Net.WebUtility.HtmlEncode(child);
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            $"<iframe width='2' height='2' srcdoc=\"{encoded}\"></iframe><iframe width='2' height='2' srcdoc=\"{encoded}\"></iframe>");
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, new HtmlRenderOptions {
+            ViewportWidth = 40D,
+            Margins = HtmlRenderMargins.All(0D),
+            MaxBackgroundImageTiles = 6
+        });
+
+        Assert.Contains(rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded);
+    }
+
+    [Fact]
+    public async Task CapturedFrameBodyRemainsSeparateAndRendersAcrossAllDocumentIntents() {
+        Uri origin = new("https://frames.officeimo.test/index.html");
+        Uri frameUrl = new(origin, "/detail.html");
+        Uri frameCssUrl = new(origin, "/frame.css");
+        var page = new HtmlScriptRequest {
+            Profile = HtmlRuntimeProfile.WebApplicationV1,
+            DocumentUrl = origin,
+            Html = """
+                <style>body{margin:0} iframe{width:260px;height:90px;border:2px solid #24476b}</style>
+                <main><h1>Outer report</h1><iframe src="/detail.html"></iframe></main>
+                """,
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(frameUrl, """
+                    <link rel="stylesheet" href="/frame.css">
+                    <p id="inside">Captured frame body</p>
+                    """, "text/html; charset=utf-8"),
+                HtmlRuntimeResource.FromText(frameCssUrl,
+                    "body{margin:0;background:#eef6ff}p{color:#17324d;font-weight:bold}",
+                    "text/css")
+            },
+            ReadyExpression = "document.querySelector('iframe')?.contentDocument?.querySelector('#inside')?.textContent==='Captured frame body'"
+        };
+        IHtmlRuntimeHost host = new HtmlProcessRuntimeProvider(
+            Path.Combine(AppContext.BaseDirectory, "RuntimeWorker", "OfficeIMO.Html.Runtime.Worker.dll"),
+            AngleSharpDomServices.Instance);
+        var rendering = new HtmlToPdfOptions { ViewportWidth = 640D, Margins = HtmlRenderMargins.All(0D) };
+
+        HtmlApplicationDocumentResult result = await HtmlApplicationDocumentWorkflow.RunAsync(host,
+            new HtmlApplicationDocumentRequest {
+                Page = page,
+                FinalReadyExpression = page.ReadyExpression,
+                RenderRequests = new[] {
+                    HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, rendering),
+                    HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, rendering),
+                    HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf, rendering)
+                }
+            });
+
+        Assert.Null(result.Capture.Document.QuerySelector("#inside"));
+        Assert.Equal("Captured frame body", Assert.Single(result.Capture.Frames).Document.QuerySelector("#inside")!.TextContent);
+        Assert.Contains(result.RenderResources, resource => resource.Url == frameCssUrl);
+        Assert.All(result.Outputs, output => Assert.Contains("Captured frame body", output.Render.Document.Text, StringComparison.Ordinal));
+        Assert.All(result.Outputs, output => Assert.DoesNotContain(output.Render.Diagnostics,
+            diagnostic => diagnostic.Code is HtmlRenderDiagnosticCodes.ResourceUnavailable
+                or HtmlRenderDiagnosticCodes.ExternalStylesheetPending));
+        Assert.NotEmpty(result.Outputs[0].Images);
+        foreach (HtmlApplicationRenderOutput output in result.Outputs.Skip(1)) {
+            PdfReadDocument pdf = PdfReadDocument.Open(output.Pdf!.ToBytes());
+            Assert.Contains("Captured frame body", pdf.ExtractText(), StringComparison.Ordinal);
+        }
+        if (Environment.GetEnvironmentVariable("OFFICEIMO_APPLICATION_EVIDENCE_DIR") is { Length: > 0 } evidenceRoot) {
+            string folder = Path.Combine(evidenceRoot, "frame-content");
+            Directory.CreateDirectory(folder);
+            File.WriteAllBytes(Path.Combine(folder, "officeimo-screen.png"), result.Outputs[0].Images[0].Bytes);
+            File.WriteAllBytes(Path.Combine(folder, "officeimo-print.pdf"), result.Outputs[1].Pdf!.ToBytes());
+            File.WriteAllBytes(Path.Combine(folder, "officeimo-screen-to-page.pdf"), result.Outputs[2].Pdf!.ToBytes());
+        }
+    }
+
     [Theory]
     [InlineData("vanilla")]
     [InlineData("react-build")]

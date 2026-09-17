@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using OfficeIMO.Drawing;
+using OfficeIMO.Html.Dom;
 using System.Text;
 using System.Xml.Linq;
 
@@ -7,6 +8,7 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock LayoutImage(IElement element, double containingWidth, HtmlRenderBoxStyle style, string? inheritedLink = null) {
+        if (IsInlineFrameElement(element)) return LayoutFrame(element, containingWidth, style);
         string? editableImageKey = HtmlEditableLayoutProjector.GetImageSourceKey(element);
         string sourceDescription = string.IsNullOrWhiteSpace(editableImageKey)
             ? HtmlRenderStyleResolver.DescribeSource(element)
@@ -141,7 +143,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static bool IsReplacedImageElementTag(string tagName) =>
         tagName.Equals("img", StringComparison.OrdinalIgnoreCase)
-        || tagName.Equals("svg", StringComparison.OrdinalIgnoreCase);
+        || tagName.Equals("svg", StringComparison.OrdinalIgnoreCase)
+        || tagName.Equals("iframe", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsInlineFrameElement(IElement element) =>
+        element.LocalName.Equals("iframe", StringComparison.OrdinalIgnoreCase)
+        && element.NamespaceUri == HtmlElement.HtmlNamespace;
 
     private static bool IsInlineSvgElement(IElement element) =>
         element.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase);

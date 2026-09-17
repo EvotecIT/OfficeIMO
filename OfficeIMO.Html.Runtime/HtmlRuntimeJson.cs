@@ -1,3 +1,4 @@
+using OfficeIMO.Html.Dom;
 using System.Text.Json;
 
 namespace OfficeIMO.Html.Runtime;
@@ -52,6 +53,7 @@ public static class HtmlRuntimeJson {
             ProviderId = value.ProviderId,
             DocumentUrl = value.DocumentUrl,
             BaseUri = value.BaseUri,
+            Frames = value.Frames.Select(Project).ToArray(),
             Resources = value.Resources.Select(resource => new HtmlRuntimeResourcePayload {
                 Url = resource.Url,
                 FinalUrl = resource.FinalUrl,
@@ -65,6 +67,15 @@ public static class HtmlRuntimeJson {
             ArtifactManifest = value.ArtifactManifest
         };
     }
+
+    private static HtmlFrameCapturePayload Project(HtmlFrameCapture value) => new() {
+        FrameElementNodeId = value.FrameElementNodeId,
+        DocumentHtml = HtmlRuntimeArtifactManifest.FrameDocumentHtml(value),
+        DocumentMode = value.Document.Mode,
+        DocumentUrl = value.DocumentUrl,
+        BaseUri = value.BaseUri,
+        Frames = value.Frames.Select(Project).ToArray()
+    };
 }
 
 internal sealed class HtmlAutomationToolResultPayload {
@@ -90,8 +101,18 @@ internal sealed class HtmlScriptCapturePayload {
     public string ProviderId { get; set; } = string.Empty;
     public Uri DocumentUrl { get; set; } = new("https://officeimo.invalid/");
     public Uri BaseUri { get; set; } = new("https://officeimo.invalid/");
+    public IReadOnlyList<HtmlFrameCapturePayload> Frames { get; set; } = Array.Empty<HtmlFrameCapturePayload>();
     public IReadOnlyList<HtmlRuntimeResourcePayload> Resources { get; set; } = Array.Empty<HtmlRuntimeResourcePayload>();
     public HtmlRuntimeArtifactManifest ArtifactManifest { get; set; } = null!;
+}
+
+internal sealed class HtmlFrameCapturePayload {
+    public int FrameElementNodeId { get; set; }
+    public string DocumentHtml { get; set; } = string.Empty;
+    public HtmlDocumentMode DocumentMode { get; set; }
+    public Uri DocumentUrl { get; set; } = new("https://officeimo.invalid/");
+    public Uri BaseUri { get; set; } = new("https://officeimo.invalid/");
+    public IReadOnlyList<HtmlFrameCapturePayload> Frames { get; set; } = Array.Empty<HtmlFrameCapturePayload>();
 }
 
 internal sealed class HtmlRuntimeResourcePayload {
