@@ -190,7 +190,8 @@ public static partial class HtmlContentSafety {
             }
         }
 
-        if (string.Equals(element.LocalName, "template", StringComparison.OrdinalIgnoreCase)) {
+        if (HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+            && string.Equals(element.LocalName, "template", StringComparison.OrdinalIgnoreCase)) {
             string templateText = NormalizePayload(element.TextContent);
             if (templateText.Length > 0 && builder.Options.IncludeNonPrimaryContent) {
                 AddAttributeOrNonPrimaryFinding(builder, targets, element, null, location, "HTML template content is not part of the ordinary rendered document.", templateText);
@@ -261,8 +262,10 @@ public static partial class HtmlContentSafety {
         HtmlComputedStyle? style,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
         OfficeContentSafetyOptions options) {
-        if (element.HasAttribute("hidden") || string.Equals(element.LocalName, "input", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase)) {
+        if (HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+            && (element.HasAttribute("hidden")
+                || string.Equals(element.LocalName, "input", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase))) {
             return new Concealment(OfficeContentConcealmentKind.HiddenByProperty, "The HTML hidden state prevents ordinary rendering.");
         }
         if (style == null) return null;
@@ -344,14 +347,16 @@ public static partial class HtmlContentSafety {
             AddAttributeOrNonPrimaryFinding(builder, targets, element, attribute, location + "/@" + attribute,
                 "The " + attribute + " attribute is machine-readable but not ordinary body text.", value);
         }
-        if (string.Equals(element.LocalName, "meta", StringComparison.OrdinalIgnoreCase)) {
+        if (HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+            && string.Equals(element.LocalName, "meta", StringComparison.OrdinalIgnoreCase)) {
             string value = element.GetAttribute("content") ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(value)) {
                 AddAttributeOrNonPrimaryFinding(builder, targets, element, "content", location + "/@content",
                     "HTML metadata is machine-readable but not rendered as ordinary body text.", value);
             }
         }
-        if (string.Equals(element.LocalName, "input", StringComparison.OrdinalIgnoreCase)) {
+        if (HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+            && string.Equals(element.LocalName, "input", StringComparison.OrdinalIgnoreCase)) {
             string value = element.GetAttribute("value") ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(value) && string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase)) {
                 AddAttributeOrNonPrimaryFinding(builder, targets, element, "value", location + "/@value",
@@ -556,8 +561,14 @@ public static partial class HtmlContentSafety {
         return normalized.IndexOf("-999", marker, StringComparison.Ordinal) >= 0 || normalized.IndexOf("-1000", marker, StringComparison.Ordinal) >= 0;
     }
 
-    private static bool IsNonTextElement(IElement element) => element.LocalName.ToLowerInvariant() is "script" or "style" or "noscript";
-    private static bool CanRemoveElement(IElement element) => element.ParentElement != null && element.LocalName.ToLowerInvariant() is not "html" and not "body";
+    private static bool IsNonTextElement(IElement element) =>
+        HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+        && element.LocalName.ToLowerInvariant() is "script" or "style" or "noscript";
+
+    private static bool CanRemoveElement(IElement element) =>
+        element.ParentElement != null
+        && (!HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+            || element.LocalName.ToLowerInvariant() is not "html" and not "body");
     private static string NormalizePayload(string value) => string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
 
     private sealed class Concealment {

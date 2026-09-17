@@ -107,7 +107,7 @@ var cleanupOptions = new OfficeContentCleanupOptions {
 };
 ```
 
-That policy removes only `META-INF/signatures.xml`; it does not claim that a modified package remains signed.
+That policy removes both supported signature carriers during an authorized rewrite: `META-INF/signatures.xml` and any ZIP central-directory digital-signature record. It does not claim that a modified package remains signed.
 
 ### Resolve chapter-relative references
 

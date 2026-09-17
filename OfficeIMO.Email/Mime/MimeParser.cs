@@ -117,10 +117,10 @@ internal static class MimeParser {
                         state.Diagnostics,
                         partLocation);
                     if (!string.Equals(relatedRootType.Value, "text/html", StringComparison.OrdinalIgnoreCase)
-                        && !relatedRootType.Value.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase)) {
+                        && !string.Equals(relatedRootType.Value, "multipart/alternative", StringComparison.OrdinalIgnoreCase)) {
                         state.Diagnostics.Add(new EmailDiagnostic(
                             RelatedRootNotHtmlDiagnosticCode,
-                            "The multipart/related start parameter selects a non-HTML root part.",
+                            "The multipart/related start parameter selects neither HTML nor an HTML-bearing alternative root part.",
                             EmailDiagnosticSeverity.Warning,
                             partLocation));
                     }

@@ -168,9 +168,9 @@ internal static partial class EpubReader {
 
         var results = new List<EpubRootfile>();
         var seenPaths = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var rootfile in containerDocument.Descendants().Where(e => IsName(e, "rootfile"))) {
+        foreach (var rootfile in containerDocument.Descendants().Where(e => IsContainerName(e, "rootfile"))) {
             cancellationToken.ThrowIfCancellationRequested();
-            string declaredPath = GetAttribute(rootfile, "full-path");
+            string declaredPath = GetUnqualifiedAttribute(rootfile, "full-path");
             string candidate = RemoveFragmentAndQuery(declaredPath);
             if (!TryNormalizeArchiveEntryPath(candidate, out string fullPath)) {
                 diagnostics.Warning(
@@ -189,7 +189,7 @@ internal static partial class EpubReader {
 
             results.Add(new EpubRootfile {
                 FullPath = fullPath,
-                MediaType = NullIfWhiteSpace(GetAttribute(rootfile, "media-type")),
+                MediaType = NullIfWhiteSpace(GetUnqualifiedAttribute(rootfile, "media-type")),
                 IsAvailable = entryIndex.ContainsKey(fullPath)
             });
         }

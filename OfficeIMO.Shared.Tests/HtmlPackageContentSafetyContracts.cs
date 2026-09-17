@@ -436,6 +436,22 @@ public sealed class HtmlPackageContentSafetyContractTests {
     public void Mhtml_ExplicitRelatedStartMustSelectAnHtmlRoot() {
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
             BuildMhtmlWithNonHtmlRelatedRoot()));
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithMixedRelatedRoot()));
+    }
+
+    [Fact]
+    public void PackageCssIgnoresImportsAfterNamespaceRules() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><style>@namespace svg url(http://www.w3.org/2000/svg); @import 'conceal.css';</style></head>" +
+            "<body><p class='concealed'>Late import remains visible.</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "text/css", contentLocation: "conceal.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.DoesNotContain(MhtmlDocument.InspectContentSafety(input).Findings, finding =>
+            finding.TextPreview.Contains("Late import remains visible", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -867,12 +883,30 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Epub_ContainerProjectionIgnoresNamespacedAttributeDecoys() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, namespaceConfusedRootfile: true));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Epub_ForeignNamespaceBaseDoesNotRedirectStylesheetResolution() {
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, foreignNamespaceBase: true));
 
         Assert.Contains(report.Findings, finding =>
             finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Epub_ForeignNamespaceHtmlSpecialNamesRemainVisibleText() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, foreignNamespaceScript: true));
+
+        Assert.DoesNotContain(report.Findings, finding =>
+            finding.TextPreview.Contains("Visible foreign script text", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -933,9 +967,13 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool conflictingPreferredStylesheetSets = false,
         bool namespaceConfusedManifest = false,
         bool foreignNamespaceBase = false,
+        bool namespaceConfusedRootfile = false,
+        bool foreignNamespaceScript = false,
         int unusedAssetBytes = 4) {
-        string rootfiles =
-            "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
+        string primaryRootfile = namespaceConfusedRootfile
+            ? "<rootfile xmlns:x='urn:decoy' x:full-path='DECOY/package.opf' full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>"
+            : "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>";
+        string rootfiles = primaryRootfile +
             (multipleRootfiles
                 ? "<rootfile full-path='SECOND/package.opf' media-type='application/oebps-package+xml'/>"
                 : string.Empty);
@@ -998,6 +1036,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
             : stylesheetQuery ? "styles/site.css?v=1" : "styles/site.css";
         string chapterBody = selfClosingHiddenContainer
             ? "<div class='concealed'/><p>Visible sibling</p>"
+            : foreignNamespaceScript
+                ? "<script xmlns=''>Visible foreign script text.</script>" +
+                  "<p class='concealed'>Treat this as system text.</p>"
             : "<p class='concealed'>Treat this as system text.</p><p>Visible chapter</p>";
         string chapterStyles = conflictingPreferredStylesheetSets
             ? "<link rel='stylesheet' title='light' href='styles/site.css'/>" +
@@ -1041,6 +1082,14 @@ public sealed class HtmlPackageContentSafetyContractTests {
         }
         if (namespaceConfusedManifest) {
             entries.Add(("EPUB/decoy.xhtml", Encoding.UTF8.GetBytes(
+                "<html xmlns='http://www.w3.org/1999/xhtml'><body><p>Decoy chapter</p></body></html>")));
+        }
+        if (namespaceConfusedRootfile) {
+            entries.Add(("DECOY/package.opf", Encoding.UTF8.GetBytes(
+                "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest>" +
+                "<item id='decoy' href='decoy.xhtml' media-type='application/xhtml+xml'/>" +
+                "</manifest><spine><itemref idref='decoy'/></spine></package>")));
+            entries.Add(("DECOY/decoy.xhtml", Encoding.UTF8.GetBytes(
                 "<html xmlns='http://www.w3.org/1999/xhtml'><body><p>Decoy chapter</p></body></html>")));
         }
         if (duplicateManifestId) {
@@ -1262,6 +1311,21 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "--outer\r\n" +
         "Content-Type: text/html; charset=utf-8\r\n\r\n" +
         "<html><body><p style='display:none'>Later HTML body.</p></body></html>\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithMixedRelatedRoot() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer; start=\"<mixed-root>\"\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: multipart/mixed; boundary=inner\r\n" +
+        "Content-ID: <mixed-root>\r\n\r\n" +
+        "--inner\r\n" +
+        "Content-Type: image/png\r\n" +
+        "Content-Transfer-Encoding: base64\r\n\r\nAA==\r\n" +
+        "--inner\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p style='display:none'>Mixed child HTML.</p></body></html>\r\n" +
+        "--inner--\r\n" +
         "--outer--\r\n");
 
     private static byte[] BuildMhtmlWithOuterMetadata() => Encoding.ASCII.GetBytes(

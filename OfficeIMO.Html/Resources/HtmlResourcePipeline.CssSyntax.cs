@@ -285,7 +285,7 @@ public static partial class HtmlResourcePipeline {
                 continue;
             }
 
-            if (HasStyleRuleBefore(css, importStart)) {
+            if (HasDisallowedRuleBeforeImport(css, importStart)) {
                 yield break;
             }
 
@@ -624,30 +624,52 @@ public static partial class HtmlResourcePipeline {
         return afterImport >= css.Length || !IsCssIdentifierCharacter(css[afterImport]);
     }
 
-    private static bool HasStyleRuleBefore(string css, int index) {
-        char quote = '\0';
-        for (int i = 0; i < index && i < css.Length; i++) {
-            char current = css[i];
-            if (quote != '\0') {
-                if (current == quote && !IsEscaped(css, i)) {
-                    quote = '\0';
+    private static bool HasDisallowedRuleBeforeImport(string css, int index) {
+        int cursor = 0;
+        while (cursor < index) {
+            cursor = SkipWhitespace(css, cursor);
+            if (cursor >= index) return false;
+            bool allowed = IsAtRuleAt(css, cursor, "@charset")
+                || IsAtRuleAt(css, cursor, "@import")
+                || IsAtRuleAt(css, cursor, "@layer");
+            if (!allowed) return true;
+
+            char quote = '\0';
+            int parentheses = 0;
+            bool terminated = false;
+            for (; cursor < index; cursor++) {
+                char current = css[cursor];
+                if (quote != '\0') {
+                    if (current == quote && !IsEscaped(css, cursor)) quote = '\0';
+                    continue;
                 }
-
-                continue;
+                if (current == '"' || current == '\'') {
+                    quote = current;
+                    continue;
+                }
+                if (current == '(') {
+                    parentheses++;
+                    continue;
+                }
+                if (current == ')' && parentheses > 0) {
+                    parentheses--;
+                    continue;
+                }
+                if (parentheses == 0 && current == '{') return true;
+                if (parentheses == 0 && current == ';') {
+                    cursor++;
+                    terminated = true;
+                    break;
+                }
             }
-
-            if (current == '"' || current == '\'') {
-                quote = current;
-                continue;
-            }
-
-            if (current == '{' || current == '}') {
-                return true;
-            }
+            if (!terminated) return true;
         }
-
         return false;
     }
+
+    private static bool IsAtRuleAt(string css, int index, string rule) =>
+        StartsWith(css, index, rule)
+        && HasAtRuleTokenBoundary(css, index, rule);
 
     private static HtmlResourceKind ClassifyCssUrl(string css, int index) {
         string propertyName = GetCssDeclarationPropertyName(css, index);
