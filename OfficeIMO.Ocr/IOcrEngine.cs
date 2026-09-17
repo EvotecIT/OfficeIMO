@@ -30,15 +30,7 @@ public sealed class DelegateOcrEngine : IOcrEngine {
         string id,
         Func<OcrRequest, CancellationToken, Task<OcrResult>> recognizeAsync,
         OcrEngineCapabilities? capabilities = null) {
-        if (string.IsNullOrEmpty(id)) throw new ArgumentException("OCR engine id cannot be empty.", nameof(id));
-        if (id.Length > OcrEngineRunner.MaximumEngineIdCharacters) {
-            throw new ArgumentException(
-                "OCR engine id cannot exceed " + OcrEngineRunner.MaximumEngineIdCharacters + " characters.",
-                nameof(id));
-        }
-        string normalizedId = id.Trim();
-        if (normalizedId.Length == 0) throw new ArgumentException("OCR engine id cannot be empty.", nameof(id));
-        Id = normalizedId;
+        Id = OcrEngineRunner.ValidateEngineId(id, nameof(id));
         _recognizeAsync = recognizeAsync ?? throw new ArgumentNullException(nameof(recognizeAsync));
         _capabilities = (capabilities ?? new OcrEngineCapabilities()).Clone();
     }

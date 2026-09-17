@@ -2,24 +2,38 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.ContentSafety;
 
 /// <summary>Applies encoded and package-expansion limits before format parsers allocate decoded content.</summary>
 public static class OfficeContentSafetyInputGuard {
     /// <summary>Reads a file only after validating its encoded length and, when applicable, ZIP package metadata.</summary>
-    public static byte[] ReadAllBytes(string filePath, OfficeContentSafetyOptions options, bool inspectZipPackage = false) {
+    public static byte[] ReadAllBytes(string filePath, OfficeContentSafetyOptions options, bool inspectZipPackage = false) =>
+        ReadAllBytes(filePath, options, inspectZipPackage, CancellationToken.None);
+
+    /// <summary>
+    /// Reads a file only after validating its encoded length and, when applicable, ZIP package metadata,
+    /// while observing cancellation between bounded input chunks.
+    /// </summary>
+    public static byte[] ReadAllBytes(
+        string filePath,
+        OfficeContentSafetyOptions options,
+        bool inspectZipPackage,
+        CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         if (options == null) throw new ArgumentNullException(nameof(options));
+        cancellationToken.ThrowIfCancellationRequested();
         options.Validate();
         string fullPath = Path.GetFullPath(filePath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The input file was not found.", fullPath);
-        long length = new FileInfo(fullPath).Length;
-        if (length > options.MaxInputBytes) throw new InvalidDataException("The encoded asset exceeds the configured input-byte limit.");
         byte[] bytes;
         using (FileStream stream = File.OpenRead(fullPath)) {
-            bytes = ReadBounded(stream, options.MaxInputBytes);
+            long length = stream.Length;
+            if (length > options.MaxInputBytes) throw new InvalidDataException("The encoded asset exceeds the configured input-byte limit.");
+            bytes = ReadExactFile(stream, length, cancellationToken);
         }
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateBytes(bytes, options, inspectZipPackage);
         return bytes;
     }
@@ -83,17 +97,20 @@ public static class OfficeContentSafetyInputGuard {
         }
     }
 
-    private static byte[] ReadBounded(Stream stream, long maximumBytes) {
-        using var output = new MemoryStream();
-        var buffer = new byte[81920];
-        long total = 0;
-        int read;
-        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0) {
-            if (total > maximumBytes - read) throw new InvalidDataException("The encoded asset exceeds the configured input-byte limit.");
-            output.Write(buffer, 0, read);
+    private static byte[] ReadExactFile(FileStream stream, long expectedLength, CancellationToken cancellationToken) {
+        int length = checked((int)expectedLength);
+        var bytes = new byte[length];
+        int total = 0;
+        while (total < bytes.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int read = stream.Read(bytes, total, Math.Min(81920, bytes.Length - total));
+            cancellationToken.ThrowIfCancellationRequested();
+            if (read <= 0) throw new InvalidDataException("The input file changed while it was being read.");
             total += read;
         }
-        return output.ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        if (stream.ReadByte() >= 0) throw new InvalidDataException("The input file changed while it was being read.");
+        return bytes;
     }
 
     private static bool LooksLikeZip(byte[] input) => input.Length >= 4 && input[0] == 0x50 && input[1] == 0x4B &&

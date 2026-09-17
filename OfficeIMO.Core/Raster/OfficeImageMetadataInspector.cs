@@ -4,6 +4,7 @@ namespace OfficeIMO.Drawing;
 
 internal sealed class OfficeImageMetadataSnapshot {
     internal OfficeImageMetadataKinds Kinds { get; set; }
+    internal bool HasColorRenderingMetadata { get; set; }
     internal byte[]? Exif { get; set; }
     internal byte[]? Xmp { get; set; }
     internal byte[]? Icc { get; set; }
@@ -17,7 +18,7 @@ internal sealed class OfficeImageMetadataSnapshot {
     internal double? PhysicalDpiY { get; set; }
 }
 
-internal static class OfficeImageMetadataInspector {
+internal static partial class OfficeImageMetadataInspector {
     private static readonly byte[] ExifPrefix = { (byte)'E', (byte)'x', (byte)'i', (byte)'f', 0, 0 };
     private static readonly byte[] XmpPrefix = System.Text.Encoding.ASCII.GetBytes("http://ns.adobe.com/xap/1.0/\0");
     private static readonly byte[] ExtendedXmpPrefix = System.Text.Encoding.ASCII.GetBytes("http://ns.adobe.com/xmp/extension/\0");
@@ -62,7 +63,7 @@ internal static class OfficeImageMetadataInspector {
         return snapshot;
     }
 
-    private static void InspectJpeg(
+    internal static void InspectJpeg(
         byte[] data,
         OfficeImageMetadataSnapshot snapshot,
         long retainedManagedBytes,
@@ -71,14 +72,24 @@ internal static class OfficeImageMetadataInspector {
         bool invalidIccSequence = false;
         int offset = 2;
         bool inScan = false;
+        long nextCancellationOffset = 0L;
         while (offset < data.Length - 1) {
-            if ((offset & 0xFFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (offset >= nextCancellationOffset) {
+                cancellationToken.ThrowIfCancellationRequested();
+                nextCancellationOffset = (long)offset + 64L * 1024L;
+            }
             if (inScan && data[offset] != 0xFF) {
                 offset++;
                 continue;
             }
             if (data[offset++] != 0xFF) break;
-            while (offset < data.Length && data[offset] == 0xFF) offset++;
+            while (offset < data.Length && data[offset] == 0xFF) {
+                offset++;
+                if (offset >= nextCancellationOffset) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    nextCancellationOffset = (long)offset + 64L * 1024L;
+                }
+            }
             if (offset >= data.Length) break;
             int marker = data[offset++];
             if (inScan) {
@@ -105,7 +116,7 @@ internal static class OfficeImageMetadataInspector {
             if (marker == 0xE1 && StartsWith(data, payload, count, ExifPrefix)) {
                 if (snapshot.Exif != null) snapshot.HasDuplicateJpegExif = true;
                 snapshot.Exif = Slice(data, payload, count, cancellationToken);
-                InspectExifPayload(snapshot.Exif, 0, snapshot.Exif.Length, snapshot);
+                InspectExifPayload(snapshot.Exif, 0, snapshot.Exif.Length, snapshot, cancellationToken);
             } else if (marker == 0xE1 && StartsWith(data, payload, count, XmpPrefix)) {
                 if (snapshot.Xmp != null) snapshot.HasDuplicateStandardJpegXmp = true;
                 snapshot.Xmp = Slice(data, payload, count, cancellationToken);
@@ -115,6 +126,7 @@ internal static class OfficeImageMetadataInspector {
                 snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
             } else if (marker == 0xE2 && StartsWith(data, payload, count, IccPrefix) && count >= IccPrefix.Length + 2) {
                 snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
+                snapshot.HasColorRenderingMetadata = true;
                 int sequence = data[payload + IccPrefix.Length];
                 int total = data[payload + IccPrefix.Length + 1];
                 if (sequence < 1 || total < 1 || sequence > total) {
@@ -131,6 +143,7 @@ internal static class OfficeImageMetadataInspector {
                 }
             } else if (marker == 0xE2 && StartsWith(data, payload, count, IccPrefix)) {
                 snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
+                snapshot.HasColorRenderingMetadata = true;
                 invalidIccSequence = true;
             } else if (marker == 0xFE) {
                 snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
@@ -171,15 +184,37 @@ internal static class OfficeImageMetadataInspector {
 
     private static void InspectPng(byte[] data, OfficeImageMetadataSnapshot snapshot, CancellationToken cancellationToken) {
         int offset = 8;
+        bool hasStandardRgb = false;
+        bool hasGamma = false;
+        bool hasStandardGamma = false;
+        bool hasChromaticities = false;
+        bool hasStandardChromaticities = false;
         while (offset <= data.Length - 12) {
             cancellationToken.ThrowIfCancellationRequested();
             int length = ReadBigEndian(data, offset);
             if (length < 0 || offset > data.Length - 12 - length) break;
             string type = ReadAscii(data, offset + 4, 4);
             if (type == "eXIf") {
-                InspectExifPayload(data, offset + 8, length, snapshot);
+                InspectExifPayload(data, offset + 8, length, snapshot, cancellationToken);
+            } else if (type == "iCCP") {
+                snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
+                snapshot.HasColorRenderingMetadata = true;
+            } else if (type == "gAMA") {
+                hasGamma = true;
+                hasStandardGamma = length == 4 && ReadUInt32Unsigned(data, offset + 8, little: false) == 45455U;
+            } else if (type == "cHRM") {
+                hasChromaticities = true;
+                hasStandardChromaticities = length == 32 &&
+                    OfficePngContainerValidator.HasStandardRgbChromaticities(data, offset + 8);
+            } else if (type == "sRGB") hasStandardRgb = true;
+            else if (type == "cICP") {
+                bool canonicalSrgb = length == 4 &&
+                    data[offset + 8] == 1 &&
+                    data[offset + 9] == 13 &&
+                    data[offset + 10] == 0 &&
+                    data[offset + 11] == 1;
+                if (!canonicalSrgb) snapshot.HasColorRenderingMetadata = true;
             }
-            else if (type == "iCCP") snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
             else if (type == "pHYs") {
                 bool physical = length == 9 && data[offset + 16] == 1;
                 MarkResolution(snapshot, physical);
@@ -190,12 +225,18 @@ internal static class OfficeImageMetadataInspector {
                         ReadUInt32Unsigned(data, offset + 12, little: false) / pixelsPerMeterPerDpi,
                         overwrite: true);
                 }
-            }
-            else if ((type == "tEXt" || type == "zTXt" || type == "iTXt") &&
-                     HasExactPngTextKeyword(
-                         data, offset + 8, length, "XML:com.adobe.xmp")) snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
+            } else if ((type == "tEXt" || type == "zTXt" || type == "iTXt") &&
+                       HasExactPngTextKeyword(
+                           data, offset + 8, length, "XML:com.adobe.xmp")) snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
             else if (type == "tEXt" || type == "zTXt" || type == "iTXt") snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
             offset = checked(offset + 12 + length);
+        }
+        bool hasCompleteStandardColorimetry =
+            hasGamma && hasStandardGamma && hasChromaticities && hasStandardChromaticities;
+        if (hasStandardRgb
+                ? (hasGamma && !hasStandardGamma) || (hasChromaticities && !hasStandardChromaticities)
+                : (hasGamma || hasChromaticities) && !hasCompleteStandardColorimetry) {
+            snapshot.HasColorRenderingMetadata = true;
         }
     }
 
@@ -207,10 +248,12 @@ internal static class OfficeImageMetadataInspector {
             if (length < 0 || offset > data.Length - 8 - length) break;
             string type = ReadAscii(data, offset, 4);
             if (type == "EXIF") {
-                InspectExifPayload(data, offset + 8, length, snapshot);
+                InspectExifPayload(data, offset + 8, length, snapshot, cancellationToken);
+            } else if (type == "XMP ") snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
+            else if (type == "ICCP") {
+                snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
+                snapshot.HasColorRenderingMetadata = true;
             }
-            else if (type == "XMP ") snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
-            else if (type == "ICCP") snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
             offset = checked(offset + 8 + length + (length & 1));
         }
     }
@@ -226,15 +269,45 @@ internal static class OfficeImageMetadataInspector {
         int resolutionUnit = 2;
         double? resolutionX = null;
         double? resolutionY = null;
+        int bitsPerSampleEntry = -1;
+        int photometricInterpretation = -1;
+        int samplesPerPixel = -1;
+        int transferFunctionEntry = -1;
+        int whitePointEntry = -1;
+        int primaryChromaticitiesEntry = -1;
         for (int index = 0; index < count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             int entry = ifd + 2 + index * 12;
             if (entry > data.Length - 12) return;
             int tag = ReadUInt16(data, entry, little);
-            if (tag == 34665) snapshot.Kinds |= OfficeImageMetadataKinds.Exif;
-            else if (tag == 700) snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
-            else if (tag == 34675) snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
-            else if (tag == 270) snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
+            if (tag == 34665) {
+                snapshot.Kinds |= OfficeImageMetadataKinds.Exif;
+                InspectExifSubIfdColorMetadata(
+                    data, entry, little, 0, data.Length, snapshot, cancellationToken);
+            } else if (tag == 700) snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
+            else if (tag == 34675) {
+                snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
+                snapshot.HasColorRenderingMetadata = true;
+            } else if (tag == 270) snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
+            else if (tag == 258) bitsPerSampleEntry = entry;
+            else if (tag == 262) {
+                if (!TryReadInlineShort(data, entry, little, data.Length, out photometricInterpretation)) {
+                    snapshot.HasColorRenderingMetadata = true;
+                }
+            } else if (tag == 277) {
+                if (!TryReadInlineShort(data, entry, little, data.Length, out samplesPerPixel)) {
+                    snapshot.HasColorRenderingMetadata = true;
+                }
+            } else if (tag == 301) {
+                if (transferFunctionEntry >= 0) snapshot.HasColorRenderingMetadata = true;
+                transferFunctionEntry = entry;
+            } else if (tag == 318) {
+                if (whitePointEntry >= 0) snapshot.HasColorRenderingMetadata = true;
+                whitePointEntry = entry;
+            } else if (tag == 319) {
+                if (primaryChromaticitiesEntry >= 0) snapshot.HasColorRenderingMetadata = true;
+                primaryChromaticitiesEntry = entry;
+            } else if (IsUnappliedTiffColorTag(tag)) snapshot.HasColorRenderingMetadata = true;
             else if (tag == 282 || tag == 283) {
                 hasResolution = true;
                 if (TryReadRational(
@@ -242,8 +315,7 @@ internal static class OfficeImageMetadataInspector {
                     if (tag == 282) resolutionX = resolution;
                     else resolutionY = resolution;
                 }
-            }
-            else if (tag == 296) {
+            } else if (tag == 296) {
                 hasResolution = true;
                 if (!TryReadInlineShort(data, entry, little, data.Length, out resolutionUnit)) resolutionUnit = 1;
             }
@@ -255,6 +327,23 @@ internal static class OfficeImageMetadataInspector {
                 double scale = resolutionUnit == 3 ? 2.54D : 1D;
                 SetPhysicalResolution(snapshot, resolutionX.Value * scale, resolutionY.Value * scale, overwrite: true);
             }
+        }
+        bool hasTiffColorimetry = transferFunctionEntry >= 0 || whitePointEntry >= 0 || primaryChromaticitiesEntry >= 0;
+        if (hasTiffColorimetry && !IsCanonicalSrgbTiffColorimetry(
+                data,
+                little,
+                tiffBaseOffset: 0,
+                data.Length,
+                requireRgbImageTags: true,
+                hasSrgbColorSpace: false,
+                bitsPerSampleEntry,
+                photometricInterpretation,
+                samplesPerPixel,
+                transferFunctionEntry,
+                whitePointEntry,
+                primaryChromaticitiesEntry,
+                cancellationToken)) {
+            snapshot.HasColorRenderingMetadata = true;
         }
     }
 
@@ -294,6 +383,13 @@ internal static class OfficeImageMetadataInspector {
         if (data.Length < verticalPixelsPerMeterOffset + 4 ||
             ReadLittleEndian(data, dibHeaderOffset) < minimumInfoHeaderSize) return;
 
+        int dibHeaderSize = ReadLittleEndian(data, dibHeaderOffset);
+        if (dibHeaderSize >= 108 && data.Length >= dibHeaderOffset + 60) {
+            const int logicalColorSpaceSrgb = 0x73524742;
+            int colorSpaceType = ReadLittleEndian(data, dibHeaderOffset + 56);
+            if (colorSpaceType != logicalColorSpaceSrgb) snapshot.HasColorRenderingMetadata = true;
+        }
+
         int horizontalPixelsPerMeter = ReadLittleEndian(data, horizontalPixelsPerMeterOffset);
         int verticalPixelsPerMeter = ReadLittleEndian(data, verticalPixelsPerMeterOffset);
         if (horizontalPixelsPerMeter > 0 || verticalPixelsPerMeter > 0) {
@@ -312,7 +408,9 @@ internal static class OfficeImageMetadataInspector {
         byte[] exif,
         int payloadOffset,
         int payloadLength,
-        OfficeImageMetadataSnapshot snapshot) {
+        OfficeImageMetadataSnapshot snapshot,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         snapshot.Kinds |= OfficeImageMetadataKinds.Exif;
         if (OfficeImageOrientationNormalizer.TryReadExifOrientationPayload(
                 exif, payloadOffset, payloadLength, out OfficeImageOrientation orientation) &&
@@ -336,11 +434,35 @@ internal static class OfficeImageMetadataInspector {
         int resolutionUnit = 2;
         double? resolutionX = null;
         double? resolutionY = null;
+        int transferFunctionEntry = -1;
+        int whitePointEntry = -1;
+        int primaryChromaticitiesEntry = -1;
+        bool hasSrgbColorSpace = false;
         for (int index = 0; index < count; index++) {
+            if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             int entry = absoluteIfd + 2 + index * 12;
-            if (entry > payloadEnd - 12) return;
+            if (entry > payloadEnd - 12) {
+                if (transferFunctionEntry >= 0 || whitePointEntry >= 0 || primaryChromaticitiesEntry >= 0) {
+                    snapshot.HasColorRenderingMetadata = true;
+                }
+                return;
+            }
             int tag = ReadUInt16(exif, entry, little);
-            if (tag == 282 || tag == 283) {
+            if (tag == 301) {
+                if (transferFunctionEntry >= 0) snapshot.HasColorRenderingMetadata = true;
+                transferFunctionEntry = entry;
+            } else if (tag == 318) {
+                if (whitePointEntry >= 0) snapshot.HasColorRenderingMetadata = true;
+                whitePointEntry = entry;
+            } else if (tag == 319) {
+                if (primaryChromaticitiesEntry >= 0) snapshot.HasColorRenderingMetadata = true;
+                primaryChromaticitiesEntry = entry;
+            } else if (tag == 34665) {
+                hasSrgbColorSpace |= InspectExifSubIfdColorMetadata(
+                    exif, entry, little, tiffOffset, payloadEnd, snapshot, cancellationToken);
+            } else if (IsUnappliedTiffColorTag(tag)) {
+                snapshot.HasColorRenderingMetadata = true;
+            } else if (tag == 282 || tag == 283) {
                 hasResolution = true;
                 if (TryReadRational(
                         exif, entry, little, tiffOffset, payloadEnd, out double resolution)) {
@@ -362,7 +484,66 @@ internal static class OfficeImageMetadataInspector {
                 SetPhysicalResolution(snapshot, resolutionX.Value * scale, resolutionY.Value * scale, overwrite: false);
             }
         }
+        bool hasTiffColorimetry = transferFunctionEntry >= 0 || whitePointEntry >= 0 || primaryChromaticitiesEntry >= 0;
+        if (hasTiffColorimetry && !IsCanonicalSrgbTiffColorimetry(
+                exif,
+                little,
+                tiffOffset,
+                payloadEnd,
+                requireRgbImageTags: false,
+                hasSrgbColorSpace,
+                bitsPerSampleEntry: -1,
+                photometricInterpretation: -1,
+                samplesPerPixel: -1,
+                transferFunctionEntry,
+                whitePointEntry,
+                primaryChromaticitiesEntry,
+                cancellationToken)) {
+            snapshot.HasColorRenderingMetadata = true;
+        }
     }
+
+    private static bool InspectExifSubIfdColorMetadata(
+        byte[] data,
+        int pointerEntry,
+        bool little,
+        int tiffBaseOffset,
+        int viewEnd,
+        OfficeImageMetadataSnapshot snapshot,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (pointerEntry < 0 || pointerEntry > viewEnd - 12 ||
+            ReadUInt16(data, pointerEntry + 2, little) != 4 ||
+            ReadUInt32Unsigned(data, pointerEntry + 4, little) != 1U) return false;
+        uint relativeOffset = ReadUInt32Unsigned(data, pointerEntry + 8, little);
+        long absoluteOffset = (long)tiffBaseOffset + relativeOffset;
+        if (absoluteOffset < tiffBaseOffset || absoluteOffset > viewEnd - 2) return false;
+        int subIfd = (int)absoluteOffset;
+        int count = ReadUInt16(data, subIfd, little);
+        bool hasSrgbColorSpace = false;
+        for (int index = 0; index < count; index++) {
+            if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
+            int entry = subIfd + 2 + index * 12;
+            if (entry < tiffBaseOffset || entry > viewEnd - 12) {
+                if (hasSrgbColorSpace) snapshot.HasColorRenderingMetadata = true;
+                return false;
+            }
+            int tag = ReadUInt16(data, entry, little);
+            if (IsUnappliedTiffColorTag(tag)) {
+                snapshot.HasColorRenderingMetadata = true;
+            } else if (tag == 40961) {
+                if (TryReadInlineShort(data, entry, little, viewEnd, out int colorSpace) && colorSpace == 1) {
+                    hasSrgbColorSpace = true;
+                } else {
+                    snapshot.HasColorRenderingMetadata = true;
+                }
+            }
+        }
+        return hasSrgbColorSpace;
+    }
+
+    private static bool IsUnappliedTiffColorTag(int tag) =>
+        tag == 301 || tag == 318 || tag == 319 || tag == 529 || tag == 532 || tag == 34675 || tag == 42240;
 
     private static void MarkResolution(OfficeImageMetadataSnapshot snapshot, bool isPhysical) {
         snapshot.Kinds |= OfficeImageMetadataKinds.Resolution;
@@ -464,8 +645,9 @@ internal static class OfficeImageMetadataInspector {
                     offset <= data.Length - 12 &&
                     Matches(data, offset + 1, 11, "ICCRGBG1012")) {
                     snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
+                    snapshot.HasColorRenderingMetadata = true;
                 }
-                if (!SkipGifSubBlocks(data, ref offset)) return;
+                if (!SkipGifSubBlocks(data, ref offset, cancellationToken)) return;
                 continue;
             }
             if (introducer != 0x2C || offset > data.Length - 9) return;
@@ -474,11 +656,16 @@ internal static class OfficeImageMetadataInspector {
             if ((descriptor & 0x80) != 0) offset += 3 << ((descriptor & 7) + 1);
             if (offset >= data.Length) return;
             offset++;
-            if (!SkipGifSubBlocks(data, ref offset)) return;
+            if (!SkipGifSubBlocks(data, ref offset, cancellationToken)) return;
         }
     }
-    private static bool SkipGifSubBlocks(byte[] data, ref int offset) {
+    private static bool SkipGifSubBlocks(
+        byte[] data,
+        ref int offset,
+        CancellationToken cancellationToken) {
+        int blockCount = 0;
         while (offset < data.Length) {
+            if ((blockCount++ & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             int length = data[offset++];
             if (length == 0) return true;
             if (offset > data.Length - length) return false;

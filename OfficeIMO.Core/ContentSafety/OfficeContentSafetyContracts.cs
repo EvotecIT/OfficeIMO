@@ -52,7 +52,9 @@ public enum OfficeContentCleanupCapability {
     /// <summary>The adapter can remove the exact text payload while retaining its owner.</summary>
     RemoveText,
     /// <summary>The adapter can remove the exact owning element, run, cell, shape, or metadata value.</summary>
-    RemoveElement
+    RemoveElement,
+    /// <summary>The adapter can irreversibly cover an exact bounded raster region under an explicit redaction policy.</summary>
+    RedactRegion
 }
 
 /// <summary>Bounds concealment and indirect prompt-injection inspection.</summary>
@@ -255,12 +257,28 @@ public sealed class OfficeContentCleanupResult {
         byte[] output,
         OfficeContentSafetyReport before,
         OfficeContentSafetyReport after,
-        IReadOnlyList<OfficeContentCleanupChange> changes) {
-        Output = (byte[])(output ?? throw new ArgumentNullException(nameof(output))).Clone();
+        IReadOnlyList<OfficeContentCleanupChange> changes) :
+        this(output, before, after, changes, takeOutputOwnership: false) { }
+
+    private OfficeContentCleanupResult(
+        byte[] output,
+        OfficeContentSafetyReport before,
+        OfficeContentSafetyReport after,
+        IReadOnlyList<OfficeContentCleanupChange> changes,
+        bool takeOutputOwnership) {
+        if (output == null) throw new ArgumentNullException(nameof(output));
+        Output = takeOutputOwnership ? output : (byte[])output.Clone();
         Before = before ?? throw new ArgumentNullException(nameof(before));
         After = after ?? throw new ArgumentNullException(nameof(after));
         Changes = new List<OfficeContentCleanupChange>(changes ?? throw new ArgumentNullException(nameof(changes))).AsReadOnly();
     }
+
+    internal static OfficeContentCleanupResult FromOwnedOutput(
+        byte[] output,
+        OfficeContentSafetyReport before,
+        OfficeContentSafetyReport after,
+        IReadOnlyList<OfficeContentCleanupChange> changes) =>
+        new(output, before, after, changes, takeOutputOwnership: true);
     /// <summary>Gets a defensive copy of the cleaned artifact.</summary>
     public byte[] Output { get; }
     /// <summary>Gets the evidence snapshot before cleanup.</summary>

@@ -69,7 +69,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                     BuildLimitAttributes(totalBytes + sourcePayload.LongLength, options.MaxTotalInputBytes)));
                 continue;
             }
-            if (!IsSupportedMediaType(asset.MediaType, capabilities.SupportedMediaTypes)) {
+            if (!capabilities.SupportsMediaType(asset.MediaType)) {
                 string mediaType = string.IsNullOrWhiteSpace(asset.MediaType) ? "(unknown)" : asset.MediaType!;
                 diagnostics.Add(BuildDiagnostic(candidate, asset, engineId, OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Ocr,
                     "ocr-media-type-unsupported", "The OCR engine does not advertise support for media type '" + mediaType + "'.", true));
@@ -125,17 +125,6 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         if (!string.IsNullOrWhiteSpace(candidate.Sheet)) return string.Equals(candidate.Sheet, asset.Sheet, StringComparison.Ordinal);
         if (!string.IsNullOrWhiteSpace(candidate.A1Range)) return string.Equals(candidate.A1Range, asset.A1Range, StringComparison.Ordinal);
         return string.Equals(candidate.Path, asset.Path, StringComparison.Ordinal);
-    }
-
-    private static bool IsSupportedMediaType(string? mediaType, IReadOnlyList<string>? supported) {
-        if (supported == null || supported.Count == 0) return true;
-        if (string.IsNullOrWhiteSpace(mediaType)) return false;
-        foreach (string declared in supported) {
-            if (string.IsNullOrWhiteSpace(declared)) continue;
-            if (string.Equals(declared, mediaType, StringComparison.OrdinalIgnoreCase)) return true;
-            if (declared.EndsWith("/*", StringComparison.Ordinal) && mediaType!.StartsWith(declared.Substring(0, declared.Length - 1), StringComparison.OrdinalIgnoreCase)) return true;
-        }
-        return false;
     }
 
     private static void NormalizeEngineResult(

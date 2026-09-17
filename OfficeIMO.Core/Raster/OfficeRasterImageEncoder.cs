@@ -111,8 +111,29 @@ public static partial class OfficeRasterImageEncoder {
         OfficeRasterImage image,
         OfficeImageExportFormat format,
         OfficeRasterEncodingOptions? options,
+        long maximumEncodedBytes,
+        CancellationToken cancellationToken,
+        long additionalRetainedManagedBytes) {
+        if (additionalRetainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(additionalRetainedManagedBytes));
+        var budget = new OfficeImageExportEncodingBudget(maximumEncodedBytes);
+        return Encode(image, format, options, budget, cancellationToken, additionalRetainedManagedBytes);
+    }
+
+    internal static byte[] Encode(
+        OfficeRasterImage image,
+        OfficeImageExportFormat format,
+        OfficeRasterEncodingOptions? options,
         OfficeImageExportEncodingBudget budget,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken) =>
+        Encode(image, format, options, budget, cancellationToken, additionalRetainedManagedBytes: 0L);
+
+    private static byte[] Encode(
+        OfficeRasterImage image,
+        OfficeImageExportFormat format,
+        OfficeRasterEncodingOptions? options,
+        OfficeImageExportEncodingBudget budget,
+        CancellationToken cancellationToken,
+        long additionalRetainedManagedBytes) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (budget == null) throw new ArgumentNullException(nameof(budget));
         OfficeRasterEncodingOptions effective =
@@ -120,7 +141,7 @@ public static partial class OfficeRasterImageEncoder {
         using var output = new OfficeImageExportEncodingMemoryStream(
             budget,
             cancellationToken,
-            GetRetainedManagedBytes(image, format, effective));
+            checked(GetRetainedManagedBytes(image, format, effective) + additionalRetainedManagedBytes));
         EncodeToCore(image, format, output, effective, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return output.ToBoundedArray();
