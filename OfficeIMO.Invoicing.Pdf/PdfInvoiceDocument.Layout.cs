@@ -5,6 +5,15 @@ namespace OfficeIMO.Invoicing.Pdf;
 
 public sealed partial class PdfInvoiceDocument {
     private void Compose(PdfContentBuilder content) {
+        if (_layout.Theme != null) {
+            ComposeModern(content, _layout.Theme);
+        } else {
+            ComposeClassic(content);
+        }
+        ComposeApprovals(content, _layout.Theme ?? new InvoicePdfTheme());
+    }
+
+    private void ComposeClassic(PdfContentBuilder content) {
         content.H1(DocumentTitle);
         content.Table(new[] { new[] { Label(InvoicePdfText.Seller), Label(InvoicePdfText.Buyer) }, new[] { Party(_invoice.Seller), Party(_invoice.Buyer) } },
             style: new PdfTableStyle { HeaderRowCount = 1, RowStripeFill = null, SpacingAfter = 8, FontSize = 9 });

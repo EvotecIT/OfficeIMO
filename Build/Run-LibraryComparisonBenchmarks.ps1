@@ -33,6 +33,8 @@ param(
         'wordread',
         'wordreplace',
         'pdfgenerate',
+        'pdfinvoice',
+        'pdfinvoiceworkflow',
         'pdfhtml',
         'pdfhtmlpayload',
         'pdfformats',
@@ -93,6 +95,20 @@ if ($usesHtmlTinkerX -and -not [string]::IsNullOrWhiteSpace($HtmlTinkerXRoot)) {
     $htmlTinkerXSourceDirty = @(& git -C $htmlTinkerXSourceRoot status --porcelain --untracked-files=normal).Count -gt 0
 }
 $affinityLabel = if ($AffinityMask -ne 0) { '0x{0:X}' -f $AffinityMask } else { $null }
+$affinityApplication = $null
+if ($AffinityMask -ne 0 -and [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+        [System.Runtime.InteropServices.OSPlatform]::Windows)) {
+    $benchmarkHost = [System.Diagnostics.Process]::GetCurrentProcess()
+    $benchmarkHost.ProcessorAffinity = [IntPtr]([long] $AffinityMask)
+    $observedAffinity = [UInt64] $benchmarkHost.ProcessorAffinity.ToInt64()
+    if ($observedAffinity -ne $AffinityMask) {
+        throw "Requested affinity mask $affinityLabel, but Windows applied $('0x{0:X}' -f $observedAffinity)."
+    }
+    # BenchmarkDotNet 0.15.x parses --affinity as a signed 32-bit value. Pin the
+    # coordinator instead so masks such as 0xFFFF0000 remain exact and are
+    # inherited by restore, build, and benchmark worker processes.
+    $affinityApplication = 'inherited-parent-process'
+}
 $OutputRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
     $OutputRoot)
 $platform = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
@@ -406,6 +422,24 @@ $definitions = [ordered]@{
                 }
             }
         )
+    }
+    pdfinvoice = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfInvoiceGenerationBenchmarks*'
+        ComparisonId = "pdf-real-world-invoice-$Framework"
+        Suite = 'OfficeIMO.Pdf.RealWorldInvoice'
+        CatalogEligible = $false
+        IdentityVariables = @()
+        ExpectedCases = @('OfficeIMO', 'QuestPDF', 'IText')
+    }
+    pdfinvoiceworkflow = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfTypedInvoiceWorkflowBenchmarks*'
+        ComparisonId = "pdf-typed-invoice-workflow-$Framework"
+        Suite = 'OfficeIMO.Pdf.TypedInvoiceWorkflow'
+        CatalogEligible = $false
+        IdentityVariables = @()
+        ExpectedCases = @('TypedElectronicInvoicePdf')
     }
     pdfhtml = [pscustomobject]@{
         Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
@@ -758,6 +792,11 @@ foreach ($name in $selected) {
     }
     if ($null -ne $affinityLabel) {
         $provenanceMetadata['benchmark.workload.affinityMask'] = $affinityLabel
+        $provenanceMetadata['benchmark.workload.affinityApplication'] = if ($null -ne $affinityApplication) {
+            $affinityApplication
+        } else {
+            'benchmarkdotnet-command-line'
+        }
     }
     if ($name -eq 'pdfhtml') {
         if ($null -ne $htmlTinkerXSourceCommit) {
@@ -791,13 +830,14 @@ foreach ($name in $selected) {
     if ($RunMode -eq 'quick') {
         $arguments += @('--job', 'Dry')
     }
-    if ($AffinityMask -ne 0) {
+    if ($AffinityMask -ne 0 -and $null -eq $affinityApplication) {
         $arguments += @('--affinity', $AffinityMask.ToString([Globalization.CultureInfo]::InvariantCulture))
     }
 
     Push-Location -LiteralPath $repositoryRoot
     $previousPdfCorpusRoot = $env:OFFICEIMO_PDF_CORPUS_ROOT
     $previousHtmlTinkerXProjectPath = $env:HTMLTINKERX_PROJECT_PATH
+    $previousExpectedAffinity = $env:OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY
     try {
         if ($name -eq 'pdfcorpusread') {
             $env:OFFICEIMO_PDF_CORPUS_ROOT = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PdfCorpusRoot)
@@ -805,11 +845,13 @@ foreach ($name in $selected) {
         if ($definition.Project -eq 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj') {
             $env:HTMLTINKERX_PROJECT_PATH = $htmlTinkerXProjectPath
         }
+        $env:OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY = $affinityLabel
         & dotnet @arguments
         $benchmarkExitCode = $LASTEXITCODE
     } finally {
         $env:OFFICEIMO_PDF_CORPUS_ROOT = $previousPdfCorpusRoot
         $env:HTMLTINKERX_PROJECT_PATH = $previousHtmlTinkerXProjectPath
+        $env:OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY = $previousExpectedAffinity
         Pop-Location
     }
     if ($benchmarkExitCode -ne 0) {
@@ -940,6 +982,7 @@ $outputs = foreach ($measurement in $measurements) {
         RunMode = $RunMode
         Publish = $executionPlanByWorkload[$measurement.Workload].Publish
         AffinityMask = $affinityLabel
+        AffinityApplication = $affinityApplication
         SourceCommit = $gitSha
         ArtifactsPath = $measurement.ArtifactsPath
         NormalizedResult = if ($measurement.CatalogEligible) {

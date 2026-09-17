@@ -159,5 +159,9 @@ public enum InvoicePdfText {
     /// <summary>Invoice notes heading.</summary>
     Notes,
     /// <summary>Supporting documents heading.</summary>
-    SupportingDocuments
+    SupportingDocuments,
+    /// <summary>Payment reference label used by the modern summary card.</summary>
+    PaymentReference,
+    /// <summary>Approval block heading.</summary>
+    Approvals
 }

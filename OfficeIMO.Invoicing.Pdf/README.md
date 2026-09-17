@@ -46,6 +46,29 @@ File.WriteAllBytes("invoice.xml", snapshot.ToXmlBytes());
 File.WriteAllBytes("invoice.pdf", snapshot.ToPdfBytes(options));
 ```
 
+Add a logo, a color theme, rounded cards, and visible approval details without
+rebuilding the invoice as low-level PDF primitives:
+
+```csharp
+var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
+layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+layout.LogoBytes = File.ReadAllBytes("company-logo.png");
+layout.LogoAlternativeText = "Company logo";
+layout.Approvals.Add(new InvoicePdfApproval(
+    "Prepared by", "Marta Nowak", "Finance", invoice.IssueDate));
+layout.Approvals.Add(new InvoicePdfApproval(
+    "Approved by", "Daniel Reed", "Delivery lead", invoice.IssueDate));
+
+var branded = PdfInvoiceDocument.Create(invoice, contract, layout);
+File.WriteAllBytes("invoice.pdf", branded.ToPdfBytes(options));
+```
+
+The modern theme is opt-in; existing layouts keep their established appearance.
+Approval blocks are printed identity and date fields. They are not PDF digital
+signatures and do not provide cryptographic proof. For a visible PDF without the
+CII attachment, such as a presentation-only comparison, call
+`ToPresentationPdfBytes`. Use `ToPdfBytes` for the hybrid Factur-X/ZUGFeRD output.
+
 Later edits to `invoice` cannot change the snapshot. `ToInvoice()` returns an
 independent editable model. Reuse the captured `Release` and `Profile` when
 creating a new snapshot after edits:
@@ -67,7 +90,8 @@ rejects other document types before creating the snapshot. The layout includes
 invoice and credit-note headings, repeated line-table headers,
 VAT and payable totals, party details, payment instructions and references.
 Totals stay together when page space permits. Generated labels are available in
-English, German, Polish and French. `ForCultures` combines packs in order for a
+English, German, Polish, French, Spanish, Italian, Dutch, Portuguese, Czech and
+Slovak. `ForCultures` combines packs in order for a
 bilingual or multilingual layout and formats values with the first culture.
 `InvoicePdfLanguagePack.Create` supports partial custom translations with explicit
 English fallback. Layout options are captured with the invoice, so later caller

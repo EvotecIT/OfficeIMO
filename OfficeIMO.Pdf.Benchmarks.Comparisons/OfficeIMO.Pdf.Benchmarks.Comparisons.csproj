@@ -41,6 +41,8 @@
     <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Invoicing\OfficeIMO.Invoicing.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Invoicing.Pdf\OfficeIMO.Invoicing.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex\OfficeIMO.Latex.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex.Pdf\OfficeIMO.Latex.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
@@ -67,6 +69,12 @@
   <ItemGroup>
     <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-Regular.ttf"
           Link="Fonts\Carlito-Regular.ttf"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-Bold.ttf"
+          Link="Fonts\Carlito-Bold.ttf"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Assets\Brand\Evotec\evotec-logo-horizontal-gradient-2400.png"
+          Link="Brand\evotec-logo-horizontal-gradient-2400.png"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

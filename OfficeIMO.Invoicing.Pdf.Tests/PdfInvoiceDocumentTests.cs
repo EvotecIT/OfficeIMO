@@ -8,6 +8,94 @@ namespace OfficeIMO.Invoicing.Pdf.Tests;
 
 public class PdfInvoiceDocumentTests {
     [Fact]
+    public void PresentationPdfKeepsVisibleInvoiceWithoutElectronicAttachment() {
+        Invoice invoice = InvoiceFixture.Create();
+        PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract());
+
+        byte[] pdf = snapshot.ToPresentationPdfBytes(Options());
+        string text = string.Join(" ", PdfReadDocument.Open(pdf).ExtractText().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        Assert.Empty(PdfDocument.Load(pdf).Attachments.Extract());
+        Assert.Contains("Invoice INV-2026-001", text, StringComparison.Ordinal);
+        Assert.Contains("119.00 EUR", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ModernPresentationCapturesThemeApprovalsAndLocalizedLabels() {
+        Invoice invoice = InvoiceFixture.Create();
+        var theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+        var layout = InvoicePdfLayoutOptions.ForCultures("pl-PL");
+        layout.Theme = theme;
+        layout.Approvals.Add(new InvoicePdfApproval("Prepared by", "Marta Nowak", "Finance", invoice.IssueDate));
+        PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract(), layout);
+
+        byte[] first = snapshot.ToPresentationPdfBytes(Options());
+        theme.Accent = PdfColor.Black;
+        theme.CornerRadius = 0D;
+        layout.Theme = null;
+        layout.Approvals.Clear();
+        byte[] second = snapshot.ToPresentationPdfBytes(Options());
+        string text = PdfReadDocument.Open(first).ExtractText();
+
+        Assert.Equal(first, second);
+        Assert.Contains("Prepared by", text, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Marta Nowak", text, StringComparison.Ordinal);
+        Assert.Contains("Finance", text, StringComparison.Ordinal);
+        Assert.Contains("Referencja płatności", text, StringComparison.Ordinal);
+        Assert.Contains("Akceptacje", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ModernPresentationKeepsFinancialBreakdownsAndTotalsVisible() {
+        Invoice invoice = InvoiceFixture.Rich();
+        var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
+        layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+
+        byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options());
+        string text = string.Join(" ", PdfReadDocument.Open(pdf).ExtractText().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        WriteEvidence("modern-financial-details", pdf);
+
+        foreach (string expected in new[] {
+            "Document adjustments", "Document discount", "Delivery", "VAT category",
+            "S 19%", "S 7%", "Allowances", "5.00 EUR", "Charges", "2.00 EUR",
+            "Total including", "254.64 EUR", "Rounding", "0.01 EUR"
+        }) Assert.Contains(expected, text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ModernPresentationFlowsLongCardsAcrossPages() {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Number = string.Join(" ", Enumerable.Repeat("LONG-INVOICE", 100)) + " FINAL-INVOICE-MARKER";
+        invoice.Seller.LegalInformation = string.Join(" ", Enumerable.Repeat("Long seller disclosure", 160)) + " FINAL-PARTY-MARKER";
+        invoice.PaymentTerms = string.Join(" ", Enumerable.Repeat("Long payment term", 180)) + " FINAL-PAYMENT-MARKER";
+        var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
+        layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+        layout.Approvals.Add(new InvoicePdfApproval("Approved by", "Marta Nowak",
+            string.Join(" ", Enumerable.Repeat("Long approval role", 180)) + " FINAL-APPROVAL-MARKER", invoice.IssueDate));
+
+        byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options());
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        string text = document.ExtractText();
+
+        Assert.True(document.Pages.Count > 2);
+        foreach (string expected in new[] { "FINAL-INVOICE-MARKER", "FINAL-PARTY-MARKER", "FINAL-PAYMENT-MARKER", "FINAL-APPROVAL-MARKER" })
+            Assert.Contains(expected, text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ClassicPresentationRendersRequestedApprovals() {
+        Invoice invoice = InvoiceFixture.Create();
+        var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
+        layout.Approvals.Add(new InvoicePdfApproval("Approved by", "Marta Nowak", "Finance", invoice.IssueDate));
+
+        byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options());
+        string text = PdfReadDocument.Open(pdf).ExtractText();
+
+        Assert.Contains("Approvals", text, StringComparison.Ordinal);
+        Assert.Contains("Marta Nowak", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SnapshotSuppliesAttachmentDateForRequiredFacturXCompliance() {
         Invoice invoice = InvoiceFixture.Create();
         invoice.Seller.ElectronicAddress = new InvoiceIdentifier("1234567890128", "0088");

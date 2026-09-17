@@ -54,11 +54,25 @@ public sealed partial class PdfInvoiceDocument {
     /// Supply embedded fonts through the PDF options. Validate the exact output with PDF/A and invoice validators before claiming compliance.
     /// </summary>
     public byte[] ToPdfBytes(PdfOptions? options = null) {
+        return RenderPdf(options, embedInvoiceXml: true);
+    }
+
+    /// <summary>
+    /// Renders the captured invoice as a presentation-only PDF without attaching CII XML.
+    /// Use <see cref="ToPdfBytes(PdfOptions?)"/> when a Factur-X/ZUGFeRD hybrid document is required.
+    /// </summary>
+    public byte[] ToPresentationPdfBytes(PdfOptions? options = null) {
+        return RenderPdf(options, embedInvoiceXml: false);
+    }
+
+    private byte[] RenderPdf(PdfOptions? options, bool embedInvoiceXml) {
         PdfOptions configured = options?.Clone() ?? new PdfOptions();
         configured.UseTextFallbacks(PdfTextFallbackFeatures.MultilingualFonts);
         if (configured.TextShapingProvider == null) configured.UseManagedTextShaping();
-        configured.UseFacturX(_xml, relationship: PdfAssociatedFileRelationship.Alternative);
-        configured.SetEmbeddedFileModificationDate("factur-x.xml", _capturedAt);
+        if (embedInvoiceXml) {
+            configured.UseFacturX(_xml, relationship: PdfAssociatedFileRelationship.Alternative);
+            configured.SetEmbeddedFileModificationDate("factur-x.xml", _capturedAt);
+        }
         PdfDocument document = PdfDocument.Create(configured);
         document.Meta(title: DocumentTitle, author: _invoice.Seller.Name);
         Compose(document.Content);
