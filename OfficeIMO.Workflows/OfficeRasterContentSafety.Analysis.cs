@@ -24,7 +24,12 @@ public static partial class OfficeRasterContentSafety {
         if (rawDiagnostics.Count > options.MaximumOcrSpans) {
             throw new InvalidDataException("The OCR result exceeds the configured diagnostic limit.");
         }
-        ValidateOcrOutputCharacters(result, rawSpans, rawDiagnostics, options, cancellationToken);
+        long retainedProviderBytes = ValidateOcrOutputCharacters(
+            result,
+            rawSpans,
+            rawDiagnostics,
+            options,
+            cancellationToken);
         if (rawDiagnostics.Any(diagnostic => diagnostic != null &&
             !Enum.IsDefined(typeof(OcrDiagnosticSeverity), diagnostic.Severity))) {
             throw new InvalidDataException("OCR reported an undefined diagnostic severity.");
@@ -147,7 +152,21 @@ public static partial class OfficeRasterContentSafety {
             "OCR provider '" + SanitizeIdentifier(engineId) + "' returned " + spans.Length.ToString(CultureInfo.InvariantCulture) +
             " bounded line, word, or character spans; " +
             visibleSpans.ToString(CultureInfo.InvariantCulture) + " had no bounded concealment evidence.");
-        return new AnalysisState(image, builder.Build(), targets, recognizedTargets.AsReadOnly());
+        OfficeContentSafetyReport report = builder.Build();
+        long retainedManagedBytes = checked(
+            retainedProviderBytes +
+            512L +
+            rawSpans.Count * 256L +
+            rawDiagnostics.Count * 256L +
+            recognizedTargets.Count * 128L +
+            targets.Count * 64L +
+            report.Findings.Count * 2048L);
+        return new AnalysisState(
+            image,
+            report,
+            targets,
+            recognizedTargets.AsReadOnly(),
+            retainedManagedBytes);
     }
 
     private static IReadOnlyDictionary<RasterTarget, IReadOnlyList<string>> ResolveConcealedInstructionSignals(
@@ -315,13 +334,14 @@ public static partial class OfficeRasterContentSafety {
         return normalized.ToString();
     }
 
-    private static void ValidateOcrOutputCharacters(
+    private static long ValidateOcrOutputCharacters(
         OcrResult result,
         IReadOnlyList<OcrTextSpan> spans,
         IReadOnlyList<OcrDiagnostic> diagnostics,
         OfficeRasterContentSafetyOptions.Snapshot options,
         CancellationToken cancellationToken) {
         long totalCharacters = 0L;
+        long stringCount = 0L;
         int totalAttributes = 0;
         AddCharacters(result.Text);
         AddCharacters(result.Language);
@@ -352,6 +372,7 @@ public static partial class OfficeRasterContentSafety {
                 AddCharacters(attribute.Value);
             }
         }
+        return checked(totalCharacters * sizeof(char) + stringCount * 24L + totalAttributes * 64L);
 
         void AddCharacters(string? value) {
             totalCharacters = checked(totalCharacters + (value?.Length ?? 0));
@@ -359,6 +380,7 @@ public static partial class OfficeRasterContentSafety {
                 throw new InvalidDataException("OCR output exceeds the configured character limit.");
             }
             if (value == null) return;
+            stringCount++;
             for (int index = 0; index < value.Length; index++) {
                 if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 char character = value[index];

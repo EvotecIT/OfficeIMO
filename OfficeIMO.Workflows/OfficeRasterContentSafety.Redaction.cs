@@ -101,7 +101,8 @@ public static partial class OfficeRasterContentSafety {
 
         long retainedBeforeClone = checked(
             input.LongLength + 24L + callerRetainedBytes +
-            beforeState.Image.PixelBuffer.LongLength + 24L);
+            beforeState.Image.PixelBuffer.LongLength + 24L +
+            beforeState.RetainedManagedBytes);
         if (!IsRedactionCloneWithinWorkingSet(
                 retainedBeforeClone,
                 beforeState.Image.PixelBuffer.LongLength)) {
@@ -122,11 +123,15 @@ public static partial class OfficeRasterContentSafety {
             CreateMetadataFreePngEncodingOptions(),
             snapshot.MaximumOutputBytes,
             cancellationToken,
-            checked(input.LongLength + 24L + callerRetainedBytes + beforeState.Image.PixelBuffer.LongLength + 24L));
+            checked(
+                input.LongLength + 24L + callerRetainedBytes +
+                beforeState.Image.PixelBuffer.LongLength + 24L +
+                beforeState.RetainedManagedBytes));
         long retainedForOutputDecode = checked(
             input.LongLength + 24L + callerRetainedBytes +
             beforeState.Image.PixelBuffer.LongLength + 24L +
-            redacted.PixelBuffer.LongLength + 24L);
+            redacted.PixelBuffer.LongLength + 24L +
+            beforeState.RetainedManagedBytes);
         VerifyRedactionOutput(
             output,
             redacted,

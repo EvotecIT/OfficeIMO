@@ -151,17 +151,20 @@ public static partial class OfficeRasterContentSafety {
             OfficeRasterImage image,
             OfficeContentSafetyReport report,
             IReadOnlyDictionary<string, RasterTarget> targets,
-            IReadOnlyList<RasterTarget> recognizedTargets) {
+            IReadOnlyList<RasterTarget> recognizedTargets,
+            long retainedManagedBytes) {
             Image = image;
             Report = report;
             Targets = targets;
             RecognizedTargets = recognizedTargets;
+            RetainedManagedBytes = retainedManagedBytes;
         }
 
         internal OfficeRasterImage Image { get; }
         internal OfficeContentSafetyReport Report { get; }
         internal IReadOnlyDictionary<string, RasterTarget> Targets { get; }
         internal IReadOnlyList<RasterTarget> RecognizedTargets { get; }
+        internal long RetainedManagedBytes { get; }
     }
 
     private sealed class RasterTarget {

@@ -97,23 +97,6 @@ public static class OfficeContentSafetyInputGuard {
         }
     }
 
-    internal static byte[] ReadBounded(Stream stream, long maximumBytes, CancellationToken cancellationToken) {
-        using var output = new MemoryStream();
-        var buffer = new byte[81920];
-        long total = 0;
-        int read;
-        while (true) {
-            cancellationToken.ThrowIfCancellationRequested();
-            read = stream.Read(buffer, 0, buffer.Length);
-            cancellationToken.ThrowIfCancellationRequested();
-            if (read <= 0) break;
-            if (total > maximumBytes - read) throw new InvalidDataException("The encoded asset exceeds the configured input-byte limit.");
-            output.Write(buffer, 0, read);
-            total += read;
-        }
-        return output.ToArray();
-    }
-
     private static byte[] ReadExactFile(FileStream stream, long expectedLength, CancellationToken cancellationToken) {
         int length = checked((int)expectedLength);
         var bytes = new byte[length];
