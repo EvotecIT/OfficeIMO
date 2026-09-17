@@ -192,6 +192,18 @@ public static partial class HtmlContentSafety {
             throw new InvalidDataException(
                 "Package content-safety inspection does not apply stylesheets when the document declares a Content Security Policy.");
         }
+        string[] titledStylesheetSets = document.QuerySelectorAll("link[href]")
+            .Where(link => HtmlRenderStylesheetApplier.IsApplicableStylesheetLink(link, renderOptions))
+            .Select(link => link.GetAttribute("title")?.Trim())
+            .Where(title => !string.IsNullOrEmpty(title))
+            .Select(title => title!)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (titledStylesheetSets.Length > 1) {
+            throw new InvalidDataException(
+                "Package content-safety inspection does not support conflicting preferred stylesheet sets: "
+                + string.Join(", ", titledStylesheetSets));
+        }
         foreach (IElement style in document.QuerySelectorAll("style")) {
             if (!HtmlRenderStylesheetApplier.IsApplicableStyleElement(style, renderOptions)) continue;
             cssBudget.ReserveOrThrow(style.TextContent ?? string.Empty);
@@ -219,7 +231,7 @@ public static partial class HtmlContentSafety {
             }
         }
 
-        var requestedStylesheets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var requestedStylesheets = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
         var requestSync = new object();
         HtmlRenderResourceResolver? resolver = renderOptions.ResourceResolver;
         if (resolver != null) {
@@ -250,7 +262,7 @@ public static partial class HtmlContentSafety {
             resources.Resources
                 .Where(item => item.Kind == HtmlResourceKind.Stylesheet)
                 .Select(item => item.CanonicalSource),
-            StringComparer.OrdinalIgnoreCase);
+            HtmlResourceIdentityComparer.Instance);
         string? missing;
         lock (requestSync) missing = requestedStylesheets.FirstOrDefault(uri => !acceptedStylesheets.Contains(uri));
         missing ??= stylesheets.Resources

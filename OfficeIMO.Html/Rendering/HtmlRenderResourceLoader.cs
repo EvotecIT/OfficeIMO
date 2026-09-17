@@ -9,11 +9,11 @@ namespace OfficeIMO.Html;
 public sealed class HtmlResourceSession {
     private int _resolverRequestCount;
     private readonly object _diagnosticSync = new object();
-    private readonly Dictionary<string, HtmlResolvedResource> _resources = new Dictionary<string, HtmlResolvedResource>(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, string> _resolvedSources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _attempted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _budgetedStylesheets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _rejectedStylesheets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, HtmlResolvedResource> _resources = new Dictionary<string, HtmlResolvedResource>(HtmlResourceIdentityComparer.Instance);
+    private readonly Dictionary<string, string> _resolvedSources = new Dictionary<string, string>(HtmlResourceIdentityComparer.Instance);
+    private readonly HashSet<string> _attempted = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
+    private readonly HashSet<string> _budgetedStylesheets = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
+    private readonly HashSet<string> _rejectedStylesheets = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
     private readonly List<HtmlResourceSessionEntry> _entries = new List<HtmlResourceSessionEntry>();
     private readonly IReadOnlyList<HtmlResourceSessionEntry> _readOnlyEntries;
 
@@ -519,7 +519,7 @@ internal static class HtmlRenderResourceLoader {
         bool markAttemptedBeforeResolve,
         ResourceResolver resolver) {
         HtmlDiagnosticReport diagnostics = result.Diagnostics;
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seen = new HashSet<string>(HtmlResourceSeenKeyComparer.Instance);
         var pending = new Queue<PendingResource>();
         foreach (HtmlResourceReference reference in manifest.Resources) {
             pending.Enqueue(new PendingResource(reference, 0));

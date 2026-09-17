@@ -303,7 +303,7 @@ public sealed partial class MhtmlDocument {
                 string storedLocation = RemoveUriFragment(resource.ContentLocation!);
                 if (string.Equals(storedLocation, retrievalSource, StringComparison.Ordinal)) return resource;
                 if (Uri.TryCreate(BaseUri, storedLocation, out Uri? resolved) &&
-                    ResourceUriEquals(RemoveUriFragment(resolved), retrievalUri)) return resource;
+                    HtmlResourceIdentityComparer.Equals(RemoveUriFragment(resolved), retrievalUri)) return resource;
             }
             if (!string.IsNullOrWhiteSpace(resource.FileName) &&
                 string.Equals(RemoveUriFragment(resource.FileName!), retrievalSource,
@@ -338,7 +338,7 @@ public sealed partial class MhtmlDocument {
         HtmlConversionDocumentOptions options = source?.Clone() ?? new HtmlConversionDocumentOptions();
         options.BaseUri ??= baseUri;
         HtmlUrlPolicy resourcePolicy = options.ResourceUrlPolicy.Clone();
-        var archiveUris = new HashSet<string>(ResourceIdentityComparer.Instance);
+        var archiveUris = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
         foreach (MhtmlResource resource in resources) {
             if (!string.IsNullOrWhiteSpace(resource.ContentId)) {
                 AddArchiveUri(archiveUris, "cid:" + resource.ContentId, baseUri);
@@ -386,8 +386,8 @@ public sealed partial class MhtmlDocument {
         string? rootContentLocation) {
         var diagnostics = new List<EmailDiagnostic>();
         var contentIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var contentLocations = new HashSet<string>(ResourceIdentityComparer.Instance);
-        var resolverIdentities = new Dictionary<string, int>(ResourceIdentityComparer.Instance);
+        var contentLocations = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
+        var resolverIdentities = new Dictionary<string, int>(HtmlResourceIdentityComparer.Instance);
         if (!string.IsNullOrWhiteSpace(rootContentId)) contentIds.Add(rootContentId!);
         if (!string.IsNullOrWhiteSpace(rootContentLocation)
             && Uri.TryCreate(baseUri, RemoveUriFragment(rootContentLocation!), out _)) {
@@ -451,51 +451,6 @@ public sealed partial class MhtmlDocument {
             return;
         }
         identities.Add(identity, resourceIndex);
-    }
-
-    private static bool ResourceUriEquals(Uri left, Uri right) {
-        if (!left.Scheme.Equals(right.Scheme, StringComparison.OrdinalIgnoreCase)) return false;
-        if (left.Scheme.Equals("cid", StringComparison.OrdinalIgnoreCase)) {
-            return left.AbsoluteUri.Equals(right.AbsoluteUri, StringComparison.OrdinalIgnoreCase);
-        }
-        return left.IdnHost.Equals(right.IdnHost, StringComparison.OrdinalIgnoreCase)
-            && left.Port == right.Port
-            && left.UserInfo.Equals(right.UserInfo, StringComparison.Ordinal)
-            && left.GetComponents(UriComponents.PathAndQuery, UriFormat.UriEscaped).Equals(
-                right.GetComponents(UriComponents.PathAndQuery, UriFormat.UriEscaped),
-                StringComparison.Ordinal);
-    }
-
-    private sealed class ResourceIdentityComparer : IEqualityComparer<string> {
-        internal static readonly ResourceIdentityComparer Instance = new ResourceIdentityComparer();
-
-        public bool Equals(string? left, string? right) {
-            if (ReferenceEquals(left, right)) return true;
-            if (left == null || right == null) return false;
-            if (Uri.TryCreate(left, UriKind.Absolute, out Uri? leftUri)
-                && Uri.TryCreate(right, UriKind.Absolute, out Uri? rightUri)) {
-                return ResourceUriEquals(leftUri, rightUri);
-            }
-            return string.Equals(left, right, StringComparison.Ordinal);
-        }
-
-        public int GetHashCode(string value) {
-            if (!Uri.TryCreate(value, UriKind.Absolute, out Uri? uri)) {
-                return StringComparer.Ordinal.GetHashCode(value);
-            }
-            if (uri.Scheme.Equals("cid", StringComparison.OrdinalIgnoreCase)) {
-                return StringComparer.OrdinalIgnoreCase.GetHashCode(uri.AbsoluteUri);
-            }
-            unchecked {
-                int hash = StringComparer.OrdinalIgnoreCase.GetHashCode(uri.Scheme);
-                hash = (hash * 397) ^ StringComparer.OrdinalIgnoreCase.GetHashCode(uri.IdnHost);
-                hash = (hash * 397) ^ uri.Port;
-                hash = (hash * 397) ^ StringComparer.Ordinal.GetHashCode(uri.UserInfo);
-                hash = (hash * 397) ^ StringComparer.Ordinal.GetHashCode(
-                    uri.GetComponents(UriComponents.PathAndQuery, UriFormat.UriEscaped));
-                return hash;
-            }
-        }
     }
 
     private static string RemoveUriFragment(string value) {

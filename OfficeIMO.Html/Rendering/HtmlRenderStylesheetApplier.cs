@@ -46,11 +46,7 @@ internal static class HtmlRenderStylesheetApplier {
             }
         }
         foreach (IElement link in document.QuerySelectorAll("link[href]")) {
-            if (!IsStylesheetLink(link) || link.HasAttribute("disabled") || IsAlternateStylesheetLink(link)
-                || !HtmlResourcePipeline.IsCssStylesheetType(link.GetAttribute("type"))
-                || !IsApplicableMedia(link.GetAttribute("media") ?? string.Empty, options)) {
-                continue;
-            }
+            if (!IsApplicableStylesheetLink(link, options)) continue;
 
             string source = link.GetAttribute("href") ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(link.GetAttribute("integrity"))) {
@@ -257,6 +253,16 @@ internal static class HtmlRenderStylesheetApplier {
         string rel = link.GetAttribute("rel") ?? string.Empty;
         return rel.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)
             .Any(token => string.Equals(token, "alternate", StringComparison.OrdinalIgnoreCase));
+    }
+
+    internal static bool IsApplicableStylesheetLink(IElement link, HtmlRenderOptions options) {
+        if (link == null) throw new ArgumentNullException(nameof(link));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        return IsStylesheetLink(link)
+            && !link.HasAttribute("disabled")
+            && !IsAlternateStylesheetLink(link)
+            && HtmlResourcePipeline.IsCssStylesheetType(link.GetAttribute("type"))
+            && IsApplicableMedia(link.GetAttribute("media") ?? string.Empty, options);
     }
 
     internal static bool IsApplicableStyleElement(IElement styleElement, HtmlRenderOptions options) {

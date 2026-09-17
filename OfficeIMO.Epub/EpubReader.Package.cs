@@ -129,6 +129,14 @@ internal static partial class EpubReader {
             return null;
         }
 
+        if (opfDocument.Root == null || !IsOpfName(opfDocument.Root, "package")) {
+            diagnostics.Warning(
+                "epub.package.namespace-invalid",
+                "EPUB OPF package root must be a package element in the OPF namespace.",
+                opfPath);
+            return null;
+        }
+
         return ParseOpf(opfDocument, opfPath, options, diagnostics, cancellationToken);
     }
 
@@ -209,22 +217,22 @@ internal static partial class EpubReader {
         XElement? packageElement = opfDocument.Root;
         var package = new EpubPackage {
             OpfPath = opfPath,
-            PackageVersion = packageElement == null ? null : NullIfWhiteSpace(GetAttribute(packageElement, "version")),
-            UniqueIdentifierId = packageElement == null ? null : NullIfWhiteSpace(GetAttribute(packageElement, "unique-identifier"))
+            PackageVersion = packageElement == null ? null : NullIfWhiteSpace(GetUnqualifiedAttribute(packageElement, "version")),
+            UniqueIdentifierId = packageElement == null ? null : NullIfWhiteSpace(GetUnqualifiedAttribute(packageElement, "unique-identifier"))
         };
 
         bool declaredUniqueIdentifierResolved = false;
-        var metadata = opfDocument.Descendants().FirstOrDefault(e => IsName(e, "metadata"));
+        var metadata = opfDocument.Descendants().FirstOrDefault(e => IsOpfName(e, "metadata"));
         if (metadata != null) {
             ReadMetadataEntries(metadata, package, options, diagnostics, opfPath, cancellationToken);
-            package.Title = TryGetFirstElementValue(metadata, "title");
-            package.Creator = TryGetFirstElementValue(metadata, "creator");
-            package.Language = TryGetFirstElementValue(metadata, "language");
+            package.Title = TryGetFirstDublinCoreValue(metadata, "title");
+            package.Creator = TryGetFirstDublinCoreValue(metadata, "creator");
+            package.Language = TryGetFirstDublinCoreValue(metadata, "language");
             string? declaredIdentifier = null;
             if (!string.IsNullOrWhiteSpace(package.UniqueIdentifierId)) {
                 XElement? declaredIdentifierElement = metadata.Elements().FirstOrDefault(element =>
-                    IsName(element, "identifier") &&
-                    string.Equals(GetAttribute(element, "id"), package.UniqueIdentifierId, StringComparison.Ordinal));
+                    IsDublinCoreName(element, "identifier") &&
+                    string.Equals(GetUnqualifiedAttribute(element, "id"), package.UniqueIdentifierId, StringComparison.Ordinal));
                 if (declaredIdentifierElement != null) {
                     package.ObfuscationIdentifier = declaredIdentifierElement.Value;
                     declaredIdentifier = NullIfWhiteSpace(NormalizeWhitespace(declaredIdentifierElement.Value));
@@ -232,7 +240,7 @@ internal static partial class EpubReader {
                 }
             }
             package.Identifier = declaredIdentifier ?? metadata.Elements()
-                .Where(element => IsName(element, "identifier"))
+                .Where(element => IsDublinCoreName(element, "identifier"))
                 .Select(element => NullIfWhiteSpace(NormalizeWhitespace(element.Value)))
                 .FirstOrDefault(identifier => identifier != null);
 
@@ -253,11 +261,11 @@ internal static partial class EpubReader {
         }
 
         var manifestTargets = new HashSet<string>(StringComparer.Ordinal);
-        var manifestItems = opfDocument.Descendants().Where(e => IsName(e, "item"));
+        var manifestItems = opfDocument.Descendants().Where(e => IsOpfName(e, "item"));
         foreach (var item in manifestItems) {
             cancellationToken.ThrowIfCancellationRequested();
-            var id = GetAttribute(item, "id");
-            var href = GetAttribute(item, "href");
+            var id = GetUnqualifiedAttribute(item, "id");
+            var href = GetUnqualifiedAttribute(item, "href");
             if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(href)) continue;
 
             EpubReference resolvedReference = EpubReference.Resolve(opfPath, href);
@@ -285,8 +293,8 @@ internal static partial class EpubReader {
                 Id = id,
                 Href = href,
                 FullPath = fullPath,
-                MediaType = GetAttribute(item, "media-type"),
-                Properties = GetAttribute(item, "properties"),
+                MediaType = GetUnqualifiedAttribute(item, "media-type"),
+                Properties = GetUnqualifiedAttribute(item, "properties"),
                 IsRemote = isRemote,
                 RemoteUri = remoteUri
             };
@@ -314,9 +322,9 @@ internal static partial class EpubReader {
             }
         }
 
-        var spine = opfDocument.Descendants().FirstOrDefault(e => IsName(e, "spine"));
+        var spine = opfDocument.Descendants().FirstOrDefault(e => IsOpfName(e, "spine"));
         if (spine != null) {
-            var tocId = GetAttribute(spine, "toc");
+            var tocId = GetUnqualifiedAttribute(spine, "toc");
             if (!string.IsNullOrWhiteSpace(tocId) &&
                 package.Manifest.TryGetValue(tocId, out var tocManifest) &&
                 string.IsNullOrWhiteSpace(package.NcxPath)) {
@@ -324,15 +332,15 @@ internal static partial class EpubReader {
             }
 
             int index = 0;
-            foreach (var itemRef in spine.Elements().Where(e => IsName(e, "itemref"))) {
+            foreach (var itemRef in spine.Elements().Where(e => IsOpfName(e, "itemref"))) {
                 cancellationToken.ThrowIfCancellationRequested();
                 index++;
-                var idRef = GetAttribute(itemRef, "idref");
+                var idRef = GetUnqualifiedAttribute(itemRef, "idref");
                 if (string.IsNullOrWhiteSpace(idRef)) continue;
 
-                var linear = GetAttribute(itemRef, "linear");
+                var linear = GetUnqualifiedAttribute(itemRef, "linear");
                 var isLinear = !string.Equals(linear, "no", StringComparison.OrdinalIgnoreCase);
-                string properties = GetAttribute(itemRef, "properties");
+                string properties = GetUnqualifiedAttribute(itemRef, "properties");
 
                 package.Spine.Add(new SpineItem {
                     IdRef = idRef,
@@ -344,9 +352,9 @@ internal static partial class EpubReader {
             }
         }
 
-        XElement? guide = opfDocument.Descendants().FirstOrDefault(element => IsName(element, "guide"));
+        XElement? guide = opfDocument.Descendants().FirstOrDefault(element => IsOpfName(element, "guide"));
         if (guide != null) {
-            foreach (XElement reference in guide.Elements().Where(element => IsName(element, "reference"))) {
+            foreach (XElement reference in guide.Elements().Where(element => IsOpfName(element, "reference"))) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (package.Guide.Count >= options.MaxNavigationItems) {
                     diagnostics.Warning(
@@ -355,7 +363,7 @@ internal static partial class EpubReader {
                         opfPath);
                     break;
                 }
-                string href = GetAttribute(reference, "href");
+                string href = GetUnqualifiedAttribute(reference, "href");
                 if (!TryResolveNavigationTarget(opfPath, null, href, out string? target, out string? fragment, out bool isRemote)) {
                     diagnostics.Warning(
                         "epub.guide.invalid-target",
@@ -365,11 +373,11 @@ internal static partial class EpubReader {
                 }
                 package.Guide.Add(new EpubNavigationItem {
                     Source = EpubNavigationSource.Epub2Guide,
-                    Label = NullIfWhiteSpace(GetAttribute(reference, "title")) ?? GetAttribute(reference, "type"),
+                    Label = NullIfWhiteSpace(GetUnqualifiedAttribute(reference, "title")) ?? GetUnqualifiedAttribute(reference, "type"),
                     Href = href,
                     Target = target,
                     Fragment = fragment,
-                    SemanticType = NullIfWhiteSpace(GetAttribute(reference, "type")),
+                    SemanticType = NullIfWhiteSpace(GetUnqualifiedAttribute(reference, "type")),
                     IsRemote = isRemote
                 });
             }
@@ -403,11 +411,11 @@ internal static partial class EpubReader {
                     : string.Equals(localName, "link", StringComparison.OrdinalIgnoreCase)
                         ? EpubMetadataKind.Link
                         : EpubMetadataKind.Other;
-            string property = GetAttribute(element, "property");
-            string legacyName = GetAttribute(element, "name");
-            string href = GetAttribute(element, "href");
+            string property = GetUnqualifiedAttribute(element, "property");
+            string legacyName = GetUnqualifiedAttribute(element, "name");
+            string href = GetUnqualifiedAttribute(element, "href");
             string value = kind == EpubMetadataKind.Meta && property.Length == 0
-                ? GetAttribute(element, "content")
+                ? GetUnqualifiedAttribute(element, "content")
                 : kind == EpubMetadataKind.Link
                     ? href
                     : NormalizeWhitespace(element.Value);
@@ -417,18 +425,18 @@ internal static partial class EpubReader {
                 Name = localName,
                 NamespaceUri = element.Name.NamespaceName,
                 Value = value,
-                Id = NullIfWhiteSpace(GetAttribute(element, "id")),
+                Id = NullIfWhiteSpace(GetUnqualifiedAttribute(element, "id")),
                 Property = NullIfWhiteSpace(property),
-                Refines = NullIfWhiteSpace(GetAttribute(element, "refines")),
-                Scheme = NullIfWhiteSpace(GetAttribute(element, "scheme")),
-                Language = NullIfWhiteSpace(GetAttribute(element, "lang")),
+                Refines = NullIfWhiteSpace(GetUnqualifiedAttribute(element, "refines")),
+                Scheme = NullIfWhiteSpace(GetOpfMetadataAttribute(element, "scheme")),
+                Language = NullIfWhiteSpace(GetXmlLanguage(element)),
                 LegacyName = NullIfWhiteSpace(legacyName),
-                Role = NullIfWhiteSpace(GetAttribute(element, "role")),
-                FileAs = NullIfWhiteSpace(GetAttribute(element, "file-as")),
-                Event = NullIfWhiteSpace(GetAttribute(element, "event")),
+                Role = NullIfWhiteSpace(GetOpfMetadataAttribute(element, "role")),
+                FileAs = NullIfWhiteSpace(GetOpfMetadataAttribute(element, "file-as")),
+                Event = NullIfWhiteSpace(GetOpfMetadataAttribute(element, "event")),
                 Href = NullIfWhiteSpace(href),
-                Rel = NullIfWhiteSpace(GetAttribute(element, "rel")),
-                MediaType = NullIfWhiteSpace(GetAttribute(element, "media-type"))
+                Rel = NullIfWhiteSpace(GetUnqualifiedAttribute(element, "rel")),
+                MediaType = NullIfWhiteSpace(GetUnqualifiedAttribute(element, "media-type"))
             });
         }
     }

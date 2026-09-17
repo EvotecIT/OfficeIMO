@@ -2,6 +2,8 @@ namespace OfficeIMO.Email;
 
 internal static class MimeParser {
     internal const string MultipleHtmlBodyDiagnosticCode = "EMAIL_MIME_HTML_BODY_MULTIPLE";
+    internal const string RelatedRootMissingDiagnosticCode = "EMAIL_MIME_RELATED_ROOT_MISSING";
+    internal const string RelatedRootNotHtmlDiagnosticCode = "EMAIL_MIME_RELATED_ROOT_NOT_HTML";
     internal static EmailDocument Parse(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
         CancellationToken cancellationToken, EmailProcessingBudget? budget = null) {
         MimeParserState state = new MimeParserState(options, diagnostics, cancellationToken, budget);
@@ -93,6 +95,8 @@ internal static class MimeParser {
             string? childPreferredBodyContentId = isRelated
                 ? TrimAngleBrackets(contentType.GetParameter("start"))
                 : preferredBodyContentId;
+            bool hasExplicitRelatedRoot = isRelated && !string.IsNullOrWhiteSpace(childPreferredBodyContentId);
+            bool explicitRelatedRootMatched = false;
             for (int i = 0; i < parts.Count; i++) {
                 state.ThrowIfCancellationRequested();
                 string partLocation = string.Concat(location, "/part[", i.ToString(CultureInfo.InvariantCulture), "]");
@@ -101,6 +105,26 @@ internal static class MimeParser {
                 int partBodyOffset = MimeHeaderParser.Parse(data, part.Offset, part.Count, state.Options,
                     partHeaders, state.Diagnostics, partLocation);
                 int partEnd = part.Offset + part.Count;
+                if (hasExplicitRelatedRoot
+                    && string.Equals(
+                        TrimAngleBrackets(MimeHeaderParser.GetValue(partHeaders, "Content-ID")),
+                        childPreferredBodyContentId,
+                        StringComparison.OrdinalIgnoreCase)) {
+                    explicitRelatedRootMatched = true;
+                    MimeValue relatedRootType = MimeValueParser.Parse(
+                        MimeHeaderParser.GetValue(partHeaders, "Content-Type"),
+                        childDefaultContentType,
+                        state.Diagnostics,
+                        partLocation);
+                    if (!string.Equals(relatedRootType.Value, "text/html", StringComparison.OrdinalIgnoreCase)
+                        && !relatedRootType.Value.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase)) {
+                        state.Diagnostics.Add(new EmailDiagnostic(
+                            RelatedRootNotHtmlDiagnosticCode,
+                            "The multipart/related start parameter selects a non-HTML root part.",
+                            EmailDiagnosticSeverity.Warning,
+                            partLocation));
+                    }
+                }
                 string? partPreferredBodyContentId = childPreferredBodyContentId;
                 bool partIsDefaultRelatedRoot = isRelated && i == 0 &&
                     string.IsNullOrWhiteSpace(childPreferredBodyContentId);
@@ -110,6 +134,13 @@ internal static class MimeParser {
                 ParseEntity(partHeaders, data, partBodyOffset, Math.Max(0, partEnd - partBodyOffset),
                     document, state, mimeDepth + 1, nestedMessageDepth, partLocation, childDefaultContentType,
                     partPreferredBodyContentId, isRelated, partIsDefaultRelatedRoot, bodyProtection);
+            }
+            if (hasExplicitRelatedRoot && !explicitRelatedRootMatched) {
+                state.Diagnostics.Add(new EmailDiagnostic(
+                    RelatedRootMissingDiagnosticCode,
+                    "The multipart/related start parameter does not identify any child part.",
+                    EmailDiagnosticSeverity.Warning,
+                    location));
             }
             return;
         }

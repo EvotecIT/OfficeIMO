@@ -152,7 +152,9 @@ public sealed partial class MhtmlDocument {
             || diagnostic.Code == MhtmlDiagnosticCodes.InvalidContentLocation
             || diagnostic.Code == MimeHeaderParser.DuplicateSingletonHeaderDiagnosticCode
             || diagnostic.Code == MimeValueParser.DuplicateSecurityParameterDiagnosticCode
-            || diagnostic.Code == MimeParser.MultipleHtmlBodyDiagnosticCode);
+            || diagnostic.Code == MimeParser.MultipleHtmlBodyDiagnosticCode
+            || diagnostic.Code == MimeParser.RelatedRootMissingDiagnosticCode
+            || diagnostic.Code == MimeParser.RelatedRootNotHtmlDiagnosticCode);
         if (ambiguous != null) {
             throw new InvalidDataException(
                 "MHTML content-safety inspection requires unambiguous MIME content headers and embedded resource identities. " +
