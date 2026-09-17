@@ -5,15 +5,18 @@ namespace OfficeIMO.Mhtml;
 /// <summary>Immutable decoded resource embedded in an MHTML web archive.</summary>
 public sealed class MhtmlResource {
     private readonly byte[] _content;
+    private readonly IReadOnlyDictionary<string, string> _contentTypeParameters;
 
     /// <summary>Creates an embedded MHTML resource snapshot.</summary>
     public MhtmlResource(byte[] content, string? contentType = null, string? contentId = null,
         string? contentLocation = null, string? fileName = null)
-        : this(content, contentType, contentId, contentLocation, fileName, takeOwnership: false) {
+        : this(content, contentType, contentId, contentLocation, fileName, null, takeOwnership: false) {
     }
 
     private MhtmlResource(byte[] content, string? contentType, string? contentId,
-        string? contentLocation, string? fileName, bool takeOwnership) {
+        string? contentLocation, string? fileName,
+        IEnumerable<KeyValuePair<string, string>>? contentTypeParameters,
+        bool takeOwnership) {
         if (content == null) throw new ArgumentNullException(nameof(content));
         if (string.IsNullOrWhiteSpace(contentId) && string.IsNullOrWhiteSpace(contentLocation) &&
             string.IsNullOrWhiteSpace(fileName)) {
@@ -21,6 +24,13 @@ public sealed class MhtmlResource {
         }
         _content = takeOwnership ? content : (byte[])content.Clone();
         ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType!.Trim();
+        var parameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (contentTypeParameters != null) {
+            foreach (KeyValuePair<string, string> parameter in contentTypeParameters) {
+                parameters[parameter.Key] = parameter.Value;
+            }
+        }
+        _contentTypeParameters = parameters;
         ContentId = NormalizeContentId(contentId);
         ContentLocation = string.IsNullOrWhiteSpace(contentLocation) ? null : contentLocation!.Trim();
         FileName = string.IsNullOrWhiteSpace(fileName) ? null : fileName!.Trim();
@@ -48,19 +58,30 @@ public sealed class MhtmlResource {
     // public-copy followed by a second constructor copy for every render.
     internal byte[] EncodedContent => _content;
 
+    internal string ContentTypeWithParameters => _contentTypeParameters.Count == 0
+        ? ContentType
+        : string.Concat(ContentType, "; ", string.Join("; ", _contentTypeParameters.Select(parameter =>
+            string.Concat(parameter.Key, "=\"", parameter.Value.Replace("\\", "\\\\").Replace("\"", "\\\""), "\""))));
+
     /// <summary>Opens an independent read-only content stream.</summary>
     public Stream OpenRead() => new MemoryStream(_content, writable: false);
 
-    internal EmailAttachment ToEmailAttachment() => new EmailAttachment {
-        FileName = FileName,
-        ContentType = ContentType,
-        ContentId = ContentId,
-        ContentLocation = ContentLocation,
-        IsInline = true,
-        IsMimeRelated = true,
-        Content = _content,
-        Length = _content.LongLength
-    };
+    internal EmailAttachment ToEmailAttachment() {
+        var attachment = new EmailAttachment {
+            FileName = FileName,
+            ContentType = ContentType,
+            ContentId = ContentId,
+            ContentLocation = ContentLocation,
+            IsInline = true,
+            IsMimeRelated = true,
+            Content = _content,
+            Length = _content.LongLength
+        };
+        foreach (KeyValuePair<string, string> parameter in _contentTypeParameters) {
+            attachment.ContentTypeParameters[parameter.Key] = parameter.Value;
+        }
+        return attachment;
+    }
 
     internal static MhtmlResource FromEmailAttachment(EmailAttachment attachment) {
         if (attachment == null) throw new ArgumentNullException(nameof(attachment));
@@ -71,6 +92,7 @@ public sealed class MhtmlResource {
                 attachment.ContentId,
                 attachment.ContentLocation,
                 attachment.FileName,
+                attachment.ContentTypeParameters,
                 takeOwnership: true);
         }
 
@@ -84,6 +106,7 @@ public sealed class MhtmlResource {
             attachment.ContentId,
             attachment.ContentLocation,
             attachment.FileName,
+            attachment.ContentTypeParameters,
             takeOwnership: true);
     }
 

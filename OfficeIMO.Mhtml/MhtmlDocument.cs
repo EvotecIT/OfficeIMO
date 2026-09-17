@@ -228,7 +228,7 @@ public sealed partial class MhtmlDocument {
         MhtmlResource? resource = FindResource(request);
         return Task.FromResult(resource == null
             ? null
-            : new HtmlResolvedResource(resource.EncodedContent, resource.ContentType));
+            : new HtmlResolvedResource(resource.EncodedContent, resource.ContentTypeWithParameters));
     }
 
     private MhtmlResource? FindResource(HtmlRenderResourceRequest request) {
@@ -247,9 +247,10 @@ public sealed partial class MhtmlDocument {
 
         foreach (MhtmlResource resource in _resources) {
             if (!string.IsNullOrWhiteSpace(resource.ContentLocation)) {
-                if (string.Equals(resource.ContentLocation, retrievalSource, StringComparison.OrdinalIgnoreCase)) return resource;
-                if (Uri.TryCreate(BaseUri, resource.ContentLocation, out Uri? resolved) &&
-                    string.Equals(resolved.AbsoluteUri, absolute, StringComparison.OrdinalIgnoreCase)) return resource;
+                string storedLocation = RemoveUriFragment(resource.ContentLocation!);
+                if (string.Equals(storedLocation, retrievalSource, StringComparison.OrdinalIgnoreCase)) return resource;
+                if (Uri.TryCreate(BaseUri, storedLocation, out Uri? resolved) &&
+                    string.Equals(RemoveUriFragment(resolved).AbsoluteUri, absolute, StringComparison.OrdinalIgnoreCase)) return resource;
             }
             if (!string.IsNullOrWhiteSpace(resource.FileName) &&
                 string.Equals(resource.FileName, retrievalSource, StringComparison.OrdinalIgnoreCase)) return resource;
@@ -319,7 +320,9 @@ public sealed partial class MhtmlDocument {
 
     private static void AddArchiveUri(HashSet<string> archiveUris, string? value, Uri baseUri) {
         if (string.IsNullOrWhiteSpace(value)) return;
-        if (Uri.TryCreate(baseUri, value, out Uri? resolved)) archiveUris.Add(resolved.AbsoluteUri);
+        if (Uri.TryCreate(baseUri, RemoveUriFragment(value!), out Uri? resolved)) {
+            archiveUris.Add(RemoveUriFragment(resolved).AbsoluteUri);
+        }
     }
 
     private static IReadOnlyList<EmailDiagnostic> BuildResourceDiagnostics(
@@ -333,10 +336,12 @@ public sealed partial class MhtmlDocument {
         var resolverIdentities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         if (!string.IsNullOrWhiteSpace(rootContentId)) contentIds.Add(rootContentId!);
         if (!string.IsNullOrWhiteSpace(rootContentLocation)
-            && Uri.TryCreate(baseUri, rootContentLocation, out Uri? rootLocation)) {
-            contentLocations.Add(baseUri.AbsoluteUri);
-            resolverIdentities[rootContentLocation!.Trim()] = -1;
-            resolverIdentities[rootLocation.AbsoluteUri] = -1;
+            && Uri.TryCreate(baseUri, RemoveUriFragment(rootContentLocation!), out Uri? rootLocation)) {
+            string rawRootLocation = RemoveUriFragment(rootContentLocation!.Trim());
+            string absoluteRootLocation = RemoveUriFragment(rootLocation).AbsoluteUri;
+            contentLocations.Add(absoluteRootLocation);
+            resolverIdentities[rawRootLocation] = -1;
+            resolverIdentities[absoluteRootLocation] = -1;
         }
         for (int index = 0; index < resources.Count; index++) {
             MhtmlResource resource = resources[index];
@@ -354,7 +359,7 @@ public sealed partial class MhtmlDocument {
                 }
             }
             if (!string.IsNullOrWhiteSpace(resource.ContentLocation)) {
-                string rawLocation = resource.ContentLocation!.Trim();
+                string rawLocation = RemoveUriFragment(resource.ContentLocation!.Trim());
                 RegisterResolverIdentity(rawLocation, index, resolverIdentities, diagnostics);
                 if (!Uri.TryCreate(baseUri, rawLocation, out Uri? resolved)) {
                     diagnostics.Add(new EmailDiagnostic(
@@ -363,8 +368,9 @@ public sealed partial class MhtmlDocument {
                         location: "resource[" + index + "]"));
                     continue;
                 }
-                RegisterResolverIdentity(resolved.AbsoluteUri, index, resolverIdentities, diagnostics);
-                if (!contentLocations.Add(resolved.AbsoluteUri)) {
+                string absoluteLocation = RemoveUriFragment(resolved).AbsoluteUri;
+                RegisterResolverIdentity(absoluteLocation, index, resolverIdentities, diagnostics);
+                if (!contentLocations.Add(absoluteLocation)) {
                     diagnostics.Add(new EmailDiagnostic(
                         MhtmlDiagnosticCodes.DuplicateContentLocation,
                         "Duplicate Content-Location was retained in archive order; the first resource is used for resolution.",
@@ -391,6 +397,15 @@ public sealed partial class MhtmlDocument {
         }
         identities.Add(identity, resourceIndex);
     }
+
+    private static string RemoveUriFragment(string value) {
+        int fragmentIndex = value.IndexOf('#');
+        return fragmentIndex < 0 ? value : value.Substring(0, fragmentIndex);
+    }
+
+    private static Uri RemoveUriFragment(Uri value) => string.IsNullOrEmpty(value.Fragment)
+        ? value
+        : new UriBuilder(value) { Fragment = string.Empty }.Uri;
 
     private static Uri ResolveBaseUri(string? contentLocation, Uri? sourceBaseUri) {
         if (!string.IsNullOrWhiteSpace(contentLocation)) {

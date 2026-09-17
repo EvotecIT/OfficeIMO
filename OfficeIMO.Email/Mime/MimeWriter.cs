@@ -558,14 +558,15 @@ internal static class MimeWriter {
             case "quoted-printable":
                 WriteQuotedPrintable(output, data);
                 return;
+            case "":
             case "7bit":
                 if (data.Any(value => value > 0x7f)) {
-                    throw new InvalidDataException("The updated MIME payload cannot be represented by the preserved 7bit transfer encoding.");
+                    throw new InvalidDataException(
+                        "The updated MIME payload cannot be represented by the preserved or default 7bit transfer encoding.");
                 }
                 goto case "8bit";
             case "8bit":
             case "binary":
-            case "":
                 using (var input = new MemoryStream(data, writable: false)) {
                     WriteRawEntity(output, input, data.LongLength);
                 }

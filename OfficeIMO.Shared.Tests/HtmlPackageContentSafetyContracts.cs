@@ -76,6 +76,27 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_StoredStylesheetFragmentsUseFragmentFreeRetrievalIdentity() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='styles/site.css#requested'></head>" +
+            "<body><p class='concealed'>Stored fragment concealed text.</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "text/css",
+                    contentLocation: "styles/site.css#embedded")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Contains(MhtmlDocument.InspectContentSafety(input).Findings, finding =>
+            finding.TextPreview.Contains("Stored fragment concealed text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Mhtml_StylesheetTransportCharsetIsPreservedForInspection() {
+        Assert.Contains(MhtmlDocument.InspectContentSafety(BuildMhtmlWithWindows1252Stylesheet()).Findings, finding =>
+            finding.TextPreview.Contains("Charset concealed text", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Mhtml_AmbiguousResourceIdentitiesFailClosed() {
         byte[] input = new MhtmlDocument(
             "<html><head><link rel='stylesheet' href='site.css'></head><body><p>Visible</p></body></html>",
@@ -103,6 +124,15 @@ public sealed class HtmlPackageContentSafetyContractTests {
             },
             contentLocation: "https://example.test/index.html").ToBytes();
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(filenameLocationAlias));
+
+        byte[] fragmentAliases = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='styles.css'></head><body><p>Visible</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: none; }"), "text/css", contentLocation: "styles.css#one"),
+                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: block; }"), "text/css", contentLocation: "styles.css#two")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(fragmentAliases));
     }
 
     [Fact]
@@ -175,6 +205,17 @@ public sealed class HtmlPackageContentSafetyContractTests {
         using var output = new MemoryStream(cleaned.Output, writable: false);
         MhtmlDocument archive = MhtmlDocument.Load(output);
         Assert.Equal("body { color: black; }", Encoding.ASCII.GetString(Assert.Single(archive.Resources).Content).Trim());
+    }
+
+    [Fact]
+    public void Mhtml_CleanupRejectsNonAsciiUnderDefaultSevenBitEncoding() {
+        byte[] input = BuildMhtmlWithoutTransferEncoding();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Default seven bit", StringComparison.Ordinal));
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id })));
     }
 
     [Fact]
@@ -794,6 +835,37 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Transfer-Encoding: base64\r\n\r\n" +
         Convert.ToBase64String(Encoding.UTF8.GetBytes(
             "<html><body><p style='display:none'>Duplicate header concealment.</p></body></html>")) + "\r\n");
+
+    private static byte[] BuildMhtmlWithoutTransferEncoding() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-Location: https://example.test/index.html\r\n\r\n" +
+        "<html><body><p style='display:none'>Default seven bit concealment.</p><p>caf&#233;</p></body></html>\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithWindows1252Stylesheet() {
+        byte[] prefix = Encoding.ASCII.GetBytes(
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+            "--outer\r\n" +
+            "Content-Type: text/html; charset=utf-8\r\n" +
+            "Content-Location: https://example.test/index.html\r\n\r\n" +
+            "<html><head><link rel='stylesheet' href='styles.css'></head><body>" +
+            "<p class='concealed'>Charset concealed text.</p></body></html>\r\n" +
+            "--outer\r\n" +
+            "Content-Type: text/css; charset=windows-1252\r\n" +
+            "Content-Transfer-Encoding: 8bit\r\n" +
+            "Content-Location: styles.css\r\n\r\n" +
+            ".concealed { display: none; } /* caf");
+        byte[] suffix = Encoding.ASCII.GetBytes(" */\r\n--outer--\r\n");
+        var result = new byte[prefix.Length + 1 + suffix.Length];
+        Buffer.BlockCopy(prefix, 0, result, 0, prefix.Length);
+        result[prefix.Length] = 0xe9;
+        Buffer.BlockCopy(suffix, 0, result, prefix.Length + 1, suffix.Length);
+        return result;
+    }
 
     private static string ExtractFirstMimeBoundary(string serialized) {
         const string marker = "boundary=\"";
