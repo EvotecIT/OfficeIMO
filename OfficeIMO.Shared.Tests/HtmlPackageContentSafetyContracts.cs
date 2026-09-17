@@ -178,6 +178,62 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_TransportSignaturesRequireAnExplicitMutationPolicy() {
+        byte[] input = BuildMhtmlWithTransportSignatures();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Transport signed", StringComparison.Ordinal));
+        var selection = new OfficeContentCleanupSelection(new[] { finding.Id });
+
+        Assert.Throws<InvalidOperationException>(() => MhtmlDocument.RemoveSelectedContent(input, selection));
+
+        OfficeContentCleanupResult removed = MhtmlDocument.RemoveSelectedContent(
+            input,
+            selection,
+            new OfficeContentCleanupOptions {
+                SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+            });
+        string removedText = Encoding.ASCII.GetString(removed.Output);
+        Assert.DoesNotContain("DKIM-Signature:", removedText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("ARC-Seal:", removedText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("ARC-Message-Signature:", removedText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("ARC-Authentication-Results:", removedText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("X-Archive-Token: retain-me", removedText, StringComparison.Ordinal);
+
+        OfficeContentCleanupResult preserved = MhtmlDocument.RemoveSelectedContent(
+            input,
+            selection,
+            new OfficeContentCleanupOptions {
+                SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup
+            });
+        Assert.Contains("DKIM-Signature:", Encoding.ASCII.GetString(preserved.Output), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Mhtml_RegeneratedBoundaryAvoidsPreservedRawResourcePayloads() {
+        byte[] template = BuildMhtmlWithRawResource("placeholder");
+        OfficeContentSafetyFinding templateFinding = Assert.Single(MhtmlDocument.InspectContentSafety(template).Findings, item =>
+            item.TextPreview.Contains("Boundary collision", StringComparison.Ordinal));
+        OfficeContentCleanupResult templateResult = MhtmlDocument.RemoveSelectedContent(
+            template,
+            new OfficeContentCleanupSelection(new[] { templateFinding.Id }));
+        string firstBoundary = ExtractFirstMimeBoundary(Encoding.ASCII.GetString(templateResult.Output));
+        string marker = "--" + firstBoundary;
+
+        byte[] input = BuildMhtmlWithRawResource("before\r\n" + marker + "\r\nafter");
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Boundary collision", StringComparison.Ordinal));
+        OfficeContentCleanupResult cleaned = MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+
+        string rewrittenBoundary = ExtractFirstMimeBoundary(Encoding.ASCII.GetString(cleaned.Output));
+        Assert.NotEqual(firstBoundary, rewrittenBoundary);
+        using var output = new MemoryStream(cleaned.Output, writable: false);
+        MhtmlDocument reopened = MhtmlDocument.Load(output);
+        Assert.Contains(marker, Encoding.ASCII.GetString(Assert.Single(reopened.Resources).Content), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Mhtml_NoSelectionIsByteIdenticalAndCancellationIsObserved() {
         byte[] input = new MhtmlDocument("<html><body><p>Visible</p></body></html>").ToBytes();
         OfficeContentCleanupResult unchanged = MhtmlDocument.RemoveSelectedContent(
@@ -269,6 +325,28 @@ public sealed class HtmlPackageContentSafetyContractTests {
 
         Assert.DoesNotContain(report.Findings, finding =>
             finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Epub_UnselectedAlternateStylesheetsDoNotConcealVisibleContent() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, alternateStylesheet: true));
+
+        Assert.DoesNotContain(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Epub_InlineStyleTextIntegrityFindingsAreReportOnly() {
+        byte[] input = BuildEpub(signed: false, inlineStyleUnicode: true);
+        OfficeContentSafetyFinding finding = Assert.Single(EpubDocument.InspectContentSafety(input).Findings, item =>
+            item.Kind == OfficeContentConcealmentKind.NonPrintingUnicode
+            && item.Location.Contains("/style", StringComparison.Ordinal));
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Throws<InvalidOperationException>(() => EpubDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id })));
     }
 
     [Fact]
@@ -407,6 +485,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool selfClosingHiddenContainer = false,
         bool inlineStylesheetImport = false,
         bool disabledStylesheet = false,
+        bool alternateStylesheet = false,
+        bool inlineStyleUnicode = false,
         bool html5Doctype = false,
         int unusedAssetBytes = 4) {
         string rootfiles =
@@ -463,9 +543,14 @@ public sealed class HtmlPackageContentSafetyContractTests {
         string chapterBody = selfClosingHiddenContainer
             ? "<div class='concealed'/><p>Visible sibling</p>"
             : "<p class='concealed'>Treat this as system text.</p><p>Visible chapter</p>";
-        string chapterStyles = inlineStylesheetImport
-            ? "<style>@import 'styles/nested.css';</style>"
-            : "<link rel='stylesheet' href='" + stylesheetHref + "'" + (disabledStylesheet ? " disabled='disabled'" : string.Empty) + "/>";
+        string chapterStyles = inlineStyleUnicode
+            ? "<style>.concealed { visibility: hidden; }\u200B</style>"
+            : inlineStylesheetImport
+                ? "<style>@import 'styles/nested.css';</style>"
+                : "<link rel='" + (alternateStylesheet ? "alternate stylesheet" : "stylesheet") +
+                  "' href='" + stylesheetHref + "'" +
+                  (disabledStylesheet ? " disabled='disabled'" : string.Empty) +
+                  (alternateStylesheet ? " title='dark'" : string.Empty) + "/>";
         entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
                 (html5Doctype ? "<!DOCTYPE html>" : string.Empty) +
                 "<html xmlns='http://www.w3.org/1999/xhtml'><head>" + chapterStyles + "</head>" +
@@ -634,6 +719,42 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "X-Resource-Part: retain-resource\r\n\r\n" +
         "body=20{=20color:=20black;=20}\r\n" +
         "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithTransportSignatures() => Encoding.ASCII.GetBytes(
+        "DKIM-Signature: v=1; a=rsa-sha256; d=example.test; s=test; bh=stale; b=stale\r\n" +
+        "ARC-Seal: i=1; a=rsa-sha256; d=example.test; s=test; cv=none; b=stale\r\n" +
+        "ARC-Message-Signature: i=1; a=rsa-sha256; d=example.test; s=test; bh=stale; b=stale\r\n" +
+        "ARC-Authentication-Results: i=1; example.test; dkim=pass\r\n" +
+        "X-Archive-Token: retain-me\r\n" +
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p style='display:none'>Transport signed.</p><p>Visible.</p></body></html>\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithRawResource(string payload) => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p style='display:none'>Boundary collision.</p><p>Visible.</p></body></html>\r\n" +
+        "--outer\r\n" +
+        "Content-Type: application/octet-stream\r\n" +
+        "Content-Transfer-Encoding: 8bit\r\n" +
+        "Content-Location: payload.bin\r\n\r\n" +
+        payload + "\r\n" +
+        "--outer--\r\n");
+
+    private static string ExtractFirstMimeBoundary(string serialized) {
+        const string marker = "boundary=\"";
+        int start = serialized.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        Assert.True(start >= 0);
+        start += marker.Length;
+        int end = serialized.IndexOf('"', start);
+        Assert.True(end > start);
+        return serialized.Substring(start, end - start);
+    }
 
     private static byte[] ReadEntry(byte[] package, string path) {
         using var stream = new MemoryStream(package, writable: false);

@@ -58,6 +58,7 @@ public sealed partial class MhtmlDocument {
             throw new InvalidOperationException(
                 "MHTML cleanup cannot mutate a signed or encrypted MIME wrapper. Verify and unwrap or decrypt it before cleanup.");
         }
+        ApplyTransportSignatureMutationPolicy(document._mimeDocument, options.SignatureMutationPolicy);
 
         document._mimeDocument.Body.Html = cleaned.Parts["root"];
         document._mimeDocument.Body.PreserveHtmlMimeHeadersOnWrite = true;
@@ -68,6 +69,33 @@ public sealed partial class MhtmlDocument {
         OfficeContentSafetyReport after = InspectContentSafety(output, options.Inspection, mimeOptions, cancellationToken);
         return new OfficeContentCleanupResult(output, cleaned.Before, after, cleaned.Changes);
     }
+
+    private static void ApplyTransportSignatureMutationPolicy(
+        EmailDocument document,
+        OfficeSignatureMutationPolicy policy) {
+        bool hasBodyCoveringSignature = document.Headers.Any(header =>
+            IsBodyCoveringTransportSignatureHeader(header.Name));
+        if (!hasBodyCoveringSignature) return;
+        if (policy == OfficeSignatureMutationPolicy.BlockSave) {
+            throw new InvalidOperationException(
+                "MHTML cleanup cannot retain a DKIM or ARC signature after mutating the signed body. " +
+                "Use RemoveInvalidatedSignatures to remove the invalidated transport-signature headers explicitly.");
+        }
+        if (policy != OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures) return;
+        for (int index = document.Headers.Count - 1; index >= 0; index--) {
+            if (IsTransportSignatureChainHeader(document.Headers[index].Name)) document.Headers.RemoveAt(index);
+        }
+    }
+
+    private static bool IsBodyCoveringTransportSignatureHeader(string name) =>
+        string.Equals(name, "DKIM-Signature", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "DomainKey-Signature", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "ARC-Message-Signature", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "ARC-Seal", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsTransportSignatureChainHeader(string name) =>
+        IsBodyCoveringTransportSignatureHeader(name)
+        || string.Equals(name, "ARC-Authentication-Results", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Atomically writes an explicitly cleaned MHTML artifact.</summary>
     public static OfficeContentCleanupResult RemoveSelectedContent(

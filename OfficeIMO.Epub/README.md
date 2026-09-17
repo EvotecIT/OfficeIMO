@@ -213,8 +213,8 @@ foreach (string warning in book.Warnings) {
 
 ## Dependency footprint
 
-- **External:** None; no third-party EPUB engine.
-- **OfficeIMO:** `OfficeIMO.Core` and `OfficeIMO.Html`. Container, OPF, spine, navigation, chapter, and resource parsing are first-party; the shared HTML owner supplies the bounded concealed-content and stylesheet model.
+- **External:** No third-party EPUB engine. Concealed-content inspection uses `AngleSharp` and `AngleSharp.Css` transitively through the shared `OfficeIMO.Html` owner.
+- **OfficeIMO:** Direct dependencies are `OfficeIMO.Core` and `OfficeIMO.Html`; the HTML dependency also brings `OfficeIMO.Html.Core` and `OfficeIMO.Html.AngleSharp` (including its `System.Text.Encoding.CodePages` runtime dependency). Container, OPF, spine, navigation, chapter, and resource parsing remain first-party; the shared HTML owner supplies the bounded concealed-content and stylesheet model.
 - **Security:** `META-INF/signatures.xml` discovery is structural and provider-free. Creation and validation of the bounded OfficeIMO XML package-manifest profile accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

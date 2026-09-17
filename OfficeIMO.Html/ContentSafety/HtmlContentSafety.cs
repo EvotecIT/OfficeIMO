@@ -158,7 +158,13 @@ public static partial class HtmlContentSafety {
                     capability,
                     inspectTextIntegrityEvidence: false);
                 if (targets != null && safeToRemove) targets[finding.Id] = HtmlCleanupTarget.ForElement(element);
-                InspectHtmlTextIntegrity(element, location, builder, targets, alreadyCharged: true);
+                InspectHtmlTextIntegrity(
+                    element,
+                    location,
+                    builder,
+                    targets,
+                    alreadyCharged: true,
+                    safeToRemove ? OfficeContentCleanupCapability.RemoveText : OfficeContentCleanupCapability.ReportOnly);
             }
             return;
         }
@@ -202,10 +208,11 @@ public static partial class HtmlContentSafety {
         string location,
         OfficeContentSafetyBuilder builder,
         IDictionary<string, HtmlCleanupTarget>? targets,
-        bool alreadyCharged) {
+        bool alreadyCharged,
+        OfficeContentCleanupCapability cleanupCapability = OfficeContentCleanupCapability.RemoveText) {
         var textNodes = new List<IText>();
         CollectHtmlTextNodes(element, textNodes);
-        InspectHtmlTextNodes(textNodes, location, builder, targets, alreadyCharged);
+        InspectHtmlTextNodes(textNodes, location, builder, targets, alreadyCharged, cleanupCapability);
     }
 
     private static void InspectHtmlDirectTextIntegrity(
@@ -213,23 +220,32 @@ public static partial class HtmlContentSafety {
         string location,
         OfficeContentSafetyBuilder builder,
         IDictionary<string, HtmlCleanupTarget>? targets,
-        bool alreadyCharged) => InspectHtmlTextNodes(element.ChildNodes.OfType<IText>(), location, builder, targets, alreadyCharged);
+        bool alreadyCharged) => InspectHtmlTextNodes(
+            element.ChildNodes.OfType<IText>(),
+            location,
+            builder,
+            targets,
+            alreadyCharged,
+            OfficeContentCleanupCapability.RemoveText);
 
     private static void InspectHtmlTextNodes(
         IEnumerable<IText> textNodes,
         string location,
         OfficeContentSafetyBuilder builder,
         IDictionary<string, HtmlCleanupTarget>? targets,
-        bool alreadyCharged) {
+        bool alreadyCharged,
+        OfficeContentCleanupCapability cleanupCapability) {
         int textIndex = 0;
         foreach (IText textNode in textNodes) {
             string nodeText = textNode.Data ?? string.Empty;
             if (nodeText.Length == 0) continue;
             string nodeLocation = location + "/text()[" + (++textIndex).ToString(CultureInfo.InvariantCulture) + "]";
             IReadOnlyList<OfficeContentSafetyFinding> unicode = alreadyCharged
-                ? builder.InspectChargedTextIntegrity(nodeLocation, nodeText, OfficeContentCleanupCapability.RemoveText)
-                : builder.InspectVisibleText(nodeLocation, nodeText, OfficeContentCleanupCapability.RemoveText);
-            if (targets != null) foreach (OfficeContentSafetyFinding item in unicode) targets[item.Id] = HtmlCleanupTarget.ForTextRange(textNode, item);
+                ? builder.InspectChargedTextIntegrity(nodeLocation, nodeText, cleanupCapability)
+                : builder.InspectVisibleText(nodeLocation, nodeText, cleanupCapability);
+            if (targets != null && cleanupCapability != OfficeContentCleanupCapability.ReportOnly) {
+                foreach (OfficeContentSafetyFinding item in unicode) targets[item.Id] = HtmlCleanupTarget.ForTextRange(textNode, item);
+            }
         }
     }
 

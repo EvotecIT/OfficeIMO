@@ -295,7 +295,7 @@ public static partial class HtmlResourcePipeline {
         HashSet<string> relTokens = GetRelTokens(rel);
         bool isPreload = relTokens.Contains("preload");
         bool isStylesheet = relTokens.Contains("stylesheet");
-        if (isStylesheet && element.HasAttribute("disabled")) {
+        if (isStylesheet && (element.HasAttribute("disabled") || relTokens.Contains("alternate"))) {
             return;
         }
         if ((isPreload || isStylesheet) && !IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options)) {

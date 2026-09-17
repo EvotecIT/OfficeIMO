@@ -222,6 +222,29 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlRenderAsync_DoesNotLoadOrApplyUnselectedAlternateStylesheets() {
+        int calls = 0;
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => {
+                calls++;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
+                    System.Text.Encoding.UTF8.GetBytes(".alternate { color:red; }"),
+                    "text/css"));
+            }
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
+            "<link rel='alternate stylesheet' title='dark' href='https://assets.example.test/dark.css'>" +
+            "<p class='alternate'>Alternate sheet</p>",
+            options);
+
+        HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item =>
+            item.Text.Contains("Alternate sheet", StringComparison.Ordinal));
+        Assert.Equal(0, calls);
+        Assert.NotEqual(OfficeColor.FromRgb(255, 0, 0), text.Color);
+    }
+
+    [Fact]
     public async Task HtmlRenderAsync_EnforcesSharedCssByteLimitsAcrossResolvedStylesheets() {
         const string firstCss = ".first { color:red; }";
         const string secondCss = ".second { color:blue; }";

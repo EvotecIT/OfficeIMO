@@ -20,7 +20,7 @@ internal static class MimeWriter {
         if (output == null || !output.CanWrite) {
             throw new ArgumentException("MIME output requires a writable stream.", nameof(output));
         }
-        MimeWriterState state = new MimeWriterState(options, diagnostics);
+        using var state = new MimeWriterState(options, diagnostics);
         WriteMessage(output, document, state, 0);
     }
 
@@ -34,7 +34,7 @@ internal static class MimeWriter {
     internal static byte[] WriteMimeEntity(EmailDocument document, EmailWriterOptions options,
         IList<EmailDiagnostic> diagnostics) {
         using var output = new EmailBoundedMemoryStream(options.MaxOutputBytes);
-        var state = new MimeWriterState(options, diagnostics);
+        using var state = new MimeWriterState(options, diagnostics);
         state.Enter(document, 0);
         try {
             WriteContent(output, document, state, 0, true);
@@ -247,7 +247,7 @@ internal static class MimeWriter {
             regularAttachments.Any(attachment => IsRelatedResource(document, attachment));
         bool hasUnrelatedAttachments = regularAttachments.Any(attachment => !IsRelatedResource(document, attachment));
         if (hasUnrelatedAttachments) {
-            string boundary = CreateBoundary(document, depth, "mixed");
+            string boundary = CreateBoundary(document, state, depth, "mixed");
             WriteLine(output, string.Concat("Content-Type: multipart/mixed; boundary=\"", boundary, "\""));
             WriteLine(output, string.Empty);
             WriteLine(output, string.Concat("--", boundary));
@@ -281,7 +281,7 @@ internal static class MimeWriter {
         EmailAttachment? calendarAttachment,
         EmailAttachment? contactBodyPart,
         IReadOnlyList<EmailAttachment> attachments) {
-        string boundary = CreateBoundary(document, depth, "related");
+        string boundary = CreateBoundary(document, state, depth, "related");
         string rootType = hasAlternative ? "multipart/alternative" : document.Body.Html != null
             ? "text/html"
             : "text/plain";
@@ -317,7 +317,7 @@ internal static class MimeWriter {
         bool hasAlternative, bool includeTextBody, byte[]? calendarContent, EmailAttachment? calendarAttachment,
         EmailAttachment? contactBodyPart) {
         if (hasAlternative) {
-            string boundary = CreateBoundary(document, depth, "alternative");
+            string boundary = CreateBoundary(document, state, depth, "alternative");
             WriteLine(output, string.Concat("Content-Type: multipart/alternative; boundary=\"", boundary, "\""));
             WriteLine(output, string.Empty);
             if (includeTextBody) {
@@ -507,7 +507,7 @@ internal static class MimeWriter {
         if (contentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase)) {
             if (!preservePartHeaders) WriteLine(output, "Content-Transfer-Encoding: 8bit");
             WriteLine(output, string.Empty);
-            using (Stream input = EmailAttachmentStreamScope.OpenRead(attachment)) {
+            using (Stream input = state.OpenAttachmentStream(attachment)) {
                 WriteRawEntity(output, input, state.Options.MaxOutputBytes);
             }
             return;
@@ -520,7 +520,7 @@ internal static class MimeWriter {
                 preservePartHeaders ? attachment.MimeTransferEncoding : "base64", state.Options.Base64LineLength);
             return;
         }
-        using (Stream input = EmailAttachmentStreamScope.OpenRead(attachment)) {
+        using (Stream input = state.OpenAttachmentStream(attachment)) {
             if (!preservePartHeaders || string.Equals(attachment.MimeTransferEncoding, "base64", StringComparison.OrdinalIgnoreCase)) {
                 WriteBase64(output, input, state.Options.Base64LineLength, state.Options.MaxOutputBytes);
             } else {
@@ -691,7 +691,7 @@ internal static class MimeWriter {
         }
     }
 
-    private static string CreateBoundary(EmailDocument document, int depth, string kind) {
+    private static string CreateBoundary(EmailDocument document, MimeWriterState state, int depth, string kind) {
         ulong hash = 14695981039346656037UL;
         Hash(ref hash, document.Subject);
         Hash(ref hash, document.MessageId);
@@ -701,7 +701,83 @@ internal static class MimeWriter {
         Hash(ref hash, document.Attachments.Count.ToString(CultureInfo.InvariantCulture));
         Hash(ref hash, depth.ToString(CultureInfo.InvariantCulture));
         Hash(ref hash, kind);
-        return string.Concat("=_OfficeIMO_", kind, "_", hash.ToString("x16", CultureInfo.InvariantCulture));
+        string prefix = string.Concat("=_OfficeIMO_", kind, "_", hash.ToString("x16", CultureInfo.InvariantCulture));
+        for (int attempt = 0; attempt < 256; attempt++) {
+            string candidate = attempt == 0
+                ? prefix
+                : string.Concat(prefix, "_", attempt.ToString("x2", CultureInfo.InvariantCulture));
+            if (!BoundaryCollides(document, candidate, state)) return candidate;
+        }
+        throw new InvalidDataException("A collision-free MIME boundary could not be generated for the message payload.");
+    }
+
+    private static bool BoundaryCollides(EmailDocument document, string boundary, MimeWriterState state) =>
+        BoundaryCollides(document, boundary, state, new HashSet<EmailDocument>());
+
+    private static bool BoundaryCollides(
+        EmailDocument document,
+        string boundary,
+        MimeWriterState state,
+        ISet<EmailDocument> activeDocuments) {
+        if (!activeDocuments.Add(document)) {
+            throw new InvalidOperationException("The embedded-message graph contains a cycle.");
+        }
+        try {
+            string marker = "--" + boundary;
+            if (ContainsBoundaryMarker(document.Body.Text, marker)
+                || ContainsBoundaryMarker(document.Body.Html, marker)
+                || ContainsBoundaryMarker(document.Body.Rtf, marker)) {
+                return true;
+            }
+
+            byte[] markerBytes = Encoding.ASCII.GetBytes(marker);
+            foreach (EmailAttachment attachment in document.Attachments) {
+                if (attachment.EmbeddedDocument != null) {
+                    if (BoundaryCollides(attachment.EmbeddedDocument, boundary, state, activeDocuments)) return true;
+                    continue;
+                }
+                if (attachment.Content != null) {
+                    using var input = new MemoryStream(attachment.Content, writable: false);
+                    if (StreamContains(input, markerBytes, state.Options.MaxOutputBytes)) return true;
+                    continue;
+                }
+                if (attachment.ContentSource == null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) continue;
+                Stream prepared = state.PrepareAttachmentStream(attachment);
+                if (StreamContains(prepared, markerBytes, state.Options.MaxOutputBytes)) return true;
+            }
+            return false;
+        } finally {
+            activeDocuments.Remove(document);
+        }
+    }
+
+    private static bool ContainsBoundaryMarker(string? value, string marker) =>
+        value?.IndexOf(marker, StringComparison.Ordinal) >= 0;
+
+    private static bool StreamContains(Stream input, byte[] pattern, long maximumInputBytes) {
+        var prefix = new int[pattern.Length];
+        for (int index = 1, matched = 0; index < pattern.Length; index++) {
+            while (matched > 0 && pattern[index] != pattern[matched]) matched = prefix[matched - 1];
+            if (pattern[index] == pattern[matched]) matched++;
+            prefix[index] = matched;
+        }
+
+        var buffer = new byte[81920];
+        long total = 0;
+        int current = 0;
+        while (true) {
+            int read = input.Read(buffer, 0, buffer.Length);
+            if (read == 0) return false;
+            total = checked(total + read);
+            if (total > maximumInputBytes) {
+                throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), total, maximumInputBytes);
+            }
+            for (int index = 0; index < read; index++) {
+                while (current > 0 && buffer[index] != pattern[current]) current = prefix[current - 1];
+                if (buffer[index] == pattern[current]) current++;
+                if (current == pattern.Length) return true;
+            }
+        }
     }
 
     private static void Hash(ref ulong hash, string? value) {

@@ -41,7 +41,7 @@ internal static class HtmlRenderStylesheetApplier {
             }
         }
         foreach (IElement link in document.QuerySelectorAll("link[href]")) {
-            if (!IsStylesheetLink(link) || link.HasAttribute("disabled")) {
+            if (!IsStylesheetLink(link) || link.HasAttribute("disabled") || IsAlternateStylesheetLink(link)) {
                 continue;
             }
 
@@ -223,5 +223,11 @@ internal static class HtmlRenderStylesheetApplier {
         }
 
         return false;
+    }
+
+    private static bool IsAlternateStylesheetLink(IElement link) {
+        string rel = link.GetAttribute("rel") ?? string.Empty;
+        return rel.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)
+            .Any(token => string.Equals(token, "alternate", StringComparison.OrdinalIgnoreCase));
     }
 }
