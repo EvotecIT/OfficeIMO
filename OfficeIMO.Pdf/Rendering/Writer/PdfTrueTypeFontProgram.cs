@@ -181,8 +181,45 @@ internal sealed partial class PdfTrueTypeFontProgram {
         }
     }
 
-    internal void RecordGlyphUsage(int glyphId, int unicodeScalar) =>
-        RecordGlyphUsage(glyphId, char.ConvertFromUtf32(unicodeScalar));
+    internal void RecordGlyphUsage(int glyphId, int unicodeScalar) {
+        if (glyphId < 0) {
+            return;
+        }
+
+        lock (_usageLock) {
+            _usedGlyphIds.Add(glyphId);
+            if (glyphId <= 0) {
+                return;
+            }
+
+            // This is called per glyph occurrence (measurement and drawing). The glyph -> unicode map only
+            // needs the string once per unique glyph, so when the glyph already maps to this exact scalar
+            // the ConvertFromUtf32 allocation is skipped. Any different/longer scalar still materializes and
+            // runs the normal replacement check, so the stored map is unchanged.
+            if (_usedGlyphToUnicode.TryGetValue(glyphId, out string? existing) && ScalarEqualsText(existing, unicodeScalar)) {
+                return;
+            }
+
+            string unicodeText = OfficeArabicTextShaper.ToLogicalText(char.ConvertFromUtf32(unicodeScalar));
+            if (!string.IsNullOrEmpty(unicodeText) &&
+                (!_usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText) || ShouldReplaceGlyphUnicodeText(unicodeText, existingText))) {
+                _usedGlyphToUnicode[glyphId] = unicodeText;
+            }
+        }
+    }
+
+    private static bool ScalarEqualsText(string text, int unicodeScalar) {
+        if (unicodeScalar <= 0xFFFF) {
+            return text.Length == 1 && text[0] == (char)unicodeScalar;
+        }
+
+        if (text.Length != 2) {
+            return false;
+        }
+
+        int offset = unicodeScalar - 0x10000;
+        return text[0] == (char)(0xD800 + (offset >> 10)) && text[1] == (char)(0xDC00 + (offset & 0x3FF));
+    }
 
     internal void RecordGlyphUsage(int glyphId, string unicodeText) {
         if (glyphId < 0) {

@@ -38,7 +38,7 @@ internal static partial class PdfWriter {
                 fontProgram.FontName,
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
-                options.RecordProviderShapedTextRun,
+                options.RecordProviderShapedTextRunDelegate,
                 options.Language,
                 featureSettings);
             if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault) {
@@ -67,7 +67,7 @@ internal static partial class PdfWriter {
                 cffFontProgram.FontName,
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
-                options.RecordProviderShapedTextRun,
+                options.RecordProviderShapedTextRunDelegate,
                 options.Language,
                 featureSettings));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);
@@ -112,7 +112,7 @@ internal static partial class PdfWriter {
                 fontProgram.FontName,
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
-                options.RecordProviderShapedTextRun,
+                options.RecordProviderShapedTextRunDelegate,
                 options.Language,
                 featureSettings);
             if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault) {
@@ -145,7 +145,7 @@ internal static partial class PdfWriter {
                 cffFontProgram.FontName,
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
-                options.RecordProviderShapedTextRun,
+                options.RecordProviderShapedTextRunDelegate,
                 options.Language,
                 featureSettings));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);

@@ -35,6 +35,29 @@ internal sealed class PdfGlyphRun {
 
     private const string HexChars = "0123456789ABCDEF";
 
+    // Glyph-hex show-strings are built once per drawn run; a fresh StringBuilder (and its char[] backing)
+    // per run is a top allocator. Reuse one per thread. Detached while in use so nested/reentrant callers
+    // fall back to a fresh instance, and oversized buffers are dropped rather than retained.
+    [ThreadStatic] private static StringBuilder? _hexBuilder;
+
+    internal static StringBuilder RentHexBuilder(int capacityHint) {
+        StringBuilder sb = _hexBuilder ?? new StringBuilder(256);
+        _hexBuilder = null;
+        sb.Clear();
+        if (sb.Capacity < capacityHint && capacityHint <= 8192) sb.EnsureCapacity(capacityHint);
+        return sb;
+    }
+
+    internal static string ReturnHexBuilder(StringBuilder sb) {
+        string result = sb.ToString();
+        if (sb.Capacity <= 8192) {
+            sb.Clear();
+            _hexBuilder = sb;
+        }
+
+        return result;
+    }
+
     // GlyphId is a 16-bit TrueType/CFF index, so four nibbles match ToString("X4") without the
     // per-glyph string allocation.
     internal static void AppendGlyphHex(StringBuilder sb, int glyphId) {
@@ -45,12 +68,12 @@ internal sealed class PdfGlyphRun {
     }
 
     public string ToGlyphHex() {
-        var sb = new StringBuilder(Glyphs.Count * 4);
+        var sb = RentHexBuilder(Glyphs.Count * 4);
         for (int i = 0; i < Glyphs.Count; i++) {
             AppendGlyphHex(sb, Glyphs[i].GlyphId);
         }
 
-        return sb.ToString();
+        return ReturnHexBuilder(sb);
     }
 
     public PdfTextShowCommand ToTextShowCommand() =>
@@ -262,7 +285,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
 
-        var sb = new StringBuilder(text.Length * 4);
+        var sb = PdfGlyphRun.RentHexBuilder(text.Length * 4);
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
             if (options.ShapingMode == PdfTextShapingMode.LatinLigatures &&
@@ -299,7 +322,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
         }
 
         actualText = OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft ? text : null;
-        return sb.ToString();
+        return PdfGlyphRun.ReturnHexBuilder(sb);
     }
 
 

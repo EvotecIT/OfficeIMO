@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -35,9 +36,34 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
         CachedFontCollection fontCollection = _fontCache.GetValue(
             fontCacheKey,
             _ => new CachedFontCollection(fontData));
+
+        // Layout re-shapes each run many times (keep-with-next, flow-fit, and draw passes),
+        // so the same word arrives here 6+ times per occurrence. Shaping is a pure function of
+        // these inputs, so memoize the immutable result per font. Variable-font instances are
+        // rare and would bloat the key, so they bypass the cache.
+        ShapeCacheKey? cacheKey = request.VariationCoordinatesForShaping.Count == 0
+            ? new ShapeCacheKey(request.Text, request.Language, request.FontCollectionIndex ?? 0, request.Direction, request.FeatureSettings)
+            : (ShapeCacheKey?)null;
+        if (cacheKey.HasValue && fontCollection.ResultCache.TryGetValue(cacheKey.Value, out OfficeTextShapingResult? cachedResult)) {
+            return cachedResult;
+        }
+
+        OfficeTextShapingResult? result = ShapeUncached(request, fontCollection);
+        // Bounded so a long-lived process shaping unbounded distinct text cannot grow without limit;
+        // repeated vocabulary (the case that matters) is captured well below the cap.
+        if (cacheKey.HasValue && fontCollection.ResultCache.Count < MaxCachedResultsPerFont) {
+            fontCollection.ResultCache.TryAdd(cacheKey.Value, result);
+        }
+
+        return result;
+    }
+
+    private const int MaxCachedResultsPerFont = 8192;
+
+    private static OfficeTextShapingResult? ShapeUncached(OfficeTextShapingRequest request, CachedFontCollection fontCollection) {
         fontCollection.Shape(request, out int glyphCount, out GlyphInfo[] infos, out GlyphPosition[] positions);
         if (glyphCount <= 1) return null;
-        GC.KeepAlive(fontData);
+        GC.KeepAlive(request.FontDataForShaping);
         if (infos.Length == 0 || infos.Length != positions.Length) return null;
 
         IReadOnlyDictionary<int, int> clusterEnds = BuildClusterEnds(infos, request.Text.Length);
@@ -79,10 +105,48 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
         return ends;
     }
 
+    private readonly struct ShapeCacheKey : IEquatable<ShapeCacheKey> {
+        private readonly string _text;
+        private readonly string? _language;
+        private readonly int _collectionIndex;
+        private readonly OfficeTextDirection _direction;
+        private readonly OfficeTextFeatureSettings _features;
+
+        internal ShapeCacheKey(string text, string? language, int collectionIndex, OfficeTextDirection direction, OfficeTextFeatureSettings features) {
+            _text = text;
+            _language = language;
+            _collectionIndex = collectionIndex;
+            _direction = direction;
+            _features = features;
+        }
+
+        public bool Equals(ShapeCacheKey other) =>
+            _collectionIndex == other._collectionIndex &&
+            _direction == other._direction &&
+            string.Equals(_text, other._text, StringComparison.Ordinal) &&
+            string.Equals(_language, other._language, StringComparison.Ordinal) &&
+            _features.Equals(other._features);
+
+        public override bool Equals(object? obj) => obj is ShapeCacheKey other && Equals(other);
+
+        public override int GetHashCode() {
+            unchecked {
+                int hash = 17;
+                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(_text);
+                hash = hash * 31 + (_language != null ? StringComparer.Ordinal.GetHashCode(_language) : 0);
+                hash = hash * 31 + _collectionIndex;
+                hash = hash * 31 + (int)_direction;
+                hash = hash * 31 + _features.GetHashCode();
+                return hash;
+            }
+        }
+    }
+
     private sealed class CachedFontCollection {
         private readonly object _sync = new();
         private readonly Blob _blob;
         private readonly Dictionary<int, CachedFace> _faces = new();
+        internal readonly ConcurrentDictionary<ShapeCacheKey, OfficeTextShapingResult?> ResultCache = new();
 
         internal CachedFontCollection(byte[] fontData) {
             GCHandle pinned = GCHandle.Alloc(fontData, GCHandleType.Pinned);

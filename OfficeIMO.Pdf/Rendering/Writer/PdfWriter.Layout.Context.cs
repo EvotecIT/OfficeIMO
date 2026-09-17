@@ -124,7 +124,7 @@ internal static partial class PdfWriter {
             for (int i = activeLayers.Count - 1; i >= 0; i--) {
                 sb.Append("EMC\n");
             }
-            currentPage.Content = pageContents.Store(sb.ToString());
+            currentPage.Content = pageContents.Store(sb);
             pages.Add(currentPage);
             currentPage = null;
             // Reuse the buffer across pages (content already captured above) instead of re-growing a new
