@@ -13,6 +13,7 @@ public static partial class OfficeRasterContentSafety {
         OcrResult result,
         string engineId,
         OfficeRasterContentSafetyOptions.Snapshot options,
+        RasterWorkBudget budget,
         CancellationToken cancellationToken) {
         if (result == null) throw new InvalidDataException("The OCR engine returned no result.");
         IReadOnlyList<OcrTextSpan> rawSpans = result.Spans ?? Array.Empty<OcrTextSpan>();
@@ -24,6 +25,10 @@ public static partial class OfficeRasterContentSafety {
             throw new InvalidDataException("The OCR result exceeds the configured diagnostic limit.");
         }
         ValidateOcrOutputCharacters(result, rawSpans, rawDiagnostics, options, cancellationToken);
+        if (rawDiagnostics.Any(diagnostic => diagnostic != null &&
+            !Enum.IsDefined(typeof(OcrDiagnosticSeverity), diagnostic.Severity))) {
+            throw new InvalidDataException("OCR reported an undefined diagnostic severity.");
+        }
         if (rawDiagnostics.Any(diagnostic => diagnostic != null &&
             (!diagnostic.IsRecoverable || diagnostic.Severity == OcrDiagnosticSeverity.Error))) {
             throw new InvalidDataException(
@@ -53,7 +58,6 @@ public static partial class OfficeRasterContentSafety {
         var targets = new Dictionary<string, RasterTarget>(StringComparer.Ordinal);
         var recognizedTargets = new List<RasterTarget>(spans.Length);
         var concealedTargets = new List<RasterConcealment>();
-        long remainingPixelWork = options.MaximumPixelAnalysisWork;
         int visibleSpans = 0;
         for (int index = 0; index < spans.Length; index++) {
             if ((index & 63) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -61,10 +65,7 @@ public static partial class OfficeRasterContentSafety {
             ValidateConfidence(span.Confidence);
             PixelRegion region = ResolvePixelRegion(span, image.Width, image.Height);
             PixelRegion contrastRegion = Expand(region, 1, image.Width, image.Height);
-            if (contrastRegion.Area > remainingPixelWork) {
-                throw new InvalidDataException("OCR pixel-analysis work exceeds the configured limit.");
-            }
-            remainingPixelWork -= contrastRegion.Area;
+            budget.ChargePixels(contrastRegion.Area);
             PixelEvidence pixels = InspectPixels(image, region, contrastRegion, cancellationToken);
             var target = new RasterTarget(span, region);
             recognizedTargets.Add(target);
@@ -90,10 +91,12 @@ public static partial class OfficeRasterContentSafety {
         ValidateAggregateTextCoverage(
             result.Text,
             recognizedTargets,
-            options,
+            budget,
             cancellationToken);
         IReadOnlyDictionary<RasterTarget, IReadOnlyList<string>> instructionSignals =
-            ResolveConcealedInstructionSignals(recognizedTargets, concealedTargets, cancellationToken);
+            options.Inspection.DetectInstructionLikeText
+                ? ResolveConcealedInstructionSignals(recognizedTargets, concealedTargets, cancellationToken)
+                : new Dictionary<RasterTarget, IReadOnlyList<string>>();
         foreach (RasterConcealment concealed in concealedTargets) {
             cancellationToken.ThrowIfCancellationRequested();
             RasterTarget target = concealed.Target;
@@ -212,7 +215,7 @@ public static partial class OfficeRasterContentSafety {
     private static void ValidateAggregateTextCoverage(
         string? aggregateText,
         IReadOnlyList<RasterTarget> targets,
-        OfficeRasterContentSafetyOptions.Snapshot options,
+        RasterWorkBudget budget,
         CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(aggregateText)) return;
         if (HasEquivalentTargetText(aggregateText, targets, OcrTextSpanLevel.Line, " ", cancellationToken) ||
@@ -225,12 +228,9 @@ public static partial class OfficeRasterContentSafety {
                 cancellationToken)) {
             return;
         }
-        long remainingRegionComparisons = options.MaximumRegionComparisons;
-        int regionComparisonCount = 0;
         HashSet<RasterTarget> aggregateParents = ResolveAggregateParentTargets(
             targets,
-            ref remainingRegionComparisons,
-            ref regionComparisonCount,
+            budget,
             cancellationToken);
         string flattened = FlattenTargetText(targets, aggregateParents, cancellationToken);
         if (string.Equals(

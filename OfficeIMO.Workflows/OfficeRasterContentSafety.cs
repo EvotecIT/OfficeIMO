@@ -26,7 +26,14 @@ public static partial class OfficeRasterContentSafety {
         OfficeContentSafetyInputGuard.ValidateBytes(imageBytes, snapshot.Inspection);
         byte[] input = (byte[])imageBytes.Clone();
         OcrEngineExecution execution = OcrEngineRunner.CreateExecution(engine);
-        AnalysisState state = await InspectCoreAsync(input, execution, snapshot, cancellationToken)
+        var budget = new RasterWorkBudget(snapshot);
+        AnalysisState state = await InspectCoreAsync(
+                input,
+                execution,
+                snapshot,
+                budget,
+                imageBytes.LongLength + 24L,
+                cancellationToken)
             .ConfigureAwait(false);
         return state.Report;
     }
@@ -48,10 +55,13 @@ public static partial class OfficeRasterContentSafety {
             inspectZipPackage: false,
             cancellationToken: cancellationToken);
         OcrEngineExecution execution = OcrEngineRunner.CreateExecution(engine);
+        var budget = new RasterWorkBudget(snapshot);
         AnalysisState state = await InspectCoreAsync(
                 input,
                 execution,
                 snapshot,
+                budget,
+                additionalRetainedManagedBytes: 0L,
                 cancellationToken)
             .ConfigureAwait(false);
         return state.Report;
@@ -61,6 +71,8 @@ public static partial class OfficeRasterContentSafety {
         byte[] input,
         OcrEngineExecution execution,
         OfficeRasterContentSafetyOptions.Snapshot options,
+        RasterWorkBudget budget,
+        long additionalRetainedManagedBytes,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeContentSafetyInputGuard.ValidateBytes(input, options.Inspection);
@@ -71,7 +83,8 @@ public static partial class OfficeRasterContentSafety {
             MaximumEncodedBytes = checked((int)Math.Min(options.Inspection.MaxInputBytes, 128L * 1024L * 1024L)),
             MaximumDecodedPixels = options.MaximumDecodedPixels,
             FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames,
-            CancellationToken = cancellationToken
+            CancellationToken = cancellationToken,
+            RetainedManagedBytes = additionalRetainedManagedBytes
         };
         if (!OfficeRasterImageDecoder.TryDecode(input, decodeOptions, out OfficeRasterImage? image, out OfficeRasterDecodeInfo decodeInfo) || image == null) {
             throw new InvalidDataException(decodeInfo.Diagnostic ??
@@ -81,7 +94,7 @@ public static partial class OfficeRasterContentSafety {
         OfficeImageMetadataSnapshot metadata = OfficeImageMetadataInspector.Inspect(
             input,
             decodeInfo.Format,
-            checked(input.LongLength + image.PixelBuffer.LongLength + 48L),
+            checked(input.LongLength + image.PixelBuffer.LongLength + 48L + additionalRetainedManagedBytes),
             cancellationToken);
         if (metadata.HasColorRenderingMetadata) {
             throw new InvalidDataException(
@@ -98,7 +111,8 @@ public static partial class OfficeRasterContentSafety {
             OfficeImageExportFormat.Png,
             options: null,
             options.MaximumOutputBytes,
-            cancellationToken);
+            cancellationToken,
+            checked(input.LongLength + 24L + additionalRetainedManagedBytes));
         var request = new OcrRequest {
             Operation = OcrOperation.RecognizeText,
             Payload = normalized,
@@ -117,7 +131,7 @@ public static partial class OfficeRasterContentSafety {
         OcrResult result = await execution.RecognizeAsync(request, options.OcrTimeout, cancellationToken)
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        return Analyze(image, result, execution.Id, options, cancellationToken);
+        return Analyze(image, result, execution.Id, options, budget, cancellationToken);
     }
 
     private sealed class AnalysisState {
@@ -154,6 +168,32 @@ public static partial class OfficeRasterContentSafety {
         internal int Sequence { get; }
         internal string Text { get; }
         internal double? Confidence { get; }
+    }
+
+    private sealed class RasterWorkBudget {
+        private long _remainingPixels;
+        private long _remainingComparisons;
+        private int _comparisonCount;
+
+        internal RasterWorkBudget(OfficeRasterContentSafetyOptions.Snapshot options) {
+            _remainingPixels = options.MaximumPixelAnalysisWork;
+            _remainingComparisons = options.MaximumRegionComparisons;
+        }
+
+        internal void ChargePixels(long count) {
+            if (count < 0L || count > _remainingPixels) {
+                throw new InvalidDataException("Raster pixel-analysis work exceeds the configured cumulative limit.");
+            }
+            _remainingPixels -= count;
+        }
+
+        internal void ChargeComparison(CancellationToken cancellationToken) {
+            if (_remainingComparisons <= 0L) {
+                throw new InvalidDataException("Raster OCR geometry comparisons exceed the configured cumulative limit.");
+            }
+            _remainingComparisons--;
+            if ((_comparisonCount++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+        }
     }
 
     private readonly struct PixelRegion {

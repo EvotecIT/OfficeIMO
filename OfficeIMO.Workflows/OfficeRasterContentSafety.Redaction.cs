@@ -29,7 +29,15 @@ public static partial class OfficeRasterContentSafety {
         OfficeContentSafetyInputGuard.ValidateBytes(imageBytes, snapshot.Inspection);
         byte[] input = (byte[])imageBytes.Clone();
         OcrEngineExecution execution = OcrEngineRunner.CreateExecution(engine);
-        AnalysisState beforeState = await InspectCoreAsync(input, execution, snapshot, cancellationToken)
+        var budget = new RasterWorkBudget(snapshot);
+        long callerRetainedBytes = imageBytes.LongLength + 24L;
+        AnalysisState beforeState = await InspectCoreAsync(
+                input,
+                execution,
+                snapshot,
+                budget,
+                callerRetainedBytes,
+                cancellationToken)
             .ConfigureAwait(false);
         IReadOnlyList<OfficeContentSafetyFinding> selected =
             OfficeContentSafetyBuilder.ResolveSelection(beforeState.Report, selection);
@@ -57,13 +65,9 @@ public static partial class OfficeRasterContentSafety {
         RasterTarget[] unselectedTargets = beforeState.RecognizedTargets
             .Where(target => !selectedTargetSet.Contains(target))
             .ToArray();
-        long remainingRedactionWork = snapshot.MaximumPixelAnalysisWork;
-        long remainingRegionComparisons = snapshot.MaximumRegionComparisons;
-        int regionComparisonCount = 0;
         HashSet<RasterTarget> beforeAggregateParents = ResolveAggregateParentTargets(
             beforeState.RecognizedTargets,
-            ref remainingRegionComparisons,
-            ref regionComparisonCount,
+            budget,
             cancellationToken);
         for (int index = 0; index < selectedTargets.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -73,21 +77,22 @@ public static partial class OfficeRasterContentSafety {
                 beforeState.Image.Width,
                 beforeState.Image.Height);
             foreach (RasterTarget target in unselectedTargets) {
-                ChargeRegionComparison(
-                    ref remainingRegionComparisons,
-                    ref regionComparisonCount,
-                    cancellationToken);
+                budget.ChargeComparison(cancellationToken);
                 if (beforeAggregateParents.Contains(target)) continue;
                 if (expanded.Intersects(target.Region)) {
                     throw new InvalidOperationException(
                         "A selected raster redaction region overlaps recognized text that was not selected.");
                 }
             }
-            long regionWork = checked(expanded.Area * 2L);
-            if (regionWork > remainingRedactionWork) {
-                throw new InvalidDataException("Raster redaction work exceeds the configured pixel-analysis limit.");
+            budget.ChargePixels(checked(expanded.Area * 3L));
+            if (!WouldChange(
+                    beforeState.Image,
+                    selectedTargets[index].Region,
+                    snapshot.RedactionColor,
+                    cancellationToken)) {
+                throw new InvalidOperationException(
+                    "A selected raster region already matches the configured redaction color and cannot produce a verified cleanup change.");
             }
-            remainingRedactionWork -= regionWork;
             changedRegions.Add(expanded);
         }
 
@@ -105,23 +110,37 @@ public static partial class OfficeRasterContentSafety {
             OfficeImageExportFormat.Png,
             options: null,
             snapshot.MaximumOutputBytes,
+            cancellationToken,
+            checked(input.LongLength + 24L + callerRetainedBytes + beforeState.Image.PixelBuffer.LongLength + 24L));
+        long retainedForOutputDecode = checked(
+            input.LongLength + 24L + callerRetainedBytes +
+            beforeState.Image.PixelBuffer.LongLength + 24L +
+            redacted.PixelBuffer.LongLength + 24L);
+        VerifyRedactionOutput(
+            output,
+            redacted,
+            changedRegions,
+            snapshot,
+            budget,
+            retainedForOutputDecode,
             cancellationToken);
-        VerifyRedactionOutput(output, redacted, changedRegions, snapshot, cancellationToken);
 
-        AnalysisState afterState = await InspectCoreAsync(output, execution, snapshot, cancellationToken)
+        AnalysisState afterState = await InspectCoreAsync(
+                output,
+                execution,
+                snapshot,
+                budget,
+                retainedForOutputDecode,
+                cancellationToken)
             .ConfigureAwait(false);
         HashSet<RasterTarget> afterAggregateParents = ResolveAggregateParentTargets(
             afterState.RecognizedTargets,
-            ref remainingRegionComparisons,
-            ref regionComparisonCount,
+            budget,
             cancellationToken);
         for (int selectedIndex = 0; selectedIndex < selectedTargets.Count; selectedIndex++) {
             PixelRegion changedRegion = changedRegions[selectedIndex];
             foreach (RasterTarget afterTarget in afterState.RecognizedTargets) {
-                ChargeRegionComparison(
-                    ref remainingRegionComparisons,
-                    ref regionComparisonCount,
-                    cancellationToken);
+                budget.ChargeComparison(cancellationToken);
                 if (afterAggregateParents.Contains(afterTarget)) continue;
                 if (!changedRegion.Intersects(afterTarget.Region)) continue;
                 throw new InvalidDataException(
@@ -157,8 +176,7 @@ public static partial class OfficeRasterContentSafety {
 
     private static HashSet<RasterTarget> ResolveAggregateParentTargets(
         IReadOnlyList<RasterTarget> targets,
-        ref long remainingRegionComparisons,
-        ref int regionComparisonCount,
+        RasterWorkBudget budget,
         CancellationToken cancellationToken) {
         Dictionary<string, IReadOnlyList<RasterTarget>> childrenByLine = IndexFinerTargetsByLine(targets);
         var aggregates = new HashSet<RasterTarget>();
@@ -171,8 +189,7 @@ public static partial class OfficeRasterContentSafety {
             if (IsParentFullyRepresentedByChildren(
                     candidate,
                     children,
-                    ref remainingRegionComparisons,
-                    ref regionComparisonCount,
+                    budget,
                     cancellationToken)) {
                 aggregates.Add(candidate);
             }
@@ -183,16 +200,12 @@ public static partial class OfficeRasterContentSafety {
     private static bool IsParentFullyRepresentedByChildren(
         RasterTarget parent,
         IReadOnlyList<RasterTarget> children,
-        ref long remainingRegionComparisons,
-        ref int regionComparisonCount,
+        RasterWorkBudget budget,
         CancellationToken cancellationToken) {
         var words = new List<RasterTarget>();
         var characters = new List<RasterTarget>();
         foreach (RasterTarget child in children) {
-            ChargeRegionComparison(
-                ref remainingRegionComparisons,
-                ref regionComparisonCount,
-                cancellationToken);
+            budget.ChargeComparison(cancellationToken);
             if (!parent.Region.Contains(child.Region) || child.Level <= parent.Level) continue;
             if (child.Level == OcrTextSpanLevel.Word) words.Add(child);
             else if (child.Level == OcrTextSpanLevel.Character) characters.Add(child);
@@ -215,17 +228,6 @@ public static partial class OfficeRasterContentSafety {
             NormalizeWhitespace(lineText, cancellationToken),
             NormalizeWhitespace(childText, cancellationToken),
             StringComparison.Ordinal);
-    }
-
-    private static void ChargeRegionComparison(
-        ref long remaining,
-        ref int comparisonCount,
-        CancellationToken cancellationToken) {
-        if (remaining <= 0L) {
-            throw new InvalidDataException("Raster OCR geometry comparisons exceed the configured limit.");
-        }
-        remaining--;
-        if ((comparisonCount++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
     }
 
     private static PixelRegion Expand(PixelRegion region, int padding, int width, int height) =>
@@ -254,17 +256,40 @@ public static partial class OfficeRasterContentSafety {
         }
     }
 
+    private static bool WouldChange(
+        OfficeRasterImage image,
+        PixelRegion region,
+        OfficeColor color,
+        CancellationToken cancellationToken) {
+        byte[] pixels = image.PixelBuffer;
+        int cancellationCounter = 0;
+        for (int y = region.Top; y < region.Bottom; y++) {
+            int offset = ((y * image.Width) + region.Left) * 4;
+            for (int x = region.Left; x < region.Right; x++, offset += 4) {
+                if ((cancellationCounter++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                if (pixels[offset] != color.R || pixels[offset + 1] != color.G ||
+                    pixels[offset + 2] != color.B || pixels[offset + 3] != byte.MaxValue) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private static void VerifyRedactionOutput(
         byte[] output,
         OfficeRasterImage expected,
         IReadOnlyList<PixelRegion> changedRegions,
         OfficeRasterContentSafetyOptions.Snapshot options,
+        RasterWorkBudget budget,
+        long additionalRetainedManagedBytes,
         CancellationToken cancellationToken) {
         var decodeOptions = new OfficeRasterDecodeOptions {
             MaximumEncodedBytes = checked((int)Math.Min(options.MaximumOutputBytes, int.MaxValue)),
             MaximumDecodedPixels = options.MaximumDecodedPixels,
             FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames,
-            CancellationToken = cancellationToken
+            CancellationToken = cancellationToken,
+            RetainedManagedBytes = additionalRetainedManagedBytes
         };
         if (!OfficeRasterImageDecoder.TryDecode(
                 output,
@@ -277,6 +302,7 @@ public static partial class OfficeRasterContentSafety {
             throw new InvalidDataException("The redacted PNG changed the source dimensions.");
         }
         byte[] pixels = reopened.PixelBuffer;
+        budget.ChargePixels(checked((long)reopened.Width * reopened.Height));
         if (!PixelBuffersEqual(pixels, expected.PixelBuffer, cancellationToken)) {
             throw new InvalidDataException("The reopened PNG did not preserve the exact normalized redaction pixels.");
         }

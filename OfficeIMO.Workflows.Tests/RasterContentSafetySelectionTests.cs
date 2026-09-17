@@ -298,6 +298,52 @@ public sealed partial class RasterContentSafetyTests {
     }
 
     [Fact]
+    public async Task RedactionSharesPixelWorkBudgetAcrossInspectionMutationAndVerification() {
+        byte[] image = CreateImage(40, 20, OfficeColor.White,
+            new PixelBox(2, 5, 8, 6), OfficeColor.FromRgb(248, 248, 248));
+        int calls = 0;
+        IOcrEngine engine = CreateEngine(_ => calls++ < 2
+            ? Result("concealed", new OcrRegion { X = 2, Y = 5, Width = 8, Height = 6 }, 0.99D)
+            : new OcrResult());
+        var options = new OfficeRasterContentSafetyOptions {
+            EnableOpaqueRectangleRedaction = true,
+            MaximumPixelAnalysisWork = 1_000,
+            RedactionPaddingPixels = 0
+        };
+        OfficeContentSafetyFinding finding = Assert.Single(
+            (await OfficeRasterContentSafety.InspectAsync(image, engine, options)).Findings);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            OfficeRasterContentSafety.RedactSelectedContentAsync(
+                image,
+                engine,
+                new OfficeContentCleanupSelection(new[] { finding.Id }),
+                options));
+    }
+
+    [Fact]
+    public async Task RedactionRejectsASelectedRegionThatAlreadyMatchesTheRedactionColor() {
+        byte[] image = CreateImage(20, 10, OfficeColor.White,
+            new PixelBox(3, 4, 8, 3), OfficeColor.Black);
+        IOcrEngine engine = CreateEngine(_ =>
+            Result("tiny", new OcrRegion { X = 3, Y = 4, Width = 8, Height = 3 }, 0.99D));
+        var options = new OfficeRasterContentSafetyOptions {
+            EnableOpaqueRectangleRedaction = true,
+            RedactionPaddingPixels = 0,
+            RedactionColor = OfficeColor.Black
+        };
+        OfficeContentSafetyFinding finding = Assert.Single(
+            (await OfficeRasterContentSafety.InspectAsync(image, engine, options)).Findings);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            OfficeRasterContentSafety.RedactSelectedContentAsync(
+                image,
+                engine,
+                new OfficeContentCleanupSelection(new[] { finding.Id }),
+                options));
+    }
+
+    [Fact]
     public async Task RedactionWithEveryRecognizedSpanSelectedNeedsNoPreComparisonBudget() {
         byte[] image = CreateImage(40, 20, OfficeColor.White,
             new PixelBox(5, 6, 24, 6), OfficeColor.FromRgb(248, 248, 248));
