@@ -441,7 +441,12 @@ internal static partial class OfficeImageMetadataInspector {
         for (int index = 0; index < count; index++) {
             if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             int entry = absoluteIfd + 2 + index * 12;
-            if (entry > payloadEnd - 12) return;
+            if (entry > payloadEnd - 12) {
+                if (transferFunctionEntry >= 0 || whitePointEntry >= 0 || primaryChromaticitiesEntry >= 0) {
+                    snapshot.HasColorRenderingMetadata = true;
+                }
+                return;
+            }
             int tag = ReadUInt16(exif, entry, little);
             if (tag == 301) {
                 if (transferFunctionEntry >= 0) snapshot.HasColorRenderingMetadata = true;
@@ -519,7 +524,10 @@ internal static partial class OfficeImageMetadataInspector {
         for (int index = 0; index < count; index++) {
             if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             int entry = subIfd + 2 + index * 12;
-            if (entry < tiffBaseOffset || entry > viewEnd - 12) return false;
+            if (entry < tiffBaseOffset || entry > viewEnd - 12) {
+                if (hasSrgbColorSpace) snapshot.HasColorRenderingMetadata = true;
+                return false;
+            }
             int tag = ReadUInt16(data, entry, little);
             if (IsUnappliedTiffColorTag(tag)) {
                 snapshot.HasColorRenderingMetadata = true;

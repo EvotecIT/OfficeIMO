@@ -120,6 +120,73 @@ public sealed partial class RasterContentSafetyTests {
     }
 
     [Theory]
+    [InlineData(100L, 100L, true)]
+    [InlineData(268435400L, 100L, false)]
+    [InlineData(long.MaxValue, 1L, false)]
+    public void RedactionClonePreflightBoundsPeakMemory(
+        long retainedManagedBytes,
+        long pixelBufferBytes,
+        bool expected) {
+        Assert.Equal(
+            expected,
+            OfficeRasterContentSafety.IsRedactionCloneWithinWorkingSet(
+                retainedManagedBytes,
+                pixelBufferBytes));
+    }
+
+    [Fact]
+    public async Task RedactionReinspectsDerivativeUnderOutputByteLimit() {
+        var raster = new OfficeRasterImage(64, 32, OfficeColor.White);
+        for (int y = 0; y < raster.Height; y++) {
+            for (int x = 0; x < raster.Width; x++) {
+                byte value = checked((byte)(235 + ((x * 17 + y * 31) % 11)));
+                raster.SetPixel(x, y, OfficeColor.FromRgb(value, value, value));
+            }
+        }
+        byte[] image = OfficeJpegCodec.Encode(raster);
+        IOcrEngine engine = CreateEngine(request =>
+            OfficeRasterImageDecoder.TryDecode(request.Payload, out OfficeRasterImage? decoded) &&
+            decoded != null && decoded.GetPixel(8, 8) == OfficeColor.Black
+                ? new OcrResult()
+                : Result("concealed", new OcrRegion { X = 8, Y = 8, Width = 20, Height = 8 }, 0.99D));
+        var options = new OfficeRasterContentSafetyOptions {
+            Inspection = new OfficeContentSafetyOptions { MaxInputBytes = image.LongLength },
+            EnableOpaqueRectangleRedaction = true,
+            RedactionColor = OfficeColor.Black,
+            MaximumOutputBytes = 1024L * 1024L
+        };
+        OfficeContentSafetyFinding finding = Assert.Single(
+            (await OfficeRasterContentSafety.InspectAsync(image, engine, options)).Findings);
+
+        OfficeContentCleanupResult cleanup = await OfficeRasterContentSafety.RedactSelectedContentAsync(
+            image,
+            engine,
+            new OfficeContentCleanupSelection(new[] { finding.Id }),
+            options);
+
+        Assert.True(cleanup.Changed);
+        Assert.True(cleanup.Output.LongLength > options.Inspection.MaxInputBytes);
+    }
+
+    [Fact]
+    public async Task InspectRejectsTruncatedExifIfdAfterColorDeclaration() {
+        var exif = new byte[22];
+        exif[0] = (byte)'I';
+        exif[1] = (byte)'I';
+        BinaryPrimitives.WriteUInt16LittleEndian(exif.AsSpan(2, 2), 42);
+        BinaryPrimitives.WriteUInt32LittleEndian(exif.AsSpan(4, 4), 8);
+        BinaryPrimitives.WriteUInt16LittleEndian(exif.AsSpan(8, 2), 2);
+        byte[] transferEntry = CreateTiffEntry(301, type: 3, count: 256, valueOffset: 22);
+        transferEntry.CopyTo(exif, 10);
+        byte[] image = OfficeJpegCodec.Encode(
+            new OfficeRasterImage(8, 8, OfficeColor.White),
+            new OfficeJpegEncodeOptions { Metadata = new OfficeJpegMetadata(exif: exif) });
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            OfficeRasterContentSafety.InspectAsync(image, CreateEngine(_ => new OcrResult())));
+    }
+
+    [Theory]
     [InlineData(OcrCoordinateUnit.Normalized, 0.5D, 0.2D, 0.5000001D, 0.5D, 2)]
     [InlineData(OcrCoordinateUnit.Normalized, 0.5D, 0.5D, 0.5D, 0.5000001D, 5)]
     [InlineData(OcrCoordinateUnit.Pixels, 10D, 2D, 10.0000001D, 5D, 2)]

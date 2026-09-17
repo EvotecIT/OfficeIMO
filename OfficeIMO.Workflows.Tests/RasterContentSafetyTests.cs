@@ -375,14 +375,16 @@ public sealed partial class RasterContentSafetyTests {
         Assert.False(invoked);
     }
 
-    [Fact]
-    public async Task InspectAcceptsAnEngineWithWildcardImageSupport() {
+    [Theory]
+    [InlineData("image/*")]
+    [InlineData("IMAGE/*")]
+    public async Task InspectAcceptsAnEngineWithWildcardImageSupport(string mediaType) {
         byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
         IOcrEngine engine = new DelegateOcrEngine(
             "image-wildcard",
             (_, _) => Task.FromResult(new OcrResult()),
             new OcrEngineCapabilities {
-                SupportedMediaTypes = new[] { "image/*" },
+                SupportedMediaTypes = new[] { mediaType },
                 SupportsConcurrentRequests = true
             });
 

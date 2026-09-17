@@ -40,7 +40,7 @@ public sealed class OcrEngineCapabilities {
             if (string.IsNullOrWhiteSpace(item)) continue;
             string declared = item!.Trim();
             if (string.Equals(declared, requested, StringComparison.OrdinalIgnoreCase)) return true;
-            if (declared.EndsWith("/*", StringComparison.Ordinal) &&
+            if (declared.EndsWith("/*", StringComparison.OrdinalIgnoreCase) &&
                 requested.StartsWith(declared.Substring(0, declared.Length - 1), StringComparison.OrdinalIgnoreCase)) {
                 return true;
             }

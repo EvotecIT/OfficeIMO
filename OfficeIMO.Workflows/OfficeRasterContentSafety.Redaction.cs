@@ -36,6 +36,7 @@ public static partial class OfficeRasterContentSafety {
                 execution,
                 snapshot,
                 budget,
+                snapshot.Inspection.MaxInputBytes,
                 callerRetainedBytes,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -98,6 +99,14 @@ public static partial class OfficeRasterContentSafety {
             changedRegions.Add(expanded);
         }
 
+        long retainedBeforeClone = checked(
+            input.LongLength + 24L + callerRetainedBytes +
+            beforeState.Image.PixelBuffer.LongLength + 24L);
+        if (!IsRedactionCloneWithinWorkingSet(
+                retainedBeforeClone,
+                beforeState.Image.PixelBuffer.LongLength)) {
+            throw new InvalidDataException("Raster redaction would exceed the managed working-set limit.");
+        }
         OfficeRasterImage redacted = OfficeRasterImage.FromRgba32(
             beforeState.Image.Width,
             beforeState.Image.Height,
@@ -132,6 +141,7 @@ public static partial class OfficeRasterContentSafety {
                 execution,
                 snapshot,
                 budget,
+                snapshot.MaximumOutputBytes,
                 retainedForOutputDecode,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -281,6 +291,16 @@ public static partial class OfficeRasterContentSafety {
             }
         }
         return false;
+    }
+
+    internal static bool IsRedactionCloneWithinWorkingSet(long retainedManagedBytes, long pixelBufferBytes) {
+        if (retainedManagedBytes < 0L || pixelBufferBytes < 0L) return false;
+        try {
+            return checked(retainedManagedBytes + pixelBufferBytes + 24L) <=
+                OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
     }
 
     private static void VerifyRedactionOutput(

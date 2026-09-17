@@ -32,6 +32,7 @@ public static partial class OfficeRasterContentSafety {
                 execution,
                 snapshot,
                 budget,
+                snapshot.Inspection.MaxInputBytes,
                 imageBytes.LongLength + 24L,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -61,6 +62,7 @@ public static partial class OfficeRasterContentSafety {
                 execution,
                 snapshot,
                 budget,
+                snapshot.Inspection.MaxInputBytes,
                 additionalRetainedManagedBytes: 0L,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -72,15 +74,21 @@ public static partial class OfficeRasterContentSafety {
         OcrEngineExecution execution,
         OfficeRasterContentSafetyOptions.Snapshot options,
         RasterWorkBudget budget,
+        long maximumEncodedBytes,
         long additionalRetainedManagedBytes,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeContentSafetyInputGuard.ValidateBytes(input, options.Inspection);
+        if (maximumEncodedBytes <= 0L || maximumEncodedBytes > OfficeRasterContentSafetyOptions.MaximumEncodedRasterBytes) {
+            throw new ArgumentOutOfRangeException(nameof(maximumEncodedBytes));
+        }
+        if (input.LongLength > maximumEncodedBytes) {
+            throw new InvalidDataException("The encoded raster exceeds the permitted byte limit.");
+        }
         if (!execution.Capabilities.SupportsMediaType(NormalizedMediaType)) {
             throw new NotSupportedException("The configured OCR engine does not advertise support for normalized PNG input.");
         }
         var decodeOptions = new OfficeRasterDecodeOptions {
-            MaximumEncodedBytes = checked((int)options.Inspection.MaxInputBytes),
+            MaximumEncodedBytes = checked((int)maximumEncodedBytes),
             MaximumDecodedPixels = options.MaximumDecodedPixels,
             FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames,
             CancellationToken = cancellationToken,
