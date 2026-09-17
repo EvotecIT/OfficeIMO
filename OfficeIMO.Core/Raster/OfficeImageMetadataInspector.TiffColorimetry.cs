@@ -7,6 +7,10 @@ internal static partial class OfficeImageMetadataInspector {
     private static bool IsCanonicalSrgbTiffColorimetry(
         byte[] data,
         bool little,
+        int tiffBaseOffset,
+        int viewEnd,
+        bool requireRgbImageTags,
+        bool hasSrgbColorSpace,
         int bitsPerSampleEntry,
         int photometricInterpretation,
         int samplesPerPixel,
@@ -14,18 +18,23 @@ internal static partial class OfficeImageMetadataInspector {
         int whitePointEntry,
         int primaryChromaticitiesEntry,
         CancellationToken cancellationToken) {
-        if (photometricInterpretation != 2 || samplesPerPixel < 3 || bitsPerSampleEntry < 0 ||
-            transferFunctionEntry < 0 || whitePointEntry < 0 || primaryChromaticitiesEntry < 0 ||
-            !HasEightBitRgbSamples(data, bitsPerSampleEntry, little, data.Length)) {
+        if (tiffBaseOffset < 0 || viewEnd < tiffBaseOffset || viewEnd > data.Length ||
+            transferFunctionEntry < 0 || whitePointEntry < 0 || primaryChromaticitiesEntry < 0) {
             return false;
         }
+        if (requireRgbImageTags) {
+            if (photometricInterpretation != 2 || samplesPerPixel < 3 || bitsPerSampleEntry < 0 ||
+                !HasEightBitRgbSamples(data, bitsPerSampleEntry, little, tiffBaseOffset, viewEnd)) {
+                return false;
+            }
+        } else if (!hasSrgbColorSpace) return false;
 
         double[] expectedWhitePoint = { 0.3127D, 0.3290D };
         double[] expectedPrimaries = { 0.6400D, 0.3300D, 0.3000D, 0.6000D, 0.1500D, 0.0600D };
         if (!HasCanonicalTiffRationals(
-                data, whitePointEntry, little, data.Length, expectedWhitePoint) ||
+                data, whitePointEntry, little, tiffBaseOffset, viewEnd, expectedWhitePoint) ||
             !HasCanonicalTiffRationals(
-                data, primaryChromaticitiesEntry, little, data.Length, expectedPrimaries)) {
+                data, primaryChromaticitiesEntry, little, tiffBaseOffset, viewEnd, expectedPrimaries)) {
             return false;
         }
 
@@ -33,7 +42,8 @@ internal static partial class OfficeImageMetadataInspector {
                 data,
                 transferFunctionEntry,
                 little,
-                data.Length,
+                tiffBaseOffset,
+                viewEnd,
                 expectedType: 3,
                 itemSize: 2,
                 out int transferOffset,
@@ -62,9 +72,10 @@ internal static partial class OfficeImageMetadataInspector {
         byte[] data,
         int entry,
         bool little,
+        int tiffBaseOffset,
         int viewEnd) {
         if (!TryGetTiffValueRange(
-                data, entry, little, viewEnd, expectedType: 3, itemSize: 2,
+                data, entry, little, tiffBaseOffset, viewEnd, expectedType: 3, itemSize: 2,
                 out int offset, out uint count) || count != 1U && count < 3U) {
             return false;
         }
@@ -79,10 +90,11 @@ internal static partial class OfficeImageMetadataInspector {
         byte[] data,
         int entry,
         bool little,
+        int tiffBaseOffset,
         int viewEnd,
         double[] expected) {
         if (!TryGetTiffValueRange(
-                data, entry, little, viewEnd, expectedType: 5, itemSize: 8,
+                data, entry, little, tiffBaseOffset, viewEnd, expectedType: 5, itemSize: 8,
                 out int offset, out uint count) || count != (uint)expected.Length) {
             return false;
         }
@@ -101,6 +113,7 @@ internal static partial class OfficeImageMetadataInspector {
         byte[] data,
         int entry,
         bool little,
+        int tiffBaseOffset,
         int viewEnd,
         int expectedType,
         int itemSize,
@@ -108,7 +121,8 @@ internal static partial class OfficeImageMetadataInspector {
         out uint count) {
         offset = 0;
         count = 0U;
-        if (viewEnd < 0 || viewEnd > data.Length || entry < 0 || entry > viewEnd - 12 ||
+        if (tiffBaseOffset < 0 || viewEnd < tiffBaseOffset || viewEnd > data.Length ||
+            entry < tiffBaseOffset || entry > viewEnd - 12 ||
             ReadUInt16(data, entry + 2, little) != expectedType || itemSize <= 0) {
             return false;
         }
@@ -120,8 +134,10 @@ internal static partial class OfficeImageMetadataInspector {
         } else {
             uint relativeOffset = ReadUInt32Unsigned(data, entry + 8, little);
             if (relativeOffset > int.MaxValue) return false;
-            offset = (int)relativeOffset;
+            long absoluteOffset = (long)tiffBaseOffset + relativeOffset;
+            if (absoluteOffset > int.MaxValue) return false;
+            offset = (int)absoluteOffset;
         }
-        return offset >= 0 && offset <= viewEnd && byteCount <= (ulong)(viewEnd - offset);
+        return offset >= tiffBaseOffset && offset <= viewEnd && byteCount <= (ulong)(viewEnd - offset);
     }
 }

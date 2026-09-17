@@ -80,7 +80,7 @@ public static partial class OfficeRasterContentSafety {
             throw new NotSupportedException("The configured OCR engine does not advertise support for normalized PNG input.");
         }
         var decodeOptions = new OfficeRasterDecodeOptions {
-            MaximumEncodedBytes = checked((int)Math.Min(options.Inspection.MaxInputBytes, 128L * 1024L * 1024L)),
+            MaximumEncodedBytes = checked((int)options.Inspection.MaxInputBytes),
             MaximumDecodedPixels = options.MaximumDecodedPixels,
             FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames,
             CancellationToken = cancellationToken,

@@ -322,6 +322,10 @@ internal static partial class OfficeImageMetadataInspector {
         if (hasTiffColorimetry && !IsCanonicalSrgbTiffColorimetry(
                 data,
                 little,
+                tiffBaseOffset: 0,
+                data.Length,
+                requireRgbImageTags: true,
+                hasSrgbColorSpace: false,
                 bitsPerSampleEntry,
                 photometricInterpretation,
                 samplesPerPixel,
@@ -420,16 +424,29 @@ internal static partial class OfficeImageMetadataInspector {
         int resolutionUnit = 2;
         double? resolutionX = null;
         double? resolutionY = null;
+        int transferFunctionEntry = -1;
+        int whitePointEntry = -1;
+        int primaryChromaticitiesEntry = -1;
+        bool hasSrgbColorSpace = false;
         for (int index = 0; index < count; index++) {
             if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             int entry = absoluteIfd + 2 + index * 12;
             if (entry > payloadEnd - 12) return;
             int tag = ReadUInt16(exif, entry, little);
-            if (IsUnappliedTiffColorTag(tag)) {
-                snapshot.HasColorRenderingMetadata = true;
+            if (tag == 301) {
+                if (transferFunctionEntry >= 0) snapshot.HasColorRenderingMetadata = true;
+                transferFunctionEntry = entry;
+            } else if (tag == 318) {
+                if (whitePointEntry >= 0) snapshot.HasColorRenderingMetadata = true;
+                whitePointEntry = entry;
+            } else if (tag == 319) {
+                if (primaryChromaticitiesEntry >= 0) snapshot.HasColorRenderingMetadata = true;
+                primaryChromaticitiesEntry = entry;
             } else if (tag == 34665) {
-                InspectExifSubIfdColorMetadata(
+                hasSrgbColorSpace |= InspectExifSubIfdColorMetadata(
                     exif, entry, little, tiffOffset, payloadEnd, snapshot, cancellationToken);
+            } else if (IsUnappliedTiffColorTag(tag)) {
+                snapshot.HasColorRenderingMetadata = true;
             } else if (tag == 282 || tag == 283) {
                 hasResolution = true;
                 if (TryReadRational(
@@ -452,9 +469,26 @@ internal static partial class OfficeImageMetadataInspector {
                 SetPhysicalResolution(snapshot, resolutionX.Value * scale, resolutionY.Value * scale, overwrite: false);
             }
         }
+        bool hasTiffColorimetry = transferFunctionEntry >= 0 || whitePointEntry >= 0 || primaryChromaticitiesEntry >= 0;
+        if (hasTiffColorimetry && !IsCanonicalSrgbTiffColorimetry(
+                exif,
+                little,
+                tiffOffset,
+                payloadEnd,
+                requireRgbImageTags: false,
+                hasSrgbColorSpace,
+                bitsPerSampleEntry: -1,
+                photometricInterpretation: -1,
+                samplesPerPixel: -1,
+                transferFunctionEntry,
+                whitePointEntry,
+                primaryChromaticitiesEntry,
+                cancellationToken)) {
+            snapshot.HasColorRenderingMetadata = true;
+        }
     }
 
-    private static void InspectExifSubIfdColorMetadata(
+    private static bool InspectExifSubIfdColorMetadata(
         byte[] data,
         int pointerEntry,
         bool little,
@@ -465,24 +499,29 @@ internal static partial class OfficeImageMetadataInspector {
         cancellationToken.ThrowIfCancellationRequested();
         if (pointerEntry < 0 || pointerEntry > viewEnd - 12 ||
             ReadUInt16(data, pointerEntry + 2, little) != 4 ||
-            ReadUInt32Unsigned(data, pointerEntry + 4, little) != 1U) return;
+            ReadUInt32Unsigned(data, pointerEntry + 4, little) != 1U) return false;
         uint relativeOffset = ReadUInt32Unsigned(data, pointerEntry + 8, little);
         long absoluteOffset = (long)tiffBaseOffset + relativeOffset;
-        if (absoluteOffset < 0 || absoluteOffset > viewEnd - 2) return;
+        if (absoluteOffset < tiffBaseOffset || absoluteOffset > viewEnd - 2) return false;
         int subIfd = (int)absoluteOffset;
         int count = ReadUInt16(data, subIfd, little);
+        bool hasSrgbColorSpace = false;
         for (int index = 0; index < count; index++) {
             if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             int entry = subIfd + 2 + index * 12;
-            if (entry < 0 || entry > viewEnd - 12) return;
+            if (entry < tiffBaseOffset || entry > viewEnd - 12) return false;
             int tag = ReadUInt16(data, entry, little);
             if (IsUnappliedTiffColorTag(tag)) {
                 snapshot.HasColorRenderingMetadata = true;
-            } else if (tag == 40961 &&
-                       (!TryReadInlineShort(data, entry, little, viewEnd, out int colorSpace) || colorSpace != 1)) {
-                snapshot.HasColorRenderingMetadata = true;
+            } else if (tag == 40961) {
+                if (TryReadInlineShort(data, entry, little, viewEnd, out int colorSpace) && colorSpace == 1) {
+                    hasSrgbColorSpace = true;
+                } else {
+                    snapshot.HasColorRenderingMetadata = true;
+                }
             }
         }
+        return hasSrgbColorSpace;
     }
 
     private static bool IsUnappliedTiffColorTag(int tag) =>

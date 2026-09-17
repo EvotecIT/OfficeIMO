@@ -5,6 +5,8 @@ namespace OfficeIMO.Workflows;
 
 /// <summary>Bounds OCR-backed concealment inspection and optional raster-region redaction.</summary>
 public sealed class OfficeRasterContentSafetyOptions {
+    internal const long MaximumEncodedRasterBytes = 128L * 1024L * 1024L;
+
     /// <summary>Shared content-safety thresholds and finding limits.</summary>
     public OfficeContentSafetyOptions Inspection { get; set; } = new();
 
@@ -74,6 +76,7 @@ public sealed class OfficeRasterContentSafetyOptions {
         if (inspection.MaxInputBytes <= 0L || inspection.MaxInputBytes > int.MaxValue) {
             throw new ArgumentOutOfRangeException(nameof(Inspection));
         }
+        inspection.MaxInputBytes = Math.Min(inspection.MaxInputBytes, MaximumEncodedRasterBytes);
         if (MaximumDecodedPixels <= 0L || MaximumDecodedPixels > 50_000_000L) {
             throw new ArgumentOutOfRangeException(nameof(MaximumDecodedPixels));
         }
@@ -103,7 +106,7 @@ public sealed class OfficeRasterContentSafetyOptions {
         if (RedactionColor.A != byte.MaxValue) {
             throw new ArgumentException("Raster redaction requires a fully opaque color.", nameof(RedactionColor));
         }
-        if (MaximumOutputBytes <= 0L || MaximumOutputBytes > 128L * 1024L * 1024L) {
+        if (MaximumOutputBytes <= 0L || MaximumOutputBytes > MaximumEncodedRasterBytes) {
             throw new ArgumentOutOfRangeException(nameof(MaximumOutputBytes));
         }
         _ = new OfficeContentSafetyBuilder("Raster Image", inspection);

@@ -93,6 +93,33 @@ public sealed partial class RasterContentSafetyTests {
     }
 
     [Fact]
+    public async Task InspectAcceptsCanonicalSrgbColorimetryEmbeddedInExif() {
+        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
+        byte[] tiff = OfficeTiffCodec.Encode(new OfficeRasterImage(8, 8, OfficeColor.White));
+        byte[] exif = AddSrgbTiffColorimetry(
+            tiff,
+            corruptTransferFunction: false,
+            includeExifColorSpace: true);
+        byte[] colorManaged = InsertPngChunkBefore(image, "IDAT", "eXIf", exif);
+
+        OfficeContentSafetyReport report = await OfficeRasterContentSafety.InspectAsync(
+            colorManaged,
+            CreateEngine(_ => new OcrResult()));
+
+        Assert.Empty(report.Findings);
+    }
+
+    [Fact]
+    public void CaptureClampsEncodedInputToDecoderLimit() {
+        var options = new OfficeRasterContentSafetyOptions();
+        options.Inspection.MaxInputBytes = 256L * 1024L * 1024L;
+
+        OfficeRasterContentSafetyOptions.Snapshot snapshot = options.Capture();
+
+        Assert.Equal(128L * 1024L * 1024L, snapshot.Inspection.MaxInputBytes);
+    }
+
+    [Fact]
     public async Task RedactionIgnoresBoundedWhitespaceDuringOverlapVerification() {
         byte[] image = CreateImage(
             24,
@@ -159,7 +186,10 @@ public sealed partial class RasterContentSafetyTests {
         Assert.All(report.Findings, finding => Assert.False(finding.IsInstructionLike));
     }
 
-    private static byte[] AddSrgbTiffColorimetry(byte[] tiff, bool corruptTransferFunction) {
+    private static byte[] AddSrgbTiffColorimetry(
+        byte[] tiff,
+        bool corruptTransferFunction,
+        bool includeExifColorSpace = false) {
         if (tiff.Length < 8 || tiff[0] != (byte)'I' || tiff[1] != (byte)'I') {
             throw new InvalidDataException("The test helper requires a little-endian classic TIFF.");
         }
@@ -170,24 +200,30 @@ public sealed partial class RasterContentSafetyTests {
             throw new InvalidDataException("The source TIFF IFD is malformed.");
         }
 
-        var entries = new List<(ushort Tag, byte[] Bytes)>(oldEntryCount + 3);
+        int addedEntryCount = includeExifColorSpace ? 4 : 3;
+        var entries = new List<(ushort Tag, byte[] Bytes)>(oldEntryCount + addedEntryCount);
         for (int index = 0; index < oldEntryCount; index++) {
             byte[] entry = tiff.AsSpan(oldEntriesOffset + index * 12, 12).ToArray();
             entries.Add((BinaryPrimitives.ReadUInt16LittleEndian(entry), entry));
         }
 
         int newIfdOffset = (tiff.Length + 1) & ~1;
-        int newIfdLength = 2 + (oldEntryCount + 3) * 12 + 4;
+        int newIfdLength = 2 + (oldEntryCount + addedEntryCount) * 12 + 4;
         int transferOffset = newIfdOffset + newIfdLength;
         int whitePointOffset = transferOffset + 256 * 2;
         int primariesOffset = whitePointOffset + 2 * 8;
-        byte[] result = new byte[primariesOffset + 6 * 8];
+        int exifSubIfdOffset = primariesOffset + 6 * 8;
+        int exifSubIfdLength = includeExifColorSpace ? 2 + 12 + 4 : 0;
+        byte[] result = new byte[exifSubIfdOffset + exifSubIfdLength];
         Buffer.BlockCopy(tiff, 0, result, 0, tiff.Length);
         BinaryPrimitives.WriteInt32LittleEndian(result.AsSpan(4, 4), newIfdOffset);
 
         entries.Add((301, CreateTiffEntry(301, type: 3, count: 256, transferOffset)));
         entries.Add((318, CreateTiffEntry(318, type: 5, count: 2, whitePointOffset)));
         entries.Add((319, CreateTiffEntry(319, type: 5, count: 6, primariesOffset)));
+        if (includeExifColorSpace) {
+            entries.Add((34665, CreateTiffEntry(34665, type: 4, count: 1, exifSubIfdOffset)));
+        }
         entries.Sort((left, right) => left.Tag.CompareTo(right.Tag));
         BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(newIfdOffset, 2), checked((ushort)entries.Count));
         for (int index = 0; index < entries.Count; index++) {
@@ -216,6 +252,11 @@ public sealed partial class RasterContentSafetyTests {
             primariesOffset,
             new[] { 640, 330, 300, 600, 150, 60 },
             new[] { 1000, 1000, 1000, 1000, 1000, 1000 });
+        if (includeExifColorSpace) {
+            BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(exifSubIfdOffset, 2), 1);
+            byte[] colorSpaceEntry = CreateTiffEntry(40961, type: 3, count: 1, valueOffset: 1);
+            colorSpaceEntry.CopyTo(result, exifSubIfdOffset + 2);
+        }
         return result;
     }
 
