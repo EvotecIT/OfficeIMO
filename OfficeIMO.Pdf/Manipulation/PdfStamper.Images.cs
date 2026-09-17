@@ -70,8 +70,7 @@ internal static partial class PdfStamper {
         PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(imageBytes);
 
         if (!PdfWriter.TryBuildImageStream(
-                prepared.Data,
-                prepared.Info,
+                prepared,
                 effectiveOptions.Width ?? Math.Max(1, prepared.Info.Width),
                 effectiveOptions.Height ?? Math.Max(1, prepared.Info.Height),
                 out var imageStream,

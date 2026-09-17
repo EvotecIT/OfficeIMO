@@ -7,6 +7,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfHeaderFooterImage {
     private readonly byte[] _data;
+    private readonly PdfWriter.PdfImageStream? _preparedStream;
 
     /// <summary>Creates a header/footer image.</summary>
     public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)
@@ -33,6 +34,7 @@ public sealed class PdfHeaderFooterImage {
         PdfDocument.ValidateImageFitDimensions(prepared.Info, fit, nameof(fit));
 
         _data = prepared.Data;
+        _preparedStream = prepared.PreparedStream;
         Width = width;
         Height = height;
         Align = align;
@@ -62,11 +64,22 @@ public sealed class PdfHeaderFooterImage {
     /// <summary>Optional alternate text for meaningful header/footer images.</summary>
     public string? AlternativeText { get; }
 
-    internal PdfHeaderFooterImage Clone() => new PdfHeaderFooterImage(_data, Width, Height, Align, Fit, AlternativeText);
+    private PdfHeaderFooterImage(PdfHeaderFooterImage source) {
+        _data = (byte[])source._data.Clone();
+        _preparedStream = source._preparedStream;
+        Width = source.Width;
+        Height = source.Height;
+        Align = source.Align;
+        Fit = source.Fit;
+        Info = source.Info;
+        AlternativeText = source.AlternativeText;
+    }
+
+    internal PdfHeaderFooterImage Clone() => new PdfHeaderFooterImage(this);
 
     internal ImageBlock ToImageBlock() => new ImageBlock(_data, Width, Height, Info, new PdfImageStyle {
         Align = Align,
         Fit = Fit,
         AlternativeText = AlternativeText
-    }, useDataSnapshot: true);
+    }, useDataSnapshot: true, preparedStream: _preparedStream);
 }

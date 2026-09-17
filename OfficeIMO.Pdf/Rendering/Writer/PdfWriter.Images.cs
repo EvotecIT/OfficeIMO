@@ -884,6 +884,51 @@ internal static partial class PdfWriter {
         TryBuildImageStream(data, info, fallbackWidth, fallbackHeight, CancellationToken.None, out image, out unsupportedReason);
 
     internal static bool TryBuildImageStream(
+        PdfDocument.PreparedImage prepared,
+        double fallbackWidth,
+        double fallbackHeight,
+        out PdfImageStream image,
+        out string? unsupportedReason) =>
+        TryBuildImageStream(prepared, fallbackWidth, fallbackHeight, CancellationToken.None, out image, out unsupportedReason);
+
+    internal static bool TryBuildImageStream(
+        PdfDocument.PreparedImage prepared,
+        double fallbackWidth,
+        double fallbackHeight,
+        CancellationToken cancellationToken,
+        out PdfImageStream image,
+        out string? unsupportedReason) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (prepared.PreparedStream != null) {
+            image = prepared.PreparedStream.CloneForWrite();
+            unsupportedReason = null;
+            return true;
+        }
+
+        return TryBuildImageStream(
+            prepared.Data,
+            prepared.Info,
+            fallbackWidth,
+            fallbackHeight,
+            cancellationToken,
+            out image,
+            out unsupportedReason);
+    }
+
+    internal static PdfImageStream CreatePreparedJpegStream(
+        byte[] data,
+        OfficeImageInfo info,
+        int componentCount) {
+        string colorSpace = componentCount == 1 ? "/DeviceGray" : "/DeviceRGB";
+        return new PdfImageStream {
+            Data = data,
+            PixelWidth = info.Width,
+            PixelHeight = info.Height,
+            DictionarySuffix = " /ColorSpace " + colorSpace + " /BitsPerComponent 8 /Filter /DCTDecode"
+        };
+    }
+
+    internal static bool TryBuildImageStream(
         byte[] data,
         OfficeImageInfo info,
         double fallbackWidth,

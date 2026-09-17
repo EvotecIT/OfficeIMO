@@ -7,6 +7,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfTableCellImage {
     private readonly byte[] _data;
+    private readonly PdfWriter.PdfImageStream? _preparedStream;
 
     /// <summary>Creates a table-cell image from raster bytes supported by OfficeIMO.Drawing.</summary>
     public PdfTableCellImage(byte[] data, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
@@ -33,6 +34,7 @@ public sealed class PdfTableCellImage {
         }
 
         _data = prepared.Data;
+        _preparedStream = prepared.PreparedStream;
         Width = width;
         Height = height;
         Info = prepared.Info;
@@ -62,12 +64,32 @@ public sealed class PdfTableCellImage {
     /// <summary>Optional PDF annotation contents metadata for the image link.</summary>
     public string? LinkContents { get; }
 
-    internal PdfTableCellImage Clone() => new PdfTableCellImage(_data, Width, Height, Style, LinkUri, LinkContents);
+    private PdfTableCellImage(PdfTableCellImage source) {
+        _data = (byte[])source._data.Clone();
+        _preparedStream = source._preparedStream;
+        Width = source.Width;
+        Height = source.Height;
+        Info = source.Info;
+        Style = source.Style?.Clone();
+        LinkUri = source.LinkUri;
+        LinkContents = source.LinkContents;
+    }
+
+    internal PdfTableCellImage Clone() => new PdfTableCellImage(this);
 
     internal ImageBlock ToImageBlock(PdfAlign fallbackAlign) {
         PdfImageStyle style = Style?.Clone() ?? new PdfImageStyle {
             Align = fallbackAlign
         };
-        return new ImageBlock(_data, Width, Height, Info, style, LinkUri, LinkContents, useDataSnapshot: true);
+        return new ImageBlock(
+            _data,
+            Width,
+            Height,
+            Info,
+            style,
+            LinkUri,
+            LinkContents,
+            useDataSnapshot: true,
+            preparedStream: _preparedStream);
     }
 }

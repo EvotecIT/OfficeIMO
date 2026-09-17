@@ -7,6 +7,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfImageWatermark {
     private readonly OfficeImageInfo _info;
+    private readonly PdfWriter.PdfImageStream? _preparedStream;
     private byte[] _data;
     private double _width;
     private double _height;
@@ -19,6 +20,7 @@ public sealed class PdfImageWatermark {
         PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(data);
         _info = prepared.Info;
         _data = prepared.Data;
+        _preparedStream = prepared.PreparedStream;
         Width = width;
         Height = height;
     }
@@ -67,10 +69,18 @@ public sealed class PdfImageWatermark {
 
     internal byte[] DataSnapshot => (byte[])_data.Clone();
     internal OfficeImageInfo ImageInfo => _info;
+    internal PdfWriter.PdfImageStream? PreparedStream => _preparedStream;
+
+    private PdfImageWatermark(PdfImageWatermark source) {
+        _info = source._info;
+        _data = (byte[])source._data.Clone();
+        _preparedStream = source._preparedStream;
+        _width = source._width;
+        _height = source._height;
+        _opacity = source._opacity;
+        _rotationAngle = source._rotationAngle;
+    }
 
     /// <summary>Creates a deep copy of this watermark.</summary>
-    public PdfImageWatermark Clone() => new PdfImageWatermark(_data, Width, Height) {
-        Opacity = Opacity,
-        RotationAngle = RotationAngle
-    };
+    public PdfImageWatermark Clone() => new(this);
 }

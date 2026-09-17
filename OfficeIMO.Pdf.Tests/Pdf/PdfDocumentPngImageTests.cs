@@ -14,6 +14,26 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentPngImageTests {
     [Fact]
+    public void InlineImage_WithRgbaPng_ReusesPreparedStreamDuringSerialization() {
+        int alphaSplitPasses = 0;
+        byte[] source = PdfPngTestImages.CreateRgbaPng(18, 52, 86, 128);
+        PdfWriter.PngRowLoopObserverForTesting = (kind, index) => {
+            if (kind == PngRowLoopKind.AlphaSplit && index == 0) alphaSplitPasses++;
+        };
+
+        try {
+            byte[] pdf = PdfDocument.Create()
+                .Paragraph(paragraph => paragraph.InlineImage(source, 24, 24, "Status"))
+                .ToBytes();
+
+            Assert.Equal(1, alphaSplitPasses);
+            Assert.Equal(2, GetImageStreams(pdf).Count);
+        } finally {
+            PdfWriter.PngRowLoopObserverForTesting = null;
+        }
+    }
+
+    [Fact]
     public async Task Image_WithSharedRgbaSource_PreparesOnceAcrossConcurrentDocuments() {
         int alphaSplitPasses = 0;
         byte[] source = PdfPngTestImages.CreateRgbaPng(18, 52, 86, 128);

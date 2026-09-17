@@ -366,7 +366,16 @@ public sealed partial class PdfPageCanvas {
             PdfDocument.ValidateImageFitDimensions(imageInfo, imageStyle.Fit, nameof(style));
         }
 
-        _items.Add(new PdfCanvasImageItem(new ImageBlock(imageResource.Bytes, width, height, imageInfo, imageStyle, linkUri, linkContents, useDataSnapshot: true), x, y, rotationAngle, horizontalFlip, verticalFlip, foreground, foregroundZOrder));
+        _items.Add(new PdfCanvasImageItem(new ImageBlock(
+            imageResource.Bytes,
+            width,
+            height,
+            imageInfo,
+            imageStyle,
+            linkUri,
+            linkContents,
+            useDataSnapshot: true,
+            preparedStream: imageResource.PreparedStream), x, y, rotationAngle, horizontalFlip, verticalFlip, foreground, foregroundZOrder));
         return this;
     }
 
@@ -603,19 +612,22 @@ public sealed partial class PdfPageCanvas {
 }
 
 internal sealed class PdfCanvasImageResource {
-    private PdfCanvasImageResource(byte[] bytes, OfficeImageInfo info) {
-        Bytes = bytes;
-        Info = info;
+    private PdfCanvasImageResource(PdfDocument.PreparedImage prepared) {
+        Bytes = prepared.Data;
+        Info = prepared.Info;
+        PreparedStream = prepared.PreparedStream;
     }
 
     internal byte[] Bytes { get; }
     internal OfficeImageInfo Info { get; }
+    internal PdfWriter.PdfImageStream? PreparedStream { get; }
 
     internal static PdfCanvasImageResource Create(byte[] bytes) {
         Guard.NotNullOrEmpty(bytes, nameof(bytes));
-        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(bytes);
-        return new PdfCanvasImageResource(prepared.Data, prepared.Info);
+        return Create(PdfDocument.PrepareImageBytes(bytes));
     }
+
+    internal static PdfCanvasImageResource Create(PdfDocument.PreparedImage prepared) => new(prepared);
 }
 
 internal sealed class PdfCanvasBlock : IPdfBlock {

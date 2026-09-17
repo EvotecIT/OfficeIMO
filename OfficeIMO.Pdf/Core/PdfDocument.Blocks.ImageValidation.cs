@@ -190,12 +190,31 @@ public sealed partial class PdfDocument {
                     !OfficeImageReader.TryIdentify(normalizedJpegPng, null, cancellationToken, out OfficeImageInfo normalizedJpegInfo)) {
                     throw new NotSupportedException(SupportedImageMessage + " Four-component JPEG data could not be normalized safely for PDF embedding.");
                 }
-                return new PreparedImage(normalizedJpegPng, normalizedJpegInfo, sourceInfo.Format, wasTranscoded: true);
+                if (!PdfWriter.TryGetPngImageData(
+                        normalizedJpegPng,
+                        cancellationToken,
+                        out PdfWriter.PdfImageStream normalizedJpegStream,
+                        out string? normalizedJpegReason)) {
+                    string suffix = string.IsNullOrWhiteSpace(normalizedJpegReason) ? string.Empty : " " + normalizedJpegReason;
+                    throw new NotSupportedException(SupportedImageMessage + " Four-component JPEG data could not be normalized safely for PDF embedding." + suffix);
+                }
+                return new PreparedImage(
+                    normalizedJpegPng,
+                    normalizedJpegInfo,
+                    sourceInfo.Format,
+                    wasTranscoded: true,
+                    normalizedJpegStream);
             }
             if (componentCount != 0 && componentCount != 1 && componentCount != 3) {
                 throw new NotSupportedException(SupportedImageMessage + " JPEG component count is not supported for PDF embedding.");
             }
-            return new PreparedImage(CloneWithCancellation(data, cancellationToken), sourceInfo, sourceInfo.Format, wasTranscoded: false);
+            byte[] jpegSnapshot = CloneWithCancellation(data, cancellationToken);
+            return new PreparedImage(
+                jpegSnapshot,
+                sourceInfo,
+                sourceInfo.Format,
+                wasTranscoded: false,
+                PdfWriter.CreatePreparedJpegStream(jpegSnapshot, sourceInfo, hasComponentCount ? componentCount : 0));
         }
 
         if (sourceInfo.Format == OfficeImageFormat.Png) {
