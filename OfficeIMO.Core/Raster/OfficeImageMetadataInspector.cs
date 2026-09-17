@@ -18,7 +18,7 @@ internal sealed class OfficeImageMetadataSnapshot {
     internal double? PhysicalDpiY { get; set; }
 }
 
-internal static class OfficeImageMetadataInspector {
+internal static partial class OfficeImageMetadataInspector {
     private static readonly byte[] ExifPrefix = { (byte)'E', (byte)'x', (byte)'i', (byte)'f', 0, 0 };
     private static readonly byte[] XmpPrefix = System.Text.Encoding.ASCII.GetBytes("http://ns.adobe.com/xap/1.0/\0");
     private static readonly byte[] ExtendedXmpPrefix = System.Text.Encoding.ASCII.GetBytes("http://ns.adobe.com/xmp/extension/\0");
@@ -259,6 +259,12 @@ internal static class OfficeImageMetadataInspector {
         int resolutionUnit = 2;
         double? resolutionX = null;
         double? resolutionY = null;
+        int bitsPerSampleEntry = -1;
+        int photometricInterpretation = -1;
+        int samplesPerPixel = -1;
+        int transferFunctionEntry = -1;
+        int whitePointEntry = -1;
+        int primaryChromaticitiesEntry = -1;
         for (int index = 0; index < count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             int entry = ifd + 2 + index * 12;
@@ -273,7 +279,25 @@ internal static class OfficeImageMetadataInspector {
                 snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
                 snapshot.HasColorRenderingMetadata = true;
             } else if (tag == 270) snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
-            else if (IsUnappliedTiffColorTag(tag)) snapshot.HasColorRenderingMetadata = true;
+            else if (tag == 258) bitsPerSampleEntry = entry;
+            else if (tag == 262) {
+                if (!TryReadInlineShort(data, entry, little, data.Length, out photometricInterpretation)) {
+                    snapshot.HasColorRenderingMetadata = true;
+                }
+            } else if (tag == 277) {
+                if (!TryReadInlineShort(data, entry, little, data.Length, out samplesPerPixel)) {
+                    snapshot.HasColorRenderingMetadata = true;
+                }
+            } else if (tag == 301) {
+                if (transferFunctionEntry >= 0) snapshot.HasColorRenderingMetadata = true;
+                transferFunctionEntry = entry;
+            } else if (tag == 318) {
+                if (whitePointEntry >= 0) snapshot.HasColorRenderingMetadata = true;
+                whitePointEntry = entry;
+            } else if (tag == 319) {
+                if (primaryChromaticitiesEntry >= 0) snapshot.HasColorRenderingMetadata = true;
+                primaryChromaticitiesEntry = entry;
+            } else if (IsUnappliedTiffColorTag(tag)) snapshot.HasColorRenderingMetadata = true;
             else if (tag == 282 || tag == 283) {
                 hasResolution = true;
                 if (TryReadRational(
@@ -293,6 +317,19 @@ internal static class OfficeImageMetadataInspector {
                 double scale = resolutionUnit == 3 ? 2.54D : 1D;
                 SetPhysicalResolution(snapshot, resolutionX.Value * scale, resolutionY.Value * scale, overwrite: true);
             }
+        }
+        bool hasTiffColorimetry = transferFunctionEntry >= 0 || whitePointEntry >= 0 || primaryChromaticitiesEntry >= 0;
+        if (hasTiffColorimetry && !IsCanonicalSrgbTiffColorimetry(
+                data,
+                little,
+                bitsPerSampleEntry,
+                photometricInterpretation,
+                samplesPerPixel,
+                transferFunctionEntry,
+                whitePointEntry,
+                primaryChromaticitiesEntry,
+                cancellationToken)) {
+            snapshot.HasColorRenderingMetadata = true;
         }
     }
 

@@ -45,7 +45,7 @@ public static partial class OfficeRasterContentSafety {
             throw new InvalidOperationException("Raster cleanup accepts only bounded region-redaction findings.");
         }
         if (selected.Count == 0) {
-            return new OfficeContentCleanupResult(
+            return OfficeContentCleanupResult.FromOwnedOutput(
                 input,
                 beforeState.Report,
                 beforeState.Report,
@@ -108,7 +108,7 @@ public static partial class OfficeRasterContentSafety {
         byte[] output = OfficeRasterImageEncoder.Encode(
             redacted,
             OfficeImageExportFormat.Png,
-            options: null,
+            CreateMetadataFreePngEncodingOptions(),
             snapshot.MaximumOutputBytes,
             cancellationToken,
             checked(input.LongLength + 24L + callerRetainedBytes + beforeState.Image.PixelBuffer.LongLength + 24L));
@@ -154,7 +154,7 @@ public static partial class OfficeRasterContentSafety {
                 item.Location,
                 OfficeContentCleanupCapability.RedactRegion))
             .ToArray();
-        return new OfficeContentCleanupResult(output, beforeState.Report, afterState.Report, changes);
+        return OfficeContentCleanupResult.FromOwnedOutput(output, beforeState.Report, afterState.Report, changes);
     }
 
     private static Dictionary<string, IReadOnlyList<RasterTarget>> IndexFinerTargetsByLine(

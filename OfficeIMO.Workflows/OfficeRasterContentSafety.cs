@@ -109,7 +109,7 @@ public static partial class OfficeRasterContentSafety {
         byte[] normalized = OfficeRasterImageEncoder.Encode(
             image,
             OfficeImageExportFormat.Png,
-            options: null,
+            CreateMetadataFreePngEncodingOptions(),
             options.MaximumOutputBytes,
             cancellationToken,
             checked(input.LongLength + 24L + additionalRetainedManagedBytes));
@@ -133,6 +133,10 @@ public static partial class OfficeRasterContentSafety {
         cancellationToken.ThrowIfCancellationRequested();
         return Analyze(image, result, execution.Id, options, budget, cancellationToken);
     }
+
+    private static OfficeRasterEncodingOptions CreateMetadataFreePngEncodingOptions() => new() {
+        WriteResolutionMetadata = false
+    };
 
     private sealed class AnalysisState {
         internal AnalysisState(
