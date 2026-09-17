@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Invoicing;
 using OfficeIMO.Pdf;
 
@@ -19,7 +20,19 @@ internal static class OfficeImoPdfInvoiceGenerator {
             page.Content(content => content.Column(column => {
                 column.Item().Row(row => row
                     .Style(new PdfRowStyle { Gap = 20D, SpacingAfter = 14D })
-                    .PercentColumn(44D, left => left.Image(scenario.LogoBytes, 180D, 42D, "Evotec"))
+                    .PercentColumn(44D, left => left.Image(
+                        scenario.LogoBytes,
+                        180D,
+                        42D,
+                        align: null,
+                        clipPath: null,
+                        fit: OfficeImageFit.Contain,
+                        spacingBefore: null,
+                        spacingAfter: null,
+                        style: null,
+                        linkUri: null,
+                        linkContents: null,
+                        alternativeText: "Evotec"))
                     .PercentColumn(56D, right => {
                         right.Paragraph(p => p.FontSize(18D).Bold("Invoice", Navy), PdfAlign.Right,
                             style: Tight(2D));

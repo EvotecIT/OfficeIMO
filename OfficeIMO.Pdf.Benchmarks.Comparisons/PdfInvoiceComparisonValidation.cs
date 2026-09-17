@@ -19,6 +19,22 @@ internal static class PdfInvoiceComparisonValidation {
             if (!normalized.Contains(Normalize(required), StringComparison.Ordinal))
                 throw new InvalidDataException($"{engine} omitted required invoice content: {required}");
         }
+        ValidateLogoAspectRatio(document.GetPage(1), engine);
+    }
+
+    private static void ValidateLogoAspectRatio(UglyToad.PdfPig.Content.Page page, string engine) {
+        const double expectedLogoAspectRatio = 5D;
+        UglyToad.PdfPig.Content.IPdfImage? logo = page.GetImages()
+            .Where(static image => !image.IsImageMask && image.WidthInSamples > 0 && image.HeightInSamples > 0)
+            .OrderBy(image => Math.Abs(image.WidthInSamples / (double)image.HeightInSamples - expectedLogoAspectRatio))
+            .FirstOrDefault();
+        if (logo is null || Math.Abs(logo.WidthInSamples / (double)logo.HeightInSamples - expectedLogoAspectRatio) > 0.01D)
+            throw new InvalidDataException($"{engine} omitted the expected 5:1 comparison logo.");
+
+        double renderedAspectRatio = logo.BoundingBox.Width / logo.BoundingBox.Height;
+        if (Math.Abs(renderedAspectRatio - expectedLogoAspectRatio) > 0.01D)
+            throw new InvalidDataException(
+                $"{engine} distorted the comparison logo to {renderedAspectRatio:0.###}:1; expected 5:1.");
     }
 
     private static string Normalize(string value) {
