@@ -391,28 +391,37 @@ public static partial class OfficeRasterContentSafety {
         double y = source.Y;
         double regionWidth = source.Width;
         double regionHeight = source.Height;
+        const double coordinateTolerance = 0.000001D;
         if (span.CoordinateUnit == OcrCoordinateUnit.Normalized) {
             if (x < 0D || y < 0D || regionWidth > 1D || regionHeight > 1D ||
-                x + regionWidth > 1D + 0.000001D || y + regionHeight > 1D + 0.000001D) {
+                x + regionWidth > 1D + coordinateTolerance || y + regionHeight > 1D + coordinateTolerance) {
                 throw new InvalidDataException("Normalized OCR geometry must remain within zero through one.");
             }
+            bool clampRight = x + regionWidth > 1D;
+            bool clampBottom = y + regionHeight > 1D;
             x *= width;
-            regionWidth *= width;
             y *= height;
+            regionWidth *= width;
             regionHeight *= height;
+            if (clampRight) regionWidth = width - x;
+            if (clampBottom) regionHeight = height - y;
         } else if (span.CoordinateUnit != OcrCoordinateUnit.Pixels) {
             throw new InvalidDataException("OCR text geometry must use pixels or normalized image coordinates.");
         }
 
-        if (x < 0D || y < 0D || x + regionWidth > width + 0.000001D ||
-            y + regionHeight > height + 0.000001D) {
+        double rightEdge = x + regionWidth;
+        double bottomEdge = y + regionHeight;
+        if (x < 0D || y < 0D || rightEdge > width + coordinateTolerance ||
+            bottomEdge > height + coordinateTolerance) {
             throw new InvalidDataException("OCR text geometry falls outside the decoded image.");
         }
+        rightEdge = Math.Min(width, rightEdge);
+        bottomEdge = Math.Min(height, bottomEdge);
 
         int left = checked((int)Math.Floor(x));
         int top = checked((int)Math.Floor(y));
-        int right = checked((int)Math.Ceiling(x + regionWidth));
-        int bottom = checked((int)Math.Ceiling(y + regionHeight));
+        int right = checked((int)Math.Ceiling(rightEdge));
+        int bottom = checked((int)Math.Ceiling(bottomEdge));
         if (left < 0 || top < 0 || right > width || bottom > height || right <= left || bottom <= top) {
             throw new InvalidDataException("OCR text geometry falls outside the decoded image.");
         }

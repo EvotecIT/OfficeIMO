@@ -224,8 +224,11 @@ internal static partial class OfficeImageMetadataInspector {
             else if (type == "tEXt" || type == "zTXt" || type == "iTXt") snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
             offset = checked(offset + 12 + length);
         }
-        if (hasGamma && (!hasStandardRgb || !hasStandardGamma) ||
-            hasChromaticities && (!hasStandardRgb || !hasStandardChromaticities)) {
+        bool hasCompleteStandardColorimetry =
+            hasGamma && hasStandardGamma && hasChromaticities && hasStandardChromaticities;
+        if (hasStandardRgb
+                ? (hasGamma && !hasStandardGamma) || (hasChromaticities && !hasStandardChromaticities)
+                : (hasGamma || hasChromaticities) && !hasCompleteStandardColorimetry) {
             snapshot.HasColorRenderingMetadata = true;
         }
     }

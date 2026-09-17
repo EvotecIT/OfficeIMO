@@ -27,11 +27,11 @@ public static class OfficeContentSafetyInputGuard {
         options.Validate();
         string fullPath = Path.GetFullPath(filePath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The input file was not found.", fullPath);
-        long length = new FileInfo(fullPath).Length;
-        if (length > options.MaxInputBytes) throw new InvalidDataException("The encoded asset exceeds the configured input-byte limit.");
         byte[] bytes;
         using (FileStream stream = File.OpenRead(fullPath)) {
-            bytes = ReadBounded(stream, options.MaxInputBytes, cancellationToken);
+            long length = stream.Length;
+            if (length > options.MaxInputBytes) throw new InvalidDataException("The encoded asset exceeds the configured input-byte limit.");
+            bytes = ReadExactFile(stream, length, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
         ValidateBytes(bytes, options, inspectZipPackage);
@@ -112,6 +112,22 @@ public static class OfficeContentSafetyInputGuard {
             total += read;
         }
         return output.ToArray();
+    }
+
+    private static byte[] ReadExactFile(FileStream stream, long expectedLength, CancellationToken cancellationToken) {
+        int length = checked((int)expectedLength);
+        var bytes = new byte[length];
+        int total = 0;
+        while (total < bytes.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int read = stream.Read(bytes, total, Math.Min(81920, bytes.Length - total));
+            cancellationToken.ThrowIfCancellationRequested();
+            if (read <= 0) throw new InvalidDataException("The input file changed while it was being read.");
+            total += read;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        if (stream.ReadByte() >= 0) throw new InvalidDataException("The input file changed while it was being read.");
+        return bytes;
     }
 
     private static bool LooksLikeZip(byte[] input) => input.Length >= 4 && input[0] == 0x50 && input[1] == 0x4B &&

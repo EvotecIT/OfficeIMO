@@ -119,6 +119,49 @@ public sealed partial class RasterContentSafetyTests {
         Assert.Equal(128L * 1024L * 1024L, snapshot.Inspection.MaxInputBytes);
     }
 
+    [Theory]
+    [InlineData(OcrCoordinateUnit.Normalized, 0.5D, 0.2D, 0.5000001D, 0.5D, 2)]
+    [InlineData(OcrCoordinateUnit.Normalized, 0.5D, 0.5D, 0.5D, 0.5000001D, 5)]
+    [InlineData(OcrCoordinateUnit.Pixels, 10D, 2D, 10.0000001D, 5D, 2)]
+    [InlineData(OcrCoordinateUnit.Pixels, 10D, 5D, 10D, 5.0000001D, 5)]
+    public async Task InspectClampsToleratedEdgesBeforePixelRounding(
+        OcrCoordinateUnit coordinateUnit,
+        double x,
+        double y,
+        double width,
+        double height,
+        int pixelY) {
+        byte[] image = CreateImage(
+            20,
+            10,
+            OfficeColor.White,
+            new PixelBox(10, pixelY, 10, 5),
+            OfficeColor.Black);
+        IOcrEngine engine = CreateEngine(_ => new OcrResult {
+            Text = "edge",
+            Spans = new[] {
+                new OcrTextSpan {
+                    Sequence = 0,
+                    Level = OcrTextSpanLevel.Word,
+                    Text = "edge",
+                    Confidence = 0.99D,
+                    Region = new OcrRegion {
+                        X = x,
+                        Y = y,
+                        Width = width,
+                        Height = height
+                    },
+                    CoordinateUnit = coordinateUnit,
+                    PageNumber = 1
+                }
+            }
+        });
+
+        OfficeContentSafetyReport report = await OfficeRasterContentSafety.InspectAsync(image, engine);
+
+        Assert.Empty(report.Findings);
+    }
+
     [Fact]
     public async Task RedactionIgnoresBoundedWhitespaceDuringOverlapVerification() {
         byte[] image = CreateImage(

@@ -412,8 +412,10 @@ public sealed partial class RasterContentSafetyTests {
             OfficeRasterContentSafety.InspectAsync(colorManaged, CreateEngine(_ => new OcrResult())));
     }
 
-    [Fact]
-    public async Task InspectAcceptsCanonicalSrgbGammaAndChromaticities() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InspectAcceptsCanonicalSrgbGammaAndChromaticities(bool includeSrgbChunk) {
         byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
         byte[] gamma = new byte[4];
         BinaryPrimitives.WriteUInt32BigEndian(gamma, 45455U);
@@ -425,14 +427,13 @@ public sealed partial class RasterContentSafetyTests {
                 coordinates[index]);
         }
         byte[] standardRgb = InsertPngChunkBefore(
-            InsertPngChunkBefore(
-                InsertPngChunkBefore(image, "IDAT", "gAMA", gamma),
-                "IDAT",
-                "cHRM",
-                chromaticities),
+            InsertPngChunkBefore(image, "IDAT", "gAMA", gamma),
             "IDAT",
-            "sRGB",
-            new byte[] { 0 });
+            "cHRM",
+            chromaticities);
+        if (includeSrgbChunk) {
+            standardRgb = InsertPngChunkBefore(standardRgb, "IDAT", "sRGB", new byte[] { 0 });
+        }
 
         OfficeContentSafetyReport report = await OfficeRasterContentSafety.InspectAsync(
             standardRgb,
