@@ -7,6 +7,7 @@ namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
         private const double DefaultListLeftIndentPoints = 36D;
         private const double DefaultListHangingIndentPoints = 18D;
+        private const int MaximumSynthesizedListMarkerSpaces = 8_192;
 
         private static WordImageListMarker? CreateListMarker(
             WordDocument document,
@@ -120,7 +121,7 @@ namespace OfficeIMO.Word {
 
         private static OfficeRichTextRun CreateListMarkerSpacingRichTextRun(WordImageListMarker marker, double width, double spaceWidth) {
             int spaces = Math.Max(1, (int)Math.Ceiling(width / spaceWidth));
-            spaces = Math.Min(8_192, spaces);
+            spaces = Math.Min(MaximumSynthesizedListMarkerSpaces, spaces);
             double fontSize = Math.Max(1D, marker.Font.Size * width / (spaces * spaceWidth));
             var font = new OfficeFontInfo(marker.Font.FamilyName, fontSize, marker.Font.Style);
             return new OfficeRichTextRun(
@@ -147,6 +148,7 @@ namespace OfficeIMO.Word {
                 return string.Empty;
             }
             int spaces = Math.Max(1, (int)Math.Round(desiredGap / spaceWidth, MidpointRounding.AwayFromZero));
+            spaces = Math.Min(MaximumSynthesizedListMarkerSpaces, spaces);
             return new string(' ', spaces);
         }
 

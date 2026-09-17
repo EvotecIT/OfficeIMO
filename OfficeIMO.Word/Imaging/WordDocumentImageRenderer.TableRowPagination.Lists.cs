@@ -41,6 +41,9 @@ namespace OfficeIMO.Word {
                 double markerOffset = listMarker is { Marker.Length: > 0 } visibleMarker
                     ? Math.Max(0D, textOffset - Math.Max(0D, visibleMarker.HangingIndentPoints))
                     : textOffset;
+                if (listMarker is { Marker.Length: > 0, Alignment: not OfficeTextAlignment.Left } alignedMarker) {
+                    markerOffset += ResolveListMarkerAlignmentSpacing(alignedMarker, contentWidth).LeadingWidth;
+                }
                 OfficeTextParagraphIndent paragraphIndent = listMarker is { Marker.Length: > 0 }
                     ? OfficeTextParagraphIndent.Hanging(Math.Max(0D, textOffset - markerOffset))
                     : OfficeTextParagraphIndent.Empty;
@@ -53,7 +56,7 @@ namespace OfficeIMO.Word {
                     int? pictureBulletId = null;
                     bool includesMarker = markerPending && listMarker is { Marker.Length: > 0 };
                     if (includesMarker && listMarker is { Marker.Length: > 0 } visible) {
-                        richRuns.Insert(0, CreateListMarkerRichTextRun(visible, contentWidth));
+                        richRuns.InsertRange(0, CreateAlignedListMarkerRichTextRuns(visible, contentWidth));
                         pictureBulletId = visible.PictureBulletId;
                         markerPending = false;
                     }

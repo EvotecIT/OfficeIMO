@@ -1622,6 +1622,29 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void FallbackRunExpansionAppliesHorizontalOffsetOnlyOnce() {
+        PdfTextFallbackPlan plan = new PdfEmbeddedFontFallbackSet(
+            new[] {
+                new PdfEmbeddedFontFallbackCandidate("Latin A", ManagedTextShapingTestAssets.CreateFont('A')),
+                new PdfEmbeddedFontFallbackCandidate("Latin B", ManagedTextShapingTestAssets.CreateFont('B'))
+            })
+            .PlanText("AB");
+        var template = new PdfTextRun("template").WithHorizontalOffset(24D);
+
+        IReadOnlyList<PdfTextRun> standardRuns = plan.ToTextRuns(
+            new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman }, template);
+        IReadOnlyList<PdfTextRun> namedRuns = plan.ToNamedTextRuns(
+            new[] { "Latin A", "Latin B" }, template);
+
+        Assert.Equal(2, standardRuns.Count);
+        Assert.Equal(24D, standardRuns[0].HorizontalOffset);
+        Assert.Equal(0D, standardRuns[1].HorizontalOffset);
+        Assert.Equal(2, namedRuns.Count);
+        Assert.Equal(24D, namedRuns[0].HorizontalOffset);
+        Assert.Equal(0D, namedRuns[1].HorizontalOffset);
+    }
+
+    [Fact]
     public void ReplaceClearsPreviouslyRegisteredPdfFontState() {
         var options = new PdfOptions()
             .UseFontFamily(new PdfEmbeddedFontFamily(

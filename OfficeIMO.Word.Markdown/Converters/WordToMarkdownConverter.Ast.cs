@@ -350,7 +350,7 @@ namespace OfficeIMO.Word.Markdown {
             bool trimBoundaryWhitespace,
             IReadOnlyDictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker>? listMarkers = null) {
             var listStack = new List<PendingListFrame>();
-            int? markerlessAncestorLevel = null;
+            var markerlessAncestorLevels = new List<int>();
 
             for (int i = 0; i < elements.Count; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -359,7 +359,7 @@ namespace OfficeIMO.Word.Markdown {
                 if (element is WordParagraph paragraph) {
                     if (paragraph.IsTextBox && paragraph.TextBox != null) {
                         listStack.Clear();
-                        markerlessAncestorLevel = null;
+                        markerlessAncestorLevels.Clear();
                         AppendBlocksFromElements(
                             paragraph.TextBox.Elements,
                             addRootBlock,
@@ -393,20 +393,19 @@ namespace OfficeIMO.Word.Markdown {
                         ? listMarkers.TryGetValue(paragraph, out var marker) ? marker.Info : null
                         : WordDocumentTraversal.GetListInfo(paragraph);
                     if (listInfo != null) {
-                        if (!listInfo.Value.MarkerVisible) {
-                            markerlessAncestorLevel = Math.Min(markerlessAncestorLevel ?? listInfo.Value.Level, listInfo.Value.Level);
-                        }
+                        markerlessAncestorLevels.RemoveAll(level => level >= listInfo.Value.Level);
                         int renderLevel = listInfo.Value.Level;
-                        if (listInfo.Value.MarkerVisible && markerlessAncestorLevel.HasValue) {
-                            if (renderLevel > markerlessAncestorLevel.Value) renderLevel = markerlessAncestorLevel.Value;
-                            else markerlessAncestorLevel = null;
+                        if (!listInfo.Value.MarkerVisible) {
+                            markerlessAncestorLevels.Add(listInfo.Value.Level);
+                        } else if (markerlessAncestorLevels.Count > 0) {
+                            renderLevel = Math.Max(0, renderLevel - markerlessAncestorLevels.Count);
                         }
                         AddListParagraph(addRootBlock, listStack, paragraph, listInfo.Value, options, listIndices, hasCheckbox, checkboxChecked, trimBoundaryWhitespace, renderLevel);
                         continue;
                     }
 
                     listStack.Clear();
-                    markerlessAncestorLevel = null;
+                    markerlessAncestorLevels.Clear();
                     var paragraphBlocks = BuildParagraphBlocks(paragraph, options, hasCheckbox, checkboxChecked, allowQuoteHeuristic, trimBoundaryWhitespace);
                     foreach (var block in paragraphBlocks) {
                         addRootBlock(block);
@@ -419,7 +418,7 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 listStack.Clear();
-                markerlessAncestorLevel = null;
+                markerlessAncestorLevels.Clear();
 
                 if (element is WordTableOfContent tableOfContent) {
                     addRootBlock(BuildTableOfContentsMarkerBlock(tableOfContent));

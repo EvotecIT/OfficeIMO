@@ -101,6 +101,7 @@ public sealed class PdfTextFallbackPlan {
             AddLayoutControlRuns(runs, OriginalText.Substring(cursor), styleTemplate);
         }
 
+        KeepHorizontalOffsetOnFirstGeneratedRun(runs);
         return runs.AsReadOnly();
     }
 
@@ -127,7 +128,24 @@ public sealed class PdfTextFallbackPlan {
             AddLayoutControlRuns(runs, OriginalText.Substring(cursor), styleTemplate);
         }
 
+        KeepHorizontalOffsetOnFirstGeneratedRun(runs);
         return runs.AsReadOnly();
+    }
+
+    private static void KeepHorizontalOffsetOnFirstGeneratedRun(List<PdfTextRun> runs) {
+        bool offsetApplied = false;
+        for (int i = 0; i < runs.Count; i++) {
+            if (runs[i].HorizontalOffset <= 0D) {
+                continue;
+            }
+
+            if (!offsetApplied) {
+                offsetApplied = true;
+                continue;
+            }
+
+            runs[i] = runs[i].WithHorizontalOffset(0D);
+        }
     }
 
     private static PdfTextRun CreateStyledRun(string text, PdfStandardFont font, PdfTextRun? styleTemplate) {

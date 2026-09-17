@@ -139,7 +139,7 @@ namespace OfficeIMO.Word {
                 }
 
                 WordImageListMarker? currentMarker = lineIndex == 0 ? listMarker : null;
-                WordImageTextLayout textLayout = ResolveTextLayout(context, currentMarker, paragraph);
+                WordImageTextLayout textLayout = ResolveTextLayout(context, listMarker, paragraph);
                 double sliceHeight = Math.Max(lineHeight, lineCount * lineHeight);
                 if (context.IsTargetPage) {
                     ReportPictureBulletFallback(currentMarker, diagnostics);
@@ -241,7 +241,7 @@ namespace OfficeIMO.Word {
                 }
 
                 WordImageListMarker? currentMarker = lineIndex == 0 ? listMarker : null;
-                WordImageTextLayout textLayout = ResolveTextLayout(context, currentMarker, paragraph);
+                WordImageTextLayout textLayout = ResolveTextLayout(context, listMarker, paragraph);
                 if (context.IsTargetPage) {
                     ReportPictureBulletFallback(currentMarker, diagnostics);
                     AddRichTextRunSlice(paragraph, lines, lineIndex, lineCount, lineHeight, sliceHeight, textLayout, currentMarker, colorScheme, context);
@@ -342,7 +342,7 @@ namespace OfficeIMO.Word {
                 lineHeight,
                 wrapText: true,
                 padding: textLayout.Padding,
-                paragraphIndent: textLayout.ParagraphIndent);
+                paragraphIndent: ResolvePaginationSliceIndent(textLayout.ParagraphIndent, lineIndex));
         }
 
         private static List<string> CopyLineRange(IReadOnlyList<string> lines, int lineIndex, int lineCount) {
@@ -392,7 +392,18 @@ namespace OfficeIMO.Word {
                 lineHeight,
                 wrapText: true,
                 padding: textLayout.Padding,
-                paragraphIndent: textLayout.ParagraphIndent);
+                paragraphIndent: ResolvePaginationSliceIndent(textLayout.ParagraphIndent, lineIndex));
+        }
+
+        private static OfficeTextParagraphIndent ResolvePaginationSliceIndent(OfficeTextParagraphIndent paragraphIndent, int lineIndex) {
+            if (lineIndex == 0 || paragraphIndent.IsEmpty) {
+                return paragraphIndent;
+            }
+
+            double continuationOffset = paragraphIndent.ContinuationLineOffset;
+            return continuationOffset > 0D
+                ? new OfficeTextParagraphIndent(continuationOffset, continuationOffset)
+                : OfficeTextParagraphIndent.Empty;
         }
 
         private static int CountRichTextLinesForPage(
