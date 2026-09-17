@@ -330,7 +330,8 @@ internal static class MimeWriter {
                     document.Body.HtmlContentId, document.Body.HtmlContentLocation,
                     document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlCharset : null,
                     document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlTransferEncoding : null,
-                    document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlMimeHeaders : null);
+                    document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlMimeHeaders : null,
+                    document.Body.HtmlEncodingOverride);
             }
             if (document.Body.Rtf != null) {
                 WriteLine(output, string.Concat("--", boundary));
@@ -350,7 +351,8 @@ internal static class MimeWriter {
                 document.Body.HtmlContentId, document.Body.HtmlContentLocation,
                 document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlCharset : null,
                 document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlTransferEncoding : null,
-                document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlMimeHeaders : null);
+                document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlMimeHeaders : null,
+                document.Body.HtmlEncodingOverride);
         } else if (document.Body.Rtf != null) {
             WriteRtfPart(output, document.Body.Rtf, state, "body/rtf");
         } else {
@@ -417,13 +419,14 @@ internal static class MimeWriter {
 
     private static void WriteTextPart(Stream output, string mediaType, string text, int base64LineLength,
         string? contentId = null, string? contentLocation = null, string? charset = null,
-        string? transferEncoding = null, ICollection<EmailHeader>? preservedHeaders = null) {
+        string? transferEncoding = null, ICollection<EmailHeader>? preservedHeaders = null,
+        Encoding? encodingOverride = null) {
         if (preservedHeaders != null && preservedHeaders.Count > 0) {
             WritePreservedPartHeaders(output, preservedHeaders, omitPayloadDependentHeaders: true);
             WriteLine(output, string.Empty);
             byte[] encoded;
             try {
-                encoded = MimeTextCodec.EncodeText(text, charset);
+                encoded = encodingOverride?.GetBytes(text) ?? MimeTextCodec.EncodeText(text, charset);
             } catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException ||
                                                 exception is EncoderFallbackException) {
                 throw new InvalidDataException("The preserved MIME charset cannot represent the updated text body.", exception);

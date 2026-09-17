@@ -32,6 +32,9 @@ public sealed class EmailBody {
 
     internal IList<EmailHeader> HtmlMimeHeaders => _htmlMimeHeaders;
     internal string? HtmlTransferEncoding { get; set; }
+    internal byte[]? HtmlDecodedBytes { get; set; }
+    internal Encoding? HtmlEncodingOverride { get; set; }
+    internal bool HtmlWebDecodingWasAmbiguous { get; set; }
     internal bool HtmlMimeDecodingWasAmbiguous { get; set; }
     internal bool PreserveHtmlMimeHeadersOnWrite { get; set; }
 }

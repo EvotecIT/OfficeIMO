@@ -129,6 +129,23 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_RootAndStylesheetUseTheSameWebCharsetAliases() {
+        byte[] input = BuildMhtmlWithIso88591WebAlias();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Web alias concealed", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult result = MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+
+        Assert.Contains((byte)0x80, result.Output);
+        using var output = new MemoryStream(result.Output, writable: false);
+        MhtmlDocument reopened = MhtmlDocument.Load(output);
+        Assert.Contains("Visible alias", reopened.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Web alias concealed", reopened.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PackageStylesheetIntegrityMetadataFailsClosed() {
         byte[] mhtml = new MhtmlDocument(
             "<html><head><link rel='stylesheet' href='styles.css' integrity='sha256-invalid'></head>" +
@@ -160,6 +177,22 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.DoesNotContain(EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, nonCssStylesheetType: true)).Findings, finding =>
             finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void PackageDocumentsWithContentSecurityPolicyFailClosed() {
+        byte[] mhtml = new MhtmlDocument(
+            "<html><head><meta http-equiv='Content-Security-Policy' content=\"style-src 'none'\">" +
+            "<link rel='stylesheet' href='styles.css'></head><body><p class='concealed'>CSP text.</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "text/css",
+                    contentLocation: "styles.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(mhtml));
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, contentSecurityPolicy: true)));
     }
 
     [Fact]
@@ -492,6 +525,21 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Epub_TopLevelXhtmlCommentsAreInspectedAndPreserved() {
+        byte[] input = BuildEpub(signed: false, topLevelXhtmlComment: true);
+        OfficeContentSafetyFinding finding = Assert.Single(EpubDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Top-level XHTML instruction", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult result = EpubDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+        string xhtml = Encoding.UTF8.GetString(ReadEntry(result.Output, "EPUB/chapter.xhtml"));
+
+        Assert.DoesNotContain("Top-level XHTML instruction", xhtml, StringComparison.Ordinal);
+        Assert.Contains("Retained top-level comment", xhtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Epub_InlineImportsParticipateInTheConcealmentCascade() {
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, inlineStylesheetImport: true));
@@ -709,6 +757,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool uppercaseStyleAttribute = false,
         bool stylesheetIntegrity = false,
         bool nonCssStylesheetType = false,
+        bool contentSecurityPolicy = false,
+        bool topLevelXhtmlComment = false,
         int unusedAssetBytes = 4) {
         string rootfiles =
             "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
@@ -781,10 +831,15 @@ public sealed class HtmlPackageContentSafetyContractTests {
         if (uppercaseStyleAttribute) {
             chapterBody = "<p STYLE='display:none'>Noncanonical attribute concealed text.</p>";
         }
+        string csp = contentSecurityPolicy
+            ? "<meta http-equiv='Content-Security-Policy' content=\"style-src 'none'\"/>"
+            : string.Empty;
         entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
+                (topLevelXhtmlComment ? "<!--Top-level XHTML instruction.-->" : string.Empty) +
                 (html5Doctype ? "<!DOCTYPE html>" : string.Empty) +
-                "<html xmlns='http://www.w3.org/1999/xhtml'><head>" + chapterStyles + "</head>" +
-                "<body>" + chapterBody + "</body></html>")));
+                "<html xmlns='http://www.w3.org/1999/xhtml'><head>" + csp + chapterStyles + "</head>" +
+                "<body>" + chapterBody + "</body></html>" +
+                (topLevelXhtmlComment ? "<!--Retained top-level comment.-->" : string.Empty))));
         if (duplicateChapter) {
             entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
                 "<html xmlns='http://www.w3.org/1999/xhtml'><body><p>Duplicate</p></body></html>")));
@@ -996,6 +1051,11 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Message-ID: <archive-123@example.test>\r\n" +
         "X-Archive-Token: retain-me\r\n" +
         "MIME-Version: 1.0\r\n" +
+        "Content-Length: 2\r\n" +
+        "Content-MD5: stale-outer\r\n" +
+        "Content-Digest: sha-256=:stale-outer:\r\n" +
+        "Repr-Digest: sha-256=:stale-outer:\r\n" +
+        "Digest: sha-256=stale-outer\r\n" +
         "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
         "--outer\r\n" +
         "Content-Type: text/html; charset=windows-1252; profile=archive\r\n" +
@@ -1104,6 +1164,40 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Buffer.BlockCopy(prefix, 0, result, 0, prefix.Length);
         result[prefix.Length] = 0xe9;
         Buffer.BlockCopy(suffix, 0, result, prefix.Length + 1, suffix.Length);
+        return result;
+    }
+
+    private static byte[] BuildMhtmlWithIso88591WebAlias() {
+        byte[] prefix = Encoding.ASCII.GetBytes(
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+            "--outer\r\n" +
+            "Content-Type: text/html; charset=iso-8859-1\r\n" +
+            "Content-Transfer-Encoding: 8bit\r\n" +
+            "Content-Location: https://example.test/index.html\r\n\r\n" +
+            "<html><head><link rel='stylesheet' href='styles.css'></head><body><p class='x");
+        byte[] middle = Encoding.ASCII.GetBytes(
+            "'>Web alias concealed.</p><p data-label='x");
+        byte[] suffix = Encoding.ASCII.GetBytes(
+            "'>Visible alias.</p></body></html>\r\n" +
+            "--outer\r\n" +
+            "Content-Type: text/css; charset=iso-8859-1\r\n" +
+            "Content-Transfer-Encoding: 8bit\r\n" +
+            "Content-Location: styles.css\r\n\r\n" +
+            ".x");
+        byte[] ending = Encoding.ASCII.GetBytes(" { display: none; }\r\n--outer--\r\n");
+        var result = new byte[prefix.Length + middle.Length + suffix.Length + ending.Length + 3];
+        int offset = 0;
+        Buffer.BlockCopy(prefix, 0, result, offset, prefix.Length);
+        offset += prefix.Length;
+        result[offset++] = 0x80;
+        Buffer.BlockCopy(middle, 0, result, offset, middle.Length);
+        offset += middle.Length;
+        result[offset++] = 0x80;
+        Buffer.BlockCopy(suffix, 0, result, offset, suffix.Length);
+        offset += suffix.Length;
+        result[offset++] = 0x80;
+        Buffer.BlockCopy(ending, 0, result, offset, ending.Length);
         return result;
     }
 

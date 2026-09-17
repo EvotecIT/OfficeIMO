@@ -97,7 +97,7 @@ OfficeContentCleanupResult cleaned = EpubDocument.RemoveSelectedContent(
     new OfficeContentCleanupSelection(new[] { finding.Id }));
 ```
 
-Cleanup replaces only changed content documents, preserves unrelated ZIP entries and the required leading uncompressed `mimetype` entry, then reopens and reinspects the output. Missing, malformed, duplicate, encrypted, ambiguous, integrity-qualified, external, or over-budget content and stylesheet dependencies fail closed. An empty selection preserves the original bytes.
+Cleanup replaces only changed content documents, preserves unrelated ZIP entries and the required leading uncompressed `mimetype` entry, then reopens and reinspects the output. XHTML inspection retains document-level comments as evidence, and rewritten HTML content preserves its declared character encoding. Missing, malformed, duplicate, encrypted, ambiguous, integrity-qualified, external, or over-budget content and stylesheet dependencies fail closed, as do documents with Content Security Policy declarations that the bounded cascade does not model. An empty selection preserves the original bytes.
 
 Package signatures block mutation by default. A caller that accepts invalidation must request removal explicitly:
 

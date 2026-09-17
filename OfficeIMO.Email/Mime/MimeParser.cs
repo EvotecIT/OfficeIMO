@@ -189,6 +189,7 @@ internal static class MimeParser {
                     document.Body.HtmlContentLocation = contentLocation;
                     document.Body.IsHtmlRelatedRoot = isRelatedSibling && isPreferredRelatedBody;
                     document.Body.HtmlTransferEncoding = transferEncoding;
+                    document.Body.HtmlDecodedBytes = decoded;
                     document.Body.HtmlMimeDecodingWasAmbiguous = state.Diagnostics
                         .Skip(payloadDiagnosticStart)
                         .Any(IsAmbiguousMimeDecodingDiagnostic);

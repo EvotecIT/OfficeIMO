@@ -187,6 +187,11 @@ public static partial class HtmlContentSafety {
         limits.MaxTotalCssBytes = Math.Min(limits.MaxTotalCssBytes ?? long.MaxValue, renderOptions.MaxTotalResourceBytes);
 
         IHtmlDocument document = ParsePackageDocument(part, renderOptions.BaseUri, limits, safetyOptions, cancellationToken);
+        if (document.QuerySelectorAll("meta[http-equiv]").Any(meta =>
+                string.Equals(meta.GetAttribute("http-equiv")?.Trim(), "Content-Security-Policy", StringComparison.OrdinalIgnoreCase))) {
+            throw new InvalidDataException(
+                "Package content-safety inspection does not apply stylesheets when the document declares a Content Security Policy.");
+        }
         foreach (IElement style in document.QuerySelectorAll("style")) {
             cssBudget.ReserveOrThrow(style.TextContent ?? string.Empty);
         }
@@ -317,11 +322,14 @@ public static partial class HtmlContentSafety {
             AngleSharpDomServices.Instance,
             AngleSharpHtmlParser.Instance.Id);
         int nodeCount = 0;
-        if (documentType != null) {
-            owned.AppendChild(owned.CreateDocumentType("html"));
-            nodeCount++;
+        foreach (XNode node in xml.Nodes()) {
+            if (node is XDocumentType) {
+                owned.AppendChild(owned.CreateDocumentType("html"));
+                nodeCount++;
+                continue;
+            }
+            AppendXmlNode(node, owned, owned, limits, ref nodeCount, depth: 1, cancellationToken);
         }
-        AppendXmlNode(xml.Root, owned, owned, limits, ref nodeCount, depth: 1, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return NativeDomBridge.GetNativeDocument(owned, cancellationToken);
     }

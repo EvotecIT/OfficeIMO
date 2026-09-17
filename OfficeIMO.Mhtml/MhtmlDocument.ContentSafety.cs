@@ -59,6 +59,7 @@ public sealed partial class MhtmlDocument {
                 "MHTML cleanup cannot mutate a signed or encrypted MIME wrapper. Verify and unwrap or decrypt it before cleanup.");
         }
         ApplyTransportSignatureMutationPolicy(document._mimeDocument, options.SignatureMutationPolicy);
+        RemoveOuterPayloadDependentHeaders(document._mimeDocument);
 
         document._mimeDocument.Body.Html = cleaned.Parts["root"];
         document._mimeDocument.Body.PreserveHtmlMimeHeadersOnWrite = true;
@@ -84,6 +85,19 @@ public sealed partial class MhtmlDocument {
         if (policy != OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures) return;
         for (int index = document.Headers.Count - 1; index >= 0; index--) {
             if (IsTransportSignatureChainHeader(document.Headers[index].Name)) document.Headers.RemoveAt(index);
+        }
+    }
+
+    private static void RemoveOuterPayloadDependentHeaders(EmailDocument document) {
+        for (int index = document.Headers.Count - 1; index >= 0; index--) {
+            string name = document.Headers[index].Name;
+            if (string.Equals(name, "Content-Length", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "Content-MD5", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "Content-Digest", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "Repr-Digest", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "Digest", StringComparison.OrdinalIgnoreCase)) {
+                document.Headers.RemoveAt(index);
+            }
         }
     }
 
@@ -124,7 +138,8 @@ public sealed partial class MhtmlDocument {
         using var stream = new MemoryStream(archiveBytes, writable: false);
         MhtmlDocument document = Load(stream, readerOptions, cancellationToken: cancellationToken);
         if (!MimeTextCodec.IsSupportedTransferEncoding(document._mimeDocument.Body.HtmlTransferEncoding)
-            || document._mimeDocument.Body.HtmlMimeDecodingWasAmbiguous) {
+            || document._mimeDocument.Body.HtmlMimeDecodingWasAmbiguous
+            || document._mimeDocument.Body.HtmlWebDecodingWasAmbiguous) {
             throw new InvalidDataException(
                 "MHTML content-safety inspection requires the selected HTML root to use an unambiguous supported MIME encoding.");
         }

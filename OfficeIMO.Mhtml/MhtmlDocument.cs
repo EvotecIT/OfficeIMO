@@ -1,5 +1,6 @@
 using OfficeIMO.Email;
 using OfficeIMO.Html;
+using System.Text;
 
 namespace OfficeIMO.Mhtml;
 
@@ -34,6 +35,8 @@ public sealed partial class MhtmlDocument {
         _mimeDocument = readResult.Document;
         string? html = _mimeDocument.Body.Html;
         if (html == null) throw new InvalidDataException("The MHTML archive does not contain an HTML root part.");
+        html = DecodeHtmlRootWithWebCharsetAliases(_mimeDocument.Body, html);
+        _mimeDocument.Body.Html = html;
         if (!IsMultipartRelated(_mimeDocument.Headers)) {
             throw new InvalidDataException("The artifact is an RFC message but its root is not multipart/related MHTML.");
         }
@@ -56,6 +59,25 @@ public sealed partial class MhtmlDocument {
             .Concat(BuildResourceDiagnostics(_resources, BaseUri, RootContentId, ContentLocation))
             .ToArray();
         HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri, _resources));
+    }
+
+    private static string DecodeHtmlRootWithWebCharsetAliases(EmailBody body, string fallback) {
+        if (body.HtmlDecodedBytes == null || string.IsNullOrWhiteSpace(body.HtmlCharset)) return fallback;
+        try {
+            using var source = new MemoryStream(body.HtmlDecodedBytes, writable: false);
+            Encoding encoding = HtmlTextEncodingResolver.Default.ResolveHtmlTransportEncoding(source, body.HtmlCharset!);
+            var strict = (Encoding)encoding.Clone();
+            strict.DecoderFallback = DecoderFallback.ExceptionFallback;
+            strict.EncoderFallback = EncoderFallback.ExceptionFallback;
+            using var reader = new StreamReader(source, strict, detectEncodingFromByteOrderMarks: true);
+            string html = reader.ReadToEnd();
+            body.HtmlEncodingOverride = strict;
+            return html;
+        } catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException
+                                            || exception is DecoderFallbackException) {
+            body.HtmlWebDecodingWasAmbiguous = true;
+            return fallback;
+        }
     }
 
     /// <summary>Parsed HTML root document.</summary>
