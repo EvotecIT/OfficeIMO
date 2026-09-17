@@ -1122,10 +1122,10 @@
       "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-09-17T19:27:37.0603878+00:00",
+      "generatedUtc": "2026-09-17T20:54:33.5070851+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-structured-generation-net10.0-affinity-0xffff-windows-full.json",
-      "resultSha256": "62919fb489c109c6eb64b47cef057406685b1c8dfb7bebd532f94cb71f59e055",
+      "resultSha256": "e800bc678d6bc4a9f07664c8f4bc5bcb3ca34d179d4fa21a38f32b3ebc1379f2",
       "artifactDestinationSha256": "b2718d517beb7312e10a57aed2e45fd61b423d5d328b85658ff54e86ccf300cf",
       "artifactFileName": "pdf-structured-generation-net10.0-affinity-0xffff-windows-full.json",
       "artifactRelativePath": "pdf-structured-generation-net10.0-affinity-0xffff-windows-full.json",
@@ -1160,8 +1160,8 @@
         "benchmark.workload.affinityMask": "0xFFFF",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "pdf-structured-generation-net10.0-affinity-0xffff",
-        "benchmark.workload.sourceCommit": "e91a2321ebde334ff3540cc72daf7b9fefeac91c",
-        "gitSha": "e91a2321ebde334ff3540cc72daf7b9fefeac91c",
+        "benchmark.workload.sourceCommit": "fddf8f63ce7d04097e04fb17d92a00a5eaa69639",
+        "gitSha": "fddf8f63ce7d04097e04fb17d92a00a5eaa69639",
         "runMode": "full"
       },
       "comparable": true,
@@ -1171,10 +1171,10 @@
       "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff0000",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-09-17T19:31:33.2303679+00:00",
+      "generatedUtc": "2026-09-17T20:45:10.6247845+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-structured-generation-net10.0-affinity-0xffff0000-windows-full.json",
-      "resultSha256": "5723b8cd7a127564e3a61ad88cde3b6b33372c9ce0a03af40719ad77e9f45ddf",
+      "resultSha256": "7e9d4855b1a44bf25bfd4e14ea2c51b01014d69d6b233c0480b84dce71ac5365",
       "artifactDestinationSha256": "b53ab093006feee8fc9b319ddb7a114f6cc0273190b5a332e376ce9cea62653a",
       "artifactFileName": "pdf-structured-generation-net10.0-affinity-0xffff0000-windows-full.json",
       "artifactRelativePath": "pdf-structured-generation-net10.0-affinity-0xffff0000-windows-full.json",
@@ -1209,8 +1209,8 @@
         "benchmark.workload.affinityMask": "0xFFFF0000",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "pdf-structured-generation-net10.0-affinity-0xffff0000",
-        "benchmark.workload.sourceCommit": "e91a2321ebde334ff3540cc72daf7b9fefeac91c",
-        "gitSha": "e91a2321ebde334ff3540cc72daf7b9fefeac91c",
+        "benchmark.workload.sourceCommit": "fddf8f63ce7d04097e04fb17d92a00a5eaa69639",
+        "gitSha": "fddf8f63ce7d04097e04fb17d92a00a5eaa69639",
         "runMode": "full"
       },
       "comparable": true,
@@ -1813,7 +1813,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-09-17T19:27:37.0603878+00:00"
+      "latestUtc": "2026-09-17T20:54:33.5070851+00:00"
     },
     {
       "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff",
@@ -1839,7 +1839,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-09-17T19:31:33.2303679+00:00"
+      "latestUtc": "2026-09-17T20:45:10.6247845+00:00"
     },
     {
       "comparisonId": "pdf-structured-generation-net10.0-affinity-0xffff0000",
