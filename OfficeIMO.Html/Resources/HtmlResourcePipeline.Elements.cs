@@ -291,6 +291,7 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static void AddLink(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        if (!IsHtmlNamespaceElement(element)) return;
         string rel = element.GetAttribute("rel") ?? string.Empty;
         HashSet<string> relTokens = GetRelTokens(rel);
         bool isPreload = relTokens.Contains("preload");
@@ -331,6 +332,9 @@ public static partial class HtmlResourcePipeline {
         string essence = (parameterSeparator < 0 ? type : type.Substring(0, parameterSeparator)).Trim();
         return essence.Equals("text/css", StringComparison.OrdinalIgnoreCase);
     }
+
+    internal static bool IsHtmlNamespaceElement(IElement element) =>
+        string.Equals(element.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal);
 
     private static HashSet<string> GetRelTokens(string rel) {
         var tokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

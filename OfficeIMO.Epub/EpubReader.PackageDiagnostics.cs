@@ -227,17 +227,23 @@ internal static partial class EpubReader {
             .ToArray();
 
         public void Info(string code, string message, string? path = null) =>
-            Add(code, EpubDiagnosticSeverity.Info, message, path);
+            Add(code, EpubDiagnosticSeverity.Info, message, path, null);
 
-        public void Warning(string code, string message, string? path = null) =>
-            Add(code, EpubDiagnosticSeverity.Warning, message, path);
+        public void Warning(string code, string message, string? path = null, string? mediaType = null) =>
+            Add(code, EpubDiagnosticSeverity.Warning, message, path, mediaType);
 
-        private void Add(string code, EpubDiagnosticSeverity severity, string message, string? path) {
+        private void Add(
+            string code,
+            EpubDiagnosticSeverity severity,
+            string message,
+            string? path,
+            string? mediaType) {
             _items.Add(new EpubDiagnostic {
                 Code = code,
                 Severity = severity,
                 Message = message,
-                Path = path
+                Path = path,
+                MediaType = mediaType
             });
         }
     }

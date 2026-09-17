@@ -292,6 +292,18 @@ public sealed partial class EpubDocument {
         || resource.Path.EndsWith(".xhtml", StringComparison.OrdinalIgnoreCase);
 
     private static void ThrowForIncompleteContentSafetyRead(EpubDocument document) {
+        EpubDiagnostic? missingHtml = document.Diagnostics.FirstOrDefault(item =>
+            item.Code.Equals("epub.resource.missing", StringComparison.Ordinal)
+            && (string.Equals(item.MediaType, "application/xhtml+xml", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(item.MediaType, "text/html", StringComparison.OrdinalIgnoreCase)
+                || (item.Path?.EndsWith(".xhtml", StringComparison.OrdinalIgnoreCase) ?? false)
+                || (item.Path?.EndsWith(".html", StringComparison.OrdinalIgnoreCase) ?? false)
+                || (item.Path?.EndsWith(".htm", StringComparison.OrdinalIgnoreCase) ?? false)));
+        if (missingHtml != null) {
+            throw new InvalidDataException(
+                "EPUB content-safety inspection requires every local manifest HTML resource. " + missingHtml.Message);
+        }
+
         string[] blockingPrefixes = {
             "epub.archive.unsafe-path",
             "epub.archive.duplicate-path",

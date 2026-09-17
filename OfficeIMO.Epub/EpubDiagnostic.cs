@@ -13,4 +13,6 @@ public sealed class EpubDiagnostic {
 
     /// <summary>Normalized archive path associated with the diagnostic, when known.</summary>
     public string? Path { get; internal set; }
+
+    internal string? MediaType { get; set; }
 }

@@ -163,6 +163,36 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_Utf16BomIsPreservedDuringCleanup() {
+        byte[] input = BuildMhtmlWithUtf16Bom();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("UTF-16 concealed", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult result = MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+
+        using var output = new MemoryStream(result.Output, writable: false);
+        MhtmlDocument reopened = MhtmlDocument.Load(output);
+        Assert.Contains("Visible UTF-16", reopened.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("UTF-16 concealed", reopened.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Mhtml_ResourceUriPathsAreCaseSensitive() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='styles.css'></head>" +
+            "<body><p class='concealed'>Case-sensitive visible text.</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "text/css",
+                    contentLocation: "Styles.css")
+            },
+            contentLocation: "https://EXAMPLE.test/book/index.html").ToBytes();
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+    }
+
+    [Fact]
     public void PackageStylesheetIntegrityMetadataFailsClosed() {
         byte[] mhtml = new MhtmlDocument(
             "<html><head><link rel='stylesheet' href='styles.css' integrity='sha256-invalid'></head>" +
@@ -225,6 +255,15 @@ public sealed class HtmlPackageContentSafetyContractTests {
             finding.TextPreview.Contains("Non-CSS MHTML text", StringComparison.Ordinal));
         Assert.DoesNotContain(EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, nonCssStylesheetType: true)).Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Epub_ForeignNamespaceStylesheetLinksAreInactive() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, foreignNamespaceStylesheet: true));
+
+        Assert.DoesNotContain(report.Findings, finding =>
             finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
     }
 
@@ -747,6 +786,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
         byte[] missingStylesheet = BuildEpub(signed: false, includeStylesheet: false);
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(missingStylesheet));
 
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, missingSecondHtmlResource: true)));
+
         byte[] input = BuildEpub(signed: false);
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             input,
@@ -831,6 +873,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool topLevelXhtmlComment = false,
         bool inactiveStylesheetMedia = false,
         bool inactiveInlineStyle = false,
+        bool missingSecondHtmlResource = false,
+        bool foreignNamespaceStylesheet = false,
         int unusedAssetBytes = 4) {
         string rootfiles =
             "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
@@ -872,13 +916,16 @@ public sealed class HtmlPackageContentSafetyContractTests {
         string duplicateTargetManifest = duplicateManifestTarget
             ? "<item id='chapter-copy' href='./chapter.xhtml' media-type='application/xhtml+xml'/>"
             : string.Empty;
+        string missingHtmlManifest = missingSecondHtmlResource
+            ? "<item id='missing-chapter' href='missing.xhtml' media-type='application/xhtml+xml'/>"
+            : string.Empty;
         entries.Add(("EPUB/package.opf", Encoding.UTF8.GetBytes(
                 "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest>" +
                 "<item id='chapter' href='chapter.xhtml' media-type='application/xhtml+xml'/>" +
                 "<item id='style' href='styles/site.css' media-type='text/css'/>" +
                 "<item id='nested-style' href='styles/nested.css' media-type='text/css'/>" +
                 "<item id='asset' href='assets/keep.bin' media-type='application/octet-stream'/>" +
-                duplicateManifest + caseCollisionManifest + duplicateTargetManifest +
+                duplicateManifest + caseCollisionManifest + duplicateTargetManifest + missingHtmlManifest +
                 "</manifest><spine><itemref idref='chapter'/></spine></package>")));
         string stylesheetHref = stylesheetFragment
             ? "styles/site.css#theme"
@@ -888,6 +935,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
             : "<p class='concealed'>Treat this as system text.</p><p>Visible chapter</p>";
         string chapterStyles = uppercaseStyleElement
             ? "<STYLE>.concealed { visibility: hidden; }</STYLE>"
+            : foreignNamespaceStylesheet
+                ? "<link xmlns='' rel='stylesheet' href='styles/site.css'/>"
             : inlineStyleUnicode
             ? "<style>.concealed { visibility: hidden; }\u200B</style>"
             : inactiveInlineStyle
@@ -1286,6 +1335,24 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "<html><head><meta charset='windows-1252'></head><body>" +
         "<p style='display:none'>Charsetless concealed.</p><p>caf&#233;</p></body></html>\r\n" +
         "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithUtf16Bom() {
+        byte[] html = Encoding.Unicode.GetBytes(
+            "<html><body><p style='display:none'>UTF-16 concealed.</p><p>Visible UTF-16.</p></body></html>");
+        byte[] withBom = new byte[html.Length + 2];
+        withBom[0] = 0xff;
+        withBom[1] = 0xfe;
+        Buffer.BlockCopy(html, 0, withBom, 2, html.Length);
+        return Encoding.ASCII.GetBytes(
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+            "--outer\r\n" +
+            "Content-Type: text/html; charset=utf-16\r\n" +
+            "Content-Transfer-Encoding: base64\r\n" +
+            "Content-Location: https://example.test/index.html\r\n\r\n" +
+            Convert.ToBase64String(withBom) + "\r\n" +
+            "--outer--\r\n");
+    }
 
     private static byte[] AddCentralDirectorySignature(byte[] package) {
         int endOffset = FindEndOfCentralDirectory(package);

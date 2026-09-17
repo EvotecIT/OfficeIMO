@@ -34,6 +34,7 @@ public sealed class EmailBody {
     internal string? HtmlTransferEncoding { get; set; }
     internal byte[]? HtmlDecodedBytes { get; set; }
     internal Encoding? HtmlEncodingOverride { get; set; }
+    internal byte[]? HtmlEncodingPreamble { get; set; }
     internal bool HtmlWebDecodingWasAmbiguous { get; set; }
     internal bool HtmlMimeDecodingWasAmbiguous { get; set; }
     internal bool HtmlMimeTransferDecodingWasAmbiguous { get; set; }

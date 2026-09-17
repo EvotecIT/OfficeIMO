@@ -74,12 +74,32 @@ public sealed partial class MhtmlDocument {
             using var reader = new StreamReader(source, strict, detectEncodingFromByteOrderMarks: true);
             string html = reader.ReadToEnd();
             body.HtmlEncodingOverride = strict;
+            body.HtmlEncodingPreamble = GetEncodingPreamble(body.HtmlDecodedBytes);
             return html;
         } catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException
                                             || exception is DecoderFallbackException) {
             body.HtmlWebDecodingWasAmbiguous = true;
             return fallback;
         }
+    }
+
+    private static byte[] GetEncodingPreamble(byte[] bytes) {
+        if (bytes.Length >= 4 && bytes[0] == 0x00 && bytes[1] == 0x00 && bytes[2] == 0xfe && bytes[3] == 0xff) {
+            return new byte[] { 0x00, 0x00, 0xfe, 0xff };
+        }
+        if (bytes.Length >= 4 && bytes[0] == 0xff && bytes[1] == 0xfe && bytes[2] == 0x00 && bytes[3] == 0x00) {
+            return new byte[] { 0xff, 0xfe, 0x00, 0x00 };
+        }
+        if (bytes.Length >= 3 && bytes[0] == 0xef && bytes[1] == 0xbb && bytes[2] == 0xbf) {
+            return new byte[] { 0xef, 0xbb, 0xbf };
+        }
+        if (bytes.Length >= 2 && bytes[0] == 0xfe && bytes[1] == 0xff) {
+            return new byte[] { 0xfe, 0xff };
+        }
+        if (bytes.Length >= 2 && bytes[0] == 0xff && bytes[1] == 0xfe) {
+            return new byte[] { 0xff, 0xfe };
+        }
+        return Array.Empty<byte>();
     }
 
     /// <summary>Parsed HTML root document.</summary>
@@ -271,7 +291,6 @@ public sealed partial class MhtmlDocument {
         string retrievalSource = fragmentIndex >= 0 ? source.Substring(0, fragmentIndex) : source;
         var retrievalUriBuilder = new UriBuilder(request.Uri) { Fragment = string.Empty };
         Uri retrievalUri = retrievalUriBuilder.Uri;
-        string absolute = retrievalUri.AbsoluteUri;
         if (request.Uri.Scheme.Equals("cid", StringComparison.OrdinalIgnoreCase)) {
             string contentId = Uri.UnescapeDataString(retrievalSource.Substring("cid:".Length))
                 .Trim().Trim('<', '>');
@@ -282,13 +301,13 @@ public sealed partial class MhtmlDocument {
         foreach (MhtmlResource resource in _resources) {
             if (!string.IsNullOrWhiteSpace(resource.ContentLocation)) {
                 string storedLocation = RemoveUriFragment(resource.ContentLocation!);
-                if (string.Equals(storedLocation, retrievalSource, StringComparison.OrdinalIgnoreCase)) return resource;
+                if (string.Equals(storedLocation, retrievalSource, StringComparison.Ordinal)) return resource;
                 if (Uri.TryCreate(BaseUri, storedLocation, out Uri? resolved) &&
-                    string.Equals(RemoveUriFragment(resolved).AbsoluteUri, absolute, StringComparison.OrdinalIgnoreCase)) return resource;
+                    ResourceUriEquals(RemoveUriFragment(resolved), retrievalUri)) return resource;
             }
             if (!string.IsNullOrWhiteSpace(resource.FileName) &&
                 string.Equals(RemoveUriFragment(resource.FileName!), retrievalSource,
-                    StringComparison.OrdinalIgnoreCase)) return resource;
+                    StringComparison.Ordinal)) return resource;
         }
         return null;
     }
@@ -319,7 +338,7 @@ public sealed partial class MhtmlDocument {
         HtmlConversionDocumentOptions options = source?.Clone() ?? new HtmlConversionDocumentOptions();
         options.BaseUri ??= baseUri;
         HtmlUrlPolicy resourcePolicy = options.ResourceUrlPolicy.Clone();
-        var archiveUris = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var archiveUris = new HashSet<string>(ResourceIdentityComparer.Instance);
         foreach (MhtmlResource resource in resources) {
             if (!string.IsNullOrWhiteSpace(resource.ContentId)) {
                 AddArchiveUri(archiveUris, "cid:" + resource.ContentId, baseUri);
@@ -367,8 +386,8 @@ public sealed partial class MhtmlDocument {
         string? rootContentLocation) {
         var diagnostics = new List<EmailDiagnostic>();
         var contentIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var contentLocations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var resolverIdentities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var contentLocations = new HashSet<string>(ResourceIdentityComparer.Instance);
+        var resolverIdentities = new Dictionary<string, int>(ResourceIdentityComparer.Instance);
         if (!string.IsNullOrWhiteSpace(rootContentId)) contentIds.Add(rootContentId!);
         if (!string.IsNullOrWhiteSpace(rootContentLocation)
             && Uri.TryCreate(baseUri, RemoveUriFragment(rootContentLocation!), out _)) {
@@ -432,6 +451,51 @@ public sealed partial class MhtmlDocument {
             return;
         }
         identities.Add(identity, resourceIndex);
+    }
+
+    private static bool ResourceUriEquals(Uri left, Uri right) {
+        if (!left.Scheme.Equals(right.Scheme, StringComparison.OrdinalIgnoreCase)) return false;
+        if (left.Scheme.Equals("cid", StringComparison.OrdinalIgnoreCase)) {
+            return left.AbsoluteUri.Equals(right.AbsoluteUri, StringComparison.OrdinalIgnoreCase);
+        }
+        return left.IdnHost.Equals(right.IdnHost, StringComparison.OrdinalIgnoreCase)
+            && left.Port == right.Port
+            && left.UserInfo.Equals(right.UserInfo, StringComparison.Ordinal)
+            && left.GetComponents(UriComponents.PathAndQuery, UriFormat.UriEscaped).Equals(
+                right.GetComponents(UriComponents.PathAndQuery, UriFormat.UriEscaped),
+                StringComparison.Ordinal);
+    }
+
+    private sealed class ResourceIdentityComparer : IEqualityComparer<string> {
+        internal static readonly ResourceIdentityComparer Instance = new ResourceIdentityComparer();
+
+        public bool Equals(string? left, string? right) {
+            if (ReferenceEquals(left, right)) return true;
+            if (left == null || right == null) return false;
+            if (Uri.TryCreate(left, UriKind.Absolute, out Uri? leftUri)
+                && Uri.TryCreate(right, UriKind.Absolute, out Uri? rightUri)) {
+                return ResourceUriEquals(leftUri, rightUri);
+            }
+            return string.Equals(left, right, StringComparison.Ordinal);
+        }
+
+        public int GetHashCode(string value) {
+            if (!Uri.TryCreate(value, UriKind.Absolute, out Uri? uri)) {
+                return StringComparer.Ordinal.GetHashCode(value);
+            }
+            if (uri.Scheme.Equals("cid", StringComparison.OrdinalIgnoreCase)) {
+                return StringComparer.OrdinalIgnoreCase.GetHashCode(uri.AbsoluteUri);
+            }
+            unchecked {
+                int hash = StringComparer.OrdinalIgnoreCase.GetHashCode(uri.Scheme);
+                hash = (hash * 397) ^ StringComparer.OrdinalIgnoreCase.GetHashCode(uri.IdnHost);
+                hash = (hash * 397) ^ uri.Port;
+                hash = (hash * 397) ^ StringComparer.Ordinal.GetHashCode(uri.UserInfo);
+                hash = (hash * 397) ^ StringComparer.Ordinal.GetHashCode(
+                    uri.GetComponents(UriComponents.PathAndQuery, UriFormat.UriEscaped));
+                return hash;
+            }
+        }
     }
 
     private static string RemoveUriFragment(string value) {

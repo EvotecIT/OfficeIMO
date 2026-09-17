@@ -167,7 +167,7 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static bool IsHtmlStylesheetLink(IElement link) {
-        if (!string.Equals(link.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal)) return false;
+        if (!IsHtmlNamespaceElement(link)) return false;
         bool stylesheet = (link.GetAttribute("rel") ?? string.Empty)
             .Split(new[] { '\t', '\n', '\f', '\r', ' ' }, StringSplitOptions.RemoveEmptyEntries)
             .Any(token => token.Equals("stylesheet", StringComparison.OrdinalIgnoreCase));

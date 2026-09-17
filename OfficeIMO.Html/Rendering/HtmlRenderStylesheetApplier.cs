@@ -242,6 +242,7 @@ internal static class HtmlRenderStylesheetApplier {
     }
 
     private static bool IsStylesheetLink(IElement link) {
+        if (!HtmlResourcePipeline.IsHtmlNamespaceElement(link)) return false;
         string rel = link.GetAttribute("rel") ?? string.Empty;
         foreach (string token in rel.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)) {
             if (string.Equals(token, "stylesheet", StringComparison.OrdinalIgnoreCase)) {

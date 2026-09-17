@@ -267,7 +267,8 @@ internal static partial class EpubReader {
                 diagnostics.Warning(
                     "epub.resource.missing",
                     $"EPUB manifest resource '{item.FullPath}' was not found in archive.",
-                    item.FullPath);
+                    item.FullPath,
+                    item.MediaType);
                 continue;
             }
 
