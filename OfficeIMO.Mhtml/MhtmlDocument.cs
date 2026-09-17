@@ -226,6 +226,12 @@ public sealed partial class MhtmlDocument {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         MhtmlResource? resource = FindResource(request);
+        if (resource != null
+            && request.Kind == HtmlResourceKind.Stylesheet
+            && resource.HasAmbiguousMimeDecoding) {
+            throw new InvalidDataException(
+                "MHTML cannot resolve a stylesheet whose MIME transfer decoding is ambiguous.");
+        }
         return Task.FromResult(resource == null
             ? null
             : new HtmlResolvedResource(resource.EncodedContent, resource.ContentTypeWithParameters));

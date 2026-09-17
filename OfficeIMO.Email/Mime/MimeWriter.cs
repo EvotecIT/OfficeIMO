@@ -457,6 +457,8 @@ internal static class MimeWriter {
 
     private static void WriteAttachment(Stream output, EmailAttachment attachment, MimeWriterState state, int depth, int index) {
         bool embeddedMessage = attachment.EmbeddedDocument != null;
+        bool hasContent = attachment.Content != null || attachment.ContentSource != null ||
+            EmailAttachmentStreamScope.HasStagedContent(attachment);
         string contentType = embeddedMessage
             ? "message/rfc822"
             : string.IsNullOrWhiteSpace(attachment.ContentType) ? "application/octet-stream" : attachment.ContentType!;
@@ -470,7 +472,8 @@ internal static class MimeWriter {
             }
         }
         string? fileName = attachment.FileName;
-        bool preservePartHeaders = attachment.PreserveMimeHeadersOnWrite && attachment.MimeHeaders.Count > 0 && !embeddedMessage;
+        bool preservePartHeaders = attachment.PreserveMimeHeadersOnWrite && attachment.MimeHeaders.Count > 0
+            && (!embeddedMessage || hasContent);
         if (preservePartHeaders) {
             WritePreservedPartHeaders(output, attachment.MimeHeaders, omitPayloadDependentHeaders: true);
         } else {
@@ -490,14 +493,25 @@ internal static class MimeWriter {
         }
 
         if (attachment.EmbeddedDocument != null) {
+            if (preservePartHeaders) {
+                WriteLine(output, string.Empty);
+                if (attachment.Content != null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) {
+                    WriteTransferEncodedPayload(output, attachment.Content,
+                        attachment.MimeTransferEncoding, state.Options.Base64LineLength);
+                    return;
+                }
+                using (Stream input = state.OpenAttachmentStream(attachment)) {
+                    WriteTransferEncodedPayload(output, ReadBoundedBytes(input, state.Options.MaxOutputBytes),
+                        attachment.MimeTransferEncoding, state.Options.Base64LineLength);
+                }
+                return;
+            }
             WriteLine(output, "Content-Transfer-Encoding: 8bit");
             WriteLine(output, string.Empty);
             WriteMessage(output, attachment.EmbeddedDocument, state, depth);
             return;
         }
 
-        bool hasContent = attachment.Content != null || attachment.ContentSource != null ||
-            EmailAttachmentStreamScope.HasStagedContent(attachment);
         if (!hasContent && attachment.Length > 0) {
             state.Diagnostics.Add(new EmailDiagnostic("EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE",
                 string.Concat("Attachment ", index.ToString(CultureInfo.InvariantCulture),
@@ -729,6 +743,18 @@ internal static class MimeWriter {
             CollectBoundaryCollisions(document.Body.Html, markerPrefix, collisions, state.Options.MaxOutputBytes);
             CollectBoundaryCollisions(document.Body.Rtf, markerPrefix, collisions, state.Options.MaxOutputBytes);
             foreach (EmailAttachment attachment in document.Attachments) {
+                if (attachment.EmbeddedDocument != null && attachment.PreserveMimeHeadersOnWrite) {
+                    if (attachment.Content != null) {
+                        using var preservedInput = new MemoryStream(attachment.Content, writable: false);
+                        CollectBoundaryCollisions(preservedInput, markerPrefix, collisions, state.Options.MaxOutputBytes);
+                        continue;
+                    }
+                    if (attachment.ContentSource != null || EmailAttachmentStreamScope.HasStagedContent(attachment)) {
+                        Stream preservedInput = state.PrepareAttachmentStream(attachment);
+                        CollectBoundaryCollisions(preservedInput, markerPrefix, collisions, state.Options.MaxOutputBytes);
+                        continue;
+                    }
+                }
                 if (attachment.EmbeddedDocument != null) {
                     CollectBoundaryCollisions(attachment.EmbeddedDocument, boundaryPrefix, state, collisions, activeDocuments);
                     continue;

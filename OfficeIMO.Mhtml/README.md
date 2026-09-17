@@ -52,7 +52,7 @@ OfficeContentCleanupResult cleaned = MhtmlDocument.RemoveSelectedContent(
     new OfficeContentCleanupSelection(new[] { finding.Id }));
 ```
 
-Cleanup removes only the selected current findings, preserves embedded resources, writes a bounded deterministic archive, and reopens and reinspects the result. Missing, malformed, ambiguous, external, or over-budget stylesheet dependencies fail closed. An empty selection returns the original bytes. Mutation of a signed or encrypted MIME wrapper is rejected. Body-covering DKIM and ARC transport signatures also block cleanup by default; callers must explicitly choose `RemoveInvalidatedSignatures` to remove the invalidated transport-signature chain, or `PreserveSignatureMarkup` when retaining known-stale signature headers is intentional.
+Cleanup removes only the selected current findings, preserves embedded resources and unrelated nested-message payloads, writes a bounded deterministic archive, and reopens and reinspects the result. Missing, malformed, ambiguously decoded, integrity-qualified, external, or over-budget stylesheet dependencies fail closed. An empty selection returns the original bytes. Mutation of a signed or encrypted MIME wrapper is rejected. Body-covering DKIM and ARC transport signatures also block cleanup by default; callers must explicitly choose `RemoveInvalidatedSignatures` to remove the invalidated transport-signature chain, or `PreserveSignatureMarkup` when retaining known-stale signature headers is intentional.
 
 MHTML intentionally connects the HTML engine to the Email MIME engine. Plain HTML and plain Email packages do not depend on this bridge.
 

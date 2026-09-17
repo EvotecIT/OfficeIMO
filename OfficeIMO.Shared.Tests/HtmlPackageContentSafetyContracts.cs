@@ -112,6 +112,30 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void PackageStylesheetIntegrityMetadataFailsClosed() {
+        byte[] mhtml = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='styles.css' integrity='sha256-invalid'></head>" +
+            "<body><p class='concealed'>Integrity-qualified text.</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "text/css",
+                    contentLocation: "styles.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(mhtml));
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, stylesheetIntegrity: true)));
+    }
+
+    [Fact]
+    public void Mhtml_AmbiguouslyDecodedStylesheetsFailClosed() {
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithAmbiguousStylesheet("x-uuencode", ".concealed { display: none; }")));
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithAmbiguousStylesheet("base64", "not*valid-base64")));
+    }
+
+    [Fact]
     public void Mhtml_AmbiguousResourceIdentitiesFailClosed() {
         byte[] input = new MhtmlDocument(
             "<html><head><link rel='stylesheet' href='site.css'></head><body><p>Visible</p></body></html>",
@@ -192,6 +216,28 @@ public sealed class HtmlPackageContentSafetyContractTests {
 
         Assert.True(cleaned.Changed);
         Assert.DoesNotContain(cleaned.After.Findings, item => item.Id == finding.Id);
+    }
+
+    [Fact]
+    public void Mhtml_CleanupPreservesProtectedNestedMessagePayload() {
+        byte[] input = BuildMhtmlWithProtectedNestedMessage();
+        EmailAttachment originalNested = Assert.Single(
+            new EmailDocumentReader().Read(input).Document.Attachments,
+            attachment => attachment.EmbeddedDocument != null);
+        byte[] originalPayload = Assert.IsType<byte[]>(originalNested.Content);
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings,
+            item => item.TextPreview.Contains("Nested payload preservation", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult cleaned = MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+
+        EmailAttachment reopenedNested = Assert.Single(
+            new EmailDocumentReader().Read(cleaned.Output).Document.Attachments,
+            attachment => attachment.EmbeddedDocument != null);
+        Assert.Equal(originalPayload, Assert.IsType<byte[]>(reopenedNested.Content));
+        Assert.Contains("DKIM-Signature:", Encoding.ASCII.GetString(reopenedNested.Content!),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -609,6 +655,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool html5Doctype = false,
         bool uppercaseStyleElement = false,
         bool uppercaseStyleAttribute = false,
+        bool stylesheetIntegrity = false,
         int unusedAssetBytes = 4) {
         string rootfiles =
             "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
@@ -675,6 +722,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
                 : "<link rel='" + (alternateStylesheet ? "alternate stylesheet" : "stylesheet") +
                   "' href='" + stylesheetHref + "'" +
                   (disabledStylesheet ? " disabled='disabled'" : string.Empty) +
+                  (stylesheetIntegrity ? " integrity='sha256-invalid'" : string.Empty) +
                   (alternateStylesheet ? " title='dark'" : string.Empty) + "/>";
         if (uppercaseStyleAttribute) {
             chapterBody = "<p STYLE='display:none'>Noncanonical attribute concealed text.</p>";
@@ -809,6 +857,39 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Disposition: attachment; filename=payload.p7m\r\n" +
         "Content-Transfer-Encoding: base64\r\n\r\nAA==\r\n" +
         "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithProtectedNestedMessage() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-Transfer-Encoding: 8bit\r\n\r\n" +
+        "<html><body><p style='display:none'>Nested payload preservation.</p><p>Visible.</p></body></html>\r\n" +
+        "--outer\r\n" +
+        "Content-Type: message/rfc822; name=protected.eml\r\n" +
+        "Content-Disposition: attachment; filename=protected.eml\r\n" +
+        "Content-Transfer-Encoding: 8bit\r\n\r\n" +
+        "DKIM-Signature: v=1; a=rsa-sha256; d=example.test; s=test; bh=retained; b=retained\r\n" +
+        "Subject: protected nested message\r\n" +
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: text/plain; charset=utf-8\r\n\r\n" +
+        "Protected nested body.\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithAmbiguousStylesheet(string transferEncoding, string payload) =>
+        Encoding.ASCII.GetBytes(
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+            "--outer\r\n" +
+            "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+            "<html><head><link rel='stylesheet' href='styles.css'></head>" +
+            "<body><p class='concealed'>Ambiguous stylesheet text.</p></body></html>\r\n" +
+            "--outer\r\n" +
+            "Content-Type: text/css; charset=utf-8\r\n" +
+            "Content-Transfer-Encoding: " + transferEncoding + "\r\n" +
+            "Content-Location: styles.css\r\n\r\n" +
+            payload + "\r\n" +
+            "--outer--\r\n");
 
     private static byte[] BuildMhtmlWithTwoHtmlBodies() => Encoding.ASCII.GetBytes(
         "MIME-Version: 1.0\r\n" +

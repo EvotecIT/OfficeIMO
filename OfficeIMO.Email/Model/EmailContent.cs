@@ -49,6 +49,7 @@ public sealed class EmailAttachment {
     internal bool IsMimeBodyPart { get; set; }
     internal IList<EmailHeader> MimeHeaders => _mimeHeaders;
     internal string? MimeTransferEncoding { get; set; }
+    internal bool MimeDecodingWasAmbiguous { get; set; }
     internal bool PreserveMimeHeadersOnWrite { get; set; }
     /// <summary>Attachment filename.</summary>
     public string? FileName { get; set; }

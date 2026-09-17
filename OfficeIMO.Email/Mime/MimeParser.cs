@@ -151,9 +151,13 @@ internal static class MimeParser {
         if (!isBody) {
             state.CountAttachmentBytes(decodedLength);
             if (skipAttachmentDecoding) {
-                document.Attachments.Add(CreateAttachment(headers, contentType, disposition, fileName,
+                EmailAttachment skipped = CreateAttachment(headers, contentType, disposition, fileName,
                     inlineDisposition || additionalInlineBody, attachmentDisposition, null, decodedLength,
-                    isRelatedSibling));
+                    isRelatedSibling);
+                skipped.MimeDecodingWasAmbiguous = state.Diagnostics
+                    .Skip(payloadDiagnosticStart)
+                    .Any(IsAmbiguousMimeDecodingDiagnostic);
+                document.Attachments.Add(skipped);
                 return;
             }
         }
@@ -187,7 +191,7 @@ internal static class MimeParser {
                     document.Body.HtmlTransferEncoding = transferEncoding;
                     document.Body.HtmlMimeDecodingWasAmbiguous = state.Diagnostics
                         .Skip(payloadDiagnosticStart)
-                        .Any(IsAmbiguousBodyDecodingDiagnostic);
+                        .Any(IsAmbiguousMimeDecodingDiagnostic);
                     CopyHeaders(headers, document.Body.HtmlMimeHeaders);
                 }
             } else if (document.Body.Text == null) {
@@ -201,6 +205,9 @@ internal static class MimeParser {
             EmailAttachment embedded = CreateAttachment(headers, contentType, disposition, fileName,
                 inlineDisposition, attachmentDisposition, state.Options.IncludeAttachmentContent ? decoded : null,
                 decoded.LongLength, isRelatedSibling);
+            embedded.MimeDecodingWasAmbiguous = state.Diagnostics
+                .Skip(payloadDiagnosticStart)
+                .Any(IsAmbiguousMimeDecodingDiagnostic);
             if (nestedMessageDepth >= state.Options.MaxNestedMessageDepth) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_NESTED_MESSAGE_LIMIT",
                     "The embedded message was retained but not parsed because the nested-message limit was reached.",
@@ -217,6 +224,9 @@ internal static class MimeParser {
             inlineDisposition || additionalInlineBody, attachmentDisposition,
             state.Options.IncludeAttachmentContent || semanticBodyPart ? decoded : null, decoded.LongLength,
             isRelatedSibling);
+        attachment.MimeDecodingWasAmbiguous = state.Diagnostics
+            .Skip(payloadDiagnosticStart)
+            .Any(IsAmbiguousMimeDecodingDiagnostic);
         if (semanticBodyPart) attachment.IsMimeBodyPart = true;
         string? semanticCharset = contentType.GetParameter("charset");
         int semanticDiagnosticStart = state.Diagnostics.Count;
@@ -249,7 +259,7 @@ internal static class MimeParser {
         document.Attachments.Add(attachment);
     }
 
-    private static bool IsAmbiguousBodyDecodingDiagnostic(EmailDiagnostic diagnostic) =>
+    private static bool IsAmbiguousMimeDecodingDiagnostic(EmailDiagnostic diagnostic) =>
         diagnostic.Code == "EMAIL_MIME_TRANSFER_ENCODING_UNKNOWN"
         || diagnostic.Code == "EMAIL_MIME_BASE64_INVALID"
         || diagnostic.Code == "EMAIL_MIME_BASE64_PADDING_RECOVERED"
