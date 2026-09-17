@@ -148,8 +148,180 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         for (int iteration = 0; iteration < 250; iteration++) {
             OfficeTextShapingResult current = Assert.IsType<OfficeTextShapingResult>(
                 OfficeHarfBuzzTextShapingProvider.Instance.ShapeText(request));
+            Assert.Same(first, current);
             Assert.Equal(expected, GlyphSignature(current));
         }
+    }
+
+    [Fact]
+    public void CachedShapeResultsRespectUnitsPerEm() {
+        const string text = "office";
+        byte[] fontData = File.ReadAllBytes(FontPath("Carlito-Regular.ttf"));
+        var fontCacheKey = new object();
+        var smaller = new OfficeTextShapingRequest(
+            text,
+            "Carlito",
+            fontData,
+            isOpenTypeCff: false,
+            unitsPerEm: 1024,
+            OfficeTextDirection.LeftToRight,
+            "en",
+            default,
+            fontCollectionIndex: null,
+            variationCoordinates: null,
+            cloneFontData: false,
+            fontProgramCacheKey: fontCacheKey);
+        var larger = new OfficeTextShapingRequest(
+            text,
+            "Carlito",
+            fontData,
+            isOpenTypeCff: false,
+            unitsPerEm: 2048,
+            OfficeTextDirection.LeftToRight,
+            "en",
+            default,
+            fontCollectionIndex: null,
+            variationCoordinates: null,
+            cloneFontData: false,
+            fontProgramCacheKey: fontCacheKey);
+
+        OfficeTextShapingResult smallerResult = Assert.IsType<OfficeTextShapingResult>(
+            OfficeHarfBuzzTextShapingProvider.Instance.ShapeText(smaller));
+        OfficeTextShapingResult largerResult = Assert.IsType<OfficeTextShapingResult>(
+            OfficeHarfBuzzTextShapingProvider.Instance.ShapeText(larger));
+
+        Assert.NotSame(smallerResult, largerResult);
+        int expectedLargerAdvance = smallerResult.Glyphs.Sum(static glyph => glyph.AdvanceWidth ?? 0) * 2;
+        Assert.InRange(
+            largerResult.Glyphs.Sum(static glyph => glyph.AdvanceWidth ?? 0),
+            expectedLargerAdvance - 1,
+            expectedLargerAdvance + 1);
+    }
+
+    [Fact]
+    public void ExplicitOpenTypeFeaturesAreAppliedAndCachedSeparately() {
+        const string text = "office";
+        byte[] fontData = File.ReadAllBytes(FontPath("Carlito-Regular.ttf"));
+        var fontCacheKey = new object();
+        var defaultRequest = new OfficeTextShapingRequest(
+            text,
+            "Carlito",
+            fontData,
+            isOpenTypeCff: false,
+            unitsPerEm: 2048,
+            OfficeTextDirection.LeftToRight,
+            "en",
+            default,
+            fontCollectionIndex: null,
+            variationCoordinates: null,
+            cloneFontData: false,
+            fontProgramCacheKey: fontCacheKey);
+        var withoutLigatures = new OfficeTextShapingRequest(
+            text,
+            "Carlito",
+            fontData,
+            isOpenTypeCff: false,
+            unitsPerEm: 2048,
+            OfficeTextDirection.LeftToRight,
+            "en",
+            default,
+            fontCollectionIndex: null,
+            variationCoordinates: null,
+            cloneFontData: false,
+            fontProgramCacheKey: fontCacheKey,
+            featureSettings: OfficeTextFeatureSettings.Default.With("liga", 0));
+
+        OfficeTextShapingResult defaultResult = Assert.IsType<OfficeTextShapingResult>(
+            OfficeHarfBuzzTextShapingProvider.Instance.ShapeText(defaultRequest));
+        OfficeTextShapingResult disabledResult = Assert.IsType<OfficeTextShapingResult>(
+            OfficeHarfBuzzTextShapingProvider.Instance.ShapeText(withoutLigatures));
+        OfficeTextShapingResult cachedDisabledResult = Assert.IsType<OfficeTextShapingResult>(
+            OfficeHarfBuzzTextShapingProvider.Instance.ShapeText(withoutLigatures));
+
+        Assert.True(defaultResult.Glyphs.Count < text.Length);
+        Assert.Equal(text.Length, disabledResult.Glyphs.Count);
+        Assert.NotEqual(GlyphSignature(defaultResult), GlyphSignature(disabledResult));
+        Assert.Same(disabledResult, cachedDisabledResult);
+    }
+
+    [Fact]
+    public void OversizedLanguageHintsFallBackWithoutFragmentingTheCache() {
+        const string text = "office";
+        byte[] fontData = File.ReadAllBytes(FontPath("Carlito-Regular.ttf"));
+        var provider = new OfficeHarfBuzzTextShapingProvider();
+        var fontCacheKey = new object();
+        var withoutLanguage = new OfficeTextShapingRequest(
+            text,
+            "Carlito",
+            fontData,
+            isOpenTypeCff: false,
+            unitsPerEm: 2048,
+            OfficeTextDirection.LeftToRight,
+            language: null,
+            default,
+            fontCollectionIndex: null,
+            variationCoordinates: null,
+            cloneFontData: false,
+            fontProgramCacheKey: fontCacheKey);
+        var oversizedLanguage = new OfficeTextShapingRequest(
+            text,
+            "Carlito",
+            fontData,
+            isOpenTypeCff: false,
+            unitsPerEm: 2048,
+            OfficeTextDirection.LeftToRight,
+            new string('a', 256),
+            default,
+            fontCollectionIndex: null,
+            variationCoordinates: null,
+            cloneFontData: false,
+            fontProgramCacheKey: fontCacheKey);
+
+        OfficeTextShapingResult first = Assert.IsType<OfficeTextShapingResult>(provider.ShapeText(withoutLanguage));
+        OfficeTextShapingResult second = Assert.IsType<OfficeTextShapingResult>(provider.ShapeText(oversizedLanguage));
+
+        Assert.Same(first, second);
+    }
+
+    [Fact]
+    public void LanguageInterningIsNormalizedAndBoundedPerProvider() {
+        const string text = "office";
+        byte[] fontData = File.ReadAllBytes(FontPath("Carlito-Regular.ttf"));
+        var provider = new OfficeHarfBuzzTextShapingProvider();
+        var fontCacheKey = new object();
+        OfficeTextShapingResult noLanguage = ShapeWithLanguage(provider, fontData, fontCacheKey, text, null);
+
+        OfficeTextShapingResult normalized = ShapeWithLanguage(provider, fontData, fontCacheKey, text, " EN ");
+        Assert.Same(normalized, ShapeWithLanguage(provider, fontData, fontCacheKey, text, "en"));
+
+        for (int index = 1; index < OfficeHarfBuzzTextShapingProvider.MaxInternedLanguagesPerProvider; index++) {
+            ShapeWithLanguage(provider, fontData, fontCacheKey, text, $"x-{index:x4}");
+        }
+
+        OfficeTextShapingResult overflow = ShapeWithLanguage(provider, fontData, fontCacheKey, text, "x-overflow");
+        Assert.Same(noLanguage, overflow);
+    }
+
+    [Fact]
+    public void OversizedShapeResultsAreNotRetained() {
+        string text = new string('a', 4097);
+        byte[] fontData = File.ReadAllBytes(FontPath("Carlito-Regular.ttf"));
+        var request = new OfficeTextShapingRequest(
+            text,
+            "Carlito",
+            fontData,
+            isOpenTypeCff: false,
+            unitsPerEm: 2048,
+            OfficeTextDirection.LeftToRight,
+            "en");
+
+        OfficeTextShapingResult first = Assert.IsType<OfficeTextShapingResult>(
+            OfficeHarfBuzzTextShapingProvider.Instance.ShapeText(request));
+        OfficeTextShapingResult second = Assert.IsType<OfficeTextShapingResult>(
+            OfficeHarfBuzzTextShapingProvider.Instance.ShapeText(request));
+
+        Assert.NotSame(first, second);
+        Assert.Equal(GlyphSignature(first), GlyphSignature(second));
     }
 
     [Theory]
@@ -199,6 +371,26 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
             "|",
             result.Glyphs.Select(static glyph =>
                 $"{glyph.GlyphId}:{glyph.TextIndex}:{glyph.UnicodeText}:{glyph.AdvanceWidth}:{glyph.OffsetX}:{glyph.OffsetY}"));
+
+    private static OfficeTextShapingResult ShapeWithLanguage(
+        OfficeHarfBuzzTextShapingProvider provider,
+        byte[] fontData,
+        object fontCacheKey,
+        string text,
+        string? language) =>
+        Assert.IsType<OfficeTextShapingResult>(provider.ShapeText(new OfficeTextShapingRequest(
+            text,
+            "Carlito",
+            fontData,
+            isOpenTypeCff: false,
+            unitsPerEm: 2048,
+            OfficeTextDirection.LeftToRight,
+            language,
+            default,
+            fontCollectionIndex: null,
+            variationCoordinates: null,
+            cloneFontData: false,
+            fontProgramCacheKey: fontCacheKey)));
 
     private static string FontPath(string fileName) =>
         Path.Combine(AppContext.BaseDirectory, "Fonts", fileName);
