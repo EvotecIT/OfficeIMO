@@ -60,17 +60,21 @@ public sealed partial class EpubDocument {
             return new OfficeContentCleanupResult((byte[])packageBytes.Clone(), cleaned.Before, cleaned.Before, cleaned.Changes);
         }
 
+        bool hasCentralDirectorySignature = OfficeProvenanceZip.HasCentralDirectorySignature(
+            packageBytes,
+            options.Inspection.MaxPackageEntries,
+            cancellationToken);
         bool removeSignature = false;
-        if (package.Document.HasSignatures) {
+        if (package.Document.HasSignatures || hasCentralDirectorySignature) {
             if (options.SignatureMutationPolicy == OfficeSignatureMutationPolicy.BlockSave) {
                 throw new InvalidOperationException(
-                    "EPUB cleanup would invalidate META-INF/signatures.xml. Select RemoveInvalidatedSignatures explicitly.");
+                    "EPUB cleanup would invalidate package signature evidence. Select RemoveInvalidatedSignatures explicitly.");
             }
             if (options.SignatureMutationPolicy == OfficeSignatureMutationPolicy.PreserveSignatureMarkup) {
                 throw new InvalidOperationException(
                     "EPUB cleanup cannot preserve signature markup as valid evidence after package mutation. Select RemoveInvalidatedSignatures explicitly.");
             }
-            removeSignature = true;
+            removeSignature = package.Document.HasSignatures;
         }
 
         Dictionary<string, string> replacements = cleaned.Parts.ToDictionary(

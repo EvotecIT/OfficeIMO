@@ -146,6 +146,23 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_CharsetlessRootUsesItsHtmlEncodingDeclarationDuringCleanup() {
+        byte[] input = BuildMhtmlWithCharsetlessWindows1252Root();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Charsetless concealed", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult result = MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+
+        Assert.Contains((byte)0xe9, result.Output);
+        using var output = new MemoryStream(result.Output, writable: false);
+        MhtmlDocument reopened = MhtmlDocument.Load(output);
+        Assert.Contains("café", reopened.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("cafÃ©", reopened.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PackageStylesheetIntegrityMetadataFailsClosed() {
         byte[] mhtml = new MhtmlDocument(
             "<html><head><link rel='stylesheet' href='styles.css' integrity='sha256-invalid'></head>" +
@@ -159,6 +176,38 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(mhtml));
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, stylesheetIntegrity: true)));
+    }
+
+    [Fact]
+    public void InactiveStylesheetIntegrityMetadataDoesNotBlockInspection() {
+        byte[] mhtml = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' media='print' href='styles.css' integrity='sha256-invalid'></head>" +
+            "<body><p class='concealed'>Inactive integrity text.</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "text/css",
+                    contentLocation: "styles.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.DoesNotContain(MhtmlDocument.InspectContentSafety(mhtml).Findings, finding =>
+            finding.TextPreview.Contains("Inactive integrity text", StringComparison.Ordinal));
+        Assert.DoesNotContain(EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, stylesheetIntegrity: true, inactiveStylesheetMedia: true)).Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void InactiveInlineStylesDoNotExpandImports() {
+        byte[] mhtml = new MhtmlDocument(
+            "<html><head><style type='text/plain'>@import 'styles.css' layer(inert);</style></head>" +
+            "<body><p class='concealed'>Inactive inline text.</p></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.DoesNotContain(MhtmlDocument.InspectContentSafety(mhtml).Findings, finding =>
+            finding.TextPreview.Contains("Inactive inline text", StringComparison.Ordinal));
+        Assert.DoesNotContain(EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, inactiveInlineStyle: true)).Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -660,6 +709,27 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Epub_CentralDirectorySignatureBlocksByDefaultAndCanBeExplicitlyRemoved() {
+        byte[] input = AddCentralDirectorySignature(BuildEpub(signed: false));
+        OfficeContentSafetyFinding finding = Assert.Single(EpubDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+        var selection = new OfficeContentCleanupSelection(new[] { finding.Id });
+
+        Assert.Throws<InvalidOperationException>(() => EpubDocument.RemoveSelectedContent(input, selection));
+        Assert.Throws<InvalidOperationException>(() => EpubDocument.RemoveSelectedContent(
+            input,
+            selection,
+            new OfficeContentCleanupOptions { SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup }));
+
+        OfficeContentCleanupResult result = EpubDocument.RemoveSelectedContent(
+            input,
+            selection,
+            new OfficeContentCleanupOptions { SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures });
+        Assert.False(HasCentralDirectorySignature(result.Output));
+        Assert.DoesNotContain(EpubDocument.InspectContentSafety(result.Output).Findings, item => item.Id == finding.Id);
+    }
+
+    [Fact]
     public void Epub_NoSelectionIsByteIdentical() {
         byte[] input = BuildEpub(signed: true);
         OfficeContentCleanupResult result = EpubDocument.RemoveSelectedContent(
@@ -759,6 +829,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool nonCssStylesheetType = false,
         bool contentSecurityPolicy = false,
         bool topLevelXhtmlComment = false,
+        bool inactiveStylesheetMedia = false,
+        bool inactiveInlineStyle = false,
         int unusedAssetBytes = 4) {
         string rootfiles =
             "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
@@ -818,6 +890,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
             ? "<STYLE>.concealed { visibility: hidden; }</STYLE>"
             : inlineStyleUnicode
             ? "<style>.concealed { visibility: hidden; }\u200B</style>"
+            : inactiveInlineStyle
+                ? "<style type='text/plain'>@import 'styles/nested.css' layer(inert);</style>"
             : layeredInlineImport
                 ? "<style>@import 'styles/nested.css' layer(security);</style>"
             : inlineStylesheetImport
@@ -827,6 +901,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
                   (disabledStylesheet ? " disabled='disabled'" : string.Empty) +
                   (stylesheetIntegrity ? " integrity='sha256-invalid'" : string.Empty) +
                   (nonCssStylesheetType ? " type='text/plain'" : string.Empty) +
+                  (inactiveStylesheetMedia ? " media='print'" : string.Empty) +
                   (alternateStylesheet ? " title='dark'" : string.Empty) + "/>";
         if (uppercaseStyleAttribute) {
             chapterBody = "<p STYLE='display:none'>Noncanonical attribute concealed text.</p>";
@@ -1199,6 +1274,56 @@ public sealed class HtmlPackageContentSafetyContractTests {
         result[offset++] = 0x80;
         Buffer.BlockCopy(ending, 0, result, offset, ending.Length);
         return result;
+    }
+
+    private static byte[] BuildMhtmlWithCharsetlessWindows1252Root() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html\r\n" +
+        "Content-Transfer-Encoding: 8bit\r\n" +
+        "Content-Location: https://example.test/index.html\r\n\r\n" +
+        "<html><head><meta charset='windows-1252'></head><body>" +
+        "<p style='display:none'>Charsetless concealed.</p><p>caf&#233;</p></body></html>\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] AddCentralDirectorySignature(byte[] package) {
+        int endOffset = FindEndOfCentralDirectory(package);
+        uint centralSize = BitConverter.ToUInt32(package, endOffset + 12);
+        uint centralOffset = BitConverter.ToUInt32(package, endOffset + 16);
+        int insertionOffset = checked((int)(centralOffset + centralSize));
+        Assert.Equal(endOffset, insertionOffset);
+
+        byte[] signature = { 0x50, 0x4b, 0x05, 0x05, 0x03, 0x00, 0x10, 0x20, 0x30 };
+        byte[] result = new byte[package.Length + signature.Length];
+        Buffer.BlockCopy(package, 0, result, 0, insertionOffset);
+        Buffer.BlockCopy(signature, 0, result, insertionOffset, signature.Length);
+        Buffer.BlockCopy(package, insertionOffset, result, insertionOffset + signature.Length, package.Length - insertionOffset);
+        BitConverter.GetBytes(centralSize + (uint)signature.Length).CopyTo(result, endOffset + signature.Length + 12);
+        return result;
+    }
+
+    private static bool HasCentralDirectorySignature(byte[] package) {
+        int endOffset = FindEndOfCentralDirectory(package);
+        int centralOffset = checked((int)BitConverter.ToUInt32(package, endOffset + 16));
+        int centralSize = checked((int)BitConverter.ToUInt32(package, endOffset + 12));
+        int cursor = centralOffset;
+        while (cursor < centralOffset + centralSize && BitConverter.ToUInt32(package, cursor) == 0x02014B50U) {
+            cursor += 46
+                + BitConverter.ToUInt16(package, cursor + 28)
+                + BitConverter.ToUInt16(package, cursor + 30)
+                + BitConverter.ToUInt16(package, cursor + 32);
+        }
+        return cursor <= package.Length - 4 && BitConverter.ToUInt32(package, cursor) == 0x05054B50U;
+    }
+
+    private static int FindEndOfCentralDirectory(byte[] package) {
+        for (int offset = package.Length - 22; offset >= 0; offset--) {
+            if (BitConverter.ToUInt32(package, offset) != 0x06054B50U) continue;
+            int commentLength = BitConverter.ToUInt16(package, offset + 20);
+            if (offset + 22 + commentLength == package.Length) return offset;
+        }
+        throw new InvalidDataException("Test ZIP has no end-of-central-directory record.");
     }
 
     private static string ExtractFirstMimeBoundary(string serialized) {

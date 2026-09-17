@@ -62,10 +62,12 @@ public sealed partial class MhtmlDocument {
     }
 
     private static string DecodeHtmlRootWithWebCharsetAliases(EmailBody body, string fallback) {
-        if (body.HtmlDecodedBytes == null || string.IsNullOrWhiteSpace(body.HtmlCharset)) return fallback;
+        if (body.HtmlDecodedBytes == null) return fallback;
         try {
             using var source = new MemoryStream(body.HtmlDecodedBytes, writable: false);
-            Encoding encoding = HtmlTextEncodingResolver.Default.ResolveHtmlTransportEncoding(source, body.HtmlCharset!);
+            Encoding encoding = string.IsNullOrWhiteSpace(body.HtmlCharset)
+                ? HtmlTextEncodingResolver.Default.ResolveHtmlEncoding(source)
+                : HtmlTextEncodingResolver.Default.ResolveHtmlTransportEncoding(source, body.HtmlCharset!);
             var strict = (Encoding)encoding.Clone();
             strict.DecoderFallback = DecoderFallback.ExceptionFallback;
             strict.EncoderFallback = EncoderFallback.ExceptionFallback;

@@ -193,6 +193,9 @@ internal static class MimeParser {
                     document.Body.HtmlMimeDecodingWasAmbiguous = state.Diagnostics
                         .Skip(payloadDiagnosticStart)
                         .Any(IsAmbiguousMimeDecodingDiagnostic);
+                    document.Body.HtmlMimeTransferDecodingWasAmbiguous = state.Diagnostics
+                        .Skip(payloadDiagnosticStart)
+                        .Any(IsAmbiguousMimeTransferDecodingDiagnostic);
                     CopyHeaders(headers, document.Body.HtmlMimeHeaders);
                 }
             } else if (document.Body.Text == null) {
@@ -267,6 +270,12 @@ internal static class MimeParser {
         || diagnostic.Code == "EMAIL_MIME_QUOTED_PRINTABLE_INVALID"
         || diagnostic.Code == "EMAIL_MIME_CHARSET_UNSUPPORTED"
         || diagnostic.Code == "EMAIL_MIME_CHARSET_GUESSED";
+
+    private static bool IsAmbiguousMimeTransferDecodingDiagnostic(EmailDiagnostic diagnostic) =>
+        diagnostic.Code == "EMAIL_MIME_TRANSFER_ENCODING_UNKNOWN"
+        || diagnostic.Code == "EMAIL_MIME_BASE64_INVALID"
+        || diagnostic.Code == "EMAIL_MIME_BASE64_PADDING_RECOVERED"
+        || diagnostic.Code == "EMAIL_MIME_QUOTED_PRINTABLE_INVALID";
 
     private static bool HasUnpreservedSemanticPartHeaders(IEnumerable<EmailHeader> headers) =>
         headers.Any(header =>

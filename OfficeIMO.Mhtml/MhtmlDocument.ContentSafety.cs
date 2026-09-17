@@ -138,7 +138,9 @@ public sealed partial class MhtmlDocument {
         using var stream = new MemoryStream(archiveBytes, writable: false);
         MhtmlDocument document = Load(stream, readerOptions, cancellationToken: cancellationToken);
         if (!MimeTextCodec.IsSupportedTransferEncoding(document._mimeDocument.Body.HtmlTransferEncoding)
-            || document._mimeDocument.Body.HtmlMimeDecodingWasAmbiguous
+            || document._mimeDocument.Body.HtmlMimeTransferDecodingWasAmbiguous
+            || (!string.IsNullOrWhiteSpace(document._mimeDocument.Body.HtmlCharset)
+                && document._mimeDocument.Body.HtmlMimeDecodingWasAmbiguous)
             || document._mimeDocument.Body.HtmlWebDecodingWasAmbiguous) {
             throw new InvalidDataException(
                 "MHTML content-safety inspection requires the selected HTML root to use an unambiguous supported MIME encoding.");

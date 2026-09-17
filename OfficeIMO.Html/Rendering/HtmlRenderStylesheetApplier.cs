@@ -6,9 +6,13 @@ namespace OfficeIMO.Html;
 internal static class HtmlRenderStylesheetApplier {
     private const string ComponentName = "OfficeIMO.Html.Renderer";
 
-    internal static HtmlCssByteBudget CreateBudget(IHtmlDocument document, HtmlConversionLimits limits) {
+    internal static HtmlCssByteBudget CreateBudget(
+        IHtmlDocument document,
+        HtmlConversionLimits limits,
+        HtmlRenderOptions options) {
         var budget = new HtmlCssByteBudget(limits);
         foreach (IElement style in document.QuerySelectorAll("style")) {
+            if (!IsApplicableStyleElement(style, options)) continue;
             budget.ReserveOrThrow(style.TextContent ?? string.Empty);
         }
 
@@ -26,6 +30,7 @@ internal static class HtmlRenderStylesheetApplier {
         Uri? documentBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         if (documentBaseUri != null) {
             foreach (IElement inlineStyle in document.QuerySelectorAll("style")) {
+                if (!IsApplicableStyleElement(inlineStyle, options)) continue;
                 string css = inlineStyle.TextContent ?? string.Empty;
                 if (css.IndexOf("@import", StringComparison.OrdinalIgnoreCase) < 0) continue;
                 inlineStyle.TextContent = ExpandImports(
@@ -42,7 +47,8 @@ internal static class HtmlRenderStylesheetApplier {
         }
         foreach (IElement link in document.QuerySelectorAll("link[href]")) {
             if (!IsStylesheetLink(link) || link.HasAttribute("disabled") || IsAlternateStylesheetLink(link)
-                || !HtmlResourcePipeline.IsCssStylesheetType(link.GetAttribute("type"))) {
+                || !HtmlResourcePipeline.IsCssStylesheetType(link.GetAttribute("type"))
+                || !IsApplicableMedia(link.GetAttribute("media") ?? string.Empty, options)) {
                 continue;
             }
 
@@ -250,5 +256,25 @@ internal static class HtmlRenderStylesheetApplier {
         string rel = link.GetAttribute("rel") ?? string.Empty;
         return rel.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)
             .Any(token => string.Equals(token, "alternate", StringComparison.OrdinalIgnoreCase));
+    }
+
+    internal static bool IsApplicableStyleElement(IElement styleElement, HtmlRenderOptions options) {
+        if (styleElement == null) throw new ArgumentNullException(nameof(styleElement));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        return HtmlResourcePipeline.IsCssStyleElement(styleElement)
+            && IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, options);
+    }
+
+    private static bool IsApplicableMedia(string mediaText, HtmlRenderOptions options) {
+        double? width = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
+        double? height = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
+        return width.HasValue && height.HasValue
+            ? HtmlComputedStyleEngine.IsApplicableMedia(
+                mediaText,
+                options.MediaContext,
+                width.Value,
+                height.Value,
+                options.MediaFeatures)
+            : HtmlComputedStyleEngine.IsApplicableMedia(mediaText, options.MediaContext, options.MediaFeatures);
     }
 }

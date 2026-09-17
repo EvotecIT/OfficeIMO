@@ -36,6 +36,7 @@ public sealed class EmailBody {
     internal Encoding? HtmlEncodingOverride { get; set; }
     internal bool HtmlWebDecodingWasAmbiguous { get; set; }
     internal bool HtmlMimeDecodingWasAmbiguous { get; set; }
+    internal bool HtmlMimeTransferDecodingWasAmbiguous { get; set; }
     internal bool PreserveHtmlMimeHeadersOnWrite { get; set; }
 }
 

@@ -193,6 +193,7 @@ public static partial class HtmlContentSafety {
                 "Package content-safety inspection does not apply stylesheets when the document declares a Content Security Policy.");
         }
         foreach (IElement style in document.QuerySelectorAll("style")) {
+            if (!HtmlRenderStylesheetApplier.IsApplicableStyleElement(style, renderOptions)) continue;
             cssBudget.ReserveOrThrow(style.TextContent ?? string.Empty);
         }
         var resourceOptions = new HtmlResourcePipelineOptions {
