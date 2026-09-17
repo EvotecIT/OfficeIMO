@@ -63,12 +63,14 @@ public static partial class OfficeRasterContentSafety {
         var changedRegions = new List<PixelRegion>(selectedTargets.Count);
         var selectedTargetSet = new HashSet<RasterTarget>(selectedTargets);
         RasterTarget[] unselectedTargets = beforeState.RecognizedTargets
-            .Where(target => !selectedTargetSet.Contains(target))
+            .Where(target => !selectedTargetSet.Contains(target) && !string.IsNullOrWhiteSpace(target.Text))
             .ToArray();
-        HashSet<RasterTarget> beforeAggregateParents = ResolveAggregateParentTargets(
-            beforeState.RecognizedTargets,
-            budget,
-            cancellationToken);
+        HashSet<RasterTarget> beforeAggregateParents = unselectedTargets.Length == 0
+            ? new HashSet<RasterTarget>()
+            : ResolveAggregateParentTargets(
+                beforeState.RecognizedTargets,
+                budget,
+                cancellationToken);
         for (int index = 0; index < selectedTargets.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             PixelRegion expanded = Expand(
@@ -133,13 +135,18 @@ public static partial class OfficeRasterContentSafety {
                 retainedForOutputDecode,
                 cancellationToken)
             .ConfigureAwait(false);
-        HashSet<RasterTarget> afterAggregateParents = ResolveAggregateParentTargets(
-            afterState.RecognizedTargets,
-            budget,
-            cancellationToken);
+        RasterTarget[] afterTargets = afterState.RecognizedTargets
+            .Where(target => !string.IsNullOrWhiteSpace(target.Text))
+            .ToArray();
+        HashSet<RasterTarget> afterAggregateParents = afterTargets.Length == 0
+            ? new HashSet<RasterTarget>()
+            : ResolveAggregateParentTargets(
+                afterState.RecognizedTargets,
+                budget,
+                cancellationToken);
         for (int selectedIndex = 0; selectedIndex < selectedTargets.Count; selectedIndex++) {
             PixelRegion changedRegion = changedRegions[selectedIndex];
-            foreach (RasterTarget afterTarget in afterState.RecognizedTargets) {
+            foreach (RasterTarget afterTarget in afterTargets) {
                 budget.ChargeComparison(cancellationToken);
                 if (afterAggregateParents.Contains(afterTarget)) continue;
                 if (!changedRegion.Intersects(afterTarget.Region)) continue;

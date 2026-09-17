@@ -88,14 +88,18 @@ public static partial class OfficeRasterContentSafety {
                 pixels,
                 capability));
         }
-        ValidateAggregateTextCoverage(
+        HashSet<RasterTarget> aggregateParents = ValidateAggregateTextCoverage(
             result.Text,
             recognizedTargets,
             budget,
             cancellationToken);
         IReadOnlyDictionary<RasterTarget, IReadOnlyList<string>> instructionSignals =
             options.Inspection.DetectInstructionLikeText
-                ? ResolveConcealedInstructionSignals(recognizedTargets, concealedTargets, cancellationToken)
+                ? ResolveConcealedInstructionSignals(
+                    recognizedTargets,
+                    concealedTargets,
+                    aggregateParents,
+                    cancellationToken)
                 : new Dictionary<RasterTarget, IReadOnlyList<string>>();
         foreach (RasterConcealment concealed in concealedTargets) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -149,6 +153,7 @@ public static partial class OfficeRasterContentSafety {
     private static IReadOnlyDictionary<RasterTarget, IReadOnlyList<string>> ResolveConcealedInstructionSignals(
         IReadOnlyList<RasterTarget> targets,
         IReadOnlyList<RasterConcealment> concealments,
+        IReadOnlySet<RasterTarget> aggregateParents,
         CancellationToken cancellationToken) {
         var concealed = new HashSet<RasterTarget>(concealments.Select(item => item.Target));
         var signals = new Dictionary<RasterTarget, IReadOnlyList<string>>();
@@ -162,7 +167,15 @@ public static partial class OfficeRasterContentSafety {
             var run = new List<RasterTarget>();
             foreach (RasterTarget target in targets) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (target.Level != level) continue;
+                if (aggregateParents.Contains(target)) continue;
+                if (string.IsNullOrWhiteSpace(target.Text)) {
+                    if (run.Count > 0) run.Add(target);
+                    continue;
+                }
+                if (target.Level != level) {
+                    Flush(run, separator);
+                    continue;
+                }
                 if (!concealed.Contains(target)) {
                     Flush(run, separator);
                     continue;
@@ -176,6 +189,11 @@ public static partial class OfficeRasterContentSafety {
             var run = new List<RasterTarget>();
             foreach (RasterTarget target in targets) {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (aggregateParents.Contains(target)) continue;
+                if (string.IsNullOrWhiteSpace(target.Text)) {
+                    if (run.Count > 0) run.Add(target);
+                    continue;
+                }
                 if (!concealed.Contains(target)) {
                     FlushMixed(run);
                     continue;
@@ -202,7 +220,7 @@ public static partial class OfficeRasterContentSafety {
         void Register(IReadOnlyList<RasterTarget> run, IReadOnlyList<string> detected) {
             if (detected.Count == 0) return;
             foreach (RasterTarget target in run) {
-                if (string.IsNullOrWhiteSpace(target.Text)) continue;
+                if (!concealed.Contains(target) || string.IsNullOrWhiteSpace(target.Text)) continue;
                 if (signals.TryGetValue(target, out IReadOnlyList<string>? existing)) {
                     signals[target] = existing.Concat(detected).Distinct(StringComparer.Ordinal).ToArray();
                 } else {
@@ -212,12 +230,12 @@ public static partial class OfficeRasterContentSafety {
         }
     }
 
-    private static void ValidateAggregateTextCoverage(
+    private static HashSet<RasterTarget> ValidateAggregateTextCoverage(
         string? aggregateText,
         IReadOnlyList<RasterTarget> targets,
         RasterWorkBudget budget,
         CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(aggregateText)) return;
+        if (string.IsNullOrWhiteSpace(aggregateText)) return new HashSet<RasterTarget>();
         if (HasEquivalentTargetText(aggregateText, targets, OcrTextSpanLevel.Line, " ", cancellationToken) ||
             HasEquivalentTargetText(aggregateText, targets, OcrTextSpanLevel.Word, " ", cancellationToken) ||
             HasEquivalentTargetText(
@@ -226,7 +244,7 @@ public static partial class OfficeRasterContentSafety {
                 OcrTextSpanLevel.Character,
                 string.Empty,
                 cancellationToken)) {
-            return;
+            return new HashSet<RasterTarget>();
         }
         HashSet<RasterTarget> aggregateParents = ResolveAggregateParentTargets(
             targets,
@@ -237,7 +255,7 @@ public static partial class OfficeRasterContentSafety {
                 NormalizeWhitespace(aggregateText, cancellationToken),
                 NormalizeWhitespace(flattened, cancellationToken),
                 StringComparison.Ordinal)) {
-            return;
+            return aggregateParents;
         }
         throw new InvalidDataException(
             "OCR aggregate text is not fully represented by accepted bounded text spans.");

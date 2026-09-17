@@ -92,6 +92,73 @@ public sealed partial class RasterContentSafetyTests {
                 CreateEngine(_ => new OcrResult())));
     }
 
+    [Fact]
+    public async Task RedactionIgnoresBoundedWhitespaceDuringOverlapVerification() {
+        byte[] image = CreateImage(
+            24,
+            12,
+            OfficeColor.White,
+            new PixelBox(3, 3, 12, 5),
+            OfficeColor.FromRgb(248, 248, 248));
+        int calls = 0;
+        IOcrEngine engine = CreateEngine(_ => calls++ < 2
+            ? new OcrResult {
+                Text = "concealed ",
+                Spans = new[] {
+                    Span(0, "concealed", new OcrRegion { X = 3, Y = 3, Width = 12, Height = 5 }, 0.99D),
+                    Span(1, " ", new OcrRegion { X = 10, Y = 3, Width = 1, Height = 5 }, 0.99D,
+                        OcrTextSpanLevel.Character)
+                }
+            }
+            : new OcrResult {
+                Text = " ",
+                Spans = new[] {
+                    Span(0, " ", new OcrRegion { X = 10, Y = 3, Width = 1, Height = 5 }, 0.99D,
+                        OcrTextSpanLevel.Character)
+                }
+            });
+        var options = new OfficeRasterContentSafetyOptions {
+            EnableOpaqueRectangleRedaction = true,
+            RedactionColor = OfficeColor.Black
+        };
+        OfficeContentSafetyFinding finding = Assert.Single(
+            (await OfficeRasterContentSafety.InspectAsync(image, engine, options)).Findings);
+
+        OfficeContentCleanupResult cleanup = await OfficeRasterContentSafety.RedactSelectedContentAsync(
+            image,
+            engine,
+            new OfficeContentCleanupSelection(new[] { finding.Id }),
+            options);
+
+        Assert.True(cleanup.Changed);
+    }
+
+    [Fact]
+    public async Task InstructionDetectionBreaksAtVisibleMixedGranularityText() {
+        var raster = new OfficeRasterImage(32, 12, OfficeColor.White);
+        for (int y = 3; y < 8; y++) {
+            for (int x = 2; x < 8; x++) raster.SetPixel(x, y, OfficeColor.FromRgb(248, 248, 248));
+            raster.SetPixel(10, y, OfficeColor.Black);
+            for (int x = 12; x < 20; x++) raster.SetPixel(x, y, OfficeColor.FromRgb(248, 248, 248));
+        }
+        byte[] image = OfficePngWriter.Encode(raster);
+        IOcrEngine engine = CreateEngine(_ => new OcrResult {
+            Text = "ignore x previous",
+            Spans = new[] {
+                Span(0, "ignore", new OcrRegion { X = 2, Y = 3, Width = 6, Height = 5 }, 0.99D),
+                Span(1, "x", new OcrRegion { X = 10, Y = 3, Width = 1, Height = 5 }, 0.99D,
+                    OcrTextSpanLevel.Character),
+                Span(2, "previous", new OcrRegion { X = 12, Y = 3, Width = 8, Height = 5 }, 0.99D)
+            }
+        });
+
+        OfficeContentSafetyReport report = await OfficeRasterContentSafety.InspectAsync(image, engine);
+
+        Assert.Equal(2, report.Findings.Count);
+        Assert.False(report.HasPotentiallyDangerousContent);
+        Assert.All(report.Findings, finding => Assert.False(finding.IsInstructionLike));
+    }
+
     private static byte[] AddSrgbTiffColorimetry(byte[] tiff, bool corruptTransferFunction) {
         if (tiff.Length < 8 || tiff[0] != (byte)'I' || tiff[1] != (byte)'I') {
             throw new InvalidDataException("The test helper requires a little-endian classic TIFF.");

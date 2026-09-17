@@ -347,14 +347,18 @@ public sealed partial class RasterContentSafetyTests {
     public async Task RedactionWithEveryRecognizedSpanSelectedNeedsNoPreComparisonBudget() {
         byte[] image = CreateImage(40, 20, OfficeColor.White,
             new PixelBox(5, 6, 24, 6), OfficeColor.FromRgb(248, 248, 248));
+        const string lineId = "1:1:1:1";
         int calls = 0;
         IOcrEngine engine = CreateEngine(_ => calls++ < 2
             ? new OcrResult {
-                Text = "concealed line",
+                Text = "concealed text",
                 Spans = new[] {
-                    Span(0, "concealed", new OcrRegion { X = 5, Y = 6, Width = 12, Height = 6 }, 0.99D),
-                    Span(1, "concealed line", new OcrRegion { X = 5, Y = 6, Width = 24, Height = 6 }, 0.99D,
-                        OcrTextSpanLevel.Line)
+                    Span(0, "concealed text", new OcrRegion { X = 5, Y = 6, Width = 24, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Line, lineId),
+                    Span(1, "concealed", new OcrRegion { X = 5, Y = 6, Width = 11, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Word, lineId),
+                    Span(2, "text", new OcrRegion { X = 18, Y = 6, Width = 11, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Word, lineId)
                 }
             }
             : new OcrResult());
@@ -364,7 +368,7 @@ public sealed partial class RasterContentSafetyTests {
             RedactionPaddingPixels = 0
         };
         OfficeContentSafetyReport report = await OfficeRasterContentSafety.InspectAsync(image, engine, options);
-        Assert.Equal(2, report.Findings.Count);
+        Assert.Equal(3, report.Findings.Count);
 
         OfficeContentCleanupResult cleanup = await OfficeRasterContentSafety.RedactSelectedContentAsync(
             image,
@@ -373,6 +377,6 @@ public sealed partial class RasterContentSafetyTests {
             options);
 
         Assert.True(cleanup.Changed);
-        Assert.Equal(2, cleanup.Changes.Count);
+        Assert.Equal(3, cleanup.Changes.Count);
     }
 }
