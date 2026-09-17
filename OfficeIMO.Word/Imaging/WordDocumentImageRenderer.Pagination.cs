@@ -329,20 +329,45 @@ namespace OfficeIMO.Word {
                     wrapText: false);
             }
 
-            string text = string.Join(Environment.NewLine, CopyLineRange(lines, lineIndex, lineCount));
-            context.Drawing.AddText(
-                text,
-                textLayout.TextLeft,
-                context.Y,
-                textLayout.TextWidth,
-                height,
-                font,
-                ResolveParagraphTextColor(paragraph, colorScheme),
-                MapTextAlignment(paragraph.ParagraphAlignment),
-                lineHeight,
-                wrapText: true,
-                padding: textLayout.Padding,
-                paragraphIndent: ResolvePaginationSliceIndent(textLayout.ParagraphIndent, lineIndex));
+            if (textLayout.ParagraphIndent.IsEmpty) {
+                string text = string.Join(Environment.NewLine, CopyLineRange(lines, lineIndex, lineCount));
+                context.Drawing.AddText(
+                    text,
+                    textLayout.TextLeft,
+                    context.Y,
+                    textLayout.TextWidth,
+                    height,
+                    font,
+                    ResolveParagraphTextColor(paragraph, colorScheme),
+                    MapTextAlignment(paragraph.ParagraphAlignment),
+                    lineHeight,
+                    wrapText: true,
+                    padding: textLayout.Padding,
+                    paragraphIndent: OfficeTextParagraphIndent.Empty);
+                return;
+            }
+
+            double lineY = context.Y;
+            int lastIndex = Math.Min(lines.Count, lineIndex + lineCount);
+            for (int i = lineIndex; i < lastIndex; i++) {
+                double lineOffset = i == 0
+                    ? textLayout.ParagraphIndent.FirstLineOffset
+                    : textLayout.ParagraphIndent.ContinuationLineOffset;
+                context.Drawing.AddText(
+                    lines[i],
+                    textLayout.TextLeft + lineOffset,
+                    lineY,
+                    Math.Max(1D, textLayout.TextWidth - lineOffset),
+                    lineHeight,
+                    font,
+                    ResolveParagraphTextColor(paragraph, colorScheme),
+                    MapTextAlignment(paragraph.ParagraphAlignment),
+                    lineHeight,
+                    wrapText: false,
+                    padding: textLayout.Padding,
+                    paragraphIndent: OfficeTextParagraphIndent.Empty);
+                lineY += lineHeight;
+            }
         }
 
         private static List<string> CopyLineRange(IReadOnlyList<string> lines, int lineIndex, int lineCount) {
@@ -382,28 +407,39 @@ namespace OfficeIMO.Word {
                     wrapText: false);
             }
 
-            context.Drawing.AddRichText(
-                CreateRichTextRunsFromLines(lines, lineIndex, lineCount),
-                textLayout.TextLeft,
-                context.Y,
-                textLayout.TextWidth,
-                height,
-                MapTextAlignment(paragraph.ParagraphAlignment),
-                lineHeight,
-                wrapText: true,
-                padding: textLayout.Padding,
-                paragraphIndent: ResolvePaginationSliceIndent(textLayout.ParagraphIndent, lineIndex));
-        }
-
-        private static OfficeTextParagraphIndent ResolvePaginationSliceIndent(OfficeTextParagraphIndent paragraphIndent, int lineIndex) {
-            if (lineIndex == 0 || paragraphIndent.IsEmpty) {
-                return paragraphIndent;
+            if (textLayout.ParagraphIndent.IsEmpty) {
+                context.Drawing.AddRichText(
+                    CreateRichTextRunsFromLines(lines, lineIndex, lineCount),
+                    textLayout.TextLeft,
+                    context.Y,
+                    textLayout.TextWidth,
+                    height,
+                    MapTextAlignment(paragraph.ParagraphAlignment),
+                    lineHeight,
+                    wrapText: true,
+                    padding: textLayout.Padding,
+                    paragraphIndent: OfficeTextParagraphIndent.Empty);
+                return;
             }
 
-            double continuationOffset = paragraphIndent.ContinuationLineOffset;
-            return continuationOffset > 0D
-                ? new OfficeTextParagraphIndent(continuationOffset, continuationOffset)
-                : OfficeTextParagraphIndent.Empty;
+            double lineY = context.Y;
+            int lastIndex = Math.Min(lines.Count, lineIndex + lineCount);
+            for (int i = lineIndex; i < lastIndex; i++) {
+                OfficeRichTextLine line = lines[i];
+                double resolvedLineHeight = ResolveRichTextSliceLineHeight(line, lineHeight);
+                context.Drawing.AddRichText(
+                    CreateRichTextRunsFromLines(lines, i, 1),
+                    textLayout.TextLeft + line.OffsetX,
+                    lineY,
+                    Math.Max(1D, textLayout.TextWidth - line.OffsetX),
+                    resolvedLineHeight,
+                    MapTextAlignment(paragraph.ParagraphAlignment),
+                    resolvedLineHeight,
+                    wrapText: false,
+                    padding: textLayout.Padding,
+                    paragraphIndent: OfficeTextParagraphIndent.Empty);
+                lineY += resolvedLineHeight;
+            }
         }
 
         private static int CountRichTextLinesForPage(

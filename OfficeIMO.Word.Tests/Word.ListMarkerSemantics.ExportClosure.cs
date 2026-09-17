@@ -781,8 +781,12 @@ public sealed partial class WordListMarkerSemanticsTests {
 
         WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 0 });
         if (richText) {
-            OfficeDrawingRichText firstLine = firstPage.Drawing.Elements.OfType<OfficeDrawingRichText>()
-                .First(text => text.PlainText.Contains("PageWord", StringComparison.Ordinal));
+            OfficeDrawingRichText[] firstPageLines = firstPage.Drawing.Elements.OfType<OfficeDrawingRichText>()
+                .Where(text => text.PlainText.Contains("PageWord", StringComparison.Ordinal))
+                .ToArray();
+            Assert.True(firstPageLines.Length >= 2, $"suffix={suffix}, expected at least two rich-text lines on the first page");
+            OfficeDrawingRichText firstLine = firstPageLines[0];
+            OfficeDrawingRichText firstPageContinuation = firstPageLines[1];
             OfficeDrawingRichText[] laterLines = Enumerable.Range(1, 6)
                 .SelectMany(pageIndex => document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = pageIndex })
                     .Drawing.Elements.OfType<OfficeDrawingRichText>())
@@ -790,17 +794,25 @@ public sealed partial class WordListMarkerSemanticsTests {
                 .ToArray();
             OfficeDrawingRichText continuation = laterLines.First();
             double firstTextX = firstLine.X + firstLine.Padding.Left + firstLine.ParagraphIndent.FirstLineOffset;
+            double firstPageContinuationTextX = firstPageContinuation.X + firstPageContinuation.Padding.Left + firstPageContinuation.ParagraphIndent.FirstLineOffset;
             double continuationTextX = continuation.X + continuation.Padding.Left + continuation.ParagraphIndent.FirstLineOffset;
+            Assert.True(firstPageContinuationTextX > firstTextX + 15D, $"suffix={suffix}, first={firstTextX}, same-page continuation={firstPageContinuationTextX}");
             Assert.True(continuationTextX > firstTextX + 15D, $"suffix={suffix}, first={firstTextX}, continuation={continuationTextX}");
         } else {
-            OfficeDrawingText firstLine = firstPage.Drawing.Elements.OfType<OfficeDrawingText>()
-                .First(text => text.Text.Contains("PageWord", StringComparison.Ordinal));
+            OfficeDrawingText[] firstPageLines = firstPage.Drawing.Elements.OfType<OfficeDrawingText>()
+                .Where(text => text.Text.Contains("PageWord", StringComparison.Ordinal))
+                .ToArray();
+            Assert.True(firstPageLines.Length >= 2, $"suffix={suffix}, expected at least two text lines on the first page");
+            OfficeDrawingText firstLine = firstPageLines[0];
+            OfficeDrawingText firstPageContinuation = firstPageLines[1];
             OfficeDrawingText continuation = Enumerable.Range(1, 6)
                 .SelectMany(pageIndex => document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = pageIndex })
                     .Drawing.Elements.OfType<OfficeDrawingText>())
                 .First(text => text.Text.Contains("PageWord", StringComparison.Ordinal));
             double firstTextX = firstLine.X + firstLine.Padding.Left + firstLine.ParagraphIndent.FirstLineOffset;
+            double firstPageContinuationTextX = firstPageContinuation.X + firstPageContinuation.Padding.Left + firstPageContinuation.ParagraphIndent.FirstLineOffset;
             double continuationTextX = continuation.X + continuation.Padding.Left + continuation.ParagraphIndent.FirstLineOffset;
+            Assert.True(firstPageContinuationTextX > firstTextX + 15D, $"suffix={suffix}, first={firstTextX}, same-page continuation={firstPageContinuationTextX}");
             Assert.True(continuationTextX > firstTextX + 15D, $"suffix={suffix}, first={firstTextX}, continuation={continuationTextX}");
         }
     }
