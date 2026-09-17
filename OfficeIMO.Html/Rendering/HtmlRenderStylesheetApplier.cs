@@ -23,8 +23,25 @@ internal static class HtmlRenderStylesheetApplier {
         HtmlCssByteBudget cssBudget,
         HtmlDiagnosticReport diagnostics) {
         var reportedCycles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Uri? documentBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
+        if (documentBaseUri != null) {
+            foreach (IElement inlineStyle in document.QuerySelectorAll("style")) {
+                string css = inlineStyle.TextContent ?? string.Empty;
+                if (css.IndexOf("@import", StringComparison.OrdinalIgnoreCase) < 0) continue;
+                inlineStyle.TextContent = ExpandImports(
+                    css,
+                    documentBaseUri,
+                    resources,
+                    options,
+                    limits,
+                    diagnostics,
+                    new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+                    reportedCycles,
+                    cssBudget);
+            }
+        }
         foreach (IElement link in document.QuerySelectorAll("link[href]")) {
-            if (!IsStylesheetLink(link)) {
+            if (!IsStylesheetLink(link) || link.HasAttribute("disabled")) {
                 continue;
             }
 

@@ -142,6 +142,9 @@ public static partial class HtmlContentSafety {
             string html;
             if (prepared.Changed) {
                 foreach (IElement style in prepared.SyntheticStyles) style.Remove();
+                foreach (KeyValuePair<IElement, string> original in prepared.OriginalInlineStyles) {
+                    original.Key.TextContent = original.Value;
+                }
                 html = prepared.Source.SerializeAsXhtml
                     ? prepared.Document.ToHtml(XhtmlMarkupFormatter.Instance)
                     : prepared.Document.ToHtml(HtmlMarkupFormatter.Instance);
@@ -222,6 +225,9 @@ public static partial class HtmlContentSafety {
 
         var diagnostics = new HtmlDiagnosticReport();
         var existingStyles = new HashSet<IElement>(document.QuerySelectorAll("style"));
+        var originalInlineStyles = existingStyles.ToDictionary(
+            style => style,
+            style => style.TextContent ?? string.Empty);
         if (stylesheets.Resources.Count > 0) resourceBudget.Apply(renderOptions);
         HtmlResourceSession resources = await HtmlRenderResourceLoader.LoadAsync(
             stylesheets,
@@ -256,7 +262,7 @@ public static partial class HtmlContentSafety {
         if (unsafeDiagnostic != null) throw CreateStylesheetException(diagnostics);
 
         var syntheticStyles = new HashSet<IElement>(document.QuerySelectorAll("style").Where(item => !existingStyles.Contains(item)));
-        return new PreparedPackagePart(part, document, syntheticStyles, limits);
+        return new PreparedPackagePart(part, document, syntheticStyles, originalInlineStyles, limits);
     }
 
     private static IHtmlDocument ParsePackageDocument(
@@ -274,9 +280,10 @@ public static partial class HtmlContentSafety {
         }
 
         var settings = new XmlReaderSettings {
-            DtdProcessing = DtdProcessing.Prohibit,
+            DtdProcessing = DtdProcessing.Parse,
             XmlResolver = null,
-            MaxCharactersInDocument = safetyOptions.MaxCharacters
+            MaxCharactersInDocument = safetyOptions.MaxCharacters,
+            MaxCharactersFromEntities = safetyOptions.MaxCharacters
         };
         XDocument xml;
         try {
@@ -291,15 +298,27 @@ public static partial class HtmlContentSafety {
         if (xml.Root == null || xml.Root.Name.LocalName != "html" || xml.Root.Name.Namespace != xhtml) {
             throw new InvalidDataException("An EPUB XHTML content document must have an html root in the XHTML namespace.");
         }
-        if (xml.Nodes().Any(node => node is XDocumentType || node is XProcessingInstruction)
-            || xml.DescendantNodes().Any(node => node is XProcessingInstruction)) {
-            throw new InvalidDataException("EPUB XHTML content-safety inspection does not accept document types or processing instructions.");
+        XDocumentType? documentType = xml.Nodes().OfType<XDocumentType>().SingleOrDefault();
+        if (documentType != null
+            && (!documentType.Name.Equals("html", StringComparison.OrdinalIgnoreCase)
+                || !string.IsNullOrWhiteSpace(documentType.PublicId)
+                || !string.IsNullOrWhiteSpace(documentType.SystemId)
+                || !string.IsNullOrWhiteSpace(documentType.InternalSubset))) {
+            throw new InvalidDataException("EPUB XHTML content-safety inspection accepts only the entity-free HTML5 document type.");
+        }
+        if (xml.DescendantNodes().Any(node => node is XProcessingInstruction)
+            || xml.Nodes().Any(node => node is XProcessingInstruction)) {
+            throw new InvalidDataException("EPUB XHTML content-safety inspection does not accept processing instructions.");
         }
 
         var owned = new OfficeIMO.Html.Dom.HtmlDocument(
             AngleSharpDomServices.Instance,
             AngleSharpHtmlParser.Instance.Id);
         int nodeCount = 0;
+        if (documentType != null) {
+            owned.AppendChild(owned.CreateDocumentType("html"));
+            nodeCount++;
+        }
         AppendXmlNode(xml.Root, owned, owned, limits, ref nodeCount, depth: 1, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return NativeDomBridge.GetNativeDocument(owned, cancellationToken);
@@ -393,16 +412,19 @@ public static partial class HtmlContentSafety {
             HtmlContentSafetyPackagePart source,
             IHtmlDocument document,
             ISet<IElement> syntheticStyles,
+            IReadOnlyDictionary<IElement, string> originalInlineStyles,
             HtmlConversionLimits limits) {
             Source = source;
             Document = document;
             SyntheticStyles = syntheticStyles;
+            OriginalInlineStyles = originalInlineStyles;
             Limits = limits;
         }
 
         internal HtmlContentSafetyPackagePart Source { get; }
         internal IHtmlDocument Document { get; }
         internal ISet<IElement> SyntheticStyles { get; }
+        internal IReadOnlyDictionary<IElement, string> OriginalInlineStyles { get; }
         internal HtmlConversionLimits Limits { get; }
         internal bool Changed { get; set; }
     }

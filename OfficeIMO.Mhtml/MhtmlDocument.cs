@@ -233,9 +233,13 @@ public sealed partial class MhtmlDocument {
 
     private MhtmlResource? FindResource(HtmlRenderResourceRequest request) {
         string source = request.Source.Trim();
-        string absolute = request.Uri.AbsoluteUri;
+        int fragmentIndex = source.IndexOf('#');
+        string retrievalSource = fragmentIndex >= 0 ? source.Substring(0, fragmentIndex) : source;
+        var retrievalUriBuilder = new UriBuilder(request.Uri) { Fragment = string.Empty };
+        Uri retrievalUri = retrievalUriBuilder.Uri;
+        string absolute = retrievalUri.AbsoluteUri;
         if (request.Uri.Scheme.Equals("cid", StringComparison.OrdinalIgnoreCase)) {
-            string contentId = Uri.UnescapeDataString(request.Uri.OriginalString.Substring("cid:".Length))
+            string contentId = Uri.UnescapeDataString(retrievalSource.Substring("cid:".Length))
                 .Trim().Trim('<', '>');
             return _resources.FirstOrDefault(resource => string.Equals(resource.ContentId, contentId,
                 StringComparison.OrdinalIgnoreCase));
@@ -243,12 +247,12 @@ public sealed partial class MhtmlDocument {
 
         foreach (MhtmlResource resource in _resources) {
             if (!string.IsNullOrWhiteSpace(resource.ContentLocation)) {
-                if (string.Equals(resource.ContentLocation, source, StringComparison.OrdinalIgnoreCase)) return resource;
+                if (string.Equals(resource.ContentLocation, retrievalSource, StringComparison.OrdinalIgnoreCase)) return resource;
                 if (Uri.TryCreate(BaseUri, resource.ContentLocation, out Uri? resolved) &&
                     string.Equals(resolved.AbsoluteUri, absolute, StringComparison.OrdinalIgnoreCase)) return resource;
             }
             if (!string.IsNullOrWhiteSpace(resource.FileName) &&
-                string.Equals(resource.FileName, source, StringComparison.OrdinalIgnoreCase)) return resource;
+                string.Equals(resource.FileName, retrievalSource, StringComparison.OrdinalIgnoreCase)) return resource;
         }
         return null;
     }

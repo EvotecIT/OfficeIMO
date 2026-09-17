@@ -50,6 +50,8 @@ public sealed class EpubReadOptions {
     /// </summary>
     public bool IncludeResourceData { get; set; }
 
+    internal Func<string, string?, bool>? ResourceDataFilter { get; set; }
+
     /// <summary>Maximum number of manifest resources returned.</summary>
     public int MaxResources { get; set; } = 2_000;
 

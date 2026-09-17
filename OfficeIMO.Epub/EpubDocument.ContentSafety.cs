@@ -127,7 +127,7 @@ public sealed partial class EpubDocument {
         EpubResource[] htmlResources = document.Resources.Where(IsHtmlResource).ToArray();
         if (htmlResources.Length == 0) throw new InvalidDataException("The EPUB manifest contains no local HTML or XHTML content documents.");
         var resourcesByUri = new Dictionary<string, EpubResource>(StringComparer.Ordinal);
-        foreach (EpubResource resource in document.Resources.Where(item => !item.IsRemote && item.Data != null)) {
+        foreach (EpubResource resource in document.Resources.Where(item => !item.IsRemote)) {
             resourcesByUri[CreatePackageUri(resource.Path).AbsoluteUri] = resource;
         }
 
@@ -140,7 +140,12 @@ public sealed partial class EpubDocument {
                 throw new InvalidDataException("EPUB content document requires unsupported decryption: " + resource.Path);
             }
             string html = OfficeContentSafetyInputGuard.DecodeText(bytes, options);
-            var renderOptions = CreateEpubRenderOptions(resource.Path, resourcesByUri, options);
+            var renderOptions = CreateEpubRenderOptions(
+                resource.Path,
+                packageBytes,
+                resourcesByUri,
+                effectiveReadOptions,
+                options);
             bool xhtml = IsXhtmlResource(resource);
             parts.Add(new HtmlContentSafetyPackagePart(
                 resource.Path,
@@ -167,6 +172,12 @@ public sealed partial class EpubDocument {
             MaxTotalRawHtmlBytes = Math.Min(source.MaxTotalRawHtmlBytes, safety.MaxExpandedPackageBytes),
             IncludeRawHtml = false,
             IncludeResourceData = true,
+            ResourceDataFilter = static (path, mediaType) =>
+                string.Equals(mediaType, "application/xhtml+xml", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(mediaType, "text/html", StringComparison.OrdinalIgnoreCase)
+                || path.EndsWith(".xhtml", StringComparison.OrdinalIgnoreCase)
+                || path.EndsWith(".html", StringComparison.OrdinalIgnoreCase)
+                || path.EndsWith(".htm", StringComparison.OrdinalIgnoreCase),
             MaxResources = Math.Min(source.MaxResources, safety.MaxPackageEntries),
             MaxResourceBytes = Math.Min(source.MaxResourceBytes, safety.MaxInputBytes),
             MaxTotalResourceBytes = Math.Min(source.MaxTotalResourceBytes, safety.MaxExpandedPackageBytes),
@@ -179,7 +190,9 @@ public sealed partial class EpubDocument {
 
     private static HtmlRenderOptions CreateEpubRenderOptions(
         string contentPath,
+        byte[] packageBytes,
         IReadOnlyDictionary<string, EpubResource> resourcesByUri,
+        EpubReadOptions readOptions,
         OfficeContentSafetyOptions options) {
         var resourcePolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile();
         resourcePolicy.AllowedUrlSchemes.Add("epub");
@@ -187,24 +200,53 @@ public sealed partial class EpubDocument {
             BaseUri = CreatePackageUri(contentPath),
             ResourceUrlPolicy = resourcePolicy,
             MaxInputCharacters = options.MaxCharacters,
-            MaxResourceBytes = options.MaxInputBytes,
-            MaxTotalResourceBytes = options.MaxExpandedPackageBytes,
-            MaxResourceCount = options.MaxPackageEntries,
-            MaxResourceRequests = options.MaxPackageEntries
+            MaxResourceBytes = Math.Min(options.MaxInputBytes, readOptions.MaxResourceBytes),
+            MaxTotalResourceBytes = Math.Min(options.MaxExpandedPackageBytes, readOptions.MaxTotalResourceBytes),
+            MaxResourceCount = Math.Min(options.MaxPackageEntries, readOptions.MaxResources),
+            MaxResourceRequests = Math.Min(options.MaxPackageEntries, readOptions.MaxResources)
         };
         renderOptions.ResourceResolver = (request, token) => {
             token.ThrowIfCancellationRequested();
             var lookupUri = new UriBuilder(request.Uri) { Fragment = string.Empty }.Uri;
             if (!request.Uri.Scheme.Equals("epub", StringComparison.OrdinalIgnoreCase)
                 || !resourcesByUri.TryGetValue(lookupUri.AbsoluteUri, out EpubResource? resource)
-                || resource.Data == null) {
+                || resource.Encryption?.RequiresDecryption == true) {
                 return Task.FromResult<HtmlResolvedResource?>(null);
             }
+            byte[] data = ReadPackageResource(packageBytes, resource, readOptions.MaxResourceBytes, token);
             return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
-                resource.Data,
+                data,
                 string.IsNullOrWhiteSpace(resource.MediaType) ? "application/octet-stream" : resource.MediaType!));
         };
         return renderOptions;
+    }
+
+    private static byte[] ReadPackageResource(
+        byte[] packageBytes,
+        EpubResource resource,
+        long maximumBytes,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (resource.LengthBytes > maximumBytes || resource.LengthBytes > int.MaxValue) {
+            throw new InvalidDataException("EPUB stylesheet exceeds the configured resource limit: " + resource.Path);
+        }
+        using var stream = new MemoryStream(packageBytes, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        ZipArchiveEntry? entry = archive.Entries.FirstOrDefault(item => item.FullName.Equals(resource.Path, StringComparison.Ordinal));
+        if (entry == null) throw new InvalidDataException("EPUB stylesheet entry is missing: " + resource.Path);
+        using Stream source = entry.Open();
+        using var output = new MemoryStream(checked((int)entry.Length));
+        var buffer = new byte[81920];
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int read = source.Read(buffer, 0, buffer.Length);
+            if (read == 0) break;
+            if (output.Length > maximumBytes - read) {
+                throw new InvalidDataException("EPUB stylesheet exceeds the configured resource limit: " + resource.Path);
+            }
+            output.Write(buffer, 0, read);
+        }
+        return output.ToArray();
     }
 
     private static Uri CreatePackageUri(string path) {

@@ -132,6 +132,7 @@ internal static partial class EpubReader {
             MaxTotalRawHtmlBytes = source.MaxTotalRawHtmlBytes,
             IncludeRawHtml = source.IncludeRawHtml,
             IncludeResourceData = source.IncludeResourceData,
+            ResourceDataFilter = source.ResourceDataFilter,
             MaxResources = source.MaxResources,
             MaxResourceBytes = source.MaxResourceBytes,
             MaxTotalResourceBytes = source.MaxTotalResourceBytes,

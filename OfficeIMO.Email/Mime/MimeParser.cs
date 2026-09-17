@@ -37,7 +37,7 @@ internal static class MimeParser {
         EmailDocument document, MimeParserState state, int mimeDepth, int nestedMessageDepth, string location,
         string defaultContentType = "text/plain", string? preferredBodyContentId = null,
         bool isRelatedSibling = false, bool isDefaultRelatedRoot = false,
-        bool isBodyWrapperEntity = true) {
+        EmailProtectionKind inheritedBodyProtection = EmailProtectionKind.None) {
         if (mimeDepth > state.Options.MaxMimeDepth) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMimeDepth), mimeDepth, state.Options.MaxMimeDepth);
         }
@@ -62,11 +62,10 @@ internal static class MimeParser {
         EmailProtectionKind entityProtection = MimeProtectionProjection.Classify(
             contentType.Value,
             contentType.GetParameter("protocol") ?? string.Empty);
-        if (isBodyWrapperEntity && !attachmentDisposition && string.IsNullOrWhiteSpace(fileName)
-            && entityProtection != EmailProtectionKind.None && !document.Protection.IsProtected) {
-            document.Protection.Kind = entityProtection;
-            document.Protection.MessageClass = document.MessageClass;
-        }
+        EmailProtectionKind bodyProtection = !attachmentDisposition && string.IsNullOrWhiteSpace(fileName)
+            && entityProtection != EmailProtectionKind.None
+                ? entityProtection
+                : inheritedBodyProtection;
 
         if (contentType.Value.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase) &&
             !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
@@ -90,7 +89,6 @@ internal static class MimeParser {
                 ? "message/rfc822"
                 : "text/plain";
             bool isRelated = string.Equals(contentType.Value, "multipart/related", StringComparison.OrdinalIgnoreCase);
-            bool isAlternative = string.Equals(contentType.Value, "multipart/alternative", StringComparison.OrdinalIgnoreCase);
             string? childPreferredBodyContentId = isRelated
                 ? TrimAngleBrackets(contentType.GetParameter("start"))
                 : preferredBodyContentId;
@@ -105,17 +103,12 @@ internal static class MimeParser {
                 string? partPreferredBodyContentId = childPreferredBodyContentId;
                 bool partIsDefaultRelatedRoot = isRelated && i == 0 &&
                     string.IsNullOrWhiteSpace(childPreferredBodyContentId);
-                bool partContentIdMatchesPreferred = !string.IsNullOrWhiteSpace(childPreferredBodyContentId) &&
-                    string.Equals(TrimAngleBrackets(MimeHeaderParser.GetValue(partHeaders, "Content-ID")),
-                        childPreferredBodyContentId, StringComparison.OrdinalIgnoreCase);
                 if (isRelated && string.IsNullOrWhiteSpace(partPreferredBodyContentId) && i == 0) {
                     partPreferredBodyContentId = TrimAngleBrackets(MimeHeaderParser.GetValue(partHeaders, "Content-ID"));
                 }
-                bool partIsBodyWrapperEntity = isBodyWrapperEntity &&
-                    (isRelated ? partIsDefaultRelatedRoot || partContentIdMatchesPreferred : isAlternative || i == 0);
                 ParseEntity(partHeaders, data, partBodyOffset, Math.Max(0, partEnd - partBodyOffset),
                     document, state, mimeDepth + 1, nestedMessageDepth, partLocation, childDefaultContentType,
-                    partPreferredBodyContentId, isRelated, partIsDefaultRelatedRoot, partIsBodyWrapperEntity);
+                    partPreferredBodyContentId, isRelated, partIsDefaultRelatedRoot, bodyProtection);
             }
             return;
         }
@@ -167,6 +160,10 @@ internal static class MimeParser {
             transferEncoding, state.Diagnostics, location);
 
         if (isBody) {
+            if (bodyProtection != EmailProtectionKind.None && !document.Protection.IsProtected) {
+                document.Protection.Kind = bodyProtection;
+                document.Protection.MessageClass = document.MessageClass;
+            }
             document.MimeHasMessageBody = true;
             string? charset = contentType.GetParameter("charset");
             string text = MimeTextCodec.DecodeText(decoded, charset, state.Diagnostics, location);

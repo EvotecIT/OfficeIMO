@@ -273,7 +273,8 @@ internal static partial class EpubReader {
 
             encryptionByPath.TryGetValue(item.FullPath, out EpubEncryptionInfo? resourceEncryption);
             byte[]? data = null;
-            if (options.IncludeResourceData) {
+            if (options.IncludeResourceData
+                && (options.ResourceDataFilter == null || options.ResourceDataFilter(item.FullPath, item.MediaType))) {
                 if (resourceEncryption?.RequiresDecryption == true) {
                     diagnostics.Warning(
                         "epub.resource.encrypted",

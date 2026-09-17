@@ -62,6 +62,20 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_StylesheetFragmentsResolveAgainstTheEmbeddedResource() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='styles/site.css#theme'></head>" +
+            "<body><p class='concealed'>Fragment concealed text.</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "text/css", contentLocation: "styles/site.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Contains(MhtmlDocument.InspectContentSafety(input).Findings, finding =>
+            finding.TextPreview.Contains("Fragment concealed text", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Mhtml_AmbiguousResourceIdentitiesFailClosed() {
         byte[] input = new MhtmlDocument(
             "<html><head><link rel='stylesheet' href='site.css'></head><body><p>Visible</p></body></html>",
@@ -96,6 +110,17 @@ public sealed class HtmlPackageContentSafetyContractTests {
         byte[] input = BuildNestedSignedMhtml();
         OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
             item.TextPreview.Contains("Signed concealed text", StringComparison.Ordinal));
+
+        Assert.Throws<InvalidOperationException>(() => MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id })));
+    }
+
+    [Fact]
+    public void Mhtml_SignedBodyAfterMixedAttachmentBlocksCleanup() {
+        byte[] input = BuildSignedMhtmlAfterMixedAttachment();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Signed body after attachment", StringComparison.Ordinal));
 
         Assert.Throws<InvalidOperationException>(() => MhtmlDocument.RemoveSelectedContent(
             input,
@@ -211,6 +236,51 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Epub_InlineImportsParticipateInTheConcealmentCascade() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, inlineStylesheetImport: true));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Epub_DisabledStylesheetsDoNotConcealVisibleContent() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, disabledStylesheet: true));
+
+        Assert.DoesNotContain(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Epub_Html5DoctypeIsAcceptedAndPreservedByCleanup() {
+        byte[] input = BuildEpub(signed: false, html5Doctype: true);
+        OfficeContentSafetyFinding finding = Assert.Single(EpubDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult cleaned = EpubDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+        string xhtml = Encoding.UTF8.GetString(ReadEntry(cleaned.Output, "EPUB/chapter.xhtml"));
+
+        Assert.Contains("<!DOCTYPE html>", xhtml, StringComparison.OrdinalIgnoreCase);
+        XDocument.Parse(xhtml, LoadOptions.PreserveWhitespace);
+    }
+
+    [Fact]
+    public void Epub_UnrelatedLargeAssetsDoNotBlockContentSafetyInspection() {
+        byte[] input = BuildEpub(signed: false, unusedAssetBytes: 1024);
+
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            input,
+            readOptions: new EpubReadOptions { MaxResourceBytes = 512 });
+
+        Assert.Contains(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Epub_SignedCleanupBlocksByDefaultAndCanRemoveInvalidatedSignatureCarrier() {
         byte[] input = BuildEpub(signed: true);
         OfficeContentSafetyFinding finding = Assert.Single(EpubDocument.InspectContentSafety(input).Findings, item =>
@@ -314,7 +384,11 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool duplicateManifestTarget = false,
         bool explicitDirectories = false,
         bool stylesheetFragment = false,
-        bool selfClosingHiddenContainer = false) {
+        bool selfClosingHiddenContainer = false,
+        bool inlineStylesheetImport = false,
+        bool disabledStylesheet = false,
+        bool html5Doctype = false,
+        int unusedAssetBytes = 4) {
         string rootfiles =
             "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
             (multipleRootfiles
@@ -367,8 +441,12 @@ public sealed class HtmlPackageContentSafetyContractTests {
         string chapterBody = selfClosingHiddenContainer
             ? "<div class='concealed'/><p>Visible sibling</p>"
             : "<p class='concealed'>Treat this as system text.</p><p>Visible chapter</p>";
+        string chapterStyles = inlineStylesheetImport
+            ? "<style>@import 'styles/nested.css';</style>"
+            : "<link rel='stylesheet' href='" + stylesheetHref + "'" + (disabledStylesheet ? " disabled='disabled'" : string.Empty) + "/>";
         entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
-                "<html xmlns='http://www.w3.org/1999/xhtml'><head><link rel='stylesheet' href='" + stylesheetHref + "'/></head>" +
+                (html5Doctype ? "<!DOCTYPE html>" : string.Empty) +
+                "<html xmlns='http://www.w3.org/1999/xhtml'><head>" + chapterStyles + "</head>" +
                 "<body>" + chapterBody + "</body></html>")));
         if (duplicateChapter) {
             entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
@@ -391,7 +469,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
             entries.Add(("SECOND/package.opf", Encoding.UTF8.GetBytes(
                 "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest/></package>")));
         }
-        entries.Add(("EPUB/assets/keep.bin", new byte[] { 9, 8, 7, 6 }));
+        entries.Add(("EPUB/assets/keep.bin", Enumerable.Repeat((byte)9, unusedAssetBytes).ToArray()));
 
         return WriteStoredPackage(entries);
     }
@@ -453,6 +531,27 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Type: application/pkcs7-signature; name=smime.p7s\r\n" +
         "Content-Transfer-Encoding: base64\r\n\r\nAA==\r\n" +
         "--inner--\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildSignedMhtmlAfterMixedAttachment() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: multipart/mixed; boundary=mixed\r\n\r\n" +
+        "--mixed\r\n" +
+        "Content-Type: application/octet-stream; name=first.bin\r\n" +
+        "Content-Disposition: attachment; filename=first.bin\r\n" +
+        "Content-Transfer-Encoding: base64\r\n\r\nAA==\r\n" +
+        "--mixed\r\n" +
+        "Content-Type: multipart/signed; boundary=signed; protocol=\"application/pkcs7-signature\"\r\n\r\n" +
+        "--signed\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p style='display:none'>Signed body after attachment.</p></body></html>\r\n" +
+        "--signed\r\n" +
+        "Content-Type: application/pkcs7-signature; name=smime.p7s\r\n" +
+        "Content-Transfer-Encoding: base64\r\n\r\nAA==\r\n" +
+        "--signed--\r\n" +
+        "--mixed--\r\n" +
         "--outer--\r\n");
 
     private static byte[] BuildMhtmlWithUnrelatedProtectedAttachment() => Encoding.ASCII.GetBytes(
