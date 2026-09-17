@@ -275,6 +275,12 @@ if ($scriptText -notmatch 'OfficeImoBenchmarkMatrix' -or $scriptText -notmatch '
     throw "Benchmark sort/filter script does not expose the expected matrix behaviors."
 }
 
+if ($scriptText -notmatch "benchmark\.dependency\.' \+ packageName\.toLowerCase\(\) \+ '\.version" -or
+    $scriptText -notmatch "'QuestPDF ' \+ questPdfVersion" -or
+    $scriptText -notmatch 'scenarioName\(row, result\)') {
+    throw 'The benchmark UI no longer displays the exact QuestPDF package version from result provenance.'
+}
+
 if ($scriptText -notmatch 'benchmark-workload' -or
     $scriptText -notmatch 'benchmark-os' -or
     $scriptText -notmatch 'benchmark-mode' -or
@@ -286,9 +292,7 @@ if ($scriptText -notmatch 'benchmark-workload' -or
     $scriptText -notmatch "filterValue\('runMode'\)" -or
     $scriptText -notmatch "row\.getAttribute\('data-platform'\)" -or
     $scriptText -notmatch "row\.getAttribute\('data-run-mode'\)" -or
-    $scriptText -notmatch 'candidate\.comparisonId === selectedComparison' -or
-    $scriptText -notmatch 'item\.comparisonId === selectedComparison' -or
-    $scriptText -notmatch 'item\.runMode === selectedMode' -or
+    $scriptText -notmatch 'baseComparisonId\(candidate\.comparisonId\) === comparisonId' -or
     $scriptText -notmatch 'candidate\.publish === true' -or
     $scriptText -notmatch 'activeRequestId' -or
     $scriptText -notmatch 'requestId !== activeRequestId' -or
@@ -306,12 +310,16 @@ if ($scriptText -notmatch 'benchmark-workload' -or
     $scriptText -notmatch "macos:\s*'macOS'" -or
     $scriptText -notmatch 'workloadName\(comparisonId\)' -or
     $scriptText -notmatch 'comparisonGroupName\(row\)' -or
+    $scriptText -notmatch "queryValue\('benchmark-cpu', '0xffff'\)" -or
+    $scriptText -notmatch 'comparisonAffinity\(candidate\.comparisonId\) === selectedAffinity' -or
     $scriptText -notmatch "\['namespace', 'type', 'fullname'\]" -or
     $scriptText -notmatch "split\('&'\)" -or
     $scriptText -notmatch 'csv-25k-datareader-write-net10\.0' -or
     $scriptText -notmatch 'xlsx-25k-datareader-write-net10\.0' -or
     $scriptText -match "scenario === 'OfficeIMO'" -or
-    $pageHtml -notmatch 'Diagnostic results prove execution and validation only') {
+    $pageHtml -notmatch 'Diagnostic results prove execution and validation only' -or
+    $pageHtml -notmatch 'data-library-comparison-affinity="0xffff"' -or
+    $pageHtml -notmatch 'data-library-comparison-affinity="0xffff0000"') {
     throw 'Library comparison selector does not preserve shareable state, reject stale responses, and enforce evidence safety labels.'
 }
 

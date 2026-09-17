@@ -7,7 +7,7 @@
       <p class="imo-benchmark-eyebrow">Multi-library comparison evidence</p>
       <h2>Platform-specific .NET 10 comparisons</h2>
       <p>
-        Choose a PDF, spreadsheet, or CSV workload, then select an operating system.
+        Choose a PDF, spreadsheet, or CSV workload, then select an operating system and, when available, a CPU domain.
         Compare validated output, median time, and memory allocation within that measured environment.
       </p>
     </div>
@@ -44,6 +44,13 @@
       <div class="imo-library-comparison-buttons" data-library-comparison-modes>
         <button type="button" data-library-comparison-mode="full">Full</button>
         <button type="button" data-library-comparison-mode="quick">Diagnostic</button>
+      </div>
+    </div>
+    <div data-library-comparison-affinity-control hidden>
+      <span class="imo-library-comparison-label">CPU domain</span>
+      <div class="imo-library-comparison-buttons" data-library-comparison-affinities>
+        <button type="button" data-library-comparison-affinity="0xffff">Logical CPUs 0–15</button>
+        <button type="button" data-library-comparison-affinity="0xffff0000">Logical CPUs 16–31</button>
       </div>
     </div>
   </div>
@@ -94,7 +101,8 @@
 
   </details>
   <p class="imo-library-comparison-methodology">
-    Full results support public comparisons. Diagnostic results prove execution and validation only. Every library is
+    Full results support public comparisons. Diagnostic results prove execution and validation only. CPU-domain results
+    keep every library on the same fixed affinity mask and remain separate rather than selecting only the faster domain. Every library is
     a peer in the matrix; no implementation is framed as an opponent or universal baseline.
     Unsupported workload lanes are not applicable, missing platform evidence remains visible,
     and incompatible evidence is never combined.

@@ -41,6 +41,15 @@ internal static class PdfInvoiceEvidenceRunner {
                 tree = provenance.Tree,
                 worktreeClean = provenance.IsClean
             },
+            dependencies = new {
+                questPdf = new {
+                    packageVersion = QuestPdfBenchmarkPolicy.ConfiguredPackageVersion,
+                    assemblyVersion = QuestPdfBenchmarkPolicy.LoadedAssemblyVersion,
+                    licenseType = QuestPdfBenchmarkPolicy.ConfiguredLicenseType,
+                    license = QuestPdfBenchmarkPolicy.ConfiguredLicense,
+                    licenseUrl = QuestPdfBenchmarkPolicy.ConfiguredLicenseUrl
+                }
+            },
             contract = new {
                 pages = 2,
                 invoiceNumber = scenario.Invoice.Number,

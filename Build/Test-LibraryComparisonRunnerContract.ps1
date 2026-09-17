@@ -1,6 +1,74 @@
 $ErrorActionPreference = 'Stop'
 
 $runner = Join-Path $PSScriptRoot 'Run-LibraryComparisonBenchmarks.ps1'
+$comparisonProject = Join-Path (Split-Path -Parent $PSScriptRoot) `
+    'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+[xml] $comparisonProjectXml = Get-Content -LiteralPath $comparisonProject -Raw
+$questPdfReference = @($comparisonProjectXml.Project.ItemGroup.PackageReference) |
+    Where-Object Include -eq 'QuestPDF' |
+    Select-Object -First 1
+$questPdfVersionProperty = @($comparisonProjectXml.SelectNodes('/Project/PropertyGroup/QuestPdfBenchmarkVersion')) |
+    Where-Object { $_.GetAttribute('Condition') -eq "'`$(QuestPdfBenchmarkVersion)' == ''" } |
+    Select-Object -First 1
+if ($null -eq $questPdfReference -or [string] $questPdfReference.Version -ne '$(QuestPdfBenchmarkVersion)' -or
+    $null -eq $questPdfVersionProperty -or $questPdfVersionProperty.InnerText -ne '2026.5.0') {
+    throw 'QuestPDF comparison workloads are not pinned to the last MIT-compatible package release.'
+}
+
+$publicQuestPdf = @(
+    & $runner -Workload pdfgenerate -RunMode quick -PlanOnly
+)
+if ($publicQuestPdf.Count -ne 1 -or
+    $publicQuestPdf[0].QuestPdfPackageVersion -ne '2026.5.0' -or
+    $publicQuestPdf[0].InternalOnly -or
+    -not $publicQuestPdf[0].CatalogEligible) {
+    throw 'The public QuestPDF lane is not pinned, labelled, and catalog eligible under the MIT-compatible release.'
+}
+
+$domainPlan = @(
+    & $runner -Workload pdfgenerate -RunMode full -AffinityMask 4294901760 -PlanOnly
+)
+if ($domainPlan.Count -ne 1 -or
+    $domainPlan[0].CatalogComparisonId -ne 'pdf-structured-generation-net10.0-affinity-0xffff0000' -or
+    $domainPlan[0].AffinityMask -ne '0xFFFF0000') {
+    throw 'CPU-domain evidence does not receive a stable, non-colliding catalog identity.'
+}
+
+$internalQuestPdf = @(
+    & $runner `
+        -Workload pdfgenerate `
+        -RunMode full `
+        -QuestPdfPackageVersion 2026.9.0 `
+        -QuestPdfLicenseType Evaluation `
+        -InternalQuestPdf `
+        -ConfirmQuestPdfAuthorization `
+        -PlanOnly
+)
+if ($internalQuestPdf.Count -ne 1 -or
+    $internalQuestPdf[0].QuestPdfPackageVersion -ne '2026.9.0' -or
+    -not $internalQuestPdf[0].InternalOnly -or
+    $internalQuestPdf[0].CatalogEligible -or
+    $internalQuestPdf[0].WillCatalog -or
+    $internalQuestPdf[0].Publish) {
+    throw 'The internal QuestPDF lane can still reach shared benchmark publication.'
+}
+
+$internalPublishBlocked = $false
+try {
+    & $runner `
+        -Workload pdfgenerate `
+        -RunMode full `
+        -QuestPdfPackageVersion 2026.9.0 `
+        -InternalQuestPdf `
+        -ConfirmQuestPdfAuthorization `
+        -Publish `
+        -PlanOnly | Out-Null
+} catch {
+    $internalPublishBlocked = $true
+}
+if (-not $internalPublishBlocked) {
+    throw 'Internal QuestPDF mode can be combined with benchmark publication.'
+}
 
 $standalone = @(
     & $runner -Workload pdfformats -RunMode full -Publish -PlanOnly

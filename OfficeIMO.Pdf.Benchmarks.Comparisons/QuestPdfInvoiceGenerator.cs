@@ -134,7 +134,7 @@ internal static class QuestPdfInvoiceGenerator {
 
     private static void Configure(InvoiceComparisonScenario scenario) {
         if (Interlocked.Exchange(ref _configured, 1) != 0) return;
-        QuestPDF.Settings.License = LicenseType.Evaluation;
+        QuestPdfBenchmarkPolicy.ConfigureLicense();
         using var regular = new MemoryStream(scenario.RegularFont, writable: false);
         using var bold = new MemoryStream(scenario.BoldFont, writable: false);
         QuestPDF.Drawing.FontManager.RegisterFont(regular);

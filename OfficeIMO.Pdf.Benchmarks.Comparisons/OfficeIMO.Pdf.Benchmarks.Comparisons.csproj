@@ -7,8 +7,13 @@
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
+    <QuestPdfBenchmarkVersion Condition="'$(QuestPdfBenchmarkVersion)' == ''">2026.5.0</QuestPdfBenchmarkVersion>
     <HtmlTinkerXProjectPath Condition="'$(HtmlTinkerXProjectPath)' == '' and '$(HTMLTINKERX_PROJECT_PATH)' != ''">$(HTMLTINKERX_PROJECT_PATH)</HtmlTinkerXProjectPath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="QuestPdfBenchmarkVersion" Value="$(QuestPdfBenchmarkVersion)" />
+  </ItemGroup>
 
   <PropertyGroup Condition="'$(HtmlTinkerXProjectPath)' != ''">
     <DefineConstants>$(DefineConstants);HTMLTINKERX_SOURCE</DefineConstants>
@@ -27,7 +32,13 @@
     <PackageReference Include="PdfPig" Version="0.1.15" />
     <PackageReference Include="PDFsharp-MigraDoc" Version="6.2.4" />
     <PackageReference Include="PeachPDF" Version="0.9.12" />
-    <PackageReference Include="QuestPDF" Version="2026.7.2" />
+    <!--
+      2026.5.0 is the last QuestPDF release whose embedded Community license
+      grants eligible open-source projects the MIT license. Starting with
+      2026.6.0, QuestPDF's source-available license restricts use by competing
+      general-purpose PDF libraries. Keep this benchmark-only dependency pinned.
+    -->
+    <PackageReference Include="QuestPDF" Version="$(QuestPdfBenchmarkVersion)" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(HtmlTinkerXProjectPath)' != ''">

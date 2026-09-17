@@ -54,6 +54,11 @@ param(
     [ValidateSet('net8.0', 'net10.0')]
     [string] $PowerForgeFramework = 'net8.0',
     [UInt64] $AffinityMask = 0,
+    [string] $QuestPdfPackageVersion,
+    [ValidateSet('Community', 'Evaluation', 'Professional', 'Enterprise')]
+    [string] $QuestPdfLicenseType = 'Community',
+    [switch] $InternalQuestPdf,
+    [switch] $ConfirmQuestPdfAuthorization,
     [switch] $AcceptNPOIOSMFLicense,
     [switch] $Publish,
     [switch] $PlanOnly
@@ -68,6 +73,8 @@ if ($Publish -and $RunMode -ne 'full') {
 . (Join-Path $PSScriptRoot 'BenchmarkEvidence.ps1')
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
+$questPdfBenchmarkVersion = '2026.5.0'
+$questPdfWorkloads = @('pdfgenerate', 'pdfinvoice', 'pdfread', 'pdfreverse')
 $htmlTinkerXProjectPath = $null
 $htmlTinkerXSourceRoot = $null
 $htmlTinkerXSourceCommit = $null
@@ -708,6 +715,36 @@ if ($Workload -eq 'pdfcorpusread' -and [string]::IsNullOrWhiteSpace($PdfCorpusRo
 }
 
 $containsWordWorkload = @($selected | Where-Object { $_ -like 'word*' }).Count -gt 0
+$containsQuestPdfWorkload = @($selected | Where-Object { $_ -in $questPdfWorkloads }).Count -gt 0
+$effectiveQuestPdfVersion = if ($InternalQuestPdf) { $QuestPdfPackageVersion } else { $questPdfBenchmarkVersion }
+
+if ($InternalQuestPdf) {
+    if ($Publish) {
+        throw 'Internal QuestPDF comparisons cannot be published or written to the website benchmark catalog.'
+    }
+    if (-not $containsQuestPdfWorkload -or @($selected | Where-Object { $_ -notin $questPdfWorkloads }).Count -gt 0) {
+        throw 'Internal QuestPDF mode accepts only workloads that actually exercise QuestPDF.'
+    }
+    if ([string]::IsNullOrWhiteSpace($QuestPdfPackageVersion)) {
+        throw 'Internal QuestPDF mode requires an explicit -QuestPdfPackageVersion.'
+    }
+    if (-not $ConfirmQuestPdfAuthorization) {
+        throw 'Internal QuestPDF mode requires -ConfirmQuestPdfAuthorization. Internal or unpublished use does not itself override the selected version''s license.'
+    }
+} elseif (-not [string]::IsNullOrWhiteSpace($QuestPdfPackageVersion)) {
+    throw '-QuestPdfPackageVersion is available only with -InternalQuestPdf.'
+}
+
+if ($containsQuestPdfWorkload) {
+    [xml] $comparisonProject = Get-Content -LiteralPath (
+        Join-Path $repositoryRoot 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj') -Raw
+    $questPdfReference = @($comparisonProject.Project.ItemGroup.PackageReference) |
+        Where-Object Include -eq 'QuestPDF' |
+        Select-Object -First 1
+    if ($null -eq $questPdfReference -or [string] $questPdfReference.Version -ne '$(QuestPdfBenchmarkVersion)') {
+        throw "QuestPDF benchmark workloads require the last MIT-compatible package version $questPdfBenchmarkVersion."
+    }
+}
 
 if ($Publish -and $containsWordWorkload) {
     throw @'
@@ -724,19 +761,28 @@ The Word comparison suite includes NPOI 2.8.0. Review the NPOI binary EULA at ht
 $executionPlan = @(
     foreach ($name in $selected) {
         $definition = $definitions[$name]
-        $catalogEligibleByPolicy = $name -notlike 'word*' -and
+        $catalogComparisonId = if ($null -ne $affinityLabel) {
+            '{0}-affinity-{1}' -f $definition.ComparisonId, $affinityLabel.ToLowerInvariant()
+        } else {
+            $definition.ComparisonId
+        }
+        $catalogEligibleByPolicy = -not $InternalQuestPdf -and
+            $name -notlike 'word*' -and
             ($null -eq $definition.PSObject.Properties['CatalogEligible'] -or [bool] $definition.CatalogEligible)
         $willCatalog = ($RunMode -eq 'quick' -or [bool] $Publish) -and $catalogEligibleByPolicy
         [pscustomobject]@{
             Workload = $name
             Filter = $definition.Filter
             ComparisonId = $definition.ComparisonId
+            CatalogComparisonId = $catalogComparisonId
             CatalogEligible = $catalogEligibleByPolicy
             WillCatalog = $willCatalog
             Publish = [bool] $Publish -and $willCatalog
             ExpectedCaseCount = @($definition.ExpectedCases).Count
             AffinityMask = $affinityLabel
             AffinityApplication = $effectiveAffinityApplication
+            QuestPdfPackageVersion = if ($name -in $questPdfWorkloads) { $effectiveQuestPdfVersion } else { $null }
+            InternalOnly = [bool] $InternalQuestPdf
         }
     }
 )
@@ -808,6 +854,17 @@ foreach ($name in $selected) {
     if ($definition.ValidatedSizeEvidence) {
         $provenanceMetadata['benchmark.workload.sizeEvidencePath'] = 'validated-size-evidence.json'
     }
+    if ($name -in $questPdfWorkloads) {
+        $provenanceMetadata['benchmark.dependency.questpdf.version'] = $effectiveQuestPdfVersion
+        $provenanceMetadata['benchmark.dependency.questpdf.licenseType'] = $QuestPdfLicenseType
+        if (-not $InternalQuestPdf) {
+            $provenanceMetadata['benchmark.dependency.questpdf.license'] = 'MIT'
+            $provenanceMetadata['benchmark.dependency.questpdf.licenseUrl'] =
+                'https://github.com/QuestPDF/QuestPDF/blob/2026.5.0/LICENSE.md'
+        } else {
+            $provenanceMetadata['benchmark.dependency.questpdf.scope'] = 'internal-only; maintainer-confirmed authorization'
+        }
+    }
     if ($null -ne $affinityLabel) {
         $provenanceMetadata['benchmark.workload.affinityMask'] = $affinityLabel
         $provenanceMetadata['benchmark.workload.affinityApplication'] = $effectiveAffinityApplication
@@ -836,6 +893,9 @@ foreach ($name in $selected) {
     if ($name -like 'word*') {
         $arguments += '-p:AcceptNPOIOSMFLicense=true'
     }
+    if ($InternalQuestPdf -and $name -in $questPdfWorkloads) {
+        $arguments += "-p:QuestPdfBenchmarkVersion=$effectiveQuestPdfVersion"
+    }
     $arguments += @(
         '--',
         '--filter', $definition.Filter,
@@ -852,12 +912,16 @@ foreach ($name in $selected) {
     $previousPdfCorpusRoot = $env:OFFICEIMO_PDF_CORPUS_ROOT
     $previousHtmlTinkerXProjectPath = $env:HTMLTINKERX_PROJECT_PATH
     $previousExpectedAffinity = $env:OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY
+    $previousQuestPdfLicenseType = $env:OFFICEIMO_QUESTPDF_LICENSE_TYPE
     try {
         if ($name -eq 'pdfcorpusread') {
             $env:OFFICEIMO_PDF_CORPUS_ROOT = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PdfCorpusRoot)
         }
         if ($definition.Project -eq 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj') {
             $env:HTMLTINKERX_PROJECT_PATH = $htmlTinkerXProjectPath
+        }
+        if ($name -in $questPdfWorkloads) {
+            $env:OFFICEIMO_QUESTPDF_LICENSE_TYPE = $QuestPdfLicenseType
         }
         $env:OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY = $affinityLabel
         & dotnet @arguments
@@ -866,6 +930,7 @@ foreach ($name in $selected) {
         $env:OFFICEIMO_PDF_CORPUS_ROOT = $previousPdfCorpusRoot
         $env:HTMLTINKERX_PROJECT_PATH = $previousHtmlTinkerXProjectPath
         $env:OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY = $previousExpectedAffinity
+        $env:OFFICEIMO_QUESTPDF_LICENSE_TYPE = $previousQuestPdfLicenseType
         Pop-Location
     }
     if ($benchmarkExitCode -ne 0) {
@@ -950,7 +1015,7 @@ foreach ($name in $selected) {
     }
 
     $evidenceLocation = Get-BenchmarkEvidenceLocation `
-        -ComparisonId $definition.ComparisonId `
+        -ComparisonId $workloadPlan.CatalogComparisonId `
         -Platform $platform `
         -RunMode $RunMode `
         -StaticRoot $staticRoot
@@ -979,7 +1044,7 @@ if ($catalogEligible) {
         Update-BenchmarkEvidenceCatalog `
             -InputObject $measurement.Result `
             -Path $catalogPath `
-            -ComparisonId $measurement.Definition.ComparisonId `
+            -ComparisonId $executionPlanByWorkload[$measurement.Workload].CatalogComparisonId `
             -ResultPath $measurement.EvidenceLocation.ResultPath `
             -ResultArtifactPath $measurement.EvidenceLocation.Path `
             -RunMode $RunMode `
@@ -992,11 +1057,14 @@ if ($catalogEligible) {
 $outputs = foreach ($measurement in $measurements) {
     [pscustomobject]@{
         Workload = $measurement.Workload
+        CatalogComparisonId = $executionPlanByWorkload[$measurement.Workload].CatalogComparisonId
         Platform = $platform
         RunMode = $RunMode
         Publish = $executionPlanByWorkload[$measurement.Workload].Publish
         AffinityMask = $affinityLabel
         AffinityApplication = $effectiveAffinityApplication
+        QuestPdfPackageVersion = $executionPlanByWorkload[$measurement.Workload].QuestPdfPackageVersion
+        InternalOnly = $executionPlanByWorkload[$measurement.Workload].InternalOnly
         SourceCommit = $gitSha
         ArtifactsPath = $measurement.ArtifactsPath
         NormalizedResult = if ($measurement.CatalogEligible) {

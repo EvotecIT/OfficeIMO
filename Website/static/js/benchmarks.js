@@ -284,6 +284,8 @@
   var workloadButtons = root.querySelectorAll('[data-library-comparison-workload]');
   var platformButtons = root.querySelectorAll('[data-library-comparison-platform]');
   var modeButtons = root.querySelectorAll('[data-library-comparison-mode]');
+  var affinityControl = root.querySelector('[data-library-comparison-affinity-control]');
+  var affinityButtons = root.querySelectorAll('[data-library-comparison-affinity]');
   var selectedComparison = queryValue(
     'benchmark-workload',
     root.getAttribute('data-comparison-id'));
@@ -300,6 +302,16 @@
 
   var selectedPlatform = queryValue('benchmark-os', 'windows').toLowerCase();
   var selectedMode = queryValue('benchmark-mode', 'full').toLowerCase();
+  var selectedAffinity = queryValue('benchmark-cpu', '0xffff').toLowerCase();
+
+  function baseComparisonId(value) {
+    return String(value || '').replace(/-affinity-0x[0-9a-f]+$/i, '');
+  }
+
+  function comparisonAffinity(value) {
+    var match = String(value || '').match(/-affinity-(0x[0-9a-f]+)$/i);
+    return match ? match[1].toLowerCase() : '';
+  }
 
   function setQuery() {
     try {
@@ -307,6 +319,11 @@
       url.searchParams.set('benchmark-workload', selectedComparison);
       url.searchParams.set('benchmark-os', selectedPlatform);
       url.searchParams.set('benchmark-mode', selectedMode);
+      if (affinityControl && !affinityControl.hidden) {
+        url.searchParams.set('benchmark-cpu', selectedAffinity);
+      } else {
+        url.searchParams.delete('benchmark-cpu');
+      }
       window.history.replaceState(null, '', url.toString());
     } catch (_) {
       // The selector still works in hosts without the URL API.
@@ -323,18 +340,27 @@
       var active = button.getAttribute('data-library-comparison-platform') === selectedPlatform;
       button.classList.toggle('active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
-      var availability = catalog && catalog.availability
-        ? catalog.availability.find(function (item) {
-          return item.comparisonId === selectedComparison &&
-            item.runMode === selectedMode &&
-            item.platform === button.getAttribute('data-library-comparison-platform');
-        })
-        : null;
-      button.classList.toggle('missing', !!availability && !availability.available);
+      var platform = button.getAttribute('data-library-comparison-platform');
+      var candidates = catalog ? matchingEntries(selectedComparison, platform, selectedMode) : [];
+      var available = candidates.length > 0 && (
+        !hasAffinityEntries(candidates) || candidates.some(function (entry) {
+          return comparisonAffinity(entry.comparisonId) === selectedAffinity;
+        }));
+      button.classList.toggle('missing', !!catalog && !available);
     });
     Array.prototype.forEach.call(modeButtons, function (button) {
       var active = button.getAttribute('data-library-comparison-mode') === selectedMode;
       button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    Array.prototype.forEach.call(affinityButtons, function (button) {
+      var affinity = button.getAttribute('data-library-comparison-affinity');
+      var active = affinity === selectedAffinity;
+      var available = matchingEntries(selectedComparison, selectedPlatform, selectedMode).some(function (entry) {
+        return comparisonAffinity(entry.comparisonId) === affinity;
+      });
+      button.classList.toggle('active', active);
+      button.classList.toggle('missing', !available);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
   }
@@ -385,17 +411,45 @@
       'xlsx-25k-datareader-write-net10.0': 'XLSX · IDataReader write',
       'markpflug-65k-xlsb-typed-net10.0': 'XLSB · typed values'
     };
-    var id = comparisonId || selectedComparison;
+    var id = baseComparisonId(comparisonId || selectedComparison);
     return names[id] || id || 'Library comparison';
   }
 
-  function evidenceEntry(comparisonId, platform, runMode) {
-    return (catalog.entries || []).find(function (candidate) {
-      return candidate.comparisonId === comparisonId &&
+  function matchingEntries(comparisonId, platform, runMode) {
+    return (catalog && catalog.entries ? catalog.entries : []).filter(function (candidate) {
+      return baseComparisonId(candidate.comparisonId) === comparisonId &&
         candidate.platform === platform &&
         candidate.runMode === runMode &&
         (runMode !== 'full' || candidate.publish === true);
     });
+  }
+
+  function hasAffinityEntries(entries) {
+    return entries.some(function (entry) { return !!comparisonAffinity(entry.comparisonId); });
+  }
+
+  function evidenceEntry(comparisonId, platform, runMode) {
+    var candidates = matchingEntries(comparisonId, platform, runMode);
+    var domainEntries = candidates.filter(function (candidate) {
+      return !!comparisonAffinity(candidate.comparisonId);
+    });
+    if (domainEntries.length) {
+      return domainEntries.find(function (candidate) {
+        return comparisonAffinity(candidate.comparisonId) === selectedAffinity;
+      });
+    }
+    return candidates[0];
+  }
+
+  function synchronizeAffinitySelection() {
+    var candidates = matchingEntries(selectedComparison, selectedPlatform, selectedMode);
+    var available = candidates.map(function (entry) {
+      return comparisonAffinity(entry.comparisonId);
+    }).filter(Boolean);
+    affinityControl.hidden = available.length === 0;
+    if (available.length && available.indexOf(selectedAffinity) === -1) {
+      selectedAffinity = available[0];
+    }
   }
 
   function renderCoverage() {
@@ -422,10 +476,10 @@
       ['windows', 'linux', 'macos'].forEach(function (platform) {
         var status = 'missing';
         var text = 'Not published';
-        if (evidenceEntry(comparisonId, platform, 'full')) {
+        if (matchingEntries(comparisonId, platform, 'full').length) {
           status = 'full';
           text = 'Full';
-        } else if (evidenceEntry(comparisonId, platform, 'quick')) {
+        } else if (matchingEntries(comparisonId, platform, 'quick').length) {
           status = 'diagnostic';
           text = 'Diagnostic';
         }
@@ -478,6 +532,21 @@
     return [workloadName()].concat(dimensions).join(' · ');
   }
 
+  function dependencyVersion(result, packageName) {
+    var metadata = result && result.metadata ? result.metadata : {};
+    var value = metadata['benchmark.dependency.' + packageName.toLowerCase() + '.version'];
+    return value ? String(value) : '';
+  }
+
+  function scenarioName(row, result) {
+    var name = String(row && row.scenario ? row.scenario : 'Unknown');
+    if (name.toLowerCase() === 'questpdf') {
+      var version = dependencyVersion(result, 'questpdf');
+      if (version) return name + ' ' + version;
+    }
+    return name;
+  }
+
   function renderResult(entry, result, requestId) {
     if (requestId !== activeRequestId) return;
     var summaries = result.summary || [];
@@ -505,7 +574,7 @@
         var tr = document.createElement('tr');
         tr.innerHTML =
           '<td>' + (index === 0 ? workload : '') + '</td>' +
-          '<td><strong>' + String(row.scenario || 'Unknown') + '</strong></td>' +
+          '<td><strong>' + scenarioName(row, result) + '</strong></td>' +
           '<td>' + formatDuration(median) + '</td>' +
           '<td>' + formatBytes(metric(row, 'Allocated')) + '</td>' +
           '<td>' + (ratio === null ? '—' : ratio.toFixed(2) + 'x') + '</td>';
@@ -516,8 +585,12 @@
 
     meta.innerHTML = '';
     var sourceCommit = compatibilityValue(entry, 'gitSha');
+    var questPdfVersion = dependencyVersion(result, 'questpdf');
+    var affinityMask = result && result.metadata ? result.metadata['benchmark.workload.affinityMask'] : '';
     [
       workloadName(),
+      questPdfVersion && 'QuestPDF ' + questPdfVersion,
+      affinityMask && 'CPU affinity ' + affinityMask,
       platformLabel(selectedPlatform),
       selectedMode,
       entry.environment && entry.environment.processorName,
@@ -561,17 +634,13 @@
 
   function renderSelection() {
     var requestId = ++activeRequestId;
+    synchronizeAffinitySelection();
     activateButtons();
     setQuery();
     table.hidden = true;
     meta.innerHTML = '';
     state.removeAttribute('title');
-    var entry = (catalog.entries || []).find(function (candidate) {
-      return candidate.comparisonId === selectedComparison &&
-        candidate.platform === selectedPlatform &&
-        candidate.runMode === selectedMode &&
-        (selectedMode !== 'full' || candidate.publish === true);
-    });
+    var entry = evidenceEntry(selectedComparison, selectedPlatform, selectedMode);
     if (!entry) {
       state.hidden = false;
       state.className = 'imo-library-comparison-state missing';
@@ -610,6 +679,12 @@
   Array.prototype.forEach.call(modeButtons, function (button) {
     button.addEventListener('click', function () {
       selectedMode = button.getAttribute('data-library-comparison-mode');
+      renderSelection();
+    });
+  });
+  Array.prototype.forEach.call(affinityButtons, function (button) {
+    button.addEventListener('click', function () {
+      selectedAffinity = button.getAttribute('data-library-comparison-affinity');
       renderSelection();
     });
   });
