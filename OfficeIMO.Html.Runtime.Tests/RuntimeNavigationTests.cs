@@ -232,6 +232,36 @@ public sealed class RuntimeNavigationTests {
     }
 
     [Fact]
+    public async Task NavigationDoesNotResetFrameRealmOrMessageBudgets() {
+        var third = new Uri(First, "/third");
+        var firstFrame = new Uri(First, "/frame-one.html");
+        var secondFrame = new Uri(First, "/frame-two.html");
+        var thirdFrame = new Uri(First, "/frame-three.html");
+        var request = Application("""
+            <body><script>onmessage=event=>document.body.dataset.received=event.data</script>
+            <iframe src='/frame-one.html'></iframe></body>
+            """);
+        request.MaxChildFrameRealms = 2;
+        request.MaxFrameMessages = 1;
+        request.Resources = new[] {
+            Resource(firstFrame, "<body><script>parent.postMessage('one','*')</script></body>"),
+            Resource(Second, "<body><iframe src='/frame-two.html'></iframe></body>"),
+            Resource(secondFrame, "<body><script>try{parent.postMessage('two','*')}catch(e){document.body.dataset.messageError=e.name}</script></body>"),
+            Resource(third, "<body><iframe src='/frame-three.html'></iframe></body>"),
+            Resource(thirdFrame, "<body><p>third frame</p><script>document.body.dataset.executed='yes'</script></body>")
+        };
+
+        await using IHtmlRuntimeSession session = await Runtime().OpenTrustedAsync(request);
+        await session.WaitForAsync("document.body.dataset.received==='one'");
+        await session.NavigateAsync(Second);
+        await session.WaitForAsync("document.querySelector('iframe')?.contentDocument?.body?.dataset.messageError==='QuotaExceededError'");
+        await session.NavigateAsync(third);
+        await session.WaitForAsync("document.querySelector('iframe')?.contentDocument?.querySelector('p')?.textContent==='third frame'");
+        Assert.Equal(System.Text.Json.JsonValueKind.Null,
+            (await session.EvaluateAsync("document.querySelector('iframe').contentDocument.body.dataset.executed??null")).ValueKind);
+    }
+
+    [Fact]
     public async Task ScriptedDocumentProfileRejectsDocumentReplacementWithoutTerminatingTheSession() {
         await using var session = await Runtime().OpenTrustedAsync(new() { DocumentUrl = First, Html = Page("First") });
         await Assert.ThrowsAsync<NotSupportedException>(() => session.NavigateAsync(Second));

@@ -16,6 +16,7 @@ public sealed class RuntimeHostObservationTests {
         Assert.Equal(1, host.Descriptor.MaximumPagesPerContext);
         Assert.True(host.Descriptor.Supports(HtmlRuntimeCapabilityIds.SemanticObservation));
         Assert.True(host.Descriptor.Supports(HtmlRuntimeCapabilityIds.RevisionBoundReferences));
+        Assert.True(host.Descriptor.Supports(HtmlRuntimeCapabilityIds.SameOriginChildFrameRealms));
         Assert.False(host.Descriptor.Supports(HtmlRuntimeCapabilityIds.ScreenshotObservation));
         Assert.Equal(typeof(HtmlRuntimeProviderDescriptor).Assembly.GetName().Version?.ToString(), host.Descriptor.Version);
 

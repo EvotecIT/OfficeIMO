@@ -140,11 +140,17 @@ public sealed class ScriptedDocumentTests {
     [InlineData("inline")]
     [InlineData("supplied")]
     [InlineData("readiness")]
+    [InlineData("frame")]
     public async Task TerminatesRunawayExecutionAtTheDeadline(string stage) {
         var request = new HtmlScriptRequest { Html = "<p>hello</p>", Timeout = TimeSpan.FromSeconds(1) };
         if (stage == "inline") request.Html += "<script>while(true){}</script>";
         if (stage == "supplied") request.Scripts = new[] { "while(true){}" };
         if (stage == "readiness") request.ReadyExpression = "(()=>{while(true){}})()";
+        if (stage == "frame") {
+            var frame = new Uri(request.DocumentUrl, "runaway-frame.html");
+            request.Html = "<iframe src='/runaway-frame.html'></iframe>";
+            request.Resources = new[] { HtmlRuntimeResource.FromText(frame, "<script>while(true){}</script>", "text/html; charset=utf-8") };
+        }
         await Assert.ThrowsAsync<TimeoutException>(() => Runtime().CaptureTrustedAsync(request));
     }
 

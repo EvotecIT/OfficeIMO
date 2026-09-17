@@ -41,9 +41,9 @@ multi-candidate responsive-picture selection by viewport, `sizes`, and device de
 JavaScript module graph, a scoped import-map graph with prefix mapping and dynamic import,
 script-driven relative `fetch()` GET replay with query preservation and fragment stripping,
 script-driven asynchronous headerless `XMLHttpRequest` GET replay through the same bounded transport,
-and static frame-document loading with relative-resource discovery, inert child scripts,
-and searchable frame-body rendering in both PDF modes.
-Child-frame execution realms, import attributes,
+and same-origin frame-document loading with relative-resource discovery, isolated classic-script child realms,
+bounded parent/child messaging, and searchable frame-body rendering in both PDF modes.
+Child module graphs, cross-origin frame execution, richer structured-clone messaging, import attributes,
 XMLHttpRequest with request headers or beyond bodyless GET, non-GET requests and browser-wide dynamic loading are
 not qualified by this pilot. Cookies and credentials are outside this profile.
 

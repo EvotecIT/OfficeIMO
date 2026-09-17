@@ -12,8 +12,10 @@ namespace OfficeIMO.Html.Runtime.Worker;
 // task, including timers and lifecycle callbacks that do not pass through a command.
 // The pinned DOM provider exposes mutation notification enqueue at its source,
 // allowing the notification to enter the same FIFO queue as promise reactions.
-internal sealed class RuntimeEventLoop(IBrowsingContext context, Func<Engine?> getEngine, RuntimeScriptErrors errors) : IEventLoop, IMutationMicrotaskScheduler, IDisposable {
+internal sealed class RuntimeEventLoop(IBrowsingContext context, Func<Engine?> getEngine, RuntimeScriptErrors errors,
+    object sessionSync, Action checkpoint) : IEventLoop, IMutationMicrotaskScheduler, IDisposable {
     private readonly IEventLoop _inner = new JsEventLoop(context);
+    private readonly object _sync = sessionSync;
     private JsValue? _enqueueMicrotask;
     private volatile bool _cancelled;
 
@@ -27,7 +29,7 @@ internal sealed class RuntimeEventLoop(IBrowsingContext context, Func<Engine?> g
             _inner.Enqueue(_=>{if(!_cancelled)notification();},TaskPriority.Microtask);
             return;
         }
-        lock(engine) {
+        lock(_sync) {
             var callback=new ClrFunction(engine,"notifyMutations",(_,_)=>{
                 if(!_cancelled) {
                     try {notification();}
@@ -41,13 +43,14 @@ internal sealed class RuntimeEventLoop(IBrowsingContext context, Func<Engine?> g
 
     public ICancellable Enqueue(Action<CancellationToken> action, TaskPriority priority) => _inner.Enqueue(token => {
         if (token.IsCancellationRequested) return;
-        var engine = getEngine();
-        if (engine == null) { action(token); return; }
-        lock (engine) {
+        lock (_sync) {
+            if (_cancelled || token.IsCancellationRequested) return;
             try { action(token); }
             finally {
+                checkpoint();
                 try {
-                    engine.Advanced.ProcessTasks();
+                    Engine? engine = getEngine();
+                    if (!_cancelled && engine != null) engine.Advanced.ProcessTasks();
                     errors.ThrowIfFailed();
                 } catch (Exception error) {
                     // Latch failures even while no host command is active. Do not throw

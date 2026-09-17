@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
 using Jint;
 using Jint.Native;
 using Jint.Native.Function;
@@ -8,10 +9,10 @@ using Jint.Runtime.Interop;
 
 namespace OfficeIMO.Html.Runtime.Worker;
 
-// A browsing session has one global window. Normalize the provider's separate DOM
-// window proxy at the public getter/callback boundaries while retaining its DOM APIs.
+// Each browsing context has one global window. Normalize the provider's separate
+// DOM window proxy within that realm while retaining cross-realm DOM window proxies.
 internal static class RuntimeWindowBindings {
-    internal static JsValue Install(Engine engine, IWindow window) {
+    internal static JsValue Install(Engine engine, IWindow window, RuntimeFrameRealms realms) {
         var nativeWindow = JsValue.FromObject(engine, window).AsObject();
         var normalize = new ClrFunction(engine, "normalizeWindow", (_, args) => ReferenceEquals(args[0], nativeWindow) ? engine.Global : args[0]);
         var prototypes = new HashSet<ObjectInstance>(ReferenceEqualityComparer.Instance) { engine.Global, nativeWindow };
@@ -42,14 +43,26 @@ internal static class RuntimeWindowBindings {
                 prototype.FastSetProperty(property.Key, new GetSetPropertyDescriptor(wrapped, property.Value.Set, property.Value.Enumerable, property.Value.Configurable));
             }
         }
-        foreach (string name in new[] { "window", "self", "parent", "top", "frames" }) {
-            bool fixedAlias = name is "window" or "top";
-            engine.Global.FastSetProperty(name, new PropertyDescriptor(engine.Global, !fixedAlias, true, !fixedAlias));
-        }
+        engine.Global.FastSetProperty("window", new PropertyDescriptor(engine.Global, false, true, false));
+        engine.Global.FastSetProperty("self", new PropertyDescriptor(engine.Global, true, true, true));
+        engine.Global.FastSetProperty("frames", new PropertyDescriptor(engine.Global, true, true, true));
+        IWindow parent = window.Document.Context.Parent?.Current ?? window;
+        IWindow top = parent;
+        while (top.Document.Context.Parent?.Current is { } ancestor) top = ancestor;
+        engine.Global.FastSetProperty("parent", new PropertyDescriptor(
+            ReferenceEquals(parent, window) ? engine.Global : JsValue.FromObject(engine, parent), true, true, true));
+        engine.Global.FastSetProperty("top", new PropertyDescriptor(
+            ReferenceEquals(top, window) ? engine.Global : JsValue.FromObject(engine, top), false, true, false));
+        IHtmlInlineFrameElement? frameElement = window.Document.Context.Parent?.Active?
+            .QuerySelectorAll("iframe").OfType<IHtmlInlineFrameElement>()
+            .FirstOrDefault(frame => ReferenceEquals(frame.ContentWindow, window));
+        engine.Global.FastSetProperty("frameElement", new PropertyDescriptor(
+            frameElement == null ? JsValue.Null : JsValue.FromObject(engine, frameElement), false, true, false));
         // The retained DOM provider has no navigator service. A null navigator makes
         // ordinary feature detection throw before applications can select a fallback.
         var navigator = engine.Evaluate("Object.freeze({ userAgent: 'OfficeIMO.Html.Runtime' })");
         engine.Global.FastSetProperty("navigator", new PropertyDescriptor(navigator, false, true, false));
+        realms.InstallMessaging(engine, window);
         return normalize;
     }
 }

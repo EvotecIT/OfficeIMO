@@ -10,6 +10,27 @@ public sealed class RuntimeResourceTests {
     private static readonly Uri Origin = new("https://app.example/");
 
     [Fact]
+    public void ChildFrameLimitsAreValidatedAndRetainedByTheRequestSnapshot() {
+        var request = new HtmlScriptRequest {
+            MaxChildFrameRealms = 7,
+            MaxFrameMessages = 19,
+            MaxFrameMessageCharacters = 4096
+        };
+        HtmlScriptRequest snapshot = request.Snapshot();
+        Assert.Equal(7, snapshot.MaxChildFrameRealms);
+        Assert.Equal(19, snapshot.MaxFrameMessages);
+        Assert.Equal(4096, snapshot.MaxFrameMessageCharacters);
+        request.MaxChildFrameRealms = 0;
+        Assert.Throws<ArgumentOutOfRangeException>(request.Snapshot);
+        request.MaxChildFrameRealms = 1;
+        request.MaxFrameMessages = 0;
+        Assert.Throws<ArgumentOutOfRangeException>(request.Snapshot);
+        request.MaxFrameMessages = 1;
+        request.MaxFrameMessageCharacters = 0;
+        Assert.Throws<ArgumentOutOfRangeException>(request.Snapshot);
+    }
+
+    [Fact]
     public async Task SuppliedExternalScriptsAndStylesheetsUseTheDocumentUrlAndRemainAvailableAfterDisposal() {
         var script = HtmlRuntimeResource.FromText(new Uri(Origin, "scripts/app.js"), "document.querySelector('#status').textContent='Loaded';window.ready=true;", "text/javascript");
         var css = HtmlRuntimeResource.FromText(new Uri(Origin, "styles/app.css"), "#status{color:rgb(0, 128, 0)}", "text/css");
@@ -88,7 +109,7 @@ public sealed class RuntimeResourceTests {
     }
 
     [Fact]
-    public async Task SuppliedFrameLoadsWithChildScriptsInertAndWithoutFlatteningIntoTheRootCapture() {
+    public async Task SuppliedSameOriginFrameExecutesClassicScriptsInAnIsolatedRealm() {
         Uri frame = new(Origin, "frames/detail.html");
         Uri frameScript = new(Origin, "frames/frame.js");
         await using var session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest {
@@ -109,7 +130,7 @@ public sealed class RuntimeResourceTests {
         });
 
         await session.WaitForAsync(
-            "document.querySelector('iframe')?.contentDocument?.querySelector('#inside')?.textContent === 'Frame ready' && !document.body.dataset.childEvent && !document.body.dataset.childInline && !document.body.dataset.childExternal");
+            "document.querySelector('iframe')?.contentDocument?.querySelector('#inside')?.textContent === 'external ran' && document.body.dataset.childEvent === 'ran' && document.body.dataset.childInline === 'ran' && document.body.dataset.childExternal === 'ran'");
         HtmlScriptCapture capture = await session.CaptureAsync();
 
         Assert.Contains(capture.Resources, resource => resource.Url == frame);
@@ -123,13 +144,13 @@ public sealed class RuntimeResourceTests {
         Assert.Equal(frame, capturedFrame.DocumentUrl);
         Assert.Equal(frame, capturedFrame.BaseUri);
         Assert.Equal(HtmlDocumentMode.Standards, capturedFrame.Document.Mode);
-        Assert.Equal("Frame ready", capturedFrame.Document.QuerySelector("#inside")!.TextContent);
+        Assert.Equal("external ran", capturedFrame.Document.QuerySelector("#inside")!.TextContent);
         Assert.Empty(capturedFrame.Frames);
         HtmlRuntimeArtifactEntry frameEntry = Assert.Single(capture.ArtifactManifest.Entries,
             entry => entry.Name == "frame-0001/document.html");
         Assert.Equal(System.Text.Encoding.UTF8.GetByteCount(capturedFrame.Document.OuterHtml), frameEntry.ByteCount);
         string json = HtmlRuntimeJson.Serialize(capture);
-        Assert.Contains("Frame ready", json, StringComparison.Ordinal);
+        Assert.Contains("external ran", json, StringComparison.Ordinal);
         using (System.Text.Json.JsonDocument payload = System.Text.Json.JsonDocument.Parse(json)) {
             System.Text.Json.JsonElement framePayload = payload.RootElement.GetProperty("frames")[0];
             Assert.Contains("<!DOCTYPE html>", framePayload.GetProperty("documentHtml").GetString(), StringComparison.OrdinalIgnoreCase);
@@ -140,7 +161,7 @@ public sealed class RuntimeResourceTests {
         Assert.Null(capture.Document.QuerySelector("iframe")!.GetAttribute("srcdoc"));
         string srcdoc = renderDocument.QuerySelector("iframe")!.GetAttribute("srcdoc")!;
         Assert.Contains("<!DOCTYPE html>", srcdoc, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Frame ready", srcdoc, StringComparison.Ordinal);
+        Assert.Contains("external ran", srcdoc, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -152,21 +173,259 @@ public sealed class RuntimeResourceTests {
             Html = "<iframe src='/frames/first.html'></iframe>",
             Resources = new[] {
                 HtmlRuntimeResource.FromText(firstUrl,
-                    "<p id='first'>First frame</p><iframe src='nested/second.html'></iframe>",
+                    "<body><p id='first'>First frame</p><script>document.body.dataset.realm=parent!==window&&top!==window</script><iframe src='nested/second.html'></iframe></body>",
                     "text/html; charset=utf-8"),
                 HtmlRuntimeResource.FromText(secondUrl,
-                    "<p id='second'>Second frame</p>",
+                    "<body><p id='second'>Second frame</p><script>document.body.dataset.realm=parent!==window&&top!==parent;parent.document.body.dataset.grandchild='ran';Promise.resolve().then(()=>document.body.dataset.microtask='ran');setTimeout(()=>document.body.dataset.timer='ran',1)</script></body>",
                     "text/html; charset=utf-8")
             },
-            ReadyExpression = "document.querySelector('iframe')?.contentDocument?.querySelector('iframe')?.contentDocument?.querySelector('#second')?.textContent==='Second frame'"
+            ReadyExpression = "document.querySelector('iframe')?.contentDocument?.querySelector('iframe')?.contentDocument?.body?.dataset.timer==='ran'"
         });
 
         HtmlFrameCapture first = Assert.Single(capture.Frames);
         HtmlFrameCapture second = Assert.Single(first.Frames);
         Assert.Equal("First frame", first.Document.QuerySelector("#first")!.TextContent);
         Assert.Equal("Second frame", second.Document.QuerySelector("#second")!.TextContent);
+        Assert.Equal("true", first.Document.Body!.GetAttribute("data-realm"));
+        Assert.Equal("ran", first.Document.Body.GetAttribute("data-grandchild"));
+        Assert.Equal("true", second.Document.Body!.GetAttribute("data-realm"));
+        Assert.Equal("ran", second.Document.Body.GetAttribute("data-microtask"));
+        Assert.Equal("ran", second.Document.Body.GetAttribute("data-timer"));
         Assert.Contains("Second frame", capture.CreateRenderDocument().QuerySelector("iframe")!.GetAttribute("srcdoc"), StringComparison.Ordinal);
         Assert.Equal(3, capture.ArtifactManifest.Entries.Count(entry => entry.Name.EndsWith("document.html", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task SameOriginFrameGlobalsAndMessagingRemainRealmScoped() {
+        Uri frame = new(Origin, "messaging-frame.html");
+        await using IHtmlRuntimeSession session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = new Uri(Origin, "index.html"),
+            Html = """
+                <body><script>
+                addEventListener('message',event=>{
+                  if(event.data.kind!=='ready')return;
+                  document.body.dataset.received=event.data.value;
+                  document.body.dataset.origin=event.origin;
+                  document.body.dataset.source=event.source===document.querySelector('#child').contentWindow;
+                  event.source.postMessage({kind:'reply',value:42},event.origin);
+                });
+                </script><iframe id="child" src="/messaging-frame.html"></iframe></body>
+                """,
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(frame, """
+                    <body><output id="result">waiting</output>
+                    <script>
+                    window.childOnly='child';
+                    document.body.dataset.identities=[window===self,parent!==window,top===parent,frameElement?.id==='child'].join(',');
+                    parent.document.body.dataset.childAccess='yes';
+                    parent.document.body.dataset.postType=typeof parent.postMessage;
+                    try{parent.postMessage(()=>{},'*')}catch(e){document.body.dataset.cloneError=e.name}
+                    try{parent.postMessage({},'invalid-origin')}catch(e){document.body.dataset.originError=e.name}
+                    addEventListener('message',event=>{
+                      document.querySelector('#result').textContent=event.data.kind+':'+event.data.value;
+                      document.body.dataset.source=event.source===parent;
+                    });
+                    try{parent.postMessage({kind:'ready',value:'child-ready'},'*')}catch(e){parent.document.body.dataset.postError=e.name+':'+e.message}
+                    </script></body>
+                    """, "text/html; charset=utf-8")
+            }
+        });
+
+        await session.WaitForAsync("document.body.dataset.childAccess==='yes'");
+        var state = await session.EvaluateAsync("({result:document.querySelector('#child').contentDocument.querySelector('#result').textContent,received:document.body.dataset.received??null,origin:document.body.dataset.origin??null,source:document.body.dataset.source??null,access:document.body.dataset.childAccess,postType:document.body.dataset.postType,postError:document.body.dataset.postError??null,cloneError:document.querySelector('#child').contentDocument.body.dataset.cloneError,originError:document.querySelector('#child').contentDocument.body.dataset.originError,isolated:typeof document.querySelector('#child').contentWindow.childOnly==='undefined',identities:document.querySelector('#child').contentDocument.body.dataset.identities,childSource:document.querySelector('#child').contentDocument.body.dataset.source??null})");
+
+        Assert.Equal("function", state.GetProperty("postType").GetString());
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, state.GetProperty("postError").ValueKind);
+        Assert.Equal("DataCloneError", state.GetProperty("cloneError").GetString());
+        Assert.Equal("SyntaxError", state.GetProperty("originError").GetString());
+        Assert.Equal("child-ready", state.GetProperty("received").GetString());
+        Assert.Equal("https://app.example", state.GetProperty("origin").GetString());
+        Assert.Equal("true", state.GetProperty("source").GetString());
+        Assert.Equal("yes", state.GetProperty("access").GetString());
+        Assert.True(state.GetProperty("isolated").GetBoolean());
+        Assert.Equal("true,true,true,true", state.GetProperty("identities").GetString());
+        Assert.Equal("true", state.GetProperty("childSource").GetString());
+        Assert.Equal("reply:42", state.GetProperty("result").GetString());
+    }
+
+    [Fact]
+    public async Task FrameExecutionRespectsOriginAndSandboxFlags() {
+        Uri sandboxed = new(Origin, "sandboxed-script.html");
+        Uri allowed = new(Origin, "allowed-script.html");
+        Uri externalOrigin = new("https://frames.example/");
+        Uri external = new(externalOrigin, "external-script.html");
+        await using IHtmlRuntimeSession session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = new Uri(Origin, "index.html"),
+            Html = "<body><iframe id='blocked' sandbox src='/sandboxed-script.html'></iframe><iframe id='allowed' sandbox='allow-scripts allow-same-origin' src='/allowed-script.html'></iframe><iframe id='external' src='https://frames.example/external-script.html'></iframe></body>",
+            ResourcePolicy = new HtmlRuntimeResourcePolicy { AllowedOrigins = new[] { externalOrigin } },
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(sandboxed, "<p>blocked</p><script>parent.document.body.dataset.blocked='ran'</script>", "text/html; charset=utf-8"),
+                HtmlRuntimeResource.FromText(allowed, "<p>allowed</p><script>parent.document.body.dataset.allowed='ran'</script>", "text/html; charset=utf-8"),
+                HtmlRuntimeResource.FromText(external, "<p>external</p><script>document.body.dataset.executed='yes'</script>", "text/html; charset=utf-8")
+            }
+        });
+
+        await session.WaitForAsync("document.querySelector('#external')?.contentDocument?.querySelector('p')?.textContent==='external' && document.body.dataset.allowed==='ran'");
+        var state = await session.EvaluateAsync("({blocked:document.body.dataset.blocked??null,allowed:document.body.dataset.allowed,external:document.querySelector('#external').contentDocument.body.dataset.executed??null})");
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, state.GetProperty("blocked").ValueKind);
+        Assert.Equal("ran", state.GetProperty("allowed").GetString());
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, state.GetProperty("external").ValueKind);
+    }
+
+    [Theory]
+    [InlineData("inline")]
+    [InlineData("external")]
+    [InlineData("timer")]
+    public async Task ChildFrameFailuresReachTheSharedSessionError(string stage) {
+        Uri frame = new(Origin, "failing-frame.html");
+        Uri script = new(Origin, "failing-frame.js");
+        string source = stage switch {
+            "external" => "<script src='/failing-frame.js'></script>",
+            "timer" => "<script>setTimeout(()=>{throw new Error('child timer failure')},1)</script>",
+            _ => "<script>throw new Error('child inline failure')</script>"
+        };
+        var resources = new List<HtmlRuntimeResource> {
+            HtmlRuntimeResource.FromText(frame, source, "text/html; charset=utf-8")
+        };
+        if (stage == "external") resources.Add(HtmlRuntimeResource.FromText(script,
+            "throw new Error('child external failure')", "text/javascript"));
+
+        async Task ExerciseAsync() {
+            await using IHtmlRuntimeSession session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest {
+                DocumentUrl = new Uri(Origin, "index.html"),
+                Html = "<iframe src='/failing-frame.html'></iframe>",
+                Resources = resources.ToArray(),
+                Timeout = TimeSpan.FromSeconds(10)
+            });
+            await session.WaitForAsync("false");
+        }
+
+        HtmlScriptRuntimeException failure = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(ExerciseAsync);
+        Assert.Contains("child", failure.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DetachedAndReplacedFramesRetireTheirOriginalRealms() {
+        Uri first = new(Origin, "retired-frame.html");
+        Uri replacement = new(Origin, "replacement-frame.html");
+        await using IHtmlRuntimeSession session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = new Uri(Origin, "index.html"),
+            Html = "<body><iframe id='child' src='/retired-frame.html'></iframe></body>",
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(first,
+                    "<body><script>parent.document.body.dataset.originalReady='yes';setTimeout(()=>parent.document.body.dataset.stale='ran',500)</script></body>",
+                    "text/html; charset=utf-8"),
+                HtmlRuntimeResource.FromText(replacement,
+                    "<body><p>replacement</p><script>parent.document.body.dataset.replacementScript='ran'</script></body>",
+                    "text/html; charset=utf-8")
+            }
+        });
+
+        await session.WaitForAsync("document.body.dataset.originalReady==='yes'");
+        await session.ExecuteAsync("document.querySelector('#child').src='/replacement-frame.html'");
+        await session.WaitForAsync("document.querySelector('#child')?.contentDocument?.readyState==='complete'&&document.querySelector('#child').contentDocument.querySelector('p')?.textContent==='replacement'");
+        await Task.Delay(750);
+        Assert.True((await session.EvaluateAsync(
+            "!document.body.dataset.stale&&!document.body.dataset.replacementScript")).GetBoolean());
+
+        await session.ExecuteAsync("document.querySelector('#child').remove()");
+        await Task.Delay(25);
+        Assert.True((await session.EvaluateAsync("!document.body.dataset.stale")).GetBoolean());
+    }
+
+    [Fact]
+    public async Task SameOriginRedirectedFrameKeepsItsQualifiedRealm() {
+        Uri requested = new(Origin, "redirect-frame.html");
+        Uri final = new(Origin, "frames/final-frame.html");
+        byte[] html = System.Text.Encoding.UTF8.GetBytes(
+            "<body><p>redirected</p><script>document.body.dataset.executed='yes';parent.document.body.dataset.redirected='yes'</script></body>");
+        await using IHtmlRuntimeSession session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = new Uri(Origin, "index.html"),
+            Html = "<body><iframe src='/redirect-frame.html'></iframe></body>",
+            Resources = new[] {
+                new HtmlRuntimeResource(requested, html, "text/html; charset=utf-8", finalUrl: final, redirectCount: 1)
+            }
+        });
+
+        await session.WaitForAsync("document.body.dataset.redirected==='yes'");
+        var state = await session.EvaluateAsync("({url:document.querySelector('iframe').contentDocument.URL,executed:document.querySelector('iframe').contentDocument.body.dataset.executed})");
+
+        Assert.Equal(final.AbsoluteUri, state.GetProperty("url").GetString());
+        Assert.Equal("yes", state.GetProperty("executed").GetString());
+    }
+
+    [Fact]
+    public async Task MessageQueuedByAFrameIsDiscardedWhenThatFrameDetaches() {
+        Uri frame = new(Origin, "self-removing-frame.html");
+        await using IHtmlRuntimeSession session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = new Uri(Origin, "index.html"),
+            Html = "<body><script>onmessage=()=>document.body.dataset.staleMessage='delivered'</script><iframe src='/self-removing-frame.html'></iframe></body>",
+            Resources = new[] { HtmlRuntimeResource.FromText(frame,
+                "<script>parent.postMessage('stale','*');frameElement.remove()</script>",
+                "text/html; charset=utf-8") }
+        });
+
+        await Task.Delay(50);
+        Assert.True((await session.EvaluateAsync("!document.body.dataset.staleMessage&&!document.querySelector('iframe')")).GetBoolean());
+    }
+
+    [Fact]
+    public async Task ChildFrameModuleScriptsRemainOutsideTheQualifiedRealmContract() {
+        Uri frame = new(Origin, "module-frame.html");
+        Uri module = new(Origin, "child-module.js");
+        HtmlScriptCapture capture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = new Uri(Origin, "index.html"),
+            Html = "<iframe src='/module-frame.html'></iframe>",
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(frame, "<body><script>document.body.dataset.classic='ran'</script><script type='module' src='/child-module.js'></script></body>", "text/html; charset=utf-8"),
+                HtmlRuntimeResource.FromText(module, "document.body.dataset.module='ran'", "text/javascript")
+            },
+            ReadyExpression = "document.querySelector('iframe')?.contentDocument?.body?.dataset.classic==='ran'"
+        });
+
+        HtmlElement body = Assert.Single(capture.Frames).Document.Body!;
+        Assert.Equal("ran", body.GetAttribute("data-classic"));
+        Assert.Null(body.GetAttribute("data-module"));
+        Assert.Contains(capture.Resources, resource => resource.Url == module);
+    }
+
+    [Fact]
+    public async Task ChildFrameRealmAndMessageBudgetsAreCumulative() {
+        Uri first = new(Origin, "realm-one.html");
+        Uri second = new(Origin, "realm-two.html");
+        HtmlScriptCapture realmCapture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+                DocumentUrl = new Uri(Origin, "index.html"),
+                Html = "<iframe src='/realm-one.html'></iframe><iframe src='/realm-two.html'></iframe>",
+                Resources = new[] {
+                    HtmlRuntimeResource.FromText(first, "<body><script>document.body.dataset.ready='one'</script></body>", "text/html; charset=utf-8"),
+                    HtmlRuntimeResource.FromText(second, "<body><script>document.body.dataset.ready='two'</script></body>", "text/html; charset=utf-8")
+                },
+                MaxChildFrameRealms = 1,
+                ReadyExpression = "!!document.querySelectorAll('iframe')[0]?.contentDocument?.body && !!document.querySelectorAll('iframe')[1]?.contentDocument?.body"
+            });
+        Assert.Equal(new string?[] { "one", null }, realmCapture.Frames.Select(frame => frame.Document.Body!.GetAttribute("data-ready")));
+
+        Uri frame = new(Origin, "message-budget.html");
+        HtmlScriptCapture messageCapture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+                DocumentUrl = new Uri(Origin, "index.html"),
+                Html = "<iframe src='/message-budget.html'></iframe>",
+                Resources = new[] { HtmlRuntimeResource.FromText(frame, "<body><script>parent.postMessage(1,'*');try{parent.postMessage(2,'*')}catch(e){document.body.dataset.error=e.name}document.body.dataset.done='yes'</script></body>", "text/html; charset=utf-8") },
+                MaxFrameMessages = 1,
+                ReadyExpression = "document.querySelector('iframe')?.contentDocument?.body?.dataset.done==='yes'"
+            });
+        Assert.Equal("QuotaExceededError", Assert.Single(messageCapture.Frames).Document.Body!.GetAttribute("data-error"));
+
+        Uri largeMessageFrame = new(Origin, "large-message.html");
+        HtmlScriptCapture largeMessage = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = new Uri(Origin, "index.html"),
+            Html = "<iframe src='/large-message.html'></iframe>",
+            Resources = new[] { HtmlRuntimeResource.FromText(largeMessageFrame,
+                "<body><script>try{parent.postMessage({value:'message-too-large'},'*')}catch(e){document.body.dataset.error=e.name}</script></body>",
+                "text/html; charset=utf-8") },
+            MaxFrameMessageCharacters = 8,
+            ReadyExpression = "document.querySelector('iframe')?.contentDocument?.body?.dataset.error==='QuotaExceededError'"
+        });
+        Assert.Equal("QuotaExceededError", Assert.Single(largeMessage.Frames).Document.Body!.GetAttribute("data-error"));
     }
 
     [Fact]

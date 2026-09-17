@@ -52,6 +52,12 @@ public sealed class HtmlScriptRequest {
     public int MaxPendingHistoryTasks { get; set; } = 1024;
     /// <summary>Maximum recursive stylesheet import depth used by WebApplicationV1 interaction layout.</summary>
     public int MaxStylesheetImportDepth { get; set; } = 16;
+    /// <summary>Maximum same-origin child-frame JavaScript realms created over the session lifetime.</summary>
+    public int MaxChildFrameRealms { get; set; } = 32;
+    /// <summary>Maximum parent/child window messages admitted over the session lifetime.</summary>
+    public int MaxFrameMessages { get; set; } = 1024;
+    /// <summary>Maximum UTF-16 characters in one JSON-compatible parent/child window message.</summary>
+    public int MaxFrameMessageCharacters { get; set; } = 1024 * 1024;
     /// <summary>Layout viewport width in CSS pixels for WebApplicationV1 inspection and actionability.</summary>
     public double ViewportWidth { get; set; } = 1280D;
     /// <summary>Layout viewport height in CSS pixels for WebApplicationV1 inspection and actionability.</summary>
@@ -75,6 +81,10 @@ public sealed class HtmlScriptRequest {
         if (MaxHistoryEntries < 2) throw new ArgumentOutOfRangeException(nameof(MaxHistoryEntries));
         if (MaxPendingHistoryTasks <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPendingHistoryTasks));
         if (MaxStylesheetImportDepth <= 0 || MaxStylesheetImportDepth > 64) throw new ArgumentOutOfRangeException(nameof(MaxStylesheetImportDepth));
+        if (MaxChildFrameRealms <= 0 || MaxChildFrameRealms > 1024) throw new ArgumentOutOfRangeException(nameof(MaxChildFrameRealms));
+        if (MaxFrameMessages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxFrameMessages));
+        if (MaxFrameMessageCharacters <= 0 || MaxFrameMessageCharacters > 8 * 1024 * 1024)
+            throw new ArgumentOutOfRangeException(nameof(MaxFrameMessageCharacters));
         if (MaxHistoryStateBytes <= 0 || MaxHistoryTotalStateBytes < MaxHistoryStateBytes) throw new ArgumentOutOfRangeException(nameof(MaxHistoryStateBytes));
         if (!double.IsFinite(ViewportWidth) || ViewportWidth <= 0D)
             throw new ArgumentOutOfRangeException(nameof(ViewportWidth), "Viewport width must be a finite positive value.");
@@ -109,6 +119,8 @@ public sealed class HtmlScriptRequest {
             MaxModuleIntegrityMetadataCharacters = MaxModuleIntegrityMetadataCharacters, MaxNavigations = MaxNavigations,
             MaxHistoryEntries = MaxHistoryEntries, MaxHistoryStateBytes = MaxHistoryStateBytes, MaxHistoryTotalStateBytes = MaxHistoryTotalStateBytes, MaxPendingHistoryTasks = MaxPendingHistoryTasks,
             MaxStylesheetImportDepth = MaxStylesheetImportDepth,
+            MaxChildFrameRealms = MaxChildFrameRealms, MaxFrameMessages = MaxFrameMessages,
+            MaxFrameMessageCharacters = MaxFrameMessageCharacters,
             ViewportWidth = ViewportWidth, ViewportHeight = ViewportHeight, DevicePixelRatio = DevicePixelRatio };
     }
 }

@@ -5,6 +5,7 @@ namespace OfficeIMO.Html.Runtime.Worker;
 internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
     private readonly HtmlScriptRequest _options;
     private readonly RuntimeResourceBudget _budget;
+    private readonly RuntimeFrameBudget _frameBudget;
     private readonly RuntimeBrowsingStorage _storage;
     private readonly RuntimeBrowsingHistory _history = new();
     private readonly Dictionary<int, HtmlRuntimeResource> _documentSources = new();
@@ -28,6 +29,7 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
         _pageId = pageId;
         _diagnostics = diagnostics;
         _budget = new(options);
+        _frameBudget = new(options);
         _storage = new(options.MaxStorageCharacters);
     }
 
@@ -53,7 +55,7 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
         MarkRevision();
         _history.Generation = generation;
         _documentSources[generation] = source ?? HtmlRuntimeResource.FromText(request.DocumentUrl, request.Html, "text/html; charset=utf-8");
-        return ScriptedDocumentSession.OpenAsync(request, _budget, _storage, _history, _diagnostics,
+        return ScriptedDocumentSession.OpenAsync(request, _budget, _frameBudget, _storage, _history, _diagnostics,
             request.Profile == HtmlRuntimeProfile.WebApplicationV1 ? navigation => RequestNavigation(generation, navigation) : null,
             () => CurrentRevision, MarkRevision, token, source);
     }

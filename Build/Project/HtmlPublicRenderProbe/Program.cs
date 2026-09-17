@@ -132,10 +132,11 @@ var cases = new List<ProbeCase> {
         ExpectedDiscoveryRounds: []),
     new ProbeCase("frame-document", """
         <!doctype html><style>body{font:16px sans-serif}#outer{color:#222}</style>
+        <script>addEventListener('message',event=>{if(event.data?.kind==='frame-ready')document.body.dataset.childMessage=event.data.value})</script>
         <p id="outer">Outer frame host ready</p>
         <iframe src="/frame/detail.html"></iframe>
-        """, "document.querySelector('iframe')?.contentDocument?.querySelector('#inside')?.textContent === 'Frame document ready' && !document.body.dataset.childEvent && !document.body.dataset.childInline && !document.body.dataset.childExternal",
-        8 * 1024 * 1024, ExpectedVisibleText: "Frame document ready", ExpectMagentaArea: true,
+        """, "document.querySelector('iframe')?.contentDocument?.querySelector('#inside')?.textContent === 'Frame realm ready' && document.body.dataset.childEvent === 'ran' && document.body.dataset.childInline === 'ran' && document.body.dataset.childExternal === 'ran' && document.body.dataset.childMessage === 'ready'",
+        8 * 1024 * 1024, ExpectedVisibleText: "Frame realm ready", ExpectMagentaArea: true,
         Resources: new Dictionary<string, ProbeResource>(StringComparer.Ordinal) {
             [$"{fixtureOrigin}/frame/detail.html"] = new("""
                 <!doctype html><link rel="stylesheet" href="frame.css">
@@ -145,7 +146,7 @@ var cases = new List<ProbeCase> {
                 <script src="frame.js"></script>
                 """, "text/html; charset=utf-8"),
             [$"{fixtureOrigin}/frame/frame.css"] = new("body{margin:0;background:#d1007f}#inside{color:white}", "text/css"),
-            [$"{fixtureOrigin}/frame/frame.js"] = new("document.querySelector('#inside').textContent='external ran';parent.document.body.dataset.childExternal='ran'", "text/javascript")
+            [$"{fixtureOrigin}/frame/frame.js"] = new("document.querySelector('#inside').textContent='Frame realm ready';parent.document.body.dataset.childExternal='ran';parent.postMessage({kind:'frame-ready',value:'ready'},'*')", "text/javascript")
         }, ExpectedDiscoveryRounds: [
             [ $"{fixtureOrigin}/frame/detail.html" ],
             [ $"{fixtureOrigin}/frame/frame.css", $"{fixtureOrigin}/frame/frame.js" ]
@@ -157,7 +158,12 @@ var cases = new List<ProbeCase> {
     new ProbeCase("capture-output-budget", "<p>" + new string('X', 4096) + "</p>", "true", 1024,
         ExpectedErrorKind: "HtmlScriptRuntimeException", ExpectedError: "Captured data budget exceeded."),
     new ProbeCase("runaway-script", "<script>while(true){}</script>", "true", 8 * 1024 * 1024,
-        ExpectedErrorKind: "TimeoutException", ExpectedError: "The runtime command exceeded its deadline.")
+        ExpectedErrorKind: "TimeoutException", ExpectedError: "The runtime command exceeded its deadline."),
+    new ProbeCase("runaway-frame-script", "<iframe src='/frame/runaway.html'></iframe>", "true", 8 * 1024 * 1024,
+        ExpectedErrorKind: "TimeoutException", ExpectedError: "The runtime command exceeded its deadline.",
+        Resources: new Dictionary<string, ProbeResource>(StringComparer.Ordinal) {
+            [$"{fixtureOrigin}/frame/runaway.html"] = new("<script>while(true){}</script>", "text/html; charset=utf-8")
+        }, ExpectedDiscoveryRounds: [[ $"{fixtureOrigin}/frame/runaway.html" ]])
 };
 ControlledAcquisitionCorpus acquisition = await ControlledAcquisitionCorpus.CreateAsync();
 cases.AddRange(acquisition.RenderCases);

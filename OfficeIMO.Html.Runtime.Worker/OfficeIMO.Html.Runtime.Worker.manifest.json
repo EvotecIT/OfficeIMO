@@ -7,6 +7,7 @@
     "context.isolated",
     "page.navigation",
     "script.evaluate",
+    "frame.same-origin-classic-realms",
     "observation.semantic",
     "observation.visual-geometry",
     "observation.revision-bound-references",

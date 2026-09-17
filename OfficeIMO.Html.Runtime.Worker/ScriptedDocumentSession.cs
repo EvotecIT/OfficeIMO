@@ -20,10 +20,13 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private readonly RuntimeSubresourceIntegrity _integrity;
     private readonly RuntimeModuleSourceCache _moduleSources;
     private Engine _engine = null!;
+    private readonly object _realmSync = new();
+    private readonly RuntimeFrameRealms _realms;
+    private readonly JsScriptingService _providerScripting;
     private readonly HtmlScriptRequest _options;
     private IDocument _document = null!;
     private IEventLoop _loop = null!;
-    private RuntimeFetchBindings? _fetch;
+    private readonly List<IDisposable> _rootErrorSubscriptions = [];
     private readonly RuntimeFocusController _focus = new();
     private RuntimeAutomation _automation = null!;
     private CancellationToken _activeCommandToken;
@@ -33,12 +36,19 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private readonly Func<long> _currentRevision;
     private readonly Action _markRevision;
     private readonly RuntimeDiagnostics _diagnostics;
+    private readonly RuntimeBrowsingStorage _storage;
+    private readonly RuntimeBrowsingHistory _historyState;
+    private readonly Action<RuntimeNavigation>? _navigate;
 
-    private ScriptedDocumentSession(HtmlScriptRequest options, RuntimeResourceBudget budget, RuntimeBrowsingStorage storage,
+    private ScriptedDocumentSession(HtmlScriptRequest options, RuntimeResourceBudget budget, RuntimeFrameBudget frameBudget, RuntimeBrowsingStorage storage,
         RuntimeBrowsingHistory history, RuntimeDiagnostics diagnostics, Action<RuntimeNavigation>? navigate, Func<long> currentRevision, Action markRevision) {
         _options = options;
         _diagnostics = diagnostics;
+        _storage = storage;
+        _historyState = history;
+        _navigate = navigate;
         _errors = new RuntimeScriptErrors(options.MaxPendingPromiseRejections, diagnostics);
+        _realms = new RuntimeFrameRealms(options, frameBudget, _realmSync, _errors);
         _resources = new RuntimeResourceLoader(options, budget, diagnostics);
         _integrity = new RuntimeSubresourceIntegrity(options.MaxModuleIntegrityMetadataCharacters);
         _moduleSources = new RuntimeModuleSourceCache(_resources, options.MaxModuleCount,
@@ -50,14 +60,16 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         var configuration = Configuration.Default.WithCss().WithJs(new JsScriptingOptions {
                 MaxCallStackDepth = 512,
                 ConfigureEngine = (window, engineOptions) => {
-                    if (_modules != null) throw new HtmlScriptRuntimeException("Additional worker or window interpreters are outside this session profile.");
-                    _modules = new RuntimeModuleLoader(window.Document, _moduleSources, () => _loop, () => _engine);
-                    engineOptions.EnableModules(_modules).UseHostFactory(engine => new RuntimeModuleHost(engine, () => _modules));
+                    if (window.Document.Context.Parent == null) {
+                        if (_modules != null) throw new HtmlScriptRuntimeException("The root window interpreter was created more than once.");
+                        _modules = new RuntimeModuleLoader(window.Document, _moduleSources, () => _loop, () => _engine);
+                        engineOptions.EnableModules(_modules).UseHostFactory(engine => new RuntimeModuleHost(engine, () => _modules));
+                    }
                 }
             })
-            .WithEventLoop(context => new RuntimeEventLoop(context, () => _engine, _errors))
+            .WithEventLoop(context => new RuntimeEventLoop(context, () => _realms.EngineFor(context), _errors, _realmSync, _realms.RetireDetached))
             .With(new RuntimeDocumentUrls.MutationListener(markRevision))
-            .With(new RuntimeDomSynchronization(() => _engine))
+            .With(new RuntimeDomSynchronization(() => _realmSync))
             .With(new RuntimeScriptBlockingStyleSheetEvaluator(options))
             .WithOnly<IIntegrityProvider>(_integrity)
             .WithOnly<ILinkRelationFactory>(linkRelations)
@@ -67,49 +79,71 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true, IsNavigationDisabled = true })
             .WithOnly<IResourceLoader>(context => new RuntimeDocumentResourceLoader(
                 context, _moduleSources, () => _modules?.ImportMap, options));
-        var scripting = configuration.Services.OfType<JsScriptingService>().Single();
-        _scripting = new RuntimeScriptingService(scripting, () => _modules, options, _errors.Report);
+        _providerScripting = configuration.Services.OfType<JsScriptingService>().Single();
+        _scripting = new RuntimeScriptingService(_providerScripting, () => _modules, EnsureEngine, _realmSync, options, _errors.Report);
         configuration = configuration.Without<IScriptingService>()
             .With(_scripting);
         var scriptObservers = configuration.Services.OfType<IAttributeObserver>().Where(observer => observer.GetType().Assembly == typeof(JsScriptingService).Assembly).ToArray();
         // Replace only the script observer; retain CSS and native DOM attribute observers.
-        configuration = configuration.Without(scriptObservers).With(new RuntimeEventAttributeObserver(host =>
-            host.Owner?.Context.Parent == null ? _engine ?? scripting.GetOrCreateJint(host.Owner) : null));
+        configuration = configuration.Without(scriptObservers)
+            .With(new RuntimeEventAttributeObserver(_realms.EngineFor))
+            .With(new RuntimeFrameNavigationObserver(_realms));
         _context = BrowsingContext.New(configuration);
         _loop = _context.GetService<IEventLoop>() ?? throw new HtmlScriptRuntimeException("The provider did not create an event loop.");
-        _context.AddEventListener("error", (_, error) => _errors.Report(error switch {
-            AngleSharp.Dom.Events.ErrorEvent scriptError => scriptError.Message,
-            AngleSharp.Browser.Dom.Events.TrackEvent tracked => tracked.Error?.GetBaseException().Message ?? "Script execution failed.",
-            _ => "Script execution failed."
-        }));
         _context.GetService<IHtmlParser>()!.Parsing += (_, args) => {
-            // Fragment parsing (for example innerHTML) must not replace the live engine
-            // or wrap its prototypes again and lose existing listener registrations.
-            if (_engine != null) return;
             var document = ((HtmlParseEvent)args).Document;
-            _engine = scripting.GetOrCreateJint(document);
-            _errors.Attach(_engine);
-            ((RuntimeEventLoop)_loop).InitializeMicrotasks(_engine);
-            _scripting.Initialize(_engine);
-            var normalizeWindow = RuntimeWindowBindings.Install(_engine, document.DefaultView!);
-            RuntimeEventBindings.Install(_engine, document.DefaultView!, _errors.Report, normalizeWindow);
-            RuntimeUrlBindings.Install(_engine, document.DefaultView!);
-            RuntimeConsoleBindings.Install(_engine, diagnostics);
-            RuntimeObserverBindings.Install(_engine, document, _errors.Report, ((RuntimeEventLoop)_loop).EnqueueMicrotask);
-            RuntimeStorageBindings.Install(_engine, options.MaxStorageCharacters, storage, HtmlRuntimeResourcePolicy.Origin(options.DocumentUrl));
-            var viewport = new RuntimeViewport((IHtmlDocument)document, options, () => _activeCommandToken, _resources.Capture);
-            _history = new RuntimeHistoryBindings(_engine, document, _loop, options, viewport, history, navigate);
-            _automation = new RuntimeAutomation(document, options, _focus, _history, viewport, _engine, diagnostics);
-            RuntimeInteractionBindings.Install(_engine, document, _focus, _automation, _options.DevicePixelRatio);
-            RuntimeSelectBindings.Install(_engine);
-            _fetch = new RuntimeFetchBindings(_engine, document, _loop, _resources, options, _errors);
+            EnsureEngine(document);
         };
     }
 
-    internal static async Task<ScriptedDocumentSession> OpenAsync(HtmlScriptRequest request, RuntimeResourceBudget budget,
+    private Engine? EnsureEngine(IDocument document) {
+        lock (_realmSync) {
+            if (_realms.EngineFor(document.Context) is { } existing) return existing;
+            if (!_realms.Reserve(document)) return _realms.EngineFor(document.Context);
+            Engine engine = _providerScripting.GetOrCreateJint(document);
+            var loop = document.Context.GetService<IEventLoop>() as RuntimeEventLoop
+                ?? throw new HtmlScriptRuntimeException("The provider did not create a frame event loop.");
+            _realms.Register(document, engine, loop);
+            bool root = document.Context.Parent == null;
+            IDisposable contextErrors = AttachErrors(document.Context);
+            IDisposable windowErrors = AttachErrors(document.DefaultView!);
+            if (root) {
+                _rootErrorSubscriptions.Add(contextErrors);
+                _rootErrorSubscriptions.Add(windowErrors);
+            } else {
+                _realms.Own(document, contextErrors);
+                _realms.Own(document, windowErrors);
+            }
+            _errors.Attach(engine);
+            loop.InitializeMicrotasks(engine);
+            if (root) {
+                _engine = engine;
+                _loop = loop;
+                _scripting.Initialize(engine);
+            }
+            var normalizeWindow = RuntimeWindowBindings.Install(engine, document.DefaultView!, _realms);
+            RuntimeEventBindings.Install(engine, document.DefaultView!, _errors.Report, normalizeWindow);
+            RuntimeUrlBindings.Install(engine, document.DefaultView!);
+            RuntimeConsoleBindings.Install(engine, _diagnostics);
+            RuntimeObserverBindings.Install(engine, document, _errors.Report, loop.EnqueueMicrotask);
+            RuntimeStorageBindings.Install(engine, _options.MaxStorageCharacters, _storage,
+                HtmlRuntimeResourcePolicy.Origin(new Uri(document.Url)));
+            var fetch = new RuntimeFetchBindings(engine, document, loop, _resources, _options, _errors);
+            _realms.Own(document, fetch);
+            if (!root) return engine;
+            var viewport = new RuntimeViewport((IHtmlDocument)document, _options, () => _activeCommandToken, _resources.Capture);
+            _history = new RuntimeHistoryBindings(engine, document, loop, _options, viewport, _historyState, _navigate);
+            _automation = new RuntimeAutomation(document, _options, _focus, _history, viewport, engine, _diagnostics);
+            RuntimeInteractionBindings.Install(engine, document, _focus, _automation, _options.DevicePixelRatio);
+            RuntimeSelectBindings.Install(engine);
+            return engine;
+        }
+    }
+
+    internal static async Task<ScriptedDocumentSession> OpenAsync(HtmlScriptRequest request, RuntimeResourceBudget budget, RuntimeFrameBudget frameBudget,
         RuntimeBrowsingStorage storage, RuntimeBrowsingHistory history, RuntimeDiagnostics diagnostics, Action<RuntimeNavigation>? navigate,
         Func<long> currentRevision, Action markRevision, CancellationToken token, HtmlRuntimeResource? source = null) {
-        var session = new ScriptedDocumentSession(request, budget, storage, history, diagnostics, navigate, currentRevision, markRevision);
+        var session = new ScriptedDocumentSession(request, budget, frameBudget, storage, history, diagnostics, navigate, currentRevision, markRevision);
         try {
             string html = source == null ? request.Html : RuntimeHtmlNavigationSource.Decode(source, request.MaxInputCharacters);
             session._document = await session._context.OpenAsync(response => {
@@ -164,7 +198,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private Task<T> OnLoop<T>(Func<T> action, CancellationToken token) {
         var completion = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
         _loop.Enqueue(_ => {
-            lock (_engine) {
+            lock (_realmSync) {
                 CancellationToken previousToken = _activeCommandToken;
                 _activeCommandToken = token;
                 try {
@@ -172,12 +206,12 @@ internal sealed class ScriptedDocumentSession : IDisposable {
                     // Native timer callbacks may leave a rejection whose catch is already
                     // queued. Preserve fatal errors, but check rejections after the checkpoint.
                     _errors.ThrowIfFailed(includeRejections: false);
-                    _engine.Advanced.ProcessTasks();
+                    ProcessRealmTasks();
                     _errors.ThrowIfFailed();
                     T result = action();
                     // Native DOM actions can invoke JS callbacks without entering Evaluate.
                     // Complete their promise jobs before admitting the next session command.
-                    _engine.Advanced.ProcessTasks();
+                    ProcessRealmTasks();
                     _errors.ThrowIfFailed();
                     completion.TrySetResult(result);
                 } catch (Exception error) {
@@ -195,14 +229,39 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     }
 
     public void Dispose() {
-        lock (_engine ?? (object)this) DisposeCore();
+        lock (_realmSync) DisposeCore();
+    }
+
+    private void ProcessRealmTasks() {
+        _realms.RetireDetached();
+        foreach (Engine engine in _realms.Engines()) engine.Advanced.ProcessTasks();
+    }
+
+    private IDisposable AttachErrors(IEventTarget target) {
+        DomEventHandler handler = (_, error) => _errors.Report(error switch {
+            AngleSharp.Dom.Events.ErrorEvent scriptError => scriptError.Message,
+            AngleSharp.Browser.Dom.Events.TrackEvent tracked => tracked.Error?.GetBaseException().Message ?? "Script execution failed.",
+            _ => "Script execution failed."
+        });
+        target.AddEventListener("error", handler);
+        return new EventSubscription(target, handler);
     }
 
     private void DisposeCore() {
         _scripting.Dispose();
-        _fetch?.Dispose();
-        _loop?.CancelAll();
+        _realms.DisposeAll();
+        foreach (IDisposable subscription in _rootErrorSubscriptions) subscription.Dispose();
+        _rootErrorSubscriptions.Clear();
         _resources.Dispose();
         _context.Dispose();
+    }
+
+    private sealed class EventSubscription(IEventTarget target, DomEventHandler handler) : IDisposable {
+        private IEventTarget? _target = target;
+
+        public void Dispose() {
+            IEventTarget? current = Interlocked.Exchange(ref _target, null);
+            current?.RemoveEventListener("error", handler);
+        }
     }
 }

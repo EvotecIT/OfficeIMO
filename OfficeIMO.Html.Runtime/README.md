@@ -189,8 +189,27 @@ the containing iframe by its owned `NodeId`, retains the child document URL and
 effective base URI, document mode and complete serialized document, and can contain
 further frame captures in containing-document order. Node and output-text
 budgets apply cumulatively to the root and every captured frame. Frames with an
-opaque sandbox origin and cross-origin frames are not exposed. Child scripts are
-currently inert; child execution realms remain outside this profile.
+opaque sandbox origin and cross-origin frames are not exposed.
+
+Same-origin child frames run classic inline and external scripts in distinct
+JavaScript globals when their sandbox permits both scripts and same-origin
+access. Nested frames retain their own `window`, `self`, timers, promise jobs,
+events, observers, storage and fetch bindings. `parent`, `top`, `frameElement`
+and same-origin DOM access preserve the browsing-context hierarchy instead of
+flattening child state into the root global. Parent and child windows can use
+asynchronous `postMessage` with JSON-compatible values and `*`, `/` or an exact
+HTTP(S) target origin.
+
+`MaxChildFrameRealms` is cumulative for the session; after it is exhausted,
+additional frame documents remain inert. `MaxFrameMessages` is also cumulative,
+and `MaxFrameMessageCharacters` bounds each serialized message. A message over
+either limit throws `QuotaExceededError` in the sending realm. Cross-origin and
+opaque-origin frames, frames whose sandbox blocks scripts, child module/import-map
+scripts, transferable objects, message ports and child-frame navigation remain
+outside this qualified execution contract. Removing a frame or changing its
+document source retires the original realm, its timers, queued messages and
+pending fetches. A replacement document in that child browsing context remains
+inert rather than continuing an unqualified navigation lifecycle.
 
 Use `CreateStandaloneDocument()` when only the root snapshot is needed. Use
 `CreateRenderDocument()` to create an independent clone that projects the captured

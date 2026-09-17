@@ -10,6 +10,8 @@ public static class HtmlRuntimeCapabilityIds {
     public const string Navigation = "page.navigation";
     /// <summary>The page supports JavaScript evaluation.</summary>
     public const string ScriptEvaluation = "script.evaluate";
+    /// <summary>The page supports bounded classic-script realms in same-origin child frames.</summary>
+    public const string SameOriginChildFrameRealms = "frame.same-origin-classic-realms";
     /// <summary>The page exposes bounded semantic observations.</summary>
     public const string SemanticObservation = "observation.semantic";
     /// <summary>The page exposes layout geometry observations.</summary>
@@ -77,6 +79,7 @@ public sealed class HtmlRuntimeProviderDescriptor {
         HtmlRuntimeCapabilityIds.IsolatedContext,
         HtmlRuntimeCapabilityIds.Navigation,
         HtmlRuntimeCapabilityIds.ScriptEvaluation,
+        HtmlRuntimeCapabilityIds.SameOriginChildFrameRealms,
         HtmlRuntimeCapabilityIds.SemanticObservation,
         HtmlRuntimeCapabilityIds.VisualObservation,
         HtmlRuntimeCapabilityIds.RevisionBoundReferences,
