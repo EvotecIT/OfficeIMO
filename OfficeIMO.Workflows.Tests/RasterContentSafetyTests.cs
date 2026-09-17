@@ -319,10 +319,14 @@ public sealed partial class RasterContentSafetyTests {
 
     [Fact]
     public async Task InspectRejectsAnEngineThatDoesNotAcceptNormalizedPng() {
-        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
+        byte[] image = { 1, 2, 3 };
+        bool invoked = false;
         IOcrEngine engine = new DelegateOcrEngine(
             "jpeg-only",
-            (_, _) => Task.FromResult(new OcrResult()),
+            (_, _) => {
+                invoked = true;
+                return Task.FromResult(new OcrResult());
+            },
             new OcrEngineCapabilities {
                 SupportedMediaTypes = new[] { "image/jpeg" },
                 SupportsConcurrentRequests = true
@@ -330,6 +334,7 @@ public sealed partial class RasterContentSafetyTests {
 
         await Assert.ThrowsAsync<NotSupportedException>(
             () => OfficeRasterContentSafety.InspectAsync(image, engine));
+        Assert.False(invoked);
     }
 
     [Fact]

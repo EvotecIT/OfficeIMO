@@ -60,7 +60,7 @@ public static partial class OfficeRasterContentSafety {
         long remainingRedactionWork = snapshot.MaximumPixelAnalysisWork;
         long remainingRegionComparisons = snapshot.MaximumRegionComparisons;
         int regionComparisonCount = 0;
-        HashSet<RasterTarget> beforeAggregateLines = ResolveAggregateLineTargets(
+        HashSet<RasterTarget> beforeAggregateParents = ResolveAggregateParentTargets(
             beforeState.RecognizedTargets,
             ref remainingRegionComparisons,
             ref regionComparisonCount,
@@ -77,7 +77,7 @@ public static partial class OfficeRasterContentSafety {
                     ref remainingRegionComparisons,
                     ref regionComparisonCount,
                     cancellationToken);
-                if (beforeAggregateLines.Contains(target)) continue;
+                if (beforeAggregateParents.Contains(target)) continue;
                 if (expanded.Intersects(target.Region)) {
                     throw new InvalidOperationException(
                         "A selected raster redaction region overlaps recognized text that was not selected.");
@@ -110,7 +110,7 @@ public static partial class OfficeRasterContentSafety {
 
         AnalysisState afterState = await InspectCoreAsync(output, execution, snapshot, cancellationToken)
             .ConfigureAwait(false);
-        HashSet<RasterTarget> afterAggregateLines = ResolveAggregateLineTargets(
+        HashSet<RasterTarget> afterAggregateParents = ResolveAggregateParentTargets(
             afterState.RecognizedTargets,
             ref remainingRegionComparisons,
             ref regionComparisonCount,
@@ -122,7 +122,7 @@ public static partial class OfficeRasterContentSafety {
                     ref remainingRegionComparisons,
                     ref regionComparisonCount,
                     cancellationToken);
-                if (afterAggregateLines.Contains(afterTarget)) continue;
+                if (afterAggregateParents.Contains(afterTarget)) continue;
                 if (!changedRegion.Intersects(afterTarget.Region)) continue;
                 throw new InvalidDataException(
                     "OCR still recognized text inside a changed redaction region; output was not accepted.");
@@ -155,7 +155,7 @@ public static partial class OfficeRasterContentSafety {
             StringComparer.Ordinal);
     }
 
-    private static HashSet<RasterTarget> ResolveAggregateLineTargets(
+    private static HashSet<RasterTarget> ResolveAggregateParentTargets(
         IReadOnlyList<RasterTarget> targets,
         ref long remainingRegionComparisons,
         ref int regionComparisonCount,
@@ -163,12 +163,12 @@ public static partial class OfficeRasterContentSafety {
         Dictionary<string, IReadOnlyList<RasterTarget>> childrenByLine = IndexFinerTargetsByLine(targets);
         var aggregates = new HashSet<RasterTarget>();
         foreach (RasterTarget candidate in targets) {
-            if (candidate.Level != OcrTextSpanLevel.Line ||
+            if ((candidate.Level != OcrTextSpanLevel.Line && candidate.Level != OcrTextSpanLevel.Word) ||
                 string.IsNullOrWhiteSpace(candidate.LineId) ||
                 !childrenByLine.TryGetValue(candidate.LineId!, out IReadOnlyList<RasterTarget>? children)) {
                 continue;
             }
-            if (IsLineFullyRepresentedByChildren(
+            if (IsParentFullyRepresentedByChildren(
                     candidate,
                     children,
                     ref remainingRegionComparisons,
@@ -180,8 +180,8 @@ public static partial class OfficeRasterContentSafety {
         return aggregates;
     }
 
-    private static bool IsLineFullyRepresentedByChildren(
-        RasterTarget line,
+    private static bool IsParentFullyRepresentedByChildren(
+        RasterTarget parent,
         IReadOnlyList<RasterTarget> children,
         ref long remainingRegionComparisons,
         ref int regionComparisonCount,
@@ -193,12 +193,13 @@ public static partial class OfficeRasterContentSafety {
                 ref remainingRegionComparisons,
                 ref regionComparisonCount,
                 cancellationToken);
-            if (!line.Region.Contains(child.Region)) continue;
+            if (!parent.Region.Contains(child.Region) || child.Level <= parent.Level) continue;
             if (child.Level == OcrTextSpanLevel.Word) words.Add(child);
             else if (child.Level == OcrTextSpanLevel.Character) characters.Add(child);
         }
-        return HasEquivalentText(line.Text, words, " ", cancellationToken) ||
-            HasEquivalentText(line.Text, characters, string.Empty, cancellationToken);
+        return (parent.Level == OcrTextSpanLevel.Line &&
+                HasEquivalentText(parent.Text, words, " ", cancellationToken)) ||
+            HasEquivalentText(parent.Text, characters, string.Empty, cancellationToken);
     }
 
     private static bool HasEquivalentText(

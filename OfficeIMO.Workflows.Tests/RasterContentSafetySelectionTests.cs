@@ -117,6 +117,54 @@ public sealed partial class RasterContentSafetyTests {
         Assert.Single(cleanup.Changes);
     }
 
+    [Fact]
+    public async Task RedactionUsesCharacterChildrenInsteadOfAggregateWordBounds() {
+        var raster = new OfficeRasterImage(30, 16, OfficeColor.White);
+        for (int y = 5; y < 11; y++) {
+            for (int x = 4; x < 12; x++) raster.SetPixel(x, y, OfficeColor.Black);
+            for (int x = 14; x < 22; x++) raster.SetPixel(x, y, OfficeColor.FromRgb(248, 248, 248));
+        }
+        byte[] image = OfficePngWriter.Encode(raster);
+        const string lineId = "1:1:1:1";
+        int calls = 0;
+        IOcrEngine engine = CreateEngine(_ => calls++ < 2
+            ? new OcrResult {
+                Text = "ab",
+                Spans = new[] {
+                    Span(0, "ab", new OcrRegion { X = 4, Y = 5, Width = 18, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Word, lineId),
+                    Span(1, "a", new OcrRegion { X = 4, Y = 5, Width = 8, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Character, lineId),
+                    Span(2, "b", new OcrRegion { X = 14, Y = 5, Width = 8, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Character, lineId)
+                }
+            }
+            : new OcrResult {
+                Text = "a",
+                Spans = new[] {
+                    Span(0, "a", new OcrRegion { X = 4, Y = 5, Width = 18, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Word, lineId),
+                    Span(1, "a", new OcrRegion { X = 4, Y = 5, Width = 8, Height = 6 }, 0.99D,
+                        OcrTextSpanLevel.Character, lineId)
+                }
+            });
+        var options = new OfficeRasterContentSafetyOptions {
+            EnableOpaqueRectangleRedaction = true,
+            RedactionPaddingPixels = 0
+        };
+        OfficeContentSafetyFinding finding = Assert.Single(
+            (await OfficeRasterContentSafety.InspectAsync(image, engine, options)).Findings);
+
+        OfficeContentCleanupResult cleanup = await OfficeRasterContentSafety.RedactSelectedContentAsync(
+            image,
+            engine,
+            new OfficeContentCleanupSelection(new[] { finding.Id }),
+            options);
+
+        Assert.True(cleanup.Changed);
+        Assert.Single(cleanup.Changes);
+    }
+
     [Theory]
     [InlineData(OcrDiagnosticSeverity.Error, true)]
     [InlineData(OcrDiagnosticSeverity.Warning, false)]

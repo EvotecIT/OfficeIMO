@@ -64,6 +64,9 @@ public static partial class OfficeRasterContentSafety {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeContentSafetyInputGuard.ValidateBytes(input, options.Inspection);
+        if (!execution.Capabilities.SupportsMediaType(NormalizedMediaType)) {
+            throw new NotSupportedException("The configured OCR engine does not advertise support for normalized PNG input.");
+        }
         var decodeOptions = new OfficeRasterDecodeOptions {
             MaximumEncodedBytes = checked((int)Math.Min(options.Inspection.MaxInputBytes, 128L * 1024L * 1024L)),
             MaximumDecodedPixels = options.MaximumDecodedPixels,
@@ -96,10 +99,6 @@ public static partial class OfficeRasterContentSafety {
             options: null,
             options.MaximumOutputBytes,
             cancellationToken);
-        if (!execution.Capabilities.SupportsMediaType(NormalizedMediaType)) {
-            throw new NotSupportedException("The configured OCR engine does not advertise support for normalized PNG input.");
-        }
-
         var request = new OcrRequest {
             Operation = OcrOperation.RecognizeText,
             Payload = normalized,

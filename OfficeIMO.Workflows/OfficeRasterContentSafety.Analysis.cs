@@ -227,12 +227,12 @@ public static partial class OfficeRasterContentSafety {
         }
         long remainingRegionComparisons = options.MaximumRegionComparisons;
         int regionComparisonCount = 0;
-        HashSet<RasterTarget> aggregateLines = ResolveAggregateLineTargets(
+        HashSet<RasterTarget> aggregateParents = ResolveAggregateParentTargets(
             targets,
             ref remainingRegionComparisons,
             ref regionComparisonCount,
             cancellationToken);
-        string flattened = FlattenTargetText(targets, aggregateLines, cancellationToken);
+        string flattened = FlattenTargetText(targets, aggregateParents, cancellationToken);
         if (string.Equals(
                 NormalizeWhitespace(aggregateText, cancellationToken),
                 NormalizeWhitespace(flattened, cancellationToken),
@@ -262,14 +262,14 @@ public static partial class OfficeRasterContentSafety {
 
     private static string FlattenTargetText(
         IReadOnlyList<RasterTarget> targets,
-        IReadOnlySet<RasterTarget> aggregateLines,
+        IReadOnlySet<RasterTarget> aggregateParents,
         CancellationToken cancellationToken) {
         var flattened = new StringBuilder();
         RasterTarget? previous = null;
         for (int index = 0; index < targets.Count; index++) {
             if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             RasterTarget target = targets[index];
-            if (aggregateLines.Contains(target)) continue;
+            if (aggregateParents.Contains(target)) continue;
             if (previous != null &&
                 (previous.Level != OcrTextSpanLevel.Character || target.Level != OcrTextSpanLevel.Character)) {
                 flattened.Append(' ');
