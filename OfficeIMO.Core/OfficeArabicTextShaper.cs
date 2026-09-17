@@ -62,9 +62,18 @@ public static class OfficeArabicTextShaper {
     /// <summary>Maps presentation forms produced by this shaper back to core Arabic letters.</summary>
     public static string ToLogicalText(string? value) {
         if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
-        var result = new StringBuilder(value!.Length);
-        foreach (char character in value) {
-            result.Append(LogicalForms.TryGetValue(character, out char logical) ? logical : character);
+        // Fast path: if no character has a logical (Arabic presentation-form) mapping — the case for all
+        // non-Arabic text, and this runs per glyph in RecordGlyphUsage — return the input with no allocation.
+        int firstMapped = -1;
+        for (int i = 0; i < value!.Length; i++) {
+            if (LogicalForms.ContainsKey(value[i])) { firstMapped = i; break; }
+        }
+        if (firstMapped < 0) return value;
+
+        var result = new StringBuilder(value.Length);
+        result.Append(value, 0, firstMapped);
+        for (int i = firstMapped; i < value.Length; i++) {
+            result.Append(LogicalForms.TryGetValue(value[i], out char logical) ? logical : value[i]);
         }
         return result.ToString();
     }

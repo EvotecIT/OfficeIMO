@@ -17,11 +17,13 @@ namespace OfficeIMO.Drawing.HarfBuzz;
 /// </remarks>
 public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvider {
     private readonly ConditionalWeakTable<object, CachedFontCollection> _fontCache = new();
+    private readonly object _languageSync = new();
+    private readonly Dictionary<string, Language> _languages = new(StringComparer.Ordinal);
 
     /// <summary>Shared provider instance with a weak cache of parsed font faces.</summary>
     public static OfficeHarfBuzzTextShapingProvider Instance { get; } = new();
 
-    private OfficeHarfBuzzTextShapingProvider() {
+    internal OfficeHarfBuzzTextShapingProvider() {
     }
 
     /// <inheritdoc />
@@ -32,12 +34,47 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
 
         byte[] fontData = request.FontDataForShaping;
         object fontCacheKey = request.FontProgramCacheKeyForShaping ?? fontData;
-        CachedFontCollection fontCollection = _fontCache.GetValue(
-            fontCacheKey,
-            _ => new CachedFontCollection(fontData));
-        fontCollection.Shape(request, out int glyphCount, out GlyphInfo[] infos, out GlyphPosition[] positions);
+        ResolvedLanguage language = ResolveLanguage(request.Language);
+        if (!_fontCache.TryGetValue(fontCacheKey, out CachedFontCollection? fontCollection)) {
+            // Avoid allocating the value-factory closure on the overwhelmingly common cache-hit path.
+            fontCollection = _fontCache.GetValue(
+                fontCacheKey,
+                _ => new CachedFontCollection(fontData));
+        }
+
+        // Layout re-shapes each run many times (keep-with-next, flow-fit, and draw passes),
+        // so the same word arrives here 6+ times per occurrence. Shaping is a pure function of
+        // these inputs, so memoize the immutable result per font. Variable-font instances are
+        // rare and would bloat the key, so they bypass the cache.
+        ShapeCacheKey? cacheKey = request.VariationCoordinatesForShaping.Count == 0 &&
+            request.Text.Length <= MaxCacheableTextLength
+            ? new ShapeCacheKey(request.Text, language.CacheKey, request.FontCollectionIndex ?? 0, request.UnitsPerEm, request.Direction, request.FeatureSettings)
+            : (ShapeCacheKey?)null;
+        if (cacheKey.HasValue && fontCollection.TryGetCachedResult(cacheKey.Value, out OfficeTextShapingResult? cachedResult)) {
+            return cachedResult;
+        }
+
+        OfficeTextShapingResult? result = ShapeUncached(request, fontCollection, language.HarfBuzzLanguage);
+        if (cacheKey.HasValue && result != null) {
+            fontCollection.CacheResult(cacheKey.Value, result);
+        }
+
+        return result;
+    }
+
+    private const int MaxCachedResultsPerFont = 4096;
+    private const int MaxCacheableTextLength = 4096;
+    private const int MaxCacheableLanguageLength = 255;
+    internal const int MaxInternedLanguagesPerProvider = 256;
+    private const long MaxCachedResultBytesPerFont = 8L * 1024L * 1024L;
+
+    private OfficeTextShapingResult? ShapeUncached(
+        OfficeTextShapingRequest request,
+        CachedFontCollection fontCollection,
+        Language? language) {
+        fontCollection.Shape(request, language, out int glyphCount, out GlyphInfo[] infos, out GlyphPosition[] positions);
         if (glyphCount <= 1) return null;
-        GC.KeepAlive(fontData);
+        GC.KeepAlive(request.FontDataForShaping);
         if (infos.Length == 0 || infos.Length != positions.Length) return null;
 
         IReadOnlyDictionary<int, int> clusterEnds = BuildClusterEnds(infos, request.Text.Length);
@@ -63,6 +100,60 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
         return new OfficeTextShapingResult(glyphs);
     }
 
+    private ResolvedLanguage ResolveLanguage(string? value) {
+        string? normalized = NormalizeLanguage(value);
+        if (normalized == null) {
+            return default;
+        }
+
+        lock (_languageSync) {
+            if (_languages.TryGetValue(normalized, out Language? language)) {
+                return new ResolvedLanguage(normalized, language);
+            }
+            if (_languages.Count >= MaxInternedLanguagesPerProvider) {
+                return default;
+            }
+
+            language = new Language(normalized);
+            _languages.Add(normalized, language);
+            return new ResolvedLanguage(normalized, language);
+        }
+    }
+
+    private static string? NormalizeLanguage(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return null;
+        }
+
+        string language = value!.Trim();
+        if (language.Length == 0 || language.Length > MaxCacheableLanguageLength) {
+            return null;
+        }
+
+        int subtagLength = 0;
+        for (int index = 0; index < language.Length; index++) {
+            char character = language[index];
+            if (character == '-') {
+                if (subtagLength == 0 || subtagLength > 8) {
+                    return null;
+                }
+                subtagLength = 0;
+                continue;
+            }
+            if (!((character >= 'A' && character <= 'Z') ||
+                  (character >= 'a' && character <= 'z') ||
+                  (character >= '0' && character <= '9'))) {
+                return null;
+            }
+            subtagLength++;
+        }
+        if (subtagLength == 0 || subtagLength > 8) {
+            return null;
+        }
+
+        return language.ToLowerInvariant();
+    }
+
     private static IReadOnlyDictionary<int, int> BuildClusterEnds(
         IReadOnlyList<GlyphInfo> infos,
         int textLength) {
@@ -79,10 +170,72 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
         return ends;
     }
 
+    private readonly struct ShapeCacheKey : IEquatable<ShapeCacheKey> {
+        private readonly string _text;
+        private readonly string? _language;
+        private readonly int _collectionIndex;
+        private readonly int _unitsPerEm;
+        private readonly OfficeTextDirection _direction;
+        private readonly OfficeTextFeatureSettings _features;
+
+        internal ShapeCacheKey(string text, string? language, int collectionIndex, int unitsPerEm, OfficeTextDirection direction, OfficeTextFeatureSettings features) {
+            _text = text;
+            _language = language;
+            _collectionIndex = collectionIndex;
+            _unitsPerEm = unitsPerEm;
+            _direction = direction;
+            _features = features;
+        }
+
+        public bool Equals(ShapeCacheKey other) =>
+            _collectionIndex == other._collectionIndex &&
+            _unitsPerEm == other._unitsPerEm &&
+            _direction == other._direction &&
+            string.Equals(_text, other._text, StringComparison.Ordinal) &&
+            string.Equals(_language, other._language, StringComparison.Ordinal) &&
+            _features.Equals(other._features);
+
+        public override bool Equals(object? obj) => obj is ShapeCacheKey other && Equals(other);
+
+        public override int GetHashCode() {
+            unchecked {
+                int hash = 17;
+                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(_text);
+                hash = hash * 31 + (_language != null ? StringComparer.Ordinal.GetHashCode(_language) : 0);
+                hash = hash * 31 + _collectionIndex;
+                hash = hash * 31 + _unitsPerEm;
+                hash = hash * 31 + (int)_direction;
+                hash = hash * 31 + (_features.IsDefault ? 0 : _features.GetHashCode());
+                return hash;
+            }
+        }
+
+        internal int TextLength => _text.Length;
+
+        internal int LanguageLength => _language?.Length ?? 0;
+
+        internal int FeatureCount => _features.Features.Count;
+    }
+
+    private readonly struct ResolvedLanguage {
+        internal ResolvedLanguage(string cacheKey, Language harfBuzzLanguage) {
+            CacheKey = cacheKey;
+            HarfBuzzLanguage = harfBuzzLanguage;
+        }
+
+        internal string? CacheKey { get; }
+
+        internal Language? HarfBuzzLanguage { get; }
+    }
+
     private sealed class CachedFontCollection {
         private readonly object _sync = new();
+        private readonly object _resultCacheSync = new();
         private readonly Blob _blob;
         private readonly Dictionary<int, CachedFace> _faces = new();
+        private readonly Dictionary<ShapeCacheKey, LinkedListNode<CachedShapeResult>> _resultCache = new();
+        private readonly LinkedList<CachedShapeResult> _resultCacheLru = new();
+        private long _resultCacheBytes;
 
         internal CachedFontCollection(byte[] fontData) {
             GCHandle pinned = GCHandle.Alloc(fontData, GCHandleType.Pinned);
@@ -96,8 +249,68 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
             }
         }
 
+        internal bool TryGetCachedResult(ShapeCacheKey key, out OfficeTextShapingResult? result) {
+            lock (_resultCacheSync) {
+                if (_resultCache.TryGetValue(key, out LinkedListNode<CachedShapeResult>? node)) {
+                    _resultCacheLru.Remove(node);
+                    _resultCacheLru.AddFirst(node);
+                    result = node.Value.Result;
+                    return true;
+                }
+            }
+
+            result = null;
+            return false;
+        }
+
+        internal void CacheResult(ShapeCacheKey key, OfficeTextShapingResult result) {
+            long estimatedBytes = EstimateCacheSizeBytes(key, result);
+            if (estimatedBytes > MaxCachedResultBytesPerFont) {
+                return;
+            }
+
+            lock (_resultCacheSync) {
+                if (_resultCache.TryGetValue(key, out LinkedListNode<CachedShapeResult>? existing)) {
+                    _resultCacheLru.Remove(existing);
+                    _resultCacheLru.AddFirst(existing);
+                    return;
+                }
+
+                var entry = new CachedShapeResult(key, result, estimatedBytes);
+                LinkedListNode<CachedShapeResult> node = _resultCacheLru.AddFirst(entry);
+                _resultCache.Add(key, node);
+                _resultCacheBytes += estimatedBytes;
+
+                while (_resultCache.Count > MaxCachedResultsPerFont ||
+                       _resultCacheBytes > MaxCachedResultBytesPerFont) {
+                    LinkedListNode<CachedShapeResult>? last = _resultCacheLru.Last;
+                    if (last == null) {
+                        break;
+                    }
+
+                    _resultCacheLru.RemoveLast();
+                    _resultCache.Remove(last.Value.Key);
+                    _resultCacheBytes -= last.Value.EstimatedBytes;
+                }
+            }
+        }
+
+        private static long EstimateCacheSizeBytes(ShapeCacheKey key, OfficeTextShapingResult result) {
+            long bytes = 128L +
+                (key.TextLength * 2L) +
+                (key.LanguageLength * 2L) +
+                (key.FeatureCount * 72L) +
+                (result.Glyphs.Count * 48L);
+            for (int index = 0; index < result.Glyphs.Count; index++) {
+                bytes += result.Glyphs[index].UnicodeText.Length * 2L;
+            }
+
+            return bytes;
+        }
+
         internal void Shape(
             OfficeTextShapingRequest request,
+            Language? language,
             out int glyphCount,
             out GlyphInfo[] infos,
             out GlyphPosition[] positions) {
@@ -128,12 +341,17 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
                     OfficeTextDirection.RightToLeft => Direction.RightToLeft,
                     _ => buffer.Direction
                 };
-                if (!string.IsNullOrWhiteSpace(request.Language)) {
-                    buffer.Language = new Language(request.Language);
+                if (language != null) {
+                    buffer.Language = language;
                 }
 
                 request.CancellationToken.ThrowIfCancellationRequested();
-                cached.Font.Shape(buffer);
+                Feature[] features = request.FeatureSettings.Features
+                    .Select(static feature => new Feature(
+                        HarfBuzzSharp.Tag.Parse(feature.Key),
+                        checked((uint)feature.Value)))
+                    .ToArray();
+                cached.Font.Shape(buffer, features);
                 infos = buffer.GlyphInfos;
                 positions = buffer.GlyphPositions;
             }
@@ -148,5 +366,10 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
         }
 
         private sealed record CachedFace(Face Face, Font Font);
+
+        private sealed record CachedShapeResult(
+            ShapeCacheKey Key,
+            OfficeTextShapingResult Result,
+            long EstimatedBytes);
     }
 }

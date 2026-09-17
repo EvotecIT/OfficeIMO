@@ -31,14 +31,25 @@ internal static partial class PdfWriter {
             IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
                 ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram)
                 : Array.Empty<PdfTextShapingDiagnostic>();
-            options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram));
-            PdfGlyphRun glyphRun = fontProgram.ShapeText(text, PdfTextShapingOptions.ForRendering(
+            if (options.HasDiagnosticsReport) {
+                options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram));
+            }
+            PdfTextShapingOptions renderOptions = PdfTextShapingOptions.ForRendering(
                 fontProgram.FontName,
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
-                options.RecordProviderShapedTextRun,
+                options.RecordProviderShapedTextRunDelegate,
                 options.Language,
-                featureSettings));
+                featureSettings);
+            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault) {
+                // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
+                // the hex show-string directly without materializing a per-run PdfGlyphRun.
+                string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText);
+                options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
+                return new PdfTextShowCommand(glyphHex, null, actualText);
+            }
+
+            PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
             return glyphRun.ToTextShowCommand();
         }
@@ -49,12 +60,14 @@ internal static partial class PdfWriter {
             IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
                 ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram)
                 : Array.Empty<PdfTextShapingDiagnostic>();
-            options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram));
+            if (options.HasDiagnosticsReport) {
+                options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram));
+            }
             PdfGlyphRun glyphRun = cffFontProgram.ShapeText(text, PdfTextShapingOptions.ForRendering(
                 cffFontProgram.FontName,
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
-                options.RecordProviderShapedTextRun,
+                options.RecordProviderShapedTextRunDelegate,
                 options.Language,
                 featureSettings));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);
@@ -95,13 +108,22 @@ internal static partial class PdfWriter {
             IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
                 ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram)
                 : Array.Empty<PdfTextShapingDiagnostic>();
-            PdfGlyphRun glyphRun = fontProgram.ShapeText(text, PdfTextShapingOptions.ForRendering(
+            PdfTextShapingOptions renderOptions = PdfTextShapingOptions.ForRendering(
                 fontProgram.FontName,
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
-                options.RecordProviderShapedTextRun,
+                options.RecordProviderShapedTextRunDelegate,
                 options.Language,
-                featureSettings));
+                featureSettings);
+            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault) {
+                // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
+                // the hex show-string directly without materializing a per-run PdfGlyphRun.
+                string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText);
+                options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
+                return new PdfTextShowCommand(glyphHex, null, actualText);
+            }
+
+            PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
             return glyphRun.ToTextShowCommand();
         }
@@ -123,7 +145,7 @@ internal static partial class PdfWriter {
                 cffFontProgram.FontName,
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
-                options.RecordProviderShapedTextRun,
+                options.RecordProviderShapedTextRunDelegate,
                 options.Language,
                 featureSettings));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);

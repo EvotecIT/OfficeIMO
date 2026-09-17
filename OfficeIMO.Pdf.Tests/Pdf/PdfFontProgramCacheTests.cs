@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -23,6 +24,63 @@ public sealed class PdfFontProgramCacheTests {
 
         Assert.Equal(new[] { firstGlyph }, first.GetUsedGlyphIds());
         Assert.Equal(new[] { secondGlyph }, second.GetUsedGlyphIds());
+    }
+
+    [Fact]
+    public void TrueTypeSubsetCacheIsSharedByForks() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        PdfTrueTypeFontProgram first = PdfFontProgramCache.GetTrueType(fontData, "OfficeIMO subset cache test");
+        PdfTrueTypeFontProgram second = PdfFontProgramCache.GetTrueType(fontData, "OfficeIMO subset cache test");
+        Assert.True(first.TryGetGlyphId('A', out int glyphId));
+        first.RecordGlyphUsage(glyphId, 'A');
+        second.RecordGlyphUsage(glyphId, 'A');
+
+        byte[] firstSubset = first.BuildSubsetFontFile();
+        byte[] secondSubset = second.BuildSubsetFontFile();
+
+        Assert.Same(firstSubset, secondSubset);
+    }
+
+    [Fact]
+    public void TrueTypeSubsetCacheIsSharedByEquivalentFontContent() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        PdfTrueTypeFontProgram first = PdfTrueTypeFontProgram.Parse(fontData, "OfficeIMO content cache test");
+        PdfTrueTypeFontProgram second = PdfTrueTypeFontProgram.Parse((byte[])fontData.Clone(), "OfficeIMO content cache test");
+        Assert.True(first.TryGetGlyphId('A', out int glyphId));
+        first.RecordGlyphUsage(glyphId, 'A');
+        second.RecordGlyphUsage(glyphId, 'A');
+
+        byte[] firstSubset = first.BuildSubsetFontFile();
+        byte[] secondSubset = second.BuildSubsetFontFile();
+
+        Assert.Same(firstSubset, secondSubset);
+    }
+
+    [Fact]
+    public void TrueTypeSubsetCacheDoesNotExtendFontLifetime() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        (WeakReference Program, WeakReference FontData) references = CreateSubsetCacheWeakReferences(fontPath);
+        for (int attempt = 0; attempt < 10 && (references.Program.IsAlive || references.FontData.IsAlive); attempt++) {
+            GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+            GC.WaitForPendingFinalizers();
+        }
+
+        Assert.False(references.Program.IsAlive);
+        Assert.False(references.FontData.IsAlive);
     }
 
     [Fact]
@@ -139,5 +197,15 @@ public sealed class PdfFontProgramCacheTests {
             tags.Add(System.Text.Encoding.ASCII.GetString(data, 12 + (index * 16), 4));
         }
         return tags;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static (WeakReference Program, WeakReference FontData) CreateSubsetCacheWeakReferences(string fontPath) {
+        byte[] input = File.ReadAllBytes(fontPath);
+        PdfTrueTypeFontProgram program = PdfFontProgramCache.GetTrueType(input, "OfficeIMO weak subset cache test");
+        Assert.True(program.TryGetGlyphId('A', out int glyphId));
+        program.RecordGlyphUsage(glyphId, 'A');
+        _ = program.BuildSubsetFontFile();
+        return (new WeakReference(program), new WeakReference(program.FontDataForInspection));
     }
 }

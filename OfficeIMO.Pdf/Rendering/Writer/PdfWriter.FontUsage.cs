@@ -44,10 +44,13 @@ internal static partial class PdfWriter {
             optionalContentLayerCount += page.Layers.Distinct().Count();
             PdfStandardFont normalFont = ChooseNormal(pageOptions.DefaultFont);
 
-            AddLayoutStandardFontUsage("F1", normalFont);
-            AddLayoutStandardFontUsage("F2", ChooseBold(normalFont));
-            AddLayoutStandardFontUsage("F3", ChooseItalic(normalFont));
-            AddLayoutStandardFontUsage("F4", ChooseBoldItalic(normalFont));
+            // Scan the stored content bytes directly for the four standard-font resource names; compliance
+            // only needs to detect usage, so no bytes -> string decode is required (content is ASCII).
+            byte[] layoutFontScanContent = layout.ReadContentBytes(page.Content);
+            AddLayoutStandardFontUsage(layoutFontScanContent, "F1", normalFont);
+            AddLayoutStandardFontUsage(layoutFontScanContent, "F2", ChooseBold(normalFont));
+            AddLayoutStandardFontUsage(layoutFontScanContent, "F3", ChooseItalic(normalFont));
+            AddLayoutStandardFontUsage(layoutFontScanContent, "F4", ChooseBoldItalic(normalFont));
 
             foreach (PdfStandardFont usedFont in page.UsedFonts) {
                 fonts.Add(usedFont);
@@ -122,8 +125,8 @@ internal static partial class PdfWriter {
                 images.Add(new PdfGeneratedImageAccessibilityEvidence(hasAlternativeText: false, isDecorativeArtifact: true));
             }
 
-            void AddLayoutStandardFontUsage(string resourceName, PdfStandardFont font) {
-                if (!UsesLayoutFontResource(layout, page, resourceName)) {
+            void AddLayoutStandardFontUsage(byte[] pageContent, string resourceName, PdfStandardFont font) {
+                if (!UsesLayoutFontResource(layout, page, pageContent, resourceName)) {
                     return;
                 }
 
@@ -148,14 +151,14 @@ internal static partial class PdfWriter {
             optionalContentLayerCount);
     }
 
-    private static bool UsesLayoutFontResource(LayoutResult layout, LayoutResult.Page page, string resourceName) {
+    private static bool UsesLayoutFontResource(LayoutResult layout, LayoutResult.Page page, byte[] pageContent, string resourceName) {
         string qualifiedName = "/" + resourceName;
-        if (UsesPdfResource(layout.ReadContent(page.Content), qualifiedName)) {
+        if (UsesPdfResource(pageContent, qualifiedName)) {
             return true;
         }
 
         foreach (PageEffectGroup effect in page.EffectGroups) {
-            if (UsesPdfResource(layout.ReadContent(effect.Content), qualifiedName)) {
+            if (UsesPdfResource(layout.ReadContentBytes(effect.Content), qualifiedName)) {
                 return true;
             }
         }

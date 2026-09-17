@@ -167,6 +167,8 @@ internal static partial class PdfWriter {
 
         public string ReadContent(PdfPageContentHandle handle) => _contentStore.Read(handle);
 
+        public byte[] ReadContentBytes(PdfPageContentHandle handle) => _contentStore.ReadBytes(handle);
+
         public void Dispose() => _contentStore.Dispose();
     }
 
