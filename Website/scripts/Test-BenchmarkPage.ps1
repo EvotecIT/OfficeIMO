@@ -275,12 +275,6 @@ if ($scriptText -notmatch 'OfficeImoBenchmarkMatrix' -or $scriptText -notmatch '
     throw "Benchmark sort/filter script does not expose the expected matrix behaviors."
 }
 
-if ($scriptText -notmatch "benchmark\.dependency\.' \+ packageName\.toLowerCase\(\) \+ '\.version" -or
-    $scriptText -notmatch "'QuestPDF ' \+ questPdfVersion" -or
-    $scriptText -notmatch 'scenarioName\(row, result\)') {
-    throw 'The benchmark UI no longer displays the exact QuestPDF package version from result provenance.'
-}
-
 if ($scriptText -notmatch 'benchmark-workload' -or
     $scriptText -notmatch 'benchmark-os' -or
     $scriptText -notmatch 'benchmark-mode' -or
@@ -406,5 +400,7 @@ if ($ratioSortCells -lt $rowCount) {
 if ($pageHtml -match 'Strongest OfficeIMO Wins' -or $pageHtml -match 'Optimization Targets') {
     throw "Benchmark page still contains the old win/loss commentary panels."
 }
+
+& (Join-Path $PSScriptRoot 'Test-BenchmarkPage.Browser.ps1') -SiteRoot $resolvedSiteRoot
 
 Write-Host "Benchmark page verified: $matrixRowCount matrix rows, $rowCount measurement rows, $summaryCount summary rows."

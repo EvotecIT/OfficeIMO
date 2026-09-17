@@ -16,6 +16,7 @@ public class PdfGenerationBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
+        BenchmarkAffinityGuard.Validate();
         _scenario = PdfBenchmarkScenario.Get(Scale);
         Validate(nameof(OfficeIMO), OfficeIMO());
         Validate(nameof(QuestPDF), QuestPDF());

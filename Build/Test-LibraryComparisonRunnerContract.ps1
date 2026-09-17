@@ -3,7 +3,10 @@ $ErrorActionPreference = 'Stop'
 $runner = Join-Path $PSScriptRoot 'Run-LibraryComparisonBenchmarks.ps1'
 $comparisonProject = Join-Path (Split-Path -Parent $PSScriptRoot) `
     'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+$pdfGenerationBenchmark = Join-Path (Split-Path -Parent $PSScriptRoot) `
+    'OfficeIMO.Pdf.Benchmarks.Comparisons\PdfGenerationBenchmarks.cs'
 [xml] $comparisonProjectXml = Get-Content -LiteralPath $comparisonProject -Raw
+$pdfGenerationBenchmarkText = Get-Content -LiteralPath $pdfGenerationBenchmark -Raw
 $questPdfReference = @($comparisonProjectXml.Project.ItemGroup.PackageReference) |
     Where-Object Include -eq 'QuestPDF' |
     Select-Object -First 1
@@ -17,6 +20,10 @@ if ($null -eq $questPdfReference -or [string] $questPdfReference.Version -ne '$(
     $null -eq $questPdfBoundaryTarget -or
     [string] $questPdfBoundaryTarget.Error.Condition -notmatch 'QuestPdfInternalAuthorization') {
     throw 'QuestPDF comparison workloads are not pinned to the last MIT-compatible package release.'
+}
+if ($pdfGenerationBenchmarkText -notmatch
+    '(?s)\[GlobalSetup\]\s*public void Setup\(\)\s*\{\s*BenchmarkAffinityGuard\.Validate\(\);') {
+    throw 'The published structured-PDF benchmark does not validate affinity inside its measured worker.'
 }
 
 $publicQuestPdf = @(

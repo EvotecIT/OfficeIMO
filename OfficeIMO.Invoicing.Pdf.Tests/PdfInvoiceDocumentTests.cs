@@ -144,6 +144,25 @@ public class PdfInvoiceDocumentTests {
     }
 
     [Fact]
+    public void ModernPresentationFlowsMultilinePaymentSummaryAcrossPages() {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Payments[0].Reference = string.Join("\n", Enumerable.Repeat("PAYMENT-REFERENCE-LINE", 70)) +
+            "\nFINAL-PAYMENT-REFERENCE-MARKER";
+        invoice.PaymentTerms = string.Join("\n", Enumerable.Repeat("TERM", 70)) +
+            "\nFINAL-PAYMENT-TERMS-MARKER";
+        var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
+        layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+
+        byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options());
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        string text = document.ExtractText();
+
+        Assert.True(document.Pages.Count > 2);
+        Assert.Contains("FINAL-PAYMENT-REFERENCE-MARKER", text, StringComparison.Ordinal);
+        Assert.Contains("FINAL-PAYMENT-TERMS-MARKER", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ClassicPresentationRendersRequestedApprovals() {
         Invoice invoice = InvoiceFixture.Create();
         var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");

@@ -145,11 +145,13 @@ public sealed partial class PdfInvoiceDocument {
             .FirstOrDefault(reference => reference != null) ?? _invoice.Number;
         int paymentSummaryLength = paymentReference.Length +
             (_invoice.PaymentTerms?.Length ?? 0);
+        bool paymentSummaryIsMultiline = ContainsLineBreak(paymentReference) ||
+            ContainsLineBreak(_invoice.PaymentTerms);
         content.Row(row => row
             .Style(new PdfRowStyle {
                 Gap = 18D,
                 SpacingAfter = 12D,
-                KeepTogether = paymentSummaryLength <= 600
+                KeepTogether = paymentSummaryLength <= 600 && !paymentSummaryIsMultiline
             })
             .PercentColumn(55D, column => {
                 column.PanelParagraph(p => p
@@ -179,6 +181,9 @@ public sealed partial class PdfInvoiceDocument {
                 });
             }));
     }
+
+    private static bool ContainsLineBreak(string? value) =>
+        value?.IndexOf('\n') >= 0 || value?.IndexOf('\r') >= 0;
 
     private void ComposeModernFinancialDetails(PdfContentBuilder content, InvoicePdfTheme theme) {
         if (_invoice.AllowancesAndCharges.Count != 0) {
