@@ -818,6 +818,15 @@ mutation policy still applies. Plans describe page positions, so regenerate them
 when the source document changes. `PdfPageSelection.Parse("2-4,7").Resolve(pageCount)`
 resolves ranges with bounds checking and preserves caller order and repeated pages.
 
+When the inputs are already byte payloads, merge them directly instead of opening
+temporary document wrappers. The same merge engine and output validation are used:
+
+```csharp
+byte[][] sources = { File.ReadAllBytes("first.pdf"), File.ReadAllBytes("second.pdf") };
+PdfDocument merged = PdfDocument.MergeBytes(sources);
+merged.Save("merged.pdf");
+```
+
 Encrypted merge inputs keep independent authentication settings. Owner
 authorization is honored automatically. A user password follows the PDF
 permission bits unless the caller explicitly opts into ignoring those

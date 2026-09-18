@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
@@ -8,6 +10,10 @@ public sealed partial class PdfDocument {
     /// <summary>Merges loaded or generated documents using an explicit structure policy.</summary>
     public static PdfDocument Merge(PdfMergeOptions options, IEnumerable<PdfDocument> documents) =>
         MergeResult(options, documents).RequireValue();
+
+    /// <summary>Merges caller-owned PDF byte payloads using an explicit structure policy.</summary>
+    public static PdfDocument MergeBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs) =>
+        MergeBytesResult(options, pdfs).RequireValue();
 
     /// <summary>Merges loaded or generated documents with an explicit structure policy and returns readback evidence.</summary>
     public static PdfMergeResult MergeResult(PdfMergeOptions options, params PdfDocument[] documents) =>
@@ -29,6 +35,17 @@ public sealed partial class PdfDocument {
         byte[][] bytes = sources.Select(static document => document.GetBytesForOperation()).ToArray();
         PdfLoadOptions[] readOptions = sources.Select(static document => document.ReadOptions).ToArray();
         return PdfMerger.MergeResult(options, bytes, readOptions);
+    }
+
+    /// <summary>Merges caller-owned PDF byte payloads with an explicit structure policy and returns readback evidence.</summary>
+    public static PdfMergeResult MergeBytesResult(PdfMergeOptions options, IEnumerable<byte[]> pdfs) {
+        Guard.NotNull(options, nameof(options));
+        List<byte[]> sources = CollectMergeByteSources(pdfs, CancellationToken.None);
+        var readOptions = new PdfLoadOptions[sources.Count];
+        for (int index = 0; index < readOptions.Length; index++) {
+            readOptions[index] = PdfLoadOptions.Default;
+        }
+        return PdfMerger.MergeResult(options, sources, readOptions);
     }
 
     /// <summary>Merges this PDF with another loaded or generated PDF using an explicit structure policy.</summary>
