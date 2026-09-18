@@ -124,10 +124,17 @@ internal static class MimeParser {
                         partLocation,
                         childDefaultContentType)
                     : PreferredBodyKind.None;
-                bool explicitRootTypeAllowed = !partIsExplicitRelatedRoot
-                    || IsExplicitHtmlBearingRelatedRoot(partHeaders, childDefaultContentType, state, partLocation);
+                // Keep an implicit signed root inspectable when its signed content is HTML-bearing; the
+                // protection projection still blocks mutation unless signature invalidation is authorized.
+                bool relatedRootTypeAllowed = !(partIsExplicitRelatedRoot || partIsDefaultRelatedRoot)
+                    || IsAllowedRelatedRootType(
+                        partHeaders,
+                        childDefaultContentType,
+                        allowProtectedSignedRoot: partIsDefaultRelatedRoot,
+                        state,
+                        partLocation);
                 if ((partIsExplicitRelatedRoot || partIsDefaultRelatedRoot)
-                    && (relatedRootKind != PreferredBodyKind.Html || !explicitRootTypeAllowed)) {
+                    && (relatedRootKind != PreferredBodyKind.Html || !relatedRootTypeAllowed)) {
                     state.Diagnostics.Add(new EmailDiagnostic(
                         RelatedRootNotHtmlDiagnosticCode,
                         "The multipart/related root does not select an HTML-preferred body representation.",
@@ -569,7 +576,9 @@ internal static class MimeParser {
                     mimeDepth + 1,
                     childLocation,
                     "text/plain");
-                if (kind == PreferredBodyKind.Html) return kind;
+                if (kind == PreferredBodyKind.Html || kind == PreferredBodyKind.HtmlThroughMixed) {
+                    return PreferredBodyKind.HtmlThroughMixed;
+                }
                 if (kind == PreferredBodyKind.NonHtml) result = kind;
             }
             return result;
@@ -633,9 +642,10 @@ internal static class MimeParser {
         return PreferredBodyKind.None;
     }
 
-    private static bool IsExplicitHtmlBearingRelatedRoot(
+    private static bool IsAllowedRelatedRootType(
         IReadOnlyList<EmailHeader> headers,
         string defaultContentType,
+        bool allowProtectedSignedRoot,
         MimeParserState state,
         string location) {
         MimeValue contentType = MimeValueParser.Parse(
@@ -644,7 +654,9 @@ internal static class MimeParser {
             state.Diagnostics,
             location);
         return string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(contentType.Value, "multipart/alternative", StringComparison.OrdinalIgnoreCase);
+            || string.Equals(contentType.Value, "multipart/alternative", StringComparison.OrdinalIgnoreCase)
+            || allowProtectedSignedRoot
+                && string.Equals(contentType.Value, "multipart/signed", StringComparison.OrdinalIgnoreCase);
     }
 
     private static IReadOnlyList<EmailHeader> ReadChildHeaders(
@@ -671,6 +683,7 @@ internal static class MimeParser {
     private enum PreferredBodyKind {
         None,
         Html,
+        HtmlThroughMixed,
         NonHtml
     }
 

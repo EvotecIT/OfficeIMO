@@ -437,14 +437,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
-    public void Mhtml_SignedBodyAfterMixedAttachmentBlocksCleanup() {
+    public void Mhtml_ImplicitMixedRootWithSignedBodyFailsClosedBeforeCleanup() {
         byte[] input = BuildSignedMhtmlAfterMixedAttachment();
-        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
-            item.TextPreview.Contains("Signed body after attachment", StringComparison.Ordinal));
-
-        Assert.Throws<InvalidOperationException>(() => MhtmlDocument.RemoveSelectedContent(
-            input,
-            new OfficeContentCleanupSelection(new[] { finding.Id })));
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
     }
 
     [Fact]
@@ -527,6 +522,10 @@ public sealed class HtmlPackageContentSafetyContractTests {
             BuildMhtmlWithNonHtmlRelatedRoot()));
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
             BuildMhtmlWithMixedRelatedRoot()));
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithImplicitMixedRelatedRoot()));
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithSignedMixedRelatedRoot()));
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
             BuildMhtmlWithImplicitNonHtmlRelatedRoot()));
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
@@ -1513,6 +1512,40 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Type: text/html; charset=utf-8\r\n\r\n" +
         "<html><body><p style='display:none'>Mixed child HTML.</p></body></html>\r\n" +
         "--inner--\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithImplicitMixedRelatedRoot() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: multipart/mixed; boundary=inner\r\n\r\n" +
+        "--inner\r\n" +
+        "Content-Type: text/plain; charset=utf-8\r\n\r\n" +
+        "Visible mixed text.\r\n" +
+        "--inner\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p style='display:none'>Implicit mixed child HTML.</p></body></html>\r\n" +
+        "--inner--\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithSignedMixedRelatedRoot() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: multipart/signed; boundary=signed; protocol=\"application/pkcs7-signature\"\r\n\r\n" +
+        "--signed\r\n" +
+        "Content-Type: multipart/mixed; boundary=inner\r\n\r\n" +
+        "--inner\r\n" +
+        "Content-Type: text/plain; charset=utf-8\r\n\r\n" +
+        "Visible signed mixed text.\r\n" +
+        "--inner\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p style='display:none'>Signed mixed child HTML.</p></body></html>\r\n" +
+        "--inner--\r\n" +
+        "--signed\r\n" +
+        "Content-Type: application/pkcs7-signature; name=smime.p7s\r\n" +
+        "Content-Transfer-Encoding: base64\r\n\r\nAA==\r\n" +
+        "--signed--\r\n" +
         "--outer--\r\n");
 
     private static byte[] BuildMhtmlWithImplicitNonHtmlRelatedRoot() => Encoding.ASCII.GetBytes(
