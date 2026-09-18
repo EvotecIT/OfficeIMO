@@ -1,11 +1,10 @@
 # Optional isolated public-page pilot
 
-This opt-in Linux tool fetches bounded public HTTP(S) bytes on the host, then
+This opt-in CLI exercises the public `HtmlIsolatedPublicPageWorkflow`. It fetches bounded public HTTP(S) bytes on the host, then
 runs HTML parsing, JavaScript, document conversion and screen/print rendering
 inside one rootless Podman container. Its script worker is a child process in
 that same container. The container has no network route or host mounts. This is
-an internal pilot, not a public untrusted-content API or a claim that arbitrary
-sites are safe or compatible.
+a named-page evidence tool, not a claim that arbitrary sites are compatible.
 
 From the repository root on Linux with .NET 10, rootless Podman, seccomp and
 CPU/memory/PID cgroups:
@@ -21,7 +20,16 @@ dotnet run --project Build/Project/HtmlPublicPilot/OfficeIMO.Html.PublicPilot.cs
   /tmp/officeimo-public-pilot/wpt-output \
   "sha256:${image_id}" \
   /tmp/officeimo-public-pilot/renderer/OfficeIMO.Html.PublicRenderWorker.dll \
-  /tmp/officeimo-public-pilot/worker/OfficeIMO.Html.Runtime.Worker.dll
+  /tmp/officeimo-public-pilot/worker/OfficeIMO.Html.Runtime.Worker.dll \
+  --license=BSD-3-Clause \
+  --scenario=wpt-first-letter-reference
+```
+
+On Windows, keep acquisition in the Windows process and invoke the qualified
+rootless Podman installation through WSL by appending:
+
+```text
+--podman-command=wsl.exe --podman-arg=-d --podman-arg=Ubuntu --podman-arg=--exec --podman-arg=podman
 ```
 
 The output directory must be new. The host does not parse page markup or CSS.
@@ -45,15 +53,20 @@ and same-origin frame-document loading with relative-resource discovery, isolate
 bounded parent/child messaging, and searchable frame-body rendering in both PDF modes.
 Child module graphs, cross-origin frame execution, richer structured-clone messaging, import attributes,
 XMLHttpRequest with request headers or beyond bodyless GET, non-GET requests and browser-wide dynamic loading are
-not qualified by this pilot. Cookies and credentials are outside this profile.
+not qualified by this profile. Cookies and credentials are outside this profile.
+Use `--timeout-seconds=SECONDS` to lower the acquisition and execution deadline
+when exercising cancellation. Verified container removal has a separate fixed
+one-minute fail-safe budget and is recorded in failure evidence. `--retain-input` writes acquired bytes only when the
+source license and retention policy permit it.
 
 The broker allows standard HTTP(S) ports and UTF-8 HTML, validates public IPv4
 answers before each direct connection, forbids proxy use and HTTPS downgrade,
 and caps a fetch at 20 seconds, five redirects and 4 MiB. Acquisition as a
 whole allows 32 attempts and 16 MiB. The OCI lease verifies rootless Podman,
 seccomp, CPU/memory/PID cgroups, read-only root, no network or mounts, non-root
-user, dropped capabilities and no-new-privileges. The full pipeline has a
-two-minute host deadline; the container limits are 512 MiB, one CPU and 32 PIDs.
+user, dropped capabilities and no-new-privileges. Acquisition and execution have
+a two-minute default deadline; verified cleanup may use its separate one-minute
+budget. The container limits are 512 MiB, one CPU and 32 PIDs.
 The container image includes fontconfig and DejaVu fonts for deterministic basic
 text rendering. The image is addressed by its full SHA-256 ID, and the returned
 renderer and script-worker binary hashes must match the published files supplied

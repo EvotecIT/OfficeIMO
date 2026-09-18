@@ -20,10 +20,9 @@ try {
     HtmlPublicRenderRequest incoming = await HtmlRuntimeProtocol.ReadAsync<HtmlPublicRenderRequest>(
         input, 24 * 1024 * 1024, deadline.Token)
         ?? throw new HtmlScriptRuntimeException("The isolated render request is missing.");
-    var rendering = new HtmlToPdfOptions { ViewportWidth = 816D, ViewportHeight = 720D,
+    var rendering = new HtmlToPdfOptions { ViewportWidth = incoming.Page.ViewportWidth,
+        ViewportHeight = incoming.Page.ViewportHeight,
         Margins = HtmlRenderMargins.All(0D) };
-    incoming.Page.ViewportWidth = rendering.ViewportWidth;
-    incoming.Page.ViewportHeight = rendering.ViewportHeight ?? 720D;
     rendering.MediaFeatures.ResolutionDpi = incoming.Page.DevicePixelRatio * HtmlRenderOptions.CssPixelsPerInch;
     HtmlScriptRequest page = incoming.Page.Snapshot();
     if (page.Profile != HtmlRuntimeProfile.WebApplicationV1 || page.ResourcePolicy.AllowNetwork)
@@ -36,6 +35,7 @@ try {
     var missingAtRuntime = new HashSet<string>(StringComparer.Ordinal);
     for (int round = 0; ; ) {
         if (pending.Length != 0) {
+            response.Stage = HtmlPublicRenderStage.ResourceDiscovery;
             if (++round > 16)
                 throw new HtmlScriptRuntimeException("Resource discovery exceeded its round limit.");
             response.DiscoveryUrls = pending;
@@ -63,6 +63,7 @@ try {
             continue;
         }
         try {
+            response.Stage = HtmlPublicRenderStage.Rendering;
             result = await HtmlApplicationDocumentWorkflow.RunAsync(host,
                 new HtmlApplicationDocumentRequest {
                     Page = page,
@@ -94,6 +95,7 @@ try {
     response.DiscoveryUrls = Array.Empty<string>();
     response.DiscoveryComplete = true;
     await HtmlRuntimeProtocol.WriteAsync(output, response, 24 * 1024 * 1024, deadline.Token);
+    response.Stage = HtmlPublicRenderStage.Output;
     byte[] screen = result.Outputs[0].Images.Single().Bytes;
     byte[] print = result.Outputs[1].Pdf!.ToBytes();
     byte[] screenToPage = result.Outputs[2].Pdf!.ToBytes();

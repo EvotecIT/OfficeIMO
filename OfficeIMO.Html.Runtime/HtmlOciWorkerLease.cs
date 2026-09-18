@@ -8,14 +8,17 @@ namespace OfficeIMO.Html.Runtime;
 // An internal transport building block. Admission of public content requires a
 // separate provider, verified isolation report and resource acquisition broker.
 internal sealed class HtmlOciWorkerLease : IDisposable, IAsyncDisposable {
+    internal static readonly TimeSpan MaximumCleanupDuration = TimeSpan.FromMinutes(1);
     private readonly string _podmanExecutable;
+    private readonly string[] _podmanArguments;
     private readonly string _containerName;
     private readonly object _sync = new();
     private Task? _removal;
     private int _disposed;
 
-    private HtmlOciWorkerLease(string podmanExecutable, string containerName, Process attach) {
+    private HtmlOciWorkerLease(string podmanExecutable, IReadOnlyList<string> podmanArguments, string containerName, Process attach) {
         _podmanExecutable = podmanExecutable;
+        _podmanArguments = podmanArguments.ToArray();
         _containerName = containerName;
         Process = attach;
     }
@@ -24,28 +27,37 @@ internal sealed class HtmlOciWorkerLease : IDisposable, IAsyncDisposable {
     internal string ContainerName => _containerName;
 
     internal static async Task<HtmlOciWorkerLease> StartAsync(string podmanExecutable, string imageId, CancellationToken token) {
+        return await StartAsync(podmanExecutable, Array.Empty<string>(), imageId, token).ConfigureAwait(false);
+    }
+
+    internal static async Task<HtmlOciWorkerLease> StartAsync(string podmanExecutable,
+        IReadOnlyList<string> podmanArguments, string imageId, CancellationToken token) {
         ArgumentException.ThrowIfNullOrWhiteSpace(podmanExecutable);
+        ArgumentNullException.ThrowIfNull(podmanArguments);
+        if (podmanArguments.Any(string.IsNullOrWhiteSpace))
+            throw new ArgumentException("Container-engine prefix arguments cannot be blank.", nameof(podmanArguments));
         ValidateImageId(imageId);
         string name = "officeimo-html-" + Guid.NewGuid().ToString("N");
         bool createAttempted = false;
         // The name is chosen before create, so a cancelled or failed create can
         // still be cleaned up without parsing its possibly incomplete output.
         try {
-            string engineInfo = await RunAsync(podmanExecutable,
+            string engineInfo = await RunAsync(podmanExecutable, podmanArguments,
                 new[] { "info", "--format", "json" }, TimeSpan.FromSeconds(15), token).ConfigureAwait(false);
             string[] baselineCapabilities = VerifyEngine(engineInfo);
             createAttempted = true;
-            await RunAsync(podmanExecutable, new[] { "create", "--interactive", "--name", name,
+            await RunAsync(podmanExecutable, podmanArguments, new[] { "create", "--interactive", "--name", name,
                 "--network", "none", "--read-only", "--pids-limit", "32", "--memory", "512m",
                 "--cpus", "1", "--cap-drop", "all", "--security-opt", "no-new-privileges",
                 "--user", "65532:65532", imageId }, TimeSpan.FromSeconds(30), token).ConfigureAwait(false);
-            string inspection = await RunAsync(podmanExecutable, new[] { "inspect", name }, TimeSpan.FromSeconds(15), token).ConfigureAwait(false);
+            string inspection = await RunAsync(podmanExecutable, podmanArguments, new[] { "inspect", name }, TimeSpan.FromSeconds(15), token).ConfigureAwait(false);
             VerifyInspection(inspection, name, imageId, baselineCapabilities);
             token.ThrowIfCancellationRequested();
             var start = new ProcessStartInfo(podmanExecutable) {
                 UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true,
                 RedirectStandardOutput = true, RedirectStandardError = true, StandardErrorEncoding = Encoding.UTF8
             };
+            foreach (string arg in podmanArguments) start.ArgumentList.Add(arg);
             foreach (string arg in new[] { "start", "--attach", "--interactive", name }) start.ArgumentList.Add(arg);
             var attach = new Process { StartInfo = start };
             bool started = false;
@@ -53,15 +65,23 @@ internal sealed class HtmlOciWorkerLease : IDisposable, IAsyncDisposable {
                 if (!attach.Start()) throw new HtmlScriptRuntimeException("The isolated worker could not attach.");
                 started = true;
                 token.ThrowIfCancellationRequested();
-                return new HtmlOciWorkerLease(podmanExecutable, name, attach);
+                return new HtmlOciWorkerLease(podmanExecutable, podmanArguments, name, attach);
             } catch {
                 if (started && !attach.HasExited) attach.Kill(entireProcessTree: true);
                 attach.Dispose();
                 throw;
             }
-        } catch {
-            if (createAttempted) await RemoveWithRetryAsync(podmanExecutable, name).ConfigureAwait(false);
-            throw;
+        } catch (Exception startError) {
+            if (!createAttempted) throw;
+            bool removed = false;
+            string? cleanupError = null;
+            try {
+                await RemoveWithRetryAsync(podmanExecutable, podmanArguments, name).ConfigureAwait(false);
+                removed = true;
+            } catch (Exception error) {
+                cleanupError = TrimError(error.Message);
+            }
+            throw new HtmlOciWorkerStartException(name, removed, cleanupError, startError);
         }
     }
 
@@ -69,18 +89,13 @@ internal sealed class HtmlOciWorkerLease : IDisposable, IAsyncDisposable {
         try { if (!Process.HasExited) Process.Kill(entireProcessTree: true); }
         catch (InvalidOperationException) { }
         catch (Win32Exception) { /* Removal below is the authoritative container stop. */ }
-        lock (_sync) _removal ??= RemoveAsync(_podmanExecutable, _containerName);
+        lock (_sync) _removal ??= RemoveWithRetryAsync(_podmanExecutable, _podmanArguments, _containerName);
     }
 
     internal async Task WaitForRemovalAsync() {
-        for (int attempt = 0; attempt < 2; attempt++) {
-            Task removal;
-            lock (_sync) removal = _removal ??= RemoveAsync(_podmanExecutable, _containerName);
-            try { await removal.ConfigureAwait(false); return; }
-            catch when (attempt == 0) {
-                lock (_sync) if (ReferenceEquals(_removal, removal)) _removal = null;
-            }
-        }
+        Task removal;
+        lock (_sync) removal = _removal ??= RemoveWithRetryAsync(_podmanExecutable, _podmanArguments, _containerName);
+        await removal.ConfigureAwait(false);
     }
 
     public void Dispose() {
@@ -104,23 +119,27 @@ internal sealed class HtmlOciWorkerLease : IDisposable, IAsyncDisposable {
             throw new ArgumentException("The isolated worker image must use a full immutable sha256 image ID.", nameof(imageId));
     }
 
-    private static async Task RemoveAsync(string executable, string name) {
-        await RunAsync(executable, new[] { "rm", "--force", "--ignore", name }, TimeSpan.FromSeconds(15), CancellationToken.None).ConfigureAwait(false);
-        string remaining = await RunAsync(executable, new[] { "ps", "--all", "--filter", "name=" + name,
-            "--format", "{{.Names}}" }, TimeSpan.FromSeconds(15), CancellationToken.None).ConfigureAwait(false);
+    private static async Task RemoveAsync(string executable, IReadOnlyList<string> prefix, string name, CancellationToken token) {
+        await RunAsync(executable, prefix, new[] { "rm", "--force", "--ignore", name }, TimeSpan.FromSeconds(15), token).ConfigureAwait(false);
+        string remaining = await RunAsync(executable, prefix, new[] { "ps", "--all", "--filter", "name=" + name,
+            "--format", "{{.Names}}" }, TimeSpan.FromSeconds(15), token).ConfigureAwait(false);
         if (remaining.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Contains(name, StringComparer.Ordinal))
             throw new HtmlScriptRuntimeException("The isolated worker container was not removed: " + name);
     }
 
-    private static async Task RemoveWithRetryAsync(string executable, string name) {
-        try { await RemoveAsync(executable, name).ConfigureAwait(false); }
-        catch {
-            try { await RemoveAsync(executable, name).ConfigureAwait(false); }
-            catch (Exception error) {
-                throw new HtmlScriptRuntimeException("The isolated worker container could not be removed after startup failure: "
-                    + name + ". " + error.Message);
-            }
+    private static async Task RemoveWithRetryAsync(string executable, IReadOnlyList<string> prefix, string name) {
+        // Reserve the final five seconds for terminating a Podman command that
+        // ignores cancellation so the complete removal path stays within the
+        // advertised cleanup duration.
+        using var deadline = new CancellationTokenSource(MaximumCleanupDuration - TimeSpan.FromSeconds(5));
+        Exception? failure = null;
+        for (int attempt = 0; attempt < 2; attempt++) {
+            try { await RemoveAsync(executable, prefix, name, deadline.Token).ConfigureAwait(false); return; }
+            catch (Exception error) when (attempt == 0 && !deadline.IsCancellationRequested) { failure = error; }
+            catch (Exception error) { failure = error; break; }
         }
+        throw new HtmlScriptRuntimeException("The isolated worker container could not be removed within the cleanup budget: "
+            + name + ". " + failure?.Message);
     }
 
     private static string[] VerifyEngine(string json) {
@@ -172,9 +191,11 @@ internal sealed class HtmlOciWorkerLease : IDisposable, IAsyncDisposable {
         if (!admitted) throw new HtmlScriptRuntimeException("The container engine did not retain the required isolation policy.");
     }
 
-    private static async Task<string> RunAsync(string executable, IReadOnlyList<string> args, TimeSpan timeout, CancellationToken token) {
+    private static async Task<string> RunAsync(string executable, IReadOnlyList<string> prefix,
+        IReadOnlyList<string> args, TimeSpan timeout, CancellationToken token) {
         var start = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true,
             RedirectStandardOutput = true, RedirectStandardError = true };
+        foreach (string arg in prefix) start.ArgumentList.Add(arg);
         foreach (string arg in args) start.ArgumentList.Add(arg);
         using var process = new Process { StartInfo = start };
         if (!process.Start()) throw new HtmlScriptRuntimeException("The container engine did not start.");
@@ -192,11 +213,29 @@ internal sealed class HtmlOciWorkerLease : IDisposable, IAsyncDisposable {
         } catch (OperationCanceledException) {
             try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
             catch (InvalidOperationException) { }
-            await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+            using var termination = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            try { await process.WaitForExitAsync(termination.Token).ConfigureAwait(false); }
+            catch (OperationCanceledException) {
+                throw new HtmlScriptRuntimeException("The cancelled container-engine command could not be terminated.");
+            }
             token.ThrowIfCancellationRequested();
             throw new TimeoutException("The container engine command exceeded its deadline.");
         }
     }
 
     private static string TrimError(string error) => error.Length > 1024 ? error[..1024] : error.Trim();
+}
+
+internal sealed class HtmlOciWorkerStartException : InvalidOperationException {
+    internal HtmlOciWorkerStartException(string containerName, bool containerRemoved,
+        string? cleanupError, Exception innerException)
+        : base("The isolated worker could not start.", innerException) {
+        ContainerName = containerName;
+        ContainerRemoved = containerRemoved;
+        CleanupError = cleanupError;
+    }
+
+    internal string ContainerName { get; }
+    internal bool ContainerRemoved { get; }
+    internal string? CleanupError { get; }
 }

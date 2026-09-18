@@ -211,7 +211,9 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
             ResourcePolicy = new HtmlRuntimeResourcePolicy { AllowNetwork = false, MaxRequests = 64 },
             Timeout = TimeSpan.FromSeconds(3), SessionTimeout = TimeSpan.FromSeconds(12),
             MaxOutputCharacters = fixture.MaxOutputCharacters,
-            DevicePixelRatio = fixture.DevicePixelRatio
+            DevicePixelRatio = fixture.DevicePixelRatio,
+            ViewportWidth = 816D,
+            ViewportHeight = 720D
         };
         await HtmlRuntimeProtocol.WriteAsync(process.StandardInput.BaseStream,
             new HtmlPublicRenderRequest { Page = page }, 24 * 1024 * 1024, deadline.Token);

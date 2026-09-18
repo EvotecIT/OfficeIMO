@@ -12,6 +12,11 @@ internal sealed class HtmlPublicResourceBroker {
     private readonly HashSet<string> _allowedHosts;
     private readonly Func<string, CancellationToken, Task<IPAddress[]>> _resolveAddresses;
     private readonly Func<IPAddress, int, CancellationToken, ValueTask<Stream>> _connect;
+    private readonly int _maxRequests;
+    private readonly long _maxResourceBytes;
+    private readonly long _maxTotalBytes;
+    private readonly TimeSpan _timeout;
+    private readonly int _maxRedirects;
     private readonly object _budgetSync = new();
     private int _requests;
     private long _bytes;
@@ -19,12 +24,31 @@ internal sealed class HtmlPublicResourceBroker {
     internal HtmlPublicResourceBroker(IEnumerable<string> allowedHosts) : this(
         allowedHosts, (host, token) => Dns.GetHostAddressesAsync(host, token), ConnectToAddressAsync) { }
 
+    internal HtmlPublicResourceBroker(IEnumerable<string> allowedHosts, int maxRequests,
+        long maxResourceBytes, long maxTotalBytes, TimeSpan? timeout = null, int maxRedirects = 5) : this(
+        allowedHosts, (host, token) => Dns.GetHostAddressesAsync(host, token), ConnectToAddressAsync,
+        maxRequests, maxResourceBytes, maxTotalBytes, timeout, maxRedirects) { }
+
     internal HtmlPublicResourceBroker(IEnumerable<string> allowedHosts,
         Func<string, CancellationToken, Task<IPAddress[]>> resolveAddresses,
-        Func<IPAddress, int, CancellationToken, ValueTask<Stream>> connect) {
+        Func<IPAddress, int, CancellationToken, ValueTask<Stream>> connect,
+        int maxRequests = 32, long maxResourceBytes = 4 * 1024 * 1024,
+        long maxTotalBytes = 16 * 1024 * 1024, TimeSpan? timeout = null, int maxRedirects = 5) {
         ArgumentNullException.ThrowIfNull(allowedHosts);
         _resolveAddresses = resolveAddresses ?? throw new ArgumentNullException(nameof(resolveAddresses));
         _connect = connect ?? throw new ArgumentNullException(nameof(connect));
+        if (maxRequests <= 0) throw new ArgumentOutOfRangeException(nameof(maxRequests));
+        if (maxResourceBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxResourceBytes));
+        if (maxTotalBytes < maxResourceBytes) throw new ArgumentOutOfRangeException(nameof(maxTotalBytes));
+        TimeSpan effectiveTimeout = timeout ?? TimeSpan.FromSeconds(20);
+        if (effectiveTimeout <= TimeSpan.Zero || effectiveTimeout > TimeSpan.FromSeconds(20))
+            throw new ArgumentOutOfRangeException(nameof(timeout));
+        if (maxRedirects is < 0 or > 5) throw new ArgumentOutOfRangeException(nameof(maxRedirects));
+        _maxRequests = maxRequests;
+        _maxResourceBytes = maxResourceBytes;
+        _maxTotalBytes = maxTotalBytes;
+        _timeout = effectiveTimeout;
+        _maxRedirects = maxRedirects;
         _allowedHosts = new HashSet<string>(allowedHosts.Select(ValidateHost), StringComparer.OrdinalIgnoreCase);
         if (_allowedHosts.Count == 0 || _allowedHosts.Count > 16)
             throw new ArgumentException("The pilot requires one to sixteen explicitly allowed hosts.", nameof(allowedHosts));
@@ -38,7 +62,7 @@ internal sealed class HtmlPublicResourceBroker {
     internal async Task<HtmlPublicResourceResult> FetchAsync(Uri requestedUrl, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(requestedUrl);
         Uri current = ValidateUrl(requestedUrl);
-        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        using var deadline = new CancellationTokenSource(_timeout);
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
         var redirects = new List<HtmlPublicRedirect>();
         DateTimeOffset fetchedAt = DateTimeOffset.UtcNow;
@@ -66,7 +90,7 @@ internal sealed class HtmlPublicResourceBroker {
             if (connectedAddress == null) throw new HtmlScriptRuntimeException("The public resource address was not verified.");
             int status = (int)response.StatusCode;
             if (status is 301 or 302 or 303 or 307 or 308) {
-                if (hop >= 5 || response.Headers.Location == null)
+                if (hop >= _maxRedirects || response.Headers.Location == null)
                     throw new HtmlScriptRuntimeException("The public resource redirect limit or location was invalid.");
                 Uri next = ValidateRedirect(current, ResolveRedirect(current, response.Headers.Location));
                 redirects.Add(new HtmlPublicRedirect(current, next, status, connectedAddress));
@@ -77,7 +101,7 @@ internal sealed class HtmlPublicResourceBroker {
                 throw new HtmlScriptRuntimeException("The public resource returned HTTP " + status + ".");
             if (response.Content.Headers.ContentEncoding.Any(value => !value.Equals("identity", StringComparison.OrdinalIgnoreCase)))
                 throw new HtmlScriptRuntimeException("Compressed public responses are outside the pilot transport profile.");
-            if (response.Content.Headers.ContentLength is > 4 * 1024 * 1024)
+            if (response.Content.Headers.ContentLength > _maxResourceBytes)
                 throw new HtmlScriptRuntimeException("The public resource exceeds its byte budget.");
             byte[] bytes = await ReadBoundedAsync(response.Content, operation.Token).ConfigureAwait(false);
             string contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
@@ -166,7 +190,7 @@ internal sealed class HtmlPublicResourceBroker {
     }
 
     private void ReserveRequest() {
-        lock (_budgetSync) if (++_requests > 32) throw new HtmlScriptRuntimeException("The public acquisition request budget was exceeded.");
+        lock (_budgetSync) if (++_requests > _maxRequests) throw new HtmlScriptRuntimeException("The public acquisition request budget was exceeded.");
     }
 
     private async Task<byte[]> ReadBoundedAsync(HttpContent content, CancellationToken token) {
@@ -176,7 +200,7 @@ internal sealed class HtmlPublicResourceBroker {
         int read;
         while ((read = await input.ReadAsync(buffer, token).ConfigureAwait(false)) != 0) {
             lock (_budgetSync) {
-                if (read > 4 * 1024 * 1024 - output.Length || read > 16 * 1024 * 1024 - _bytes)
+                if (read > _maxResourceBytes - output.Length || read > _maxTotalBytes - _bytes)
                     throw new HtmlScriptRuntimeException("The public acquisition byte budget was exceeded.");
                 _bytes += read;
             }

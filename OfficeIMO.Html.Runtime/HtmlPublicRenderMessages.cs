@@ -10,7 +10,14 @@ internal sealed class HtmlPublicResourceBatch {
     public HtmlRuntimeResource[] Resources { get; set; } = Array.Empty<HtmlRuntimeResource>();
 }
 
+internal enum HtmlPublicRenderStage {
+    ResourceDiscovery,
+    Rendering,
+    Output
+}
+
 internal sealed class HtmlPublicRenderResponse {
+    public HtmlPublicRenderStage Stage { get; set; }
     public string RendererSha256 { get; set; } = string.Empty;
     public string WorkerSha256 { get; set; } = string.Empty;
     public string RendererFilesSha256 { get; set; } = string.Empty;

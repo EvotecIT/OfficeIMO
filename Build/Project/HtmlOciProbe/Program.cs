@@ -62,7 +62,9 @@ async Task RunRejectedInspectionAsync(bool failFirstRemoval) {
         try {
             await using HtmlOciWorkerLease unexpected = await HtmlOciWorkerLease.StartAsync(proxyExecutable, imageId, CancellationToken.None);
             throw new InvalidOperationException("The rejected inspection was admitted.");
-        } catch (HtmlScriptRuntimeException error) when (error.Message == "The container engine did not retain the required isolation policy.") { }
+        } catch (HtmlOciWorkerStartException error) when (
+            error.InnerException is HtmlScriptRuntimeException { Message: "The container engine did not retain the required isolation policy." }
+            && error.ContainerRemoved && error.CleanupError == null) { }
         if (failFirstRemoval && !File.Exists(marker)) throw new InvalidOperationException("The first startup removal did not fail as expected.");
     } finally {
         Environment.SetEnvironmentVariable("OFFICEIMO_OCI_PROBE_MODE", null);

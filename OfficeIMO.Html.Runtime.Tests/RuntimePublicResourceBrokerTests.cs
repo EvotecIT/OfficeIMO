@@ -180,6 +180,67 @@ public class RuntimePublicResourceBrokerTests {
     }
 
     [Fact]
+    public async Task AcquisitionHonorsAStricterPerRunResponseLimit() {
+        await using var server = new RuntimeHttpFixture((_, _) => Task.FromResult(
+            RuntimeHttpFixture.Reply.Text("too large", "text/plain")));
+        var broker = new HtmlPublicResourceBroker(new[] { "page.example.test" },
+            (_, _) => Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") }),
+            async (_, _, token) => {
+                var client = new TcpClient(AddressFamily.InterNetwork);
+                try {
+                    await client.ConnectAsync(IPAddress.Loopback, server.Origin.Port, token);
+                    return client.GetStream();
+                } catch { client.Dispose(); throw; }
+            }, maxRequests: 1, maxResourceBytes: 4, maxTotalBytes: 4);
+
+        HtmlScriptRuntimeException error = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() =>
+            broker.FetchAsync(new Uri("http://page.example.test/")));
+
+        Assert.Contains("byte budget", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AcquisitionHonorsAStricterPerRunRedirectLimit() {
+        await using var server = new RuntimeHttpFixture((_, _) => Task.FromResult(
+            RuntimeHttpFixture.Reply.Text("", "text/plain", 302, "Location: /final\r\n")));
+        var broker = new HtmlPublicResourceBroker(new[] { "page.example.test" },
+            (_, _) => Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") }),
+            async (_, _, token) => {
+                var client = new TcpClient(AddressFamily.InterNetwork);
+                try {
+                    await client.ConnectAsync(IPAddress.Loopback, server.Origin.Port, token);
+                    return client.GetStream();
+                } catch { client.Dispose(); throw; }
+            }, maxRedirects: 0);
+
+        HtmlScriptRuntimeException error = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() =>
+            broker.FetchAsync(new Uri("http://page.example.test/start")));
+
+        Assert.Contains("redirect limit", error.Message, StringComparison.Ordinal);
+        Assert.Single(server.Requests);
+    }
+
+    [Fact]
+    public async Task AcquisitionHonorsAStricterPerRunTimeout() {
+        await using var server = new RuntimeHttpFixture(async (_, _) => {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            return RuntimeHttpFixture.Reply.Text("late", "text/plain");
+        });
+        var broker = new HtmlPublicResourceBroker(new[] { "page.example.test" },
+            (_, _) => Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") }),
+            async (_, _, token) => {
+                var client = new TcpClient(AddressFamily.InterNetwork);
+                try {
+                    await client.ConnectAsync(IPAddress.Loopback, server.Origin.Port, token);
+                    return client.GetStream();
+                } catch { client.Dispose(); throw; }
+            }, timeout: TimeSpan.FromMilliseconds(100));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            broker.FetchAsync(new Uri("http://page.example.test/slow")));
+    }
+
+    [Fact]
     public async Task DefaultConnectorUsesExactEndpointAndOwnsSocket() {
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();

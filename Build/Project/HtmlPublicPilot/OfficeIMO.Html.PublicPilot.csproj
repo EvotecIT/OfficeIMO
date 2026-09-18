@@ -8,5 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
+    <ProjectReference Include="../../../OfficeIMO.Html.Runtime.Rendering/OfficeIMO.Html.Runtime.Rendering.csproj" />
   </ItemGroup>
 </Project>

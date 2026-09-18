@@ -1,8 +1,12 @@
 # OfficeIMO.Html.Runtime.Rendering
 
-This optional package turns one trusted, scripted application state into
-independent OfficeIMO outputs. It composes the provider-neutral runtime host,
-the HTML renderer, and the PDF adapter. The runtime's scripts, resources and
+This optional package provides two application-to-document workflows. The
+trusted workflow turns one caller-approved scripted application state into
+independent OfficeIMO outputs. The isolated public-page workflow acquires a
+named HTTP(S) page through a bounded host broker and runs the complete parser,
+JavaScript, capture and rendering pipeline in a verified networkless OCI
+container. Both workflows compose the provider-neutral runtime host, the HTML
+renderer, and the PDF adapter. The trusted workflow's scripts, resources and
 network policy still come from `HtmlScriptRequest`. The workflow's external
 resource resolver serves only explicitly supplied responses and responses retained
 by the completed capture, with observed responses taking precedence. Data URLs
@@ -83,3 +87,61 @@ observed resources only; `RenderResources` exposes the supplied and observed
 resources retained for rendering. For PDF outputs, the host
 resource policy permits the workflow's retained-resource resolver to supply HTTP(S)
 responses; it does not add an HTTP client.
+
+## Isolated public pages
+
+`HtmlIsolatedPublicPageWorkflow` is the separate untrusted-content entry point.
+It never passes public markup or scripts to `OpenTrustedAsync` on the host. The
+host acquires only explicitly admitted public HTTP(S) bytes; the OCI worker has
+no network route or host mounts and owns parsing, scripting, capture, screen
+rendering, browser-print rendering, and screen-to-page rendering.
+
+```csharp
+HtmlIsolatedPublicPageResult result = await HtmlIsolatedPublicPageWorkflow.RunAsync(
+    new HtmlIsolatedPublicPageExecutionOptions {
+        ImageId = "sha256:<full-image-id>",
+        PublishedRendererAssemblyPath = rendererAssembly,
+        PublishedWorkerAssemblyPath = workerAssembly,
+        // On Windows, invoke the qualified rootless Podman installation in WSL:
+        PodmanCommand = "wsl.exe",
+        PodmanCommandArguments = new[] { "-d", "Ubuntu", "--exec", "podman" }
+    },
+    new HtmlIsolatedPublicPageRequest {
+        ScenarioId = "wpt-first-letter-reference",
+        Url = new Uri("https://wpt.live/css/css-pseudo/first-letter-001-ref.html"),
+        SourceLicense = "BSD-3-Clause"
+    }, cancellationToken);
+
+ReadOnlyMemory<byte> screenPng = result.Outputs.Single(
+    output => output.Name == "screen.png").Content;
+```
+
+The current `NetworklessRootlessOciV1` profile requires rootless Podman,
+seccomp, CPU/memory/PID cgroups, a read-only root filesystem, no network, no
+mounts, UID 65532, dropped capabilities, and no-new-privileges. It verifies the
+full immutable image ID, container inspection, renderer and script-worker entry
+assembly hashes, complete published-directory hashes, and container removal.
+The qualified hosts are Linux with direct Podman and Windows with Podman in
+WSL2. macOS is not advertised until its backend passes the same checks.
+
+The acquisition broker permits standard HTTP(S) ports and public IPv4 only,
+revalidates DNS at every redirect, disables proxies, cookies, credentials and
+decompression, and rejects TLS downgrade. One response is limited to 4 MiB,
+the run to 32 acquisition attempts and 16 MiB, and isolated discovery to 16
+rounds and 24 supplied resources. Every stricter limit supplied through
+`Runtime.ResourcePolicy` is preserved for acquisition and isolated replay.
+`OperationTimeout` covers acquisition through output validation; verified
+container removal then has a separate fixed one-minute fail-safe budget. Input bytes are omitted from results by
+default; set `RetainInputBytes` only when the source license and retention policy
+permit it. The result always carries request/final URLs, connected addresses,
+redirects, byte counts, SHA-256 digests, runtime trace summaries, known
+unsupported features, and output digests. Canceled and failed runs throw typed
+exceptions with partial acquisition, phase, worker-identity, trace and cleanup
+evidence.
+
+The inner provider ID may be `officeimo.trusted-process`: that process is
+trusted by the isolated controller inside the container. It does not describe
+the host boundary. `IsolationProfile`, `IsolationPolicy`, immutable image and
+payload identities, and confirmed removal describe the untrusted-content
+boundary. A successful named-page result proves that page and profile only; it
+does not claim Chromium parity or arbitrary-site compatibility.

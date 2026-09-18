@@ -297,13 +297,16 @@ Admit runtime features through executable profiles:
 
 Freeze time and disable unrelated animations in reproducibility tests; separately test real scheduling and animation behavior when those become supported. Define readiness using explicit lifecycle events, application predicates, resource/font completion and layout stability under a deadline. Network-idle alone cannot establish that a page is complete.
 
-Any future untrusted-script profile must execute in an isolated worker with OS-enforced bounds. Interpreter constraints supplement process isolation; they are not the isolation boundary. Host objects are explicit capabilities and never expose arbitrary CLR access. Browser origins, cross-origin resource rules, credentials and navigation require dedicated security tests.
+The separately advertised untrusted-script profile executes in an isolated worker with OS-enforced bounds. Interpreter constraints supplement process isolation; they are not the isolation boundary. Host objects are explicit capabilities and never expose arbitrary CLR access. Browser origins, cross-origin resource rules, credentials and navigation require dedicated security tests.
 
 The public-page pilot has a separate admission path and provider identity. It may
 reuse the owned host/page/action/capture contracts and the application-to-document
-workflow, but it must never call the trusted worker launcher for public scripts.
+workflow, but the host must never call the trusted worker launcher for public
+scripts. The isolated controller may reuse that implementation as its child
+process after the outer OS boundary is verified and before public bytes are
+parsed.
 Before admitting a page, the host must verify an isolation mechanism on the
-current OS and return a report containing the mechanism, worker and policy
+current OS and return evidence containing the mechanism, worker and policy
 identities, enforced memory/CPU/process limits, filesystem and network scope,
 and termination outcome. An unavailable or failed check rejects the job; there
 is no best-effort fallback to `WebApplicationV1`.
@@ -313,7 +316,7 @@ passes immutable bytes to a worker with no direct network access. The acquisitio
 broker owns DNS/IP and redirect checks, response-size and time limits, origin
 policy, content hashes and retained-source provenance. The worker can request
 only broker-authorized resources; until that request channel is qualified, a
-pilot page is limited to resources captured before execution. Credentials,
+the host answers only bounded, broker-authorized discovery requests. Credentials,
 cookies and persistent storage are excluded from the first public profile.
 Probe the isolation boundary with denied file reads and writes, denied network
 calls, process spawning, memory pressure, CPU loops and cancellation before a
