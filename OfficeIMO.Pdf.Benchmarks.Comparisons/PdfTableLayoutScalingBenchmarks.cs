@@ -11,13 +11,13 @@ public enum PdfTableLayoutCellMode {
 
 /// <summary>
 /// Measures worksheet-like table layout, pagination, and serialization across
-/// adjacent and larger row counts. Every body cell carries an explicit font
-/// size so the shared shrink-to-fit path used by spreadsheet conversion is
-/// exercised rather than only the plain-text fast path.
+/// adjacent and larger row counts. Plain and explicit-rich cells render with
+/// equivalent font size and header emphasis so their costs remain comparable.
 /// </summary>
 [MemoryDiagnoser]
 [RankColumn]
 public class PdfTableLayoutScalingBenchmarks {
+    private const double CellFontSize = 11D;
     private IReadOnlyList<PdfTableCell[]> _rows = null!;
     private PdfTableStyle _style = null!;
     private byte[]? _result;
@@ -39,7 +39,8 @@ public class PdfTableLayoutScalingBenchmarks {
         _style.PreserveWidth = true;
         _style.ShrinkTextToFit = true;
         _style.MinimumShrinkFontSize = 6D;
-        _style.FontSize = 9D;
+        _style.FontSize = CellFontSize;
+        _style.HeaderBold = true;
         _style.LineHeight = 1.15D;
         _style.CellPaddingX = 2D;
         _style.CellPaddingY = 1D;
@@ -54,7 +55,7 @@ public class PdfTableLayoutScalingBenchmarks {
             MarginRight = 54D,
             MarginTop = 54D,
             MarginBottom = 54D,
-            DefaultFontSize = 9D,
+            DefaultFontSize = CellFontSize,
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly
         });
@@ -113,7 +114,7 @@ public class PdfTableLayoutScalingBenchmarks {
         cellMode == PdfTableLayoutCellMode.Plain
             ? PdfTableCell.TextCell(text).WithNoWrap()
             : PdfTableCell.RichTextCell(new[] {
-                new PdfTextRun(text, bold: bold, fontSize: 11D)
+                new PdfTextRun(text, bold: bold, fontSize: CellFontSize)
             }).WithNoWrap();
 
     private static string CreateMarker(int index) =>

@@ -134,10 +134,17 @@ internal static partial class PdfWriter {
                     ValidateTableColumnStyleBounds(style, cols);
                     ValidateTableRowStyleBounds(style, tb2.Rows.Count);
                     ValidateTableRowSpansWithinRoleBoundaries(tb2, cols, headerRowCount, footerStartRowIndex);
-                    PreparedTableColumns preparedColumns = PrepareTableColumns(tb2, style, columnWidth, size, headerRowCount, footerStartRowIndex);
-                    double[] colPixel = preparedColumns.ColumnWidths;
-                    double tableWidth = preparedColumns.TableWidth;
-                    ValidateTableCellTextWidths(tb2, style, cols, colPixel, columnGap);
+                    TableColumnLayout preparedColumns = ResolveTableColumnLayout(
+                        tb2,
+                        currentOpts,
+                        style,
+                        GetTableColumnCount(tb2),
+                        columnWidth,
+                        size,
+                        headerRowCount,
+                        footerStartRowIndex);
+                    double[] colPixel = preparedColumns.Widths;
+                    double tableWidth = preparedColumns.Width;
 
                     var rowLines = new TableCellTextLayout[tb2.Rows.Count][];
                     var rowLineCounts = new int[tb2.Rows.Count];

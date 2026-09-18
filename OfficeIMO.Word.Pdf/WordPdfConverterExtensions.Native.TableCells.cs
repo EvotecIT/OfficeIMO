@@ -329,7 +329,7 @@ namespace OfficeIMO.Word.Pdf {
             return CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, NativeTableStyleDefaults.Empty);
         }
 
-        private static NativeCellText CreateNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null, Func<WordParagraph, (int Level, string Marker)?>? getMarker = null, int tableNestingDepth = 0) {
+        private static NativeCellText CreateNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null, Func<WordParagraph, (int Level, string Marker)?>? getMarker = null, int tableNestingDepth = 0, bool ignoreFallbackTableStyle = false) {
             var runs = new List<PdfCore.PdfTextRun>();
             var paragraphs = new List<PdfCore.PdfTableCellParagraph>();
             double? pendingSpacingAfter = null;
@@ -346,10 +346,10 @@ namespace OfficeIMO.Word.Pdf {
                         nestedTable,
                         footnoteNumbersById,
                         nativeDefaults,
-                        tableStyleDefaults,
                         nativeFontMap,
                         getMarker,
                         tableNestingDepth,
+                        ignoreFallbackTableStyle,
                         runs,
                         paragraphs);
                     pendingSpacingAfter = null;
@@ -417,65 +417,6 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return new NativeCellText(runs, paragraphs);
-        }
-
-        private static IEnumerable<WordElement> EnumerateNativeTableCellElements(WordTableCell cell) =>
-            EnumerateNativeTableCellElements(CollapseNativeParagraphElements(cell.Elements), 0);
-
-        private static IEnumerable<WordElement> EnumerateNativeTableCellElements(IEnumerable<WordElement> elements, int structuredDocumentTagDepth) {
-            foreach (WordElement element in CollapseNativeParagraphElements(elements)) {
-                if (element is not WordStructuredDocumentTag structuredDocumentTag) {
-                    yield return element;
-                    continue;
-                }
-
-                if (structuredDocumentTagDepth >= MaximumNativeStructuredDocumentTagDepth) {
-                    throw new InvalidDataException(
-                        $"Structured document tag nesting exceeds the supported limit of {MaximumNativeStructuredDocumentTagDepth} levels.");
-                }
-
-                IEnumerable<WordElement> structuredElements = GetNativeStructuredBlockElements(
-                    structuredDocumentTag.Document,
-                    structuredDocumentTag.SdtBlock);
-                foreach (WordElement structuredElement in EnumerateNativeTableCellElements(structuredElements, structuredDocumentTagDepth + 1)) {
-                    yield return structuredElement;
-                }
-            }
-        }
-
-        private static void AppendNativeNestedTableText(
-            WordTable nestedTable,
-            Dictionary<long, int>? footnoteNumbersById,
-            NativeDocumentDefaults nativeDefaults,
-            NativeTableStyleDefaults tableStyleDefaults,
-            NativeFontMap? nativeFontMap,
-            Func<WordParagraph, (int Level, string Marker)?>? getMarker,
-            int tableNestingDepth,
-            List<PdfCore.PdfTextRun> runs,
-            List<PdfCore.PdfTableCellParagraph> paragraphs) {
-            int nestedDepth = tableNestingDepth + 1;
-            EnsureNativeTableDepth(nestedDepth);
-            foreach (WordTableRow nestedRow in nestedTable.Rows) {
-                foreach (WordTableCell nestedCell in nestedRow.Cells) {
-                    NativeCellText nestedText = CreateNativeCellText(
-                        nestedCell,
-                        footnoteNumbersById,
-                        nativeDefaults,
-                        tableStyleDefaults,
-                        nativeFontMap,
-                        getMarker,
-                        nestedDepth);
-                    if (nestedText.Runs.Count == 0) {
-                        continue;
-                    }
-
-                    if (runs.Count > 0) {
-                        runs.Add(PdfCore.PdfTextRun.LineBreak());
-                    }
-                    runs.AddRange(nestedText.Runs);
-                    paragraphs.AddRange(nestedText.Paragraphs);
-                }
-            }
         }
 
         private static List<PdfCore.PdfTextRun>?[]? PrepareNativeCellParagraphRuns(

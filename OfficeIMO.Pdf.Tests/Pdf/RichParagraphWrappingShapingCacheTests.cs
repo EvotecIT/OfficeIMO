@@ -73,6 +73,45 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(new[] { "AAAA", "AA", "AA" }, multiScalarRequests);
         }
 
+        [Fact]
+        public void TableShrinkMeasurement_PreservesExplicitOpenTypeFeatures() {
+            string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+            Assert.NotNull(fontPath);
+
+            byte[] fontData = File.ReadAllBytes(fontPath!);
+            var fontProgram = PdfOpenTypeCffFontProgram.Parse(fontData, "OfficeIMO Table Feature Width Font");
+            var provider = new ControlledAdvanceTextShapingProvider(fontProgram, featureAware: true);
+            var options = new PdfOptions()
+                .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Table Feature Width Font")
+                .SetTextShapingProvider(provider);
+            OfficeTextFeatureSettings features = OfficeTextFeatureSettings.Default.With("kern", 0);
+
+            PdfDocument.Create(options)
+                .Table(new[] {
+                    new[] { PdfTableCell.TextCell("Name"), PdfTableCell.TextCell("Value") },
+                    new[] {
+                        PdfTableCell.TextCell("Alpha"),
+                        PdfTableCell.RichTextCell(new[] {
+                            PdfTextRun.Normal("AVAVAVAV", fontSize: 24D).WithFeatureSettings(features)
+                        }).WithNoWrap()
+                    }
+                }, style: new PdfTableStyle {
+                    FontSize = 12D,
+                    HeaderFontSize = 12D,
+                    ShrinkTextToFit = true,
+                    MinimumShrinkFontSize = 6D,
+                    ColumnWidthPoints = new List<double?> { 54D, 72D },
+                    HeaderRowCount = 1
+                })
+                .ToBytes();
+
+            List<OfficeTextShapingRequest> measuredRuns = provider.Requests.FindAll(
+                static request => request.Text.Contains("AV", StringComparison.Ordinal));
+            Assert.NotEmpty(measuredRuns);
+            Assert.All(measuredRuns, request =>
+                Assert.True(request.FeatureSettings.TryGetValue("kern", out int value) && value == 0));
+        }
+
         private sealed class ControlledAdvanceTextShapingProvider : IOfficeTextShapingProvider {
             private readonly PdfOpenTypeCffFontProgram _fontProgram;
             private readonly bool _featureAware;

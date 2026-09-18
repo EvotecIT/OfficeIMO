@@ -324,11 +324,12 @@ namespace OfficeIMO.Word.Pdf {
         private static void RecordNativeHeaderFooterTableDiagnostics(WordTable table, WordToPdfOptions options, string source) {
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    if (cell.DirectNestedTables.Count > 0) {
+                    List<WordElement> cellElements = EnumerateNativeTableCellElements(cell).ToList();
+                    if (cellElements.Any(static element => element is WordTable)) {
                         AddNativeNestedTableLayoutWarning(options, source);
                     }
 
-                    foreach (WordElement element in cell.Elements) {
+                    foreach (WordElement element in cellElements) {
                         RecordNativeHeaderFooterElementDiagnostics(element, options, source);
                     }
                 }
@@ -388,16 +389,15 @@ namespace OfficeIMO.Word.Pdf {
 
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    if (cell.DirectNestedTables.Count > 0) {
+                    List<WordElement> cellElements = EnumerateNativeTableCellElements(cell).ToList();
+                    if (cellElements.Any(static element => element is WordTable)) {
                         AddNativeNestedTableLayoutWarning(options, source);
                     }
 
-                    foreach (WordParagraph paragraph in cell.Paragraphs) {
-                        RecordNativeBodyParagraphDiagnostics(paragraph, options, source, mapsCheckBoxes: true, mapsFormFields: true, mapsPictureControls: true, mapsRepeatingSections: true);
-                    }
-
-                    foreach (WordElement element in cell.Elements) {
-                        if (element is not WordParagraph) {
+                    foreach (WordElement element in cellElements) {
+                        if (element is WordParagraph paragraph) {
+                            RecordNativeBodyParagraphDiagnostics(paragraph, options, source, mapsCheckBoxes: true, mapsFormFields: true, mapsPictureControls: true, mapsRepeatingSections: true);
+                        } else {
                             RecordNativeBodyElementDiagnostics(element, options, source);
                         }
                     }
@@ -420,6 +420,13 @@ namespace OfficeIMO.Word.Pdf {
                     break;
                 case WordTable table:
                     RecordNativeBodyTableDiagnostics(table, options, source + " table");
+                    break;
+                case WordStructuredDocumentTag structuredDocumentTag:
+                    foreach (WordElement structuredElement in EnumerateNativeStructuredContentElements(
+                        new[] { structuredDocumentTag },
+                        structuredDocumentTagDepth: 0)) {
+                        RecordNativeBodyElementDiagnostics(structuredElement, options, source);
+                    }
                     break;
                 case WordEmbeddedDocument:
                     AddNativeExportWarning(

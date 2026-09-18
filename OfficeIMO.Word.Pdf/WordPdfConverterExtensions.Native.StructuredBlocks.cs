@@ -101,7 +101,9 @@ namespace OfficeIMO.Word.Pdf {
                 for (int rowIndex = rows.Count - 1; rowIndex >= 0; rowIndex--) {
                     List<WordTableCell> cells = rows[rowIndex].Cells;
                     for (int cellIndex = cells.Count - 1; cellIndex >= 0; cellIndex--) {
-                        List<WordTable> nestedTables = cells[cellIndex].DirectNestedTables;
+                        List<WordTable> nestedTables = EnumerateNativeTableCellElements(cells[cellIndex])
+                            .OfType<WordTable>()
+                            .ToList();
                         for (int nestedIndex = nestedTables.Count - 1; nestedIndex >= 0; nestedIndex--) {
                             pending.Push((nestedTables[nestedIndex], depth + 1));
                         }

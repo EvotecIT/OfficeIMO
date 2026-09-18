@@ -203,7 +203,8 @@ internal static partial class PdfWriter {
                     namedFont,
                     1D,
                     run.Baseline,
-                    options);
+                    options,
+                    run.FeatureSettings);
                 preparedRuns[runIndex] = new TableRunWidthMeasurement(
                     run.HorizontalOffset,
                     0D,

@@ -64,7 +64,14 @@ namespace OfficeIMO.Word.Pdf {
                         tableColumnCount,
                         visualHeaderRowCount,
                         footerStartRowIndex);
-                    NativeCellText cellText = CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, cellStyleDefaults, nativeFontMap, getMarker);
+                    NativeCellText cellText = CreateNativeCellText(
+                        cell,
+                        footnoteNumbersById,
+                        nativeDefaults,
+                        cellStyleDefaults,
+                        nativeFontMap,
+                        getMarker,
+                        ignoreFallbackTableStyle: hasExplicitDefaultTableStyle);
                     NativeTableCellEmbeddedContent embeddedContent = CreateNativeTableCellEmbeddedContent(cell);
                     (string? LinkUri, string? LinkContents) link = GetNativeCellLink(cell);
                     int rowSpan = GetNativeCellRowSpan(cell);
