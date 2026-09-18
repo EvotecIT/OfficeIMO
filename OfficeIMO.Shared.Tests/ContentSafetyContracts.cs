@@ -18,6 +18,23 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed class ContentSafetyContracts {
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void CharacterReferenceEncodingScansLargeRepresentableTextWithoutPerScalarAllocations() {
+        var encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+        OfficeIMO.Core.Internal.OfficeCharacterReferenceEncoding.EscapeUnrepresentableCharacters("warmup", encoding);
+        string input = new string('a', 1_000_000);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        string output = OfficeIMO.Core.Internal.OfficeCharacterReferenceEncoding
+            .EscapeUnrepresentableCharacters(input, encoding);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Same(input, output);
+        Assert.InRange(allocated, 0L, 1024L);
+    }
+#endif
+
     [Fact]
     public void ConcealedInstructionIsRiskEvidenceNotAiAuthorship() {
         var builder = new OfficeContentSafetyBuilder("TEST");

@@ -16,6 +16,7 @@ internal static class OfficeCharacterReferenceEncoding {
         if (encoding == null) throw new ArgumentNullException(nameof(encoding));
 
         StringBuilder? escaped = null;
+        var scalarBuffer = new char[2];
         for (int index = 0; index < value.Length;) {
             int characterCount = 1;
             int codePoint;
@@ -31,10 +32,12 @@ internal static class OfficeCharacterReferenceEncoding {
             } else {
                 codePoint = current;
             }
+            scalarBuffer[0] = current;
+            if (characterCount == 2) scalarBuffer[1] = value[index + 1];
 
             bool representable;
             try {
-                encoding.GetByteCount(value.Substring(index, characterCount));
+                encoding.GetByteCount(scalarBuffer, 0, characterCount);
                 representable = true;
             } catch (EncoderFallbackException) {
                 representable = false;

@@ -206,9 +206,17 @@ internal static partial class EpubReader {
                 continue;
             }
 
+            string? mediaType = NullIfWhiteSpace(GetUnqualifiedAttribute(rootfile, "media-type"));
+            if (!string.Equals(mediaType, "application/oebps-package+xml", StringComparison.OrdinalIgnoreCase)) {
+                diagnostics.Warning(
+                    "epub.container.rootfile-media-type-invalid",
+                    $"Rootfile '{fullPath}' must declare media-type 'application/oebps-package+xml'.",
+                    "META-INF/container.xml");
+            }
+
             results.Add(new EpubRootfile {
                 FullPath = fullPath,
-                MediaType = NullIfWhiteSpace(GetUnqualifiedAttribute(rootfile, "media-type")),
+                MediaType = mediaType,
                 IsAvailable = entryIndex.ContainsKey(fullPath)
             });
         }
@@ -280,7 +288,15 @@ internal static partial class EpubReader {
         }
 
         var manifestTargets = new HashSet<string>(StringComparer.Ordinal);
-        XElement? manifest = packageElement?.Elements().FirstOrDefault(e => IsOpfName(e, "manifest"));
+        XElement[] manifests = packageElement?.Elements().Where(e => IsOpfName(e, "manifest")).ToArray()
+            ?? Array.Empty<XElement>();
+        if (manifests.Length != 1) {
+            diagnostics.Warning(
+                "epub.package.manifest-structure-invalid",
+                "EPUB OPF package must contain exactly one direct manifest element.",
+                opfPath);
+        }
+        XElement? manifest = manifests.FirstOrDefault();
         IEnumerable<XElement> manifestItems = manifest?.Elements().Where(e => IsOpfName(e, "item"))
             ?? Enumerable.Empty<XElement>();
         foreach (var item in manifestItems) {

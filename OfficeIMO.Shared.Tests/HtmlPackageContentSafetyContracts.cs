@@ -1186,6 +1186,37 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(input));
     }
 
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void Epub_ContentSafetyRequiresCanonicalRootfileMediaType(
+        bool missingMediaType,
+        bool invalidMediaType) {
+        byte[] input = BuildEpub(
+            signed: false,
+            missingRootfileMediaType: missingMediaType,
+            invalidRootfileMediaType: invalidMediaType);
+        using (var stream = new MemoryStream(input, writable: false)) {
+            EpubDocument document = EpubDocument.Load(stream);
+            Assert.Contains(document.Diagnostics, diagnostic =>
+                diagnostic.Code == "epub.container.rootfile-media-type-invalid");
+        }
+
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(input));
+    }
+
+    [Fact]
+    public void Epub_ContentSafetyRejectsDuplicateDirectManifestSections() {
+        byte[] input = BuildEpub(signed: false, duplicateManifestSection: true);
+        using (var stream = new MemoryStream(input, writable: false)) {
+            EpubDocument document = EpubDocument.Load(stream);
+            Assert.Contains(document.Diagnostics, diagnostic =>
+                diagnostic.Code == "epub.package.manifest-structure-invalid");
+        }
+
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(input));
+    }
+
     [Fact]
     public void PackageCssRejectsUnknownSupportsConditionsBeforeNegation() {
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
@@ -1195,10 +1226,31 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Theory]
+    [InlineData("<style>@supports not (display: block flow-root){.concealed{display:none}}</style>")]
+    [InlineData("<style>@import 'nested.css' supports(not (display: block flow-root));</style>")]
+    public void Mhtml_PackageCssRejectsUnmodeledKnownSupportsValuesBeforeNegation(string stylesheet) {
+        byte[] input = new MhtmlDocument(
+            "<html><head>" + stylesheet + "</head><body><p class='concealed'>Unmodeled supports text.</p></body></html>",
+            new[] {
+                new MhtmlResource(
+                    Encoding.UTF8.GetBytes(".concealed{display:none}"),
+                    "text/css",
+                    contentLocation: "nested.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+    }
+
+    [Theory]
     [InlineData("<style media='not (prefers-contrast: more)'>.concealed{display:none}</style>")]
     [InlineData("<link rel='stylesheet' href='nested.css' media='not (prefers-contrast: more)'>")]
     [InlineData("<style>@import 'nested.css' not (prefers-contrast: more);</style>")]
     [InlineData("<style>@media not (prefers-contrast: more){.concealed{display:none}}</style>")]
+    [InlineData("<style media='not (min-width: calc(1px))'>.concealed{display:none}</style>")]
+    [InlineData("<link rel='stylesheet' href='nested.css' media='not (min-width: calc(1px))'>")]
+    [InlineData("<style>@import 'nested.css' not (min-width: calc(1px));</style>")]
+    [InlineData("<style>@media not (min-width: calc(1px)){.concealed{display:none}}</style>")]
     public void Mhtml_PackageCssRejectsUnknownMediaConditionsBeforeNegation(string stylesheet) {
         byte[] input = new MhtmlDocument(
             "<html><head>" + stylesheet + "</head><body><p class='concealed'>Unknown media text.</p></body></html>",
@@ -1407,10 +1459,16 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool bomlessLatin1Xhtml = false,
         bool nonConformingManifestHref = false,
         bool obfuscatedStylesheet = false,
+        bool missingRootfileMediaType = false,
+        bool invalidRootfileMediaType = false,
+        bool duplicateManifestSection = false,
         int unusedAssetBytes = 4) {
+        string rootfileMediaType = missingRootfileMediaType
+            ? string.Empty
+            : " media-type='" + (invalidRootfileMediaType ? "text/plain" : "application/oebps-package+xml") + "'";
         string primaryRootfile = namespaceConfusedRootfile
             ? "<rootfile xmlns:x='urn:decoy' x:full-path='DECOY/package.opf' full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>"
-            : "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>";
+            : "<rootfile full-path='EPUB/package.opf'" + rootfileMediaType + "/>";
         string rootfiles = primaryRootfile +
             (multipleRootfiles
                 ? "<rootfile full-path='SECOND/package.opf' media-type='application/oebps-package+xml'/>"
@@ -1489,6 +1547,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
                 "<item id='asset' href='assets/keep.bin' media-type='application/octet-stream'/>" +
                 duplicateManifest + caseCollisionManifest + duplicateTargetManifest + missingHtmlManifest +
                 "</manifest>" +
+                (duplicateManifestSection
+                    ? "<manifest><item id='second-chapter' href='second.xhtml' media-type='application/xhtml+xml'/></manifest>"
+                    : string.Empty) +
                 (misplacedManifestHtmlItem
                     ? "<item id='misplaced' href='misplaced.xhtml' media-type='application/xhtml+xml'/>"
                     : string.Empty) +
@@ -1566,6 +1627,11 @@ public sealed class HtmlPackageContentSafetyContractTests {
             entries.Add(("EPUB/misplaced.xhtml", Encoding.UTF8.GetBytes(
                 "<html xmlns='http://www.w3.org/1999/xhtml'><body>" +
                 "<p style='display:none'>Misplaced manifest item.</p></body></html>")));
+        }
+        if (duplicateManifestSection) {
+            entries.Add(("EPUB/second.xhtml", Encoding.UTF8.GetBytes(
+                "<html xmlns='http://www.w3.org/1999/xhtml'><body>" +
+                "<p style='display:none'>Second manifest concealed text.</p></body></html>")));
         }
         if (duplicateChapter) {
             entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(

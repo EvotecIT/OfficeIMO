@@ -78,47 +78,81 @@ public static partial class HtmlComputedStyleEngine {
             if (close <= open) return true;
 
             string feature = normalized.Substring(open + 1, close - open - 1).Trim().ToLowerInvariant();
-            if (!IsRecognizedMediaFeature(feature)) return true;
+            if (!IsSupportedMediaFeatureSyntax(feature)) return true;
             index = close + 1;
         }
 
         return false;
     }
 
-    private static bool IsRecognizedMediaFeature(string feature) {
+    private static bool IsSupportedMediaFeatureSyntax(string feature) {
         int colon = feature.IndexOf(':');
         string name = (colon < 0 ? feature : feature.Substring(0, colon)).Trim();
+        string value = colon < 0 ? string.Empty : feature.Substring(colon + 1).Trim();
+        bool hasValue = colon >= 0;
         switch (name) {
             case "color":
+            case "monochrome":
+                return !hasValue || IsNonNegativeMediaInteger(value);
             case "min-color":
             case "max-color":
-            case "monochrome":
             case "min-monochrome":
             case "max-monochrome":
+                return hasValue && IsNonNegativeMediaInteger(value);
             case "width":
             case "min-width":
             case "max-width":
             case "height":
             case "min-height":
             case "max-height":
+                return hasValue && TryParseMediaLength(
+                    value,
+                    MediaEnvironment.CreateDefault(HtmlCssMediaContext.Screen),
+                    out _);
             case "orientation":
+                return hasValue && (value == "portrait" || value == "landscape");
             case "resolution":
+                return !hasValue || IsSupportedMediaResolution(value);
             case "min-resolution":
             case "max-resolution":
+                return hasValue && IsSupportedMediaResolution(value);
             case "prefers-color-scheme":
+                return !hasValue || value == "light" || value == "dark";
             case "prefers-reduced-motion":
+                return !hasValue || value == "no-preference" || value == "reduce";
             case "pointer":
             case "any-pointer":
+                return !hasValue || value == "none" || value == "coarse" || value == "fine";
             case "hover":
             case "any-hover":
+                return !hasValue || value == "none" || value == "hover";
             case "scripting":
+                return !hasValue || value == "none" || value == "initial-only" || value == "enabled";
             case "update":
+                return !hasValue || value == "none" || value == "slow" || value == "fast";
             case "overflow-block":
+                return !hasValue || value == "none" || value == "scroll" || value == "optional-paged" || value == "paged";
             case "overflow-inline":
-                return true;
+                return !hasValue || value == "none" || value == "scroll";
             default:
                 return false;
         }
+    }
+
+    private static bool IsNonNegativeMediaInteger(string value) =>
+        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) && parsed >= 0;
+
+    private static bool IsSupportedMediaResolution(string value) {
+        int unitStart = value.Length;
+        while (unitStart > 0 && char.IsLetter(value[unitStart - 1])) unitStart--;
+        string number = value.Substring(0, unitStart).Trim();
+        string unit = value.Substring(unitStart).Trim();
+        return number.Length > 0
+            && double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+            && parsed >= 0D
+            && !double.IsNaN(parsed)
+            && !double.IsInfinity(parsed)
+            && (unit == "dpi" || unit == "dpcm" || unit == "dppx" || unit == "x");
     }
 
     internal static bool IsPotentiallyApplicableScreenMedia(string mediaText, HtmlRenderMediaFeatures mediaFeatures) {

@@ -86,9 +86,9 @@ public static partial class HtmlComputedStyleEngine {
         string propertyName = normalized.Substring(0, separator).Trim();
         string value = normalized.Substring(separator + 1).Trim();
         if (IsSupportedSupportsConditionValue(propertyName, value)) return HtmlSupportsConditionEvaluation.True;
-        return SupportedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal)
-            ? HtmlSupportsConditionEvaluation.False
-            : HtmlSupportsConditionEvaluation.Unknown;
+        // A value outside OfficeIMO's bounded model can still be valid in a browser.
+        // Treat it as unknown so negation cannot turn an unmodeled true condition into true here.
+        return HtmlSupportsConditionEvaluation.Unknown;
     }
 
     private static bool EvaluateSupportsCondition(string conditionText) =>
