@@ -652,6 +652,7 @@ public static partial class HtmlResourcePipeline {
             case "focus":
             case "focus-visible":
             case "focus-within":
+            case "fullscreen":
             case "hover":
             case "indeterminate":
             case "in-range":
@@ -664,6 +665,7 @@ public static partial class HtmlResourcePipeline {
             case "paused":
             case "placeholder-shown":
             case "playing":
+            case "picture-in-picture":
             case "popover-open":
             case "read-only":
             case "read-write":

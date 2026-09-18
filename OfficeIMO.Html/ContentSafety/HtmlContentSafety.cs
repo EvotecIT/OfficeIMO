@@ -150,8 +150,9 @@ public static partial class HtmlContentSafety {
                     "style",
                     StringComparison.OrdinalIgnoreCase);
                 bool reportOnlyComputedStyle = concealment.IsComputedStyle && !allowComputedStyleCleanup;
+                bool reportOnlyDynamicHiddenInput = !allowComputedStyleCleanup && IsHiddenInputElement(element);
                 OfficeContentCleanupCapability capability =
-                    reportOnlyStylePayload || reportOnlyComputedStyle || concealment.ReportOnly
+                    reportOnlyStylePayload || reportOnlyComputedStyle || reportOnlyDynamicHiddenInput || concealment.ReportOnly
                     ? OfficeContentCleanupCapability.ReportOnly
                     : concealment.DescendantsMayOverride
                     ? OfficeContentCleanupCapability.RemoveText
@@ -234,7 +235,7 @@ public static partial class HtmlContentSafety {
             if (!string.IsNullOrWhiteSpace(directText)) {
                 Concealment? lowContrast = FindLowContrast(element, style, styles, builder.Options);
                 if (lowContrast != null) {
-                    OfficeContentCleanupCapability capability = allowComputedStyleCleanup
+                    OfficeContentCleanupCapability capability = allowComputedStyleCleanup && !lowContrast.ReportOnly
                         ? OfficeContentCleanupCapability.RemoveText
                         : OfficeContentCleanupCapability.ReportOnly;
                     OfficeContentSafetyFinding finding = builder.Add(
@@ -248,7 +249,7 @@ public static partial class HtmlContentSafety {
                     if (targets != null && capability != OfficeContentCleanupCapability.ReportOnly) {
                         targets[finding.Id] = HtmlCleanupTarget.ForDirectText(element);
                     }
-                    InspectHtmlDirectTextIntegrity(element, location, builder, targets, alreadyCharged: true);
+                    InspectHtmlDirectTextIntegrity(element, location, builder, targets, alreadyCharged: true, capability);
                 } else {
                     InspectHtmlDirectTextIntegrity(element, location, builder, targets, alreadyCharged: false);
                 }
@@ -342,9 +343,7 @@ public static partial class HtmlContentSafety {
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
         OfficeContentSafetyOptions options) {
         bool isHtmlElement = HtmlResourcePipeline.IsHtmlNamespaceElement(element);
-        bool isHiddenInput = isHtmlElement
-            && string.Equals(element.LocalName, "input", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase);
+        bool isHiddenInput = IsHiddenInputElement(element);
         if (isHiddenInput) {
             return new Concealment(
                 OfficeContentConcealmentKind.HiddenByProperty,
@@ -384,7 +383,8 @@ public static partial class HtmlContentSafety {
             return new Concealment(
                 OfficeContentConcealmentKind.TransparentText,
                 "Computed CSS text color is fully or nearly transparent.",
-                descendantsMayOverride: true);
+                descendantsMayOverride: true,
+                reportOnly: !isHtmlElement);
         }
         string filter = style.GetValue("filter");
         if (TryGetCssFilterOpacity(filter, out double filterOpacity) && filterOpacity <= 0.01D) {
@@ -394,13 +394,21 @@ public static partial class HtmlContentSafety {
             return new Concealment(
                 OfficeContentConcealmentKind.TinyText,
                 "Computed font size is " + fontPoints.ToString("0.###", CultureInfo.InvariantCulture) + "pt.",
-                descendantsMayOverride: true);
+                descendantsMayOverride: true,
+                reportOnly: HasActiveTransform(style.GetValue("transform")));
         }
         bool zeroWidth = IsZeroLength(style.GetValue("width")) || IsZeroLength(style.GetValue("max-width"));
         bool zeroHeight = IsZeroLength(style.GetValue("height")) || IsZeroLength(style.GetValue("max-height"));
+        bool minimumMayOverride = (zeroWidth && HasPotentiallyPositiveMinimum(style.GetValue("min-width")))
+            || (zeroHeight && HasPotentiallyPositiveMinimum(style.GetValue("min-height")));
         string overflow = style.GetValue("overflow") + " " + style.GetValue("overflow-x") + " " + style.GetValue("overflow-y");
         if ((zeroWidth || zeroHeight) && (overflow.IndexOf("hidden", StringComparison.OrdinalIgnoreCase) >= 0 || overflow.IndexOf("clip", StringComparison.OrdinalIgnoreCase) >= 0)) {
-            return new Concealment(OfficeContentConcealmentKind.ZeroDimension, "Computed zero-size geometry is combined with clipped overflow.");
+            return new Concealment(
+                OfficeContentConcealmentKind.ZeroDimension,
+                minimumMayOverride
+                    ? "A zero-size constraint conflicts with a minimum-size constraint, so the rendered geometry is preserved."
+                    : "Computed zero-size geometry is combined with clipped overflow.",
+                reportOnly: minimumMayOverride);
         }
         string clipPath = style.GetValue("clip-path");
         string clip = style.GetValue("clip");
@@ -441,7 +449,8 @@ public static partial class HtmlContentSafety {
         return new Concealment(
             OfficeContentConcealmentKind.LowContrastText,
             "Computed foreground #" + foreground.ToRgbHex() + " against background #" + background.ToRgbHex() +
-            " has contrast ratio " + ratio.ToString("0.###", CultureInfo.InvariantCulture) + ".");
+            " has contrast ratio " + ratio.ToString("0.###", CultureInfo.InvariantCulture) + ".",
+            reportOnly: HasLegacyPaintAttribute(element));
     }
 
     private static bool HasUnmodeledCompositingStyles(IHtmlDocument document) =>
@@ -481,7 +490,8 @@ public static partial class HtmlContentSafety {
             string value = element.GetAttribute("value") ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(value) && string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase)) {
                 AddAttributeOrNonPrimaryFinding(builder, targets, element, "value", location + "/@value",
-                    "A hidden form control retains a machine-readable value.", value);
+                    "A hidden form control retains a machine-readable value.", value,
+                    reportOnly: !allowComputedStyleCleanup);
             }
         }
     }
@@ -693,6 +703,24 @@ public static partial class HtmlContentSafety {
 
     private static bool IsZeroLength(string value) => TryParseLengthPoints(value, out double points) && Math.Abs(points) <= 0.000001D;
 
+    private static bool HasPotentiallyPositiveMinimum(string value) {
+        string normalized = value?.Trim() ?? string.Empty;
+        if (normalized.Length == 0
+            || string.Equals(normalized, "auto", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalized, "initial", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalized, "unset", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+        return TryParseLengthPoints(normalized, out double points)
+            ? points > 0.000001D
+            : true;
+    }
+
+    private static bool HasActiveTransform(string value) {
+        string normalized = value?.Trim() ?? string.Empty;
+        return normalized.Length != 0 && !string.Equals(normalized, "none", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool IsZeroClip(string value) {
         string normalized = (value ?? string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
         return normalized.Contains("rect(0px,0px,0px,0px)") || normalized.Contains("rect(0,0,0,0)") ||
@@ -706,6 +734,20 @@ public static partial class HtmlContentSafety {
         int marker = normalized.IndexOf("translate", StringComparison.Ordinal);
         if (marker < 0) return false;
         return normalized.IndexOf("-999", marker, StringComparison.Ordinal) >= 0 || normalized.IndexOf("-1000", marker, StringComparison.Ordinal) >= 0;
+    }
+
+    private static bool IsHiddenInputElement(IElement element) =>
+        HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+        && string.Equals(element.LocalName, "input", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase);
+
+    private static bool HasLegacyPaintAttribute(IElement element) {
+        string[] paintAttributes = { "bgcolor", "background", "color", "text", "link", "vlink", "alink" };
+        for (IElement? current = element; current != null; current = current.ParentElement) {
+            if (!HtmlResourcePipeline.IsHtmlNamespaceElement(current)) continue;
+            if (paintAttributes.Any(current.HasAttribute)) return true;
+        }
+        return false;
     }
 
     private static bool IsNonTextElement(IElement element) =>
