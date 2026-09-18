@@ -142,6 +142,14 @@ unsupported features, and output digests. Canceled and failed runs throw typed
 exceptions with partial acquisition, phase, worker-identity, trace and cleanup
 evidence.
 
+The profile can discover and replay JavaScript module graphs in the root document
+and admitted same-origin child frames. Each frame retains its own import map and
+module map. Static and dynamic JSON imports use `with { type: 'json' }` and require
+a JSON MIME type. Invalid attributes and MIME types reject with `TypeError`, while
+malformed JSON rejects with `SyntaxError`; other import-attribute module types remain unsupported. Module
+sources, acquisition limits, cancellation, and cleanup budgets remain cumulative
+for the isolated operation.
+
 The inner provider ID may be `officeimo.trusted-process`: that process is
 trusted by the isolated controller inside the container. It does not describe
 the host boundary. `IsolationProfile`, `IsolationPolicy`, immutable image and

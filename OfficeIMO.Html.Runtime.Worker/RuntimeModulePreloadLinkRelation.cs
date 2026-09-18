@@ -14,8 +14,8 @@ internal sealed class RuntimeModulePreloadLinkRelation : BaseLinkRelation {
     private readonly Action<string> _report;
 
     internal RuntimeModulePreloadLinkRelation(IHtmlLinkElement link, RuntimeModuleSourceCache sources,
-        Func<RuntimeImportMap?> importMap, Action<string> report)
-        : base(link, new PreloadProcessor(link, sources, importMap)) => _report = report;
+        Func<RuntimeImportMap?> importMap, Func<CancellationToken> realmLifetime, Action<string> report)
+        : base(link, new PreloadProcessor(link, sources, importMap, realmLifetime)) => _report = report;
 
     public override bool DelaysDocumentLoad => false;
 
@@ -44,7 +44,7 @@ internal sealed class RuntimeModulePreloadLinkRelation : BaseLinkRelation {
     }
 
     private sealed class PreloadProcessor(IHtmlLinkElement link, RuntimeModuleSourceCache sources,
-        Func<RuntimeImportMap?> importMap) : IRequestProcessor {
+        Func<RuntimeImportMap?> importMap, Func<CancellationToken> realmLifetime) : IRequestProcessor {
         public IDownload? Download { get; private set; }
 
         public Task ProcessAsync(ResourceRequest request) {
@@ -56,9 +56,11 @@ internal sealed class RuntimeModulePreloadLinkRelation : BaseLinkRelation {
         }
 
         private async Task<IResponse> LoadAsync(Url target, CancellationToken cancellation) {
+            using var loading = CancellationTokenSource.CreateLinkedTokenSource(cancellation, realmLifetime());
             var url = new Uri(target.Href);
             string? metadata = link.HasAttribute("integrity") ? link.Integrity : importMap()?.IntegrityFor(url);
-            await sources.GetOrLoad(url.AbsoluteUri, url, metadata, cancellation).ConfigureAwait(false);
+            RuntimeModuleSource source = await sources.GetOrLoad(url.AbsoluteUri, url, metadata, loading.Token).ConfigureAwait(false);
+            RuntimeModuleLoader.ValidateJavaScript(source.StatusCode, source.ContentType);
             return null!;
         }
     }

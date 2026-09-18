@@ -151,6 +151,57 @@ var cases = new List<ProbeCase> {
             [ $"{fixtureOrigin}/frame/detail.html" ],
             [ $"{fixtureOrigin}/frame/frame.css", $"{fixtureOrigin}/frame/frame.js" ]
         ]),
+    new ProbeCase("frame-module-json", """
+        <!doctype html><style>body{font:16px sans-serif}#result{color:#0055aa}</style>
+        <script>addEventListener('message',event=>{if(event.data?.kind==='frame-module')document.querySelector('#result').textContent=event.data.value})</script>
+        <p id="result">Loading frame module graph</p>
+        <iframe src="/modules/frame.html"></iframe>
+        """, "document.querySelector('#result')?.textContent === 'Frame module graph ready 42'",
+        8 * 1024 * 1024, ExpectedVisibleText: "Frame module graph ready 42", ExpectBlueInk: true,
+        Resources: new Dictionary<string, ProbeResource>(StringComparer.Ordinal) {
+            [$"{fixtureOrigin}/modules/frame.html"] = new("""
+                <!doctype html><style>body{margin:0;background:#e8f2ff}#inside{color:#17324d}</style>
+                <script type="importmap">{"imports":{"settings":"./settings.json"}}</script>
+                <p id="inside">Loading child graph</p>
+                <script type="module" src="./main.js"></script>
+                """, "text/html; charset=utf-8"),
+            [$"{fixtureOrigin}/modules/main.js"] = new("""
+                import {label} from './dep.js';
+                import settings from 'settings' with {type:'json'};
+                const extra=await import('./extra.json',{with:{type:'json'}});
+                const value=`${label} ${settings.value+extra.default.delta}`;
+                document.querySelector('#inside').textContent=value;
+                parent.postMessage({kind:'frame-module',value},'*');
+                """, "text/javascript"),
+            [$"{fixtureOrigin}/modules/dep.js"] = new("export const label='Frame module graph ready';", "text/javascript"),
+            [$"{fixtureOrigin}/modules/settings.json"] = new("{\"value\":40}", "application/json"),
+            [$"{fixtureOrigin}/modules/extra.json"] = new("{\"delta\":2}", "application/vnd.officeimo+json")
+        }, ExpectedDiscoveryRounds: [
+            [ $"{fixtureOrigin}/modules/frame.html" ],
+            [ $"{fixtureOrigin}/modules/main.js" ],
+            [ $"{fixtureOrigin}/modules/dep.js" ],
+            [ $"{fixtureOrigin}/modules/settings.json" ],
+            [ $"{fixtureOrigin}/modules/extra.json" ]
+        ]),
+    new ProbeCase("json-module-rejections", """
+        <!doctype html><style>body{font:16px sans-serif}#result{color:#0055aa}</style>
+        <p id="result">Checking JSON module failures</p>
+        <img hidden src="/modules/invalid-mime.json" alt="">
+        <img hidden src="/modules/invalid-json.json" alt="">
+        <script type="module">
+            const mimeError=await import('/modules/invalid-mime.json',{with:{type:'json'}}).catch(error=>error.name);
+            const syntaxError=await import('/modules/invalid-json.json',{with:{type:'json'}}).catch(error=>error.name);
+            document.querySelector('#result').textContent=`JSON rejected ${mimeError}/${syntaxError}`;
+        </script>
+        """, "document.querySelector('#result')?.textContent === 'JSON rejected TypeError/SyntaxError'",
+        8 * 1024 * 1024, ExpectedVisibleText: "JSON rejected TypeError/SyntaxError", ExpectBlueInk: true,
+        Resources: new Dictionary<string, ProbeResource>(StringComparer.Ordinal) {
+            [$"{fixtureOrigin}/modules/invalid-mime.json"] = new("{\"value\":42}", "not-a-mime+json"),
+            [$"{fixtureOrigin}/modules/invalid-json.json"] = new("{invalid", "application/json")
+        }, ExpectedDiscoveryRounds: [[
+            $"{fixtureOrigin}/modules/invalid-mime.json",
+            $"{fixtureOrigin}/modules/invalid-json.json"
+        ]]),
     new ProbeCase("resource-fanout", "<!doctype html>" + string.Concat(Enumerable.Range(0, 129)
         .Select(index => $"<script src='/asset-{index}.js'></script>")), "true", 8 * 1024 * 1024,
         ExpectedErrorKind: "HtmlScriptRuntimeException",

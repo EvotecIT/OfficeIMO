@@ -331,8 +331,7 @@ public sealed class HtmlIsolatedPublicPageResult {
         });
         UnsupportedFeatures = Array.AsReadOnly(new[] {
             "cross-origin-frame-execution",
-            "child-frame-module-graphs",
-            "module-import-attributes",
+            "module-import-attributes-beyond-json",
             "xhr-custom-request-headers",
             "dynamic-non-get-requests",
             "cookies-and-credentials"

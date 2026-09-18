@@ -41,7 +41,19 @@ internal sealed class RuntimeEventLoop(IBrowsingContext context, Func<Engine?> g
         }
     }
 
-    public ICancellable Enqueue(Action<CancellationToken> action, TaskPriority priority) => _inner.Enqueue(token => {
+    internal bool TryEnqueue(Action<CancellationToken> action, TaskPriority priority, CancellationToken lifetime) {
+        lock (_sync) {
+            if (_cancelled || lifetime.IsCancellationRequested) return false;
+            _ = EnqueueCore(token => {
+                if (!lifetime.IsCancellationRequested) action(token);
+            }, priority);
+            return true;
+        }
+    }
+
+    public ICancellable Enqueue(Action<CancellationToken> action, TaskPriority priority) => EnqueueCore(action, priority);
+
+    private ICancellable EnqueueCore(Action<CancellationToken> action, TaskPriority priority) => _inner.Enqueue(token => {
         if (token.IsCancellationRequested) return;
         lock (_sync) {
             if (_cancelled || token.IsCancellationRequested) return;
@@ -62,6 +74,6 @@ internal sealed class RuntimeEventLoop(IBrowsingContext context, Func<Engine?> g
     }, priority);
 
     public void Spin() => _inner.Spin();
-    public void CancelAll() { _cancelled=true;_inner.CancelAll(); }
-    public void Dispose() { _cancelled=true;((IDisposable)_inner).Dispose(); }
+    public void CancelAll() { lock (_sync) { _cancelled=true;_inner.CancelAll(); } }
+    public void Dispose() { lock (_sync) { _cancelled=true;((IDisposable)_inner).Dispose(); } }
 }

@@ -24,18 +24,25 @@ malformed markup that still renders all three outputs, active multi-candidate
 responsive-picture selection by viewport, `sizes`, and device density, a two-level JavaScript module graph,
 a scoped import-map graph with prefix mapping, top-level await and dynamic import,
 a script-driven relative `fetch()` GET with query preservation, fragment stripping and JSON decoding,
-a same-origin frame document with its relative stylesheet and classic-script realm, 129 distinct
+a script-driven asynchronous `XMLHttpRequest` bodyless headerless GET through the same replay path,
+a same-origin frame document with its relative stylesheet and classic-script realm, a child-frame
+module graph with a frame-local import map, JavaScript dependency, static JSON import and dynamic
+`+json` import, a networkless JSON rejection case that distinguishes invalid MIME
+`TypeError` from malformed-source `SyntaxError`, 129 distinct
 external script URLs exceeding static discovery, a captured-document size limit, and a
-nonterminating root and child-frame scripts interrupted by their command deadlines. Frame readiness proves
+nonterminating root script and child-frame script interrupted by their command deadlines. Frame readiness proves
 separate child execution, inline, external and event-attribute scripts, parent DOM
 access and child-to-parent JSON-compatible messaging. The frame case also requires
 the captured child body and its stylesheet to remain searchable in both PDF modes
-after static rendering. Child module graphs, cross-origin execution and richer
-structured-clone messaging remain outside this fixture contract. `summary.json`
+after static rendering. Cross-origin execution, richer structured-clone messaging,
+and import-attribute module types beyond JSON remain outside this fixture contract. `summary.json`
 records the image and published-file digests, ordered discovery rounds with
 canonical absolute resource URLs, each outcome, elapsed time, and container
 removal. The module fixture requires the root module in the first round and its
-relative dependency in the second. Successful cases also write
+relative dependency in the second. The child-frame module fixture requires its HTML,
+JavaScript root, JavaScript dependency, static JSON and dynamic JSON in five ordered
+rounds. The rejection fixture pre-acquires both hostile JSON resources in one
+static discovery round before executing the caught dynamic imports. Successful cases also write
 a PNG and both PDFs for visual and independent PDF inspection.
 
 The same run uses the host broker with synthetic public DNS answers and a

@@ -64,8 +64,10 @@ JavaScript module graph, a scoped import-map graph with prefix mapping and dynam
 script-driven relative `fetch()` GET replay with query preservation and fragment stripping,
 script-driven asynchronous headerless `XMLHttpRequest` GET replay through the same bounded transport,
 and same-origin frame-document loading with relative-resource discovery, isolated classic-script child realms,
-bounded parent/child messaging, and searchable frame-body rendering in both PDF modes.
-Child module graphs, cross-origin frame execution, richer structured-clone messaging, import attributes,
+frame-local import maps and module graphs, static and dynamic JSON imports, bounded parent/child messaging,
+and searchable frame-body rendering in both PDF modes. Invalid import attributes and JSON MIME types
+reject with `TypeError`; malformed JSON module source rejects with `SyntaxError`.
+Cross-origin frame execution, richer structured-clone messaging, import-attribute module types beyond JSON,
 XMLHttpRequest with request headers or beyond bodyless GET, non-GET requests and browser-wide dynamic loading are
 not qualified by this profile. Cookies and credentials are outside this profile.
 Use `--timeout-seconds=SECONDS` to lower the acquisition and execution deadline

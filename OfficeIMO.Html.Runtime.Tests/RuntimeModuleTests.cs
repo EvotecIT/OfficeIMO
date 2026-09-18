@@ -89,6 +89,205 @@ public sealed class RuntimeModuleTests {
     }
 
     [Fact]
+    public async Task ChildFrameModulesUseTheirOwnRealmImportMapAndJsonAttributes() {
+        Uri frame = new(Page, "/frames/report.html");
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            DocumentUrl = Page,
+            Html = """
+                <script>window.childOnly='root';addEventListener('message',event=>{if(event.data?.kind==='frame-module')window.frameResult=event.data})</script>
+                <script type='importmap'>{"imports":{"dep":"/wrong.js"}}</script>
+                <iframe src='/frames/report.html'></iframe>
+                """,
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(frame, """
+                    <script type='importmap'>{"imports":{"dep":"./dep.js","settings":"./settings.json"}}</script>
+                    <p id='result'>Loading child modules</p>
+                    <script type='module'>
+                        import {label} from 'dep';
+                        import settings from 'settings' with {type:'json'};
+                        const extra=await import('./extra.json',{with:{type:'json'}});
+                        globalThis.childOnly=`${label} ${settings.value+extra.default.delta}`;
+                        document.querySelector('#result').textContent=childOnly;
+                        parent.postMessage({kind:'frame-module',value:childOnly,url:import.meta.url},'*');
+                    </script>
+                    """, "text/html; charset=utf-8"),
+                Source("/frames/dep.js", "export const label='Frame modules ready'"),
+                Source("/frames/settings.json", "{\"value\":40}", "application/json; charset=utf-8"),
+                Source("/frames/extra.json", "{\"delta\":2}", "application/vnd.officeimo+json"),
+                Source("/wrong.js", "throw new Error('The root import map leaked into the child frame')")
+            }
+        });
+
+        await session.WaitForAsync("window.frameResult?.value==='Frame modules ready 42'");
+
+        Assert.True((await session.EvaluateAsync("childOnly==='root'")).GetBoolean());
+        Assert.Equal(frame.AbsoluteUri, (await session.EvaluateAsync("frameResult.url")).GetString());
+        HtmlScriptCapture capture = await session.CaptureAsync();
+        Assert.Equal("Frame modules ready 42", Assert.Single(capture.Frames).Document.QuerySelector("#result")!.TextContent);
+        Assert.DoesNotContain(capture.Resources, resource => resource.Url.AbsolutePath == "/wrong.js");
+    }
+
+    [Fact]
+    public async Task DetachingAChildFrameCancelsItsPendingModuleEvaluation() {
+        Uri frame = new(Page, "/frames/pending.html");
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            DocumentUrl = Page,
+            Html = """
+                <script>
+                    addEventListener('message', event => {
+                        if (event.data === 'module-started') {
+                            document.querySelector('iframe').remove();
+                            document.body.dataset.frameRemoved = 'yes';
+                        }
+                    });
+                </script>
+                <iframe src='/frames/pending.html'></iframe>
+                """,
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(frame, """
+                    <script type='module'>
+                        parent.postMessage('module-started', '*');
+                        await new Promise(() => {});
+                    </script>
+                    """, "text/html; charset=utf-8")
+            }
+        });
+
+        await session.WaitForAsync("document.body.dataset.frameRemoved === 'yes'");
+
+        Assert.Empty((await session.CaptureAsync()).Frames);
+        Assert.Equal(42, (await session.EvaluateAsync("40 + 2")).GetInt32());
+    }
+
+    [Fact]
+    public async Task DetachingAChildFrameReleasesItsPendingModuleAcquisition() {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var firstRequest = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondRequest = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int slowRequests = 0;
+        await using var server = new RuntimeHttpFixture(async (path, token) => {
+            if (path == "/frames/slow.js") {
+                int request = Interlocked.Increment(ref slowRequests);
+                if (request == 1) firstRequest.TrySetResult();
+                if (request == 2) secondRequest.TrySetResult();
+                await release.Task.WaitAsync(TimeSpan.FromSeconds(10), token);
+                return RuntimeHttpFixture.Reply.Text("export const value=42");
+            }
+            return RuntimeHttpFixture.Reply.Text("not found", "text/plain", status: 404);
+        });
+        IHtmlRuntimeSession? session = null;
+        try {
+            Task<IHtmlRuntimeSession> opening = Runtime().OpenTrustedAsync(new() {
+                DocumentUrl = server.Origin,
+                ResourcePolicy = new() { AllowNetwork = true },
+                Resources = new[] {
+                    HtmlRuntimeResource.FromText(new Uri(server.Origin, "/frames/pending.html"),
+                        "<script type='module' src='./pending.js'></script>", "text/html; charset=utf-8"),
+                    HtmlRuntimeResource.FromText(new Uri(server.Origin, "/frames/pending.js"),
+                        "const pending=import('./slow.js');setTimeout(()=>parent.postMessage('detach-pending-module','*'),250);await pending",
+                        "text/javascript")
+                },
+                Html = """
+                    <script>
+                        addEventListener('message', event => {
+                            if (event.data === 'detach-pending-module') {
+                                document.querySelector('iframe').remove();
+                                document.body.dataset.frameRemoved = 'yes';
+                            }
+                        });
+                    </script>
+                    <iframe src='/frames/pending.html'></iframe>
+                    """
+            });
+
+            Task firstOrOpen = await Task.WhenAny(firstRequest.Task, opening, Task.Delay(TimeSpan.FromSeconds(5)));
+            if (firstOrOpen == opening) session = await opening;
+            Assert.True(firstOrOpen == firstRequest.Task,
+                "The pending module request did not start. Requests: " + string.Join(", ", server.Requests));
+            session = await opening.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.Equal("yes", (await session.EvaluateAsync("document.body.dataset.frameRemoved")).GetString());
+
+            await session.ExecuteAsync("window.rootLoaded=false;import('/frames/slow.js').then(module=>rootLoaded=module.value===42)");
+            await secondRequest.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.Equal(2, Volatile.Read(ref slowRequests));
+
+            release.TrySetResult();
+            await session.WaitForAsync("rootLoaded===true");
+        } finally {
+            release.TrySetResult();
+            if (session != null) await session.DisposeAsync();
+        }
+    }
+
+    [Fact]
+    public async Task ChildAndRootRealmsShareTheModuleSourceCountBudget() {
+        Uri frame = new(Page, "/frames/budget.html");
+        var error = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => Runtime().OpenTrustedAsync(new() {
+            DocumentUrl = Page,
+            MaxModuleCount = 1,
+            Html = "<script type='module'>export const root=1</script><iframe src='/frames/budget.html'></iframe>",
+            Resources = new[] {
+                HtmlRuntimeResource.FromText(frame,
+                    "<script type='module'>export const child=1</script>", "text/html; charset=utf-8")
+            }
+        }));
+
+        Assert.Contains("module source count budget", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task WrongDefaultModuleTypeDoesNotPoisonALaterJsonImportOfTheSameUrl() {
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            DocumentUrl = Page,
+            Resources = new[] { Source("/settings.json", "{\"value\":42}", "text/json") },
+            Scripts = new[] {
+                "window.failure='';window.result=null;import('/settings.json').catch(error=>failure=String(error)).then(()=>import('/settings.json',{with:{type:'json'}})).then(module=>result=module.default.value)"
+            }
+        });
+
+        await session.WaitForAsync("result!==null");
+
+        Assert.Contains("JavaScript MIME", (await session.EvaluateAsync("failure")).GetString());
+        Assert.Equal(42, (await session.EvaluateAsync("result")).GetInt32());
+        Assert.Single((await session.CaptureAsync()).Resources, resource => resource.Url.AbsolutePath == "/settings.json");
+    }
+
+    [Theory]
+    [InlineData("application/json", "{\"value\":42}", true)]
+    [InlineData("text/json; charset=utf-8", "{\"value\":42}", true)]
+    [InlineData("application/problem+json", "{\"value\":42}", true)]
+    [InlineData("text/javascript", "{\"value\":42}", false)]
+    [InlineData("not-a-mime+json", "{\"value\":42}", false)]
+    [InlineData("application/json", "{invalid", false)]
+    public async Task JsonModulesRequireJsonMimeAndValidJson(string contentType, string source, bool succeeds) {
+        var request = new HtmlScriptRequest {
+            DocumentUrl = Page,
+            Html = "<script type='module'>import value from '/data.json' with {type:'json'};window.result=value.value</script>",
+            Resources = new[] { Source("/data.json", source, contentType) }
+        };
+
+        if (succeeds) {
+            await using IHtmlRuntimeSession session = await Runtime().OpenTrustedAsync(request);
+            Assert.Equal(42, (await session.EvaluateAsync("result")).GetInt32());
+        } else {
+            await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => Runtime().OpenTrustedAsync(request));
+        }
+    }
+
+    [Fact]
+    public async Task DynamicMalformedJsonModuleRejectsWithSyntaxError() {
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            DocumentUrl = Page,
+            Resources = new[] { Source("/invalid.json", "{invalid", "application/json") },
+            Scripts = new[] { "window.jsonError='';import('/invalid.json',{with:{type:'json'}}).catch(error=>jsonError=error.name)" }
+        });
+
+        await session.WaitForAsync("jsonError!==''");
+
+        Assert.Equal("SyntaxError", (await session.EvaluateAsync("jsonError")).GetString());
+    }
+
+    [Fact]
     public async Task MultipleImportMapsAddRulesWithoutReplacingEarlierMappings() {
         await using var session = await Runtime().OpenTrustedAsync(new() {
             DocumentUrl = Page,
@@ -522,6 +721,12 @@ public sealed class RuntimeModuleTests {
         await session.ExecuteAsync("window.attributeError='';import('/a.js',{with:{type:'json'}}).catch(e=>attributeError=e.name)");
         await session.WaitForAsync("attributeError!==''");
         Assert.Equal("TypeError",(await session.EvaluateAsync("attributeError")).GetString());
+        await session.ExecuteAsync("window.unknownAttribute='';import('/a.js',{with:{flavor:'json'}}).catch(e=>unknownAttribute=e.name)");
+        await session.WaitForAsync("unknownAttribute!==''");
+        Assert.Equal("TypeError", (await session.EvaluateAsync("unknownAttribute")).GetString());
+        await session.ExecuteAsync("window.unsupportedType='';import('/a.js',{with:{type:'text'}}).catch(e=>unsupportedType=e.name)");
+        await session.WaitForAsync("unsupportedType!==''");
+        Assert.Equal("TypeError", (await session.EvaluateAsync("unsupportedType")).GetString());
     }
 
     [Theory]

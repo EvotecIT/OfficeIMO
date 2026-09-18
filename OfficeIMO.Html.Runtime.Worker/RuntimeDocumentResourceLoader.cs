@@ -9,7 +9,8 @@ namespace OfficeIMO.Html.Runtime.Worker;
 // Root modules join the same source cache as modulepreload and descendant imports.
 // Ordinary document resources continue through AngleSharp's requester boundary.
 internal sealed class RuntimeDocumentResourceLoader(IBrowsingContext context, RuntimeModuleSourceCache sources,
-    Func<RuntimeImportMap?> importMap, HtmlScriptRequest runtimeOptions) : DefaultResourceLoader(context) {
+    Func<RuntimeImportMap?> importMap, Func<CancellationToken> realmLifetime,
+    HtmlScriptRequest runtimeOptions) : DefaultResourceLoader(context) {
     public override IDownload FetchAsync(ResourceRequest request) {
         if (request.Source is AngleSharp.Dom.IElement element && element.Owner is { } document) {
             SelectResponsiveImage(request, element, document);
@@ -59,11 +60,13 @@ internal sealed class RuntimeDocumentResourceLoader(IBrowsingContext context, Ru
 
     private async Task<IResponse> LoadModuleAsync(AngleSharp.Dom.Url target, IntegrityMetadataSnapshot? integritySnapshot,
         CancellationToken token) {
+        using var loading = CancellationTokenSource.CreateLinkedTokenSource(token, realmLifetime());
         var url = new Uri(target.Href);
         string? integrityMetadata = integritySnapshot != null
             ? integritySnapshot.Resolve(importMap()?.IntegrityFor(url))
             : importMap()?.IntegrityFor(url);
-        RuntimeModuleSource source = await sources.GetOrLoad(url.AbsoluteUri, url, integrityMetadata, token).ConfigureAwait(false);
+        RuntimeModuleSource source = await sources.GetOrLoad(url.AbsoluteUri, url, integrityMetadata, loading.Token).ConfigureAwait(false);
+        RuntimeModuleLoader.ValidateJavaScript(source.StatusCode, source.ContentType);
         return new DefaultResponse {
             Address = new AngleSharp.Dom.Url(source.Location),
             StatusCode = (HttpStatusCode)source.StatusCode,

@@ -1,0 +1,4 @@
+OfficeIMO.Html.Runtime.Tests net8.0: 468 passed, 0 failed, 0 skipped
+OfficeIMO.Html.Runtime.Tests net10.0: 468 passed, 0 failed, 0 skipped
+OfficeIMO.Html.Tests net8.0: 3164 passed, 0 failed, 0 skipped
+OfficeIMO.Html.Tests net10.0: 3164 passed, 0 failed, 0 skipped

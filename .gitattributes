@@ -16,6 +16,7 @@ Build/Project/Evidence/2026-09-16/html-four-application-workflow/*/*.pdf -text -
 Build/Project/Evidence/2026-09-16/html-public-oci-pilot/*/*.pdf -text -diff
 Build/Project/Evidence/2026-09-16/html-public-oci-pilot/*/response.html -text -diff
 Build/Project/Evidence/2026-09-18/html-isolated-public-profile/**/*.pdf -text -diff
+Build/Project/Evidence/2026-09-18/html-frame-module-json/**/*.pdf -text -diff
 Build/Project/Evidence/2026-09-18/html-isolated-public-profile/**/*.png -text -diff
 
 # RTF interoperability fixtures are byte-level evidence. Do not normalize their

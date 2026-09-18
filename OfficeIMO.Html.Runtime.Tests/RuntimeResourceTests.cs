@@ -370,26 +370,6 @@ public sealed class RuntimeResourceTests {
     }
 
     [Fact]
-    public async Task ChildFrameModuleScriptsRemainOutsideTheQualifiedRealmContract() {
-        Uri frame = new(Origin, "module-frame.html");
-        Uri module = new(Origin, "child-module.js");
-        HtmlScriptCapture capture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
-            DocumentUrl = new Uri(Origin, "index.html"),
-            Html = "<iframe src='/module-frame.html'></iframe>",
-            Resources = new[] {
-                HtmlRuntimeResource.FromText(frame, "<body><script>document.body.dataset.classic='ran'</script><script type='module' src='/child-module.js'></script></body>", "text/html; charset=utf-8"),
-                HtmlRuntimeResource.FromText(module, "document.body.dataset.module='ran'", "text/javascript")
-            },
-            ReadyExpression = "document.querySelector('iframe')?.contentDocument?.body?.dataset.classic==='ran'"
-        });
-
-        HtmlElement body = Assert.Single(capture.Frames).Document.Body!;
-        Assert.Equal("ran", body.GetAttribute("data-classic"));
-        Assert.Null(body.GetAttribute("data-module"));
-        Assert.Contains(capture.Resources, resource => resource.Url == module);
-    }
-
-    [Fact]
     public async Task ChildFrameRealmAndMessageBudgetsAreCumulative() {
         Uri first = new(Origin, "realm-one.html");
         Uri second = new(Origin, "realm-two.html");

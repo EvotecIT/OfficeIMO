@@ -191,10 +191,12 @@ further frame captures in containing-document order. Node and output-text
 budgets apply cumulatively to the root and every captured frame. Frames with an
 opaque sandbox origin and cross-origin frames are not exposed.
 
-Same-origin child frames run classic inline and external scripts in distinct
-JavaScript globals when their sandbox permits both scripts and same-origin
-access. Nested frames retain their own `window`, `self`, timers, promise jobs,
-events, observers, storage and fetch bindings. `parent`, `top`, `frameElement`
+Same-origin child frames run classic and module scripts in distinct JavaScript
+globals when their sandbox permits both scripts and same-origin access. Each
+frame has its own import map and module map; static and dynamic imports use the
+child document's base URL rather than the root document's mappings. Nested frames
+retain their own `window`, `self`, timers, promise jobs, events, observers,
+storage and fetch bindings. `parent`, `top`, `frameElement`
 and same-origin DOM access preserve the browsing-context hierarchy instead of
 flattening child state into the root global. Parent and child windows can use
 asynchronous `postMessage` with JSON-compatible values and `*`, `/` or an exact
@@ -204,12 +206,13 @@ HTTP(S) target origin.
 additional frame documents remain inert. `MaxFrameMessages` is also cumulative,
 and `MaxFrameMessageCharacters` bounds each serialized message. A message over
 either limit throws `QuotaExceededError` in the sending realm. Cross-origin and
-opaque-origin frames, frames whose sandbox blocks scripts, child module/import-map
-scripts, transferable objects, message ports and child-frame navigation remain
+opaque-origin frames, frames whose sandbox blocks scripts, transferable objects,
+message ports and child-frame navigation remain
 outside this qualified execution contract. Removing a frame or changing its
 document source retires the original realm, its timers, queued messages and
-pending fetches. A replacement document in that child browsing context remains
-inert rather than continuing an unqualified navigation lifecycle.
+pending fetches and module evaluations. A replacement document in that child
+browsing context remains inert rather than continuing an unqualified navigation
+lifecycle.
 
 Use `CreateStandaloneDocument()` when only the root snapshot is needed. Use
 `CreateRenderDocument()` to create an independent clone that projects the captured
@@ -471,6 +474,7 @@ and leaves the previous value intact.
 
 JavaScript module scripts support document-relative and root-relative URLs,
 static and dynamic imports, cyclic graphs, live bindings and `import.meta.url`.
+Every admitted same-origin document realm has its own import map and module map.
 Top-level `await` can wait for promise jobs, timers or fetch completion while the
 native event loop continues. Classic external scripts resolve dynamic imports
 against their own script URL. Captures remain independent after module execution.
@@ -479,11 +483,18 @@ Supply module sources as `HtmlRuntimeResource` values with a JavaScript MIME typ
 or enable bounded network loading through `ResourcePolicy`. Modules share the
 existing response-byte, request, redirect, origin and concurrency budgets.
 Cross-origin modules require CORS approval even when their origin is allowlisted.
-File and data URLs, credentialed requests and import attributes are unsupported.
-Dedicated worker construction throws `NotSupportedError`; a session owns one interpreter.
-`MaxModuleCount` bounds retained module sources, including inline roots and failed
-loads, and defaults to 1024. Repeated imports reuse the interpreter's module map;
-failed source loads remain failures within that session.
+Static and dynamic imports accept `with { type: 'json' }` for resources served as
+`application/json`, `text/json`, or a `+json` MIME type. JSON modules expose the
+parsed value as their default export. Omitting attributes selects JavaScript;
+unknown attributes, unsupported type values, and mismatched MIME types reject the
+import with `TypeError`. Malformed JSON rejects with `SyntaxError`. CSS, text,
+WebAssembly, and other module
+types remain unsupported. File and data URLs and credentialed requests are also
+unsupported. Dedicated worker construction throws `NotSupportedError`.
+`MaxModuleCount` bounds retained module sources across the root and every admitted
+child realm, including inline roots and failed loads, and defaults to 1024. Repeated
+imports reuse the current realm's module map while shared source bytes and failures
+remain cached for the session.
 `MaxModuleIntegrityMetadataCharacters` bounds the cumulative distinct integrity
 metadata retained for each source and defaults to 65,536 characters.
 
@@ -510,9 +521,9 @@ deferred classic scripts, while `readyState` is `interactive`. Async scripts loa
 and run independently; they delay the window load event but not `DOMContentLoaded`.
 Module graph loading completes before execution starts. Top-level `await` does
 not hold the following deferred script or readiness events, so a module may await
-`DOMContentLoaded` or window `load`. Opening a session also waits for those root
-module evaluations to settle, within the request deadline. Explicit readiness
-waits still select the application state to capture.
+`DOMContentLoaded` or window `load`. Opening a session also waits for admitted
+document module evaluations to settle, within the request deadline. Explicit
+readiness waits still select the application state to capture.
 
 Script preparation retains its type, requested source identity, integrity and module base;
 later element or base changes do not redirect that execution. Parser token

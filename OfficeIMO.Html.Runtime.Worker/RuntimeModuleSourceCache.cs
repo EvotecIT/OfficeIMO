@@ -52,7 +52,7 @@ internal sealed class RuntimeModuleSourceCache(RuntimeResourceLoader resources, 
 
     private async Task<RuntimeModuleSource> LoadAsync(Uri url, CancellationToken token) {
         var resource = await resources.FetchAsync(url, new RuntimeFetchRequest(), token).ConfigureAwait(false);
-        RuntimeModuleLoader.Validate(resource.StatusCode, resource.ContentType);
+        RuntimeModuleLoader.ValidateStatus(resource.StatusCode);
         string source = Encoding.UTF8.GetString(resource.Buffer);
         if (source.StartsWith('\uFEFF')) source = source[1..];
         return new(source, resource.FinalUrl.AbsoluteUri, resource.Buffer, resource.ContentType,

@@ -30,7 +30,6 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private readonly RuntimeFocusController _focus = new();
     private RuntimeAutomation _automation = null!;
     private CancellationToken _activeCommandToken;
-    private RuntimeModuleLoader _modules = null!;
     private readonly RuntimeScriptingService _scripting;
     private RuntimeHistoryBindings _history = null!;
     private readonly Func<long> _currentRevision;
@@ -56,15 +55,20 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         _currentRevision = currentRevision;
         _markRevision = markRevision;
         var linkRelations = new DefaultLinkRelationFactory();
-        linkRelations.Register("modulepreload", link => new RuntimeModulePreloadLinkRelation(link, _moduleSources, () => _modules?.ImportMap, _errors.Report));
+        linkRelations.Register("modulepreload", link => new RuntimeModulePreloadLinkRelation(link, _moduleSources,
+            () => link.Owner == null ? null : _realms.ModulesFor(link.Owner.Context)?.ImportMap,
+            () => link.Owner == null ? new CancellationToken(canceled: true) : _realms.LifetimeFor(link.Owner.Context),
+            _errors.Report));
         var configuration = Configuration.Default.WithCss().WithJs(new JsScriptingOptions {
                 MaxCallStackDepth = 512,
                 ConfigureEngine = (window, engineOptions) => {
-                    if (window.Document.Context.Parent == null) {
-                        if (_modules != null) throw new HtmlScriptRuntimeException("The root window interpreter was created more than once.");
-                        _modules = new RuntimeModuleLoader(window.Document, _moduleSources, () => _loop, () => _engine);
-                        engineOptions.EnableModules(_modules).UseHostFactory(engine => new RuntimeModuleHost(engine, () => _modules));
-                    }
+                    IDocument document = window.Document;
+                    RuntimeModuleLoader modules = _realms.AttachModules(document, new RuntimeModuleLoader(document, _moduleSources,
+                        () => document.Context.GetService<IEventLoop>() as RuntimeEventLoop
+                            ?? throw new HtmlScriptRuntimeException("The module realm does not have an event loop."),
+                        () => _realms.EngineFor(document.Context) ?? throw new HtmlScriptRuntimeException("The module realm is no longer active."),
+                        () => _realms.LifetimeFor(document.Context)));
+                    engineOptions.EnableModules(modules).UseHostFactory(engine => new RuntimeModuleHost(engine, modules));
                 }
             })
             .WithEventLoop(context => new RuntimeEventLoop(context, () => _realms.EngineFor(context), _errors, _realmSync, _realms.RetireDetached))
@@ -78,9 +82,13 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             .With(new RuntimeResourceRequester(_resources, _errors))
             .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true, IsNavigationDisabled = true })
             .WithOnly<IResourceLoader>(context => new RuntimeDocumentResourceLoader(
-                context, _moduleSources, () => _modules?.ImportMap, options));
+                context, _moduleSources, () => _realms.ModulesFor(context)?.ImportMap,
+                () => _realms.LifetimeFor(context), options));
         _providerScripting = configuration.Services.OfType<JsScriptingService>().Single();
-        _scripting = new RuntimeScriptingService(_providerScripting, () => _modules, EnsureEngine, _realmSync, options, _errors.Report);
+        _scripting = new RuntimeScriptingService(_providerScripting,
+            document => _realms.ModulesFor(document.Context),
+            document => _realms.LifetimeFor(document.Context),
+            EnsureEngine, _realmSync, options, _errors.Report);
         configuration = configuration.Without<IScriptingService>()
             .With(_scripting);
         var scriptObservers = configuration.Services.OfType<IAttributeObserver>().Where(observer => observer.GetType().Assembly == typeof(JsScriptingService).Assembly).ToArray();
@@ -116,10 +124,10 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             }
             _errors.Attach(engine);
             loop.InitializeMicrotasks(engine);
+            _scripting.Initialize(engine);
             if (root) {
                 _engine = engine;
                 _loop = loop;
-                _scripting.Initialize(engine);
             }
             var normalizeWindow = RuntimeWindowBindings.Install(engine, document.DefaultView!, _realms);
             RuntimeEventBindings.Install(engine, document.DefaultView!, _errors.Report, normalizeWindow);

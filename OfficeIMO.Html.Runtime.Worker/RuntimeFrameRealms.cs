@@ -43,6 +43,7 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
     private readonly HashSet<IWindow> _reserved = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<IWindow> _blocked = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<IBrowsingContext> _blockedContexts = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<IWindow, RuntimeModuleLoader> _pendingModules = new(ReferenceEqualityComparer.Instance);
     private readonly List<RetiringRealm> _retiring = [];
 
     internal bool CanExecute(IDocument document) {
@@ -84,13 +85,38 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
     internal void Register(IDocument document, Engine engine, RuntimeEventLoop loop) {
         IWindow window = document.DefaultView ?? throw new HtmlScriptRuntimeException("A script realm requires a window.");
         lock (sync) {
+            if (!_pendingModules.Remove(window, out RuntimeModuleLoader? modules))
+                throw new HtmlScriptRuntimeException("The script realm does not have a module loader.");
             _reserved.Remove(window);
             var realm = new Realm(window, document.Context, engine, loop,
                 engine.Evaluate("json=>JSON.parse(json)[0]"),
-                engine.Evaluate("(data,origin,source)=>{const event=new MessageEvent('message');Object.defineProperties(event,{data:{value:data,enumerable:true},origin:{value:origin,enumerable:true},source:{value:source,enumerable:true},ports:{value:Object.freeze([]),enumerable:true}});dispatchEvent(event)}"));
+                engine.Evaluate("(data,origin,source)=>{const event=new MessageEvent('message');Object.defineProperties(event,{data:{value:data,enumerable:true},origin:{value:origin,enumerable:true},source:{value:source,enumerable:true},ports:{value:Object.freeze([]),enumerable:true}});dispatchEvent(event)}"),
+                modules, new CancellationTokenSource());
             _realms[window] = realm;
             _contexts[document.Context] = realm;
         }
+    }
+
+    internal RuntimeModuleLoader AttachModules(IDocument document, RuntimeModuleLoader modules) {
+        IWindow window = document.DefaultView ?? throw new HtmlScriptRuntimeException("A module loader requires a window.");
+        lock (sync) {
+            if (!_reserved.Contains(window) || _pendingModules.ContainsKey(window) || _realms.ContainsKey(window))
+                throw new HtmlScriptRuntimeException("The script realm module loader was created out of sequence.");
+            _pendingModules.Add(window, modules);
+            return modules;
+        }
+    }
+
+    internal RuntimeModuleLoader? ModulesFor(IBrowsingContext context) {
+        lock (sync) return context.Current != null && _realms.TryGetValue(context.Current, out Realm? realm)
+            ? realm.Modules
+            : null;
+    }
+
+    internal CancellationToken LifetimeFor(IBrowsingContext context) {
+        lock (sync) return _contexts.TryGetValue(context, out Realm? realm)
+            ? realm.Lifetime.Token
+            : new CancellationToken(canceled: true);
     }
 
     internal void Own(IDocument document, IDisposable resource) {
@@ -155,6 +181,7 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
             foreach (RetiringRealm retirement in _retiring) retirement.Realm.Loop.Dispose();
             _retiring.Clear();
             _reserved.Clear();
+            _pendingModules.Clear();
             _blocked.Clear();
             _blockedContexts.Clear();
         }
@@ -243,6 +270,8 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
         if (blockContext) _blockedContexts.Add(realm.Context);
         foreach (IDisposable resource in realm.Resources) resource.Dispose();
         realm.Resources.Clear();
+        realm.Lifetime.Cancel();
+        realm.Lifetime.Dispose();
         realm.Window.Dispose();
         if (force || CanDispose(realm, kind)) realm.Loop.Dispose();
         else _retiring.Add(new RetiringRealm(realm, kind));
@@ -275,7 +304,7 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
     }
 
     private sealed record Realm(IWindow Window, IBrowsingContext Context, Engine Engine, RuntimeEventLoop Loop,
-        JsValue ParseMessage, JsValue DispatchMessage) {
+        JsValue ParseMessage, JsValue DispatchMessage, RuntimeModuleLoader Modules, CancellationTokenSource Lifetime) {
         internal List<IDisposable> Resources { get; } = [];
     }
 
