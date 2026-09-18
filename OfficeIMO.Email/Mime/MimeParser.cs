@@ -5,6 +5,7 @@ internal static class MimeParser {
     internal const string RelatedRootMissingDiagnosticCode = "EMAIL_MIME_RELATED_ROOT_MISSING";
     internal const string RelatedRootNotHtmlDiagnosticCode = "EMAIL_MIME_RELATED_ROOT_NOT_HTML";
     internal const string RelatedRootTypeMismatchDiagnosticCode = "EMAIL_MIME_RELATED_ROOT_TYPE_MISMATCH";
+    internal const string EmptyBoundaryDiagnosticCode = "EMAIL_MIME_BOUNDARY_EMPTY";
     internal const string BoundaryNotClosedDiagnosticCode = "EMAIL_MIME_BOUNDARY_NOT_CLOSED";
     internal static EmailDocument Parse(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
         CancellationToken cancellationToken, EmailProcessingBudget? budget = null) {
@@ -81,7 +82,7 @@ internal static class MimeParser {
                 return;
             }
             if (boundary.Length == 0) {
-                state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_EMPTY",
+                state.Diagnostics.Add(new EmailDiagnostic(EmptyBoundaryDiagnosticCode,
                     string.Concat("Multipart entity '", contentType.Value,
                         "' declares an empty boundary; compatible recovery was attempted."),
                     EmailDiagnosticSeverity.Warning, location));

@@ -82,12 +82,15 @@ public sealed partial class EpubDocument {
             item => item.Value,
             StringComparer.Ordinal);
         var changedParts = new HashSet<string>(cleaned.ChangedParts, StringComparer.Ordinal);
+        var xhtmlParts = new HashSet<string>(
+            package.Document.Resources.Where(IsXhtmlResource).Select(resource => resource.Path),
+            StringComparer.Ordinal);
         OfficeProvenanceSignatureStripResult rewritten = OfficeProvenanceZip.RemoveEntries(
             packageBytes,
             path => removeSignature && path.Equals(EpubSignaturePath, StringComparison.Ordinal),
             options.Inspection.MaxExpandedPackageBytes,
             shouldReplace: path => changedParts.Contains(path),
-            replace: (path, original) => EncodeLikeOriginal(replacements[path], original),
+            replace: (path, original) => EncodeLikeOriginal(replacements[path], original, xhtmlParts.Contains(path)),
             maximumReplacementBytes: options.Inspection.MaxInputBytes,
             maximumOutputBytes: options.Inspection.MaxInputBytes,
             cancellationToken: cancellationToken);
@@ -127,6 +130,15 @@ public sealed partial class EpubDocument {
         EpubReadOptions effectiveReadOptions = CreateContentSafetyReadOptions(readOptions, options);
         EpubDocument document = EpubReader.ReadBytes(packageBytes, effectiveReadOptions, cancellationToken);
         ThrowForIncompleteContentSafetyRead(document);
+
+        EpubResource? invalidObfuscatedResource = document.Resources.FirstOrDefault(resource =>
+            resource.Encryption?.IsFontObfuscation == true
+            && !IsFontMediaType(resource.MediaType));
+        if (invalidObfuscatedResource != null) {
+            throw new InvalidDataException(
+                "EPUB content-safety inspection does not support font-obfuscation algorithms on non-font resources: " +
+                invalidObfuscatedResource.Path);
+        }
 
         EpubResource[] htmlResources = document.Resources.Where(IsHtmlResource).ToArray();
         if (htmlResources.Length == 0) throw new InvalidDataException("The EPUB manifest contains no local HTML or XHTML content documents.");
@@ -173,7 +185,7 @@ public sealed partial class EpubDocument {
         byte[] bytes,
         OfficeContentSafetyOptions options,
         bool xhtml) {
-        if (xhtml) return OfficeContentSafetyInputGuard.DecodeText(bytes, options);
+        if (xhtml) return DecodeXhtmlContentDocument(bytes, options);
         try {
             using var source = new MemoryStream(bytes, writable: false);
             Encoding encoding = HtmlTextEncodingResolver.Default.ResolveHtmlEncoding(source);
@@ -186,6 +198,37 @@ public sealed partial class EpubDocument {
         } catch (DecoderFallbackException exception) {
             throw new InvalidDataException("The EPUB HTML content document contains invalid encoded text.", exception);
         }
+    }
+
+    private static string DecodeXhtmlContentDocument(byte[] bytes, OfficeContentSafetyOptions options) {
+        OfficeContentSafetyInputGuard.ValidateBytes(bytes, options);
+        try {
+            Encoding encoding;
+            using (var source = new MemoryStream(bytes, writable: false)) {
+                encoding = DetectXhtmlEncoding(source);
+            }
+
+            encoding = (Encoding)encoding.Clone();
+            encoding.DecoderFallback = DecoderFallback.ExceptionFallback;
+            byte[] preamble = encoding.GetPreamble();
+            int offset = preamble.Length > 0 && bytes.AsSpan().StartsWith(preamble) ? preamble.Length : 0;
+            string xhtml = encoding.GetString(bytes, offset, bytes.Length - offset);
+            OfficeContentSafetyInputGuard.ValidateText(xhtml, options);
+            return xhtml;
+        } catch (Exception exception) when (exception is XmlException
+                                            || exception is DecoderFallbackException
+                                            || exception is ArgumentException) {
+            throw new InvalidDataException("The EPUB XHTML content document contains invalid encoded XML.", exception);
+        }
+    }
+
+    private static Encoding DetectXhtmlEncoding(Stream source) {
+        using var detector = new XmlTextReader(source) {
+            DtdProcessing = DtdProcessing.Ignore,
+            XmlResolver = null
+        };
+        detector.Read();
+        return detector.Encoding ?? new UTF8Encoding(false, true);
     }
 
     private static EpubReadOptions CreateContentSafetyReadOptions(EpubReadOptions? source, OfficeContentSafetyOptions safety) {
@@ -263,6 +306,17 @@ public sealed partial class EpubDocument {
         || path.EndsWith(".html", StringComparison.OrdinalIgnoreCase)
         || path.EndsWith(".htm", StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsFontMediaType(string? mediaType) =>
+        string.Equals(mediaType, "font/collection", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(mediaType, "font/otf", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(mediaType, "font/sfnt", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(mediaType, "font/ttf", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(mediaType, "font/woff", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(mediaType, "font/woff2", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(mediaType, "application/font-sfnt", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(mediaType, "application/font-woff", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(mediaType, "application/vnd.ms-opentype", StringComparison.OrdinalIgnoreCase);
+
     private static void ThrowForIncompleteContentSafetyRead(EpubDocument document) {
         EpubDiagnostic? missingHtml = document.Diagnostics.FirstOrDefault(item =>
             item.Code.Equals("epub.resource.missing", StringComparison.Ordinal)
@@ -287,6 +341,7 @@ public sealed partial class EpubDocument {
             "epub.package.metadata-size-limit",
             "epub.package.invalid-xml",
             "epub.manifest.invalid-path",
+            "epub.manifest.reference-non-conforming",
             "epub.manifest.duplicate-id",
             "epub.manifest.duplicate-target",
             "epub.resource.count-limit",
@@ -332,7 +387,7 @@ public sealed partial class EpubDocument {
         }
     }
 
-    private static byte[] EncodeLikeOriginal(string text, byte[] original) {
+    private static byte[] EncodeLikeOriginal(string text, byte[] original, bool xhtml) {
         Encoding encoding;
         byte[] preamble;
         if (original.Length >= 4 && original[0] == 0x00 && original[1] == 0x00 && original[2] == 0xFE && original[3] == 0xFF) {
@@ -350,6 +405,14 @@ public sealed partial class EpubDocument {
         } else if (original.Length >= 2 && original[0] == 0xFF && original[1] == 0xFE) {
             encoding = new UnicodeEncoding(false, false, true);
             preamble = new byte[] { 0xFF, 0xFE };
+        } else if (xhtml) {
+            try {
+                using var stream = new MemoryStream(original, writable: false);
+                encoding = DetectXhtmlEncoding(stream);
+                preamble = Array.Empty<byte>();
+            } catch (XmlException exception) {
+                throw new InvalidDataException("The EPUB XHTML content document encoding cannot be preserved safely.", exception);
+            }
         } else {
             using var stream = new MemoryStream(original, writable: false);
             encoding = HtmlTextEncodingResolver.Default.ResolveHtmlEncoding(stream);

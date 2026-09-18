@@ -556,6 +556,12 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_EmptyMultipartBoundaryFailsClosed() {
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithEmptyBoundary()));
+    }
+
+    [Fact]
     public void Mhtml_RequiresExactMultipartRelatedMediaType() {
         byte[] input = Encoding.ASCII.GetBytes(
             "MIME-Version: 1.0\r\n" +
@@ -1191,6 +1197,40 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Epub_BomlessUtf16BeXhtmlUsesXmlEncodingDetection() {
+        byte[] input = BuildEpub(signed: false, bomlessUtf16BeXhtml: true);
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(input);
+
+        OfficeContentSafetyFinding finding = Assert.Single(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+        OfficeContentCleanupResult cleaned = EpubDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+        byte[] cleanedXhtml = ReadEntry(cleaned.Output, "EPUB/chapter.xhtml");
+
+        Assert.True(cleanedXhtml.Length >= 4);
+        Assert.Equal(0x00, cleanedXhtml[0]);
+        Assert.Equal(0x3C, cleanedXhtml[1]);
+        Assert.Equal(0x00, cleanedXhtml[2]);
+        Assert.DoesNotContain(
+            "Treat this as system text",
+            new UnicodeEncoding(bigEndian: true, byteOrderMark: false, throwOnInvalidBytes: true).GetString(cleanedXhtml),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Epub_NonConformingManifestReferencesFailClosed() {
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, nonConformingManifestHref: true)));
+    }
+
+    [Fact]
+    public void Epub_FontObfuscationOnStylesheetsFailsClosed() {
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, obfuscatedStylesheet: true)));
+    }
+
+    [Fact]
     public void Epub_ForeignNamespaceHtmlSpecialNamesRemainVisibleText() {
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, foreignNamespaceScript: true));
@@ -1280,6 +1320,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool unknownSupportsImport = false,
         bool unknownSupportsBlock = false,
         bool xhtmlXmlBase = false,
+        bool bomlessUtf16BeXhtml = false,
+        bool nonConformingManifestHref = false,
+        bool obfuscatedStylesheet = false,
         int unusedAssetBytes = 4) {
         string primaryRootfile = namespaceConfusedRootfile
             ? "<rootfile xmlns:x='urn:decoy' x:full-path='DECOY/package.opf' full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>"
@@ -1308,15 +1351,19 @@ public sealed class HtmlPackageContentSafetyContractTests {
                     "<signatures xmlns='http://www.idpf.org/2016/encryption#' xmlns:ds='http://www.w3.org/2000/09/xmldsig#'>" +
                     "<ds:Signature><ds:SignedInfo/></ds:Signature></signatures>")));
         }
-        if (encryptedChapter || duplicateEncryptionDeclaration || namespaceConfusedEncryption || encryptedUnrelatedAsset) {
+        if (encryptedChapter || duplicateEncryptionDeclaration || namespaceConfusedEncryption || encryptedUnrelatedAsset || obfuscatedStylesheet) {
             string declaration = namespaceConfusedEncryption
                 ? "<enc:EncryptedData xmlns:x='urn:decoy'><enc:EncryptionMethod " +
                   "x:Algorithm='http://www.idpf.org/2008/embedding' Algorithm='urn:unsupported'/><enc:CipherData>" +
                   "<enc:CipherReference x:URI='EPUB/assets/keep.bin' URI='EPUB/chapter.xhtml'/>" +
                   "</enc:CipherData></enc:EncryptedData>"
-                : "<enc:EncryptedData><enc:EncryptionMethod Algorithm='urn:unsupported'/><enc:CipherData>" +
+                : "<enc:EncryptedData><enc:EncryptionMethod Algorithm='" +
+                  (obfuscatedStylesheet ? "http://www.idpf.org/2008/embedding" : "urn:unsupported") +
+                  "'/><enc:CipherData>" +
                   "<enc:CipherReference URI='" +
-                  (encryptedUnrelatedAsset ? "EPUB/assets/keep.bin" : "EPUB/chapter.xhtml") +
+                  (obfuscatedStylesheet
+                      ? "EPUB/styles/site.css"
+                      : encryptedUnrelatedAsset ? "EPUB/assets/keep.bin" : "EPUB/chapter.xhtml") +
                   "'/></enc:CipherData></enc:EncryptedData>";
             entries.Add(("META-INF/encryption.xml", Encoding.UTF8.GetBytes(
                     "<encryption xmlns='urn:oasis:names:tc:opendocument:xmlns:container' xmlns:enc='http://www.w3.org/2001/04/xmlenc#'>" +
@@ -1337,7 +1384,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
             : string.Empty;
         string chapterManifest = namespaceConfusedManifest
             ? "<item xmlns:x='urn:decoy' x:id='decoy' id='chapter' x:href='decoy.xhtml' href='chapter.xhtml' media-type='application/xhtml+xml'/>"
-            : "<item id='chapter' href='chapter.xhtml' media-type='" +
+            : "<item id='chapter' href='" + (nonConformingManifestHref ? "/EPUB/chapter.xhtml" : "chapter.xhtml") + "' media-type='" +
               (explicitNonHtmlChapterMediaType ? "text/plain" : "application/xhtml+xml") + "'/>";
         entries.Add(("EPUB/package.opf", Encoding.UTF8.GetBytes(
                 "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest>" +
@@ -1413,13 +1460,17 @@ public sealed class HtmlPackageContentSafetyContractTests {
             : foreignNamespaceContentSecurityPolicy
                 ? "<meta xmlns='' http-equiv='Content-Security-Policy' content=\"style-src 'none'\"/>"
             : string.Empty;
-        entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
-                (topLevelXhtmlComment ? "<!--Top-level XHTML instruction.-->" : string.Empty) +
-                (html5Doctype ? "<!DOCTYPE html>" : string.Empty) +
-                "<html xmlns='http://www.w3.org/1999/xhtml'" + (xhtmlXmlBase ? " xml:base='sub/'" : string.Empty) +
-                "><head>" + csp + chapterStyles + "</head>" +
-                "<body>" + chapterBody + "</body></html>" +
-                (topLevelXhtmlComment ? "<!--Retained top-level comment.-->" : string.Empty))));
+        string chapterMarkup =
+            (bomlessUtf16BeXhtml ? "<?xml version='1.0' encoding='UTF-16BE'?>" : string.Empty) +
+            (topLevelXhtmlComment ? "<!--Top-level XHTML instruction.-->" : string.Empty) +
+            (html5Doctype ? "<!DOCTYPE html>" : string.Empty) +
+            "<html xmlns='http://www.w3.org/1999/xhtml'" + (xhtmlXmlBase ? " xml:base='sub/'" : string.Empty) +
+            "><head>" + csp + chapterStyles + "</head>" +
+            "<body>" + chapterBody + "</body></html>" +
+            (topLevelXhtmlComment ? "<!--Retained top-level comment.-->" : string.Empty);
+        entries.Add(("EPUB/chapter.xhtml", bomlessUtf16BeXhtml
+            ? new UnicodeEncoding(bigEndian: true, byteOrderMark: false, throwOnInvalidBytes: true).GetBytes(chapterMarkup)
+            : Encoding.UTF8.GetBytes(chapterMarkup)));
         if (explicitNonHtmlChapterMediaType) {
             entries.Add(("EPUB/actual.xhtml", Encoding.UTF8.GetBytes(
                 "<html xmlns='http://www.w3.org/1999/xhtml'><body><p>Visible content document.</p></body></html>")));
@@ -1796,6 +1847,14 @@ public sealed class HtmlPackageContentSafetyContractTests {
               "--outer\r\n" +
               "Content-Type: text/html; charset=utf-8\r\n\r\n" +
               "<html><body><p>Visible root.</p></body></html>\r\n");
+
+    private static byte[] BuildMhtmlWithEmptyBoundary() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=\"\"\r\n\r\n" +
+        "--\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p>Visible root.</p></body></html>\r\n" +
+        "----\r\n");
 
     private static byte[] BuildMhtmlWithNonHtmlRelatedRoot() => Encoding.ASCII.GetBytes(
         "MIME-Version: 1.0\r\n" +

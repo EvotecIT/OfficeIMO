@@ -159,6 +159,7 @@ public sealed partial class MhtmlDocument {
             || diagnostic.Code == MimeParser.RelatedRootMissingDiagnosticCode
             || diagnostic.Code == MimeParser.RelatedRootNotHtmlDiagnosticCode
             || diagnostic.Code == MimeParser.RelatedRootTypeMismatchDiagnosticCode
+            || diagnostic.Code == MimeParser.EmptyBoundaryDiagnosticCode
             || diagnostic.Code == MimeParser.BoundaryNotClosedDiagnosticCode);
         if (ambiguous != null) {
             throw new InvalidDataException(
