@@ -1118,6 +1118,47 @@ public sealed class HtmlPackageContentSafetyContractTests {
             BuildEpub(signed: false, unknownSupportsBlock: true)));
     }
 
+    [Theory]
+    [InlineData("<style media='not (prefers-contrast: more)'>.concealed{display:none}</style>")]
+    [InlineData("<link rel='stylesheet' href='nested.css' media='not (prefers-contrast: more)'>")]
+    [InlineData("<style>@import 'nested.css' not (prefers-contrast: more);</style>")]
+    [InlineData("<style>@media not (prefers-contrast: more){.concealed{display:none}}</style>")]
+    public void Mhtml_PackageCssRejectsUnknownMediaConditionsBeforeNegation(string stylesheet) {
+        byte[] input = new MhtmlDocument(
+            "<html><head>" + stylesheet + "</head><body><p class='concealed'>Unknown media text.</p></body></html>",
+            new[] {
+                new MhtmlResource(
+                    Encoding.UTF8.GetBytes(".concealed{display:none}"),
+                    "text/css",
+                    contentLocation: "nested.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+    }
+
+    [Fact]
+    public void Mhtml_PackageCssAcceptsKnownMediaConditionsUnderNegation() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><style media='not (prefers-color-scheme: dark)'>p{color:black}</style></head>" +
+            "<body><p>Visible text.</p></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        OfficeContentSafetyReport report = MhtmlDocument.InspectContentSafety(input);
+        Assert.DoesNotContain(report.Findings, finding =>
+            finding.TextPreview.Contains("Visible text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Mhtml_NoScriptFallbackIsVisibleInTheNoScriptingSafetyModel() {
+        byte[] input = new MhtmlDocument(
+            "<html><body><noscript><p>Visible no-script fallback.</p></noscript></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.DoesNotContain(MhtmlDocument.InspectContentSafety(input).Findings, finding =>
+            finding.TextPreview.Contains("Visible no-script fallback", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void Epub_ForeignNamespaceBaseDoesNotRedirectStylesheetResolution() {
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(

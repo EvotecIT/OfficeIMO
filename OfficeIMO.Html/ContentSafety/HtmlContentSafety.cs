@@ -588,7 +588,7 @@ public static partial class HtmlContentSafety {
 
     private static bool IsNonTextElement(IElement element) =>
         HtmlResourcePipeline.IsHtmlNamespaceElement(element)
-        && element.LocalName.ToLowerInvariant() is "script" or "style" or "noscript";
+        && element.LocalName.ToLowerInvariant() is "script" or "style";
 
     private static bool CanRemoveElement(IElement element) =>
         element.ParentElement != null

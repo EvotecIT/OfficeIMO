@@ -155,7 +155,7 @@ public sealed class ContentSafetyContracts {
         Assert.DoesNotContain(report.Findings, item => item.Kind == OfficeContentConcealmentKind.TransparentText && item.TextPreview.Contains("visible", StringComparison.Ordinal));
         Assert.Contains(report.Findings, item => item.Kind == OfficeContentConcealmentKind.TransparentText && item.TextPreview.Contains("combined filters", StringComparison.Ordinal));
         Assert.Contains(report.Findings, item => item.Location.Contains("script", StringComparison.OrdinalIgnoreCase) && item.IsInstructionLike);
-        Assert.Contains(report.Findings, item => item.Location.Contains("noscript", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(report.Findings, item => item.Location.Contains("noscript", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

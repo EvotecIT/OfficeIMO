@@ -20,13 +20,14 @@ internal sealed class HtmlExternalStylesheetAnalysis {
 
 internal sealed class HtmlExternalStylesheetImport {
     internal HtmlExternalStylesheetImport(int start, int end, HtmlResourceReference reference, bool isApplicable,
-        bool hasLayerCondition, bool hasUnknownSupportsCondition) {
+        bool hasLayerCondition, bool hasUnknownSupportsCondition, bool hasUnknownMediaCondition) {
         Start = start;
         End = end;
         Reference = reference;
         IsApplicable = isApplicable;
         HasLayerCondition = hasLayerCondition;
         HasUnknownSupportsCondition = hasUnknownSupportsCondition;
+        HasUnknownMediaCondition = hasUnknownMediaCondition;
     }
 
     internal int Start { get; }
@@ -35,6 +36,7 @@ internal sealed class HtmlExternalStylesheetImport {
     internal bool IsApplicable { get; }
     internal bool HasLayerCondition { get; }
     internal bool HasUnknownSupportsCondition { get; }
+    internal bool HasUnknownMediaCondition { get; }
 }
 
 public static partial class HtmlResourcePipeline {
@@ -98,14 +100,19 @@ public static partial class HtmlResourcePipeline {
                 resolved,
                 allowed,
                 allowed ? string.Empty : GetDiagnosticCode(HtmlResourceKind.Stylesheet));
-            bool isApplicable = IsApplicableCssImport(import.ConditionText, options, out bool hasUnknownSupportsCondition);
+            bool isApplicable = IsApplicableCssImport(
+                import.ConditionText,
+                options,
+                out bool hasUnknownSupportsCondition,
+                out bool hasUnknownMediaCondition);
             imports.Add(new HtmlExternalStylesheetImport(
                 import.Start,
                 import.End,
                 reference,
                 isApplicable,
                 HasCssImportLayerCondition(import.ConditionText),
-                hasUnknownSupportsCondition));
+                hasUnknownSupportsCondition,
+                hasUnknownMediaCondition));
         }
 
         foreach (HtmlCssFontFaceDefinition definition in ExtractFontFaces(normalized, options)) {

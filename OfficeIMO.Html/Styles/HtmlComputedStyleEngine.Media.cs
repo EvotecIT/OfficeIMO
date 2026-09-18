@@ -66,6 +66,61 @@ public static partial class HtmlComputedStyleEngine {
         return false;
     }
 
+    internal static bool HasUnknownMediaFeature(string mediaText) {
+        if (string.IsNullOrWhiteSpace(mediaText)) return false;
+
+        string normalized = StripCssCommentsOutsideStrings(mediaText);
+        int index = 0;
+        while (index < normalized.Length) {
+            int open = normalized.IndexOf('(', index);
+            if (open < 0) return false;
+            int close = FindMatchingParenthesis(normalized, open);
+            if (close <= open) return true;
+
+            string feature = normalized.Substring(open + 1, close - open - 1).Trim().ToLowerInvariant();
+            if (!IsRecognizedMediaFeature(feature)) return true;
+            index = close + 1;
+        }
+
+        return false;
+    }
+
+    private static bool IsRecognizedMediaFeature(string feature) {
+        int colon = feature.IndexOf(':');
+        string name = (colon < 0 ? feature : feature.Substring(0, colon)).Trim();
+        switch (name) {
+            case "color":
+            case "min-color":
+            case "max-color":
+            case "monochrome":
+            case "min-monochrome":
+            case "max-monochrome":
+            case "width":
+            case "min-width":
+            case "max-width":
+            case "height":
+            case "min-height":
+            case "max-height":
+            case "orientation":
+            case "resolution":
+            case "min-resolution":
+            case "max-resolution":
+            case "prefers-color-scheme":
+            case "prefers-reduced-motion":
+            case "pointer":
+            case "any-pointer":
+            case "hover":
+            case "any-hover":
+            case "scripting":
+            case "update":
+            case "overflow-block":
+            case "overflow-inline":
+                return true;
+            default:
+                return false;
+        }
+    }
+
     internal static bool IsPotentiallyApplicableScreenMedia(string mediaText, HtmlRenderMediaFeatures mediaFeatures) {
         if (mediaFeatures == null) throw new ArgumentNullException(nameof(mediaFeatures));
         mediaFeatures.Validate();

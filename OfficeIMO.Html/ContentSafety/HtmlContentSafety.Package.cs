@@ -322,6 +322,13 @@ public static partial class HtmlContentSafety {
         HtmlResourcePipelineOptions resourceOptions) {
         Uri documentBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, renderOptions.BaseUri)
             ?? new Uri("https://officeimo.invalid/", UriKind.Absolute);
+        foreach (IElement element in document.QuerySelectorAll("style[media], link[media]")) {
+            if (!IsPackageStylesheetMediaElement(element)) continue;
+            if (HtmlComputedStyleEngine.HasUnknownMediaFeature(element.GetAttribute("media") ?? string.Empty)) {
+                throw new InvalidDataException(
+                    "Unknown CSS media conditions are not supported by package content-safety inspection.");
+            }
+        }
         foreach (IElement style in document.QuerySelectorAll("style")) {
             if (!HtmlRenderStylesheetApplier.IsApplicableStyleElement(style, renderOptions)) continue;
             ThrowForUnsafeStylesheetConditions(style.TextContent ?? string.Empty, documentBaseUri, resourceOptions);
@@ -351,6 +358,11 @@ public static partial class HtmlContentSafety {
             throw new InvalidDataException(
                 "Unknown CSS supports conditions are not supported by package content-safety inspection.");
         }
+        if (HtmlResourcePipeline.HasUnknownMediaCondition(analysis.Css)
+            || analysis.Imports.Any(import => import.HasUnknownMediaCondition)) {
+            throw new InvalidDataException(
+                "Unknown CSS media conditions are not supported by package content-safety inspection.");
+        }
         if (analysis.Imports.Any(import => import.IsApplicable
             && import.Reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase))) {
             throw new InvalidDataException(
@@ -363,6 +375,20 @@ public static partial class HtmlContentSafety {
             contentType.Split(';')[0].Trim(),
             "text/css",
             StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsPackageStylesheetMediaElement(IElement element) {
+        if (HtmlResourcePipeline.IsCssStyleElement(element)) return true;
+        if (!HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+            || !string.Equals(element.LocalName, "link", StringComparison.OrdinalIgnoreCase)
+            || element.HasAttribute("disabled")
+            || !HtmlResourcePipeline.IsCssStylesheetType(element.GetAttribute("type"))) {
+            return false;
+        }
+
+        string rel = element.GetAttribute("rel") ?? string.Empty;
+        return rel.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)
+            .Any(token => string.Equals(token, "stylesheet", StringComparison.OrdinalIgnoreCase));
+    }
 
     private static IHtmlDocument ParsePackageDocument(
         HtmlContentSafetyPackagePart part,

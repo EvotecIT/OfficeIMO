@@ -332,6 +332,29 @@ public static partial class HtmlResourcePipeline {
         return false;
     }
 
+    internal static bool HasUnknownMediaCondition(string css) {
+        int index = 0;
+        while (index < css.Length) {
+            int mediaStart = css.IndexOf("@media", index, StringComparison.OrdinalIgnoreCase);
+            if (mediaStart < 0) return false;
+            if (IsInsideCssString(css, mediaStart) || !HasAtRuleTokenBoundary(css, mediaStart, "@media")) {
+                index = mediaStart + 6;
+                continue;
+            }
+
+            int preludeStart = mediaStart + 6;
+            int open = FindNextTopLevelBlockStart(css, preludeStart);
+            if (open < 0) return false;
+            int close = FindMatchingCssBrace(css, open);
+            if (close <= open) return false;
+
+            string conditionText = css.Substring(preludeStart, open - preludeStart).Trim();
+            if (HtmlComputedStyleEngine.HasUnknownMediaFeature(conditionText)) return true;
+            index = open + 1;
+        }
+        return false;
+    }
+
     private static int FindNextTopLevelBlockStart(string css, int start) {
         int depth = 0;
         char quote = '\0';
