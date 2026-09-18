@@ -369,7 +369,6 @@ public sealed partial class EpubDocument {
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
         if (archive.Entries.Count > maximumEntries) throw new InvalidDataException("The EPUB package exceeds the configured entry-count limit.");
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        var caseFolded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (ZipArchiveEntry entry in archive.Entries) {
             cancellationToken.ThrowIfCancellationRequested();
             bool isDirectory = entry.FullName.EndsWith("/", StringComparison.Ordinal);
@@ -381,9 +380,6 @@ public sealed partial class EpubDocument {
             }
             string identity = isDirectory ? string.Concat(normalized, "/") : normalized;
             if (!seen.Add(identity)) throw new InvalidDataException("EPUB package contains a duplicate entry path: " + identity);
-            if (!caseFolded.Add(identity)) {
-                throw new InvalidDataException("EPUB package contains case-colliding entry paths that cannot be resolved unambiguously: " + identity);
-            }
         }
     }
 

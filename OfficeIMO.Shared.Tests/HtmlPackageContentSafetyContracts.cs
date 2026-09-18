@@ -1050,8 +1050,6 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, duplicateEncryptionDeclaration: true)));
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
-            BuildEpub(signed: false, caseCollidingStylesheets: true)));
-        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, externalStylesheetImport: true)));
 
         OfficeContentSafetyReport withDirectories = EpubDocument.InspectContentSafety(
@@ -1222,6 +1220,15 @@ public sealed class HtmlPackageContentSafetyContractTests {
     public void Epub_NonConformingManifestReferencesFailClosed() {
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, nonConformingManifestHref: true)));
+    }
+
+    [Fact]
+    public void Epub_CaseDistinctEntryPathsRemainAddressable() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, caseCollidingStylesheets: true));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
     }
 
     [Fact]
