@@ -6,12 +6,19 @@ internal static class PdfFormatConversionRecordManifest {
     internal const int RecordCount = 120;
     internal const string Description = "Deterministic account conversion evidence";
 
-    internal static IReadOnlyList<string> CreateRequiredText(string heading) {
-        var required = new List<string>(2 + (RecordCount * 4)) {
+    internal static IReadOnlyList<string> CreateRequiredText(string heading, int recordCount = RecordCount, string? structureMarker = null) {
+        if (recordCount < 1) {
+            throw new ArgumentOutOfRangeException(nameof(recordCount));
+        }
+
+        var required = new List<string>(3 + (recordCount * 4)) {
             heading,
             Description
         };
-        for (int index = 1; index <= RecordCount; index++) {
+        if (!string.IsNullOrWhiteSpace(structureMarker)) {
+            required.Add(structureMarker!);
+        }
+        for (int index = 1; index <= recordCount; index++) {
             required.Add(RecordMarker(index));
             required.Add(CustomerMarker(index));
             required.Add(AmountMarker(index));

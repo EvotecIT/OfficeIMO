@@ -24,6 +24,7 @@ internal static class PdfBenchmarkCorpus {
         };
         PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => {
             for (int page = 1; page <= PageCount; page++) {
+                string[] boundaryItems = CreateBoundaryItems(page, page % 2 == 0 ? 6 : 5);
                 content
                     .H1("Operational report " + page)
                     .Paragraph(paragraph => paragraph.Text(
@@ -33,8 +34,15 @@ internal static class PdfBenchmarkCorpus {
                         new[] { "Metric", "Value", "Status" },
                         new[] { "Documents", (page * 37).ToString(), "Healthy" },
                         new[] { "Rules", (page * 11).ToString(), "Reviewed" },
-                        new[] { "Signals", (page * 19).ToString(), "Observed" }
+                        new[] { "Signals", (page * 19).ToString(), "Observed" },
+                        new[] { "Long value", "Wrapping content for table layout and width measurement on page " + page, "Measured" },
+                        new[] { "Boundary", boundaryItems.Length.ToString(), "Validated" }
                     })
+                    .Bullets(boundaryItems)
+                    .Row(row => row
+                        .Gap(12)
+                        .PercentColumn(50, column => column.Numbered(boundaryItems.Take(3)))
+                        .PercentColumn(50, column => column.Bullets(boundaryItems.Skip(2).Take(3))))
                     .Rectangle(
                         180,
                         24,
@@ -49,6 +57,14 @@ internal static class PdfBenchmarkCorpus {
         }), options).Meta(title: "OfficeIMO.Pdf mixed performance corpus");
 
         return document;
+    }
+
+    private static string[] CreateBoundaryItems(int page, int count) {
+        var items = new string[count];
+        for (int index = 0; index < count; index++) {
+            items[index] = "Boundary list item " + (index + 1) + " on page " + page;
+        }
+        return items;
     }
 
     internal static PdfDocument CreateHarfBuzzDocument() {

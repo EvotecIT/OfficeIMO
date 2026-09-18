@@ -12,28 +12,38 @@
     },
     "render-svg-12": {
       "maxElapsedMilliseconds": 5000,
-      "maxAllocatedBytes": 805306368,
-      "maxPeakManagedHeapBytes": 536870912
+      "maxAllocatedBytes": 134217728,
+      "maxPeakManagedHeapBytes": 100663296
     },
     "render-png-4": {
       "maxElapsedMilliseconds": 10000,
-      "maxAllocatedBytes": 1073741824,
-      "maxPeakManagedHeapBytes": 805306368
+      "maxAllocatedBytes": 100663296,
+      "maxPeakManagedHeapBytes": 100663296
     },
-    "serialize-buffered-60": {
+    "compose-serialize-buffered-60": {
       "maxElapsedMilliseconds": 10000,
-      "maxAllocatedBytes": 1073741824,
-      "maxPeakManagedHeapBytes": 536870912
+      "maxAllocatedBytes": 33554432,
+      "maxPeakManagedHeapBytes": 67108864
     },
-    "serialize-forward-60": {
+    "compose-serialize-forward-60": {
       "maxElapsedMilliseconds": 10000,
-      "maxAllocatedBytes": 1073741824,
-      "maxPeakManagedHeapBytes": 536870912
+      "maxAllocatedBytes": 33554432,
+      "maxPeakManagedHeapBytes": 67108864
     },
-    "serialize-harfbuzz-60": {
+    "layout-serialize-precomposed-buffered-60": {
       "maxElapsedMilliseconds": 10000,
-      "maxAllocatedBytes": 1073741824,
-      "maxPeakManagedHeapBytes": 536870912
+      "maxAllocatedBytes": 29360128,
+      "maxPeakManagedHeapBytes": 67108864
+    },
+    "layout-serialize-precomposed-forward-60": {
+      "maxElapsedMilliseconds": 10000,
+      "maxAllocatedBytes": 29360128,
+      "maxPeakManagedHeapBytes": 67108864
+    },
+    "compose-serialize-harfbuzz-60": {
+      "maxElapsedMilliseconds": 10000,
+      "maxAllocatedBytes": 83886080,
+      "maxPeakManagedHeapBytes": 100663296
     }
   },
   "minimumCachedSpeedup": 1.1

@@ -153,8 +153,9 @@ internal static partial class PdfWriter {
             for (int ri = 0; ri < tb.Rows.Count; ri++) {
                 double originalRowSize = GetTableRowFontSize(style, ri, headerRowCount, footerStartRowIndex, currentOpts.DefaultFontSize);
                 bool rowUsesBold = GetTableRowBold(style, ri, headerRowCount, footerStartRowIndex);
-                double rowSize = ResolveTableRowShrinkFontSize(tb, style, ri, cols, colPixel, colGapPx, originalRowSize, rowUsesBold, currentOpts);
-                double runFontSizeScale = GetTableRunFontSizeScale(tb, style, ri, cols, colPixel, colGapPx, originalRowSize, rowSize, rowUsesBold, currentOpts);
+                TableRowTextSizing sizing = ResolveTableRowTextSizing(tb, style, ri, cols, colPixel, colGapPx, originalRowSize, rowUsesBold, currentOpts);
+                double rowSize = sizing.FontSize;
+                double runFontSizeScale = sizing.RunFontSizeScale;
                 double rowLeading = GetTableLeading(style, rowSize);
                 rowSizes[ri] = rowSize;
                 rowLeadings[ri] = rowLeading;

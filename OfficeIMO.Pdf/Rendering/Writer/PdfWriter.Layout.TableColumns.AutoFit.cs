@@ -500,17 +500,17 @@ internal static partial class PdfWriter {
 
     private static bool IsGuidLikeAutoFitText(string text) {
         string value = text.Trim('{', '}');
-        int hyphens = value.Count(ch => ch == '-');
+        int hyphens = CountAutoFitCharacter(value, '-');
         if (hyphens < 4 || value.Length < 32 || value.Length > 40) {
             return false;
         }
 
-        return value.All(ch => ch == '-' || (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f'));
+        return ContainsOnlyAutoFitGuidCharacters(value);
     }
 
     private static bool IsUppercaseDelimitedCodeAutoFitText(string text) {
         string value = text.Trim();
-        if (value.Length < 5 || !value.Contains('-') || value.Any(char.IsWhiteSpace)) {
+        if (value.Length < 5 || !value.Contains('-') || ContainsAutoFitWhitespace(value)) {
             return false;
         }
 
@@ -551,7 +551,17 @@ internal static partial class PdfWriter {
 
     private static bool IsSingleLetterNumericDelimitedCodeListAutoFitText(string text) {
         string[] entries = GetSingleLetterNumericDelimitedCodeEntries(text);
-        return entries.Length >= 2 && entries.All(entry => IsSingleLetterNumericDelimitedCodeParts(entry.Split(AutoFitDelimitedCodeSplitChars, StringSplitOptions.RemoveEmptyEntries)));
+        if (entries.Length < 2) {
+            return false;
+        }
+
+        for (int i = 0; i < entries.Length; i++) {
+            if (!IsSingleLetterNumericDelimitedCodeParts(entries[i].Split(AutoFitDelimitedCodeSplitChars, StringSplitOptions.RemoveEmptyEntries))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool IsCompactDateTimeAutoFitText(string text) {
@@ -606,7 +616,7 @@ internal static partial class PdfWriter {
         }
 
         for (int i = 1; i < parts.Length; i++) {
-            if (parts[i].Length == 0 || !parts[i].All(char.IsDigit)) {
+            if (parts[i].Length == 0 || !ContainsOnlyAutoFitDigits(parts[i])) {
                 return false;
             }
         }
@@ -672,8 +682,19 @@ internal static partial class PdfWriter {
     private static int GetSingleLetterNumericDelimitedPrefixGroupCount(string[] parts) =>
         parts.Length < 4 ? 0 : Math.Min(parts.Length, 4);
 
-    private static bool IsCompactSingleLetterNumericDelimitedCode(string[] parts) =>
-        parts.Length <= 4 && parts.Skip(1).All(part => part.Length <= 2);
+    private static bool IsCompactSingleLetterNumericDelimitedCode(string[] parts) {
+        if (parts.Length > 4) {
+            return false;
+        }
+
+        for (int i = 1; i < parts.Length; i++) {
+            if (parts[i].Length > 2) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     private static double MeasureSingleLetterNumericDelimitedBreakSegmentWidth(string[] parts, Func<string, double> measure) {
         double width = 0D;
@@ -701,7 +722,7 @@ internal static partial class PdfWriter {
             return true;
         }
 
-        if (value.Any(char.IsWhiteSpace)) {
+        if (ContainsAutoFitWhitespace(value)) {
             return false;
         }
 
@@ -727,7 +748,7 @@ internal static partial class PdfWriter {
 
     private static bool IsShortSingleSlashQualifiedAutoFitText(string text) {
         string value = text.Trim();
-        if (value.Length < 5 || value.Length > 32 || value.Any(char.IsWhiteSpace)) {
+        if (value.Length < 5 || value.Length > 32 || ContainsAutoFitWhitespace(value)) {
             return false;
         }
 
@@ -757,12 +778,12 @@ internal static partial class PdfWriter {
     private static bool IsShortSlashQualifiedPart(string value) =>
         value.Length > 0 &&
         value.Length <= 20 &&
-        value.Any(char.IsLetter) &&
-        value.All(ch => char.IsLetterOrDigit(ch) || ch == '-' || ch == '_' || ch == '.');
+        ContainsAutoFitLetter(value) &&
+        ContainsOnlyAutoFitIdentifierCharacters(value);
 
     private static bool IsQualifiedIdentifierAutoFitText(string text) {
         string value = text.Trim();
-        if (value.Length < 6 || value.Any(char.IsWhiteSpace)) {
+        if (value.Length < 6 || ContainsAutoFitWhitespace(value)) {
             return false;
         }
 
@@ -815,7 +836,7 @@ internal static partial class PdfWriter {
 
     private static bool IsDottedQualifiedAutoFitText(string text) {
         string value = text.Trim();
-        if (value.Length < 5 || value.Any(char.IsWhiteSpace) || !value.Contains('.')) {
+        if (value.Length < 5 || ContainsAutoFitWhitespace(value) || !value.Contains('.')) {
             return false;
         }
 
@@ -846,6 +867,66 @@ internal static partial class PdfWriter {
         }
 
         return hasLetter && dotCount > 0;
+    }
+
+    private static int CountAutoFitCharacter(string value, char expected) {
+        int count = 0;
+        for (int i = 0; i < value.Length; i++) {
+            if (value[i] == expected) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static bool ContainsAutoFitWhitespace(string value) {
+        for (int i = 0; i < value.Length; i++) {
+            if (char.IsWhiteSpace(value[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool ContainsAutoFitLetter(string value) {
+        for (int i = 0; i < value.Length; i++) {
+            if (char.IsLetter(value[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool ContainsOnlyAutoFitDigits(string value) {
+        for (int i = 0; i < value.Length; i++) {
+            if (!char.IsDigit(value[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool ContainsOnlyAutoFitGuidCharacters(string value) {
+        for (int i = 0; i < value.Length; i++) {
+            char ch = value[i];
+            if (ch != '-' &&
+                (ch < '0' || ch > '9') &&
+                (ch < 'A' || ch > 'F') &&
+                (ch < 'a' || ch > 'f')) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool ContainsOnlyAutoFitIdentifierCharacters(string value) {
+        for (int i = 0; i < value.Length; i++) {
+            char ch = value[i];
+            if (!char.IsLetterOrDigit(ch) && ch != '-' && ch != '_' && ch != '.') {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static double MeasureAutoFitDottedQualifiedSegmentWidth(string text, Func<string, double> measure) {

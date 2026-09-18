@@ -1,4 +1,3 @@
-using System.Globalization;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -203,17 +202,6 @@ internal static partial class PdfWriter {
             }
         }
 
-        private static double MeasureListKeepTogetherHeight(System.Collections.Generic.IReadOnlyList<TableCellTextLayout> itemLayouts, double leading, double spacingBefore, double itemSpacing, double spacingAfter) {
-            double total = 0D;
-            for (int itemIndex = 0; itemIndex < itemLayouts.Count; itemIndex++) {
-                total += itemIndex == 0 ? spacingBefore : 0D;
-                total += MeasureRichLinesHeight(itemLayouts[itemIndex].LineHeights, itemLayouts[itemIndex].LineCount, leading);
-                total += itemIndex == itemLayouts.Count - 1 ? spacingAfter : itemSpacing;
-            }
-
-            return total;
-        }
-
         private PdfParagraphStyle? EffectiveParagraphStyle(RichParagraphBlock paragraph) => paragraph.Style ?? currentOpts.DefaultParagraphStyleSnapshot;
 
         private double MeasureNextParagraphFirstVisualHeight(RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize) {
@@ -300,12 +288,8 @@ internal static partial class PdfWriter {
                 return MeasureParagraphBlockHeight(paragraph, frameX, frameWidth, fontSize);
             }
 
-            if (block is BulletListBlock bullets) {
-                return MeasureBulletListBlockHeight(bullets, frameWidth, fontSize);
-            }
-
-            if (block is NumberedListBlock numbered) {
-                return MeasureNumberedListBlockHeight(numbered, frameWidth, fontSize);
+            if (block is PdfListBlock list) {
+                return MeasureListBlockHeight(list, frameWidth, fontSize);
             }
 
             if (block is TableBlock table) {
@@ -361,63 +345,9 @@ internal static partial class PdfWriter {
             return spacingBefore + wrap.LineHeights.Sum() + spacingAfter;
         }
 
-        private double MeasureBulletListBlockHeight(BulletListBlock bullets, double frameWidth, double fontSize) {
-            PdfListStyle? listStyle = ResolveListStyle(bullets, currentOpts);
-            double size = GetListFontSize(listStyle, fontSize);
-            double markerSize = GetListMarkerFontSize(listStyle, size);
-            double leading = Math.Max(GetListLeading(listStyle, size), GetListLeading(listStyle, markerSize));
-            var baseFont = ChooseNormal(currentOpts.DefaultFont);
-            PdfStandardFont markerFont = GetListMarkerFont(listStyle, currentOpts.DefaultFont);
-            PdfNamedFontFace? markerNamedFont = GetListMarkerNamedFont(listStyle, currentOpts);
-            const string bulletGlyph = "•";
-            double estimatedBulletWidth = bullets.RichItems.Count == 0
-                ? EstimateSimpleTextWidthForOptions(bulletGlyph, markerFont, markerNamedFont, markerSize, currentOpts)
-                : bullets.RichItems.Max(item => EstimateSimpleTextWidthForOptions(item.Marker ?? bulletGlyph, markerFont, markerNamedFont, markerSize, currentOpts));
-            double bulletWidth = GetListMarkerWidth(listStyle, estimatedBulletWidth);
-            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", markerFont, markerNamedFont, markerSize, currentOpts);
-            double markerGap = GetListMarkerGap(listStyle, spaceAdvance);
-            double rawTextWidth = frameWidth - (listStyle?.LeftIndent ?? 0D) - bulletWidth - markerGap;
-            double availableWidth = Math.Max(rawTextWidth, EstimateSimpleTextWidthForOptions("WW", baseFont, size, currentOpts));
-            double itemSpacing = GetListItemSpacing(listStyle, leading);
-            var wrappedItems = new System.Collections.Generic.List<TableCellTextLayout>(bullets.RichItems.Count);
-            for (int itemIndex = 0; itemIndex < bullets.RichItems.Count; itemIndex++) {
-                wrappedItems.Add(CreateListItemTextLayout(bullets.RichItems[itemIndex], availableWidth, baseFont, size, leading, currentOpts));
-            }
-
-            double listSpacingBefore = ResolveTopLevelSpacingBefore(listStyle?.SpacingBefore ?? 0D);
-            double listSpacingAfter = listStyle?.GetSpacingAfter(itemSpacing) ?? itemSpacing;
-            return MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
-        }
-
-        private double MeasureNumberedListBlockHeight(NumberedListBlock numbered, double frameWidth, double fontSize) {
-            PdfListStyle? listStyle = ResolveListStyle(numbered, currentOpts);
-            double size = GetListFontSize(listStyle, fontSize);
-            double markerSize = GetListMarkerFontSize(listStyle, size);
-            double leading = Math.Max(GetListLeading(listStyle, size), GetListLeading(listStyle, markerSize));
-            var baseFont = ChooseNormal(currentOpts.DefaultFont);
-            PdfStandardFont markerFont = GetListMarkerFont(listStyle, currentOpts.DefaultFont);
-            PdfNamedFontFace? markerNamedFont = GetListMarkerNamedFont(listStyle, currentOpts);
-            int lastNumber = numbered.StartNumber + Math.Max(0, numbered.RichItems.Count - 1);
-            string widestMarker = lastNumber.ToString(CultureInfo.InvariantCulture) + ".";
-            double estimatedMarkerWidth = numbered.RichItems.Count == 0
-                ? EstimateSimpleTextWidthForOptions(widestMarker, markerFont, markerNamedFont, markerSize, currentOpts)
-                : numbered.RichItems
-                    .Select((item, itemIndex) => item.Marker ?? ((numbered.StartNumber + itemIndex).ToString(CultureInfo.InvariantCulture) + "."))
-                    .Max(marker => EstimateSimpleTextWidthForOptions(marker, markerFont, markerNamedFont, markerSize, currentOpts));
-            double markerWidth = GetListMarkerWidth(listStyle, estimatedMarkerWidth);
-            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", markerFont, markerNamedFont, markerSize, currentOpts);
-            double markerGap = GetListMarkerGap(listStyle, spaceAdvance);
-            double rawTextWidth = frameWidth - (listStyle?.LeftIndent ?? 0D) - markerWidth - markerGap;
-            double availableWidth = Math.Max(rawTextWidth, EstimateSimpleTextWidthForOptions("WW", baseFont, size, currentOpts));
-            double itemSpacing = GetListItemSpacing(listStyle, leading);
-            var wrappedItems = new System.Collections.Generic.List<TableCellTextLayout>(numbered.RichItems.Count);
-            for (int itemIndex = 0; itemIndex < numbered.RichItems.Count; itemIndex++) {
-                wrappedItems.Add(CreateListItemTextLayout(numbered.RichItems[itemIndex], availableWidth, baseFont, size, leading, currentOpts));
-            }
-
-            double listSpacingBefore = ResolveTopLevelSpacingBefore(listStyle?.SpacingBefore ?? 0D);
-            double listSpacingAfter = listStyle?.GetSpacingAfter(itemSpacing) ?? itemSpacing;
-            return MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
+        private double MeasureListBlockHeight(PdfListBlock list, double frameWidth, double fontSize) {
+            PreparedListLayout prepared = PrepareListLayout(list, frameWidth, fontSize, topLevelSpacing: true);
+            return MeasurePreparedListHeight(prepared);
         }
 
         private bool KeepsWithNext(IPdfBlock block) {
@@ -429,12 +359,8 @@ internal static partial class PdfWriter {
                 return EffectiveParagraphStyle(paragraph)?.KeepWithNext == true;
             }
 
-            if (block is BulletListBlock bullets) {
-                return ResolveListStyle(bullets, currentOpts)?.KeepWithNext == true;
-            }
-
-            if (block is NumberedListBlock numbered) {
-                return ResolveListStyle(numbered, currentOpts)?.KeepWithNext == true;
+            if (block is PdfListBlock list) {
+                return ResolveListStyle(list, currentOpts)?.KeepWithNext == true;
             }
 
             if (block is TableBlock table) {
@@ -537,25 +463,12 @@ internal static partial class PdfWriter {
                 return spacer.Height;
             }
 
-            if (block is BulletListBlock bullets) {
-                PdfListStyle? listStyle = ResolveListStyle(bullets, currentOpts);
+            if (block is PdfListBlock list) {
+                PdfListStyle? listStyle = ResolveListStyle(list, currentOpts);
                 double size = GetListFontSize(listStyle, fontSize);
                 double markerSize = GetListMarkerFontSize(listStyle, size);
                 double leading = Math.Max(GetListLeading(listStyle, size), GetListLeading(listStyle, markerSize));
-                string? firstItem = bullets.Items.Count > 0 ? bullets.Items[0] : null;
-                if (firstItem == null) {
-                    return listStyle?.SpacingBefore ?? 0D;
-                }
-
-                return (listStyle?.SpacingBefore ?? 0D) + leading;
-            }
-
-            if (block is NumberedListBlock numbered) {
-                PdfListStyle? listStyle = ResolveListStyle(numbered, currentOpts);
-                double size = GetListFontSize(listStyle, fontSize);
-                double markerSize = GetListMarkerFontSize(listStyle, size);
-                double leading = Math.Max(GetListLeading(listStyle, size), GetListLeading(listStyle, markerSize));
-                string? firstItem = numbered.Items.Count > 0 ? numbered.Items[0] : null;
+                string? firstItem = list.Items.Count > 0 ? list.Items[0] : null;
                 if (firstItem == null) {
                     return listStyle?.SpacingBefore ?? 0D;
                 }
@@ -716,8 +629,9 @@ internal static partial class PdfWriter {
             for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
                 bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStartRowIndex);
                 double originalRowSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStartRowIndex, fontSize);
-                double rowSize = ResolveTableRowShrinkFontSize(table, style, rowIndex, columns, columnLayout.Widths, columnGap, originalRowSize, rowUsesBold, currentOpts);
-                double runFontSizeScale = GetTableRunFontSizeScale(table, style, rowIndex, columns, columnLayout.Widths, columnGap, originalRowSize, rowSize, rowUsesBold, currentOpts);
+                TableRowTextSizing sizing = ResolveTableRowTextSizing(table, style, rowIndex, columns, columnLayout.Widths, columnGap, originalRowSize, rowUsesBold, currentOpts);
+                double rowSize = sizing.FontSize;
+                double runFontSizeScale = sizing.RunFontSizeScale;
                 double rowLeading = GetTableLeading(style, rowSize);
                 rowLeadings[rowIndex] = rowLeading;
                 rowLines[rowIndex] = new TableCellTextLayout[columns];

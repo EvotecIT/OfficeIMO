@@ -324,6 +324,10 @@ namespace OfficeIMO.Word.Pdf {
         private static void RecordNativeHeaderFooterTableDiagnostics(WordTable table, WordToPdfOptions options, string source) {
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
+                    if (cell.DirectNestedTables.Count > 0) {
+                        AddNativeNestedTableLayoutWarning(options, source);
+                    }
+
                     foreach (WordElement element in cell.Elements) {
                         RecordNativeHeaderFooterElementDiagnostics(element, options, source);
                     }
@@ -384,6 +388,10 @@ namespace OfficeIMO.Word.Pdf {
 
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
+                    if (cell.DirectNestedTables.Count > 0) {
+                        AddNativeNestedTableLayoutWarning(options, source);
+                    }
+
                     foreach (WordParagraph paragraph in cell.Paragraphs) {
                         RecordNativeBodyParagraphDiagnostics(paragraph, options, source, mapsCheckBoxes: true, mapsFormFields: true, mapsPictureControls: true, mapsRepeatingSections: true);
                     }
@@ -395,6 +403,14 @@ namespace OfficeIMO.Word.Pdf {
                     }
                 }
             }
+        }
+
+        private static void AddNativeNestedTableLayoutWarning(WordToPdfOptions options, string source) {
+            AddNativeExportWarning(
+                options,
+                "NativeNestedTableLayoutApproximated",
+                source,
+                "Supported nested Word table content is preserved, but its inner grid and mixed-content placement are flattened by PDF conversion.");
         }
 
         private static void RecordNativeBodyElementDiagnostics(WordElement element, WordToPdfOptions options, string source) {

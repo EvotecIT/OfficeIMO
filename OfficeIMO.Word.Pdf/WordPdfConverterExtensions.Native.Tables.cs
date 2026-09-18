@@ -29,8 +29,9 @@ namespace OfficeIMO.Word.Pdf {
             var cellPaddings = new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();
             var cellAlignments = new Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>();
             var cellVerticalAlignments = new Dictionary<(int Row, int Column), PdfCore.PdfCellVerticalAlign>();
-            var horizontalAlignments = CreateNativeTableHorizontalAlignments(layout);
-            var verticalAlignments = CreateNativeTableVerticalAlignments(layout);
+            NativeTableColumnAlignments tableAlignments = CreateNativeTableColumnAlignments(layout);
+            List<PdfCore.PdfColumnAlign>? horizontalAlignments = tableAlignments.Horizontal;
+            List<PdfCore.PdfCellVerticalAlign>? verticalAlignments = tableAlignments.Vertical;
             int tableColumnCount = GetNativeTableColumnCount(layout);
             int repeatedHeaderRowCount = GetNativeTableRepeatedHeaderRowCount(table, layout.Rows.Count);
             int visualHeaderRowCount = GetNativeTableVisualHeaderRowCount(table, layout.Rows.Count, repeatedHeaderRowCount);
@@ -64,9 +65,7 @@ namespace OfficeIMO.Word.Pdf {
                         visualHeaderRowCount,
                         footerStartRowIndex);
                     NativeCellText cellText = CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, cellStyleDefaults, nativeFontMap, getMarker);
-                    IReadOnlyList<PdfCore.PdfTableCellCheckBox> checkBoxes = CreateNativeTableCellCheckBoxes(cell);
-                    IReadOnlyList<PdfCore.PdfTableCellFormField> formFields = CreateNativeTableCellFormFields(cell);
-                    IReadOnlyList<PdfCore.PdfTableCellImage> images = CreateNativeTableCellImages(cell);
+                    NativeTableCellEmbeddedContent embeddedContent = CreateNativeTableCellEmbeddedContent(cell);
                     (string? LinkUri, string? LinkContents) link = GetNativeCellLink(cell);
                     int rowSpan = GetNativeCellRowSpan(cell);
                     nativeCells.Add(new PdfCore.PdfTableCell(
@@ -76,9 +75,9 @@ namespace OfficeIMO.Word.Pdf {
                         link.LinkUri,
                         link.LinkContents,
                         rowSpan,
-                        checkBoxes.Count == 0 ? null : checkBoxes,
-                        formFields.Count == 0 ? null : formFields,
-                        images.Count == 0 ? null : images,
+                        embeddedContent.CheckBoxes.Count == 0 ? null : embeddedContent.CheckBoxes,
+                        embeddedContent.FormFields.Count == 0 ? null : embeddedContent.FormFields,
+                        embeddedContent.Images.Count == 0 ? null : embeddedContent.Images,
                         noWrap: !cell.WrapText));
 
                     PdfCore.PdfColor? fill =
@@ -1333,42 +1332,6 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return null;
-        }
-
-        private static List<PdfCore.PdfColumnAlign>? CreateNativeTableHorizontalAlignments(TableLayout layout) {
-            int columnCount = GetNativeTableColumnCount(layout);
-            if (columnCount == 0) {
-                return null;
-            }
-
-            var alignments = new List<PdfCore.PdfColumnAlign>(columnCount);
-            bool hasExplicitAlignment = false;
-            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                PdfCore.PdfColumnAlign? columnAlignment = null;
-                bool conflict = false;
-                foreach ((WordTableCell Cell, int Column, int ColumnSpan) cell in EnumerateNativeTableCells(layout)) {
-                    if (columnIndex < cell.Column || columnIndex >= cell.Column + cell.ColumnSpan) {
-                        continue;
-                    }
-
-                    PdfCore.PdfColumnAlign alignment = GetNativeCellHorizontalAlignment(cell.Cell);
-                    if (columnAlignment == null) {
-                        columnAlignment = alignment;
-                    } else if (columnAlignment.Value != alignment) {
-                        conflict = true;
-                        break;
-                    }
-                }
-
-                PdfCore.PdfColumnAlign resolved = conflict ? PdfCore.PdfColumnAlign.Left : columnAlignment ?? PdfCore.PdfColumnAlign.Left;
-                if (resolved != PdfCore.PdfColumnAlign.Left) {
-                    hasExplicitAlignment = true;
-                }
-
-                alignments.Add(resolved);
-            }
-
-            return hasExplicitAlignment ? alignments : null;
         }
 
         private static PdfCore.PdfColumnAlign GetNativeCellHorizontalAlignment(WordTableCell cell) {
