@@ -89,7 +89,8 @@ public static partial class HtmlContentSafety {
                 part.LocationPrefix,
                 prepared.SyntheticStyles,
                 prepared.Limits,
-                cancellationToken);
+                cancellationToken,
+                allowComputedStyleCleanup: !prepared.HasEnvironmentDependentMediaConditions);
         }
         cancellationToken.ThrowIfCancellationRequested();
         OfficeContentSafetyReport report = builder.Build();
@@ -128,7 +129,8 @@ public static partial class HtmlContentSafety {
                 part.LocationPrefix,
                 prepared.SyntheticStyles,
                 prepared.Limits,
-                cancellationToken);
+                cancellationToken,
+                allowComputedStyleCleanup: !prepared.HasEnvironmentDependentMediaConditions);
             foreach (KeyValuePair<string, HtmlCleanupTarget> target in partTargets) {
                 targets[target.Key] = new PackageCleanupTarget(prepared, target.Value);
             }
@@ -292,7 +294,11 @@ public static partial class HtmlContentSafety {
                 "Package content-safety inspection requires stylesheet payloads to use text/css: "
                 + unsupportedStylesheet.Source);
         }
-        RejectUnsafeStylesheetConditions(document, resources, renderOptions, resourceOptions);
+        bool hasEnvironmentDependentMediaConditions = RejectUnsafeStylesheetConditions(
+            document,
+            resources,
+            renderOptions,
+            resourceOptions);
 
         var acceptedStylesheets = new HashSet<string>(
             resources.Resources
@@ -318,26 +324,37 @@ public static partial class HtmlContentSafety {
         if (unsafeDiagnostic != null) throw CreateStylesheetException(diagnostics);
 
         var syntheticStyles = new HashSet<IElement>(document.QuerySelectorAll("style").Where(item => !existingStyles.Contains(item)));
-        return new PreparedPackagePart(part, document, syntheticStyles, originalInlineStyles, limits);
+        return new PreparedPackagePart(
+            part,
+            document,
+            syntheticStyles,
+            originalInlineStyles,
+            limits,
+            hasEnvironmentDependentMediaConditions);
     }
 
-    private static void RejectUnsafeStylesheetConditions(
+    private static bool RejectUnsafeStylesheetConditions(
         IHtmlDocument document,
         HtmlResourceSession resources,
         HtmlRenderOptions renderOptions,
         HtmlResourcePipelineOptions resourceOptions) {
+        bool hasEnvironmentDependentMediaConditions = false;
         Uri documentBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, renderOptions.BaseUri)
             ?? new Uri("https://officeimo.invalid/", UriKind.Absolute);
         foreach (IElement element in document.QuerySelectorAll("style[media], link[media]")) {
             if (!IsPackageStylesheetMediaElement(element)) continue;
-            if (HtmlComputedStyleEngine.HasUnknownMediaFeature(element.GetAttribute("media") ?? string.Empty)) {
+            string media = element.GetAttribute("media") ?? string.Empty;
+            if (HtmlComputedStyleEngine.HasUnknownMediaFeature(media)) {
                 throw new InvalidDataException(
                     "Unknown CSS media conditions are not supported by package content-safety inspection.");
             }
+            if (!string.IsNullOrWhiteSpace(media)) hasEnvironmentDependentMediaConditions = true;
         }
         foreach (IElement style in document.QuerySelectorAll("style")) {
             if (!HtmlRenderStylesheetApplier.IsApplicableStyleElement(style, renderOptions)) continue;
-            ThrowForUnsafeStylesheetConditions(style.TextContent ?? string.Empty, documentBaseUri, resourceOptions);
+            string css = style.TextContent ?? string.Empty;
+            ThrowForUnsafeStylesheetConditions(css, documentBaseUri, resourceOptions);
+            hasEnvironmentDependentMediaConditions |= HtmlResourcePipeline.HasEnvironmentDependentMediaCondition(css);
         }
 
         foreach (HtmlResourceSessionEntry entry in resources.Resources.Where(item =>
@@ -348,7 +365,9 @@ public static partial class HtmlContentSafety {
                 continue;
             }
             ThrowForUnsafeStylesheetConditions(css, stylesheetUri, resourceOptions);
+            hasEnvironmentDependentMediaConditions |= HtmlResourcePipeline.HasEnvironmentDependentMediaCondition(css);
         }
+        return hasEnvironmentDependentMediaConditions;
     }
 
     private static void ThrowForUnsafeStylesheetConditions(
@@ -558,12 +577,14 @@ public static partial class HtmlContentSafety {
             IHtmlDocument document,
             ISet<IElement> syntheticStyles,
             IReadOnlyDictionary<IElement, string> originalInlineStyles,
-            HtmlConversionLimits limits) {
+            HtmlConversionLimits limits,
+            bool hasEnvironmentDependentMediaConditions) {
             Source = source;
             Document = document;
             SyntheticStyles = syntheticStyles;
             OriginalInlineStyles = originalInlineStyles;
             Limits = limits;
+            HasEnvironmentDependentMediaConditions = hasEnvironmentDependentMediaConditions;
         }
 
         internal HtmlContentSafetyPackagePart Source { get; }
@@ -571,6 +592,7 @@ public static partial class HtmlContentSafety {
         internal ISet<IElement> SyntheticStyles { get; }
         internal IReadOnlyDictionary<IElement, string> OriginalInlineStyles { get; }
         internal HtmlConversionLimits Limits { get; }
+        internal bool HasEnvironmentDependentMediaConditions { get; }
         internal bool Changed { get; set; }
     }
 

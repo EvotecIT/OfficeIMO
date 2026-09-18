@@ -4,6 +4,7 @@ internal static class MimeHeaderParser {
     internal const string DuplicateSingletonHeaderDiagnosticCode = "EMAIL_MIME_SINGLETON_HEADER_DUPLICATE";
     internal const string InvalidUtf8HeaderDiagnosticCode = "EMAIL_MIME_HEADER_UTF8_INVALID";
     internal const string EncodedWordInStructuredHeaderDiagnosticCode = "EMAIL_MIME_STRUCTURED_HEADER_ENCODED_WORD";
+    internal const string InvalidFieldNameDiagnosticCode = "EMAIL_MIME_HEADER_FIELD_NAME_INVALID";
     private static readonly Encoding StrictUtf8 = new UTF8Encoding(false, true);
     private static readonly string[] SingletonContentHeaders = {
         "Content-Type",
@@ -80,12 +81,29 @@ internal static class MimeHeaderParser {
                 }
                 continue;
             }
-            currentName = line.Substring(0, colon).Trim();
+            string rawName = line.Substring(0, colon);
+            if (!IsValidFieldName(rawName)) {
+                diagnostics.Add(new EmailDiagnostic(
+                    InvalidFieldNameDiagnosticCode,
+                    "A MIME header field name contains whitespace, non-ASCII text, or another invalid character.",
+                    EmailDiagnosticSeverity.Warning,
+                    string.Concat(location, "/header[", malformedIndex.ToString(CultureInfo.InvariantCulture), "]")));
+                malformedIndex++;
+            }
+            currentName = rawName.Trim();
             currentValue.Append(line.Substring(colon + 1).Trim());
         }
         flush();
 
         return headerEnd + separatorLength;
+    }
+
+    private static bool IsValidFieldName(string value) {
+        if (value.Length == 0) return false;
+        foreach (char character in value) {
+            if (character < '!' || character > '~' || character == ':') return false;
+        }
+        return true;
     }
 
     internal static string? GetValue(IEnumerable<EmailHeader> headers, string name) {

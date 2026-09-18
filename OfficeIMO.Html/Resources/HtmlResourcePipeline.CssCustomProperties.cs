@@ -333,6 +333,35 @@ public static partial class HtmlResourcePipeline {
         return false;
     }
 
+    internal static bool HasCssImportAtRule(string css) =>
+        ExtractCssImports(css ?? string.Empty).Any();
+
+    internal static bool HasEnvironmentDependentMediaCondition(string css) {
+        string source = css ?? string.Empty;
+        if (TryFindNextAtRule(source, 0, "media", out _, out _)) return true;
+        return ExtractCssImports(source).Any(import => HasCssImportMediaCondition(import.ConditionText));
+    }
+
+    private static bool HasCssImportMediaCondition(string conditionText) {
+        string remaining = conditionText.Trim();
+        while (remaining.Length > 0) {
+            if (TryConsumeCssImportFunctionCondition(remaining, "layer", out _, out string afterLayer)) {
+                remaining = afterLayer.TrimStart();
+                continue;
+            }
+            if (StartsWithCssIdentifier(remaining, "layer")) {
+                remaining = remaining.Substring("layer".Length).TrimStart();
+                continue;
+            }
+            if (TryConsumeCssImportFunctionCondition(remaining, "supports", out _, out string afterSupports)) {
+                remaining = afterSupports.TrimStart();
+                continue;
+            }
+            break;
+        }
+        return remaining.Length > 0;
+    }
+
     private static int FindNextTopLevelBlockStart(string css, int start) {
         int depth = 0;
         char quote = '\0';

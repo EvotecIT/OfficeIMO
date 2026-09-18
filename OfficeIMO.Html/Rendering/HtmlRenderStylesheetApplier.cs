@@ -32,7 +32,7 @@ internal static class HtmlRenderStylesheetApplier {
             foreach (IElement inlineStyle in document.QuerySelectorAll("style")) {
                 if (!IsApplicableStyleElement(inlineStyle, options)) continue;
                 string css = inlineStyle.TextContent ?? string.Empty;
-                if (css.IndexOf("@import", StringComparison.OrdinalIgnoreCase) < 0) continue;
+                if (!HtmlResourcePipeline.HasCssImportAtRule(css)) continue;
                 inlineStyle.TextContent = ExpandImports(
                     css,
                     documentBaseUri,

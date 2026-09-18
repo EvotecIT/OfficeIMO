@@ -60,6 +60,50 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_ResponsiveMediaConcealmentIsReportOnly() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><style>@media (min-width:800px){.responsive{display:none}}</style></head>" +
+            "<body><p class='responsive'>Responsive content.</p></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Responsive content", StringComparison.Ordinal));
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Throws<InvalidOperationException>(() => MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id })));
+    }
+
+    [Fact]
+    public void Mhtml_MissingImageAltTextIsReportOnly() {
+        byte[] input = new MhtmlDocument(
+            "<html><body><img src='missing.png' alt='Visible fallback'></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.Location.EndsWith("/@alt", StringComparison.Ordinal));
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Throws<InvalidOperationException>(() => MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id })));
+    }
+
+    [Fact]
+    public void Mhtml_LegacyHttpEquivEncodingMetadataIsReportOnly() {
+        byte[] input = BuildMhtmlWithLegacyHttpEquivEncoding();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.Location.EndsWith("/@content", StringComparison.Ordinal)
+            && item.TextPreview.Contains("windows-1252", StringComparison.OrdinalIgnoreCase));
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Throws<InvalidOperationException>(() => MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id })));
+    }
+
+    [Fact]
     public void Mhtml_LinkedStylesheetFindingCanBeCleanedWhileResourcesArePreserved() {
         byte[] css = Encoding.UTF8.GetBytes(".concealed { display: none; }");
         byte[] image = { 1, 2, 3, 4, 5 };
@@ -874,6 +918,18 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_RejectsInvalidMimeFieldNames() {
+        byte[] input = BuildMhtmlWithInvalidFieldName();
+        using (var stream = new MemoryStream(input, writable: false)) {
+            MhtmlDocument document = MhtmlDocument.Load(stream);
+            Assert.Contains(document.MimeDiagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_MIME_HEADER_FIELD_NAME_INVALID");
+        }
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+    }
+
+    [Fact]
     public void Mhtml_NoSelectionIsByteIdenticalAndCancellationIsObserved() {
         byte[] input = new MhtmlDocument("<html><body><p>Visible</p></body></html>").ToBytes();
         OfficeContentCleanupResult unchanged = MhtmlDocument.RemoveSelectedContent(
@@ -1304,6 +1360,23 @@ public sealed class HtmlPackageContentSafetyContractTests {
         OfficeContentSafetyReport report = MhtmlDocument.InspectContentSafety(input);
         Assert.Contains(report.Findings, finding =>
             finding.TextPreview.Contains("Escaped import text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Mhtml_PackageCssMaterializesEscapedInlineImports() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><style>@\\69mport 'conceal.css';</style></head>" +
+            "<body><p class='concealed'>Escaped inline import text.</p></body></html>",
+            new[] {
+                new MhtmlResource(
+                    Encoding.UTF8.GetBytes(".concealed{display:none}"),
+                    "text/css",
+                    contentLocation: "conceal.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Contains(MhtmlDocument.InspectContentSafety(input).Findings, finding =>
+            finding.TextPreview.Contains("Escaped inline import text", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -2322,6 +2395,19 @@ public sealed class HtmlPackageContentSafetyContractTests {
         ".concealed{display:none}\r\n" +
         "--outer--\r\n");
 
+    private static byte[] BuildMhtmlWithInvalidFieldName() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><head><link rel='stylesheet' href='styles.css'></head>" +
+        "<body><p class='concealed'>Invalid field name.</p></body></html>\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/css; charset=utf-8\r\n" +
+        "Content-Location : styles.css\r\n\r\n" +
+        ".concealed{display:none}\r\n" +
+        "--outer--\r\n");
+
     private static byte[] BuildMhtmlWithoutTransferEncoding() => Encoding.ASCII.GetBytes(
         "MIME-Version: 1.0\r\n" +
         "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
@@ -2396,6 +2482,17 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Location: https://example.test/index.html\r\n\r\n" +
         "<html><head><meta charset='windows-1252'></head><body>" +
         "<p style='display:none'>Charsetless concealed.</p><p>caf&#233;</p></body></html>\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithLegacyHttpEquivEncoding() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html\r\n" +
+        "Content-Transfer-Encoding: 8bit\r\n" +
+        "Content-Location: https://example.test/index.html\r\n\r\n" +
+        "<html><head><meta http-equiv='Content-Type' content='text/html; charset=windows-1252'></head>" +
+        "<body><p>caf&#233;</p></body></html>\r\n" +
         "--outer--\r\n");
 
     private static byte[] BuildMhtmlWithLegacyEntityRoot() => Encoding.ASCII.GetBytes(

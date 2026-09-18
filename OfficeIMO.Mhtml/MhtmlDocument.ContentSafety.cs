@@ -153,6 +153,7 @@ public sealed partial class MhtmlDocument {
             || diagnostic.Code == MimeHeaderParser.DuplicateSingletonHeaderDiagnosticCode
             || diagnostic.Code == MimeHeaderParser.InvalidUtf8HeaderDiagnosticCode
             || diagnostic.Code == MimeHeaderParser.EncodedWordInStructuredHeaderDiagnosticCode
+            || diagnostic.Code == MimeHeaderParser.InvalidFieldNameDiagnosticCode
             || diagnostic.Code == MimeValueParser.DuplicateSecurityParameterDiagnosticCode
             || diagnostic.Code == MimeValueParser.ParameterContinuationGapDiagnosticCode
             || diagnostic.Code == MimeValueParser.InvalidExtendedParameterDiagnosticCode
