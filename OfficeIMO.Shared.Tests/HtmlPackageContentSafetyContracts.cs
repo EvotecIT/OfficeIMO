@@ -540,6 +540,22 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_RelatedRootParametersMustDecodeStrictlyAndMatchTheRootType() {
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithInvalidExtendedRelatedStart()));
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithMismatchedRelatedRootType()));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Mhtml_UnclosedMultipartBoundariesFailClosed(bool nested) {
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithUnclosedBoundary(nested)));
+    }
+
+    [Fact]
     public void Mhtml_RequiresExactMultipartRelatedMediaType() {
         byte[] input = Encoding.ASCII.GetBytes(
             "MIME-Version: 1.0\r\n" +
@@ -1169,6 +1185,12 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Epub_XhtmlXmlBaseFailsClosedBeforeStylesheetResolution() {
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, xhtmlXmlBase: true)));
+    }
+
+    [Fact]
     public void Epub_ForeignNamespaceHtmlSpecialNamesRemainVisibleText() {
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, foreignNamespaceScript: true));
@@ -1257,6 +1279,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool misplacedRootfile = false,
         bool unknownSupportsImport = false,
         bool unknownSupportsBlock = false,
+        bool xhtmlXmlBase = false,
         int unusedAssetBytes = 4) {
         string primaryRootfile = namespaceConfusedRootfile
             ? "<rootfile xmlns:x='urn:decoy' x:full-path='DECOY/package.opf' full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>"
@@ -1393,7 +1416,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
         entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
                 (topLevelXhtmlComment ? "<!--Top-level XHTML instruction.-->" : string.Empty) +
                 (html5Doctype ? "<!DOCTYPE html>" : string.Empty) +
-                "<html xmlns='http://www.w3.org/1999/xhtml'><head>" + csp + chapterStyles + "</head>" +
+                "<html xmlns='http://www.w3.org/1999/xhtml'" + (xhtmlXmlBase ? " xml:base='sub/'" : string.Empty) +
+                "><head>" + csp + chapterStyles + "</head>" +
                 "<body>" + chapterBody + "</body></html>" +
                 (topLevelXhtmlComment ? "<!--Retained top-level comment.-->" : string.Empty))));
         if (explicitNonHtmlChapterMediaType) {
@@ -1739,6 +1763,39 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-ID: <second-root>\r\n\r\n" +
         "<html><body><p style='display:none'>Wrong selected root.</p></body></html>\r\n" +
         "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithInvalidExtendedRelatedStart() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer; start*=utf-8''%C3%28\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-ID: <root>\r\n\r\n" +
+        "<html><body><p>Visible root.</p></body></html>\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithMismatchedRelatedRootType() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer; type=text/plain\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p>Visible root.</p></body></html>\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithUnclosedBoundary(bool nested) => Encoding.ASCII.GetBytes(
+        nested
+            ? "MIME-Version: 1.0\r\n" +
+              "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+              "--outer\r\n" +
+              "Content-Type: multipart/alternative; boundary=inner\r\n\r\n" +
+              "--inner\r\n" +
+              "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+              "<html><body><p>Visible root.</p></body></html>\r\n" +
+              "--outer--\r\n"
+            : "MIME-Version: 1.0\r\n" +
+              "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+              "--outer\r\n" +
+              "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+              "<html><body><p>Visible root.</p></body></html>\r\n");
 
     private static byte[] BuildMhtmlWithNonHtmlRelatedRoot() => Encoding.ASCII.GetBytes(
         "MIME-Version: 1.0\r\n" +

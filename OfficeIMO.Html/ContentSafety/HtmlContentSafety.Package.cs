@@ -206,6 +206,12 @@ public static partial class HtmlContentSafety {
         limits.MaxTotalCssBytes = Math.Min(limits.MaxTotalCssBytes ?? long.MaxValue, renderOptions.MaxTotalResourceBytes);
 
         IHtmlDocument document = ParsePackageDocument(part, renderOptions.BaseUri, limits, safetyOptions, cancellationToken);
+        if (part.SerializeAsXhtml && document.QuerySelectorAll("*").Any(element => element.Attributes.Any(attribute =>
+                string.Equals(attribute.NamespaceUri, "http://www.w3.org/XML/1998/namespace", StringComparison.Ordinal)
+                && string.Equals(attribute.LocalName, "base", StringComparison.Ordinal)))) {
+            throw new InvalidDataException(
+                "Package content-safety inspection does not support XHTML documents that declare xml:base.");
+        }
         if (document.QuerySelectorAll("meta[http-equiv]").Any(meta =>
                 HtmlResourcePipeline.IsHtmlNamespaceElement(meta)
                 && string.Equals(meta.GetAttribute("http-equiv")?.Trim(), "Content-Security-Policy", StringComparison.OrdinalIgnoreCase))) {

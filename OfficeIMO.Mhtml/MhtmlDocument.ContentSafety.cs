@@ -154,9 +154,12 @@ public sealed partial class MhtmlDocument {
             || diagnostic.Code == MimeHeaderParser.InvalidUtf8HeaderDiagnosticCode
             || diagnostic.Code == MimeValueParser.DuplicateSecurityParameterDiagnosticCode
             || diagnostic.Code == MimeValueParser.ParameterContinuationGapDiagnosticCode
+            || diagnostic.Code == MimeValueParser.InvalidExtendedParameterDiagnosticCode
             || diagnostic.Code == MimeParser.MultipleHtmlBodyDiagnosticCode
             || diagnostic.Code == MimeParser.RelatedRootMissingDiagnosticCode
-            || diagnostic.Code == MimeParser.RelatedRootNotHtmlDiagnosticCode);
+            || diagnostic.Code == MimeParser.RelatedRootNotHtmlDiagnosticCode
+            || diagnostic.Code == MimeParser.RelatedRootTypeMismatchDiagnosticCode
+            || diagnostic.Code == MimeParser.BoundaryNotClosedDiagnosticCode);
         if (ambiguous != null) {
             throw new InvalidDataException(
                 "MHTML content-safety inspection requires unambiguous MIME content headers and embedded resource identities. " +

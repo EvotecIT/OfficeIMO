@@ -466,6 +466,32 @@ public sealed class EmailMimeReaderTests {
     }
 
     [Fact]
+    public void ReportsInvalidExtendedRelatedStartParameter() {
+        const string eml = "Subject: invalid related start\r\n" +
+            "Content-Type: multipart/related; boundary=outer; start*=utf-8''%C3%28\r\n\r\n" +
+            "--outer\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<p>root</p>\r\n" +
+            "--outer--\r\n";
+
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_MIME_PARAMETER_EXTENDED_INVALID");
+    }
+
+    [Fact]
+    public void ReportsMultipartRelatedRootTypeMismatch() {
+        const string eml = "Subject: mismatched related type\r\n" +
+            "Content-Type: multipart/related; boundary=outer; type=text/plain\r\n\r\n" +
+            "--outer\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<p>root</p>\r\n" +
+            "--outer--\r\n";
+
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_MIME_RELATED_ROOT_TYPE_MISMATCH");
+    }
+
+    [Fact]
     public void UsesFirstRelatedPartAsBodyWhenStartIsAbsent() {
         const string eml = "Subject: default related root\r\nContent-Type: multipart/related; boundary=outer\r\n\r\n" +
             "--outer\r\nContent-Type: text/html; charset=utf-8\r\nContent-ID: <root>\r\n\r\n<p>default root</p>\r\n" +

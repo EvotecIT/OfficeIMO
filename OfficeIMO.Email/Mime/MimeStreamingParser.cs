@@ -212,7 +212,7 @@ internal sealed class MimeStreamingParser {
         }
         if (!closed && partStart >= 0) {
             parts.Add(new Segment(partStart, Math.Max(partStart, previousContentEnd)));
-            _diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_NOT_CLOSED",
+            _diagnostics.Add(new EmailDiagnostic(MimeParser.BoundaryNotClosedDiagnosticCode,
                 string.Concat("Multipart boundary '", boundary, "' has no closing delimiter."),
                 EmailDiagnosticSeverity.Warning, location));
         }

@@ -4,6 +4,8 @@ internal static class MimeParser {
     internal const string MultipleHtmlBodyDiagnosticCode = "EMAIL_MIME_HTML_BODY_MULTIPLE";
     internal const string RelatedRootMissingDiagnosticCode = "EMAIL_MIME_RELATED_ROOT_MISSING";
     internal const string RelatedRootNotHtmlDiagnosticCode = "EMAIL_MIME_RELATED_ROOT_NOT_HTML";
+    internal const string RelatedRootTypeMismatchDiagnosticCode = "EMAIL_MIME_RELATED_ROOT_TYPE_MISMATCH";
+    internal const string BoundaryNotClosedDiagnosticCode = "EMAIL_MIME_BOUNDARY_NOT_CLOSED";
     internal static EmailDocument Parse(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
         CancellationToken cancellationToken, EmailProcessingBudget? budget = null) {
         MimeParserState state = new MimeParserState(options, diagnostics, cancellationToken, budget);
@@ -90,6 +92,7 @@ internal static class MimeParser {
                 ? "message/rfc822"
                 : "text/plain";
             bool isRelated = string.Equals(contentType.Value, "multipart/related", StringComparison.OrdinalIgnoreCase);
+            string? declaredRelatedRootType = isRelated ? contentType.GetParameter("type") : null;
             string? childPreferredBodyContentId = isRelated
                 ? TrimAngleBrackets(contentType.GetParameter("start"))
                 : preferredBodyContentId;
@@ -124,6 +127,24 @@ internal static class MimeParser {
                         partLocation,
                         childDefaultContentType)
                     : PreferredBodyKind.None;
+                if ((partIsExplicitRelatedRoot || partIsDefaultRelatedRoot)
+                    && !string.IsNullOrWhiteSpace(declaredRelatedRootType)) {
+                    MimeValue rootContentType = MimeValueParser.Parse(
+                        MimeHeaderParser.GetValue(partHeaders, "Content-Type"),
+                        childDefaultContentType,
+                        state.Diagnostics,
+                        partLocation);
+                    if (!string.Equals(
+                            rootContentType.Value,
+                            declaredRelatedRootType!.Trim(),
+                            StringComparison.OrdinalIgnoreCase)) {
+                        state.Diagnostics.Add(new EmailDiagnostic(
+                            RelatedRootTypeMismatchDiagnosticCode,
+                            "The multipart/related type parameter does not match the selected root content type.",
+                            EmailDiagnosticSeverity.Warning,
+                            partLocation));
+                    }
+                }
                 // Keep an implicit signed root inspectable when its signed content is HTML-bearing; the
                 // protection projection still blocks mutation unless signature invalidation is authorized.
                 bool relatedRootTypeAllowed = !(partIsExplicitRelatedRoot || partIsDefaultRelatedRoot)
@@ -450,7 +471,7 @@ internal static class MimeParser {
                 state.EnsurePendingPartCount(parts.Count + 1);
                 parts.Add(new ArraySegment<byte>(data, partStart, Math.Max(0, partEnd - partStart)));
             }
-            state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_NOT_CLOSED",
+            state.Diagnostics.Add(new EmailDiagnostic(BoundaryNotClosedDiagnosticCode,
                 string.Concat("Multipart boundary '", boundary, "' has no closing delimiter."),
                 EmailDiagnosticSeverity.Warning, location));
         }
