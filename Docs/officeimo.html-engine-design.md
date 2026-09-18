@@ -311,6 +311,11 @@ identities, enforced memory/CPU/process limits, filesystem and network scope,
 and termination outcome. An unavailable or failed check rejects the job; there
 is no best-effort fallback to `WebApplicationV1`.
 
+`NetworklessRootlessOciV1` is qualified with direct rootless Podman on Linux,
+Podman through WSL2 on Windows, and a rootless AppleHV Podman machine on Apple
+Silicon macOS. All three paths must satisfy the same engine and container
+inspection contract; the host transport does not weaken or reinterpret it.
+
 For the first corpus, the host acquires bounded HTTP(S) input and resources and
 passes immutable bytes to a worker with no direct network access. The acquisition
 broker owns DNS/IP and redirect checks, response-size and time limits, origin

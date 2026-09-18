@@ -1,0 +1,6 @@
+protocol: container removed
+cancellation: container removed
+rejected inspection: created container removed
+rejected inspection: first removal failed, retry removed container
+removal retry: exact container removed
+OCI worker protocol, cancellation, post-create cleanup and removal retry passed.

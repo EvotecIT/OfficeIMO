@@ -121,8 +121,11 @@ seccomp, CPU/memory/PID cgroups, a read-only root filesystem, no network, no
 mounts, UID 65532, dropped capabilities, and no-new-privileges. It verifies the
 full immutable image ID, container inspection, renderer and script-worker entry
 assembly hashes, complete published-directory hashes, and container removal.
-The qualified hosts are Linux with direct Podman and Windows with Podman in
-WSL2. macOS is not advertised until its backend passes the same checks.
+The qualified hosts are Linux with direct Podman, Windows with Podman in WSL2,
+and Apple Silicon macOS with a rootless AppleHV Podman machine. On macOS the
+default `podman` command uses the active machine connection; callers launched
+without the Homebrew path can set `PodmanCommand` to
+`/opt/homebrew/bin/podman`.
 
 The acquisition broker permits standard HTTP(S) ports and public IPv4 only,
 revalidates DNS at every redirect, disables proxies, cookies, credentials and

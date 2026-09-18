@@ -1,0 +1,17 @@
+host=evomini.ad.evotec.xyz
+os=macOS 27.0
+osBuild=26A428
+architecture=arm64
+kernel=27.0.0
+processor=Apple M4
+podman=6.1.2
+podmanMachine=officeimo-html-qualification
+podmanProvider=applehv
+podmanMachineCpus=4
+podmanMachineMemory=2GiB
+podmanMachineDisk=10GiB
+source=2114a0fc9cd81c12c463c406038a779dd9ae8052
+sourceStatus=clean
+taskSdk=10.0.112
+net8Runtime=8.0.23
+net10Runtime=10.0.12

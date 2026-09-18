@@ -6,14 +6,14 @@ inside one rootless Podman container. Its script worker is a child process in
 that same container. The container has no network route or host mounts. This is
 a named-page evidence tool, not a claim that arbitrary sites are compatible.
 
-From the repository root on Linux with .NET 10, rootless Podman, seccomp and
-CPU/memory/PID cgroups:
+From the repository root on Linux x64 with .NET 10, rootless Podman, seccomp
+and CPU/memory/PID cgroups:
 
 ```bash
 mkdir -p /tmp/officeimo-public-pilot/{renderer,worker}
-dotnet publish OfficeIMO.Html.Runtime.Worker/OfficeIMO.Html.Runtime.Worker.csproj -c Release -f net10.0 -o /tmp/officeimo-public-pilot/worker
-dotnet publish Build/Project/HtmlPublicRenderWorker/OfficeIMO.Html.PublicRenderWorker.csproj -c Release -f net10.0 -o /tmp/officeimo-public-pilot/renderer
-podman build -f Build/Project/HtmlPublicRenderWorker/Containerfile.linux-x64 -t localhost/officeimo-html-public-render:local /tmp/officeimo-public-pilot
+dotnet publish OfficeIMO.Html.Runtime.Worker/OfficeIMO.Html.Runtime.Worker.csproj -c Release -f net10.0 -r linux-x64 --self-contained false -o /tmp/officeimo-public-pilot/worker
+dotnet publish Build/Project/HtmlPublicRenderWorker/OfficeIMO.Html.PublicRenderWorker.csproj -c Release -f net10.0 -r linux-x64 --self-contained false -o /tmp/officeimo-public-pilot/renderer
+podman build --platform linux/amd64 -f Build/Project/HtmlPublicRenderWorker/Containerfile.linux -t localhost/officeimo-html-public-render:local /tmp/officeimo-public-pilot
 image_id="$(podman image inspect --format '{{.Id}}' localhost/officeimo-html-public-render:local)"
 dotnet run --project Build/Project/HtmlPublicPilot/OfficeIMO.Html.PublicPilot.csproj -c Release -- \
   https://wpt.live/css/css-pseudo/first-letter-001-ref.html \
@@ -24,6 +24,20 @@ dotnet run --project Build/Project/HtmlPublicPilot/OfficeIMO.Html.PublicPilot.cs
   --license=BSD-3-Clause \
   --scenario=wpt-first-letter-reference
 ```
+
+On Apple Silicon macOS, install Podman and start its rootless AppleHV machine:
+
+```bash
+brew install podman
+podman machine init --rootful=false
+podman machine start
+```
+
+Use `linux-arm64` for both container payload publishes and build the same
+multi-architecture container file with `--platform linux/arm64`. The host pilot
+still runs with `dotnet run`; the default `podman` command connects to the
+active machine. If the caller does not inherit the Homebrew path, set
+`PodmanCommand` or `--podman-command` to `/opt/homebrew/bin/podman`.
 
 On Windows, keep acquisition in the Windows process and invoke the qualified
 rootless Podman installation through WSL by appending:

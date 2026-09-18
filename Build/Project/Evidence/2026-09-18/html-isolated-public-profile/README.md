@@ -1,9 +1,12 @@
 # Isolated public-page profile evidence
 
 This evidence qualifies the public `NetworklessRootlessOciV1` workflow on a
-Windows host using rootless Podman in WSL2. The Windows process acquired the
-page and retained its provenance; the complete HTML, JavaScript, capture and
-rendering pipeline ran in a verified networkless OCI container.
+Windows host using rootless Podman in WSL2 and on Apple Silicon macOS using a
+rootless AppleHV Podman machine. In both cases the host acquired the page and
+retained its provenance; the complete HTML, JavaScript, capture and rendering
+pipeline ran in a verified networkless OCI container.
+
+## Windows and WSL2
 
 The host was Windows `10.0.26200.0` with WSL `2.7.11.0`. The isolation backend
 was Ubuntu 24.04.3 LTS, kernel `6.18.33.2-microsoft-standard-WSL2`, rootless
@@ -55,3 +58,26 @@ container removal.
 
 The final managed validation passed 456 runtime/rendering tests on both .NET 8
 and .NET 10, plus 3,164 broader HTML tests on each framework.
+
+## macOS and AppleHV
+
+`macos-applehv/platform.txt` records the macOS 27.0 Apple M4 host, exact clean
+source commit, Podman 6.1.2 AppleHV machine and task SDK. The machine was
+rootless with seccomp, cgroup v2, and CPU, memory and PID controllers; its full
+engine report is retained in `podman-info.json`. The native ARM64 public image
+was
+`sha256:3ab7646ab4709d74f4d260ab51e6dc8e9f75f2b767ba0e5acab7b284a52bedcd`.
+
+The same WPT page was fetched on 2026-09-18 at 09:38:54 UTC without retaining
+input bytes. Its PNG and both PDFs are byte-for-byte identical to the Windows
+outputs. The PNG was visually inspected again, and both PDFs reopen as one
+tagged A4 page. `controlled-summary.json` records all 14 render and four
+acquisition cases passing on this backend. `oci-probe.txt` records every
+lifecycle and cleanup case passing with the separate native ARM64 worker image
+`sha256:0517222084d098838c286fcefcf38245767e92457bcb701c7d67adb852a3e8bb`.
+
+The macOS runtime-deadline evidence records container create, start, exit 143
+and removal during isolated resource discovery. The payload-mismatch evidence
+keeps distinct expected and reported renderer assembly and directory hashes and
+confirmed removal. `test-summary.txt` records 456 runtime/rendering tests and
+3,164 broader HTML tests passing on both .NET 8 and .NET 10.
