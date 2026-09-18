@@ -196,7 +196,7 @@ public sealed class HtmlPackageContentSafetyAmbiguityContractTests {
     public void Mhtml_NoOpCompositingKeepsLowContrastCleanable() {
         byte[] input = new MhtmlDocument(
             "<html><body style='background:white'><p style='color:white;background:white;" +
-            "mix-blend-mode:normal;filter:none;-webkit-filter:none;backdrop-filter:none'>" +
+            "mix-blend-mode:normal;text-shadow:none;filter:none;-webkit-filter:none;backdrop-filter:none'>" +
             "No-op compositing text.</p></body></html>",
             contentLocation: "https://example.test/index.html").ToBytes();
 

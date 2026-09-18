@@ -411,7 +411,10 @@ public static partial class HtmlContentSafety {
         if (string.Equals(position, "absolute", StringComparison.OrdinalIgnoreCase) || string.Equals(position, "fixed", StringComparison.OrdinalIgnoreCase)) {
             if (IsFarNegative(style.GetValue("left")) || IsFarNegative(style.GetValue("top")) ||
                 IsFarNegativeTextIndent(style.GetValue("text-indent")) || IsFarTranslation(style.GetValue("transform"))) {
-                return new Concealment(OfficeContentConcealmentKind.OffCanvas, "Computed positioned geometry moves the content far outside the ordinary viewport.");
+                return new Concealment(
+                    OfficeContentConcealmentKind.OffCanvas,
+                    "Computed positioned geometry moves the content far outside the ordinary viewport.",
+                    reportOnly: true);
             }
         }
         return null;

@@ -357,7 +357,8 @@ public static partial class HtmlResourcePipeline {
         for (int index = 0; index < masked.Length; index++) {
             if (masked[index] != ':') continue;
             string propertyName = GetCssDeclarationPropertyName(masked, index + 1);
-            if (propertyName is "mix-blend-mode" or "background-blend-mode" or "filter" or "-webkit-filter"
+            if (propertyName is "mix-blend-mode" or "background-blend-mode" or "text-shadow"
+                or "filter" or "-webkit-filter"
                 or "backdrop-filter" or "-webkit-backdrop-filter") {
                 int valueEnd = FindDeclarationValueEnd(masked, index + 1);
                 string value = DecodeCssEscapes(masked.Substring(index + 1, valueEnd - index - 1)).Trim();
