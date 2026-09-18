@@ -261,6 +261,15 @@ public static partial class HtmlContentSafety {
             cssBudget).ConfigureAwait(false);
         resourceBudget.Reserve(resources);
 
+        HtmlResourceSessionEntry? unsupportedStylesheet = resources.Resources.FirstOrDefault(item =>
+            item.Kind == HtmlResourceKind.Stylesheet
+            && !IsPackageStylesheetContentType(item.ContentType));
+        if (unsupportedStylesheet != null) {
+            throw new InvalidDataException(
+                "Package content-safety inspection requires stylesheet payloads to use text/css: "
+                + unsupportedStylesheet.Source);
+        }
+
         var acceptedStylesheets = new HashSet<string>(
             resources.Resources
                 .Where(item => item.Kind == HtmlResourceKind.Stylesheet)
@@ -287,6 +296,12 @@ public static partial class HtmlContentSafety {
         var syntheticStyles = new HashSet<IElement>(document.QuerySelectorAll("style").Where(item => !existingStyles.Contains(item)));
         return new PreparedPackagePart(part, document, syntheticStyles, originalInlineStyles, limits);
     }
+
+    private static bool IsPackageStylesheetContentType(string contentType) =>
+        string.Equals(
+            contentType.Split(';')[0].Trim(),
+            "text/css",
+            StringComparison.OrdinalIgnoreCase);
 
     private static IHtmlDocument ParsePackageDocument(
         HtmlContentSafetyPackagePart part,

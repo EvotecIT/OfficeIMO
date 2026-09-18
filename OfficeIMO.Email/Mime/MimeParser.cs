@@ -103,28 +103,38 @@ internal static class MimeParser {
                 int partBodyOffset = MimeHeaderParser.Parse(data, part.Offset, part.Count, state.Options,
                     partHeaders, state.Diagnostics, partLocation);
                 int partEnd = part.Offset + part.Count;
-                if (hasExplicitRelatedRoot
+                bool partIsExplicitRelatedRoot = hasExplicitRelatedRoot
                     && string.Equals(
                         TrimAngleBrackets(MimeHeaderParser.GetValue(partHeaders, "Content-ID")),
                         childPreferredBodyContentId,
-                        StringComparison.OrdinalIgnoreCase)) {
+                        StringComparison.OrdinalIgnoreCase);
+                bool partIsDefaultRelatedRoot = isRelated && i == 0
+                    && string.IsNullOrWhiteSpace(childPreferredBodyContentId);
+                if (partIsExplicitRelatedRoot) {
                     explicitRelatedRootMatched = true;
-                    MimeValue relatedRootType = MimeValueParser.Parse(
-                        MimeHeaderParser.GetValue(partHeaders, "Content-Type"),
-                        childDefaultContentType,
-                        state.Diagnostics,
-                        partLocation);
-                    if (!IsHtmlBearingRelatedRoot(relatedRootType.Value)) {
-                        state.Diagnostics.Add(new EmailDiagnostic(
-                            RelatedRootNotHtmlDiagnosticCode,
-                            "The multipart/related start parameter selects neither HTML nor an HTML-bearing alternative root part.",
-                            EmailDiagnosticSeverity.Warning,
-                            partLocation));
-                    }
+                }
+                PreferredBodyKind relatedRootKind = partIsExplicitRelatedRoot || partIsDefaultRelatedRoot
+                    ? GetPreferredBodyKind(
+                        partHeaders,
+                        data,
+                        partBodyOffset,
+                        Math.Max(0, partEnd - partBodyOffset),
+                        state,
+                        mimeDepth + 1,
+                        partLocation,
+                        childDefaultContentType)
+                    : PreferredBodyKind.None;
+                bool explicitRootTypeAllowed = !partIsExplicitRelatedRoot
+                    || IsExplicitHtmlBearingRelatedRoot(partHeaders, childDefaultContentType, state, partLocation);
+                if ((partIsExplicitRelatedRoot || partIsDefaultRelatedRoot)
+                    && (relatedRootKind != PreferredBodyKind.Html || !explicitRootTypeAllowed)) {
+                    state.Diagnostics.Add(new EmailDiagnostic(
+                        RelatedRootNotHtmlDiagnosticCode,
+                        "The multipart/related root does not select an HTML-preferred body representation.",
+                        EmailDiagnosticSeverity.Warning,
+                        partLocation));
                 }
                 string? partPreferredBodyContentId = childPreferredBodyContentId;
-                bool partIsDefaultRelatedRoot = isRelated && i == 0 &&
-                    string.IsNullOrWhiteSpace(childPreferredBodyContentId);
                 if (isRelated && string.IsNullOrWhiteSpace(partPreferredBodyContentId) && i == 0) {
                     partPreferredBodyContentId = TrimAngleBrackets(MimeHeaderParser.GetValue(partHeaders, "Content-ID"));
                 }
@@ -473,9 +483,196 @@ internal static class MimeParser {
         return result;
     }
 
-    private static bool IsHtmlBearingRelatedRoot(string contentType) =>
-        string.Equals(contentType, "text/html", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(contentType, "multipart/alternative", StringComparison.OrdinalIgnoreCase);
+    private static PreferredBodyKind GetPreferredBodyKind(
+        IReadOnlyList<EmailHeader> headers,
+        byte[] data,
+        int offset,
+        int count,
+        MimeParserState state,
+        int mimeDepth,
+        string location,
+        string defaultContentType) {
+        if (mimeDepth > state.Options.MaxMimeDepth) {
+            throw new EmailLimitExceededException(
+                nameof(EmailReaderOptions.MaxMimeDepth),
+                mimeDepth,
+                state.Options.MaxMimeDepth);
+        }
+
+        MimeValue contentType = MimeValueParser.Parse(
+            MimeHeaderParser.GetValue(headers, "Content-Type"),
+            defaultContentType,
+            state.Diagnostics,
+            location);
+        MimeValue disposition = MimeValueParser.Parse(
+            MimeHeaderParser.GetValue(headers, "Content-Disposition"),
+            string.Empty,
+            state.Diagnostics,
+            location);
+        string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
+        if (string.Equals(disposition.Value, "attachment", StringComparison.OrdinalIgnoreCase)
+            || !string.IsNullOrWhiteSpace(fileName)) {
+            return PreferredBodyKind.None;
+        }
+        if (string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase)) {
+            return PreferredBodyKind.Html;
+        }
+        if (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(contentType.Value, "text/rtf", StringComparison.OrdinalIgnoreCase)) {
+            return PreferredBodyKind.NonHtml;
+        }
+
+        bool alternative = string.Equals(contentType.Value, "multipart/alternative", StringComparison.OrdinalIgnoreCase);
+        bool related = string.Equals(contentType.Value, "multipart/related", StringComparison.OrdinalIgnoreCase);
+        bool signed = string.Equals(contentType.Value, "multipart/signed", StringComparison.OrdinalIgnoreCase);
+        bool mixed = string.Equals(contentType.Value, "multipart/mixed", StringComparison.OrdinalIgnoreCase);
+        if (!alternative && !related && !signed && !mixed) {
+            return contentType.Value.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase)
+                ? PreferredBodyKind.NonHtml
+                : PreferredBodyKind.None;
+        }
+
+        string? boundary = contentType.GetParameter("boundary");
+        if (boundary == null) return PreferredBodyKind.None;
+        List<ArraySegment<byte>> parts = SplitMultipart(data, offset, count, boundary, state, location);
+        if (signed) {
+            return parts.Count == 0
+                ? PreferredBodyKind.None
+                : GetPreferredBodyKind(
+                    ReadChildHeaders(parts[0], data, state, location, 0, out int childBodyOffset, out string childLocation),
+                    data,
+                    childBodyOffset,
+                    Math.Max(0, parts[0].Offset + parts[0].Count - childBodyOffset),
+                    state,
+                    mimeDepth + 1,
+                    childLocation,
+                    "text/plain");
+        }
+        if (mixed) {
+            PreferredBodyKind result = PreferredBodyKind.None;
+            for (int index = 0; index < parts.Count; index++) {
+                ArraySegment<byte> part = parts[index];
+                IReadOnlyList<EmailHeader> childHeaders = ReadChildHeaders(
+                    part,
+                    data,
+                    state,
+                    location,
+                    index,
+                    out int childBodyOffset,
+                    out string childLocation);
+                PreferredBodyKind kind = GetPreferredBodyKind(
+                    childHeaders,
+                    data,
+                    childBodyOffset,
+                    Math.Max(0, part.Offset + part.Count - childBodyOffset),
+                    state,
+                    mimeDepth + 1,
+                    childLocation,
+                    "text/plain");
+                if (kind == PreferredBodyKind.Html) return kind;
+                if (kind == PreferredBodyKind.NonHtml) result = kind;
+            }
+            return result;
+        }
+        if (related) {
+            string? start = TrimAngleBrackets(contentType.GetParameter("start"));
+            for (int index = 0; index < parts.Count; index++) {
+                ArraySegment<byte> part = parts[index];
+                var childHeaders = new List<EmailHeader>();
+                string childLocation = string.Concat(location, "/part[", index.ToString(CultureInfo.InvariantCulture), "]");
+                int childBodyOffset = MimeHeaderParser.Parse(
+                    data,
+                    part.Offset,
+                    part.Count,
+                    state.Options,
+                    childHeaders,
+                    state.Diagnostics,
+                    childLocation);
+                bool selected = start == null && index == 0
+                    || start != null && string.Equals(
+                        TrimAngleBrackets(MimeHeaderParser.GetValue(childHeaders, "Content-ID")),
+                        start,
+                        StringComparison.OrdinalIgnoreCase);
+                if (!selected) continue;
+                return GetPreferredBodyKind(
+                    childHeaders,
+                    data,
+                    childBodyOffset,
+                    Math.Max(0, part.Offset + part.Count - childBodyOffset),
+                    state,
+                    mimeDepth + 1,
+                    childLocation,
+                    "text/plain");
+            }
+            return PreferredBodyKind.None;
+        }
+
+        for (int index = parts.Count - 1; index >= 0; index--) {
+            ArraySegment<byte> part = parts[index];
+            var childHeaders = new List<EmailHeader>();
+            string childLocation = string.Concat(location, "/part[", index.ToString(CultureInfo.InvariantCulture), "]");
+            int childBodyOffset = MimeHeaderParser.Parse(
+                data,
+                part.Offset,
+                part.Count,
+                state.Options,
+                childHeaders,
+                state.Diagnostics,
+                childLocation);
+            PreferredBodyKind kind = GetPreferredBodyKind(
+                childHeaders,
+                data,
+                childBodyOffset,
+                Math.Max(0, part.Offset + part.Count - childBodyOffset),
+                state,
+                mimeDepth + 1,
+                childLocation,
+                "text/plain");
+            if (kind != PreferredBodyKind.None) return kind;
+        }
+        return PreferredBodyKind.None;
+    }
+
+    private static bool IsExplicitHtmlBearingRelatedRoot(
+        IReadOnlyList<EmailHeader> headers,
+        string defaultContentType,
+        MimeParserState state,
+        string location) {
+        MimeValue contentType = MimeValueParser.Parse(
+            MimeHeaderParser.GetValue(headers, "Content-Type"),
+            defaultContentType,
+            state.Diagnostics,
+            location);
+        return string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(contentType.Value, "multipart/alternative", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static IReadOnlyList<EmailHeader> ReadChildHeaders(
+        ArraySegment<byte> part,
+        byte[] data,
+        MimeParserState state,
+        string location,
+        int index,
+        out int bodyOffset,
+        out string childLocation) {
+        var headers = new List<EmailHeader>();
+        childLocation = string.Concat(location, "/part[", index.ToString(CultureInfo.InvariantCulture), "]");
+        bodyOffset = MimeHeaderParser.Parse(
+            data,
+            part.Offset,
+            part.Count,
+            state.Options,
+            headers,
+            state.Diagnostics,
+            childLocation);
+        return headers;
+    }
+
+    private enum PreferredBodyKind {
+        None,
+        Html,
+        NonHtml
+    }
 
     internal static string? TrimAngleBrackets(string? value) {
         if (string.IsNullOrWhiteSpace(value)) return value;

@@ -222,7 +222,7 @@ internal static partial class EpubReader {
         };
 
         bool declaredUniqueIdentifierResolved = false;
-        var metadata = opfDocument.Descendants().FirstOrDefault(e => IsOpfName(e, "metadata"));
+        XElement? metadata = packageElement?.Elements().FirstOrDefault(e => IsOpfName(e, "metadata"));
         if (metadata != null) {
             ReadMetadataEntries(metadata, package, options, diagnostics, opfPath, cancellationToken);
             package.Title = TryGetFirstDublinCoreValue(metadata, "title");
@@ -261,7 +261,9 @@ internal static partial class EpubReader {
         }
 
         var manifestTargets = new HashSet<string>(StringComparer.Ordinal);
-        var manifestItems = opfDocument.Descendants().Where(e => IsOpfName(e, "item"));
+        XElement? manifest = packageElement?.Elements().FirstOrDefault(e => IsOpfName(e, "manifest"));
+        IEnumerable<XElement> manifestItems = manifest?.Elements().Where(e => IsOpfName(e, "item"))
+            ?? Enumerable.Empty<XElement>();
         foreach (var item in manifestItems) {
             cancellationToken.ThrowIfCancellationRequested();
             var id = GetUnqualifiedAttribute(item, "id");
@@ -322,7 +324,7 @@ internal static partial class EpubReader {
             }
         }
 
-        var spine = opfDocument.Descendants().FirstOrDefault(e => IsOpfName(e, "spine"));
+        XElement? spine = packageElement?.Elements().FirstOrDefault(e => IsOpfName(e, "spine"));
         if (spine != null) {
             var tocId = GetUnqualifiedAttribute(spine, "toc");
             if (!string.IsNullOrWhiteSpace(tocId) &&

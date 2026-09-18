@@ -302,6 +302,22 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void PackageStylesheetPayloadsMustUseTextCss() {
+        byte[] mhtml = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='styles.css'></head>" +
+            "<body><p class='concealed'>Application CSS MHTML text.</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "application/css",
+                    contentLocation: "styles.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(mhtml));
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, applicationCssStylesheet: true)));
+    }
+
+    [Fact]
     public void Epub_ForeignNamespaceStylesheetLinksAreInactive() {
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, foreignNamespaceStylesheet: true));
@@ -474,6 +490,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
             BuildMhtmlWithMixedRelatedRoot()));
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
             BuildMhtmlWithImplicitNonHtmlRelatedRoot()));
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithAlternativeRootEndingInPlainText()));
     }
 
     [Fact]
@@ -919,6 +937,17 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Epub_OpfProjectionIgnoresStructurallyMisplacedManifestItems() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, misplacedManifestHtmlItem: true));
+
+        Assert.DoesNotContain(report.Findings, finding =>
+            finding.TextPreview.Contains("Misplaced manifest item", StringComparison.Ordinal));
+        Assert.Contains(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Epub_ContainerProjectionIgnoresNamespacedAttributeDecoys() {
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, namespaceConfusedRootfile: true));
@@ -1016,6 +1045,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool namespaceConfusedRootfile = false,
         bool foreignNamespaceScript = false,
         bool explicitNonHtmlChapterMediaType = false,
+        bool applicationCssStylesheet = false,
+        bool misplacedManifestHtmlItem = false,
         int unusedAssetBytes = 4) {
         string primaryRootfile = namespaceConfusedRootfile
             ? "<rootfile xmlns:x='urn:decoy' x:full-path='DECOY/package.opf' full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>"
@@ -1069,7 +1100,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
         entries.Add(("EPUB/package.opf", Encoding.UTF8.GetBytes(
                 "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest>" +
                 chapterManifest +
-                "<item id='style' href='styles/site.css' media-type='text/css'/>" +
+                "<item id='style' href='styles/site.css' media-type='" +
+                (applicationCssStylesheet ? "application/css" : "text/css") + "'/>" +
                 "<item id='nested-style' href='styles/nested.css' media-type='text/css'/>" +
                 (explicitNonHtmlChapterMediaType
                     ? "<item id='actual-html' href='actual.xhtml' media-type='application/xhtml+xml'/>"
@@ -1081,7 +1113,11 @@ public sealed class HtmlPackageContentSafetyContractTests {
                     : string.Empty) +
                 "<item id='asset' href='assets/keep.bin' media-type='application/octet-stream'/>" +
                 duplicateManifest + caseCollisionManifest + duplicateTargetManifest + missingHtmlManifest +
-                "</manifest><spine><itemref idref='chapter'/></spine></package>")));
+                "</manifest>" +
+                (misplacedManifestHtmlItem
+                    ? "<item id='misplaced' href='misplaced.xhtml' media-type='application/xhtml+xml'/>"
+                    : string.Empty) +
+                "<spine><itemref idref='chapter'/></spine></package>")));
         string stylesheetHref = stylesheetFragment
             ? "styles/site.css#theme"
             : stylesheetQuery ? "styles/site.css?v=1" : "styles/site.css";
@@ -1133,6 +1169,11 @@ public sealed class HtmlPackageContentSafetyContractTests {
         if (explicitNonHtmlChapterMediaType) {
             entries.Add(("EPUB/actual.xhtml", Encoding.UTF8.GetBytes(
                 "<html xmlns='http://www.w3.org/1999/xhtml'><body><p>Visible content document.</p></body></html>")));
+        }
+        if (misplacedManifestHtmlItem) {
+            entries.Add(("EPUB/misplaced.xhtml", Encoding.UTF8.GetBytes(
+                "<html xmlns='http://www.w3.org/1999/xhtml'><body>" +
+                "<p style='display:none'>Misplaced manifest item.</p></body></html>")));
         }
         if (duplicateChapter) {
             entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
@@ -1411,6 +1452,20 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "--outer\r\n" +
         "Content-Type: text/html; charset=utf-8\r\n\r\n" +
         "<html><body><p style='display:none'>Later HTML body.</p></body></html>\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithAlternativeRootEndingInPlainText() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: multipart/alternative; boundary=inner\r\n\r\n" +
+        "--inner\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p style='display:none'>Non-preferred HTML.</p></body></html>\r\n" +
+        "--inner\r\n" +
+        "Content-Type: text/plain; charset=utf-8\r\n\r\n" +
+        "Preferred plain text.\r\n" +
+        "--inner--\r\n" +
         "--outer--\r\n");
 
     private static byte[] BuildMhtmlWithOuterMetadata() => Encoding.ASCII.GetBytes(
