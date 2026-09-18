@@ -2,6 +2,8 @@ namespace OfficeIMO.Email;
 
 internal static class MimeHeaderParser {
     internal const string DuplicateSingletonHeaderDiagnosticCode = "EMAIL_MIME_SINGLETON_HEADER_DUPLICATE";
+    internal const string InvalidUtf8HeaderDiagnosticCode = "EMAIL_MIME_HEADER_UTF8_INVALID";
+    private static readonly Encoding StrictUtf8 = new UTF8Encoding(false, true);
     private static readonly string[] SingletonContentHeaders = {
         "Content-Type",
         "Content-Transfer-Encoding",
@@ -22,7 +24,17 @@ internal static class MimeHeaderParser {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxHeaderBytes), headerBytes, options.MaxHeaderBytes);
         }
 
-        string block = Encoding.UTF8.GetString(data, offset, headerBytes);
+        string block;
+        try {
+            block = StrictUtf8.GetString(data, offset, headerBytes);
+        } catch (DecoderFallbackException) {
+            diagnostics.Add(new EmailDiagnostic(
+                InvalidUtf8HeaderDiagnosticCode,
+                "A MIME header block contains an invalid UTF-8 byte sequence.",
+                EmailDiagnosticSeverity.Warning,
+                location));
+            block = Encoding.UTF8.GetString(data, offset, headerBytes);
+        }
         string normalized = block.Replace("\r\n", "\n").Replace('\r', '\n');
         string[] lines = normalized.Split('\n');
         string? currentName = null;

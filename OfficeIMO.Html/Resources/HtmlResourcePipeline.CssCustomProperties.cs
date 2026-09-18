@@ -309,6 +309,29 @@ public static partial class HtmlResourcePipeline {
         return ranges;
     }
 
+    internal static bool HasUnknownSupportsCondition(string css) {
+        int index = 0;
+        while (index < css.Length) {
+            int supportsStart = css.IndexOf("@supports", index, StringComparison.OrdinalIgnoreCase);
+            if (supportsStart < 0) return false;
+            if (IsInsideCssString(css, supportsStart) || !HasAtRuleTokenBoundary(css, supportsStart, "@supports")) {
+                index = supportsStart + 9;
+                continue;
+            }
+
+            int preludeStart = supportsStart + 9;
+            int open = FindNextTopLevelBlockStart(css, preludeStart);
+            if (open < 0) return false;
+            int close = FindMatchingCssBrace(css, open);
+            if (close <= open) return false;
+
+            string conditionText = css.Substring(preludeStart, open - preludeStart).Trim();
+            if (!HtmlComputedStyleEngine.TryEvaluateSupports(conditionText, out _)) return true;
+            index = open + 1;
+        }
+        return false;
+    }
+
     private static int FindNextTopLevelBlockStart(string css, int start) {
         int depth = 0;
         char quote = '\0';

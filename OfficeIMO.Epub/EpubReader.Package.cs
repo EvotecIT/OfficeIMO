@@ -166,9 +166,28 @@ internal static partial class EpubReader {
             return Array.Empty<EpubRootfile>();
         }
 
+        if (containerDocument.Root == null || !IsContainerName(containerDocument.Root, "container")) {
+            diagnostics.Warning(
+                "epub.container.structure-invalid",
+                "EPUB container.xml must have a container root in the container namespace.",
+                "META-INF/container.xml");
+            return Array.Empty<EpubRootfile>();
+        }
+
+        XElement[] rootfileContainers = containerDocument.Root.Elements()
+            .Where(element => IsContainerName(element, "rootfiles"))
+            .ToArray();
+        if (rootfileContainers.Length != 1) {
+            diagnostics.Warning(
+                "epub.container.structure-invalid",
+                "EPUB container.xml must contain exactly one direct rootfiles element.",
+                "META-INF/container.xml");
+            return Array.Empty<EpubRootfile>();
+        }
+
         var results = new List<EpubRootfile>();
         var seenPaths = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var rootfile in containerDocument.Descendants().Where(e => IsContainerName(e, "rootfile"))) {
+        foreach (XElement rootfile in rootfileContainers[0].Elements().Where(element => IsContainerName(element, "rootfile"))) {
             cancellationToken.ThrowIfCancellationRequested();
             string declaredPath = GetUnqualifiedAttribute(rootfile, "full-path");
             string candidate = RemoveFragmentAndQuery(declaredPath);

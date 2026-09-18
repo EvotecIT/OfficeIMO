@@ -90,7 +90,7 @@ public static partial class HtmlResourcePipeline {
                 string source = reference.Source;
                 if (!string.IsNullOrWhiteSpace(source)
                     && !IsInRanges(reference.Start, inactiveMediaRanges)
-                    && IsApplicableCssImport(reference.ConditionText, options)) {
+                    && IsApplicableCssImport(reference.ConditionText, options, out _)) {
                     importRanges.Add(new SourceRange(reference.Start, reference.End));
                     AddRaw(manifest, HtmlResourceKind.Stylesheet, element, attributeName + "-import", DecodeCssEscapes(source), baseUri, options);
                 }

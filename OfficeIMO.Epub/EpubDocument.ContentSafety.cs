@@ -278,6 +278,7 @@ public sealed partial class EpubDocument {
             "epub.archive.unsafe-path",
             "epub.archive.duplicate-path",
             "epub.container.rootfile-fallback",
+            "epub.container.structure-invalid",
             "epub.container.rootfile-path-invalid",
             "epub.container.rootfile-duplicate",
             "epub.container.rootfile-missing",

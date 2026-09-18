@@ -725,6 +725,18 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_RejectsInvalidUtf8InMimeHeaders() {
+        byte[] input = BuildMhtmlWithInvalidUtf8ContentLocation();
+        using (var stream = new MemoryStream(input, writable: false)) {
+            MhtmlDocument document = MhtmlDocument.Load(stream);
+            Assert.Contains(document.MimeDiagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_MIME_HEADER_UTF8_INVALID");
+        }
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+    }
+
+    [Fact]
     public void Mhtml_NoSelectionIsByteIdenticalAndCancellationIsObserved() {
         byte[] input = new MhtmlDocument("<html><body><p>Visible</p></body></html>").ToBytes();
         OfficeContentCleanupResult unchanged = MhtmlDocument.RemoveSelectedContent(
@@ -1086,6 +1098,27 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Epub_ContainerProjectionRequiresDirectRootfileChildren() {
+        byte[] input = BuildEpub(signed: false, misplacedRootfile: true);
+        using (var stream = new MemoryStream(input, writable: false)) {
+            EpubDocument document = EpubDocument.Load(stream);
+            Assert.Empty(document.Rootfiles);
+            Assert.Contains(document.Diagnostics, diagnostic =>
+                diagnostic.Code == "epub.container.rootfile-missing");
+        }
+
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(input));
+    }
+
+    [Fact]
+    public void PackageCssRejectsUnknownSupportsConditionsBeforeNegation() {
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, unknownSupportsImport: true)));
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, unknownSupportsBlock: true)));
+    }
+
+    [Fact]
     public void Epub_ForeignNamespaceBaseDoesNotRedirectStylesheetResolution() {
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, foreignNamespaceBase: true));
@@ -1180,6 +1213,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool misplacedManifestHtmlItem = false,
         bool namespaceConfusedEncryption = false,
         bool encryptedUnrelatedAsset = false,
+        bool misplacedRootfile = false,
+        bool unknownSupportsImport = false,
+        bool unknownSupportsBlock = false,
         int unusedAssetBytes = 4) {
         string primaryRootfile = namespaceConfusedRootfile
             ? "<rootfile xmlns:x='urn:decoy' x:full-path='DECOY/package.opf' full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>"
@@ -1188,11 +1224,14 @@ public sealed class HtmlPackageContentSafetyContractTests {
             (multipleRootfiles
                 ? "<rootfile full-path='SECOND/package.opf' media-type='application/oebps-package+xml'/>"
                 : string.Empty);
+        string containerRootfiles = misplacedRootfile
+            ? "<rootfiles><extension>" + rootfiles + "</extension></rootfiles>"
+            : "<rootfiles>" + rootfiles + "</rootfiles>";
         var entries = new List<(string Name, byte[] Data)> {
             ("mimetype", Encoding.ASCII.GetBytes("application/epub+zip")),
             ("META-INF/container.xml", Encoding.UTF8.GetBytes(
                 "<container version='1.0' xmlns='urn:oasis:names:tc:opendocument:xmlns:container'>" +
-                "<rootfiles>" + rootfiles + "</rootfiles></container>"))
+                containerRootfiles + "</container>"))
         };
         if (explicitDirectories) {
             entries.Add(("META-INF/", Array.Empty<byte>()));
@@ -1287,6 +1326,10 @@ public sealed class HtmlPackageContentSafetyContractTests {
             ? "<style>.concealed { visibility: hidden; }\u200B</style>"
             : inactiveInlineStyle
                 ? "<style type='text/plain'>@import 'styles/nested.css' layer(inert);</style>"
+            : unknownSupportsImport
+                ? "<style>@import 'styles/nested.css' supports(not selector(:has(*)));</style>"
+            : unknownSupportsBlock
+                ? "<style>@supports not selector(:has(*)){.concealed{display:none}}</style>"
             : layeredInlineImport
                 ? "<style>@import 'styles/nested.css' layer(security);</style>"
             : inlineStylesheetImport
@@ -1849,6 +1892,16 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "MIME-Version: 1.0\r\n" +
         "Content-Type: text/html; charset=utf-8; charset=windows-1252\r\n\r\n" +
         "<html><body><p style='display:none'>Repeated charset concealment.</p></body></html>\r\n");
+
+    private static byte[] BuildMhtmlWithInvalidUtf8ContentLocation() => JoinInvalidUtf8(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-Location: https://example.test/chapter",
+        ".html\r\n\r\n" +
+        "<html><body><p style='display:none'>Invalid header identity.</p></body></html>\r\n" +
+        "--outer--\r\n");
 
     private static byte[] BuildMhtmlWithoutTransferEncoding() => Encoding.ASCII.GetBytes(
         "MIME-Version: 1.0\r\n" +

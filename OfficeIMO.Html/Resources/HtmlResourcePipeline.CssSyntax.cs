@@ -329,7 +329,11 @@ public static partial class HtmlResourcePipeline {
         }
     }
 
-    private static bool IsApplicableCssImport(string conditionText, HtmlResourcePipelineOptions options) {
+    private static bool IsApplicableCssImport(
+        string conditionText,
+        HtmlResourcePipelineOptions options,
+        out bool hasUnknownSupportsCondition) {
+        hasUnknownSupportsCondition = false;
         string remaining = conditionText.Trim();
         if (remaining.Length == 0) {
             return true;
@@ -347,7 +351,10 @@ public static partial class HtmlResourcePipeline {
             }
 
             if (TryConsumeCssImportFunctionCondition(remaining, "supports", out string supportsCondition, out string afterSupports)) {
-                if (!HtmlComputedStyleEngine.IsApplicableSupports(supportsCondition)) {
+                bool isKnown = HtmlComputedStyleEngine.TryEvaluateSupports(supportsCondition, out bool isApplicable);
+                hasUnknownSupportsCondition |= !isKnown;
+                if (!isKnown) isApplicable = HtmlComputedStyleEngine.IsApplicableSupports(supportsCondition);
+                if (!isApplicable) {
                     return false;
                 }
 

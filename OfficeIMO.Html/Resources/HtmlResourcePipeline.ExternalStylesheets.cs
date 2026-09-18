@@ -20,12 +20,13 @@ internal sealed class HtmlExternalStylesheetAnalysis {
 
 internal sealed class HtmlExternalStylesheetImport {
     internal HtmlExternalStylesheetImport(int start, int end, HtmlResourceReference reference, bool isApplicable,
-        bool hasLayerCondition) {
+        bool hasLayerCondition, bool hasUnknownSupportsCondition) {
         Start = start;
         End = end;
         Reference = reference;
         IsApplicable = isApplicable;
         HasLayerCondition = hasLayerCondition;
+        HasUnknownSupportsCondition = hasUnknownSupportsCondition;
     }
 
     internal int Start { get; }
@@ -33,6 +34,7 @@ internal sealed class HtmlExternalStylesheetImport {
     internal HtmlResourceReference Reference { get; }
     internal bool IsApplicable { get; }
     internal bool HasLayerCondition { get; }
+    internal bool HasUnknownSupportsCondition { get; }
 }
 
 public static partial class HtmlResourcePipeline {
@@ -96,12 +98,14 @@ public static partial class HtmlResourcePipeline {
                 resolved,
                 allowed,
                 allowed ? string.Empty : GetDiagnosticCode(HtmlResourceKind.Stylesheet));
+            bool isApplicable = IsApplicableCssImport(import.ConditionText, options, out bool hasUnknownSupportsCondition);
             imports.Add(new HtmlExternalStylesheetImport(
                 import.Start,
                 import.End,
                 reference,
-                IsApplicableCssImport(import.ConditionText, options),
-                HasCssImportLayerCondition(import.ConditionText)));
+                isApplicable,
+                HasCssImportLayerCondition(import.ConditionText),
+                hasUnknownSupportsCondition));
         }
 
         foreach (HtmlCssFontFaceDefinition definition in ExtractFontFaces(normalized, options)) {

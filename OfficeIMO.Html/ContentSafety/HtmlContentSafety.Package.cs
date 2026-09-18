@@ -82,9 +82,19 @@ public static partial class HtmlContentSafety {
                 resourceBudget,
                 cssBudget,
                 cancellationToken).ConfigureAwait(false);
-            InspectDocument(prepared.Document, builder, targets: null, part.LocationPrefix, prepared.SyntheticStyles, prepared.Limits);
+            InspectDocument(
+                prepared.Document,
+                builder,
+                targets: null,
+                part.LocationPrefix,
+                prepared.SyntheticStyles,
+                prepared.Limits,
+                cancellationToken);
         }
-        return builder.Build();
+        cancellationToken.ThrowIfCancellationRequested();
+        OfficeContentSafetyReport report = builder.Build();
+        cancellationToken.ThrowIfCancellationRequested();
+        return report;
     }
 
     internal static async Task<HtmlContentSafetyPackageCleanupResult> RemoveSelectedPackagePartsAsync(
@@ -111,14 +121,23 @@ public static partial class HtmlContentSafety {
                 cssBudget,
                 cancellationToken).ConfigureAwait(false);
             var partTargets = new Dictionary<string, HtmlCleanupTarget>(StringComparer.Ordinal);
-            InspectDocument(prepared.Document, builder, partTargets, part.LocationPrefix, prepared.SyntheticStyles, prepared.Limits);
+            InspectDocument(
+                prepared.Document,
+                builder,
+                partTargets,
+                part.LocationPrefix,
+                prepared.SyntheticStyles,
+                prepared.Limits,
+                cancellationToken);
             foreach (KeyValuePair<string, HtmlCleanupTarget> target in partTargets) {
                 targets[target.Key] = new PackageCleanupTarget(prepared, target.Value);
             }
             preparedParts.Add(prepared);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         OfficeContentSafetyReport before = builder.Build();
+        cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<OfficeContentSafetyFinding> selected = OfficeContentSafetyBuilder.ResolveSelection(before, selection);
         if (selected.Count == 0) {
             var unchanged = parts.ToDictionary(part => part.Key, part => part.Html, StringComparer.Ordinal);
@@ -267,7 +286,7 @@ public static partial class HtmlContentSafety {
                 "Package content-safety inspection requires stylesheet payloads to use text/css: "
                 + unsupportedStylesheet.Source);
         }
-        RejectDataStylesheetImports(document, resources, renderOptions, resourceOptions);
+        RejectUnsafeStylesheetConditions(document, resources, renderOptions, resourceOptions);
 
         var acceptedStylesheets = new HashSet<string>(
             resources.Resources
@@ -296,7 +315,7 @@ public static partial class HtmlContentSafety {
         return new PreparedPackagePart(part, document, syntheticStyles, originalInlineStyles, limits);
     }
 
-    private static void RejectDataStylesheetImports(
+    private static void RejectUnsafeStylesheetConditions(
         IHtmlDocument document,
         HtmlResourceSession resources,
         HtmlRenderOptions renderOptions,
@@ -305,7 +324,7 @@ public static partial class HtmlContentSafety {
             ?? new Uri("https://officeimo.invalid/", UriKind.Absolute);
         foreach (IElement style in document.QuerySelectorAll("style")) {
             if (!HtmlRenderStylesheetApplier.IsApplicableStyleElement(style, renderOptions)) continue;
-            ThrowForDataStylesheetImport(style.TextContent ?? string.Empty, documentBaseUri, resourceOptions);
+            ThrowForUnsafeStylesheetConditions(style.TextContent ?? string.Empty, documentBaseUri, resourceOptions);
         }
 
         foreach (HtmlResourceSessionEntry entry in resources.Resources.Where(item =>
@@ -315,11 +334,11 @@ public static partial class HtmlContentSafety {
                 || !Uri.TryCreate(entry.CanonicalSource, UriKind.Absolute, out Uri? stylesheetUri)) {
                 continue;
             }
-            ThrowForDataStylesheetImport(css, stylesheetUri, resourceOptions);
+            ThrowForUnsafeStylesheetConditions(css, stylesheetUri, resourceOptions);
         }
     }
 
-    private static void ThrowForDataStylesheetImport(
+    private static void ThrowForUnsafeStylesheetConditions(
         string css,
         Uri baseUri,
         HtmlResourcePipelineOptions resourceOptions) {
@@ -327,6 +346,11 @@ public static partial class HtmlContentSafety {
             css,
             baseUri,
             resourceOptions);
+        if (HtmlResourcePipeline.HasUnknownSupportsCondition(analysis.Css)
+            || analysis.Imports.Any(import => import.HasUnknownSupportsCondition)) {
+            throw new InvalidDataException(
+                "Unknown CSS supports conditions are not supported by package content-safety inspection.");
+        }
         if (analysis.Imports.Any(import => import.IsApplicable
             && import.Reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase))) {
             throw new InvalidDataException(

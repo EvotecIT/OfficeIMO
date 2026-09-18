@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
@@ -97,13 +98,17 @@ public static partial class HtmlContentSafety {
         IDictionary<string, HtmlCleanupTarget>? targets,
         string? locationPrefix,
         ISet<IElement>? ignoredElements,
-        HtmlConversionLimits? limits = null) {
+        HtmlConversionLimits? limits = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = limits == null
             ? HtmlComputedStyleEngine.Compute(document)
             : HtmlComputedStyleEngine.Compute(document, HtmlCssMediaContext.Screen, limits);
+        cancellationToken.ThrowIfCancellationRequested();
         IElement? root = document.DocumentElement ?? document.Body;
-        if (root != null) Traverse(root, styles, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements);
-        InspectComments(document, builder, targets, locationPrefix);
+        if (root != null) Traverse(root, styles, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements, cancellationToken);
+        InspectComments(document, builder, targets, locationPrefix, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     private static void Traverse(
@@ -113,7 +118,9 @@ public static partial class HtmlContentSafety {
         IDictionary<string, HtmlCleanupTarget>? targets,
         bool ancestorConcealed,
         string? locationPrefix,
-        ISet<IElement>? ignoredElements) {
+        ISet<IElement>? ignoredElements,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (ignoredElements != null && ignoredElements.Contains(element)) return;
         string location = PrefixLocation(locationPrefix, BuildLocation(element));
         styles.TryGetValue(element, out HtmlComputedStyle? style);
@@ -216,7 +223,7 @@ public static partial class HtmlContentSafety {
         }
 
         foreach (IElement child in element.Children) {
-            Traverse(child, styles, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements);
+            Traverse(child, styles, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements, cancellationToken);
         }
     }
 
@@ -405,10 +412,12 @@ public static partial class HtmlContentSafety {
         IHtmlDocument document,
         OfficeContentSafetyBuilder builder,
         IDictionary<string, HtmlCleanupTarget>? targets,
-        string? locationPrefix = null) {
+        string? locationPrefix = null,
+        CancellationToken cancellationToken = default) {
         if (!builder.Options.IncludeNonPrimaryContent) return;
         IComment[] comments = document.Descendants<IComment>().ToArray();
         for (int index = 0; index < comments.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             string value = NormalizePayload(comments[index].Data);
             if (value.Length == 0) continue;
             OfficeContentSafetyFinding finding = builder.Add(

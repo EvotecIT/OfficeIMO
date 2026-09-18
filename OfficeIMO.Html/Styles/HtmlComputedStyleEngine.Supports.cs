@@ -1,5 +1,11 @@
 namespace OfficeIMO.Html;
 
+internal enum HtmlSupportsConditionEvaluation {
+    False,
+    True,
+    Unknown
+}
+
 public static partial class HtmlComputedStyleEngine {
     private static bool IsSupportsRule(AngleSharp.Css.Dom.ICssRule rule) =>
         rule is AngleSharp.Css.Dom.ICssSupportsRule;
@@ -24,6 +30,65 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         return EvaluateSupportsCondition(conditionText.Trim(), includeProvenanceImageProperties: true);
+    }
+
+    internal static bool TryEvaluateSupports(string conditionText, out bool isApplicable) {
+        HtmlSupportsConditionEvaluation evaluation = EvaluateSupportsConditionStatus(conditionText);
+        isApplicable = evaluation == HtmlSupportsConditionEvaluation.True;
+        return evaluation != HtmlSupportsConditionEvaluation.Unknown;
+    }
+
+    private static HtmlSupportsConditionEvaluation EvaluateSupportsConditionStatus(string conditionText) {
+        string normalized = conditionText.Trim();
+        if (normalized.Length == 0) return HtmlSupportsConditionEvaluation.True;
+
+        if (StartsWithLogicalNot(normalized)) {
+            HtmlSupportsConditionEvaluation nested = EvaluateSupportsConditionStatus(normalized.Substring(3).TrimStart());
+            return nested == HtmlSupportsConditionEvaluation.True
+                ? HtmlSupportsConditionEvaluation.False
+                : nested == HtmlSupportsConditionEvaluation.False
+                    ? HtmlSupportsConditionEvaluation.True
+                    : HtmlSupportsConditionEvaluation.Unknown;
+        }
+
+        List<string> orParts = SplitTopLevelLogical(normalized, "or").ToList();
+        if (orParts.Count > 1) {
+            bool unknown = false;
+            foreach (string part in orParts) {
+                HtmlSupportsConditionEvaluation result = EvaluateSupportsConditionStatus(part);
+                if (result == HtmlSupportsConditionEvaluation.True) return HtmlSupportsConditionEvaluation.True;
+                unknown |= result == HtmlSupportsConditionEvaluation.Unknown;
+            }
+            return unknown ? HtmlSupportsConditionEvaluation.Unknown : HtmlSupportsConditionEvaluation.False;
+        }
+
+        List<string> andParts = SplitTopLevelLogical(normalized, "and").ToList();
+        if (andParts.Count > 1) {
+            bool unknown = false;
+            foreach (string part in andParts) {
+                HtmlSupportsConditionEvaluation result = EvaluateSupportsConditionStatus(part);
+                if (result == HtmlSupportsConditionEvaluation.False) return HtmlSupportsConditionEvaluation.False;
+                unknown |= result == HtmlSupportsConditionEvaluation.Unknown;
+            }
+            return unknown ? HtmlSupportsConditionEvaluation.Unknown : HtmlSupportsConditionEvaluation.True;
+        }
+
+        if (normalized[0] == '(') {
+            int close = FindMatchingParenthesis(normalized, 0);
+            if (close == normalized.Length - 1) {
+                return EvaluateSupportsConditionStatus(normalized.Substring(1, normalized.Length - 2));
+            }
+        }
+
+        int separator = normalized.IndexOf(':');
+        if (separator <= 0) return HtmlSupportsConditionEvaluation.Unknown;
+
+        string propertyName = normalized.Substring(0, separator).Trim();
+        string value = normalized.Substring(separator + 1).Trim();
+        if (IsSupportedSupportsConditionValue(propertyName, value)) return HtmlSupportsConditionEvaluation.True;
+        return SupportedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal)
+            ? HtmlSupportsConditionEvaluation.False
+            : HtmlSupportsConditionEvaluation.Unknown;
     }
 
     private static bool EvaluateSupportsCondition(string conditionText) =>
