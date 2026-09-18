@@ -227,6 +227,12 @@ public static partial class HtmlContentSafety {
             throw new InvalidDataException(
                 "Package content-safety inspection does not apply stylesheets when the document declares a Content Security Policy.");
         }
+        if (document.QuerySelectorAll("meta[http-equiv]").Any(meta =>
+                HtmlResourcePipeline.IsHtmlNamespaceElement(meta)
+                && string.Equals(meta.GetAttribute("http-equiv")?.Trim(), "refresh", StringComparison.OrdinalIgnoreCase))) {
+            throw new InvalidDataException(
+                "Automatic refresh navigation is not supported by package content-safety inspection.");
+        }
         string[] titledStylesheetSets = document.QuerySelectorAll("link[href], style")
             .Where(stylesheet => HtmlRenderStylesheetApplier.IsPreferredStylesheetSetDeclaration(stylesheet, renderOptions))
             .Select(stylesheet => stylesheet.GetAttribute("title")?.Trim())

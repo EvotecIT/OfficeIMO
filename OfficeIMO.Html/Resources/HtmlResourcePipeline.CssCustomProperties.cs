@@ -352,6 +352,28 @@ public static partial class HtmlResourcePipeline {
     internal static bool HasUnmodeledScopeAtRule(string css) =>
         TryFindNextAtRule(css ?? string.Empty, 0, "scope", out _, out _);
 
+    internal static bool HasUnmodeledCompositingDeclaration(string css) {
+        string masked = MaskCssComments(css ?? string.Empty);
+        for (int index = 0; index < masked.Length; index++) {
+            if (masked[index] != ':') continue;
+            string propertyName = GetCssDeclarationPropertyName(masked, index + 1);
+            if (propertyName is "mix-blend-mode" or "background-blend-mode" or "filter" or "-webkit-filter"
+                or "backdrop-filter" or "-webkit-backdrop-filter") {
+                int valueEnd = FindDeclarationValueEnd(masked, index + 1);
+                string value = DecodeCssEscapes(masked.Substring(index + 1, valueEnd - index - 1)).Trim();
+                int important = value.LastIndexOf("!important", StringComparison.OrdinalIgnoreCase);
+                if (important >= 0 && string.IsNullOrWhiteSpace(value.Substring(important + "!important".Length))) {
+                    value = value.Substring(0, important).TrimEnd();
+                }
+                string noEffectValue = propertyName.EndsWith("blend-mode", StringComparison.Ordinal)
+                    ? "normal"
+                    : "none";
+                if (!string.Equals(value, noEffectValue, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+        }
+        return false;
+    }
+
     private static bool HasCssImportMediaCondition(string conditionText) {
         string remaining = conditionText.Trim();
         while (remaining.Length > 0) {

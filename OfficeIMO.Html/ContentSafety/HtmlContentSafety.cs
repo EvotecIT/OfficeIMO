@@ -104,6 +104,7 @@ public static partial class HtmlContentSafety {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlComputedStyleSet styleSet = HtmlComputedStyleEngine.ComputeForContentSafety(document, limits);
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = styleSet.Elements;
+        allowComputedStyleCleanup &= !HasUnmodeledCompositingStyles(document);
         cancellationToken.ThrowIfCancellationRequested();
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) Traverse(
@@ -368,7 +369,7 @@ public static partial class HtmlContentSafety {
             return new Concealment(
                 OfficeContentConcealmentKind.HiddenByProperty,
                 "Computed CSS visibility is " + visibility + ".",
-                descendantsMayOverride: string.Equals(visibility, "hidden", StringComparison.OrdinalIgnoreCase));
+                descendantsMayOverride: true);
         }
         if (TryParseScalar(style.GetValue("opacity"), out double opacity) && opacity <= 0.01D) {
             return new Concealment(OfficeContentConcealmentKind.TransparentText, "Computed CSS opacity is " + opacity.ToString("0.###", CultureInfo.InvariantCulture) + ".");
@@ -433,6 +434,12 @@ public static partial class HtmlContentSafety {
             "Computed foreground #" + foreground.ToRgbHex() + " against background #" + background.ToRgbHex() +
             " has contrast ratio " + ratio.ToString("0.###", CultureInfo.InvariantCulture) + ".");
     }
+
+    private static bool HasUnmodeledCompositingStyles(IHtmlDocument document) =>
+        document.QuerySelectorAll("style").Any(style =>
+            HtmlResourcePipeline.HasUnmodeledCompositingDeclaration(style.TextContent ?? string.Empty))
+        || document.QuerySelectorAll("[style]").Any(element =>
+            HtmlResourcePipeline.HasUnmodeledCompositingDeclaration(element.GetAttribute("style") ?? string.Empty));
 
     private static void InspectMachineOnlyAttributes(
         IElement element,

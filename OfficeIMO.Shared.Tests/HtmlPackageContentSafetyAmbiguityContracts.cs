@@ -140,6 +140,73 @@ public sealed class HtmlPackageContentSafetyAmbiguityContractTests {
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
     }
 
+    [Fact]
+    public void Mhtml_RejectsAutomaticRefreshNavigation() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><meta http-equiv='refresh' content='0; url=next.html'></head>" +
+            "<body><p>Inspected root.</p></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+    }
+
+    [Theory]
+    [InlineData("mix-blend-mode:difference")]
+    [InlineData("mix-\\62 lend-mode:difference")]
+    [InlineData("filter:invert(1)")]
+    [InlineData("-webkit-filter:invert(1)")]
+    [InlineData("backdrop-filter:invert(1)")]
+    public void Mhtml_CompositedLowContrastIsReportOnly(string compositingStyle) {
+        byte[] input = new MhtmlDocument(
+            "<html><body style='background:white'><p style='color:white;background:white;" +
+            compositingStyle + "'>Composited visible text.</p></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.Kind == OfficeContentConcealmentKind.LowContrastText
+            && item.TextPreview.Contains("Composited visible text", StringComparison.Ordinal));
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Throws<InvalidOperationException>(() => MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id })));
+    }
+
+    [Fact]
+    public void Mhtml_LinkedCompositedLowContrastIsReportOnly() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='styles/site.css'></head>" +
+            "<body><p class='target'>Linked composited text.</p></body></html>",
+            new[] {
+                new MhtmlResource(
+                    Encoding.UTF8.GetBytes(".target{color:white;background:white;filter:invert(1)}"),
+                    "text/css",
+                    contentLocation: "styles/site.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.Kind == OfficeContentConcealmentKind.LowContrastText
+            && item.TextPreview.Contains("Linked composited text", StringComparison.Ordinal));
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void Mhtml_NoOpCompositingKeepsLowContrastCleanable() {
+        byte[] input = new MhtmlDocument(
+            "<html><body style='background:white'><p style='color:white;background:white;" +
+            "mix-blend-mode:normal;filter:none;-webkit-filter:none;backdrop-filter:none'>" +
+            "No-op compositing text.</p></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.Kind == OfficeContentConcealmentKind.LowContrastText
+            && item.TextPreview.Contains("No-op compositing text", StringComparison.Ordinal));
+
+        Assert.NotEqual(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
     [Theory]
     [InlineData("@scope")]
     [InlineData("@\\73 cope")]
@@ -283,6 +350,32 @@ public sealed class HtmlPackageContentSafetyAmbiguityContractTests {
                 diagnostic.Code == "MHTML_RESOURCE_CONTENT_LOCATION_INVALID" && diagnostic.Location == "root");
         }
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+    }
+
+    [Fact]
+    public void Mhtml_ResolvesRelativeRootAgainstSnapshotLocation() {
+        byte[] input = Encoding.ASCII.GetBytes(
+            "MIME-Version: 1.0\r\n" +
+            "Snapshot-Content-Location: https://example.test/archive/\r\n" +
+            "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+            "--outer\r\nContent-Type: text/html; charset=utf-8\r\n" +
+            "Content-Location: pages/index.html\r\n\r\n" +
+            "<html><head><link rel='stylesheet' href='styles/site.css'></head>" +
+            "<body><p class='target'>Snapshot-visible text.</p></body></html>\r\n" +
+            "--outer\r\nContent-Type: text/css\r\n" +
+            "Content-Location: https://example.test/archive/pages/styles/site.css\r\n\r\n" +
+            ".target{display:block}\r\n" +
+            "--outer\r\nContent-Type: text/css\r\n" +
+            "Content-Location: mhtml://archive/pages/styles/site.css\r\n\r\n" +
+            ".target{display:none}\r\n" +
+            "--outer--\r\n");
+
+        using (var stream = new MemoryStream(input, writable: false)) {
+            MhtmlDocument document = MhtmlDocument.Load(stream);
+            Assert.Equal("https://example.test/archive/pages/index.html", document.BaseUri.AbsoluteUri);
+        }
+        Assert.DoesNotContain(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Snapshot-visible text", StringComparison.Ordinal));
     }
 
     [Fact]

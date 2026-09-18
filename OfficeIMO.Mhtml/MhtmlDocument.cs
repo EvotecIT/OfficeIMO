@@ -45,12 +45,16 @@ public sealed partial class MhtmlDocument {
         // validated top-level multipart/related contract even when no related resources exist.
         _mimeDocument.Body.IsHtmlRelatedRoot = true;
 
-        ContentLocation = NormalizeOptional(_mimeDocument.Body.HtmlContentLocation)
-            ?? GetHeaderValue(_mimeDocument.Headers, "Snapshot-Content-Location")
-            ?? GetHeaderValue(_mimeDocument.Headers, "Content-Location");
+        string? rootContentLocation = NormalizeOptional(_mimeDocument.Body.HtmlContentLocation);
+        string? snapshotContentLocation = NormalizeOptional(
+            GetHeaderValue(_mimeDocument.Headers, "Snapshot-Content-Location"));
+        string? messageContentLocation = NormalizeOptional(
+            GetHeaderValue(_mimeDocument.Headers, "Content-Location"));
+        ContentLocation = rootContentLocation ?? snapshotContentLocation ?? messageContentLocation;
         RootContentId = NormalizeContentId(_mimeDocument.Body.HtmlContentId);
         Subject = NormalizeOptional(_mimeDocument.Subject);
-        BaseUri = ResolveBaseUri(ContentLocation, sourceBaseUri);
+        Uri archiveBaseUri = ResolveBaseUri(snapshotContentLocation ?? messageContentLocation, sourceBaseUri);
+        BaseUri = ResolveBaseUri(rootContentLocation, archiveBaseUri);
         _resources = _mimeDocument.Attachments
             .Where(static attachment => attachment.IsMimeRelated)
             .Select(MhtmlResource.FromEmailAttachment)

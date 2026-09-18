@@ -12,10 +12,12 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed class HtmlPackageContentSafetyContractTests {
-    [Fact]
-    public void Mhtml_VisibilityCleanupPreservesVisibleDescendantOverrides() {
+    [Theory]
+    [InlineData("hidden")]
+    [InlineData("collapse")]
+    public void Mhtml_VisibilityCleanupPreservesVisibleDescendantOverrides(string visibility) {
         byte[] input = new MhtmlDocument(
-            "<html><body><div style='visibility:hidden'>Hidden direct" +
+            "<html><body><div style='visibility:" + visibility + "'>Hidden direct" +
             "<span style='visibility:visible'>Visible override</span>" +
             "<span>Hidden nested</span></div></body></html>").ToBytes();
         OfficeContentSafetyFinding[] hidden = MhtmlDocument.InspectContentSafety(input).Findings

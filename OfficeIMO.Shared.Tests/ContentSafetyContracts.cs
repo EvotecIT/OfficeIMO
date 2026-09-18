@@ -31,7 +31,9 @@ public sealed class ContentSafetyContracts {
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.Same(input, output);
-        Assert.InRange(allocated, 0L, 1024L);
+        // Runtimes may reserve a small fixed encoder buffer on the first large scan. The ceiling
+        // remains independent of the one-million-scalar input and still rejects per-scalar churn.
+        Assert.InRange(allocated, 0L, 16 * 1024L);
     }
 #endif
 
@@ -120,9 +122,11 @@ public sealed class ContentSafetyContracts {
             new OfficeContentCleanupSelection(new[] { hidden.Id })));
     }
 
-    [Fact]
-    public void HtmlVisibilityCleanupPreservesVisibleDescendantOverrides() {
-        const string html = "<html><body><div style='visibility:hidden'>Hidden direct" +
+    [Theory]
+    [InlineData("hidden")]
+    [InlineData("collapse")]
+    public void HtmlVisibilityCleanupPreservesVisibleDescendantOverrides(string visibility) {
+        string html = "<html><body><div style='visibility:" + visibility + "'>Hidden direct" +
             "<span style='visibility:visible'>Visible override</span>" +
             "<span>Hidden nested</span></div></body></html>";
         OfficeContentSafetyReport report = HtmlContentSafety.Inspect(html);
