@@ -70,6 +70,10 @@ public sealed class HtmlPackageContentSafetyAmbiguityContractTests {
     [InlineData(":target")]
     [InlineData(":hover")]
     [InlineData(":focus")]
+    [InlineData(":checked")]
+    [InlineData(":indeterminate")]
+    [InlineData(":enabled")]
+    [InlineData(":disabled")]
     [InlineData(":\\74 arget")]
     public void Mhtml_StateDependentConcealmentIsReportOnly(string stateSelector) {
         byte[] input = new MhtmlDocument(
@@ -81,6 +85,41 @@ public sealed class HtmlPackageContentSafetyAmbiguityContractTests {
             item.TextPreview.Contains("State reveal", StringComparison.Ordinal));
 
         Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Theory]
+    [InlineData("<script>document.getElementById('secret').style.display='block'</script>")]
+    [InlineData("<button onclick=\"document.getElementById('secret').style.display='block'\">Reveal</button>")]
+    public void Mhtml_ScriptableConcealmentIsReportOnly(string scriptingMarkup) {
+        byte[] input = new MhtmlDocument(
+            "<html><body><p id='secret' style='display:none'>Script reveal.</p>" + scriptingMarkup + "</body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Script reveal", StringComparison.Ordinal));
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void Mhtml_DeclarativeShadowRootContentIsReportOnly() {
+        byte[] input = new MhtmlDocument(
+            "<html><body><div><template shadowrootmode='open'><p>Shadow-visible content.</p></template></div></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Shadow-visible content", StringComparison.Ordinal));
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void Mhtml_RejectsNestedSrcdocDocuments() {
+        byte[] input = new MhtmlDocument(
+            "<html><body><iframe srcdoc='&lt;p hidden&gt;Nested concealed.&lt;/p&gt;'></iframe></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
     }
 
     [Fact]

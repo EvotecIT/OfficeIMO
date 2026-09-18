@@ -618,12 +618,40 @@ public static partial class HtmlResourcePipeline {
     private static bool IsStatefulPseudoClass(string pseudoClassName) {
         switch (pseudoClassName.ToLowerInvariant()) {
             case "active":
+            case "autofill":
+            case "buffering":
+            case "checked":
+            case "current":
+            case "default":
+            case "disabled":
+            case "enabled":
             case "focus":
             case "focus-visible":
             case "focus-within":
             case "hover":
+            case "indeterminate":
+            case "in-range":
+            case "invalid":
+            case "muted":
+            case "open":
+            case "optional":
+            case "out-of-range":
+            case "past":
+            case "paused":
+            case "placeholder-shown":
+            case "playing":
+            case "popover-open":
+            case "read-only":
+            case "read-write":
+            case "required":
+            case "seeking":
+            case "stalled":
             case "target":
+            case "user-invalid":
+            case "user-valid":
+            case "valid":
             case "visited":
+            case "volume-locked":
                 return true;
             default:
                 return false;

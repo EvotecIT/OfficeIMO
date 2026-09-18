@@ -255,9 +255,22 @@ public static partial class HtmlContentSafety {
 
         if (HtmlResourcePipeline.IsHtmlNamespaceElement(element)
             && string.Equals(element.LocalName, "template", StringComparison.OrdinalIgnoreCase)) {
-            string templateText = NormalizePayload(element.TextContent);
+            bool isDeclarativeShadowRoot = element.HasAttribute("shadowrootmode");
+            string templateText = NormalizePayload(element is IHtmlTemplateElement template
+                ? template.Content.TextContent
+                : element.TextContent);
             if (templateText.Length > 0 && builder.Options.IncludeNonPrimaryContent) {
-                AddAttributeOrNonPrimaryFinding(builder, targets, element, null, location, "HTML template content is not part of the ordinary rendered document.", templateText);
+                AddAttributeOrNonPrimaryFinding(
+                    builder,
+                    targets,
+                    element,
+                    null,
+                    location,
+                    isDeclarativeShadowRoot
+                        ? "Declarative shadow-root template content may render as the host shadow tree and is preserved."
+                        : "HTML template content is not part of the ordinary rendered document.",
+                    templateText,
+                    reportOnly: isDeclarativeShadowRoot);
             }
             return;
         }

@@ -208,6 +208,13 @@ public static partial class HtmlContentSafety {
         limits.MaxTotalCssBytes = Math.Min(limits.MaxTotalCssBytes ?? long.MaxValue, renderOptions.MaxTotalResourceBytes);
 
         IHtmlDocument document = ParsePackageDocument(part, renderOptions.BaseUri, limits, safetyOptions, cancellationToken);
+        if (document.All.Any(element =>
+                HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+                && string.Equals(element.LocalName, "iframe", StringComparison.OrdinalIgnoreCase)
+                && element.HasAttribute("srcdoc"))) {
+            throw new InvalidDataException(
+                "Nested iframe srcdoc documents are not supported by package content-safety inspection.");
+        }
         if (part.SerializeAsXhtml && document.QuerySelectorAll("*").Any(element => element.Attributes.Any(attribute =>
                 string.Equals(attribute.NamespaceUri, "http://www.w3.org/XML/1998/namespace", StringComparison.Ordinal)
                 && string.Equals(attribute.LocalName, "base", StringComparison.Ordinal)))) {
@@ -339,7 +346,8 @@ public static partial class HtmlContentSafety {
         HtmlRenderOptions renderOptions,
         HtmlResourcePipelineOptions resourceOptions) {
         bool hasEnvironmentDependentComputedStyles =
-            HtmlRenderStylesheetApplier.HasSelectableAlternateStylesheetSet(document, renderOptions);
+            HasPotentiallyActiveScripting(document)
+            || HtmlRenderStylesheetApplier.HasSelectableAlternateStylesheetSet(document, renderOptions);
         Uri documentBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, renderOptions.BaseUri)
             ?? new Uri("https://officeimo.invalid/", UriKind.Absolute);
         foreach (IElement element in document.QuerySelectorAll("style[media], link[media]")) {
@@ -369,6 +377,20 @@ public static partial class HtmlContentSafety {
             hasEnvironmentDependentComputedStyles |= HtmlResourcePipeline.HasEnvironmentDependentComputedStyle(css);
         }
         return hasEnvironmentDependentComputedStyles;
+    }
+
+    private static bool HasPotentiallyActiveScripting(IHtmlDocument document) {
+        foreach (IElement element in document.All) {
+            if (!HtmlResourcePipeline.IsHtmlNamespaceElement(element)) continue;
+            if (string.Equals(element.LocalName, "script", StringComparison.OrdinalIgnoreCase)) return true;
+            if (element.Attributes.Any(attribute =>
+                    attribute.NamespaceUri == null
+                    && attribute.LocalName.Length > 2
+                    && attribute.LocalName.StartsWith("on", StringComparison.OrdinalIgnoreCase))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void ThrowForUnsafeStylesheetConditions(
