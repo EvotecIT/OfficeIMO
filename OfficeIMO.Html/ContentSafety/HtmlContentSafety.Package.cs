@@ -210,10 +210,10 @@ public static partial class HtmlContentSafety {
         IHtmlDocument document = ParsePackageDocument(part, renderOptions.BaseUri, limits, safetyOptions, cancellationToken);
         if (document.All.Any(element =>
                 HtmlResourcePipeline.IsHtmlNamespaceElement(element)
-                && string.Equals(element.LocalName, "iframe", StringComparison.OrdinalIgnoreCase)
-                && element.HasAttribute("srcdoc"))) {
+                && (string.Equals(element.LocalName, "iframe", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(element.LocalName, "frame", StringComparison.OrdinalIgnoreCase)))) {
             throw new InvalidDataException(
-                "Nested iframe srcdoc documents are not supported by package content-safety inspection.");
+                "Nested browsing contexts are not supported by package content-safety inspection.");
         }
         if (part.SerializeAsXhtml && document.QuerySelectorAll("*").Any(element => element.Attributes.Any(attribute =>
                 string.Equals(attribute.NamespaceUri, "http://www.w3.org/XML/1998/namespace", StringComparison.Ordinal)
@@ -381,11 +381,9 @@ public static partial class HtmlContentSafety {
 
     private static bool HasPotentiallyActiveScripting(IHtmlDocument document) {
         foreach (IElement element in document.All) {
-            if (!HtmlResourcePipeline.IsHtmlNamespaceElement(element)) continue;
             if (string.Equals(element.LocalName, "script", StringComparison.OrdinalIgnoreCase)) return true;
             if (element.Attributes.Any(attribute =>
-                    attribute.NamespaceUri == null
-                    && attribute.LocalName.Length > 2
+                    attribute.LocalName.Length > 2
                     && attribute.LocalName.StartsWith("on", StringComparison.OrdinalIgnoreCase))) {
                 return true;
             }
@@ -401,6 +399,10 @@ public static partial class HtmlContentSafety {
             css,
             baseUri,
             resourceOptions);
+        if (HtmlResourcePipeline.HasUnmodeledScopeAtRule(css)) {
+            throw new InvalidDataException(
+                "CSS scope rules are not supported by package content-safety inspection.");
+        }
         if (HtmlResourcePipeline.HasUnknownSupportsCondition(analysis.Css)
             || analysis.Imports.Any(import => import.HasUnknownSupportsCondition)) {
             throw new InvalidDataException(

@@ -1,4 +1,5 @@
 using OfficeIMO.ContentSafety;
+using OfficeIMO.Email;
 using OfficeIMO.Mhtml;
 using System.Text;
 using Xunit;
@@ -90,6 +91,7 @@ public sealed class HtmlPackageContentSafetyAmbiguityContractTests {
     [Theory]
     [InlineData("<script>document.getElementById('secret').style.display='block'</script>")]
     [InlineData("<button onclick=\"document.getElementById('secret').style.display='block'\">Reveal</button>")]
+    [InlineData("<svg onload=\"document.getElementById('secret').style.display='block'\"></svg>")]
     public void Mhtml_ScriptableConcealmentIsReportOnly(string scriptingMarkup) {
         byte[] input = new MhtmlDocument(
             "<html><body><p id='secret' style='display:none'>Script reveal.</p>" + scriptingMarkup + "</body></html>",
@@ -97,6 +99,19 @@ public sealed class HtmlPackageContentSafetyAmbiguityContractTests {
 
         OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
             item.TextPreview.Contains("Script reveal", StringComparison.Ordinal));
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void Mhtml_NativeMutableAttributeConcealmentIsReportOnly() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><style>details:not([open]) #secret{display:none}</style></head>" +
+            "<body><details><summary>Reveal</summary><p id='secret'>Native open reveal.</p></details></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Native open reveal", StringComparison.Ordinal));
 
         Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
     }
@@ -113,10 +128,26 @@ public sealed class HtmlPackageContentSafetyAmbiguityContractTests {
         Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
     }
 
-    [Fact]
-    public void Mhtml_RejectsNestedSrcdocDocuments() {
+    [Theory]
+    [InlineData("srcdoc='&lt;p hidden&gt;Nested concealed.&lt;/p&gt;'")]
+    [InlineData("src='frame.html'")]
+    [InlineData("src='data:text/html,%3Cp%20hidden%3ENested%3C/p%3E'")]
+    public void Mhtml_RejectsNestedBrowsingContexts(string frameAttribute) {
         byte[] input = new MhtmlDocument(
-            "<html><body><iframe srcdoc='&lt;p hidden&gt;Nested concealed.&lt;/p&gt;'></iframe></body></html>",
+            "<html><body><iframe " + frameAttribute + "></iframe></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+    }
+
+    [Theory]
+    [InlineData("@scope")]
+    [InlineData("@\\73 cope")]
+    public void Mhtml_RejectsUnmodeledScopeRules(string scopeAtRule) {
+        byte[] input = new MhtmlDocument(
+            "<html><head><style>#secret{display:none}" + scopeAtRule +
+            " (.chapter){#secret{display:block}}</style></head>" +
+            "<body><div class='chapter'><p id='secret'>Scoped reveal.</p></div></body></html>",
             contentLocation: "https://example.test/index.html").ToBytes();
 
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
@@ -252,6 +283,23 @@ public sealed class HtmlPackageContentSafetyAmbiguityContractTests {
                 diagnostic.Code == "MHTML_RESOURCE_CONTENT_LOCATION_INVALID" && diagnostic.Location == "root");
         }
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+    }
+
+    [Fact]
+    public void Mhtml_RejectsInvalidRelatedRootContentIdentifier() {
+        byte[] input = Encoding.ASCII.GetBytes(
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/related; boundary=outer; start=\"<bad id>\"\r\n\r\n" +
+            "--outer\r\nContent-Type: text/plain\r\n\r\nDefault root.\r\n" +
+            "--outer\r\nContent-Type: text/html; charset=utf-8\r\nContent-ID: <bad id>\r\n\r\n" +
+            "<html><body><p style='display:none'>Invalid identifier root.</p></body></html>\r\n" +
+            "--outer--\r\n");
+
+        using (EmailReadResult result = new EmailDocumentReader().Read(input)) {
+            Assert.Contains(result.Diagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_MIME_CONTENT_ID_INVALID");
+        }
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.Load(new MemoryStream(input, writable: false)));
     }
 
     [Fact]

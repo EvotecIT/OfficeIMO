@@ -568,6 +568,30 @@ public static partial class HtmlResourcePipeline {
         return false;
     }
 
+    private static bool ContainsBrowserMutableAttributeSelector(string selector) {
+        char quote = '\0';
+        for (int index = 0; index < selector.Length; index++) {
+            char current = selector[index];
+            if (quote != '\0') {
+                if (current == '\\') index++;
+                else if (current == quote) quote = '\0';
+                continue;
+            }
+            if (current is '\'' or '"') {
+                quote = current;
+                continue;
+            }
+            if (current != '[') continue;
+            int cursor = index + 1;
+            while (cursor < selector.Length && char.IsWhiteSpace(selector[cursor])) cursor++;
+            if (TryReadPseudoClassName(selector, cursor, out string name, out _)
+                && string.Equals(name, "open", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static bool TryFindMatchingParenthesis(string selector, int opening, out int closing) {
         int depth = 0;
         char quote = '\0';

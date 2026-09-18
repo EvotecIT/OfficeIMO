@@ -168,6 +168,7 @@ public sealed partial class MhtmlDocument {
             || diagnostic.Code == MimeParser.RelatedRootTypeMismatchDiagnosticCode
             || diagnostic.Code == MimeParser.EmptyBoundaryDiagnosticCode
             || diagnostic.Code == MimeParser.InvalidBoundaryDiagnosticCode
+            || diagnostic.Code == MimeParser.InvalidContentIdentifierDiagnosticCode
             || diagnostic.Code == MimeParser.UnmodeledAlternativeDiagnosticCode
             || diagnostic.Code == MimeParser.BoundaryNotClosedDiagnosticCode));
         if (ambiguous != null) {

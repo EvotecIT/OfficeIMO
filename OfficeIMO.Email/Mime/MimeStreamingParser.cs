@@ -75,9 +75,8 @@ internal sealed class MimeStreamingParser {
         string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
         string? contentId = MimeHeaderParser.GetValue(headers, "Content-ID");
         string? contentLocation = MimeHeaderParser.GetValue(headers, "Content-Location");
-        bool contentIdMatchesPreferred = !string.IsNullOrWhiteSpace(preferredBodyContentId) &&
-            string.Equals(MimeParser.TrimAngleBrackets(contentId),
-                MimeParser.TrimAngleBrackets(preferredBodyContentId), StringComparison.OrdinalIgnoreCase);
+        bool contentIdMatchesPreferred = !string.IsNullOrWhiteSpace(preferredBodyContentId)
+            && MimeParser.ContentIdentifiersMatch(contentId, preferredBodyContentId);
         bool isPreferredRelatedBody = isDefaultRelatedRoot || contentIdMatchesPreferred;
         bool hasRelatedIdentity = !string.IsNullOrWhiteSpace(contentId) ||
             !string.IsNullOrWhiteSpace(contentLocation);

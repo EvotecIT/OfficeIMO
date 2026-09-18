@@ -57,9 +57,8 @@ internal static partial class MimeParser {
         string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
         string? contentId = MimeHeaderParser.GetValue(headers, "Content-ID");
         string? contentLocation = MimeHeaderParser.GetValue(headers, "Content-Location");
-        bool contentIdMatchesPreferred = !string.IsNullOrWhiteSpace(preferredBodyContentId) &&
-            string.Equals(TrimAngleBrackets(contentId), TrimAngleBrackets(preferredBodyContentId),
-                StringComparison.OrdinalIgnoreCase);
+        bool contentIdMatchesPreferred = !string.IsNullOrWhiteSpace(preferredBodyContentId)
+            && ContentIdentifiersMatch(contentId, preferredBodyContentId);
         bool isPreferredRelatedBody = isDefaultRelatedRoot || contentIdMatchesPreferred;
         bool attachmentDisposition = string.Equals(disposition.Value, "attachment", StringComparison.OrdinalIgnoreCase);
         bool inlineDisposition = string.Equals(disposition.Value, "inline", StringComparison.OrdinalIgnoreCase);
@@ -98,6 +97,10 @@ internal static partial class MimeParser {
                 ? "message/rfc822"
                 : "text/plain";
             bool isRelated = string.Equals(contentType.Value, "multipart/related", StringComparison.OrdinalIgnoreCase);
+            string? rawRelatedRootContentId = isRelated ? contentType.GetParameter("start") : null;
+            if (isRelated) {
+                ReportInvalidRelatedRootIdentifier(rawRelatedRootContentId, state.Diagnostics, location);
+            }
             if (isRelated && document.Body.RelatedContentTypeParameters.Count == 0) {
                 foreach (KeyValuePair<string, string> parameter in contentType.Parameters) {
                     document.Body.RelatedContentTypeParameters[parameter.Key] = parameter.Value;
@@ -105,7 +108,7 @@ internal static partial class MimeParser {
             }
             string? declaredRelatedRootType = isRelated ? contentType.GetParameter("type") : null;
             string? childPreferredBodyContentId = isRelated
-                ? TrimAngleBrackets(contentType.GetParameter("start"))
+                ? TrimAngleBrackets(rawRelatedRootContentId)
                 : preferredBodyContentId;
             bool hasExplicitRelatedRoot = isRelated && !string.IsNullOrWhiteSpace(childPreferredBodyContentId);
             bool explicitRelatedRootMatched = false;
@@ -118,10 +121,9 @@ internal static partial class MimeParser {
                     partHeaders, state.Diagnostics, partLocation);
                 int partEnd = part.Offset + part.Count;
                 bool partIsExplicitRelatedRoot = hasExplicitRelatedRoot
-                    && string.Equals(
-                        TrimAngleBrackets(MimeHeaderParser.GetValue(partHeaders, "Content-ID")),
-                        childPreferredBodyContentId,
-                        StringComparison.OrdinalIgnoreCase);
+                    && ContentIdentifiersMatch(
+                        MimeHeaderParser.GetValue(partHeaders, "Content-ID"),
+                        childPreferredBodyContentId);
                 bool partIsDefaultRelatedRoot = isRelated && i == 0
                     && string.IsNullOrWhiteSpace(childPreferredBodyContentId);
                 if (partIsExplicitRelatedRoot) {
@@ -630,10 +632,9 @@ internal static partial class MimeParser {
                     state.Diagnostics,
                     childLocation);
                 bool selected = start == null && index == 0
-                    || start != null && string.Equals(
-                        TrimAngleBrackets(MimeHeaderParser.GetValue(childHeaders, "Content-ID")),
-                        start,
-                        StringComparison.OrdinalIgnoreCase);
+                    || start != null && ContentIdentifiersMatch(
+                        MimeHeaderParser.GetValue(childHeaders, "Content-ID"),
+                        start);
                 if (!selected) continue;
                 return GetPreferredBodyKind(
                     childHeaders,

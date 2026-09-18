@@ -345,8 +345,12 @@ public static partial class HtmlResourcePipeline {
             || TryFindNextAtRule(source, 0, "starting-style", out _, out _)) return true;
         string masked = MaskCssComments(source);
         if (ContainsStatefulPseudoClass(masked, 0, masked.Length)) return true;
+        if (ContainsBrowserMutableAttributeSelector(masked)) return true;
         return ExtractCssImports(source).Any(import => HasCssImportMediaCondition(import.ConditionText));
     }
+
+    internal static bool HasUnmodeledScopeAtRule(string css) =>
+        TryFindNextAtRule(css ?? string.Empty, 0, "scope", out _, out _);
 
     private static bool HasCssImportMediaCondition(string conditionText) {
         string remaining = conditionText.Trim();
