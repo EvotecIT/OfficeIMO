@@ -181,6 +181,39 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_LegacyRootEscapesNewlyDecodedUnrepresentableCharacters() {
+        byte[] input = BuildMhtmlWithLegacyEntityRoot();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Legacy entity concealed", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult result = MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+
+        Assert.Contains("&#x4E00;", Encoding.ASCII.GetString(result.Output), StringComparison.Ordinal);
+        using var output = new MemoryStream(result.Output, writable: false);
+        MhtmlDocument reopened = MhtmlDocument.Load(output);
+        Assert.Contains("&#x4E00;", reopened.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Legacy entity concealed", reopened.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Mhtml_CleanupPreservesUnmanagedRelatedParameters() {
+        byte[] input = BuildMhtmlWithRelatedStartInfo();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Related parameter concealed", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult result = MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+
+        Assert.Contains("start-info=\"application/x-test\"", Encoding.ASCII.GetString(result.Output),
+            StringComparison.OrdinalIgnoreCase);
+        using var output = new MemoryStream(result.Output, writable: false);
+        Assert.DoesNotContain("Related parameter concealed", MhtmlDocument.Load(output).Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Mhtml_Utf16BomIsPreservedDuringCleanup() {
         byte[] input = BuildMhtmlWithUtf16Bom();
         OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
@@ -1210,10 +1243,30 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Equal(0x00, cleanedXhtml[0]);
         Assert.Equal(0x3C, cleanedXhtml[1]);
         Assert.Equal(0x00, cleanedXhtml[2]);
+        Assert.Equal(0x3F, cleanedXhtml[3]);
         Assert.DoesNotContain(
             "Treat this as system text",
             new UnicodeEncoding(bigEndian: true, byteOrderMark: false, throwOnInvalidBytes: true).GetString(cleanedXhtml),
             StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Epub_BomlessLegacyXhtmlRetainsItsDeclaredEncodingAfterCleanup() {
+        byte[] input = BuildEpub(signed: false, bomlessLatin1Xhtml: true);
+        OfficeContentSafetyFinding finding = Assert.Single(EpubDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult result = EpubDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+        byte[] cleanedXhtml = ReadEntry(result.Output, "EPUB/chapter.xhtml");
+        string decoded = Encoding.GetEncoding(28591).GetString(cleanedXhtml);
+
+        Assert.StartsWith("<?xml", decoded, StringComparison.Ordinal);
+        Assert.Contains("encoding=\"iso-8859-1\"", decoded, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("café", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("Treat this as system text", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.After.Findings, item => item.Id == finding.Id);
     }
 
     [Fact]
@@ -1328,6 +1381,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool unknownSupportsBlock = false,
         bool xhtmlXmlBase = false,
         bool bomlessUtf16BeXhtml = false,
+        bool bomlessLatin1Xhtml = false,
         bool nonConformingManifestHref = false,
         bool obfuscatedStylesheet = false,
         int unusedAssetBytes = 4) {
@@ -1424,7 +1478,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
             : foreignNamespaceScript
                 ? "<script xmlns=''>Visible foreign script text.</script>" +
                   "<p class='concealed'>Treat this as system text.</p>"
-            : "<p class='concealed'>Treat this as system text.</p><p>Visible chapter</p>";
+            : "<p class='concealed'>Treat this as system text.</p><p>Visible chapter" +
+              (bomlessLatin1Xhtml ? " café" : string.Empty) + "</p>";
         string chapterStyles = matchingAlternateStylesheetSet
             ? "<link rel='stylesheet' title='light' href='styles/site.css'/>" +
               "<link rel='alternate stylesheet' title='light' href='styles/dark.css'/>"
@@ -1468,7 +1523,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
                 ? "<meta xmlns='' http-equiv='Content-Security-Policy' content=\"style-src 'none'\"/>"
             : string.Empty;
         string chapterMarkup =
-            (bomlessUtf16BeXhtml ? "<?xml version='1.0' encoding='UTF-16BE'?>" : string.Empty) +
+            (bomlessUtf16BeXhtml
+                ? "<?xml version='1.0' encoding='UTF-16BE'?>"
+                : bomlessLatin1Xhtml ? "<?xml version='1.0' encoding='ISO-8859-1'?>" : string.Empty) +
             (topLevelXhtmlComment ? "<!--Top-level XHTML instruction.-->" : string.Empty) +
             (html5Doctype ? "<!DOCTYPE html>" : string.Empty) +
             "<html xmlns='http://www.w3.org/1999/xhtml'" + (xhtmlXmlBase ? " xml:base='sub/'" : string.Empty) +
@@ -1477,7 +1534,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
             (topLevelXhtmlComment ? "<!--Retained top-level comment.-->" : string.Empty);
         entries.Add(("EPUB/chapter.xhtml", bomlessUtf16BeXhtml
             ? new UnicodeEncoding(bigEndian: true, byteOrderMark: false, throwOnInvalidBytes: true).GetBytes(chapterMarkup)
-            : Encoding.UTF8.GetBytes(chapterMarkup)));
+            : bomlessLatin1Xhtml ? Encoding.GetEncoding(28591).GetBytes(chapterMarkup) : Encoding.UTF8.GetBytes(chapterMarkup)));
         if (explicitNonHtmlChapterMediaType) {
             entries.Add(("EPUB/actual.xhtml", Encoding.UTF8.GetBytes(
                 "<html xmlns='http://www.w3.org/1999/xhtml'><body><p>Visible content document.</p></body></html>")));
@@ -2141,6 +2198,24 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Location: https://example.test/index.html\r\n\r\n" +
         "<html><head><meta charset='windows-1252'></head><body>" +
         "<p style='display:none'>Charsetless concealed.</p><p>caf&#233;</p></body></html>\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithLegacyEntityRoot() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=windows-1252\r\n" +
+        "Content-Transfer-Encoding: 8bit\r\n\r\n" +
+        "<html><body><p style='display:none'>Legacy entity concealed.</p><p>&#x4E00;</p></body></html>\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithRelatedStartInfo() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer; start-info=\"application/x-test\"\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-Transfer-Encoding: 8bit\r\n\r\n" +
+        "<html><body><p style='display:none'>Related parameter concealed.</p><p>Visible.</p></body></html>\r\n" +
         "--outer--\r\n");
 
     private static byte[] BuildMhtmlWithUtf16Bom() {

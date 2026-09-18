@@ -1554,7 +1554,7 @@ public static partial class HtmlProvenance {
     private static byte[] EncodeHtml(string html, Encoding encoding, bool includePreamble, long maximumBytes) {
         Encoding strictEncoding = (Encoding)encoding.Clone();
         strictEncoding.EncoderFallback = EncoderFallback.ExceptionFallback;
-        string encodableHtml = EscapeUnencodableCharacters(html, strictEncoding);
+        string encodableHtml = OfficeCharacterReferenceEncoding.EscapeUnrepresentableCharacters(html, strictEncoding);
         byte[] preamble = includePreamble ? encoding.GetPreamble() : Array.Empty<byte>();
         int bodyLength = strictEncoding.GetByteCount(encodableHtml);
         if (bodyLength > maximumBytes - preamble.Length) {
@@ -1567,31 +1567,6 @@ public static partial class HtmlProvenance {
         Buffer.BlockCopy(preamble, 0, output, 0, preamble.Length);
         Buffer.BlockCopy(body, 0, output, preamble.Length, body.Length);
         return output;
-    }
-
-    private static string EscapeUnencodableCharacters(string value, Encoding encoding) {
-        var builder = new StringBuilder(value.Length);
-        char[] characters = value.ToCharArray();
-        int cursor = 0;
-        while (cursor < characters.Length) {
-            try {
-                _ = encoding.GetByteCount(characters, cursor, characters.Length - cursor);
-                builder.Append(characters, cursor, characters.Length - cursor);
-                break;
-            } catch (EncoderFallbackException exception) {
-                int invalidIndex = cursor + exception.Index;
-                if (invalidIndex < cursor || invalidIndex >= characters.Length) invalidIndex = cursor;
-                if (invalidIndex > cursor) builder.Append(characters, cursor, invalidIndex - cursor);
-                int characterCount = char.IsHighSurrogate(characters[invalidIndex]) && invalidIndex + 1 < characters.Length &&
-                    char.IsLowSurrogate(characters[invalidIndex + 1]) ? 2 : 1;
-                int codePoint = characterCount == 2
-                    ? char.ConvertToUtf32(characters[invalidIndex], characters[invalidIndex + 1])
-                    : characters[invalidIndex];
-                builder.Append("&#x").Append(codePoint.ToString("X", System.Globalization.CultureInfo.InvariantCulture)).Append(';');
-                cursor = invalidIndex + characterCount;
-            }
-        }
-        return builder.ToString();
     }
 
     private sealed class EmbeddedImageReference {

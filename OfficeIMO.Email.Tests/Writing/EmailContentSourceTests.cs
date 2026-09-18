@@ -56,7 +56,7 @@ public sealed class EmailContentSourceTests {
     }
 
     [Fact]
-    public void BoundaryCollisionSearchReadsASeekableAttachmentOnlyOnce() {
+    public void BoundaryCollisionSearchIgnoresDecodedBytesOfBase64Attachments() {
         EmailDocument template = CreateBoundaryCollisionDocument();
         template.Attachments.Add(new EmailAttachment {
             FileName = "payload.bin",
@@ -88,8 +88,10 @@ public sealed class EmailContentSourceTests {
             Length = bytes.LongLength
         });
 
-        Assert.Throws<InvalidDataException>(() =>
-            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml));
+        byte[] artifact = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
+        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().Read(artifact).Document.Attachments);
+
+        Assert.Equal(bytes, attachment.Content);
         Assert.Equal(1, source.OpenCount);
         Assert.Equal(bytes.LongLength, source.BytesRead);
     }

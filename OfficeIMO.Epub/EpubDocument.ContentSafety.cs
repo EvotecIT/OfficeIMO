@@ -422,7 +422,11 @@ public sealed partial class EpubDocument {
         }
         byte[] payload;
         try {
-            payload = encoding.GetBytes(EscapeUnrepresentableHtmlCharacters(text, encoding));
+            if (xhtml && preamble.Length == 0 && encoding.CodePage != Encoding.UTF8.CodePage &&
+                !text.StartsWith("<?xml", StringComparison.Ordinal)) {
+                text = string.Concat("<?xml version=\"1.0\" encoding=\"", encoding.WebName, "\"?>", text);
+            }
+            payload = encoding.GetBytes(OfficeCharacterReferenceEncoding.EscapeUnrepresentableCharacters(text, encoding));
         } catch (EncoderFallbackException exception) {
             throw new InvalidDataException("The EPUB content document encoding cannot represent the cleaned HTML.", exception);
         }
@@ -431,48 +435,6 @@ public sealed partial class EpubDocument {
         Buffer.BlockCopy(preamble, 0, result, 0, preamble.Length);
         Buffer.BlockCopy(payload, 0, result, preamble.Length, payload.Length);
         return result;
-    }
-
-    private static string EscapeUnrepresentableHtmlCharacters(string text, Encoding encoding) {
-        StringBuilder? escaped = null;
-        for (int index = 0; index < text.Length;) {
-            int characterCount = 1;
-            int codePoint;
-            char current = text[index];
-            if (char.IsHighSurrogate(current)) {
-                if (index + 1 >= text.Length || !char.IsLowSurrogate(text[index + 1])) {
-                    throw new InvalidDataException("The cleaned EPUB HTML contains an invalid Unicode surrogate.");
-                }
-                characterCount = 2;
-                codePoint = char.ConvertToUtf32(current, text[index + 1]);
-            } else if (char.IsLowSurrogate(current)) {
-                throw new InvalidDataException("The cleaned EPUB HTML contains an invalid Unicode surrogate.");
-            } else {
-                codePoint = current;
-            }
-
-            bool representable;
-            try {
-                encoding.GetByteCount(text.Substring(index, characterCount));
-                representable = true;
-            } catch (EncoderFallbackException) {
-                representable = false;
-            }
-
-            if (!representable) {
-                if (escaped == null) {
-                    escaped = new StringBuilder(text.Length + 16);
-                    escaped.Append(text, 0, index);
-                }
-                escaped.Append("&#x");
-                escaped.Append(codePoint.ToString("X", System.Globalization.CultureInfo.InvariantCulture));
-                escaped.Append(';');
-            } else if (escaped != null) {
-                escaped.Append(text, index, characterCount);
-            }
-            index += characterCount;
-        }
-        return escaped?.ToString() ?? text;
     }
 
     private sealed class EpubPackageResourceStore : IDisposable {

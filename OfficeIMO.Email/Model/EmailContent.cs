@@ -3,6 +3,7 @@ namespace OfficeIMO.Email;
 /// <summary>Contains the available body alternatives for an email or Outlook item.</summary>
 public sealed class EmailBody {
     private readonly List<EmailHeader> _htmlMimeHeaders = new List<EmailHeader>();
+    private readonly Dictionary<string, string> _relatedContentTypeParameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     /// <summary>Plain-text alternative.</summary>
     public string? Text { get; set; }
 
@@ -31,6 +32,7 @@ public sealed class EmailBody {
     public bool IsHtmlRelatedRoot { get; set; }
 
     internal IList<EmailHeader> HtmlMimeHeaders => _htmlMimeHeaders;
+    internal IDictionary<string, string> RelatedContentTypeParameters => _relatedContentTypeParameters;
     internal string? HtmlTransferEncoding { get; set; }
     internal byte[]? HtmlDecodedBytes { get; set; }
     internal Encoding? HtmlEncodingOverride { get; set; }

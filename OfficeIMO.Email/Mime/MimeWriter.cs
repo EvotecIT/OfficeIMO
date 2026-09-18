@@ -324,8 +324,12 @@ internal static class MimeWriter {
         string start = !hasAlternative && !string.IsNullOrWhiteSpace(document.Body.HtmlContentId)
             ? string.Concat("; start=\"<", SanitizeMessageId(document.Body.HtmlContentId!), ">\"")
             : string.Empty;
+        string retainedParameters = FormatContentTypeParameters(document.Body.RelatedContentTypeParameters.Where(parameter =>
+            !string.Equals(parameter.Key, "boundary", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(parameter.Key, "type", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(parameter.Key, "start", StringComparison.OrdinalIgnoreCase)));
         WriteLine(output, string.Concat("Content-Type: multipart/related; boundary=\"", boundary,
-            "\"; type=\"", rootType, "\"", start));
+            "\"; type=\"", rootType, "\"", start, retainedParameters));
         WriteLine(output, string.Empty);
         WriteLine(output, string.Concat("--", boundary));
         WriteBodyEntity(output, document, plan, state, depth, hasAlternative, includeTextBody, calendarContent,
@@ -464,7 +468,11 @@ internal static class MimeWriter {
             WriteLine(output, string.Empty);
             byte[] encoded;
             try {
-                encoded = encodingOverride?.GetBytes(text) ?? MimeTextCodec.EncodeText(text, charset);
+                Encoding encoding = encodingOverride ?? MimeTextCodec.ResolveStrictEncoding(charset);
+                string encodableText = string.Equals(mediaType, "text/html", StringComparison.OrdinalIgnoreCase)
+                    ? OfficeIMO.Core.Internal.OfficeCharacterReferenceEncoding.EscapeUnrepresentableCharacters(text, encoding)
+                    : text;
+                encoded = encoding.GetBytes(encodableText);
                 if (encodingPreamble != null && encodingPreamble.Length > 0) {
                     var withPreamble = new byte[checked(encodingPreamble.Length + encoded.Length)];
                     Buffer.BlockCopy(encodingPreamble, 0, withPreamble, 0, encodingPreamble.Length);
@@ -809,12 +817,15 @@ internal static class MimeWriter {
         }
         try {
             byte[] markerPrefix = Encoding.ASCII.GetBytes("--" + boundaryPrefix);
-            CollectBoundaryCollisions(document.Body.Text, markerPrefix, collisions, state.Options.MaxOutputBytes);
-            CollectBoundaryCollisions(document.Body.Html, markerPrefix, collisions, state.Options.MaxOutputBytes);
-            CollectBoundaryCollisions(document.Body.Rtf, markerPrefix, collisions, state.Options.MaxOutputBytes);
-            if (plan.CalendarContent != null) {
-                using var calendarInput = new MemoryStream(plan.CalendarContent, writable: false);
-                CollectBoundaryCollisions(calendarInput, markerPrefix, collisions, state.Options.MaxOutputBytes);
+            if (document.Body.Html != null && document.Body.PreserveHtmlMimeHeadersOnWrite &&
+                ShouldScanTransferEncodedPayload(document.Body.HtmlTransferEncoding)) {
+                Encoding encoding = document.Body.HtmlEncodingOverride ??
+                    MimeTextCodec.ResolveStrictEncoding(document.Body.HtmlCharset);
+                string encodableHtml = OfficeIMO.Core.Internal.OfficeCharacterReferenceEncoding
+                    .EscapeUnrepresentableCharacters(document.Body.Html, encoding);
+                byte[] htmlBytes = encoding.GetBytes(encodableHtml);
+                using var htmlInput = new MemoryStream(htmlBytes, writable: false);
+                CollectBoundaryCollisions(htmlInput, markerPrefix, collisions, state.Options.MaxOutputBytes);
             }
             if (plan.ContactBodyPart != null) {
                 CollectBoundaryCollisions(plan.ContactBodyPart, boundaryPrefix, markerPrefix, state, collisions, activeDocuments);
@@ -834,7 +845,22 @@ internal static class MimeWriter {
         MimeWriterState state,
         bool[] collisions,
         ISet<EmailDocument> activeDocuments) {
-        if (attachment.EmbeddedDocument != null && attachment.PreserveMimeHeadersOnWrite) {
+        bool embeddedMessage = attachment.EmbeddedDocument != null;
+        bool hasContent = attachment.Content != null || attachment.ContentSource != null ||
+            EmailAttachmentStreamScope.HasStagedContent(attachment);
+        string contentType = embeddedMessage
+            ? "message/rfc822"
+            : string.IsNullOrWhiteSpace(attachment.ContentType) ? "application/octet-stream" : attachment.ContentType!;
+        if (!embeddedMessage && contentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase) &&
+            (!attachment.ContentTypeParameters.TryGetValue("boundary", out string? retainedBoundary) ||
+             string.IsNullOrWhiteSpace(retainedBoundary))) {
+            contentType = "application/octet-stream";
+        }
+        bool preservePartHeaders = attachment.PreserveMimeHeadersOnWrite && attachment.MimeHeaders.Count > 0
+            && (!embeddedMessage || hasContent);
+
+        if (preservePartHeaders && !ShouldScanTransferEncodedPayload(attachment.MimeTransferEncoding)) return;
+        if (attachment.EmbeddedDocument != null && preservePartHeaders) {
             if (attachment.Content != null) {
                 using var preservedInput = new MemoryStream(attachment.Content, writable: false);
                 CollectBoundaryCollisions(preservedInput, markerPrefix, collisions, state.Options.MaxOutputBytes);
@@ -851,6 +877,7 @@ internal static class MimeWriter {
             CollectBoundaryCollisions(attachment.EmbeddedDocument, embeddedPlan, boundaryPrefix, state, collisions, activeDocuments);
             return;
         }
+        if (!contentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase) && !preservePartHeaders) return;
         if (attachment.Content != null) {
             using var input = new MemoryStream(attachment.Content, writable: false);
             CollectBoundaryCollisions(input, markerPrefix, collisions, state.Options.MaxOutputBytes);
@@ -859,6 +886,12 @@ internal static class MimeWriter {
         if (attachment.ContentSource == null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) return;
         Stream prepared = state.PrepareAttachmentStream(attachment);
         CollectBoundaryCollisions(prepared, markerPrefix, collisions, state.Options.MaxOutputBytes);
+    }
+
+    private static bool ShouldScanTransferEncodedPayload(string? transferEncoding) {
+        string normalized = (transferEncoding ?? string.Empty).Trim();
+        return !string.Equals(normalized, "base64", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(normalized, "quoted-printable", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void CollectBoundaryCollisions(

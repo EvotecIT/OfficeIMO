@@ -80,41 +80,8 @@ internal static class MimeTextCodec {
 
     internal static bool TryDecodeTextStrict(byte[] bytes, string? charset, out string value) {
         value = string.Empty;
-        string normalized = string.IsNullOrWhiteSpace(charset)
-            ? "utf-8"
-            : charset!.Trim().Trim('"').ToLowerInvariant();
         try {
-            Encoding encoding;
-            switch (normalized) {
-                case "us-ascii":
-                case "ascii":
-                    encoding = Encoding.GetEncoding(20127, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
-                    break;
-                case "utf-8":
-                case "utf8":
-                    encoding = new UTF8Encoding(false, true);
-                    break;
-                case "utf-16":
-                case "unicode":
-                    encoding = new UnicodeEncoding(false, false, true);
-                    break;
-                case "utf-16be":
-                    encoding = new UnicodeEncoding(true, false, true);
-                    break;
-                case "iso-8859-1":
-                case "latin1":
-                case "latin-1":
-                    encoding = Encoding.GetEncoding(28591, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
-                    break;
-                case "windows-1252":
-                case "cp1252":
-                    encoding = Encoding.GetEncoding(1252, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
-                    break;
-                default:
-                    encoding = Encoding.GetEncoding(normalized, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
-                    break;
-            }
-            value = encoding.GetString(bytes);
+            value = ResolveStrictEncoding(charset).GetString(bytes);
             return true;
         } catch (Exception exception) when (exception is ArgumentException
                                             || exception is NotSupportedException
@@ -125,6 +92,10 @@ internal static class MimeTextCodec {
 
     internal static byte[] EncodeText(string text, string? charset) {
         if (text == null) throw new ArgumentNullException(nameof(text));
+        return ResolveStrictEncoding(charset).GetBytes(text);
+    }
+
+    internal static Encoding ResolveStrictEncoding(string? charset) {
         string normalized = string.IsNullOrWhiteSpace(charset)
             ? "utf-8"
             : charset!.Trim().Trim('"').ToLowerInvariant();
@@ -162,7 +133,7 @@ internal static class MimeTextCodec {
                     EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
                 break;
         }
-        return encoding.GetBytes(text);
+        return encoding;
     }
 
     internal static string DecodeText(byte[] bytes, int codePage, IList<EmailDiagnostic> diagnostics,

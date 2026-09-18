@@ -93,6 +93,11 @@ internal static class MimeParser {
                 ? "message/rfc822"
                 : "text/plain";
             bool isRelated = string.Equals(contentType.Value, "multipart/related", StringComparison.OrdinalIgnoreCase);
+            if (isRelated && document.Body.RelatedContentTypeParameters.Count == 0) {
+                foreach (KeyValuePair<string, string> parameter in contentType.Parameters) {
+                    document.Body.RelatedContentTypeParameters[parameter.Key] = parameter.Value;
+                }
+            }
             string? declaredRelatedRootType = isRelated ? contentType.GetParameter("type") : null;
             string? childPreferredBodyContentId = isRelated
                 ? TrimAngleBrackets(contentType.GetParameter("start"))
