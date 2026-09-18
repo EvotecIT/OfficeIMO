@@ -330,14 +330,20 @@ public static partial class HtmlContentSafety {
             return new Concealment(OfficeContentConcealmentKind.TransparentText, "Computed CSS opacity is " + opacity.ToString("0.###", CultureInfo.InvariantCulture) + ".");
         }
         if (TryParseCssColor(style.GetValue("color"), out OfficeColor textColor) && textColor.A <= 3) {
-            return new Concealment(OfficeContentConcealmentKind.TransparentText, "Computed CSS text color is fully or nearly transparent.");
+            return new Concealment(
+                OfficeContentConcealmentKind.TransparentText,
+                "Computed CSS text color is fully or nearly transparent.",
+                descendantsMayOverride: true);
         }
         string filter = style.GetValue("filter");
         if (TryGetCssFilterOpacity(filter, out double filterOpacity) && filterOpacity <= 0.01D) {
             return new Concealment(OfficeContentConcealmentKind.TransparentText, "Computed CSS filter applies zero opacity.");
         }
         if (TryParseLengthPoints(style.GetValue("font-size"), out double fontPoints) && fontPoints <= options.MaximumTinyFontSizePoints) {
-            return new Concealment(OfficeContentConcealmentKind.TinyText, "Computed font size is " + fontPoints.ToString("0.###", CultureInfo.InvariantCulture) + "pt.");
+            return new Concealment(
+                OfficeContentConcealmentKind.TinyText,
+                "Computed font size is " + fontPoints.ToString("0.###", CultureInfo.InvariantCulture) + "pt.",
+                descendantsMayOverride: true);
         }
         bool zeroWidth = IsZeroLength(style.GetValue("width")) || IsZeroLength(style.GetValue("max-width"));
         bool zeroHeight = IsZeroLength(style.GetValue("height")) || IsZeroLength(style.GetValue("max-height"));
@@ -508,8 +514,11 @@ public static partial class HtmlContentSafety {
 
     private static bool TryParseCssColor(string value, out OfficeColor color) {
         string normalized = value?.Trim() ?? string.Empty;
-        if (normalized.Length == 0 || string.Equals(normalized, "transparent", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normalized, "currentcolor", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(normalized, "transparent", StringComparison.OrdinalIgnoreCase)) {
+            color = OfficeColor.Transparent;
+            return true;
+        }
+        if (normalized.Length == 0 || string.Equals(normalized, "currentcolor", StringComparison.OrdinalIgnoreCase)) {
             color = default;
             return false;
         }

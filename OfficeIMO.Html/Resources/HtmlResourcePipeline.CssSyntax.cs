@@ -270,38 +270,27 @@ public static partial class HtmlResourcePipeline {
     private static IEnumerable<CssImportReference> ExtractCssImports(string css) {
         int index = 0;
         while (index < css.Length) {
-            int importStart = css.IndexOf("@import", index, StringComparison.OrdinalIgnoreCase);
-            if (importStart < 0) {
+            if (!TryFindNextAtRule(css, index, "import", out int importStart, out int importNameEnd)) {
                 yield break;
-            }
-
-            if (IsInsideCssString(css, importStart)) {
-                index = importStart + 7;
-                continue;
-            }
-
-            if (!HasImportTokenBoundary(css, importStart)) {
-                index = importStart + 7;
-                continue;
             }
 
             if (HasDisallowedRuleBeforeImport(css, importStart)) {
                 yield break;
             }
 
-            int cursor = SkipWhitespace(css, importStart + 7);
+            int cursor = SkipWhitespace(css, importNameEnd);
             string source;
             int end;
             if (IsCssFunctionNameAt(css, cursor, "url")) {
                 int open = css.IndexOf('(', cursor);
                 cursor = SkipWhitespace(css, open + 1);
                 if (!TryReadCssUrlFunctionSource(css, cursor, out source, out end)) {
-                    index = importStart + 7;
+                    index = importNameEnd;
                     continue;
                 }
             } else if (cursor < css.Length && (css[cursor] == '"' || css[cursor] == '\'')) {
                 if (!TryReadCssQuotedValue(css, cursor, out source, out end)) {
-                    index = importStart + 7;
+                    index = importNameEnd;
                     continue;
                 }
             } else {
@@ -600,8 +589,7 @@ public static partial class HtmlResourcePipeline {
         int previousBlockEnd = css.LastIndexOf('}', Math.Max(0, index - 1));
         int previousBoundary = Math.Max(previousSemicolon, previousBlockEnd);
         string statement = css.Substring(Math.Max(0, previousBoundary + 1), index - Math.Max(0, previousBoundary + 1));
-        int importStart = statement.IndexOf("@import", StringComparison.OrdinalIgnoreCase);
-        return importStart >= 0 && HasImportTokenBoundary(statement, importStart);
+        return TryFindNextAtRule(statement, 0, "import", out _, out _);
     }
 
     private static bool IsAtRulePreludeUrl(string css, int index) {
@@ -624,15 +612,6 @@ public static partial class HtmlResourcePipeline {
         int nextClose = css.IndexOf('}', index);
         return (nextSemicolon < 0 || nextOpen < nextSemicolon)
             && (nextClose < 0 || nextOpen < nextClose);
-    }
-
-    private static bool HasImportTokenBoundary(string css, int importStart) {
-        return HasAtRuleTokenBoundary(css, importStart, "@import");
-    }
-
-    private static bool HasAtRuleTokenBoundary(string css, int atRuleStart, string atRuleName) {
-        int afterImport = atRuleStart + atRuleName.Length;
-        return afterImport >= css.Length || !IsCssIdentifierCharacter(css[afterImport]);
     }
 
     private static bool HasDisallowedRuleBeforeImport(string css, int index) {
@@ -686,9 +665,58 @@ public static partial class HtmlResourcePipeline {
         return false;
     }
 
-    private static bool IsAtRuleAt(string css, int index, string rule) =>
-        StartsWith(css, index, rule)
-        && HasAtRuleTokenBoundary(css, index, rule);
+    private static bool IsAtRuleAt(string css, int index, string rule) {
+        if (string.IsNullOrEmpty(rule) || rule[0] != '@') return false;
+        return TryReadAtRuleName(css, index, out string name, out _)
+            && string.Equals(name, rule.Substring(1), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryFindNextAtRule(
+        string css,
+        int startIndex,
+        string expectedName,
+        out int atRuleStart,
+        out int nameEnd) {
+        for (int index = css.IndexOf('@', Math.Max(0, startIndex));
+             index >= 0;
+             index = css.IndexOf('@', index + 1)) {
+            if (IsInsideCssString(css, index)) continue;
+            if (!TryReadAtRuleName(css, index, out string name, out int candidateEnd)) continue;
+            if (!string.Equals(name, expectedName, StringComparison.OrdinalIgnoreCase)) continue;
+            atRuleStart = index;
+            nameEnd = candidateEnd;
+            return true;
+        }
+
+        atRuleStart = -1;
+        nameEnd = -1;
+        return false;
+    }
+
+    private static bool TryReadAtRuleName(string css, int atRuleStart, out string name, out int nameEnd) {
+        name = string.Empty;
+        nameEnd = atRuleStart;
+        if (atRuleStart < 0 || atRuleStart >= css.Length || css[atRuleStart] != '@') return false;
+
+        int cursor = atRuleStart + 1;
+        while (cursor < css.Length) {
+            if (IsCssIdentifierCharacter(css[cursor])) {
+                cursor++;
+                continue;
+            }
+            if (css[cursor] != '\\'
+                || !HtmlCssEscapeDecoder.TryDecodeEscape(css, cursor, out _, out int consumed)
+                || consumed <= 1) {
+                break;
+            }
+            cursor += consumed;
+        }
+
+        if (cursor == atRuleStart + 1) return false;
+        name = DecodeCssEscapes(css.Substring(atRuleStart + 1, cursor - atRuleStart - 1));
+        nameEnd = cursor;
+        return name.Length > 0;
+    }
 
     private static HtmlResourceKind ClassifyCssUrl(string css, int index) {
         string propertyName = GetCssDeclarationPropertyName(css, index);

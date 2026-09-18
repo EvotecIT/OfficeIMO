@@ -14,6 +14,9 @@ internal static class MimeTextCodec {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
 
+    internal static bool ContainsEncodedWord(string value) =>
+        !string.IsNullOrEmpty(value) && EncodedWordPattern.IsMatch(value);
+
     internal static string DecodeHeader(string value, IList<EmailDiagnostic> diagnostics, string location) {
         if (string.IsNullOrEmpty(value) || value.IndexOf("=?", StringComparison.Ordinal) < 0) return value;
 

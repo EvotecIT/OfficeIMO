@@ -232,17 +232,11 @@ public static partial class HtmlResourcePipeline {
         var ranges = new List<SourceRange>();
         int index = 0;
         while (index < css.Length) {
-            int mediaStart = css.IndexOf("@media", index, StringComparison.OrdinalIgnoreCase);
-            if (mediaStart < 0) {
+            if (!TryFindNextAtRule(css, index, "media", out int mediaStart, out int mediaNameEnd)) {
                 break;
             }
 
-            if (IsInsideCssString(css, mediaStart) || !HasAtRuleTokenBoundary(css, mediaStart, "@media")) {
-                index = mediaStart + 6;
-                continue;
-            }
-
-            int preludeStart = mediaStart + 6;
+            int preludeStart = mediaNameEnd;
             int open = FindNextTopLevelBlockStart(css, preludeStart);
             if (open < 0) {
                 break;
@@ -273,17 +267,11 @@ public static partial class HtmlResourcePipeline {
         var ranges = new List<SourceRange>();
         int index = 0;
         while (index < css.Length) {
-            int supportsStart = css.IndexOf("@supports", index, StringComparison.OrdinalIgnoreCase);
-            if (supportsStart < 0) {
+            if (!TryFindNextAtRule(css, index, "supports", out int supportsStart, out int supportsNameEnd)) {
                 break;
             }
 
-            if (IsInsideCssString(css, supportsStart) || !HasAtRuleTokenBoundary(css, supportsStart, "@supports")) {
-                index = supportsStart + 9;
-                continue;
-            }
-
-            int preludeStart = supportsStart + 9;
+            int preludeStart = supportsNameEnd;
             int open = FindNextTopLevelBlockStart(css, preludeStart);
             if (open < 0) {
                 break;
@@ -312,14 +300,9 @@ public static partial class HtmlResourcePipeline {
     internal static bool HasUnknownSupportsCondition(string css) {
         int index = 0;
         while (index < css.Length) {
-            int supportsStart = css.IndexOf("@supports", index, StringComparison.OrdinalIgnoreCase);
-            if (supportsStart < 0) return false;
-            if (IsInsideCssString(css, supportsStart) || !HasAtRuleTokenBoundary(css, supportsStart, "@supports")) {
-                index = supportsStart + 9;
-                continue;
-            }
+            if (!TryFindNextAtRule(css, index, "supports", out int supportsStart, out int supportsNameEnd)) return false;
 
-            int preludeStart = supportsStart + 9;
+            int preludeStart = supportsNameEnd;
             int open = FindNextTopLevelBlockStart(css, preludeStart);
             if (open < 0) return false;
             int close = FindMatchingCssBrace(css, open);
@@ -335,14 +318,9 @@ public static partial class HtmlResourcePipeline {
     internal static bool HasUnknownMediaCondition(string css) {
         int index = 0;
         while (index < css.Length) {
-            int mediaStart = css.IndexOf("@media", index, StringComparison.OrdinalIgnoreCase);
-            if (mediaStart < 0) return false;
-            if (IsInsideCssString(css, mediaStart) || !HasAtRuleTokenBoundary(css, mediaStart, "@media")) {
-                index = mediaStart + 6;
-                continue;
-            }
+            if (!TryFindNextAtRule(css, index, "media", out int mediaStart, out int mediaNameEnd)) return false;
 
-            int preludeStart = mediaStart + 6;
+            int preludeStart = mediaNameEnd;
             int open = FindNextTopLevelBlockStart(css, preludeStart);
             if (open < 0) return false;
             int close = FindMatchingCssBrace(css, open);

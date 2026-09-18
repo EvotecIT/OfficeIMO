@@ -33,6 +33,32 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.DoesNotContain("Hidden nested", html, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("color:transparent", "color:black", OfficeContentConcealmentKind.TransparentText)]
+    [InlineData("font-size:0", "font-size:12pt", OfficeContentConcealmentKind.TinyText)]
+    public void Mhtml_InheritedConcealmentCleanupPreservesVisibleDescendantOverrides(
+        string concealedStyle,
+        string visibleStyle,
+        OfficeContentConcealmentKind kind) {
+        byte[] input = new MhtmlDocument(
+            "<html><body><div style='" + concealedStyle + "'>Hidden direct" +
+            "<span style='" + visibleStyle + "'>Visible override</span>" +
+            "<span>Hidden nested</span></div></body></html>").ToBytes();
+        OfficeContentSafetyFinding[] hidden = MhtmlDocument.InspectContentSafety(input).Findings
+            .Where(item => item.Kind == kind)
+            .ToArray();
+
+        OfficeContentCleanupResult result = MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(hidden.Select(item => item.Id)));
+        using var output = new MemoryStream(result.Output, writable: false);
+        string html = MhtmlDocument.Load(output).Html;
+
+        Assert.Contains("Visible override", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden direct", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden nested", html, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Mhtml_LinkedStylesheetFindingCanBeCleanedWhileResourcesArePreserved() {
         byte[] css = Encoding.UTF8.GetBytes(".concealed { display: none; }");
@@ -783,6 +809,25 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_CleanupPreservesTerminalCrlfBytesInRawResources() {
+        byte[] input = BuildMhtmlWithRawResource("payload\r\n");
+        using var originalStream = new MemoryStream(input, writable: false);
+        byte[] originalResource = Assert.Single(MhtmlDocument.Load(originalStream).Resources).Content;
+        Assert.True(originalResource.Length >= 2);
+        Assert.Equal(0x0d, originalResource[originalResource.Length - 2]);
+        Assert.Equal(0x0a, originalResource[originalResource.Length - 1]);
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Boundary collision", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult cleaned = MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+
+        using var output = new MemoryStream(cleaned.Output, writable: false);
+        Assert.Equal(originalResource, Assert.Single(MhtmlDocument.Load(output).Resources).Content);
+    }
+
+    [Fact]
     public void Mhtml_RejectsDuplicateSingletonMimeHeaders() {
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
             BuildMhtmlWithConflictingTransferEncodingHeaders()));
@@ -809,6 +854,20 @@ public sealed class HtmlPackageContentSafetyContractTests {
             MhtmlDocument document = MhtmlDocument.Load(stream);
             Assert.Contains(document.MimeDiagnostics, diagnostic =>
                 diagnostic.Code == "EMAIL_MIME_HEADER_UTF8_INVALID");
+        }
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Mhtml_RejectsEncodedWordsInStructuredMimeHeaders(bool encodedContentType) {
+        byte[] input = BuildMhtmlWithEncodedStructuralHeader(encodedContentType);
+        using (var stream = new MemoryStream(input, writable: false)) {
+            MhtmlDocument document = MhtmlDocument.Load(stream);
+            Assert.Contains(document.MimeDiagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_MIME_STRUCTURED_HEADER_ENCODED_WORD");
         }
 
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
@@ -1225,8 +1284,31 @@ public sealed class HtmlPackageContentSafetyContractTests {
             BuildEpub(signed: false, unknownSupportsBlock: true)));
     }
 
+    [Fact]
+    public void Mhtml_PackageCssDiscoversEscapedImportAndAllowedLayerAtRuleNames() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='root.css'></head>" +
+            "<body><p class='concealed'>Escaped import text.</p></body></html>",
+            new[] {
+                new MhtmlResource(
+                    Encoding.UTF8.GetBytes("@\\6c ayer base; @\\69mport 'conceal.css';"),
+                    "text/css",
+                    contentLocation: "root.css"),
+                new MhtmlResource(
+                    Encoding.UTF8.GetBytes(".concealed{display:none}"),
+                    "text/css",
+                    contentLocation: "conceal.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        OfficeContentSafetyReport report = MhtmlDocument.InspectContentSafety(input);
+        Assert.Contains(report.Findings, finding =>
+            finding.TextPreview.Contains("Escaped import text", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("<style>@supports not (display: block flow-root){.concealed{display:none}}</style>")]
+    [InlineData("<style>@\\73 upports not (display: block flow-root){.concealed{display:none}}</style>")]
     [InlineData("<style>@import 'nested.css' supports(not (display: block flow-root));</style>")]
     public void Mhtml_PackageCssRejectsUnmodeledKnownSupportsValuesBeforeNegation(string stylesheet) {
         byte[] input = new MhtmlDocument(
@@ -1251,6 +1333,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
     [InlineData("<link rel='stylesheet' href='nested.css' media='not (min-width: calc(1px))'>")]
     [InlineData("<style>@import 'nested.css' not (min-width: calc(1px));</style>")]
     [InlineData("<style>@media not (min-width: calc(1px)){.concealed{display:none}}</style>")]
+    [InlineData("<style>@\\6d edia not (min-width: calc(1px)){.concealed{display:none}}</style>")]
     public void Mhtml_PackageCssRejectsUnknownMediaConditionsBeforeNegation(string stylesheet) {
         byte[] input = new MhtmlDocument(
             "<html><head>" + stylesheet + "</head><body><p class='concealed'>Unknown media text.</p></body></html>",
@@ -2220,6 +2303,23 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Location: https://example.test/chapter",
         ".html\r\n\r\n" +
         "<html><body><p style='display:none'>Invalid header identity.</p></body></html>\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithEncodedStructuralHeader(bool encodedContentType) => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        (encodedContentType
+            ? "Content-Type: =?utf-8?Q?multipart/related=3B_boundary=3Douter?=\r\n\r\n"
+            : "Content-Type: multipart/related; boundary=outer\r\n\r\n") +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><head><link rel='stylesheet' href='styles.css'></head>" +
+        "<body><p class='concealed'>Encoded structured header.</p></body></html>\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/css; charset=utf-8\r\n" +
+        (encodedContentType
+            ? "Content-Location: styles.css\r\n\r\n"
+            : "Content-Location: =?utf-8?Q?styles.css?=\r\n\r\n") +
+        ".concealed{display:none}\r\n" +
         "--outer--\r\n");
 
     private static byte[] BuildMhtmlWithoutTransferEncoding() => Encoding.ASCII.GetBytes(

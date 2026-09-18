@@ -3,6 +3,7 @@ namespace OfficeIMO.Email;
 internal static class MimeHeaderParser {
     internal const string DuplicateSingletonHeaderDiagnosticCode = "EMAIL_MIME_SINGLETON_HEADER_DUPLICATE";
     internal const string InvalidUtf8HeaderDiagnosticCode = "EMAIL_MIME_HEADER_UTF8_INVALID";
+    internal const string EncodedWordInStructuredHeaderDiagnosticCode = "EMAIL_MIME_STRUCTURED_HEADER_ENCODED_WORD";
     private static readonly Encoding StrictUtf8 = new UTF8Encoding(false, true);
     private static readonly string[] SingletonContentHeaders = {
         "Content-Type",
@@ -47,6 +48,15 @@ internal static class MimeHeaderParser {
                 throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxHeaderCount), headers.Count + 1, options.MaxHeaderCount);
             }
             string rawValue = currentValue.ToString().Trim();
+            if (SingletonContentHeaders.Any(name => string.Equals(name, currentName, StringComparison.OrdinalIgnoreCase))
+                && MimeTextCodec.ContainsEncodedWord(rawValue)) {
+                diagnostics.Add(new EmailDiagnostic(
+                    EncodedWordInStructuredHeaderDiagnosticCode,
+                    string.Concat("Structured MIME header '", currentName,
+                        "' contains an RFC 2047 encoded word, which is not valid in this field."),
+                    EmailDiagnosticSeverity.Warning,
+                    location));
+            }
             headers.Add(new EmailHeader(currentName, MimeTextCodec.DecodeHeader(rawValue, diagnostics, location), rawValue));
             currentName = null;
             currentValue.Clear();

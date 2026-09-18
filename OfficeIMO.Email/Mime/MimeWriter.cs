@@ -1087,8 +1087,6 @@ internal static class MimeWriter {
     private static void WriteRawEntity(Stream output, Stream input, long maximumInputBytes) {
         var buffer = new byte[81920];
         long total = 0;
-        int trailingFirst = -1;
-        int trailingSecond = -1;
         while (true) {
             int read = input.Read(buffer, 0, buffer.Length);
             if (read == 0) break;
@@ -1098,17 +1096,10 @@ internal static class MimeWriter {
                     total, maximumInputBytes);
             }
             output.Write(buffer, 0, read);
-            if (read == 1) {
-                trailingFirst = trailingSecond;
-                trailingSecond = buffer[0];
-            } else {
-                trailingFirst = buffer[read - 2];
-                trailingSecond = buffer[read - 1];
-            }
         }
-        if (trailingFirst != '\r' || trailingSecond != '\n') {
-            WriteLine(output, string.Empty);
-        }
+        // This CRLF belongs to the enclosing multipart delimiter. It must remain distinct from
+        // any terminal CRLF bytes in the raw entity, which are part of the preserved payload.
+        WriteLine(output, string.Empty);
     }
 
     private static string SanitizeAddress(string value) {

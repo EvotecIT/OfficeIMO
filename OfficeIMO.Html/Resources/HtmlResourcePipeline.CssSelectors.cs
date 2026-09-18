@@ -322,23 +322,18 @@ public static partial class HtmlResourcePipeline {
 
         int search = 0;
         while (search < index) {
-            int standard = css.IndexOf("@keyframes", search, StringComparison.OrdinalIgnoreCase);
-            int prefixed = css.IndexOf("@-webkit-keyframes", search, StringComparison.OrdinalIgnoreCase);
-            int atRule = standard < 0 ? prefixed : prefixed < 0 ? standard : Math.Min(standard, prefixed);
+            bool hasStandard = TryFindNextAtRule(css, search, "keyframes", out int standard, out int standardEnd);
+            bool hasPrefixed = TryFindNextAtRule(css, search, "-webkit-keyframes", out int prefixed, out int prefixedEnd);
+            int atRule = !hasStandard ? prefixed : !hasPrefixed ? standard : Math.Min(standard, prefixed);
             if (atRule < 0 || atRule >= index) return false;
 
-            string atRuleName = atRule == prefixed ? "@-webkit-keyframes" : "@keyframes";
-            if (IsInsideCssString(css, atRule) || !HasAtRuleTokenBoundary(css, atRule, atRuleName)) {
-                search = atRule + atRuleName.Length;
-                continue;
-            }
-
-            int open = FindNextTopLevelBlockStart(css, atRule + atRuleName.Length);
+            int nameEnd = hasPrefixed && atRule == prefixed ? prefixedEnd : standardEnd;
+            int open = FindNextTopLevelBlockStart(css, nameEnd);
             if (open < 0) return false;
             int close = FindMatchingCssBrace(css, open);
             if (close < 0) return false;
             if (index > open && index < close) {
-                string prelude = css.Substring(atRule + atRuleName.Length, open - atRule - atRuleName.Length).Trim();
+                string prelude = css.Substring(nameEnd, open - nameEnd).Trim();
                 if (prelude.Length >= 2 && prelude[0] == prelude[prelude.Length - 1] && prelude[0] is '\'' or '"') {
                     prelude = prelude.Substring(1, prelude.Length - 2);
                 }
@@ -357,20 +352,16 @@ public static partial class HtmlResourcePipeline {
         List<SourceRange> inactive = GetInactiveCssRuleRanges(css, new HtmlResourcePipelineOptions());
         int search = definitionStart + 1;
         while (search < css.Length) {
-            int standard = css.IndexOf("@keyframes", search, StringComparison.OrdinalIgnoreCase);
-            int prefixed = css.IndexOf("@-webkit-keyframes", search, StringComparison.OrdinalIgnoreCase);
-            int atRule = standard < 0 ? prefixed : prefixed < 0 ? standard : Math.Min(standard, prefixed);
+            bool hasStandard = TryFindNextAtRule(css, search, "keyframes", out int standard, out int standardEnd);
+            bool hasPrefixed = TryFindNextAtRule(css, search, "-webkit-keyframes", out int prefixed, out int prefixedEnd);
+            int atRule = !hasStandard ? prefixed : !hasPrefixed ? standard : Math.Min(standard, prefixed);
             if (atRule < 0) return true;
-            string token = atRule == prefixed ? "@-webkit-keyframes" : "@keyframes";
-            if (IsInsideCssString(css, atRule) || !HasAtRuleTokenBoundary(css, atRule, token)) {
-                search = atRule + token.Length;
-                continue;
-            }
-            int open = FindNextTopLevelBlockStart(css, atRule + token.Length);
+            int nameEnd = hasPrefixed && atRule == prefixed ? prefixedEnd : standardEnd;
+            int open = FindNextTopLevelBlockStart(css, nameEnd);
             if (open < 0) return true;
             int close = FindMatchingCssBrace(css, open);
             if (close < 0) return true;
-            string candidate = css.Substring(atRule + token.Length, open - atRule - token.Length).Trim();
+            string candidate = css.Substring(nameEnd, open - nameEnd).Trim();
             if (candidate.Length >= 2 && candidate[0] == candidate[candidate.Length - 1] && candidate[0] is '\'' or '"') {
                 candidate = candidate.Substring(1, candidate.Length - 2);
             }
