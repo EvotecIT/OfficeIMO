@@ -296,8 +296,9 @@ public static partial class HtmlResourcePipeline {
         HashSet<string> relTokens = GetRelTokens(rel);
         bool isPreload = relTokens.Contains("preload");
         bool isStylesheet = relTokens.Contains("stylesheet");
-        if (isStylesheet && (element.HasAttribute("disabled") || relTokens.Contains("alternate")
-                || !IsCssStylesheetType(element.GetAttribute("type")))) {
+        if (isStylesheet && (element.HasAttribute("disabled")
+                || !IsCssStylesheetType(element.GetAttribute("type"))
+                || relTokens.Contains("alternate") && !IsSelectedAlternateStylesheet(element, options))) {
             return;
         }
         if ((isPreload || isStylesheet) && !IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options)) {
@@ -324,6 +325,44 @@ public static partial class HtmlResourcePipeline {
         if (isPreload && kind == HtmlResourceKind.Image) {
             AddSrcSet(manifest, HtmlResourceKind.Image, element, "imagesrcset", baseUri, options);
         }
+    }
+
+    private static bool IsSelectedAlternateStylesheet(IElement link, HtmlResourcePipelineOptions options) {
+        string? title = NormalizeStylesheetSetTitle(link.GetAttribute("title"));
+        return title != null
+            && string.Equals(title, FindPreferredStylesheetSet(link, options), StringComparison.Ordinal);
+    }
+
+    private static string? FindPreferredStylesheetSet(IElement context, HtmlResourcePipelineOptions options) {
+        IDocument? owner = context.Owner;
+        if (owner == null) return null;
+        foreach (IElement candidate in owner.QuerySelectorAll("link[href], style")) {
+            string? title = NormalizeStylesheetSetTitle(candidate.GetAttribute("title"));
+            if (title == null) continue;
+            if (string.Equals(candidate.LocalName, "link", StringComparison.OrdinalIgnoreCase)) {
+                HashSet<string> relTokens = GetRelTokens(candidate.GetAttribute("rel") ?? string.Empty);
+                if (!IsHtmlNamespaceElement(candidate)
+                    || !relTokens.Contains("stylesheet")
+                    || relTokens.Contains("alternate")
+                    || candidate.HasAttribute("disabled")
+                    || !IsCssStylesheetType(candidate.GetAttribute("type"))
+                    || !IsApplicableMedia(candidate.GetAttribute("media") ?? string.Empty, options)) {
+                    continue;
+                }
+                return title;
+            }
+            if (string.Equals(candidate.LocalName, "style", StringComparison.OrdinalIgnoreCase)
+                && IsCssStyleElement(candidate)
+                && IsApplicableMedia(candidate.GetAttribute("media") ?? string.Empty, options)) {
+                return title;
+            }
+        }
+        return null;
+    }
+
+    private static string? NormalizeStylesheetSetTitle(string? title) {
+        string normalized = title?.Trim() ?? string.Empty;
+        return normalized.Length == 0 ? null : normalized;
     }
 
     internal static bool IsCssStylesheetType(string? type) {

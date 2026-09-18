@@ -258,18 +258,60 @@ internal static class HtmlRenderStylesheetApplier {
     internal static bool IsApplicableStylesheetLink(IElement link, HtmlRenderOptions options) {
         if (link == null) throw new ArgumentNullException(nameof(link));
         if (options == null) throw new ArgumentNullException(nameof(options));
-        return IsStylesheetLink(link)
-            && !link.HasAttribute("disabled")
-            && !IsAlternateStylesheetLink(link)
-            && HtmlResourcePipeline.IsCssStylesheetType(link.GetAttribute("type"))
-            && IsApplicableMedia(link.GetAttribute("media") ?? string.Empty, options);
+        if (!IsStylesheetLinkCandidate(link, options)) return false;
+
+        string? title = NormalizeStylesheetSetTitle(link.GetAttribute("title"));
+        string? preferredSet = FindPreferredStylesheetSet(link, options);
+        return title == null
+            ? !IsAlternateStylesheetLink(link)
+            : string.Equals(title, preferredSet, StringComparison.Ordinal);
     }
 
     internal static bool IsApplicableStyleElement(IElement styleElement, HtmlRenderOptions options) {
         if (styleElement == null) throw new ArgumentNullException(nameof(styleElement));
         if (options == null) throw new ArgumentNullException(nameof(options));
-        return HtmlResourcePipeline.IsCssStyleElement(styleElement)
-            && IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, options);
+        if (!IsStyleElementCandidate(styleElement, options)) return false;
+
+        string? title = NormalizeStylesheetSetTitle(styleElement.GetAttribute("title"));
+        return title == null
+            || string.Equals(title, FindPreferredStylesheetSet(styleElement, options), StringComparison.Ordinal);
+    }
+
+    internal static bool IsPreferredStylesheetSetDeclaration(IElement element, HtmlRenderOptions options) {
+        if (element == null) throw new ArgumentNullException(nameof(element));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        string? title = NormalizeStylesheetSetTitle(element.GetAttribute("title"));
+        if (title == null) return false;
+        if (string.Equals(element.LocalName, "link", StringComparison.OrdinalIgnoreCase)) {
+            return IsStylesheetLinkCandidate(element, options) && !IsAlternateStylesheetLink(element);
+        }
+        return string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase)
+            && IsStyleElementCandidate(element, options);
+    }
+
+    private static string? FindPreferredStylesheetSet(IElement context, HtmlRenderOptions options) {
+        IDocument? owner = context.Owner;
+        if (owner == null) return null;
+        foreach (IElement candidate in owner.QuerySelectorAll("link[href], style")) {
+            if (!IsPreferredStylesheetSetDeclaration(candidate, options)) continue;
+            return NormalizeStylesheetSetTitle(candidate.GetAttribute("title"));
+        }
+        return null;
+    }
+
+    private static bool IsStylesheetLinkCandidate(IElement link, HtmlRenderOptions options) =>
+        IsStylesheetLink(link)
+        && !link.HasAttribute("disabled")
+        && HtmlResourcePipeline.IsCssStylesheetType(link.GetAttribute("type"))
+        && IsApplicableMedia(link.GetAttribute("media") ?? string.Empty, options);
+
+    private static bool IsStyleElementCandidate(IElement styleElement, HtmlRenderOptions options) =>
+        HtmlResourcePipeline.IsCssStyleElement(styleElement)
+        && IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, options);
+
+    private static string? NormalizeStylesheetSetTitle(string? title) {
+        string normalized = title?.Trim() ?? string.Empty;
+        return normalized.Length == 0 ? null : normalized;
     }
 
     private static bool IsApplicableMedia(string mediaText, HtmlRenderOptions options) {

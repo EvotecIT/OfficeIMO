@@ -296,8 +296,7 @@ public sealed partial class EpubDocument {
             "epub.encryption.metadata-size-limit",
             "epub.encryption.resource-path-invalid",
             "epub.encryption.duplicate-resource",
-            "epub.encryption.resource-missing",
-            "epub.encryption.unsupported"
+            "epub.encryption.resource-missing"
         };
         EpubDiagnostic? blocking = document.Diagnostics.FirstOrDefault(item =>
             blockingPrefixes.Any(code => item.Code.Equals(code, StringComparison.Ordinal)));

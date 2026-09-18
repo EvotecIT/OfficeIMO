@@ -4,6 +4,7 @@ internal static partial class EpubReader {
     private const string OpfNamespaceUri = "http://www.idpf.org/2007/opf";
     private const string DublinCoreNamespaceUri = "http://purl.org/dc/elements/1.1/";
     private const string ContainerNamespaceUri = "urn:oasis:names:tc:opendocument:xmlns:container";
+    private const string XmlEncryptionNamespaceUri = "http://www.w3.org/2001/04/xmlenc#";
 
     private static bool IsName(XElement element, string expectedLocalName) {
         return string.Equals(element.Name.LocalName, expectedLocalName, StringComparison.OrdinalIgnoreCase);
@@ -24,6 +25,10 @@ internal static partial class EpubReader {
 
     private static bool IsContainerName(XElement element, string expectedLocalName) =>
         string.Equals(element.Name.NamespaceName, ContainerNamespaceUri, StringComparison.Ordinal)
+        && string.Equals(element.Name.LocalName, expectedLocalName, StringComparison.Ordinal);
+
+    private static bool IsXmlEncryptionName(XElement element, string expectedLocalName) =>
+        string.Equals(element.Name.NamespaceName, XmlEncryptionNamespaceUri, StringComparison.Ordinal)
         && string.Equals(element.Name.LocalName, expectedLocalName, StringComparison.Ordinal);
 
     private static string? TryGetFirstDublinCoreValue(XElement container, string localName) {

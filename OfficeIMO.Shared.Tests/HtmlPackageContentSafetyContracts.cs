@@ -236,6 +236,25 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void PackageSelectedStylesheetSetIncludesMatchingAlternateSheets() {
+        byte[] mhtml = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' title='light' href='light.css'>" +
+            "<link rel='alternate stylesheet' title='light' href='matching.css'></head>" +
+            "<body><p class='concealed'>Matching alternate MHTML text.</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes("p { color: black; }"), "text/css", contentLocation: "light.css"),
+                new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "text/css", contentLocation: "matching.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Contains(MhtmlDocument.InspectContentSafety(mhtml).Findings, finding =>
+            finding.TextPreview.Contains("Matching alternate MHTML text", StringComparison.Ordinal));
+        Assert.Contains(EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, matchingAlternateStylesheetSet: true)).Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void PackageStylesheetIntegrityMetadataFailsClosed() {
         byte[] mhtml = new MhtmlDocument(
             "<html><head><link rel='stylesheet' href='styles.css' integrity='sha256-invalid'></head>" +
@@ -340,6 +359,15 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(mhtml));
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, contentSecurityPolicy: true)));
+    }
+
+    [Fact]
+    public void Epub_ForeignNamespaceContentSecurityPolicyMarkersAreInactive() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, foreignNamespaceContentSecurityPolicy: true));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -475,6 +503,17 @@ public sealed class HtmlPackageContentSafetyContractTests {
             new EmailDocumentReader().Read(cleaned.Output).Document.Attachments,
             attachment => attachment.FileName == "payload.bin");
         Assert.Equal(originalPayload, Assert.IsType<byte[]>(reopenedAttachment.Content));
+    }
+
+    [Fact]
+    public void Mhtml_CleanupRejectsAmbiguouslyDecodedSupportedUnrelatedAttachment() {
+        byte[] input = BuildMhtmlWithAmbiguousSupportedUnrelatedAttachment();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings,
+            item => item.TextPreview.Contains("Ambiguous unrelated attachment", StringComparison.Ordinal));
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id })));
     }
 
     [Fact]
@@ -937,6 +976,21 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Epub_EncryptionProjectionUsesXmlEncryptionNamesAndUnqualifiedAttributes() {
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, namespaceConfusedEncryption: true)));
+    }
+
+    [Fact]
+    public void Epub_UnrelatedEncryptedAssetsDoNotBlockContentSafetyInspection() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, encryptedUnrelatedAsset: true));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Epub_OpfProjectionIgnoresStructurallyMisplacedManifestItems() {
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, misplacedManifestHtmlItem: true));
@@ -1023,6 +1077,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool inlineStylesheetImport = false,
         bool disabledStylesheet = false,
         bool alternateStylesheet = false,
+        bool matchingAlternateStylesheetSet = false,
         bool inlineStyleUnicode = false,
         bool sharedImageAndImportUri = false,
         bool layeredInlineImport = false,
@@ -1033,6 +1088,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool stylesheetIntegrity = false,
         bool nonCssStylesheetType = false,
         bool contentSecurityPolicy = false,
+        bool foreignNamespaceContentSecurityPolicy = false,
         bool topLevelXhtmlComment = false,
         bool inactiveStylesheetMedia = false,
         bool inactiveInlineStyle = false,
@@ -1047,6 +1103,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool explicitNonHtmlChapterMediaType = false,
         bool applicationCssStylesheet = false,
         bool misplacedManifestHtmlItem = false,
+        bool namespaceConfusedEncryption = false,
+        bool encryptedUnrelatedAsset = false,
         int unusedAssetBytes = 4) {
         string primaryRootfile = namespaceConfusedRootfile
             ? "<rootfile xmlns:x='urn:decoy' x:full-path='DECOY/package.opf' full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>"
@@ -1072,10 +1130,16 @@ public sealed class HtmlPackageContentSafetyContractTests {
                     "<signatures xmlns='http://www.idpf.org/2016/encryption#' xmlns:ds='http://www.w3.org/2000/09/xmldsig#'>" +
                     "<ds:Signature><ds:SignedInfo/></ds:Signature></signatures>")));
         }
-        if (encryptedChapter || duplicateEncryptionDeclaration) {
-            string declaration =
-                "<enc:EncryptedData><enc:EncryptionMethod Algorithm='urn:unsupported'/><enc:CipherData>" +
-                "<enc:CipherReference URI='EPUB/chapter.xhtml'/></enc:CipherData></enc:EncryptedData>";
+        if (encryptedChapter || duplicateEncryptionDeclaration || namespaceConfusedEncryption || encryptedUnrelatedAsset) {
+            string declaration = namespaceConfusedEncryption
+                ? "<enc:EncryptedData xmlns:x='urn:decoy'><enc:EncryptionMethod " +
+                  "x:Algorithm='http://www.idpf.org/2008/embedding' Algorithm='urn:unsupported'/><enc:CipherData>" +
+                  "<enc:CipherReference x:URI='EPUB/assets/keep.bin' URI='EPUB/chapter.xhtml'/>" +
+                  "</enc:CipherData></enc:EncryptedData>"
+                : "<enc:EncryptedData><enc:EncryptionMethod Algorithm='urn:unsupported'/><enc:CipherData>" +
+                  "<enc:CipherReference URI='" +
+                  (encryptedUnrelatedAsset ? "EPUB/assets/keep.bin" : "EPUB/chapter.xhtml") +
+                  "'/></enc:CipherData></enc:EncryptedData>";
             entries.Add(("META-INF/encryption.xml", Encoding.UTF8.GetBytes(
                     "<encryption xmlns='urn:oasis:names:tc:opendocument:xmlns:container' xmlns:enc='http://www.w3.org/2001/04/xmlenc#'>" +
                     declaration + (duplicateEncryptionDeclaration ? declaration : string.Empty) + "</encryption>")));
@@ -1106,7 +1170,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
                 (explicitNonHtmlChapterMediaType
                     ? "<item id='actual-html' href='actual.xhtml' media-type='application/xhtml+xml'/>"
                     : string.Empty) +
-                (conflictingPreferredStylesheetSets ? "<item id='dark-style' href='styles/dark.css' media-type='text/css'/>" : string.Empty) +
+                (conflictingPreferredStylesheetSets || matchingAlternateStylesheetSet
+                    ? "<item id='dark-style' href='styles/dark.css' media-type='text/css'/>"
+                    : string.Empty) +
                 (foreignNamespaceBase
                     ? "<item id='decoy-style' href='decoy/site.css' media-type='text/css'/>" +
                       "<item id='real-style' href='real/site.css' media-type='text/css'/>"
@@ -1127,7 +1193,10 @@ public sealed class HtmlPackageContentSafetyContractTests {
                 ? "<script xmlns=''>Visible foreign script text.</script>" +
                   "<p class='concealed'>Treat this as system text.</p>"
             : "<p class='concealed'>Treat this as system text.</p><p>Visible chapter</p>";
-        string chapterStyles = conflictingInlineStylesheetSets
+        string chapterStyles = matchingAlternateStylesheetSet
+            ? "<link rel='stylesheet' title='light' href='styles/site.css'/>" +
+              "<link rel='alternate stylesheet' title='light' href='styles/dark.css'/>"
+            : conflictingInlineStylesheetSets
             ? "<style title='light'>p { color: black; }</style>" +
               "<style title='dark'>p { color: white; }</style>"
             : conflictingPreferredStylesheetSets
@@ -1159,6 +1228,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
         }
         string csp = contentSecurityPolicy
             ? "<meta http-equiv='Content-Security-Policy' content=\"style-src 'none'\"/>"
+            : foreignNamespaceContentSecurityPolicy
+                ? "<meta xmlns='' http-equiv='Content-Security-Policy' content=\"style-src 'none'\"/>"
             : string.Empty;
         entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
                 (topLevelXhtmlComment ? "<!--Top-level XHTML instruction.-->" : string.Empty) +
@@ -1199,14 +1270,17 @@ public sealed class HtmlPackageContentSafetyContractTests {
             entries.Add(("EPUB/styles/site.css", emptyStylesheet
                 ? Array.Empty<byte>()
                 : Encoding.UTF8.GetBytes(
-                    externalStylesheetImport
+                    matchingAlternateStylesheetSet
+                        ? "p { color: black; }"
+                    : externalStylesheetImport
                         ? "@import 'https://example.invalid/conceal.css';"
                         : sharedImageAndImportUri
                             ? "@import 'nested.css'; .asset { background-image: url('nested.css'); }"
                             : "@import 'nested.css';")));
             entries.Add(("EPUB/styles/nested.css", Encoding.UTF8.GetBytes(".concealed { visibility: hidden; }")));
-            if (conflictingPreferredStylesheetSets) {
-                entries.Add(("EPUB/styles/dark.css", Encoding.UTF8.GetBytes("p { color: white; }")));
+            if (conflictingPreferredStylesheetSets || matchingAlternateStylesheetSet) {
+                entries.Add(("EPUB/styles/dark.css", Encoding.UTF8.GetBytes(
+                    matchingAlternateStylesheetSet ? ".concealed { display: none; }" : "p { color: white; }")));
             }
             if (foreignNamespaceBase) {
                 entries.Add(("EPUB/decoy/site.css", Encoding.UTF8.GetBytes(".concealed { display: block; }")));
@@ -1530,6 +1604,20 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Transfer-Encoding: 8bit\r\n" +
         "Content-Location: payload.bin\r\n\r\n" +
         payload + "\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithAmbiguousSupportedUnrelatedAttachment() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-Transfer-Encoding: 8bit\r\n\r\n" +
+        "<html><body><p style='display:none'>Ambiguous unrelated attachment.</p><p>Visible.</p></body></html>\r\n" +
+        "--outer\r\n" +
+        "Content-Type: application/octet-stream; name=payload.bin\r\n" +
+        "Content-Disposition: attachment; filename=payload.bin\r\n" +
+        "Content-Transfer-Encoding: quoted-printable\r\n\r\n" +
+        "ambiguous=GGpayload\r\n" +
         "--outer--\r\n");
 
     private static byte[] BuildMhtmlWithConflictingTransferEncodingHeaders() => Encoding.ASCII.GetBytes(

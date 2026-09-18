@@ -69,12 +69,12 @@ internal static partial class EpubReader {
 
         var results = new List<EpubEncryptionInfo>();
         var seenPaths = new HashSet<string>(StringComparer.Ordinal);
-        foreach (XElement encryptedData in document.Descendants().Where(element => IsName(element, "EncryptedData"))) {
+        foreach (XElement encryptedData in document.Descendants().Where(element => IsXmlEncryptionName(element, "EncryptedData"))) {
             cancellationToken.ThrowIfCancellationRequested();
-            XElement? method = encryptedData.Descendants().FirstOrDefault(element => IsName(element, "EncryptionMethod"));
-            XElement? reference = encryptedData.Descendants().FirstOrDefault(element => IsName(element, "CipherReference"));
-            string? algorithm = method == null ? null : NullIfWhiteSpace(GetAttribute(method, "Algorithm"));
-            string uri = reference == null ? string.Empty : GetAttribute(reference, "URI");
+            XElement? method = encryptedData.Descendants().FirstOrDefault(element => IsXmlEncryptionName(element, "EncryptionMethod"));
+            XElement? reference = encryptedData.Descendants().FirstOrDefault(element => IsXmlEncryptionName(element, "CipherReference"));
+            string? algorithm = method == null ? null : NullIfWhiteSpace(GetUnqualifiedAttribute(method, "Algorithm"));
+            string uri = reference == null ? string.Empty : GetUnqualifiedAttribute(reference, "URI");
             string resourcePath = ResolveContainerRootPath(uri);
             if (resourcePath.Length == 0) {
                 diagnostics.Warning(

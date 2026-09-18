@@ -549,6 +549,11 @@ internal static class MimeWriter {
         Stream output,
         EmailAttachment attachment,
         MimeWriterState state) {
+        if (attachment.MimeDecodingWasAmbiguous
+            && MimeTextCodec.IsSupportedTransferEncoding(attachment.MimeTransferEncoding)) {
+            throw new InvalidDataException(
+                "A MIME part with an ambiguously decoded supported content-transfer-encoding cannot be rewritten safely.");
+        }
         bool writeRaw = attachment.MimeDecodingWasAmbiguous
             && !MimeTextCodec.IsSupportedTransferEncoding(attachment.MimeTransferEncoding);
         if (attachment.Content != null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) {

@@ -188,15 +188,13 @@ public static partial class HtmlContentSafety {
 
         IHtmlDocument document = ParsePackageDocument(part, renderOptions.BaseUri, limits, safetyOptions, cancellationToken);
         if (document.QuerySelectorAll("meta[http-equiv]").Any(meta =>
-                string.Equals(meta.GetAttribute("http-equiv")?.Trim(), "Content-Security-Policy", StringComparison.OrdinalIgnoreCase))) {
+                HtmlResourcePipeline.IsHtmlNamespaceElement(meta)
+                && string.Equals(meta.GetAttribute("http-equiv")?.Trim(), "Content-Security-Policy", StringComparison.OrdinalIgnoreCase))) {
             throw new InvalidDataException(
                 "Package content-safety inspection does not apply stylesheets when the document declares a Content Security Policy.");
         }
-        IEnumerable<IElement> applicableStylesheets = document.QuerySelectorAll("link[href]")
-            .Where(link => HtmlRenderStylesheetApplier.IsApplicableStylesheetLink(link, renderOptions))
-            .Concat(document.QuerySelectorAll("style")
-                .Where(style => HtmlRenderStylesheetApplier.IsApplicableStyleElement(style, renderOptions)));
-        string[] titledStylesheetSets = applicableStylesheets
+        string[] titledStylesheetSets = document.QuerySelectorAll("link[href], style")
+            .Where(stylesheet => HtmlRenderStylesheetApplier.IsPreferredStylesheetSetDeclaration(stylesheet, renderOptions))
             .Select(stylesheet => stylesheet.GetAttribute("title")?.Trim())
             .Where(title => !string.IsNullOrEmpty(title))
             .Select(title => title!)
