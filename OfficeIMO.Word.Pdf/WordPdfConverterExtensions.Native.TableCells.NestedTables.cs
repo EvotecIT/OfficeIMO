@@ -54,11 +54,20 @@ namespace OfficeIMO.Word.Pdf {
             int nestedFooterStartRowIndex = nestedTable.ConditionalFormattingLastRow == true && nestedLayout.Rows.Count > nestedHeaderRowCount
                 ? nestedLayout.Rows.Count - 1
                 : nestedLayout.Rows.Count;
-            for (int rowIndex = 0; rowIndex < nestedTable.Rows.Count; rowIndex++) {
-                WordTableRow nestedRow = nestedTable.Rows[rowIndex];
+            for (int rowIndex = 0; rowIndex < nestedLayout.Rows.Count; rowIndex++) {
+                IReadOnlyList<WordTableCell> nestedRow = nestedLayout.Rows[rowIndex];
                 int logicalColumnIndex = GetNativeTableRowStartColumn(nestedLayout, rowIndex);
-                foreach (WordTableCell nestedCell in nestedRow.Cells) {
+                foreach (WordTableCell nestedCell in nestedRow) {
+                    if (IsNativeHorizontalMergeContinuation(nestedCell)) {
+                        continue;
+                    }
+
                     int columnSpan = GetNativeCellColumnSpan(nestedCell);
+                    if (IsNativeVerticalMergeContinuation(nestedCell)) {
+                        logicalColumnIndex += columnSpan;
+                        continue;
+                    }
+
                     NativeTableStyleDefaults nestedCellStyleDefaults = GetNativeTableCellStyleDefaults(
                         nestedTable,
                         nestedTableStyleDefaults,

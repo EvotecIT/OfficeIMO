@@ -458,6 +458,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IEnumerable<WordParagraph> EnumerateNativeTableCellParagraphs(WordTableCell cell, int tableNestingDepth = 0) {
+            if (IsNativeHorizontalMergeContinuation(cell) || IsNativeVerticalMergeContinuation(cell)) {
+                yield break;
+            }
+
             foreach (WordElement element in EnumerateNativeTableCellElements(cell)) {
                 if (element is WordParagraph paragraph) {
                     yield return paragraph;

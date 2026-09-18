@@ -45,7 +45,8 @@ internal static class PdfBenchmarkRunner {
             PdfObjectSerializationMode.ForwardOnly,
             sampleCount: 3,
             includeComposition: true,
-            static _ => PdfBenchmarkCorpus.CreateHarfBuzzDocument());
+            static _ => PdfBenchmarkCorpus.CreateHarfBuzzDocument(),
+            PdfBenchmarkCorpus.HarfBuzzSerializationRequiredText);
         return new[] {
             cold, cached, svg, png,
             buffered, forward,
@@ -184,11 +185,14 @@ internal static class PdfBenchmarkRunner {
         PdfObjectSerializationMode mode,
         int sampleCount,
         bool includeComposition,
-        Func<PdfObjectSerializationMode, PdfDocument>? createDocument = null) {
+        Func<PdfObjectSerializationMode, PdfDocument>? createDocument = null,
+        IReadOnlyList<string>? requiredTextMarkers = null) {
         Func<PdfObjectSerializationMode, PdfDocument> factory =
             createDocument ?? PdfBenchmarkCorpus.CreateDocument;
+        IReadOnlyList<string> expectedText =
+            requiredTextMarkers ?? PdfBenchmarkCorpus.SerializationRequiredText;
         PdfSerializationArtifact warmup = RunSerialization(mode, factory, includeComposition ? null : factory(mode));
-        ValidateSerialization(warmup, mode);
+        ValidateSerialization(warmup, mode, expectedText);
         var samples = new List<PdfPerformanceSample>(sampleCount);
         for (int sample = 0; sample < sampleCount; sample++) {
             PdfDocument? precomposed = includeComposition ? null : factory(mode);
@@ -198,7 +202,7 @@ internal static class PdfBenchmarkRunner {
             PdfSerializationArtifact artifact = RunSerialization(mode, factory, precomposed);
             stopwatch.Stop();
             long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
-            ValidateSerialization(artifact, mode);
+            ValidateSerialization(artifact, mode, expectedText);
             samples.Add(artifact.Sample with {
                 ElapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds,
                 AllocatedBytes = allocatedBytes
@@ -206,7 +210,7 @@ internal static class PdfBenchmarkRunner {
         }
 
         return Summarize(name, samples) with {
-            PeakManagedHeapBytes = MeasureSerializationPeakManagedHeap(mode, factory, includeComposition)
+            PeakManagedHeapBytes = MeasureSerializationPeakManagedHeap(mode, factory, includeComposition, expectedText)
         };
     }
 
@@ -232,9 +236,20 @@ internal static class PdfBenchmarkRunner {
                 serialization.IsForwardOnlyObjectSerialization));
     }
 
-    private static void ValidateSerialization(PdfSerializationArtifact artifact, PdfObjectSerializationMode mode) {
-        if (PdfDocument.Load(artifact.Bytes).Inspect().PageCount != PdfBenchmarkCorpus.PageCount) {
+    private static void ValidateSerialization(
+        PdfSerializationArtifact artifact,
+        PdfObjectSerializationMode mode,
+        IReadOnlyList<string> requiredTextMarkers) {
+        PdfReadDocument readDocument = PdfReadDocument.Open(artifact.Bytes);
+        if (readDocument.Pages.Count != PdfBenchmarkCorpus.PageCount) {
             throw new InvalidOperationException("PDF serialization benchmark produced an invalid page count.");
+        }
+        string text = readDocument.ExtractText();
+        foreach (string marker in requiredTextMarkers) {
+            if (!text.Contains(marker, StringComparison.Ordinal)) {
+                throw new InvalidOperationException(
+                    $"PDF serialization benchmark did not preserve required content '{marker}'.");
+            }
         }
         if (artifact.Sample.IsForwardOnlyObjectSerialization != (mode == PdfObjectSerializationMode.ForwardOnly)) {
             throw new InvalidOperationException("PDF serialization benchmark observed the wrong object writer mode.");
@@ -279,13 +294,14 @@ internal static class PdfBenchmarkRunner {
     private static long MeasureSerializationPeakManagedHeap(
         PdfObjectSerializationMode mode,
         Func<PdfObjectSerializationMode, PdfDocument> factory,
-        bool includeComposition) {
+        bool includeComposition,
+        IReadOnlyList<string> requiredTextMarkers) {
         PdfDocument? precomposed = includeComposition ? null : factory(mode);
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
         using var heap = new ManagedHeapSampler();
         PdfSerializationArtifact artifact = RunSerialization(mode, factory, precomposed);
         long peakManagedHeapBytes = heap.Stop();
-        ValidateSerialization(artifact, mode);
+        ValidateSerialization(artifact, mode, requiredTextMarkers);
         return peakManagedHeapBytes;
     }
 

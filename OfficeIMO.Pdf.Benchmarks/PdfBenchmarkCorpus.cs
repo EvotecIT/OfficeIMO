@@ -4,6 +4,20 @@ using OfficeIMO.Pdf;
 
 internal static class PdfBenchmarkCorpus {
     internal const int PageCount = 60;
+    internal static readonly IReadOnlyList<string> SerializationRequiredText = new[] {
+        "Operational report 1",
+        "Documents",
+        "Validated",
+        "Boundary list item 1 on page 1",
+        "Boundary list item 1 on page 30",
+        "Boundary list item 6 on page 60"
+    };
+    internal static readonly IReadOnlyList<string> HarfBuzzSerializationRequiredText = new[] {
+        "Shaped report 1",
+        "Shaped report 30",
+        "Shaped report 60",
+        "Repeated shaping must reuse one parsed font face"
+    };
     private static readonly Lazy<byte[]> CarlitoRegular = new(
         static () => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "Carlito-Regular.ttf")),
         isThreadSafe: true);
